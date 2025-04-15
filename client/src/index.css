@@ -59,7 +59,13 @@
   }
 
   .active-nav-item {
-    @apply text-white font-medium;
+    @apply text-white font-medium relative;
+  }
+  
+  .active-nav-item::after {
+    content: '';
+    @apply absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-0.5 rounded-full;
+    background: linear-gradient(90deg, rgba(150,89,255,0.7) 0%, rgba(160,89,255,1) 50%, rgba(150,89,255,0.7) 100%);
   }
   
   .nav-icon-container {
