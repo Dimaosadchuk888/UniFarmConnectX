@@ -83,12 +83,6 @@ export const MissionsList: React.FC = () => {
   // Загружаем активные миссии через API
   const { data: dbMissions, isLoading } = useQuery<DbMission[]>({
     queryKey: ['/api/missions/active'],
-    queryFn: async () => {
-      const response = await apiRequest('/api/missions/active', {
-        method: 'GET',
-      });
-      return response.json();
-    }
   });
   
   // Преобразуем данные из БД в формат для UI
