@@ -1,15 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BOOST_PACKAGES } from '@/lib/constants';
 
 const BoostOptions: React.FC = () => {
   // Состояния для анимаций и эффектов
   const [hoveredPackId, setHoveredPackId] = useState<number | null>(null);
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
+  const [currentYield, setCurrentYield] = useState<string>("0.00000");
+  const [animateYield, setAnimateYield] = useState<boolean>(false);
+  
+  // Ref для хранения интервала анимации
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Функция для отображения tooltip с описанием boost
   const toggleTooltip = () => {
     setShowTooltip(!showTooltip);
   };
+  
+  // Функция имитации обновления дохода в реальном времени
+  useEffect(() => {
+    // Стартовое значение
+    let yieldValue = 0.00000;
+    
+    // Запускаем интервал с обновлением каждые 2 секунды
+    intervalRef.current = setInterval(() => {
+      // Увеличиваем значение на случайную величину
+      yieldValue += Math.random() * 0.00002 + 0.00001;
+      
+      // Форматируем число с 5 знаками после запятой
+      const formattedValue = yieldValue.toFixed(5);
+      
+      // Обновляем состояние
+      setCurrentYield(formattedValue);
+      
+      // Запускаем анимацию
+      setAnimateYield(true);
+      setTimeout(() => setAnimateYield(false), 500);
+      
+    }, 2000);
+    
+    // Очищаем интервал при размонтировании компонента
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
   
   return (
     <div className="mb-6">
@@ -49,13 +84,28 @@ const BoostOptions: React.FC = () => {
               {/* UNI Yield */}
               <div className="mb-2">
                 <div className="text-xs text-gray-400 mb-1">UNI Yield:</div>
-                <div className="font-medium text-green-400 flex items-center">
-                  <i className="fas fa-chart-line mr-1 text-xs"></i>
+                <div className="font-bold text-green-400 flex items-center text-lg">
+                  <i className="fas fa-chart-line mr-1 text-sm"></i>
                   0.5% Daily
                 </div>
               </div>
               
-              <p className="text-xs text-gray-500 italic mt-3">
+              {/* Счетчик текущего дохода */}
+              <div className="mt-2 mb-2 flex items-center">
+                <div 
+                  className={`
+                    text-green-400 font-medium flex items-center
+                    transition-all duration-300
+                    ${animateYield ? 'scale-110' : 'scale-100'}
+                  `}
+                >
+                  <i className="fas fa-plus text-[10px] mr-1"></i>
+                  <span className="mr-1">{currentYield}</span>
+                  <span className="text-xs">UNI</span>
+                </div>
+              </div>
+              
+              <p className="text-xs text-gray-500 italic mt-1">
                 Доход начисляется каждую секунду
               </p>
             </div>
