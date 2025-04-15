@@ -4,9 +4,12 @@ const FarmingStatusCard: React.FC = () => {
   // Анимация числовых значений
   const [dailyYield, setDailyYield] = useState(0);
   const [perSecond, setPerSecond] = useState(0);
+  const [tonDailyYield, setTonDailyYield] = useState(0);
+  const [tonPerSecond, setTonPerSecond] = useState(0);
   
   // Анимация пульсирующего эффекта с периодическим запуском
   const [isPulsing, setIsPulsing] = useState(false);
+  const [isTonPulsing, setIsTonPulsing] = useState(false);
   
   // Индикатор активности фарминга
   const [isActive, setIsActive] = useState(true);
@@ -17,8 +20,10 @@ const FarmingStatusCard: React.FC = () => {
     // Анимируем нарастание значений
     const animationDuration = 1800;
     const startTime = Date.now();
-    const targetDaily = 0; // Целевое значение в день
-    const targetPerSecond = 0; // Целевое значение в секунду
+    const targetDaily = 0; // Целевое значение UNI в день
+    const targetPerSecond = 0; // Целевое значение UNI в секунду
+    const targetTonDaily = 0; // Целевое значение TON в день
+    const targetTonPerSecond = 0; // Целевое значение TON в секунду
     
     const animate = () => {
       const currentTime = Date.now();
@@ -30,6 +35,8 @@ const FarmingStatusCard: React.FC = () => {
       
       setDailyYield(targetDaily * easedProgress);
       setPerSecond(targetPerSecond * easedProgress);
+      setTonDailyYield(targetTonDaily * easedProgress);
+      setTonPerSecond(targetTonPerSecond * easedProgress);
       
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -39,7 +46,7 @@ const FarmingStatusCard: React.FC = () => {
     requestAnimationFrame(animate);
   }, []);
   
-  // Эффект пульсации каждые несколько секунд
+  // Эффект пульсации для UNI каждые несколько секунд
   useEffect(() => {
     const intervalId = setInterval(() => {
       setIsPulsing(true);
@@ -47,6 +54,29 @@ const FarmingStatusCard: React.FC = () => {
     }, 5000);
     
     return () => clearInterval(intervalId);
+  }, []);
+  
+  // Эффект пульсации для TON с небольшой задержкой относительно UNI
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setIsTonPulsing(true);
+      setTimeout(() => setIsTonPulsing(false), 800);
+    }, 5000);
+    
+    // Запускаем с небольшой задержкой относительно UNI
+    const timeout = setTimeout(() => {
+      const intervalId = setInterval(() => {
+        setIsTonPulsing(true);
+        setTimeout(() => setIsTonPulsing(false), 800);
+      }, 5000);
+      
+      return () => clearInterval(intervalId);
+    }, 2500);
+    
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(timeout);
+    };
   }, []);
   
   // Анимация мигающего индикатора
@@ -79,6 +109,7 @@ const FarmingStatusCard: React.FC = () => {
       </div>
       
       <div className="grid grid-cols-2 gap-4">
+        {/* UNI Daily Yield */}
         <div className={`transition-all duration-300 ${isPulsing ? 'scale-105' : 'scale-100'}`}>
           <p className="text-sm text-foreground opacity-70">Текущий доход</p>
           <p className="text-lg font-semibold green-gradient-text relative">
@@ -86,6 +117,20 @@ const FarmingStatusCard: React.FC = () => {
             {isPulsing && (
               <span className="absolute -right-4 top-0">
                 <svg className="w-4 h-4 text-accent animate-pulse-fade" 
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24" 
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" 
+                    strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              </span>
+            )}
+          </p>
+          {/* TON Daily Yield */}
+          <p className="text-sm text-cyan-400 font-medium mt-1 relative">
+            {tonDailyYield.toFixed(4)} TON / сутки
+            {isTonPulsing && (
+              <span className="absolute -right-4 top-0">
+                <svg className="w-3 h-3 text-cyan-400 animate-pulse-fade" 
                   fill="none" stroke="currentColor" viewBox="0 0 24 24" 
                   xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" 
@@ -107,10 +152,25 @@ const FarmingStatusCard: React.FC = () => {
           </div>
         </div>
         
+        {/* UNI Per Second */}
         <div className={`transition-all duration-300 ${isPulsing ? 'scale-105' : 'scale-100'}`}>
           <p className="text-sm text-foreground opacity-70">Начисление</p>
           <p className="text-md green-gradient-text font-medium relative">
-            {perSecond.toFixed(4)} UNI / сек
+            +{perSecond.toFixed(4)} UNI / сек
+            <span className="absolute right-0 top-0 transform translate-x-full">
+              {isPulsing && (
+                <i className="fas fa-arrow-up text-xs text-green-400 animate-bounce"></i>
+              )}
+            </span>
+          </p>
+          {/* TON Per Second */}
+          <p className="text-sm text-cyan-400 font-medium mt-1 relative">
+            +{tonPerSecond.toFixed(4)} TON / сек
+            <span className="absolute right-0 top-0 transform translate-x-full">
+              {isTonPulsing && (
+                <i className="fas fa-arrow-up text-xs text-cyan-400 animate-bounce"></i>
+              )}
+            </span>
           </p>
         </div>
       </div>
