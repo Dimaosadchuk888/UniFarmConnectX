@@ -127,7 +127,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Получаем награду за миссию
-      const reward = parseFloat(mission.reward_uni);
+      const rewardUni = mission.reward_uni;
+      const reward = rewardUni ? parseFloat(rewardUni) : 0;
       
       // Обновляем баланс пользователя
       await db

@@ -4,10 +4,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 
 // Определение типов статусов миссий
@@ -52,44 +51,6 @@ interface Mission {
   status: MissionStatus;
   progress?: number; // прогресс выполнения от 0 до 100
 }
-
-// Временные данные для демонстрации
-// В реальном приложении эти данные будут получены из API
-const demoMissions: Mission[] = [
-  {
-    id: 1,
-    type: 'invite',
-    title: 'Пригласи друга',
-    description: 'Пригласи друга в UniFarm и получи бонус, когда он начнет фарминг',
-    rewardUni: 5,
-    status: MissionStatus.AVAILABLE,
-  },
-  {
-    id: 2,
-    type: 'social',
-    title: 'Подпишись на Telegram канал',
-    description: 'Подпишись на наш официальный Telegram канал и получи награду',
-    rewardUni: 2.5,
-    status: MissionStatus.PROCESSING,
-    progress: 50,
-  },
-  {
-    id: 3,
-    type: 'check-in',
-    title: 'Ежедневный бонус',
-    description: 'Заходи в приложение каждый день и получай бонус',
-    rewardUni: 1,
-    status: MissionStatus.COMPLETED,
-  },
-  {
-    id: 4,
-    type: 'deposit',
-    title: 'Сделай первый депозит',
-    description: 'Сделай свой первый депозит в фарминг и получи бонусные токены',
-    rewardUni: 10,
-    status: MissionStatus.AVAILABLE,
-  },
-];
 
 export const MissionsList: React.FC = () => {
   const queryClient = useQueryClient();
@@ -144,72 +105,6 @@ export const MissionsList: React.FC = () => {
       setMissions(mappedMissions);
     }
   }, [dbMissions, userCompletedMissions]);
-  
-  // Эффект для имитации прогресса выполнения миссии
-  useEffect(() => {
-    const processingMission = missions.find(
-      m => m.status === MissionStatus.PROCESSING && m.progress !== undefined && m.progress < 100
-    );
-    
-    if (processingMission) {
-      const timer = setInterval(() => {
-        setMissions(prevMissions => 
-          prevMissions.map(mission => {
-            if (mission.id === processingMission.id) {
-              const newProgress = (mission.progress || 0) + 10;
-              
-              // Если прогресс достиг 100%, завершаем миссию
-              if (newProgress >= 100) {
-                setCompletedMissionId(mission.id);
-                setShowConfetti(true);
-                clearInterval(timer);
-                return { 
-                  ...mission, 
-                  status: MissionStatus.COMPLETED, 
-                  progress: 100 
-                };
-              }
-              
-              return { ...mission, progress: newProgress };
-            }
-            return mission;
-          })
-        );
-      }, 800); // Обновляем прогресс каждые 800мс
-      
-      return () => clearInterval(timer);
-    }
-  }, [missions]);
-  
-  // Функция для получения цвета и иконки в зависимости от статуса миссии
-  const getMissionStatusInfo = (status: MissionStatus) => {
-    switch (status) {
-      case MissionStatus.AVAILABLE:
-        return { 
-          color: 'bg-blue-500', 
-          text: 'Доступно', 
-          icon: <AlertCircle className="h-4 w-4 mr-1" /> 
-        };
-      case MissionStatus.PROCESSING:
-        return { 
-          color: 'bg-amber-500', 
-          text: 'В процессе', 
-          icon: <Clock className="h-4 w-4 mr-1" /> 
-        };
-      case MissionStatus.COMPLETED:
-        return { 
-          color: 'bg-green-500', 
-          text: 'Выполнено', 
-          icon: <CheckCircle className="h-4 w-4 mr-1" /> 
-        };
-      default:
-        return { 
-          color: 'bg-gray-500', 
-          text: 'Неизвестно', 
-          icon: null 
-        };
-    }
-  };
   
   // Обработчик клика по кнопке "Выполнить"
   const handleCompleteMission = async (missionId: number) => {
@@ -307,8 +202,7 @@ export const MissionsList: React.FC = () => {
       // Показываем уведомление об ошибке
       toast({
         title: "Ошибка",
-        description: "Не удалось выполнить миссию. Пожалуйста, попробуйте снова.",
-        variant: "destructive"
+        description: "Не удалось выполнить миссию. Пожалуйста, попробуйте снова."
       });
       
       // Возвращаем миссию в исходное состояние
@@ -355,6 +249,36 @@ export const MissionsList: React.FC = () => {
     );
   };
   
+  // Функция для получения цвета и иконки в зависимости от статуса миссии
+  const getMissionStatusInfo = (status: MissionStatus) => {
+    switch (status) {
+      case MissionStatus.AVAILABLE:
+        return { 
+          color: 'bg-blue-500', 
+          text: 'Доступно', 
+          icon: <AlertCircle className="h-4 w-4 mr-1" /> 
+        };
+      case MissionStatus.PROCESSING:
+        return { 
+          color: 'bg-amber-500', 
+          text: 'В процессе', 
+          icon: <Clock className="h-4 w-4 mr-1" /> 
+        };
+      case MissionStatus.COMPLETED:
+        return { 
+          color: 'bg-green-500', 
+          text: 'Выполнено', 
+          icon: <CheckCircle className="h-4 w-4 mr-1" /> 
+        };
+      default:
+        return { 
+          color: 'bg-gray-500', 
+          text: 'Неизвестно', 
+          icon: null 
+        };
+    }
+  };
+  
   // Обработчик завершения анимации конфетти
   const handleConfettiComplete = () => {
     setShowConfetti(false);
@@ -379,7 +303,7 @@ export const MissionsList: React.FC = () => {
   }
   
   return (
-    <AnimatePresence>
+    <div className="relative">
       {/* Эффект конфетти при завершении миссии */}
       <ConfettiEffect 
         active={showConfetti} 
@@ -482,7 +406,7 @@ export const MissionsList: React.FC = () => {
           );
         })}
       </div>
-    </AnimatePresence>
+    </div>
   );
 };
 
