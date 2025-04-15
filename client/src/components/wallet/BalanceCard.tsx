@@ -1,0 +1,164 @@
+import React, { useState, useEffect } from 'react';
+
+const BalanceCard: React.FC = () => {
+  // Состояния для текущих балансов
+  const [uniBalance, setUniBalance] = useState<number>(104153.542);
+  const [tonBalance, setTonBalance] = useState<number>(1.213);
+  
+  // Состояния для визуальных эффектов
+  const [uniAnimating, setUniAnimating] = useState<boolean>(false);
+  const [tonAnimating, setTonAnimating] = useState<boolean>(false);
+  
+  // Состояния для текущего прироста
+  const [uniRate] = useState<number>(0.0023); // UNI в секунду
+  const [tonRate] = useState<number>(0.0000); // TON в секунду
+  
+  // Обновляем баланс каждую секунду
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUniBalance(prevBalance => {
+        const newBalance = prevBalance + uniRate;
+        // Активируем анимацию обновления
+        if (uniRate > 0) {
+          setUniAnimating(true);
+          setTimeout(() => setUniAnimating(false), 500);
+        }
+        return newBalance;
+      });
+      
+      setTonBalance(prevBalance => {
+        const newBalance = prevBalance + tonRate;
+        // Активируем анимацию обновления
+        if (tonRate > 0) {
+          setTonAnimating(true);
+          setTimeout(() => setTonAnimating(false), 500);
+        }
+        return newBalance;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [uniRate, tonRate]);
+
+  // Форматирование чисел для отображения
+  const formatNumber = (num: number, decimals: number = 3): string => {
+    return num.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  };
+  
+  // Расчет долларового эквивалента
+  const getUSDEquivalent = (amount: number, rate: number): string => {
+    const usdValue = amount * rate;
+    return `≈ $${formatNumber(usdValue, 2)}`;
+  };
+
+  return (
+    <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
+      {/* Декоративный градиентный фон */}
+      <div 
+        className="absolute inset-0 opacity-20" 
+        style={{
+          background: 'radial-gradient(circle at 10% 20%, rgba(162, 89, 255, 0.2) 0%, transparent 70%), radial-gradient(circle at 80% 70%, rgba(92, 120, 255, 0.2) 0%, transparent 70%)'
+        }}
+      ></div>
+      
+      {/* Неоновая рамка */}
+      <div className="absolute inset-0 rounded-xl border border-primary/30"></div>
+      
+      <h2 className="text-lg font-semibold text-white mb-4 relative z-10 flex items-center">
+        <i className="fas fa-wallet text-primary mr-2"></i>
+        Ваш баланс
+      </h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* UNI Token */}
+        <div className="bg-black/20 rounded-lg p-4 backdrop-blur-sm relative overflow-hidden">
+          {/* Декоративный слой */}
+          <div className="absolute inset-0 opacity-20">
+            <div 
+              className="w-24 h-24 rounded-full absolute -right-8 -top-8 blur-xl"
+              style={{ background: 'linear-gradient(45deg, #A259FF, #5945FA)' }}
+            ></div>
+          </div>
+          
+          {/* Заголовок токена */}
+          <div className="flex items-center mb-3">
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2">
+              <i className="fas fa-coins text-primary"></i>
+            </div>
+            <div>
+              <h3 className="text-md font-medium text-white">UNI Token</h3>
+              <p className="text-xs text-gray-400">внутренний токен</p>
+            </div>
+          </div>
+          
+          {/* Баланс с анимацией */}
+          <div className="mb-2">
+            <div className="text-2xl font-bold text-white flex items-center">
+              <span className={`transition-all duration-300 ${uniAnimating ? 'text-green-400 scale-105' : ''}`}>
+                {formatNumber(uniBalance)}
+              </span>
+              <span className="text-sm ml-1 text-gray-400">UNI</span>
+            </div>
+            <div className="text-xs text-gray-400">
+              {getUSDEquivalent(uniBalance, 0.01)} {/* Предполагаемый курс UNI */}
+            </div>
+          </div>
+          
+          {/* Скорость начисления */}
+          <div className="bg-success/10 text-success rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
+            <i className="fas fa-arrow-trend-up mr-1"></i>
+            <span className={uniAnimating ? 'text-green-400 font-bold' : ''}>+{uniRate}</span>
+            <span className="text-gray-400 ml-1">UNI / сек</span>
+          </div>
+        </div>
+        
+        {/* TON Token */}
+        <div className="bg-black/20 rounded-lg p-4 backdrop-blur-sm relative overflow-hidden">
+          {/* Декоративный слой */}
+          <div className="absolute inset-0 opacity-20">
+            <div 
+              className="w-24 h-24 rounded-full absolute -right-8 -top-8 blur-xl"
+              style={{ background: 'linear-gradient(45deg, #3C86FF, #63B4FF)' }}
+            ></div>
+          </div>
+          
+          {/* Заголовок токена */}
+          <div className="flex items-center mb-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center mr-2">
+              <i className="fas fa-diamond text-blue-500"></i>
+            </div>
+            <div>
+              <h3 className="text-md font-medium text-white">TON Token</h3>
+              <p className="text-xs text-gray-400">блокчейн TON</p>
+            </div>
+          </div>
+          
+          {/* Баланс с анимацией */}
+          <div className="mb-2">
+            <div className="text-2xl font-bold text-white flex items-center">
+              <span className={`transition-all duration-300 ${tonAnimating ? 'text-blue-400 scale-105' : ''}`}>
+                {formatNumber(tonBalance)}
+              </span>
+              <span className="text-sm ml-1 text-gray-400">TON</span>
+            </div>
+            <div className="text-xs text-gray-400">
+              {getUSDEquivalent(tonBalance, 2.57)} {/* Предполагаемый курс TON */}
+            </div>
+          </div>
+          
+          {/* Скорость начисления */}
+          <div className="bg-blue-500/10 text-blue-500 rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
+            <i className="fas fa-arrow-trend-up mr-1"></i>
+            <span className={tonAnimating ? 'text-blue-400 font-bold' : ''}>+{tonRate}</span>
+            <span className="text-gray-400 ml-1">TON / сек</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BalanceCard;

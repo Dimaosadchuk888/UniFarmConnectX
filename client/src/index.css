@@ -28,6 +28,9 @@
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 90%;
     
+    --success: 143 72% 53%;
+    --success-foreground: 0 0% 100%;
+    
     --border: 240 5% 25%;
     --input: 240 5% 25%;
     --ring: 270 100% 67%;
