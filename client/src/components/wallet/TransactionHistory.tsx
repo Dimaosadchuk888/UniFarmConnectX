@@ -92,15 +92,31 @@ const TransactionHistory: React.FC = () => {
     try {
       // Проверяем, что amount является числом
       if (typeof amount !== 'number' || isNaN(amount)) {
-        return `+0.00000000 ${tokenType || 'UNI'}`;
+        return `+0.00000 ${tokenType || 'UNI'}`;
       }
       
       // Защита от отрицательных значений (для наград всегда положительный знак)
       const absoluteAmount = Math.abs(amount);
-      return `+${absoluteAmount.toFixed(8)} ${tokenType || 'UNI'}`;
+      
+      // Приводим к строке с 5 знаками после запятой
+      let formattedAmount = absoluteAmount.toFixed(5);
+      
+      // Если число целое, убираем десятичную часть
+      if (Number.isInteger(absoluteAmount)) {
+        formattedAmount = absoluteAmount.toString();
+      } 
+      // Если число не целое, убираем лишние нули в конце
+      else if (formattedAmount.includes('.')) {
+        formattedAmount = absoluteAmount.toLocaleString('en-US', {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 5
+        }).replace(/\.?0+$/, '');
+      }
+      
+      return `+${formattedAmount} ${tokenType || 'UNI'}`;
     } catch (e) {
       console.error('Error formatting amount:', e);
-      return `+0.00000000 ${tokenType || 'UNI'}`;
+      return `+0.00000 ${tokenType || 'UNI'}`;
     }
   };
   
