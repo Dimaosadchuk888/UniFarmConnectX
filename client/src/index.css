@@ -50,7 +50,13 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased text-foreground;
+    background-color: #0c0620;
+    background-image: 
+      linear-gradient(rgba(162, 89, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(162, 89, 255, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    background-attachment: fixed;
   }
 
   .green-gradient-text {
