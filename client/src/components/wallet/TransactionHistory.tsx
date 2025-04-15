@@ -36,8 +36,10 @@ const TransactionHistory: React.FC = () => {
     queryKey: [`/api/transactions?user_id=${currentUserId}`]
   });
   
-  // Преобразуем данные из БД в формат для UI
-  const transactions: Transaction[] = dbTransactions ? dbTransactions.map(tx => {
+  // Преобразуем данные из БД в формат для UI с проверкой на ошибки и отсутствующие данные
+  const transactions: Transaction[] = Array.isArray(dbTransactions) ? dbTransactions.map(tx => {
+    if (!tx) return null; // Проверка на null/undefined элементы в массиве
+    
     // Определяем заголовок в зависимости от типа транзакции
     let title = '';
     if (tx.type === 'farming') title = 'Доход от фарминга';
@@ -46,31 +48,58 @@ const TransactionHistory: React.FC = () => {
     else if (tx.type === 'withdraw') title = 'Вывод средств';
     else title = 'Транзакция';
     
-    return {
-      id: tx.id,
-      type: tx.type,
-      title: title,
-      amount: parseFloat(tx.amount),
-      tokenType: tx.currency,
-      timestamp: new Date(tx.created_at),
-      status: tx.status
-    };
-  }) : [];
+    try {
+      return {
+        id: tx.id || Math.random().toString(36).substring(2, 9), // Генерация ID, если его нет
+        type: tx.type || 'unknown',
+        title: title,
+        amount: typeof tx.amount === 'string' ? parseFloat(tx.amount) : (tx.amount || 0),
+        tokenType: tx.currency || 'UNI',
+        timestamp: tx.created_at ? new Date(tx.created_at) : new Date(),
+        status: tx.status || 'confirmed'
+      };
+    } catch (e) {
+      console.error('Error processing transaction data:', e);
+      return null; // В случае ошибки пропускаем транзакцию
+    }
+  }).filter(Boolean) as Transaction[] : []; // Фильтруем null значения
   
-  // Форматирование даты в нужный формат
+  // Форматирование даты в нужный формат с защитой от Invalid Date
   const formatDate = (date: Date): string => {
-    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    
-    return `${day} ${month}., ${hours}:${minutes}`;
+    try {
+      // Проверка на валидность даты
+      if (isNaN(date.getTime())) {
+        return 'Только что';
+      }
+
+      const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+      const day = date.getDate();
+      const month = months[date.getMonth()];
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      
+      return `${day} ${month}., ${hours}:${minutes}`;
+    } catch (e) {
+      console.error('Error formatting date:', e);
+      return 'Только что';
+    }
   };
   
-  // Форматирование суммы транзакции
+  // Форматирование суммы транзакции с защитой от ошибок
   const formatAmount = (amount: number, tokenType: string): string => {
-    return `+${amount.toFixed(8)} ${tokenType}`;
+    try {
+      // Проверяем, что amount является числом
+      if (typeof amount !== 'number' || isNaN(amount)) {
+        return `+0.00000000 ${tokenType || 'UNI'}`;
+      }
+      
+      // Защита от отрицательных значений (для наград всегда положительный знак)
+      const absoluteAmount = Math.abs(amount);
+      return `+${absoluteAmount.toFixed(8)} ${tokenType || 'UNI'}`;
+    } catch (e) {
+      console.error('Error formatting amount:', e);
+      return `+0.00000000 ${tokenType || 'UNI'}`;
+    }
   };
   
   // Фильтрация транзакций

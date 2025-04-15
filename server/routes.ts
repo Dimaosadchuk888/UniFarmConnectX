@@ -15,6 +15,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userIdParam = req.query.user_id;
       
+      // Устанавливаем правильный заголовок Content-Type
+      res.setHeader('Content-Type', 'application/json');
+      
       if (!userIdParam || typeof userIdParam !== 'string') {
         return res.status(400).json({ error: "Missing or invalid user_id parameter" });
       }
@@ -32,10 +35,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(transactions.user_id, userId))
         .orderBy(sql`${transactions.created_at} DESC`);
       
-      res.json(userTransactions);
+      // Используем явный JSON.stringify для обеспечения правильного формата ответа
+      return res.status(200).send(JSON.stringify(userTransactions));
     } catch (error) {
       console.error("Error fetching user transactions:", error);
-      res.status(500).json({ error: "Failed to fetch user transactions" });
+      return res.status(500).json({ error: "Failed to fetch user transactions" });
     }
   });
   
