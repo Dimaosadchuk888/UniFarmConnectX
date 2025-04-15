@@ -48,23 +48,60 @@ const ReferralLevelsTable: React.FC = () => {
     return `bg-[hsl(${hue},${saturation}%,${lightness}%)]`;
   };
   
-  // Обработчик для анимированного появления строк таблицы
+  // Обработчик для анимированного появления строк таблицы с плавным эффектом
   useEffect(() => {
     // Сбрасываем список видимых строк
     setVisibleRows([]);
     
-    // Постепенно показываем все строки с меньшей задержкой между ними
+    // Создаем эффект волны при появлении (быстрее в начале, затем медленнее)
     levels.forEach((_, index) => {
+      const initialDelay = 100; // начальная задержка
+      const staggerAmount = Math.min(35 + (index * 8), 70); // увеличивающаяся задержка между элементами, максимум 70мс
+      
       setTimeout(() => {
         setVisibleRows(prev => [...prev, index]);
-      }, 30 + index * 40); // Задержка от 30 до 50 мс между строками
+        
+        // Случайно активируем некоторые строки для эффекта "живого" интерфейса
+        if (index === 0 || Math.random() < 0.2) {
+          setActiveRow(index);
+          setTimeout(() => {
+            setActiveRow(null);
+          }, 800 + Math.random() * 400);
+        }
+      }, initialDelay + (index * staggerAmount));
     });
+    
+    // Устанавливаем эффект случайного мигания уровней в фоне
+    const intervalId = setInterval(() => {
+      // Случайно выбираем строку для подсветки
+      const randomIndex = Math.floor(Math.random() * levels.length);
+      setActiveRow(randomIndex);
+      
+      // И сбрасываем через короткое время
+      setTimeout(() => {
+        setActiveRow(null);
+      }, 500);
+    }, 5000); // Каждые 5 секунд
+    
+    // Очищаем интервал при размонтировании
+    return () => clearInterval(intervalId);
   }, []);
   
   return (
-    <div className="bg-card rounded-xl p-4 shadow-lg card-hover-effect relative overflow-hidden">
-      {/* Декоративный фоновый элемент */}
-      <div className="absolute -right-16 -bottom-16 w-32 h-32 bg-primary/5 rounded-full blur-xl"></div>
+    <div className="bg-card rounded-xl p-4 shadow-lg relative overflow-hidden">
+      {/* Градиентное свечение по краям */}
+      <div 
+        className="absolute inset-0 rounded-xl z-0 opacity-60" 
+        style={{ 
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(162, 89, 255, 0.15) 0%, transparent 70%), radial-gradient(ellipse at 50% 100%, rgba(162, 89, 255, 0.15) 0%, transparent 70%), radial-gradient(ellipse at 0% 50%, rgba(162, 89, 255, 0.15) 0%, transparent 70%), radial-gradient(ellipse at 100% 50%, rgba(162, 89, 255, 0.15) 0%, transparent 70%)'
+        }}
+      ></div>
+      
+      {/* Пульсирующий декоративный фоновый элемент */}
+      <div 
+        className="absolute -right-16 -bottom-16 w-32 h-32 bg-primary/10 rounded-full blur-xl"
+        style={{ animation: 'pulse-fade 4s infinite ease-in-out' }}
+      ></div>
       
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-md font-medium">Уровни партнерской программы</h2>
@@ -88,7 +125,7 @@ const ReferralLevelsTable: React.FC = () => {
       {/* Скроллируемая таблица со всеми уровнями */}
       <div 
         ref={tableRef}
-        className="overflow-y-auto max-h-[350px] relative scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-muted/10 pr-1"
+        className="overflow-y-auto max-h-[350px] relative scrollbar-none pr-1"
         style={{
           boxShadow: 'inset 0 -10px 10px -10px rgba(0,0,0,0.1)'
         }}
@@ -155,19 +192,34 @@ const ReferralLevelsTable: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-2 text-sm text-right px-2 border-b border-muted/20">
-                    <span 
-                      className={`
-                        inline-block px-2 py-1 rounded-full text-xs
-                        transition-all duration-300
-                        ${isActive ? 'scale-110' : ''}
-                      `}
-                      style={{
-                        backgroundColor: `hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 0.2)`,
-                        color: `hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 1)`
-                      }}
-                    >
-                      {item.percent}
-                    </span>
+                    {index === 0 ? (
+                      <span 
+                        className={`
+                          inline-block px-3 py-1.5 rounded-full text-xs font-bold
+                          transition-all duration-300 
+                          bg-gradient-to-r from-primary to-purple-400
+                          text-white
+                          ${isActive ? 'scale-110 shadow-lg shadow-primary/30' : 'shadow-md shadow-primary/20'}
+                        `}
+                      >
+                        {item.percent}
+                        <i className="fas fa-star text-[10px] ml-1 opacity-70"></i>
+                      </span>
+                    ) : (
+                      <span 
+                        className={`
+                          inline-block px-2 py-1 rounded-full text-xs
+                          transition-all duration-300
+                          ${isActive ? 'scale-110' : ''}
+                        `}
+                        style={{
+                          background: `linear-gradient(90deg, hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 0.2), hsla(${180 - (index / (levels.length - 1)) * 30}, 80%, 65%, 0.05))`,
+                          color: `hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 1)`
+                        }}
+                      >
+                        {item.percent}
+                      </span>
+                    )}
                   </td>
                   
                   {/* Анимированный эффект при наведении */}
