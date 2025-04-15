@@ -13,6 +13,81 @@ const BoostOptions: React.FC = () => {
   
   return (
     <div className="mb-6">
+      {/* Основной UNI пакет (бесплатный) */}
+      <div className="mb-5">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-lg font-semibold text-white flex items-center">
+            <i className="fas fa-seedling text-green-400 mr-2"></i>
+            Основной UNI пакет
+          </h2>
+        </div>
+        
+        <div 
+          className={`
+            bg-card rounded-xl p-4 mb-3
+            transition-all duration-500 relative overflow-hidden
+            border border-purple-300/10
+            shadow-md hover:shadow-lg hover:shadow-primary/10
+          `}
+          style={{
+            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+            background: 'linear-gradient(135deg, rgba(25, 25, 30, 1) 0%, rgba(30, 25, 35, 1) 100%)'
+          }}
+        >
+          {/* Фоновый эффект свечения */}
+          <div 
+            className="absolute inset-0 opacity-50 z-0 rounded-xl"
+            style={{
+              background: 'radial-gradient(ellipse at 30% 20%, rgba(162, 89, 255, 0.07) 0%, transparent 70%), radial-gradient(ellipse at 70% 80%, rgba(72, 205, 115, 0.07) 0%, transparent 70%)',
+              opacity: '0.6',
+              transition: 'opacity 0.5s ease'
+            }}
+          ></div>
+          
+          <div className="grid grid-cols-2 gap-4 relative z-10">
+            <div>
+              {/* UNI Yield */}
+              <div className="mb-2">
+                <div className="text-xs text-gray-400 mb-1">UNI Yield:</div>
+                <div className="font-medium text-green-400 flex items-center">
+                  <i className="fas fa-chart-line mr-1 text-xs"></i>
+                  0.5% Daily
+                </div>
+              </div>
+              
+              <p className="text-xs text-gray-500 italic mt-3">
+                Доход начисляется каждую секунду
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-end">
+              <button 
+                className={`
+                  relative z-10 transition-all duration-300
+                  overflow-hidden px-6 py-2.5 rounded-lg font-medium
+                  flex items-center justify-center
+                  bg-transparent border border-primary text-primary hover:bg-primary/10
+                  shadow-md shadow-primary/10
+                `}
+              >
+                {/* Эффект свечения кнопки */}
+                <div 
+                  className="absolute inset-0 w-full h-full overflow-hidden" 
+                  style={{
+                    background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%)',
+                    transform: 'translateX(-100%)',
+                    animation: 'shimmer 3s infinite'
+                  }}
+                ></div>
+                
+                <span className="relative z-10">Фармить</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Заголовок Boost-пакетов */}
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-lg font-semibold text-white flex items-center">
           <i className="fas fa-rocket text-primary mr-2"></i>
