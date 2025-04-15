@@ -11,7 +11,10 @@ const BalanceCard: React.FC = () => {
   
   // Состояния для текущего прироста
   const [uniRate] = useState<number>(0.0023); // UNI в секунду
-  const [tonRate] = useState<number>(0.0000); // TON в секунду
+  const [tonRate] = useState<number>(0.00008); // TON в секунду (для демонстрации)
+  
+  // Предыдущие значения для анимации
+  const [prevTonBalance, setPrevTonBalance] = useState<number>(tonBalance);
   
   // Обновляем баланс каждую секунду
   useEffect(() => {
@@ -27,12 +30,16 @@ const BalanceCard: React.FC = () => {
       });
       
       setTonBalance(prevBalance => {
+        // Сохраняем предыдущее значение для сравнения
+        setPrevTonBalance(prevBalance);
         const newBalance = prevBalance + tonRate;
-        // Активируем анимацию обновления
-        if (tonRate > 0) {
+        
+        // Активируем анимацию обновления даже для микро-изменений
+        if (newBalance > prevBalance) {
           setTonAnimating(true);
-          setTimeout(() => setTonAnimating(false), 500);
+          setTimeout(() => setTonAnimating(false), 700);
         }
+        
         return newBalance;
       });
     }, 1000);
@@ -45,6 +52,14 @@ const BalanceCard: React.FC = () => {
     return num.toLocaleString('en-US', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals
+    });
+  };
+  
+  // Специальное форматирование для TON (до 5 знаков)
+  const formatTonNumber = (num: number): string => {
+    return num.toLocaleString('en-US', {
+      minimumFractionDigits: 5,
+      maximumFractionDigits: 5
     });
   };
   
@@ -166,27 +181,54 @@ const BalanceCard: React.FC = () => {
             </div>
           </div>
           
-          {/* Баланс с анимацией */}
+          {/* Баланс с расширенной анимацией */}
           <div className="mb-2">
-            <div className="text-2xl font-bold text-white flex items-center">
-              <span className={`transition-all duration-300 ${tonAnimating ? 'text-blue-400 scale-105' : ''}`}>
-                {formatNumber(tonBalance)}
-              </span>
-              <span className="text-sm ml-1 text-gray-400">TON</span>
+            <div className={`relative ${tonAnimating ? 'before:absolute before:inset-0 before:bg-blue-500/5 before:rounded-md before:animate-pulse' : ''}`}>
+              <div className="text-2xl font-bold text-white flex items-center relative z-10">
+                <span className={`transition-all duration-500 ${
+                  tonAnimating 
+                    ? 'text-blue-400 scale-105 animate-tonGlow' 
+                    : ''
+                }`}>
+                  {formatTonNumber(tonBalance)}
+                </span>
+                <span className="text-sm ml-1 text-gray-400">TON</span>
+                
+                {/* Индикатор изменения */}
+                {tonAnimating && tonBalance > prevTonBalance && (
+                  <span className="text-xs ml-2 text-blue-400 animate-fade-up absolute -top-3 right-0">
+                    <i className="fas fa-caret-up mr-1"></i>
+                    +{formatTonNumber(tonBalance - prevTonBalance)}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-gray-400">
+                {getUSDEquivalent(tonBalance, 2.57)} {/* Предполагаемый курс TON */}
+              </div>
             </div>
-            <div className="text-xs text-gray-400">
-              {getUSDEquivalent(tonBalance, 2.57)} {/* Предполагаемый курс TON */}
-            </div>
+            
+            {/* Доход TON отображается только если больше 0 */}
+            {tonRate > 0 && (
+              <div className="text-xs text-blue-400 flex items-center mt-2 bg-blue-500/5 px-2 py-1 rounded-md">
+                <i className="fas fa-arrow-trend-up mr-1 text-[0.7em]"></i>
+                <span className={tonAnimating ? 'font-medium' : ''}>
+                  {formatRateNumber(tonRate)}
+                </span>
+                <span className="text-gray-400 ml-1">TON / сек</span>
+              </div>
+            )}
           </div>
           
-          {/* Скорость начисления */}
-          <div className="bg-blue-500/10 text-blue-500 rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
-            <i className="fas fa-arrow-trend-up mr-1"></i>
-            <span className={tonAnimating ? 'text-blue-400 font-bold' : ''}>
-              {formatRateNumber(tonRate)}
-            </span>
-            <span className="text-gray-400 ml-1">TON / сек</span>
-          </div>
+          {/* Скорость начисления - показываем только если есть ставка */}
+          {tonRate > 0 && (
+            <div className="bg-blue-500/10 text-blue-500 rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
+              <i className="fas fa-arrow-trend-up mr-1"></i>
+              <span className={tonAnimating ? 'text-blue-400 font-bold' : ''}>
+                {formatRateNumber(tonRate)}
+              </span>
+              <span className="text-gray-400 ml-1">TON / сек</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

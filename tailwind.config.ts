@@ -86,13 +86,32 @@ export default {
         "pulseGlow": {
           "0%, 100%": { boxShadow: "0 0 0 rgba(192, 132, 252, 0)" },
           "50%": { boxShadow: "0 0 15px rgba(192, 132, 252, 0.5)" }
+        },
+        "tonGlow": {
+          "0%, 100%": { boxShadow: "0 0 0 rgba(59, 130, 246, 0)" },
+          "50%": { boxShadow: "0 0 20px rgba(59, 130, 246, 0.6)" }
+        },
+        "flashBlue": {
+          "0%": { backgroundColor: "rgba(59, 130, 246, 0)" },
+          "25%": { backgroundColor: "rgba(59, 130, 246, 0.1)" },
+          "75%": { backgroundColor: "rgba(59, 130, 246, 0.1)" },
+          "100%": { backgroundColor: "rgba(59, 130, 246, 0)" }
+        },
+        "fadeUp": {
+          "0%": { opacity: "0", transform: "translateY(5px)" },
+          "25%": { opacity: "1", transform: "translateY(-5px)" },
+          "75%": { opacity: "1", transform: "translateY(-5px)" },
+          "100%": { opacity: "0", transform: "translateY(-15px)" }
         }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fadeIn": "fadeIn 0.5s ease-out forwards",
-        "pulseGlow": "pulseGlow 2s infinite"
+        "pulseGlow": "pulseGlow 2s infinite",
+        "tonGlow": "tonGlow 1.5s ease-in-out infinite",
+        "flashBlue": "flashBlue 0.7s ease-out",
+        "fadeUp": "fadeUp 1.2s ease-out forwards"
       },
     },
   },
