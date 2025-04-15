@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,9 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { toast } from '@/hooks/use-toast';
 
 // Определение типов статусов миссий
 export enum MissionStatus {
@@ -24,6 +25,21 @@ interface DbMission {
   description: string;
   reward_uni: string; // В БД это numeric как строка
   is_active: boolean;
+}
+
+// Тип для выполненной миссии пользователя
+interface UserMission {
+  id: number;
+  user_id: number;
+  mission_id: number;
+  completed_at: string;
+}
+
+// Тип для ответа от API при выполнении миссии
+interface CompleteMissionResponse {
+  success: boolean;
+  message: string;
+  reward?: number;
 }
 
 // Тип миссии для UI
@@ -76,31 +92,58 @@ const demoMissions: Mission[] = [
 ];
 
 export const MissionsList: React.FC = () => {
+  const queryClient = useQueryClient();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const [completedMissionId, setCompletedMissionId] = useState<number | null>(null);
+  const [rewardAmount, setRewardAmount] = useState<number | null>(null);
+  const [processingMissionId, setProcessingMissionId] = useState<number | null>(null);
+  
+  // ID текущего пользователя (в реальном приложении должен быть получен из контекста аутентификации)
+  const currentUserId = 1; // Для примера используем ID = 1
   
   // Загружаем активные миссии через API
-  const { data: dbMissions, isLoading } = useQuery<DbMission[]>({
+  const { data: dbMissions, isLoading: missionsLoading } = useQuery<DbMission[]>({
     queryKey: ['/api/missions/active'],
+  });
+  
+  // Загружаем выполненные миссии пользователя
+  const { data: userCompletedMissions, isLoading: userMissionsLoading } = useQuery<UserMission[]>({
+    queryKey: ['/api/user_missions', currentUserId],
+    queryFn: async () => {
+      const response = await fetch(`/api/user_missions?user_id=${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user missions');
+      }
+      return response.json();
+    }
   });
   
   // Преобразуем данные из БД в формат для UI
   useEffect(() => {
-    if (dbMissions) {
-      // Конвертируем DbMission[] в Mission[]
-      const mappedMissions: Mission[] = dbMissions.map(dbMission => ({
-        id: dbMission.id,
-        type: dbMission.type,
-        title: dbMission.title,
-        description: dbMission.description,
-        rewardUni: parseFloat(dbMission.reward_uni), // Конвертируем строку в число
-        status: MissionStatus.AVAILABLE // По умолчанию все миссии доступны
-      }));
+    if (dbMissions && userCompletedMissions) {
+      // Создаем карту выполненных миссий для быстрого поиска
+      const completedMissionsMap = new Map(
+        userCompletedMissions.map(m => [m.mission_id, m])
+      );
+      
+      // Конвертируем DbMission[] в Mission[] с учетом выполненных миссий
+      const mappedMissions: Mission[] = dbMissions.map(dbMission => {
+        const isCompleted = completedMissionsMap.has(dbMission.id);
+        
+        return {
+          id: dbMission.id,
+          type: dbMission.type,
+          title: dbMission.title,
+          description: dbMission.description,
+          rewardUni: parseFloat(dbMission.reward_uni), // Конвертируем строку в число
+          status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
+        };
+      });
       
       setMissions(mappedMissions);
     }
-  }, [dbMissions]);
+  }, [dbMissions, userCompletedMissions]);
   
   // Эффект для имитации прогресса выполнения миссии
   useEffect(() => {
@@ -169,19 +212,157 @@ export const MissionsList: React.FC = () => {
   };
   
   // Обработчик клика по кнопке "Выполнить"
-  const handleStartMission = (id: number) => {
-    setMissions(missions.map(mission => 
-      mission.id === id 
-        ? { ...mission, status: MissionStatus.PROCESSING, progress: 0 } 
-        : mission
-    ));
+  const handleCompleteMission = async (missionId: number) => {
+    try {
+      // Отмечаем миссию как обрабатываемую
+      setProcessingMissionId(missionId);
+      setMissions(missions.map(mission => 
+        mission.id === missionId 
+          ? { ...mission, status: MissionStatus.PROCESSING, progress: 0 } 
+          : mission
+      ));
+      
+      // Выполняем API запрос
+      const response = await fetch('/api/missions/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: currentUserId,
+          mission_id: missionId
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to complete mission');
+      }
+      
+      const result: CompleteMissionResponse = await response.json();
+      
+      if (result.success) {
+        // Имитируем прогресс заполнения прогресс-бара
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 10;
+          setMissions(prevMissions => 
+            prevMissions.map(mission => 
+              mission.id === missionId 
+                ? { ...mission, progress } 
+                : mission
+            )
+          );
+          
+          if (progress >= 100) {
+            clearInterval(interval);
+            
+            // Показываем эффект конфетти и сообщение о награде
+            setCompletedMissionId(missionId);
+            setRewardAmount(result.reward || 0);
+            setShowConfetti(true);
+            
+            // Обновляем статус миссии
+            setMissions(prevMissions => 
+              prevMissions.map(mission => 
+                mission.id === missionId 
+                  ? { ...mission, status: MissionStatus.COMPLETED, progress: 100 } 
+                  : mission
+              )
+            );
+            
+            // Показываем уведомление
+            toast({
+              title: "Миссия выполнена!",
+              description: `${result.message}`
+            });
+            
+            // Сбрасываем ID обрабатываемой миссии
+            setProcessingMissionId(null);
+            
+            // Инвалидируем кеш запросов, чтобы обновить данные
+            queryClient.invalidateQueries({ queryKey: ['/api/user_missions', currentUserId] });
+          }
+        }, 200);
+      } else {
+        // Обрабатываем ошибку
+        toast({
+          title: "Ошибка",
+          description: result.message
+        });
+        
+        // Возвращаем миссию в исходное состояние
+        setMissions(prevMissions => 
+          prevMissions.map(mission => 
+            mission.id === missionId 
+              ? { ...mission, status: MissionStatus.AVAILABLE, progress: undefined } 
+              : mission
+          )
+        );
+        
+        setProcessingMissionId(null);
+      }
+    } catch (error) {
+      console.error('Error completing mission:', error);
+      
+      // Показываем уведомление об ошибке
+      toast({
+        title: "Ошибка",
+        description: "Не удалось выполнить миссию. Пожалуйста, попробуйте снова.",
+        variant: "destructive"
+      });
+      
+      // Возвращаем миссию в исходное состояние
+      setMissions(prevMissions => 
+        prevMissions.map(mission => 
+          mission.id === missionId 
+            ? { ...mission, status: MissionStatus.AVAILABLE, progress: undefined } 
+            : mission
+        )
+      );
+      
+      setProcessingMissionId(null);
+    }
+  };
+  
+  // Компонент для отображения награды
+  const RewardIndicator = ({ reward }: { reward: number }) => {
+    const rewardRef = useRef<HTMLDivElement>(null);
+    
+    useEffect(() => {
+      const element = rewardRef.current;
+      if (element) {
+        element.animate(
+          [
+            { opacity: 0, transform: 'translateY(20px) scale(0.8)' },
+            { opacity: 1, transform: 'translateY(-20px) scale(1.2)' },
+            { opacity: 0, transform: 'translateY(-50px) scale(1)' }
+          ],
+          {
+            duration: 1500,
+            easing: 'ease-out'
+          }
+        );
+      }
+    }, []);
+    
+    return (
+      <div 
+        ref={rewardRef}
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-green-500 font-bold text-3xl"
+      >
+        +{reward} UNI
+      </div>
+    );
   };
   
   // Обработчик завершения анимации конфетти
   const handleConfettiComplete = () => {
     setShowConfetti(false);
     setCompletedMissionId(null);
+    setRewardAmount(null);
   };
+  
+  const isLoading = missionsLoading || userMissionsLoading;
   
   if (isLoading) {
     return (
@@ -210,8 +391,8 @@ export const MissionsList: React.FC = () => {
       <div className="space-y-4 p-4">
         {missions.map((mission) => {
           const statusInfo = getMissionStatusInfo(mission.status);
-          // Применяем эффект свечения к только что завершенной миссии
           const isRecentlyCompleted = completedMissionId === mission.id;
+          const isProcessing = processingMissionId === mission.id;
           
           return (
             <motion.div
@@ -220,7 +401,13 @@ export const MissionsList: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
+              className="relative"
             >
+              {/* Индикатор награды при завершении миссии */}
+              {isRecentlyCompleted && rewardAmount !== null && (
+                <RewardIndicator reward={rewardAmount} />
+              )}
+              
               <Card 
                 className={`overflow-hidden transition-all duration-500 ${
                   isRecentlyCompleted 
@@ -250,7 +437,7 @@ export const MissionsList: React.FC = () => {
                     <div className="mt-2">
                       <div className="flex justify-between text-xs mb-1">
                         <span>Прогресс</span>
-                        <span>{mission.progress}%</span>
+                        <span>{mission.progress || 0}%</span>
                       </div>
                       <Progress
                         value={mission.progress}
@@ -267,11 +454,19 @@ export const MissionsList: React.FC = () => {
                   
                   {mission.status === MissionStatus.AVAILABLE && (
                     <Button 
-                      size="sm" 
-                      onClick={() => handleStartMission(mission.id)}
+                      size="sm"
+                      onClick={() => handleCompleteMission(mission.id)}
                       className="bg-primary hover:bg-primary/90"
+                      disabled={isProcessing}
                     >
-                      Выполнить
+                      {isProcessing ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-r-transparent"></span>
+                          Выполнение...
+                        </>
+                      ) : (
+                        "Выполнить"
+                      )}
                     </Button>
                   )}
                   

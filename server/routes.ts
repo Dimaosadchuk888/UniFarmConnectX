@@ -10,7 +10,7 @@ import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Новый API маршрут для получения активных миссий
+  // API маршрут для получения активных миссий
   app.get("/api/missions/active", async (req, res) => {
     try {
       // Получаем все активные миссии
@@ -23,6 +23,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching active missions:", error);
       res.status(500).json({ error: "Failed to fetch active missions" });
+    }
+  });
+  
+  // API маршрут для получения выполненных миссий конкретного пользователя
+  app.get("/api/user_missions", async (req, res) => {
+    try {
+      const userIdParam = req.query.user_id;
+      
+      if (!userIdParam || typeof userIdParam !== 'string') {
+        return res.status(400).json({ error: "Missing or invalid user_id parameter" });
+      }
+      
+      const userId = parseInt(userIdParam);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user_id parameter" });
+      }
+      
+      // Получаем все выполненные миссии пользователя
+      const completedMissions = await db
+        .select()
+        .from(userMissions)
+        .where(eq(userMissions.user_id, userId));
+      
+      res.json(completedMissions);
+    } catch (error) {
+      console.error("Error fetching user completed missions:", error);
+      res.status(500).json({ error: "Failed to fetch user completed missions" });
     }
   });
   // Схема валидации для завершения миссии
