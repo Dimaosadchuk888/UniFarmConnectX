@@ -59,7 +59,11 @@
   }
 
   .active-nav-item {
-    @apply text-primary border-b-2 border-primary;
+    @apply text-white font-medium;
+  }
+  
+  .nav-icon-container {
+    @apply flex items-center justify-center transition-all duration-300;
   }
 }
 
