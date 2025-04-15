@@ -154,12 +154,21 @@ const ReferralLinkCard: React.FC = () => {
         
         <div>
           <p className="text-xs text-foreground opacity-70">Доход</p>
-          <p className={`
-            text-md font-medium text-accent
-            ${isDemoPlaying ? 'animate-bounce' : ''}
-          `}>
-            {isDemoPlaying ? '10' : '0'} UNI
-          </p>
+          <div className="flex flex-col items-end">
+            <p className={`
+              text-md font-medium text-accent
+              ${isDemoPlaying ? 'animate-bounce' : ''}
+            `}>
+              {isDemoPlaying ? '10' : '0'} UNI
+            </p>
+            <p className={`
+              text-sm font-medium text-teal-400
+              ${isDemoPlaying ? 'animate-bounce' : ''}
+              mt-0.5
+            `}>
+              {isDemoPlaying ? '1' : '0'} TON
+            </p>
+          </div>
         </div>
         
         {/* Декоративная линия, соединяющая элементы при активации демо */}
@@ -167,7 +176,7 @@ const ReferralLinkCard: React.FC = () => {
           <div 
             className="absolute h-px bg-gradient-to-r from-primary to-accent"
             style={{
-              bottom: '15px',
+              bottom: '25px', // Позицию линии нужно подвинуть из-за дополнительной строки с TON
               left: '80px',
               right: '80px',
               opacity: 0.5,
@@ -177,10 +186,21 @@ const ReferralLinkCard: React.FC = () => {
         )}
       </div>
       
-      {/* Подсказка о принципе работы */}
-      <p className="text-xs text-foreground opacity-50 text-center mt-4">
-        Делитесь ссылкой и получайте до 30% с дохода приглашённых друзей
-      </p>
+      {/* Подсказка о принципе работы - обновленный текст */}
+      <div className="text-xs text-foreground opacity-70 mt-4 bg-primary/5 p-3 rounded-lg">
+        <p className="font-medium mb-1 text-center text-primary/90">
+          Приглашайте друзей и зарабатывайте до 100% от их дохода в UNI и TON!
+        </p>
+        <p className="mb-1">
+          С первого уровня — вы получаете 100% от фарминга приглашённого.
+        </p>
+        <p className="mb-1">
+          Стройте глубокую сеть до 20 уровней и получайте стабильный доход с каждого уровня.
+        </p>
+        <p>
+          Пассивный доход растёт вместе с вашей командой!
+        </p>
+      </div>
     </div>
   );
 };

@@ -3,26 +3,26 @@ import React, { useState, useEffect, useRef } from 'react';
 const ReferralLevelsTable: React.FC = () => {
   // Статические данные для таблицы с 20 уровнями согласно запросу
   const levels = [
-    { level: "Уровень 1", friends: 0, income: "0 UNI", percent: "100%" },
-    { level: "Уровень 2", friends: 0, income: "0 UNI", percent: "2%" },
-    { level: "Уровень 3", friends: 0, income: "0 UNI", percent: "3%" },
-    { level: "Уровень 4", friends: 0, income: "0 UNI", percent: "4%" },
-    { level: "Уровень 5", friends: 0, income: "0 UNI", percent: "5%" },
-    { level: "Уровень 6", friends: 0, income: "0 UNI", percent: "6%" },
-    { level: "Уровень 7", friends: 0, income: "0 UNI", percent: "7%" },
-    { level: "Уровень 8", friends: 0, income: "0 UNI", percent: "8%" },
-    { level: "Уровень 9", friends: 0, income: "0 UNI", percent: "9%" },
-    { level: "Уровень 10", friends: 0, income: "0 UNI", percent: "10%" },
-    { level: "Уровень 11", friends: 0, income: "0 UNI", percent: "11%" },
-    { level: "Уровень 12", friends: 0, income: "0 UNI", percent: "12%" },
-    { level: "Уровень 13", friends: 0, income: "0 UNI", percent: "13%" },
-    { level: "Уровень 14", friends: 0, income: "0 UNI", percent: "14%" },
-    { level: "Уровень 15", friends: 0, income: "0 UNI", percent: "15%" },
-    { level: "Уровень 16", friends: 0, income: "0 UNI", percent: "16%" },
-    { level: "Уровень 17", friends: 0, income: "0 UNI", percent: "17%" },
-    { level: "Уровень 18", friends: 0, income: "0 UNI", percent: "18%" },
-    { level: "Уровень 19", friends: 0, income: "0 UNI", percent: "19%" },
-    { level: "Уровень 20", friends: 0, income: "0 UNI", percent: "20%" },
+    { level: "Уровень 1", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "100%" },
+    { level: "Уровень 2", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "2%" },
+    { level: "Уровень 3", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "3%" },
+    { level: "Уровень 4", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "4%" },
+    { level: "Уровень 5", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "5%" },
+    { level: "Уровень 6", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "6%" },
+    { level: "Уровень 7", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "7%" },
+    { level: "Уровень 8", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "8%" },
+    { level: "Уровень 9", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "9%" },
+    { level: "Уровень 10", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "10%" },
+    { level: "Уровень 11", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "11%" },
+    { level: "Уровень 12", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "12%" },
+    { level: "Уровень 13", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "13%" },
+    { level: "Уровень 14", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "14%" },
+    { level: "Уровень 15", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "15%" },
+    { level: "Уровень 16", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "16%" },
+    { level: "Уровень 17", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "17%" },
+    { level: "Уровень 18", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "18%" },
+    { level: "Уровень 19", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "19%" },
+    { level: "Уровень 20", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "20%" },
   ];
   
   // Состояния для анимаций и эффектов
@@ -148,7 +148,12 @@ const ReferralLevelsTable: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-2 text-sm px-2 border-b border-muted/20">{item.friends}</td>
-                  <td className="py-2 text-sm text-accent px-2 border-b border-muted/20">{item.income}</td>
+                  <td className="py-2 text-sm px-2 border-b border-muted/20">
+                    <div className="flex flex-col">
+                      <span className="text-accent">{item.income.uni}</span>
+                      <span className="text-teal-400 text-xs mt-0.5">{item.income.ton}</span>
+                    </div>
+                  </td>
                   <td className="py-2 text-sm text-right px-2 border-b border-muted/20">
                     <span 
                       className={`
