@@ -253,3 +253,35 @@
 .gradient-border:hover::before {
   opacity: 1;
 }
+
+/* Стилизация скролла */
+.scrollbar-none {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  scroll-behavior: smooth;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Для кастомной стилизации скролла в других местах */
+.custom-scrollbar {
+  scroll-behavior: smooth;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(162, 89, 255, 0.3) transparent; /* Firefox */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(162, 89, 255, 0.3);
+  border-radius: 10px;
+  border: 2px solid transparent;
+}

@@ -32,6 +32,22 @@ const ReferralLevelsTable: React.FC = () => {
   // Ref для скролла
   const tableRef = useRef<HTMLDivElement>(null);
   
+  // Функция для плавного скролла вверх/вниз
+  const scrollTable = (direction: 'up' | 'down') => {
+    if (tableRef.current) {
+      const container = tableRef.current;
+      const scrollAmount = 200; // пикселей за один скролл
+      const targetScroll = direction === 'up' 
+        ? container.scrollTop - scrollAmount 
+        : container.scrollTop + scrollAmount;
+      
+      container.scrollTo({
+        top: targetScroll,
+        behavior: 'smooth'
+      });
+    }
+  };
+  
   // Цветовой градиент для уровней
   const getLevelColor = (index: number) => {
     // Создаем градиент от фиолетового к зеленому через 20 уровней
@@ -125,9 +141,11 @@ const ReferralLevelsTable: React.FC = () => {
       {/* Скроллируемая таблица со всеми уровнями */}
       <div 
         ref={tableRef}
-        className="overflow-y-auto max-h-[350px] relative scrollbar-none pr-1"
+        className="overflow-y-auto max-h-[350px] relative scrollbar-none pr-2 transition-all duration-300"
         style={{
-          boxShadow: 'inset 0 -10px 10px -10px rgba(0,0,0,0.1)'
+          boxShadow: 'inset 0 -10px 10px -10px rgba(0,0,0,0.3), inset 0 10px 10px -10px rgba(0,0,0,0.3)',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)'
         }}
       >
         <table className="w-full">
@@ -241,8 +259,26 @@ const ReferralLevelsTable: React.FC = () => {
         </table>
       </div>
       
+      {/* Кнопки для плавного скролла */}
+      <div className="flex justify-center mt-3 mb-1 space-x-2">
+        <button
+          className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all duration-300"
+          onClick={() => scrollTable('up')}
+          aria-label="Scroll up"
+        >
+          <i className="fas fa-chevron-up text-xs"></i>
+        </button>
+        <button
+          className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all duration-300"
+          onClick={() => scrollTable('down')}
+          aria-label="Scroll down"
+        >
+          <i className="fas fa-chevron-down text-xs"></i>
+        </button>
+      </div>
+      
       {/* Информационное сообщение */}
-      <div className="mt-3 text-xs text-center text-foreground opacity-50 italic">
+      <div className="mt-1 text-xs text-center text-foreground opacity-50 italic">
         <div className="flex justify-center items-center">
           <i className="fas fa-sync-alt text-primary/50 mr-1 animate-spin-slow"></i>
           <span>Ваши партнерские уровни и доходы обновляются в реальном времени</span>
