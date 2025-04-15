@@ -48,6 +48,34 @@ const BalanceCard: React.FC = () => {
     });
   };
   
+  // Форматирование скорости начисления доходов
+  const formatRateNumber = (rate: number): JSX.Element => {
+    if (rate > 0.001) {
+      // Для ставок больше 0.001 показываем до 5 знаков
+      return (
+        <span>
+          +{rate.toLocaleString('en-US', {
+            minimumFractionDigits: 5,
+            maximumFractionDigits: 5
+          })}
+        </span>
+      );
+    } else if (rate > 0) {
+      // Для очень маленьких ставок показываем до 7 знаков уменьшенным шрифтом
+      return (
+        <span className="text-[0.7em] text-opacity-80">
+          +{rate.toLocaleString('en-US', {
+            minimumFractionDigits: 7,
+            maximumFractionDigits: 7
+          })}
+        </span>
+      );
+    } else {
+      // Для нулевых ставок
+      return <span>+0.00000</span>;
+    }
+  };
+  
   // Расчет долларового эквивалента
   const getUSDEquivalent = (amount: number, rate: number): string => {
     const usdValue = amount * rate;
@@ -110,7 +138,9 @@ const BalanceCard: React.FC = () => {
           {/* Скорость начисления */}
           <div className="bg-success/10 text-success rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
             <i className="fas fa-arrow-trend-up mr-1"></i>
-            <span className={uniAnimating ? 'text-green-400 font-bold' : ''}>+{uniRate}</span>
+            <span className={uniAnimating ? 'text-green-400 font-bold' : ''}>
+              {formatRateNumber(uniRate)}
+            </span>
             <span className="text-gray-400 ml-1">UNI / сек</span>
           </div>
         </div>
@@ -152,7 +182,9 @@ const BalanceCard: React.FC = () => {
           {/* Скорость начисления */}
           <div className="bg-blue-500/10 text-blue-500 rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
             <i className="fas fa-arrow-trend-up mr-1"></i>
-            <span className={tonAnimating ? 'text-blue-400 font-bold' : ''}>+{tonRate}</span>
+            <span className={tonAnimating ? 'text-blue-400 font-bold' : ''}>
+              {formatRateNumber(tonRate)}
+            </span>
             <span className="text-gray-400 ml-1">TON / сек</span>
           </div>
         </div>
