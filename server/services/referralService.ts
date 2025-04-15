@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { referrals, Referral, InsertReferral } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 /**
  * Сервис для работы с реферальной системой
@@ -55,10 +55,10 @@ export class ReferralService {
    * @returns Объект с количеством рефералов по уровням
    */
   static async getReferralCounts(userId: number): Promise<Record<number, number>> {
-    const referrals = await db
+    const referralsCounts = await db
       .select({
         level: referrals.level,
-        count: db.fn.count<number>(referrals.id)
+        count: sql<string>`count(${referrals.id})`
       })
       .from(referrals)
       .where(eq(referrals.inviter_id, userId))
@@ -66,7 +66,7 @@ export class ReferralService {
     
     // Преобразуем результат в объект { level: count }
     const result: Record<number, number> = {};
-    for (const { level, count } of referrals) {
+    for (const { level, count } of referralsCounts) {
       if (level !== null) {
         result[level] = Number(count);
       }

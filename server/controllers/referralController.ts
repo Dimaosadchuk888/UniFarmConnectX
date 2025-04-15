@@ -55,13 +55,15 @@ export class ReferralController {
       const userId = extractUserId(req, 'params');
       
       if (!userId) {
-        return sendError(res, 'Invalid user ID', 400);
+        sendError(res, 'Invalid user ID', 400);
+        return;
       }
 
       const inviter = await ReferralService.getUserInviter(userId);
       
       if (!inviter) {
-        return sendError(res, 'User has no inviter', 404);
+        sendError(res, 'User has no inviter', 404);
+        return;
       }
 
       const inviterUser = await UserService.getUserById(inviter.inviter_id);

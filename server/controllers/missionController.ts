@@ -51,7 +51,8 @@ export class MissionController {
       // Валидация тела запроса
       const validationResult = completeMissionSchema.safeParse(req.body);
       if (!validationResult.success) {
-        return sendError(res, 'Invalid request data', 400, validationResult.error.format());
+        sendError(res, 'Invalid request data', 400, validationResult.error.format());
+        return;
       }
 
       const { user_id, mission_id } = validationResult.data;
@@ -60,7 +61,8 @@ export class MissionController {
       const result = await MissionService.completeMission(user_id, mission_id);
       
       if (!result.success) {
-        return res.status(result.message.includes('not found') ? 404 : 400).json(result);
+        res.status(result.message.includes('not found') ? 404 : 400).json(result);
+        return;
       }
       
       res.status(200).json(result);

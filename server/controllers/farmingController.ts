@@ -22,7 +22,8 @@ export class FarmingController {
       const userId = extractUserId(req, 'query');
       
       if (!userId) {
-        return sendError(res, 'Invalid user ID', 400);
+        sendError(res, 'Invalid user ID', 400);
+        return;
       }
 
       const deposits = await FarmingService.getUserFarmingDeposits(userId);

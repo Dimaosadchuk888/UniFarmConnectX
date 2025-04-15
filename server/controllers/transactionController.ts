@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { TransactionService } from '../services/transactionService';
 import { UserService } from '../services/userService';
 import { sendSuccess, sendSuccessArray, sendError, sendServerError } from '../utils/responseUtils';
-import { extractUserId } from '../utils/validationUtils';
+import { extractUserId, isNumeric } from '../utils/validationUtils';
 import { getTransactionsQuerySchema, withdrawSchema } from '../validators/schemas';
 import { ZodError } from 'zod';
 import { db } from '../db';
