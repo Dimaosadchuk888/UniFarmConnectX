@@ -10,6 +10,35 @@ import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // API маршрут для получения транзакций пользователя
+  app.get("/api/transactions", async (req, res) => {
+    try {
+      const userIdParam = req.query.user_id;
+      
+      if (!userIdParam || typeof userIdParam !== 'string') {
+        return res.status(400).json({ error: "Missing or invalid user_id parameter" });
+      }
+      
+      const userId = parseInt(userIdParam);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user_id parameter" });
+      }
+      
+      // Получаем все транзакции пользователя, сортированные по дате создания (новые сначала)
+      const userTransactions = await db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.user_id, userId))
+        .orderBy(sql`${transactions.created_at} DESC`);
+      
+      res.json(userTransactions);
+    } catch (error) {
+      console.error("Error fetching user transactions:", error);
+      res.status(500).json({ error: "Failed to fetch user transactions" });
+    }
+  });
+  
   // API маршрут для получения активных миссий
   app.get("/api/missions/active", async (req, res) => {
     try {

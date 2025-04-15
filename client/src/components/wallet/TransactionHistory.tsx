@@ -1,105 +1,68 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Типы для транзакций
-type TransactionType = 'farming';
-type TokenType = 'UNI' | 'TON';
-
-interface Transaction {
-  id: string;
-  type: TransactionType;
-  title: string;
-  amount: number;
-  tokenType: TokenType;
-  timestamp: Date;
+// Типы для транзакций из БД
+interface DbTransaction {
+  id: number;
+  user_id: number;
+  type: string; // deposit / withdraw / reward
+  currency: string; // UNI / TON
+  amount: string; // строка, потому что numeric из PostgreSQL
+  status: string; // pending / confirmed / rejected
+  created_at: string; // строка с датой
 }
 
-// Имитация данных транзакций
-const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    type: 'farming',
-    title: 'Доход от фарминга',
-    amount: 0.00600000,
-    tokenType: 'UNI',
-    timestamp: new Date(2025, 3, 15, 13, 12) // 15 апреля 2025, 13:12
-  },
-  {
-    id: '2',
-    type: 'farming',
-    title: 'Доход от фарминга',
-    amount: 0.00450000,
-    tokenType: 'UNI',
-    timestamp: new Date(2025, 3, 15, 11, 45) // 15 апреля 2025, 11:45
-  },
-  {
-    id: '3',
-    type: 'farming',
-    title: 'Доход от фарминга',
-    amount: 0.00000131,
-    tokenType: 'TON',
-    timestamp: new Date(2025, 3, 15, 10, 30) // 15 апреля 2025, 10:30
-  },
-  {
-    id: '4',
-    type: 'farming',
-    title: 'Доход от фарминга',
-    amount: 0.00520000,
-    tokenType: 'UNI',
-    timestamp: new Date(2025, 3, 14, 19, 22) // 14 апреля 2025, 19:22
-  },
-  {
-    id: '5',
-    type: 'farming',
-    title: 'Доход от фарминга',
-    amount: 0.00000118,
-    tokenType: 'TON',
-    timestamp: new Date(2025, 3, 14, 16, 45) // 14 апреля 2025, 16:45
-  },
-  {
-    id: '6',
-    type: 'farming',
-    title: 'Доход от фарминга',
-    amount: 0.00380000,
-    tokenType: 'UNI',
-    timestamp: new Date(2025, 3, 14, 13, 15) // 14 апреля 2025, 13:15
-  },
-  {
-    id: '7',
-    type: 'farming',
-    title: 'Доход от фарминга',
-    amount: 0.00000095,
-    tokenType: 'TON',
-    timestamp: new Date(2025, 3, 13, 21, 10) // 13 апреля 2025, 21:10
-  },
-  {
-    id: '8',
-    type: 'farming',
-    title: 'Доход от фарминга',
-    amount: 0.00410000,
-    tokenType: 'UNI',
-    timestamp: new Date(2025, 3, 13, 18, 30) // 13 апреля 2025, 18:30
-  },
-  {
-    id: '9',
-    type: 'farming',
-    title: 'Доход от фарминга',
-    amount: 0.00000110,
-    tokenType: 'TON',
-    timestamp: new Date(2025, 3, 13, 16, 20) // 13 апреля 2025, 16:20
-  },
-  {
-    id: '10',
-    type: 'farming',
-    title: 'Доход от фарминга',
-    amount: 0.00350000,
-    tokenType: 'UNI',
-    timestamp: new Date(2025, 3, 13, 14, 45) // 13 апреля 2025, 14:45
-  }
-];
+// Тип для отображения на фронтенде
+interface Transaction {
+  id: string | number;
+  type: string;
+  title: string;
+  amount: number;
+  tokenType: string;
+  timestamp: Date;
+  status: string;
+}
 
 const TransactionHistory: React.FC = () => {
   // Состояние для активного фильтра
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'UNI' | 'TON'>('ALL');
+  
+  // ID текущего пользователя (в реальном приложении должен быть получен из контекста аутентификации)
+  const currentUserId = 1; // Для примера используем ID = 1
+  
+  // Запрос на получение транзакций пользователя
+  const { data: dbTransactions, isLoading, error } = useQuery<DbTransaction[]>({
+    queryKey: ['/api/transactions', currentUserId],
+    queryFn: async () => {
+      const response = await fetch(`/api/transactions?user_id=${currentUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch transactions');
+      }
+      return response.json();
+    }
+  });
+  
+  // Преобразуем данные из БД в формат для UI
+  const transactions: Transaction[] = dbTransactions ? dbTransactions.map(tx => {
+    // Определяем заголовок в зависимости от типа транзакции
+    let title = '';
+    if (tx.type === 'farming') title = 'Доход от фарминга';
+    else if (tx.type === 'reward') title = 'Награда за миссию';
+    else if (tx.type === 'deposit') title = 'Пополнение';
+    else if (tx.type === 'withdraw') title = 'Вывод средств';
+    else title = 'Транзакция';
+    
+    return {
+      id: tx.id,
+      type: tx.type,
+      title: title,
+      amount: parseFloat(tx.amount),
+      tokenType: tx.currency,
+      timestamp: new Date(tx.created_at),
+      status: tx.status
+    };
+  }) : [];
   
   // Форматирование даты в нужный формат
   const formatDate = (date: Date): string => {
@@ -113,12 +76,12 @@ const TransactionHistory: React.FC = () => {
   };
   
   // Форматирование суммы транзакции
-  const formatAmount = (amount: number, tokenType: TokenType): string => {
+  const formatAmount = (amount: number, tokenType: string): string => {
     return `+${amount.toFixed(8)} ${tokenType}`;
   };
   
   // Фильтрация транзакций
-  const filteredTransactions = mockTransactions.filter(transaction => {
+  const filteredTransactions = transactions.filter(transaction => {
     if (activeFilter === 'ALL') return true;
     return transaction.tokenType === activeFilter;
   });
@@ -176,8 +139,29 @@ const TransactionHistory: React.FC = () => {
         
         {/* Скроллируемый контейнер */}
         <div className="max-h-[350px] overflow-y-auto scrollbar-none relative z-0 pr-1">
-          {filteredTransactions.length > 0 ? (
-            filteredTransactions.map(transaction => (
+          {isLoading ? (
+            // Скелетон загрузки
+            Array(5).fill(0).map((_, index) => (
+              <div key={index} className="flex items-center justify-between py-3 border-b border-gray-800/50 px-2">
+                <div className="flex items-center">
+                  <Skeleton className="w-9 h-9 rounded-full bg-gray-800/50 mr-3" />
+                  <div>
+                    <Skeleton className="w-32 h-4 bg-gray-800/50 mb-2" />
+                    <Skeleton className="w-24 h-3 bg-gray-800/50" />
+                  </div>
+                </div>
+                <Skeleton className="w-20 h-7 bg-gray-800/50" />
+              </div>
+            ))
+          ) : error ? (
+            // Отображение ошибки
+            <div className="py-6 text-center text-red-500">
+              <i className="fas fa-exclamation-triangle mb-2 text-2xl"></i>
+              <p>Ошибка загрузки транзакций</p>
+            </div>
+          ) : filteredTransactions.length > 0 ? (
+            // Отображение транзакций
+            filteredTransactions.map((transaction, index) => (
               <div 
                 key={transaction.id}
                 className="flex items-center justify-between py-3 border-b border-gray-800/50 hover:bg-black/20 transition-all duration-300 px-2 rounded-md animate-fadeIn"
@@ -193,7 +177,7 @@ const TransactionHistory: React.FC = () => {
                     <div className="flex items-center">
                       <p className="text-white text-sm font-medium">{transaction.title}</p>
                       {/* Индикатор новых транзакций (для первых двух) */}
-                      {(mockTransactions.indexOf(transaction) < 2) && (
+                      {index < 2 && (
                         <span className="ml-2 text-[10px] bg-purple-600/80 text-white px-1.5 py-0.5 rounded animate-pulseGlow">Новая</span>
                       )}
                     </div>
@@ -211,6 +195,7 @@ const TransactionHistory: React.FC = () => {
               </div>
             ))
           ) : (
+            // Пустое состояние
             <div className="py-6 text-center text-gray-500">
               <i className="fas fa-search mb-2 text-2xl"></i>
               <p>Транзакции не найдены</p>
