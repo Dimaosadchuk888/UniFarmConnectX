@@ -134,16 +134,13 @@ export const userMissions = pgTable("user_missions", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id").references(() => users.id),
   mission_id: integer("mission_id").references(() => missions.id),
-  status: text("status").default("pending"), // pending / completed / failed
-  completed_at: timestamp("completed_at"),
-  created_at: timestamp("created_at").defaultNow()
+  completed_at: timestamp("completed_at").defaultNow()
 });
 
 // Схемы для таблицы user_missions
 export const insertUserMissionSchema = createInsertSchema(userMissions).pick({
   user_id: true,
   mission_id: true,
-  status: true,
   completed_at: true
 });
 
