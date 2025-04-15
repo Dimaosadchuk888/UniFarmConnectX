@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 
 const ReferralLinkCard: React.FC = () => {
   // В реальном приложении это пришло бы из данных пользователя
-  const referralLink = "https://t.me/UniFarm_bot?start=ref123456";
+  const userId = "user" + Math.floor(Math.random() * 10000); // Динамический ID для примера
+  const referralLink = `https://t.me/UniFarm_bot?start=${userId}`;
   
   // Состояния для анимаций и взаимодействий
   const [isCopied, setIsCopied] = useState(false);
@@ -21,8 +22,19 @@ const ReferralLinkCard: React.FC = () => {
   // Имитация копирования в буфер обмена
   const copyToClipboard = () => {
     try {
-      // В реальном приложении здесь будет реальное копирование
-      // navigator.clipboard.writeText(referralLink);
+      // Пытаемся скопировать в буфер обмена (работает только с HTTPS)
+      try {
+        navigator.clipboard.writeText(referralLink);
+      } catch (e) {
+        // Fallback режим для платформ без поддержки clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = referralLink;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      
       setIsCopied(true);
       
       // Через 2 секунды сбрасываем состояние
@@ -48,7 +60,7 @@ const ReferralLinkCard: React.FC = () => {
   
   return (
     <div 
-      className="bg-card rounded-xl p-4 mb-5 shadow-lg card-hover-effect relative overflow-hidden"
+      className="bg-card rounded-xl p-5 mb-5 shadow-lg card-hover-effect relative overflow-hidden"
       style={{
         opacity, 
         transform: `translateY(${translateY}px)`,
@@ -56,129 +68,177 @@ const ReferralLinkCard: React.FC = () => {
       }}
     >
       {/* Декоративные элементы фона */}
-      <div className="absolute -right-10 -top-10 w-20 h-20 bg-primary/5 rounded-full blur-lg"></div>
-      <div className="absolute -left-10 -bottom-10 w-20 h-20 bg-accent/5 rounded-full blur-lg"></div>
+      <div className="absolute -right-10 -top-10 w-32 h-32 bg-primary/5 rounded-full blur-xl"></div>
+      <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-accent/5 rounded-full blur-xl"></div>
       
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-md font-medium">Ваша реферальная ссылка</h2>
+      {/* Заголовок секции */}
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-lg font-semibold text-white flex items-center">
+          <i className="fas fa-share-alt text-primary mr-2"></i>
+          Ваша партнёрская программа
+        </h2>
         
         {/* Индикатор, активируемый при анимации демонстрации */}
         {isDemoPlaying && (
-          <div className="flex items-center text-xs text-accent animate-pulse">
+          <div className="flex items-center text-xs text-accent animate-pulse bg-accent/10 px-2 py-1 rounded-full">
             <i className="fas fa-user-plus mr-1"></i>
-            <span>+1 друг</span>
+            <span>+1 новый друг</span>
           </div>
         )}
       </div>
       
-      <div className="flex mb-4 relative">
-        <div className="flex-grow relative">
-          <input 
-            type="text" 
-            value={referralLink} 
-            readOnly
+      {/* Секция с реферальной ссылкой */}
+      <div className="mb-6 bg-black/20 p-4 rounded-lg backdrop-blur-sm relative">
+        <h3 className="text-md font-medium text-white/90 mb-2 flex items-center">
+          <i className="fas fa-link text-primary/90 mr-2 text-sm"></i>
+          Реферальная ссылка
+        </h3>
+        
+        <div className="flex relative">
+          <div className="flex-grow relative">
+            <input 
+              type="text" 
+              value={referralLink} 
+              readOnly
+              className={`
+                w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
+                transition-all duration-300
+                ${isHovered ? 'bg-muted/80' : ''}
+              `}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            />
+            
+            {/* Эффект выделения при наведении */}
+            {isHovered && (
+              <div className="absolute inset-0 border border-primary/30 rounded-l-lg pointer-events-none"></div>
+            )}
+          </div>
+          
+          <button 
             className={`
-              w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
+              px-3 py-2 rounded-r-lg relative overflow-hidden
+              ${isCopied ? 'bg-accent' : 'bg-primary'}
               transition-all duration-300
-              ${isHovered ? 'bg-muted/80' : ''}
             `}
+            onClick={copyToClipboard}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-          />
+          >
+            {/* Анимированный фон для кнопки */}
+            <div 
+              className="absolute inset-0" 
+              style={{
+                background: isCopied 
+                  ? 'linear-gradient(45deg, #00FF99, #00CC77)' 
+                  : 'linear-gradient(45deg, #A259FF, #B368F7)',
+                opacity: isHovered ? 1 : 0.9,
+                transition: 'opacity 0.3s ease'
+              }}
+            ></div>
+            
+            {/* Иконка в кнопке */}
+            <i className={`
+              fas ${isCopied ? 'fa-check' : 'fa-copy'} 
+              relative z-10 text-white
+              ${isCopied ? 'scale-110' : ''}
+              transition-transform duration-300
+            `}></i>
+          </button>
           
-          {/* Эффект выделения при наведении */}
-          {isHovered && (
-            <div className="absolute inset-0 border border-primary/30 rounded-l-lg pointer-events-none"></div>
+          {/* Тултип о статусе копирования */}
+          {isCopied && (
+            <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
+              Скопировано!
+            </div>
           )}
         </div>
-        
-        <button 
-          className={`
-            px-3 py-2 rounded-r-lg relative overflow-hidden
-            ${isCopied ? 'bg-accent' : 'bg-primary'}
-            transition-all duration-300
-          `}
-          onClick={copyToClipboard}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          {/* Анимированный фон для кнопки */}
-          <div 
-            className="absolute inset-0" 
-            style={{
-              background: isCopied 
-                ? 'linear-gradient(45deg, #00FF99, #00CC77)' 
-                : 'linear-gradient(45deg, #A259FF, #B368F7)',
-              opacity: isHovered ? 1 : 0.9,
-              transition: 'opacity 0.3s ease'
-            }}
-          ></div>
-          
-          {/* Иконка в кнопке */}
-          <i className={`
-            fas ${isCopied ? 'fa-check' : 'fa-copy'} 
-            relative z-10 text-white
-            ${isCopied ? 'scale-110' : ''}
-            transition-transform duration-300
-          `}></i>
-        </button>
-        
-        {/* Тултип о статусе копирования */}
-        {isCopied && (
-          <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md">
-            Скопировано!
-          </div>
-        )}
       </div>
       
-      <div className="flex justify-between relative">
+      {/* Секция с статистикой */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        {/* Блок с приглашенными друзьями */}
         <div 
-          className="cursor-pointer transition-all duration-300 hover:transform hover:scale-105"
+          className="bg-black/20 p-4 rounded-lg backdrop-blur-sm cursor-pointer transition-all duration-300 hover:bg-black/30"
           onClick={playInviteDemo}
         >
-          <p className="text-xs text-foreground opacity-70">Приглашено</p>
-          <p className={`
-            text-md font-medium
-            ${isDemoPlaying ? 'animate-bounce text-primary' : ''}
-          `}>
-            {isDemoPlaying ? '1' : '0'} друзей
-          </p>
+          <h3 className="text-md font-medium text-white/90 mb-2 flex items-center">
+            <i className="fas fa-users text-blue-400 mr-2 text-sm"></i>
+            Приглашённые друзья
+          </h3>
           
-          {/* Анимированная подсказка */}
-          {!isDemoPlaying && (
-            <p className="text-[10px] text-primary/70 mt-1">
-              Нажмите, чтобы увидеть демо
-            </p>
-          )}
-        </div>
-        
-        <div>
-          <p className="text-xs text-foreground opacity-70">Доход</p>
-          <div className="flex flex-col items-end">
+          <div className="flex items-end justify-between">
             <p className={`
-              text-md font-medium text-accent
-              ${isDemoPlaying ? 'animate-bounce' : ''}
+              text-xl font-bold
+              ${isDemoPlaying ? 'text-blue-400 animate-pulse' : 'text-white'}
             `}>
-              {isDemoPlaying ? '10' : '0'} UNI
+              {isDemoPlaying ? '1' : '0'}
             </p>
-            <p className={`
-              text-sm font-medium text-teal-400
-              ${isDemoPlaying ? 'animate-bounce' : ''}
-              mt-0.5
-            `}>
-              {isDemoPlaying ? '1' : '0'} TON
+            <p className="text-xs text-gray-400">
+              {!isDemoPlaying && (
+                <span className="text-primary/70 underline cursor-pointer">
+                  Нажмите, чтобы увидеть демо
+                </span>
+              )}
             </p>
           </div>
+        </div>
+        
+        {/* Блок с доходом */}
+        <div className="bg-black/20 p-4 rounded-lg backdrop-blur-sm">
+          <h3 className="text-md font-medium text-white/90 mb-2 flex items-center">
+            <i className="fas fa-coins text-accent mr-2 text-sm"></i>
+            Доход от партнёров
+          </h3>
+          
+          {isDemoPlaying ? (
+            <div>
+              <div className="flex items-center mb-1">
+                <i className="fas fa-leaf text-green-400 mr-2 text-xs"></i>
+                <p className={`
+                  text-lg font-bold text-green-400
+                  ${isDemoPlaying ? 'animate-pulse' : ''}
+                `}>
+                  +{isDemoPlaying ? '100' : '0'} UNI
+                </p>
+              </div>
+              <div className="flex items-center">
+                <i className="fas fa-tenge text-blue-400 mr-2 text-xs"></i>
+                <p className={`
+                  text-lg font-bold text-blue-400
+                  ${isDemoPlaying ? 'animate-pulse' : ''}
+                `}>
+                  +{isDemoPlaying ? '1.234' : '0'} TON
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center mb-1">
+                <i className="fas fa-leaf text-green-400/50 mr-2 text-xs"></i>
+                <p className="text-lg font-bold text-green-400/50">
+                  +0 UNI
+                </p>
+              </div>
+              <div className="flex items-center">
+                <i className="fas fa-tenge text-blue-400/50 mr-2 text-xs"></i>
+                <p className="text-lg font-bold text-blue-400/50">
+                  +0 TON
+                </p>
+              </div>
+              <p className="text-gray-500 text-xs italic mt-1">Пока нет начислений</p>
+            </div>
+          )}
         </div>
         
         {/* Декоративная линия, соединяющая элементы при активации демо */}
         {isDemoPlaying && (
           <div 
-            className="absolute h-px bg-gradient-to-r from-primary to-accent"
+            className="absolute h-px bg-gradient-to-r from-blue-400 to-accent"
             style={{
-              bottom: '25px', // Позицию линии нужно подвинуть из-за дополнительной строки с TON
-              left: '80px',
-              right: '80px',
+              bottom: '165px',
+              left: '25%',
+              right: '25%',
               opacity: 0.5,
               animation: 'pulse-fade 1s infinite'
             }}
