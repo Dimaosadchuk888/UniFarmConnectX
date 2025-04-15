@@ -167,19 +167,12 @@ const ReferralLinkCard: React.FC = () => {
             Приглашённые друзья
           </h3>
           
-          <div className="flex items-end justify-between">
+          <div className="flex items-center">
             <p className={`
               text-xl font-bold
               ${isDemoPlaying ? 'text-blue-400 animate-pulse' : 'text-white'}
             `}>
               {isDemoPlaying ? '1' : '0'}
-            </p>
-            <p className="text-xs text-gray-400">
-              {!isDemoPlaying && (
-                <span className="text-primary/70 underline cursor-pointer">
-                  Нажмите, чтобы увидеть демо
-                </span>
-              )}
             </p>
           </div>
         </div>
