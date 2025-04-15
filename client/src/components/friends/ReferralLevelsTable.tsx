@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 const ReferralLevelsTable: React.FC = () => {
-  // Статические данные для таблицы с обновленными 20 уровнями согласно запросу
+  // Статические данные для таблицы с 20 уровнями согласно запросу
   const levels = [
     { level: "Уровень 1", friends: 0, income: "0 UNI", percent: "100%" },
     { level: "Уровень 2", friends: 0, income: "0 UNI", percent: "2%" },
@@ -29,59 +29,16 @@ const ReferralLevelsTable: React.FC = () => {
   const [activeRow, setActiveRow] = useState<number | null>(null);
   const [visibleRows, setVisibleRows] = useState<number[]>([]);
   
-  // Состояние для пагинации
-  const [page, setPage] = useState(0);
-  const rowsPerPage = 5;
-  const totalPages = Math.ceil(levels.length / rowsPerPage);
-  
-  // Ref для автоскролла
+  // Ref для скролла
   const tableRef = useRef<HTMLDivElement>(null);
-  
-  // Получаем текущую страницу данных
-  const getCurrentPageData = () => {
-    const start = page * rowsPerPage;
-    return levels.slice(start, start + rowsPerPage);
-  };
-  
-  // Анимированное появление строк таблицы
-  useEffect(() => {
-    setVisibleRows([]); // Сбрасываем при смене страницы
-    
-    getCurrentPageData().forEach((_, index) => {
-      setTimeout(() => {
-        setVisibleRows(prev => [...prev, index]);
-      }, 100 + index * 150);
-    });
-  }, [page]);
-  
-  // Переход на следующую/предыдущую страницу
-  const nextPage = () => {
-    if (page < totalPages - 1) {
-      setPage(prev => prev + 1);
-      if (tableRef.current) {
-        tableRef.current.scrollTop = 0;
-      }
-    }
-  };
-  
-  const prevPage = () => {
-    if (page > 0) {
-      setPage(prev => prev - 1);
-      if (tableRef.current) {
-        tableRef.current.scrollTop = 0;
-      }
-    }
-  };
   
   // Цветовой градиент для уровней
   const getLevelColor = (index: number) => {
-    const totalIndex = page * rowsPerPage + index;
-    
     // Создаем градиент от фиолетового к зеленому через 20 уровней
-    if (totalIndex === 0) return 'bg-primary'; // Первый уровень - фиолетовый
+    if (index === 0) return 'bg-primary'; // Первый уровень - фиолетовый
     
     // Рассчитываем позицию в градиенте от 0 до 1
-    const position = totalIndex / (levels.length - 1);
+    const position = index / (levels.length - 1);
     
     // Преобразуем позицию в HSL цвет, где hue меняется от 280 (фиолетовый) до 140 (зеленый)
     const hue = 280 - position * 140; 
@@ -90,6 +47,19 @@ const ReferralLevelsTable: React.FC = () => {
     
     return `bg-[hsl(${hue},${saturation}%,${lightness}%)]`;
   };
+  
+  // Обработчик для анимированного появления строк таблицы
+  useEffect(() => {
+    // Сбрасываем список видимых строк
+    setVisibleRows([]);
+    
+    // Постепенно показываем все строки с меньшей задержкой между ними
+    levels.forEach((_, index) => {
+      setTimeout(() => {
+        setVisibleRows(prev => [...prev, index]);
+      }, 30 + index * 40); // Задержка от 30 до 50 мс между строками
+    });
+  }, []);
   
   return (
     <div className="bg-card rounded-xl p-4 shadow-lg card-hover-effect relative overflow-hidden">
@@ -115,9 +85,13 @@ const ReferralLevelsTable: React.FC = () => {
         </div>
       </div>
       
+      {/* Скроллируемая таблица со всеми уровнями */}
       <div 
         ref={tableRef}
-        className="overflow-y-auto max-h-[280px] relative scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-muted pr-1"
+        className="overflow-y-auto max-h-[350px] relative scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-muted/10 pr-1"
+        style={{
+          boxShadow: 'inset 0 -10px 10px -10px rgba(0,0,0,0.1)'
+        }}
       >
         <table className="w-full">
           <thead className="sticky top-0 bg-card z-10">
@@ -128,48 +102,54 @@ const ReferralLevelsTable: React.FC = () => {
               <th className="py-2 text-right text-sm text-foreground opacity-70">Выплаты</th>
             </tr>
           </thead>
+          
           <tbody>
-            {getCurrentPageData().map((item, index) => {
+            {levels.map((item, index) => {
               const isVisible = visibleRows.includes(index);
               const isActive = activeRow === index;
-              const totalIndex = page * rowsPerPage + index;
               
               return (
                 <tr 
                   key={index} 
                   className={`
                     relative
-                    border-b border-muted/50
                     transition-all duration-300
                     ${isVisible ? 'opacity-100' : 'opacity-0'}
                     ${isActive ? 'bg-primary/5' : 'hover:bg-primary/5'}
+                    ${index % 2 === 0 ? 'bg-black/5' : ''}
                   `}
                   style={{
-                    transform: isVisible ? 'translateX(0)' : 'translateX(-20px)',
-                    transitionDelay: `${index * 100}ms`
+                    transform: isVisible ? 'translateY(0)' : 'translateY(10px)',
+                    transitionDelay: `${index * 30}ms`,
+                    boxShadow: isActive ? '0 0 10px rgba(162, 89, 255, 0.1)' : 'none'
                   }}
                   onMouseEnter={() => setActiveRow(index)}
                   onMouseLeave={() => setActiveRow(null)}
                 >
-                  <td className="py-3 text-sm">
+                  <td className="py-2 text-sm px-2 border-b border-muted/20">
                     <div className="flex items-center">
                       {/* Цветной индикатор уровня с градиентом */}
                       <div 
                         className={`
                           w-2 h-2 rounded-full mr-2
                           ${getLevelColor(index)}
+                          transition-all duration-300
+                          ${isActive ? 'scale-125' : ''}
                         `}
                       ></div>
                       <span 
-                        className={`transition-transform duration-300 ${isActive ? 'translate-x-1' : ''}`}
+                        className={`
+                          transition-transform duration-300 
+                          ${isActive ? 'translate-x-1 text-primary/90 font-medium' : ''}
+                        `}
                       >
                         {item.level}
                       </span>
                     </div>
                   </td>
-                  <td className="py-3 text-sm">{item.friends}</td>
-                  <td className="py-3 text-sm text-accent">{item.income}</td>
-                  <td className="py-3 text-sm text-right">
+                  <td className="py-2 text-sm px-2 border-b border-muted/20">{item.friends}</td>
+                  <td className="py-2 text-sm text-accent px-2 border-b border-muted/20">{item.income}</td>
+                  <td className="py-2 text-sm text-right px-2 border-b border-muted/20">
                     <span 
                       className={`
                         inline-block px-2 py-1 rounded-full text-xs
@@ -177,8 +157,8 @@ const ReferralLevelsTable: React.FC = () => {
                         ${isActive ? 'scale-110' : ''}
                       `}
                       style={{
-                        backgroundColor: `hsla(${280 - (totalIndex / (levels.length - 1)) * 140}, 80%, 65%, 0.2)`,
-                        color: `hsla(${280 - (totalIndex / (levels.length - 1)) * 140}, 80%, 65%, 1)`
+                        backgroundColor: `hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 0.2)`,
+                        color: `hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 1)`
                       }}
                     >
                       {item.percent}
@@ -202,39 +182,6 @@ const ReferralLevelsTable: React.FC = () => {
             })}
           </tbody>
         </table>
-      </div>
-      
-      {/* Пагинация */}
-      <div className="flex justify-between items-center mt-4">
-        <button 
-          onClick={prevPage}
-          disabled={page === 0}
-          className={`
-            flex items-center justify-center w-8 h-8 rounded-full
-            ${page === 0 ? 'text-foreground/30 bg-muted/30' : 'text-foreground bg-muted hover:bg-primary/10'}
-            transition-all duration-300
-          `}
-        >
-          <i className="fas fa-chevron-left text-xs"></i>
-        </button>
-        
-        <div className="text-xs text-center">
-          <span className="inline-block px-3 py-1 bg-primary/10 rounded-full text-primary">
-            {page + 1} / {totalPages}
-          </span>
-        </div>
-        
-        <button 
-          onClick={nextPage}
-          disabled={page === totalPages - 1}
-          className={`
-            flex items-center justify-center w-8 h-8 rounded-full
-            ${page === totalPages - 1 ? 'text-foreground/30 bg-muted/30' : 'text-foreground bg-muted hover:bg-primary/10'}
-            transition-all duration-300
-          `}
-        >
-          <i className="fas fa-chevron-right text-xs"></i>
-        </button>
       </div>
       
       {/* Информационное сообщение */}
