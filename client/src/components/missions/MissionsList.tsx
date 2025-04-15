@@ -1,316 +1,270 @@
-import React, { useState, useEffect } from 'react';
-import { MISSIONS } from '@/lib/constants';
+import { useEffect, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import ConfettiEffect from '@/components/ui/ConfettiEffect';
 
-// Типы статусов заданий
-enum MissionStatus {
+// Определение типов статусов миссий
+export enum MissionStatus {
   AVAILABLE = 'available',
   PROCESSING = 'processing',
   COMPLETED = 'completed'
 }
 
-// Цвета для разных категорий
-const getCategoryColors = (category: string) => {
-  switch (category) {
-    case 'Check-in дня':
-      return {
-        bg: 'bg-blue-500/20',
-        text: 'text-blue-400'
-      };
-    case 'Приглашение':
-      return {
-        bg: 'bg-primary/20',
-        text: 'text-primary'
-      };
-    case 'Соцсети':
-      return {
-        bg: 'bg-indigo-500/20',
-        text: 'text-indigo-400'
-      };
-    case 'Бонусные':
-      return {
-        bg: 'bg-amber-500/20',
-        text: 'text-amber-400'
-      };
-    default:
-      return {
-        bg: 'bg-gray-500/20',
-        text: 'text-gray-400'
-      };
-  }
-};
+// Тип миссии
+interface Mission {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  rewardUni: number;
+  status: MissionStatus;
+  progress?: number; // прогресс выполнения от 0 до 100
+}
 
-const MissionsList: React.FC = () => {
-  // Состояние для анимаций и эффектов
-  const [hoveredMission, setHoveredMission] = useState<number | null>(null);
-  const [missionStatuses, setMissionStatuses] = useState<Map<number, MissionStatus>>(new Map());
-  const [animatedMission, setAnimatedMission] = useState<number | null>(null);
-  const [showReward, setShowReward] = useState<{id: number, reward: string} | null>(null);
-  const [confettiActive, setConfettiActive] = useState<number | null>(null);
+// Временные данные для демонстрации
+// В реальном приложении эти данные будут получены из API
+const demoMissions: Mission[] = [
+  {
+    id: 1,
+    type: 'invite',
+    title: 'Пригласи друга',
+    description: 'Пригласи друга в UniFarm и получи бонус, когда он начнет фарминг',
+    rewardUni: 5,
+    status: MissionStatus.AVAILABLE,
+  },
+  {
+    id: 2,
+    type: 'social',
+    title: 'Подпишись на Telegram канал',
+    description: 'Подпишись на наш официальный Telegram канал и получи награду',
+    rewardUni: 2.5,
+    status: MissionStatus.PROCESSING,
+    progress: 50,
+  },
+  {
+    id: 3,
+    type: 'check-in',
+    title: 'Ежедневный бонус',
+    description: 'Заходи в приложение каждый день и получай бонус',
+    rewardUni: 1,
+    status: MissionStatus.COMPLETED,
+  },
+  {
+    id: 4,
+    type: 'deposit',
+    title: 'Сделай первый депозит',
+    description: 'Сделай свой первый депозит в фарминг и получи бонусные токены',
+    rewardUni: 10,
+    status: MissionStatus.AVAILABLE,
+  },
+];
+
+export const MissionsList: React.FC = () => {
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [completedMissionId, setCompletedMissionId] = useState<number | null>(null);
   
-  // Эффект анимированного появления миссий при загрузке
-  const [visibleMissions, setVisibleMissions] = useState<number[]>([]);
-  
+  // Имитация загрузки данных
   useEffect(() => {
-    // Постепенно показываем миссии одну за другой
-    MISSIONS.forEach((mission, index) => {
-      setTimeout(() => {
-        setVisibleMissions(prev => [...prev, mission.id]);
-      }, index * 150); // Каждая следующая миссия появляется через 150ms
-    });
+    const timer = setTimeout(() => {
+      setMissions(demoMissions);
+      setLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
   
-  // Обработчик выполнения миссии (только визуальный эффект)
-  const handleCompleteMission = (missionId: number, reward: string) => {
-    // Проверяем, что миссия ещё не выполнена и не в процессе
-    if (missionStatuses.get(missionId) === MissionStatus.COMPLETED || 
-        missionStatuses.get(missionId) === MissionStatus.PROCESSING) return;
+  // Эффект для имитации прогресса выполнения миссии
+  useEffect(() => {
+    const processingMission = missions.find(
+      m => m.status === MissionStatus.PROCESSING && m.progress !== undefined && m.progress < 100
+    );
     
-    // Устанавливаем статус "в процессе"
-    setMissionStatuses(prev => new Map(prev).set(missionId, MissionStatus.PROCESSING));
-    setAnimatedMission(missionId);
-    
-    // После короткой анимации добавляем в список выполненных
-    setTimeout(() => {
-      setMissionStatuses(prev => new Map(prev).set(missionId, MissionStatus.COMPLETED));
-      setShowReward({id: missionId, reward});
-      setConfettiActive(missionId);
+    if (processingMission) {
+      const timer = setInterval(() => {
+        setMissions(prevMissions => 
+          prevMissions.map(mission => {
+            if (mission.id === processingMission.id) {
+              const newProgress = (mission.progress || 0) + 10;
+              
+              // Если прогресс достиг 100%, завершаем миссию
+              if (newProgress >= 100) {
+                setCompletedMissionId(mission.id);
+                setShowConfetti(true);
+                clearInterval(timer);
+                return { 
+                  ...mission, 
+                  status: MissionStatus.COMPLETED, 
+                  progress: 100 
+                };
+              }
+              
+              return { ...mission, progress: newProgress };
+            }
+            return mission;
+          })
+        );
+      }, 800); // Обновляем прогресс каждые 800мс
       
-      // Скрываем сообщение о награде через 2 секунды
-      setTimeout(() => {
-        setShowReward(null);
-        setAnimatedMission(null);
-        
-        // И убираем эффект конфетти через короткое время
-        setTimeout(() => {
-          setConfettiActive(null);
-        }, 1000);
-      }, 2000);
-    }, 800);
+      return () => clearInterval(timer);
+    }
+  }, [missions]);
+  
+  // Функция для получения цвета и иконки в зависимости от статуса миссии
+  const getMissionStatusInfo = (status: MissionStatus) => {
+    switch (status) {
+      case MissionStatus.AVAILABLE:
+        return { 
+          color: 'bg-blue-500', 
+          text: 'Доступно', 
+          icon: <AlertCircle className="h-4 w-4 mr-1" /> 
+        };
+      case MissionStatus.PROCESSING:
+        return { 
+          color: 'bg-amber-500', 
+          text: 'В процессе', 
+          icon: <Clock className="h-4 w-4 mr-1" /> 
+        };
+      case MissionStatus.COMPLETED:
+        return { 
+          color: 'bg-green-500', 
+          text: 'Выполнено', 
+          icon: <CheckCircle className="h-4 w-4 mr-1" /> 
+        };
+      default:
+        return { 
+          color: 'bg-gray-500', 
+          text: 'Неизвестно', 
+          icon: null 
+        };
+    }
   };
   
-  // Функция для создания эффекта "конфетти"
-  const renderConfetti = () => {
-    return Array.from({ length: 30 }, (_, i) => {
-      const colors = ['#A259FF', '#7E1AFF', '#5945FA', '#4A75FF', '#8959FF', '#FF59F2', '#FF8A59', '#FFDC59'];
-      const size = Math.random() * 10 + 5; // От 5px до 15px
-      const left = Math.random() * 100;
-      const delay = Math.random() * 0.5;
-      const duration = Math.random() * 1.5 + 1;
-      const rotationStart = Math.random() * 360;
-      const rotationEnd = rotationStart + Math.random() * 360 * (Math.random() > 0.5 ? 1 : -1);
-      
-      return (
-        <div
-          key={i}
-          className="absolute rounded-md"
-          style={{
-            left: `${left}%`,
-            top: '-5%',
-            width: `${size}px`,
-            height: `${size}px`,
-            backgroundColor: colors[Math.floor(Math.random() * colors.length)],
-            boxShadow: `0 0 ${Math.floor(size/3)}px ${colors[Math.floor(Math.random() * colors.length)]}`,
-            animation: `confettiFall ${duration}s ease-in forwards`,
-            animationDelay: `${delay}s`,
-            transform: `rotate(${rotationStart}deg)`,
-          }}
-        ></div>
-      );
-    });
+  // Обработчик клика по кнопке "Выполнить"
+  const handleStartMission = (id: number) => {
+    setMissions(missions.map(mission => 
+      mission.id === id 
+        ? { ...mission, status: MissionStatus.PROCESSING, progress: 0 } 
+        : mission
+    ));
   };
+  
+  // Обработчик завершения анимации конфетти
+  const handleConfettiComplete = () => {
+    setShowConfetti(false);
+    setCompletedMissionId(null);
+  };
+  
+  if (loading) {
+    return (
+      <div className="space-y-4 p-4">
+        {[1, 2, 3].map(i => (
+          <Card key={i} className="bg-card/50 animate-pulse">
+            <CardHeader className="h-16"></CardHeader>
+            <CardContent className="h-20"></CardContent>
+            <CardFooter className="h-12"></CardFooter>
+          </Card>
+        ))}
+      </div>
+    );
+  }
   
   return (
-    <div className="space-y-5">
+    <AnimatePresence>
+      {/* Эффект конфетти при завершении миссии */}
+      <ConfettiEffect 
+        active={showConfetti} 
+        onComplete={handleConfettiComplete} 
+        duration={3000} 
+        colors={['#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b']}
+      />
       
-      {MISSIONS.map((mission) => {
-        const isVisible = visibleMissions.includes(mission.id);
-        const isHovered = hoveredMission === mission.id;
-        const status = missionStatuses.get(mission.id) || MissionStatus.AVAILABLE;
-        const isCompleted = status === MissionStatus.COMPLETED;
-        const isProcessing = status === MissionStatus.PROCESSING;
-        const isAnimating = animatedMission === mission.id;
-        const isShowingReward = showReward?.id === mission.id;
-        const categoryStyle = getCategoryColors(mission.category);
-        
-        return (
-          <div 
-            key={mission.id} 
-            className={`
-              bg-card rounded-xl p-5 shadow-lg 
-              transition-all duration-500 relative
-              ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}
-              ${isHovered && !isCompleted ? 'shadow-xl shadow-primary/10 -translate-y-1' : ''}
-              ${isCompleted ? 'bg-card shadow-md shadow-green-900/5 border border-accent/10' : ''}
-              ${isAnimating ? 'scale-[1.02]' : 'scale-100'}
-              overflow-hidden
-            `}
-            onMouseEnter={() => setHoveredMission(mission.id)}
-            onMouseLeave={() => setHoveredMission(null)}
-            style={{
-              transitionDelay: `${MISSIONS.findIndex(m => m.id === mission.id) * 50}ms`
-            }}
-          >
-            {/* Фоновый градиент для эффекта наведения */}
-            {isHovered && !isCompleted && !isProcessing && (
-              <div 
-                className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-50 transition-opacity duration-300"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(162, 89, 255, 0.05) 0%, rgba(0, 0, 0, 0) 60%)'
-                }}
-              ></div>
-            )}
-            
-            {/* Индикатор категории */}
-            <div className="absolute top-3 right-3">
-              <span className={`
-                inline-flex items-center px-2 py-1 rounded-full text-xs
-                ${categoryStyle.bg} ${categoryStyle.text}
-              `}>
-                {mission.category === 'Check-in дня' && <i className="fas fa-calendar-day mr-1 text-[10px]"></i>}
-                {mission.category === 'Приглашение' && <i className="fas fa-user-plus mr-1 text-[10px]"></i>}
-                {mission.category === 'Соцсети' && <i className="fas fa-hashtag mr-1 text-[10px]"></i>}
-                {mission.category === 'Бонусные' && <i className="fas fa-gift mr-1 text-[10px]"></i>}
-                {mission.category}
-              </span>
-            </div>
-            
-            {/* Статус задания */}
-            {isCompleted && (
-              <div className="absolute top-3 left-3 px-2 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
-                <i className="fas fa-check mr-1"></i>
-                Выполнено
-              </div>
-            )}
-            
-            {isProcessing && (
-              <div className="absolute top-3 left-3 px-2 py-1 bg-amber-500/10 text-amber-500 text-xs font-medium rounded-full animate-pulse">
-                <i className="fas fa-spinner fa-spin mr-1"></i>
-                Ожидает проверки
-              </div>
-            )}
-            
-            <div className="flex items-center relative z-10 mt-2">
-              {/* Круглая иконка задания */}
-              <div className={`
-                w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0
-                transition-all duration-500
-                ${isCompleted 
-                  ? 'bg-accent/20 border border-accent' 
-                  : isProcessing
-                    ? 'bg-amber-500/10 border border-amber-500/50'
-                    : 'bg-gradient-to-br from-primary/30 to-violet-500/20 border border-primary/30'
-                }
-                ${isAnimating ? 'scale-110' : ''}
-                shadow-lg
-              `}>
-                <i className={`
-                  ${mission.icon.includes('twitter') || mission.icon.includes('youtube') || mission.icon.includes('discord') ? 'fab' : 'fas'} 
-                  fa-${mission.icon} 
-                  text-xl
-                  ${isCompleted ? 'text-accent' : isProcessing ? 'text-amber-400' : 'text-primary animate-pulse'}
-                  ${isHovered && !isCompleted && !isProcessing ? 'scale-125' : ''}
-                  transition-all duration-300
-                `}></i>
-                
-                {/* Светящийся фон для иконки */}
-                <div className={`
-                  absolute inset-0 rounded-full blur-md -z-10 opacity-50
-                  ${isCompleted ? 'bg-accent/30' : isProcessing ? 'bg-amber-500/30' : 'bg-primary/30'}
-                  transition-opacity duration-500
-                  ${isHovered && !isCompleted && !isProcessing ? 'opacity-80' : ''}
-                `}></div>
-              </div>
-              
-              <div className="ml-4 flex-grow">
-                <h3 className={`
-                  text-md font-semibold
-                  transition-all duration-300
-                  ${isHovered && !isCompleted && !isProcessing ? 'text-primary' : 'text-foreground'}
-                `}>{mission.title}</h3>
-                
-                <p className="text-sm text-foreground/70 mt-1">
-                  {mission.description}
-                </p>
-                
-                <div className="flex justify-between items-center mt-3">
-                  {/* Награда */}
-                  <div className={`
-                    px-3 py-1.5 rounded-lg text-sm font-bold
-                    ${isCompleted ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary'}
-                    transition-all duration-300
-                    ${isHovered && !isCompleted && !isProcessing ? 'scale-105 shadow-lg shadow-primary/20' : ''}
-                  `}>
-                    <i className="fas fa-coins mr-1.5 text-xs"></i>
-                    {mission.reward}
+      <div className="space-y-4 p-4">
+        {missions.map((mission) => {
+          const statusInfo = getMissionStatusInfo(mission.status);
+          // Применяем эффект свечения к только что завершенной миссии
+          const isRecentlyCompleted = completedMissionId === mission.id;
+          
+          return (
+            <motion.div
+              key={mission.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card 
+                className={`overflow-hidden transition-all duration-500 ${
+                  isRecentlyCompleted 
+                    ? 'shadow-[0_0_15px_rgba(139,92,246,0.8)] scale-[1.02]' 
+                    : ''
+                }`}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className={`text-lg ${
+                      isRecentlyCompleted ? 'text-primary' : ''
+                    }`}>{mission.title}</CardTitle>
+                    <Badge className={`${statusInfo.color} text-white ${
+                      isRecentlyCompleted ? 'animate-pulse' : ''
+                    }`}>
+                      <span className="flex items-center">
+                        {statusInfo.icon}
+                        {statusInfo.text}
+                      </span>
+                    </Badge>
                   </div>
-                  
-                  {/* Кнопка действия */}
-                  {!isCompleted && !isProcessing ? (
-                    <button 
-                      className={`
-                        px-4 py-2 rounded-lg text-sm font-medium text-white
-                        transition-all duration-300 overflow-hidden relative
-                        ${isHovered ? 'shadow-lg shadow-primary/20' : 'shadow-md'}
-                      `}
-                      style={{
-                        background: isHovered 
-                          ? 'linear-gradient(90deg, #A259FF 0%, #B368F7 100%)' 
-                          : 'linear-gradient(45deg, #A259FF 0%, #B368F7 100%)'
-                      }}
-                      onClick={() => handleCompleteMission(mission.id, mission.reward)}
-                    >
-                      {/* Эффект блеска при наведении */}
-                      {isHovered && (
-                        <div 
-                          className="absolute inset-0 w-full h-full" 
-                          style={{
-                            background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)',
-                            transform: 'translateX(-100%)',
-                            animation: 'shimmer 1.5s infinite'
-                          }}
-                        ></div>
-                      )}
-                      <span className="relative z-10">Выполнить</span>
-                    </button>
-                  ) : (
-                    <div className="flex items-center">
-                      <div className={`
-                        w-9 h-9 rounded-full flex items-center justify-center
-                        ${isCompleted ? 'bg-accent/20' : 'bg-amber-500/20'}
-                        transition-all duration-300
-                      `}>
-                        <i className={`
-                          fas ${isCompleted ? 'fa-check' : 'fa-spinner fa-spin'} 
-                          ${isCompleted ? 'text-accent' : 'text-amber-500'}
-                          text-sm
-                        `}></i>
+                  <CardDescription>{mission.description}</CardDescription>
+                </CardHeader>
+                
+                <CardContent>
+                  {mission.status === MissionStatus.PROCESSING && (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Прогресс</span>
+                        <span>{mission.progress}%</span>
                       </div>
+                      <Progress
+                        value={mission.progress}
+                        className="h-2"
+                      />
                     </div>
                   )}
-                </div>
-              </div>
-            </div>
-            
-            {/* Анимация получения награды с конфетти */}
-            {isShowingReward && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-xl z-20 overflow-hidden">
-                <div className="text-center animate-bounce z-30">
-                  <div className="text-4xl font-bold mb-2 bg-gradient-to-r from-green-400 to-accent bg-clip-text text-transparent">
-                    +{showReward.reward}
-                  </div>
-                  <div className="text-lg text-white font-medium">
-                    Награда получена!
-                  </div>
-                </div>
+                </CardContent>
                 
-                {/* Конфетти эффект */}
-                {confettiActive === mission.id && renderConfetti()}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+                <CardFooter className="flex justify-between items-center border-t pt-4">
+                  <div className="text-primary font-medium">
+                    Награда: <span className="text-green-500">{mission.rewardUni} UNI</span>
+                  </div>
+                  
+                  {mission.status === MissionStatus.AVAILABLE && (
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleStartMission(mission.id)}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      Выполнить
+                    </Button>
+                  )}
+                  
+                  {mission.status === MissionStatus.COMPLETED && (
+                    <Badge variant="outline" className="border-green-500 text-green-500">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Получено
+                    </Badge>
+                  )}
+                </CardFooter>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+    </AnimatePresence>
   );
 };
 
