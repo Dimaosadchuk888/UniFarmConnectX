@@ -13,53 +13,73 @@ export const NAV_ITEMS = [
 export const BOOST_PACKAGES = [
   { 
     id: 1, 
-    name: "Основной пакет UNI", 
+    name: "UNI + TON Boost", 
     description: "Базовый ускоритель фарминга на 7 дней",
     type: "UNI",
     isPrimary: true,
     hashrate: 12, // H/s (Хешрейт)
     days: 7,
-    price: "100 UNI"
+    price: "100 UNI",
+    uniYield: "1% Daily",
+    tonYield: "0.5% Daily",
+    bonus: "+10,000 UNI",
+    isActive: false
   },
   { 
     id: 2, 
-    name: "Пакет UNI + 1 TON", 
+    name: "UNI + TON Boost", 
     description: "Премиум ускоритель фарминга на 10 дней",
     type: "TON",
     isPrimary: false,
     hashrate: 25, // H/s
     days: 10,
-    price: "200 UNI + 1 TON"
+    price: "200 UNI + 1 TON",
+    uniYield: "2% Daily",
+    tonYield: "1% Daily",
+    bonus: "+25,000 UNI",
+    isActive: false
   },
   { 
     id: 3, 
-    name: "Пакет UNI + 5 TON", 
+    name: "UNI + TON Boost", 
     description: "Премиум ускоритель фарминга на 20 дней",
     type: "TON",
     isPrimary: false,
     hashrate: 40, // H/s
     days: 20,
-    price: "350 UNI + 5 TON"
+    price: "350 UNI + 5 TON",
+    uniYield: "2.5% Daily",
+    tonYield: "1.3% Daily",
+    bonus: "+50,000 UNI",
+    isActive: false
   },
   { 
     id: 4, 
-    name: "Пакет UNI + 15 TON", 
+    name: "UNI + TON Boost", 
     description: "Премиум ускоритель фарминга на 30 дней",
     type: "TON",
     isPrimary: false,
     hashrate: 65, // H/s
     days: 30,
-    price: "500 UNI + 15 TON"
+    price: "500 UNI + 15 TON",
+    uniYield: "3% Daily",
+    tonYield: "1.5% Daily",
+    bonus: "+65,000 UNI",
+    isActive: false
   },
   { 
     id: 5, 
-    name: "Пакет UNI + 25 TON", 
+    name: "UNI + TON Boost", 
     description: "Премиум ускоритель фарминга на 60 дней",
     type: "TON",
-    isPrimary: false,
+    isPrimary: true,
     hashrate: 100, // H/s
     days: 60,
-    price: "800 UNI + 25 TON"
+    price: "800 UNI + 25 TON",
+    uniYield: "3% Daily",
+    tonYield: "1.8% Daily",
+    bonus: "+75,000 UNI",
+    isActive: false
   }
 ];
 

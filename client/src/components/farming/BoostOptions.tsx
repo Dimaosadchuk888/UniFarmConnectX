@@ -6,6 +6,7 @@ const BoostOptions: React.FC = () => {
   const [hoveredPackId, setHoveredPackId] = useState<number | null>(null);
   const [selectedPackId, setSelectedPackId] = useState<number | null>(null);
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
+  const [activeToggles, setActiveToggles] = useState<number[]>([]);
   
   // Ref для измерения скорости анимации хешрейта
   const animationSpeedRef = useRef<number[]>([]);
@@ -22,6 +23,17 @@ const BoostOptions: React.FC = () => {
   // Функция для отображения tooltip с описанием хешрейта
   const toggleTooltip = () => {
     setShowTooltip(!showTooltip);
+  };
+  
+  // Функция для переключения активации пакета
+  const toggleBoostActive = (packId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Предотвращаем срабатывание клика на родительском div
+    
+    if (activeToggles.includes(packId)) {
+      setActiveToggles(activeToggles.filter(id => id !== packId));
+    } else {
+      setActiveToggles([...activeToggles, packId]);
+    }
   };
   
   // Хелпер для анимации хешрейта
@@ -42,7 +54,10 @@ const BoostOptions: React.FC = () => {
   return (
     <div className="mb-6">
       <div className="flex justify-between items-center mb-3">
-        <h2 className="text-lg font-semibold text-white">Boost</h2>
+        <h2 className="text-lg font-semibold text-white flex items-center">
+          <i className="fas fa-rocket text-primary mr-2"></i>
+          Boost Пакеты
+        </h2>
         
         {/* Иконка вопроса с всплывающей подсказкой */}
         <div className="relative">
@@ -59,12 +74,12 @@ const BoostOptions: React.FC = () => {
               <p className="mb-2">
                 <span className="font-medium">Что такое Boost?</span>
               </p>
-              <p className="mb-1">Boost - это ускоритель фарминга UNI токенов, который увеличивает скорость добычи.</p>
+              <p className="mb-1">Boost - это ускоритель фарминга UNI и TON токенов, который увеличивает скорость добычи.</p>
               <p className="mb-1">
                 <span className="inline-flex items-center font-medium">
-                  <i className="fas fa-tachometer-alt text-primary mr-1"></i> Hashrate (H/s)
+                  <i className="fas fa-bolt text-primary mr-1"></i> Доходность
                 </span> 
-                - это скорость вычислений, чем выше, тем больше токенов вы получаете.
+                - это ежедневный процент от начисления токенов UNI и TON.
               </p>
             </div>
           )}
@@ -74,6 +89,7 @@ const BoostOptions: React.FC = () => {
       {BOOST_PACKAGES.map((pack) => {
         const isHovered = hoveredPackId === pack.id;
         const isSelected = selectedPackId === pack.id;
+        const isActive = activeToggles.includes(pack.id);
         
         // Скорость анимации хешрейта
         const hashAnimationSpeed = getHashrateAnimationSpeed(pack.hashrate);
@@ -91,70 +107,131 @@ const BoostOptions: React.FC = () => {
           <div 
             key={pack.id}
             className={`
-              bg-card rounded-xl p-4 mb-3 shadow-lg 
+              bg-card rounded-xl p-4 mb-3
               transition-all duration-500 relative overflow-hidden cursor-pointer
-              ${pack.isPrimary ? 'border border-primary' : ''}
-              ${isSelected ? 'card-expanded shadow-xl' : 'card-hover-effect'}
+              border border-purple-900/30
+              ${isActive ? 'shadow-lg shadow-primary/20' : 'shadow-md'}
+              ${isSelected ? 'card-expanded shadow-xl' : 'hover:shadow-lg hover:shadow-primary/10'}
             `}
             onClick={() => handleBoostPackClick(pack.id)}
             onMouseEnter={() => setHoveredPackId(pack.id)}
             onMouseLeave={() => setHoveredPackId(null)}
             style={{
-              height: isSelected ? '280px' : 'auto',
-              transition: 'height 0.5s ease, transform 0.3s ease, box-shadow 0.3s ease'
+              height: isSelected ? '320px' : 'auto',
+              transition: 'height 0.5s ease, transform 0.3s ease, box-shadow 0.3s ease',
+              background: isActive 
+                ? 'linear-gradient(135deg, rgba(30, 30, 40, 1) 0%, rgba(35, 30, 45, 1) 100%)' 
+                : 'linear-gradient(135deg, rgba(20, 20, 25, 1) 0%, rgba(25, 20, 30, 1) 100%)'
             }}
           >
-            {/* Фоновый эффект для пакетов */}
+            {/* Фоновый эффект свечения по краям */}
             <div 
-              className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-50 z-0"
+              className="absolute inset-0 opacity-50 z-0 rounded-xl"
               style={{
-                background: `linear-gradient(135deg, rgba(162, 89, 255, ${pack.isPrimary ? '0.15' : '0.05'}) 0%, rgba(0, 0, 0, 0) 60%)`,
-                transition: 'opacity 0.3s ease',
-                opacity: isHovered || isSelected ? 0.8 : 0.5
+                background: pack.isPrimary || isActive
+                  ? 'radial-gradient(ellipse at 30% 20%, rgba(162, 89, 255, 0.2) 0%, transparent 70%), radial-gradient(ellipse at 70% 80%, rgba(162, 89, 255, 0.15) 0%, transparent 70%)'
+                  : 'radial-gradient(ellipse at 30% 20%, rgba(162, 89, 255, 0.1) 0%, transparent 70%), radial-gradient(ellipse at 70% 80%, rgba(162, 89, 255, 0.05) 0%, transparent 70%)',
+                opacity: isHovered || isSelected || isActive ? '0.7' : '0.4',
+                transition: 'opacity 0.5s ease'
               }}
             ></div>
             
             {/* Верхняя часть карточки */}
-            <div className="flex justify-between items-center mb-2 relative z-10">
+            <div className="flex justify-between items-center mb-3 relative z-10">
               <h3 className={`
-                text-md font-medium
-                transition-all duration-300 
-                ${(isHovered || isSelected) ? 'transform translate-x-1' : ''}
-              `}>{pack.name}</h3>
-              
-              <div className={`
-                px-2 py-1 transition-all duration-300
-                ${pack.type === 'UNI' 
-                  ? 'bg-primary/20 rounded-full' 
-                  : 'bg-muted rounded-full'
-                }
-                ${isHovered ? 'scale-110' : ''}
+                text-md font-medium flex items-center
+                transition-all duration-300 text-purple-300
+                ${(isHovered || isSelected) ? 'text-purple-200' : ''}
               `}>
-                <span className={`
-                  text-sm 
-                  ${pack.type === 'UNI' ? 'text-primary' : 'text-foreground'}
-                `}>{pack.type}</span>
+                <i className="fas fa-bolt text-primary mr-2"></i>
+                {pack.name}
+              </h3>
+              
+              {/* Toggle переключатель активации */}
+              <div 
+                className={`
+                  w-10 h-5 rounded-full relative cursor-pointer flex items-center
+                  transition-all duration-300
+                  ${isActive ? 'bg-primary' : 'bg-gray-600'}
+                `}
+                onClick={(e) => toggleBoostActive(pack.id, e)}
+              >
+                <div 
+                  className={`
+                    absolute w-4 h-4 rounded-full bg-white 
+                    transition-all duration-300 shadow-md
+                    ${isActive ? 'translate-x-5' : 'translate-x-1'}
+                  `}
+                >
+                  {/* Тень вокруг переключателя в активном состоянии */}
+                  {isActive && (
+                    <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse" 
+                      style={{ 
+                        animation: 'pulse-size 1.5s infinite',
+                        transform: 'scale(1.3)',
+                        opacity: 0.5
+                      }}
+                    ></div>
+                  )}
+                </div>
               </div>
             </div>
             
-            {/* Описание и индикатор хешрейта */}
-            <div className="flex justify-between items-start mb-3 relative z-10">
-              <p className="text-xs text-foreground opacity-70 flex-grow">
-                {pack.description}
-              </p>
+            {/* Основная информация о пакете */}
+            <div className="grid grid-cols-2 gap-4 mb-3 relative z-10">
+              <div className="flex flex-col justify-between">
+                {/* UNI Yield */}
+                <div className="mb-2">
+                  <div className="text-xs text-gray-400 mb-1">UNI Yield:</div>
+                  <div className="font-medium text-green-400 flex items-center">
+                    <i className="fas fa-chart-line mr-1 text-xs"></i>
+                    {pack.uniYield}
+                  </div>
+                </div>
+                
+                {/* TON Yield */}
+                <div className="mb-2">
+                  <div className="text-xs text-gray-400 mb-1">TON Yield:</div>
+                  <div className="font-medium text-green-400 flex items-center">
+                    <i className="fas fa-chart-line mr-1 text-xs"></i>
+                    {pack.tonYield}
+                  </div>
+                </div>
+                
+                {/* Bonus */}
+                <div>
+                  <div className="text-xs text-gray-400 mb-1">Bonus:</div>
+                  <div className="font-medium text-green-400 flex items-center">
+                    <i className="fas fa-gift mr-1 text-amber-400 text-xs"></i>
+                    {pack.bonus}
+                  </div>
+                </div>
+              </div>
               
-              {/* Хешрейт (H/s) */}
-              <div 
-                className={`
-                  flex flex-col items-center ml-2
-                  transition-all duration-300
-                  ${isHovered ? 'scale-110' : ''}
-                `}
-              >
-                <div className="text-xs text-foreground opacity-70 mb-1">Hashrate</div>
-                <div className="flex items-center">
-                  <span className="text-md font-semibold text-primary">{pack.hashrate}</span>
-                  <span className="text-xs text-primary ml-1">H/s</span>
+              <div className="flex flex-col justify-between">
+                {/* Hashrate */}
+                <div className="mb-2 flex flex-col items-end">
+                  <div className="text-xs text-gray-400 mb-1">Hashrate:</div>
+                  <div className="font-semibold text-primary flex items-center">
+                    <i className="fas fa-tachometer-alt mr-1 text-xs"></i>
+                    {pack.hashrate} <span className="text-xs ml-1">H/s</span>
+                  </div>
+                </div>
+                
+                {/* Duration */}
+                <div className="mb-2 flex flex-col items-end">
+                  <div className="text-xs text-gray-400 mb-1">Длительность:</div>
+                  <div className="font-medium text-white">
+                    {pack.days} дней
+                  </div>
+                </div>
+                
+                {/* Price */}
+                <div className="flex flex-col items-end">
+                  <div className="text-xs text-gray-400 mb-1">Стоимость:</div>
+                  <div className="font-medium text-yellow-400">
+                    {pack.price}
+                  </div>
                 </div>
               </div>
             </div>
@@ -163,76 +240,42 @@ const BoostOptions: React.FC = () => {
             <button 
               className={`
                 relative z-10 transition-all duration-300
-                overflow-hidden
-                ${pack.isPrimary 
-                  ? "bg-gradient-to-r from-primary to-indigo-500 w-full text-white py-2 rounded-lg font-medium"
-                  : "w-full py-2 rounded-lg font-medium border border-muted text-foreground hover:border-primary/50"
-                }
-                ${isHovered && !isSelected ? 'transform scale-105' : ''}
+                overflow-hidden w-full py-2.5 rounded-lg font-medium
+                flex items-center justify-center
+                bg-primary hover:bg-purple-600 text-white
+                ${isHovered ? 'shadow-lg shadow-primary/30' : 'shadow-md shadow-primary/20'}
               `}
               onClick={(e) => {
                 e.stopPropagation(); // Предотвращаем срабатывание клика на родительском div
                 // Здесь будет логика покупки пакета в реальном приложении
               }}
             >
-              {/* Пульсация при наведении на кнопку */}
-              <div 
-                className="absolute inset-0 overflow-hidden"
-                style={{
-                  opacity: isHovered ? 1 : 0,
-                  transition: 'opacity 0.3s ease'
-                }}
-              >
-                <div 
-                  className="absolute inset-0 flex justify-center items-center"
-                  style={{
-                    animation: 'pulse-fade 1.5s infinite',
-                    background: pack.isPrimary
-                      ? 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%)'
-                      : 'radial-gradient(circle, rgba(162,89,255,0.2) 0%, rgba(162,89,255,0) 70%)'
-                  }}
-                ></div>
-              </div>
+              {/* Иконка молнии */}
+              <i className="fas fa-bolt mr-2"></i>
               
               {/* Эффект свечения кнопки */}
-              {isHovered && (
-                <div 
-                  className="absolute inset-0 w-full h-full" 
-                  style={{
-                    background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)',
-                    transform: 'translateX(-100%)',
-                    animation: 'shimmer 2s infinite'
-                  }}
-                ></div>
-              )}
+              <div 
+                className="absolute inset-0 w-full h-full overflow-hidden" 
+                style={{
+                  background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)',
+                  transform: 'translateX(-100%)',
+                  animation: 'shimmer 2s infinite'
+                }}
+              ></div>
               
-              <span className="relative z-10">{pack.price}</span>
+              <span className="relative z-10">Buy Boost</span>
             </button>
             
             {/* Раскрывающаяся часть карточки (видна только при клике) */}
             {isSelected && (
-              <div className="mt-4 overflow-hidden" style={{ animation: 'fadeIn 0.5s ease' }}>
-                <div className="border-t border-muted/50 pt-3">
-                  <h4 className="text-sm font-medium mb-2">Детали пакета</h4>
-                  
-                  {/* Информация о хешрейте и продолжительности */}
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="bg-black/20 rounded-lg p-2 flex flex-col items-center">
-                      <i className="fas fa-tachometer-alt text-primary mb-1"></i>
-                      <span className="text-xs opacity-70">Hashrate</span>
-                      <span className="text-sm font-medium">{pack.hashrate} H/s</span>
-                    </div>
-                    <div className="bg-black/20 rounded-lg p-2 flex flex-col items-center">
-                      <i className="fas fa-calendar-alt text-primary mb-1"></i>
-                      <span className="text-xs opacity-70">Длительность</span>
-                      <span className="text-sm font-medium">{pack.days} дней</span>
-                    </div>
-                  </div>
+              <div className="mt-4 overflow-hidden relative z-10" style={{ animation: 'fadeIn 0.5s ease' }}>
+                <div className="border-t border-purple-900/30 pt-3">
+                  <h4 className="text-sm font-medium mb-2 text-purple-200">Визуализация работы</h4>
                   
                   {/* Визуализация хешрейта */}
-                  <div className="relative h-20 bg-black/10 rounded-lg mb-2 overflow-hidden">
+                  <div className="relative h-24 bg-black/30 rounded-lg mb-2 overflow-hidden border border-purple-900/50">
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs text-foreground/50">Визуализация работы</span>
+                      <span className="text-xs text-foreground/50">Mining Visualization</span>
                     </div>
                     
                     {/* Анимированные точки, имитирующие работу хешрейта */}
@@ -276,7 +319,7 @@ const BoostOptions: React.FC = () => {
             
             {/* Индикатор популярности для главного пакета */}
             {pack.isPrimary && (
-              <div className="absolute top-0 right-0 transform translate-x-2 -translate-y-2 rotate-45 bg-primary text-white text-xs px-4 py-1 z-10">
+              <div className="absolute top-0 right-0 transform translate-x-2 -translate-y-2 rotate-45 bg-primary text-white text-xs px-4 py-1 z-10 shadow-lg">
                 Популярный
               </div>
             )}
