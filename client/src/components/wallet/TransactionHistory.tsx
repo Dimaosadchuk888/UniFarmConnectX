@@ -33,14 +33,7 @@ const TransactionHistory: React.FC = () => {
   
   // Запрос на получение транзакций пользователя
   const { data: dbTransactions, isLoading, error } = useQuery<DbTransaction[]>({
-    queryKey: ['/api/transactions', currentUserId],
-    queryFn: async () => {
-      const response = await fetch(`/api/transactions?user_id=${currentUserId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch transactions');
-      }
-      return response.json();
-    }
+    queryKey: [`/api/transactions?user_id=${currentUserId}`]
   });
   
   // Преобразуем данные из БД в формат для UI
