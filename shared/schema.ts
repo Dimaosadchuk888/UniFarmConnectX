@@ -20,7 +20,19 @@ export const users = pgTable("users", {
   created_at: timestamp("created_at").defaultNow()
 });
 
-// Схемы для текущей аутентификации
+// Таблица farming_deposits по требованиям задачи
+export const farmingDeposits = pgTable("farming_deposits", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id),
+  amount_uni: numeric("amount_uni", { precision: 18, scale: 6 }),
+  rate_uni: numeric("rate_uni", { precision: 5, scale: 2 }),
+  rate_ton: numeric("rate_ton", { precision: 5, scale: 2 }),
+  created_at: timestamp("created_at").defaultNow(),
+  last_claim: timestamp("last_claim"),
+  is_boosted: boolean("is_boosted").default(false)
+});
+
+// Схемы для аутентификации
 export const insertAuthUserSchema = createInsertSchema(authUsers).pick({
   username: true,
   password: true,
@@ -29,7 +41,7 @@ export const insertAuthUserSchema = createInsertSchema(authUsers).pick({
 export type InsertAuthUser = z.infer<typeof insertAuthUserSchema>;
 export type AuthUser = typeof authUsers.$inferSelect;
 
-// Схемы для новой таблицы users
+// Схемы для таблицы users
 export const insertUserSchema = createInsertSchema(users).pick({
   telegram_id: true,
   username: true,
@@ -38,3 +50,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Схемы для таблицы farming_deposits
+export const insertFarmingDepositSchema = createInsertSchema(farmingDeposits).pick({
+  user_id: true,
+  amount_uni: true,
+  rate_uni: true,
+  rate_ton: true,
+  last_claim: true
+});
+
+export type InsertFarmingDeposit = z.infer<typeof insertFarmingDepositSchema>;
+export type FarmingDeposit = typeof farmingDeposits.$inferSelect;
