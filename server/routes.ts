@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 
 // Импортируем модели и зависимости
-import { missions, userMissions, users } from "@shared/schema";
+import { missions, userMissions, users, transactions } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db";
 import { z } from "zod";
@@ -137,6 +137,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           balance_uni: sql`${users.balance_uni} + ${reward.toString()}`
         })
         .where(eq(users.id, user_id));
+      
+      // Создаем запись о транзакции награды
+      await db.insert(transactions).values({
+        user_id,
+        type: "reward",
+        currency: "UNI",
+        amount: reward.toString(),
+        status: "confirmed"
+      });
       
       return res.status(200).json({
         success: true,
