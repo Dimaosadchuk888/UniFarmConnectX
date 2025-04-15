@@ -6,6 +6,8 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
+import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 // Определение типов статусов миссий
 export enum MissionStatus {
@@ -14,7 +16,17 @@ export enum MissionStatus {
   COMPLETED = 'completed'
 }
 
-// Тип миссии
+// Тип миссии из БД
+interface DbMission {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  reward_uni: string; // В БД это numeric как строка
+  is_active: boolean;
+}
+
+// Тип миссии для UI
 interface Mission {
   id: number;
   type: string;
@@ -65,19 +77,36 @@ const demoMissions: Mission[] = [
 
 export const MissionsList: React.FC = () => {
   const [missions, setMissions] = useState<Mission[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [completedMissionId, setCompletedMissionId] = useState<number | null>(null);
   
-  // Имитация загрузки данных
+  // Загружаем активные миссии через API
+  const { data: dbMissions, isLoading } = useQuery<DbMission[]>({
+    queryKey: ['/api/missions/active'],
+    queryFn: async () => {
+      const response = await apiRequest('/api/missions/active', {
+        method: 'GET',
+      });
+      return response.json();
+    }
+  });
+  
+  // Преобразуем данные из БД в формат для UI
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMissions(demoMissions);
-      setLoading(false);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
+    if (dbMissions) {
+      // Конвертируем DbMission[] в Mission[]
+      const mappedMissions: Mission[] = dbMissions.map(dbMission => ({
+        id: dbMission.id,
+        type: dbMission.type,
+        title: dbMission.title,
+        description: dbMission.description,
+        rewardUni: parseFloat(dbMission.reward_uni), // Конвертируем строку в число
+        status: MissionStatus.AVAILABLE // По умолчанию все миссии доступны
+      }));
+      
+      setMissions(mappedMissions);
+    }
+  }, [dbMissions]);
   
   // Эффект для имитации прогресса выполнения миссии
   useEffect(() => {
@@ -160,7 +189,7 @@ export const MissionsList: React.FC = () => {
     setCompletedMissionId(null);
   };
   
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-4 p-4">
         {[1, 2, 3].map(i => (
