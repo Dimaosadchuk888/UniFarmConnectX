@@ -31,7 +31,9 @@ const TransactionHistory: React.FC = () => {
   // ID текущего пользователя (в реальном приложении должен быть получен из контекста аутентификации)
   const currentUserId = 1; // Для примера используем ID = 1
   
-  // Запрос на получение транзакций пользователя
+  console.log("[DEBUG] TransactionHistory - User ID:", currentUserId);
+  
+  // Используем стандартный запрос через queryClient (с глобальной отладкой)
   const { data: dbTransactions, isLoading, error } = useQuery<DbTransaction[]>({
     queryKey: [`/api/transactions?user_id=${currentUserId}`]
   });

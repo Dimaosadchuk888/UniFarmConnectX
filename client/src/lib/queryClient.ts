@@ -29,16 +29,51 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
+    console.log("[DEBUG] QueryClient - Requesting:", queryKey[0]);
+    
+    try {
+      // Добавляем заголовок Accept для явного указания JSON
+      const res = await fetch(queryKey[0] as string, {
+        credentials: "include",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      console.log("[DEBUG] QueryClient - Response status:", res.status);
+      console.log("[DEBUG] QueryClient - Response headers:", 
+        Object.fromEntries(res.headers.entries()));
+
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        console.log("[DEBUG] QueryClient - Returning null due to 401");
+        return null;
+      }
+
+      try {
+        await throwIfResNotOk(res);
+        
+        // Получаем текст ответа и проверяем его валидность как JSON
+        const text = await res.text();
+        console.log("[DEBUG] QueryClient - Response text (first 100 chars):", 
+          text.substring(0, 100));
+        
+        try {
+          const data = JSON.parse(text);
+          console.log("[DEBUG] QueryClient - JSON parsed successfully");
+          return data;
+        } catch (parseError) {
+          console.error("[DEBUG] QueryClient - JSON parse error:", parseError);
+          // Если JSON невалидный, возвращаем пустой массив для защиты от ошибок
+          return Array.isArray(queryKey[0]) ? [] : {};
+        }
+      } catch (resError) {
+        console.error("[DEBUG] QueryClient - Response error:", resError);
+        throw resError;
+      }
+    } catch (fetchError) {
+      console.error("[DEBUG] QueryClient - Fetch error:", fetchError);
+      throw fetchError;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({
