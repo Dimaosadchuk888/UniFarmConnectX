@@ -50,6 +50,8 @@ interface Mission {
   rewardUni: number;
   status: MissionStatus;
   progress?: number; // прогресс выполнения от 0 до 100
+  visitStartTime?: number; // время начала выполнения социальной миссии
+  verificationAvailable?: boolean; // доступна ли кнопка проверки
 }
 
 export const MissionsList: React.FC = () => {
@@ -59,6 +61,7 @@ export const MissionsList: React.FC = () => {
   const [completedMissionId, setCompletedMissionId] = useState<number | null>(null);
   const [rewardAmount, setRewardAmount] = useState<number | null>(null);
   const [processingMissionId, setProcessingMissionId] = useState<number | null>(null);
+  const [timerIntervalId, setTimerIntervalId] = useState<number | null>(null);
   
   // ID текущего пользователя (в реальном приложении должен быть получен из контекста аутентификации)
   const currentUserId = 1; // Для примера используем ID = 1
@@ -80,6 +83,15 @@ export const MissionsList: React.FC = () => {
     }
   });
   
+  // Очистка интервала при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      if (timerIntervalId !== null) {
+        clearInterval(timerIntervalId);
+      }
+    };
+  }, [timerIntervalId]);
+
   // Преобразуем данные из БД в формат для UI
   useEffect(() => {
     if (dbMissions && userCompletedMissions) {
@@ -279,6 +291,97 @@ export const MissionsList: React.FC = () => {
     }
   };
   
+  // Функция для получения URL из описания миссии
+  const extractUrlFromDescription = (description: string): string | null => {
+    // Регулярное выражение для поиска URL в тексте
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const matches = description.match(urlRegex);
+    
+    if (matches && matches.length > 0) {
+      return matches[0];
+    }
+    
+    return null;
+  };
+  
+  // Обработчик начала выполнения социальной миссии
+  const handleStartSocialMission = (missionId: number, url: string) => {
+    // Открываем ссылку в новой вкладке
+    window.open(url, '_blank');
+    
+    // Обновляем статус миссии
+    setMissions(prevMissions => 
+      prevMissions.map(mission => 
+        mission.id === missionId 
+          ? { 
+              ...mission, 
+              visitStartTime: Date.now(),
+              status: MissionStatus.PROCESSING,
+              progress: 0,
+              verificationAvailable: false
+            } 
+          : mission
+      )
+    );
+    
+    // Если есть предыдущий интервал, очищаем его
+    if (timerIntervalId !== null) {
+      clearInterval(timerIntervalId);
+    }
+    
+    // Запускаем таймер обновления обратного отсчета и активации кнопки
+    const intervalId = window.setInterval(() => {
+      const currentTime = Date.now();
+      
+      setMissions(prevMissions => {
+        return prevMissions.map(mission => {
+          if (mission.id === missionId && mission.status === MissionStatus.PROCESSING) {
+            const startTime = mission.visitStartTime || currentTime;
+            const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
+            const remainingSeconds = Math.max(0, 5 - elapsedSeconds);
+            
+            // Если таймер истек, активируем кнопку проверки
+            if (remainingSeconds === 0 && !mission.verificationAvailable) {
+              return { ...mission, verificationAvailable: true };
+            }
+            
+            return mission;
+          }
+          return mission;
+        });
+      });
+      
+      // Проверяем, есть ли активные социальные миссии в процессе
+      const hasActiveSocialMissions = missions.some(
+        m => m.type === 'social' && m.status === MissionStatus.PROCESSING && !m.verificationAvailable
+      );
+      
+      // Если нет активных миссий, останавливаем интервал
+      if (!hasActiveSocialMissions) {
+        clearInterval(intervalId);
+        setTimerIntervalId(null);
+      }
+    }, 1000);
+    
+    setTimerIntervalId(intervalId);
+    
+    // Устанавливаем таймер на 5 секунд для активации кнопки проверки
+    setTimeout(() => {
+      setMissions(prevMissions => 
+        prevMissions.map(mission => 
+          mission.id === missionId && mission.status === MissionStatus.PROCESSING
+            ? { ...mission, verificationAvailable: true } 
+            : mission
+        )
+      );
+    }, 5000);
+  };
+  
+  // Обработчик проверки выполнения социальной миссии
+  const handleVerifySocialMission = (missionId: number) => {
+    handleCompleteMission(missionId);
+  };
+  
   // Обработчик завершения анимации конфетти
   const handleConfettiComplete = () => {
     setShowConfetti(false);
@@ -376,7 +479,49 @@ export const MissionsList: React.FC = () => {
                     Награда: <span className="text-green-500">{mission.rewardUni} UNI</span>
                   </div>
                   
-                  {mission.status === MissionStatus.AVAILABLE && (
+                  {/* Социальные миссии с кнопкой Перейти и Проверить задание */}
+                  {mission.status === MissionStatus.AVAILABLE && mission.type === 'social' && (
+                    <Button 
+                      size="sm"
+                      onClick={() => {
+                        const url = extractUrlFromDescription(mission.description) || 'https://t.me/unifarm';
+                        handleStartSocialMission(mission.id, url);
+                      }}
+                      className="bg-primary hover:bg-primary/90"
+                      disabled={isProcessing}
+                    >
+                      Перейти
+                    </Button>
+                  )}
+                  
+                  {/* Кнопка проверки для социальной миссии в процессе */}
+                  {mission.status === MissionStatus.PROCESSING && mission.type === 'social' && (
+                    <div className="flex flex-col gap-2">
+                      {!mission.verificationAvailable && (
+                        <div className="text-xs text-center text-muted-foreground mb-1">
+                          Кнопка будет доступна через {5 - Math.floor((Date.now() - (mission.visitStartTime || 0)) / 1000)} сек.
+                        </div>
+                      )}
+                      <Button 
+                        size="sm"
+                        onClick={() => handleVerifySocialMission(mission.id)}
+                        className="bg-primary hover:bg-primary/90"
+                        disabled={!mission.verificationAvailable || isProcessing}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-r-transparent"></span>
+                            Проверка...
+                          </>
+                        ) : (
+                          "Проверить задание"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Обычные миссии с кнопкой "Выполнить" */}
+                  {mission.status === MissionStatus.AVAILABLE && mission.type !== 'social' && (
                     <Button 
                       size="sm"
                       onClick={() => handleCompleteMission(mission.id)}
@@ -394,6 +539,7 @@ export const MissionsList: React.FC = () => {
                     </Button>
                   )}
                   
+                  {/* Индикатор выполненной миссии */}
                   {mission.status === MissionStatus.COMPLETED && (
                     <Badge variant="outline" className="border-green-500 text-green-500">
                       <CheckCircle className="h-4 w-4 mr-1" />
