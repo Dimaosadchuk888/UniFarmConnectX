@@ -62,3 +62,26 @@ export const insertFarmingDepositSchema = createInsertSchema(farmingDeposits).pi
 
 export type InsertFarmingDeposit = z.infer<typeof insertFarmingDepositSchema>;
 export type FarmingDeposit = typeof farmingDeposits.$inferSelect;
+
+// Таблица transactions по требованиям задачи
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id),
+  type: text("type"), // deposit / withdraw / reward
+  currency: text("currency"), // UNI / TON
+  amount: numeric("amount", { precision: 18, scale: 6 }),
+  status: text("status"), // pending / confirmed / rejected
+  created_at: timestamp("created_at").defaultNow()
+});
+
+// Схемы для таблицы transactions
+export const insertTransactionSchema = createInsertSchema(transactions).pick({
+  user_id: true,
+  type: true,
+  currency: true,
+  amount: true,
+  status: true
+});
+
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Transaction = typeof transactions.$inferSelect;
