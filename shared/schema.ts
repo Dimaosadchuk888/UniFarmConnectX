@@ -85,3 +85,24 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
+
+// Таблица referrals по требованиям задачи
+export const referrals = pgTable("referrals", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id),
+  inviter_id: integer("inviter_id").references(() => users.id),
+  level: integer("level"), // Уровень (1–20)
+  reward_uni: numeric("reward_uni", { precision: 18, scale: 6 }),
+  created_at: timestamp("created_at").defaultNow()
+});
+
+// Схемы для таблицы referrals
+export const insertReferralSchema = createInsertSchema(referrals).pick({
+  user_id: true,
+  inviter_id: true,
+  level: true,
+  reward_uni: true
+});
+
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type Referral = typeof referrals.$inferSelect;
