@@ -16,35 +16,50 @@ export const BOOST_PACKAGES = [
     name: "Основной пакет UNI", 
     description: "Базовый ускоритель фарминга на 7 дней",
     type: "UNI",
-    isPrimary: true
+    isPrimary: true,
+    hashrate: 12, // H/s (Хешрейт)
+    days: 7,
+    price: "100 UNI"
   },
   { 
     id: 2, 
     name: "Пакет UNI + 1 TON", 
     description: "Премиум ускоритель фарминга на 10 дней",
     type: "TON",
-    isPrimary: false
+    isPrimary: false,
+    hashrate: 25, // H/s
+    days: 10,
+    price: "200 UNI + 1 TON"
   },
   { 
     id: 3, 
     name: "Пакет UNI + 5 TON", 
     description: "Премиум ускоритель фарминга на 20 дней",
     type: "TON",
-    isPrimary: false
+    isPrimary: false,
+    hashrate: 40, // H/s
+    days: 20,
+    price: "350 UNI + 5 TON"
   },
   { 
     id: 4, 
     name: "Пакет UNI + 15 TON", 
     description: "Премиум ускоритель фарминга на 30 дней",
     type: "TON",
-    isPrimary: false
+    isPrimary: false,
+    hashrate: 65, // H/s
+    days: 30,
+    price: "500 UNI + 15 TON"
   },
   { 
     id: 5, 
     name: "Пакет UNI + 25 TON", 
     description: "Премиум ускоритель фарминга на 60 дней",
     type: "TON",
-    isPrimary: false
+    isPrimary: false,
+    hashrate: 100, // H/s
+    days: 60,
+    price: "800 UNI + 25 TON"
   }
 ];
 
