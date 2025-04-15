@@ -106,3 +106,46 @@ export const insertReferralSchema = createInsertSchema(referrals).pick({
 
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
+
+// Таблица missions по требованиям задачи
+export const missions = pgTable("missions", {
+  id: serial("id").primaryKey(),
+  type: text("type"), // Тип миссии: invite / social / check-in / deposit и т.д.
+  title: text("title"), // Название миссии
+  description: text("description"), // Подробное описание
+  reward_uni: numeric("reward_uni", { precision: 18, scale: 6 }), // Награда в UNI
+  is_active: boolean("is_active").default(true) // Активна ли миссия
+});
+
+// Схемы для таблицы missions
+export const insertMissionSchema = createInsertSchema(missions).pick({
+  type: true,
+  title: true,
+  description: true,
+  reward_uni: true,
+  is_active: true
+});
+
+export type InsertMission = z.infer<typeof insertMissionSchema>;
+export type Mission = typeof missions.$inferSelect;
+
+// Таблица user_missions для отслеживания выполнения миссий пользователями
+export const userMissions = pgTable("user_missions", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id),
+  mission_id: integer("mission_id").references(() => missions.id),
+  status: text("status").default("pending"), // pending / completed / failed
+  completed_at: timestamp("completed_at"),
+  created_at: timestamp("created_at").defaultNow()
+});
+
+// Схемы для таблицы user_missions
+export const insertUserMissionSchema = createInsertSchema(userMissions).pick({
+  user_id: true,
+  mission_id: true,
+  status: true,
+  completed_at: true
+});
+
+export type InsertUserMission = z.infer<typeof insertUserMissionSchema>;
+export type UserMission = typeof userMissions.$inferSelect;
