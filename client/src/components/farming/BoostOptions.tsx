@@ -208,7 +208,7 @@ const BoostOptions: React.FC = () => {
                 ${isHovered ? 'text-purple-200' : ''}
               `}>
                 <i className="fas fa-bolt text-primary mr-2"></i>
-                {pack.name}
+                {pack.type === "TON" ? "TON Boost" : pack.name}
               </h3>
             </div>
             
@@ -227,7 +227,7 @@ const BoostOptions: React.FC = () => {
                 {/* TON Yield */}
                 <div>
                   <div className="text-xs text-gray-400 mb-1">TON Yield:</div>
-                  <div className="font-medium text-green-400 flex items-center">
+                  <div className="font-medium text-cyan-400 flex items-center">
                     <i className="fas fa-chart-line mr-1 text-xs"></i>
                     {pack.tonYield}
                   </div>
@@ -247,8 +247,13 @@ const BoostOptions: React.FC = () => {
                 {/* Price */}
                 <div>
                   <div className="text-xs text-gray-400 mb-1">Стоимость:</div>
-                  <div className="font-medium text-yellow-400">
-                    {pack.price}
+                  <div className="font-medium text-cyan-400">
+                    {pack.id === 1 ? "0.5 TON" : 
+                      pack.type === "TON" ? (
+                        pack.price.includes("+") ? 
+                        pack.price.split("+")[1].trim() : 
+                        pack.price
+                      ) : pack.price}
                   </div>
                 </div>
               </div>
