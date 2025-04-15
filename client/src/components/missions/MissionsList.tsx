@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MISSIONS } from '@/lib/constants';
+import Fireworks from '@/components/ui/Fireworks';
 
 // Типы статусов заданий
 enum MissionStatus {
@@ -46,6 +47,7 @@ const MissionsList: React.FC = () => {
   const [animatedMission, setAnimatedMission] = useState<number | null>(null);
   const [showReward, setShowReward] = useState<{id: number, reward: string} | null>(null);
   const [confettiActive, setConfettiActive] = useState<number | null>(null);
+  const [fireworksActive, setFireworksActive] = useState<boolean>(false);
   
   // Эффект анимированного появления миссий при загрузке
   const [visibleMissions, setVisibleMissions] = useState<number[]>([]);
@@ -75,12 +77,15 @@ const MissionsList: React.FC = () => {
       setShowReward({id: missionId, reward});
       setConfettiActive(missionId);
       
+      // Активируем эффект фейерверка на весь экран
+      setFireworksActive(true);
+      
       // Скрываем сообщение о награде через 2 секунды
       setTimeout(() => {
         setShowReward(null);
         setAnimatedMission(null);
         
-        // И убираем эффект конфетти через 3 секунды
+        // И убираем эффект конфетти через короткое время
         setTimeout(() => {
           setConfettiActive(null);
         }, 1000);
@@ -119,8 +124,19 @@ const MissionsList: React.FC = () => {
     });
   };
   
+  // Обработчик завершения фейерверка
+  const handleFireworksComplete = () => {
+    setFireworksActive(false);
+  };
+
   return (
     <div className="space-y-5">
+      {/* Фейерверк на весь экран */}
+      <Fireworks 
+        active={fireworksActive} 
+        onComplete={handleFireworksComplete} 
+      />
+      
       {MISSIONS.map((mission) => {
         const isVisible = visibleMissions.includes(mission.id);
         const isHovered = hoveredMission === mission.id;
