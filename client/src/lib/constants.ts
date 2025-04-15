@@ -87,27 +87,59 @@ export const BOOST_PACKAGES = [
 export const MISSIONS = [
   {
     id: 1,
-    title: "Подписаться на канал",
-    reward: "5 UNI",
-    icon: "bullhorn"
+    title: "Подписаться на Telegram канал",
+    reward: "500 UNI",
+    icon: "bullhorn",
+    category: "Соцсети",
+    description: "Подпишитесь на наш официальный Telegram канал"
   },
   {
     id: 2,
     title: "Пригласить 1 друга",
-    reward: "10 UNI",
-    icon: "user-plus"
+    reward: "1000 UNI",
+    icon: "user-plus",
+    category: "Приглашение",
+    description: "Пригласите друга по вашей реферальной ссылке"
   },
   {
     id: 3,
     title: "Подписка на YouTube",
-    reward: "8 UNI",
-    icon: "youtube"
+    reward: "800 UNI",
+    icon: "youtube",
+    category: "Соцсети",
+    description: "Подпишитесь на наш YouTube канал"
   },
   {
     id: 4,
     title: "Check-in дня",
-    reward: "2 UNI",
-    icon: "calendar-check"
+    reward: "200 UNI",
+    icon: "calendar-check",
+    category: "Check-in дня",
+    description: "Ежедневное посещение приложения"
+  },
+  {
+    id: 5,
+    title: "Поставить лайк в Twitter",
+    reward: "300 UNI",
+    icon: "twitter",
+    category: "Соцсети",
+    description: "Поставьте лайк нашему последнему посту в Twitter"
+  },
+  {
+    id: 6,
+    title: "Присоединиться к Discord",
+    reward: "400 UNI",
+    icon: "discord",
+    category: "Соцсети",
+    description: "Присоединитесь к нашему сообществу в Discord"
+  },
+  {
+    id: 7,
+    title: "Бонус первого месяца",
+    reward: "5000 UNI",
+    icon: "gift",
+    category: "Бонусные",
+    description: "Бонус за первый месяц использования UniFarm"
   }
 ];
 
