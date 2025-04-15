@@ -166,42 +166,51 @@ const TransactionHistory: React.FC = () => {
         </div>
       </div>
       
-      {/* Список транзакций */}
-      <div className="max-h-[360px] overflow-y-auto custom-scrollbar relative z-10 pr-1">
-        {filteredTransactions.length > 0 ? (
-          filteredTransactions.map(transaction => (
-            <div 
-              key={transaction.id}
-              className="flex items-center justify-between py-3 border-b border-gray-800/50 hover:bg-black/20 transition-colors duration-200 px-2 rounded-md"
-            >
-              <div className="flex items-center">
-                {/* Иконка транзакции */}
-                <div className="w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center mr-3">
-                  <i className="fas fa-link text-amber-400"></i>
-                </div>
-                
-                <div>
-                  {/* Название и тип транзакции */}
-                  <p className="text-white text-sm font-medium">{transaction.title}</p>
-                  <div className="flex items-center mt-0.5">
-                    <span className="text-xs text-gray-500 mr-2">{formatDate(transaction.timestamp)}</span>
-                    <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded-sm">{transaction.type}</span>
+      {/* Скролл контейнер с маской затухания */}
+      <div className="relative overflow-hidden">
+        {/* Эффект затухания вверху */}
+        <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-card to-transparent z-10 pointer-events-none"></div>
+        
+        {/* Эффект затухания внизу */}
+        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent z-10 pointer-events-none"></div>
+        
+        {/* Скроллируемый контейнер */}
+        <div className="max-h-[350px] overflow-y-auto scrollbar-none relative z-0 pr-1">
+          {filteredTransactions.length > 0 ? (
+            filteredTransactions.map(transaction => (
+              <div 
+                key={transaction.id}
+                className="flex items-center justify-between py-3 border-b border-gray-800/50 hover:bg-black/20 transition-colors duration-200 px-2 rounded-md"
+              >
+                <div className="flex items-center">
+                  {/* Иконка транзакции */}
+                  <div className="w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center mr-3">
+                    <i className="fas fa-link text-amber-400"></i>
+                  </div>
+                  
+                  <div>
+                    {/* Название и тип транзакции */}
+                    <p className="text-white text-sm font-medium">{transaction.title}</p>
+                    <div className="flex items-center mt-0.5">
+                      <span className="text-xs text-gray-500 mr-2">{formatDate(transaction.timestamp)}</span>
+                      <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded-sm">{transaction.type}</span>
+                    </div>
                   </div>
                 </div>
+                
+                {/* Сумма транзакции */}
+                <div className={`px-2 py-1 rounded ${transaction.tokenType === 'UNI' ? 'bg-green-500/10 text-green-400' : 'bg-cyan-500/10 text-cyan-400'} font-medium text-sm`}>
+                  {formatAmount(transaction.amount, transaction.tokenType)}
+                </div>
               </div>
-              
-              {/* Сумма транзакции */}
-              <div className={`px-2 py-1 rounded ${transaction.tokenType === 'UNI' ? 'bg-green-500/10 text-green-400' : 'bg-cyan-500/10 text-cyan-400'} font-medium text-sm`}>
-                {formatAmount(transaction.amount, transaction.tokenType)}
-              </div>
+            ))
+          ) : (
+            <div className="py-6 text-center text-gray-500">
+              <i className="fas fa-search mb-2 text-2xl"></i>
+              <p>Транзакции не найдены</p>
             </div>
-          ))
-        ) : (
-          <div className="py-6 text-center text-gray-500">
-            <i className="fas fa-search mb-2 text-2xl"></i>
-            <p>Транзакции не найдены</p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

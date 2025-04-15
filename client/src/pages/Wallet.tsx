@@ -9,9 +9,9 @@ const Wallet: React.FC = () => {
     <div>
       <h1 className="text-xl font-semibold text-white mb-4">Ваш TON-кошелёк</h1>
       <BalanceCard />
-      <TransactionHistory />
       <WalletConnectionCard />
       <WithdrawalForm />
+      <TransactionHistory />
     </div>
   );
 };
