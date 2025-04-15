@@ -79,10 +79,20 @@ export default {
             height: "0",
           },
         },
+        "fadeIn": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" }
+        },
+        "pulseGlow": {
+          "0%, 100%": { boxShadow: "0 0 0 rgba(192, 132, 252, 0)" },
+          "50%": { boxShadow: "0 0 15px rgba(192, 132, 252, 0.5)" }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fadeIn": "fadeIn 0.5s ease-out forwards",
+        "pulseGlow": "pulseGlow 2s infinite"
       },
     },
   },

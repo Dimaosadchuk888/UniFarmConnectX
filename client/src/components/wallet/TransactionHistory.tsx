@@ -180,17 +180,23 @@ const TransactionHistory: React.FC = () => {
             filteredTransactions.map(transaction => (
               <div 
                 key={transaction.id}
-                className="flex items-center justify-between py-3 border-b border-gray-800/50 hover:bg-black/20 transition-colors duration-200 px-2 rounded-md"
+                className="flex items-center justify-between py-3 border-b border-gray-800/50 hover:bg-black/20 transition-all duration-300 px-2 rounded-md animate-fadeIn"
               >
                 <div className="flex items-center">
-                  {/* Иконка транзакции */}
-                  <div className="w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center mr-3">
-                    <i className="fas fa-link text-amber-400"></i>
+                  {/* Иконка транзакции в зависимости от типа токена */}
+                  <div className={`w-9 h-9 rounded-full ${transaction.tokenType === 'UNI' ? 'bg-green-500/20' : 'bg-cyan-500/20'} flex items-center justify-center mr-3 transition-all duration-300`}>
+                    <i className={`fas ${transaction.tokenType === 'UNI' ? 'fa-leaf text-green-400' : 'fa-tenge text-cyan-400'}`}></i>
                   </div>
                   
                   <div>
                     {/* Название и тип транзакции */}
-                    <p className="text-white text-sm font-medium">{transaction.title}</p>
+                    <div className="flex items-center">
+                      <p className="text-white text-sm font-medium">{transaction.title}</p>
+                      {/* Индикатор новых транзакций (для первых двух) */}
+                      {(mockTransactions.indexOf(transaction) < 2) && (
+                        <span className="ml-2 text-[10px] bg-purple-600/80 text-white px-1.5 py-0.5 rounded animate-pulseGlow">Новая</span>
+                      )}
+                    </div>
                     <div className="flex items-center mt-0.5">
                       <span className="text-xs text-gray-500 mr-2">{formatDate(transaction.timestamp)}</span>
                       <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded-sm">{transaction.type}</span>
