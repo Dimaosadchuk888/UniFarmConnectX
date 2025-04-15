@@ -83,7 +83,7 @@ const BoostOptions: React.FC = () => {
             <div>
               {/* UNI Yield */}
               <div className="mb-2">
-                <div className="text-xs text-gray-400 mb-1">UNI Yield:</div>
+                <div className="text-xs font-bold text-primary mb-1">UNI Yield:</div>
                 <div className="font-bold text-green-400 flex items-center text-lg">
                   <i className="fas fa-chart-line mr-1 text-sm"></i>
                   0.5% Daily
