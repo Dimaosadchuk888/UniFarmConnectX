@@ -59,7 +59,7 @@ const FarmingHistoryComponent: React.FC = () => {
   
   // Получаем транзакции из API
   const { data: transactionsResponse, refetch: refetchTransactions } = useQuery<ApiResponse<Transaction[]>>({
-    queryKey: [`/api/transactions?user_id=${userId}`],
+    queryKey: [`/api/transactions?user_id=${userId}&t=${Date.now()}`], // Добавляем временную метку для избежания кэширования
   });
   
   // Получаем активные бусты из API
@@ -74,106 +74,151 @@ const FarmingHistoryComponent: React.FC = () => {
   
   // Эффект для загрузки реальных данных из API
   useEffect(() => {
+    // Добавляем логирование всех ответов API
+    console.log('TransactionsResponse:', transactionsResponse);
+    console.log('BoostsResponse:', activeBoostsResponse);
+    console.log('FarmingResponse:', uniFarmingResponse);
+    
+    // Проверяем, загрузились ли все данные
+    const allDataLoaded = 
+      transactionsResponse !== undefined && 
+      activeBoostsResponse !== undefined && 
+      uniFarmingResponse !== undefined;
+    
+    // Если какие-то данные еще не загружены, просто выходим - ждем загрузки всех данных
+    if (!allDataLoaded) {
+      console.log('Ожидание загрузки всех данных...');
+      return;
+    }
+    
+    // Убираем загрузку даже если данные пустые, чтобы показать "нет активных пакетов"
+    setIsLoading(false);
+    
+    // Подготавливаем данные для фарминг-депозитов
+    const farmingDeposits: FarmingDeposit[] = [];
+      
+    // Данные UNI фарминга
+    if (uniFarmingResponse?.success && uniFarmingResponse.data?.isActive) {
+      console.log('Активен UNI фарминг:', uniFarmingResponse.data);
+      
+      farmingDeposits.push({
+        id: 1000000,
+        packageId: 0, // Основной UNI пакет
+        createdAt: new Date(), // Если нет транзакции, используем текущую дату
+        isActive: true,
+        uniYield: "0.5%",
+        tonYield: "0.0%",
+        bonus: "0",
+        amount: uniFarmingResponse.data.depositAmount || "0",
+        daysLeft: 365
+      });
+    }
+    
+    // Подготавливаем данные для транзакций
+    let historyItems: FarmingHistory[] = [];
+    
+    // Обрабатываем транзакции, если они есть
     if (transactionsResponse?.success && Array.isArray(transactionsResponse.data)) {
       // Создаем записи истории фарминга на основе транзакций
+      // Адаптируем под реальные типы транзакций из API
       const farmingTransactions = transactionsResponse.data.filter(tx => 
-        tx.type === 'farming_start' || tx.type === 'farming_deposit' || tx.type === 'boost_purchase'
+        tx.type === 'farming' || tx.type === 'deposit' || tx.type === 'boost'
       );
       
-      // Преобразуем транзакции в историю
-      const historyItems: FarmingHistory[] = farmingTransactions.map(tx => ({
-        id: tx.id,
-        time: new Date(tx.created_at),
-        type: tx.type === 'boost_purchase' ? 'Boost' : 'Фарминг',
-        amount: parseFloat(tx.amount || '0'),
-        currency: tx.type === 'boost_purchase' ? 'TON' : 'UNI',
-        boost_id: tx.boost_id,
-        isNew: false
-      }));
+      console.log('Отфильтрованные транзакции фарминга:', farmingTransactions);
       
-      // Сортируем по дате (сначала новые)
-      historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
-      
-      // Формируем массив депозитов на основе данных о бустах и фарминге
-      const farmingDeposits: FarmingDeposit[] = [];
-      
-      // Данные UNI фарминга
-      const uniFarmingTx = farmingTransactions.find(tx => 
-        tx.type === 'farming_start' || tx.type === 'farming_deposit'
-      );
-      
-      // Добавляем UNI депозит, если есть активный фарминг
-      // Используем данные как из API, так и из транзакции
-      if (uniFarmingResponse?.success && uniFarmingResponse.data?.isActive) {
-        farmingDeposits.push({
-          id: 1000000,
-          packageId: 0, // Основной UNI пакет
-          createdAt: uniFarmingTx ? new Date(uniFarmingTx.created_at) : new Date(),
-          isActive: true,
-          uniYield: "0.5%",
-          tonYield: "0.0%",
-          bonus: "0",
-          amount: uniFarmingResponse.data.depositAmount || "0",
-          daysLeft: 365
-        });
-      }
-      
-      // Добавляем активные бусты в депозиты
-      if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data) && activeBoostsResponse.data.length > 0) {
-        activeBoostsResponse.data.forEach((boost, index) => {
-          const packageId = boost.boost_id || 1;
-          
-          // Находим соответствующую транзакцию для этого буста
-          const boostTx = farmingTransactions.find(tx => 
-            tx.type === 'boost_purchase' && tx.boost_id === packageId
-          );
-          
-          farmingDeposits.push({
-            id: 2000000 + index,
-            packageId,
-            createdAt: boostTx ? new Date(boostTx.created_at) : new Date(boost.created_at || Date.now()),
-            isActive: true,
-            uniYield: "0.0%",
-            tonYield: getYieldRateForBoost(packageId),
-            bonus: getBoostBonus(packageId),
-            amount: boostTx ? boostTx.amount : "0",
-            daysLeft: boost.days_left || 365
-          });
-        });
-      }
-      
-      // Добавляем исторические boost транзакции, которые не в активных бустах
-      // для полной истории в разделе TON Boost
-      const boostTransactions = farmingTransactions.filter(tx => tx.type === 'boost_purchase');
-      
-      boostTransactions.forEach((tx, index) => {
-        // Проверяем, не добавлен ли уже этот буст как активный
-        const isAlreadyActive = farmingDeposits.some(d => 
-          d.packageId === tx.boost_id && 
-          d.id >= 2000000
+      if (farmingTransactions.length > 0) {
+        // Если у нас уже есть UNI фарминг, обновим его дату создания из транзакции
+        // Ищем первый депозит UNI для получения даты активации
+        const uniFarmingTx = farmingTransactions.find(tx => 
+          tx.type === 'deposit' && tx.currency === 'UNI'
         );
         
-        if (!isAlreadyActive && tx.boost_id) {
-          farmingDeposits.push({
-            id: 3000000 + index,
-            packageId: tx.boost_id,
-            createdAt: new Date(tx.created_at),
-            isActive: false, // Неактивный буст
-            uniYield: "0.0%",
-            tonYield: getYieldRateForBoost(tx.boost_id),
-            bonus: getBoostBonus(tx.boost_id),
-            amount: tx.amount || "0",
-            daysLeft: 0
+        if (uniFarmingTx && farmingDeposits.length > 0) {
+          // Обновляем дату создания для первого депозита (UNI фарминг)
+          farmingDeposits[0].createdAt = new Date(uniFarmingTx.created_at);
+        }
+        
+        // Преобразуем транзакции в историю с учетом реальных типов транзакций
+        historyItems = farmingTransactions.map(tx => ({
+          id: tx.id,
+          time: new Date(tx.created_at),
+          type: tx.type === 'boost' ? 'Boost' : (tx.type === 'farming' ? 'Фарминг' : 'Депозит'),
+          amount: parseFloat(tx.amount || '0'),
+          currency: tx.currency || (tx.type === 'boost' ? 'TON' : 'UNI'),
+          boost_id: tx.boost_id,
+          isNew: false
+        }));
+        
+        // Сортируем по дате (сначала новые)
+        historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
+        
+        // Добавляем активные бусты в депозиты
+        if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data) && activeBoostsResponse.data.length > 0) {
+          console.log('Активные бусты:', activeBoostsResponse.data);
+          
+          activeBoostsResponse.data.forEach((boost, index) => {
+            const packageId = boost.boost_id || 1;
+            
+            // Находим соответствующую транзакцию для этого буста
+            const boostTx = farmingTransactions.find(tx => 
+              tx.type === 'boost' && tx.boost_id === packageId
+            );
+            
+            farmingDeposits.push({
+              id: 2000000 + index,
+              packageId,
+              createdAt: boostTx ? new Date(boostTx.created_at) : new Date(boost.created_at || Date.now()),
+              isActive: true,
+              uniYield: "0.0%",
+              tonYield: getYieldRateForBoost(packageId),
+              bonus: getBoostBonus(packageId),
+              amount: boostTx ? boostTx.amount : "0",
+              daysLeft: boost.days_left || 365
+            });
           });
         }
-      });
-      
-      setFarmingHistory(historyItems);
-      setDeposits(farmingDeposits);
-      setIsLoading(false);
-      setOpacity(1);
-      setTranslateY(0);
+        
+        // Добавляем исторические boost транзакции, которые не в активных бустах
+        // для полной истории в разделе TON Boost
+        const boostTransactions = farmingTransactions.filter(tx => tx.type === 'boost' && tx.currency === 'TON');
+        
+        console.log('Транзакции буст-пакетов:', boostTransactions);
+        
+        boostTransactions.forEach((tx, index) => {
+          // Проверяем, не добавлен ли уже этот буст как активный
+          const isAlreadyActive = farmingDeposits.some(d => 
+            d.packageId === tx.boost_id && 
+            d.id >= 2000000
+          );
+          
+          if (!isAlreadyActive && tx.boost_id) {
+            farmingDeposits.push({
+              id: 3000000 + index,
+              packageId: tx.boost_id,
+              createdAt: new Date(tx.created_at),
+              isActive: false, // Неактивный буст
+              uniYield: "0.0%",
+              tonYield: getYieldRateForBoost(tx.boost_id),
+              bonus: getBoostBonus(tx.boost_id),
+              amount: tx.amount || "0",
+              daysLeft: 0
+            });
+          }
+        });
+      }
+    } else {
+      console.log('Транзакции не получены или пустые:', transactionsResponse);
     }
+    
+    // Устанавливаем данные в состояние
+    console.log('Итоговые депозиты:', farmingDeposits);
+    console.log('Итоговая история:', historyItems);
+    
+    setFarmingHistory(historyItems);
+    setDeposits(farmingDeposits);
+    setOpacity(1);
+    setTranslateY(0);
   }, [transactionsResponse, activeBoostsResponse, uniFarmingResponse]);
   
   // Функция для получения доходности буста по его ID
