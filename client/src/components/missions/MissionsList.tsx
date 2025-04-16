@@ -3,7 +3,17 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { 
+  CheckCircle, 
+  Clock, 
+  AlertCircle, 
+  MessageCircle, 
+  Users, 
+  Calendar, 
+  Coins, 
+  Tv,
+  UserPlus
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -261,6 +271,24 @@ export const MissionsList: React.FC = () => {
     );
   };
   
+  // Функция для получения иконки в зависимости от типа миссии
+  const getMissionTypeIcon = (type: string) => {
+    switch (type) {
+      case 'social':
+        return <MessageCircle className="h-5 w-5 text-blue-400" />;
+      case 'partner':
+      case 'invite':
+        return <UserPlus className="h-5 w-5 text-indigo-400" />;
+      case 'daily':
+      case 'check-in':
+        return <Calendar className="h-5 w-5 text-amber-400" />;
+      case 'deposit':
+        return <Coins className="h-5 w-5 text-emerald-400" />;
+      default:
+        return <Tv className="h-5 w-5 text-purple-400" />;
+    }
+  };
+
   // Функция для получения цвета и иконки в зависимости от статуса миссии
   const getMissionStatusInfo = (status: MissionStatus) => {
     switch (status) {
@@ -278,7 +306,7 @@ export const MissionsList: React.FC = () => {
         };
       case MissionStatus.COMPLETED:
         return { 
-          color: 'bg-green-500', 
+          color: 'bg-teal-500/70 backdrop-blur-sm', 
           text: 'Выполнено', 
           icon: <CheckCircle className="h-4 w-4 mr-1" /> 
         };
@@ -444,10 +472,15 @@ export const MissionsList: React.FC = () => {
               >
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
-                    <CardTitle className={`text-lg ${
-                      isRecentlyCompleted ? 'text-primary' : ''
-                    }`}>{mission.title}</CardTitle>
-                    <Badge className={`${statusInfo.color} text-white ${
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center">
+                        {getMissionTypeIcon(mission.type)}
+                      </div>
+                      <CardTitle className={`text-lg ${
+                        isRecentlyCompleted ? 'text-primary' : ''
+                      }`}>{mission.title}</CardTitle>
+                    </div>
+                    <Badge className={`${statusInfo.color} text-white opacity-80 ${
                       isRecentlyCompleted ? 'animate-pulse' : ''
                     }`}>
                       <span className="flex items-center">
@@ -456,7 +489,7 @@ export const MissionsList: React.FC = () => {
                       </span>
                     </Badge>
                   </div>
-                  <CardDescription>{mission.description}</CardDescription>
+                  <CardDescription className="mt-2">{mission.description}</CardDescription>
                 </CardHeader>
                 
                 <CardContent>
