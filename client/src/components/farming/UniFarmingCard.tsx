@@ -1,271 +1,233 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import BigNumber from 'bignumber.js';
 
-// Настраиваем BigNumber для правильного округления
-BigNumber.config({
-  DECIMAL_PLACES: 10,
-  ROUNDING_MODE: BigNumber.ROUND_DOWN
-});
-
-// Типы данных для фарминга
-interface FarmingInfo {
-  isActive: boolean;
-  depositAmount: string;
-  farmingBalance: string;
-  ratePerSecond: string;
-  startDate: string | null;
+interface UniFarmingCardProps {
+  userData: any;
 }
 
-const UniFarmingCard: React.FC = () => {
-  // Состояния для отображения текущего баланса и дохода
-  const [currentFarmingBalance, setCurrentFarmingBalance] = useState<string>('0');
-  const [ratePerSecond, setRatePerSecond] = useState<string>('0');
-  const [isHovered, setIsHovered] = useState<boolean>(false);
-  const [depositAmount, setDepositAmount] = useState<string>('0');
-  const [isActive, setIsActive] = useState<boolean>(false);
-  const [animateBalance, setAnimateBalance] = useState<boolean>(false);
+const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
+  const queryClient = useQueryClient();
+  const [depositAmount, setDepositAmount] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [localFarmingBalance, setLocalFarmingBalance] = useState<string>('0');
   
-  // Запрос к API для получения информации о фарминге
-  const { data: farmingInfo, isLoading } = useQuery<FarmingInfo>({
-    queryKey: ['uniFarmingInfo'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/uni-farming/info?user_id=1');
-        if (!response.ok) {
-          throw new Error('Ошибка при получении данных фарминга');
-        }
-        const result = await response.json();
-        return result.data as FarmingInfo;
-      } catch (error) {
-        console.error('Ошибка при получении данных фарминга:', error);
-        throw error;
-      }
-    },
-    refetchInterval: 30000, // Обновляем каждые 30 секунд
-    staleTime: 10000,
-    refetchOnWindowFocus: false
+  // Получаем информацию о фарминге
+  const { data: farmingResponse, isLoading } = useQuery({
+    queryKey: ['/api/uni-farming/info?user_id=1'], // Добавляем user_id в запрос
+    refetchInterval: 30000, // Обновляем данные каждые 30 секунд
   });
   
-  // Устанавливаем начальные значения из ответа API
-  useEffect(() => {
-    if (farmingInfo) {
-      setDepositAmount(farmingInfo.depositAmount);
-      setCurrentFarmingBalance(farmingInfo.farmingBalance);
-      setRatePerSecond(farmingInfo.ratePerSecond);
-      setIsActive(farmingInfo.isActive);
-    }
-  }, [farmingInfo]);
+  // Извлекаем данные фарминга из ответа API
+  const farmingData = farmingResponse?.data || { isActive: false, depositAmount: '0', farmingBalance: '0', ratePerSecond: '0' };
+  const farmingInfo = farmingData;
   
-  // Обновляем баланс каждую секунду если фарминг активен
-  useEffect(() => {
-    if (!isActive || !ratePerSecond) return;
+  // Мутация для создания фарминг-депозита
+  const depositMutation = useMutation({
+    mutationFn: async (amount: string) => {
+      const res = await apiRequest('POST', '/api/uni-farming/deposit', { amount });
+      return res.json();
+    },
+    onSuccess: () => {
+      // Сбрасываем форму и обновляем данные
+      setDepositAmount('');
+      setError(null);
+      // Инвалидируем запросы для обновления данных
+      queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+    },
+    onError: (error: Error) => {
+      setError(error.message || 'Произошла ошибка при создании депозита');
+    },
+  });
+  
+  // Мутация для сбора накопленного баланса
+  const harvestMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/uni-farming/harvest', {});
+      return res.json();
+    },
+    onSuccess: () => {
+      // Обновляем данные
+      queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+    },
+    onError: (error: Error) => {
+      setError(error.message || 'Произошла ошибка при сборе средств');
+    },
+  });
+  
+  // Обработчик отправки формы
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
     
-    const interval = setInterval(() => {
-      setCurrentFarmingBalance(prev => {
-        const currentBalance = new BigNumber(prev);
-        const rate = new BigNumber(ratePerSecond);
-        const newBalance = currentBalance.plus(rate);
+    // Валидация
+    if (!depositAmount || depositAmount === '0') {
+      setError('Пожалуйста, введите сумму депозита');
+      return;
+    }
+    
+    try {
+      const amount = new BigNumber(depositAmount);
+      if (amount.isNaN() || amount.isLessThanOrEqualTo(0)) {
+        setError('Сумма должна быть положительным числом');
+        return;
+      }
+      
+      // Проверяем, достаточно ли средств
+      const balance = new BigNumber(userData?.balance_uni || '0');
+      if (amount.isGreaterThan(balance)) {
+        setError('Недостаточно средств на балансе');
+        return;
+      }
+      
+      // Отправляем запрос
+      depositMutation.mutate(amount.toString());
+    } catch (err) {
+      setError('Некорректный формат суммы');
+    }
+  };
+  
+  // Обработчик сбора средств
+  const handleHarvest = () => {
+    harvestMutation.mutate();
+  };
+  
+  // Эффект для обновления локального баланса каждую секунду
+  useEffect(() => {
+    if (!farmingInfo.isActive) {
+      setLocalFarmingBalance('0');
+      return;
+    }
+    
+    // Устанавливаем начальное значение из API
+    setLocalFarmingBalance(farmingInfo.farmingBalance);
+    
+    // Создаем интервал для обновления баланса каждую секунду
+    const intervalId = setInterval(() => {
+      setLocalFarmingBalance(prevBalance => {
+        if (!farmingInfo.ratePerSecond) return prevBalance;
         
-        // Активируем анимацию баланса
-        setAnimateBalance(true);
-        setTimeout(() => setAnimateBalance(false), 300);
-        
-        return newBalance.toString();
+        try {
+          const currentBalance = new BigNumber(prevBalance);
+          const ratePerSecond = new BigNumber(farmingInfo.ratePerSecond);
+          return currentBalance.plus(ratePerSecond).toString();
+        } catch (err) {
+          return prevBalance;
+        }
       });
     }, 1000);
     
-    return () => clearInterval(interval);
-  }, [isActive, ratePerSecond]);
+    return () => clearInterval(intervalId);
+  }, [farmingInfo]);
   
-  // Форматирование чисел для отображения
-  const formatNumber = (value: string, decimals: number = 6): string => {
+  // Форматирование числа с учетом малых значений
+  const formatNumber = (value: string, decimals: number = 3): string => {
     try {
       const num = new BigNumber(value);
-      if (num.isZero()) return '0';
       
-      // Если число очень маленькое (меньше 0.001), показываем до 7 знаков
-      if (num.isLessThan(0.001)) {
-        return num.toFormat(7);
+      // Для очень маленьких значений используем научную нотацию
+      if (num.isGreaterThan(0) && num.isLessThanOrEqualTo(0.001)) {
+        return num.toExponential(2);
       }
       
-      // Иначе показываем до указанного количества знаков
-      return num.toFormat(decimals);
-    } catch (error) {
-      console.error('Ошибка форматирования числа:', error);
+      return num.toFixed(decimals);
+    } catch (err) {
       return '0';
     }
   };
   
-  // Время с момента старта фарминга
-  const getTimeSinceStart = (): string => {
-    if (!farmingInfo?.startDate) return 'Нет данных';
-    
-    const start = new Date(farmingInfo.startDate);
-    const now = new Date();
-    const diffMs = now.getTime() - start.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
-    if (diffDays > 0) {
-      return `${diffDays} д. ${diffHours} ч.`;
-    } else {
-      return `${diffHours} ч.`;
-    }
-  };
-  
-  // Скелетон для загрузки
-  if (isLoading) {
-    return (
-      <div className="bg-card rounded-xl p-4 shadow-lg relative overflow-hidden animate-pulse">
-        <div className="h-5 bg-muted rounded w-1/3 mb-4"></div>
-        <div className="h-8 bg-muted rounded w-2/3 mb-3"></div>
-        <div className="h-4 bg-muted rounded w-1/2 mb-5"></div>
-        <div className="h-10 bg-muted rounded w-full"></div>
-      </div>
-    );
-  }
+  // Проверяем, активен ли фарминг
+  const isActive = farmingInfo.isActive;
   
   return (
-    <div 
-      className="bg-card rounded-xl p-4 shadow-lg relative overflow-hidden card-hover-effect"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Фоновые декоративные элементы */}
-      <div className="absolute -right-16 -top-16 w-36 h-36 bg-primary/5 rounded-full blur-xl"></div>
-      <div className="absolute -left-10 -bottom-10 w-28 h-28 bg-primary/5 rounded-full blur-xl"></div>
+    <div className="bg-card rounded-xl p-4 mb-5 shadow-md transition-all duration-300 hover:shadow-lg">
+      <h2 className="text-xl font-semibold mb-3 purple-gradient-text">Основной UNI пакет</h2>
       
-      <div className="mb-3 flex justify-between items-center">
-        <h2 className="text-md font-medium">Основной UNI фарминг</h2>
-        <div 
-          className={`
-            py-1 px-2 text-xs rounded-full 
-            ${isActive 
-              ? 'bg-green-500/20 text-green-500' 
-              : 'bg-gray-500/20 text-gray-400'
-            }
-          `}
-        >
-          {isActive ? 'Активен' : 'Не активен'}
-        </div>
-      </div>
-      
+      {/* Активный фарминг */}
       {isActive ? (
-        <>
-          <div className="mb-2">
-            <div className="flex items-baseline">
-              <span 
-                className={`
-                  text-2xl font-semibold
-                  ${animateBalance ? 'text-accent' : 'text-foreground'}
-                  transition-colors duration-300
-                `}
-              >
-                {formatNumber(currentFarmingBalance)}
-              </span>
-              <span className="text-sm ml-1.5 text-foreground opacity-70">UNI</span>
+        <div>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-sm text-foreground opacity-70">Сумма депозита</p>
+              <p className="text-lg font-medium">{formatNumber(farmingInfo?.data?.depositAmount || '0')} UNI</p>
             </div>
-            <p className="text-xs text-foreground opacity-60">Накопленный доход</p>
+            <div>
+              <p className="text-sm text-foreground opacity-70">Накоплено</p>
+              <p className="text-lg font-medium purple-gradient-text">{formatNumber(localFarmingBalance)} UNI</p>
+            </div>
           </div>
           
-          <div className="mb-4 flex flex-wrap gap-2">
-            <div className="flex flex-col bg-muted/30 px-3 py-2 rounded-lg">
-              <span className="text-xs text-foreground opacity-60 mb-1">Скорость</span>
-              <div className="flex items-baseline">
-                <span className="text-sm font-medium text-primary">
-                  +{formatNumber(ratePerSecond, 7)}
-                </span>
-                <span className="text-xs ml-1 text-foreground opacity-70">UNI/сек</span>
-              </div>
-            </div>
-            
-            <div className="flex flex-col bg-muted/30 px-3 py-2 rounded-lg">
-              <span className="text-xs text-foreground opacity-60 mb-1">Депозит</span>
-              <div className="flex items-baseline">
-                <span className="text-sm font-medium">
-                  {formatNumber(depositAmount, 2)}
-                </span>
-                <span className="text-xs ml-1 text-foreground opacity-70">UNI</span>
-              </div>
-            </div>
-            
-            <div className="flex flex-col bg-muted/30 px-3 py-2 rounded-lg">
-              <span className="text-xs text-foreground opacity-60 mb-1">Активен</span>
-              <span className="text-sm font-medium">
-                {getTimeSinceStart()}
+          <div className="mb-4">
+            <p className="text-sm text-foreground opacity-70">Скорость</p>
+            <p className="text-md font-medium">
+              <span className="text-primary">+{formatNumber(farmingInfo?.data?.ratePerSecond || '0', 5)}</span> UNI/сек
+              <span className="text-foreground opacity-70 ml-2">
+                (0.5% в день)
               </span>
-            </div>
+            </p>
           </div>
           
           <button 
-            className={`
-              w-full py-3 rounded-lg font-medium text-white relative overflow-hidden
-              ${isHovered ? 'shadow-lg transform translate-y-[-2px]' : 'shadow'}
-              transition-all duration-300
-            `}
-            style={{
-              background: isHovered 
-                ? 'linear-gradient(90deg, #A259FF 0%, #B368F7 100%)' 
-                : 'linear-gradient(45deg, #A259FF 0%, #B368F7 100%)'
-            }}
+            onClick={handleHarvest}
+            disabled={harvestMutation.isPending || new BigNumber(localFarmingBalance).isLessThanOrEqualTo(0)}
+            className={`w-full py-2 px-4 rounded-lg font-medium ${
+              harvestMutation.isPending || new BigNumber(localFarmingBalance).isLessThanOrEqualTo(0)
+                ? 'bg-muted text-foreground opacity-50'
+                : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700'
+            } transition-all duration-300`}
           >
-            {/* Эффект блеска при наведении */}
-            {isHovered && (
-              <div 
-                className="absolute inset-0 w-full h-full" 
-                style={{
-                  background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)',
-                  transform: 'translateX(-100%)',
-                  animation: 'shimmer 1.5s infinite'
-                }}
-              ></div>
-            )}
-            
-            <span className="relative z-10">Вывести накопленное</span>
+            {harvestMutation.isPending ? 'Обработка...' : 'Собрать доход'}
           </button>
-        </>
+        </div>
       ) : (
-        <>
-          <div className="mb-4 text-center py-6">
-            <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-3">
-              <i className="fas fa-seedling text-foreground/40 text-2xl"></i>
-            </div>
-            <p className="text-sm text-foreground opacity-70 mb-1">
-              Фарминг не активирован
+        /* Форма для создания депозита */
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm text-foreground opacity-70 mb-1">
+              Введите сумму UNI
+            </label>
+            <input
+              type="text"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              className="w-full p-2 border border-input rounded-lg bg-card"
+              placeholder="0.00"
+            />
+            <p className="text-sm text-foreground opacity-70 mt-1">
+              Доступно: {formatNumber(userData?.balance_uni || '0')} UNI
             </p>
-            <p className="text-xs text-foreground opacity-50 max-w-sm mx-auto">
-              Отправьте UNI в фарминг, чтобы начать получать пассивный доход
+          </div>
+          
+          {error && (
+            <div className="mb-4 p-2 bg-red-100 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          
+          <div className="mb-4">
+            <p className="text-sm text-foreground opacity-70">Доходность</p>
+            <p className="text-md font-medium">
+              <span className="text-primary">0.5%</span> в день
             </p>
           </div>
           
           <button 
-            className={`
-              w-full py-3 rounded-lg font-medium text-white relative overflow-hidden
-              ${isHovered ? 'shadow-lg transform translate-y-[-2px]' : 'shadow'}
-              transition-all duration-300
-            `}
-            style={{
-              background: isHovered 
-                ? 'linear-gradient(90deg, #A259FF 0%, #B368F7 100%)' 
-                : 'linear-gradient(45deg, #A259FF 0%, #B368F7 100%)'
-            }}
+            type="submit"
+            disabled={depositMutation.isPending || isLoading}
+            className={`w-full py-2 px-4 rounded-lg font-medium ${
+              depositMutation.isPending || isLoading
+                ? 'bg-muted text-foreground opacity-50'
+                : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700'
+            } transition-all duration-300`}
           >
-            {/* Эффект блеска при наведении */}
-            {isHovered && (
-              <div 
-                className="absolute inset-0 w-full h-full" 
-                style={{
-                  background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)',
-                  transform: 'translateX(-100%)',
-                  animation: 'shimmer 1.5s infinite'
-                }}
-              ></div>
-            )}
-            
-            <span className="relative z-10">Активировать фарминг</span>
+            {depositMutation.isPending ? 'Обработка...' : 'Фармить'}
           </button>
-        </>
+        </form>
       )}
     </div>
   );

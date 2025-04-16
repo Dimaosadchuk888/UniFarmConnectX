@@ -1,17 +1,28 @@
 import React from 'react';
-import FarmingStatusCard from '@/components/farming/FarmingStatusCard';
-import BoostOptions from '@/components/farming/BoostOptions';
-import FarmingHistory from '@/components/farming/FarmingHistory';
-import UniFarmingCard from '@/components/farming/UniFarmingCard';
+import { useQuery } from '@tanstack/react-query';
+import FarmingStatusCard from '../components/farming/FarmingStatusCard';
+import UniFarmingCard from '../components/farming/UniFarmingCard';
 
 const Farming: React.FC = () => {
+  // Получаем информацию о пользователе для отображения баланса
+  const { data: userResponse } = useQuery({
+    queryKey: ['/api/users/1'], // Хардкод ID=1 для демонстрации
+  });
+  
+  // Извлекаем userData из ответа API
+  const userData = userResponse?.data;
+
   return (
-    <div>
-      <h1 className="text-xl font-semibold text-white mb-4">Фарминг токенов UNI</h1>
-      <UniFarmingCard />
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">Фарминг</h1>
+      
+      {/* Статус фарминга */}
       <FarmingStatusCard />
-      <BoostOptions />
-      <FarmingHistory />
+      
+      {/* Основной UNI пакет */}
+      <UniFarmingCard userData={userData} />
+      
+      {/* Здесь могут быть другие компоненты страницы фарминга */}
     </div>
   );
 };
