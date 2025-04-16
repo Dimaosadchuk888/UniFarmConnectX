@@ -201,79 +201,88 @@ const FarmingHistoryComponent: React.FC = () => {
     }
     
     return (
-      <div className="space-y-4">
-        {deposits.map((deposit) => (
-          <div 
-            key={deposit.id} 
-            className={`
-              rounded-xl p-4 transition-all duration-300
-              ${deposit.isActive ? 'bg-primary/10 border border-primary/40' : 'bg-card'}
-              ${deposit.isActive ? 'shadow-[0_0_15px_rgba(162,89,255,0.15)]' : ''}
-            `}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center mb-1">
-                  <i className={`fas fa-${deposit.isActive ? 'rocket' : 'hourglass-end'} text-sm ${deposit.isActive ? 'text-primary' : 'text-gray-500'} mr-2`}></i>
-                  <h3 className="font-medium">{getPackageTypeString(deposit)}</h3>
-                </div>
-                <p className="text-xs text-foreground opacity-70 mb-2">
-                  Дата покупки: {formatDate(deposit.createdAt)}
-                </p>
-              </div>
-              <div>
-                <span 
-                  className={`
-                    inline-block px-2 py-1 text-xs rounded-full
-                    ${deposit.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}
-                  `}
-                >
-                  {deposit.isActive ? `Активен (${deposit.daysLeft} дн.)` : 'Завершён'}
-                </span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <div>
-                <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
-                <div className="flex flex-col">
-                  <div className="flex items-center">
-                    <span className="text-purple-300">+2500</span>
-                    <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+      <div className="overflow-hidden relative">
+        {/* Эффект затухания вверху и внизу для скролла */}
+        <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-card to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent z-10 pointer-events-none"></div>
+        
+        {/* Блок для скрытия белой полосы справа */}
+        <div className="absolute top-0 bottom-0 right-0 w-[1px] bg-card z-20"></div>
+        
+        <div className="space-y-4 max-h-[350px] overflow-y-auto overflow-x-hidden farming-history-scroll">
+          {deposits.map((deposit) => (
+            <div 
+              key={deposit.id} 
+              className={`
+                rounded-xl p-4 transition-all duration-300
+                ${deposit.isActive ? 'bg-primary/10 border border-primary/40' : 'bg-card'}
+                ${deposit.isActive ? 'shadow-[0_0_15px_rgba(162,89,255,0.15)]' : ''}
+              `}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center mb-1">
+                    <i className={`fas fa-${deposit.isActive ? 'rocket' : 'hourglass-end'} text-sm ${deposit.isActive ? 'text-primary' : 'text-gray-500'} mr-2`}></i>
+                    <h3 className="font-medium">{getPackageTypeString(deposit)}</h3>
                   </div>
-                  <div className="flex items-center mt-1">
-                    <span className="text-blue-400">+0.02</span>
-                    <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                  <p className="text-xs text-foreground opacity-70 mb-2">
+                    Дата покупки: {formatDate(deposit.createdAt)}
+                  </p>
+                </div>
+                <div>
+                  <span 
+                    className={`
+                      inline-block px-2 py-1 text-xs rounded-full
+                      ${deposit.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}
+                    `}
+                  >
+                    {deposit.isActive ? `Активен (${deposit.daysLeft} дн.)` : 'Завершён'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <span className="text-purple-300">+2500</span>
+                      <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                    </div>
+                    <div className="flex items-center mt-1">
+                      <span className="text-blue-400">+0.02</span>
+                      <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <span className="text-purple-300">+0.00231</span>
+                      <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                    </div>
+                    <div className="flex items-center mt-1">
+                      <span className="text-blue-400">+0.000023</span>
+                      <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                    </div>
                   </div>
                 </div>
               </div>
               
-              <div>
-                <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
-                <div className="flex flex-col">
-                  <div className="flex items-center">
-                    <span className="text-purple-300">+0.00231</span>
-                    <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                  </div>
-                  <div className="flex items-center mt-1">
-                    <span className="text-blue-400">+0.000023</span>
-                    <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                  </div>
+              <div className="mt-3 pt-3 border-t border-gray-800">
+                <div className="flex items-center">
+                  <i className="fas fa-gift text-primary/70 mr-2"></i>
+                  <p className="text-sm">
+                    <span className="text-foreground opacity-70">Бонус: </span>
+                    <span className="text-accent">{deposit.bonus}</span>
+                  </p>
                 </div>
               </div>
             </div>
-            
-            <div className="mt-3 pt-3 border-t border-gray-800">
-              <div className="flex items-center">
-                <i className="fas fa-gift text-primary/70 mr-2"></i>
-                <p className="text-sm">
-                  <span className="text-foreground opacity-70">Бонус: </span>
-                  <span className="text-accent">{deposit.bonus}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   };
@@ -322,7 +331,7 @@ const FarmingHistoryComponent: React.FC = () => {
         {/* Блок для скрытия белой полосы справа */}
         <div className="absolute top-0 bottom-0 right-0 w-[1px] bg-card z-20"></div>
         
-        <div className="overflow-y-auto overflow-x-hidden max-h-[350px] allocations-scroll">
+        <div className="overflow-y-auto overflow-x-hidden max-h-[350px] farming-history-scroll">
           <table className="w-full">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-gray-800">
