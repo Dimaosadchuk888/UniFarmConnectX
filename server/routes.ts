@@ -10,6 +10,7 @@ import { FarmingController } from './controllers/farmingController';
 import { ReferralController } from './controllers/referralController';
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { UniFarmingController } from './controllers/uniFarmingController';
+import { BoostController } from './controllers/boostController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -48,6 +49,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/uni-farming/update-balance", UniFarmingController.calculateAndUpdateFarming);
   app.post("/api/uni-farming/deposit", UniFarmingController.createUniFarmingDeposit);
   app.post("/api/uni-farming/harvest", UniFarmingController.harvestFarmingBalance);
+  
+  // Маршруты для буст-пакетов
+  app.get("/api/boosts", BoostController.getBoostPackages);
+  app.post("/api/boosts/purchase", BoostController.purchaseBoost);
 
   // Централизованная обработка ошибок
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

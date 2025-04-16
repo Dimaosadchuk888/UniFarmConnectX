@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@lib/queryClient';
 
 // Определяем структуру буст-пакета
 interface BoostPackage {
@@ -9,7 +11,7 @@ interface BoostPackage {
   uniBonus: string;
 }
 
-// Создаем массив с буст-пакетами
+// Создаем массив с буст-пакетами и их ценой в UNI
 const boostPackages: BoostPackage[] = [
   {
     id: 1,
@@ -40,6 +42,14 @@ const boostPackages: BoostPackage[] = [
     uniBonus: '+500,000 UNI'
   }
 ];
+
+// Соответствие между ID буста и ценой в UNI
+const boostPricesUni: Record<number, string> = {
+  1: '100000',  // 100,000 UNI за Boost 1
+  2: '500000',  // 500,000 UNI за Boost 5
+  3: '1500000', // 1,500,000 UNI за Boost 15
+  4: '2500000'  // 2,500,000 UNI за Boost 25
+};
 
 const BoostPackagesCard: React.FC = () => {
   return (
