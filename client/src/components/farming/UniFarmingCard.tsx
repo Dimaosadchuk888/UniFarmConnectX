@@ -149,12 +149,12 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     <div className="bg-card rounded-xl p-4 mb-5 shadow-md transition-all duration-300 hover:shadow-lg">
       <h2 className="text-xl font-semibold mb-3 purple-gradient-text">Основной UNI пакет</h2>
       
-      {/* Активный фарминг */}
-      {isActive ? (
-        <div>
+      {/* Информация о текущем фарминге (отображается всегда, если активен) */}
+      {isActive && (
+        <div className="mb-5">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <p className="text-sm text-foreground opacity-70">Сумма депозита</p>
+              <p className="text-sm text-foreground opacity-70">Текущий депозит</p>
               <p className="text-lg font-medium">{formatNumber(farmingInfo.depositAmount || '0')} UNI</p>
             </div>
             <div>
@@ -163,7 +163,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             </div>
           </div>
           
-          <div>
+          <div className="mb-3">
             <p className="text-sm text-foreground opacity-70">Скорость</p>
             <p className="text-md font-medium">
               <span className="text-primary">+{formatNumber(farmingInfo.ratePerSecond || '0', 5)}</span> UNI/сек
@@ -173,14 +173,20 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             </p>
           </div>
           
-          <div className="mt-4 p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg">
+          <div className="p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg">
             <p className="text-sm text-indigo-300">
               Доход автоматически начисляется на ваш баланс
             </p>
           </div>
         </div>
-      ) : (
-        /* Форма для создания депозита */
+      )}
+      
+      {/* Форма для создания депозита (отображается всегда) */}
+      <div className={isActive ? "mt-6 pt-4 border-t border-slate-700" : ""}>
+        {isActive && (
+          <h3 className="text-md font-medium mb-4">Пополнить фарминг</h3>
+        )}
+        
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm text-foreground opacity-70 mb-1">
@@ -199,7 +205,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           </div>
           
           {error && (
-            <div className="mb-4 p-2 bg-red-100 text-red-700 rounded-lg text-sm">
+            <div className="mb-4 p-2 bg-red-900/30 border border-red-500 rounded-lg text-red-300 text-sm">
               {error}
             </div>
           )}
@@ -220,10 +226,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
                 : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700'
             } transition-all duration-300`}
           >
-            {depositMutation.isPending ? 'Обработка...' : 'Фармить'}
+            {depositMutation.isPending ? 'Обработка...' : isActive ? 'Пополнить' : 'Активировать фарминг'}
           </button>
         </form>
-      )}
+      </div>
     </div>
   );
 };
