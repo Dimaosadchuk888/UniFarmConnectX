@@ -10,7 +10,7 @@ const Farming: React.FC = () => {
   });
   
   // Извлекаем userData из ответа API
-  const userData = userResponse?.data;
+  const userData = (userResponse as any)?.data || null;
 
   return (
     <div className="container mx-auto p-4">

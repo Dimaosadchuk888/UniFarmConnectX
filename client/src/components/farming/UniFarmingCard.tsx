@@ -20,13 +20,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   });
   
   // Извлекаем данные фарминга из ответа API
-  const farmingData = farmingResponse?.data || { isActive: false, depositAmount: '0', farmingBalance: '0', ratePerSecond: '0' };
+  const farmingData = (farmingResponse as any)?.data || { isActive: false, depositAmount: '0', farmingBalance: '0', ratePerSecond: '0' };
   const farmingInfo = farmingData;
   
   // Мутация для создания фарминг-депозита
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
-      const res = await apiRequest('POST', '/api/uni-farming/deposit', { amount });
+      const res = await apiRequest('POST', '/api/uni-farming/deposit', { user_id: 1, amount });
       return res.json();
     },
     onSuccess: () => {
@@ -46,7 +46,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Мутация для сбора накопленного баланса
   const harvestMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/uni-farming/harvest', {});
+      const res = await apiRequest('POST', '/api/uni-farming/harvest', { user_id: 1 });
       return res.json();
     },
     onSuccess: () => {
@@ -154,7 +154,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-foreground opacity-70">Сумма депозита</p>
-              <p className="text-lg font-medium">{formatNumber(farmingInfo?.data?.depositAmount || '0')} UNI</p>
+              <p className="text-lg font-medium">{formatNumber(farmingInfo.depositAmount || '0')} UNI</p>
             </div>
             <div>
               <p className="text-sm text-foreground opacity-70">Накоплено</p>
@@ -165,7 +165,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="mb-4">
             <p className="text-sm text-foreground opacity-70">Скорость</p>
             <p className="text-md font-medium">
-              <span className="text-primary">+{formatNumber(farmingInfo?.data?.ratePerSecond || '0', 5)}</span> UNI/сек
+              <span className="text-primary">+{formatNumber(farmingInfo.ratePerSecond || '0', 5)}</span> UNI/сек
               <span className="text-foreground opacity-70 ml-2">
                 (0.5% в день)
               </span>
