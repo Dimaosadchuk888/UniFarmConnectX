@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import FarmingStatusCard from '../components/farming/FarmingStatusCard';
 import UniFarmingCard from '../components/farming/UniFarmingCard';
+import BoostPackagesCard from '../components/farming/BoostPackagesCard';
 
 const Farming: React.FC = () => {
   // Получаем информацию о пользователе для отображения баланса
@@ -22,7 +23,8 @@ const Farming: React.FC = () => {
       {/* Основной UNI пакет */}
       <UniFarmingCard userData={userData} />
       
-      {/* Здесь могут быть другие компоненты страницы фарминга */}
+      {/* Airdrop Boost Пакеты */}
+      <BoostPackagesCard />
     </div>
   );
 };
