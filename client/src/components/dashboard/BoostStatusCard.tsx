@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'wouter';
+import { useLocation } from 'wouter';
 import { BOOST_PACKAGES } from '@/lib/constants';
 
 const BoostStatusCard: React.FC = () => {
@@ -18,6 +18,7 @@ const BoostStatusCard: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [glowingSlotsIndices, setGlowingSlotsIndices] = useState<number[]>([]);
   const [visible, setVisible] = useState<boolean>(false);
+  const [, navigate] = useLocation();
   
   // Делаем плавное появление блока
   useEffect(() => {
@@ -42,10 +43,16 @@ const BoostStatusCard: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [activeBoosts.length]);
   
-  // Эффект нажатия
+  // Эффект нажатия и навигация
   const handleMouseDown = (index: number) => {
     setActiveIndex(index);
-    setTimeout(() => setActiveIndex(null), 300);
+    
+    // Визуальный эффект перед переходом
+    setTimeout(() => {
+      setActiveIndex(null);
+      // Чтобы эффект клика был заметен перед переходом
+      setTimeout(() => navigate('/farming'), 50);
+    }, 150);
   };
   
   // Возвращает цвет для конкретного буста на основе его типа
@@ -80,9 +87,9 @@ const BoostStatusCard: React.FC = () => {
           const isPressed = activeIndex === index;
           
           return (
-            <Link 
+            <div 
               key={index}
-              href="/farming"
+              className="w-full h-full"
             >
               <div 
                 onMouseEnter={() => setHoverIndex(index)}
@@ -111,7 +118,7 @@ const BoostStatusCard: React.FC = () => {
                   transition-all duration-300
                 `}></i>
               </div>
-            </Link>
+            </div>
           );
         })}
       </div>
