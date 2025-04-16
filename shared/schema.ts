@@ -17,7 +17,9 @@ export const users = pgTable("users", {
   wallet: text("wallet"),
   balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default("0"),
   balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default("0"),
-  created_at: timestamp("created_at").defaultNow()
+  created_at: timestamp("created_at").defaultNow(),
+  checkin_last_date: timestamp("checkin_last_date"),
+  checkin_streak: integer("checkin_streak").default(0)
 });
 
 // Таблица farming_deposits по требованиям задачи
