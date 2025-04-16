@@ -324,6 +324,23 @@
   }
 }
 
+/* Анимация для выделения новой строки в истории начислений */
+@keyframes highlightRow {
+  0% {
+    background-color: rgba(162, 89, 255, 0.3);
+  }
+  50% {
+    background-color: rgba(162, 89, 255, 0.15);
+  }
+  100% {
+    background-color: rgba(0, 0, 0, 0);
+  }
+}
+
+.animate-highlightRow {
+  animation: highlightRow 2s ease-out forwards;
+}
+
 /* Анимация для фейерверка */
 @keyframes fadeOut {
   0% {
