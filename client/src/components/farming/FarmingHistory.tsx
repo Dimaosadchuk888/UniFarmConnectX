@@ -13,6 +13,7 @@ interface FarmingDeposit {
   uniYield: string;
   tonYield: string;
   bonus: string;
+  amount?: string; // Сумма депозита/транзакции
   daysLeft: number;
 }
 
@@ -22,6 +23,7 @@ interface FarmingHistory {
   type: string;
   amount: number;
   currency: string;
+  boost_id?: number;
   isNew?: boolean;
 }
 
@@ -83,8 +85,9 @@ const FarmingHistoryComponent: React.FC = () => {
         id: tx.id,
         time: new Date(tx.created_at),
         type: tx.type === 'boost_purchase' ? 'Boost' : 'Фарминг',
-        amount: parseFloat(tx.amount),
+        amount: parseFloat(tx.amount || '0'),
         currency: tx.type === 'boost_purchase' ? 'TON' : 'UNI',
+        boost_id: tx.boost_id,
         isNew: false
       }));
       
@@ -92,66 +95,81 @@ const FarmingHistoryComponent: React.FC = () => {
       historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
       
       // Формируем массив депозитов на основе данных о бустах и фарминге
-      const farminDeposits: FarmingDeposit[] = [];
+      const farmingDeposits: FarmingDeposit[] = [];
+      
+      // Данные UNI фарминга
+      const uniFarmingTx = farmingTransactions.find(tx => 
+        tx.type === 'farming_start' || tx.type === 'farming_deposit'
+      );
       
       // Добавляем UNI депозит, если есть активный фарминг
+      // Используем данные как из API, так и из транзакции
       if (uniFarmingResponse?.success && uniFarmingResponse.data?.isActive) {
-        farminDeposits.push({
+        farmingDeposits.push({
           id: 1000000,
           packageId: 0, // Основной UNI пакет
-          createdAt: new Date(),
+          createdAt: uniFarmingTx ? new Date(uniFarmingTx.created_at) : new Date(),
           isActive: true,
           uniYield: "0.5%",
           tonYield: "0.0%",
           bonus: "0",
+          amount: uniFarmingResponse.data.depositAmount || "0",
           daysLeft: 365
         });
       }
       
       // Добавляем активные бусты в депозиты
-      if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data)) {
+      if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data) && activeBoostsResponse.data.length > 0) {
         activeBoostsResponse.data.forEach((boost, index) => {
           const packageId = boost.boost_id || 1;
           
-          farminDeposits.push({
+          // Находим соответствующую транзакцию для этого буста
+          const boostTx = farmingTransactions.find(tx => 
+            tx.type === 'boost_purchase' && tx.boost_id === packageId
+          );
+          
+          farmingDeposits.push({
             id: 2000000 + index,
             packageId,
-            createdAt: new Date(boost.created_at || Date.now()),
+            createdAt: boostTx ? new Date(boostTx.created_at) : new Date(boost.created_at || Date.now()),
             isActive: true,
             uniYield: "0.0%",
             tonYield: getYieldRateForBoost(packageId),
             bonus: getBoostBonus(packageId),
+            amount: boostTx ? boostTx.amount : "0",
             daysLeft: boost.days_left || 365
           });
         });
       }
       
-      // Поиск транзакций типа boost_purchase, которые не в активных бустах
-      farmingTransactions
-        .filter(tx => tx.type === 'boost_purchase')
-        .forEach((tx, index) => {
-          // Проверяем, не добавлен ли уже этот буст как активный
-          const isAlreadyActive = farminDeposits.some(d => 
-            d.packageId === tx.boost_id && 
-            d.id >= 2000000
-          );
-          
-          if (!isAlreadyActive && tx.boost_id) {
-            farminDeposits.push({
-              id: 3000000 + index,
-              packageId: tx.boost_id,
-              createdAt: new Date(tx.created_at),
-              isActive: false, // Неактивный буст
-              uniYield: "0.0%",
-              tonYield: getYieldRateForBoost(tx.boost_id),
-              bonus: getBoostBonus(tx.boost_id),
-              daysLeft: 0
-            });
-          }
-        });
+      // Добавляем исторические boost транзакции, которые не в активных бустах
+      // для полной истории в разделе TON Boost
+      const boostTransactions = farmingTransactions.filter(tx => tx.type === 'boost_purchase');
+      
+      boostTransactions.forEach((tx, index) => {
+        // Проверяем, не добавлен ли уже этот буст как активный
+        const isAlreadyActive = farmingDeposits.some(d => 
+          d.packageId === tx.boost_id && 
+          d.id >= 2000000
+        );
+        
+        if (!isAlreadyActive && tx.boost_id) {
+          farmingDeposits.push({
+            id: 3000000 + index,
+            packageId: tx.boost_id,
+            createdAt: new Date(tx.created_at),
+            isActive: false, // Неактивный буст
+            uniYield: "0.0%",
+            tonYield: getYieldRateForBoost(tx.boost_id),
+            bonus: getBoostBonus(tx.boost_id),
+            amount: tx.amount || "0",
+            daysLeft: 0
+          });
+        }
+      });
       
       setFarmingHistory(historyItems);
-      setDeposits(farminDeposits);
+      setDeposits(farmingDeposits);
       setIsLoading(false);
       setOpacity(1);
       setTranslateY(0);
