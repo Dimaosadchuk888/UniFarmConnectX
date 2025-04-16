@@ -320,7 +320,7 @@
 /* Стилизация скролла для таблицы начислений в истории фарминга */
 .allocations-scroll {
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: #A259FF rgba(0, 0, 0, 0.1); /* Firefox */
+  scrollbar-color: #A259FF rgba(0, 0, 0, 0.05); /* Firefox - градиент в Firefox не поддерживается */
   position: relative;
   box-sizing: border-box;
 }
@@ -328,12 +328,12 @@
 /* Основные стили скроллбара */
 .allocations-scroll::-webkit-scrollbar {
   width: 4px; /* Тонкий скроллбар - 4px согласно требованиям */
-  background-color: rgba(0, 0, 0, 0.1); /* Полупрозрачный чёрный фон */
+  background-color: transparent; /* Полностью прозрачный фон */
 }
 
 /* Трек скроллбара */
 .allocations-scroll::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1) !important; /* Лёгкий полупрозрачный чёрный цвет */
+  background: rgba(0, 0, 0, 0.05) !important; /* Очень тёмный полупрозрачный цвет */
   border: none !important;
   border-radius: 4px; /* Скругленные углы трека */
   margin: 0;
@@ -341,7 +341,7 @@
 
 /* Другие элементы скроллбара */
 .allocations-scroll::-webkit-scrollbar-track-piece {
-  background: rgba(0, 0, 0, 0.1);
+  background: transparent;
   border: none;
 }
 
