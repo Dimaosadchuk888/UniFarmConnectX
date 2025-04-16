@@ -69,7 +69,7 @@ export class UniFarmingService {
     const earnedAmount = ratePerSecond.multipliedBy(secondsSinceLastUpdate);
     
     // Текущий накопленный баланс фарминга
-    const currentFarmingBalance = new BigNumber(user.uni_farming_balance?.toString() || '0');
+    const currentFarmingBalance = new BigNumber(user.uni_farming_balance !== null ? user.uni_farming_balance.toString() : '0');
     // Новый баланс фарминга
     const newFarmingBalance = currentFarmingBalance.plus(earnedAmount);
     
@@ -130,7 +130,7 @@ export class UniFarmingService {
       }
       
       // Проверяем, достаточно ли средств
-      const balanceUni = new BigNumber(user.balance_uni.toString());
+      const balanceUni = new BigNumber(user.balance_uni !== null ? user.balance_uni.toString() : '0');
       if (balanceUni.isLessThan(depositAmount)) {
         return {
           success: false,
@@ -281,7 +281,7 @@ export class UniFarmingService {
       }
       
       // Обновляем балансы
-      const currentBalance = new BigNumber(user.balance_uni.toString());
+      const currentBalance = new BigNumber(user.balance_uni !== null ? user.balance_uni.toString() : '0');
       const newBalance = currentBalance.plus(farmingBalance);
       
       await db

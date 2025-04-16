@@ -9,6 +9,7 @@ import { MissionController } from './controllers/missionController';
 import { FarmingController } from './controllers/farmingController';
 import { ReferralController } from './controllers/referralController';
 import { DailyBonusController } from './controllers/dailyBonusController';
+import { UniFarmingController } from './controllers/uniFarmingController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -41,6 +42,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для ежедневного бонуса
   app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);
   app.post("/api/daily-bonus/claim", DailyBonusController.claimDailyBonus);
+  
+  // Маршруты для UNI фарминга
+  app.get("/api/uni-farming/info", UniFarmingController.getUserFarmingInfo);
+  app.get("/api/uni-farming/update-balance", UniFarmingController.calculateAndUpdateFarming);
+  app.post("/api/uni-farming/deposit", UniFarmingController.createUniFarmingDeposit);
+  app.post("/api/uni-farming/harvest", UniFarmingController.harvestFarmingBalance);
 
   // Централизованная обработка ошибок
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
