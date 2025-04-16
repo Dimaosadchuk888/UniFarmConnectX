@@ -19,6 +19,26 @@ export class BoostController {
       sendServerError(res, error);
     }
   }
+  
+  /**
+   * Получает список активных буст-пакетов пользователя
+   */
+  static async getUserActiveBoosts(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = parseInt(req.query.user_id as string);
+      
+      if (isNaN(userId)) {
+        sendError(res, 'Неверный user_id', 400);
+        return;
+      }
+      
+      const activeBoosts = await BoostService.getUserActiveBoosts(userId);
+      sendSuccess(res, activeBoosts);
+    } catch (error) {
+      console.error('Error getting user active boosts:', error);
+      sendServerError(res, error);
+    }
+  }
 
   /**
    * Покупает буст-пакет для пользователя

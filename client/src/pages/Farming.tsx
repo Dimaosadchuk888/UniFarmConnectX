@@ -3,11 +3,15 @@ import { useQuery } from '@tanstack/react-query';
 import FarmingStatusCard from '../components/farming/FarmingStatusCard';
 import UniFarmingCard from '../components/farming/UniFarmingCard';
 import BoostPackagesCard from '../components/farming/BoostPackagesCard';
+import ActiveBoostsCard from '../components/farming/ActiveBoostsCard';
 
 const Farming: React.FC = () => {
+  // Хардкод ID=1 для демонстрации
+  const userId = 1;
+  
   // Получаем информацию о пользователе для отображения баланса
   const { data: userResponse } = useQuery({
-    queryKey: ['/api/users/1'], // Хардкод ID=1 для демонстрации
+    queryKey: [`/api/users/${userId}`],
   });
   
   // Извлекаем userData из ответа API
@@ -25,6 +29,9 @@ const Farming: React.FC = () => {
       
       {/* Airdrop Boost Пакеты */}
       <BoostPackagesCard userData={userData} />
+      
+      {/* Активные Boost-пакеты */}
+      <ActiveBoostsCard userId={userId} />
     </div>
   );
 };

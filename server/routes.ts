@@ -52,6 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Маршруты для буст-пакетов
   app.get("/api/boosts", BoostController.getBoostPackages);
+  app.get("/api/boosts/active", BoostController.getUserActiveBoosts);
   app.post("/api/boosts/purchase", BoostController.purchaseBoost);
 
   // Централизованная обработка ошибок
