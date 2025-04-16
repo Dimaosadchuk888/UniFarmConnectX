@@ -4,12 +4,15 @@ const IncomeCard: React.FC = () => {
   // Анимация нарастающего счетчика
   const [displayedRate, setDisplayedRate] = useState(0);
   const [displayedTotal, setDisplayedTotal] = useState(0);
+  const [displayedTonRate, setDisplayedTonRate] = useState(0);
   const targetRate = 0.0027; // Целевое значение UNI/сек
   const targetTotal = 134; // Целевое значение заработанных UNI
+  const targetTonRate = 0.000023; // Целевое значение TON/сек
   
   // Рефы для анимации "всплеска"
   const pulseRef = useRef<boolean>(false);
   const [isPulsing, setIsPulsing] = useState(false);
+  const [isTonPulsing, setIsTonPulsing] = useState(false);
   
   // Запускаем анимацию счетчика при первой загрузке
   useEffect(() => {
@@ -26,6 +29,7 @@ const IncomeCard: React.FC = () => {
       
       setDisplayedRate(targetRate * easedProgress);
       setDisplayedTotal(Math.floor(targetTotal * easedProgress));
+      setDisplayedTonRate(targetTonRate * easedProgress);
       
       if (progress < 1) {
         requestAnimationFrame(animateCounters);
@@ -41,11 +45,13 @@ const IncomeCard: React.FC = () => {
       if (!pulseRef.current) {
         pulseRef.current = true;
         setIsPulsing(true);
+        setIsTonPulsing(true);
         
         // Через 700ms убираем эффект всплеска
         setTimeout(() => {
           pulseRef.current = false;
           setIsPulsing(false);
+          setIsTonPulsing(false);
         }, 700);
       }
     }, 5000); // Каждые 5 секунд
@@ -68,6 +74,18 @@ const IncomeCard: React.FC = () => {
               </span>
             )}
           </p>
+          {displayedTonRate > 0 && (
+            <p className={`text-lg font-semibold text-[#6DBFFF] transition-transform ${isTonPulsing ? 'scale-110' : 'scale-100'}`}>
+              +{displayedTonRate.toFixed(5)} TON / сек
+              {isTonPulsing && (
+                <span className="inline-block ml-1 animate-pulse-fade">
+                  <svg className="w-4 h-4 inline text-[#6DBFFF]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                </span>
+              )}
+            </p>
+          )}
         </div>
       </div>
       <div className="flex justify-between items-center">
