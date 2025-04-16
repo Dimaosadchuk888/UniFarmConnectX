@@ -324,9 +324,9 @@ const FarmingHistoryComponent: React.FC = () => {
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-gray-800">
                 <th className="py-2 text-left text-sm text-foreground opacity-70">Время</th>
-                <th className="py-2 text-left text-sm text-foreground opacity-70">Тип</th>
+                <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
                 <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
-                <th className="py-2 text-right text-sm text-foreground opacity-70">Валюта</th>
+                <th className="py-2 text-right text-sm text-foreground opacity-70">Категория</th>
               </tr>
             </thead>
             <tbody>
@@ -346,15 +346,25 @@ const FarmingHistoryComponent: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-2 text-sm text-right">
-                    <span className={`${item.currency === 'UNI' ? 'text-purple-300' : 'text-blue-400'}`}>
-                      +{item.amount.toFixed(item.amount < 0.001 ? 7 : 5)}
-                    </span>
+                    <div className="flex items-center justify-end">
+                      <span className={`${item.currency === 'UNI' ? 'text-purple-300' : 'text-blue-400'}`}>
+                        +{item.amount.toFixed(item.amount < 0.001 ? 7 : 5)}
+                      </span>
+                      <span className="text-gray-400 ml-1.5 text-xs">
+                        {item.currency}
+                      </span>
+                      {item.isNew && (
+                        <span className="ml-2 inline-block w-2 h-2 bg-primary rounded-full animate-ping"></span>
+                      )}
+                    </div>
                   </td>
-                  <td className="py-2 text-sm text-right text-gray-400">
-                    {item.currency}
-                    {item.isNew && (
-                      <span className="ml-2 inline-block w-2 h-2 bg-primary rounded-full animate-ping"></span>
-                    )}
+                  <td className="py-2 text-sm text-right">
+                    <div className={`
+                        inline-block px-2 py-1 text-xs rounded-full
+                        ${item.type === 'Фарминг' ? 'bg-green-500/20 text-green-400' : 'bg-primary/20 text-primary/90'}
+                      `}>
+                      {item.type}
+                    </div>
                   </td>
                 </tr>
               ))}
