@@ -58,17 +58,17 @@ const FarmingHistoryComponent: React.FC = () => {
   const userId = 1;
   
   // Получаем транзакции из API
-  const { data: transactionsResponse } = useQuery<ApiResponse<Transaction[]>>({
+  const { data: transactionsResponse, refetch: refetchTransactions } = useQuery<ApiResponse<Transaction[]>>({
     queryKey: [`/api/transactions?user_id=${userId}`],
   });
   
   // Получаем активные бусты из API
-  const { data: activeBoostsResponse } = useQuery<ApiResponse<any[]>>({
+  const { data: activeBoostsResponse, refetch: refetchBoosts } = useQuery<ApiResponse<any[]>>({
     queryKey: [`/api/boosts/active?user_id=${userId}`],
   });
   
   // Получаем информацию о UNI фарминге из API
-  const { data: uniFarmingResponse } = useQuery<ApiResponse<any>>({
+  const { data: uniFarmingResponse, refetch: refetchFarming } = useQuery<ApiResponse<any>>({
     queryKey: [`/api/uni-farming/info?user_id=${userId}`],
   });
   
@@ -589,41 +589,25 @@ const FarmingHistoryComponent: React.FC = () => {
         <h2 className="text-lg font-semibold text-white">История фарминга</h2>
         <button 
           className="text-sm text-primary hover:text-primary/80 transition-colors"
-          onClick={() => {
-            // Обновление данных путем повторного запроса к API
+          onClick={async () => {
+            // Обновление данных через react-query refetch
             setIsLoading(true);
             
-            // Делаем новые запросы к API с обновленным временем
-            fetch(`/api/transactions?user_id=${userId}&t=${Date.now()}`)
-              .then(res => res.json())
-              .then(data => {
-                if (data.success && Array.isArray(data.data)) {
-                  // Создаем записи истории фарминга на основе транзакций
-                  const farmingTransactions = data.data.filter((tx: Transaction) => 
-                    tx.type === 'farming_start' || tx.type === 'farming_deposit' || tx.type === 'boost_purchase'
-                  );
-                  
-                  // Преобразуем транзакции в историю
-                  const historyItems: FarmingHistory[] = farmingTransactions.map((tx: Transaction) => ({
-                    id: tx.id,
-                    time: new Date(tx.created_at),
-                    type: tx.type === 'boost_purchase' ? 'Boost' : 'Фарминг',
-                    amount: parseFloat(tx.amount),
-                    currency: tx.type === 'boost_purchase' ? 'TON' : 'UNI',
-                    isNew: false
-                  }));
-                  
-                  // Сортируем по дате (сначала новые)
-                  historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
-                  
-                  setFarmingHistory(historyItems);
-                }
-                setIsLoading(false);
-              })
-              .catch(err => {
-                console.error("Ошибка обновления данных:", err);
-                setIsLoading(false);
-              });
+            try {
+              // Параллельно запускаем все refetch запросы
+              await Promise.all([
+                refetchTransactions(),
+                refetchBoosts(),
+                refetchFarming()
+              ]);
+              
+              // Данные будут автоматически обработаны через useEffect,
+              // когда обновятся transactionsResponse, activeBoostsResponse и uniFarmingResponse
+            } catch (err) {
+              console.error("Ошибка обновления данных:", err);
+            } finally {
+              setIsLoading(false);
+            }
           }}
         >
           <i className="fas fa-sync-alt mr-1"></i> Обновить
