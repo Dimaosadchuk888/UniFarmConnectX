@@ -74,7 +74,7 @@ const FarmingHistoryComponent: React.FC = () => {
   
   // Эффект для загрузки реальных данных из API
   useEffect(() => {
-    // Добавляем логирование всех ответов API
+    // Отладочное логирование ответов API
     console.log('TransactionsResponse:', transactionsResponse);
     console.log('BoostsResponse:', activeBoostsResponse);
     console.log('FarmingResponse:', uniFarmingResponse);
@@ -97,14 +97,15 @@ const FarmingHistoryComponent: React.FC = () => {
     // Подготавливаем данные для фарминг-депозитов
     const farmingDeposits: FarmingDeposit[] = [];
       
-    // Данные UNI фарминга
+    // Добавляем UNI фарминг пакет, если он активен
     if (uniFarmingResponse?.success && uniFarmingResponse.data?.isActive) {
       console.log('Активен UNI фарминг:', uniFarmingResponse.data);
       
+      // Создаем запись для основного депозита
       farmingDeposits.push({
         id: 1000000,
         packageId: 0, // Основной UNI пакет
-        createdAt: new Date(), // Если нет транзакции, используем текущую дату
+        createdAt: new Date(uniFarmingResponse.data.startDate || Date.now()), // Используем дату из API или текущую
         isActive: true,
         uniYield: "0.5%",
         tonYield: "0.0%",
@@ -119,48 +120,62 @@ const FarmingHistoryComponent: React.FC = () => {
     
     // Обрабатываем транзакции, если они есть
     if (transactionsResponse?.success && Array.isArray(transactionsResponse.data)) {
-      // Создаем записи истории фарминга на основе транзакций
-      // Адаптируем под реальные типы транзакций из API
-      const farmingTransactions = transactionsResponse.data.filter(tx => 
-        tx.type === 'farming' || tx.type === 'deposit' || tx.type === 'boost'
-      );
+      // В нашем API используются типы 'deposit', 'farming' и 'debug'
+      // Фильтруем только нужные типы и исключаем дебажные
+      const farmingTransactions = transactionsResponse.data.filter(tx => {
+        // Явно исключаем debug транзакции
+        if (tx.type === 'debug') return false;
+        
+        // Включаем только нужные типы
+        return tx.type === 'farming' || tx.type === 'deposit' || tx.type === 'boost';
+      });
       
       console.log('Отфильтрованные транзакции фарминга:', farmingTransactions);
       
       if (farmingTransactions.length > 0) {
-        // Если у нас уже есть UNI фарминг, обновим его дату создания из транзакции
-        // Ищем первый депозит UNI для получения даты активации
-        const uniFarmingTx = farmingTransactions.find(tx => 
-          tx.type === 'deposit' && tx.currency === 'UNI'
-        );
-        
-        if (uniFarmingTx && farmingDeposits.length > 0) {
-          // Обновляем дату создания для первого депозита (UNI фарминг)
-          farmingDeposits[0].createdAt = new Date(uniFarmingTx.created_at);
+        // Если у нас есть UNI фарминг, уточняем его дату активации из транзакции
+        if (farmingDeposits.length > 0) {
+          // Ищем первый депозит UNI для уточнения даты активации
+          const depositTx = farmingTransactions.find(tx => 
+            tx.type === 'deposit' && tx.currency === 'UNI'
+          );
+          
+          if (depositTx) {
+            // Обновляем дату создания для фарминг-депозита
+            farmingDeposits[0].createdAt = new Date(depositTx.created_at);
+          }
         }
         
-        // Преобразуем транзакции в историю с учетом реальных типов транзакций
-        historyItems = farmingTransactions.map(tx => ({
-          id: tx.id,
-          time: new Date(tx.created_at),
-          type: tx.type === 'boost' ? 'Boost' : (tx.type === 'farming' ? 'Фарминг' : 'Депозит'),
-          amount: parseFloat(tx.amount || '0'),
-          currency: tx.currency || (tx.type === 'boost' ? 'TON' : 'UNI'),
-          boost_id: tx.boost_id,
-          isNew: false
-        }));
+        // Преобразуем транзакции в историю
+        historyItems = farmingTransactions.map(tx => {
+          // Определение типа операции на основе данных транзакции
+          let type = 'Операция';
+          if (tx.type === 'farming') type = 'Фарминг';
+          else if (tx.type === 'deposit') type = 'Депозит';
+          else if (tx.type === 'boost') type = 'Boost';
+          
+          return {
+            id: tx.id,
+            time: new Date(tx.created_at),
+            type,
+            amount: parseFloat(tx.amount || '0'),
+            currency: tx.currency || 'UNI', // По умолчанию UNI
+            boost_id: tx.boost_id,
+            isNew: false
+          };
+        });
         
         // Сортируем по дате (сначала новые)
         historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
         
-        // Добавляем активные бусты в депозиты
+        // Добавляем активные бусты в депозиты, если они есть
         if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data) && activeBoostsResponse.data.length > 0) {
           console.log('Активные бусты:', activeBoostsResponse.data);
           
           activeBoostsResponse.data.forEach((boost, index) => {
             const packageId = boost.boost_id || 1;
             
-            // Находим соответствующую транзакцию для этого буста
+            // Находим транзакцию покупки этого буста
             const boostTx = farmingTransactions.find(tx => 
               tx.type === 'boost' && tx.boost_id === packageId
             );
@@ -179,9 +194,10 @@ const FarmingHistoryComponent: React.FC = () => {
           });
         }
         
-        // Добавляем исторические boost транзакции, которые не в активных бустах
-        // для полной истории в разделе TON Boost
-        const boostTransactions = farmingTransactions.filter(tx => tx.type === 'boost' && tx.currency === 'TON');
+        // Добавляем исторические boost транзакции для TON Boost
+        const boostTransactions = farmingTransactions.filter(tx => 
+          tx.type === 'boost' && tx.currency === 'TON'
+        );
         
         console.log('Транзакции буст-пакетов:', boostTransactions);
         
@@ -419,7 +435,8 @@ const FarmingHistoryComponent: React.FC = () => {
                           <td className="py-2 text-sm">
                             <div className="flex items-center">
                               <i className="fas fa-seedling text-xs text-green-400 mr-2"></i>
-                              Активация фарминга
+                              {item.type === 'Фарминг' ? 'Начисление фарминга' : 
+                               item.type === 'Депозит' ? 'Пополнение депозита' : 'Операция'}
                             </div>
                           </td>
                           <td className="py-2 text-sm text-right">
@@ -606,7 +623,7 @@ const FarmingHistoryComponent: React.FC = () => {
                           <td className="py-2 text-sm">
                             <div className="flex items-center">
                               <i className="fas fa-rocket text-xs text-blue-400 mr-2"></i>
-                              Покупка Boost
+                              {item.type === 'Boost' ? 'Покупка Boost' : 'Операция TON'}
                             </div>
                           </td>
                           <td className="py-2 text-sm text-right">
