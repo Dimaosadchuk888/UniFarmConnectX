@@ -120,15 +120,24 @@ const FarmingHistoryComponent: React.FC = () => {
     
     // Обрабатываем транзакции, если они есть
     if (transactionsResponse?.success && Array.isArray(transactionsResponse.data)) {
-      // В нашем API используются типы 'deposit', 'farming' и 'debug'
-      // Фильтруем только нужные типы и исключаем дебажные
+      // В ответе API есть типы: 'deposit', 'farming', 'debug', 'check-in', 'reward'
+      // Фильтруем только нужные типы для фарминга и исключаем отладочные
       const farmingTransactions = transactionsResponse.data.filter(tx => {
-        // Явно исключаем debug транзакции
+        // Отладочные транзакции не показываем
         if (tx.type === 'debug') return false;
         
-        // Включаем только нужные типы
-        return tx.type === 'farming' || tx.type === 'deposit' || tx.type === 'boost';
+        // Включаем релевантные операции для фарминга
+        return (tx.type === 'farming' && tx.currency === 'UNI') || 
+               (tx.type === 'deposit' && tx.currency === 'UNI') || 
+               (tx.type === 'boost') ||
+               // Включаем также начисления по чекинам и наградам для UNI
+               ((tx.type === 'check-in' || tx.type === 'reward') && tx.currency === 'UNI');
       });
+      
+      // Выведем для отладки все типы транзакций
+      console.log('API возвращает типы транзакций:', 
+        Array.from(new Set(transactionsResponse.data.map(tx => tx.type))).join(', ')
+      );
       
       console.log('Отфильтрованные транзакции фарминга:', farmingTransactions);
       
@@ -150,9 +159,13 @@ const FarmingHistoryComponent: React.FC = () => {
         historyItems = farmingTransactions.map(tx => {
           // Определение типа операции на основе данных транзакции
           let type = 'Операция';
+          
+          // Используем все доступные типы транзакций
           if (tx.type === 'farming') type = 'Фарминг';
           else if (tx.type === 'deposit') type = 'Депозит';
           else if (tx.type === 'boost') type = 'Boost';
+          else if (tx.type === 'check-in') type = 'Ежедневный бонус';
+          else if (tx.type === 'reward') type = 'Награда';
           
           return {
             id: tx.id,
@@ -434,9 +447,26 @@ const FarmingHistoryComponent: React.FC = () => {
                           <td className="py-2 text-sm">{formatDate(item.time)}</td>
                           <td className="py-2 text-sm">
                             <div className="flex items-center">
-                              <i className="fas fa-seedling text-xs text-green-400 mr-2"></i>
-                              {item.type === 'Фарминг' ? 'Начисление фарминга' : 
-                               item.type === 'Депозит' ? 'Пополнение депозита' : 'Операция'}
+                              {item.type === 'Фарминг' && 
+                                <><i className="fas fa-seedling text-xs text-green-400 mr-2"></i>Начисление фарминга</>
+                              }
+                              {item.type === 'Депозит' && 
+                                <><i className="fas fa-arrow-up text-xs text-purple-400 mr-2"></i>Пополнение депозита</>
+                              }
+                              {item.type === 'Ежедневный бонус' && 
+                                <><i className="fas fa-calendar-check text-xs text-blue-400 mr-2"></i>Ежедневный бонус</>
+                              }
+                              {item.type === 'Награда' && 
+                                <><i className="fas fa-gift text-xs text-yellow-400 mr-2"></i>Получение награды</>
+                              }
+                              {item.type === 'Boost' && 
+                                <><i className="fas fa-rocket text-xs text-blue-400 mr-2"></i>Активация буста</>
+                              }
+                              {(item.type !== 'Фарминг' && item.type !== 'Депозит' && 
+                                item.type !== 'Ежедневный бонус' && item.type !== 'Награда' && 
+                                item.type !== 'Boost') && 
+                                <><i className="fas fa-exchange-alt text-xs text-gray-400 mr-2"></i>Операция</>
+                              }
                             </div>
                           </td>
                           <td className="py-2 text-sm text-right">
