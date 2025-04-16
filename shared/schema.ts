@@ -36,7 +36,10 @@ export const farmingDeposits = pgTable("farming_deposits", {
   rate_ton: numeric("rate_ton", { precision: 5, scale: 2 }),
   created_at: timestamp("created_at").defaultNow(),
   last_claim: timestamp("last_claim"),
-  is_boosted: boolean("is_boosted").default(false)
+  is_boosted: boolean("is_boosted").default(false),
+  deposit_type: text("deposit_type").default("regular"), // regular, boost_1, boost_5, boost_15, boost_25
+  boost_id: integer("boost_id"), // ID буст-пакета (1, 2, 3, 4)
+  expires_at: timestamp("expires_at") // Для буст-пакетов (срок 365 дней)
 });
 
 // Схемы для аутентификации
@@ -64,7 +67,11 @@ export const insertFarmingDepositSchema = createInsertSchema(farmingDeposits).pi
   amount_uni: true,
   rate_uni: true,
   rate_ton: true,
-  last_claim: true
+  last_claim: true,
+  is_boosted: true,
+  deposit_type: true,
+  boost_id: true,
+  expires_at: true
 });
 
 export type InsertFarmingDeposit = z.infer<typeof insertFarmingDepositSchema>;

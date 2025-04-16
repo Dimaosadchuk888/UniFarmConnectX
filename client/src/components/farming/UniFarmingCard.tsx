@@ -92,7 +92,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     }
   };
   
-  // Обработчик сбора средств
+  // Обработчик сбора средств (автоматически выполняется в фоне)
+  // Больше не используется через UI
   const handleHarvest = () => {
     harvestMutation.mutate();
   };
@@ -162,7 +163,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             </div>
           </div>
           
-          <div className="mb-4">
+          <div>
             <p className="text-sm text-foreground opacity-70">Скорость</p>
             <p className="text-md font-medium">
               <span className="text-primary">+{formatNumber(farmingInfo.ratePerSecond || '0', 5)}</span> UNI/сек
@@ -172,17 +173,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             </p>
           </div>
           
-          <button 
-            onClick={handleHarvest}
-            disabled={harvestMutation.isPending || new BigNumber(localFarmingBalance).isLessThanOrEqualTo(0)}
-            className={`w-full py-2 px-4 rounded-lg font-medium ${
-              harvestMutation.isPending || new BigNumber(localFarmingBalance).isLessThanOrEqualTo(0)
-                ? 'bg-muted text-foreground opacity-50'
-                : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700'
-            } transition-all duration-300`}
-          >
-            {harvestMutation.isPending ? 'Обработка...' : 'Собрать доход'}
-          </button>
+          <div className="mt-4 p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg">
+            <p className="text-sm text-indigo-300">
+              Доход автоматически начисляется на ваш баланс
+            </p>
+          </div>
         </div>
       ) : (
         /* Форма для создания депозита */

@@ -1,7 +1,8 @@
 import { db } from '../db';
-import { users, transactions } from '@shared/schema';
-import { eq, sql } from 'drizzle-orm';
+import { users, transactions, farmingDeposits } from '@shared/schema';
+import { eq, sql, desc } from 'drizzle-orm';
 import { BigNumber } from 'bignumber.js';
+import { add } from 'date-fns';
 
 /**
  * Модель буст-пакета
