@@ -209,26 +209,15 @@ const BalanceCard: React.FC = () => {
             
             {/* Доход TON отображается только если больше 0 */}
             {tonRate > 0 && (
-              <div className="text-xs text-blue-400 flex items-center mt-2 bg-blue-500/5 px-2 py-1 rounded-md">
-                <i className="fas fa-arrow-trend-up mr-1 text-[0.7em]"></i>
-                <span className={tonAnimating ? 'font-medium' : ''}>
+              <div className="bg-blue-500/10 text-blue-500 rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
+                <i className="fas fa-arrow-trend-up mr-1"></i>
+                <span className={tonAnimating ? 'text-blue-400 font-bold' : ''}>
                   {formatRateNumber(tonRate)}
                 </span>
                 <span className="text-gray-400 ml-1">TON / сек</span>
               </div>
             )}
           </div>
-          
-          {/* Скорость начисления - показываем только если есть ставка */}
-          {tonRate > 0 && (
-            <div className="bg-blue-500/10 text-blue-500 rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
-              <i className="fas fa-arrow-trend-up mr-1"></i>
-              <span className={tonAnimating ? 'text-blue-400 font-bold' : ''}>
-                {formatRateNumber(tonRate)}
-              </span>
-              <span className="text-gray-400 ml-1">TON / сек</span>
-            </div>
-          )}
         </div>
       </div>
     </div>
