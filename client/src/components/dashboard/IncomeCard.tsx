@@ -5,9 +5,11 @@ const IncomeCard: React.FC = () => {
   const [displayedRate, setDisplayedRate] = useState(0);
   const [displayedTotal, setDisplayedTotal] = useState(0);
   const [displayedTonRate, setDisplayedTonRate] = useState(0);
+  const [displayedTonTotal, setDisplayedTonTotal] = useState(0);
   const targetRate = 0.0027; // Целевое значение UNI/сек
   const targetTotal = 134; // Целевое значение заработанных UNI
   const targetTonRate = 0.000023; // Целевое значение TON/сек
+  const targetTonTotal = 0.0023; // Целевое значение заработанных TON за 24 часа
   
   // Рефы для анимации "всплеска"
   const pulseRef = useRef<boolean>(false);
@@ -30,6 +32,7 @@ const IncomeCard: React.FC = () => {
       setDisplayedRate(targetRate * easedProgress);
       setDisplayedTotal(Math.floor(targetTotal * easedProgress));
       setDisplayedTonRate(targetTonRate * easedProgress);
+      setDisplayedTonTotal(targetTonTotal * easedProgress);
       
       if (progress < 1) {
         requestAnimationFrame(animateCounters);
@@ -88,11 +91,19 @@ const IncomeCard: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-foreground opacity-70">Заработано сегодня:</p>
-        <p className={`text-md font-medium text-accent transition-all duration-300 ${isPulsing ? 'scale-110' : 'scale-100'}`}>
-          {displayedTotal} UNI
-        </p>
+      <div className="flex flex-col space-y-1">
+        <p className="text-sm text-foreground opacity-70">Заработано за 24 часа:</p>
+        <div className="flex justify-end items-center">
+          <div className="flex items-center">
+            <p className={`text-md font-medium text-green-400 transition-all duration-300 ${isPulsing ? 'scale-110' : 'scale-100'}`}>
+              +{displayedTotal} UNI
+            </p>
+            <span className="mx-2 text-gray-500">|</span>
+            <p className={`text-md font-medium text-[#6DBFFF] transition-all duration-300 ${isTonPulsing ? 'scale-110' : 'scale-100'}`}>
+              +{displayedTonTotal.toFixed(4)} TON
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
