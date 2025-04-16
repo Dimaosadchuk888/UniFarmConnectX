@@ -43,35 +43,36 @@ const boostPackages: BoostPackage[] = [
 
 const BoostPackagesCard: React.FC = () => {
   return (
-    <div className="mt-6">
-      <h2 className="text-xl font-semibold mb-4">Airdrop Boost Пакеты</h2>
+    <div className="mt-8">
+      <h2 className="text-xl font-semibold mb-6">Airdrop Boost Пакеты</h2>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {boostPackages.map((boost) => (
           <div 
             key={boost.id} 
-            className="bg-card rounded-xl p-4 shadow-md transition-all duration-300 hover:shadow-lg border border-indigo-100 dark:border-indigo-900"
+            className="bg-card rounded-xl p-6 shadow-lg transition-all duration-300 hover:shadow-xl border border-indigo-200 dark:border-indigo-800 flex flex-col h-full"
+            style={{ boxShadow: '0 8px 20px rgba(162, 89, 255, 0.15)' }}
           >
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-lg">{boost.name}</h3>
-              <span className="text-cyan-400 font-medium">{boost.price}</span>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-xl text-white">{boost.name}</h3>
+              <span className="text-[#6DBFFF] font-bold">{boost.price}</span>
             </div>
             
-            <div className="mb-4">
-              <div className="flex justify-between mb-1">
+            <div className="mb-6 space-y-4 flex-grow">
+              <div className="flex justify-between items-center">
                 <span className="text-sm text-foreground opacity-70">Доход в TON:</span>
-                <span className="text-cyan-400 font-medium">{boost.tonDailyYield}</span>
+                <span className="text-[#6DBFFF] font-semibold">{boost.tonDailyYield}</span>
               </div>
               
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-sm text-foreground opacity-70">Бонус UNI:</span>
-                <span className="text-primary font-medium">{boost.uniBonus}</span>
+                <span className="text-[#00D364] font-semibold">{boost.uniBonus}</span>
               </div>
             </div>
             
-            {/* Кнопка Buy Boost (неактивна) */}
+            {/* Кнопка Buy Boost (неактивна, но со стилизацией) */}
             <button 
-              className="w-full py-2 px-4 rounded-lg font-medium bg-muted text-foreground opacity-50 cursor-not-allowed"
+              className="w-full py-3 px-4 rounded-lg font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white transition-all duration-300 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
               disabled={true}
             >
               Buy Boost
