@@ -319,7 +319,7 @@ const FarmingHistoryComponent: React.FC = () => {
         <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-card to-transparent z-10 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent z-10 pointer-events-none"></div>
         
-        <div className="overflow-y-auto max-h-[350px] pr-2 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+        <div className="overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
           <table className="w-full">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-gray-800">

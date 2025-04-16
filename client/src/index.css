@@ -288,25 +288,33 @@
   display: none; /* Chrome, Safari, Opera */
 }
 
-/* Для кастомной стилизации скролла в других местах */
+/* Для кастомной стилизации скролла в фирменном стиле UniFarm */
 .custom-scrollbar {
   scroll-behavior: smooth;
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: rgba(162, 89, 255, 0.3) transparent; /* Firefox */
+  scrollbar-color: rgba(162, 89, 255, 0.5) rgba(30, 30, 46, 0.2); /* Firefox */
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(30, 30, 46, 0.2);
+  border-radius: 8px;
+  margin: 4px 0;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(162, 89, 255, 0.3);
-  border-radius: 10px;
-  border: 2px solid transparent;
+  background: linear-gradient(180deg, #A259FF 0%, #B368F7 100%);
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 0 4px rgba(162, 89, 255, 0.3);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #B368F7 0%, #A259FF 100%);
+  box-shadow: 0 0 6px rgba(162, 89, 255, 0.5);
 }
 
 /* Анимация конфетти для наград в заданиях */
