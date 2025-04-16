@@ -123,15 +123,15 @@ const FarmingHistoryComponent: React.FC = () => {
       // В ответе API есть типы: 'deposit', 'farming', 'debug', 'check-in', 'reward'
       // Фильтруем только нужные типы для фарминга и исключаем отладочные
       const farmingTransactions = transactionsResponse.data.filter(tx => {
-        // Отладочные транзакции не показываем
+        // Отладочные транзакции всегда скрываем
         if (tx.type === 'debug') return false;
         
-        // Включаем релевантные операции для фарминга
-        return (tx.type === 'farming' && tx.currency === 'UNI') || 
-               (tx.type === 'deposit' && tx.currency === 'UNI') || 
-               (tx.type === 'boost') ||
-               // Включаем также начисления по чекинам и наградам для UNI
-               ((tx.type === 'check-in' || tx.type === 'reward') && tx.currency === 'UNI');
+        // Включаем все релевантные транзакции
+        return tx.type === 'farming' || 
+               tx.type === 'deposit' || 
+               tx.type === 'boost' ||
+               tx.type === 'check-in' || 
+               tx.type === 'reward';
       });
       
       // Выведем для отладки все типы транзакций
