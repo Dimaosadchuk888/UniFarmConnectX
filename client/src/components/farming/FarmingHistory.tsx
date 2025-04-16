@@ -224,25 +224,14 @@ const FarmingHistoryComponent: React.FC = () => {
     blurAmount: Math.random() * 3 + 1, // 1-4px blur
   }));
   
-  // Форматирование даты
+  // Форматирование даты с использованием date-fns
   const formatDate = (date: Date): string => {
-    const options: Intl.DateTimeFormatOptions = { 
-      day: '2-digit', 
-      month: 'short', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    };
-    return date.toLocaleDateString('ru-RU', options);
+    return format(date, 'd MMM yyyy, HH:mm', { locale: ru });
   };
   
-  // Форматирование времени
+  // Форматирование времени с использованием date-fns
   const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString('ru-RU', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit'
-    });
+    return format(date, 'HH:mm:ss', { locale: ru });
   };
   
   // Получение информации о пакете по ID
@@ -252,6 +241,11 @@ const FarmingHistoryComponent: React.FC = () => {
   
   // Генерация строки типа пакета
   const getPackageTypeString = (deposit: FarmingDeposit): string => {
+    // Для основного UNI пакета (packageId = 0)
+    if (deposit.packageId === 0) {
+      return `Основной UNI пакет (${deposit.uniYield})`;
+    }
+    
     const packageInfo = getPackageInfo(deposit.packageId);
     if (!packageInfo) return 'Неизвестный пакет';
     
@@ -344,12 +338,38 @@ const FarmingHistoryComponent: React.FC = () => {
                   <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
                   <div className="flex flex-col">
                     <div className="flex items-center">
-                      <span className="text-purple-300">+2500</span>
-                      <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                      {deposit.packageId === 0 ? (
+                        <>
+                          <span className="text-purple-300">+{(parseFloat("0.5") * 100 * 86400 / 100).toFixed(2)}</span>
+                          <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-purple-300">{deposit.uniYield === "0.0%" ? (
+                            <span className="text-gray-400">0</span>
+                          ) : (
+                            <>+{(parseFloat(deposit.uniYield) * 100 * 86400 / 100).toFixed(2)}</>
+                          )}</span>
+                          <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center mt-1">
-                      <span className="text-blue-400">+0.02</span>
-                      <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                      {deposit.packageId === 0 ? (
+                        <>
+                          <span className="text-gray-400">0</span>
+                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-blue-400">{deposit.tonYield === "0.0%" ? (
+                            <span className="text-gray-400">0</span>
+                          ) : (
+                            <>+{(parseFloat(deposit.tonYield) * 100 * 86400 / 10000).toFixed(4)}</>
+                          )}</span>
+                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -358,12 +378,38 @@ const FarmingHistoryComponent: React.FC = () => {
                   <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
                   <div className="flex flex-col">
                     <div className="flex items-center">
-                      <span className="text-purple-300">+0.00231</span>
-                      <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                      {deposit.packageId === 0 ? (
+                        <>
+                          <span className="text-purple-300">+0.00029</span>
+                          <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-purple-300">{deposit.uniYield === "0.0%" ? (
+                            <span className="text-gray-400">0</span>
+                          ) : (
+                            <>+{(parseFloat(deposit.uniYield) * 100 / 100 / 86400).toFixed(7)}</>
+                          )}</span>
+                          <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center mt-1">
-                      <span className="text-blue-400">+0.000023</span>
-                      <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                      {deposit.packageId === 0 ? (
+                        <>
+                          <span className="text-gray-400">0</span>
+                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-blue-400">{deposit.tonYield === "0.0%" ? (
+                            <span className="text-gray-400">0</span>
+                          ) : (
+                            <>+{(parseFloat(deposit.tonYield) * 100 / 10000 / 86400).toFixed(8)}</>
+                          )}</span>
+                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -433,7 +479,7 @@ const FarmingHistoryComponent: React.FC = () => {
           <table className="w-full">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-gray-800">
-                <th className="py-2 text-left text-sm text-foreground opacity-70">Время</th>
+                <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
                 <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
                 <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
                 <th className="py-2 text-right text-sm text-foreground opacity-70">Категория</th>
@@ -448,11 +494,17 @@ const FarmingHistoryComponent: React.FC = () => {
                     ${item.isNew ? 'bg-primary/10 animate-highlightRow' : 'hover:bg-black/20'}
                   `}
                 >
-                  <td className="py-2 text-sm">{formatTime(item.time)}</td>
+                  <td className="py-2 text-sm">{formatDate(item.time)}</td>
                   <td className="py-2 text-sm">
                     <div className="flex items-center">
-                      <i className="fas fa-seedling text-xs text-green-400 mr-2"></i>
-                      {item.type}
+                      {item.type === 'Фарминг' ? (
+                        <i className="fas fa-seedling text-xs text-green-400 mr-2"></i>
+                      ) : item.type === 'Boost' ? (
+                        <i className="fas fa-rocket text-xs text-blue-400 mr-2"></i>
+                      ) : (
+                        <i className="fas fa-exchange-alt text-xs text-yellow-400 mr-2"></i>
+                      )}
+                      {item.type === 'Фарминг' ? 'Активация фарминга' : item.type === 'Boost' ? 'Покупка Boost' : item.type}
                     </div>
                   </td>
                   <td className="py-2 text-sm text-right">
@@ -471,9 +523,13 @@ const FarmingHistoryComponent: React.FC = () => {
                   <td className="py-2 text-sm text-right">
                     <div className={`
                         inline-block px-2 py-1 text-xs rounded-full
-                        ${item.type === 'Фарминг' ? 'bg-green-500/20 text-green-400' : 'bg-primary/20 text-primary/90'}
+                        ${item.type === 'Фарминг' ? 'bg-green-500/20 text-green-400' : 
+                          item.type === 'Boost' ? 'bg-blue-500/20 text-blue-400' : 
+                          'bg-primary/20 text-primary/90'}
                       `}>
-                      {item.type}
+                      {item.type === 'Фарминг' ? 'UNI Farming' : 
+                       item.type === 'Boost' ? 'TON Boost' : 
+                       'Транзакция'}
                     </div>
                   </td>
                 </tr>
@@ -492,9 +548,40 @@ const FarmingHistoryComponent: React.FC = () => {
         <button 
           className="text-sm text-primary hover:text-primary/80 transition-colors"
           onClick={() => {
-            // Имитация обновления данных
+            // Обновление данных путем повторного запроса к API
             setIsLoading(true);
-            setTimeout(() => setIsLoading(false), 800);
+            
+            // Делаем новые запросы к API с обновленным временем
+            fetch(`/api/transactions?user_id=${userId}&t=${Date.now()}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data.success && Array.isArray(data.data)) {
+                  // Создаем записи истории фарминга на основе транзакций
+                  const farmingTransactions = data.data.filter((tx: Transaction) => 
+                    tx.type === 'farming_start' || tx.type === 'farming_deposit' || tx.type === 'boost_purchase'
+                  );
+                  
+                  // Преобразуем транзакции в историю
+                  const historyItems: FarmingHistory[] = farmingTransactions.map((tx: Transaction) => ({
+                    id: tx.id,
+                    time: new Date(tx.created_at),
+                    type: tx.type === 'boost_purchase' ? 'Boost' : 'Фарминг',
+                    amount: parseFloat(tx.amount),
+                    currency: tx.type === 'boost_purchase' ? 'TON' : 'UNI',
+                    isNew: false
+                  }));
+                  
+                  // Сортируем по дате (сначала новые)
+                  historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
+                  
+                  setFarmingHistory(historyItems);
+                }
+                setIsLoading(false);
+              })
+              .catch(err => {
+                console.error("Ошибка обновления данных:", err);
+                setIsLoading(false);
+              });
           }}
         >
           <i className="fas fa-sync-alt mr-1"></i> Обновить
