@@ -3,6 +3,21 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
+// Определяем типы для API ответа
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+}
+
+interface Transaction {
+  id: number;
+  user_id: number;
+  type: string;
+  created_at: string;
+  amount: string;
+  boost_id?: number;
+}
+
 interface TonBoostHistoryItem {
   id: number;
   date: Date;
@@ -44,7 +59,7 @@ const TonBoostHistory: React.FC<TonBoostHistoryProps> = ({ userId }) => {
   const [loading, setLoading] = useState(true);
 
   // Получаем данные о транзакциях пользователя
-  const { data: transactionsResponse } = useQuery<any>({
+  const { data: transactionsResponse } = useQuery<ApiResponse<Transaction[]>>({
     queryKey: [`/api/transactions?user_id=${userId}`],
   });
 

@@ -35,7 +35,7 @@ const UniFarmingHistory: React.FC<UniFarmingHistoryProps> = ({ userId }) => {
 
   // Здесь мы будем получать данные о транзакциях пользователя - их можно использовать
   // для создания истории фарминг-пакетов
-  const { data: transactionsResponse } = useQuery<any>({
+  const { data: transactionsResponse } = useQuery<ApiResponse<Transaction[]>>({
     queryKey: [`/api/transactions?user_id=${userId}`],
   });
 
