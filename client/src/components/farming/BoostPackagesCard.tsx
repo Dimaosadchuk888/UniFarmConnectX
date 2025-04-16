@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '../../lib/queryClient';
+import { format } from 'date-fns';
 
 // Определяем структуру буст-пакета
 interface BoostPackage {
@@ -90,6 +91,7 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
         // Инвалидируем кэш для обновления баланса и транзакций
         queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
         queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/boosts/active`] });
       } else {
         // Показываем сообщение об ошибке
         setErrorMessage(data.message || 'Произошла ошибка при покупке буста');
