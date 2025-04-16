@@ -317,6 +317,34 @@
   box-shadow: 0 0 6px rgba(162, 89, 255, 0.5);
 }
 
+/* Стилизация скролла для таблицы начислений в истории фарминга */
+.allocations-scroll {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(162, 89, 255, 0.6) rgba(30, 30, 40, 0.1); /* Firefox */
+}
+
+.allocations-scroll::-webkit-scrollbar {
+  width: 5px; /* Чуть тоньше обычного */
+}
+
+.allocations-scroll::-webkit-scrollbar-track {
+  background: rgba(30, 30, 40, 0.1); /* Более прозрачный трек */
+  border-radius: 10px;
+  margin: 2px;
+}
+
+.allocations-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #A259FF 0%, #B368F7 80%, #9F4AFF 100%);
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 0 5px rgba(162, 89, 255, 0.4);
+}
+
+.allocations-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #B368F7 0%, #A259FF 80%, #8A40E3 100%);
+  box-shadow: 0 0 8px rgba(162, 89, 255, 0.6);
+}
+
 /* Анимация конфетти для наград в заданиях */
 @keyframes confettiFall {
   0% {
