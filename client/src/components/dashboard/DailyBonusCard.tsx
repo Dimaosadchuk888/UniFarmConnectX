@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -11,7 +10,7 @@ type DailyBonusStatus = {
   bonusAmount: number;
 }
 
-// Типы для результата клейма бонуса
+// Типы для результата получения бонуса
 type ClaimBonusResult = {
   success: boolean;
   message: string;
@@ -29,49 +28,59 @@ const DailyBonusCard: React.FC = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [reward, setReward] = useState('');
   
-  // Получаем статус ежедневного бонуса
-  const { data: bonusStatus, isLoading } = useQuery<DailyBonusStatus>({
-    queryKey: ['/api/daily-bonus/status'],
+  // Запрос на получение статуса ежедневного бонуса
+  const { data: bonusStatus, isLoading, refetch } = useQuery({
+    queryKey: ['dailyBonusStatus'],
     queryFn: async () => {
       try {
         const response = await fetch('/api/daily-bonus/status?user_id=1');
+        if (!response.ok) {
+          throw new Error('Ошибка при получении статуса бонуса');
+        }
         const data = await response.json();
         return data.data as DailyBonusStatus;
       } catch (error) {
-        console.error("Ошибка при получении статуса ежедневного бонуса:", error);
-        return { canClaim: false, streak: 0, bonusAmount: 500 };
+        console.error('Ошибка при получении статуса бонуса:', error);
+        throw error;
       }
-    }
+    },
+    retry: 1,
+    refetchOnWindowFocus: false
   });
   
   // Получаем значение стрика (серии дней) из данных API или показываем 0
   const streak = bonusStatus?.streak || 0;
   
   // Мутация для получения ежедневного бонуса
-  const claimBonusMutation = useMutation<ClaimBonusResult, Error>({
-    mutationFn: async (): Promise<ClaimBonusResult> => {
-      try {
-        const response = await fetch('/api/daily-bonus/claim', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ user_id: 1 })
-        });
-        const data = await response.json();
-        return data as ClaimBonusResult;
-      } catch (error) {
+  const claimBonusMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/daily-bonus/claim', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ user_id: 1 })
+      });
+      
+      if (!response.ok) {
         throw new Error('Ошибка при получении бонуса');
       }
+      
+      const data = await response.json();
+      return data as ClaimBonusResult;
     },
     onSuccess: (data) => {
       if (data.success) {
         // Показываем анимацию с конфетти
         setShowConfetti(true);
-        setReward(`${data.amount} UNI`);
+        setReward(`${data.amount || bonusStatus?.bonusAmount || 500} UNI`);
         
         // Обновляем данные о статусе бонуса
-        queryClient.invalidateQueries({ queryKey: ['/api/daily-bonus/status'] });
+        queryClient.invalidateQueries({ queryKey: ['dailyBonusStatus'] });
+        
+        // Также обновляем данные баланса пользователя и транзакции
+        queryClient.invalidateQueries({ queryKey: ['userBalance'] });
+        queryClient.invalidateQueries({ queryKey: ['userTransactions'] });
         
         // Скрываем конфетти через 4 секунды
         setTimeout(() => {
@@ -81,14 +90,14 @@ const DailyBonusCard: React.FC = () => {
         
         // Показываем уведомление
         toast({
-          title: "Успех!",
-          description: data.message,
+          title: "Бонус получен!",
+          description: data.message || "Ежедневный бонус успешно зачислен.",
         });
       } else {
         // Показываем уведомление об ошибке
         toast({
           title: "Ошибка",
-          description: data.message,
+          description: data.message || "Не удалось получить бонус.",
           variant: "destructive",
         });
       }
@@ -101,6 +110,19 @@ const DailyBonusCard: React.FC = () => {
       });
     },
   });
+  
+  // Обработка нажатия на кнопку получения бонуса
+  const handleClaimBonus = () => {
+    if (bonusStatus?.canClaim) {
+      claimBonusMutation.mutate();
+    } else {
+      // Если бонус уже получен, показываем уведомление
+      toast({
+        title: "Бонус уже получен",
+        description: "Вы уже получили бонус сегодня. Возвращайтесь завтра!",
+      });
+    }
+  };
   
   // Создаем частицы-конфетти (только визуальный эффект)
   const confettiParticles = Array(20).fill(0).map((_, i) => ({
@@ -116,19 +138,6 @@ const DailyBonusCard: React.FC = () => {
     rotation: Math.random() * 360,
     rotationSpeed: (Math.random() - 0.5) * 8
   }));
-  
-  // Обработка нажатия на кнопку получения бонуса
-  const handleClaimBonus = () => {
-    if (bonusStatus?.canClaim) {
-      claimBonusMutation.mutate();
-    } else {
-      // Если бонус уже получен, показываем уведомление
-      toast({
-        title: "Уже получено",
-        description: "Вы уже получили бонус сегодня. Возвращайтесь завтра!",
-      });
-    }
-  };
   
   // Анимировать индикаторы дней
   const [animateDayIndicator, setAnimateDayIndicator] = useState<number | null>(null);
@@ -150,6 +159,39 @@ const DailyBonusCard: React.FC = () => {
       }
     }
   }, [showConfetti]);
+  
+  // Проверяем статус бонуса каждую полночь
+  useEffect(() => {
+    // Функция для получения миллисекунд до полуночи
+    const getMsUntilMidnight = () => {
+      const now = new Date();
+      const midnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0, 0, 0
+      );
+      return midnight.getTime() - now.getTime();
+    };
+    
+    // Функция для обновления бонуса после полуночи
+    const scheduleRefresh = () => {
+      const msUntilMidnight = getMsUntilMidnight();
+      
+      const timerId = setTimeout(() => {
+        refetch();
+        scheduleRefresh(); // Запускаем снова для следующего дня
+      }, msUntilMidnight);
+      
+      return timerId;
+    };
+    
+    const timerId = scheduleRefresh();
+    
+    return () => {
+      clearTimeout(timerId);
+    };
+  }, [refetch]);
   
   // Если данные загружаются, показываем скелетон
   if (isLoading) {
@@ -213,17 +255,19 @@ const DailyBonusCard: React.FC = () => {
       <button 
         className={`
           w-full py-3 rounded-lg font-medium relative overflow-hidden
-          ${isButtonHovered 
+          ${isButtonHovered && bonusStatus?.canClaim
             ? 'shadow-lg translate-y-[-2px]' 
             : 'shadow'
           }
           transition-all duration-300
-          ${!bonusStatus?.canClaim ? 'opacity-70' : ''}
+          ${!bonusStatus?.canClaim ? 'opacity-70 cursor-not-allowed' : ''}
         `}
         style={{
-          background: isButtonHovered 
-            ? 'linear-gradient(90deg, #A259FF 0%, #B368F7 100%)' 
-            : 'linear-gradient(45deg, #A259FF 0%, #B368F7 100%)'
+          background: bonusStatus?.canClaim
+            ? (isButtonHovered 
+                ? 'linear-gradient(90deg, #A259FF 0%, #B368F7 100%)' 
+                : 'linear-gradient(45deg, #A259FF 0%, #B368F7 100%)')
+            : 'linear-gradient(45deg, #666666, #888888)'
         }}
         onMouseEnter={() => setIsButtonHovered(true)}
         onMouseLeave={() => setIsButtonHovered(false)}
@@ -243,8 +287,11 @@ const DailyBonusCard: React.FC = () => {
         )}
         
         <span className="relative z-10 text-white">
-          {claimBonusMutation.isPending ? 'Загрузка...' : 
-           bonusStatus?.canClaim ? `Получить ${bonusStatus.bonusAmount} UNI` : 'Уже получено сегодня'}
+          {claimBonusMutation.isPending 
+            ? 'Загрузка...' 
+            : bonusStatus?.canClaim 
+              ? `Получить ${bonusStatus.bonusAmount} UNI` 
+              : 'Уже получено сегодня'}
         </span>
       </button>
       
@@ -252,7 +299,7 @@ const DailyBonusCard: React.FC = () => {
       {showConfetti && (
         <>
           {/* Сообщение о награде */}
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center z-10">
             <div className="text-center animate-bounce">
               <div className="text-2xl font-bold text-primary mb-2">
                 +{reward}
