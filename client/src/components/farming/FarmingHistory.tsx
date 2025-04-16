@@ -53,13 +53,17 @@ const FarmingHistoryComponent: React.FC = () => {
   const [deposits, setDeposits] = useState<FarmingDeposit[]>([]);
   const [farmingHistory, setFarmingHistory] = useState<FarmingHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  console.log("[DEBUG] FarmingHistory.isLoading =", isLoading);
   
   // Фиксированный UserID для демонстрации
   const userId = 1;
   
-  // Получаем транзакции из API
+  // Получаем транзакции из API с добавлением timestamp для избежания кэширования
+  // Важно! Приходит массив транзакций (без .success и .data)
+  const timestamp = Date.now();
+  console.log('[DEBUG] Запрос транзакций по URL:', `/api/transactions?user_id=${userId}&t=${timestamp}`);
   const { data: transactionsResponse, refetch: refetchTransactions, isLoading: isTransactionsLoading } = useQuery<Transaction[]>({
-    queryKey: [`/api/transactions?user_id=${userId}&t=${Date.now()}`], // Добавляем временную метку для избежания кэширования
+    queryKey: [`/api/transactions?user_id=${userId}&t=${timestamp}`]
   });
   
   // Получаем активные бусты из API
@@ -72,12 +76,22 @@ const FarmingHistoryComponent: React.FC = () => {
     queryKey: [`/api/uni-farming/info?user_id=${userId}`],
   });
   
+  // Отслеживаем состояние API запросов напрямую
+  useEffect(() => {
+    // Проверяем, если все запросы выполнены, отключаем загрузку
+    // Неважно, успешны ли они, главное, чтобы загрузка завершилась
+    if (!isTransactionsLoading) {
+      console.log('[DEBUG] Загрузка транзакций завершена, выключаем спиннер загрузки');
+      setIsLoading(false);
+    }
+  }, [isTransactionsLoading]);
+
   // Эффект для загрузки реальных данных из API
   useEffect(() => {
     // Отладочное логирование ответов API
-    console.log('TransactionsResponse:', transactionsResponse);
-    console.log('BoostsResponse:', activeBoostsResponse);
-    console.log('FarmingResponse:', uniFarmingResponse);
+    console.log('[DEBUG] TransactionsResponse:', transactionsResponse);
+    console.log('[DEBUG] BoostsResponse:', activeBoostsResponse);
+    console.log('[DEBUG] FarmingResponse:', uniFarmingResponse);
     
     // Проверяем, загрузились ли все данные
     const allDataLoaded = 
@@ -87,7 +101,7 @@ const FarmingHistoryComponent: React.FC = () => {
     
     // Если какие-то данные еще не загружены, просто выходим - ждем загрузки всех данных
     if (!allDataLoaded) {
-      console.log('Ожидание загрузки всех данных...');
+      console.log('[DEBUG] Ожидание загрузки всех данных...');
       return;
     }
     
@@ -123,19 +137,10 @@ const FarmingHistoryComponent: React.FC = () => {
       // Выведем для отладки ответ API целиком
       console.log('[DEBUG] Transactions API Response:', transactionsResponse);
       
-      // В ответе API есть типы: 'deposit', 'farming', 'check-in', 'reward'
-      // Фильтруем только нужные типы для фарминга и исключаем отладочные
-      const farmingTransactions = transactionsResponse.filter((tx: Transaction) => {
-        // Отладочные транзакции всегда скрываем
-        if (tx.type === 'debug') return false;
-        
-        // Включаем все релевантные транзакции: deposit, farming, check-in, reward
-        return tx.type === 'farming' || 
-               tx.type === 'deposit' || 
-               tx.type === 'boost' ||
-               tx.type === 'check-in' || 
-               tx.type === 'reward';
-      });
+      // Упрощенная фильтрация: только UNI транзакции без debug-транзакций
+      const farmingTransactions = transactionsResponse.filter((tx: Transaction) => 
+        tx.type !== 'debug' && tx.currency === 'UNI'
+      );
       
       // Выведем для отладки ответ API и типы транзакций
       console.log('[DEBUG] API возвращает транзакции:', transactionsResponse);
