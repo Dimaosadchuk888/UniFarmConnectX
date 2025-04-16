@@ -44,13 +44,13 @@ const boostPackages: BoostPackage[] = [
 const BoostPackagesCard: React.FC = () => {
   return (
     <div className="mt-8">
-      <h2 className="text-xl font-semibold mb-6">Airdrop Boost Пакеты</h2>
+      <h2 className="text-xl font-semibold mb-6 text-center">Airdrop Boost Пакеты</h2>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
         {boostPackages.map((boost) => (
           <div 
             key={boost.id} 
-            className="bg-card rounded-xl p-6 shadow-lg transition-all duration-300 hover:shadow-xl border border-indigo-200 dark:border-indigo-800 flex flex-col h-full"
+            className="bg-card rounded-xl p-6 shadow-lg transition-all duration-300 hover:shadow-xl border border-indigo-200 dark:border-indigo-800 flex flex-col h-full w-full"
             style={{ boxShadow: '0 8px 20px rgba(162, 89, 255, 0.15)' }}
           >
             <div className="flex justify-between items-center mb-4">
