@@ -137,10 +137,21 @@ const FarmingHistoryComponent: React.FC = () => {
       // Выведем для отладки ответ API целиком
       console.log('[DEBUG] Transactions API Response:', transactionsResponse);
       
-      // Упрощенная фильтрация: только UNI транзакции без debug-транзакций
+      // Фильтрация по критериям ТЗ:
+      // type = deposit, farming, check-in, reward
+      // currency = 'UNI'
+      // status = 'confirmed'
+      // Исключить type = 'debug'
       const farmingTransactions = transactionsResponse.filter((tx: Transaction) => 
-        tx.type !== 'debug' && tx.currency === 'UNI'
+        tx.type !== 'debug' && 
+        tx.currency === 'UNI' && 
+        tx.status === 'confirmed' && 
+        ['deposit', 'farming', 'check-in', 'reward'].includes(tx.type)
       );
+      
+      // Выводим отладочную информацию
+      console.log('[DEBUG] Исходные транзакции:', transactionsResponse);
+      console.log('[DEBUG] Отфильтрованные транзакции UNI:', farmingTransactions);
       
       // Выведем для отладки ответ API и типы транзакций
       console.log('[DEBUG] API возвращает транзакции:', transactionsResponse);
@@ -433,62 +444,78 @@ const FarmingHistoryComponent: React.FC = () => {
               {farmingHistory.filter(item => item.currency === 'UNI').length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-foreground opacity-70">
-                    История транзакций пуста
+                    У вас пока нет транзакций по фармингу UNI.
                   </p>
                 </div>
               ) : (
-                <table className="w-full">
-                  <thead className="sticky top-0 bg-card z-10">
-                    <tr className="border-b border-gray-800">
-                      <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
-                      <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
-                      <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <div>
+                  {/* Упрощенный вид для тестирования, как указано в ТЗ */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium mb-2">Упрощенный вид транзакций (тест):</h4>
                     {farmingHistory
                       .filter(item => item.currency === 'UNI')
                       .map((item) => (
-                        <tr 
-                          key={item.id} 
-                          className="border-b border-gray-800/30 transition-all duration-300 hover:bg-black/20"
-                        >
-                          <td className="py-2 text-sm">{formatDate(item.time)}</td>
-                          <td className="py-2 text-sm">
-                            <div className="flex items-center">
-                              {item.type === 'Фарминг' && 
-                                <><i className="fas fa-seedling text-xs text-green-400 mr-2"></i>Начисление фарминга</>
-                              }
-                              {item.type === 'Депозит' && 
-                                <><i className="fas fa-arrow-up text-xs text-purple-400 mr-2"></i>Пополнение депозита</>
-                              }
-                              {item.type === 'Ежедневный бонус' && 
-                                <><i className="fas fa-calendar-check text-xs text-blue-400 mr-2"></i>Ежедневный бонус</>
-                              }
-                              {item.type === 'Награда' && 
-                                <><i className="fas fa-gift text-xs text-yellow-400 mr-2"></i>Получение награды</>
-                              }
-                              {item.type === 'Boost' && 
-                                <><i className="fas fa-rocket text-xs text-blue-400 mr-2"></i>Активация буста</>
-                              }
-                              {(item.type !== 'Фарминг' && item.type !== 'Депозит' && 
-                                item.type !== 'Ежедневный бонус' && item.type !== 'Награда' && 
-                                item.type !== 'Boost') && 
-                                <><i className="fas fa-exchange-alt text-xs text-gray-400 mr-2"></i>Операция</>
-                              }
-                            </div>
-                          </td>
-                          <td className="py-2 text-sm text-right">
-                            <div className="flex items-center justify-end">
-                              <span className="text-purple-300">+{item.amount.toFixed(item.amount < 0.001 ? 7 : 2)}</span>
-                              <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                            </div>
-                          </td>
-                        </tr>
+                        <div key={item.id} className="py-2 border-b border-gray-800/30">
+                          {item.type} | {item.amount.toFixed(item.amount < 0.001 ? 7 : 2)} {item.currency} | {formatDate(item.time)}
+                        </div>
                       ))
                     }
-                  </tbody>
-                </table>
+                  </div>
+                  
+                  {/* Оставляем стандартный вид таблицы */}
+                  <table className="w-full">
+                    <thead className="sticky top-0 bg-card z-10">
+                      <tr className="border-b border-gray-800">
+                        <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
+                        <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
+                        <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {farmingHistory
+                        .filter(item => item.currency === 'UNI')
+                        .map((item) => (
+                          <tr 
+                            key={item.id} 
+                            className="border-b border-gray-800/30 transition-all duration-300 hover:bg-black/20"
+                          >
+                            <td className="py-2 text-sm">{formatDate(item.time)}</td>
+                            <td className="py-2 text-sm">
+                              <div className="flex items-center">
+                                {item.type === 'Фарминг' && 
+                                  <><i className="fas fa-seedling text-xs text-green-400 mr-2"></i>Начисление фарминга</>
+                                }
+                                {item.type === 'Депозит' && 
+                                  <><i className="fas fa-arrow-up text-xs text-purple-400 mr-2"></i>Пополнение депозита</>
+                                }
+                                {item.type === 'Ежедневный бонус' && 
+                                  <><i className="fas fa-calendar-check text-xs text-blue-400 mr-2"></i>Ежедневный бонус</>
+                                }
+                                {item.type === 'Награда' && 
+                                  <><i className="fas fa-gift text-xs text-yellow-400 mr-2"></i>Получение награды</>
+                                }
+                                {item.type === 'Boost' && 
+                                  <><i className="fas fa-rocket text-xs text-blue-400 mr-2"></i>Активация буста</>
+                                }
+                                {(item.type !== 'Фарминг' && item.type !== 'Депозит' && 
+                                  item.type !== 'Ежедневный бонус' && item.type !== 'Награда' && 
+                                  item.type !== 'Boost') && 
+                                  <><i className="fas fa-exchange-alt text-xs text-gray-400 mr-2"></i>Операция</>
+                                }
+                              </div>
+                            </td>
+                            <td className="py-2 text-sm text-right">
+                              <div className="flex items-center justify-end">
+                                <span className="text-purple-300">+{item.amount.toFixed(item.amount < 0.001 ? 7 : 2)}</span>
+                                <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
