@@ -17,6 +17,11 @@ export const users = pgTable("users", {
   wallet: text("wallet"),
   balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default("0"),
   balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default("0"),
+  // Поля для основного UNI фарминга
+  uni_deposit_amount: numeric("uni_deposit_amount", { precision: 18, scale: 6 }).default("0"),
+  uni_farming_start_timestamp: timestamp("uni_farming_start_timestamp"),
+  uni_farming_balance: numeric("uni_farming_balance", { precision: 18, scale: 6 }).default("0"),
+  uni_farming_last_update: timestamp("uni_farming_last_update"),
   created_at: timestamp("created_at").defaultNow(),
   checkin_last_date: timestamp("checkin_last_date"),
   checkin_streak: integer("checkin_streak").default(0)
