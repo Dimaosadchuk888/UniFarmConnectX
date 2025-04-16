@@ -45,7 +45,7 @@ interface Transaction {
 
 const FarmingHistoryComponent: React.FC = () => {
   // Состояния
-  const [activeTab, setActiveTab] = useState<'deposits' | 'allocations'>('deposits');
+  const [activeTab, setActiveTab] = useState<'uni' | 'ton'>('uni');
   const [opacity, setOpacity] = useState(0);
   const [translateY, setTranslateY] = useState(20);
   const [deposits, setDeposits] = useState<FarmingDeposit[]>([]);
@@ -180,39 +180,7 @@ const FarmingHistoryComponent: React.FC = () => {
     return bonuses[boostId] || '0 UNI';
   };
   
-  // Эффект для периодического добавления новых начислений
-  useEffect(() => {
-    // Не добавляем новые записи, если не на вкладке истории начислений или загрузка не завершена
-    if (activeTab !== 'allocations' || isLoading) return;
-    
-    const interval = setInterval(() => {
-      setFarmingHistory(prev => {
-        const isUni = Math.random() > 0.5;
-        const newEntry: FarmingHistory = {
-          id: Date.now(),
-          time: new Date(),
-          type: 'Фарминг',
-          amount: isUni ? 0.00231 : 0.00023,
-          currency: isUni ? 'UNI' : 'TON',
-          isNew: true
-        };
-        
-        // Удаляем пометку "новый" со старых записей через 2 секунды
-        setTimeout(() => {
-          setFarmingHistory(items => 
-            items.map(item => 
-              item.id === newEntry.id ? { ...item, isNew: false } : item
-            )
-          );
-        }, 2000);
-        
-        // Добавляем новую запись в начало и ограничиваем историю 50 записями
-        return [newEntry, ...prev].slice(0, 50);
-      });
-    }, 20000); // Новая запись каждые 20 секунд
-    
-    return () => clearInterval(interval);
-  }, [activeTab, isLoading]);
+  // Убираем эффект для периодического добавления новых начислений, так как его больше не нужно
   
   // Генерируем декоративные частицы для пустого состояния
   const particles = Array(5).fill(0).map((_, i) => ({
@@ -253,7 +221,7 @@ const FarmingHistoryComponent: React.FC = () => {
       packageInfo.price.split(' + ')[1] : packageInfo.price} (${deposit.uniYield}/${deposit.tonYield})`;
   };
   
-  // Рендер вкладки с активными депозитами
+  // Рендер вкладки с UNI фармингом
   const renderDepositsTab = () => {
     if (isLoading) {
       return (
@@ -263,7 +231,10 @@ const FarmingHistoryComponent: React.FC = () => {
       );
     }
     
-    if (deposits.length === 0) {
+    // Фильтруем депозиты, чтобы показать только UNI фарминг (packageId = 0)
+    const uniDeposits = deposits.filter(d => d.packageId === 0);
+    
+    if (uniDeposits.length === 0) {
       return (
         <div 
           className="text-center py-16 flex flex-col items-center justify-center"
@@ -274,15 +245,15 @@ const FarmingHistoryComponent: React.FC = () => {
           }}
         >
           <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center mb-4">
-            <i className="fas fa-box-open text-3xl text-foreground/40"></i>
+            <i className="fas fa-seedling text-3xl text-foreground/40"></i>
           </div>
           
           <p className="text-md text-foreground opacity-80 mb-2">
-            У вас пока нет активных пакетов
+            У вас пока нет активного UNI фарминга
           </p>
           
           <p className="text-sm text-foreground opacity-50 max-w-sm mx-auto">
-            Купите Boost или откройте фарминг, чтобы начать
+            Откройте фарминг, чтобы начать зарабатывать UNI
           </p>
           
           <button className="mt-6 gradient-button text-white px-4 py-2 rounded-lg font-medium transition-transform hover:scale-105">
@@ -302,7 +273,7 @@ const FarmingHistoryComponent: React.FC = () => {
         <div className="absolute top-0 bottom-0 right-0 w-[1px] bg-card z-20"></div>
         
         <div className="space-y-4 max-h-[350px] overflow-y-auto overflow-x-hidden farming-history-scroll">
-          {deposits.map((deposit) => (
+          {uniDeposits.map((deposit) => (
             <div 
               key={deposit.id} 
               className={`
@@ -314,11 +285,11 @@ const FarmingHistoryComponent: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center mb-1">
-                    <i className={`fas fa-${deposit.isActive ? 'rocket' : 'hourglass-end'} text-sm ${deposit.isActive ? 'text-primary' : 'text-gray-500'} mr-2`}></i>
-                    <h3 className="font-medium">{getPackageTypeString(deposit)}</h3>
+                    <i className="fas fa-seedling text-sm text-purple-300 mr-2"></i>
+                    <h3 className="font-medium">Основной UNI пакет ({deposit.uniYield})</h3>
                   </div>
                   <p className="text-xs text-foreground opacity-70 mb-2">
-                    Дата покупки: {formatDate(deposit.createdAt)}
+                    Дата активации: {formatDate(deposit.createdAt)}
                   </p>
                 </div>
                 <div>
@@ -336,102 +307,78 @@ const FarmingHistoryComponent: React.FC = () => {
               <div className="grid grid-cols-2 gap-3 mt-3">
                 <div>
                   <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
-                  <div className="flex flex-col">
-                    <div className="flex items-center">
-                      {deposit.packageId === 0 ? (
-                        <>
-                          <span className="text-purple-300">+{(parseFloat("0.5") * 100 * 86400 / 100).toFixed(2)}</span>
-                          <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-purple-300">{deposit.uniYield === "0.0%" ? (
-                            <span className="text-gray-400">0</span>
-                          ) : (
-                            <>+{(parseFloat(deposit.uniYield) * 100 * 86400 / 100).toFixed(2)}</>
-                          )}</span>
-                          <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center mt-1">
-                      {deposit.packageId === 0 ? (
-                        <>
-                          <span className="text-gray-400">0</span>
-                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-blue-400">{deposit.tonYield === "0.0%" ? (
-                            <span className="text-gray-400">0</span>
-                          ) : (
-                            <>+{(parseFloat(deposit.tonYield) * 100 * 86400 / 10000).toFixed(4)}</>
-                          )}</span>
-                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                        </>
-                      )}
-                    </div>
+                  <div className="flex items-center">
+                    <span className="text-purple-300">+{(parseFloat("0.5") * 100 * 86400 / 100).toFixed(2)}</span>
+                    <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
                   </div>
                 </div>
                 
                 <div>
                   <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
-                  <div className="flex flex-col">
-                    <div className="flex items-center">
-                      {deposit.packageId === 0 ? (
-                        <>
-                          <span className="text-purple-300">+0.00029</span>
-                          <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-purple-300">{deposit.uniYield === "0.0%" ? (
-                            <span className="text-gray-400">0</span>
-                          ) : (
-                            <>+{(parseFloat(deposit.uniYield) * 100 / 100 / 86400).toFixed(7)}</>
-                          )}</span>
-                          <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center mt-1">
-                      {deposit.packageId === 0 ? (
-                        <>
-                          <span className="text-gray-400">0</span>
-                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-blue-400">{deposit.tonYield === "0.0%" ? (
-                            <span className="text-gray-400">0</span>
-                          ) : (
-                            <>+{(parseFloat(deposit.tonYield) * 100 / 10000 / 86400).toFixed(8)}</>
-                          )}</span>
-                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                        </>
-                      )}
-                    </div>
+                  <div className="flex items-center">
+                    <span className="text-purple-300">+0.00029</span>
+                    <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
                   </div>
-                </div>
-              </div>
-              
-              <div className="mt-3 pt-3 border-t border-gray-800">
-                <div className="flex items-center">
-                  <i className="fas fa-gift text-primary/70 mr-2"></i>
-                  <p className="text-sm">
-                    <span className="text-foreground opacity-70">Бонус: </span>
-                    <span className="text-accent">{deposit.bonus}</span>
-                  </p>
                 </div>
               </div>
             </div>
           ))}
+          
+          {/* Отображаем историю транзакций UNI фарминга */}
+          <div className="mt-6 pt-6 border-t border-gray-800/30">
+            <h3 className="text-md font-medium mb-4">История UNI фарминга</h3>
+            
+            <div className="overflow-hidden relative">
+              {farmingHistory.filter(item => item.currency === 'UNI').length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-foreground opacity-70">
+                    История транзакций пуста
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead className="sticky top-0 bg-card z-10">
+                    <tr className="border-b border-gray-800">
+                      <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
+                      <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
+                      <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {farmingHistory
+                      .filter(item => item.currency === 'UNI')
+                      .map((item) => (
+                        <tr 
+                          key={item.id} 
+                          className="border-b border-gray-800/30 transition-all duration-300 hover:bg-black/20"
+                        >
+                          <td className="py-2 text-sm">{formatDate(item.time)}</td>
+                          <td className="py-2 text-sm">
+                            <div className="flex items-center">
+                              <i className="fas fa-seedling text-xs text-green-400 mr-2"></i>
+                              Активация фарминга
+                            </div>
+                          </td>
+                          <td className="py-2 text-sm text-right">
+                            <div className="flex items-center justify-end">
+                              <span className="text-purple-300">+{item.amount.toFixed(item.amount < 0.001 ? 7 : 2)}</span>
+                              <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
   };
   
-  // Рендер вкладки с историей начислений
+  // Рендер вкладки с TON буст пакетами
   const renderHistoryTab = () => {
     if (isLoading) {
       return (
@@ -441,7 +388,10 @@ const FarmingHistoryComponent: React.FC = () => {
       );
     }
     
-    if (farmingHistory.length === 0) {
+    // Фильтруем депозиты, чтобы показать только TON буст пакеты (packageId > 0)
+    const tonDeposits = deposits.filter(d => d.packageId > 0);
+    
+    if (tonDeposits.length === 0 && farmingHistory.filter(item => item.currency === 'TON').length === 0) {
       return (
         <div 
           className="text-center py-16 flex flex-col items-center justify-center"
@@ -452,15 +402,15 @@ const FarmingHistoryComponent: React.FC = () => {
           }}
         >
           <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center mb-4">
-            <i className="fas fa-history text-3xl text-foreground/40"></i>
+            <i className="fas fa-rocket text-3xl text-foreground/40"></i>
           </div>
           
           <p className="text-md text-foreground opacity-80 mb-2">
-            Начислений пока нет
+            У вас пока нет активных TON буст пакетов
           </p>
           
           <p className="text-sm text-foreground opacity-50 max-w-sm mx-auto">
-            Фарминг ещё не активирован
+            Купите Boost, чтобы начать зарабатывать TON
           </p>
         </div>
       );
@@ -475,67 +425,141 @@ const FarmingHistoryComponent: React.FC = () => {
         {/* Блок для скрытия белой полосы справа */}
         <div className="absolute top-0 bottom-0 right-0 w-[1px] bg-card z-20"></div>
         
-        <div className="overflow-y-auto overflow-x-hidden max-h-[350px] farming-history-scroll">
-          <table className="w-full">
-            <thead className="sticky top-0 bg-card z-10">
-              <tr className="border-b border-gray-800">
-                <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
-                <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
-                <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
-                <th className="py-2 text-right text-sm text-foreground opacity-70">Категория</th>
-              </tr>
-            </thead>
-            <tbody>
-              {farmingHistory.map((item) => (
-                <tr 
-                  key={item.id} 
-                  className={`
-                    border-b border-gray-800/30 transition-all duration-300
-                    ${item.isNew ? 'bg-primary/10 animate-highlightRow' : 'hover:bg-black/20'}
-                  `}
-                >
-                  <td className="py-2 text-sm">{formatDate(item.time)}</td>
-                  <td className="py-2 text-sm">
-                    <div className="flex items-center">
-                      {item.type === 'Фарминг' ? (
-                        <i className="fas fa-seedling text-xs text-green-400 mr-2"></i>
-                      ) : item.type === 'Boost' ? (
-                        <i className="fas fa-rocket text-xs text-blue-400 mr-2"></i>
-                      ) : (
-                        <i className="fas fa-exchange-alt text-xs text-yellow-400 mr-2"></i>
-                      )}
-                      {item.type === 'Фарминг' ? 'Активация фарминга' : item.type === 'Boost' ? 'Покупка Boost' : item.type}
+        <div className="space-y-4 max-h-[350px] overflow-y-auto overflow-x-hidden farming-history-scroll">
+          {tonDeposits.length > 0 && (
+            <div>
+              <h3 className="text-md font-medium mb-4">Активные TON Boost</h3>
+              
+              <div className="space-y-4">
+                {tonDeposits.map((deposit) => (
+                  <div 
+                    key={deposit.id} 
+                    className={`
+                      rounded-xl p-4 transition-all duration-300
+                      ${deposit.isActive ? 'bg-blue-900/10 border border-blue-400/40' : 'bg-card'}
+                      ${deposit.isActive ? 'shadow-[0_0_15px_rgba(109,191,255,0.15)]' : ''}
+                    `}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center mb-1">
+                          <i className={`fas fa-rocket text-sm text-blue-400 mr-2`}></i>
+                          <h3 className="font-medium">{getPackageTypeString(deposit)}</h3>
+                        </div>
+                        <p className="text-xs text-foreground opacity-70 mb-2">
+                          Дата покупки: {formatDate(deposit.createdAt)}
+                        </p>
+                      </div>
+                      <div>
+                        <span 
+                          className={`
+                            inline-block px-2 py-1 text-xs rounded-full
+                            ${deposit.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}
+                          `}
+                        >
+                          {deposit.isActive ? `Активен (${deposit.daysLeft} дн.)` : 'Завершён'}
+                        </span>
+                      </div>
                     </div>
-                  </td>
-                  <td className="py-2 text-sm text-right">
-                    <div className="flex items-center justify-end">
-                      <span className={`${item.currency === 'UNI' ? 'text-purple-300' : 'text-blue-400'}`}>
-                        +{item.amount.toFixed(item.amount < 0.001 ? 7 : 5)}
-                      </span>
-                      <span className="text-gray-400 ml-1.5 text-xs">
-                        {item.currency}
-                      </span>
-                      {item.isNew && (
-                        <span className="ml-2 inline-block w-2 h-2 bg-primary rounded-full animate-ping"></span>
-                      )}
+                    
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <div>
+                        <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
+                        <div className="flex flex-col">
+                          <div className="flex items-center mt-1">
+                            <span className="text-blue-400">
+                              {deposit.tonYield === "0.0%" ? (
+                                <span className="text-gray-400">0</span>
+                              ) : (
+                                <>+{(parseFloat(deposit.tonYield) * 100 * 86400 / 10000).toFixed(4)}</>
+                              )}
+                            </span>
+                            <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
+                        <div className="flex flex-col">
+                          <div className="flex items-center mt-1">
+                            <span className="text-blue-400">
+                              {deposit.tonYield === "0.0%" ? (
+                                <span className="text-gray-400">0</span>
+                              ) : (
+                                <>+{(parseFloat(deposit.tonYield) * 100 / 10000 / 86400).toFixed(8)}</>
+                              )}
+                            </span>
+                            <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </td>
-                  <td className="py-2 text-sm text-right">
-                    <div className={`
-                        inline-block px-2 py-1 text-xs rounded-full
-                        ${item.type === 'Фарминг' ? 'bg-green-500/20 text-green-400' : 
-                          item.type === 'Boost' ? 'bg-blue-500/20 text-blue-400' : 
-                          'bg-primary/20 text-primary/90'}
-                      `}>
-                      {item.type === 'Фарминг' ? 'UNI Farming' : 
-                       item.type === 'Boost' ? 'TON Boost' : 
-                       'Транзакция'}
+                    
+                    <div className="mt-3 pt-3 border-t border-gray-800">
+                      <div className="flex items-center">
+                        <i className="fas fa-gift text-blue-400/70 mr-2"></i>
+                        <p className="text-sm">
+                          <span className="text-foreground opacity-70">Бонус: </span>
+                          <span className="text-accent">{deposit.bonus}</span>
+                        </p>
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Отображаем историю транзакций TON буст пакетов */}
+          <div className="mt-6 pt-6 border-t border-gray-800/30">
+            <h3 className="text-md font-medium mb-4">История TON Boost</h3>
+            
+            <div className="overflow-hidden relative">
+              {farmingHistory.filter(item => item.currency === 'TON').length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-foreground opacity-70">
+                    История транзакций пуста
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead className="sticky top-0 bg-card z-10">
+                    <tr className="border-b border-gray-800">
+                      <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
+                      <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
+                      <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {farmingHistory
+                      .filter(item => item.currency === 'TON')
+                      .map((item) => (
+                        <tr 
+                          key={item.id} 
+                          className="border-b border-gray-800/30 transition-all duration-300 hover:bg-black/20"
+                        >
+                          <td className="py-2 text-sm">{formatDate(item.time)}</td>
+                          <td className="py-2 text-sm">
+                            <div className="flex items-center">
+                              <i className="fas fa-rocket text-xs text-blue-400 mr-2"></i>
+                              Покупка Boost
+                            </div>
+                          </td>
+                          <td className="py-2 text-sm text-right">
+                            <div className="flex items-center justify-end">
+                              <span className="text-blue-400">+{item.amount.toFixed(item.amount < 0.001 ? 7 : 4)}</span>
+                              <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -618,33 +642,37 @@ const FarmingHistoryComponent: React.FC = () => {
             className={`
               px-4 py-2 rounded-lg text-sm font-medium
               transition-all duration-300
-              ${activeTab === 'deposits' 
+              ${activeTab === 'uni' 
                 ? 'bg-primary text-white shadow-lg shadow-primary/20' 
                 : 'bg-muted text-foreground/70 hover:bg-muted/70'}
             `}
-            onClick={() => setActiveTab('deposits')}
+            onClick={() => setActiveTab('uni')}
           >
-            <i className="fas fa-box-open mr-2"></i>
-            Активные депозиты
+            <i className="fas fa-seedling mr-2"></i>
+            UNI Фарминг
           </button>
           <button
             className={`
               px-4 py-2 rounded-lg text-sm font-medium
               transition-all duration-300
-              ${activeTab === 'allocations' 
+              ${activeTab === 'ton' 
                 ? 'bg-primary text-white shadow-lg shadow-primary/20' 
                 : 'bg-muted text-foreground/70 hover:bg-muted/70'}
             `}
-            onClick={() => setActiveTab('allocations')}
+            onClick={() => setActiveTab('ton')}
           >
-            <i className="fas fa-history mr-2"></i>
-            Начисления
+            <i className="fas fa-rocket mr-2"></i>
+            TON Boost
           </button>
         </div>
         
         {/* Содержимое вкладок */}
         <div className="min-h-[200px] relative">
-          {activeTab === 'deposits' ? renderDepositsTab() : renderHistoryTab()}
+          {activeTab === 'uni' ? (
+            renderDepositsTab()
+          ) : (
+            renderHistoryTab()
+          )}
         </div>
       </div>
     </div>
