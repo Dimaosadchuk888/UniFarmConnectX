@@ -43,8 +43,8 @@ const BoostStatusCard: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [activeBoosts.length]);
   
-  // Эффект нажатия и навигация
-  const handleMouseDown = (index: number) => {
+  // Обработчик нажатия и навигации
+  const handleClick = (index: number) => {
     setActiveIndex(index);
     
     // Визуальный эффект перед переходом
@@ -94,7 +94,8 @@ const BoostStatusCard: React.FC = () => {
               <div 
                 onMouseEnter={() => setHoverIndex(index)}
                 onMouseLeave={() => setHoverIndex(null)}
-                onMouseDown={() => handleMouseDown(index)}
+                onMouseDown={() => handleClick(index)}
+                onClick={() => handleClick(index)}
                 className={`
                   rounded-lg bg-muted p-2 flex items-center justify-center 
                   ${isActive ? 'opacity-100' : 'opacity-50'}
