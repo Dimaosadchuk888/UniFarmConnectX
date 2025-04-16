@@ -42,11 +42,13 @@ export class DailyBonusService {
       lastClaimDate.getMonth() === now.getMonth() &&
       lastClaimDate.getFullYear() === now.getFullYear();
     
+    const streak = user.checkin_streak || 0;
+    
     if (isSameDay) {
-      return { canClaim: false, streak: user.checkin_streak };
+      return { canClaim: false, streak };
     }
     
-    return { canClaim: true, streak: user.checkin_streak };
+    return { canClaim: true, streak };
   }
   
   /**

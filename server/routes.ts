@@ -8,6 +8,7 @@ import { TransactionController } from './controllers/transactionController';
 import { MissionController } from './controllers/missionController';
 import { FarmingController } from './controllers/farmingController';
 import { ReferralController } from './controllers/referralController';
+import { DailyBonusController } from './controllers/dailyBonusController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -36,6 +37,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для реферальной системы
   app.get("/api/referrals", ReferralController.getUserReferrals);
   app.get("/api/referrals/inviter/:id", ReferralController.getUserInviter);
+  
+  // Маршруты для ежедневного бонуса
+  app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);
+  app.post("/api/daily-bonus/claim", DailyBonusController.claimDailyBonus);
 
   // Централизованная обработка ошибок
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
