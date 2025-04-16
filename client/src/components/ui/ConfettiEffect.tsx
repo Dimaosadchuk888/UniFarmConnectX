@@ -6,6 +6,9 @@ interface ConfettiEffectProps {
   onComplete?: () => void;
   duration?: number; // продолжительность в миллисекундах
   colors?: string[]; // цвета для конфетти
+  particleCount?: number; // количество частиц
+  spread?: number; // угол разброса частиц
+  gravity?: number; // скорость падения
 }
 
 interface ConfettiParticle {
@@ -21,7 +24,10 @@ const ConfettiEffect: React.FC<ConfettiEffectProps> = ({
   active,
   onComplete,
   duration = 3000,
-  colors = ['#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+  colors = ['#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+  particleCount = 100,
+  spread = 70,
+  gravity = 1
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<ConfettiParticle[]>([]);
@@ -36,16 +42,24 @@ const ConfettiEffect: React.FC<ConfettiEffectProps> = ({
     if (!ctx) return;
     
     const particles: ConfettiParticle[] = [];
-    const particleCount = 100;
+    const centerX = canvas.width / 2;
     
     for (let i = 0; i < particleCount; i++) {
+      // Расчет угла разброса
+      const angle = (Math.random() * spread - spread / 2) * (Math.PI / 180);
+      const velocity = Math.random() * 5 + 2;
+      
+      // Рассчитываем начальную позицию и скорость
+      const x = centerX + (Math.random() * 100 - 50);
+      const y = canvas.height * 0.6;
+      
       particles.push({
-        x: Math.random() * canvas.width,
-        y: -20, // начинаем сверху
+        x: x,
+        y: y, // начинаем снизу-посередине
         size: Math.random() * 10 + 5,
         color: colors[Math.floor(Math.random() * colors.length)],
         rotation: Math.random() * 360,
-        speed: Math.random() * 3 + 1
+        speed: Math.random() * gravity + 0.5 // вертикальная скорость зависит от gravity
       });
     }
     
@@ -68,20 +82,45 @@ const ConfettiEffect: React.FC<ConfettiEffectProps> = ({
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
       
-      p.y += p.speed;
+      // Применяем гравитацию
+      p.y -= p.speed; // частицы двигаются вверх и медленно замедляются
+      p.speed -= gravity * 0.01; // гравитация замедляет скорость
+      
+      // Добавляем небольшое боковое движение для эффекта развевания
+      p.x += Math.sin(p.rotation / 30) * 0.5;
       p.rotation += 2;
       
+      // Рисуем частицу
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate((p.rotation * Math.PI) / 180);
       
+      // Рисуем разные формы для частиц
       ctx.fillStyle = p.color;
-      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      const shape = i % 3; // 3 типа частиц
+      
+      if (shape === 0) {
+        // Квадрат
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      } else if (shape === 1) {
+        // Круг
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Треугольник
+        ctx.beginPath();
+        ctx.moveTo(0, -p.size / 2);
+        ctx.lineTo(p.size / 2, p.size / 2);
+        ctx.lineTo(-p.size / 2, p.size / 2);
+        ctx.closePath();
+        ctx.fill();
+      }
       
       ctx.restore();
       
       // Проверяем, все ли частицы вышли за пределы экрана
-      if (p.y < canvas.height) {
+      if (p.y > -20 && p.y < canvas.height + 20) {
         allFallen = false;
       }
     }

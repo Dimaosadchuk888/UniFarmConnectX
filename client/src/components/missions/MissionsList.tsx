@@ -264,9 +264,10 @@ export const MissionsList: React.FC = () => {
     return (
       <div 
         ref={rewardRef}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-green-500 font-bold text-3xl"
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 flex items-center gap-2 bg-purple-900/70 backdrop-blur-sm px-5 py-3 rounded-xl shadow-xl"
       >
-        +{reward} UNI
+        <Coins className="h-6 w-6 text-purple-300" />
+        <span className="text-purple-200 font-bold text-2xl">+{reward} UNI</span>
       </div>
     );
   };
@@ -439,8 +440,11 @@ export const MissionsList: React.FC = () => {
       <ConfettiEffect 
         active={showConfetti} 
         onComplete={handleConfettiComplete} 
-        duration={3000} 
-        colors={['#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b']}
+        duration={3500} 
+        colors={['#c4b5fd', '#8b5cf6', '#a855f7', '#7c3aed', '#6366f1', '#d946ef']}
+        particleCount={100}
+        spread={90}
+        gravity={0.65}
       />
       
       <div className="space-y-4 p-4">
@@ -508,8 +512,12 @@ export const MissionsList: React.FC = () => {
                 </CardContent>
                 
                 <CardFooter className="flex justify-between items-center border-t pt-4">
-                  <div className="text-primary font-medium">
-                    Награда: <span className="text-green-500">{mission.rewardUni} UNI</span>
+                  <div className="flex items-center">
+                    <div className="text-purple-300/80 font-medium mr-2">Награда:</div>
+                    <div className="flex items-center px-2 py-1 bg-purple-900/30 rounded-md">
+                      <Coins className="h-4 w-4 text-purple-400 mr-1.5" />
+                      <span className="text-purple-300 font-semibold">{mission.rewardUni} UNI</span>
+                    </div>
                   </div>
                   
                   {/* Социальные миссии с кнопкой Перейти и Проверить задание */}
@@ -574,8 +582,8 @@ export const MissionsList: React.FC = () => {
                   
                   {/* Индикатор выполненной миссии */}
                   {mission.status === MissionStatus.COMPLETED && (
-                    <Badge variant="outline" className="border-green-500 text-green-500">
-                      <CheckCircle className="h-4 w-4 mr-1" />
+                    <Badge variant="outline" className="border-purple-400/60 text-purple-300 px-3 py-1">
+                      <CheckCircle className="h-4 w-4 mr-1.5" />
                       Получено
                     </Badge>
                   )}
