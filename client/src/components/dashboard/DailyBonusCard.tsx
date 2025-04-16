@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getQueryFn } from '@/lib/queryClient';
 
 // Типы для статуса бонуса
 type DailyBonusStatus = {
@@ -34,8 +33,14 @@ const DailyBonusCard: React.FC = () => {
   const { data: bonusStatus, isLoading } = useQuery<DailyBonusStatus>({
     queryKey: ['/api/daily-bonus/status'],
     queryFn: async () => {
-      const result = await apiRequest('/api/daily-bonus/status?user_id=1');
-      return result as DailyBonusStatus;
+      try {
+        const response = await fetch('/api/daily-bonus/status?user_id=1');
+        const data = await response.json();
+        return data.data as DailyBonusStatus;
+      } catch (error) {
+        console.error("Ошибка при получении статуса ежедневного бонуса:", error);
+        return { canClaim: false, streak: 0, bonusAmount: 500 };
+      }
     }
   });
   
@@ -44,12 +49,20 @@ const DailyBonusCard: React.FC = () => {
   
   // Мутация для получения ежедневного бонуса
   const claimBonusMutation = useMutation<ClaimBonusResult, Error>({
-    mutationFn: async () => {
-      const result = await apiRequest('/api/daily-bonus/claim', {
-        method: 'POST',
-        json: { user_id: 1 } // Временно используем ID = 1
-      });
-      return result as ClaimBonusResult;
+    mutationFn: async (): Promise<ClaimBonusResult> => {
+      try {
+        const response = await fetch('/api/daily-bonus/claim', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ user_id: 1 })
+        });
+        const data = await response.json();
+        return data as ClaimBonusResult;
+      } catch (error) {
+        throw new Error('Ошибка при получении бонуса');
+      }
     },
     onSuccess: (data) => {
       if (data.success) {
