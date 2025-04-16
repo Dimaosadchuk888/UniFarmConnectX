@@ -58,7 +58,7 @@ const FarmingHistoryComponent: React.FC = () => {
   const userId = 1;
   
   // Получаем транзакции из API
-  const { data: transactionsResponse, refetch: refetchTransactions } = useQuery<ApiResponse<Transaction[]>>({
+  const { data: transactionsResponse, refetch: refetchTransactions, isLoading: isTransactionsLoading } = useQuery<Transaction[]>({
     queryKey: [`/api/transactions?user_id=${userId}&t=${Date.now()}`], // Добавляем временную метку для избежания кэширования
   });
   
@@ -119,14 +119,17 @@ const FarmingHistoryComponent: React.FC = () => {
     let historyItems: FarmingHistory[] = [];
     
     // Обрабатываем транзакции, если они есть
-    if (transactionsResponse?.success && Array.isArray(transactionsResponse.data)) {
-      // В ответе API есть типы: 'deposit', 'farming', 'debug', 'check-in', 'reward'
+    if (Array.isArray(transactionsResponse)) {
+      // Выведем для отладки ответ API целиком
+      console.log('[DEBUG] Transactions API Response:', transactionsResponse);
+      
+      // В ответе API есть типы: 'deposit', 'farming', 'check-in', 'reward'
       // Фильтруем только нужные типы для фарминга и исключаем отладочные
-      const farmingTransactions = transactionsResponse.data.filter(tx => {
+      const farmingTransactions = transactionsResponse.filter((tx: Transaction) => {
         // Отладочные транзакции всегда скрываем
         if (tx.type === 'debug') return false;
         
-        // Включаем все релевантные транзакции
+        // Включаем все релевантные транзакции: deposit, farming, check-in, reward
         return tx.type === 'farming' || 
                tx.type === 'deposit' || 
                tx.type === 'boost' ||
@@ -136,7 +139,7 @@ const FarmingHistoryComponent: React.FC = () => {
       
       // Выведем для отладки все типы транзакций
       console.log('API возвращает типы транзакций:', 
-        Array.from(new Set(transactionsResponse.data.map(tx => tx.type))).join(', ')
+        Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.type))).join(', ')
       );
       
       console.log('Отфильтрованные транзакции фарминга:', farmingTransactions);
@@ -145,7 +148,7 @@ const FarmingHistoryComponent: React.FC = () => {
         // Если у нас есть UNI фарминг, уточняем его дату активации из транзакции
         if (farmingDeposits.length > 0) {
           // Ищем первый депозит UNI для уточнения даты активации
-          const depositTx = farmingTransactions.find(tx => 
+          const depositTx = farmingTransactions.find((tx: Transaction) => 
             tx.type === 'deposit' && tx.currency === 'UNI'
           );
           
@@ -156,7 +159,7 @@ const FarmingHistoryComponent: React.FC = () => {
         }
         
         // Преобразуем транзакции в историю
-        historyItems = farmingTransactions.map(tx => {
+        historyItems = farmingTransactions.map((tx: Transaction) => {
           // Определение типа операции на основе данных транзакции
           let type = 'Операция';
           
@@ -189,7 +192,7 @@ const FarmingHistoryComponent: React.FC = () => {
             const packageId = boost.boost_id || 1;
             
             // Находим транзакцию покупки этого буста
-            const boostTx = farmingTransactions.find(tx => 
+            const boostTx = farmingTransactions.find((tx: Transaction) => 
               tx.type === 'boost' && tx.boost_id === packageId
             );
             
@@ -208,13 +211,13 @@ const FarmingHistoryComponent: React.FC = () => {
         }
         
         // Добавляем исторические boost транзакции для TON Boost
-        const boostTransactions = farmingTransactions.filter(tx => 
+        const boostTransactions = farmingTransactions.filter((tx: Transaction) => 
           tx.type === 'boost' && tx.currency === 'TON'
         );
         
         console.log('Транзакции буст-пакетов:', boostTransactions);
         
-        boostTransactions.forEach((tx, index) => {
+        boostTransactions.forEach((tx: Transaction, index: number) => {
           // Проверяем, не добавлен ли уже этот буст как активный
           const isAlreadyActive = farmingDeposits.some(d => 
             d.packageId === tx.boost_id && 
