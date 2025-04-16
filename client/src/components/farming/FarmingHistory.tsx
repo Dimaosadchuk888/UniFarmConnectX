@@ -137,8 +137,9 @@ const FarmingHistoryComponent: React.FC = () => {
                tx.type === 'reward';
       });
       
-      // Выведем для отладки все типы транзакций
-      console.log('API возвращает типы транзакций:', 
+      // Выведем для отладки ответ API и типы транзакций
+      console.log('[DEBUG] API возвращает транзакции:', transactionsResponse);
+      console.log('[DEBUG] Доступные типы транзакций:', 
         Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.type))).join(', ')
       );
       
