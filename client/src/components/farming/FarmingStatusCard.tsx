@@ -141,17 +141,6 @@ const FarmingStatusCard: React.FC = () => {
           </p>
         </div>
         
-        <div className="relative overflow-hidden">
-          <p className="text-sm text-foreground opacity-70">Активный Boost</p>
-          <div className="flex items-center">
-            <p className="text-md">—</p>
-            {/* Стилизованная подсказка о буст-эффекте */}
-            <div className="absolute right-0 bottom-0 opacity-20 transform rotate-12">
-              <i className="fas fa-bolt text-3xl text-primary"></i>
-            </div>
-          </div>
-        </div>
-        
         {/* UNI Per Second */}
         <div className={`transition-all duration-300 ${isPulsing ? 'scale-105' : 'scale-100'}`}>
           <p className="text-sm text-foreground opacity-70">Начисление</p>
