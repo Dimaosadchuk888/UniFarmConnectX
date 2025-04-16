@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BOOST_PACKAGES } from '@/lib/constants';
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 // Типы и интерфейсы
 interface FarmingDeposit {
@@ -22,6 +25,24 @@ interface FarmingHistory {
   isNew?: boolean;
 }
 
+// Интерфейс для API ответа
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+}
+
+// Интерфейс для транзакций из API
+interface Transaction {
+  id: number;
+  user_id: number;
+  type: string;
+  created_at: string;
+  amount: string;
+  boost_id?: number;
+  currency?: string;
+  status?: string;
+}
+
 const FarmingHistoryComponent: React.FC = () => {
   // Состояния
   const [activeTab, setActiveTab] = useState<'deposits' | 'allocations'>('deposits');
@@ -31,56 +52,133 @@ const FarmingHistoryComponent: React.FC = () => {
   const [farmingHistory, setFarmingHistory] = useState<FarmingHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Пример данных для демонстрации
+  // Фиксированный UserID для демонстрации
+  const userId = 1;
+  
+  // Получаем транзакции из API
+  const { data: transactionsResponse } = useQuery<ApiResponse<Transaction[]>>({
+    queryKey: [`/api/transactions?user_id=${userId}`],
+  });
+  
+  // Получаем активные бусты из API
+  const { data: activeBoostsResponse } = useQuery<ApiResponse<any[]>>({
+    queryKey: [`/api/boosts/active?user_id=${userId}`],
+  });
+  
+  // Получаем информацию о UNI фарминге из API
+  const { data: uniFarmingResponse } = useQuery<ApiResponse<any>>({
+    queryKey: [`/api/uni-farming/info?user_id=${userId}`],
+  });
+  
+  // Эффект для загрузки реальных данных из API
   useEffect(() => {
-    // Имитация загрузки данных
-    setTimeout(() => {
-      // Пример активных депозитов
-      const mockDeposits: FarmingDeposit[] = [
-        {
-          id: 101,
-          packageId: 3, // Ссылка на пакет из BOOST_PACKAGES
-          createdAt: new Date(2025, 3, 15, 14, 30), // 15 апреля 2025
+    if (transactionsResponse?.success && Array.isArray(transactionsResponse.data)) {
+      // Создаем записи истории фарминга на основе транзакций
+      const farmingTransactions = transactionsResponse.data.filter(tx => 
+        tx.type === 'farming_start' || tx.type === 'farming_deposit' || tx.type === 'boost_purchase'
+      );
+      
+      // Преобразуем транзакции в историю
+      const historyItems: FarmingHistory[] = farmingTransactions.map(tx => ({
+        id: tx.id,
+        time: new Date(tx.created_at),
+        type: tx.type === 'boost_purchase' ? 'Boost' : 'Фарминг',
+        amount: parseFloat(tx.amount),
+        currency: tx.type === 'boost_purchase' ? 'TON' : 'UNI',
+        isNew: false
+      }));
+      
+      // Сортируем по дате (сначала новые)
+      historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
+      
+      // Формируем массив депозитов на основе данных о бустах и фарминге
+      const farminDeposits: FarmingDeposit[] = [];
+      
+      // Добавляем UNI депозит, если есть активный фарминг
+      if (uniFarmingResponse?.success && uniFarmingResponse.data?.isActive) {
+        farminDeposits.push({
+          id: 1000000,
+          packageId: 0, // Основной UNI пакет
+          createdAt: new Date(),
           isActive: true,
-          uniYield: "2.5%",
-          tonYield: "1.3%",
-          bonus: "+50,000 UNI",
-          daysLeft: 18
-        },
-        {
-          id: 102,
-          packageId: 1,
-          createdAt: new Date(2025, 3, 1, 10, 15), // 1 апреля 2025
-          isActive: false, // Закончился
-          uniYield: "1%",
-          tonYield: "0.5%",
-          bonus: "+10,000 UNI",
-          daysLeft: 0
-        }
-      ];
+          uniYield: "0.5%",
+          tonYield: "0.0%",
+          bonus: "0",
+          daysLeft: 365
+        });
+      }
       
-      // Пример истории начислений
-      const currentDate = new Date();
-      const mockHistory: FarmingHistory[] = Array(15).fill(0).map((_, index) => {
-        const timeAgo = new Date(currentDate.getTime() - (index * 60 * 1000)); // Каждая минута назад
-        const isUni = index % 2 === 0;
-        return {
-          id: 1000 + index,
-          time: timeAgo,
-          type: 'Фарминг',
-          amount: isUni ? 0.00231 : 0.00023,
-          currency: isUni ? 'UNI' : 'TON',
-          isNew: index < 2 // Отметка новых записей для анимации
-        };
-      });
+      // Добавляем активные бусты в депозиты
+      if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data)) {
+        activeBoostsResponse.data.forEach((boost, index) => {
+          const packageId = boost.boost_id || 1;
+          
+          farminDeposits.push({
+            id: 2000000 + index,
+            packageId,
+            createdAt: new Date(boost.created_at || Date.now()),
+            isActive: true,
+            uniYield: "0.0%",
+            tonYield: getYieldRateForBoost(packageId),
+            bonus: getBoostBonus(packageId),
+            daysLeft: boost.days_left || 365
+          });
+        });
+      }
       
-      setDeposits(mockDeposits);
-      setFarmingHistory(mockHistory);
+      // Поиск транзакций типа boost_purchase, которые не в активных бустах
+      farmingTransactions
+        .filter(tx => tx.type === 'boost_purchase')
+        .forEach((tx, index) => {
+          // Проверяем, не добавлен ли уже этот буст как активный
+          const isAlreadyActive = farminDeposits.some(d => 
+            d.packageId === tx.boost_id && 
+            d.id >= 2000000
+          );
+          
+          if (!isAlreadyActive && tx.boost_id) {
+            farminDeposits.push({
+              id: 3000000 + index,
+              packageId: tx.boost_id,
+              createdAt: new Date(tx.created_at),
+              isActive: false, // Неактивный буст
+              uniYield: "0.0%",
+              tonYield: getYieldRateForBoost(tx.boost_id),
+              bonus: getBoostBonus(tx.boost_id),
+              daysLeft: 0
+            });
+          }
+        });
+      
+      setFarmingHistory(historyItems);
+      setDeposits(farminDeposits);
       setIsLoading(false);
       setOpacity(1);
       setTranslateY(0);
-    }, 800);
-  }, []);
+    }
+  }, [transactionsResponse, activeBoostsResponse, uniFarmingResponse]);
+  
+  // Функция для получения доходности буста по его ID
+  const getYieldRateForBoost = (boostId: number): string => {
+    const rates: Record<number, string> = {
+      1: '0.5%',
+      2: '1.0%',
+      3: '2.0%',
+      4: '2.5%'
+    };
+    return rates[boostId] || '0.0%';
+  };
+  
+  // Функция для получения бонуса буста по его ID
+  const getBoostBonus = (boostId: number): string => {
+    const bonuses: Record<number, string> = {
+      1: '+10,000 UNI',
+      2: '+75,000 UNI',
+      3: '+250,000 UNI',
+      4: '+500,000 UNI'
+    };
+    return bonuses[boostId] || '0 UNI';
+  };
   
   // Эффект для периодического добавления новых начислений
   useEffect(() => {

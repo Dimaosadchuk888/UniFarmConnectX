@@ -4,8 +4,7 @@ import FarmingStatusCard from '../components/farming/FarmingStatusCard';
 import UniFarmingCard from '../components/farming/UniFarmingCard';
 import BoostPackagesCard from '../components/farming/BoostPackagesCard';
 import ActiveBoostsCard from '../components/farming/ActiveBoostsCard';
-import UniFarmingHistory from '../components/farming/UniFarmingHistory';
-import TonBoostHistory from '../components/farming/TonBoostHistory';
+import FarmingHistory from '../components/farming/FarmingHistory';
 
 const Farming: React.FC = () => {
   // Хардкод ID=1 для демонстрации
@@ -29,17 +28,14 @@ const Farming: React.FC = () => {
       {/* Основной UNI пакет */}
       <UniFarmingCard userData={userData} />
       
-      {/* История UNI фарминга */}
-      <UniFarmingHistory userId={userId} />
-      
       {/* Airdrop Boost Пакеты */}
       <BoostPackagesCard userData={userData} />
       
       {/* Активные Boost-пакеты */}
       <ActiveBoostsCard userId={userId} />
       
-      {/* История TON Boost-пакетов */}
-      <TonBoostHistory userId={userId} />
+      {/* История фарминга */}
+      <FarmingHistory />
     </div>
   );
 };
