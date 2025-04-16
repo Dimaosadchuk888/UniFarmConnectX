@@ -1,6 +1,7 @@
 import { db } from './db';
 import { users } from '@shared/schema';
 import { UniFarmingService } from './services/uniFarmingService';
+import { and, ne, isNotNull } from 'drizzle-orm';
 
 /**
  * Запускает фоновые задачи, которые выполняются периодически
@@ -23,9 +24,9 @@ async function updateAllUsersFarming(): Promise<void> {
       .from(users)
       .where(
         /* WHERE uni_deposit_amount > 0 AND uni_farming_start_timestamp IS NOT NULL */
-        db.and(
-          db.ne(users.uni_deposit_amount, '0'),
-          db.isNotNull(users.uni_farming_start_timestamp)
+        and(
+          ne(users.uni_deposit_amount, '0'),
+          isNotNull(users.uni_farming_start_timestamp)
         )
       );
     

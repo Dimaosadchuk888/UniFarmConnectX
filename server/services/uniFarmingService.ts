@@ -42,7 +42,8 @@ export class UniFarmingService {
     if (!user || 
         !user.uni_deposit_amount || 
         new BigNumber(user.uni_deposit_amount.toString()).isZero() ||
-        !user.uni_farming_start_timestamp) {
+        !user.uni_farming_start_timestamp ||
+        user.uni_farming_balance === null) {
       return null;
     }
 
