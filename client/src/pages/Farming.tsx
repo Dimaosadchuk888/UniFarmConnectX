@@ -24,7 +24,7 @@ const Farming: React.FC = () => {
       <UniFarmingCard userData={userData} />
       
       {/* Airdrop Boost Пакеты */}
-      <BoostPackagesCard />
+      <BoostPackagesCard userData={userData} />
     </div>
   );
 };

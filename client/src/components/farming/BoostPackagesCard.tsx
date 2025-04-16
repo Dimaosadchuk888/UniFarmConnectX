@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@lib/queryClient';
+import { apiRequest } from '../../lib/queryClient';
 
 // Определяем структуру буст-пакета
 interface BoostPackage {
@@ -51,10 +51,96 @@ const boostPricesUni: Record<number, string> = {
   4: '2500000'  // 2,500,000 UNI за Boost 25
 };
 
-const BoostPackagesCard: React.FC = () => {
+// Интерфейс свойств компонента для ребята пропсов
+interface BoostPackagesCardProps {
+  userData?: any;
+}
+
+const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
+  const [purchasingBoostId, setPurchasingBoostId] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  const queryClient = useQueryClient();
+  
+  // Пользовательский ID (хардкод для демонстрации)
+  const userId = 1;
+  
+  // Мутация для покупки буста
+  const buyBoostMutation = useMutation({
+    mutationFn: async (boostId: number) => {
+      const response = await apiRequest('POST', '/api/boosts/purchase', {
+        user_id: userId,
+        boost_id: boostId
+      });
+      return response.json();
+    },
+    onMutate: (boostId) => {
+      // Сохраняем ID буста, который покупается
+      setPurchasingBoostId(boostId);
+      // Сбрасываем сообщения
+      setErrorMessage(null);
+      setSuccessMessage(null);
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        // Показываем сообщение об успехе
+        setSuccessMessage(data.message);
+        
+        // Инвалидируем кэш для обновления баланса и транзакций
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      } else {
+        // Показываем сообщение об ошибке
+        setErrorMessage(data.message || 'Произошла ошибка при покупке буста');
+      }
+    },
+    onError: (error: any) => {
+      // Показываем сообщение об ошибке
+      setErrorMessage(error.message || 'Произошла ошибка при покупке буста');
+    },
+    onSettled: () => {
+      // Сбрасываем ID буста после завершения операции
+      setPurchasingBoostId(null);
+    }
+  });
+  
+  // Проверяем, может ли пользователь купить буст
+  const canBuyBoost = (boostId: number): boolean => {
+    if (!userData || !userData.balance_uni) return false;
+    
+    const userBalance = parseFloat(userData.balance_uni);
+    const boostPrice = parseFloat(boostPricesUni[boostId] || '0');
+    
+    return userBalance >= boostPrice;
+  };
+  
+  // Обработчик нажатия на кнопку "Buy Boost"
+  const handleBuyBoost = (boostId: number) => {
+    if (canBuyBoost(boostId)) {
+      buyBoostMutation.mutate(boostId);
+    } else {
+      setErrorMessage('Недостаточно UNI на балансе для покупки этого буста');
+    }
+  };
+  
   return (
     <div className="mt-8">
       <h2 className="text-xl font-semibold mb-6 text-center">Airdrop Boost Пакеты</h2>
+      
+      {/* Сообщение об успехе */}
+      {successMessage && (
+        <div className="mb-4 p-3 bg-green-900/30 border border-green-500 rounded-lg text-green-300 text-center">
+          {successMessage}
+        </div>
+      )}
+      
+      {/* Сообщение об ошибке */}
+      {errorMessage && (
+        <div className="mb-4 p-3 bg-red-900/30 border border-red-500 rounded-lg text-red-300 text-center">
+          {errorMessage}
+        </div>
+      )}
       
       <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
         {boostPackages.map((boost) => (
@@ -78,14 +164,22 @@ const BoostPackagesCard: React.FC = () => {
                 <span className="text-sm text-foreground opacity-70">Бонус UNI:</span>
                 <span className="text-[#00D364] font-semibold">{boost.uniBonus}</span>
               </div>
+              
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-sm text-foreground opacity-70">Цена в UNI:</span>
+                <span className="text-primary font-semibold">
+                  {parseInt(boostPricesUni[boost.id]).toLocaleString()} UNI
+                </span>
+              </div>
             </div>
             
-            {/* Кнопка Buy Boost (неактивна, но со стилизацией) */}
+            {/* Кнопка Buy Boost */}
             <button 
               className="w-full py-3 px-4 rounded-lg font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white transition-all duration-300 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
-              disabled={true}
+              disabled={purchasingBoostId !== null || !userData || !canBuyBoost(boost.id)}
+              onClick={() => handleBuyBoost(boost.id)}
             >
-              Buy Boost
+              {purchasingBoostId === boost.id ? 'Покупка...' : 'Buy Boost'}
             </button>
           </div>
         ))}
