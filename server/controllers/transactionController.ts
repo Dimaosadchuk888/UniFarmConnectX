@@ -52,21 +52,9 @@ export class TransactionController {
         return res.status(200).send("[]");
       }
       
-      // Для отладки добавляем фейковую транзакцию для проверки
-      if (userId === 1 && userTransactions.length > 0) {
-        // Клонируем первую транзакцию для создания тестовой записи (только если уже есть транзакции)
-        // Это поможет проверить, что данные точно доходят до клиента
-        const testTransaction = {
-          ...userTransactions[0],
-          id: 999999,
-          type: "debug",
-          amount: "1.00000000",
-          currency: "UNI",
-          status: "confirmed"
-        };
-        // Добавляем в начало массива для быстрой визуальной проверки
-        userTransactions.unshift(testTransaction);
-      }
+      // Отладочные транзакции отключены
+      // Этот код ранее добавлял фейковую транзакцию для проверки
+      // Отключаем, так как это вызывает проблемы с фильтрацией на фронтенде
       
       // Используем явный JSON.stringify для обеспечения правильного формата ответа
       const jsonResponse = JSON.stringify(userTransactions);
