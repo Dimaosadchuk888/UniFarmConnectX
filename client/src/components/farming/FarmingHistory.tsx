@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
-// Типы и интерфейсы
+// Интерфейс для фарминг-депозита
 interface FarmingDeposit {
   id: number;
   packageId: number;
@@ -17,6 +17,7 @@ interface FarmingDeposit {
   daysLeft: number;
 }
 
+// Интерфейс для истории фарминга
 interface FarmingHistory {
   id: number;
   time: Date;
@@ -27,13 +28,13 @@ interface FarmingHistory {
   isNew?: boolean;
 }
 
-// Интерфейс для API ответа
+// Интерфейс для API-ответа
 interface ApiResponse<T> {
   success: boolean;
   data: T;
 }
 
-// Интерфейс для транзакций из API
+// Интерфейс для транзакции
 interface Transaction {
   id: number;
   user_id: number;
@@ -45,96 +46,79 @@ interface Transaction {
   status?: string;
 }
 
-const FarmingHistoryComponent: React.FC = () => {
-  // Состояния
-  const [activeTab, setActiveTab] = useState<'uni' | 'ton'>('uni');
+// Интерфейс для пропсов компонента
+interface FarmingHistoryProps {
+  userId: number;
+}
+
+// Основной компонент истории фарминга
+const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
+  const [activeTab, setActiveTab] = useState('uni');  // 'uni' или 'ton'
+  const [farmingHistory, setFarmingHistory] = useState<FarmingHistory[]>([]);
+  const [deposits, setDeposits] = useState<FarmingDeposit[]>([]);
   const [opacity, setOpacity] = useState(0);
   const [translateY, setTranslateY] = useState(20);
-  const [deposits, setDeposits] = useState<FarmingDeposit[]>([]);
-  const [farmingHistory, setFarmingHistory] = useState<FarmingHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  console.log("[DEBUG] FarmingHistory.isLoading =", isLoading);
   
-  // Фиксированный UserID для демонстрации
-  const userId = 1;
+  // Убеждаемся, что userId определен
+  const validUserId = userId || 1; // Используем 1 как фолбэк значение, если userId не передан
   
-  // Получаем транзакции из API с добавлением timestamp для избежания кэширования
-  // Важно! Приходит массив транзакций (без .success и .data)
-  const timestamp = Date.now();
-  console.log('[DEBUG] Запрос транзакций по URL:', `/api/transactions?user_id=${userId}&t=${timestamp}`);
-  const { data: transactionsResponse, refetch: refetchTransactions, isLoading: isTransactionsLoading } = useQuery<Transaction[]>({
-    queryKey: [`/api/transactions?user_id=${userId}&t=${timestamp}`]
+  // Логирование для отладки
+  console.log(`[DEBUG] FarmingHistory получил userId: ${validUserId}`);
+  
+  // Запрос на получение транзакций
+  const { data: transactionsResponse, refetch: refetchTransactions } = useQuery({
+    queryKey: ['/api/transactions', { user_id: validUserId }],
+    queryFn: async () => {
+      console.log(`[DEBUG] Запрос транзакций по URL:`, `/api/transactions?user_id=${validUserId}`);
+      const response = await fetch(`/api/transactions?user_id=${validUserId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка получения транзакций: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    enabled: !!validUserId, // Выполняем запрос только если userId определен
   });
   
-  // Получаем активные бусты из API
-  const { data: activeBoostsResponse, refetch: refetchBoosts } = useQuery<ApiResponse<any[]>>({
-    queryKey: [`/api/boosts/active?user_id=${userId}`],
+  // Запрос на получение активных буст-пакетов
+  const { data: activeBoostsResponse, refetch: refetchBoosts } = useQuery({
+    queryKey: ['/api/boosts/active', { user_id: validUserId }],
+    enabled: !!validUserId,
   });
   
-  // Получаем информацию о UNI фарминге из API
-  const { data: uniFarmingResponse, refetch: refetchFarming } = useQuery<ApiResponse<any>>({
-    queryKey: [`/api/uni-farming/info?user_id=${userId}`],
+  // Запрос информации о UNI фарминге
+  const { data: uniFarmingResponse, refetch: refetchFarming } = useQuery({
+    queryKey: ['/api/uni-farming/info', { user_id: validUserId }],
+    enabled: !!validUserId,
   });
   
-  // Отслеживаем состояние API запросов напрямую
+  // Обработка полученных данных
   useEffect(() => {
-    // Проверяем, если все запросы выполнены, отключаем загрузку
-    // Неважно, успешны ли они, главное, чтобы загрузка завершилась
-    if (!isTransactionsLoading) {
-      console.log('[DEBUG] Загрузка транзакций завершена, выключаем спиннер загрузки');
-      setIsLoading(false);
-    }
-  }, [isTransactionsLoading]);
-
-  // Эффект для загрузки реальных данных из API
-  useEffect(() => {
-    // Отладочное логирование ответов API
-    console.log('[DEBUG] TransactionsResponse:', transactionsResponse);
-    console.log('[DEBUG] BoostsResponse:', activeBoostsResponse);
-    console.log('[DEBUG] FarmingResponse:', uniFarmingResponse);
+    setIsLoading(true);
+    console.log('[DEBUG] FarmingHistory.isLoading =', isLoading);
     
-    // Проверяем, загрузились ли все данные
-    const allDataLoaded = 
-      transactionsResponse !== undefined && 
-      activeBoostsResponse !== undefined && 
-      uniFarmingResponse !== undefined;
-    
-    // Если какие-то данные еще не загружены, просто выходим - ждем загрузки всех данных
-    if (!allDataLoaded) {
-      console.log('[DEBUG] Ожидание загрузки всех данных...');
-      return;
-    }
-    
-    // Убираем загрузку даже если данные пустые, чтобы показать "нет активных пакетов"
-    setIsLoading(false);
-    
-    // Подготавливаем данные для фарминг-депозитов
     const farmingDeposits: FarmingDeposit[] = [];
-      
-    // Добавляем UNI фарминг пакет, если он активен
-    if (uniFarmingResponse?.success && uniFarmingResponse.data?.isActive) {
-      console.log('Активен UNI фарминг:', uniFarmingResponse.data);
-      
-      // Создаем запись для основного депозита
+    let historyItems: FarmingHistory[] = [];
+    
+    // Если есть активный UNI фарминг, добавляем в депозиты
+    if (uniFarmingResponse?.success && uniFarmingResponse.data.isActive) {
       farmingDeposits.push({
-        id: 1000000,
-        packageId: 0, // Основной UNI пакет
-        createdAt: new Date(uniFarmingResponse.data.startDate || Date.now()), // Используем дату из API или текущую
+        id: 1,
+        packageId: 0, // 0 значит основной UNI фарминг
+        createdAt: new Date(uniFarmingResponse.data.startDate),
         isActive: true,
         uniYield: "0.5%",
         tonYield: "0.0%",
-        bonus: "0",
-        amount: uniFarmingResponse.data.depositAmount || "0",
+        bonus: "0 UNI",
+        amount: uniFarmingResponse.data.depositAmount,
         daysLeft: 365
       });
     }
     
-    // Подготавливаем данные для транзакций
-    let historyItems: FarmingHistory[] = [];
-    
-    // Обрабатываем транзакции, если они есть
+    // Обработка транзакций
     if (Array.isArray(transactionsResponse)) {
-      // ТЗ: Добавляем логирование для проверки данных
       console.log('[DEBUG] Transactions API Response:', transactionsResponse);
       
       // Фильтрация по критериям ТЗ:
@@ -142,33 +126,14 @@ const FarmingHistoryComponent: React.FC = () => {
       // currency = 'UNI'
       // status = 'confirmed'
       // Исключить type = 'debug'
-      console.log('[DEBUG] Типы транзакций до фильтрации:', Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.type))));
-      console.log('[DEBUG] Валюты транзакций:', Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.currency))));
-      console.log('[DEBUG] Статусы транзакций:', Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.status))));
-      
-      // Логируем каждую транзакцию для отладки
-      transactionsResponse.forEach((tx: Transaction, index: number) => {
-        console.log(`[DEBUG] Транзакция [${index}]: type=${tx.type}, currency=${tx.currency}, status=${tx.status}, amount=${tx.amount}`);
-      });
-      
-      // Упростим фильтр для диагностики проблемы
       const farmingTransactions = transactionsResponse.filter((tx: Transaction) => 
-        // Сначала проверим только базовые критерии без проверки типа
+        tx.type !== 'debug' && 
         tx.currency === 'UNI' && 
         tx.status === 'confirmed' && 
-        tx.type !== 'debug'
+        ['deposit', 'farming', 'check-in', 'reward'].includes(tx.type)
       );
       
-      // ТЗ: Расширенное логирование для отладки
-      console.log('[DEBUG] Исходные транзакции (длина):', transactionsResponse.length);
-      console.log('[DEBUG] Исходные транзакции ПОЛНЫЙ ДАМП:', JSON.stringify(transactionsResponse));
       console.log('[DEBUG] Отфильтрованные транзакции UNI (длина):', farmingTransactions.length);
-      console.log('[DEBUG] Отфильтрованные транзакции UNI ПОЛНЫЙ ДАМП:', JSON.stringify(farmingTransactions));
-      
-      // Выведем для отладки типы транзакций
-      console.log('[DEBUG] Доступные типы транзакций:', 
-        Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.type))).join(', ')
-      );
       
       if (farmingTransactions.length > 0) {
         // Если у нас есть UNI фарминг, уточняем его дату активации из транзакции
@@ -277,7 +242,8 @@ const FarmingHistoryComponent: React.FC = () => {
     setDeposits(farmingDeposits);
     setOpacity(1);
     setTranslateY(0);
-  }, [transactionsResponse, activeBoostsResponse, uniFarmingResponse]);
+    setIsLoading(false);
+  }, [transactionsResponse, activeBoostsResponse, uniFarmingResponse, isLoading]);
   
   // Функция для получения доходности буста по его ID
   const getYieldRateForBoost = (boostId: number): string => {
@@ -300,8 +266,6 @@ const FarmingHistoryComponent: React.FC = () => {
     };
     return bonuses[boostId] || '0 UNI';
   };
-  
-  // Убираем эффект для периодического добавления новых начислений, так как его больше не нужно
   
   // Генерируем декоративные частицы для пустого состояния
   const particles = Array(5).fill(0).map((_, i) => ({
@@ -450,100 +414,39 @@ const FarmingHistoryComponent: React.FC = () => {
             <h3 className="text-md font-medium mb-4">История UNI фарминга</h3>
             
             <div className="overflow-hidden relative">
-              {/* ТЗ: Временный вывод JSON */}
-              <div className="text-xs bg-black/30 p-2 mb-4 rounded overflow-auto max-h-[100px]">
-                <h4 className="text-sm font-medium mb-2">DEBUG: JSON Дамп transactionsResponse (длина: {Array.isArray(transactionsResponse) ? transactionsResponse.length : 0}):</h4>
-                <pre>{JSON.stringify(transactionsResponse, null, 2)}</pre>
-              </div>
-              
-              <div className="text-xs bg-black/30 p-2 mb-4 rounded overflow-auto max-h-[100px]">
-                <h4 className="text-sm font-medium mb-2">DEBUG: JSON Дамп отфильтрованных транзакций:</h4>
-                <pre>{JSON.stringify(farmingHistory.filter(item => item.currency === 'UNI'), null, 2)}</pre>
-              </div>
-              
-              {/* ТЗ: Простой вывод всех транзакций для отладки */}
-              <div className="text-xs bg-black/30 p-2 mb-4 rounded">
-                <h4 className="text-sm font-medium mb-2">Простой вывод всех транзакций (без фильтрации):</h4>
-                {Array.isArray(transactionsResponse) && transactionsResponse.map((tx) => (
-                  <div key={tx.id} className="py-1 border-b border-gray-800/30">
-                    {tx.type} - {tx.amount} {tx.currency} | status: {tx.status}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Убираем фильтрацию по UNI временно в базовом выводе */}
               {farmingHistory.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-foreground opacity-70">
-                    У вас пока нет транзакций по фармингу UNI. (Транзакции отсутствуют)
+                    У вас пока нет транзакций по фармингу UNI
                   </p>
                 </div>
               ) : (
-                <div>
-                  {/* Упрощенный вид для тестирования, как указано в ТЗ */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">Упрощенный вид транзакций (тест):</h4>
-                    {farmingHistory.map((item) => (
-                      <div key={item.id} className="py-2 border-b border-gray-800/30">
-                        {item.type} +{item.amount.toFixed(item.amount < 0.001 ? 7 : 2)} {item.currency} | {format(item.time, 'yyyy-MM-dd HH:mm', { locale: ru })}
-                      </div>
+                <table className="w-full">
+                  <thead className="sticky top-0 bg-card z-10">
+                    <tr className="border-b border-gray-800">
+                      <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
+                      <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
+                      <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {farmingHistory
+                      .filter(item => item.currency === 'UNI')
+                      .map((item) => (
+                        <tr 
+                          key={item.id} 
+                          className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
+                        >
+                          <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
+                          <td className="py-2 text-sm text-foreground">{item.type}</td>
+                          <td className="py-2 text-sm text-right">
+                            <span className="text-purple-300">+{item.amount.toFixed(item.amount < 0.001 ? 6 : 2)}</span>
+                            <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                          </td>
+                        </tr>
                     ))}
-                  </div>
-                  
-                  {/* Оставляем стандартный вид таблицы */}
-                  <table className="w-full">
-                    <thead className="sticky top-0 bg-card z-10">
-                      <tr className="border-b border-gray-800">
-                        <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
-                        <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
-                        <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {farmingHistory
-                        .filter(item => item.currency === 'UNI')
-                        .map((item) => (
-                          <tr 
-                            key={item.id} 
-                            className="border-b border-gray-800/30 transition-all duration-300 hover:bg-black/20"
-                          >
-                            <td className="py-2 text-sm">{formatDate(item.time)}</td>
-                            <td className="py-2 text-sm">
-                              <div className="flex items-center">
-                                {item.type === 'Фарминг' && 
-                                  <><i className="fas fa-seedling text-xs text-green-400 mr-2"></i>Начисление фарминга</>
-                                }
-                                {item.type === 'Депозит' && 
-                                  <><i className="fas fa-arrow-up text-xs text-purple-400 mr-2"></i>Пополнение депозита</>
-                                }
-                                {item.type === 'Ежедневный бонус' && 
-                                  <><i className="fas fa-calendar-check text-xs text-blue-400 mr-2"></i>Ежедневный бонус</>
-                                }
-                                {item.type === 'Награда' && 
-                                  <><i className="fas fa-gift text-xs text-yellow-400 mr-2"></i>Получение награды</>
-                                }
-                                {item.type === 'Boost' && 
-                                  <><i className="fas fa-rocket text-xs text-blue-400 mr-2"></i>Активация буста</>
-                                }
-                                {(item.type !== 'Фарминг' && item.type !== 'Депозит' && 
-                                  item.type !== 'Ежедневный бонус' && item.type !== 'Награда' && 
-                                  item.type !== 'Boost') && 
-                                  <><i className="fas fa-exchange-alt text-xs text-gray-400 mr-2"></i>Операция</>
-                                }
-                              </div>
-                            </td>
-                            <td className="py-2 text-sm text-right">
-                              <div className="flex items-center justify-end">
-                                <span className="text-purple-300">+{item.amount.toFixed(item.amount < 0.001 ? 7 : 2)}</span>
-                                <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      }
-                    </tbody>
-                  </table>
-                </div>
+                  </tbody>
+                </table>
               )}
             </div>
           </div>
@@ -552,9 +455,10 @@ const FarmingHistoryComponent: React.FC = () => {
     );
   };
   
-  // Рендер вкладки с TON буст пакетами
+  // Рендер вкладки с историей TON фарминга
   const renderHistoryTab = () => {
     if (isLoading) {
+      console.log('[DEBUG] История фарминга: показываем спиннер загрузки (isLoading=true)');
       return (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-opacity-50 border-t-primary rounded-full"></div>
@@ -562,10 +466,12 @@ const FarmingHistoryComponent: React.FC = () => {
       );
     }
     
-    // Фильтруем депозиты, чтобы показать только TON буст пакеты (packageId > 0)
-    const tonDeposits = deposits.filter(d => d.packageId > 0);
+    console.log('[DEBUG] История фарминга: загрузка завершена (isLoading=false)');
     
-    if (tonDeposits.length === 0 && farmingHistory.filter(item => item.currency === 'TON').length === 0) {
+    // Фильтруем депозиты, чтобы показать только TON Boost (packageId > 0)
+    const tonBoostDeposits = deposits.filter(d => d.packageId > 0);
+    
+    if (tonBoostDeposits.length === 0) {
       return (
         <div 
           className="text-center py-16 flex flex-col items-center justify-center"
@@ -580,159 +486,111 @@ const FarmingHistoryComponent: React.FC = () => {
           </div>
           
           <p className="text-md text-foreground opacity-80 mb-2">
-            У вас пока нет активных TON буст пакетов
+            У вас пока нет TON Boost пакетов
           </p>
           
           <p className="text-sm text-foreground opacity-50 max-w-sm mx-auto">
-            Купите Boost, чтобы начать зарабатывать TON
+            Купите TON Boost, чтобы повысить доходность
           </p>
+          
+          <button className="mt-6 gradient-button-blue text-white px-4 py-2 rounded-lg font-medium transition-transform hover:scale-105">
+            Купить TON Boost
+          </button>
         </div>
       );
     }
     
     return (
-      <div className="overflow-hidden relative">
-        {/* Эффект затухания вверху и внизу для скролла */}
-        <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-card to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent z-10 pointer-events-none"></div>
-        
-        {/* Блок для скрытия белой полосы справа */}
-        <div className="absolute top-0 bottom-0 right-0 w-[1px] bg-card z-20"></div>
-        
-        <div className="space-y-4 max-h-[350px] overflow-y-auto overflow-x-hidden farming-history-scroll">
-          {tonDeposits.length > 0 && (
-            <div>
-              <h3 className="text-md font-medium mb-4">Активные TON Boost</h3>
-              
-              <div className="space-y-4">
-                {tonDeposits.map((deposit) => (
-                  <div 
-                    key={deposit.id} 
-                    className={`
-                      rounded-xl p-4 transition-all duration-300
-                      ${deposit.isActive ? 'bg-blue-900/10 border border-blue-400/40' : 'bg-card'}
-                      ${deposit.isActive ? 'shadow-[0_0_15px_rgba(109,191,255,0.15)]' : ''}
-                    `}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center mb-1">
-                          <i className={`fas fa-rocket text-sm text-blue-400 mr-2`}></i>
-                          <h3 className="font-medium">{getPackageTypeString(deposit)}</h3>
-                        </div>
-                        <p className="text-xs text-foreground opacity-70 mb-2">
-                          Дата покупки: {formatDate(deposit.createdAt)}
-                        </p>
-                      </div>
-                      <div>
-                        <span 
-                          className={`
-                            inline-block px-2 py-1 text-xs rounded-full
-                            ${deposit.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}
-                          `}
-                        >
-                          {deposit.isActive ? `Активен (${deposit.daysLeft} дн.)` : 'Завершён'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div>
-                        <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
-                        <div className="flex flex-col">
-                          <div className="flex items-center mt-1">
-                            <span className="text-blue-400">
-                              {deposit.tonYield === "0.0%" ? (
-                                <span className="text-gray-400">0</span>
-                              ) : (
-                                <>+{(parseFloat(deposit.tonYield) * 100 * 86400 / 10000).toFixed(4)}</>
-                              )}
-                            </span>
-                            <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
-                        <div className="flex flex-col">
-                          <div className="flex items-center mt-1">
-                            <span className="text-blue-400">
-                              {deposit.tonYield === "0.0%" ? (
-                                <span className="text-gray-400">0</span>
-                              ) : (
-                                <>+{(parseFloat(deposit.tonYield) * 100 / 10000 / 86400).toFixed(8)}</>
-                              )}
-                            </span>
-                            <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 pt-3 border-t border-gray-800">
-                      <div className="flex items-center">
-                        <i className="fas fa-gift text-blue-400/70 mr-2"></i>
-                        <p className="text-sm">
-                          <span className="text-foreground opacity-70">Бонус: </span>
-                          <span className="text-accent">{deposit.bonus}</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+      <div className="space-y-4">
+        {tonBoostDeposits.map((deposit) => (
+          <div 
+            key={deposit.id} 
+            className={`
+              rounded-xl p-4 transition-all duration-300
+              ${deposit.isActive ? 'bg-blue-500/10 border border-blue-400/40' : 'bg-card'}
+              ${deposit.isActive ? 'shadow-[0_0_15px_rgba(109,191,255,0.15)]' : ''}
+            `}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center mb-1">
+                  <i className="fas fa-rocket text-sm text-blue-300 mr-2"></i>
+                  <h3 className="font-medium">{getPackageTypeString(deposit)}</h3>
+                </div>
+                <p className="text-xs text-foreground opacity-70 mb-2">
+                  {deposit.isActive ? `Активация: ${formatDate(deposit.createdAt)}` : `Завершен: ${formatDate(deposit.createdAt)}`}
+                </p>
+              </div>
+              <div>
+                <span 
+                  className={`
+                    inline-block px-2 py-1 text-xs rounded-full
+                    ${deposit.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}
+                  `}
+                >
+                  {deposit.isActive ? `Активен (${deposit.daysLeft} дн.)` : 'Завершён'}
+                </span>
               </div>
             </div>
-          )}
-          
-          {/* Отображаем историю транзакций TON буст пакетов */}
-          <div className="mt-6 pt-6 border-t border-gray-800/30">
-            <h3 className="text-md font-medium mb-4">История TON Boost</h3>
             
-            <div className="overflow-hidden relative">
-              {farmingHistory.filter(item => item.currency === 'TON').length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-foreground opacity-70">
-                    История транзакций пуста
-                  </p>
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <div>
+                <p className="text-xs text-foreground opacity-70 mb-1">Доходность</p>
+                <div className="flex items-center">
+                  <span className="text-blue-300">{deposit.tonYield}</span>
+                  <span className="text-gray-400 ml-1.5 text-xs">в день</span>
                 </div>
-              ) : (
-                <table className="w-full">
-                  <thead className="sticky top-0 bg-card z-10">
-                    <tr className="border-b border-gray-800">
-                      <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
-                      <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
-                      <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {farmingHistory
-                      .filter(item => item.currency === 'TON')
-                      .map((item) => (
-                        <tr 
-                          key={item.id} 
-                          className="border-b border-gray-800/30 transition-all duration-300 hover:bg-black/20"
-                        >
-                          <td className="py-2 text-sm">{formatDate(item.time)}</td>
-                          <td className="py-2 text-sm">
-                            <div className="flex items-center">
-                              <i className="fas fa-rocket text-xs text-blue-400 mr-2"></i>
-                              {item.type === 'Boost' ? 'Покупка Boost' : 'Операция TON'}
-                            </div>
-                          </td>
-                          <td className="py-2 text-sm text-right">
-                            <div className="flex items-center justify-end">
-                              <span className="text-blue-400">+{item.amount.toFixed(item.amount < 0.001 ? 7 : 4)}</span>
-                              <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    }
-                  </tbody>
-                </table>
-              )}
+              </div>
+              
+              <div>
+                <p className="text-xs text-foreground opacity-70 mb-1">Бонус</p>
+                <div className="flex items-center">
+                  <span className="text-purple-300">{deposit.bonus}</span>
+                </div>
+              </div>
             </div>
+          </div>
+        ))}
+        
+        {/* Отображаем историю транзакций TON фарминга */}
+        <div className="mt-6 pt-6 border-t border-gray-800/30">
+          <h3 className="text-md font-medium mb-4">История TON транзакций</h3>
+          
+          <div className="overflow-hidden relative">
+            {farmingHistory.filter(item => item.currency === 'TON').length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-foreground opacity-70">
+                  У вас пока нет транзакций по TON
+                </p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b border-gray-800">
+                    <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
+                    <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
+                    <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {farmingHistory
+                    .filter(item => item.currency === 'TON')
+                    .map((item) => (
+                      <tr 
+                        key={item.id} 
+                        className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
+                      >
+                        <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
+                        <td className="py-2 text-sm text-foreground">{item.type}</td>
+                        <td className="py-2 text-sm text-right">
+                          <span className="text-blue-300">+{item.amount.toFixed(item.amount < 0.001 ? 6 : 4)}</span>
+                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                        </td>
+                      </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
@@ -766,57 +624,27 @@ const FarmingHistoryComponent: React.FC = () => {
             }
           }}
         >
-          <i className="fas fa-sync-alt mr-1"></i> Обновить
+          <i className="fas fa-sync-alt mr-1"></i>
+          Обновить
         </button>
       </div>
       
-      <div 
-        className="bg-card rounded-xl p-4 shadow-lg card-hover-effect relative overflow-hidden"
-        style={{
-          transition: 'all 0.8s cubic-bezier(0.22, 1, 0.36, 1)'
-        }}
-      >
-        {/* Декоративные частицы для визуального интереса */}
-        {particles.map((particle) => (
-          <div 
-            key={particle.id}
-            className="absolute rounded-full bg-primary/10 float-animation"
-            style={{
-              width: `${particle.size}px`,
-              height: `${particle.size}px`,
-              top: `${particle.top}%`,
-              left: `${particle.left}%`,
-              animationDuration: `${particle.animationDuration}s`,
-              filter: `blur(${particle.blurAmount}px)`,
-              opacity: 0.5,
-              animationDelay: `${particle.id * 0.5}s`
-            }}
-          ></div>
-        ))}
-        
-        {/* Навигация по вкладкам */}
-        <div className="flex space-x-2 mb-4 relative z-10">
+      <div className="rounded-lg bg-card shadow-lg overflow-hidden">
+        <div className="flex border-b border-gray-800">
           <button
-            className={`
-              px-4 py-2 rounded-lg text-sm font-medium
-              transition-all duration-300
-              ${activeTab === 'uni' 
-                ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                : 'bg-muted text-foreground/70 hover:bg-muted/70'}
-            `}
+            className={`px-4 py-3 text-sm transition-colors ${
+              activeTab === 'uni' ? 'text-primary border-b-2 border-primary' : 'text-foreground opacity-70 hover:text-primary'
+            }`}
             onClick={() => setActiveTab('uni')}
           >
             <i className="fas fa-seedling mr-2"></i>
             UNI Фарминг
           </button>
+          
           <button
-            className={`
-              px-4 py-2 rounded-lg text-sm font-medium
-              transition-all duration-300
-              ${activeTab === 'ton' 
-                ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                : 'bg-muted text-foreground/70 hover:bg-muted/70'}
-            `}
+            className={`px-4 py-3 text-sm transition-colors ${
+              activeTab === 'ton' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-foreground opacity-70 hover:text-blue-400'
+            }`}
             onClick={() => setActiveTab('ton')}
           >
             <i className="fas fa-rocket mr-2"></i>
@@ -825,7 +653,7 @@ const FarmingHistoryComponent: React.FC = () => {
         </div>
         
         {/* Содержимое вкладок */}
-        <div className="min-h-[200px] relative">
+        <div className="min-h-[200px] relative p-4">
           {activeTab === 'uni' ? (
             renderDepositsTab()
           ) : (
@@ -837,91 +665,4 @@ const FarmingHistoryComponent: React.FC = () => {
   );
 };
 
-// Определяем интерфейс для пропсов
-interface FarmingHistoryProps {
-  userId: number;
-}
-
-// Создаем полностью новый упрощенный компонент для отладки
-const SimpleFarmingHistoryDebug: React.FC<FarmingHistoryProps> = ({ userId }) => {
-  // Используем жестко заданное значение userId = 1 для отладки
-  const hardcodedUserId = 1;
-  
-  // Используем useQuery для получения транзакций напрямую
-  const { data: transactions, isLoading, error } = useQuery({
-    queryKey: ['/api/transactions', hardcodedUserId],
-    queryFn: async () => {
-      console.log('[DEBUG] Выполняем запрос с userId:', hardcodedUserId);
-      const response = await fetch(`/api/transactions?user_id=${hardcodedUserId}`);
-      console.log('[DEBUG] Статус ответа:', response.status);
-      const text = await response.text();
-      console.log('[DEBUG] Текст ответа:', text);
-      
-      if (!response.ok) {
-        throw new Error(`Ошибка получения транзакций: ${response.status} ${text}`);
-      }
-      
-      return JSON.parse(text);
-    },
-    // Всегда включено с hardcoded userId
-    enabled: true,
-  });
-
-  // Просто выводим JSON данные для отладки
-  return (
-    <div className="p-4 bg-card rounded-lg">
-      <h2 className="text-lg font-semibold mb-4">Отладка истории фарминга</h2>
-      
-      <div className="mb-4">
-        <h3 className="text-md font-medium mb-2">Запрос:</h3>
-        <div className="text-sm bg-black/20 p-2 rounded">
-          <p>userId из пропсов: {userId || 'не определен'}</p>
-          <p>hardcodedUserId: {hardcodedUserId}</p>
-          <p>isLoading: {isLoading ? 'true' : 'false'}</p>
-          {error && (
-            <div className="mt-2 p-2 bg-red-600/20 text-red-400 rounded">
-              <p className="font-semibold">Ошибка:</p>
-              <p>{error.toString()}</p>
-            </div>
-          )}
-        </div>
-      </div>
-      
-      <div className="mb-4">
-        <h3 className="text-md font-medium mb-2">Данные транзакций:</h3>
-        {!transactions ? (
-          <p className="text-sm text-gray-400">Данные не загружены (undefined)</p>
-        ) : Array.isArray(transactions) && transactions.length === 0 ? (
-          <p className="text-sm text-gray-400">Транзакции отсутствуют ([])</p>
-        ) : Array.isArray(transactions) ? (
-          <div>
-            <p className="text-sm mb-2">Количество: {transactions.length}</p>
-            <pre className="text-xs bg-black/20 p-2 rounded overflow-auto max-h-[300px]">
-              {JSON.stringify(transactions, null, 2)}
-            </pre>
-          </div>
-        ) : (
-          <div>
-            <p className="text-sm mb-2 text-yellow-400">Получен не массив!</p>
-            <pre className="text-xs bg-black/20 p-2 rounded overflow-auto max-h-[300px]">
-              {JSON.stringify(transactions, null, 2)}
-            </pre>
-          </div>
-        )}
-      </div>
-      
-      <button 
-        className="px-4 py-2 bg-purple-600 text-white rounded"
-        onClick={() => {
-          console.log("[DEBUG] Manual refresh requested");
-          window.location.reload();
-        }}
-      >
-        Обновить
-      </button>
-    </div>
-  );
-};
-
-// Экспортируем отладочный компонент вместо основного
-export default SimpleFarmingHistoryDebug;
+export default FarmingHistory;
