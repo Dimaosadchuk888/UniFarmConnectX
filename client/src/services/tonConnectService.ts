@@ -1,8 +1,7 @@
 /**
  * Сервис для работы с TonConnect - подключение к TON-кошелькам
  */
-import { TonConnectUI } from '@tonconnect/ui';
-import { tonConnectOptions } from '@/config/tonConnect';
+import { TonConnectUI, THEME } from '@tonconnect/ui';
 
 // Глобальная переменная для хранения экземпляра TonConnect
 let tonConnectUI: TonConnectUI | null = null;
@@ -16,6 +15,10 @@ export function initTonConnect() {
       // Создаем экземпляр TonConnect для подключения к кошелькам
       tonConnectUI = new TonConnectUI({
         manifestUrl: 'https://uni-farm-connect-1-misterxuniverse.replit.app/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-root',
+        uiPreferences: {
+          theme: THEME.DARK
+        }
       });
       console.log('TonConnect initialized');
     }
@@ -43,7 +46,9 @@ export function getTonConnect(): TonConnectUI {
 export async function connectWallet() {
   const connector = getTonConnect();
   try {
-    await connector.openModal();
+    if (connector) {
+      await connector.openModal();
+    }
   } catch (error) {
     console.error('Error opening TonConnect modal:', error);
   }
@@ -55,7 +60,9 @@ export async function connectWallet() {
 export async function disconnectWallet() {
   const connector = getTonConnect();
   try {
-    await connector.disconnect();
+    if (connector) {
+      await connector.disconnect();
+    }
   } catch (error) {
     console.error('Error disconnecting wallet:', error);
   }

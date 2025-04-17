@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { apiRequest } from "@/lib/queryClient";
 import { getTelegramUserData, initTelegramWebApp, isTelegramWebApp } from "./services/telegramService";
+import { initTonConnect } from "./services/tonConnectService";
 
 import Header from "@/components/layout/Header";
 import NavigationBar from "@/components/layout/NavigationBar";
@@ -121,6 +122,9 @@ function App() {
           )}
         </main>
         <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
+        
+        {/* Корневой элемент для TonConnect */}
+        <div id="ton-connect-root" style={{ display: 'none' }}></div>
       </div>
       <Toaster />
     </QueryClientProvider>

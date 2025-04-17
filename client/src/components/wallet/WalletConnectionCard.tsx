@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ConnectWalletButton from './ConnectWalletButton';
-import { getWalletAddress, isWalletConnected, shortenAddress } from '@/services/tonConnectService';
+import { getWalletAddress, isWalletConnected } from '@/services/tonConnectService';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,7 +27,7 @@ const WalletConnectionCard: React.FC = () => {
     checkWalletConnection();
     
     // Устанавливаем интервал для периодической проверки состояния
-    const intervalId = setInterval(checkWalletConnection, 2000);
+    const intervalId = setInterval(checkWalletConnection, 1000);
     
     // Очищаем интервал при размонтировании компонента
     return () => {
@@ -61,7 +61,15 @@ const WalletConnectionCard: React.FC = () => {
   return (
     <Card className="mb-6 bg-gray-800 border-gray-700 shadow-lg">
       <CardHeader className="pb-2">
-        <CardTitle className="text-white">Подключение кошелька</CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-white">Подключение кошелька</CardTitle>
+          {connected && (
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              <span className="text-green-500 text-xs font-medium">Подключено</span>
+            </div>
+          )}
+        </div>
         <CardDescription>
           {connected 
             ? 'Ваш TON-кошелек подключен и готов к использованию'
@@ -70,15 +78,15 @@ const WalletConnectionCard: React.FC = () => {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
+          <div className="w-full">
             {connected && address ? (
-              <div className="text-sm text-gray-300">
+              <div className="text-sm text-gray-300 w-full">
                 <p className="mb-1">Адрес вашего кошелька:</p>
                 <div 
                   onClick={copyAddressToClipboard}
-                  className="flex items-center space-x-2 bg-gray-700 px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-600 transition-colors"
+                  className="flex items-center space-x-2 bg-gray-700 px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-600 transition-colors overflow-auto"
                 >
-                  <span className="text-sm font-mono text-blue-300">{address}</span>
+                  <span className="text-sm font-mono text-blue-300 whitespace-nowrap overflow-x-auto">{address}</span>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="14"
@@ -89,7 +97,7 @@ const WalletConnectionCard: React.FC = () => {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-gray-400"
+                    className="text-gray-400 flex-shrink-0"
                   >
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -102,7 +110,9 @@ const WalletConnectionCard: React.FC = () => {
               </p>
             )}
           </div>
-          <ConnectWalletButton />
+          <div className="flex-shrink-0">
+            <ConnectWalletButton />
+          </div>
         </div>
       </CardContent>
     </Card>

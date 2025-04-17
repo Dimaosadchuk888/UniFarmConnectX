@@ -30,28 +30,20 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     const connector = initTonConnect();
     
     // Инициализируем изначальное состояние
-    setConnected(isWalletConnected());
-    setAddress(getWalletAddress());
-    
-    // Настраиваем обработчик изменения состояния подключения
-    const handleConnectionChange = () => {
-      setConnected(isWalletConnected());
-      setAddress(getWalletAddress());
+    const updateConnectionStatus = () => {
+      const isConnected = isWalletConnected();
+      setConnected(isConnected);
+      setAddress(isConnected ? getWalletAddress() : null);
     };
     
-    // Подписываемся на изменения состояния подключения если возможно
-    let intervalId: number;
+    updateConnectionStatus();
     
-    if (connector) {
-      // Интервал для проверки состояния подключения
-      intervalId = window.setInterval(handleConnectionChange, 1000);
-    }
-
+    // Настраиваем интервал для проверки статуса подключения
+    const intervalId = setInterval(updateConnectionStatus, 1000);
+    
     // Отписываемся при размонтировании компонента
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      clearInterval(intervalId);
     };
   }, []);
 
@@ -61,15 +53,8 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     try {
       if (connected) {
         await disconnectWallet();
-        setConnected(false);
-        setAddress(null);
       } else {
         await connectWallet();
-        // Проверяем состояние подключения после попытки подключения
-        setTimeout(() => {
-          setConnected(isWalletConnected());
-          setAddress(getWalletAddress());
-        }, 1000);
       }
     } catch (error) {
       console.error('Wallet connection error:', error);
@@ -93,72 +78,75 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
   };
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={connected ? "outline" : "default"}
-            onClick={handleWalletConnection}
-            className={`relative px-3 py-2 ${className}`}
-            disabled={loading}
-          >
-            {loading ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Подключение...
-              </span>
-            ) : connected && address ? (
-              <div className="flex items-center space-x-1" onClick={copyAddressToClipboard}>
-                <span className="text-sm font-medium truncate max-w-[120px]">
-                  {shortenAddress(address)}
+    <>
+      <div id="ton-connect-root" style={{ display: 'none' }}></div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={connected ? "outline" : "default"}
+              onClick={handleWalletConnection}
+              className={`relative px-3 py-2 ${className}`}
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Подключение...
                 </span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
-                  <line x1="12" y1="16" x2="12" y2="16"></line>
-                  <line x1="8" y1="12" x2="16" y2="12"></line>
-                </svg>
-                <span>Подключить TON</span>
-              </div>
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          {connected && address 
-            ? 'Нажмите, чтобы скопировать TON-адрес' 
-            : 'Подключите TON-кошелек через Tonkeeper или другой совместимый кошелек'}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+              ) : connected && address ? (
+                <div className="flex items-center space-x-1" onClick={copyAddressToClipboard}>
+                  <span className="text-sm font-medium truncate max-w-[120px]">
+                    {shortenAddress(address)}
+                  </span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                    <line x1="12" y1="16" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                  </svg>
+                  <span>Подключить TON</span>
+                </div>
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {connected && address 
+              ? 'Нажмите, чтобы скопировать TON-адрес' 
+              : 'Подключите TON-кошелек через Tonkeeper или другой совместимый кошелек'}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </>
   );
 };
 
