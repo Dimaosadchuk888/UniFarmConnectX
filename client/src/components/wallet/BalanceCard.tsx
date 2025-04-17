@@ -49,6 +49,8 @@ const BalanceCard: React.FC = () => {
   const { data, isLoading, refetch } = useQuery<WalletBalanceResponse>({
     queryKey: ['/api/wallet/balance?user_id=1'],
     staleTime: 0, // Отключаем кеширование для получения свежих данных каждый раз
+    refetchInterval: 1000, // Автоматически обновляем каждую секунду
+    refetchIntervalInBackground: true, // Обновляем даже если вкладка не активна
   });
   
   // Функция для обновления баланса UNI с анимацией
@@ -100,6 +102,10 @@ const BalanceCard: React.FC = () => {
           console.log(`Balance changed: ${prevRawUniBalanceRef.current} -> ${newRawUniBalance} at ${formattedTime}`);
           setUniAnimating(true);
           setTimeout(() => setUniAnimating(false), 800);
+          
+          // Сохраняем текущую метку времени с миллисекундами
+          localStorage.setItem('last_balance_update_time', formattedTime);
+          localStorage.setItem('last_balance_value', newRawUniBalance);
         }
         
         // Всегда обновляем отображаемое значение для точности
@@ -134,8 +140,13 @@ const BalanceCard: React.FC = () => {
   // Обновляем баланс каждую секунду, запрашивая данные из API
   useEffect(() => {
     const interval = setInterval(() => {
-      // Запрашиваем свежий баланс из API вместо локального расчета
-      queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance?user_id=1'] });
+      // Принудительно запрашиваем свежий баланс из API с новым timestamp
+      const timestamp = new Date().getTime();
+      // Используем прямой refetch вместо invalidateQueries для немедленного выполнения запроса
+      refetch();
+      
+      // Выводим в консоль запрос на обновление
+      console.log("Requesting balance update at:", new Date().toISOString());
       
       // Для TON токена можно оставить локальную анимацию, так как это демонстрация
       setTonBalance(prevBalance => {
@@ -154,7 +165,7 @@ const BalanceCard: React.FC = () => {
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [tonRate]);
+  }, [tonRate, refetch]);
 
   // Форматирование чисел для отображения
   const formatNumber = (num: number, decimals: number = 6): string => {
@@ -286,10 +297,12 @@ const BalanceCard: React.FC = () => {
             <span className="text-gray-400 ml-1">UNI / сек</span>
           </div>
           
-          {/* Отладочная информация */}
+          {/* Отладочная информация с расширенными данными */}
           <div className="mt-2 text-xs text-gray-500/50">
             Last fetch: {lastFetchTime || 'не было'}<br/>
-            Raw balance: {rawUniBalance || 'не загружен'}
+            Raw balance: {rawUniBalance || 'не загружен'}<br/>
+            Last update: {localStorage.getItem('last_balance_update_time') || 'никогда'}<br/>
+            Last value: {localStorage.getItem('last_balance_value') || 'нет данных'}
           </div>
         </div>
         

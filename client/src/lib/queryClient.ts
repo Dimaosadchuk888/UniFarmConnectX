@@ -34,7 +34,8 @@ export const getQueryFn: <T>(options: {
     try {
       // Добавляем заголовки, чтобы избежать кэширования
       const timestamp = new Date().getTime();
-      const url = `${queryKey[0]}${queryKey[0].includes('?') ? '&' : '?'}nocache=${timestamp}`;
+      const queryKeyStr = queryKey[0] as string;
+      const url = `${queryKeyStr}${queryKeyStr.includes('?') ? '&' : '?'}nocache=${timestamp}`;
       
       const res = await fetch(url, {
         credentials: "include",
