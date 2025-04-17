@@ -90,6 +90,7 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
         
         // Инвалидируем кэш для обновления баланса и транзакций
         queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
         queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
         queryClient.invalidateQueries({ queryKey: [`/api/boosts/active`] });
       } else {

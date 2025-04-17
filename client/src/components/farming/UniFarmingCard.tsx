@@ -36,6 +36,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       // Инвалидируем запросы для обновления данных
       queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
     },
     onError: (error: Error) => {
@@ -53,6 +54,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       // Обновляем данные
       queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
     },
     onError: (error: Error) => {
