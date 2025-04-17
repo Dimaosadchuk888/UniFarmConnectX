@@ -1,8 +1,5 @@
 import { Request, Response } from 'express';
-import { UniFarmingService } from '../services/uniFarmingService';
-import { TransactionService } from '../services/transactionService';
-import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
-import { extractUserId } from '../utils/validationUtils';
+import { NewUniFarmingService } from '../services/newUniFarmingService';
 import { z } from 'zod';
 
 /**
@@ -14,123 +11,88 @@ export class UniFarmingController {
    */
   static async getUserFarmingInfo(req: Request, res: Response): Promise<void> {
     try {
-      const userId = extractUserId(req, 'query');
-      
-      if (!userId) {
-        sendError(res, 'Неверный ID пользователя', 400);
+      const userId = Number(req.query.user_id);
+      if (isNaN(userId)) {
+        res.status(400).json({ success: false, message: 'Invalid user ID' });
         return;
       }
-      
-      const farmingInfo = await UniFarmingService.getUserFarmingInfo(userId);
-      sendSuccess(res, farmingInfo);
+
+      const farmingInfo = await NewUniFarmingService.getUserFarmingInfo(userId);
+      res.json({ success: true, data: farmingInfo });
     } catch (error) {
-      console.error('Error getting farming info:', error);
-      sendServerError(res, error);
+      console.error('Error in getUserFarmingInfo:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
-  
+
   /**
    * Создает новый UNI фарминг-депозит
    */
   static async createUniFarmingDeposit(req: Request, res: Response): Promise<void> {
     try {
+      // Валидация входных данных
       const schema = z.object({
-        user_id: z.number(),
+        user_id: z.number().int().positive(),
         amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-          message: "Сумма должна быть положительным числом"
+          message: 'Amount must be a positive number'
         })
       });
-      
+
       const result = schema.safeParse(req.body);
-      
       if (!result.success) {
-        sendError(res, 'Неверные данные', 400, result.error);
+        res.status(400).json({ success: false, message: 'Invalid request data', errors: result.error.errors });
         return;
       }
-      
+
       const { user_id, amount } = result.data;
-      
-      const depositResult = await UniFarmingService.createUniFarmingDeposit(user_id, amount);
+      const depositResult = await NewUniFarmingService.createUniFarmingDeposit(user_id, amount);
       
       if (depositResult.success) {
-        // Создаем транзакцию
-        await TransactionService.createTransaction({
-          user_id,
-          type: 'deposit',
-          currency: 'UNI',
-          amount: amount,
-          status: 'confirmed'
-        });
+        res.json({ success: true, data: depositResult });
+      } else {
+        res.status(400).json({ success: false, message: depositResult.message });
       }
-      
-      sendSuccess(res, depositResult);
     } catch (error) {
-      console.error('Error creating UNI farming deposit:', error);
-      sendServerError(res, error);
+      console.error('Error in createUniFarmingDeposit:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
-  
+
   /**
    * Обновляет и возвращает текущий баланс фарминга
    */
   static async calculateAndUpdateFarming(req: Request, res: Response): Promise<void> {
     try {
-      const userId = extractUserId(req, 'query');
-      
-      if (!userId) {
-        sendError(res, 'Неверный ID пользователя', 400);
+      const userId = Number(req.query.user_id);
+      if (isNaN(userId)) {
+        res.status(400).json({ success: false, message: 'Invalid user ID' });
         return;
       }
-      
-      const updatedFarming = await UniFarmingService.calculateAndUpdateUserFarming(userId);
-      
-      if (!updatedFarming) {
-        sendError(res, 'Фарминг не активен', 400);
-        return;
-      }
-      
-      sendSuccess(res, updatedFarming);
+
+      const updateResult = await NewUniFarmingService.calculateAndUpdateUserFarming(userId);
+      res.json({ success: true, data: updateResult });
     } catch (error) {
-      console.error('Error updating farming balance:', error);
-      sendServerError(res, error);
+      console.error('Error in calculateAndUpdateFarming:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
-  
+
   /**
-   * Выводит накопленный баланс фарминга на основной баланс пользователя
+   * Возвращает список всех активных депозитов пользователя
    */
-  static async harvestFarmingBalance(req: Request, res: Response): Promise<void> {
+  static async getUserFarmingDeposits(req: Request, res: Response): Promise<void> {
     try {
-      const schema = z.object({
-        user_id: z.number()
-      });
-      
-      const result = schema.safeParse(req.body);
-      
-      if (!result.success) {
-        sendError(res, 'Неверные данные', 400, result.error);
+      const userId = Number(req.query.user_id);
+      if (isNaN(userId)) {
+        res.status(400).json({ success: false, message: 'Invalid user ID' });
         return;
       }
-      
-      const { user_id } = result.data;
-      
-      const harvestResult = await UniFarmingService.harvestFarmingBalance(user_id);
-      
-      if (harvestResult.success && harvestResult.harvestedAmount) {
-        // Создаем транзакцию
-        await TransactionService.createTransaction({
-          user_id,
-          type: 'farming',
-          currency: 'UNI',
-          amount: harvestResult.harvestedAmount,
-          status: 'confirmed'
-        });
-      }
-      
-      sendSuccess(res, harvestResult);
+
+      const deposits = await NewUniFarmingService.getUserFarmingDeposits(userId);
+      res.json({ success: true, data: { deposits } });
     } catch (error) {
-      console.error('Error harvesting farming balance:', error);
-      sendServerError(res, error);
+      console.error('Error in getUserFarmingDeposits:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
 }

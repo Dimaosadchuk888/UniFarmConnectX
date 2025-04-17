@@ -160,3 +160,25 @@ export const insertUserMissionSchema = createInsertSchema(userMissions).pick({
 
 export type InsertUserMission = z.infer<typeof insertUserMissionSchema>;
 export type UserMission = typeof userMissions.$inferSelect;
+
+// Таблица для хранения UNI фарминг-депозитов
+export const uniFarmingDeposits = pgTable("uni_farming_deposits", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").notNull().references(() => users.id),
+  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(), // Сумма UNI в депозите
+  created_at: timestamp("created_at").defaultNow().notNull(), // Дата открытия
+  rate_per_second: numeric("rate_per_second", { precision: 20, scale: 18 }).notNull(), // Расчетная скорость фарминга
+  last_updated_at: timestamp("last_updated_at").defaultNow().notNull(), // Время последнего начисления
+  is_active: boolean("is_active").default(true), // Активен ли депозит
+});
+
+// Схемы для таблицы uni_farming_deposits
+export const insertUniFarmingDepositSchema = createInsertSchema(uniFarmingDeposits).pick({
+  user_id: true,
+  amount: true,
+  rate_per_second: true,
+  is_active: true
+});
+
+export type InsertUniFarmingDeposit = z.infer<typeof insertUniFarmingDepositSchema>;
+export type UniFarmingDeposit = typeof uniFarmingDeposits.$inferSelect;
