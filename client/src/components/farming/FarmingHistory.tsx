@@ -633,7 +633,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
               <div>
                 <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
                 <div className="flex items-center">
-                  <span className="text-blue-300">+{(parseFloat(deposit.amount) * parseFloat(deposit.tonYield.replace("%", "")) / 100).toFixed(4)}</span>
+                  <span className="text-blue-300">+{(parseFloat(deposit.amount || "0") * parseFloat((deposit.tonYield || "0").replace("%", "")) / 100).toFixed(4)}</span>
                   <span className="text-gray-400 ml-1.5 text-xs">TON</span>
                 </div>
               </div>
@@ -641,7 +641,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
               <div>
                 <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
                 <div className="flex items-center">
-                  <span className="text-blue-300">+{(parseFloat(deposit.amount) * parseFloat(deposit.tonYield.replace("%", "")) / 100 / 86400).toFixed(8)}</span>
+                  <span className="text-blue-300">+{(parseFloat(deposit.amount || "0") * parseFloat((deposit.tonYield || "0").replace("%", "")) / 100 / 86400).toFixed(8)}</span>
                   <span className="text-gray-400 ml-1.5 text-xs">TON</span>
                 </div>
               </div>
@@ -680,7 +680,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                         <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
                         <td className="py-2 text-sm text-foreground">{item.type}</td>
                         <td className="py-2 text-sm text-right">
-                          <span className="text-blue-300">+{item.amount.toFixed(item.amount < 0.001 ? 6 : 4)}</span>
+                          <span className="text-blue-300">+{(item.amount || 0).toFixed((item.amount || 0) < 0.001 ? 6 : 4)}</span>
                           <span className="text-gray-400 ml-1.5 text-xs">TON</span>
                         </td>
                       </tr>
