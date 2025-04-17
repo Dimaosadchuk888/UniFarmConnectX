@@ -837,4 +837,55 @@ const FarmingHistoryComponent: React.FC = () => {
   );
 };
 
-export default FarmingHistoryComponent;
+// Создаем полностью новый упрощенный компонент для отладки
+const SimpleFarmingHistoryDebug: React.FC<FarmingHistoryProps> = ({ userId }) => {
+  // Используем useQuery для получения транзакций напрямую
+  const { data: transactions, isLoading } = useQuery({
+    queryKey: ['/api/transactions', { user_id: userId }],
+    enabled: !!userId,
+  });
+
+  // Просто выводим JSON данные для отладки
+  return (
+    <div className="p-4 bg-card rounded-lg">
+      <h2 className="text-lg font-semibold mb-4">Отладка истории фарминга</h2>
+      
+      <div className="mb-4">
+        <h3 className="text-md font-medium mb-2">Запрос:</h3>
+        <div className="text-sm bg-black/20 p-2 rounded">
+          <p>userId: {userId || 'не определен'}</p>
+          <p>isLoading: {isLoading ? 'true' : 'false'}</p>
+        </div>
+      </div>
+      
+      <div className="mb-4">
+        <h3 className="text-md font-medium mb-2">Данные транзакций:</h3>
+        {!transactions ? (
+          <p className="text-sm text-gray-400">Данные не загружены (undefined)</p>
+        ) : Array.isArray(transactions) && transactions.length === 0 ? (
+          <p className="text-sm text-gray-400">Транзакции отсутствуют ([])</p>
+        ) : (
+          <div>
+            <p className="text-sm mb-2">Количество: {Array.isArray(transactions) ? transactions.length : 'не массив'}</p>
+            <pre className="text-xs bg-black/20 p-2 rounded overflow-auto max-h-[300px]">
+              {JSON.stringify(transactions, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
+      
+      <button 
+        className="px-4 py-2 bg-purple-600 text-white rounded"
+        onClick={() => {
+          console.log("[DEBUG] Manual refresh requested");
+          window.location.reload();
+        }}
+      >
+        Обновить
+      </button>
+    </div>
+  );
+};
+
+// Экспортируем отладочный компонент вместо основного
+export default SimpleFarmingHistoryDebug;
