@@ -12,6 +12,17 @@ interface WalletBalanceResponse {
   };
 }
 
+interface FarmingResponse {
+  success: boolean;
+  data: {
+    isActive: boolean;
+    depositAmount: string;
+    farmingBalance: string;
+    ratePerSecond: string;
+    startDate: string | null;
+  };
+}
+
 const BalanceCard: React.FC = () => {
   // Состояния для текущих балансов
   const [uniBalance, setUniBalance] = useState<number>(0);
@@ -53,7 +64,7 @@ const BalanceCard: React.FC = () => {
   }, [uniBalance]);
   
   // Дополнительный запрос для получения данных о фарминге
-  const { data: farmingData } = useQuery({
+  const { data: farmingData, refetch: refetchFarming } = useQuery<FarmingResponse>({
     queryKey: ['/api/uni-farming/info?user_id=1'],
     staleTime: 60000, // 1 минута
   });
@@ -189,12 +200,17 @@ const BalanceCard: React.FC = () => {
         </div>
         <button 
           onClick={() => {
+            // Обновляем оба запроса
             refetch();
+            refetchFarming();
+            
+            // Анимируем обновление UNI
             setUniAnimating(true);
             setTimeout(() => setUniAnimating(false), 800);
           }}
           className="text-sm text-gray-400 hover:text-primary transition-colors"
           disabled={isLoading}
+          title="Обновить баланс"
         >
           <i className={`fas fa-sync-alt ${isLoading ? 'animate-spin' : ''}`}></i>
         </button>
