@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ConnectWalletButton from './ConnectWalletButton';
 import { getWalletAddress, isWalletConnected } from '@/services/tonConnectService';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 const WalletConnectionCard: React.FC = () => {
@@ -110,8 +111,11 @@ const WalletConnectionCard: React.FC = () => {
               </p>
             )}
           </div>
+          {/* Кнопка подключения перенесена в шапку и отключена здесь */}
           <div className="flex-shrink-0">
-            <ConnectWalletButton />
+            <Button variant="outline" size="sm" disabled className="opacity-50 cursor-not-allowed">
+              Кнопка в шапке ↗
+            </Button>
           </div>
         </div>
       </CardContent>
