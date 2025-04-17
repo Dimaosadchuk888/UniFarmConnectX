@@ -5,7 +5,8 @@ import {
   getWalletAddress, 
   isWalletConnected, 
   shortenAddress,
-  initTonConnect
+  initTonConnect,
+  getTonConnect
 } from '@/services/tonConnectService';
 import { Button } from '@/components/ui/button';
 import { 
@@ -26,26 +27,31 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
   
   // Инициализируем TonConnect при загрузке компонента
   useEffect(() => {
-    const tonConnect = initTonConnect();
-
-    // Подписываемся на изменения состояния подключения
-    const unsubscribe = tonConnect.onStatusChange((wallet) => {
-      if (wallet) {
-        setConnected(true);
-        setAddress(wallet.account.address);
-      } else {
-        setConnected(false);
-        setAddress(null);
-      }
-    });
-
+    const connector = initTonConnect();
+    
     // Инициализируем изначальное состояние
     setConnected(isWalletConnected());
     setAddress(getWalletAddress());
+    
+    // Настраиваем обработчик изменения состояния подключения
+    const handleConnectionChange = () => {
+      setConnected(isWalletConnected());
+      setAddress(getWalletAddress());
+    };
+    
+    // Подписываемся на изменения состояния подключения если возможно
+    let intervalId: number;
+    
+    if (connector) {
+      // Интервал для проверки состояния подключения
+      intervalId = window.setInterval(handleConnectionChange, 1000);
+    }
 
     // Отписываемся при размонтировании компонента
     return () => {
-      unsubscribe();
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
   }, []);
 
@@ -55,8 +61,15 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     try {
       if (connected) {
         await disconnectWallet();
+        setConnected(false);
+        setAddress(null);
       } else {
         await connectWallet();
+        // Проверяем состояние подключения после попытки подключения
+        setTimeout(() => {
+          setConnected(isWalletConnected());
+          setAddress(getWalletAddress());
+        }, 1000);
       }
     } catch (error) {
       console.error('Wallet connection error:', error);

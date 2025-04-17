@@ -1,22 +1,29 @@
 /**
  * Сервис для работы с TonConnect - подключение к TON-кошелькам
  */
-import { TonConnect } from '@tonconnect/sdk';
 import { TonConnectUI } from '@tonconnect/ui';
 import { tonConnectOptions } from '@/config/tonConnect';
 
-// Создаем экземпляр TonConnect для подключения к кошелькам
+// Глобальная переменная для хранения экземпляра TonConnect
 let tonConnectUI: TonConnectUI | null = null;
 
 /**
  * Инициализирует TonConnect
  */
 export function initTonConnect() {
-  if (!tonConnectUI) {
-    tonConnectUI = new TonConnectUI(tonConnectOptions);
-    console.log('TonConnect initialized');
+  try {
+    if (!tonConnectUI) {
+      // Создаем экземпляр TonConnect для подключения к кошелькам
+      tonConnectUI = new TonConnectUI({
+        manifestUrl: 'https://uni-farm-connect-1-misterxuniverse.replit.app/tonconnect-manifest.json',
+      });
+      console.log('TonConnect initialized');
+    }
+    return tonConnectUI;
+  } catch (error) {
+    console.error('Error initializing TonConnect:', error);
+    return null;
   }
-  return tonConnectUI;
 }
 
 /**
@@ -25,7 +32,7 @@ export function initTonConnect() {
  */
 export function getTonConnect(): TonConnectUI {
   if (!tonConnectUI) {
-    return initTonConnect();
+    return initTonConnect() as TonConnectUI;
   }
   return tonConnectUI;
 }
@@ -60,7 +67,7 @@ export async function disconnectWallet() {
  */
 export function isWalletConnected(): boolean {
   const connector = getTonConnect();
-  return connector.connected;
+  return connector ? connector.connected : false;
 }
 
 /**
@@ -70,7 +77,7 @@ export function isWalletConnected(): boolean {
 export function getWalletAddress(): string | null {
   const connector = getTonConnect();
   
-  if (!connector.connected || !connector.account) {
+  if (!connector || !connector.connected || !connector.account) {
     return null;
   }
   
