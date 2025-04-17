@@ -85,7 +85,6 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
 
   return (
     <>
-      <div id="ton-connect-root" style={{ display: 'none' }}></div>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>

@@ -127,7 +127,7 @@ function App() {
         <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
         
         {/* Корневой элемент для TonConnect */}
-        <div id="ton-connect-root" style={{ display: 'none' }}></div>
+        <div id="ton-connect-root"></div>
       </div>
       <Toaster />
     </QueryClientProvider>
