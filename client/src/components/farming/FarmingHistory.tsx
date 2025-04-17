@@ -34,6 +34,21 @@ interface ApiResponse<T> {
   data: T;
 }
 
+// Интерфейс для TON Boost
+interface TonBoostDeposit {
+  id: number;
+  user_id: number;
+  boost_package_id: number;
+  created_at: string;
+  amount: string;
+  days_left: number;
+  rate_ton_per_second: string;
+  bonus_uni: string;
+  is_active: boolean;
+  payment_method?: string;
+  payment_status?: string;
+}
+
 // Интерфейс для транзакции
 interface Transaction {
   id: number;
@@ -78,9 +93,15 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     enabled: !!validUserId, // Выполняем запрос только если userId определен
   });
   
-  // Запрос на получение активных буст-пакетов
+  // Запрос на получение активных буст-пакетов UNI
   const { data: activeBoostsResponse, refetch: refetchBoosts } = useQuery({
     queryKey: ['/api/boosts/active', { user_id: validUserId }],
+    enabled: !!validUserId,
+  });
+  
+  // Запрос на получение активных TON Boost пакетов
+  const { data: activeTonBoostsResponse, refetch: refetchTonBoosts } = useQuery({
+    queryKey: ['/api/ton-boosts/active', { user_id: validUserId }],
     enabled: !!validUserId,
   });
   
@@ -114,6 +135,25 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         bonus: "0 UNI",
         amount: depositAmount,
         daysLeft: 365
+      });
+    }
+    
+    // Добавляем активные TON Boost пакеты, если они есть
+    if (activeTonBoostsResponse?.success && Array.isArray(activeTonBoostsResponse.data)) {
+      activeTonBoostsResponse.data.forEach((tonBoost, index) => {
+        const packageId = tonBoost.boost_package_id || 1;
+        
+        farmingDeposits.push({
+          id: 4000000 + index, // Используем диапазон ID для TON Boost
+          packageId,
+          createdAt: new Date(tonBoost.created_at || Date.now()),
+          isActive: true,
+          uniYield: "0.0%",
+          tonYield: getYieldRateForBoost(packageId),
+          bonus: getBoostBonus(packageId),
+          amount: tonBoost.amount || "0",
+          daysLeft: tonBoost.days_left || 365
+        });
       });
     }
     
@@ -260,7 +300,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     setOpacity(1);
     setTranslateY(0);
     setIsLoading(false);
-  }, [transactionsResponse, activeBoostsResponse, uniFarmingResponse, isLoading]);
+  }, [transactionsResponse, activeBoostsResponse, activeTonBoostsResponse, uniFarmingResponse, isLoading]);
   
   // Функция для получения доходности буста по его ID
   const getYieldRateForBoost = (boostId: number): string => {
@@ -476,18 +516,18 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     );
   };
   
-  // Рендер вкладки с историей TON фарминга
-  const renderHistoryTab = () => {
+  // Рендер вкладки с TON Boost пакетами
+  const renderTonBoostTab = () => {
     if (isLoading) {
       return (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-opacity-50 border-t-primary rounded-full"></div>
+          <div className="animate-spin w-8 h-8 border-4 border-blue-400 border-opacity-50 border-t-blue-400 rounded-full"></div>
         </div>
       );
     }
     
-    // Фильтруем депозиты, чтобы показать только TON Boost (packageId > 0)
-    const tonBoostDeposits = deposits.filter(d => d.packageId > 0);
+    // Фильтруем депозиты, чтобы показать только TON Boost (packageId > 0 или id > 4000000)
+    const tonBoostDeposits = deposits.filter(d => d.id >= 4000000 || (d.packageId > 0 && d.id >= 3000000));
     
     if (tonBoostDeposits.length === 0) {
       return (
@@ -533,10 +573,10 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
               <div>
                 <div className="flex items-center mb-1">
                   <i className="fas fa-rocket text-sm text-blue-300 mr-2"></i>
-                  <h3 className="font-medium">{getPackageTypeString(deposit)}</h3>
+                  <h3 className="font-medium">TON Boost #{deposit.packageId}</h3>
                 </div>
                 <p className="text-xs text-foreground opacity-70 mb-2">
-                  {deposit.isActive ? `Активация: ${formatDate(deposit.createdAt)}` : `Завершен: ${formatDate(deposit.createdAt)}`}
+                  Дата активации: {formatDate(deposit.createdAt)}
                 </p>
               </div>
               <div>
@@ -553,17 +593,18 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
             
             <div className="grid grid-cols-2 gap-3 mt-3">
               <div>
-                <p className="text-xs text-foreground opacity-70 mb-1">Доходность</p>
+                <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
                 <div className="flex items-center">
-                  <span className="text-blue-300">{deposit.tonYield}</span>
-                  <span className="text-gray-400 ml-1.5 text-xs">в день</span>
+                  <span className="text-blue-300">+{(parseFloat(deposit.tonYield) * 100 * 86400 / 100).toFixed(4)}</span>
+                  <span className="text-gray-400 ml-1.5 text-xs">TON</span>
                 </div>
               </div>
               
               <div>
-                <p className="text-xs text-foreground opacity-70 mb-1">Бонус</p>
+                <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
                 <div className="flex items-center">
-                  <span className="text-purple-300">{deposit.bonus}</span>
+                  <span className="text-blue-300">+{(parseFloat(deposit.tonYield) * 100 / 86400).toFixed(8)}</span>
+                  <span className="text-gray-400 ml-1.5 text-xs">TON</span>
                 </div>
               </div>
             </div>
@@ -630,6 +671,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
               await Promise.all([
                 refetchTransactions(),
                 refetchBoosts(),
+                refetchTonBoosts(),
                 refetchFarming()
               ]);
               
@@ -675,7 +717,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           {activeTab === 'uni' ? (
             renderDepositsTab()
           ) : (
-            renderHistoryTab()
+            renderTonBoostTab()
           )}
 
 
