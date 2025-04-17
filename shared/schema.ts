@@ -182,3 +182,29 @@ export const insertUniFarmingDepositSchema = createInsertSchema(uniFarmingDeposi
 
 export type InsertUniFarmingDeposit = z.infer<typeof insertUniFarmingDepositSchema>;
 export type UniFarmingDeposit = typeof uniFarmingDeposits.$inferSelect;
+
+// Таблица для хранения TON Boost-депозитов
+export const tonBoostDeposits = pgTable("ton_boost_deposits", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").notNull().references(() => users.id),
+  ton_amount: numeric("ton_amount", { precision: 18, scale: 5 }).notNull(), // Сумма TON в депозите
+  bonus_uni: numeric("bonus_uni", { precision: 18, scale: 6 }).notNull(), // Единоразовый бонус UNI
+  rate_ton_per_second: numeric("rate_ton_per_second", { precision: 20, scale: 18 }).notNull(), // Скорость фарминга TON
+  rate_uni_per_second: numeric("rate_uni_per_second", { precision: 20, scale: 18 }).notNull(), // Скорость фарминга UNI
+  created_at: timestamp("created_at").defaultNow().notNull(), // Дата открытия
+  last_updated_at: timestamp("last_updated_at").defaultNow().notNull(), // Время последнего начисления
+  is_active: boolean("is_active").default(true) // Активен ли буст
+});
+
+// Схемы для таблицы ton_boost_deposits
+export const insertTonBoostDepositSchema = createInsertSchema(tonBoostDeposits).pick({
+  user_id: true,
+  ton_amount: true,
+  bonus_uni: true,
+  rate_ton_per_second: true,
+  rate_uni_per_second: true,
+  is_active: true
+});
+
+export type InsertTonBoostDeposit = z.infer<typeof insertTonBoostDepositSchema>;
+export type TonBoostDeposit = typeof tonBoostDeposits.$inferSelect;

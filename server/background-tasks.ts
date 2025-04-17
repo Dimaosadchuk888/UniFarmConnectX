@@ -1,7 +1,8 @@
 import { db } from './db';
-import { users, uniFarmingDeposits } from '@shared/schema';
+import { users, uniFarmingDeposits, tonBoostDeposits } from '@shared/schema';
 import { UniFarmingService } from './services/uniFarmingService';
 import { NewUniFarmingService } from './services/newUniFarmingService';
+import { TonBoostService } from './services/tonBoostService';
 import { and, ne, isNotNull, eq } from 'drizzle-orm';
 
 /**
@@ -24,8 +25,8 @@ let lastLogTime = 0;
  */
 async function updateAllUsersFarming(): Promise<void> {
   try {
-    // Получаем всех пользователей с активными депозитами в новой таблице
-    const usersWithDeposits = await db
+    // Получаем всех пользователей с активными депозитами UNI в новой таблице
+    const usersWithUniDeposits = await db
       .select({
         user_id: uniFarmingDeposits.user_id
       })
@@ -33,10 +34,26 @@ async function updateAllUsersFarming(): Promise<void> {
       .where(eq(uniFarmingDeposits.is_active, true))
       .groupBy(uniFarmingDeposits.user_id);
 
-    // Если у нас не нашлось новых депозитов, проверяем старую систему
-    let activeUsers = usersWithDeposits.map(record => ({ id: record.user_id }));
+    // Получаем всех пользователей с активными TON Boost-депозитами
+    const usersWithTonBoosts = await db
+      .select({
+        user_id: tonBoostDeposits.user_id
+      })
+      .from(tonBoostDeposits)
+      .where(eq(tonBoostDeposits.is_active, true))
+      .groupBy(tonBoostDeposits.user_id);
 
-    // Если нет новых депозитов, проверяем пользователей в старой системе
+    // Объединяем пользователей из обоих источников
+    let activeUsers = [...usersWithUniDeposits.map(record => ({ id: record.user_id }))];
+    
+    // Добавляем пользователей с TON Boost-депозитами (если их еще нет в списке)
+    for (const record of usersWithTonBoosts) {
+      if (!activeUsers.some(user => user.id === record.user_id)) {
+        activeUsers.push({ id: record.user_id });
+      }
+    }
+
+    // Если у нас не нашлось новых депозитов UNI или TON, проверяем старую систему
     if (activeUsers.length === 0) {
       // Получаем всех пользователей с активным фармингом по старой схеме
       const legacyUsers = await db
@@ -66,8 +83,9 @@ async function updateAllUsersFarming(): Promise<void> {
     
     // Обновляем фарминг для каждого пользователя
     for (const user of activeUsers) {
+      // Проверяем UNI-фарминг
       // Сначала проверяем, есть ли у пользователя новые депозиты
-      const newDeposits = await db
+      const uniDeposits = await db
         .select()
         .from(uniFarmingDeposits)
         .where(and(
@@ -75,12 +93,26 @@ async function updateAllUsersFarming(): Promise<void> {
           eq(uniFarmingDeposits.is_active, true)
         ));
       
-      if (newDeposits.length > 0) {
+      if (uniDeposits.length > 0) {
         // Если есть новые депозиты, используем новый сервис
         await NewUniFarmingService.calculateAndUpdateUserFarming(user.id);
       } else {
         // Если нет новых депозитов, используем старый сервис для обратной совместимости
         await UniFarmingService.calculateAndUpdateUserFarming(user.id);
+      }
+
+      // Проверяем TON-фарминг
+      const tonBoosts = await db
+        .select()
+        .from(tonBoostDeposits)
+        .where(and(
+          eq(tonBoostDeposits.user_id, user.id),
+          eq(tonBoostDeposits.is_active, true)
+        ));
+      
+      if (tonBoosts.length > 0) {
+        // Обновляем TON-фарминг
+        await TonBoostService.calculateAndUpdateUserTonFarming(user.id);
       }
     }
     
