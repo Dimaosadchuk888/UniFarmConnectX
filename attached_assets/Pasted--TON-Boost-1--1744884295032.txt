@@ -1,0 +1,129 @@
+Технический аудит реализации двух вариантов оплаты TON Boost-пакетов
+1. Обзор функциональности
+Реализованная функциональность позволяет пользователям приобретать TON Boost-пакеты двумя способами:
+	1	Оплата из внутреннего баланса - мгновенная оплата с использованием имеющихся TON-токенов на балансе пользователя
+	2	Оплата через внешний кошелёк - генерация платежной ссылки для оплаты через TON-кошелёк с последующим ручным подтверждением
+2. Изменённые/затронутые файлы
+	1	server/services/tonBoostService.ts - добавлено перечисление для методов оплаты, расширен интерфейс результата покупки, модифицирован метод покупки, добавлен метод подтверждения внешнего платежа
+	2	server/controllers/tonBoostController.ts - изменён метод покупки для поддержки выбора способа оплаты, добавлен новый метод для подтверждения внешних платежей
+	3	server/routes.ts - добавлен новый маршрут для подтверждения платежей
+	4	shared/schema.ts - использовались существующие модели без изменений
+3. API-маршруты
+URL
+Метод
+Функциональность
+/api/ton-boosts/purchase
+POST
+Покупка TON Boost-пакета с выбором метода оплаты
+/api/ton-boosts/confirm-payment
+POST
+Подтверждение оплаты, выполненной через внешний кошелёк
+4. Детальное описание добавленного кода
+4.1. Перечисление методов оплаты
+// В файле server/services/tonBoostService.ts
+enum TonBoostPaymentMethod {
+INTERNAL_BALANCE = 'internal_balance',
+EXTERNAL_WALLET = 'external_wallet'
+}
+
+enum TonBoostPaymentStatus {
+PENDING = 'pending',
+COMPLETED = 'completed',
+FAILED = 'failed'
+}
+
+4.2. Расширенный интерфейс результата покупки
+// В файле server/services/tonBoostService.ts
+interface PurchaseTonBoostResult {
+success: boolean;
+message: string;
+depositId?: number;
+transactionId?: number;
+boostPackage?: TonBoostPackage;
+paymentMethod?: TonBoostPaymentMethod;
+paymentStatus?: TonBoostPaymentStatus;
+paymentLink?: string;
+}
+
+4.3. Модифицированный метод покупки в контроллере
+// В файле server/controllers/tonBoostController.ts
+static async purchaseTonBoost(req: Request, res: Response): Promise<void> {
+try {
+const { user_id, boost_id, payment_method } = req.body;
+
+// ... проверка параметров ...
+
+// Определяем метод оплаты (по умолчанию - внутренний баланс)
+let paymentMethodEnum = TonBoostPaymentMethod.INTERNAL_BALANCE;
+if (payment_method === 'external_wallet') {
+paymentMethodEnum = TonBoostPaymentMethod.EXTERNAL_WALLET;
+}
+
+const result = await TonBoostService.purchaseTonBoost(userId, boostId, paymentMethodEnum);
+
+if (result.success) {
+const responseData: any = {
+depositId: result.depositId,
+transactionId: result.transactionId,
+boostPackage: result.boostPackage,
+paymentMethod: result.paymentMethod
+};
+
+// Добавляем дополнительные данные для внешнего платежа
+if (result.paymentMethod === TonBoostPaymentMethod.EXTERNAL_WALLET) {
+responseData.paymentStatus = result.paymentStatus;
+responseData.paymentLink = result.paymentLink;
+}
+
+res.json({
+success: true,
+message: result.message,
+data: responseData
+});
+} else {
+res.status(400).json({
+success: false,
+message: result.message
+});
+}
+} catch (error) {
+// ... обработка ошибок ...
+}
+}
+
+4.4. Добавленный метод подтверждения внешнего платежа в контроллере
+// В файле server/controllers/tonBoostController.ts
+static async confirmExternalPayment(req: Request, res: Response): Promise<void> {
+try {
+const { user_id, transaction_id } = req.body;
+
+// ... проверка параметров ...
+
+const result = await TonBoostService.confirmExternalPayment(userId, transactionId);
+
+if (result.success) {
+res.json({
+success: true,
+message: result.message,
+data: {
+depositId: result.depositId,
+transactionId: result.transactionId,
+boostPackage: result.boostPackage,
+paymentMethod: result.paymentMethod,
+paymentStatus: result.paymentStatus
+}
+});
+} else {
+res.status(400).json({
+success: false,
+message: result.message
+});
+}
+} catch (error) {
+// ... обработка ошибок ...
+}
+}
+
+4.5. Добавленный маршрут
+// В файле server/routes.ts
+app.post("/api/ton-boosts/confirm-payment", TonBoostController.confirmExternalPayment);
