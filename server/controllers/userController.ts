@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/userService';
+import { UniFarmingService } from '../services/uniFarmingService';
 import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
 import { extractUserId } from '../utils/validationUtils';
 import { getUserParamsSchema } from '../validators/schemas';
@@ -100,7 +101,7 @@ export class UserController {
       // Обновляем фарминг перед получением данных из базы
       // Это гарантирует, что мы получим актуальный баланс
       try {
-        const { UniFarmingService } = require('../services/uniFarmingService');
+        // Используем правильный импорт TypeScript вместо require()
         await UniFarmingService.calculateAndUpdateUserFarming(userId);
       } catch (farmingError) {
         console.error('[getUserBalance] Error updating farming before balance fetch:', farmingError);
