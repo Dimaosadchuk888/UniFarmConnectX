@@ -63,14 +63,10 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   // Убеждаемся, что userId определен
   const validUserId = userId || 1; // Используем 1 как фолбэк значение, если userId не передан
   
-  // Логирование для отладки
-  console.log(`[DEBUG] FarmingHistory получил userId: ${validUserId}`);
-  
   // Запрос на получение транзакций
   const { data: transactionsResponse, refetch: refetchTransactions } = useQuery({
     queryKey: ['/api/transactions', { user_id: validUserId }],
     queryFn: async () => {
-      console.log(`[DEBUG] Запрос транзакций по URL:`, `/api/transactions?user_id=${validUserId}`);
       const response = await fetch(`/api/transactions?user_id=${validUserId}`);
       
       if (!response.ok) {
@@ -97,55 +93,33 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   // Обработка полученных данных
   useEffect(() => {
     setIsLoading(true);
-    console.log('[DEBUG] FarmingHistory.isLoading =', isLoading);
     
     const farmingDeposits: FarmingDeposit[] = [];
     let historyItems: FarmingHistory[] = [];
     
-    // Всегда создаем депозит из текущих данных для отладки и проверки
-    // Это нужно, чтобы увидеть данные в карточке с крайними параметрами
+    // Создаем основной депозит из данных фарминга
     if (uniFarmingResponse?.success) {
       // Проверка существующего активного депозита
       const isActive = uniFarmingResponse.data.isActive;
-      const depositAmount = uniFarmingResponse.data.depositAmount || '9.000000';
+      const depositAmount = uniFarmingResponse.data.depositAmount || '0';
       
-      console.log('[DEBUG] Создаем фарминг-депозит:', isActive ? 'Активный' : 'Неактивный', 'Сумма:', depositAmount);
-      
-      // Всегда добавляем депозит, даже если он не активен - для отладки
+      // Добавляем активный депозит из API данных
       farmingDeposits.push({
         id: 1,
         packageId: 0, // 0 значит основной UNI фарминг
         createdAt: new Date(uniFarmingResponse.data.startDate || Date.now()),
-        isActive: true, // Принудительно устанавливаем true для отладки
+        isActive: isActive,
         uniYield: "0.5%", 
         tonYield: "0.0%",
         bonus: "0 UNI",
         amount: depositAmount,
         daysLeft: 365
       });
-      
-      console.log('[DEBUG] Создан депозит:', farmingDeposits[0]);
-    } else {
-      console.log('[DEBUG] uniFarmingResponse не содержит success === true:', uniFarmingResponse);
     }
     
     // Обработка транзакций
     if (Array.isArray(transactionsResponse)) {
-      console.log('[DEBUG] Transactions API Response:', transactionsResponse);
-      
-      // Отладочный вывод всех типов транзакций
-      console.log('[DEBUG] Все типы транзакций:', 
-        Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.type))));
-      console.log('[DEBUG] Все валюты транзакций:', 
-        Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.currency))));
-      console.log('[DEBUG] Все статусы транзакций:', 
-        Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.status))));
-      
-      // Фильтрация:
-      // type = deposit, farming, check-in, reward
-      // currency = 'UNI'
-      // Исключить type = 'debug'
-      // ОБНОВЛЕНО: не фильтруем по статусу, так как возможны статусы кроме 'confirmed'
+      // Фильтрация транзакций UNI
       const farmingTransactions = transactionsResponse.filter((tx: Transaction) => 
         tx.type !== 'debug' && 
         tx.currency === 'UNI' && 
@@ -159,15 +133,13 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         tx.status === 'confirmed'
       );
       
-      console.log('[DEBUG] Найдены UNI депозиты:', uniDeposits);
-      
       // Создаем фарминг-депозиты из депозитов UNI
       if (uniDeposits.length > 0) {
         // Сортируем по дате (сначала новые)
         uniDeposits.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
         // Добавляем каждый депозит как отдельный фарминг-депозит
-        uniDeposits.forEach((deposit, index) => {
+        uniDeposits.forEach((deposit) => {
           // Проверяем, нет ли уже такого депозита (по id)
           const existingDepositIndex = farmingDeposits.findIndex(d => d.id === deposit.id);
           
@@ -184,13 +156,9 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
               amount: deposit.amount,
               daysLeft: 365
             });
-            
-            console.log(`[DEBUG] Создан фарминг-депозит из транзакции #${deposit.id} на сумму ${deposit.amount} UNI`);
           }
         });
       }
-      
-      console.log('[DEBUG] Отфильтрованные транзакции UNI (длина):', farmingTransactions.length);
       
       if (farmingTransactions.length > 0) {
         // Если у нас есть UNI фарминг, уточняем его дату активации из транзакции
@@ -234,8 +202,6 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         
         // Добавляем активные бусты в депозиты, если они есть
         if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data) && activeBoostsResponse.data.length > 0) {
-          console.log('Активные бусты:', activeBoostsResponse.data);
-          
           activeBoostsResponse.data.forEach((boost, index) => {
             const packageId = boost.boost_id || 1;
             
@@ -263,8 +229,6 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           tx.type === 'boost' && tx.currency === 'TON'
         );
         
-        console.log('Транзакции буст-пакетов:', boostTransactions);
-        
         boostTransactions.forEach((tx: Transaction, index: number) => {
           // Проверяем, не добавлен ли уже этот буст как активный
           const isAlreadyActive = farmingDeposits.some(d => 
@@ -287,13 +251,9 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           }
         });
       }
-    } else {
-      console.log('Транзакции не получены или пустые:', transactionsResponse);
     }
     
     // Устанавливаем данные в состояние
-    console.log('Итоговые депозиты:', farmingDeposits);
-    console.log('Итоговая история:', historyItems);
     
     setFarmingHistory(historyItems);
     setDeposits(farmingDeposits);
@@ -471,12 +431,6 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
             <h3 className="text-md font-medium mb-4">История UNI фарминга</h3>
             
             <div className="overflow-hidden relative">
-              {/* Отладочная информация о состоянии farmingHistory */}
-              <div className="bg-red-900/30 p-2 mb-4 rounded text-xs">
-                <p>История транзакций (всего): {farmingHistory.length}</p>
-                <p>UNI транзакции: {farmingHistory.filter(item => item.currency === 'UNI').length}</p>
-              </div>
-              
               {farmingHistory.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-foreground opacity-70">
@@ -485,18 +439,6 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                 </div>
               ) : (
                 <>
-                  {/* Временный список всех транзакций для отладки */}
-                  <div className="mb-4 p-3 border border-dashed border-gray-600 rounded">
-                    <h4 className="text-sm font-semibold mb-2">Все транзакции (отладка):</h4>
-                    <div className="grid grid-cols-3 gap-2">
-                      {farmingHistory.map(tx => (
-                        <div key={tx.id} className="bg-card/50 p-2 rounded text-xs">
-                          <p className="text-green-400">{tx.amount} {tx.currency}</p>
-                          <p className="text-xs opacity-70">{tx.type}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                   
                   <table className="w-full">
                     <thead className="sticky top-0 bg-card z-10">
@@ -537,15 +479,12 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   // Рендер вкладки с историей TON фарминга
   const renderHistoryTab = () => {
     if (isLoading) {
-      console.log('[DEBUG] История фарминга: показываем спиннер загрузки (isLoading=true)');
       return (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-opacity-50 border-t-primary rounded-full"></div>
         </div>
       );
     }
-    
-    console.log('[DEBUG] История фарминга: загрузка завершена (isLoading=false)');
     
     // Фильтруем депозиты, чтобы показать только TON Boost (packageId > 0)
     const tonBoostDeposits = deposits.filter(d => d.packageId > 0);
@@ -739,26 +678,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
             renderHistoryTab()
           )}
 
-          {/* Отладочный вывод текущих транзакций */}
-          <div className="mt-6 p-4 bg-black/30 rounded text-xs overflow-auto max-h-[300px]">
-            <h3 className="text-sm font-medium mb-2">Отладочная информация:</h3>
-            <div className="mb-2">
-              <p className="font-semibold text-blue-300">API Query:</p>
-              <pre className="overflow-x-auto">GET /api/transactions?user_id={validUserId}</pre>
-            </div>
-            <div className="mb-2">
-              <p className="font-semibold text-blue-300">Все транзакции из API (кол-во: {Array.isArray(transactionsResponse) ? transactionsResponse.length : 0}):</p>
-              <pre className="overflow-x-auto">{JSON.stringify(transactionsResponse, null, 2)}</pre>
-            </div>
-            <div className="mb-2">
-              <p className="font-semibold text-green-300">UNI транзакции после фильтрации (кол-во: {farmingHistory.filter(h => h.currency === 'UNI').length}):</p>
-              <pre className="overflow-x-auto">{JSON.stringify(farmingHistory.filter(h => h.currency === 'UNI'), null, 2)}</pre>
-            </div>
-            <div className="mb-2">
-              <p className="font-semibold text-yellow-300">Текущий фарминг депозит:</p>
-              <pre className="overflow-x-auto">{JSON.stringify(uniFarmingResponse, null, 2)}</pre>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
