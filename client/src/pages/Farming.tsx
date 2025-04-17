@@ -35,7 +35,7 @@ const Farming: React.FC = () => {
       <ActiveBoostsCard userId={userId} />
       
       {/* История фарминга */}
-      <FarmingHistory />
+      <FarmingHistory userId={userId} />
     </div>
   );
 };

@@ -837,12 +837,34 @@ const FarmingHistoryComponent: React.FC = () => {
   );
 };
 
+// Определяем интерфейс для пропсов
+interface FarmingHistoryProps {
+  userId: number;
+}
+
 // Создаем полностью новый упрощенный компонент для отладки
 const SimpleFarmingHistoryDebug: React.FC<FarmingHistoryProps> = ({ userId }) => {
+  // Используем жестко заданное значение userId = 1 для отладки
+  const hardcodedUserId = 1;
+  
   // Используем useQuery для получения транзакций напрямую
-  const { data: transactions, isLoading } = useQuery({
-    queryKey: ['/api/transactions', { user_id: userId }],
-    enabled: !!userId,
+  const { data: transactions, isLoading, error } = useQuery({
+    queryKey: ['/api/transactions', hardcodedUserId],
+    queryFn: async () => {
+      console.log('[DEBUG] Выполняем запрос с userId:', hardcodedUserId);
+      const response = await fetch(`/api/transactions?user_id=${hardcodedUserId}`);
+      console.log('[DEBUG] Статус ответа:', response.status);
+      const text = await response.text();
+      console.log('[DEBUG] Текст ответа:', text);
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка получения транзакций: ${response.status} ${text}`);
+      }
+      
+      return JSON.parse(text);
+    },
+    // Всегда включено с hardcoded userId
+    enabled: true,
   });
 
   // Просто выводим JSON данные для отладки
@@ -853,8 +875,15 @@ const SimpleFarmingHistoryDebug: React.FC<FarmingHistoryProps> = ({ userId }) =>
       <div className="mb-4">
         <h3 className="text-md font-medium mb-2">Запрос:</h3>
         <div className="text-sm bg-black/20 p-2 rounded">
-          <p>userId: {userId || 'не определен'}</p>
+          <p>userId из пропсов: {userId || 'не определен'}</p>
+          <p>hardcodedUserId: {hardcodedUserId}</p>
           <p>isLoading: {isLoading ? 'true' : 'false'}</p>
+          {error && (
+            <div className="mt-2 p-2 bg-red-600/20 text-red-400 rounded">
+              <p className="font-semibold">Ошибка:</p>
+              <p>{error.toString()}</p>
+            </div>
+          )}
         </div>
       </div>
       
@@ -864,9 +893,16 @@ const SimpleFarmingHistoryDebug: React.FC<FarmingHistoryProps> = ({ userId }) =>
           <p className="text-sm text-gray-400">Данные не загружены (undefined)</p>
         ) : Array.isArray(transactions) && transactions.length === 0 ? (
           <p className="text-sm text-gray-400">Транзакции отсутствуют ([])</p>
+        ) : Array.isArray(transactions) ? (
+          <div>
+            <p className="text-sm mb-2">Количество: {transactions.length}</p>
+            <pre className="text-xs bg-black/20 p-2 rounded overflow-auto max-h-[300px]">
+              {JSON.stringify(transactions, null, 2)}
+            </pre>
+          </div>
         ) : (
           <div>
-            <p className="text-sm mb-2">Количество: {Array.isArray(transactions) ? transactions.length : 'не массив'}</p>
+            <p className="text-sm mb-2 text-yellow-400">Получен не массив!</p>
             <pre className="text-xs bg-black/20 p-2 rounded overflow-auto max-h-[300px]">
               {JSON.stringify(transactions, null, 2)}
             </pre>
