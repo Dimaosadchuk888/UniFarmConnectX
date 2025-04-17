@@ -91,19 +91,26 @@ const BalanceCard: React.FC = () => {
       const newRawUniBalance = data.data.balance_uni;
       setRawUniBalance(newRawUniBalance);
       
-      // Логируем обновление баланса в консоль
-      console.log("UNI Balance Updated:", newRawUniBalance);
+      // Логируем обновление баланса в консоль с точностью до 8 знаков и форматом для легкого отслеживания
+      console.log(`[UNI Balance] Current: ${newRawUniBalance} (${formattedTime})`);
       
       // Проверяем, изменился ли баланс с последнего запроса
       const apiUniBalance = parseFloat(newRawUniBalance);
       if (!isNaN(apiUniBalance)) {
-        // Активируем анимацию только если значение изменилось
-        if (newRawUniBalance !== prevRawUniBalanceRef.current) {
-          console.log(`Balance changed: ${prevRawUniBalanceRef.current} -> ${newRawUniBalance} at ${formattedTime}`);
+        // Получаем предыдущее значение для высокоточного сравнения
+        const prevValue = prevRawUniBalanceRef.current;
+        
+        // Активируем анимацию только если значение изменилось (также проверяем на уровне строк)
+        if (newRawUniBalance !== prevValue) {
+          // Для более точного отображения сравниваем до 8 знаков после запятой
+          const prevValueParsed = prevValue ? parseFloat(prevValue) : 0;
+          const diff = apiUniBalance - prevValueParsed;
+          
+          console.log(`Balance changed (8 decimals): ${prevValue} -> ${newRawUniBalance} (diff: ${diff.toFixed(8)}) at ${formattedTime}`);
           setUniAnimating(true);
           setTimeout(() => setUniAnimating(false), 800);
           
-          // Сохраняем текущую метку времени с миллисекундами
+          // Сохраняем текущую метку времени с миллисекундами и полное значение
           localStorage.setItem('last_balance_update_time', formattedTime);
           localStorage.setItem('last_balance_value', newRawUniBalance);
         }
@@ -167,8 +174,8 @@ const BalanceCard: React.FC = () => {
     return () => clearInterval(interval);
   }, [tonRate, refetch]);
 
-  // Форматирование чисел для отображения
-  const formatNumber = (num: number, decimals: number = 6): string => {
+  // Форматирование чисел для отображения с расширенной точностью для UNI (8 знаков)
+  const formatNumber = (num: number, decimals: number = 8): string => {
     return num.toLocaleString('en-US', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals
@@ -211,9 +218,10 @@ const BalanceCard: React.FC = () => {
     }
   };
   
-  // Расчет долларового эквивалента
+  // Расчет долларового эквивалента с высокой точностью (для отладки)
   const getUSDEquivalent = (amount: number, rate: number): string => {
     const usdValue = amount * rate;
+    // Всегда используем точность 2 знака для долларового эквивалента (визуально)
     return `≈ $${formatNumber(usdValue, 2)}`;
   };
 
