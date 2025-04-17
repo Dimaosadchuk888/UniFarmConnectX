@@ -96,7 +96,18 @@ export class UserController {
       if (isNaN(userId)) {
         return sendError(res, 'Invalid user ID', 400);
       }
+      
+      // Обновляем фарминг перед получением данных из базы
+      // Это гарантирует, что мы получим актуальный баланс
+      try {
+        const { UniFarmingService } = require('../services/uniFarmingService');
+        await UniFarmingService.calculateAndUpdateUserFarming(userId);
+      } catch (farmingError) {
+        console.error('[getUserBalance] Error updating farming before balance fetch:', farmingError);
+        // Не возвращаем ошибку, так как основная функция - получение баланса
+      }
 
+      // Получаем пользователя с обновленным балансом
       const user = await UserService.getUserById(userId);
 
       if (!user) {
@@ -104,8 +115,11 @@ export class UserController {
       }
 
       // Форматируем баланс для отображения
-      const balanceUni = user.balance_uni ? new BigNumber(user.balance_uni).toFixed(3) : '0.000';
+      // Увеличиваем количество знаков после запятой для лучшего отслеживания изменений
+      const balanceUni = user.balance_uni ? new BigNumber(user.balance_uni).toFixed(6) : '0.000000';
       const balanceTon = user.balance_ton ? new BigNumber(user.balance_ton).toFixed(5) : '0.00000';
+      
+      console.log(`[getUserBalance] User ${userId} balance: ${balanceUni} UNI`);
 
       sendSuccess(res, {
         balance_uni: balanceUni,
@@ -114,9 +128,9 @@ export class UserController {
         uni_farming_active: user.uni_deposit_amount && 
                           new BigNumber(user.uni_deposit_amount).gt(0) ? true : false,
         uni_deposit_amount: user.uni_deposit_amount ? 
-                          new BigNumber(user.uni_deposit_amount).toFixed(3) : '0.000',
+                          new BigNumber(user.uni_deposit_amount).toFixed(6) : '0.000000',
         uni_farming_balance: user.uni_farming_balance ? 
-                           new BigNumber(user.uni_farming_balance).toFixed(3) : '0.000'
+                           new BigNumber(user.uni_farming_balance).toFixed(6) : '0.000000'
       });
     } catch (error) {
       console.error('Error in getUserBalance:', error);

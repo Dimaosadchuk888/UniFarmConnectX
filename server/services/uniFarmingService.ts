@@ -55,20 +55,21 @@ export class UniFarmingService {
     // Рассчитать прошедшие секунды с последнего обновления
     const secondsSinceLastUpdate = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
     
-    // Если прошло меньше секунды, не обновляем
-    if (secondsSinceLastUpdate <= 0) {
-      return {
-        depositAmount: user.uni_deposit_amount.toString(),
-        farmingBalance: user.uni_farming_balance?.toString() || '0',
-        ratePerSecond: this.calculateRatePerSecond(user.uni_deposit_amount.toString()),
-        earnedThisUpdate: '0'
-      };
-    }
+    // Даже если прошло меньше секунды, всегда начисляем хоть что-то при вызове метода
+    // Это гарантирует, что начисления будут добавляться при каждом вызове
+    // Удаляем блокировку обновления, если secondsSinceLastUpdate <= 0
+    // Минимальное начисление за 0.1 секунды
+    const effectiveSeconds = Math.max(0.1, secondsSinceLastUpdate);
 
-    // Рассчитать доход за прошедшие секунды
+    // Рассчитать доход за прошедшие секунды (используем effectiveSeconds)
     const depositAmount = new BigNumber(user.uni_deposit_amount.toString());
     const ratePerSecond = depositAmount.multipliedBy(this.DAILY_RATE).dividedBy(this.SECONDS_IN_DAY);
-    const earnedAmount = ratePerSecond.multipliedBy(secondsSinceLastUpdate);
+    // Используем effectiveSeconds вместо secondsSinceLastUpdate, чтобы гарантировать начисление
+    const earnedAmount = ratePerSecond.multipliedBy(effectiveSeconds);
+    
+    // Логирование для диагностики
+    console.log(`[UniFarming] User ${userId}: Deposit=${depositAmount.toString()}, Rate=${ratePerSecond.toString()}/sec, Time=${effectiveSeconds}s, Earned=${earnedAmount.toString()}`);
+    
     
     // Текущий баланс пользователя
     const currentBalance = new BigNumber(user.balance_uni !== null ? user.balance_uni.toString() : '0');
