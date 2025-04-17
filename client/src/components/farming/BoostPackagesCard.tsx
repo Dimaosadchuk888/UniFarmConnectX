@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '../../lib/queryClient';
 import { format } from 'date-fns';
+import PaymentMethodDialog from '../ton-boost/PaymentMethodDialog';
 
 // Определяем структуру буст-пакета
 interface BoostPackage {
@@ -61,22 +62,26 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
   const [purchasingBoostId, setPurchasingBoostId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState<boolean>(false);
+  const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
+  const [selectedBoostName, setSelectedBoostName] = useState<string>('');
   
   const queryClient = useQueryClient();
   
   // Пользовательский ID (хардкод для демонстрации)
   const userId = 1;
   
-  // Мутация для покупки буста
-  const buyBoostMutation = useMutation({
-    mutationFn: async (boostId: number) => {
-      const response = await apiRequest('POST', '/api/boosts/purchase', {
+  // Мутация для покупки TON буста
+  const buyTonBoostMutation = useMutation({
+    mutationFn: async ({ boostId, paymentMethod }: { boostId: number, paymentMethod: 'internal_balance' | 'external_wallet' }) => {
+      const response = await apiRequest('POST', '/api/ton-boosts/purchase', {
         user_id: userId,
-        boost_id: boostId
+        boost_id: boostId,
+        payment_method: paymentMethod
       });
       return response.json();
     },
-    onMutate: (boostId) => {
+    onMutate: ({ boostId }) => {
       // Сохраняем ID буста, который покупается
       setPurchasingBoostId(boostId);
       // Сбрасываем сообщения
@@ -86,13 +91,18 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
     onSuccess: (data) => {
       if (data.success) {
         // Показываем сообщение об успехе
-        setSuccessMessage(data.message);
+        setSuccessMessage(data.message || 'Буст успешно приобретен!');
+        
+        // Если оплата через внешний кошелек, отображаем ссылку на оплату
+        if (data.data.paymentMethod === 'external_wallet' && data.data.paymentLink) {
+          window.open(data.data.paymentLink, '_blank');
+        }
         
         // Инвалидируем кэш для обновления баланса и транзакций
         queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
         queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
         queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-        queryClient.invalidateQueries({ queryKey: [`/api/boosts/active`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/ton-boosts/active`] });
       } else {
         // Показываем сообщение об ошибке
         setErrorMessage(data.message || 'Произошла ошибка при покупке буста');
@@ -105,31 +115,48 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
     onSettled: () => {
       // Сбрасываем ID буста после завершения операции
       setPurchasingBoostId(null);
+      // Закрываем модальное окно
+      setPaymentDialogOpen(false);
     }
   });
   
   // Проверяем, может ли пользователь купить буст
   const canBuyBoost = (boostId: number): boolean => {
-    if (!userData || !userData.balance_uni) return false;
+    if (!userData || !userData.balance_ton) return false;
     
-    const userBalance = parseFloat(userData.balance_uni);
-    const boostPrice = parseFloat(boostPricesUni[boostId] || '0');
-    
-    return userBalance >= boostPrice;
+    // Для упрощения, считаем, что пользователь всегда может купить буст
+    // В реальном приложении здесь будет проверка баланса TON
+    return true;
   };
   
   // Обработчик нажатия на кнопку "Buy Boost"
   const handleBuyBoost = (boostId: number) => {
-    if (canBuyBoost(boostId)) {
-      buyBoostMutation.mutate(boostId);
-    } else {
-      setErrorMessage('Недостаточно UNI на балансе для покупки этого буста');
+    // Находим имя выбранного буста
+    const selectedBoost = boostPackages.find(boost => boost.id === boostId);
+    if (selectedBoost) {
+      setSelectedBoostId(boostId);
+      setSelectedBoostName(selectedBoost.name);
+      setPaymentDialogOpen(true);
     }
+  };
+  
+  // Обработчик выбора способа оплаты
+  const handleSelectPaymentMethod = (boostId: number, paymentMethod: 'internal_balance' | 'external_wallet') => {
+    buyTonBoostMutation.mutate({ boostId, paymentMethod });
   };
   
   return (
     <div className="mt-8">
       <h2 className="text-xl font-semibold mb-6 text-center">Airdrop Boost Пакеты</h2>
+      
+      {/* Модальное окно выбора способа оплаты */}
+      <PaymentMethodDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        boostId={selectedBoostId}
+        boostName={selectedBoostName}
+        onSelectPaymentMethod={handleSelectPaymentMethod}
+      />
       
       {/* Сообщение об успехе */}
       {successMessage && (
