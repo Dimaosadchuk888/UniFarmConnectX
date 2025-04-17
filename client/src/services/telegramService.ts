@@ -67,6 +67,26 @@ export function getTelegramUserData(): TelegramAuthData | null {
 }
 
 /**
+ * Получает имя пользователя Telegram для отображения
+ * Приоритет: first_name, затем username, затем null
+ * @returns Имя пользователя или null, если не удалось получить
+ */
+export function getTelegramUserDisplayName(): string | null {
+  try {
+    const telegramData = getTelegramUserData();
+    
+    if (telegramData && telegramData.user) {
+      return telegramData.user.first_name || telegramData.user.username || null;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Ошибка при получении имени пользователя Telegram:', error);
+    return null;
+  }
+}
+
+/**
  * Проверяет, запущено ли приложение в Telegram WebApp
  * @returns true, если приложение запущено в Telegram WebApp
  */
