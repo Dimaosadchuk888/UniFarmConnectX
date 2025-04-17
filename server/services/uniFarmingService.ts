@@ -18,6 +18,7 @@ export class UniFarmingService {
 
   /**
    * Начисляет доход пользователю от UNI фарминга на основе времени с последнего обновления
+   * Доход начисляется напрямую на основной баланс пользователя в соответствии с ТЗ
    * @param userId ID пользователя
    * @returns Объект с обновленными данными или null, если фарминг не активен
    */
@@ -30,6 +31,7 @@ export class UniFarmingService {
     // Получаем данные пользователя
     const [user] = await db
       .select({
+        balance_uni: users.balance_uni,
         uni_deposit_amount: users.uni_deposit_amount,
         uni_farming_start_timestamp: users.uni_farming_start_timestamp,
         uni_farming_balance: users.uni_farming_balance,
@@ -42,8 +44,7 @@ export class UniFarmingService {
     if (!user || 
         !user.uni_deposit_amount || 
         new BigNumber(user.uni_deposit_amount.toString()).isZero() ||
-        !user.uni_farming_start_timestamp ||
-        user.uni_farming_balance === null) {
+        !user.uni_farming_start_timestamp) {
       return null;
     }
 
@@ -58,7 +59,7 @@ export class UniFarmingService {
     if (secondsSinceLastUpdate <= 0) {
       return {
         depositAmount: user.uni_deposit_amount.toString(),
-        farmingBalance: user.uni_farming_balance.toString(),
+        farmingBalance: user.uni_farming_balance?.toString() || '0',
         ratePerSecond: this.calculateRatePerSecond(user.uni_deposit_amount.toString()),
         earnedThisUpdate: '0'
       };
@@ -69,23 +70,26 @@ export class UniFarmingService {
     const ratePerSecond = depositAmount.multipliedBy(this.DAILY_RATE).dividedBy(this.SECONDS_IN_DAY);
     const earnedAmount = ratePerSecond.multipliedBy(secondsSinceLastUpdate);
     
-    // Текущий накопленный баланс фарминга
-    const currentFarmingBalance = new BigNumber(user.uni_farming_balance !== null ? user.uni_farming_balance.toString() : '0');
-    // Новый баланс фарминга
-    const newFarmingBalance = currentFarmingBalance.plus(earnedAmount);
+    // Текущий баланс пользователя
+    const currentBalance = new BigNumber(user.balance_uni !== null ? user.balance_uni.toString() : '0');
+    // Новый баланс с учетом начисленного дохода
+    const newBalance = currentBalance.plus(earnedAmount);
     
-    // Обновляем баланс и время последнего обновления
+    // Форматируем с 6 знаками после запятой как указано в ТЗ
+    const formattedNewBalance = newBalance.toFixed(6);
+    
+    // Обновляем основной баланс пользователя и время последнего обновления
     await db
       .update(users)
       .set({
-        uni_farming_balance: newFarmingBalance.toString(),
+        balance_uni: formattedNewBalance,
         uni_farming_last_update: now
       })
       .where(eq(users.id, userId));
     
     return {
       depositAmount: depositAmount.toString(),
-      farmingBalance: newFarmingBalance.toString(),
+      farmingBalance: '0', // Теперь баланс фарминга всегда 0, т.к. доход сразу идет на основной баланс
       ratePerSecond: ratePerSecond.toString(),
       earnedThisUpdate: earnedAmount.toString()
     };
@@ -161,8 +165,8 @@ export class UniFarmingService {
           balance_uni: balanceUni.minus(depositAmount).toString(),
           uni_deposit_amount: depositAmount.toString(),
           uni_farming_start_timestamp: isFirstDeposit ? now : user.uni_farming_start_timestamp,
-          uni_farming_last_update: now,
-          uni_farming_balance: isFirstDeposit ? '0' : user.uni_deposit_amount // Сохраняем текущий накопленный баланс
+          uni_farming_last_update: now
+          // В новой версии не используем uni_farming_balance, т.к. доход начисляется напрямую
         })
         .where(eq(users.id, userId));
       
@@ -204,7 +208,7 @@ export class UniFarmingService {
       .select({
         uni_deposit_amount: users.uni_deposit_amount,
         uni_farming_start_timestamp: users.uni_farming_start_timestamp,
-        uni_farming_balance: users.uni_farming_balance
+        uni_farming_last_update: users.uni_farming_last_update
       })
       .from(users)
       .where(eq(users.id, userId));
@@ -226,7 +230,7 @@ export class UniFarmingService {
     return {
       isActive,
       depositAmount,
-      farmingBalance: user.uni_farming_balance?.toString() || '0',
+      farmingBalance: '0', // В новой версии всегда 0, т.к. доход начисляется автоматически
       ratePerSecond: isActive ? this.calculateRatePerSecond(depositAmount) : '0',
       startDate: user.uni_farming_start_timestamp ? user.uni_farming_start_timestamp.toISOString() : null
     };
@@ -251,9 +255,10 @@ export class UniFarmingService {
   }
 
   /**
-   * Вычисляет остаток накопленного баланса и обнуляет его
+   * Метод сохранен для обратной совместимости
+   * В новой версии доход автоматически начисляется на основной баланс
    * @param userId ID пользователя 
-   * @returns Сумма, которая была накоплена
+   * @returns Информационное сообщение о том, что доход начисляется автоматически
    */
   static async harvestFarmingBalance(userId: number): Promise<{
     success: boolean;
@@ -262,55 +267,27 @@ export class UniFarmingService {
   }> {
     try {
       // Обновляем баланс для получения актуальных данных
-      await this.calculateAndUpdateUserFarming(userId);
+      const updatedFarming = await this.calculateAndUpdateUserFarming(userId);
       
-      // Получаем данные пользователя
-      const [user] = await db
-        .select({
-          balance_uni: users.balance_uni,
-          uni_farming_balance: users.uni_farming_balance
-        })
-        .from(users)
-        .where(eq(users.id, userId));
-      
-      if (!user) {
+      // Если фарминг не активен
+      if (!updatedFarming) {
         return {
           success: false,
-          message: 'Пользователь не найден'
+          message: 'У вас нет активного депозита'
         };
       }
       
-      // Проверяем, есть ли что собирать
-      const farmingBalance = new BigNumber(user.uni_farming_balance?.toString() || '0');
-      if (farmingBalance.isZero()) {
-        return {
-          success: false,
-          message: 'Нет накопленных средств для вывода'
-        };
-      }
-      
-      // Обновляем балансы
-      const currentBalance = new BigNumber(user.balance_uni !== null ? user.balance_uni.toString() : '0');
-      const newBalance = currentBalance.plus(farmingBalance);
-      
-      await db
-        .update(users)
-        .set({
-          balance_uni: newBalance.toString(),
-          uni_farming_balance: '0'
-        })
-        .where(eq(users.id, userId));
-      
+      // В новой версии доход начисляется автоматически на основной баланс
       return {
         success: true,
-        message: 'Средства успешно выведены',
-        harvestedAmount: farmingBalance.toString()
+        message: 'Доход от фарминга теперь начисляется автоматически на ваш основной баланс',
+        harvestedAmount: '0' // Всегда 0, т.к. всё начисляется автоматически
       };
     } catch (error) {
-      console.error('Error harvesting farming balance:', error);
+      console.error('Error in harvest farming method:', error);
       return {
         success: false,
-        message: 'Произошла ошибка при выводе средств'
+        message: 'Произошла ошибка при проверке фарминга'
       };
     }
   }

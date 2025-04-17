@@ -9,12 +9,17 @@ import { and, ne, isNotNull } from 'drizzle-orm';
 export function startBackgroundTasks(): void {
   console.log('[Background Tasks] Starting background tasks');
   
-  // Запуск задачи обновления фарминга (каждые 10 секунд)
-  setInterval(updateAllUsersFarming, 10000);
+  // Запуск задачи обновления фарминга (каждую секунду)
+  setInterval(updateAllUsersFarming, 1000);
 }
+
+// Переменная для отслеживания времени последнего вывода сообщения в лог
+let lastLogTime = 0;
 
 /**
  * Обновляет фарминг для всех активных пользователей
+ * Этот метод вызывается каждую секунду и начисляет доход
+ * прямо на основной баланс пользователя
  */
 async function updateAllUsersFarming(): Promise<void> {
   try {
@@ -34,14 +39,22 @@ async function updateAllUsersFarming(): Promise<void> {
       return;
     }
     
-    console.log(`[Background Tasks] Updating farming for ${activeUsers.length} users`);
+    // Выводим лог раз в 10 секунд для снижения нагрузки
+    const now = Date.now();
+    if (now - lastLogTime > 10000) {
+      lastLogTime = now;
+      console.log(`[Background Tasks] Updating farming for ${activeUsers.length} users`);
+    }
     
     // Обновляем фарминг для каждого пользователя
     for (const user of activeUsers) {
       await UniFarmingService.calculateAndUpdateUserFarming(user.id);
     }
     
-    console.log('[Background Tasks] Farming updated successfully');
+    // Выводим лог об успехе также только раз в 10 секунд
+    if (now - lastLogTime < 100) { // Если это то же "окно", в котором мы вывели первый лог
+      console.log('[Background Tasks] Farming updated successfully');
+    }
   } catch (error) {
     console.error('[Background Tasks] Error updating farming:', error);
   }
