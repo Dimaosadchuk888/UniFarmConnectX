@@ -27,7 +27,8 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
   
   // Инициализируем TonConnect при загрузке компонента
   useEffect(() => {
-    const connector = initTonConnect();
+    // Обязательно получаем экземпляр TonConnect
+    const connector = getTonConnect();
     
     // Инициализируем изначальное состояние
     const updateConnectionStatus = () => {
@@ -38,8 +39,13 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     
     updateConnectionStatus();
     
-    // Настраиваем интервал для проверки статуса подключения
-    const intervalId = setInterval(updateConnectionStatus, 1000);
+    // Настраиваем обработчик событий для соединения
+    if (connector) {
+      connector.onStatusChange(updateConnectionStatus);
+    }
+    
+    // Настраиваем интервал для регулярной проверки статуса
+    const intervalId = setInterval(updateConnectionStatus, 2000);
     
     // Отписываемся при размонтировании компонента
     return () => {

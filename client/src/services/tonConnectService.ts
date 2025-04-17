@@ -14,7 +14,7 @@ export function initTonConnect() {
     if (!tonConnectUI) {
       // Создаем экземпляр TonConnect для подключения к кошелькам
       tonConnectUI = new TonConnectUI({
-        manifestUrl: 'https://uni-farm-connect-1-misterxuniverse.replit.app/tonconnect-manifest.json',
+        manifestUrl: '/tonconnect-manifest.json',
         buttonRootId: 'ton-connect-root',
         uiPreferences: {
           theme: THEME.DARK

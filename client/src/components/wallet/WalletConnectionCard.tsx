@@ -27,7 +27,7 @@ const WalletConnectionCard: React.FC = () => {
     checkWalletConnection();
     
     // Устанавливаем интервал для периодической проверки состояния
-    const intervalId = setInterval(checkWalletConnection, 1000);
+    const intervalId = setInterval(checkWalletConnection, 2000);
     
     // Очищаем интервал при размонтировании компонента
     return () => {
