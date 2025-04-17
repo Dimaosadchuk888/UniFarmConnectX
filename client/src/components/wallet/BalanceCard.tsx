@@ -107,7 +107,8 @@ const BalanceCard: React.FC = () => {
           const prevValueParsed = prevValue ? parseFloat(prevValue) : 0;
           const diff = apiUniBalance - prevValueParsed;
           
-          console.log(`Balance changed (8 decimals): ${prevValue} -> ${newRawUniBalance} (diff: ${diff.toFixed(8)}) at ${formattedTime}`);
+          // Выводим лог точно в запрошенном формате
+          console.log(`[UNI Sync] Updated balance: ${prevValue} → ${newRawUniBalance} at ${formattedTime}`);
           setUniAnimating(true);
           setTimeout(() => setUniAnimating(false), 800);
           
