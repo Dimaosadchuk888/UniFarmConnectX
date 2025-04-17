@@ -117,10 +117,21 @@ export class UserController {
 
       // Форматируем баланс для отображения
       // Увеличиваем количество знаков после запятой для лучшего отслеживания изменений
-      const balanceUni = user.balance_uni ? new BigNumber(user.balance_uni).toFixed(6) : '0.000000';
+      
+      // Для правильного отображения реалтайм баланса объединяем основной баланс + накопленный фарминг
+      const baseUniBalance = new BigNumber(user.balance_uni || 0);
+      const farmingAccumulated = new BigNumber(user.uni_farming_balance || 0);
+      
+      // Создаем виртуальный баланс, добавляя накопленное значение к основному балансу
+      // Это позволяет видеть микроизменения до 8 знаков после запятой
+      const virtualUniBalance = baseUniBalance.plus(farmingAccumulated);
+      
+      // Форматируем балансы с увеличенной точностью
+      const balanceUni = virtualUniBalance.toFixed(8); // Увеличиваем точность до 8 знаков
       const balanceTon = user.balance_ton ? new BigNumber(user.balance_ton).toFixed(5) : '0.00000';
       
-      console.log(`[getUserBalance] User ${userId} balance: ${balanceUni} UNI`);
+      // Логируем для отладки полное значение как основного, так и виртуального баланса
+      console.log(`[getUserBalance] User ${userId} balance: ${baseUniBalance.toFixed(8)} UNI + ${farmingAccumulated.toFixed(8)} (virtual: ${balanceUni})`);
 
       sendSuccess(res, {
         balance_uni: balanceUni,
@@ -131,7 +142,7 @@ export class UserController {
         uni_deposit_amount: user.uni_deposit_amount ? 
                           new BigNumber(user.uni_deposit_amount).toFixed(6) : '0.000000',
         uni_farming_balance: user.uni_farming_balance ? 
-                           new BigNumber(user.uni_farming_balance).toFixed(6) : '0.000000'
+                           new BigNumber(user.uni_farming_balance).toFixed(8) : '0.00000000' // Увеличиваем точность
       });
     } catch (error) {
       console.error('Error in getUserBalance:', error);

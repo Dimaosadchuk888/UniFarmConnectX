@@ -92,7 +92,8 @@ const BalanceCard: React.FC = () => {
       setRawUniBalance(newRawUniBalance);
       
       // Логируем обновление баланса в консоль с точностью до 8 знаков и форматом для легкого отслеживания
-      console.log(`[UNI Balance] Current: ${newRawUniBalance} (${formattedTime})`);
+      // Используем точный формат, запрошенный в ТЗ
+      console.log(`[UNI Sync] Updated balance: ${prevRawUniBalanceRef.current || "0"} → ${newRawUniBalance} at ${formattedTime}`);
       
       // Проверяем, изменился ли баланс с последнего запроса
       const apiUniBalance = parseFloat(newRawUniBalance);
