@@ -134,7 +134,7 @@ const FarmingHistoryComponent: React.FC = () => {
     
     // Обрабатываем транзакции, если они есть
     if (Array.isArray(transactionsResponse)) {
-      // Выведем для отладки ответ API целиком
+      // ТЗ: Добавляем логирование для проверки данных
       console.log('[DEBUG] Transactions API Response:', transactionsResponse);
       
       // Фильтрация по критериям ТЗ:
@@ -149,17 +149,16 @@ const FarmingHistoryComponent: React.FC = () => {
         ['deposit', 'farming', 'check-in', 'reward'].includes(tx.type)
       );
       
-      // Выводим отладочную информацию
-      console.log('[DEBUG] Исходные транзакции:', transactionsResponse);
-      console.log('[DEBUG] Отфильтрованные транзакции UNI:', farmingTransactions);
+      // ТЗ: Расширенное логирование для отладки
+      console.log('[DEBUG] Исходные транзакции (длина):', transactionsResponse.length);
+      console.log('[DEBUG] Исходные транзакции ПОЛНЫЙ ДАМП:', JSON.stringify(transactionsResponse));
+      console.log('[DEBUG] Отфильтрованные транзакции UNI (длина):', farmingTransactions.length);
+      console.log('[DEBUG] Отфильтрованные транзакции UNI ПОЛНЫЙ ДАМП:', JSON.stringify(farmingTransactions));
       
-      // Выведем для отладки ответ API и типы транзакций
-      console.log('[DEBUG] API возвращает транзакции:', transactionsResponse);
+      // Выведем для отладки типы транзакций
       console.log('[DEBUG] Доступные типы транзакций:', 
         Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.type))).join(', ')
       );
-      
-      console.log('Отфильтрованные транзакции фарминга:', farmingTransactions);
       
       if (farmingTransactions.length > 0) {
         // Если у нас есть UNI фарминг, уточняем его дату активации из транзакции
@@ -441,6 +440,17 @@ const FarmingHistoryComponent: React.FC = () => {
             <h3 className="text-md font-medium mb-4">История UNI фарминга</h3>
             
             <div className="overflow-hidden relative">
+              {/* ТЗ: Временный вывод JSON */}
+              <div className="text-xs bg-black/30 p-2 mb-4 rounded overflow-auto max-h-[100px]">
+                <h4 className="text-sm font-medium mb-2">DEBUG: JSON Дамп transactionsResponse (длина: {Array.isArray(transactionsResponse) ? transactionsResponse.length : 0}):</h4>
+                <pre>{JSON.stringify(transactionsResponse, null, 2)}</pre>
+              </div>
+              
+              <div className="text-xs bg-black/30 p-2 mb-4 rounded overflow-auto max-h-[100px]">
+                <h4 className="text-sm font-medium mb-2">DEBUG: JSON Дамп отфильтрованных транзакций:</h4>
+                <pre>{JSON.stringify(farmingHistory.filter(item => item.currency === 'UNI'), null, 2)}</pre>
+              </div>
+              
               {farmingHistory.filter(item => item.currency === 'UNI').length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-foreground opacity-70">
