@@ -48,7 +48,7 @@ const BalanceCard: React.FC = () => {
   // Получаем баланс из API
   const { data, isLoading, refetch } = useQuery<WalletBalanceResponse>({
     queryKey: ['/api/wallet/balance?user_id=1'],
-    staleTime: 1000, // 1 секунда
+    staleTime: 0, // Отключаем кеширование для получения свежих данных каждый раз
   });
   
   // Функция для обновления баланса UNI с анимацией
@@ -74,19 +74,39 @@ const BalanceCard: React.FC = () => {
     staleTime: 60000, // 1 минута
   });
 
+  // Отслеживаем предыдущее значение баланса для проверки изменений
+  const prevRawUniBalanceRef = useRef<string>('');
+  
   // Обновляем баланс из API при загрузке данных
   useEffect(() => {
     if (data?.success && data.data) {
       // Сохраняем время запроса для отладки
       const now = new Date();
-      setLastFetchTime(`${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`);
+      const formattedTime = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`;
+      setLastFetchTime(formattedTime);
       
       // Сохраняем сырое значение баланса для отладки
-      setRawUniBalance(data.data.balance_uni);
+      const newRawUniBalance = data.data.balance_uni;
+      setRawUniBalance(newRawUniBalance);
       
-      const apiUniBalance = parseFloat(data.data.balance_uni);
+      // Логируем обновление баланса в консоль
+      console.log("UNI Balance Updated:", newRawUniBalance);
+      
+      // Проверяем, изменился ли баланс с последнего запроса
+      const apiUniBalance = parseFloat(newRawUniBalance);
       if (!isNaN(apiUniBalance)) {
-        updateUniBalanceWithAnimation(apiUniBalance);
+        // Активируем анимацию только если значение изменилось
+        if (newRawUniBalance !== prevRawUniBalanceRef.current) {
+          console.log(`Balance changed: ${prevRawUniBalanceRef.current} -> ${newRawUniBalance} at ${formattedTime}`);
+          setUniAnimating(true);
+          setTimeout(() => setUniAnimating(false), 800);
+        }
+        
+        // Всегда обновляем отображаемое значение для точности
+        setUniBalance(apiUniBalance);
+        
+        // Сохраняем текущее значение как предыдущее для следующего сравнения
+        prevRawUniBalanceRef.current = newRawUniBalance;
       }
       
       const apiTonBalance = parseFloat(data.data.balance_ton);
@@ -94,7 +114,7 @@ const BalanceCard: React.FC = () => {
         setTonBalance(apiTonBalance);
       }
     }
-  }, [data, updateUniBalanceWithAnimation]);
+  }, [data]);
 
   // Обновляем скорость фарминга при получении данных
   useEffect(() => {

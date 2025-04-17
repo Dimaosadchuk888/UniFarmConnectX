@@ -32,11 +32,17 @@ export const getQueryFn: <T>(options: {
     console.log("[DEBUG] QueryClient - Requesting:", queryKey[0]);
     
     try {
-      // Добавляем заголовок Accept для явного указания JSON
-      const res = await fetch(queryKey[0] as string, {
+      // Добавляем заголовки, чтобы избежать кэширования
+      const timestamp = new Date().getTime();
+      const url = `${queryKey[0]}${queryKey[0].includes('?') ? '&' : '?'}nocache=${timestamp}`;
+      
+      const res = await fetch(url, {
         credentials: "include",
         headers: {
-          "Accept": "application/json"
+          "Accept": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0"
         }
       });
 
