@@ -92,32 +92,32 @@ export class TonBoostService {
       id: 1,
       name: "Small Boost",
       priceTon: "1.0",
-      bonusUni: "10000.0",
-      rateTon: "0.1",    // 0.1% в день для TON
-      rateUni: "0.0"     // Нет дополнительного бонуса в UNI
+      bonusUni: "10000.0",    // Бонус UNI при покупке
+      rateTon: "0.1",         // 0.1% в день для TON
+      rateUni: "0.0"          // Нет дополнительного бонуса в UNI
     },
     {
       id: 2,
       name: "Medium Boost",
       priceTon: "5.0",
-      bonusUni: "10000.0",
-      rateTon: "0.2",    // 0.2% в день для TON
-      rateUni: "0.05"    // 0.05% в день для UNI
+      bonusUni: "75000.0",    // Бонус UNI при покупке
+      rateTon: "0.2",         // 0.2% в день для TON
+      rateUni: "0.05"         // 0.05% в день для UNI
     },
     {
       id: 3,
       name: "Large Boost",
       priceTon: "10.0",
-      bonusUni: "10000.0",
-      rateTon: "0.3",    // 0.3% в день для TON
-      rateUni: "0.1"     // 0.1% в день для UNI
+      bonusUni: "250000.0",   // Бонус UNI при покупке
+      rateTon: "0.3",         // 0.3% в день для TON
+      rateUni: "0.1"          // 0.1% в день для UNI
     },
     {
       id: 4,
       name: "Mega Boost",
       priceTon: "25.0",
-      bonusUni: "10000.0",
-      rateTon: "0.5",    // 0.5% в день для TON
+      bonusUni: "500000.0",   // Бонус UNI при покупке
+      rateTon: "0.5",         // 0.5% в день для TON
       rateUni: "0.2"     // 0.2% в день для UNI
     }
   ];
@@ -660,6 +660,7 @@ export class TonBoostService {
       }
 
       // Расчет дневного дохода: rate_per_second * SECONDS_IN_DAY
+      // (Показываем реалистичные значения, а не нереалистично высокий доход)
       const dailyIncomeTon = totalTonRatePerSecond.multipliedBy(this.SECONDS_IN_DAY).toString();
       const dailyIncomeUni = totalUniRatePerSecond.multipliedBy(this.SECONDS_IN_DAY).toString();
 

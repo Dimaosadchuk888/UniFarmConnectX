@@ -343,10 +343,10 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   // Функция для получения доходности буста по его ID
   const getYieldRateForBoost = (boostId: number): string => {
     const rates: Record<number, string> = {
-      1: '0.5%',
-      2: '1.0%',
-      3: '2.0%',
-      4: '2.5%'
+      1: '0.1%',
+      2: '0.2%',
+      3: '0.3%',
+      4: '0.5%'
     };
     return rates[boostId] || '0.0%';
   };
@@ -633,7 +633,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
               <div>
                 <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
                 <div className="flex items-center">
-                  <span className="text-blue-300">+{(parseFloat(deposit.tonYield) * 100 * 86400 / 100).toFixed(4)}</span>
+                  <span className="text-blue-300">+{(parseFloat(deposit.amount) * parseFloat(deposit.tonYield.replace("%", "")) / 100).toFixed(4)}</span>
                   <span className="text-gray-400 ml-1.5 text-xs">TON</span>
                 </div>
               </div>
@@ -641,7 +641,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
               <div>
                 <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
                 <div className="flex items-center">
-                  <span className="text-blue-300">+{(parseFloat(deposit.tonYield) * 100 / 86400).toFixed(8)}</span>
+                  <span className="text-blue-300">+{(parseFloat(deposit.amount) * parseFloat(deposit.tonYield.replace("%", "")) / 100 / 86400).toFixed(8)}</span>
                   <span className="text-gray-400 ml-1.5 text-xs">TON</span>
                 </div>
               </div>
