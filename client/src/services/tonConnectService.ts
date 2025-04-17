@@ -14,7 +14,7 @@ export function initTonConnect() {
     if (!tonConnectUI) {
       // Создаем экземпляр TonConnect для подключения к кошелькам
       tonConnectUI = new TonConnectUI({
-        manifestUrl: '/tonconnect-manifest.json',
+        manifestUrl: 'https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json',
         buttonRootId: 'ton-connect-root',
         uiPreferences: {
           theme: THEME.DARK
