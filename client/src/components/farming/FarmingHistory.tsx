@@ -141,11 +141,6 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
       console.log('[DEBUG] Все статусы транзакций:', 
         Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.status))));
       
-      // Ищем новые транзакции с депозитом 9 UNI
-      const newDeposit = transactionsResponse.find((tx: Transaction) => 
-        tx.amount === '9.000000' && tx.currency === 'UNI');
-      console.log('[DEBUG] Найдена транзакция с депозитом 9 UNI:', newDeposit);
-      
       // Фильтрация:
       // type = deposit, farming, check-in, reward
       // currency = 'UNI'
@@ -156,6 +151,44 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         tx.currency === 'UNI' && 
         ['deposit', 'farming', 'check-in', 'reward'].includes(tx.type)
       );
+      
+      // Находим все UNI депозиты для создания карточек фарминг-депозитов
+      const uniDeposits = transactionsResponse.filter((tx: Transaction) => 
+        tx.type === 'deposit' && 
+        tx.currency === 'UNI' && 
+        tx.status === 'confirmed'
+      );
+      
+      console.log('[DEBUG] Найдены UNI депозиты:', uniDeposits);
+      
+      // Создаем фарминг-депозиты из депозитов UNI
+      if (uniDeposits.length > 0) {
+        // Сортируем по дате (сначала новые)
+        uniDeposits.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        
+        // Добавляем каждый депозит как отдельный фарминг-депозит
+        uniDeposits.forEach((deposit, index) => {
+          // Проверяем, нет ли уже такого депозита (по id)
+          const existingDepositIndex = farmingDeposits.findIndex(d => d.id === deposit.id);
+          
+          if (existingDepositIndex === -1) {
+            // Создаем новый фарминг-депозит
+            farmingDeposits.push({
+              id: 10000 + deposit.id, // Используем уникальный id
+              packageId: 0, // 0 значит основной UNI фарминг
+              createdAt: new Date(deposit.created_at),
+              isActive: true, // Все депозиты считаем активными
+              uniYield: "0.5%",
+              tonYield: "0.0%",
+              bonus: "0 UNI",
+              amount: deposit.amount,
+              daysLeft: 365
+            });
+            
+            console.log(`[DEBUG] Создан фарминг-депозит из транзакции #${deposit.id} на сумму ${deposit.amount} UNI`);
+          }
+        });
+      }
       
       console.log('[DEBUG] Отфильтрованные транзакции UNI (длина):', farmingTransactions.length);
       
