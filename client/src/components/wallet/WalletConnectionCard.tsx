@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import ConnectWalletButton from './ConnectWalletButton';
-import { getWalletAddress, isWalletConnected } from '@/services/tonConnectService';
+import { 
+  getWalletAddress, 
+  isWalletConnected, 
+  addConnectionListener, 
+  removeConnectionListener 
+} from '@/services/tonConnectService';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -10,29 +15,30 @@ const WalletConnectionCard: React.FC = () => {
   const [address, setAddress] = useState<string | null>(null);
   const { toast } = useToast();
   
+  // Функция для проверки статуса подключения
+  const checkWalletConnection = () => {
+    const isConnected = isWalletConnected();
+    setConnected(isConnected);
+    
+    if (isConnected) {
+      const walletAddress = getWalletAddress();
+      setAddress(walletAddress);
+    } else {
+      setAddress(null);
+    }
+  };
+  
   // Проверяем статус подключения при загрузке компонента
   useEffect(() => {
-    const checkWalletConnection = () => {
-      const isConnected = isWalletConnected();
-      setConnected(isConnected);
-      
-      if (isConnected) {
-        const walletAddress = getWalletAddress();
-        setAddress(walletAddress);
-      } else {
-        setAddress(null);
-      }
-    };
-    
     // Проверяем изначальное состояние
     checkWalletConnection();
     
-    // Устанавливаем интервал для периодической проверки состояния
-    const intervalId = setInterval(checkWalletConnection, 2000);
+    // Подписываемся на изменения статуса подключения
+    addConnectionListener(checkWalletConnection);
     
-    // Очищаем интервал при размонтировании компонента
+    // Отписываемся при размонтировании компонента
     return () => {
-      clearInterval(intervalId);
+      removeConnectionListener(checkWalletConnection);
     };
   }, []);
   

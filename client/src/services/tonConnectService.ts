@@ -2,19 +2,28 @@
  * Сервис для работы с TonConnect - подключение к TON-кошелькам
  */
 import { TonConnectUI, THEME } from '@tonconnect/ui';
+import { TONCONNECT_MANIFEST_URL } from '@/config/tonConnect';
 
 // Глобальная переменная для хранения экземпляра TonConnect
 let tonConnectUI: TonConnectUI | null = null;
 
+// Глобальная переменная для хранения обработчиков статуса подключения
+type ConnectionListener = () => void;
+const connectionListeners: ConnectionListener[] = [];
+
+// Интервал проверки подключения
+let connectionCheckInterval: NodeJS.Timeout | null = null;
+
 /**
  * Инициализирует TonConnect
  */
+
 export function initTonConnect() {
   try {
     if (!tonConnectUI) {
       // Создаем экземпляр TonConnect для подключения к кошелькам
       tonConnectUI = new TonConnectUI({
-        manifestUrl: 'https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json',
+        manifestUrl: TONCONNECT_MANIFEST_URL,
         buttonRootId: 'ton-connect-root',
         uiPreferences: {
           theme: THEME.DARK
@@ -113,3 +122,61 @@ export function shortenAddress(address: string): string {
   
   return `${start}...${end}`;
 }
+
+/**
+ * Запускает интервал проверки подключения, если он еще не был запущен
+ */
+export function startConnectionCheck(): void {
+  if (connectionCheckInterval) {
+    return; // Интервал уже запущен
+  }
+  
+  // Запускаем интервал для проверки подключения
+  connectionCheckInterval = setInterval(() => {
+    // Оповещаем всех слушателей об изменении статуса подключения
+    notifyConnectionListeners();
+  }, 2000);
+  
+  console.log('TonConnect status check interval started');
+}
+
+/**
+ * Останавливает интервал проверки подключения
+ */
+export function stopConnectionCheck(): void {
+  if (connectionCheckInterval) {
+    clearInterval(connectionCheckInterval);
+    connectionCheckInterval = null;
+    console.log('TonConnect status check interval stopped');
+  }
+}
+
+/**
+ * Добавляет слушателя изменения статуса подключения
+ * @param listener Функция-обработчик, которая будет вызвана при изменении статуса подключения
+ */
+export function addConnectionListener(listener: ConnectionListener): void {
+  connectionListeners.push(listener);
+}
+
+/**
+ * Удаляет слушателя изменения статуса подключения
+ * @param listener Функция-обработчик, которую нужно удалить
+ */
+export function removeConnectionListener(listener: ConnectionListener): void {
+  const index = connectionListeners.indexOf(listener);
+  if (index !== -1) {
+    connectionListeners.splice(index, 1);
+  }
+}
+
+/**
+ * Оповещает всех слушателей об изменении статуса подключения
+ */
+function notifyConnectionListeners(): void {
+  // Вызываем все зарегистрированные обработчики
+  connectionListeners.forEach(listener => listener());
+}
+
+// Автоматически запускаем проверку подключения при импорте модуля
+startConnectionCheck();

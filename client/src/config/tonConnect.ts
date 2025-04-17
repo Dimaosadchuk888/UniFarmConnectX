@@ -3,7 +3,7 @@
  */
 
 // Манифест для подключения TonConnect
-export const TONCONNECT_MANIFEST_URL = 'https://uni-farm-connect-1-misterxuniverse.replit.app/tonconnect-manifest.json';
+export const TONCONNECT_MANIFEST_URL = 'https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json';
 
 // Опции для TonConnect UI
 export const tonConnectOptions = {

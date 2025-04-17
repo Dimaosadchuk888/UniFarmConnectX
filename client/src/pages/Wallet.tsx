@@ -3,32 +3,32 @@ import WalletConnectionCard from '@/components/wallet/WalletConnectionCard';
 import WithdrawalForm from '@/components/wallet/WithdrawalForm';
 import BalanceCard from '@/components/wallet/BalanceCard';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
-import { isWalletConnected, getWalletAddress } from '@/services/tonConnectService';
+import { 
+  isWalletConnected, 
+  getWalletAddress, 
+  addConnectionListener, 
+  removeConnectionListener 
+} from '@/services/tonConnectService';
 
 const Wallet: React.FC = () => {
   const [connected, setConnected] = useState(false);
   
+  // Функция для проверки статуса подключения
+  const checkConnectionStatus = () => {
+    const connected = isWalletConnected();
+    setConnected(connected);
+  };
+  
   useEffect(() => {
     // Начальная проверка подключения
-    const checkInitialConnection = async () => {
-      const connected = isWalletConnected();
-      setConnected(connected);
-    };
+    checkConnectionStatus();
     
-    checkInitialConnection();
+    // Подписываемся на изменения статуса подключения
+    addConnectionListener(checkConnectionStatus);
     
-    // Функция, которая будет проверять статус подключения
-    const checkConnectionStatus = () => {
-      const connected = isWalletConnected();
-      setConnected(connected);
-    };
-    
-    // Устанавливаем интервал для периодической проверки
-    const intervalId = setInterval(checkConnectionStatus, 2000);
-    
-    // Очищаем интервал при размонтировании компонента
+    // Отписываемся при размонтировании компонента
     return () => {
-      clearInterval(intervalId);
+      removeConnectionListener(checkConnectionStatus);
     };
   }, []);
   

@@ -1,5 +1,8 @@
 {
-  "url": "https://uni-farm.0320-misterxuniverse.repl.co",
+  "url": "https://uni-farm-connect-1-misterxuniverse.replit.app/",
   "name": "UniFarm",
-  "iconUrl": "https://uni-farm.0320-misterxuniverse.repl.co/favicon.ico"
+  "iconUrl": "https://uni-farm-connect-1-misterxuniverse.replit.app/logo.png",
+  "termsOfUseUrl": "https://unifarming.ton/terms",
+  "privacyPolicyUrl": "https://unifarming.ton/privacy",
+  "manifestId": "unifarming.ton"
 }
