@@ -94,19 +94,30 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   });
   
   // Запрос на получение активных буст-пакетов UNI
-  const { data: activeBoostsResponse, refetch: refetchBoosts } = useQuery({
+  const { data: activeBoostsResponse, refetch: refetchBoosts } = useQuery<ApiResponse<{
+    boost_id: number;
+    created_at: string;
+    days_left: number;
+  }[]>>({
     queryKey: ['/api/boosts/active', { user_id: validUserId }],
     enabled: !!validUserId,
   });
   
   // Запрос на получение активных TON Boost пакетов
-  const { data: activeTonBoostsResponse, refetch: refetchTonBoosts } = useQuery({
+  const { data: activeTonBoostsResponse, refetch: refetchTonBoosts } = useQuery<ApiResponse<TonBoostDeposit[]>>({
     queryKey: ['/api/ton-boosts/active', { user_id: validUserId }],
     enabled: !!validUserId,
   });
   
   // Запрос информации о UNI фарминге
-  const { data: uniFarmingResponse, refetch: refetchFarming } = useQuery({
+  const { data: uniFarmingResponse, refetch: refetchFarming } = useQuery<ApiResponse<{
+    isActive: boolean;
+    depositAmount: string;
+    startDate: string;
+    totalRatePerSecond: string;
+    totalEarned: string;
+    depositCount: number;
+  }>>({
     queryKey: ['/api/uni-farming/info', { user_id: validUserId }],
     enabled: !!validUserId,
   });
@@ -140,7 +151,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     
     // Добавляем активные TON Boost пакеты, если они есть
     if (activeTonBoostsResponse?.success && Array.isArray(activeTonBoostsResponse.data)) {
-      activeTonBoostsResponse.data.forEach((tonBoost, index) => {
+      activeTonBoostsResponse.data.forEach((tonBoost: TonBoostDeposit, index: number) => {
         const packageId = tonBoost.boost_package_id || 1;
         
         farmingDeposits.push({
@@ -242,7 +253,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         
         // Добавляем активные бусты в депозиты, если они есть
         if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data) && activeBoostsResponse.data.length > 0) {
-          activeBoostsResponse.data.forEach((boost, index) => {
+          activeBoostsResponse.data.forEach((boost: { boost_id: number; created_at: string; days_left: number }, index: number) => {
             const packageId = boost.boost_id || 1;
             
             // Находим транзакцию покупки этого буста
