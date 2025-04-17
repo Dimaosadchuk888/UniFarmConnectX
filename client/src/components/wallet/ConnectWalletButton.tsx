@@ -89,14 +89,14 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant={connected ? "outline" : "default"}
+              variant="default"
               onClick={handleWalletConnection}
-              className={`relative px-3 py-2 ${className}`}
+              className={`relative px-3 py-2 ${connected ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300' : 'bg-blue-600 hover:bg-blue-700 text-white'} ${className}`}
               disabled={loading}
             >
               {loading ? (
                 <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -139,7 +139,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
                     <line x1="12" y1="16" x2="12" y2="16"></line>
                     <line x1="8" y1="12" x2="16" y2="12"></line>
                   </svg>
-                  <span>Подключить TON</span>
+                  <span>Connect Wallet</span>
                 </div>
               )}
             </Button>
