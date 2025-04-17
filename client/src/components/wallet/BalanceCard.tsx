@@ -21,9 +21,9 @@ const BalanceCard: React.FC = () => {
   const [uniAnimating, setUniAnimating] = useState<boolean>(false);
   const [tonAnimating, setTonAnimating] = useState<boolean>(false);
   
-  // Состояния для текущего прироста
-  const [uniRate] = useState<number>(0.0023); // UNI в секунду
-  const [tonRate] = useState<number>(0.00008); // TON в секунду (для демонстрации)
+  // Состояния для текущего прироста (получаем из API)
+  const [uniRate, setUniRate] = useState<number>(0);
+  const [tonRate, setTonRate] = useState<number>(0);
   
   // Предыдущие значения для анимации
   const [prevTonBalance, setPrevTonBalance] = useState<number>(tonBalance);
@@ -52,6 +52,12 @@ const BalanceCard: React.FC = () => {
     setUniBalance(newValue);
   }, [uniBalance]);
   
+  // Дополнительный запрос для получения данных о фарминге
+  const { data: farmingData } = useQuery({
+    queryKey: ['/api/uni-farming/info?user_id=1'],
+    staleTime: 60000, // 1 минута
+  });
+
   // Обновляем баланс из API при загрузке данных
   useEffect(() => {
     if (data?.success && data.data) {
@@ -66,6 +72,21 @@ const BalanceCard: React.FC = () => {
       }
     }
   }, [data, updateUniBalanceWithAnimation]);
+
+  // Обновляем скорость фарминга при получении данных
+  useEffect(() => {
+    if (farmingData?.success && farmingData.data) {
+      // Получаем скорость фарминга из API
+      const ratePerSecond = parseFloat(farmingData.data.ratePerSecond || '0');
+      if (!isNaN(ratePerSecond)) {
+        setUniRate(ratePerSecond);
+      }
+      
+      // Скорость TON фарминга (для демонстрации)
+      // В реальном приложении получать из API
+      setTonRate(0.00008);
+    }
+  }, [farmingData]);
   
   // Обновляем баланс каждую секунду для анимации прироста
   useEffect(() => {

@@ -135,7 +135,15 @@ export class UniFarmingService {
       if (balanceUni.isLessThan(depositAmount)) {
         return {
           success: false,
-          message: 'Недостаточно средств для депозита'
+          message: 'Недостаточно средств на балансе'
+        };
+      }
+      
+      // Проверка минимальной суммы пополнения (0.001 UNI)
+      if (depositAmount.isLessThan(0.001)) {
+        return {
+          success: false,
+          message: 'Минимальная сумма пополнения - 0.001 UNI'
         };
       }
       

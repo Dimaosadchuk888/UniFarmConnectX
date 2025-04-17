@@ -56,8 +56,14 @@ export class FarmingController {
       const amountFloat = parseFloat(amount);
       
       // Проверка достаточности баланса
-      if (parseFloat(user.balance_uni) < amountFloat) {
-        return sendError(res, 'Insufficient balance', 400);
+      const userBalance = user.balance_uni ? parseFloat(user.balance_uni.toString()) : 0;
+      if (userBalance < amountFloat) {
+        return sendError(res, 'Недостаточно средств на балансе', 400);
+      }
+      
+      // Проверка минимальной суммы пополнения (0.001 UNI)
+      if (amountFloat < 0.001) {
+        return sendError(res, 'Минимальная сумма пополнения - 0.001 UNI', 400);
       }
 
       // Определяем ставки в зависимости от пакета
