@@ -88,7 +88,7 @@ const TransactionHistory: React.FC = () => {
   };
   
   // Форматирование суммы транзакции с защитой от ошибок
-  const formatAmount = (amount: number, tokenType: string): string => {
+  const formatAmount = (amount: number, tokenType: string, type?: string): string => {
     try {
       // Проверяем, что amount является числом
       if (typeof amount !== 'number' || isNaN(amount)) {
@@ -98,7 +98,16 @@ const TransactionHistory: React.FC = () => {
       // Защита от отрицательных значений (для наград всегда положительный знак)
       const absoluteAmount = Math.abs(amount);
       
-      // Приводим к строке с 5 знаками после запятой
+      // Для транзакций типа boost_farming с TON токеном, используем 6 знаков после запятой 
+      // чтобы отображать микро-суммы
+      if (type === 'boost_farming' && tokenType === 'TON') {
+        // Для очень маленьких сумм TON используем фиксированное количество знаков
+        // чтобы предотвратить округление до нуля
+        const formattedTON = absoluteAmount.toFixed(6);
+        return `+${formattedTON} ${tokenType}`;
+      }
+      
+      // Для UNI и других типов транзакций используем стандартное форматирование
       let formattedAmount = absoluteAmount.toFixed(5);
       
       // Если число целое, убираем десятичную часть
@@ -109,7 +118,7 @@ const TransactionHistory: React.FC = () => {
       else if (formattedAmount.includes('.')) {
         formattedAmount = absoluteAmount.toLocaleString('en-US', {
           minimumFractionDigits: 1,
-          maximumFractionDigits: 5
+          maximumFractionDigits: tokenType === 'TON' ? 6 : 5
         }).replace(/\.?0+$/, '');
       }
       
@@ -230,7 +239,7 @@ const TransactionHistory: React.FC = () => {
                 
                 {/* Сумма транзакции */}
                 <div className={`px-2 py-1 rounded ${transaction.tokenType === 'UNI' ? 'bg-green-500/10 text-green-400' : 'bg-cyan-500/10 text-cyan-400'} font-medium text-sm`}>
-                  {formatAmount(transaction.amount, transaction.tokenType)}
+                  {formatAmount(transaction.amount, transaction.tokenType, transaction.type)}
                 </div>
               </div>
             ))
