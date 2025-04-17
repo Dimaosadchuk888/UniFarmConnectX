@@ -343,10 +343,10 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   // Функция для получения доходности буста по его ID
   const getYieldRateForBoost = (boostId: number): string => {
     const rates: Record<number, string> = {
-      1: '0.1%',
-      2: '0.2%',
-      3: '0.3%',
-      4: '0.5%'
+      1: '0.5%',
+      2: '1.0%',
+      3: '2.0%',
+      4: '2.5%'
     };
     return rates[boostId] || '0.0%';
   };
