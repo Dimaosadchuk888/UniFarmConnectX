@@ -459,7 +459,7 @@ export class TonBoostService {
             status: "confirmed"
           });
         
-        console.log(`[TonFarming] User ${userId} earned ${earnedTonThisUpdate.toString()} TON from boosts`);
+        console.log(`[TonFarming] User ${userId} earned ${earnedTonThisUpdate.toString()} TON from boosts (balance updated to ${newTonBalance})`);
       }
 
       // Проверяем минимальный порог для начисления UNI
