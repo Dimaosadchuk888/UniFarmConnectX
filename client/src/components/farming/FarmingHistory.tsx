@@ -142,11 +142,21 @@ const FarmingHistoryComponent: React.FC = () => {
       // currency = 'UNI'
       // status = 'confirmed'
       // Исключить type = 'debug'
+      console.log('[DEBUG] Типы транзакций до фильтрации:', Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.type))));
+      console.log('[DEBUG] Валюты транзакций:', Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.currency))));
+      console.log('[DEBUG] Статусы транзакций:', Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.status))));
+      
+      // Логируем каждую транзакцию для отладки
+      transactionsResponse.forEach((tx: Transaction, index: number) => {
+        console.log(`[DEBUG] Транзакция [${index}]: type=${tx.type}, currency=${tx.currency}, status=${tx.status}, amount=${tx.amount}`);
+      });
+      
+      // Упростим фильтр для диагностики проблемы
       const farmingTransactions = transactionsResponse.filter((tx: Transaction) => 
-        tx.type !== 'debug' && 
+        // Сначала проверим только базовые критерии без проверки типа
         tx.currency === 'UNI' && 
         tx.status === 'confirmed' && 
-        ['deposit', 'farming', 'check-in', 'reward'].includes(tx.type)
+        tx.type !== 'debug'
       );
       
       // ТЗ: Расширенное логирование для отладки
@@ -451,10 +461,21 @@ const FarmingHistoryComponent: React.FC = () => {
                 <pre>{JSON.stringify(farmingHistory.filter(item => item.currency === 'UNI'), null, 2)}</pre>
               </div>
               
-              {farmingHistory.filter(item => item.currency === 'UNI').length === 0 ? (
+              {/* ТЗ: Простой вывод всех транзакций для отладки */}
+              <div className="text-xs bg-black/30 p-2 mb-4 rounded">
+                <h4 className="text-sm font-medium mb-2">Простой вывод всех транзакций (без фильтрации):</h4>
+                {Array.isArray(transactionsResponse) && transactionsResponse.map((tx) => (
+                  <div key={tx.id} className="py-1 border-b border-gray-800/30">
+                    {tx.type} - {tx.amount} {tx.currency} | status: {tx.status}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Убираем фильтрацию по UNI временно в базовом выводе */}
+              {farmingHistory.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-foreground opacity-70">
-                    У вас пока нет транзакций по фармингу UNI.
+                    У вас пока нет транзакций по фармингу UNI. (Транзакции отсутствуют)
                   </p>
                 </div>
               ) : (
@@ -462,14 +483,11 @@ const FarmingHistoryComponent: React.FC = () => {
                   {/* Упрощенный вид для тестирования, как указано в ТЗ */}
                   <div className="mb-4">
                     <h4 className="text-sm font-medium mb-2">Упрощенный вид транзакций (тест):</h4>
-                    {farmingHistory
-                      .filter(item => item.currency === 'UNI')
-                      .map((item) => (
-                        <div key={item.id} className="py-2 border-b border-gray-800/30">
-                          {item.type} +{item.amount.toFixed(item.amount < 0.001 ? 7 : 2)} {item.currency} | {format(item.time, 'yyyy-MM-dd HH:mm', { locale: ru })}
-                        </div>
-                      ))
-                    }
+                    {farmingHistory.map((item) => (
+                      <div key={item.id} className="py-2 border-b border-gray-800/30">
+                        {item.type} +{item.amount.toFixed(item.amount < 0.001 ? 7 : 2)} {item.currency} | {format(item.time, 'yyyy-MM-dd HH:mm', { locale: ru })}
+                      </div>
+                    ))}
                   </div>
                   
                   {/* Оставляем стандартный вид таблицы */}
