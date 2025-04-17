@@ -51,7 +51,7 @@ export class TonBoostController {
    */
   static async purchaseTonBoost(req: Request, res: Response): Promise<void> {
     try {
-      const { user_id, boost_id } = req.body;
+      const { user_id, boost_id, payment_method } = req.body;
       
       if (!user_id || !boost_id) {
         return res.status(400).json({ 
@@ -70,17 +70,32 @@ export class TonBoostController {
         });
       }
 
-      const result = await TonBoostService.purchaseTonBoost(userId, boostId);
+      // Определяем метод оплаты (по умолчанию - внутренний баланс)
+      let paymentMethodEnum = TonBoostPaymentMethod.INTERNAL_BALANCE;
+      if (payment_method === 'external_wallet') {
+        paymentMethodEnum = TonBoostPaymentMethod.EXTERNAL_WALLET;
+      }
+
+      const result = await TonBoostService.purchaseTonBoost(userId, boostId, paymentMethodEnum);
       
       if (result.success) {
+        const responseData: any = {
+          depositId: result.depositId,
+          transactionId: result.transactionId,
+          boostPackage: result.boostPackage,
+          paymentMethod: result.paymentMethod
+        };
+
+        // Добавляем дополнительные данные для внешнего платежа
+        if (result.paymentMethod === TonBoostPaymentMethod.EXTERNAL_WALLET) {
+          responseData.paymentStatus = result.paymentStatus;
+          responseData.paymentLink = result.paymentLink;
+        }
+
         res.json({
           success: true,
           message: result.message,
-          data: {
-            depositId: result.depositId,
-            transactionId: result.transactionId,
-            boostPackage: result.boostPackage
-          }
+          data: responseData
         });
       } else {
         res.status(400).json({
@@ -143,6 +158,59 @@ export class TonBoostController {
       res.status(500).json({ 
         success: false, 
         message: "Ошибка при обновлении баланса TON фарминга"
+      });
+    }
+  }
+
+  /**
+   * Подтверждает оплату TON буст-пакета через внешний кошелек
+   */
+  static async confirmExternalPayment(req: Request, res: Response): Promise<void> {
+    try {
+      const { user_id, transaction_id } = req.body;
+      
+      if (!user_id || !transaction_id) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Не указан ID пользователя или ID транзакции"
+        });
+      }
+
+      const userId = Number(user_id);
+      const transactionId = Number(transaction_id);
+      
+      if (isNaN(userId) || isNaN(transactionId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Некорректный ID пользователя или ID транзакции"
+        });
+      }
+
+      const result = await TonBoostService.confirmExternalPayment(userId, transactionId);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: result.message,
+          data: {
+            depositId: result.depositId,
+            transactionId: result.transactionId,
+            boostPackage: result.boostPackage,
+            paymentMethod: result.paymentMethod,
+            paymentStatus: result.paymentStatus
+          }
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: result.message
+        });
+      }
+    } catch (error) {
+      console.error("[TonBoostController] Error in confirmExternalPayment:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка при подтверждении внешнего платежа"
       });
     }
   }
