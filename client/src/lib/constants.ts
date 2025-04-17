@@ -6,8 +6,7 @@ export const NAV_ITEMS = [
   { id: "farming", label: "Фарминг", icon: "seedling" },
   { id: "missions", label: "Задания", icon: "clipboard-check" },
   { id: "friends", label: "Партнёрка", icon: "users" },
-  { id: "wallet", label: "Кошелёк", icon: "wallet" },
-  { id: "ton-boost-test", label: "TON Test", icon: "flask" }
+  { id: "wallet", label: "Кошелёк", icon: "wallet" }
 ];
 
 // Farming boost packages

@@ -11,7 +11,6 @@ import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
 import Friends from "@/pages/Friends";
 import Wallet from "@/pages/Wallet";
-import TonBoostTest from "@/pages/TonBoostTest";
 
 // For Telegram WebApp types
 declare global {
@@ -41,8 +40,6 @@ function App() {
         return <Friends />;
       case "wallet":
         return <Wallet />;
-      case "ton-boost-test":
-        return <TonBoostTest />;
       default:
         return <Dashboard />;
     }
