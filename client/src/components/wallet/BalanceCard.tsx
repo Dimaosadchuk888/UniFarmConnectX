@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 
 interface WalletBalanceResponse {
   success: boolean;
@@ -40,10 +41,14 @@ const BalanceCard: React.FC = () => {
   const [prevTonBalance, setPrevTonBalance] = useState<number>(tonBalance);
   const [prevUniBalance, setPrevUniBalance] = useState<number>(uniBalance);
   
+  // Для отладки - хранение сырых данных и времени запроса
+  const [lastFetchTime, setLastFetchTime] = useState<string>('');
+  const [rawUniBalance, setRawUniBalance] = useState<string>('');
+  
   // Получаем баланс из API
   const { data, isLoading, refetch } = useQuery<WalletBalanceResponse>({
     queryKey: ['/api/wallet/balance?user_id=1'],
-    staleTime: 60000, // 1 минута
+    staleTime: 1000, // 1 секунда
   });
   
   // Функция для обновления баланса UNI с анимацией
@@ -72,6 +77,13 @@ const BalanceCard: React.FC = () => {
   // Обновляем баланс из API при загрузке данных
   useEffect(() => {
     if (data?.success && data.data) {
+      // Сохраняем время запроса для отладки
+      const now = new Date();
+      setLastFetchTime(`${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`);
+      
+      // Сохраняем сырое значение баланса для отладки
+      setRawUniBalance(data.data.balance_uni);
+      
       const apiUniBalance = parseFloat(data.data.balance_uni);
       if (!isNaN(apiUniBalance)) {
         updateUniBalanceWithAnimation(apiUniBalance);
@@ -99,19 +111,13 @@ const BalanceCard: React.FC = () => {
     }
   }, [farmingData]);
   
-  // Обновляем баланс каждую секунду для анимации прироста
+  // Обновляем баланс каждую секунду, запрашивая данные из API
   useEffect(() => {
     const interval = setInterval(() => {
-      setUniBalance(prevBalance => {
-        const newBalance = prevBalance + uniRate;
-        // Активируем анимацию обновления
-        if (uniRate > 0) {
-          setUniAnimating(true);
-          setTimeout(() => setUniAnimating(false), 500);
-        }
-        return newBalance;
-      });
+      // Запрашиваем свежий баланс из API вместо локального расчета
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance?user_id=1'] });
       
+      // Для TON токена можно оставить локальную анимацию, так как это демонстрация
       setTonBalance(prevBalance => {
         // Сохраняем предыдущее значение для сравнения
         setPrevTonBalance(prevBalance);
@@ -128,10 +134,10 @@ const BalanceCard: React.FC = () => {
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [uniRate, tonRate]);
+  }, [tonRate]);
 
   // Форматирование чисел для отображения
-  const formatNumber = (num: number, decimals: number = 3): string => {
+  const formatNumber = (num: number, decimals: number = 6): string => {
     return num.toLocaleString('en-US', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals
@@ -258,6 +264,12 @@ const BalanceCard: React.FC = () => {
               {formatRateNumber(uniRate)}
             </span>
             <span className="text-gray-400 ml-1">UNI / сек</span>
+          </div>
+          
+          {/* Отладочная информация */}
+          <div className="mt-2 text-xs text-gray-500/50">
+            Last fetch: {lastFetchTime || 'не было'}<br/>
+            Raw balance: {rawUniBalance || 'не загружен'}
           </div>
         </div>
         
