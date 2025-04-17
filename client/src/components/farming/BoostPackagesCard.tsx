@@ -70,6 +70,27 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
   
   // Пользовательский ID (хардкод для демонстрации)
   const userId = 1;
+
+  // Функция для обработки сообщений об ошибках
+  const handleErrorMessage = (message?: string) => {
+    // Проверяем наличие ключевых слов, чтобы определить тип ошибки
+    if (!message) {
+      setErrorMessage('Произошла ошибка при покупке буста');
+      return;
+    }
+    
+    // Если сообщение содержит информацию о недостаточном балансе
+    if (message.toLowerCase().includes('недостаточно') ||
+        message.toLowerCase().includes('баланс') ||
+        message.toLowerCase().includes('balance') ||
+        message.toLowerCase().includes('insufficient')) {
+      setErrorMessage('Недостаточно средств на балансе для покупки буста');
+      return;
+    }
+    
+    // Если это другая ошибка, показываем упрощенное сообщение
+    setErrorMessage(message);
+  };
   
   // Мутация для покупки TON буста
   const buyTonBoostMutation = useMutation({
@@ -104,13 +125,27 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
         queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
         queryClient.invalidateQueries({ queryKey: [`/api/ton-boosts/active`] });
       } else {
-        // Показываем сообщение об ошибке
-        setErrorMessage(data.message || 'Произошла ошибка при покупке буста');
+        // Показываем пользовательское сообщение об ошибке
+        handleErrorMessage(data.message);
       }
     },
     onError: (error: any) => {
-      // Показываем сообщение об ошибке
-      setErrorMessage(error.message || 'Произошла ошибка при покупке буста');
+      try {
+        // Пробуем распарсить JSON из ошибки, если он там есть
+        if (error.message && error.message.includes('{')) {
+          const errorJson = error.message.substring(error.message.indexOf('{'));
+          const parsedError = JSON.parse(errorJson);
+          if (parsedError && parsedError.message) {
+            handleErrorMessage(parsedError.message);
+            return;
+          }
+        }
+      } catch (e) {
+        // Ошибка парсинга, продолжаем обработку
+      }
+
+      // Показываем общее сообщение об ошибке
+      handleErrorMessage(error.message);
     },
     onSettled: () => {
       // Сбрасываем ID буста после завершения операции
