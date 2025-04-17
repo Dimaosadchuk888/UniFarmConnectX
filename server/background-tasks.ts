@@ -1,7 +1,8 @@
 import { db } from './db';
-import { users } from '@shared/schema';
+import { users, uniFarmingDeposits } from '@shared/schema';
 import { UniFarmingService } from './services/uniFarmingService';
-import { and, ne, isNotNull } from 'drizzle-orm';
+import { NewUniFarmingService } from './services/newUniFarmingService';
+import { and, ne, isNotNull, eq } from 'drizzle-orm';
 
 /**
  * Запускает фоновые задачи, которые выполняются периодически
@@ -23,17 +24,34 @@ let lastLogTime = 0;
  */
 async function updateAllUsersFarming(): Promise<void> {
   try {
-    // Получаем всех пользователей с активным фармингом
-    const activeUsers = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(
-        /* WHERE uni_deposit_amount > 0 AND uni_farming_start_timestamp IS NOT NULL */
-        and(
-          ne(users.uni_deposit_amount, '0'),
-          isNotNull(users.uni_farming_start_timestamp)
-        )
-      );
+    // Получаем всех пользователей с активными депозитами в новой таблице
+    const usersWithDeposits = await db
+      .select({
+        user_id: uniFarmingDeposits.user_id
+      })
+      .from(uniFarmingDeposits)
+      .where(eq(uniFarmingDeposits.is_active, true))
+      .groupBy(uniFarmingDeposits.user_id);
+
+    // Если у нас не нашлось новых депозитов, проверяем старую систему
+    let activeUsers = usersWithDeposits.map(record => ({ id: record.user_id }));
+
+    // Если нет новых депозитов, проверяем пользователей в старой системе
+    if (activeUsers.length === 0) {
+      // Получаем всех пользователей с активным фармингом по старой схеме
+      const legacyUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(
+          /* WHERE uni_deposit_amount > 0 AND uni_farming_start_timestamp IS NOT NULL */
+          and(
+            ne(users.uni_deposit_amount, '0'),
+            isNotNull(users.uni_farming_start_timestamp)
+          )
+        );
+      
+      activeUsers = legacyUsers;
+    }
     
     if (activeUsers.length === 0) {
       return;
@@ -48,7 +66,22 @@ async function updateAllUsersFarming(): Promise<void> {
     
     // Обновляем фарминг для каждого пользователя
     for (const user of activeUsers) {
-      await UniFarmingService.calculateAndUpdateUserFarming(user.id);
+      // Сначала проверяем, есть ли у пользователя новые депозиты
+      const newDeposits = await db
+        .select()
+        .from(uniFarmingDeposits)
+        .where(and(
+          eq(uniFarmingDeposits.user_id, user.id),
+          eq(uniFarmingDeposits.is_active, true)
+        ));
+      
+      if (newDeposits.length > 0) {
+        // Если есть новые депозиты, используем новый сервис
+        await NewUniFarmingService.calculateAndUpdateUserFarming(user.id);
+      } else {
+        // Если нет новых депозитов, используем старый сервис для обратной совместимости
+        await UniFarmingService.calculateAndUpdateUserFarming(user.id);
+      }
     }
     
     // Выводим лог об успехе также только раз в 10 секунд

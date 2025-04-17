@@ -1,11 +1,15 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/userService';
 import { UniFarmingService } from '../services/uniFarmingService';
+import { NewUniFarmingService } from '../services/newUniFarmingService';
 import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
 import { extractUserId } from '../utils/validationUtils';
 import { getUserParamsSchema } from '../validators/schemas';
 import { ZodError } from 'zod';
 import BigNumber from 'bignumber.js';
+import { db } from '../db';
+import { uniFarmingDeposits, users } from '@shared/schema';
+import { and, eq } from 'drizzle-orm';
 
 /**
  * Контроллер для работы с пользователями
@@ -98,11 +102,25 @@ export class UserController {
         return sendError(res, 'Invalid user ID', 400);
       }
       
+      // Проверяем наличие новых депозитов
+      const newDeposits = await db
+        .select()
+        .from(uniFarmingDeposits)
+        .where(and(
+          eq(uniFarmingDeposits.user_id, userId),
+          eq(uniFarmingDeposits.is_active, true)
+        ));
+      
       // Обновляем фарминг перед получением данных из базы
       // Это гарантирует, что мы получим актуальный баланс
       try {
-        // Используем правильный импорт TypeScript вместо require()
-        await UniFarmingService.calculateAndUpdateUserFarming(userId);
+        if (newDeposits.length > 0) {
+          // Если есть новые депозиты, используем новый сервис
+          await NewUniFarmingService.calculateAndUpdateUserFarming(userId);
+        } else {
+          // Иначе используем старый сервис для обратной совместимости
+          await UniFarmingService.calculateAndUpdateUserFarming(userId);
+        }
       } catch (farmingError) {
         console.error('[getUserBalance] Error updating farming before balance fetch:', farmingError);
         // Не возвращаем ошибку, так как основная функция - получение баланса
@@ -133,14 +151,46 @@ export class UserController {
       // Логируем для отладки полное значение как основного, так и виртуального баланса
       console.log(`[getUserBalance] User ${userId} balance: ${baseUniBalance.toFixed(8)} UNI + ${farmingAccumulated.toFixed(8)} (virtual: ${balanceUni})`);
 
+      // Получаем информацию о фарминге для новых депозитов
+      let uniFarmingInfo = {
+        active: false,
+        depositAmount: '0',
+        depositCount: 0,
+        ratePerSecond: '0'
+      };
+
+      if (newDeposits.length > 0) {
+        // Если есть новые депозиты, собираем статистику
+        const totalDepositsAmount = newDeposits.reduce((sum, deposit) => 
+          sum.plus(new BigNumber(deposit.amount.toString())), new BigNumber(0));
+          
+        const totalRatePerSecond = newDeposits.reduce((sum, deposit) => 
+          sum.plus(new BigNumber(deposit.rate_per_second.toString())), new BigNumber(0));
+        
+        uniFarmingInfo = {
+          active: true,
+          depositAmount: totalDepositsAmount.toFixed(6),
+          depositCount: newDeposits.length,
+          ratePerSecond: totalRatePerSecond.toFixed(12)
+        };
+      } else if (user.uni_deposit_amount && new BigNumber(user.uni_deposit_amount).gt(0)) {
+        // Для обратной совместимости используем старые данные
+        uniFarmingInfo = {
+          active: true,
+          depositAmount: new BigNumber(user.uni_deposit_amount).toFixed(6),
+          depositCount: 1,
+          ratePerSecond: UniFarmingService.calculateRatePerSecond(user.uni_deposit_amount)
+        };
+      }
+
       sendSuccess(res, {
         balance_uni: balanceUni,
         balance_ton: balanceTon,
-        // Добавляем дополнительные данные для фарминга (если есть)
-        uni_farming_active: user.uni_deposit_amount && 
-                          new BigNumber(user.uni_deposit_amount).gt(0) ? true : false,
-        uni_deposit_amount: user.uni_deposit_amount ? 
-                          new BigNumber(user.uni_deposit_amount).toFixed(6) : '0.000000',
+        // Добавляем дополнительные данные для фарминга
+        uni_farming_active: uniFarmingInfo.active,
+        uni_deposit_amount: uniFarmingInfo.depositAmount,
+        uni_deposit_count: uniFarmingInfo.depositCount,
+        uni_farming_rate: uniFarmingInfo.ratePerSecond,
         uni_farming_balance: user.uni_farming_balance ? 
                            new BigNumber(user.uni_farming_balance).toFixed(8) : '0.00000000' // Увеличиваем точность
       });
