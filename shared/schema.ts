@@ -191,6 +191,7 @@ export const tonBoostDeposits = pgTable("ton_boost_deposits", {
   bonus_uni: numeric("bonus_uni", { precision: 18, scale: 6 }).notNull(), // Единоразовый бонус UNI
   rate_ton_per_second: numeric("rate_ton_per_second", { precision: 20, scale: 18 }).notNull(), // Скорость фарминга TON
   rate_uni_per_second: numeric("rate_uni_per_second", { precision: 20, scale: 18 }).notNull(), // Скорость фарминга UNI
+  accumulated_ton: numeric("accumulated_ton", { precision: 18, scale: 10 }).default("0"), // Накопленный TON, ожидающий начисления
   created_at: timestamp("created_at").defaultNow().notNull(), // Дата открытия
   last_updated_at: timestamp("last_updated_at").defaultNow().notNull(), // Время последнего начисления
   is_active: boolean("is_active").default(true) // Активен ли буст
@@ -203,6 +204,7 @@ export const insertTonBoostDepositSchema = createInsertSchema(tonBoostDeposits).
   bonus_uni: true,
   rate_ton_per_second: true,
   rate_uni_per_second: true,
+  accumulated_ton: true,
   is_active: true
 });
 

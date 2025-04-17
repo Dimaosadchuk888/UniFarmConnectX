@@ -84,7 +84,7 @@ export interface TonFarmingInfo {
 export class TonBoostService {
   // Константы для расчетов
   private static readonly SECONDS_IN_DAY = 86400;
-  private static readonly TON_MIN_CHANGE_THRESHOLD = 0.0000000001; // Значительно уменьшен порог для обновления баланса в БД
+  private static readonly TON_MIN_CHANGE_THRESHOLD = 0.000001; // Минимальный порог для обновления баланса в БД (0.000001 TON)
   
   // Каталог буст-пакетов
   private static readonly boostPackages: TonBoostPackage[] = [
@@ -430,15 +430,23 @@ export class TonBoostService {
           await db
             .update(tonBoostDeposits)
             .set({
-              last_updated_at: now
+              last_updated_at: now,
+              accumulated_ton: new BigNumber(deposit.accumulated_ton || "0").plus(earnedTon).toString()
             })
             .where(eq(tonBoostDeposits.id, deposit.id));
         }
       }
 
+      // Получить все накопления TON из депозитов
+      const allDeposits = await this.getUserActiveBoosts(userId);
+      let totalAccumulatedTon = new BigNumber(0);
+      for (const deposit of allDeposits) {
+        totalAccumulatedTon = totalAccumulatedTon.plus(deposit.accumulated_ton || "0");
+      }
+
       // Проверяем минимальный порог для начисления TON
-      if (earnedTonThisUpdate.isGreaterThanOrEqualTo(this.TON_MIN_CHANGE_THRESHOLD)) {
-        const newTonBalance = new BigNumber(user.balance_ton || "0").plus(earnedTonThisUpdate).toString();
+      if (totalAccumulatedTon.isGreaterThanOrEqualTo(this.TON_MIN_CHANGE_THRESHOLD)) {
+        const newTonBalance = new BigNumber(user.balance_ton || "0").plus(totalAccumulatedTon).toString();
         
         // Обновляем баланс TON
         await db
@@ -455,11 +463,23 @@ export class TonBoostService {
             user_id: userId,
             type: "boost_farming",
             currency: "TON",
-            amount: earnedTonThisUpdate.toString(),
+            amount: totalAccumulatedTon.toString(),
             status: "confirmed"
           });
         
-        console.log(`[TonFarming] User ${userId} earned ${earnedTonThisUpdate.toString()} TON from boosts (balance updated to ${newTonBalance})`);
+        // Обнуляем накопления во всех депозитах
+        for (const deposit of allDeposits) {
+          await db
+            .update(tonBoostDeposits)
+            .set({
+              accumulated_ton: "0"
+            })
+            .where(eq(tonBoostDeposits.id, deposit.id));
+        }
+        
+        console.log(`[TonFarming] User ${userId} earned ${totalAccumulatedTon.toString()} TON from boosts (balance updated to ${newTonBalance})`);
+      } else {
+        console.log(`[TonFarming] User ${userId} accumulated ${totalAccumulatedTon.toString()} TON (waiting for threshold ${this.TON_MIN_CHANGE_THRESHOLD})`);
       }
 
       // Проверяем минимальный порог для начисления UNI
