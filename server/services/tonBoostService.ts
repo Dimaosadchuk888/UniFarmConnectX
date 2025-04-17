@@ -92,7 +92,7 @@ export class TonBoostService {
       id: 1,
       name: "Small Boost",
       priceTon: "1.0",
-      bonusUni: "100.0",
+      bonusUni: "10000.0",
       rateTon: "0.1",    // 0.1% в день для TON
       rateUni: "0.0"     // Нет дополнительного бонуса в UNI
     },
@@ -100,7 +100,7 @@ export class TonBoostService {
       id: 2,
       name: "Medium Boost",
       priceTon: "5.0",
-      bonusUni: "600.0",
+      bonusUni: "10000.0",
       rateTon: "0.2",    // 0.2% в день для TON
       rateUni: "0.05"    // 0.05% в день для UNI
     },
@@ -108,7 +108,7 @@ export class TonBoostService {
       id: 3,
       name: "Large Boost",
       priceTon: "10.0",
-      bonusUni: "1300.0",
+      bonusUni: "10000.0",
       rateTon: "0.3",    // 0.3% в день для TON
       rateUni: "0.1"     // 0.1% в день для UNI
     },
@@ -116,7 +116,7 @@ export class TonBoostService {
       id: 4,
       name: "Mega Boost",
       priceTon: "25.0",
-      bonusUni: "4000.0",
+      bonusUni: "10000.0",
       rateTon: "0.5",    // 0.5% в день для TON
       rateUni: "0.2"     // 0.2% в день для UNI
     }
