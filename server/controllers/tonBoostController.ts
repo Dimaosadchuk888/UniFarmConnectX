@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { TonBoostService } from "../services/tonBoostService";
+import { TonBoostService, TonBoostPaymentMethod } from "../services/tonBoostService";
 
 /**
  * Контроллер для работы с TON Boost-пакетами

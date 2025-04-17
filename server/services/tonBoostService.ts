@@ -22,6 +22,23 @@ interface TonBoostPackage {
 }
 
 /**
+ * Метод оплаты TON буст-пакета
+ */
+export enum TonBoostPaymentMethod {
+  INTERNAL_BALANCE = 'internal_balance',
+  EXTERNAL_WALLET = 'external_wallet'
+}
+
+/**
+ * Статус оплаты TON буст-пакета через внешний кошелек
+ */
+export enum TonBoostExternalPaymentStatus {
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+  FAILED = 'failed'
+}
+
+/**
  * Результат покупки буста
  */
 interface PurchaseTonBoostResult {
@@ -30,6 +47,9 @@ interface PurchaseTonBoostResult {
   boostPackage?: TonBoostPackage;
   transactionId?: number;
   depositId?: number;
+  paymentMethod?: TonBoostPaymentMethod;
+  paymentStatus?: TonBoostExternalPaymentStatus;
+  paymentLink?: string;
 }
 
 /**
@@ -182,9 +202,24 @@ export class TonBoostService {
    * Покупает TON буст-пакет для пользователя
    * @param userId ID пользователя
    * @param boostId ID буст-пакета
+   * @param paymentMethod Метод оплаты (по умолчанию - внутренний баланс)
    * @returns Результат покупки
    */
-  static async purchaseTonBoost(userId: number, boostId: number): Promise<PurchaseTonBoostResult> {
+  // Адрес TON кошелька для внешних платежей (временная заглушка)
+  private static readonly TON_WALLET_ADDRESS = "EQDrLq-X6jKZNHAScgghh0h1iog3StK71zn8dcmrOvvUjUJM";
+  
+  /**
+   * Покупает TON буст-пакет для пользователя
+   * @param userId ID пользователя
+   * @param boostId ID буст-пакета
+   * @param paymentMethod Метод оплаты (по умолчанию - внутренний баланс)
+   * @returns Результат покупки
+   */
+  static async purchaseTonBoost(
+    userId: number, 
+    boostId: number, 
+    paymentMethod: TonBoostPaymentMethod = TonBoostPaymentMethod.INTERNAL_BALANCE
+  ): Promise<PurchaseTonBoostResult> {
     try {
       // Получаем информацию о буст-пакете
       const boostPackage = this.getBoostPackageById(boostId);
@@ -208,90 +243,121 @@ export class TonBoostService {
         };
       }
 
-      // Проверяем достаточно ли средств
-      const userTonBalance = new BigNumber(user.balance_ton || "0");
-      const boostPrice = new BigNumber(boostPackage.priceTon);
-
-      if (userTonBalance.isLessThan(boostPrice)) {
+      // Различная обработка в зависимости от метода оплаты
+      if (paymentMethod === TonBoostPaymentMethod.EXTERNAL_WALLET) {
+        // Генерируем ссылку на оплату через внешний кошелек
+        const paymentLink = `ton://transfer/${this.TON_WALLET_ADDRESS}?amount=${boostPackage.priceTon}&text=UniFarmBoost:${userId}:${boostId}`;
+        
+        // Создаем транзакцию с статусом pending
+        const [pendingTransaction] = await db
+          .insert(transactions)
+          .values({
+            user_id: userId,
+            type: "boost_purchase_external",
+            currency: "TON",
+            amount: boostPackage.priceTon,
+            status: "pending"
+          })
+          .returning();
+        
         return {
-          success: false,
-          message: "Недостаточно средств на балансе"
+          success: true,
+          message: "Создана заявка на покупку буст-пакета через внешний кошелек",
+          boostPackage,
+          transactionId: pendingTransaction.id,
+          paymentMethod: TonBoostPaymentMethod.EXTERNAL_WALLET,
+          paymentStatus: TonBoostExternalPaymentStatus.PENDING,
+          paymentLink
+        };
+      } else {
+        // Оплата с внутреннего баланса
+        
+        // Проверяем достаточно ли средств
+        const userTonBalance = new BigNumber(user.balance_ton || "0");
+        const boostPrice = new BigNumber(boostPackage.priceTon);
+
+        if (userTonBalance.isLessThan(boostPrice)) {
+          return {
+            success: false,
+            message: "Недостаточно средств на балансе"
+          };
+        }
+
+        // Транзакция для списания средств
+        // 1. Обновляем баланс пользователя
+        const newTonBalance = userTonBalance.minus(boostPrice).toString();
+        await db
+          .update(users)
+          .set({
+            balance_ton: newTonBalance
+          })
+          .where(eq(users.id, userId));
+
+        // 2. Создаем транзакцию списания TON
+        const [withdrawTransaction] = await db
+          .insert(transactions)
+          .values({
+            user_id: userId,
+            type: "boost_purchase",
+            currency: "TON",
+            amount: boostPrice.negated().toString(),
+            status: "confirmed"
+          })
+          .returning();
+        
+        // 3. Рассчитываем скорость начисления TON и UNI
+        const { tonRatePerSecond, uniRatePerSecond } = this.calculateRatesPerSecond(
+          boostPackage.priceTon,
+          boostPackage.rateTon,
+          boostPackage.rateUni
+        );
+
+        // 4. Создаем новый TON Boost-депозит
+        const [deposit] = await db
+          .insert(tonBoostDeposits)
+          .values({
+            user_id: userId,
+            ton_amount: boostPackage.priceTon,
+            bonus_uni: boostPackage.bonusUni,
+            rate_ton_per_second: tonRatePerSecond,
+            rate_uni_per_second: uniRatePerSecond,
+            is_active: true
+          })
+          .returning();
+
+        // 5. Начисляем бонус UNI пользователю
+        const userUniBalance = new BigNumber(user.balance_uni || "0");
+        const bonusUni = new BigNumber(boostPackage.bonusUni);
+        const newUniBalance = userUniBalance.plus(bonusUni).toString();
+
+        await db
+          .update(users)
+          .set({
+            balance_uni: newUniBalance
+          })
+          .where(eq(users.id, userId));
+
+        // 6. Создаем транзакцию начисления бонуса UNI
+        const [bonusTransaction] = await db
+          .insert(transactions)
+          .values({
+            user_id: userId,
+            type: "boost_bonus",
+            currency: "UNI",
+            amount: bonusUni.toString(),
+            status: "confirmed"
+          })
+          .returning();
+
+        return {
+          success: true,
+          message: "Буст-пакет успешно приобретен",
+          boostPackage,
+          transactionId: withdrawTransaction.id,
+          depositId: deposit.id,
+          paymentMethod: TonBoostPaymentMethod.INTERNAL_BALANCE
         };
       }
-
-      // Транзакция для списания средств
-      // 1. Обновляем баланс пользователя
-      const newTonBalance = userTonBalance.minus(boostPrice).toString();
-      await db
-        .update(users)
-        .set({
-          balance_ton: newTonBalance
-        })
-        .where(eq(users.id, userId));
-
-      // 2. Создаем транзакцию списания TON
-      const [withdrawTransaction] = await db
-        .insert(transactions)
-        .values({
-          user_id: userId,
-          type: "boost_purchase",
-          currency: "TON",
-          amount: boostPrice.negated().toString(),
-          status: "confirmed"
-        })
-        .returning();
-      
-      // 3. Рассчитываем скорость начисления TON и UNI
-      const { tonRatePerSecond, uniRatePerSecond } = this.calculateRatesPerSecond(
-        boostPackage.priceTon,
-        boostPackage.rateTon,
-        boostPackage.rateUni
-      );
-
-      // 4. Создаем новый TON Boost-депозит
-      const [deposit] = await db
-        .insert(tonBoostDeposits)
-        .values({
-          user_id: userId,
-          ton_amount: boostPackage.priceTon,
-          bonus_uni: boostPackage.bonusUni,
-          rate_ton_per_second: tonRatePerSecond,
-          rate_uni_per_second: uniRatePerSecond,
-          is_active: true
-        })
-        .returning();
-
-      // 5. Начисляем бонус UNI пользователю
-      const userUniBalance = new BigNumber(user.balance_uni || "0");
-      const bonusUni = new BigNumber(boostPackage.bonusUni);
-      const newUniBalance = userUniBalance.plus(bonusUni).toString();
-
-      await db
-        .update(users)
-        .set({
-          balance_uni: newUniBalance
-        })
-        .where(eq(users.id, userId));
-
-      // 6. Создаем транзакцию начисления бонуса UNI
-      const [bonusTransaction] = await db
-        .insert(transactions)
-        .values({
-          user_id: userId,
-          type: "boost_bonus",
-          currency: "UNI",
-          amount: bonusUni.toString(),
-          status: "confirmed"
-        })
-        .returning();
-
-      return {
-        success: true,
-        message: "Буст-пакет успешно приобретен",
-        boostPackage,
-        transactionId: withdrawTransaction.id,
-        depositId: deposit.id
-      };
     } catch (error) {
       console.error("[TonBoostService] Error purchasing boost:", error);
       return {
@@ -433,6 +499,130 @@ export class TonBoostService {
     } catch (error) {
       console.error("[TonBoostService] Error calculating TON farming:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Подтверждает оплату TON буст-пакета через внешний кошелек
+   * @param userId ID пользователя
+   * @param transactionId ID транзакции в статусе pending
+   * @returns Результат подтверждения
+   */
+  static async confirmExternalPayment(userId: number, transactionId: number): Promise<PurchaseTonBoostResult> {
+    try {
+      // Получаем информацию о пользователе
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+
+      if (!user) {
+        return {
+          success: false,
+          message: "Пользователь не найден"
+        };
+      }
+
+      // Получаем транзакцию
+      const [transaction] = await db
+        .select()
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.id, transactionId),
+            eq(transactions.user_id, userId),
+            eq(transactions.type, "boost_purchase_external"),
+            eq(transactions.status, "pending")
+          )
+        );
+
+      if (!transaction) {
+        return {
+          success: false,
+          message: "Транзакция не найдена или уже подтверждена"
+        };
+      }
+
+      // Обновляем статус транзакции
+      await db
+        .update(transactions)
+        .set({
+          status: "confirmed"
+        })
+        .where(eq(transactions.id, transactionId));
+
+      // Размер буст-пакета - это сумма транзакции
+      const amount = transaction.amount;
+      
+      // Находим буст-пакет с соответствующей ценой
+      const boostPackage = this.boostPackages.find(pkg => pkg.priceTon === amount);
+      
+      if (!boostPackage) {
+        return {
+          success: false,
+          message: "Не удалось найти соответствующий буст-пакет"
+        };
+      }
+
+      // Рассчитываем скорость начисления TON и UNI
+      const { tonRatePerSecond, uniRatePerSecond } = this.calculateRatesPerSecond(
+        boostPackage.priceTon,
+        boostPackage.rateTon,
+        boostPackage.rateUni
+      );
+
+      // Создаем новый TON Boost-депозит
+      const [deposit] = await db
+        .insert(tonBoostDeposits)
+        .values({
+          user_id: userId,
+          ton_amount: boostPackage.priceTon,
+          bonus_uni: boostPackage.bonusUni,
+          rate_ton_per_second: tonRatePerSecond,
+          rate_uni_per_second: uniRatePerSecond,
+          is_active: true
+        })
+        .returning();
+
+      // Начисляем бонус UNI пользователю
+      const userUniBalance = new BigNumber(user.balance_uni || "0");
+      const bonusUni = new BigNumber(boostPackage.bonusUni);
+      const newUniBalance = userUniBalance.plus(bonusUni).toString();
+
+      await db
+        .update(users)
+        .set({
+          balance_uni: newUniBalance
+        })
+        .where(eq(users.id, userId));
+
+      // Создаем транзакцию начисления бонуса UNI
+      const [bonusTransaction] = await db
+        .insert(transactions)
+        .values({
+          user_id: userId,
+          type: "boost_bonus",
+          currency: "UNI",
+          amount: bonusUni.toString(),
+          status: "confirmed"
+        })
+        .returning();
+
+      return {
+        success: true,
+        message: "Внешняя оплата подтверждена, буст-пакет активирован",
+        boostPackage,
+        transactionId: transaction.id,
+        depositId: deposit.id,
+        paymentMethod: TonBoostPaymentMethod.EXTERNAL_WALLET,
+        paymentStatus: TonBoostExternalPaymentStatus.COMPLETED
+      };
+    } catch (error) {
+      console.error("[TonBoostService] Error confirming external payment:", error);
+      return {
+        success: false,
+        message: "Произошла ошибка при подтверждении оплаты"
+      };
     }
   }
 
