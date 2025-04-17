@@ -121,15 +121,27 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     if (Array.isArray(transactionsResponse)) {
       console.log('[DEBUG] Transactions API Response:', transactionsResponse);
       
-      // Фильтрация по критериям ТЗ:
+      // Отладочный вывод всех типов транзакций
+      console.log('[DEBUG] Все типы транзакций:', 
+        Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.type))));
+      console.log('[DEBUG] Все валюты транзакций:', 
+        Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.currency))));
+      console.log('[DEBUG] Все статусы транзакций:', 
+        Array.from(new Set(transactionsResponse.map((tx: Transaction) => tx.status))));
+      
+      // Ищем новые транзакции с депозитом 9 UNI
+      const newDeposit = transactionsResponse.find((tx: Transaction) => 
+        tx.amount === '9.000000' && tx.currency === 'UNI');
+      console.log('[DEBUG] Найдена транзакция с депозитом 9 UNI:', newDeposit);
+      
+      // Фильтрация:
       // type = deposit, farming, check-in, reward
       // currency = 'UNI'
-      // status = 'confirmed'
       // Исключить type = 'debug'
+      // ОБНОВЛЕНО: не фильтруем по статусу, так как возможны статусы кроме 'confirmed'
       const farmingTransactions = transactionsResponse.filter((tx: Transaction) => 
         tx.type !== 'debug' && 
         tx.currency === 'UNI' && 
-        tx.status === 'confirmed' && 
         ['deposit', 'farming', 'check-in', 'reward'].includes(tx.type)
       );
       
@@ -659,6 +671,27 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           ) : (
             renderHistoryTab()
           )}
+
+          {/* Отладочный вывод текущих транзакций */}
+          <div className="mt-6 p-4 bg-black/30 rounded text-xs overflow-auto max-h-[300px]">
+            <h3 className="text-sm font-medium mb-2">Отладочная информация:</h3>
+            <div className="mb-2">
+              <p className="font-semibold text-blue-300">API Query:</p>
+              <pre className="overflow-x-auto">GET /api/transactions?user_id={validUserId}</pre>
+            </div>
+            <div className="mb-2">
+              <p className="font-semibold text-blue-300">Все транзакции из API (кол-во: {Array.isArray(transactionsResponse) ? transactionsResponse.length : 0}):</p>
+              <pre className="overflow-x-auto">{JSON.stringify(transactionsResponse, null, 2)}</pre>
+            </div>
+            <div className="mb-2">
+              <p className="font-semibold text-green-300">UNI транзакции после фильтрации (кол-во: {farmingHistory.filter(h => h.currency === 'UNI').length}):</p>
+              <pre className="overflow-x-auto">{JSON.stringify(farmingHistory.filter(h => h.currency === 'UNI'), null, 2)}</pre>
+            </div>
+            <div className="mb-2">
+              <p className="font-semibold text-yellow-300">Текущий фарминг депозит:</p>
+              <pre className="overflow-x-auto">{JSON.stringify(uniFarmingResponse, null, 2)}</pre>
+            </div>
+          </div>
         </div>
       </div>
     </div>
