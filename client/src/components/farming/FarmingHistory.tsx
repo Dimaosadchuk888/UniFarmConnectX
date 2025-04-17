@@ -456,7 +456,7 @@ const FarmingHistoryComponent: React.FC = () => {
                       .filter(item => item.currency === 'UNI')
                       .map((item) => (
                         <div key={item.id} className="py-2 border-b border-gray-800/30">
-                          {item.type} | {item.amount.toFixed(item.amount < 0.001 ? 7 : 2)} {item.currency} | {formatDate(item.time)}
+                          {item.type} +{item.amount.toFixed(item.amount < 0.001 ? 7 : 2)} {item.currency} | {format(item.time, 'yyyy-MM-dd HH:mm', { locale: ru })}
                         </div>
                       ))
                     }
