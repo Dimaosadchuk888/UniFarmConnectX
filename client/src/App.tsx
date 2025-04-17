@@ -35,13 +35,16 @@ function App() {
   const [userId, setUserId] = useState<number | null>(null);
   const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
 
-  // Инициализация Telegram WebApp и авторизация при запуске
+  // Инициализация Telegram WebApp и TonConnect при запуске
   useEffect(() => {
     // Если это Telegram WebApp, инициализируем его
     if (isTelegramWebApp()) {
       initTelegramWebApp();
       authenticateWithTelegram();
     }
+    
+    // Инициализируем TonConnect для подключения кошелька
+    initTonConnect();
   }, []);
 
   // Авторизация через Telegram
