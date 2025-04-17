@@ -102,19 +102,31 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     const farmingDeposits: FarmingDeposit[] = [];
     let historyItems: FarmingHistory[] = [];
     
-    // Если есть активный UNI фарминг, добавляем в депозиты
-    if (uniFarmingResponse?.success && uniFarmingResponse.data.isActive) {
+    // Всегда создаем депозит из текущих данных для отладки и проверки
+    // Это нужно, чтобы увидеть данные в карточке с крайними параметрами
+    if (uniFarmingResponse?.success) {
+      // Проверка существующего активного депозита
+      const isActive = uniFarmingResponse.data.isActive;
+      const depositAmount = uniFarmingResponse.data.depositAmount || '9.000000';
+      
+      console.log('[DEBUG] Создаем фарминг-депозит:', isActive ? 'Активный' : 'Неактивный', 'Сумма:', depositAmount);
+      
+      // Всегда добавляем депозит, даже если он не активен - для отладки
       farmingDeposits.push({
         id: 1,
         packageId: 0, // 0 значит основной UNI фарминг
-        createdAt: new Date(uniFarmingResponse.data.startDate),
-        isActive: true,
-        uniYield: "0.5%",
+        createdAt: new Date(uniFarmingResponse.data.startDate || Date.now()),
+        isActive: true, // Принудительно устанавливаем true для отладки
+        uniYield: "0.5%", 
         tonYield: "0.0%",
         bonus: "0 UNI",
-        amount: uniFarmingResponse.data.depositAmount,
+        amount: depositAmount,
         daysLeft: 365
       });
+      
+      console.log('[DEBUG] Создан депозит:', farmingDeposits[0]);
+    } else {
+      console.log('[DEBUG] uniFarmingResponse не содержит success === true:', uniFarmingResponse);
     }
     
     // Обработка транзакций
@@ -426,6 +438,12 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
             <h3 className="text-md font-medium mb-4">История UNI фарминга</h3>
             
             <div className="overflow-hidden relative">
+              {/* Отладочная информация о состоянии farmingHistory */}
+              <div className="bg-red-900/30 p-2 mb-4 rounded text-xs">
+                <p>История транзакций (всего): {farmingHistory.length}</p>
+                <p>UNI транзакции: {farmingHistory.filter(item => item.currency === 'UNI').length}</p>
+              </div>
+              
               {farmingHistory.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-foreground opacity-70">
@@ -433,18 +451,31 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                   </p>
                 </div>
               ) : (
-                <table className="w-full">
-                  <thead className="sticky top-0 bg-card z-10">
-                    <tr className="border-b border-gray-800">
-                      <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
-                      <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
-                      <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {farmingHistory
-                      .filter(item => item.currency === 'UNI')
-                      .map((item) => (
+                <>
+                  {/* Временный список всех транзакций для отладки */}
+                  <div className="mb-4 p-3 border border-dashed border-gray-600 rounded">
+                    <h4 className="text-sm font-semibold mb-2">Все транзакции (отладка):</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {farmingHistory.map(tx => (
+                        <div key={tx.id} className="bg-card/50 p-2 rounded text-xs">
+                          <p className="text-green-400">{tx.amount} {tx.currency}</p>
+                          <p className="text-xs opacity-70">{tx.type}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <table className="w-full">
+                    <thead className="sticky top-0 bg-card z-10">
+                      <tr className="border-b border-gray-800">
+                        <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
+                        <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
+                        <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* ВАЖНО: Здесь убрана дополнительная фильтрация по UNI - это может быть причиной проблемы */}
+                      {farmingHistory.map((item) => (
                         <tr 
                           key={item.id} 
                           className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
@@ -452,13 +483,16 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                           <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
                           <td className="py-2 text-sm text-foreground">{item.type}</td>
                           <td className="py-2 text-sm text-right">
-                            <span className="text-purple-300">+{item.amount.toFixed(item.amount < 0.001 ? 6 : 2)}</span>
-                            <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                            <span className={item.currency === 'UNI' ? "text-purple-300" : "text-blue-300"}>
+                              +{item.amount.toFixed(item.amount < 0.001 ? 6 : 2)}
+                            </span>
+                            <span className="text-gray-400 ml-1.5 text-xs">{item.currency}</span>
                           </td>
                         </tr>
-                    ))}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
               )}
             </div>
           </div>
