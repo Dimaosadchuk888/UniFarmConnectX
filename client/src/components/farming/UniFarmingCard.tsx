@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import BigNumber from 'bignumber.js';
@@ -7,21 +7,35 @@ interface UniFarmingCardProps {
   userData: any;
 }
 
+interface FarmingInfo {
+  isActive: boolean;
+  depositAmount: string;
+  ratePerSecond: string;
+  startDate?: string | null;
+  uni_farming_start_timestamp?: string | null;
+}
+
 const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const queryClient = useQueryClient();
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const [localFarmingBalance, setLocalFarmingBalance] = useState<string>('0');
   
   // Получаем информацию о фарминге
   const { data: farmingResponse, isLoading } = useQuery({
     queryKey: ['/api/uni-farming/info?user_id=1'], // Добавляем user_id в запрос
-    refetchInterval: 30000, // Обновляем данные каждые 30 секунд
+    refetchInterval: 10000, // Обновляем данные каждые 10 секунд чтобы видеть текущий баланс
   });
   
   // Извлекаем данные фарминга из ответа API
-  const farmingData = (farmingResponse as any)?.data || { isActive: false, depositAmount: '0', farmingBalance: '0', ratePerSecond: '0' };
-  const farmingInfo = farmingData;
+  const farmingData = (farmingResponse as any)?.data || { 
+    isActive: false, 
+    depositAmount: '0', 
+    ratePerSecond: '0',
+    startDate: null,
+    uni_farming_start_timestamp: null 
+  };
+  
+  const farmingInfo: FarmingInfo = farmingData;
   
   // Мутация для создания фарминг-депозита
   const depositMutation = useMutation({
@@ -44,21 +58,22 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     },
   });
   
-  // Мутация для сбора накопленного баланса
-  const harvestMutation = useMutation({
+  // Информационная мутация (просто для показа информации о новом механизме)
+  const infoMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest('POST', '/api/uni-farming/harvest', { user_id: 1 });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Показываем информацию о новом механизме
+      setError(data.message || 'Доход автоматически начисляется на ваш баланс UNI');
+      
       // Обновляем данные
       queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
       queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
     },
     onError: (error: Error) => {
-      setError(error.message || 'Произошла ошибка при сборе средств');
+      setError('Ошибка при обновлении данных');
     },
   });
   
@@ -94,44 +109,15 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     }
   };
   
-  // Обработчик сбора средств (автоматически выполняется в фоне)
-  // Больше не используется через UI
-  const handleHarvest = () => {
-    harvestMutation.mutate();
+  // Обработчик для показа информации о новом механизме автоматического начисления
+  const handleShowInfo = () => {
+    infoMutation.mutate();
   };
-  
-  // Эффект для обновления локального баланса каждую секунду
-  useEffect(() => {
-    if (!farmingInfo.isActive) {
-      setLocalFarmingBalance('0');
-      return;
-    }
-    
-    // Устанавливаем начальное значение из API
-    setLocalFarmingBalance(farmingInfo.farmingBalance);
-    
-    // Создаем интервал для обновления баланса каждую секунду
-    const intervalId = setInterval(() => {
-      setLocalFarmingBalance(prevBalance => {
-        if (!farmingInfo.ratePerSecond) return prevBalance;
-        
-        try {
-          const currentBalance = new BigNumber(prevBalance);
-          const ratePerSecond = new BigNumber(farmingInfo.ratePerSecond);
-          return currentBalance.plus(ratePerSecond).toString();
-        } catch (err) {
-          return prevBalance;
-        }
-      });
-    }, 1000);
-    
-    return () => clearInterval(intervalId);
-  }, [farmingInfo]);
   
   // Форматирование числа с учетом малых значений
   const formatNumber = (value: string, decimals: number = 3): string => {
     try {
-      const num = new BigNumber(value);
+      const num = new BigNumber(value || '0');
       
       // Для очень маленьких значений используем научную нотацию
       if (num.isGreaterThan(0) && num.isLessThanOrEqualTo(0.001)) {
@@ -147,6 +133,32 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Проверяем, активен ли фарминг
   const isActive = farmingInfo.isActive;
   
+  // Расчет дневного дохода (для отображения)
+  const calculateDailyIncome = (): string => {
+    if (!isActive || !farmingInfo.ratePerSecond) return '0';
+    try {
+      const ratePerSecond = new BigNumber(farmingInfo.ratePerSecond);
+      const secondsInDay = 86400;
+      return ratePerSecond.multipliedBy(secondsInDay).toFixed(6);
+    } catch (err) {
+      return '0';
+    }
+  };
+  
+  // Форматирование даты начала фарминга
+  const formatStartDate = (): string => {
+    if (!isActive) return '-';
+    
+    const timestamp = farmingInfo.uni_farming_start_timestamp || farmingInfo.startDate;
+    if (!timestamp) return '-';
+    
+    try {
+      return new Date(timestamp).toLocaleDateString('ru-RU');
+    } catch (err) {
+      return '-';
+    }
+  };
+  
   return (
     <div className="bg-card rounded-xl p-4 mb-5 shadow-md transition-all duration-300 hover:shadow-lg">
       <h2 className="text-xl font-semibold mb-3 purple-gradient-text">Основной UNI пакет</h2>
@@ -157,29 +169,47 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-foreground opacity-70">Текущий депозит</p>
-              <p className="text-lg font-medium">{formatNumber(farmingInfo.depositAmount || '0')} UNI</p>
+              <p className="text-lg font-medium">{formatNumber(farmingInfo.depositAmount)} UNI</p>
             </div>
             <div>
-              <p className="text-sm text-foreground opacity-70">Накоплено</p>
-              <p className="text-lg font-medium purple-gradient-text">{formatNumber(localFarmingBalance)} UNI</p>
+              <p className="text-sm text-foreground opacity-70">Дата активации</p>
+              <p className="text-md font-medium">
+                {formatStartDate()}
+              </p>
             </div>
           </div>
           
           <div className="mb-3">
-            <p className="text-sm text-foreground opacity-70">Скорость</p>
+            <p className="text-sm text-foreground opacity-70">Скорость начисления</p>
             <p className="text-md font-medium">
-              <span className="text-primary">+{formatNumber(farmingInfo.ratePerSecond || '0', 5)}</span> UNI/сек
+              <span className="text-primary">+{formatNumber(farmingInfo.ratePerSecond, 6)}</span> UNI/сек
               <span className="text-foreground opacity-70 ml-2">
-                (0.5% в день)
+                (+{formatNumber(calculateDailyIncome())} UNI в день)
               </span>
             </p>
           </div>
           
-          <div className="p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg">
-            <p className="text-sm text-indigo-300">
-              Доход автоматически начисляется на ваш баланс
-            </p>
+          <div className="p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg flex items-center">
+            <div className="text-indigo-300 mr-2">
+              <i className="fas fa-info-circle"></i>
+            </div>
+            <div>
+              <p className="text-sm text-indigo-300 font-medium">
+                Доход автоматически начисляется на ваш баланс
+              </p>
+              <p className="text-xs text-indigo-200/70 mt-1">
+                Каждую секунду ваш баланс UNI увеличивается на сумму дохода от фарминга
+              </p>
+            </div>
           </div>
+          
+          {/* Дополнительная кнопка для обновления баланса */}
+          <button 
+            onClick={handleShowInfo}
+            className="mt-3 w-full py-1 px-2 bg-indigo-900/30 border border-indigo-500/30 rounded-lg text-indigo-300 text-sm hover:bg-indigo-900/50 transition-colors"
+          >
+            Проверить начисления
+          </button>
         </div>
       )}
       
@@ -221,9 +251,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           
           <button 
             type="submit"
-            disabled={depositMutation.isPending || isLoading}
+            disabled={depositMutation.isPending || isLoading || infoMutation.isPending}
             className={`w-full py-2 px-4 rounded-lg font-medium ${
-              depositMutation.isPending || isLoading
+              depositMutation.isPending || isLoading || infoMutation.isPending
                 ? 'bg-muted text-foreground opacity-50'
                 : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700'
             } transition-all duration-300`}
