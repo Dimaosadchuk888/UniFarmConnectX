@@ -6,7 +6,9 @@ import {
   isWalletConnected, 
   shortenAddress,
   initTonConnect,
-  getTonConnect
+  getTonConnect,
+  addConnectionListener,
+  removeConnectionListener
 } from '@/services/tonConnectService';
 import { Button } from '@/components/ui/button';
 import { 
@@ -30,13 +32,14 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     // Обязательно получаем экземпляр TonConnect
     const connector = getTonConnect();
     
-    // Инициализируем изначальное состояние
+    // Функция для обновления состояния подключения
     const updateConnectionStatus = () => {
       const isConnected = isWalletConnected();
       setConnected(isConnected);
       setAddress(isConnected ? getWalletAddress() : null);
     };
     
+    // Выполняем начальную проверку
     updateConnectionStatus();
     
     // Настраиваем обработчик событий для соединения
@@ -44,12 +47,12 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
       connector.onStatusChange(updateConnectionStatus);
     }
     
-    // Настраиваем интервал для регулярной проверки статуса
-    const intervalId = setInterval(updateConnectionStatus, 2000);
+    // Подписываемся на централизованные обновления статуса подключения
+    addConnectionListener(updateConnectionStatus);
     
     // Отписываемся при размонтировании компонента
     return () => {
-      clearInterval(intervalId);
+      removeConnectionListener(updateConnectionStatus);
     };
   }, []);
 

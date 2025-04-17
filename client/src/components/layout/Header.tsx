@@ -4,7 +4,9 @@ import {
   isWalletConnected, 
   getWalletAddress, 
   shortenAddress,
-  disconnectWallet
+  disconnectWallet,
+  addConnectionListener,
+  removeConnectionListener
 } from '@/services/tonConnectService';
 import { 
   DropdownMenu, 
@@ -22,6 +24,7 @@ const Header: React.FC = () => {
 
   // Обработчик для обновления статуса подключения кошелька
   useEffect(() => {
+    // Функция для проверки статуса подключения
     const checkWalletConnection = () => {
       const isConnected = isWalletConnected();
       setConnected(isConnected);
@@ -37,11 +40,12 @@ const Header: React.FC = () => {
     // Проверяем статус при загрузке
     checkWalletConnection();
     
-    // Проверяем статус периодически
-    const intervalId = setInterval(checkWalletConnection, 2000);
+    // Подписываемся на централизованные обновления статуса подключения
+    addConnectionListener(checkWalletConnection);
     
+    // Отписываемся при размонтировании компонента
     return () => {
-      clearInterval(intervalId);
+      removeConnectionListener(checkWalletConnection);
     };
   }, []);
 

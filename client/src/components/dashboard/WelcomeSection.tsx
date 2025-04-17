@@ -1,11 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { getTelegramUserDisplayName, isTelegramWebApp } from '@/services/telegramService';
-import { isWalletConnected, getWalletAddress, shortenAddress } from '@/services/tonConnectService';
+import { 
+  isWalletConnected, 
+  getWalletAddress, 
+  shortenAddress, 
+  addConnectionListener,
+  removeConnectionListener
+} from '@/services/tonConnectService';
 
 const WelcomeSection: React.FC = () => {
   const [userName, setUserName] = useState<string>('Пользователь');
   const [walletConnected, setWalletConnected] = useState<boolean>(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  
+  // Функция для проверки статуса подключения кошелька
+  const checkWalletConnection = () => {
+    setWalletConnected(isWalletConnected());
+    setWalletAddress(getWalletAddress());
+  };
   
   useEffect(() => {
     // Получаем имя пользователя из Telegram WebApp
@@ -14,9 +26,16 @@ const WelcomeSection: React.FC = () => {
       setUserName(displayName);
     }
     
-    // Проверяем подключение кошелька
-    setWalletConnected(isWalletConnected());
-    setWalletAddress(getWalletAddress());
+    // Проверяем начальное подключение кошелька
+    checkWalletConnection();
+    
+    // Подписываемся на централизованные обновления статуса подключения
+    addConnectionListener(checkWalletConnection);
+    
+    // Отписываемся при размонтировании компонента
+    return () => {
+      removeConnectionListener(checkWalletConnection);
+    };
   }, []);
   
   return (
