@@ -84,7 +84,7 @@ export interface TonFarmingInfo {
 export class TonBoostService {
   // Константы для расчетов
   private static readonly SECONDS_IN_DAY = 86400;
-  private static readonly TON_MIN_CHANGE_THRESHOLD = 0.000001; // Минимальный порог изменения для обновления баланса в БД
+  private static readonly TON_MIN_CHANGE_THRESHOLD = 0.0000000001; // Значительно уменьшен порог для обновления баланса в БД
   
   // Каталог буст-пакетов
   private static readonly boostPackages: TonBoostPackage[] = [
