@@ -90,7 +90,7 @@ const Header: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center space-x-2 bg-opacity-80 shadow-lg">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="font-medium">{shortenAddress(address)}</span>
+                <span className="font-medium truncate max-w-[200px]">{address}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

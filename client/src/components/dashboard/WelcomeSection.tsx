@@ -51,8 +51,8 @@ const WelcomeSection: React.FC = () => {
           
           {walletConnected && walletAddress ? (
             <div className="bg-white/10 rounded-md px-3 py-1.5 inline-flex items-center space-x-1.5">
-              <span className="text-xs text-purple-100">
-                Кошелек: {shortenAddress(walletAddress)}
+              <span className="text-xs text-purple-100 break-all">
+                Кошелек: {walletAddress}
               </span>
             </div>
           ) : (

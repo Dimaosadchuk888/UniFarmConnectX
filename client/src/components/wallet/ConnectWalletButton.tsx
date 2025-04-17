@@ -107,8 +107,8 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
                 </span>
               ) : connected && address ? (
                 <div className="flex items-center space-x-1" onClick={copyAddressToClipboard}>
-                  <span className="text-sm font-medium truncate max-w-[120px]">
-                    {shortenAddress(address)}
+                  <span className="text-sm font-medium truncate max-w-[200px]">
+                    {address}
                   </span>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
