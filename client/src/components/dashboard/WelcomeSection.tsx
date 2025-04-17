@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getTelegramUserData, isTelegramWebApp } from '@/services/telegramService';
+import { getTelegramUserDisplayName, isTelegramWebApp } from '@/services/telegramService';
 
 const WelcomeSection: React.FC = () => {
   // Эффекты для анимации появления и мотивационных фраз
@@ -17,13 +17,11 @@ const WelcomeSection: React.FC = () => {
   
   // Получение имени пользователя из Telegram WebApp
   useEffect(() => {
-    if (isTelegramWebApp()) {
-      const telegramData = getTelegramUserData();
-      if (telegramData && telegramData.user) {
-        // Используем first_name если есть, иначе username
-        const name = telegramData.user.first_name || telegramData.user.username || null;
-        setUserName(name);
-      }
+    // Получаем имя пользователя из Telegram WebApp
+    const displayName = getTelegramUserDisplayName();
+    if (displayName) {
+      setUserName(displayName);
+      console.log('Telegram user name:', displayName);
     }
   }, []);
   
@@ -50,12 +48,15 @@ const WelcomeSection: React.FC = () => {
   
   // Стилизованное имя пользователя 
   const getUsername = () => {
+    // Если есть имя из Telegram, используем его, иначе показываем дефолтное значение
     const displayName = userName || '@username';
-    const prefix = userName && !userName.startsWith('@') && userName !== displayName ? '' : '';
     
+    // Добавляем стилизацию и подсветку для имени
     return (
       <span className="relative">
-        <span className="relative z-10">{prefix}{displayName}</span>
+        <span className="relative z-10 text-primary-foreground font-medium">
+          {displayName}
+        </span>
         <span 
           className="absolute -bottom-1 left-0 w-full h-2 bg-primary/20 rounded-full z-0" 
           style={{ transform: 'rotate(-1deg)' }}
