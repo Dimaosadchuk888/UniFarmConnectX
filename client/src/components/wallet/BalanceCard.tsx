@@ -1,9 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
+interface WalletBalanceResponse {
+  success: boolean;
+  data: {
+    balance_uni: string;
+    balance_ton: string;
+    uni_farming_active: boolean;
+    uni_deposit_amount: string;
+    uni_farming_balance: string;
+  };
+}
 
 const BalanceCard: React.FC = () => {
   // Состояния для текущих балансов
-  const [uniBalance, setUniBalance] = useState<number>(104153.542);
-  const [tonBalance, setTonBalance] = useState<number>(1.213);
+  const [uniBalance, setUniBalance] = useState<number>(0);
+  const [tonBalance, setTonBalance] = useState<number>(0);
   
   // Состояния для визуальных эффектов
   const [uniAnimating, setUniAnimating] = useState<boolean>(false);
@@ -15,8 +27,47 @@ const BalanceCard: React.FC = () => {
   
   // Предыдущие значения для анимации
   const [prevTonBalance, setPrevTonBalance] = useState<number>(tonBalance);
+  const [prevUniBalance, setPrevUniBalance] = useState<number>(uniBalance);
   
-  // Обновляем баланс каждую секунду
+  // Получаем баланс из API
+  const { data, isLoading, refetch } = useQuery<WalletBalanceResponse>({
+    queryKey: ['/api/wallet/balance?user_id=1'],
+    staleTime: 60000, // 1 минута
+  });
+  
+  // Функция для обновления баланса UNI с анимацией
+  const updateUniBalanceWithAnimation = useCallback((newValue: number) => {
+    // Сохраняем предыдущее значение для эффекта анимации
+    if (uniBalance > 0) {
+      setPrevUniBalance(uniBalance);
+    }
+    
+    // Устанавливаем анимацию, если значение изменилось
+    if (newValue !== uniBalance) {
+      setUniAnimating(true);
+      setTimeout(() => setUniAnimating(false), 800);
+    }
+    
+    // Обновляем значение
+    setUniBalance(newValue);
+  }, [uniBalance]);
+  
+  // Обновляем баланс из API при загрузке данных
+  useEffect(() => {
+    if (data?.success && data.data) {
+      const apiUniBalance = parseFloat(data.data.balance_uni);
+      if (!isNaN(apiUniBalance)) {
+        updateUniBalanceWithAnimation(apiUniBalance);
+      }
+      
+      const apiTonBalance = parseFloat(data.data.balance_ton);
+      if (!isNaN(apiTonBalance)) {
+        setTonBalance(apiTonBalance);
+      }
+    }
+  }, [data, updateUniBalanceWithAnimation]);
+  
+  // Обновляем баланс каждую секунду для анимации прироста
   useEffect(() => {
     const interval = setInterval(() => {
       setUniBalance(prevBalance => {
@@ -110,9 +161,22 @@ const BalanceCard: React.FC = () => {
       {/* Неоновая рамка */}
       <div className="absolute inset-0 rounded-xl border border-primary/30"></div>
       
-      <h2 className="text-lg font-semibold text-white mb-4 relative z-10 flex items-center">
-        <i className="fas fa-wallet text-primary mr-2"></i>
-        Ваш баланс
+      <h2 className="text-lg font-semibold text-white mb-4 relative z-10 flex items-center justify-between">
+        <div className="flex items-center">
+          <i className="fas fa-wallet text-primary mr-2"></i>
+          Ваш баланс
+        </div>
+        <button 
+          onClick={() => {
+            refetch();
+            setUniAnimating(true);
+            setTimeout(() => setUniAnimating(false), 800);
+          }}
+          className="text-sm text-gray-400 hover:text-primary transition-colors"
+          disabled={isLoading}
+        >
+          <i className={`fas fa-sync-alt ${isLoading ? 'animate-spin' : ''}`}></i>
+        </button>
       </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

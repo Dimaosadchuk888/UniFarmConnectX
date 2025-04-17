@@ -4,6 +4,7 @@ import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils'
 import { extractUserId } from '../utils/validationUtils';
 import { getUserParamsSchema } from '../validators/schemas';
 import { ZodError } from 'zod';
+import BigNumber from 'bignumber.js';
 
 /**
  * Контроллер для работы с пользователями
@@ -80,6 +81,45 @@ export class UserController {
 
       sendSuccess(res, updatedUser);
     } catch (error) {
+      sendServerError(res, error);
+    }
+  }
+
+  /**
+   * Получает информацию о балансе пользователя
+   */
+  static async getUserBalance(req: Request, res: Response): Promise<void> {
+    try {
+      // Получаем user_id из параметров запроса
+      const userId = parseInt(req.query.user_id as string);
+      
+      if (isNaN(userId)) {
+        return sendError(res, 'Invalid user ID', 400);
+      }
+
+      const user = await UserService.getUserById(userId);
+
+      if (!user) {
+        return sendError(res, 'User not found', 404);
+      }
+
+      // Форматируем баланс для отображения
+      const balanceUni = user.balance_uni ? new BigNumber(user.balance_uni).toFixed(3) : '0.000';
+      const balanceTon = user.balance_ton ? new BigNumber(user.balance_ton).toFixed(5) : '0.00000';
+
+      sendSuccess(res, {
+        balance_uni: balanceUni,
+        balance_ton: balanceTon,
+        // Добавляем дополнительные данные для фарминга (если есть)
+        uni_farming_active: user.uni_deposit_amount && 
+                          new BigNumber(user.uni_deposit_amount).gt(0) ? true : false,
+        uni_deposit_amount: user.uni_deposit_amount ? 
+                          new BigNumber(user.uni_deposit_amount).toFixed(3) : '0.000',
+        uni_farming_balance: user.uni_farming_balance ? 
+                           new BigNumber(user.uni_farming_balance).toFixed(3) : '0.000'
+      });
+    } catch (error) {
+      console.error('Error in getUserBalance:', error);
       sendServerError(res, error);
     }
   }
