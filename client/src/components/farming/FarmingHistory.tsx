@@ -100,12 +100,30 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     days_left: number;
   }[]>>({
     queryKey: ['/api/boosts/active', { user_id: validUserId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/boosts/active?user_id=${validUserId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка получения буст-пакетов: ${response.status}`);
+      }
+      
+      return response.json();
+    },
     enabled: !!validUserId,
   });
   
   // Запрос на получение активных TON Boost пакетов
   const { data: activeTonBoostsResponse, refetch: refetchTonBoosts } = useQuery<ApiResponse<TonBoostDeposit[]>>({
     queryKey: ['/api/ton-boosts/active', { user_id: validUserId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/ton-boosts/active?user_id=${validUserId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка получения TON Boost пакетов: ${response.status}`);
+      }
+      
+      return response.json();
+    },
     enabled: !!validUserId,
   });
   
@@ -119,6 +137,15 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     depositCount: number;
   }>>({
     queryKey: ['/api/uni-farming/info', { user_id: validUserId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/uni-farming/info?user_id=${validUserId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка получения информации о UNI фарминге: ${response.status}`);
+      }
+      
+      return response.json();
+    },
     enabled: !!validUserId,
   });
   
