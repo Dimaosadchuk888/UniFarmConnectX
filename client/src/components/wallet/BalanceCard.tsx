@@ -53,6 +53,14 @@ const BalanceCard: React.FC = () => {
     refetchIntervalInBackground: true, // Обновляем даже если вкладка не активна
   });
   
+  // Запрос для обновления TON фарминга
+  const { refetch: refetchTonFarming } = useQuery({
+    queryKey: ['/api/ton-farming/update-balance?user_id=1'],
+    staleTime: 0, // Отключаем кеширование
+    refetchInterval: 5000, // Обновляем каждые 5 секунд, чтобы не перегружать сервер
+    refetchIntervalInBackground: true, // Обновляем даже если вкладка не активна
+  });
+  
   // Функция для обновления баланса UNI с анимацией
   const updateUniBalanceWithAnimation = useCallback((newValue: number) => {
     // Сохраняем предыдущее значение для эффекта анимации
@@ -131,50 +139,49 @@ const BalanceCard: React.FC = () => {
     }
   }, [data]);
 
-  // Обновляем скорость фарминга при получении данных
+  // Запрос для получения TON farming info
+  const { data: tonFarmingData } = useQuery({
+    queryKey: ['/api/ton-farming/info?user_id=1'],
+    staleTime: 60000, // 1 минута
+  });
+  
+  // Обновляем скорость фарминга при получении данных UNI
   useEffect(() => {
     if (farmingData?.success && farmingData.data) {
-      // Получаем скорость фарминга из API
+      // Получаем скорость фарминга UNI из API
       const ratePerSecond = parseFloat(farmingData.data.ratePerSecond || '0');
       if (!isNaN(ratePerSecond)) {
         setUniRate(ratePerSecond);
       }
-      
-      // Скорость TON фарминга (для демонстрации)
-      // В реальном приложении получать из API
-      setTonRate(0.00008);
     }
   }, [farmingData]);
+  
+  // Обновляем скорость фарминга TON при получении данных
+  useEffect(() => {
+    if (tonFarmingData?.success && tonFarmingData.data) {
+      // Получаем скорость фарминга TON из API
+      const tonRatePerSecond = parseFloat(tonFarmingData.data.totalTonRatePerSecond || '0');
+      if (!isNaN(tonRatePerSecond)) {
+        setTonRate(tonRatePerSecond);
+      }
+    }
+  }, [tonFarmingData]);
   
   // Обновляем баланс каждую секунду, запрашивая данные из API
   useEffect(() => {
     const interval = setInterval(() => {
-      // Принудительно запрашиваем свежий баланс из API с новым timestamp
-      const timestamp = new Date().getTime();
-      // Используем прямой refetch вместо invalidateQueries для немедленного выполнения запроса
+      // Принудительно запрашиваем свежий баланс из API
       refetch();
       
       // Выводим в консоль запрос на обновление
       console.log("Requesting balance update at:", new Date().toISOString());
       
-      // Для TON токена можно оставить локальную анимацию, так как это демонстрация
-      setTonBalance(prevBalance => {
-        // Сохраняем предыдущее значение для сравнения
-        setPrevTonBalance(prevBalance);
-        const newBalance = prevBalance + tonRate;
-        
-        // Активируем анимацию обновления даже для микро-изменений
-        if (newBalance > prevBalance) {
-          setTonAnimating(true);
-          setTimeout(() => setTonAnimating(false), 700);
-        }
-        
-        return newBalance;
-      });
+      // Обновляем TON фарминг, вызывая API для расчета актуального баланса
+      refetchTonFarming();
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [tonRate, refetch]);
+  }, [refetch, refetchTonFarming]);
 
   // Форматирование чисел для отображения с расширенной точностью для UNI (8 знаков)
   const formatNumber = (num: number, decimals: number = 8): string => {
@@ -247,13 +254,18 @@ const BalanceCard: React.FC = () => {
         </div>
         <button 
           onClick={() => {
-            // Обновляем оба запроса
+            // Обновляем все запросы
             refetch();
             refetchFarming();
+            refetchTonFarming();
             
             // Анимируем обновление UNI
             setUniAnimating(true);
             setTimeout(() => setUniAnimating(false), 800);
+            
+            // Анимируем обновление TON
+            setTonAnimating(true);
+            setTimeout(() => setTonAnimating(false), 800);
           }}
           className="text-sm text-gray-400 hover:text-primary transition-colors"
           disabled={isLoading}
