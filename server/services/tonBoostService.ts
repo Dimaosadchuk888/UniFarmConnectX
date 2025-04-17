@@ -262,7 +262,7 @@ export class TonBoostService {
         .returning();
 
       // 5. Начисляем бонус UNI пользователю
-      const userUniBalance = new BigNumber(user.balance_uni);
+      const userUniBalance = new BigNumber(user.balance_uni || "0");
       const bonusUni = new BigNumber(boostPackage.bonusUni);
       const newUniBalance = userUniBalance.plus(bonusUni).toString();
 
@@ -372,7 +372,7 @@ export class TonBoostService {
 
       // Проверяем минимальный порог для начисления TON
       if (earnedTonThisUpdate.isGreaterThanOrEqualTo(this.TON_MIN_CHANGE_THRESHOLD)) {
-        const newTonBalance = new BigNumber(user.balance_ton).plus(earnedTonThisUpdate).toString();
+        const newTonBalance = new BigNumber(user.balance_ton || "0").plus(earnedTonThisUpdate).toString();
         
         // Обновляем баланс TON
         await db
@@ -398,7 +398,7 @@ export class TonBoostService {
 
       // Проверяем минимальный порог для начисления UNI
       if (earnedUniThisUpdate.isGreaterThan(0)) {
-        const newUniBalance = new BigNumber(user.balance_uni).plus(earnedUniThisUpdate).toString();
+        const newUniBalance = new BigNumber(user.balance_uni || "0").plus(earnedUniThisUpdate).toString();
         
         // Обновляем баланс UNI
         await db
