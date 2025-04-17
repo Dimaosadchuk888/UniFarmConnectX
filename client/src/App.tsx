@@ -41,6 +41,8 @@ function App() {
         return <Friends />;
       case "wallet":
         return <Wallet />;
+      case "ton-boost-test":
+        return <TonBoostTest />;
       default:
         return <Dashboard />;
     }

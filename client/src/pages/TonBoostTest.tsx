@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiRequest } from '../lib/queryClient';
+import { apiRequest, queryClient } from '../lib/queryClient';
 
 interface TonBoostPackage {
   id: number;
@@ -34,7 +34,7 @@ export default function TonBoostTest() {
   useEffect(() => {
     const fetchBoosts = async () => {
       try {
-        const response = await apiRequest('/api/ton-boosts');
+        const response = await apiRequest('/api/ton-boosts', {});
         if (response.success) {
           setPackages(response.data);
         } else {
@@ -53,7 +53,7 @@ export default function TonBoostTest() {
   const fetchActiveBoosts = async () => {
     try {
       setLoading(true);
-      const response = await apiRequest(`/api/ton-boosts/active?user_id=${userId}`);
+      const response = await apiRequest(`/api/ton-boosts/active?user_id=${userId}`, {});
       if (response.success) {
         setActiveBoosts(response.data);
       } else {
@@ -71,7 +71,7 @@ export default function TonBoostTest() {
   const fetchFarmingInfo = async () => {
     try {
       setLoading(true);
-      const response = await apiRequest(`/api/ton-farming/info?user_id=${userId}`);
+      const response = await apiRequest(`/api/ton-farming/info?user_id=${userId}`, {});
       if (response.success) {
         setFarmingInfo(response.data);
       } else {
@@ -89,7 +89,7 @@ export default function TonBoostTest() {
   const updateFarmingBalance = async () => {
     try {
       setLoading(true);
-      const response = await apiRequest(`/api/ton-farming/update-balance?user_id=${userId}`);
+      const response = await apiRequest(`/api/ton-farming/update-balance?user_id=${userId}`, {});
       if (response.success) {
         alert(`Баланс обновлен: Заработано TON: ${response.data.earnedTonThisUpdate}, Заработано UNI: ${response.data.earnedUniThisUpdate}`);
         fetchFarmingInfo();

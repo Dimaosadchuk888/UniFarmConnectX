@@ -11,16 +11,12 @@ export class TonBoostController {
   static async getTonBoostPackages(req: Request, res: Response): Promise<void> {
     try {
       const packages = TonBoostService.getBoostPackages();
-      
-      res.json({
-        success: true,
-        data: packages
-      });
+      res.json({ success: true, data: packages });
     } catch (error) {
-      console.error("[TonBoostController] Error getting packages:", error);
-      res.status(500).json({
-        success: false,
-        message: "Произошла ошибка при получении списка TON Boost-пакетов"
+      console.error("[TonBoostController] Error in getTonBoostPackages:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка при получении TON Boost-пакетов"
       });
     }
   }
@@ -30,27 +26,22 @@ export class TonBoostController {
    */
   static async getUserTonBoosts(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.query.user_id as string);
+      const userId = Number(req.query.user_id);
       
       if (isNaN(userId)) {
-        res.status(400).json({
-          success: false,
-          message: "Не указан ID пользователя"
+        return res.status(400).json({ 
+          success: false, 
+          message: "Не указан или некорректный ID пользователя"
         });
-        return;
       }
 
       const boosts = await TonBoostService.getUserActiveBoosts(userId);
-      
-      res.json({
-        success: true,
-        data: boosts
-      });
+      res.json({ success: true, data: boosts });
     } catch (error) {
-      console.error("[TonBoostController] Error getting user boosts:", error);
-      res.status(500).json({
-        success: false,
-        message: "Произошла ошибка при получении списка активных TON Boost-депозитов"
+      console.error("[TonBoostController] Error in getUserTonBoosts:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка при получении активных TON Boost-депозитов"
       });
     }
   }
@@ -63,22 +54,20 @@ export class TonBoostController {
       const { user_id, boost_id } = req.body;
       
       if (!user_id || !boost_id) {
-        res.status(400).json({
-          success: false,
+        return res.status(400).json({ 
+          success: false, 
           message: "Не указан ID пользователя или ID буст-пакета"
         });
-        return;
       }
 
-      const userId = parseInt(user_id);
-      const boostId = parseInt(boost_id);
+      const userId = Number(user_id);
+      const boostId = Number(boost_id);
       
       if (isNaN(userId) || isNaN(boostId)) {
-        res.status(400).json({
-          success: false,
+        return res.status(400).json({ 
+          success: false, 
           message: "Некорректный ID пользователя или ID буст-пакета"
         });
-        return;
       }
 
       const result = await TonBoostService.purchaseTonBoost(userId, boostId);
@@ -88,8 +77,9 @@ export class TonBoostController {
           success: true,
           message: result.message,
           data: {
-            boostPackage: result.boostPackage,
-            depositId: result.depositId
+            depositId: result.depositId,
+            transactionId: result.transactionId,
+            boostPackage: result.boostPackage
           }
         });
       } else {
@@ -99,10 +89,10 @@ export class TonBoostController {
         });
       }
     } catch (error) {
-      console.error("[TonBoostController] Error purchasing boost:", error);
-      res.status(500).json({
-        success: false,
-        message: "Произошла ошибка при покупке TON Boost-пакета"
+      console.error("[TonBoostController] Error in purchaseTonBoost:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка при покупке TON Boost-пакета"
       });
     }
   }
@@ -112,27 +102,22 @@ export class TonBoostController {
    */
   static async getUserTonFarmingInfo(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.query.user_id as string);
+      const userId = Number(req.query.user_id);
       
       if (isNaN(userId)) {
-        res.status(400).json({
-          success: false,
-          message: "Не указан ID пользователя"
+        return res.status(400).json({ 
+          success: false, 
+          message: "Не указан или некорректный ID пользователя"
         });
-        return;
       }
 
-      const info = await TonBoostService.getUserTonFarmingInfo(userId);
-      
-      res.json({
-        success: true,
-        data: info
-      });
+      const farmingInfo = await TonBoostService.getUserTonFarmingInfo(userId);
+      res.json({ success: true, data: farmingInfo });
     } catch (error) {
-      console.error("[TonBoostController] Error getting TON farming info:", error);
-      res.status(500).json({
-        success: false,
-        message: "Произошла ошибка при получении информации о TON фарминге"
+      console.error("[TonBoostController] Error in getUserTonFarmingInfo:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка при получении информации о TON фарминге"
       });
     }
   }
@@ -142,27 +127,22 @@ export class TonBoostController {
    */
   static async calculateAndUpdateTonFarming(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.query.user_id as string);
+      const userId = Number(req.query.user_id);
       
       if (isNaN(userId)) {
-        res.status(400).json({
-          success: false,
-          message: "Не указан ID пользователя"
+        return res.status(400).json({ 
+          success: false, 
+          message: "Не указан или некорректный ID пользователя"
         });
-        return;
       }
 
       const result = await TonBoostService.calculateAndUpdateUserTonFarming(userId);
-      
-      res.json({
-        success: true,
-        data: result
-      });
+      res.json({ success: true, data: result });
     } catch (error) {
-      console.error("[TonBoostController] Error updating TON farming:", error);
-      res.status(500).json({
-        success: false,
-        message: "Произошла ошибка при обновлении TON фарминга"
+      console.error("[TonBoostController] Error in calculateAndUpdateTonFarming:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка при обновлении баланса TON фарминга"
       });
     }
   }

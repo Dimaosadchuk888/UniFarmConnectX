@@ -209,7 +209,7 @@ export class TonBoostService {
       }
 
       // Проверяем достаточно ли средств
-      const userTonBalance = new BigNumber(user.balance_ton);
+      const userTonBalance = new BigNumber(user.balance_ton || "0");
       const boostPrice = new BigNumber(boostPackage.priceTon);
 
       if (userTonBalance.isLessThan(boostPrice)) {
