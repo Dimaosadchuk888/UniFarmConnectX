@@ -12,6 +12,7 @@ import { DailyBonusController } from './controllers/dailyBonusController';
 import { UniFarmingController } from './controllers/uniFarmingController';
 import { BoostController } from './controllers/boostController';
 import { TonBoostController } from './controllers/tonBoostController';
+import { AuthController } from './controllers/authController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -21,6 +22,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(200).send(JSON.stringify({ status: "ok", message: "API работает" }));
   });
 
+  // Маршруты для аутентификации
+  app.post("/api/auth/telegram", AuthController.authenticateTelegram);
+  
   // Маршруты для пользователей
   app.get("/api/users/:id", UserController.getUserById);
   app.get("/api/wallet/balance", UserController.getUserBalance);
