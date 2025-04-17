@@ -15,6 +15,7 @@ BigNumber.config({
 export class UniFarmingService {
   private static readonly DAILY_RATE = 0.005; // 0.5% в день
   private static readonly SECONDS_IN_DAY = 86400;
+  private static readonly MIN_CHANGE_THRESHOLD = 0.000001; // Минимальный порог изменения для обновления баланса в БД
 
   /**
    * Начисляет доход пользователю от UNI фарминга на основе времени с последнего обновления
@@ -79,14 +80,65 @@ export class UniFarmingService {
     // Форматируем с 6 знаками после запятой как указано в ТЗ
     const formattedNewBalance = newBalance.toFixed(6);
     
-    // Обновляем основной баланс пользователя и время последнего обновления
-    await db
-      .update(users)
-      .set({
-        balance_uni: formattedNewBalance,
-        uni_farming_last_update: now
-      })
-      .where(eq(users.id, userId));
+    // Используем имеющееся поле uni_farming_balance как накопитель для микро-начислений
+    // Это позволит накапливать маленькие суммы до достижения порога для обновления основного баланса
+    const currentAccumulatedBalance = new BigNumber(user.uni_farming_balance !== null ? user.uni_farming_balance.toString() : '0');
+    const newAccumulatedBalance = currentAccumulatedBalance.plus(earnedAmount);
+    
+    // Проверяем, достаточно ли накопленной суммы для обновления баланса
+    const readyToUpdate = newAccumulatedBalance.isGreaterThanOrEqualTo(this.MIN_CHANGE_THRESHOLD);
+    
+    // Если сумма достигла порога или общая заработанная сумма достаточно большая
+    const hasBalanceChanged = readyToUpdate || earnedAmount.isGreaterThanOrEqualTo(this.MIN_CHANGE_THRESHOLD);
+    
+    if (hasBalanceChanged) {
+      // Логируем, что будем обновлять баланс
+      console.log(`[Balance Updated] User ${userId} | Balance: ${currentBalance.toFixed(6)} => ${formattedNewBalance}`);
+      console.log(`[Accumulated Balance] User ${userId} | ${currentAccumulatedBalance.toFixed(8)} => 0 (Transferring to main balance)`);
+      
+      // Обновляем основной баланс пользователя и сбрасываем накопленный баланс
+      try {
+        const updateResult = await db
+          .update(users)
+          .set({
+            balance_uni: formattedNewBalance,
+            uni_farming_last_update: now,
+            uni_farming_balance: '0' // Обнуляем накопленный баланс после трансфера
+          })
+          .where(eq(users.id, userId))
+          .returning({ balance_uni: users.balance_uni });
+        
+        if (updateResult && updateResult.length > 0) {
+          console.log(`[Balance Updated OK] User ${userId} new balance confirmed: ${updateResult[0].balance_uni}`);
+        } else {
+          console.error(`[Balance Update Failed] User ${userId} - no rows updated`);
+        }
+      } catch (error) {
+        console.error(`[Balance Update Error] User ${userId} - error updating balance:`, error);
+      }
+    } else {
+      // Обновляем только накопленный баланс и timestamp
+      try {
+        const updateResult = await db
+          .update(users)
+          .set({
+            uni_farming_balance: newAccumulatedBalance.toFixed(8), // Сохраняем накопленное с большей точностью
+            uni_farming_last_update: now
+          })
+          .where(eq(users.id, userId))
+          .returning({ uni_farming_balance: users.uni_farming_balance });
+        
+        if (updateResult && updateResult.length > 0) {
+          console.log(`[Accumulated Balance Updated] User ${userId} | ${currentAccumulatedBalance.toFixed(8)} => ${updateResult[0].uni_farming_balance}`);
+        } else {
+          console.error(`[Accumulated Balance Update Failed] User ${userId} - no rows updated`);
+        }
+      } catch (error) {
+        console.error(`[Accumulated Balance Update Error] User ${userId}:`, error);
+      }
+      
+      console.log(`[Balance No Change] User ${userId} | Balance remains: ${formattedNewBalance} (Accumulating: ${newAccumulatedBalance.toFixed(8)})`);
+    }
     
     return {
       depositAmount: depositAmount.toString(),
