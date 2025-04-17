@@ -11,6 +11,7 @@ import { ReferralController } from './controllers/referralController';
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { UniFarmingController } from './controllers/uniFarmingController';
 import { BoostController } from './controllers/boostController';
+import { TonBoostController } from './controllers/tonBoostController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -55,6 +56,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/boosts", BoostController.getBoostPackages);
   app.get("/api/boosts/active", BoostController.getUserActiveBoosts);
   app.post("/api/boosts/purchase", BoostController.purchaseBoost);
+  
+  // Маршруты для TON Boost-пакетов
+  app.get("/api/ton-boosts", TonBoostController.getTonBoostPackages);
+  app.get("/api/ton-boosts/active", TonBoostController.getUserTonBoosts);
+  app.post("/api/ton-boosts/purchase", TonBoostController.purchaseTonBoost);
+  app.get("/api/ton-farming/info", TonBoostController.getUserTonFarmingInfo);
+  app.get("/api/ton-farming/update-balance", TonBoostController.calculateAndUpdateTonFarming);
 
   // Централизованная обработка ошибок
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
