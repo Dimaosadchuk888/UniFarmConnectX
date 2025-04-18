@@ -155,20 +155,18 @@ export async function sendTonTransaction(
 }
 
 /**
- * Формирует ссылку на оплату TON для внешних кошельков
- * @param amount Сумма TON
- * @param comment Комментарий к транзакции (обычно содержит UniFarmBoost:userId:boostId)
- * @returns URL для открытия в TON кошельке
+ * Проверка, все ли готово для отправки TON транзакции
+ * @returns true если TonConnect готов к использованию
  */
-export function generateTonPaymentLink(amount: string, comment: string): string {
-  // Преобразуем TON в nanoTON
-  const amountNano = parseFloat(amount) * 1000000000; // 1 TON = 10^9 nanoTON
+export function isTonPaymentReady(): boolean {
+  const tonConnect = getTonConnectUI();
   
-  // Кодируем комментарий для URL
-  const encodedComment = encodeURIComponent(comment);
-  
-  // Формируем ton:// ссылку для открытия в кошельке
-  return `ton://transfer/${TON_PROJECT_ADDRESS}?amount=${amountNano}&text=${encodedComment}`;
+  // Проверяем, инициализирован ли TonConnect и подключен ли кошелек
+  return (
+    tonConnect && 
+    typeof tonConnect.sendTransaction === 'function' && 
+    tonConnect.connected
+  );
 }
 
 /**

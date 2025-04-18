@@ -67,11 +67,10 @@ const ExternalPaymentStatus: React.FC<ExternalPaymentStatusProps> = ({
     }
   }, [data, boostName, onPaymentComplete, toast, open, paymentProcessed]);
   
-  // Открыть ссылку на оплату в новом окне (только если есть paymentLink)
-  const handleOpenPaymentLink = () => {
-    if (paymentLink) {
-      window.open(paymentLink, '_blank');
-    }
+  // Больше не используем прямые ссылки ton://, всё идет через TonConnect
+  const checkTonConnectStatus = () => {
+    // Просто вызываем обновление статуса
+    refetch();
   };
   
   // Ручное обновление статуса
@@ -106,31 +105,18 @@ const ExternalPaymentStatus: React.FC<ExternalPaymentStatusProps> = ({
             </div>
           ) : (
             <>
-              {isTonConnectPayment ? (
-                // Для платежей через TonConnect показываем другой интерфейс
-                <div className="flex flex-col items-center text-center">
-                  <Wallet className="h-16 w-16 text-blue-500 mb-4" />
-                  <p className="text-lg font-medium text-blue-200">Транзакция отправлена через TON Connect</p>
-                  <p className="text-sm text-blue-400 mt-2">
-                    Ожидание подтверждения от блокчейна...
-                  </p>
-                </div>
-              ) : (
-                // Для платежей через ссылку показываем кнопку
-                <Button 
-                  className="w-full bg-blue-700 hover:bg-blue-600" 
-                  onClick={handleOpenPaymentLink}
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Открыть платежную ссылку
-                </Button>
-              )}
+              {/* Все платежи идут только через TonConnect */}
+              <div className="flex flex-col items-center text-center">
+                <Wallet className="h-16 w-16 text-blue-500 mb-4" />
+                <p className="text-lg font-medium text-blue-200">Транзакция отправлена через TON Connect</p>
+                <p className="text-sm text-blue-400 mt-2">
+                  Ожидание подтверждения от блокчейна...
+                </p>
+              </div>
               
               <div className="text-center mt-4">
                 <p className="text-sm text-blue-400 mb-2">
-                  {isTonConnectPayment 
-                    ? "Статус транзакции обновится автоматически" 
-                    : "После оплаты статус обновится автоматически"}
+                  Статус транзакции обновится автоматически
                 </p>
                 {isLoading ? (
                   <div className="flex items-center justify-center">
