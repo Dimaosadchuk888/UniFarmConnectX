@@ -85,12 +85,15 @@ const Header: React.FC = () => {
   return (
     <header className="fixed top-0 right-0 p-2 z-50">
       <div className="flex justify-end">
+        {/* Корневой элемент для TonConnect - перемещён сюда для лучшей видимости */}
+        <div id="ton-connect-root" className="hidden"></div>
+        
         {connected && address ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center space-x-2 bg-opacity-80 shadow-lg">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="font-medium truncate max-w-[200px]">{address}</span>
+                <span className="font-medium truncate max-w-[280px]">{address}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
