@@ -1,23 +1,39 @@
 import React, { useEffect, useState } from 'react';
+import { useTonConnectUI } from '@tonconnect/ui-react';
 import { getTelegramUserDisplayName, isTelegramWebApp } from '@/services/telegramService';
 import { 
   isWalletConnected, 
-  getWalletAddress, 
-  shortenAddress, 
-  addConnectionListener,
-  removeConnectionListener
+  getWalletAddress
 } from '@/services/tonConnectService';
 
 const WelcomeSection: React.FC = () => {
   const [userName, setUserName] = useState<string>('Пользователь');
   const [walletConnected, setWalletConnected] = useState<boolean>(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [tonConnectUI] = useTonConnectUI();
   
-  // Функция для проверки статуса подключения кошелька
-  const checkWalletConnection = () => {
-    setWalletConnected(isWalletConnected());
-    setWalletAddress(getWalletAddress());
-  };
+  // Обновляем состояние кошелька при изменении tonConnectUI
+  useEffect(() => {
+    if (tonConnectUI) {
+      setWalletConnected(isWalletConnected(tonConnectUI));
+      setWalletAddress(getWalletAddress(tonConnectUI));
+      
+      // Создаем обработчик событий изменения кошелька
+      const handleWalletUpdate = () => {
+        setWalletConnected(isWalletConnected(tonConnectUI));
+        setWalletAddress(getWalletAddress(tonConnectUI));
+      };
+      
+      // Подписываемся на события изменения состояния кошелька
+      tonConnectUI.onStatusChange(handleWalletUpdate);
+      
+      return () => {
+        // Отписываемся при размонтировании
+        // Обратите внимание, что для TonConnectUI нет метода off
+        // поэтому здесь не нужен явный cleanup
+      };
+    }
+  }, [tonConnectUI]);
   
   useEffect(() => {
     // Получаем имя пользователя из Telegram WebApp
@@ -25,17 +41,6 @@ const WelcomeSection: React.FC = () => {
       const displayName = getTelegramUserDisplayName();
       setUserName(displayName);
     }
-    
-    // Проверяем начальное подключение кошелька
-    checkWalletConnection();
-    
-    // Подписываемся на централизованные обновления статуса подключения
-    addConnectionListener(checkWalletConnection);
-    
-    // Отписываемся при размонтировании компонента
-    return () => {
-      removeConnectionListener(checkWalletConnection);
-    };
   }, []);
   
   return (

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Coins, Wallet, Loader2 } from 'lucide-react';
+import { useTonConnectUI } from '@tonconnect/ui-react';
 import PaymentMethodDialog from './PaymentMethodDialog';
 import ExternalPaymentStatus from './ExternalPaymentStatus';
 import { 
@@ -43,6 +44,7 @@ interface ExternalPaymentDataType {
 const BoostPackagesCard: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [tonConnectUI] = useTonConnectUI();
   const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState<boolean>(false);
@@ -100,6 +102,7 @@ const BoostPackagesCard: React.FC = () => {
           
           // Отправляем транзакцию через TonConnect SDK 
           const result = await sendTonTransaction(
+            tonConnectUI, // используем tonConnectUI из хука
             selectedBoost.priceTon, // Сумма в TON
             comment // Комментарий в формате "UniFarmBoost:userId:boostId"
           );
@@ -215,7 +218,7 @@ const BoostPackagesCard: React.FC = () => {
   
   // Функция для проверки подключения TON-кошелька и показа уведомления, если не подключен
   const checkWalletConnection = (): boolean => {
-    const isConnected = isTonWalletConnected(); // Импортированная из tonConnectService.ts
+    const isConnected = isTonWalletConnected(tonConnectUI); // Используем tonConnectUI из хука
     
     if (!isConnected) {
       toast({

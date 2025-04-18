@@ -19,50 +19,27 @@ export const TON_PROJECT_ADDRESS = 'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitT
 // Время жизни транзакции в секундах (30 минут)
 const TX_LIFETIME = 30 * 60;
 
-// Создаем экземпляр TonConnectUI
-let tonConnectUI: TonConnectUI | null = null;
-
-/**
- * Возвращает экземпляр TonConnectUI, созданный TonConnectUIProvider
- * 
- * ВАЖНО: Мы не создаем экземпляр здесь, а получаем доступ к тому, что создал TonConnectUIProvider
- */
-export function getTonConnectUI(): TonConnectUI {
-  // Получаем глобальный экземпляр TonConnectUI, созданный TonConnectUIProvider
-  // @ts-ignore - window.__ton_connector__ существует, но TypeScript не знает об этом
-  if (!tonConnectUI && window.__ton_connector__) {
-    // @ts-ignore - window.__ton_connector__ создается TonConnectUIProvider
-    tonConnectUI = window.__ton_connector__;
-    console.log('TonConnect instance retrieved from TonConnectUIProvider');
-  }
-  
-  if (tonConnectUI) {
-    return tonConnectUI;
-  }
-  
-  // Если почему-то экземпляр не доступен, возвращаем заглушку
-  console.warn('TonConnect instance not available from TonConnectUIProvider');
-  return {} as TonConnectUI;
-}
-
 /**
  * Проверяет, подключен ли в данный момент TON кошелек
+ * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  */
-export function isTonWalletConnected(): boolean {
-  const tonConnect = getTonConnectUI();
-  return tonConnect.connected;
+export function isTonWalletConnected(tonConnectUI: TonConnectUI): boolean {
+  if (!tonConnectUI) {
+    console.error('TonConnectUI is not provided to isTonWalletConnected');
+    return false;
+  }
+  return tonConnectUI.connected;
 }
 
 /**
  * Подключает TON кошелек, если он не подключен
+ * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  */
-export async function connectTonWallet(): Promise<boolean> {
-  const tonConnect = getTonConnectUI();
-  
+export async function connectTonWallet(tonConnectUI: TonConnectUI): Promise<boolean> {
   try {
-    if (!tonConnect.connected) {
-      await tonConnect.connectWallet();
-      return tonConnect.connected;
+    if (!tonConnectUI.connected) {
+      await tonConnectUI.connectWallet();
+      return tonConnectUI.connected;
     }
     return true;
   } catch (error) {
@@ -73,23 +50,21 @@ export async function connectTonWallet(): Promise<boolean> {
 
 /**
  * Отключает TON кошелек
+ * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  */
-export async function disconnectTonWallet(): Promise<void> {
-  const tonConnect = getTonConnectUI();
-  
-  if (tonConnect.connected) {
-    await tonConnect.disconnect();
+export async function disconnectTonWallet(tonConnectUI: TonConnectUI): Promise<void> {
+  if (tonConnectUI && tonConnectUI.connected) {
+    await tonConnectUI.disconnect();
   }
 }
 
 /**
  * Получает адрес подключенного TON кошелька
+ * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  */
-export function getTonWalletAddress(): string | null {
-  const tonConnect = getTonConnectUI();
-  
-  if (tonConnect.connected && tonConnect.account) {
-    return tonConnect.account.address;
+export function getTonWalletAddress(tonConnectUI: TonConnectUI): string | null {
+  if (tonConnectUI && tonConnectUI.connected && tonConnectUI.account) {
+    return tonConnectUI.account.address;
   }
   
   return null;
@@ -97,21 +72,21 @@ export function getTonWalletAddress(): string | null {
 
 /**
  * Отправляет TON транзакцию на указанный адрес с комментарием
+ * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  * @param amount Сумма TON (в базовых единицах, 1 TON = 10^9 nanoTON)
  * @param comment Комментарий к транзакции
  * @returns Результат транзакции или null в случае ошибки
  */
 export async function sendTonTransaction(
+  tonConnectUI: TonConnectUI,
   amount: string,
   comment: string
 ): Promise<{txHash: string; status: 'success' | 'error'} | null> {
-  const tonConnect = getTonConnectUI();
-  
   try {
-    if (!tonConnect.connected) {
-      await connectTonWallet();
+    if (!tonConnectUI.connected) {
+      await connectTonWallet(tonConnectUI);
       
-      if (!tonConnect.connected) {
+      if (!tonConnectUI.connected) {
         throw new WalletNotConnectedError();
       }
     }
@@ -134,7 +109,7 @@ export async function sendTonTransaction(
       ]
     };
     
-    const result = await tonConnect.sendTransaction(transaction);
+    const result = await tonConnectUI.sendTransaction(transaction);
     
     return {
       txHash: result.boc,
@@ -156,16 +131,15 @@ export async function sendTonTransaction(
 
 /**
  * Проверка, все ли готово для отправки TON транзакции
+ * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  * @returns true если TonConnect готов к использованию
  */
-export function isTonPaymentReady(): boolean {
-  const tonConnect = getTonConnectUI();
-  
+export function isTonPaymentReady(tonConnectUI: TonConnectUI): boolean {
   // Проверяем, инициализирован ли TonConnect и подключен ли кошелек
   return (
-    tonConnect && 
-    typeof tonConnect.sendTransaction === 'function' && 
-    tonConnect.connected
+    tonConnectUI && 
+    typeof tonConnectUI.sendTransaction === 'function' && 
+    tonConnectUI.connected
   );
 }
 
@@ -183,22 +157,37 @@ export const isWalletConnected = isTonWalletConnected;
 export const getWalletAddress = getTonWalletAddress;
 export const connectWallet = connectTonWallet;
 export const disconnectWallet = disconnectTonWallet;
-export const getTonConnect = getTonConnectUI;
 
 /**
  * Добавить слушателя соединения
+ * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
+ * @param listener Функция, которая будет вызвана при изменении статуса подключения
  */
-export function addConnectionListener(listener: ConnectionListener): void {
+export function addConnectionListener(tonConnectUI: TonConnectUI, listener: ConnectionListener): void {
+  if (!listener) {
+    console.error('Listener function is required for addConnectionListener');
+    return;
+  }
+  
   connectionListeners.push(listener);
+  
   // Сразу вызываем с текущим статусом
-  const connected = isWalletConnected();
-  listener(connected);
+  if (tonConnectUI) {
+    const connected = isWalletConnected(tonConnectUI);
+    listener(connected);
+  }
 }
 
 /**
  * Удалить слушателя соединения
+ * @param listener Функция, которая была передана в addConnectionListener
  */
 export function removeConnectionListener(listener: ConnectionListener): void {
+  if (!listener) {
+    console.error('Listener function is required for removeConnectionListener');
+    return;
+  }
+  
   const index = connectionListeners.indexOf(listener);
   if (index !== -1) {
     connectionListeners.splice(index, 1);
@@ -215,4 +204,13 @@ export function removeConnectionListener(listener: ConnectionListener): void {
 export function initTonConnect(): void {
   // Эта функция теперь просто логирует сообщение и не выполняет реальной инициализации
   console.log('TON Connect initialized by TonConnectUIProvider in App.tsx');
+}
+
+/**
+ * Этот экспорт существует для обратной совместимости,
+ * но фактически он будет заменен прямым импортом из useTonConnectUI
+ */
+export const getTonConnectUI = () => {
+  console.warn('getTonConnectUI is deprecated, use useTonConnectUI hook instead');
+  return null as unknown as TonConnectUI;
 }
