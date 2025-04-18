@@ -337,15 +337,17 @@ export class TonBoostService {
           })
           .where(eq(users.id, userId));
 
-        // 6. Создаем транзакцию начисления бонуса UNI
+        // 6. Создаем транзакцию начисления бонуса UNI с дополнительными метаданными
         const [bonusTransaction] = await db
           .insert(transactions)
           .values({
             user_id: userId,
-            type: "boost_bonus",
-            currency: "UNI",
+            type: "boost_bonus", // Тип транзакции - бонус
+            currency: "UNI",    // Валюта - UNI
             amount: bonusUni.toString(),
-            status: "confirmed"
+            status: "confirmed",
+            source: "TON Boost", // Источник бонуса - TON Boost
+            category: "bonus"   // Категория - бонус
           })
           .returning();
 
@@ -616,15 +618,17 @@ export class TonBoostService {
         })
         .where(eq(users.id, userId));
 
-      // Создаем транзакцию начисления бонуса UNI
+      // Создаем транзакцию начисления бонуса UNI с дополнительными метаданными
       const [bonusTransaction] = await db
         .insert(transactions)
         .values({
           user_id: userId,
-          type: "boost_bonus",
-          currency: "UNI",
+          type: "boost_bonus", // Тип транзакции - бонус
+          currency: "UNI",    // Валюта - UNI
           amount: bonusUni.toString(),
-          status: "confirmed"
+          status: "confirmed",
+          source: "TON Boost", // Источник бонуса - TON Boost
+          category: "bonus"   // Категория - бонус
         })
         .returning();
 

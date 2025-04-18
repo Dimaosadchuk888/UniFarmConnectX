@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
+import { transactions } from '@shared/schema';
+import { db } from '../db';
+import { eq, desc } from 'drizzle-orm';
 
 /**
  * Контроллер для работы с транзакциями
@@ -109,22 +112,45 @@ export class TransactionController {
         return;
       }
       
-      // Фильтруем транзакции по user_id
-      const filteredTransactions = this.testTransactions.filter(tx => tx.user_id === userId);
+      // Получаем транзакции из базы данных
+      let userTransactions = await db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.user_id, userId))
+        .orderBy(desc(transactions.created_at))
+        .limit(parseInt(limit))
+        .offset(parseInt(offset));
       
-      console.log(`[TransactionController] Найдено ${filteredTransactions.length} транзакций для пользователя ${userId}`);
+      console.log(`[TransactionController] Найдено ${userTransactions.length} транзакций для пользователя ${userId} в БД`);
       
-      // Применяем пагинацию
-      const offsetInt = parseInt(offset);
-      const limitInt = parseInt(limit);
-      const paginatedTransactions = filteredTransactions
-        .slice(offsetInt, offsetInt + limitInt);
+      // Дополнительное логирование для отладки
+      if (userTransactions.length > 0) {
+        console.log(`[TransactionController] Примеры транзакций:`, 
+          userTransactions.slice(0, 2).map((tx: {
+            id: number;
+            type: string;
+            currency: string;
+            amount: string;
+            status: string;
+            created_at: Date;
+          }) => ({
+            id: tx.id,
+            type: tx.type,
+            currency: tx.currency,
+            amount: tx.amount,
+            status: tx.status,
+            created_at: tx.created_at
+          }))
+        );
+      } else {
+        console.log(`[TransactionController] Транзакции не найдены для пользователя ${userId}`);
+      }
       
       res.status(200).json({
         success: true,
         data: {
-          total: filteredTransactions.length,
-          transactions: paginatedTransactions
+          total: userTransactions.length, // В реальном приложении здесь должен быть отдельный запрос для подсчета общего количества
+          transactions: userTransactions
         }
       });
 
