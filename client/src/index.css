@@ -499,18 +499,28 @@
 }
 
 /* Стили для кнопки TonConnect - отображение полного адреса в UQ-формате */
-#ton-connect-root {
+#ton-connect-button {
   max-width: 300px;
 }
 
-#ton-connect-root button {
+#ton-connect-button button {
   max-width: 280px !important;
   overflow: hidden;
+  border-radius: 8px;
+  height: 40px;
+  font-size: 14px;
+  transition: all 0.2s ease-in-out;
 }
 
-#ton-connect-root button span {
+#ton-connect-button button span {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 240px !important;
+}
+
+/* TonConnect кнопка светится синим, когда подключена */
+#ton-connect-button button[data-tc-wallet-connected="true"] {
+  box-shadow: 0 0 8px rgba(107, 191, 255, 0.6);
+  animation: glowing-ton 2s infinite;
 }
