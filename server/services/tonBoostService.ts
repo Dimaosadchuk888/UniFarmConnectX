@@ -205,8 +205,8 @@ export class TonBoostService {
    * @param paymentMethod Метод оплаты (по умолчанию - внутренний баланс)
    * @returns Результат покупки
    */
-  // Адрес TON кошелька для внешних платежей (временная заглушка)
-  private static readonly TON_WALLET_ADDRESS = "EQDrLq-X6jKZNHAScgghh0h1iog3StK71zn8dcmrOvvUjUJM";
+  // Адрес TON кошелька проекта для приема платежей
+  private static readonly TON_WALLET_ADDRESS = "UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8";
   
   /**
    * Покупает TON буст-пакет для пользователя
@@ -658,6 +658,106 @@ export class TonBoostService {
     }
   }
 
+  /**
+   * Проверяет входящую TON транзакцию и активирует буст при совпадении параметров
+   * @param senderAddress Адрес отправителя TON
+   * @param amount Сумма перевода в TON
+   * @param comment Комментарий к переводу (обычно содержит UniFarmBoost:userId:boostId)
+   * @returns Результат обработки транзакции
+   */
+  static async processIncomingTonTransaction(senderAddress: string, amount: string, comment: string): Promise<PurchaseTonBoostResult> {
+    try {
+      // Валидация входных параметров
+      if (!amount || !comment) {
+        return {
+          success: false,
+          message: "Недостаточно данных для обработки транзакции"
+        };
+      }
+      
+      // Проверяем, соответствует ли комментарий нашему формату (UniFarmBoost:userId:boostId)
+      const commentPattern = /^UniFarmBoost:(\d+):(\d+)$/;
+      const match = comment.match(commentPattern);
+      
+      if (!match) {
+        console.log(`[TonBoostService] Received TON transaction with invalid comment format: ${comment}`);
+        return {
+          success: false,
+          message: "Неверный формат комментария"
+        };
+      }
+      
+      const userId = parseInt(match[1]);
+      const boostId = parseInt(match[2]);
+      
+      if (isNaN(userId) || isNaN(boostId)) {
+        return {
+          success: false,
+          message: "Некорректный ID пользователя или буст-пакета в комментарии"
+        };
+      }
+      
+      // Проверяем существование пользователя
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+        
+      if (!user) {
+        return {
+          success: false,
+          message: `Пользователь с ID ${userId} не найден`
+        };
+      }
+      
+      // Проверяем существование буст-пакета
+      const boostPackage = this.getBoostPackageById(boostId);
+      
+      if (!boostPackage) {
+        return {
+          success: false,
+          message: `Буст-пакет с ID ${boostId} не найден`
+        };
+      }
+      
+      // Проверяем, соответствует ли сумма стоимости буст-пакета
+      if (boostPackage.priceTon !== amount) {
+        return {
+          success: false,
+          message: `Сумма платежа (${amount} TON) не соответствует стоимости буст-пакета (${boostPackage.priceTon} TON)`
+        };
+      }
+      
+      // Создаем транзакцию внешнего платежа
+      const [transaction] = await db
+        .insert(transactions)
+        .values({
+          user_id: userId,
+          type: "boost_purchase_external",
+          currency: "TON",
+          amount: amount,
+          status: "pending",
+          source: "External Wallet",
+          category: "purchase",
+          metadata: JSON.stringify({
+            sender_address: senderAddress,
+            comment: comment,
+            boost_id: boostId
+          }) as any
+        })
+        .returning();
+      
+      // Подтверждаем платеж и активируем буст
+      return await this.confirmExternalPayment(userId, transaction.id);
+    } catch (error) {
+      console.error("[TonBoostService] Error processing incoming TON transaction:", error);
+      return {
+        success: false,
+        message: "Произошла ошибка при обработке входящей TON транзакции"
+      };
+    }
+  }
+  
   /**
    * Получает данные о TON фарминге пользователя
    * @param userId ID пользователя

@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { apiRequest } from '../../lib/queryClient';
 
 interface ExternalPaymentStatusProps {
   open: boolean;
@@ -15,9 +21,9 @@ interface ExternalPaymentStatusProps {
   onPaymentComplete: () => void;
 }
 
+// Состояния платежа
 enum PaymentStatus {
-  WAITING = 'waiting',
-  CHECKING = 'checking',
+  PENDING = 'pending',
   COMPLETED = 'completed',
   FAILED = 'failed'
 }
@@ -31,185 +37,185 @@ const ExternalPaymentStatus: React.FC<ExternalPaymentStatusProps> = ({
   boostName,
   onPaymentComplete
 }) => {
-  const [status, setStatus] = useState<PaymentStatus>(PaymentStatus.WAITING);
-  const [timer, setTimer] = useState<number>(0);
-  const queryClient = useQueryClient();
-
-  // Мутация для проверки статуса платежа
-  const checkPaymentMutation = useMutation({
-    mutationFn: async () => {
-      if (!transactionId || !userId) return { success: false };
-      
-      setStatus(PaymentStatus.CHECKING);
+  const [status, setStatus] = useState<PaymentStatus>(PaymentStatus.PENDING);
+  const [message, setMessage] = useState<string>('');
+  const [isChecking, setIsChecking] = useState<boolean>(false);
+  const [checkCount, setCheckCount] = useState<number>(0);
+  
+  // Открываем кошелек для оплаты при первом открытии диалога
+  useEffect(() => {
+    if (open && paymentLink && status === PaymentStatus.PENDING && checkCount === 0) {
+      window.open(paymentLink, '_blank');
+    }
+  }, [open, paymentLink, status, checkCount]);
+  
+  // Проверяем статус транзакции
+  const checkPaymentStatus = async () => {
+    if (!transactionId || !userId) return;
+    
+    setIsChecking(true);
+    
+    try {
       const response = await apiRequest('POST', '/api/ton-boosts/confirm-payment', {
         user_id: userId,
         transaction_id: transactionId
       });
-      return response.json();
-    },
-    onSuccess: (data) => {
+      
+      const data = await response.json();
+      
       if (data.success) {
         setStatus(PaymentStatus.COMPLETED);
-        
-        // Инвалидируем кэш для обновления баланса и транзакций
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
-        queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-        queryClient.invalidateQueries({ queryKey: [`/api/ton-boosts/active`] });
-        
-        // Уведомляем родительский компонент о завершении платежа
+        setMessage(data.message || 'Платеж успешно подтвержден! TON Boost активирован.');
         onPaymentComplete();
       } else {
-        setStatus(PaymentStatus.WAITING);
+        setMessage(data.message || 'Платеж еще не подтвержден. Пожалуйста, убедитесь, что вы завершили оплату через TON кошелек.');
+        // Увеличиваем счетчик проверок
+        setCheckCount(prevCount => prevCount + 1);
+        
+        // Если проверили более 5 раз и платеж все еще не подтвержден - считаем его неудачным
+        if (checkCount >= 5) {
+          setStatus(PaymentStatus.FAILED);
+          setMessage('Платеж не подтвержден после нескольких попыток. Возможно, транзакция еще в обработке или не была выполнена.');
+        }
       }
-    },
-    onError: () => {
-      setStatus(PaymentStatus.FAILED);
-    }
-  });
-
-  // Эффект для отслеживания времени ожидания
-  useEffect(() => {
-    if (!open || status === PaymentStatus.COMPLETED) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setTimer(prev => prev + 1);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [open, status]);
-
-  // Автоматическая проверка платежа каждые 15 секунд
-  useEffect(() => {
-    if (!open || status === PaymentStatus.COMPLETED || status === PaymentStatus.CHECKING) {
-      return;
-    }
-
-    if (timer > 0 && timer % 15 === 0) {
-      checkPaymentMutation.mutate();
-    }
-  }, [timer, open, status, checkPaymentMutation]);
-
-  // Функция для открытия ссылки на оплату в новом окне
-  const openPaymentLink = () => {
-    if (paymentLink) {
-      window.open(paymentLink, '_blank');
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      setMessage('Произошла ошибка при проверке платежа. Пожалуйста, попробуйте позже.');
+      
+      // Если ошибка случилась более 3 раз - считаем платеж неудачным
+      if (checkCount >= 3) {
+        setStatus(PaymentStatus.FAILED);
+      }
+    } finally {
+      setIsChecking(false);
     }
   };
-
-  // Функция для ручной проверки платежа
-  const checkPaymentManually = () => {
-    checkPaymentMutation.mutate();
-  };
-
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md border-blue-700/30 bg-card">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center text-xl text-white mb-2">
-            Оплата через TON кошелек
+          <DialogTitle>
+            {status === PaymentStatus.COMPLETED
+              ? 'Платеж успешно завершен'
+              : status === PaymentStatus.FAILED
+                ? 'Ошибка платежа'
+                : 'Ожидание платежа'}
           </DialogTitle>
-          <DialogDescription className="text-center text-muted-foreground">
-            {status === PaymentStatus.COMPLETED ? (
-              'Платеж успешно обработан!'
-            ) : (
-              <>Ожидание оплаты пакета <span className="font-semibold text-blue-400">{boostName}</span> через ваш TON кошелек.</>
-            )}
+          <DialogDescription>
+            {status === PaymentStatus.PENDING
+              ? `Оплата буст-пакета ${boostName} через TON кошелек`
+              : status === PaymentStatus.COMPLETED
+                ? `Буст-пакет ${boostName} успешно активирован`
+                : `Возникла проблема с активацией буст-пакета ${boostName}`}
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex flex-col gap-4 items-center mt-4">
-          {status === PaymentStatus.WAITING && (
+        <div className="flex flex-col items-center justify-center p-4 space-y-4">
+          {status === PaymentStatus.PENDING && (
             <>
-              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/20 mb-2">
-                <Loader2 className="h-8 w-8 text-blue-400 animate-spin" />
+              <div className="flex items-center justify-center h-20 w-20 bg-primary/10 rounded-full">
+                <Loader2 className="h-10 w-10 text-primary animate-spin" />
               </div>
-              <p className="text-sm text-center text-muted-foreground">
-                Для завершения покупки, перейдите по ссылке в ваш TON кошелек и подтвердите платеж.
+              <p className="text-center text-sm text-muted-foreground">
+                Пожалуйста, завершите оплату в вашем TON кошельке.
+                Сумма транзакции должна точно соответствовать стоимости буст-пакета.
               </p>
-              <Button 
-                onClick={openPaymentLink}
-                className="w-full bg-gradient-to-r from-blue-500 to-teal-400 hover:opacity-90"
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Открыть TON кошелек
-              </Button>
-              
-              <div className="mt-2 flex items-center justify-between w-full">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={checkPaymentManually}
-                  disabled={checkPaymentMutation.isPending}
-                  className="text-xs"
-                >
-                  {checkPaymentMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Проверка...
-                    </>
-                  ) : (
-                    'Проверить оплату'
-                  )}
-                </Button>
-                <span className="text-xs text-muted-foreground">
-                  Ожидание: {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
-                </span>
-              </div>
+              <p className="text-xs text-center text-muted-foreground">
+                Важно: транзакция должна содержать комментарий, который был автоматически добавлен в платежную ссылку.
+              </p>
             </>
           )}
           
-          {status === PaymentStatus.CHECKING && (
-            <div className="flex flex-col items-center justify-center gap-4">
-              <Loader2 className="h-10 w-10 text-blue-400 animate-spin" />
-              <p className="text-center text-muted-foreground">Проверка платежа...</p>
-            </div>
-          )}
-          
           {status === PaymentStatus.COMPLETED && (
-            <div className="flex flex-col items-center justify-center gap-4">
-              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-2">
-                <CheckCircle className="h-8 w-8 text-green-500" />
+            <>
+              <div className="flex items-center justify-center h-20 w-20 bg-green-900/20 rounded-full">
+                <CheckCircle2 className="h-10 w-10 text-green-500" />
               </div>
-              <p className="text-center text-muted-foreground">
-                Поздравляем! Ваш TON Boost успешно активирован, и бонусные UNI зачислены на ваш баланс.
+              <p className="text-center text-sm text-muted-foreground">
+                {message}
               </p>
-              <Button 
-                onClick={() => onOpenChange(false)}
-                className="w-full bg-gradient-to-r from-green-500 to-teal-400 hover:opacity-90"
-              >
-                Продолжить
-              </Button>
-            </div>
+            </>
           )}
           
           {status === PaymentStatus.FAILED && (
-            <div className="flex flex-col items-center justify-center gap-4">
-              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-500/20 mb-2">
-                <AlertCircle className="h-8 w-8 text-red-500" />
+            <>
+              <div className="flex items-center justify-center h-20 w-20 bg-red-900/20 rounded-full">
+                <AlertTriangle className="h-10 w-10 text-red-500" />
               </div>
-              <p className="text-center text-muted-foreground">
-                Произошла ошибка при проверке платежа. Пожалуйста, попробуйте снова или свяжитесь с поддержкой.
+              <p className="text-center text-sm text-muted-foreground">
+                {message}
               </p>
-              <div className="grid grid-cols-2 gap-2 w-full">
-                <Button 
-                  onClick={checkPaymentManually}
-                  variant="outline"
-                >
-                  Проверить снова
-                </Button>
-                <Button 
-                  onClick={() => onOpenChange(false)}
-                  variant="destructive"
-                >
-                  Закрыть
-                </Button>
-              </div>
-            </div>
+              <p className="text-xs text-center text-muted-foreground">
+                Если вы считаете, что ваш платеж был успешным, пожалуйста, попробуйте проверить еще раз или обратитесь в поддержку.
+              </p>
+            </>
           )}
         </div>
+        
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          {status === PaymentStatus.PENDING && (
+            <>
+              {paymentLink && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.open(paymentLink, '_blank')}
+                  className="w-full"
+                >
+                  Открыть TON кошелек снова
+                </Button>
+              )}
+              <Button 
+                onClick={checkPaymentStatus} 
+                disabled={isChecking}
+                className="w-full"
+              >
+                {isChecking ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Проверяем...
+                  </>
+                ) : (
+                  'Проверить платеж'
+                )}
+              </Button>
+            </>
+          )}
+          
+          {status === PaymentStatus.COMPLETED && (
+            <Button 
+              onClick={() => onOpenChange(false)}
+              className="w-full"
+            >
+              Закрыть
+            </Button>
+          )}
+          
+          {status === PaymentStatus.FAILED && (
+            <>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setStatus(PaymentStatus.PENDING);
+                  setCheckCount(0);
+                  if (paymentLink) {
+                    window.open(paymentLink, '_blank');
+                  }
+                }}
+                className="w-full"
+              >
+                Попробовать снова
+              </Button>
+              <Button 
+                onClick={() => onOpenChange(false)}
+                variant="destructive"
+                className="w-full"
+              >
+                Отменить
+              </Button>
+            </>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

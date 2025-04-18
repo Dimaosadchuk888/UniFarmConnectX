@@ -72,6 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ton-boosts/active", TonBoostController.getUserTonBoosts);
   app.post("/api/ton-boosts/purchase", TonBoostController.purchaseTonBoost);
   app.post("/api/ton-boosts/confirm-payment", TonBoostController.confirmExternalPayment);
+  app.post("/api/ton-boosts/process-incoming-transaction", TonBoostController.processIncomingTransaction);
   app.get("/api/ton-farming/info", TonBoostController.getUserTonFarmingInfo);
   app.get("/api/ton-farming/update-balance", TonBoostController.calculateAndUpdateTonFarming);
 

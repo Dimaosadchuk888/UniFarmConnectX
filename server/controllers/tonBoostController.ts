@@ -6,6 +6,30 @@ import { TonBoostService, TonBoostPaymentMethod } from "../services/tonBoostServ
  */
 export class TonBoostController {
   /**
+   * Обрабатывает входящую TON транзакцию для активации буст-пакета
+   */
+  static async processIncomingTransaction(req: Request, res: Response): Promise<void> {
+    try {
+      const { sender_address, amount, comment } = req.body;
+      
+      if (!sender_address || !amount || !comment) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Не указаны обязательные параметры: sender_address, amount, comment" 
+        });
+      }
+      
+      const result = await TonBoostService.processIncomingTonTransaction(sender_address, amount, comment);
+      res.json(result);
+    } catch (error) {
+      console.error("[TonBoostController] Error in processIncomingTransaction:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка при обработке входящей транзакции" 
+      });
+    }
+  }
+  /**
    * Получает список всех доступных TON Boost-пакетов
    */
   static async getTonBoostPackages(req: Request, res: Response): Promise<void> {
