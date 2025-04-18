@@ -9,6 +9,11 @@ import {
   addConnectionListener, 
   removeConnectionListener 
 } from '@/services/tonConnectService';
+import { 
+  linkWalletAddress, 
+  isWalletAddressSent,
+  resetWalletAddressSent 
+} from '@/services/walletLinkService';
 
 const Wallet: React.FC = () => {
   // Для сохранения совместимости с существующей структурой компонента
@@ -29,6 +34,29 @@ const Wallet: React.FC = () => {
     setConnected(connectionStatus);
   };
   
+  // Прямая проверка подключения кошелька для рендеринга компонентов
+  const walletConnected = isWalletConnected();
+  
+  // Эффект для обработки подключения адреса кошелька
+  useEffect(() => {
+    // Если кошелек подключен и адрес еще не был отправлен
+    if (walletConnected && !isWalletAddressSent()) {
+      console.log("[DEBUG] WalletPage - Sending wallet address to server");
+      
+      // Отправляем адрес кошелька на сервер
+      linkWalletAddress()
+        .then(result => {
+          console.log("[DEBUG] WalletPage - Wallet address link result:", result);
+        })
+        .catch(error => {
+          console.error("[DEBUG] WalletPage - Error linking wallet address:", error);
+        });
+    } else if (!walletConnected) {
+      // Если кошелек отключился, сбрасываем флаг
+      resetWalletAddressSent();
+    }
+  }, [walletConnected]); // Зависимость от статуса подключения
+  
   useEffect(() => {
     // Начальная проверка подключения
     console.log("[DEBUG] WalletPage - Component mounted");
@@ -43,9 +71,6 @@ const Wallet: React.FC = () => {
       removeConnectionListener(checkConnectionStatus);
     };
   }, []);
-  
-  // Прямая проверка подключения кошелька для рендеринга компонентов
-  const walletConnected = isWalletConnected();
   
   // Добавляем лог для отладки
   console.log("[DEBUG] Wallet connected:", walletConnected);

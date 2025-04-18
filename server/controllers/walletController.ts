@@ -89,8 +89,8 @@ export class WalletController {
       
       console.log(`[WalletController] Получение адреса кошелька для пользователя ${userId}`);
       
-      // Получаем пользователя
-      const user = await storage.appUsers.get(userId);
+      // Получаем пользователя через публичный метод
+      const user = await storage.getUserById(userId);
       
       if (!user) {
         console.error(`[WalletController] Пользователь с ID ${userId} не найден`);

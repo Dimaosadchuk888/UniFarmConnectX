@@ -13,6 +13,7 @@ import { UniFarmingController } from './controllers/uniFarmingController';
 import { BoostController } from './controllers/boostController';
 import { TonBoostController } from './controllers/tonBoostController';
 import { AuthController } from './controllers/authController';
+import { WalletController } from './controllers/walletController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -28,6 +29,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для пользователей
   app.get("/api/users/:id", UserController.getUserById);
   app.get("/api/wallet/balance", UserController.getUserBalance);
+  
+  // Маршруты для работы с TON-кошельком
+  app.post("/api/user/link-wallet", WalletController.linkWalletAddress);
+  app.get("/api/user/wallet-address", WalletController.getUserWalletAddress);
   
   // Маршруты для транзакций
   app.get("/api/transactions", TransactionController.getUserTransactions);

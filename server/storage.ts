@@ -10,6 +10,9 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<AuthUser | undefined>;
   createUser(user: InsertAuthUser): Promise<AuthUser>;
   
+  // Метод для получения пользователя из основной таблицы
+  getUserById(id: number): Promise<User | undefined>;
+  
   // Новые методы для работы с TON-адресом кошелька
   getUserByWalletAddress(walletAddress: string): Promise<User | undefined>;
   updateUserWalletAddress(userId: number, walletAddress: string): Promise<User | undefined>;
