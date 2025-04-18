@@ -1,8 +1,7 @@
 {
-  "manifestVersion": "1",
-  "url": "https://uni-farm-connect-1-misterxuniverse.replit.app",
+  "url": "https://unifarm-app.replit.app",
   "name": "UniFarm",
-  "iconUrl": "https://uni-farm-connect-1-misterxuniverse.replit.app/logo.png",
-  "termsOfUseUrl": "https://uni-farm-connect-1-misterxuniverse.replit.app/terms",
-  "privacyPolicyUrl": "https://uni-farm-connect-1-misterxuniverse.replit.app/privacy"
+  "iconUrl": "https://unifarm-app.replit.app/assets/favicon.ico",
+  "termsOfUseUrl": "https://unifarm-app.replit.app/terms",
+  "privacyPolicyUrl": "https://unifarm-app.replit.app/privacy"
 }

@@ -23,33 +23,26 @@ const TX_LIFETIME = 30 * 60;
 let tonConnectUI: TonConnectUI | null = null;
 
 /**
- * Возвращает экземпляр TonConnectUI, если он еще не создан - создает новый
+ * Возвращает экземпляр TonConnectUI, созданный TonConnectUIProvider
+ * 
+ * ВАЖНО: Мы не создаем экземпляр здесь, а получаем доступ к тому, что создал TonConnectUIProvider
  */
 export function getTonConnectUI(): TonConnectUI {
-  if (!tonConnectUI) {
-    tonConnectUI = new TonConnectUI({
-      manifestUrl: 'https://unifarm-app.replit.app/tonconnect-manifest.json',
-      buttonRootId: 'ton-connect-button',
-      uiPreferences: {
-        theme: THEME.DARK
-      }
-    });
-    
-    console.log('TonConnect initialized');
-    
-    // Проверяем статус соединения периодически
-    setInterval(() => {
-      if (tonConnectUI?.connected) {
-        console.log('TonConnect connected to wallet:', tonConnectUI.wallet && 'name' in tonConnectUI.wallet 
-          ? (tonConnectUI.wallet as any).name 
-          : 'unknown');
-      }
-    }, 10000);
-    
-    console.log('TonConnect status check interval started');
+  // Получаем глобальный экземпляр TonConnectUI, созданный TonConnectUIProvider
+  // @ts-ignore - window.__ton_connector__ существует, но TypeScript не знает об этом
+  if (!tonConnectUI && window.__ton_connector__) {
+    // @ts-ignore - window.__ton_connector__ создается TonConnectUIProvider
+    tonConnectUI = window.__ton_connector__;
+    console.log('TonConnect instance retrieved from TonConnectUIProvider');
   }
   
-  return tonConnectUI;
+  if (tonConnectUI) {
+    return tonConnectUI;
+  }
+  
+  // Если почему-то экземпляр не доступен, возвращаем заглушку
+  console.warn('TonConnect instance not available from TonConnectUIProvider');
+  return {} as TonConnectUI;
 }
 
 /**
@@ -216,28 +209,12 @@ export function removeConnectionListener(listener: ConnectionListener): void {
 
 /**
  * Инициализация TON Connect при запуске приложения
+ * 
+ * ВАЖНО: 
+ * Эта функция отключена, поскольку используется TonConnectUIProvider из @tonconnect/ui-react
+ * TonConnectUIProvider сам инициализирует TON Connect 
  */
 export function initTonConnect(): void {
-  // Получаем экземпляр TonConnectUI
-  const tonConnect = getTonConnectUI();
-  
-  // Добавляем слушатель для отслеживания изменений состояния подключения
-  tonConnect.onStatusChange((walletInfo) => {
-    const isConnected = !!walletInfo;
-    
-    // Уведомляем всех слушателей об изменении статуса
-    connectionListeners.forEach(listener => {
-      listener(isConnected);
-    });
-    
-    // Логируем статус соединения
-    if (isConnected) {
-      const walletName = walletInfo && 'name' in walletInfo ? (walletInfo as any).name : 'Unknown wallet';
-      console.log('TON wallet connected:', walletName);
-    } else {
-      console.log('TON wallet disconnected');
-    }
-  });
-  
-  console.log('TON Connect initialized');
+  // Эта функция теперь просто логирует сообщение и не выполняет реальной инициализации
+  console.log('TON Connect initialized by TonConnectUIProvider in App.tsx');
 }

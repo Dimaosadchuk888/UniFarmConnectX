@@ -1,19 +1,19 @@
 import React from 'react';
+import { TonConnectButton } from '@tonconnect/ui-react';
 
 /**
  * Компонент Header с официальной кнопкой TonConnect
- * Содержит:
- * 1. Контейнер для TonConnectUI (div с id="ton-connect-button")
+ * Используется TonConnectButton из @tonconnect/ui-react
  */
 const Header: React.FC = () => {
   return (
     <header className="fixed top-0 right-0 p-2 z-50">
       <div className="flex justify-end">
         {/* 
-          Кнопка для подключения TonConnect кошелька
-          TonConnectUI использует этот DOM-элемент для рендера кнопки
+          Официальная кнопка для подключения TonConnect кошелька
+          TonConnectButton управляется через TonConnectUIProvider из App.tsx
         */}
-        <div id="ton-connect-button" className="ton-connect-button"></div>
+        <TonConnectButton />
       </div>
     </header>
   );

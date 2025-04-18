@@ -5,7 +5,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { apiRequest } from "@/lib/queryClient";
 import { getTelegramUserData, initTelegramWebApp, isTelegramWebApp } from "./services/telegramService";
-import { initTonConnect } from "./services/tonConnectService";
+import { TonConnectUIProvider } from '@tonconnect/ui-react';
+import { TONCONNECT_MANIFEST_URL } from './config/tonConnect';
 
 import Header from "@/components/layout/Header";
 import NavigationBar from "@/components/layout/NavigationBar";
@@ -35,16 +36,13 @@ function App() {
   const [userId, setUserId] = useState<number | null>(null);
   const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
 
-  // Инициализация Telegram WebApp и TonConnect при запуске
+  // Инициализация Telegram WebApp при запуске
   useEffect(() => {
     // Если это Telegram WebApp, инициализируем его
     if (isTelegramWebApp()) {
       initTelegramWebApp();
       authenticateWithTelegram();
     }
-    
-    // Инициализируем TonConnect для подключения кошелька
-    initTonConnect();
   }, []);
 
   // Авторизация через Telegram
@@ -108,25 +106,27 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
-        <Header />
-        <main className="px-4 pt-2 pb-20">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
-            </div>
-          ) : telegramAuthError ? (
-            <div className="p-4 mt-4 bg-red-50 border border-red-200 rounded-md text-red-600">
-              <p className="font-medium">Ошибка авторизации</p>
-              <p className="text-sm">{telegramAuthError}</p>
-            </div>
-          ) : (
-            renderActivePage()
-          )}
-        </main>
-        <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
-      </div>
-      <Toaster />
+      <TonConnectUIProvider manifestUrl={TONCONNECT_MANIFEST_URL}>
+        <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
+          <Header />
+          <main className="px-4 pt-2 pb-20">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : telegramAuthError ? (
+              <div className="p-4 mt-4 bg-red-50 border border-red-200 rounded-md text-red-600">
+                <p className="font-medium">Ошибка авторизации</p>
+                <p className="text-sm">{telegramAuthError}</p>
+              </div>
+            ) : (
+              renderActivePage()
+            )}
+          </main>
+          <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
+        </div>
+        <Toaster />
+      </TonConnectUIProvider>
     </QueryClientProvider>
   );
 }
