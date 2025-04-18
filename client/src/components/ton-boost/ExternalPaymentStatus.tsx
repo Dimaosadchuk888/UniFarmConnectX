@@ -9,7 +9,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Loader2, ExternalLink } from "lucide-react";
+import { CheckCircle2, Loader2, ExternalLink, Wallet } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 
 interface ExternalPaymentStatusProps {
@@ -17,7 +17,7 @@ interface ExternalPaymentStatusProps {
   onOpenChange: (open: boolean) => void;
   userId: number;
   transactionId: number;
-  paymentLink: string;
+  paymentLink: string; // Может быть пустой, если использовали TonConnect
   boostName: string;
   onPaymentComplete: () => void;
 }
@@ -34,6 +34,7 @@ const ExternalPaymentStatus: React.FC<ExternalPaymentStatusProps> = ({
   const { toast } = useToast();
   const [paymentProcessed, setPaymentProcessed] = useState(false);
   const [checkCounter, setCheckCounter] = useState(0);
+  const isTonConnectPayment = !paymentLink; // Если paymentLink пустой, значит использовали TonConnect
   
   // Запрос на проверку статуса платежа
   const { data, refetch, isLoading } = useQuery({
@@ -66,9 +67,11 @@ const ExternalPaymentStatus: React.FC<ExternalPaymentStatusProps> = ({
     }
   }, [data, boostName, onPaymentComplete, toast, open, paymentProcessed]);
   
-  // Открыть ссылку на оплату в новом окне
+  // Открыть ссылку на оплату в новом окне (только если есть paymentLink)
   const handleOpenPaymentLink = () => {
-    window.open(paymentLink, '_blank');
+    if (paymentLink) {
+      window.open(paymentLink, '_blank');
+    }
   };
   
   // Ручное обновление статуса
@@ -86,7 +89,9 @@ const ExternalPaymentStatus: React.FC<ExternalPaymentStatusProps> = ({
           <DialogDescription className="text-blue-400">
             {paymentProcessed 
               ? `TON Boost "${boostName}" успешно активирован!` 
-              : `Для активации TON Boost "${boostName}" оплатите через внешний TON кошелек`}
+              : isTonConnectPayment 
+                ? `Проверка платежа через TON Connect для "${boostName}"...` 
+                : `Для активации TON Boost "${boostName}" оплатите через внешний TON кошелек`}
           </DialogDescription>
         </DialogHeader>
         
@@ -101,17 +106,31 @@ const ExternalPaymentStatus: React.FC<ExternalPaymentStatusProps> = ({
             </div>
           ) : (
             <>
-              <Button 
-                className="w-full bg-blue-700 hover:bg-blue-600" 
-                onClick={handleOpenPaymentLink}
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Открыть платежную ссылку
-              </Button>
+              {isTonConnectPayment ? (
+                // Для платежей через TonConnect показываем другой интерфейс
+                <div className="flex flex-col items-center text-center">
+                  <Wallet className="h-16 w-16 text-blue-500 mb-4" />
+                  <p className="text-lg font-medium text-blue-200">Транзакция отправлена через TON Connect</p>
+                  <p className="text-sm text-blue-400 mt-2">
+                    Ожидание подтверждения от блокчейна...
+                  </p>
+                </div>
+              ) : (
+                // Для платежей через ссылку показываем кнопку
+                <Button 
+                  className="w-full bg-blue-700 hover:bg-blue-600" 
+                  onClick={handleOpenPaymentLink}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Открыть платежную ссылку
+                </Button>
+              )}
               
               <div className="text-center mt-4">
                 <p className="text-sm text-blue-400 mb-2">
-                  После оплаты статус обновится автоматически
+                  {isTonConnectPayment 
+                    ? "Статус транзакции обновится автоматически" 
+                    : "После оплаты статус обновится автоматически"}
                 </p>
                 {isLoading ? (
                   <div className="flex items-center justify-center">

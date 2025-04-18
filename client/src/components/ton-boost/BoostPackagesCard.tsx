@@ -74,49 +74,107 @@ const BoostPackagesCard: React.FC = () => {
         return;
       }
 
-      // Отправляем запрос на покупку буст-пакета
-      const response = await apiRequest('POST', '/api/ton-boosts/purchase', {
-        user_id: userId,
-        boost_id: boostId,
-        payment_method: paymentMethod
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to purchase boost package");
+      // Находим выбранный буст-пакет
+      const selectedBoost = boostPackages.find(p => p.id === boostId);
+      if (!selectedBoost) {
+        throw new Error("Boost package not found");
       }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        // Проверяем метод оплаты и наличие данных для внешнего платежа
-        if (paymentMethod === 'external_wallet' && data.data.paymentLink) {
-          // Установка данных для компонента ExternalPaymentStatus
-          setExternalPaymentData({
-            userId: parseInt(userId),
-            transactionId: data.data.transactionId,
-            paymentLink: data.data.paymentLink,
-            boostName: boostPackages.find(p => p.id === boostId)?.name || 'TON Boost'
-          });
-          setExternalPaymentDialogOpen(true);
-        } else {
-          // Для внутреннего баланса - стандартное уведомление
+
+      // Если выбрана оплата через внешний кошелек и подключен TonConnect, используем его напрямую
+      if (paymentMethod === 'external_wallet') {
+        try {
+          const userIdInt = parseInt(userId);
+          const comment = createTonTransactionComment(userIdInt, boostId);
+          
+          // Отправляем транзакцию через TonConnect SDK 
+          const result = await sendTonTransaction(
+            selectedBoost.priceTon, // Сумма в TON
+            comment // Комментарий в формате "UniFarmBoost:userId:boostId"
+          );
+          
+          if (result) {
+            // Если транзакция успешно отправлена, создаем запись об ожидающей транзакции на сервере
+            const response = await apiRequest('POST', '/api/ton-boosts/purchase', {
+              user_id: userId,
+              boost_id: boostId,
+              payment_method: 'external_wallet',
+              tx_hash: result.txHash // Добавляем хеш транзакции для отслеживания
+            });
+            
+            if (!response.ok) {
+              throw new Error("Failed to register transaction on server");
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              // Устанавливаем данные для компонента ExternalPaymentStatus
+              setExternalPaymentData({
+                userId: userIdInt,
+                transactionId: data.data.transactionId,
+                paymentLink: '', // Не нужна, так как используем TonConnect
+                boostName: selectedBoost.name || 'TON Boost'
+              });
+              setExternalPaymentDialogOpen(true);
+              
+              // Обновляем кэш запросов
+              await queryClient.invalidateQueries({ queryKey: ['/api/ton-farming/info'] });
+              await queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts/active'] });
+              await queryClient.invalidateQueries({ queryKey: ['/api/transactions/user'] });
+              await queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+            } else {
+              toast({
+                title: "Предупреждение",
+                description: data.message || "Транзакция отправлена, но не удалось зарегистрировать платеж на сервере",
+                variant: "default"
+              });
+            }
+          } else {
+            // Если транзакция не была отправлена (пользователь отменил или произошла ошибка)
+            toast({
+              title: "Транзакция отменена",
+              description: "Транзакция не была выполнена или была отменена",
+              variant: "default"
+            });
+          }
+        } catch (error) {
+          console.error("Error sending TON transaction:", error);
+          
+          // Запасной вариант - используем стандартный процесс с ссылкой
+          await processExternalPaymentWithLink(userId, boostId, selectedBoost.name);
+        }
+      } else {
+        // Для внутреннего баланса - стандартный процесс
+        const response = await apiRequest('POST', '/api/ton-boosts/purchase', {
+          user_id: userId,
+          boost_id: boostId,
+          payment_method: paymentMethod
+        });
+        
+        if (!response.ok) {
+          throw new Error("Failed to purchase boost package");
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
           toast({
             title: "Успех!",
             description: data.message || "Буст-пакет успешно активирован!",
           });
+          
+          // Обновляем кэш запросов чтобы обновить баланс и другие данные
+          await queryClient.invalidateQueries({ queryKey: ['/api/ton-farming/info'] });
+          await queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts/active'] });
+          await queryClient.invalidateQueries({ queryKey: ['/api/transactions/user'] });
+          await queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+        } else {
+          toast({
+            title: "Ошибка",
+            description: data.message || "Не удалось активировать буст-пакет",
+            variant: "destructive"
+          });
         }
-        
-        // Обновляем кэш запросов чтобы обновить баланс и другие данные
-        await queryClient.invalidateQueries({ queryKey: ['/api/ton-farming/info'] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts/active'] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/transactions/user'] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-      } else {
-        toast({
-          title: "Ошибка",
-          description: data.message || "Не удалось активировать буст-пакет",
-          variant: "destructive"
-        });
       }
     } catch (error) {
       console.error("Error purchasing boost package:", error);
@@ -127,6 +185,54 @@ const BoostPackagesCard: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Вспомогательная функция для обработки внешнего платежа через ссылку (запасной вариант)
+  const processExternalPaymentWithLink = async (userId: string, boostId: number, boostName: string = 'TON Boost') => {
+    try {
+      // Отправляем запрос на покупку буст-пакета
+      const response = await apiRequest('POST', '/api/ton-boosts/purchase', {
+        user_id: userId,
+        boost_id: boostId,
+        payment_method: 'external_wallet'
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to purchase boost package");
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.data.paymentLink) {
+        // Установка данных для компонента ExternalPaymentStatus
+        setExternalPaymentData({
+          userId: parseInt(userId),
+          transactionId: data.data.transactionId,
+          paymentLink: data.data.paymentLink,
+          boostName: boostName
+        });
+        setExternalPaymentDialogOpen(true);
+        
+        // Обновляем кэш запросов
+        await queryClient.invalidateQueries({ queryKey: ['/api/ton-farming/info'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts/active'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/transactions/user'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+      } else {
+        toast({
+          title: "Ошибка",
+          description: data.message || "Не удалось создать платежную ссылку",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error processing external payment with link:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать платежную ссылку",
+        variant: "destructive"
+      });
     }
   };
 
