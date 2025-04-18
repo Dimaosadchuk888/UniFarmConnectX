@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '../../lib/queryClient';
 import { format } from 'date-fns';
 import PaymentMethodDialog from '../ton-boost/PaymentMethodDialog';
+import ExternalPaymentStatus from '../ton-boost/ExternalPaymentStatus';
 
 // Определяем структуру буст-пакета
 interface BoostPackage {
@@ -53,18 +54,38 @@ const boostPricesUni: Record<number, string> = {
   4: '2500000'  // 2,500,000 UNI за Boost 25
 };
 
-// Интерфейс свойств компонента для ребята пропсов
+// Интерфейс для данных о транзакции платежа
+interface PaymentTransaction {
+  transactionId: number | null;
+  paymentLink: string | null;
+  paymentMethod: 'internal_balance' | 'external_wallet';
+}
+
+// Интерфейс свойств компонента
 interface BoostPackagesCardProps {
   userData?: any;
 }
 
 const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
+  // Состояния
   const [purchasingBoostId, setPurchasingBoostId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Состояния для диалогов
   const [paymentDialogOpen, setPaymentDialogOpen] = useState<boolean>(false);
+  const [paymentStatusDialogOpen, setPaymentStatusDialogOpen] = useState<boolean>(false);
+  
+  // Состояния для выбранного буста
   const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
   const [selectedBoostName, setSelectedBoostName] = useState<string>('');
+  
+  // Состояние для данных о транзакции
+  const [paymentTransaction, setPaymentTransaction] = useState<PaymentTransaction>({
+    transactionId: null,
+    paymentLink: null,
+    paymentMethod: 'internal_balance'
+  });
   
   const queryClient = useQueryClient();
   
@@ -111,19 +132,31 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
     },
     onSuccess: (data) => {
       if (data.success) {
-        // Показываем сообщение об успехе
-        setSuccessMessage(data.message || 'Буст успешно приобретен!');
-        
-        // Если оплата через внешний кошелек, отображаем ссылку на оплату
-        if (data.data.paymentMethod === 'external_wallet' && data.data.paymentLink) {
-          window.open(data.data.paymentLink, '_blank');
+        // Если оплата через внутренний баланс - показываем сообщение об успехе
+        if (data.data.paymentMethod === 'internal_balance') {
+          setSuccessMessage(data.message || 'Буст успешно приобретен!');
+          
+          // Инвалидируем кэш для обновления баланса и транзакций
+          queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+          queryClient.invalidateQueries({ queryKey: [`/api/ton-boosts/active`] });
         }
-        
-        // Инвалидируем кэш для обновления баланса и транзакций
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
-        queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-        queryClient.invalidateQueries({ queryKey: [`/api/ton-boosts/active`] });
+        // Если оплата через внешний кошелек - показываем диалог статуса платежа
+        else if (data.data.paymentMethod === 'external_wallet') {
+          // Сохраняем данные о транзакции
+          setPaymentTransaction({
+            transactionId: data.data.transactionId,
+            paymentLink: data.data.paymentLink,
+            paymentMethod: 'external_wallet'
+          });
+          
+          // Открываем диалог статуса платежа
+          setPaymentStatusDialogOpen(true);
+          
+          // Закрываем диалог выбора способа оплаты
+          setPaymentDialogOpen(false);
+        }
       } else {
         // Показываем пользовательское сообщение об ошибке
         handleErrorMessage(data.message);
@@ -150,8 +183,12 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
     onSettled: () => {
       // Сбрасываем ID буста после завершения операции
       setPurchasingBoostId(null);
-      // Закрываем модальное окно
-      setPaymentDialogOpen(false);
+      
+      // Закрываем модальное окно выбора способа оплаты, если оно открыто
+      // Но не закрываем диалог статуса платежа
+      if (!paymentStatusDialogOpen) {
+        setPaymentDialogOpen(false);
+      }
     }
   });
   
@@ -180,6 +217,21 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
     buyTonBoostMutation.mutate({ boostId, paymentMethod });
   };
   
+  // Обработчик завершения внешнего платежа
+  const handlePaymentComplete = () => {
+    // Инвалидируем кэш для обновления баланса и транзакций
+    queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+    queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+    queryClient.invalidateQueries({ queryKey: [`/api/ton-boosts/active`] });
+    
+    // Закрываем диалог статуса платежа
+    setPaymentStatusDialogOpen(false);
+    
+    // Показываем сообщение об успехе
+    setSuccessMessage('TON Boost успешно активирован! Бонусные UNI зачислены на ваш баланс.');
+  };
+  
   return (
     <div className="mt-8">
       <h2 className="text-xl font-semibold mb-6 text-center">Airdrop Boost Пакеты</h2>
@@ -191,6 +243,17 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
         boostId={selectedBoostId}
         boostName={selectedBoostName}
         onSelectPaymentMethod={handleSelectPaymentMethod}
+      />
+      
+      {/* Модальное окно статуса внешнего платежа */}
+      <ExternalPaymentStatus
+        open={paymentStatusDialogOpen}
+        onOpenChange={setPaymentStatusDialogOpen}
+        userId={userId}
+        transactionId={paymentTransaction.transactionId}
+        paymentLink={paymentTransaction.paymentLink}
+        boostName={selectedBoostName}
+        onPaymentComplete={handlePaymentComplete}
       />
       
       {/* Сообщение об успехе */}
