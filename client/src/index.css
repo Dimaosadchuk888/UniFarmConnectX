@@ -497,3 +497,20 @@
   background: radial-gradient(circle, rgba(162, 89, 255, 0.3) 0%, rgba(100, 100, 255, 0.1) 40%, rgba(0, 0, 0, 0) 70%);
   animation: colorPulse 2s infinite;
 }
+
+/* Стили для кнопки TonConnect - отображение полного адреса в UQ-формате */
+#ton-connect-root {
+  max-width: 300px;
+}
+
+#ton-connect-root button {
+  max-width: 280px !important;
+  overflow: hidden;
+}
+
+#ton-connect-root button span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px !important;
+}
