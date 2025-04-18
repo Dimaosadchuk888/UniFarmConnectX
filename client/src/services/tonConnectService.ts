@@ -64,16 +64,46 @@ export async function connectWallet() {
 }
 
 /**
- * Отключает подключенный TON-кошелек
+ * Отключает подключенный TON-кошелек и очищает хранилище
  */
 export async function disconnectWallet() {
   const connector = getTonConnect();
   try {
     if (connector) {
       await connector.disconnect();
+      
+      // Очистка хранилища после отключения
+      localStorage.removeItem('ton-connect-storage');
+      sessionStorage.clear();
+      console.log('TonConnect storage cleaned');
     }
   } catch (error) {
     console.error('Error disconnecting wallet:', error);
+  }
+}
+
+/**
+ * Переподключает кошелёк: отключает текущий, очищает хранилище и инициализирует новое подключение
+ */
+export async function reconnectWallet() {
+  try {
+    // Сначала отключаем текущий кошелёк и очищаем хранилище
+    await disconnectWallet();
+    
+    // Небольшая задержка для гарантии завершения предыдущих операций
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Используем существующее соединение без пересоздания экземпляра
+    // Так как disconnectWallet уже очистил хранилище
+    const connector = getTonConnect();
+    
+    if (connector) {
+      // Открываем модальное окно для нового подключения
+      await connector.openModal();
+      console.log('Wallet reconnected successfully');
+    }
+  } catch (error) {
+    console.error('Error reconnecting wallet:', error);
   }
 }
 
