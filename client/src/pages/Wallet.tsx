@@ -16,11 +16,20 @@ const Wallet: React.FC = () => {
   // Функция для проверки статуса подключения
   const checkConnectionStatus = () => {
     const connected = isWalletConnected();
+    const address = getWalletAddress();
+    
+    console.log("[DEBUG] WalletPage - Connection check:", { 
+      isConnected: connected, 
+      walletAddress: address,
+      time: new Date().toISOString()
+    });
+    
     setConnected(connected);
   };
   
   useEffect(() => {
     // Начальная проверка подключения
+    console.log("[DEBUG] WalletPage - Component mounted");
     checkConnectionStatus();
     
     // Подписываемся на изменения статуса подключения
@@ -28,6 +37,7 @@ const Wallet: React.FC = () => {
     
     // Отписываемся при размонтировании компонента
     return () => {
+      console.log("[DEBUG] WalletPage - Component unmounted");
       removeConnectionListener(checkConnectionStatus);
     };
   }, []);

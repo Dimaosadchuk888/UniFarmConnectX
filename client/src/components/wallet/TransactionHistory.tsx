@@ -33,9 +33,21 @@ const TransactionHistory: React.FC = () => {
   
   console.log("[DEBUG] TransactionHistory - User ID:", currentUserId);
   
+  console.log("[DEBUG] TransactionHistory - Starting API request for transactions");
+
   // Используем стандартный запрос через queryClient (с глобальной отладкой)
   const { data: dbTransactions, isLoading, error } = useQuery<DbTransaction[]>({
-    queryKey: [`/api/transactions?user_id=${currentUserId}`]
+    queryKey: [`/api/transactions?user_id=${currentUserId}`],
+    onSuccess: (data) => {
+      console.log("[DEBUG] TransactionHistory - API request succeeded:", { 
+        transactionsCount: data?.length || 0,
+        sample: data?.slice(0, 2) || [],
+        time: new Date().toISOString()
+      });
+    },
+    onError: (err) => {
+      console.error("[DEBUG] TransactionHistory - API request failed:", err);
+    }
   });
   
   // Преобразуем данные из БД в формат для UI с проверкой на ошибки и отсутствующие данные
