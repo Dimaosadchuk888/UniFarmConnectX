@@ -190,6 +190,9 @@ export function createTonTransactionComment(userId: number, boostId: number): st
  */
 export const isWalletConnected = isTonWalletConnected;
 export const getWalletAddress = getTonWalletAddress;
+export const connectWallet = connectTonWallet;
+export const disconnectWallet = disconnectTonWallet;
+export const getTonConnect = getTonConnectUI;
 
 /**
  * Добавить слушателя соединения

@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  connectWallet, 
-  disconnectWallet, 
-  getWalletAddress, 
-  isWalletConnected, 
-  shortenAddress,
-  initTonConnect,
-  getTonConnect,
+  connectTonWallet, 
+  disconnectTonWallet, 
+  getTonWalletAddress, 
+  isTonWalletConnected, 
   addConnectionListener,
   removeConnectionListener
 } from '@/services/tonConnectService';
@@ -22,30 +19,26 @@ interface ConnectWalletButtonProps {
   className?: string;
 }
 
+/**
+ * Компонент кнопки для подключения TON кошелька
+ * Используется совместно с TonConnectUI
+ */
 const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) => {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
-  // Инициализируем TonConnect при загрузке компонента
+  // Инициализируем отслеживание статуса подключения TonConnect при загрузке компонента
   useEffect(() => {
-    // Обязательно получаем экземпляр TonConnect
-    const connector = getTonConnect();
-    
     // Функция для обновления состояния подключения
     const updateConnectionStatus = () => {
-      const isConnected = isWalletConnected();
+      const isConnected = isTonWalletConnected();
       setConnected(isConnected);
-      setAddress(isConnected ? getWalletAddress() : null);
+      setAddress(isConnected ? getTonWalletAddress() : null);
     };
     
     // Выполняем начальную проверку
     updateConnectionStatus();
-    
-    // Настраиваем обработчик событий для соединения
-    if (connector) {
-      connector.onStatusChange(updateConnectionStatus);
-    }
     
     // Подписываемся на централизованные обновления статуса подключения
     addConnectionListener(updateConnectionStatus);
@@ -61,9 +54,9 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     setLoading(true);
     try {
       if (connected) {
-        await disconnectWallet();
+        await disconnectTonWallet();
       } else {
-        await connectWallet();
+        await connectTonWallet();
       }
     } catch (error) {
       console.error('Wallet connection error:', error);

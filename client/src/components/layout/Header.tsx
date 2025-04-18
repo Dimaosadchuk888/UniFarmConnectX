@@ -2,10 +2,10 @@ import React from 'react';
 
 /**
  * Компонент Header с официальной кнопкой TonConnect
- * Используется оригинальная кнопка TonConnect через DOM-элемент
+ * Содержит:
+ * 1. Контейнер для TonConnectUI (div с id="ton-connect-button")
  */
 const Header: React.FC = () => {
-  // Стилизованный заголовок с правильной разметкой для кнопки TonConnect
   return (
     <header className="fixed top-0 right-0 p-2 z-50">
       <div className="flex justify-end">
