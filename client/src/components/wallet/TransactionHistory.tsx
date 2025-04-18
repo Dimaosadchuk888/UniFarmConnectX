@@ -35,20 +35,46 @@ const TransactionHistory: React.FC = () => {
   
   console.log("[DEBUG] TransactionHistory - Starting API request for transactions");
 
-  // Используем стандартный запрос через queryClient (с глобальной отладкой)
-  const { data: dbTransactions, isLoading, error } = useQuery<DbTransaction[]>({
+  // Интерфейс для структуры ответа API
+  interface ApiResponseData {
+    total: number;
+    transactions: DbTransaction[];
+  }
+  
+  interface ApiResponse {
+    success: boolean;
+    data: ApiResponseData;
+  }
+
+  // Используем стандартный запрос через queryClient
+  const { data: apiResponse, isLoading, error } = useQuery<ApiResponse>({
     queryKey: [`/api/transactions?user_id=${currentUserId}`],
-    onSuccess: (data) => {
+    staleTime: 15000,
+  });
+  
+  // Добавляем логирование полученных данных
+  React.useEffect(() => {
+    if (apiResponse) {
       console.log("[DEBUG] TransactionHistory - API request succeeded:", { 
-        transactionsCount: data?.length || 0,
-        sample: data?.slice(0, 2) || [],
+        success: apiResponse.success,
+        transactionsCount: apiResponse.data?.transactions?.length || 0,
+        sample: apiResponse.data?.transactions?.slice(0, 2) || [],
         time: new Date().toISOString()
       });
-    },
-    onError: (err) => {
-      console.error("[DEBUG] TransactionHistory - API request failed:", err);
     }
-  });
+  }, [apiResponse]);
+  
+  // Проверяем, успешно ли получены данные и есть ли они
+  const hasData = apiResponse !== undefined && apiResponse !== null;
+  const hasTransactions = hasData && apiResponse.success === true && 
+                          Array.isArray(apiResponse.data?.transactions) && 
+                          apiResponse.data.transactions.length > 0;
+  const isEmptyResult = hasData && apiResponse.success === true && 
+                         Array.isArray(apiResponse.data?.transactions) && 
+                         apiResponse.data.transactions.length === 0;
+  
+  // Получаем транзакции из ответа API или используем пустой массив
+  const dbTransactions = apiResponse?.data?.transactions || [];
   
   // Преобразуем данные из БД в формат для UI с проверкой на ошибки и отсутствующие данные
   const transactions: Transaction[] = Array.isArray(dbTransactions) ? dbTransactions.map(tx => {
@@ -215,10 +241,16 @@ const TransactionHistory: React.FC = () => {
               </div>
             ))
           ) : error ? (
-            // Отображение ошибки
+            // Отображение ошибки при сбое запроса
             <div className="py-6 text-center text-red-500">
               <i className="fas fa-exclamation-triangle mb-2 text-2xl"></i>
               <p>Ошибка загрузки транзакций</p>
+            </div>
+          ) : isEmptyResult ? (
+            // Отображение пустого результата, когда transactions = []
+            <div className="py-8 text-center text-gray-500">
+              <i className="fas fa-wallet mb-3 text-3xl"></i>
+              <p className="text-lg">У вас пока нет транзакций</p>
             </div>
           ) : filteredTransactions.length > 0 ? (
             // Отображение транзакций
