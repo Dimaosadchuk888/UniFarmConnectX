@@ -6,11 +6,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface DbTransaction {
   id: number;
   user_id: number;
-  type: string; // deposit / withdraw / reward
+  type: string; // deposit / withdraw / reward / farming / bonus / purchase
   currency: string; // UNI / TON
   amount: string; // строка, потому что numeric из PostgreSQL
   status: string; // pending / confirmed / rejected
   created_at: string; // строка с датой
+  source?: string; // Источник транзакции (например, "TON Boost", "UNI Farming")
+  category?: string; // Категория транзакции (например, "farming", "bonus", "purchase")
 }
 
 // Тип для отображения на фронтенде
@@ -22,6 +24,8 @@ interface Transaction {
   tokenType: string;
   timestamp: Date;
   status: string;
+  source?: string;
+  category?: string;
 }
 
 const TransactionHistory: React.FC = () => {
@@ -80,23 +84,46 @@ const TransactionHistory: React.FC = () => {
   const transactions: Transaction[] = Array.isArray(dbTransactions) ? dbTransactions.map(tx => {
     if (!tx) return null; // Проверка на null/undefined элементы в массиве
     
-    // Определяем заголовок в зависимости от типа транзакции
+    // Определяем заголовок в зависимости от типа транзакции или категории
     let title = '';
-    if (tx.type === 'farming') title = 'Доход от фарминга';
-    else if (tx.type === 'reward') title = 'Награда за миссию';
-    else if (tx.type === 'deposit') title = 'Пополнение';
-    else if (tx.type === 'withdraw') title = 'Вывод средств';
-    else title = 'Транзакция';
+    // Используем новое поле category, если оно доступно
+    if (tx.category === 'farming' || tx.type === 'farming') {
+      title = tx.source ? `Доход от ${tx.source}` : 'Доход от фарминга';
+    } else if (tx.category === 'bonus' || tx.type === 'bonus') {
+      title = tx.source ? `Бонус от ${tx.source}` : 'Бонусное начисление';
+    } else if (tx.category === 'purchase' || tx.type === 'purchase') {
+      title = tx.source ? `Покупка ${tx.source}` : 'Покупка';
+    } else if (tx.type === 'reward') {
+      title = 'Награда за миссию';
+    } else if (tx.type === 'deposit') {
+      title = 'Пополнение';
+    } else if (tx.type === 'withdraw') {
+      title = 'Вывод средств';
+    } else {
+      title = 'Транзакция';
+    }
+    
+    // Добавляем логирование для отладки
+    console.log("[DEBUG] Transaction data:", {
+      id: tx.id,
+      type: tx.type,
+      category: tx.category,
+      source: tx.source,
+      currency: tx.currency,
+      amount: tx.amount
+    });
     
     try {
       return {
         id: tx.id || Math.random().toString(36).substring(2, 9), // Генерация ID, если его нет
-        type: tx.type || 'unknown',
+        type: tx.category || tx.type || 'unknown', // Предпочитаем использовать category, если доступно
         title: title,
         amount: typeof tx.amount === 'string' ? parseFloat(tx.amount) : (tx.amount || 0),
         tokenType: tx.currency || 'UNI',
         timestamp: tx.created_at ? new Date(tx.created_at) : new Date(),
-        status: tx.status || 'confirmed'
+        status: tx.status || 'confirmed',
+        source: tx.source,
+        category: tx.category
       };
     } catch (e) {
       console.error('Error processing transaction data:', e);
@@ -133,19 +160,42 @@ const TransactionHistory: React.FC = () => {
         return `+0.00000 ${tokenType || 'UNI'}`;
       }
       
+      // Знак для суммы (покупки показываем как отрицательные)
+      const sign = type === 'purchase' ? '-' : '+';
+      
       // Защита от отрицательных значений (для наград всегда положительный знак)
       const absoluteAmount = Math.abs(amount);
       
-      // Для транзакций типа boost_farming с TON токеном, используем 6 знаков после запятой 
+      // Для транзакций связанных с фармингом TON, используем 6 знаков после запятой 
       // чтобы отображать микро-суммы
-      if (type === 'boost_farming' && tokenType === 'TON') {
+      if ((type === 'farming' || type === 'boost_farming') && tokenType === 'TON') {
         // Для очень маленьких сумм TON используем фиксированное количество знаков
         // чтобы предотвратить округление до нуля
         const formattedTON = absoluteAmount.toFixed(6);
-        return `+${formattedTON} ${tokenType}`;
+        return `${sign}${formattedTON} ${tokenType}`;
       }
       
-      // Для UNI и других типов транзакций используем стандартное форматирование
+      // Для UNI транзакций
+      if (tokenType === 'UNI') {
+        // Используем больше цифр для отображения дробной части (до 8 знаков)
+        let formattedAmount;
+        
+        // Если число целое, убираем десятичную часть
+        if (Number.isInteger(absoluteAmount)) {
+          formattedAmount = absoluteAmount.toString();
+        } 
+        // Иначе используем форматирование с 8 знаками для микро-сумм
+        else {
+          formattedAmount = absoluteAmount.toLocaleString('en-US', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 8
+          }).replace(/\.?0+$/, '');
+        }
+        
+        return `${sign}${formattedAmount} ${tokenType}`;
+      }
+      
+      // Для TON и других типов транзакций используем стандартное форматирование
       let formattedAmount = absoluteAmount.toFixed(5);
       
       // Если число целое, убираем десятичную часть
@@ -160,7 +210,7 @@ const TransactionHistory: React.FC = () => {
         }).replace(/\.?0+$/, '');
       }
       
-      return `+${formattedAmount} ${tokenType || 'UNI'}`;
+      return `${sign}${formattedAmount} ${tokenType || 'UNI'}`;
     } catch (e) {
       console.error('Error formatting amount:', e);
       return `+0.00000 ${tokenType || 'UNI'}`;
@@ -276,7 +326,9 @@ const TransactionHistory: React.FC = () => {
                     </div>
                     <div className="flex items-center mt-0.5">
                       <span className="text-xs text-gray-500 mr-2">{formatDate(transaction.timestamp)}</span>
-                      <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded-sm">{transaction.type}</span>
+                      <span className="text-xs bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded-sm">
+                        {transaction.source || transaction.type}
+                      </span>
                     </div>
                   </div>
                 </div>
