@@ -7,40 +7,63 @@ import {
   isWalletConnected, 
   getWalletAddress, 
   addConnectionListener, 
-  removeConnectionListener 
+  removeConnectionListener,
+  getTonConnect
 } from '@/services/tonConnectService';
 
 const Wallet: React.FC = () => {
-  const [connected, setConnected] = useState(false);
+  // Используем React state для отслеживания состояния подключения
+  const [connected, setConnected] = useState<boolean>(() => {
+    // Инициализируем состояние напрямую из TonConnect
+    return isWalletConnected();
+  });
   
-  // Функция для проверки статуса подключения
+  // Улучшенная функция для проверки статуса подключения
   const checkConnectionStatus = () => {
-    const connected = isWalletConnected();
+    // Получаем экземпляр TonConnect напрямую
+    const connector = getTonConnect();
+    
+    // Проверяем статус соединения непосредственно из экземпляра
+    const directlyConnected = connector ? connector.connected : false;
+    
+    // Получаем адрес кошелька для отладки
     const address = getWalletAddress();
     
     console.log("[DEBUG] WalletPage - Connection check:", { 
-      isConnected: connected, 
+      isConnected: directlyConnected, 
+      helperFunctionReturns: isWalletConnected(),
+      tonConnectState: connector ? 'initialized' : 'null',
       walletAddress: address,
       time: new Date().toISOString()
     });
     
-    setConnected(connected);
+    // Обновляем состояние подключения
+    setConnected(directlyConnected);
   };
   
   useEffect(() => {
     // Начальная проверка подключения
     console.log("[DEBUG] WalletPage - Component mounted");
-    checkConnectionStatus();
+    
+    // Устанавливаем небольшую задержку для инициализации TonConnect
+    setTimeout(checkConnectionStatus, 100);
     
     // Подписываемся на изменения статуса подключения
     addConnectionListener(checkConnectionStatus);
+    
+    // Также добавляем интервал для дополнительных проверок
+    const intervalId = setInterval(checkConnectionStatus, 2000);
     
     // Отписываемся при размонтировании компонента
     return () => {
       console.log("[DEBUG] WalletPage - Component unmounted");
       removeConnectionListener(checkConnectionStatus);
+      clearInterval(intervalId);
     };
   }, []);
+  
+  // Независимая проверка статуса подключения для рендеринга компонентов
+  const isConnected = isWalletConnected();
   
   return (
     <div>
@@ -51,14 +74,15 @@ const Wallet: React.FC = () => {
       <BalanceCard />
       <WalletConnectionCard />
       
-      {connected && (
+      {/* Используем функцию isWalletConnected() вместо состояния, чтобы всегда получать актуальное состояние */}
+      {isConnected && (
         <>
           <WithdrawalForm />
           <TransactionHistory />
         </>
       )}
       
-      {!connected && (
+      {!isConnected && (
         <div className="rounded-lg bg-gray-800 border border-gray-700 p-6 mt-6 text-center">
           <div className="mb-4 text-gray-400">
             <svg 

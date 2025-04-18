@@ -4,24 +4,38 @@ import {
   getWalletAddress, 
   isWalletConnected, 
   addConnectionListener, 
-  removeConnectionListener 
+  removeConnectionListener,
+  getTonConnect
 } from '@/services/tonConnectService';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 const WalletConnectionCard: React.FC = () => {
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
+  // Инициализируем состояние из текущего статуса подключения
+  const [connected, setConnected] = useState(() => isWalletConnected());
+  const [address, setAddress] = useState<string | null>(() => getWalletAddress());
   const { toast } = useToast();
   
-  // Функция для проверки статуса подключения
+  // Улучшенная функция для проверки статуса подключения
   const checkWalletConnection = () => {
-    const isConnected = isWalletConnected();
+    // Получаем экземпляр TonConnect напрямую
+    const connector = getTonConnect();
+    
+    // Проверяем статус подключения напрямую из экземпляра
+    const isConnected = connector ? connector.connected : false;
+    
+    console.log("[DEBUG] WalletConnectionCard - Connection check:", {
+      directlyConnected: isConnected,
+      helperFunctionReturns: isWalletConnected(),
+      instance: connector ? 'initialized' : 'null',
+      time: new Date().toISOString()
+    });
+    
     setConnected(isConnected);
     
-    if (isConnected) {
-      const walletAddress = getWalletAddress();
+    if (isConnected && connector && connector.account) {
+      const walletAddress = connector.account.address;
       setAddress(walletAddress);
     } else {
       setAddress(null);
@@ -30,15 +44,22 @@ const WalletConnectionCard: React.FC = () => {
   
   // Проверяем статус подключения при загрузке компонента
   useEffect(() => {
-    // Проверяем изначальное состояние
-    checkWalletConnection();
+    console.log("[DEBUG] WalletConnectionCard - Component mounted");
+    
+    // Небольшая задержка для гарантии инициализации TonConnect
+    setTimeout(checkWalletConnection, 100);
     
     // Подписываемся на изменения статуса подключения
     addConnectionListener(checkWalletConnection);
     
+    // Запускаем регулярную проверку состояния
+    const intervalId = setInterval(checkWalletConnection, 2000);
+    
     // Отписываемся при размонтировании компонента
     return () => {
+      console.log("[DEBUG] WalletConnectionCard - Component unmounted");
       removeConnectionListener(checkWalletConnection);
+      clearInterval(intervalId);
     };
   }, []);
   
