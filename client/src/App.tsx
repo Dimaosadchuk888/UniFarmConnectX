@@ -106,7 +106,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TonConnectUIProvider manifestUrl={TONCONNECT_MANIFEST_URL}>
+      <TonConnectUIProvider manifestUrl="https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json">
         <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
           <Header />
           <main className="px-4 pt-2 pb-20">
