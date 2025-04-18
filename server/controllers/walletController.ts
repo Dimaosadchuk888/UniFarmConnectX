@@ -37,15 +37,23 @@ export class WalletController {
       }
       
       // Привязываем адрес кошелька к пользователю
+      // Выполняем обновление адреса и получаем обновленного пользователя
       const updatedUser = await storage.updateUserWalletAddress(userId, wallet_address);
       
       if (!updatedUser) {
+        console.log(`[WalletController AUDIT] Не удалось обновить адрес для пользователя ${userId}, пользователь не найден`);
         res.status(404).json({
           success: false,
           message: 'Пользователь не найден'
         });
         return;
       }
+      
+      // Для аудита проверяем, что адрес был успешно сохранен
+      console.log(`[WalletController AUDIT] Успешно обновлен адрес кошелька для пользователя ${userId}`);
+      console.log(`[WalletController AUDIT] Предыдущее значение в БД: ${updatedUser.ton_wallet_address === wallet_address ? 'null или другое' : updatedUser.ton_wallet_address}`);
+      console.log(`[WalletController AUDIT] Новое значение в БД: ${updatedUser.ton_wallet_address}`);
+      
       
       res.status(200).json({
         success: true,

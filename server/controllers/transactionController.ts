@@ -66,6 +66,11 @@ export class TransactionController {
       
       console.log(`[TransactionController] Запрос транзакций: user_id=${user_id}, wallet_address=${wallet_address}, limit=${limit}, offset=${offset}`);
       
+      // Более подробное логирование для аудита
+      if (wallet_address) {
+        console.log(`[TransactionController AUDIT] Получен запрос с wallet_address: ${wallet_address}`);
+      }
+      
       let userId: number | undefined;
       
       // Если указан wallet_address, находим пользователя по адресу кошелька
@@ -76,14 +81,20 @@ export class TransactionController {
           console.log(`[TransactionController] Найден пользователь ${userId} по адресу кошелька ${wallet_address}`);
         } else {
           console.log(`[TransactionController] Пользователь не найден по адресу кошелька ${wallet_address}`);
-          // Если пользователь не найден по адресу кошелька, возвращаем пустой список
-          res.status(200).json({
+          
+          // Для аудита - вывод сообщения о возвращении пустого массива
+          console.log(`[TransactionController AUDIT] Пользователь не найден по адресу кошелька, возвращаем пустой массив транзакций`);
+          const emptyResponse = {
             success: true,
             data: {
               total: 0,
               transactions: []
             }
-          });
+          };
+          console.log(`[TransactionController AUDIT] Возвращаемый ответ:`, JSON.stringify(emptyResponse));
+          
+          // Если пользователь не найден по адресу кошелька, возвращаем пустой список
+          res.status(200).json(emptyResponse);
           return;
         }
       } else if (user_id) {

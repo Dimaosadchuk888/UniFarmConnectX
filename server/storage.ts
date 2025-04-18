@@ -75,9 +75,22 @@ export class MemStorage implements IStorage {
     console.log(`[Storage] Поиск пользователя по адресу кошелька: ${walletAddress}`);
     
     // В реальной БД используем db.select().from(users).where(eq(users.ton_wallet_address, walletAddress))
-    return Array.from(this.appUsers.values()).find(
+    const user = Array.from(this.appUsers.values()).find(
       (user) => user.ton_wallet_address === walletAddress
     );
+    
+    // Для аудита добавляем подробное логирование
+    if (user) {
+      console.log(`[Storage AUDIT] Найден пользователь по адресу кошелька: ID=${user.id}, wallet_address=${user.ton_wallet_address}`);
+    } else {
+      console.log(`[Storage AUDIT] Пользователь с адресом кошелька ${walletAddress} не найден в базе`);
+      console.log(`[Storage AUDIT] Все пользователи в базе:`);
+      Array.from(this.appUsers.values()).forEach((u) => {
+        console.log(`[Storage AUDIT]   ID=${u.id}, wallet_address=${u.ton_wallet_address}`);
+      });
+    }
+    
+    return user;
   }
   
   async updateUserWalletAddress(userId: number, walletAddress: string): Promise<User | undefined> {
@@ -89,11 +102,18 @@ export class MemStorage implements IStorage {
       return undefined;
     }
     
+    // Для аудита сохраняем предыдущее значение
+    const oldWalletAddress = user.ton_wallet_address;
+    
     // Обновляем адрес кошелька
     user.ton_wallet_address = walletAddress;
     this.appUsers.set(userId, user);
     
     console.log(`[Storage] Адрес кошелька для пользователя ${userId} успешно обновлен`);
+    console.log(`[Storage AUDIT] Обновлен адрес кошелька для пользователя ${userId}:`);
+    console.log(`[Storage AUDIT]   Было: ${oldWalletAddress || 'null'}`);
+    console.log(`[Storage AUDIT]   Стало: ${walletAddress}`);
+    
     return user;
   }
 }
