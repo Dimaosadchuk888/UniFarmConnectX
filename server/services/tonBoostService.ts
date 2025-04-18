@@ -248,7 +248,7 @@ export class TonBoostService {
         // Генерируем ссылку на оплату через внешний кошелек
         const paymentLink = `ton://transfer/${this.TON_WALLET_ADDRESS}?amount=${boostPackage.priceTon}&text=UniFarmBoost:${userId}:${boostId}`;
         
-        // Создаем транзакцию с статусом pending
+        // Создаем транзакцию с статусом pending и дополнительными метаданными
         const [pendingTransaction] = await db
           .insert(transactions)
           .values({
@@ -256,7 +256,9 @@ export class TonBoostService {
             type: "boost_purchase_external",
             currency: "TON",
             amount: boostPackage.priceTon,
-            status: "pending"
+            status: "pending",
+            source: "TON Boost", // Источник транзакции
+            category: "purchase" // Категория - покупка
           })
           .returning();
         
@@ -293,7 +295,7 @@ export class TonBoostService {
           })
           .where(eq(users.id, userId));
 
-        // 2. Создаем транзакцию списания TON
+        // 2. Создаем транзакцию списания TON с метаданными
         const [withdrawTransaction] = await db
           .insert(transactions)
           .values({
@@ -301,7 +303,9 @@ export class TonBoostService {
             type: "boost_purchase",
             currency: "TON",
             amount: boostPrice.negated().toString(),
-            status: "confirmed"
+            status: "confirmed",
+            source: "TON Boost", // Источник транзакции
+            category: "purchase" // Категория - покупка
           })
           .returning();
         
@@ -458,7 +462,7 @@ export class TonBoostService {
           })
           .where(eq(users.id, userId));
         
-        // Создаем транзакцию начисления TON
+        // Создаем транзакцию начисления TON с дополнительными метаданными
         await db
           .insert(transactions)
           .values({
@@ -466,7 +470,9 @@ export class TonBoostService {
             type: "boost_farming",
             currency: "TON",
             amount: totalAccumulatedTon.toString(),
-            status: "confirmed"
+            status: "confirmed",
+            source: "TON Boost", // Указываем источник транзакции
+            category: "farming" // Указываем категорию - фарминг
           });
         
         // Обнуляем накопления во всех депозитах
@@ -496,7 +502,7 @@ export class TonBoostService {
           })
           .where(eq(users.id, userId));
         
-        // Создаем транзакцию начисления UNI
+        // Создаем транзакцию начисления UNI с дополнительными метаданными
         await db
           .insert(transactions)
           .values({
@@ -504,7 +510,9 @@ export class TonBoostService {
             type: "boost_uni_reward",
             currency: "UNI",
             amount: earnedUniThisUpdate.toString(),
-            status: "confirmed"
+            status: "confirmed",
+            source: "TON Boost", // Указываем источник транзакции
+            category: "farming"   // Указываем категорию - фарминг
           });
         
         console.log(`[TonFarming] User ${userId} earned ${earnedUniThisUpdate.toString()} UNI from boosts`);

@@ -83,10 +83,12 @@ export type FarmingDeposit = typeof farmingDeposits.$inferSelect;
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id").references(() => users.id),
-  type: text("type"), // deposit / withdraw / reward
+  type: text("type"), // deposit / withdraw / reward / boost_bonus
   currency: text("currency"), // UNI / TON
   amount: numeric("amount", { precision: 18, scale: 6 }),
   status: text("status"), // pending / confirmed / rejected
+  source: text("source"), // источник транзакции (например, "TON Boost")
+  category: text("category"), // категория транзакции (например, "bonus")
   created_at: timestamp("created_at").defaultNow()
 });
 
@@ -96,7 +98,9 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
   type: true,
   currency: true,
   amount: true,
-  status: true
+  status: true,
+  source: true,
+  category: true
 });
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;

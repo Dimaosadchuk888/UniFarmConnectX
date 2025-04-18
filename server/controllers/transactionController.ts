@@ -126,19 +126,14 @@ export class TransactionController {
       // Дополнительное логирование для отладки
       if (userTransactions.length > 0) {
         console.log(`[TransactionController] Примеры транзакций:`, 
-          userTransactions.slice(0, 2).map((tx: {
-            id: number;
-            type: string;
-            currency: string;
-            amount: string;
-            status: string;
-            created_at: Date;
-          }) => ({
+          userTransactions.slice(0, 2).map((tx) => ({
             id: tx.id,
-            type: tx.type,
-            currency: tx.currency,
-            amount: tx.amount,
-            status: tx.status,
+            type: tx.type ?? 'unknown',
+            currency: tx.currency ?? 'unknown',
+            amount: tx.amount ?? '0',
+            status: tx.status ?? 'unknown',
+            source: tx.source ?? 'unknown',
+            category: tx.category ?? 'unknown',
             created_at: tx.created_at
           }))
         );
