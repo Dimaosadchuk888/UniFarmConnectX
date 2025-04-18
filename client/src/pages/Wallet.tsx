@@ -11,20 +11,22 @@ import {
 } from '@/services/tonConnectService';
 
 const Wallet: React.FC = () => {
+  // Для сохранения совместимости с существующей структурой компонента
+  // оставляем state, но используем его только для логов
   const [connected, setConnected] = useState(false);
   
   // Функция для проверки статуса подключения
   const checkConnectionStatus = () => {
-    const connected = isWalletConnected();
+    const connectionStatus = isWalletConnected();
     const address = getWalletAddress();
     
     console.log("[DEBUG] WalletPage - Connection check:", { 
-      isConnected: connected, 
+      isConnected: connectionStatus, 
       walletAddress: address,
       time: new Date().toISOString()
     });
     
-    setConnected(connected);
+    setConnected(connectionStatus);
   };
   
   useEffect(() => {
@@ -32,7 +34,7 @@ const Wallet: React.FC = () => {
     console.log("[DEBUG] WalletPage - Component mounted");
     checkConnectionStatus();
     
-    // Подписываемся на изменения статуса подключения
+    // Подписываемся на изменения статуса подключения для логирования
     addConnectionListener(checkConnectionStatus);
     
     // Отписываемся при размонтировании компонента
@@ -41,6 +43,12 @@ const Wallet: React.FC = () => {
       removeConnectionListener(checkConnectionStatus);
     };
   }, []);
+  
+  // Прямая проверка подключения кошелька для рендеринга компонентов
+  const walletConnected = isWalletConnected();
+  
+  // Добавляем лог для отладки
+  console.log("[DEBUG] Wallet connected:", walletConnected);
   
   return (
     <div>
@@ -51,14 +59,15 @@ const Wallet: React.FC = () => {
       <BalanceCard />
       <WalletConnectionCard />
       
-      {connected && (
+      {/* Вместо локального состояния используем прямой вызов isWalletConnected() */}
+      {walletConnected && (
         <>
           <WithdrawalForm />
           <TransactionHistory />
         </>
       )}
       
-      {!connected && (
+      {!walletConnected && (
         <div className="rounded-lg bg-gray-800 border border-gray-700 p-6 mt-6 text-center">
           <div className="mb-4 text-gray-400">
             <svg 
