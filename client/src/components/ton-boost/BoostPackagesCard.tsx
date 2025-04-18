@@ -100,7 +100,9 @@ const BoostPackagesCard: React.FC = () => {
           const userIdInt = parseInt(userId);
           const comment = createTonTransactionComment(userIdInt, boostId);
           
-          // Отправляем транзакцию через TonConnect SDK 
+          // ВАЖНО: Сначала отправляем транзакцию через TonConnect SDK
+          // Это откроет Tonkeeper автоматически и пользователь сможет подтвердить транзакцию
+          // Мы делаем это перед созданием записи на сервере, чтобы пользователь увидел Tonkeeper
           const result = await sendTonTransaction(
             tonConnectUI, // используем tonConnectUI из хука
             selectedBoost.priceTon, // Сумма в TON
@@ -108,47 +110,52 @@ const BoostPackagesCard: React.FC = () => {
           );
           
           if (result) {
-            // Если транзакция успешно отправлена, создаем запись об ожидающей транзакции на сервере
-            const response = await apiRequest('POST', '/api/ton-boosts/purchase', {
+            // Если пользователь подтвердил транзакцию в Tonkeeper, регистрируем её на сервере
+            const registerResponse = await apiRequest('POST', '/api/ton-boosts/purchase', {
               user_id: userId,
               boost_id: boostId,
               payment_method: 'external_wallet',
-              tx_hash: result.txHash // Добавляем хеш транзакции для отслеживания
+              tx_hash: result.txHash // Передаем хеш транзакции
             });
             
-            if (!response.ok) {
+            if (!registerResponse.ok) {
               throw new Error("Failed to register transaction on server");
             }
             
-            const data = await response.json();
+            const registerData = await registerResponse.json();
             
-            if (data.success) {
-              // Устанавливаем данные для компонента ExternalPaymentStatus
-              setExternalPaymentData({
-                userId: userIdInt,
-                transactionId: data.data.transactionId,
-                paymentLink: '', // Не нужна, так как используем TonConnect
-                boostName: selectedBoost.name || 'TON Boost'
-              });
-              setExternalPaymentDialogOpen(true);
-              
-              // Обновляем кэш запросов
-              await queryClient.invalidateQueries({ queryKey: ['/api/ton-farming/info'] });
-              await queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts/active'] });
-              await queryClient.invalidateQueries({ queryKey: ['/api/transactions/user'] });
-              await queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-            } else {
-              toast({
-                title: "Предупреждение",
-                description: data.message || "Транзакция отправлена, но не удалось зарегистрировать платеж на сервере",
-                variant: "default"
-              });
+            if (!registerData.success) {
+              throw new Error(registerData.message || "Failed to register transaction");
             }
+            
+            const transactionId = registerData.data.transactionId;
+            
+            // Теперь отправляем запрос на подтверждение платежа
+            // Это нужно, чтобы система знала, что транзакция подтверждена пользователем
+            await apiRequest('POST', '/api/ton-boosts/confirm-payment', {
+              user_id: userIdInt,
+              transaction_id: transactionId
+            });
+            
+            // Теперь показываем диалог ожидания только ПОСЛЕ того, как пользователь подтвердил транзакцию
+            setExternalPaymentData({
+              userId: userIdInt,
+              transactionId: transactionId,
+              paymentLink: '', // Не нужна, так как используем TonConnect
+              boostName: selectedBoost.name || 'TON Boost'
+            });
+            setExternalPaymentDialogOpen(true);
+            
+            // Обновляем кэш запросов
+            await queryClient.invalidateQueries({ queryKey: ['/api/ton-farming/info'] });
+            await queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts/active'] });
+            await queryClient.invalidateQueries({ queryKey: ['/api/transactions/user'] });
+            await queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
           } else {
-            // Если транзакция не была отправлена (пользователь отменил или произошла ошибка)
+            // Если пользователь отменил транзакцию в Tonkeeper, просто показываем уведомление
             toast({
               title: "Транзакция отменена",
-              description: "Транзакция не была выполнена или была отменена",
+              description: "Транзакция не была выполнена или была отменена в кошельке",
               variant: "default"
             });
           }
