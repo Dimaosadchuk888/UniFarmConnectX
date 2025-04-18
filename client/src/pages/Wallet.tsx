@@ -34,13 +34,13 @@ const Wallet: React.FC = () => {
     setConnected(connectionStatus);
   };
   
-  // Прямая проверка подключения кошелька для рендеринга компонентов
-  const walletConnected = isWalletConnected();
-  
   // Эффект для обработки подключения адреса кошелька
   useEffect(() => {
+    // Проверка статуса подключения внутри эффекта
+    const walletIsConnected = isWalletConnected();
+    
     // Если кошелек подключен и адрес еще не был отправлен
-    if (walletConnected && !isWalletAddressSent()) {
+    if (walletIsConnected && !isWalletAddressSent()) {
       console.log("[DEBUG] WalletPage - Sending wallet address to server");
       
       // Отправляем адрес кошелька на сервер
@@ -51,11 +51,14 @@ const Wallet: React.FC = () => {
         .catch(error => {
           console.error("[DEBUG] WalletPage - Error linking wallet address:", error);
         });
-    } else if (!walletConnected) {
+    } else if (!walletIsConnected) {
       // Если кошелек отключился, сбрасываем флаг
       resetWalletAddressSent();
     }
-  }, [walletConnected]); // Зависимость от статуса подключения
+  }, [connected]); // Зависимость от состояния connected, которое обновляется в checkConnectionStatus
+  
+  // Прямая проверка подключения кошелька для рендеринга компонентов
+  const walletConnected = isWalletConnected();
   
   useEffect(() => {
     // Начальная проверка подключения
