@@ -3,19 +3,19 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Wallet, Coins } from "lucide-react";
+import { Wallet, CreditCard } from "lucide-react";
 
 interface PaymentMethodDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   boostId: number | null;
   boostName: string;
-  onSelectPaymentMethod: (boostId: number, paymentMethod: 'internal_balance' | 'external_wallet') => void;
+  onSelectPaymentMethod: (boostId: number, method: 'internal_balance' | 'external_wallet') => void;
 }
 
 const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
@@ -23,9 +23,9 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   onOpenChange,
   boostId,
   boostName,
-  onSelectPaymentMethod
+  onSelectPaymentMethod,
 }) => {
-  const handleSelectPaymentMethod = (method: 'internal_balance' | 'external_wallet') => {
+  const handleSelectMethod = (method: 'internal_balance' | 'external_wallet') => {
     if (boostId !== null) {
       onSelectPaymentMethod(boostId, method);
     }
@@ -33,47 +33,41 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="bg-blue-950/90 border-blue-800">
         <DialogHeader>
-          <DialogTitle>Выберите способ оплаты</DialogTitle>
-          <DialogDescription>
-            Выберите как вы хотите оплатить буст-пакет {boostName}.
+          <DialogTitle className="text-blue-200">Выберите способ оплаты</DialogTitle>
+          <DialogDescription className="text-blue-400">
+            Для активации TON Boost "{boostName}" выберите удобный способ оплаты
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex flex-col gap-4 py-4">
-          <button
-            onClick={() => handleSelectPaymentMethod('internal_balance')}
-            className="flex items-center p-4 border border-border rounded-lg transition-all hover:bg-accent hover:text-accent-foreground"
-          >
-            <div className="mr-4 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Coins className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1 text-left">
-              <h4 className="text-sm font-medium">Внутренний баланс</h4>
-              <p className="text-xs text-muted-foreground">Использовать TON с вашего внутреннего баланса в приложении</p>
-            </div>
-          </button>
-          
-          <button
-            onClick={() => handleSelectPaymentMethod('external_wallet')}
-            className="flex items-center p-4 border border-border rounded-lg transition-all hover:bg-accent hover:text-accent-foreground"
-          >
-            <div className="mr-4 h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-              <Wallet className="h-5 w-5 text-blue-500" />
-            </div>
-            <div className="flex-1 text-left">
-              <h4 className="text-sm font-medium">Внешний TON кошелек</h4>
-              <p className="text-xs text-muted-foreground">Использовать ваш TON кошелек для оплаты (Tonkeeper, TonHub и др.)</p>
-            </div>
-          </button>
-        </div>
-        
-        <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <Button
             variant="outline"
+            className="flex flex-col items-center justify-center h-32 space-y-2 border-blue-600 hover:bg-blue-800/30 hover:text-blue-200"
+            onClick={() => handleSelectMethod('internal_balance')}
+          >
+            <CreditCard className="h-10 w-10 text-blue-400" />
+            <span className="text-base">Внутренний баланс</span>
+            <span className="text-xs text-blue-400">Использовать TON с баланса приложения</span>
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="flex flex-col items-center justify-center h-32 space-y-2 border-blue-600 hover:bg-blue-800/30 hover:text-blue-200"
+            onClick={() => handleSelectMethod('external_wallet')}
+          >
+            <Wallet className="h-10 w-10 text-blue-400" />
+            <span className="text-base">Внешний кошелек</span>
+            <span className="text-xs text-blue-400">Оплатить с помощью TON кошелька</span>
+          </Button>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="ghost"
             onClick={() => onOpenChange(false)}
-            className="w-full"
+            className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/30"
           >
             Отмена
           </Button>

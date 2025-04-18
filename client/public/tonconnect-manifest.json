@@ -1,9 +1,7 @@
 {
-  "url": "https://universegames8.github.io/tonconnect-manifest/",
+  "url": "https://unifarm-app.replit.app",
   "name": "UniFarm",
-  "iconUrl": "https://universegames8.github.io/tonconnect-manifest/logo.png",
-  "termsOfUseUrl": "https://unifarming.ton/terms",
-  "privacyPolicyUrl": "https://unifarming.ton/privacy",
-  "manifestVersionId": "1.0.0",
-  "manifestId": "unifarming.ton"
+  "iconUrl": "https://unifarm-app.replit.app/logo.png",
+  "termsOfUseUrl": "https://unifarm-app.replit.app/terms",
+  "privacyPolicyUrl": "https://unifarm-app.replit.app/privacy"
 }

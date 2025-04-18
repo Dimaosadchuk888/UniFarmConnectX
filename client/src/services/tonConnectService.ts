@@ -1,197 +1,208 @@
-/**
- * Сервис для работы с TonConnect - подключение к TON-кошелькам
- */
-import { TonConnectUI, THEME } from '@tonconnect/ui';
-import { TONCONNECT_MANIFEST_URL } from '@/config/tonConnect';
+import { 
+  TonConnectUI, 
+  TonConnect, 
+  isWalletInfoInjected, 
+  UserRejectsError, 
+  WalletNotConnectedError,
+  THEME
+} from '@tonconnect/ui-react';
+import { CHAIN } from '@tonconnect/protocol';
 
-// Глобальная переменная для хранения экземпляра TonConnect
-let tonConnectUI: TonConnectUI | null = null;
-
-// Глобальная переменная для хранения обработчиков статуса подключения
-type ConnectionListener = () => void;
+// Тип слушателя соединения
+type ConnectionListener = (connected: boolean) => void;
+// Хранение слушателей
 const connectionListeners: ConnectionListener[] = [];
 
-// Интервал проверки подключения
-let connectionCheckInterval: NodeJS.Timeout | null = null;
+// Адрес TON кошелька проекта
+export const TON_PROJECT_ADDRESS = 'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8';
+
+// Время жизни транзакции в секундах (30 минут)
+const TX_LIFETIME = 30 * 60;
+
+// Создаем экземпляр TonConnectUI
+let tonConnectUI: TonConnectUI | null = null;
 
 /**
- * Инициализирует TonConnect
+ * Возвращает экземпляр TonConnectUI, если он еще не создан - создает новый
  */
-
-export function initTonConnect() {
-  try {
-    if (!tonConnectUI) {
-      // Создаем экземпляр TonConnect для подключения к кошелькам
-      tonConnectUI = new TonConnectUI({
-        manifestUrl: TONCONNECT_MANIFEST_URL,
-        buttonRootId: 'ton-connect-root',
-        uiPreferences: {
-          theme: THEME.DARK
-        }
-      });
-      console.log('TonConnect initialized');
-    }
-    return tonConnectUI;
-  } catch (error) {
-    console.error('Error initializing TonConnect:', error);
-    return null;
-  }
-}
-
-/**
- * Получает экземпляр TonConnectUI для использования в компонентах
- * @returns Экземпляр TonConnectUI
- */
-export function getTonConnect(): TonConnectUI {
+export function getTonConnectUI(): TonConnectUI {
   if (!tonConnectUI) {
-    return initTonConnect() as TonConnectUI;
+    tonConnectUI = new TonConnectUI({
+      manifestUrl: 'https://unifarm-app.replit.app/tonconnect-manifest.json',
+      buttonRootId: 'ton-connect-button',
+      uiPreferences: {
+        theme: THEME.DARK
+      }
+    });
+    
+    console.log('TonConnect initialized');
+    
+    // Проверяем статус соединения периодически
+    setInterval(() => {
+      if (tonConnectUI?.connected) {
+        console.log('TonConnect connected to wallet:', tonConnectUI.wallet && 'name' in tonConnectUI.wallet 
+          ? (tonConnectUI.wallet as any).name 
+          : 'unknown');
+      }
+    }, 10000);
+    
+    console.log('TonConnect status check interval started');
   }
+  
   return tonConnectUI;
 }
 
 /**
- * Открывает модальное окно для подключения к TON-кошельку
+ * Проверяет, подключен ли в данный момент TON кошелек
  */
-export async function connectWallet() {
-  const connector = getTonConnect();
-  try {
-    if (connector) {
-      await connector.openModal();
-    }
-  } catch (error) {
-    console.error('Error opening TonConnect modal:', error);
-  }
+export function isTonWalletConnected(): boolean {
+  const tonConnect = getTonConnectUI();
+  return tonConnect.connected;
 }
 
 /**
- * Отключает подключенный TON-кошелек и очищает хранилище
+ * Подключает TON кошелек, если он не подключен
  */
-export async function disconnectWallet() {
-  const connector = getTonConnect();
-  try {
-    if (connector) {
-      await connector.disconnect();
-      
-      // Очистка хранилища после отключения
-      localStorage.removeItem('ton-connect-storage');
-      sessionStorage.clear();
-      console.log('TonConnect storage cleaned');
-    }
-  } catch (error) {
-    console.error('Error disconnecting wallet:', error);
-  }
-}
-
-/**
- * Переподключает кошелёк: отключает текущий, очищает хранилище и инициализирует новое подключение
- */
-export async function reconnectWallet() {
-  try {
-    // Сначала отключаем текущий кошелёк и очищаем хранилище
-    await disconnectWallet();
-    
-    // Небольшая задержка для гарантии завершения предыдущих операций
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Используем существующее соединение без пересоздания экземпляра
-    // Так как disconnectWallet уже очистил хранилище
-    const connector = getTonConnect();
-    
-    if (connector) {
-      // Открываем модальное окно для нового подключения
-      await connector.openModal();
-      console.log('Wallet reconnected successfully');
-    }
-  } catch (error) {
-    console.error('Error reconnecting wallet:', error);
-  }
-}
-
-/**
- * Проверяет, подключен ли TON-кошелек
- * @returns true, если кошелек подключен
- */
-export function isWalletConnected(): boolean {
-  const connector = getTonConnect();
-  return connector ? connector.connected : false;
-}
-
-/**
- * Получает адрес подключенного TON-кошелька
- * @returns адрес кошелька или null, если кошелек не подключен
- */
-export function getWalletAddress(): string | null {
-  const connector = getTonConnect();
+export async function connectTonWallet(): Promise<boolean> {
+  const tonConnect = getTonConnectUI();
   
-  if (!connector || !connector.connected || !connector.account) {
+  try {
+    if (!tonConnect.connected) {
+      await tonConnect.connectWallet();
+      return tonConnect.connected;
+    }
+    return true;
+  } catch (error) {
+    console.error('Error connecting TON wallet:', error);
+    return false;
+  }
+}
+
+/**
+ * Отключает TON кошелек
+ */
+export async function disconnectTonWallet(): Promise<void> {
+  const tonConnect = getTonConnectUI();
+  
+  if (tonConnect.connected) {
+    await tonConnect.disconnect();
+  }
+}
+
+/**
+ * Получает адрес подключенного TON кошелька
+ */
+export function getTonWalletAddress(): string | null {
+  const tonConnect = getTonConnectUI();
+  
+  if (tonConnect.connected && tonConnect.account) {
+    return tonConnect.account.address;
+  }
+  
+  return null;
+}
+
+/**
+ * Отправляет TON транзакцию на указанный адрес с комментарием
+ * @param amount Сумма TON (в базовых единицах, 1 TON = 10^9 nanoTON)
+ * @param comment Комментарий к транзакции
+ * @returns Результат транзакции или null в случае ошибки
+ */
+export async function sendTonTransaction(
+  amount: string,
+  comment: string
+): Promise<{txHash: string; status: 'success' | 'error'} | null> {
+  const tonConnect = getTonConnectUI();
+  
+  try {
+    if (!tonConnect.connected) {
+      await connectTonWallet();
+      
+      if (!tonConnect.connected) {
+        throw new WalletNotConnectedError();
+      }
+    }
+    
+    // Рассчитываем время завершения транзакции (текущее время + TX_LIFETIME)
+    const validUntil = Math.floor(Date.now() / 1000) + TX_LIFETIME;
+    
+    // Преобразуем TON в nanoTON
+    const amountNano = amount + '000000000'; // 1 TON = 10^9 nanoTON
+    
+    const transaction = {
+      validUntil,
+      network: CHAIN.MAINNET,
+      messages: [
+        {
+          address: TON_PROJECT_ADDRESS,
+          amount: amountNano,
+          payload: comment
+        }
+      ]
+    };
+    
+    const result = await tonConnect.sendTransaction(transaction);
+    
+    return {
+      txHash: result.boc,
+      status: 'success'
+    };
+  } catch (error) {
+    console.error('Error sending TON transaction:', error);
+    
+    if (error instanceof UserRejectsError) {
+      return {
+        txHash: '',
+        status: 'error'
+      };
+    }
+    
     return null;
   }
-  
-  // Возвращаем адрес в формате UQ...
-  return connector.account.address;
 }
 
 /**
- * Возвращает сокращенную версию адреса кошелька
- * @param address полный адрес кошелька
- * @returns сокращенный адрес (например, UQBIRu...c8h)
+ * Формирует ссылку на оплату TON для внешних кошельков
+ * @param amount Сумма TON
+ * @param comment Комментарий к транзакции (обычно содержит UniFarmBoost:userId:boostId)
+ * @returns URL для открытия в TON кошельке
  */
-export function shortenAddress(address: string): string {
-  if (!address) return '';
+export function generateTonPaymentLink(amount: string, comment: string): string {
+  // Преобразуем TON в nanoTON
+  const amountNano = parseFloat(amount) * 1000000000; // 1 TON = 10^9 nanoTON
   
-  // Длина начала и окончания адреса для отображения
-  const startChars = 6;
-  const endChars = 3;
+  // Кодируем комментарий для URL
+  const encodedComment = encodeURIComponent(comment);
   
-  if (address.length <= startChars + endChars + 3) {
-    return address; // Если адрес короткий, возвращаем его полностью
-  }
-  
-  const start = address.substring(0, startChars);
-  const end = address.substring(address.length - endChars);
-  
-  return `${start}...${end}`;
+  // Формируем ton:// ссылку для открытия в кошельке
+  return `ton://transfer/${TON_PROJECT_ADDRESS}?amount=${amountNano}&text=${encodedComment}`;
 }
 
 /**
- * Запускает интервал проверки подключения, если он еще не был запущен
+ * Создает строку комментария для TON транзакции в формате UniFarmBoost:userId:boostId
  */
-export function startConnectionCheck(): void {
-  if (connectionCheckInterval) {
-    return; // Интервал уже запущен
-  }
-  
-  // Запускаем интервал для проверки подключения
-  connectionCheckInterval = setInterval(() => {
-    // Оповещаем всех слушателей об изменении статуса подключения
-    notifyConnectionListeners();
-  }, 2000);
-  
-  console.log('TonConnect status check interval started');
+export function createTonTransactionComment(userId: number, boostId: number): string {
+  return `UniFarmBoost:${userId}:${boostId}`;
 }
 
 /**
- * Останавливает интервал проверки подключения
+ * Для совместимости со старым кодом
  */
-export function stopConnectionCheck(): void {
-  if (connectionCheckInterval) {
-    clearInterval(connectionCheckInterval);
-    connectionCheckInterval = null;
-    console.log('TonConnect status check interval stopped');
-  }
-}
+export const isWalletConnected = isTonWalletConnected;
+export const getWalletAddress = getTonWalletAddress;
 
 /**
- * Добавляет слушателя изменения статуса подключения
- * @param listener Функция-обработчик, которая будет вызвана при изменении статуса подключения
+ * Добавить слушателя соединения
  */
 export function addConnectionListener(listener: ConnectionListener): void {
   connectionListeners.push(listener);
+  // Сразу вызываем с текущим статусом
+  const connected = isWalletConnected();
+  listener(connected);
 }
 
 /**
- * Удаляет слушателя изменения статуса подключения
- * @param listener Функция-обработчик, которую нужно удалить
+ * Удалить слушателя соединения
  */
 export function removeConnectionListener(listener: ConnectionListener): void {
   const index = connectionListeners.indexOf(listener);
@@ -201,12 +212,29 @@ export function removeConnectionListener(listener: ConnectionListener): void {
 }
 
 /**
- * Оповещает всех слушателей об изменении статуса подключения
+ * Инициализация TON Connect при запуске приложения
  */
-function notifyConnectionListeners(): void {
-  // Вызываем все зарегистрированные обработчики
-  connectionListeners.forEach(listener => listener());
+export function initTonConnect(): void {
+  // Получаем экземпляр TonConnectUI
+  const tonConnect = getTonConnectUI();
+  
+  // Добавляем слушатель для отслеживания изменений состояния подключения
+  tonConnect.onStatusChange((walletInfo) => {
+    const isConnected = !!walletInfo;
+    
+    // Уведомляем всех слушателей об изменении статуса
+    connectionListeners.forEach(listener => {
+      listener(isConnected);
+    });
+    
+    // Логируем статус соединения
+    if (isConnected) {
+      const walletName = walletInfo && 'name' in walletInfo ? (walletInfo as any).name : 'Unknown wallet';
+      console.log('TON wallet connected:', walletName);
+    } else {
+      console.log('TON wallet disconnected');
+    }
+  });
+  
+  console.log('TON Connect initialized');
 }
-
-// Автоматически запускаем проверку подключения при импорте модуля
-startConnectionCheck();

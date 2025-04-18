@@ -1,10 +1,12 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FarmingStatusCard from '../components/farming/FarmingStatusCard';
 import UniFarmingCard from '../components/farming/UniFarmingCard';
 import BoostPackagesCard from '../components/farming/BoostPackagesCard';
 import ActiveBoostsCard from '../components/farming/ActiveBoostsCard';
 import FarmingHistory from '../components/farming/FarmingHistory';
+import TonBoostPackagesCard from '../components/ton-boost/BoostPackagesCard';
 
 const Farming: React.FC = () => {
   // Хардкод ID=1 для демонстрации
@@ -22,19 +24,37 @@ const Farming: React.FC = () => {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Фарминг</h1>
       
-      {/* Статус фарминга */}
-      <FarmingStatusCard />
+      <Tabs defaultValue="uni" className="w-full mb-6">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="uni" className="text-lg">UNI Фарминг</TabsTrigger>
+          <TabsTrigger value="ton" className="text-lg">TON Фарминг</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="uni">
+          {/* Статус фарминга */}
+          <FarmingStatusCard />
+          
+          {/* Основной UNI пакет */}
+          <UniFarmingCard userData={userData} />
+          
+          {/* UNI Boost Пакеты */}
+          <BoostPackagesCard userData={userData} />
+          
+          {/* Активные Boost-пакеты */}
+          <ActiveBoostsCard userId={userId} />
+        </TabsContent>
+        
+        <TabsContent value="ton">
+          {/* TON Boost-пакеты */}
+          <div className="mb-6">
+            <TonBoostPackagesCard />
+          </div>
+          
+          {/* В будущем здесь будут компоненты для TON фарминга */}
+        </TabsContent>
+      </Tabs>
       
-      {/* Основной UNI пакет */}
-      <UniFarmingCard userData={userData} />
-      
-      {/* Airdrop Boost Пакеты */}
-      <BoostPackagesCard userData={userData} />
-      
-      {/* Активные Boost-пакеты */}
-      <ActiveBoostsCard userId={userId} />
-      
-      {/* История фарминга */}
+      {/* История фарминга (общая для обоих типов) */}
       <FarmingHistory userId={userId} />
     </div>
   );
