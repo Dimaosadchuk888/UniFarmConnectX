@@ -8,8 +8,20 @@ import { Separator } from '@/components/ui/separator';
 import { Coins, Wallet, Loader2 } from 'lucide-react';
 import PaymentMethodDialog from './PaymentMethodDialog';
 import ExternalPaymentStatus from './ExternalPaymentStatus';
-import { sendTonTransaction, createTonTransactionComment } from '../../services/tonConnectService';
+import { 
+  sendTonTransaction, 
+  createTonTransactionComment,
+  isTonWalletConnected
+} from '../../services/tonConnectService';
 import { getUserIdFromURL } from '@/lib/utils';
+
+// Класс ошибки для неподключенного кошелька
+class WalletNotConnectedError extends Error {
+  constructor(message: string = 'Wallet not connected') {
+    super(message);
+    this.name = 'WalletNotConnectedError';
+  }
+}
 
 // Типы данных для TON Boost-пакетов
 interface TonBoostPackage {
@@ -80,7 +92,7 @@ const BoostPackagesCard: React.FC = () => {
         throw new Error("Boost package not found");
       }
 
-      // Если выбрана оплата через внешний кошелек и подключен TonConnect, используем его напрямую
+      // Если выбрана оплата через внешний кошелек, проверяем подключен ли TonConnect
       if (paymentMethod === 'external_wallet') {
         try {
           const userIdInt = parseInt(userId);
@@ -140,8 +152,21 @@ const BoostPackagesCard: React.FC = () => {
         } catch (error) {
           console.error("Error sending TON transaction:", error);
           
-          // Запасной вариант - используем стандартный процесс с ссылкой
-          await processExternalPaymentWithLink(userId, boostId, selectedBoost.name);
+          // Если ошибка связана с неподключенным кошельком, показываем сообщение
+          if (error instanceof WalletNotConnectedError) {
+            toast({
+              title: "Кошелек не подключен",
+              description: "Пожалуйста, подключите TON-кошелёк, чтобы купить Boost-пакет.",
+              variant: "destructive"
+            });
+          } else {
+            // В случае других ошибок также показываем уведомление
+            toast({
+              title: "Ошибка платежа",
+              description: "Произошла ошибка при отправке платежа. Пожалуйста, подключите TON-кошелёк и попробуйте снова.",
+              variant: "destructive"
+            });
+          }
         }
       } else {
         // Для внутреннего баланса - стандартный процесс
@@ -188,52 +213,20 @@ const BoostPackagesCard: React.FC = () => {
     }
   };
   
-  // Вспомогательная функция для обработки внешнего платежа через ссылку (запасной вариант)
-  const processExternalPaymentWithLink = async (userId: string, boostId: number, boostName: string = 'TON Boost') => {
-    try {
-      // Отправляем запрос на покупку буст-пакета
-      const response = await apiRequest('POST', '/api/ton-boosts/purchase', {
-        user_id: userId,
-        boost_id: boostId,
-        payment_method: 'external_wallet'
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to purchase boost package");
-      }
-      
-      const data = await response.json();
-      
-      if (data.success && data.data.paymentLink) {
-        // Установка данных для компонента ExternalPaymentStatus
-        setExternalPaymentData({
-          userId: parseInt(userId),
-          transactionId: data.data.transactionId,
-          paymentLink: data.data.paymentLink,
-          boostName: boostName
-        });
-        setExternalPaymentDialogOpen(true);
-        
-        // Обновляем кэш запросов
-        await queryClient.invalidateQueries({ queryKey: ['/api/ton-farming/info'] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts/active'] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/transactions/user'] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-      } else {
-        toast({
-          title: "Ошибка",
-          description: data.message || "Не удалось создать платежную ссылку",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Error processing external payment with link:", error);
+  // Функция для проверки подключения TON-кошелька и показа уведомления, если не подключен
+  const checkWalletConnection = (): boolean => {
+    const isConnected = isTonWalletConnected(); // Импортированная из tonConnectService.ts
+    
+    if (!isConnected) {
       toast({
-        title: "Ошибка",
-        description: "Не удалось создать платежную ссылку",
+        title: "Кошелек не подключен",
+        description: "Пожалуйста, подключите TON-кошелёк, чтобы купить Boost-пакет.",
         variant: "destructive"
       });
+      return false;
     }
+    
+    return true;
   };
 
   // Обработчик завершения внешнего платежа

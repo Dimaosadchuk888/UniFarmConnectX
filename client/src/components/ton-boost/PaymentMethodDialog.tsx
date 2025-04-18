@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Wallet, CreditCard } from "lucide-react";
+import { useToast } from '@/hooks/use-toast';
+import { isTonWalletConnected } from '../../services/tonConnectService';
 
 interface PaymentMethodDialogProps {
   open: boolean;
@@ -25,8 +27,25 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   boostName,
   onSelectPaymentMethod,
 }) => {
+  const { toast } = useToast();
+
   const handleSelectMethod = (method: 'internal_balance' | 'external_wallet') => {
     if (boostId !== null) {
+      // Если выбран внешний кошелек, проверяем подключение TonConnect
+      if (method === 'external_wallet') {
+        const isConnected = isTonWalletConnected();
+        
+        if (!isConnected) {
+          toast({
+            title: "Кошелек не подключен",
+            description: "Пожалуйста, подключите TON-кошелёк, чтобы купить Boost-пакет.",
+            variant: "destructive"
+          });
+          onOpenChange(false);
+          return;
+        }
+      }
+      
       onSelectPaymentMethod(boostId, method);
     }
   };
