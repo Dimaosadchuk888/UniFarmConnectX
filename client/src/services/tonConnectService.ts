@@ -94,8 +94,17 @@ export async function sendTonTransaction(
     // Рассчитываем время завершения транзакции (текущее время + TX_LIFETIME)
     const validUntil = Math.floor(Date.now() / 1000) + TX_LIFETIME;
     
-    // Преобразуем TON в nanoTON
-    const amountNano = amount + '000000000'; // 1 TON = 10^9 nanoTON
+    // Правильное преобразование TON в nanoTON
+    // Сначала превращаем строку в число, умножаем на 10^9 и затем обратно в строку
+    const amountNumber = parseFloat(amount);
+    const amountNano = Math.floor(amountNumber * 1_000_000_000).toString();
+    
+    console.log('[DEBUG] TonConnect transaction:', {
+      amount: amount,
+      amountNumber: amountNumber,
+      amountNano: amountNano,
+      comment: comment
+    });
     
     const transaction = {
       validUntil,

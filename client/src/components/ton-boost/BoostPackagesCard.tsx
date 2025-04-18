@@ -71,7 +71,11 @@ const BoostPackagesCard: React.FC = () => {
 
   // Обработчик выбора способа оплаты
   const handleSelectPaymentMethod = async (boostId: number, paymentMethod: 'internal_balance' | 'external_wallet') => {
+    // ВАЖНО: Сначала закрываем диалог выбора метода оплаты
+    // Это позволит пользователю увидеть Tonkeeper без перекрытия нашим UI
     setPaymentMethodDialogOpen(false);
+    
+    // Только после закрытия диалога включаем лоадер
     setIsLoading(true);
     
     try {
