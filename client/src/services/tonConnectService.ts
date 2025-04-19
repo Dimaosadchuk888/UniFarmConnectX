@@ -29,6 +29,33 @@ export const TON_PROJECT_ADDRESS = 'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitT
 const TX_LIFETIME = 30 * 60;
 
 /**
+ * Преобразует Uint8Array в base64 строку (безопасно для браузера, не использует Buffer)
+ */
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  const binaryString = Array.from(bytes)
+    .map(byte => String.fromCharCode(byte))
+    .join('');
+  return btoa(binaryString);
+}
+
+/**
+ * Создаёт BOC-payload с комментарием
+ * @param comment Текст комментария
+ * @returns base64-строка для payload
+ */
+function createBocWithComment(comment: string): string {
+  // Создаем BOC с маркером 0 и комментарием по стандарту TON
+  const cell = beginCell()
+    .storeUint(0, 32)
+    .storeStringTail(comment)
+    .endCell();
+  
+  // Получаем BOC в виде Uint8Array и преобразуем в base64
+  const bocBytes = cell.toBoc();
+  return uint8ArrayToBase64(bocBytes);
+}
+
+/**
  * Проверяет, подключен ли в данный момент TON кошелек
  * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  */
@@ -156,16 +183,13 @@ export async function sendTonTransaction(
     // По ТЗ: генерируем rawPayload в формате UniFarmBoost:userId:boostId
     const rawPayload = `UniFarmBoost:${userId}:${boostId}`;
     
-    // Создание BOC-payload без использования @ton/core.toBoc()
-    // Для совместимости используем простое кодирование base64
-    // В реальном приложении нужно будет использовать полноценный BOC
+    // Создаем BOC-payload с комментарием
+    const payload = createBocWithComment(rawPayload);
     
-    // Просто добавляем простое base64-кодирование комментария
-    // без полноценного BOC - для тестирования
-    const payload = btoa(rawPayload);
+    // Для дополнительной проверки - в консоли выводим длину payload
+    console.log(`✅ BOC-payload длина: ${payload.length} символов`);
     
-    console.log("⚠️ Используем упрощенную версию payload для тестирования");
-    console.log("⚠️ В продакшене будет нужно использовать полноценный BOC");
+    console.log("✅ Создан стандартный BOC-payload в соответствии с ТЗ");
     
     console.log("✅ Создан стандартный BOC-payload с маркером 0 и текстовым сообщением");
     

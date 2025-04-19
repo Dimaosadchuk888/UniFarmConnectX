@@ -2,6 +2,11 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
+// Импортируем полифилл Buffer для использования в браузере
+import { Buffer } from 'buffer';
+// Делаем Buffer доступным глобально
+window.Buffer = Buffer;
+
 // Telegram WebApp integration setup
 const initTelegramWebApp = () => {
   if (window.Telegram?.WebApp) {

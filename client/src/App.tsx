@@ -27,6 +27,7 @@ declare global {
         initDataUnsafe: any;
       };
     };
+    Buffer: typeof Buffer;
   }
 }
 
