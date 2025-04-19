@@ -321,6 +321,11 @@ const BoostPackagesCard: React.FC = () => {
   const checkWalletConnection = (): boolean => {
     console.log('[WALLET_DEBUG] Проверка подключения кошелька. Начало проверки');
     
+    // ЯВНО ЛОГИРУЕМ ТЕКУЩИЙ СТАТУС
+    console.log("[DEBUG] isTonPaymentReady:", isTonPaymentReady(tonConnectUI));
+    console.log("[DEBUG] tonConnectUI.connected:", tonConnectUI?.connected);
+    console.log("[DEBUG] tonConnectUI.wallet:", tonConnectUI?.wallet);
+    
     // Проверяем наличие tonConnectUI
     if (!tonConnectUI) {
       console.error('[ERROR] tonConnectUI not initialized');
