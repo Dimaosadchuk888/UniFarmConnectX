@@ -83,10 +83,24 @@ export async function sendTonTransaction(
   comment: string
 ): Promise<{txHash: string; status: 'success' | 'error'} | null> {
   try {
+    console.log('[DEBUG] tonConnectUI состояние перед транзакцией:', {
+      tonConnectUI: tonConnectUI,
+      connected: tonConnectUI?.connected,
+      available: !!tonConnectUI,
+      walletInfo: tonConnectUI?.wallet
+    });
+    
+    if (!tonConnectUI) {
+      console.error('[ERROR] tonConnectUI is null or undefined');
+      throw new Error('TonConnectUI is not initialized');
+    }
+    
     if (!tonConnectUI.connected) {
+      console.log('[DEBUG] Кошелек не подключен, пытаемся подключить...');
       await connectTonWallet(tonConnectUI);
       
       if (!tonConnectUI.connected) {
+        console.error('[ERROR] Failed to connect wallet');
         throw new WalletNotConnectedError();
       }
     }
@@ -103,7 +117,8 @@ export async function sendTonTransaction(
       amount: amount,
       amountNumber: amountNumber,
       amountNano: amountNano,
-      comment: comment
+      comment: comment,
+      address: TON_PROJECT_ADDRESS
     });
     
     const transaction = {
@@ -118,12 +133,21 @@ export async function sendTonTransaction(
       ]
     };
     
-    const result = await tonConnectUI.sendTransaction(transaction);
+    console.log('[DEBUG] Sending transaction with params:', JSON.stringify(transaction));
     
-    return {
-      txHash: result.boc,
-      status: 'success'
-    };
+    try {
+      console.log('[DEBUG] Вызываем tonConnectUI.sendTransaction()...');
+      const result = await tonConnectUI.sendTransaction(transaction);
+      console.log('[DEBUG] Transaction result:', result);
+      
+      return {
+        txHash: result.boc,
+        status: 'success'
+      };
+    } catch (txError) {
+      console.error('[ERROR] Error in tonConnectUI.sendTransaction:', txError);
+      throw txError;  // Re-throw to be caught by the outer try-catch
+    }
   } catch (error) {
     console.error('Error sending TON transaction:', error);
     

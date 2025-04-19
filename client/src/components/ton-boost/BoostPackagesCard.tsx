@@ -104,16 +104,49 @@ const BoostPackagesCard: React.FC = () => {
           const userIdInt = parseInt(userId);
           const comment = createTonTransactionComment(userIdInt, boostId);
           
+          console.log('[DEBUG] Начинаем процесс оплаты через внешний кошелек', {
+            tonConnectUI: !!tonConnectUI,
+            boostId,
+            userId: userIdInt,
+            priceTon: selectedBoost.priceTon,
+            comment
+          });
+          
+          // Проверяем доступность tonConnectUI
+          if (!tonConnectUI) {
+            console.error('[ERROR] tonConnectUI not initialized');
+            toast({
+              title: "Ошибка инициализации",
+              description: "Произошла ошибка инициализации TonConnect. Пожалуйста, обновите страницу и попробуйте снова.",
+              variant: "destructive"
+            });
+            return;
+          }
+          
+          // Проверяем наличие функции sendTransaction
+          if (typeof tonConnectUI.sendTransaction !== 'function') {
+            console.error('[ERROR] tonConnectUI.sendTransaction is not a function');
+            toast({
+              title: "Ошибка TonConnect",
+              description: "Ваш кошелек не поддерживает отправку транзакций через TonConnect",
+              variant: "destructive"
+            });
+            return;
+          }
+          
           // ВАЖНО: Сначала отправляем транзакцию через TonConnect SDK
           // Это откроет Tonkeeper автоматически и пользователь сможет подтвердить транзакцию
-          // Мы делаем это перед созданием записи на сервере, чтобы пользователь увидел Tonkeeper
+          console.log('[DEBUG] Вызываем sendTonTransaction...');
           const result = await sendTonTransaction(
             tonConnectUI, // используем tonConnectUI из хука
             selectedBoost.priceTon, // Сумма в TON
             comment // Комментарий в формате "UniFarmBoost:userId:boostId"
           );
           
+          console.log('[DEBUG] Результат sendTonTransaction:', result);
+          
           if (result) {
+            console.log('[DEBUG] Транзакция успешно отправлена, регистрируем на сервере...');
             // Если пользователь подтвердил транзакцию в Tonkeeper, регистрируем её на сервере
             const registerResponse = await apiRequest('POST', '/api/ton-boosts/purchase', {
               user_id: userId,
@@ -123,12 +156,15 @@ const BoostPackagesCard: React.FC = () => {
             });
             
             if (!registerResponse.ok) {
+              console.error('[ERROR] Failed to register transaction on server', registerResponse);
               throw new Error("Failed to register transaction on server");
             }
             
             const registerData = await registerResponse.json();
+            console.log('[DEBUG] registerData:', registerData);
             
             if (!registerData.success) {
+              console.error('[ERROR] Server returned error:', registerData);
               throw new Error(registerData.message || "Failed to register transaction");
             }
             
