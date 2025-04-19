@@ -88,7 +88,21 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         throw new Error(`Ошибка получения транзакций: ${response.status}`);
       }
       
-      return response.json();
+      const result = await response.json();
+      
+      // Логирование для отладки
+      console.log("[DEBUG] FarmingHistory - API /api/transactions response:", {
+        status: response.status,
+        isObject: typeof result === 'object',
+        hasSuccess: result && 'success' in result,
+        hasData: result && result.success && 'data' in result,
+        dataStructure: result && result.success && result.data ? 
+          Object.keys(result.data) : 'N/A',
+        sample: result && result.success && result.data && result.data.transactions ?
+          result.data.transactions.slice(0, 2) : 'N/A'
+      });
+      
+      return result;
     },
     enabled: !!validUserId, // Выполняем запрос только если userId определен
   });
@@ -195,17 +209,55 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
       });
     }
     
-    // Обработка транзакций
-    if (Array.isArray(transactionsResponse)) {
+    // Проверка и логирование структуры транзакций
+    console.log("[DEBUG] FarmingHistory - Обработка транзакций, структура:", {
+      transactionsResponse,
+      isObject: typeof transactionsResponse === 'object',
+      hasSuccess: transactionsResponse && 'success' in transactionsResponse,
+      hasTransactions: transactionsResponse?.success && 
+        transactionsResponse.data && 
+        Array.isArray(transactionsResponse.data.transactions)
+    });
+    
+    // Обработка транзакций - новая логика для поддержки API-формата
+    let transactionsArray: Transaction[] = [];
+    
+    if (transactionsResponse?.success && 
+        transactionsResponse.data && 
+        Array.isArray(transactionsResponse.data.transactions)) {
+      // Новый формат API: {success: true, data: {transactions: [...]}}
+      transactionsArray = transactionsResponse.data.transactions;
+    } else if (Array.isArray(transactionsResponse)) {
+      // Старый формат: прямой массив транзакций
+      transactionsArray = transactionsResponse;
+    }
+    
+    // Логирование для отладки массива транзакций
+    console.log("[DEBUG] FarmingHistory - Массив транзакций:", {
+      count: transactionsArray.length,
+      types: transactionsArray.length > 0 ? 
+        Array.from(new Set(transactionsArray.map(tx => tx.type))).join(', ') : 'N/A',
+      sample: transactionsArray.slice(0, 3)
+    });
+    
+    if (transactionsArray.length > 0) {
       // Фильтрация транзакций UNI
-      const farmingTransactions = transactionsResponse.filter((tx: Transaction) => 
+      const farmingTransactions = transactionsArray.filter((tx: Transaction) => 
         tx.type !== 'debug' && 
         tx.currency === 'UNI' && 
-        ['deposit', 'farming', 'check-in', 'reward'].includes(tx.type)
+        ['deposit', 'farming', 'check-in', 'reward', 'farming_reward'].includes(tx.type)
       );
       
+      // Логирование для отладки фильтрованных транзакций фарминга
+      console.log("[DEBUG] FarmingHistory - Фильтрованные транзакции фарминга:", {
+        count: farmingTransactions.length,
+        types: farmingTransactions.length > 0 ? 
+          Array.from(new Set(farmingTransactions.map(tx => tx.type))).join(', ') : 'N/A',
+        sample: farmingTransactions.slice(0, 3)
+      });
+      
       // Находим все UNI депозиты для создания карточек фарминг-депозитов
-      const uniDeposits = transactionsResponse.filter((tx: Transaction) => 
+      const uniDeposits = transactionsArray.filter((tx: Transaction) => 
         tx.type === 'deposit' && 
         tx.currency === 'UNI' && 
         tx.status === 'confirmed'
@@ -259,6 +311,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           
           // Используем все доступные типы транзакций
           if (tx.type === 'farming') type = 'Фарминг';
+          else if (tx.type === 'farming_reward') type = 'Награда за фарминг';
           else if (tx.type === 'deposit') type = 'Депозит';
           else if (tx.type === 'boost') type = 'Boost';
           else if (tx.type === 'check-in') type = 'Ежедневный бонус';
