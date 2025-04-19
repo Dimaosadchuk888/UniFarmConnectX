@@ -34,6 +34,13 @@ const TonFarmingStatusCard: React.FC = () => {
   const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
     queryKey: [`/api/ton-farming/info?user_id=${userId}`],
     refetchInterval: 10000, // Обновляем каждые 10 секунд
+    onSuccess: (data) => {
+      // Выводим в консоль полный ответ для отладки
+      console.log('[Debug] TON Farming API response:', data);
+    },
+    onError: (error) => {
+      console.error('[Debug] TON Farming API error:', error);
+    }
   });
   
   // Анимация статуса активности фарминга
@@ -156,7 +163,7 @@ const TonFarmingStatusCard: React.FC = () => {
               <div className="text-blue-300/80 text-sm mb-1">Общая сумма</div>
               <div className="flex items-baseline">
                 <span className="text-blue-400 text-xl font-medium">
-                  {formatNumberWithPrecision(parseFloat(farmingInfo?.totalTonDepositAmount || "0"), 2)}
+                  {formatNumberWithPrecision(parseFloat(farmingInfo?.data?.totalTonDepositAmount || "0"), 2)}
                 </span>
                 <span className="text-blue-400/70 ml-1.5">TON</span>
               </div>
@@ -166,7 +173,7 @@ const TonFarmingStatusCard: React.FC = () => {
               <div className="text-blue-300/80 text-sm mb-1">Активных депозитов</div>
               <div className="flex items-baseline">
                 <span className="text-blue-400 text-xl font-medium">
-                  {farmingInfo?.depositCount || 0}
+                  {farmingInfo?.data?.depositCount || 0}
                 </span>
                 <span className="text-blue-400/70 ml-1.5">шт.</span>
               </div>
