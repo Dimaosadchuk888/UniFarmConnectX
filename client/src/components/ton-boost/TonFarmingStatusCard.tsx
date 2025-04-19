@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { formatNumberWithPrecision } from '@/lib/utils';
+import { formatNumberWithPrecision, getUserIdFromURL } from '@/lib/utils';
 
 interface TonFarmingInfo {
   isActive: boolean;
@@ -16,6 +16,9 @@ interface TonFarmingInfo {
 }
 
 const TonFarmingStatusCard: React.FC = () => {
+  // Получаем ID пользователя
+  const userId = getUserIdFromURL() || '1';
+  
   // Анимация числовых значений
   const [dailyYield, setDailyYield] = useState(0);
   const [perSecond, setPerSecond] = useState(0);
@@ -29,7 +32,7 @@ const TonFarmingStatusCard: React.FC = () => {
   
   // Получаем информацию о TON фарминге
   const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<TonFarmingInfo>({
-    queryKey: ['/api/ton-farming/info'],
+    queryKey: [`/api/ton-farming/info?user_id=${userId}`],
     refetchInterval: 10000, // Обновляем каждые 10 секунд
   });
   
