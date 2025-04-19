@@ -65,12 +65,27 @@ const BoostPackagesCard: React.FC = () => {
 
   // Обработчик клика по буст-пакету
   const handleBoostClick = (boostId: number) => {
+    console.log('[DEBUG] Нажата кнопка покупки TON Boost:', {
+      boostId,
+      tonConnectUI: !!tonConnectUI,
+      tonConnectUIWallet: tonConnectUI?.wallet,
+      isConnected: isTonWalletConnected(tonConnectUI)
+    });
+    
     setSelectedBoostId(boostId);
     setPaymentMethodDialogOpen(true);
   };
 
   // Обработчик выбора способа оплаты
   const handleSelectPaymentMethod = async (boostId: number, paymentMethod: 'internal_balance' | 'external_wallet') => {
+    console.log('[DEBUG] Выбран способ оплаты:', {
+      boostId,
+      paymentMethod,
+      tonConnectAvailable: !!tonConnectUI,
+      tonConnectUIWallet: tonConnectUI?.wallet,
+      connected: isTonWalletConnected(tonConnectUI)
+    });
+    
     // ВАЖНО: Сначала закрываем диалог выбора метода оплаты
     // Это позволит пользователю увидеть Tonkeeper без перекрытия нашим UI
     setPaymentMethodDialogOpen(false);
