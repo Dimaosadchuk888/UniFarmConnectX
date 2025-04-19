@@ -115,9 +115,9 @@ export async function sendTonTransaction(
   comment: string
 ): Promise<{txHash: string; status: 'success' | 'error'} | null> {
   try {
-    // По ТЗ: Добавляем максимально заметный лог для отладки
+    // ПО ТЗ: Добавляем максимально заметный лог для отладки
     console.log("===============================================================");
-    console.log("🔴 ВЫЗОВ sendTonTransaction В РЕЖИМЕ БЕЗ ПРОВЕРОК");
+    console.log("🔴 ВЫЗОВ sendTonTransaction ПО НОВОМУ ТЗ");
     console.log("🔴 СУММА:", amount, "TON");
     console.log("🔴 КОММЕНТАРИЙ:", comment);
     console.log("🔴 tonConnectUI:", tonConnectUI ? "ПРИСУТСТВУЕТ" : "ОТСУТСТВУЕТ");
@@ -126,109 +126,59 @@ export async function sendTonTransaction(
     console.log("🔴 ФУНКЦИЯ sendTransaction:", typeof tonConnectUI?.sendTransaction === 'function' ? "ДОСТУПНА" : "НЕДОСТУПНА");
     console.log("===============================================================");
     
-    debugLog('sendTonTransaction - начало', {
-      tonConnectUI: !!tonConnectUI,
-      connected: tonConnectUI?.connected,
-      available: !!tonConnectUI,
-      walletInfo: tonConnectUI?.wallet ? 'present' : 'missing',
-      sendTransactionFn: typeof tonConnectUI?.sendTransaction === 'function' ? 'available' : 'missing'
-    });
-    
+    // Проверяем только наличие tonConnectUI и состояние подключения
     if (!tonConnectUI) {
       console.error('[ERROR] tonConnectUI is null or undefined');
       throw new Error('TonConnectUI is not initialized');
     }
     
-    // Проверяем, доступна ли функция sendTransaction
-    if (typeof tonConnectUI.sendTransaction !== 'function') {
-      console.error('[ERROR] tonConnectUI.sendTransaction is not a function');
-      throw new Error('sendTransaction method is not available on tonConnectUI');
-    }
-    
+    // По ТЗ: проверяем только подключение
     if (!tonConnectUI.connected) {
-      debugLog('Кошелек не подключен, пытаемся подключить...');
-      const connected = await connectTonWallet(tonConnectUI);
+      console.log('[INFO] Кошелек не подключен, пытаемся подключить...');
+      await connectTonWallet(tonConnectUI);
       
-      if (!connected || !tonConnectUI.connected) {
-        console.error('[ERROR] Failed to connect wallet');
+      // Проверяем подключение снова
+      if (!tonConnectUI.connected) {
+        console.error('[ERROR] Не удалось подключить кошелек');
         throw new WalletNotConnectedError();
       }
     }
     
-    // Рассчитываем время завершения транзакции (текущее время + TX_LIFETIME)
-    const validUntil = Math.floor(Date.now() / 1000) + TX_LIFETIME;
+    // ПО ТЗ: для тестирования используем фиксированную сумму
+    const testAmount = "200000000"; // 0.2 TON
     
-    // Правильное преобразование TON в nanoTON
-    // Сначала превращаем строку в число, умножаем на 10^9 и затем обратно в строку
-    const amountNumber = parseFloat(amount);
-    const amountNano = Math.floor(amountNumber * 1_000_000_000).toString();
+    // ПО ТЗ: Используем base64-кодирование для payload
+    const payload = btoa("TestBoost");
     
-    console.log("====================================================");
-    console.log("[TonConnect] Sending transaction with params:", {
-      amount,
-      amountNano,
-      comment,
-      address: TON_PROJECT_ADDRESS,
-      connected: tonConnectUI?.connected,
-      wallet: tonConnectUI?.wallet ? "present" : "null",
-      account: tonConnectUI?.account ? "present" : "null"
-    });
-    console.log("====================================================");
-    
+    // Создаем транзакцию в соответствии с ТЗ
     const transaction = {
-      validUntil,
-      network: CHAIN.MAINNET,
+      validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут по ТЗ
       messages: [
         {
-          address: TON_PROJECT_ADDRESS,
-          amount: amountNano,
-          payload: comment
+          address: TON_PROJECT_ADDRESS, // UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8
+          amount: testAmount, // для тестов используем фиксированную сумму
+          payload: payload // закодированное сообщение в base64
         }
       ]
     };
     
-    console.log('[TonConnect] Sending transaction with message:', transaction.messages);
+    // По ТЗ: добавляем лог с данными транзакции перед отправкой
+    console.log("[DEBUG] Sending transaction", transaction);
     
     try {
-      debugLog('Начинаем отправку транзакции через TonConnect');
-      
-      // Дополнительная проверка на соединение
+      // Только проверяем подключение (по ТЗ)
       if (!tonConnectUI.connected) {
-        debugLog('Кошелек не подключен перед отправкой транзакции, пытаемся подключить...');
+        console.log('[INFO] Кошелек не подключен непосредственно перед транзакцией, пытаемся подключить...');
+        await connectTonWallet(tonConnectUI);
         
-        // Запрашиваем соединение с кошельком
-        const connectResult = await connectTonWallet(tonConnectUI);
-        debugLog('Результат подключения перед транзакцией:', { connectResult });
-        
-        if (!connectResult || !tonConnectUI.connected) {
-          debugLog('Не удалось подключить кошелек');
+        if (!tonConnectUI.connected) {
+          console.error('[ERROR] Не удалось подключить кошелек перед отправкой транзакции');
           throw new WalletNotConnectedError('Не удалось подключить кошелёк перед транзакцией');
         }
       }
       
-      // Проверяем готовность sendTransaction непосредственно перед вызовом
-      if (typeof tonConnectUI.sendTransaction !== 'function') {
-        debugLog('КРИТИЧЕСКАЯ ОШИБКА: sendTransaction не является функцией');
-        throw new Error('tonConnectUI.sendTransaction is not a function');
-      }
-      
-      debugLog('Текущее состояние перед вызовом sendTransaction:', {
-        connected: tonConnectUI.connected,
-        wallet: tonConnectUI.wallet ? 'present' : 'missing',
-        account: tonConnectUI.account ? tonConnectUI.account.address : 'no account',
-        chainId: tonConnectUI.account?.chain
-      });
-      
-      // ЭТО САМАЯ ГЛАВНАЯ ЧАСТЬ - непосредственный вызов sendTransaction
-      // Этот вызов должен открыть кошелек Tonkeeper и ждать подтверждения от пользователя
-      debugLog('Вызываем tonConnectUI.sendTransaction с транзакцией:', transaction);
-      
-      // Обратите внимание - нельзя добавлять никакой код между этими двумя блоками,
-      // так как они должны выполняться синхронно для открытия Tonkeeper
-      debugLog('*** ВЫЗОВ sendTransaction ***');
-      
-      // Добавляем лог перед sendTransaction согласно ТЗ
-      console.log("[TON] Sending transaction via TonConnect...");
+      // Отправляем транзакцию без дополнительных проверок (по ТЗ)
+      console.log("[TON] Отправляем транзакцию через TonConnect...");
       
       const result = await tonConnectUI.sendTransaction(transaction);
       debugLog('*** РЕЗУЛЬТАТ sendTransaction ***', result);
