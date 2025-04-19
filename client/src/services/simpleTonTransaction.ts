@@ -14,6 +14,9 @@ import {
   createSimpleTextCellPayload
 } from './simplePayloadService';
 
+// Добавляем импорт BigNumber для конвертации сумм TON
+import BigNumber from 'bignumber.js';
+
 // Для отладки
 const DEBUG_ENABLED = true;
 function debugLog(...args: any[]) {
@@ -155,8 +158,13 @@ export async function sendTonTransaction(
       }
     }
     
-    // Для тестирования используем фиксированную сумму
-    const testAmount = "200000000"; // 0.2 TON
+    // Используем сумму из параметра, которая будет передана от боста
+    // 1 TON = 1_000_000_000 нано TON, поэтому умножаем на 10^9
+    const tonAmount = new BigNumber(amount).multipliedBy(1000000000).toString();
+    
+    // Логируем для проверки
+    console.log("[TON] Сумма в TON:", amount);
+    console.log("[TON] Сумма в нано TON:", tonAmount);
     
     // Генерируем простой комментарий без бинарного форматирования
     // Форма: UniFarmBoost:userId:boostId
@@ -170,7 +178,7 @@ export async function sendTonTransaction(
       messages: [
         {
           address: TON_PROJECT_ADDRESS, // UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8
-          amount: testAmount
+          amount: tonAmount
           // Убираем payload для тестирования базовой функциональности
         }
       ]

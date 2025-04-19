@@ -14,7 +14,7 @@ import {
   createTonTransactionComment,
   isTonWalletConnected,
   isTonPaymentReady
-} from '../../services/tonConnectService';
+} from '../../services/simpleTonTransaction';
 import { getUserIdFromURL } from '@/lib/utils';
 
 // Класс ошибки для неподключенного кошелька
