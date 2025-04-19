@@ -115,6 +115,12 @@ export async function sendTonTransaction(
   comment: string
 ): Promise<{txHash: string; status: 'success' | 'error'} | null> {
   try {
+    console.log("[DEBUG] Executing sendTransaction for Boost", {
+      connected: tonConnectUI.connected,
+      wallet: tonConnectUI.wallet,
+      ready: isTonPaymentReady(tonConnectUI),
+    });
+    
     debugLog('sendTonTransaction - начало', {
       tonConnectUI: !!tonConnectUI,
       connected: tonConnectUI?.connected,
