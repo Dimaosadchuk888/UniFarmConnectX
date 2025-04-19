@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
+// Используем новую реализацию без Buffer
 import { 
-  connectTonWallet, 
-  disconnectTonWallet, 
+  connectTonWallet as connectWallet, 
+  disconnectTonWallet as disconnectWallet, 
   getTonWalletAddress, 
-  isTonWalletConnected, 
-  addConnectionListener,
-  removeConnectionListener
-} from '@/services/tonConnectService';
+  isTonWalletConnected
+} from '@/services/simpleTonTransaction';
 import { Button } from '@/components/ui/button';
 import { 
   Tooltip,
@@ -57,10 +56,10 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
       
       if (connected) {
         console.log('[DEBUG] Вызов disconnect...');
-        await disconnectTonWallet(tonConnectUI);
+        await disconnectWallet(tonConnectUI);
       } else {
         console.log('[DEBUG] Вызов connectWallet...');
-        await connectTonWallet(tonConnectUI);
+        await connectWallet(tonConnectUI);
       }
     } catch (error: any) {
       console.error('Wallet connection error:', error?.message || 'Unknown error');

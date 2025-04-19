@@ -1,15 +1,20 @@
-import { 
-  TonConnectUI, 
-  TonConnect, 
-  isWalletInfoInjected, 
-  UserRejectsError, 
-  WalletNotConnectedError,
-  THEME
-} from '@tonconnect/ui-react';
-import { CHAIN } from '@tonconnect/protocol';
-// Удалено импорт из @ton/core из-за проблем с Buffer в браузере
+/**
+ * simpleTonTransaction.ts
+ * Упрощенная служба для работы с TON транзакциями без использования Buffer
+ */
 
-// Для отладки - используем прямой console.log вместо debugLog для большей видимости
+import {
+  TonConnectUI,
+  UserRejectsError,
+  WalletNotConnectedError
+} from '@tonconnect/ui-react';
+
+import { 
+  createSimpleBase64Payload,
+  createSimpleTextCellPayload
+} from './simplePayloadService';
+
+// Для отладки
 const DEBUG_ENABLED = true;
 function debugLog(...args: any[]) {
   if (DEBUG_ENABLED) {
@@ -17,77 +22,8 @@ function debugLog(...args: any[]) {
   }
 }
 
-// Тип слушателя соединения
-type ConnectionListener = (connected: boolean) => void;
-// Хранение слушателей
-const connectionListeners: ConnectionListener[] = [];
-
 // Адрес TON кошелька проекта
 export const TON_PROJECT_ADDRESS = 'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8';
-
-// Время жизни транзакции в секундах (30 минут)
-const TX_LIFETIME = 30 * 60;
-
-/**
- * Преобразует Uint8Array в base64 строку (безопасно для браузера, не использует Buffer)
- */
-function uint8ArrayToBase64(bytes: Uint8Array): string {
-  const binaryString = Array.from(bytes)
-    .map(byte => String.fromCharCode(byte))
-    .join('');
-  return btoa(binaryString);
-}
-
-/**
- * Создаёт BOC-payload с комментарием
- * @param comment Текст комментария
- * @returns base64-строка для payload
- */
-function createBocWithComment(comment: string): string {
-  try {
-    console.log('Создаем BOC с комментарием:', comment);
-    
-    // Убираем проверку на Buffer, так как мы больше не используем его
-    
-    // ВНИМАНИЕ: Вместо использования @ton/core beginCell, используем простой base64
-    console.log('Используем альтернативный подход вместо beginCell()');
-    
-    // Прямое кодирование комментария в base64
-    const bocBytes = new TextEncoder().encode(comment);
-    console.log('Bytes получены, длина:', bocBytes.length);
-    
-    // Притворяемся, что это BOC для совместимости с остальным кодом
-    
-    // АЛЬТЕРНАТИВНЫЙ ПОДХОД: Если с BOC возникают проблемы, просто кодируем сам комментарий
-    // Это не соответствует стандарту TON, но для тестирования подойдет
-    if (!bocBytes || bocBytes.length === 0) {
-      console.log('⚠️ BOC не создан, используем альтернативный подход - кодируем просто комментарий');
-      
-      // Преобразуем комментарий в base64 напрямую
-      return btoa(comment);
-    }
-    
-    // Преобразуем в base64
-    const base64Result = uint8ArrayToBase64(bocBytes);
-    console.log('BOC преобразован в base64, длина:', base64Result.length);
-    
-    return base64Result;
-  } catch (error) {
-    console.error('Ошибка при создании BOC:', error);
-    
-    // В случае ошибки с Buffer, используем альтернативный подход
-    console.log('⚠️ Используем альтернативу из-за ошибки: создаем простой base64 из комментария');
-    
-    // Просто закодируем комментарий в base64 - это не будет работать как BOC,
-    // но для теста достаточно
-    try {
-      return btoa(comment);
-    } catch (e) {
-      console.error('Не удалось даже закодировать комментарий в base64:', e);
-      return '';
-    }
-  }
-}
 
 /**
  * Проверяет, подключен ли в данный момент TON кошелек
@@ -165,7 +101,16 @@ export function getTonWalletAddress(tonConnectUI: TonConnectUI): string | null {
 }
 
 /**
- * Отправляет TON транзакцию на указанный адрес с комментарием
+ * Создает строку комментария для TON транзакции в формате UniFarmBoost:userId:boostId
+ */
+export function createTonTransactionComment(userId: number, boostId: number): string {
+  return `UniFarmBoost:${userId}:${boostId}`;
+}
+
+/**
+ * Отправляет TON транзакцию без использования Buffer
+ * Использует упрощенный метод кодирования для совместимости с Telegram Mini App
+ * 
  * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  * @param amount Сумма TON (в базовых единицах, 1 TON = 10^9 nanoTON)
  * @param comment Комментарий к транзакции
@@ -217,19 +162,27 @@ export async function sendTonTransaction(
     // По ТЗ: генерируем rawPayload в формате UniFarmBoost:userId:boostId
     const rawPayload = `UniFarmBoost:${userId}:${boostId}`;
     
-    // Создаем BOC-payload с комментарием
-    const payload = createBocWithComment(rawPayload);
+    // Создаем простой payload (без использования Buffer)
+    let payload: string;
+    
+    try {
+      // Пробуем создать payload в формате "простой текстовой ячейки"
+      payload = createSimpleTextCellPayload(rawPayload);
+      console.log("✅ Создан упрощенный TextCell-payload без использования Buffer");
+    } catch (error) {
+      console.error('Ошибка при создании TextCell payload:', error);
+      
+      // Если не удалось, используем простой base64
+      payload = createSimpleBase64Payload(rawPayload);
+      console.log("⚠️ Использован fallback - простой base64 кодированный комментарий");
+    }
     
     // Для дополнительной проверки - в консоли выводим длину payload
-    console.log(`✅ BOC-payload длина: ${payload.length} символов`);
-    
-    console.log("✅ Создан стандартный BOC-payload в соответствии с ТЗ");
-    
-    console.log("✅ Создан стандартный BOC-payload с маркером 0 и текстовым сообщением");
+    console.log(`✅ Payload длина: ${payload.length} символов`);
     
     // По ТЗ: добавляем логирование payload
     console.log("📦 rawPayload:", rawPayload);
-    console.log("📦 BOC payload (base64):", payload);
+    console.log("📦 Payload (base64):", payload);
     
     // Создаем транзакцию в соответствии с ТЗ
     const transaction = {
@@ -331,52 +284,8 @@ export function isTonPaymentReady(tonConnectUI: TonConnectUI): boolean {
   const hasAccount = hasConnectUI && !!tonConnectUI.account;
   const hasAddress = hasAccount && !!tonConnectUI.account?.address;
   
-  // Подробный отладочный лог с безопасной проверкой свойств
-  debugLog('isTonPaymentReady состояние:', {
-    hasConnectUI,
-    hasSendTransaction,
-    isConnected,
-    hasWallet,
-    hasAccount,
-    hasAddress,
-    wallet: hasWallet ? {
-      // Безопасно получаем информацию о кошельке
-      deviceAppName: tonConnectUI.wallet?.device?.appName,
-      // Проверяем свойства, которые могут отсутствовать у некоторых типов Wallet
-      walletInfo: {
-        hasWalletObject: !!tonConnectUI.wallet,
-        type: typeof tonConnectUI.wallet,
-        appName: tonConnectUI.wallet?.device?.appName || 'unknown', 
-      }
-    } : null,
-    account: hasAccount ? {
-      chain: tonConnectUI.account?.chain,
-      hasAddress: !!tonConnectUI.account?.address,
-      address: tonConnectUI.account?.address 
-        ? (tonConnectUI.account.address.slice(0, 10) + '...' + tonConnectUI.account.address.slice(-10))
-        : 'no-address',
-    } : null
-  });
-  
   // Более строгая проверка - требуем наличие подключенного кошелька и аккаунта
   const isReady = hasConnectUI && hasSendTransaction && isConnected && hasWallet && hasAccount && hasAddress;
-  
-  // Если не готов, логируем причину
-  if (!isReady) {
-    const reasons = [];
-    if (!hasConnectUI) reasons.push('tonConnectUI отсутствует');
-    if (!hasSendTransaction) reasons.push('sendTransaction не является функцией');
-    if (!isConnected) reasons.push('кошелек не подключен (tonConnectUI.connected = false)');
-    if (!hasWallet) reasons.push('информация о кошельке отсутствует (tonConnectUI.wallet = null)');
-    if (!hasAccount) reasons.push('информация об аккаунте отсутствует (tonConnectUI.account = null)');
-    if (!hasAddress) reasons.push('адрес кошелька отсутствует (tonConnectUI.account.address = null)');
-    
-    debugLog('isTonPaymentReady вернул FALSE. Причины:', reasons);
-    console.log('[DEBUG] isTonPaymentReady вернул FALSE. Причины:', reasons.join(', '));
-  } else {
-    debugLog('isTonPaymentReady вернул TRUE. Все проверки пройдены.');
-    console.log('[DEBUG] isTonPaymentReady вернул TRUE. Все проверки пройдены.');
-  }
   
   // По ТЗ временно отключаем проверку и принудительно возвращаем true
   // для диагностики проблемы с вызовом sendTransaction
@@ -384,74 +293,8 @@ export function isTonPaymentReady(tonConnectUI: TonConnectUI): boolean {
   return true; // Всегда возвращаем true для тестирования sendTransaction
 }
 
-/**
- * Создает строку комментария для TON транзакции в формате UniFarmBoost:userId:boostId
- */
-export function createTonTransactionComment(userId: number, boostId: number): string {
-  return `UniFarmBoost:${userId}:${boostId}`;
-}
-
-/**
- * Для совместимости со старым кодом
- */
+// Для совместимости со старым кодом
 export const isWalletConnected = isTonWalletConnected;
 export const getWalletAddress = getTonWalletAddress;
 export const connectWallet = connectTonWallet;
 export const disconnectWallet = disconnectTonWallet;
-
-/**
- * Добавить слушателя соединения
- * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
- * @param listener Функция, которая будет вызвана при изменении статуса подключения
- */
-export function addConnectionListener(tonConnectUI: TonConnectUI, listener: ConnectionListener): void {
-  if (!listener) {
-    console.error('Listener function is required for addConnectionListener');
-    return;
-  }
-  
-  connectionListeners.push(listener);
-  
-  // Сразу вызываем с текущим статусом
-  if (tonConnectUI) {
-    const connected = isWalletConnected(tonConnectUI);
-    listener(connected);
-  }
-}
-
-/**
- * Удалить слушателя соединения
- * @param listener Функция, которая была передана в addConnectionListener
- */
-export function removeConnectionListener(listener: ConnectionListener): void {
-  if (!listener) {
-    console.error('Listener function is required for removeConnectionListener');
-    return;
-  }
-  
-  const index = connectionListeners.indexOf(listener);
-  if (index !== -1) {
-    connectionListeners.splice(index, 1);
-  }
-}
-
-/**
- * Инициализация TON Connect при запуске приложения
- * 
- * ВАЖНО: 
- * Эта функция отключена, поскольку используется TonConnectUIProvider из @tonconnect/ui-react
- * TonConnectUIProvider сам инициализирует TON Connect 
- */
-export function initTonConnect(): void {
-  // Эта функция теперь просто логирует сообщение и не выполняет реальной инициализации
-  console.log('TON Connect initialized by TonConnectUIProvider in App.tsx');
-}
-
-/**
- * Этот экспорт существует для обратной совместимости,
- * но фактически он будет заменен прямым импортом из useTonConnectUI
- */
-export const getTonConnectUI = () => {
-  console.warn('getTonConnectUI is deprecated, use useTonConnectUI hook instead');
-  return null as unknown as TonConnectUI;
-}

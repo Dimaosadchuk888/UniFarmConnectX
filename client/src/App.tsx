@@ -28,6 +28,8 @@ declare global {
       };
     };
     Buffer: typeof Buffer;
+    process: any;
+    TextEncoder: any;
   }
 }
 
