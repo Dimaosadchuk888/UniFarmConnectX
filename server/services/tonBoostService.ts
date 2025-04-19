@@ -136,7 +136,21 @@ export class TonBoostService {
    * @returns Буст-пакет или undefined, если не найден
    */
   static getBoostPackageById(boostId: number): TonBoostPackage | undefined {
-    return this.boostPackages.find(pkg => pkg.id === boostId);
+    // Проверка на валидный ID и его наличие в списке packages
+    if (!boostId || isNaN(boostId) || boostId < 1 || boostId > this.tonBoostPackages.length) {
+      console.log(`[TonBoostService] Недопустимый ID буст-пакета: ${boostId}`);
+      return undefined;
+    }
+    
+    const pkg = this.boostPackages.find(pkg => pkg.id === boostId);
+    
+    // Проверка, что у пакета есть цена в TON
+    if (!pkg || !pkg.priceTon || pkg.priceTon === 'null') {
+      console.log(`[TonBoostService] Пакет найден, но цена отсутствует: ${JSON.stringify(pkg)}`);
+      return undefined;
+    }
+    
+    return pkg;
   }
 
   /**
