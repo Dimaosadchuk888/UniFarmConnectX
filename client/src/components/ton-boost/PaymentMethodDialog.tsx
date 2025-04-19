@@ -92,7 +92,8 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
         console.log("✅ nanoAmount:", nanoAmount);
         
         // Вызываем sendTonTransaction с проверенной суммой
-        const result = await sendTonTransaction(tonConnectUI, boostPriceTon, comment);
+        // Используем nanoAmount вместо boostPriceTon для передачи точной суммы в sendTonTransaction
+        const result = await sendTonTransaction(tonConnectUI, String(tonAmount), comment);
         
         console.log("[TON] Результат транзакции:", result);
         

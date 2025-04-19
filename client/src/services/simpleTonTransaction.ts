@@ -167,7 +167,7 @@ export async function sendTonTransaction(
     }
     
     // ПО ТЗ: Умножаем на 1e9 и преобразуем в строку через BigInt для точности
-    const nanoTonAmount = (BigInt(tonAmount * 1e9)).toString();
+    const nanoTonAmount = BigInt(Math.floor(tonAmount * 1e9)).toString();
     
     // ТЗ: Выводим сумму в nanoTON с особой пометкой ✅
     console.log("✅ nanoAmount:", nanoTonAmount);
