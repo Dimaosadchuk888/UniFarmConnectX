@@ -535,6 +535,7 @@ const BoostPackagesCard: React.FC = () => {
         onOpenChange={setPaymentMethodDialogOpen}
         boostId={selectedBoostId}
         boostName={selectedBoostId ? boostPackages.find(p => p.id === selectedBoostId)?.name || 'TON Boost' : ''}
+        boostPriceTon={selectedBoostId ? boostPackages.find(p => p.id === selectedBoostId)?.priceTon || '1.0' : '1.0'}
         onSelectPaymentMethod={handleSelectPaymentMethod}
       />
 

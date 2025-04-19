@@ -24,6 +24,7 @@ interface PaymentMethodDialogProps {
   onOpenChange: (open: boolean) => void;
   boostId: number | null;
   boostName: string;
+  boostPriceTon: string; // Добавляем цену буста в TON
   onSelectPaymentMethod: (boostId: number, method: 'internal_balance' | 'external_wallet') => void;
 }
 
@@ -32,6 +33,7 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   onOpenChange,
   boostId,
   boostName,
+  boostPriceTon,
   onSelectPaymentMethod,
 }) => {
   const { toast } = useToast();
@@ -72,8 +74,9 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
         const userId = 1; // Тестовый ID пользователя
         const comment = createTonTransactionComment(userId, boostId);
         
-        // Вызываем новую версию sendTonTransaction без Buffer
-        const result = await sendTonTransaction(tonConnectUI, "0.2", comment);
+        // Вызываем новую версию sendTonTransaction без Buffer с правильной ценой пакета
+        console.log("[TON] Отправка транзакции с суммой:", boostPriceTon, "TON");
+        const result = await sendTonTransaction(tonConnectUI, boostPriceTon, comment);
         
         console.log("[TON] Результат транзакции:", result);
         
