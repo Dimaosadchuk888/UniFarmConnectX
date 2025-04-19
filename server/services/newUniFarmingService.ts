@@ -3,6 +3,11 @@ import { users, uniFarmingDeposits } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { BigNumber } from 'bignumber.js';
 
+// Глобальное объявление для TypeScript
+declare global {
+  var _processingUsers: Map<number, boolean>;
+}
+
 // Используем BigNumber для точных вычислений с плавающей точкой
 BigNumber.config({
   DECIMAL_PLACES: 16,
@@ -28,17 +33,15 @@ export class NewUniFarmingService {
     earnedThisUpdate: string;
     depositCount: number;
   }> {
-    // Получаем данные пользователя
-    const [user] = await db
-      .select({
-        balance_uni: users.balance_uni,
-        uni_farming_balance: users.uni_farming_balance
-      })
-      .from(users)
-      .where(eq(users.id, userId));
+    // Защита от одновременных вызовов для одного пользователя
+    // Используем глобальный объект для отслеживания обработки пользователей
+    if (!globalThis._processingUsers) {
+      globalThis._processingUsers = new Map<number, boolean>();
+    }
 
-    // Если пользователь не найден, возвращаем нулевые значения
-    if (!user) {
+    // Если пользователь уже обрабатывается, пропускаем текущий вызов
+    if (globalThis._processingUsers.get(userId)) {
+      // console.log(`[MultiFarming] User ${userId} is already being processed, skipping`);
       return {
         totalDepositAmount: '0',
         totalRatePerSecond: '0',
@@ -47,66 +50,89 @@ export class NewUniFarmingService {
       };
     }
 
-    // Текущий баланс пользователя
-    const currentBalance = new BigNumber(user.balance_uni !== null ? user.balance_uni.toString() : '0');
-    
-    // Получаем все активные депозиты пользователя
-    const activeDeposits = await db
-      .select()
-      .from(uniFarmingDeposits)
-      .where(and(
-        eq(uniFarmingDeposits.user_id, userId),
-        eq(uniFarmingDeposits.is_active, true)
-      ));
+    // Отмечаем, что начали обработку пользователя
+    globalThis._processingUsers.set(userId, true);
 
-    // Если нет активных депозитов, возвращаем нулевые значения
-    if (activeDeposits.length === 0) {
-      return {
-        totalDepositAmount: '0',
-        totalRatePerSecond: '0',
-        earnedThisUpdate: '0',
-        depositCount: 0
-      };
-    }
-
-    // Инициализируем переменные для накопления
-    let totalDepositAmount = new BigNumber(0);
-    let totalRatePerSecond = new BigNumber(0);
-    let totalEarnedAmount = new BigNumber(0);
-    const now = new Date();
-
-    // Обрабатываем каждый депозит
-    for (const deposit of activeDeposits) {
-      // Добавляем сумму депозита к общей сумме
-      const depositAmount = new BigNumber(deposit.amount.toString());
-      totalDepositAmount = totalDepositAmount.plus(depositAmount);
-
-      // Рассчитываем прошедшее время с последнего обновления
-      const lastUpdate = deposit.last_updated_at;
-      const secondsSinceLastUpdate = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
-      
-      // Минимальное начисление за 0.1 секунды
-      const effectiveSeconds = Math.max(0.1, secondsSinceLastUpdate);
-
-      // Рассчитываем доход за прошедшие секунды
-      const ratePerSecond = new BigNumber(deposit.rate_per_second.toString());
-      const earnedAmount = ratePerSecond.multipliedBy(effectiveSeconds);
-
-      // Логирование
-      console.log(`[MultiFarming] User ${userId} Deposit #${deposit.id}: Amount=${depositAmount.toString()}, Rate=${ratePerSecond.toString()}/sec, Time=${effectiveSeconds}s, Earned=${earnedAmount.toString()}`);
-
-      // Добавляем к общей сумме заработанного
-      totalEarnedAmount = totalEarnedAmount.plus(earnedAmount);
-      totalRatePerSecond = totalRatePerSecond.plus(ratePerSecond);
-
-      // Обновляем время последнего обновления депозита
-      await db
-        .update(uniFarmingDeposits)
-        .set({
-          last_updated_at: now
+    try {
+      // Получаем данные пользователя
+      const [user] = await db
+        .select({
+          balance_uni: users.balance_uni,
+          uni_farming_balance: users.uni_farming_balance
         })
-        .where(eq(uniFarmingDeposits.id, deposit.id));
-    }
+        .from(users)
+        .where(eq(users.id, userId));
+
+      // Если пользователь не найден, возвращаем нулевые значения
+      if (!user) {
+        return {
+          totalDepositAmount: '0',
+          totalRatePerSecond: '0',
+          earnedThisUpdate: '0',
+          depositCount: 0
+        };
+      }
+
+      // Текущий баланс пользователя
+      const currentBalance = new BigNumber(user.balance_uni !== null ? user.balance_uni.toString() : '0');
+      
+      // Получаем все активные депозиты пользователя
+      const activeDeposits = await db
+        .select()
+        .from(uniFarmingDeposits)
+        .where(and(
+          eq(uniFarmingDeposits.user_id, userId),
+          eq(uniFarmingDeposits.is_active, true)
+        ));
+
+      // Если нет активных депозитов, возвращаем нулевые значения
+      if (activeDeposits.length === 0) {
+        return {
+          totalDepositAmount: '0',
+          totalRatePerSecond: '0',
+          earnedThisUpdate: '0',
+          depositCount: 0
+        };
+      }
+
+      // Инициализируем переменные для накопления
+      let totalDepositAmount = new BigNumber(0);
+      let totalRatePerSecond = new BigNumber(0);
+      let totalEarnedAmount = new BigNumber(0);
+      const now = new Date();
+
+      // Обрабатываем каждый депозит
+      for (const deposit of activeDeposits) {
+        // Добавляем сумму депозита к общей сумме
+        const depositAmount = new BigNumber(deposit.amount.toString());
+        totalDepositAmount = totalDepositAmount.plus(depositAmount);
+
+        // Рассчитываем прошедшее время с последнего обновления
+        const lastUpdate = deposit.last_updated_at;
+        const secondsSinceLastUpdate = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
+        
+        // Минимальное начисление за 0.1 секунды
+        const effectiveSeconds = Math.max(0.1, secondsSinceLastUpdate);
+
+        // Рассчитываем доход за прошедшие секунды
+        const ratePerSecond = new BigNumber(deposit.rate_per_second.toString());
+        const earnedAmount = ratePerSecond.multipliedBy(effectiveSeconds);
+
+        // Логирование
+        console.log(`[MultiFarming] User ${userId} Deposit #${deposit.id}: Amount=${depositAmount.toString()}, Rate=${ratePerSecond.toString()}/sec, Time=${effectiveSeconds}s, Earned=${earnedAmount.toString()}`);
+
+        // Добавляем к общей сумме заработанного
+        totalEarnedAmount = totalEarnedAmount.plus(earnedAmount);
+        totalRatePerSecond = totalRatePerSecond.plus(ratePerSecond);
+
+        // Обновляем время последнего обновления депозита
+        await db
+          .update(uniFarmingDeposits)
+          .set({
+            last_updated_at: now
+          })
+          .where(eq(uniFarmingDeposits.id, deposit.id));
+      }
 
     // Используем накопитель для микро-начислений
     const currentAccumulatedBalance = new BigNumber(user.uni_farming_balance !== null ? user.uni_farming_balance.toString() : '0');
@@ -167,12 +193,28 @@ export class NewUniFarmingService {
       console.log(`[MultiFarming] Balance No Change User ${userId} | Balance remains: ${formattedNewBalance} (Accumulating: ${newAccumulatedBalance.toFixed(8)})`);
     }
     
+    // Освобождаем блокировку после завершения всех операций
+    globalThis._processingUsers.set(userId, false);
+    
     return {
       totalDepositAmount: totalDepositAmount.toString(),
       totalRatePerSecond: totalRatePerSecond.toString(),
       earnedThisUpdate: totalEarnedAmount.toString(),
       depositCount: activeDeposits.length
     };
+  } catch (error) {
+    console.error(`[MultiFarming] Error in calculateAndUpdateUserFarming for user ${userId}:`, error);
+    
+    // Освобождаем блокировку в случае ошибки
+    globalThis._processingUsers.set(userId, false);
+    
+    return {
+      totalDepositAmount: '0',
+      totalRatePerSecond: '0',
+      earnedThisUpdate: '0',
+      depositCount: 0
+    };
+  }
   }
 
   /**
