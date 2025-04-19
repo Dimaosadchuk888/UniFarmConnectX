@@ -34,13 +34,6 @@ const TonFarmingStatusCard: React.FC = () => {
   const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
     queryKey: [`/api/ton-farming/info?user_id=${userId}`],
     refetchInterval: 10000, // Обновляем каждые 10 секунд
-    onSuccess: (data) => {
-      // Выводим в консоль полный ответ для отладки
-      console.log('[Debug] TON Farming API response:', data);
-    },
-    onError: (error) => {
-      console.error('[Debug] TON Farming API error:', error);
-    }
   });
   
   // Анимация статуса активности фарминга
@@ -67,14 +60,6 @@ const TonFarmingStatusCard: React.FC = () => {
       // Гарантируем числовые значения или используем 0 по умолчанию
       const targetDaily = parseFloat(farmingData.dailyIncomeTon) || 0;
       const targetPerSecond = parseFloat(farmingData.totalTonRatePerSecond) || 0;
-      
-      // Логируем значения для отладки (можно убрать в продакшн)
-      console.log("[TonFarmingStatusCard] Данные:", {
-        dailyIncomeTon: farmingData.dailyIncomeTon,
-        totalTonRatePerSecond: farmingData.totalTonRatePerSecond,
-        parsedDaily: targetDaily,
-        parsedPerSecond: targetPerSecond
-      });
       
       // Запускаем импульс при обновлении значений
       setIsPulsing(true);

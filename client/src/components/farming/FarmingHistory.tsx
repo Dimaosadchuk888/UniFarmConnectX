@@ -725,20 +725,20 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     }
     
     // Получаем данные о фарминге
-    const dailyIncomeTon = tonFarmingInfo?.success && tonFarmingInfo.data.dailyIncomeTon
+    const dailyIncomeTon = tonFarmingInfo?.success && tonFarmingInfo.data?.dailyIncomeTon
       ? parseFloat(tonFarmingInfo.data.dailyIncomeTon)
       : 0;
     
-    const perSecondTon = tonFarmingInfo?.success && tonFarmingInfo.data.totalTonRatePerSecond
+    const perSecondTon = tonFarmingInfo?.success && tonFarmingInfo.data?.totalTonRatePerSecond
       ? parseFloat(tonFarmingInfo.data.totalTonRatePerSecond)
       : 0;
     
     // Получаем данные о депозитах из API
-    const apiDeposits = tonFarmingInfo?.success && tonFarmingInfo.data.deposits
+    const apiDeposits = tonFarmingInfo?.success && tonFarmingInfo.data?.deposits
       ? tonFarmingInfo.data.deposits
       : [];
     
-    const totalDepositsCount = tonFarmingInfo?.success 
+    const totalDepositsCount = tonFarmingInfo?.success && tonFarmingInfo.data
       ? tonFarmingInfo.data.depositCount 
       : tonBoostDeposits.length;
     
