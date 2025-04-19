@@ -163,6 +163,11 @@ const BoostPackagesCard: React.FC = () => {
             wallet: tonConnectUI?.wallet,
             ready: tonConnectUI ? isTonPaymentReady(tonConnectUI) : false,
           });
+          
+          // Добавляем подробное логирование состояния tonConnectUI по ТЗ
+          console.log("[DEBUG] tonConnectUI.connected =", tonConnectUI?.connected);
+          console.log("[DEBUG] tonConnectUI.account =", tonConnectUI?.account);
+          console.log("[DEBUG] tonConnectUI.wallet =", tonConnectUI?.wallet);
           console.log("==========================================================");
           
           // Выполняем комплексную проверку готовности к транзакции
@@ -191,6 +196,9 @@ const BoostPackagesCard: React.FC = () => {
           // ВАЖНО: Сначала отправляем транзакцию через TonConnect SDK
           // Это откроет Tonkeeper автоматически и пользователь сможет подтвердить транзакцию
           console.log('[DEBUG] Вызываем sendTonTransaction...');
+          
+          // Добавляем лог перед sendTransaction согласно ТЗ 
+          console.log("[TON] Sending transaction via TonConnect...");
           const result = await sendTonTransaction(
             tonConnectUI, // используем tonConnectUI из хука
             selectedBoost.priceTon, // Сумма в TON

@@ -221,6 +221,10 @@ export async function sendTonTransaction(
       // Обратите внимание - нельзя добавлять никакой код между этими двумя блоками,
       // так как они должны выполняться синхронно для открытия Tonkeeper
       debugLog('*** ВЫЗОВ sendTransaction ***');
+      
+      // Добавляем лог перед sendTransaction согласно ТЗ
+      console.log("[TON] Sending transaction via TonConnect...");
+      
       const result = await tonConnectUI.sendTransaction(transaction);
       debugLog('*** РЕЗУЛЬТАТ sendTransaction ***', result);
       
@@ -329,12 +333,16 @@ export function isTonPaymentReady(tonConnectUI: TonConnectUI): boolean {
     if (!hasAddress) reasons.push('адрес кошелька отсутствует (tonConnectUI.account.address = null)');
     
     debugLog('isTonPaymentReady вернул FALSE. Причины:', reasons);
+    console.log('[DEBUG] isTonPaymentReady вернул FALSE. Причины:', reasons.join(', '));
   } else {
     debugLog('isTonPaymentReady вернул TRUE. Все проверки пройдены.');
+    console.log('[DEBUG] isTonPaymentReady вернул TRUE. Все проверки пройдены.');
   }
   
-  // Возвращаем результат проверки
-  return isReady;
+  // По ТЗ временно отключаем проверку и принудительно возвращаем true
+  // для диагностики проблемы с вызовом sendTransaction
+  console.log('[DEBUG] ⚠️ ПРОВЕРКА isTonPaymentReady ОТКЛЮЧЕНА ПО ТЗ, ВОЗВРАЩАЕМ TRUE ДЛЯ ДИАГНОСТИКИ');
+  return true;
 }
 
 /**
