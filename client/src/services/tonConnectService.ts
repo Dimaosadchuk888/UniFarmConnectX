@@ -217,7 +217,6 @@ export async function sendTonTransaction(
       // Вызов успешно выполнен - пользователь подтвердил транзакцию в Tonkeeper
       debugLog('Транзакция успешно отправлена, результат:', {
         boc: result.boc ? `есть (${result.boc.length} символов)` : 'нет',
-        type: result?.type,
         has_result: !!result
       });
       
@@ -225,25 +224,31 @@ export async function sendTonTransaction(
         txHash: result.boc,
         status: 'success'
       };
-    } catch (txError) {
+    } catch (error) {
+      const txError = error as Error; // Типизируем ошибку как Error для доступа к свойствам
+      
       debugLog('ОШИБКА при вызове sendTransaction:', { 
-        error: txError,
-        name: txError?.name,
-        message: txError?.message
+        errorType: typeof error,
+        errorName: txError.name,
+        errorMessage: txError.message,
+        errorStack: txError.stack?.substring(0, 100) // Показываем только начало стека
       });
       
       // Классифицируем ошибку для более детального логирования
-      if (txError instanceof UserRejectsError) {
+      if (error instanceof UserRejectsError) {
         debugLog('Пользователь отклонил транзакцию в кошельке');
       }
-      else if (txError instanceof WalletNotConnectedError) {
+      else if (error instanceof WalletNotConnectedError) {
         debugLog('Ошибка: кошелек не подключен');
       }
       else {
-        debugLog('Неизвестная ошибка при отправке транзакции:', txError);
+        debugLog('Неизвестная ошибка при отправке транзакции', {
+          errorToString: String(error),
+          errorJSON: JSON.stringify(error)
+        });
       }
       
-      throw txError;  // Re-throw to be caught by the outer try-catch
+      throw error;  // Re-throw to be caught by the outer try-catch
     }
   } catch (error) {
     console.error('Error sending TON transaction:', error);

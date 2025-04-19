@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useTonConnectUI } from '@tonconnect/ui-react';
 
 interface ConnectWalletButtonProps {
   className?: string;
@@ -24,42 +25,45 @@ interface ConnectWalletButtonProps {
  * Используется совместно с TonConnectUI
  */
 const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) => {
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
+  const [tonConnectUI] = useTonConnectUI();
   const [loading, setLoading] = useState(false);
   
-  // Инициализируем отслеживание статуса подключения TonConnect при загрузке компонента
-  useEffect(() => {
-    // Функция для обновления состояния подключения
-    const updateConnectionStatus = () => {
-      const isConnected = isTonWalletConnected();
-      setConnected(isConnected);
-      setAddress(isConnected ? getTonWalletAddress() : null);
-    };
-    
-    // Выполняем начальную проверку
-    updateConnectionStatus();
-    
-    // Подписываемся на централизованные обновления статуса подключения
-    addConnectionListener(updateConnectionStatus);
-    
-    // Отписываемся при размонтировании компонента
-    return () => {
-      removeConnectionListener(updateConnectionStatus);
-    };
-  }, []);
-
+  // Получаем состояние подключения и адрес из tonConnectUI
+  const connected = tonConnectUI.connected;
+  const address = connected && tonConnectUI.account ? tonConnectUI.account.address : null;
+  
+  // Используем debugLog для логирования процесса подключения
+  console.log('[DEBUG] ConnectWalletButton render:', {
+    tonConnectUIExists: !!tonConnectUI,
+    connected: connected,
+    address: address
+  });
+  
   // Обработчик подключения/отключения кошелька
   const handleWalletConnection = async () => {
+    if (!tonConnectUI) {
+      console.error('tonConnectUI is not initialized');
+      return;
+    }
+    
     setLoading(true);
     try {
+      console.log('[DEBUG] handleWalletConnection:', { 
+        connected: connected, 
+        tonConnectUI: true,
+        connectFn: typeof tonConnectUI.connectWallet === 'function' ? 'available' : 'missing',
+        disconnectFn: typeof tonConnectUI.disconnect === 'function' ? 'available' : 'missing'
+      });
+      
       if (connected) {
-        await disconnectTonWallet();
+        console.log('[DEBUG] Вызов disconnect...');
+        await disconnectTonWallet(tonConnectUI);
       } else {
-        await connectTonWallet();
+        console.log('[DEBUG] Вызов connectWallet...');
+        await connectTonWallet(tonConnectUI);
       }
-    } catch (error) {
-      console.error('Wallet connection error:', error);
+    } catch (error: any) {
+      console.error('Wallet connection error:', error?.message || 'Unknown error');
     } finally {
       setLoading(false);
     }
