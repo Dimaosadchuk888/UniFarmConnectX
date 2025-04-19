@@ -31,7 +31,7 @@ const TonFarmingStatusCard: React.FC = () => {
   const [dotOpacity, setDotOpacity] = useState(0.5);
   
   // Получаем информацию о TON фарминге
-  const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<TonFarmingInfo>({
+  const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
     queryKey: [`/api/ton-farming/info?user_id=${userId}`],
     refetchInterval: 10000, // Обновляем каждые 10 секунд
   });
@@ -47,15 +47,27 @@ const TonFarmingStatusCard: React.FC = () => {
   
   // Анимация значений при обновлении данных
   useEffect(() => {
-    if (farmingInfo) {
+    if (farmingInfo && farmingInfo.success && farmingInfo.data) {
+      const farmingData = farmingInfo.data;
+      
       // Установка статуса активности
-      setIsActive(farmingInfo.isActive);
+      setIsActive(farmingData.isActive);
       
       // Анимируем нарастание значений
       const animationDuration = 1000;
       const startTime = Date.now();
-      const targetDaily = parseFloat(farmingInfo.dailyIncomeTon) || 0;
-      const targetPerSecond = parseFloat(farmingInfo.totalTonRatePerSecond) || 0;
+      
+      // Гарантируем числовые значения или используем 0 по умолчанию
+      const targetDaily = parseFloat(farmingData.dailyIncomeTon) || 0;
+      const targetPerSecond = parseFloat(farmingData.totalTonRatePerSecond) || 0;
+      
+      // Логируем значения для отладки (можно убрать в продакшн)
+      console.log("[TonFarmingStatusCard] Данные:", {
+        dailyIncomeTon: farmingData.dailyIncomeTon,
+        totalTonRatePerSecond: farmingData.totalTonRatePerSecond,
+        parsedDaily: targetDaily,
+        parsedPerSecond: targetPerSecond
+      });
       
       // Запускаем импульс при обновлении значений
       setIsPulsing(true);
@@ -99,7 +111,7 @@ const TonFarmingStatusCard: React.FC = () => {
             </CardTitle>
             <CardDescription className="text-blue-300/70">
               {isActive 
-                ? `Активно ${farmingInfo?.depositCount || 0} TON Boost депозитов` 
+                ? `Активно ${farmingInfo?.data?.depositCount || 0} TON Boost депозитов` 
                 : 'Нет активных TON Boost депозитов'}
             </CardDescription>
           </div>
