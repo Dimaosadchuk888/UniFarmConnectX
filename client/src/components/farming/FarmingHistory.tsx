@@ -163,6 +163,36 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     enabled: !!validUserId,
   });
   
+  // Запрос на получение информации о TON фарминге
+  const { data: tonFarmingInfo, isLoading: isLoadingTonFarming } = useQuery<ApiResponse<{
+    isActive: boolean;
+    totalDepositAmount: string;
+    totalTonRatePerSecond: string;
+    totalUniRatePerSecond: string;
+    dailyIncomeTon: string;
+    dailyIncomeUni: string;
+    depositCount: number;
+    deposits: Array<{
+      id: number;
+      boost_package_id: number;
+      rate_ton_per_second: string;
+      amount: string;
+    }>;
+  }>>({
+    queryKey: ['/api/ton-farming/info', { user_id: validUserId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/ton-farming/info?user_id=${validUserId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка получения информации о TON фарминге: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    enabled: !!validUserId,
+    refetchInterval: 10000, // Обновляем каждые 10 секунд
+  });
+  
   // Обработка полученных данных
   useEffect(() => {
     setIsLoading(true);
@@ -661,36 +691,6 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         </div>
       );
     }
-    
-    // Запрос на получение информации о TON фарминге
-    const { data: tonFarmingInfo, isLoading: isLoadingTonFarming } = useQuery<ApiResponse<{
-      isActive: boolean;
-      totalDepositAmount: string;
-      totalTonRatePerSecond: string;
-      totalUniRatePerSecond: string;
-      dailyIncomeTon: string;
-      dailyIncomeUni: string;
-      depositCount: number;
-      deposits: Array<{
-        id: number;
-        boost_package_id: number;
-        rate_ton_per_second: string;
-        amount: string;
-      }>;
-    }>>({
-      queryKey: ['/api/ton-farming/info', { user_id: validUserId }],
-      queryFn: async () => {
-        const response = await fetch(`/api/ton-farming/info?user_id=${validUserId}`);
-        
-        if (!response.ok) {
-          throw new Error(`Ошибка получения информации о TON фарминге: ${response.status}`);
-        }
-        
-        return response.json();
-      },
-      enabled: !!validUserId,
-      refetchInterval: 10000, // Обновляем каждые 10 секунд
-    });
     
     // Фильтруем депозиты, чтобы показать только TON Boost (packageId > 0 или id > 4000000)
     const tonBoostDeposits = deposits.filter(d => d.id >= 4000000 || (d.packageId > 0 && d.id >= 3000000));
