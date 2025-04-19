@@ -32,6 +32,7 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   const [tonConnectUI] = useTonConnectUI();
 
   const handleSelectMethod = (method: 'internal_balance' | 'external_wallet') => {
+    console.log("[DIALOG DEBUG] handleSelectMethod вызван:", { method, boostId });
     if (boostId !== null) {
       // Если выбран внешний кошелек, проверяем подключение TonConnect
       if (method === 'external_wallet') {
@@ -107,6 +108,11 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
             Для активации TON Boost "{boostName}" выберите удобный способ оплаты
           </DialogDescription>
         </DialogHeader>
+        
+        {/* Debug info для разработки */}
+        <div className="text-xs text-slate-500 mb-2">
+          DEBUG: BoostID={boostId}, TonConnectReady={isTonPaymentReady(tonConnectUI) ? "Да" : "Нет"}
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <Button

@@ -146,8 +146,16 @@ const BoostPackagesCard: React.FC = () => {
       // Если выбрана оплата через внешний кошелек, проверяем подключен ли TonConnect
       if (paymentMethod === 'external_wallet') {
         try {
+          console.log("[DEBUG] Начинаем внешний платеж через TonConnect!");
           const userIdInt = parseInt(userId);
           const comment = createTonTransactionComment(userIdInt, boostId);
+          
+          // Покажем этот лог обязательно, чтобы видеть, что до сюда доходим
+          console.log("[DEBUG] СТАРТУЕМ ВНЕШНИЙ ПЛАТЕЖ", {
+            userId: userIdInt,
+            boostId,
+            comment,
+          });
           
           console.log('[DEBUG] Начинаем процесс оплаты через внешний кошелек', {
             tonConnectUI: !!tonConnectUI,
