@@ -18,104 +18,108 @@ export interface IStorage {
   updateUserWalletAddress(userId: number, walletAddress: string): Promise<User | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, AuthUser>;
-  private appUsers: Map<number, User>; // Добавляем карту для пользователей из основной таблицы
-  currentId: number;
-
+export class DatabaseStorage implements IStorage {
   constructor() {
-    this.users = new Map();
-    this.appUsers = new Map(); // Инициализируем новую карту
-    this.currentId = 1;
-    
-    // Создаем тестового пользователя для демонстрации
-    this.appUsers.set(1, {
-      id: 1,
-      telegram_id: 123456789,
-      username: "test_user",
-      wallet: "test_wallet",
-      ton_wallet_address: null,
-      balance_uni: "20823.101727",
-      balance_ton: "5.2549911129",
-      uni_deposit_amount: "0",
-      uni_farming_start_timestamp: null,
-      uni_farming_balance: "0",
-      uni_farming_last_update: null,
-      created_at: new Date(),
-      checkin_last_date: null,
-      checkin_streak: 0
-    });
+    console.log('[Storage] Инициализация DatabaseStorage');
   }
   
-  // Добавляем публичный метод для доступа к аппуссеру по ID
   async getUserById(id: number): Promise<User | undefined> {
-    return this.appUsers.get(id);
+    console.log(`[Storage] Получение пользователя по ID: ${id}`);
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при получении пользователя по ID ${id}:`, error);
+      return undefined;
+    }
   }
 
   async getUser(id: number): Promise<AuthUser | undefined> {
-    return this.users.get(id);
+    console.log(`[Storage] Получение auth пользователя по ID: ${id}`);
+    try {
+      const [user] = await db.select().from(authUsers).where(eq(authUsers.id, id));
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при получении auth пользователя по ID ${id}:`, error);
+      return undefined;
+    }
   }
 
   async getUserByUsername(username: string): Promise<AuthUser | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    console.log(`[Storage] Получение auth пользователя по username: ${username}`);
+    try {
+      const [user] = await db.select().from(authUsers).where(eq(authUsers.username, username));
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при получении auth пользователя по username ${username}:`, error);
+      return undefined;
+    }
   }
 
   async createUser(insertUser: InsertAuthUser): Promise<AuthUser> {
-    const id = this.currentId++;
-    const user: AuthUser = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    console.log(`[Storage] Создание auth пользователя: ${insertUser.username}`);
+    try {
+      const [user] = await db.insert(authUsers).values(insertUser).returning();
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при создании auth пользователя ${insertUser.username}:`, error);
+      throw error;
+    }
   }
-  
-  // Реализация новых методов
   
   async getUserByWalletAddress(walletAddress: string): Promise<User | undefined> {
     console.log(`[Storage] Поиск пользователя по адресу кошелька: ${walletAddress}`);
     
-    // В реальной БД используем db.select().from(users).where(eq(users.ton_wallet_address, walletAddress))
-    const user = Array.from(this.appUsers.values()).find(
-      (user) => user.ton_wallet_address === walletAddress
-    );
-    
-    // Для аудита добавляем подробное логирование
-    if (user) {
-      console.log(`[Storage AUDIT] Найден пользователь по адресу кошелька: ID=${user.id}, wallet_address=${user.ton_wallet_address}`);
-    } else {
-      console.log(`[Storage AUDIT] Пользователь с адресом кошелька ${walletAddress} не найден в базе`);
-      console.log(`[Storage AUDIT] Все пользователи в базе:`);
-      Array.from(this.appUsers.values()).forEach((u) => {
-        console.log(`[Storage AUDIT]   ID=${u.id}, wallet_address=${u.ton_wallet_address}`);
-      });
+    try {
+      const [user] = await db.select().from(users).where(eq(users.ton_wallet_address, walletAddress));
+      
+      // Для аудита добавляем подробное логирование
+      if (user) {
+        console.log(`[Storage AUDIT] Найден пользователь по адресу кошелька: ID=${user.id}, wallet_address=${user.ton_wallet_address}`);
+      } else {
+        console.log(`[Storage AUDIT] Пользователь с адресом кошелька ${walletAddress} не найден в базе`);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при поиске пользователя по адресу кошелька ${walletAddress}:`, error);
+      return undefined;
     }
-    
-    return user;
   }
   
   async updateUserWalletAddress(userId: number, walletAddress: string): Promise<User | undefined> {
     console.log(`[Storage] Обновление адреса кошелька для пользователя ${userId}: ${walletAddress}`);
     
-    const user = this.appUsers.get(userId);
-    if (!user) {
-      console.log(`[Storage] Пользователь с ID ${userId} не найден`);
+    try {
+      // Получаем текущего пользователя для логирования
+      const [currentUser] = await db.select().from(users).where(eq(users.id, userId));
+      
+      if (!currentUser) {
+        console.log(`[Storage] Пользователь с ID ${userId} не найден`);
+        return undefined;
+      }
+      
+      // Для аудита сохраняем предыдущее значение
+      const oldWalletAddress = currentUser.ton_wallet_address;
+      
+      // Обновляем адрес кошелька
+      const [updatedUser] = await db
+        .update(users)
+        .set({ ton_wallet_address: walletAddress })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      console.log(`[Storage] Адрес кошелька для пользователя ${userId} успешно обновлен`);
+      console.log(`[Storage AUDIT] Обновлен адрес кошелька для пользователя ${userId}:`);
+      console.log(`[Storage AUDIT]   Было: ${oldWalletAddress || 'null'}`);
+      console.log(`[Storage AUDIT]   Стало: ${walletAddress}`);
+      
+      return updatedUser;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при обновлении адреса кошелька пользователя ${userId}:`, error);
       return undefined;
     }
-    
-    // Для аудита сохраняем предыдущее значение
-    const oldWalletAddress = user.ton_wallet_address;
-    
-    // Обновляем адрес кошелька
-    user.ton_wallet_address = walletAddress;
-    this.appUsers.set(userId, user);
-    
-    console.log(`[Storage] Адрес кошелька для пользователя ${userId} успешно обновлен`);
-    console.log(`[Storage AUDIT] Обновлен адрес кошелька для пользователя ${userId}:`);
-    console.log(`[Storage AUDIT]   Было: ${oldWalletAddress || 'null'}`);
-    console.log(`[Storage AUDIT]   Стало: ${walletAddress}`);
-    
-    return user;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
