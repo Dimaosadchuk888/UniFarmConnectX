@@ -167,6 +167,11 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   useEffect(() => {
     setIsLoading(true);
     
+    // Отладка запросов TON Boost
+    if (activeTonBoostsResponse) {
+      console.log('[DEBUG] TON Boost Response:', JSON.stringify(activeTonBoostsResponse).slice(0, 500));
+    }
+    
     const farmingDeposits: FarmingDeposit[] = [];
     let historyItems: FarmingHistory[] = [];
     
@@ -241,11 +246,11 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     });
     
     if (transactionsArray.length > 0) {
-      // Фильтрация транзакций UNI
+      // Фильтрация всех транзакций (включая TON и UNI)
       const farmingTransactions = transactionsArray.filter((tx: Transaction) => 
         tx.type !== 'debug' && 
-        tx.currency === 'UNI' && 
-        ['deposit', 'farming', 'check-in', 'reward', 'farming_reward'].includes(tx.type)
+        (tx.currency === 'UNI' || tx.currency === 'TON') && 
+        ['deposit', 'farming', 'check-in', 'reward', 'farming_reward', 'ton_boost', 'boost_farming'].includes(tx.type)
       );
       
       // Логирование для отладки фильтрованных транзакций фарминга
@@ -313,6 +318,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           if (tx.type === 'farming') type = 'Фарминг';
           else if (tx.type === 'farming_reward') type = 'Награда за фарминг';
           else if (tx.type === 'boost_farming') type = 'TON фарминг';
+          else if (tx.type === 'ton_boost') type = 'TON Boost';
           else if (tx.type === 'deposit') type = 'Депозит';
           else if (tx.type === 'boost') type = 'Boost';
           else if (tx.type === 'check-in') type = 'Ежедневный бонус';
@@ -542,7 +548,11 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                 <div>
                   <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
                   <div className="flex items-center">
-                    <span className="text-purple-300">+{(parseFloat("0.5") * 100 * 86400 / 100).toFixed(2)}</span>
+                    <span className="text-purple-300">
+                      +{uniFarmingResponse?.success && uniFarmingResponse?.data?.totalRatePerSecond ? 
+                        (parseFloat(uniFarmingResponse.data.totalRatePerSecond) * 86400).toFixed(2) : 
+                        "0.00"}
+                    </span>
                     <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
                   </div>
                 </div>
@@ -550,7 +560,11 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                 <div>
                   <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
                   <div className="flex items-center">
-                    <span className="text-purple-300">+0.00029</span>
+                    <span className="text-purple-300">
+                      +{uniFarmingResponse?.success && uniFarmingResponse?.data?.totalRatePerSecond ? 
+                        parseFloat(uniFarmingResponse.data.totalRatePerSecond).toFixed(8) : 
+                        "0.00000000"}
+                    </span>
                     <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
                   </div>
                 </div>
@@ -752,6 +766,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                                 item.type === 'Депозит' ? 'bg-blue-500' : 
                                 item.type === 'Награда за фарминг' ? 'bg-blue-300' : 
                                 item.type === 'TON фарминг' ? 'bg-blue-400' : 
+                                item.type === 'TON Boost' ? 'bg-indigo-500' : 
                                 item.type === 'Boost' ? 'bg-cyan-500' : 
                                 'bg-blue-500'}
                             `}></span>
