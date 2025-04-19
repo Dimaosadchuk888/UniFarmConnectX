@@ -115,6 +115,11 @@ export async function sendTonTransaction(
   comment: string
 ): Promise<{txHash: string; status: 'success' | 'error'} | null> {
   try {
+    // Извлекаем userId и boostId из комментария (примем что комментарий в формате UniFarmBoost:userId:boostId)
+    const parts = comment.split(':');
+    const userId = parts.length > 1 ? parts[1] : '1';
+    const boostId = parts.length > 2 ? parts[2] : '1';
+    
     // ПО ТЗ: Добавляем максимально заметный лог для отладки
     console.log("===============================================================");
     console.log("🔴 ВЫЗОВ sendTonTransaction ПО НОВОМУ ТЗ");
@@ -147,8 +152,13 @@ export async function sendTonTransaction(
     // ПО ТЗ: для тестирования используем фиксированную сумму
     const testAmount = "200000000"; // 0.2 TON
     
-    // По новому ТЗ: убираем поле payload полностью для тестирования
-    // ВАЖНО: payload удален для проверки, работает ли транзакция без него
+    // По ТЗ: генерируем rawPayload и кодируем его в Base64
+    const rawPayload = `UniFarmBoost:${userId}:${boostId}`;
+    const payload = btoa(rawPayload);
+    
+    // По ТЗ: добавляем логирование payload
+    console.log("📦 rawPayload:", rawPayload);
+    console.log("📦 Base64 payload:", payload);
     
     // Создаем транзакцию в соответствии с ТЗ
     const transaction = {
@@ -156,8 +166,8 @@ export async function sendTonTransaction(
       messages: [
         {
           address: TON_PROJECT_ADDRESS, // UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8
-          amount: testAmount // для тестов используем фиксированную сумму
-          // поле payload удалено по ТЗ для проверки
+          amount: testAmount, // для тестов используем фиксированную сумму
+          payload: payload // Base64 закодированное сообщение
         }
       ]
     };
@@ -182,6 +192,9 @@ export async function sendTonTransaction(
       
       const result = await tonConnectUI.sendTransaction(transaction);
       debugLog('*** РЕЗУЛЬТАТ sendTransaction ***', result);
+      
+      // По ТЗ: добавляем лог результата транзакции
+      console.log("✅ Transaction result:", result);
       
       // Вызов успешно выполнен - пользователь подтвердил транзакцию в Tonkeeper
       debugLog('Транзакция успешно отправлена, результат:', {
