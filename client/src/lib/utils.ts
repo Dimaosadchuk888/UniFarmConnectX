@@ -36,7 +36,23 @@ export function formatNumberWithPrecision(value: number, precision: number = 2):
     return "0".padEnd(precision + 2, "0");
   }
   
-  // Форматируем число с заданной точностью
+  // Для значений TON Boost и высокой точности (8 знаков)
+  if (precision >= 8 && value > 0) {
+    // Всегда используем полную точность для очень маленьких значений
+    // Например, "0.00000046" вместо "0.00000000"
+    return value.toFixed(precision);
+  }
+  
+  // Для средней точности (5-7 знаков)
+  if (precision > 4 && precision < 8 && value > 0) {
+    // Если значение очень маленькое, но не нулевое
+    if (value < 0.00001) {
+      // Используем точность 5 знаков для отображения, но не "0.00000"
+      return value.toFixed(precision);
+    }
+  }
+  
+  // Стандартное форматирование для обычных чисел
   const valueStr = value.toFixed(precision);
   
   // Убираем лишние нули в конце, но оставляем минимум precision знаков
@@ -45,8 +61,8 @@ export function formatNumberWithPrecision(value: number, precision: number = 2):
     const integerPart = parts[0];
     const decimalPart = parts[1];
     
-    // Если значение близко к нулю (меньше 0.00001), показываем "0.00000"
-    if (value > 0 && value < 0.00001) {
+    // Для низкой точности (2-4 знака) и очень маленьких чисел - отображаем нули
+    if (precision <= 4 && value > 0 && value < 0.00001) {
       return "0".padEnd(precision + 2, "0");
     }
     

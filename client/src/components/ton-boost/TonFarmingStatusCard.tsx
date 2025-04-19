@@ -57,9 +57,19 @@ const TonFarmingStatusCard: React.FC = () => {
       const animationDuration = 1000;
       const startTime = Date.now();
       
-      // Гарантируем числовые значения или используем 0 по умолчанию
-      const targetDaily = parseFloat(farmingData.dailyIncomeTon) || 0;
-      const targetPerSecond = parseFloat(farmingData.totalTonRatePerSecond) || 0;
+      console.log("[DEBUG] TON Farming data:", {
+        dailyIncomeTon: farmingData.dailyIncomeTon,
+        totalTonRatePerSecond: farmingData.totalTonRatePerSecond
+      });
+      
+      // Корректно обрабатываем научную нотацию
+      const targetDaily = Number(farmingData.dailyIncomeTon) || 0;
+      const targetPerSecond = Number(farmingData.totalTonRatePerSecond) || 0;
+      
+      console.log("[DEBUG] TON Farming parsed values:", {
+        targetDaily, 
+        targetPerSecond
+      });
       
       // Запускаем импульс при обновлении значений
       setIsPulsing(true);
@@ -128,7 +138,11 @@ const TonFarmingStatusCard: React.FC = () => {
               <div className="text-blue-300/80 text-sm mb-1">Доход в сутки</div>
               <div className="flex items-baseline">
                 <span className="text-blue-400 text-xl font-medium">
-                  {formatNumberWithPrecision(dailyYield, 5)}
+                  {(() => {
+                    const formattedValue = formatNumberWithPrecision(dailyYield, 5);
+                    console.log("[DEBUG] Formatted daily yield:", dailyYield, "->", formattedValue);
+                    return formattedValue;
+                  })()}
                 </span>
                 <span className="text-blue-400/70 ml-1.5">TON</span>
               </div>
@@ -138,7 +152,11 @@ const TonFarmingStatusCard: React.FC = () => {
               <div className="text-blue-300/80 text-sm mb-1">В секунду</div>
               <div className="flex items-baseline">
                 <span className="text-blue-400 text-xl font-medium">
-                  {formatNumberWithPrecision(perSecond, 8)}
+                  {(() => {
+                    const formattedValue = formatNumberWithPrecision(perSecond, 8);
+                    console.log("[DEBUG] Formatted per second:", perSecond, "->", formattedValue);
+                    return formattedValue;
+                  })()}
                 </span>
                 <span className="text-blue-400/70 ml-1.5">TON</span>
               </div>
