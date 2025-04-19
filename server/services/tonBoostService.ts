@@ -584,6 +584,21 @@ export class TonBoostService {
       // Размер буст-пакета - это сумма транзакции
       const amount = transaction.amount;
       
+      // [АУДИТ ПЛАТЕЖЕЙ - УБРАТЬ ПОСЛЕ ТЕСТИРОВАНИЯ]
+      console.log("[TON AUDIT] confirmExternalPayment вход:", { 
+        transactionId,
+        amount,
+        amountType: typeof amount,
+        amountNumber: Number(amount),
+        availablePackages: this.boostPackages.map(pkg => ({
+          id: pkg.id,
+          name: pkg.name,
+          price: pkg.priceTon,
+          priceType: typeof pkg.priceTon,
+          directComparison: amount === pkg.priceTon
+        }))
+      });
+      
       // ТЗ: Преобразуем суммы в nanoTON для корректного сравнения
       const transactionAmount = BigInt(parseFloat(amount) * 1e9);
       
@@ -599,10 +614,26 @@ export class TonBoostService {
         }))
       });
       
+      // [АУДИТ ПЛАТЕЖЕЙ - УБРАТЬ ПОСЛЕ ТЕСТИРОВАНИЯ]
+      console.log("[TON AUDIT] Значения для поиска буст-пакета:", {
+        transactionAmount: transactionAmount.toString(),
+        transactionAmountType: typeof transactionAmount,
+        packageValues: this.boostPackages.map(pkg => ({
+          id: pkg.id,
+          name: pkg.name,
+          priceTon: pkg.priceTon,
+          priceTonType: typeof pkg.priceTon,
+          calculatedNanoTon: BigInt(parseFloat(pkg.priceTon) * 1e9).toString(),
+          match: BigInt(parseFloat(pkg.priceTon) * 1e9) === transactionAmount
+        }))
+      });
+      
       // Ищем пакет по сумме, сравнивая nanoTON значения через BigInt
       const boostPackage = this.boostPackages.find(pkg => {
         const packageAmount = BigInt(parseFloat(pkg.priceTon) * 1e9);
-        return packageAmount === transactionAmount;
+        const match = packageAmount === transactionAmount;
+        console.log(`[TON AUDIT] Сравнение пакета ${pkg.id} (${pkg.name}): ${packageAmount} === ${transactionAmount} => ${match}`);
+        return match;
       });
       
       if (!boostPackage) {
@@ -738,6 +769,22 @@ export class TonBoostService {
         };
       }
       
+      // [АУДИТ ПЛАТЕЖЕЙ - УБРАТЬ ПОСЛЕ ТЕСТИРОВАНИЯ]
+      console.log("[TON AUDIT] processIncomingTonTransaction вход:", { 
+        senderAddress, 
+        amount, 
+        comment, 
+        boostId,
+        boostPrice: boostPackage.priceTon
+      });
+      console.log("[TON AUDIT] Типы данных:", {
+        amountType: typeof amount,
+        boostPriceType: typeof boostPackage.priceTon,
+        amountIsNumber: !isNaN(Number(amount)),
+        boostPriceIsNumber: !isNaN(Number(boostPackage.priceTon)),
+        directComparison: amount === boostPackage.priceTon
+      });
+      
       // Проверяем, соответствует ли сумма стоимости буст-пакета
       // Преобразуем суммы в nanoTON через BigInt для корректного сравнения
       // Форма: 1.0 TON = 1000000000 nanoTON
@@ -748,6 +795,15 @@ export class TonBoostService {
       console.log("[TON Boost] Проверка суммы:", {
         received: receivedAmount.toString(),
         expected: expectedAmount.toString(),
+      });
+
+      // [АУДИТ ПЛАТЕЖЕЙ - УБРАТЬ ПОСЛЕ ТЕСТИРОВАНИЯ]
+      console.log("[TON AUDIT] Значения nanoTON:", {
+        received: receivedAmount.toString(),
+        expected: expectedAmount.toString(),
+        comparison: receivedAmount === expectedAmount,
+        receivedType: typeof receivedAmount,
+        expectedType: typeof expectedAmount
       });
       
       if (receivedAmount !== expectedAmount) {

@@ -72,7 +72,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ton-boosts/active", TonBoostController.getUserTonBoosts);
   app.post("/api/ton-boosts/purchase", TonBoostController.purchaseTonBoost);
   app.post("/api/ton-boosts/confirm-payment", TonBoostController.confirmExternalPayment);
-  app.post("/api/ton-boosts/process-incoming-transaction", TonBoostController.processIncomingTransaction);
+  app.post("/api/ton-boosts/process-incoming-transaction", async (req, res) => {
+    // [АУДИТ ПЛАТЕЖЕЙ - УБРАТЬ ПОСЛЕ ТЕСТИРОВАНИЯ]
+    console.log("[TON AUDIT] Входящий API запрос processIncomingTransaction:", { 
+      body: req.body,
+      senderAddress: req.body.sender_address,
+      amount: req.body.amount,
+      amountType: typeof req.body.amount
+    });
+    
+    return await TonBoostController.processIncomingTransaction(req, res);
+  });
   app.get("/api/ton-farming/info", TonBoostController.getUserTonFarmingInfo);
   app.get("/api/ton-farming/update-balance", TonBoostController.calculateAndUpdateTonFarming);
 
