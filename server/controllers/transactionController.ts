@@ -4,6 +4,7 @@ import { storage } from '../storage';
 import { transactions } from '@shared/schema';
 import { db } from '../db';
 import { eq, desc } from 'drizzle-orm';
+import { TransactionService, TransactionType, Currency, TransactionStatus, TransactionCategory } from '../services/transactionService';
 
 /**
  * Контроллер для работы с транзакциями

@@ -89,6 +89,7 @@ export const transactions = pgTable("transactions", {
   status: text("status"), // pending / confirmed / rejected
   source: text("source"), // источник транзакции (например, "TON Boost")
   category: text("category"), // категория транзакции (например, "bonus")
+  tx_hash: text("tx_hash"), // хеш транзакции для блокчейн-операций
   created_at: timestamp("created_at").defaultNow()
 });
 
@@ -100,7 +101,8 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
   amount: true,
   status: true,
   source: true,
-  category: true
+  category: true,
+  tx_hash: true
 });
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
