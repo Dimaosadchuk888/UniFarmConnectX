@@ -10,17 +10,57 @@ export class TonBoostController {
    */
   static async processIncomingTransaction(req: Request, res: Response): Promise<void> {
     try {
-      const { sender_address, amount, comment } = req.body;
+      const { sender_address, amount, comment, boost_id } = req.body;
       
-      if (!sender_address || !amount || !comment) {
+      // Выводим полученные данные для отладки
+      console.log('[TonBoostController] Входящие данные транзакции:', {
+        sender_address,
+        amount, 
+        amount_type: typeof amount,
+        comment,
+        boost_id,
+        boost_id_type: typeof boost_id
+      });
+      
+      if (!sender_address || !amount) {
         return res.status(400).json({ 
           success: false, 
-          message: "Не указаны обязательные параметры: sender_address, amount, comment" 
+          message: "Не указаны обязательные параметры: sender_address, amount" 
         });
       }
       
-      const result = await TonBoostService.processIncomingTonTransaction(sender_address, amount, comment);
-      res.json(result);
+      // Если boost_id передан, используем его напрямую вместо извлечения из комментария
+      if (boost_id !== undefined) {
+        // Преобразуем boost_id в число, если пришло как строка
+        const boostIdNum = typeof boost_id === 'string' ? parseInt(boost_id, 10) : boost_id;
+        
+        // Проверяем, что boostId валидный
+        if (isNaN(boostIdNum) || boostIdNum < 1) {
+          return res.status(400).json({
+            success: false,
+            message: 'Некорректный ID буст-пакета'
+          });
+        }
+        
+        const result = await TonBoostService.processIncomingTonTransaction(
+          sender_address,
+          amount,
+          comment || '',
+          boostIdNum
+        );
+        return res.json(result);
+      } else {
+        // Если boost_id не передан, то комментарий обязателен
+        if (!comment) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "Не указан комментарий или boost_id для транзакции" 
+          });
+        }
+        
+        const result = await TonBoostService.processIncomingTonTransaction(sender_address, amount, comment);
+        return res.json(result);
+      }
     } catch (error) {
       console.error("[TonBoostController] Error in processIncomingTransaction:", error);
       res.status(500).json({ 

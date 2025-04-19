@@ -137,7 +137,7 @@ export class TonBoostService {
    */
   static getBoostPackageById(boostId: number): TonBoostPackage | undefined {
     // Проверка на валидный ID и его наличие в списке packages
-    if (!boostId || isNaN(boostId) || boostId < 1 || boostId > this.tonBoostPackages.length) {
+    if (!boostId || isNaN(boostId) || boostId < 1 || boostId > this.boostPackages.length) {
       console.log(`[TonBoostService] Недопустимый ID буст-пакета: ${boostId}`);
       return undefined;
     }
@@ -726,38 +726,93 @@ export class TonBoostService {
    * @param senderAddress Адрес отправителя TON
    * @param amount Сумма перевода в TON
    * @param comment Комментарий к переводу (обычно содержит UniFarmBoost:userId:boostId)
+   * @param boostId Опционально: ID буст-пакета (если передан напрямую)
    * @returns Результат обработки транзакции
    */
-  static async processIncomingTonTransaction(senderAddress: string, amount: string, comment: string): Promise<PurchaseTonBoostResult> {
+  static async processIncomingTonTransaction(senderAddress: string, amount: string, comment: string, boostId?: number): Promise<PurchaseTonBoostResult> {
     try {
       // Валидация входных параметров
-      if (!amount || !comment) {
+      if (!amount) {
         return {
           success: false,
-          message: "Недостаточно данных для обработки транзакции"
+          message: "Недостаточно данных для обработки транзакции: не указана сумма"
         };
       }
       
-      // Проверяем, соответствует ли комментарий нашему формату (UniFarmBoost:userId:boostId)
-      const commentPattern = /^UniFarmBoost:(\d+):(\d+)$/;
-      const match = comment.match(commentPattern);
+      let userId: number;
       
-      if (!match) {
-        console.log(`[TonBoostService] Received TON transaction with invalid comment format: ${comment}`);
-        return {
-          success: false,
-          message: "Неверный формат комментария"
-        };
-      }
-      
-      const userId = parseInt(match[1]);
-      const boostId = parseInt(match[2]);
-      
-      if (isNaN(userId) || isNaN(boostId)) {
-        return {
-          success: false,
-          message: "Некорректный ID пользователя или буст-пакета в комментарии"
-        };
+      // Если boostId не передан напрямую, извлекаем ID пользователя и буст-пакета из комментария
+      if (boostId === undefined) {
+        if (!comment) {
+          return {
+            success: false,
+            message: "Недостаточно данных для обработки транзакции: не указан комментарий"
+          };
+        }
+        
+        // Проверяем, соответствует ли комментарий нашему формату (UniFarmBoost:userId:boostId)
+        const commentPattern = /^UniFarmBoost:(\d+):(\d+)$/;
+        const match = comment.match(commentPattern);
+        
+        if (!match) {
+          console.log(`[TonBoostService] Received TON transaction with invalid comment format: ${comment}`);
+          return {
+            success: false,
+            message: "Неверный формат комментария"
+          };
+        }
+        
+        userId = parseInt(match[1]);
+        boostId = parseInt(match[2]);
+        
+        if (isNaN(userId) || isNaN(boostId)) {
+          return {
+            success: false,
+            message: "Некорректный ID пользователя или буст-пакета в комментарии"
+          };
+        }
+      } else {
+        // Если boostId передан напрямую, извлекаем userId из комментария
+        if (!comment) {
+          return {
+            success: false,
+            message: "Недостаточно данных для обработки транзакции: не указан комментарий"
+          };
+        }
+        
+        // В этом случае комментарий должен содержать только userId: "UniFarmBoost:userId"
+        const commentPattern = /^UniFarmBoost:(\d+)$/;
+        const match = comment.match(commentPattern);
+        
+        if (match) {
+          userId = parseInt(match[1]);
+          if (isNaN(userId)) {
+            return {
+              success: false,
+              message: "Некорректный ID пользователя в комментарии"
+            };
+          }
+        } else {
+          // Попробуем извлечь userId из расширенного формата (UniFarmBoost:userId:boostId)
+          const expandedPattern = /^UniFarmBoost:(\d+):(\d+)$/;
+          const expandedMatch = comment.match(expandedPattern);
+          
+          if (expandedMatch) {
+            userId = parseInt(expandedMatch[1]);
+            // Игнорируем boostId из комментария, используем переданный напрямую
+            if (isNaN(userId)) {
+              return {
+                success: false,
+                message: "Некорректный ID пользователя в комментарии"
+              };
+            }
+          } else {
+            return {
+              success: false,
+              message: "Неверный формат комментария, ожидается UniFarmBoost:userId"
+            };
+          }
+        }
       }
       
       // Проверяем существование пользователя
@@ -802,8 +857,9 @@ export class TonBoostService {
       // Проверяем, соответствует ли сумма стоимости буст-пакета
       // Преобразуем суммы в nanoTON через BigInt для корректного сравнения
       // Форма: 1.0 TON = 1000000000 nanoTON
-      const receivedAmount = BigInt(parseFloat(amount) * 1e9);
-      const expectedAmount = BigInt(parseFloat(boostPackage.priceTon) * 1e9);
+      // Используем Math.floor для стабильного округления
+      const receivedAmount = BigInt(Math.floor(parseFloat(amount) * 1e9));
+      const expectedAmount = BigInt(Math.floor(parseFloat(boostPackage.priceTon) * 1e9));
       
       // ТЗ: Логируем для отладки
       console.log("[TON Boost] Проверка суммы:", {
@@ -820,7 +876,9 @@ export class TonBoostService {
         expectedType: typeof expectedAmount
       });
       
-      if (receivedAmount !== expectedAmount) {
+      // Используем >= вместо === для предотвращения проблем с округлением
+      // Некоторые кошельки могут отправлять немного больше TON, чем запрошено
+      if (receivedAmount < expectedAmount) {
         return {
           success: false,
           message: `Сумма платежа (${amount} TON) не соответствует стоимости буст-пакета (${boostPackage.priceTon} TON)`
