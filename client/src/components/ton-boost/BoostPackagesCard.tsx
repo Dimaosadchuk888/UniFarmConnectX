@@ -306,8 +306,12 @@ const BoostPackagesCard: React.FC = () => {
   
   // Функция для проверки подключения TON-кошелька и показа уведомления, если не подключен
   const checkWalletConnection = (): boolean => {
+    console.log('[WALLET_DEBUG] Проверка подключения кошелька. Начало проверки');
+    
+    // Проверяем наличие tonConnectUI
     if (!tonConnectUI) {
       console.error('[ERROR] tonConnectUI not initialized');
+      console.log('[WALLET_DEBUG] tonConnectUI отсутствует');
       toast({
         title: "Ошибка инициализации",
         description: "Произошла ошибка инициализации TonConnect. Пожалуйста, обновите страницу и попробуйте снова.",
@@ -316,15 +320,64 @@ const BoostPackagesCard: React.FC = () => {
       return false;
     }
     
+    // Более детальное логирование состояния кошелька
+    console.log('[WALLET_DEBUG] Статус tonConnectUI:', {
+      connected: tonConnectUI.connected,
+      hasWallet: !!tonConnectUI.wallet,
+      walletDevice: tonConnectUI.wallet?.device?.appName || 'unknown',
+      hasAccount: !!tonConnectUI.account,
+      accountAddress: tonConnectUI.account?.address 
+        ? (tonConnectUI.account.address.substring(0, 10) + '...') 
+        : 'no-address',
+      hasSendTransaction: typeof tonConnectUI.sendTransaction === 'function',
+    });
+    
     // Используем более строгую проверку, которая проверяет не только подключение, но и готовность к транзакциям
     const isReady = isTonPaymentReady(tonConnectUI);
+    console.log('[WALLET_DEBUG] Результат проверки isTonPaymentReady:', isReady);
     
     if (!isReady) {
       const isConnected = isTonWalletConnected(tonConnectUI);
+      console.log('[WALLET_DEBUG] Результат проверки isTonWalletConnected:', isConnected);
       
       if (isConnected) {
         // Подключен, но не готов к транзакциям
         console.error('[ERROR] Wallet connected but not ready for transactions');
+        console.log('[WALLET_DEBUG] Кошелек подключен, но не готов к транзакциям. Детали:', {
+          hasWallet: !!tonConnectUI.wallet,
+          hasAccount: !!tonConnectUI.account,
+          accountChain: tonConnectUI.account?.chain,
+          hasSendTransaction: typeof tonConnectUI.sendTransaction === 'function',
+        });
+        
+        // Пытаемся автоматически переподключить кошелек
+        console.log('[WALLET_DEBUG] Попытка автоматического переподключения кошелька...');
+        // Делаем таймаут, чтобы пользователь увидел сообщение
+        setTimeout(() => {
+          // Отключаем кошелек
+          if (tonConnectUI && typeof tonConnectUI.disconnect === 'function') {
+            console.log('[WALLET_DEBUG] Отключаем текущий кошелек');
+            tonConnectUI.disconnect().then(() => {
+              console.log('[WALLET_DEBUG] Кошелек отключен, пробуем подключить заново');
+              // Выводим сообщение о переподключении
+              toast({
+                title: "Пробуем переподключить кошелек",
+                description: "Пожалуйста, подтвердите подключение в открывшемся окне Tonkeeper",
+                variant: "default"
+              });
+              
+              // Подключаем снова через 1 секунду
+              setTimeout(() => {
+                if (tonConnectUI && typeof tonConnectUI.connectWallet === 'function') {
+                  console.log('[WALLET_DEBUG] Вызываем connectWallet()');
+                  tonConnectUI.connectWallet();
+                }
+              }, 1000);
+            });
+          }
+        }, 2000);
+        
+        // Показываем уведомление
         toast({
           title: "Ошибка кошелька",
           description: "Ваш кошелек подключен, но не готов для отправки TON. Попробуйте переподключить кошелек.",
@@ -333,15 +386,35 @@ const BoostPackagesCard: React.FC = () => {
       } else {
         // Просто не подключен
         console.error('[ERROR] Wallet not connected');
+        console.log('[WALLET_DEBUG] Кошелек не подключен');
         toast({
           title: "Кошелек не подключен",
           description: "Пожалуйста, подключите TON-кошелёк, чтобы купить Boost-пакет.",
-          variant: "destructive"
+          variant: "destructive",
+          action: (
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => {
+                console.log('[WALLET_DEBUG] Нажата кнопка "Подключить"');
+                if (tonConnectUI && typeof tonConnectUI.connectWallet === 'function') {
+                  console.log('[WALLET_DEBUG] Вызываем connectWallet() из уведомления');
+                  tonConnectUI.connectWallet();
+                } else {
+                  console.log('[WALLET_DEBUG] connectWallet не является функцией');
+                }
+              }}
+            >
+              Подключить
+            </Button>
+          )
         });
       }
       return false;
     }
     
+    console.log('[WALLET_DEBUG] Проверка подключения успешна, кошелек готов к платежам');
     return true;
   };
 

@@ -270,12 +270,61 @@ export async function sendTonTransaction(
  * @returns true если TonConnect готов к использованию
  */
 export function isTonPaymentReady(tonConnectUI: TonConnectUI): boolean {
-  // Проверяем, инициализирован ли TonConnect и подключен ли кошелек
-  return (
-    tonConnectUI && 
-    typeof tonConnectUI.sendTransaction === 'function' && 
-    tonConnectUI.connected
-  );
+  // Подробное логирование для отладки
+  const hasConnectUI = !!tonConnectUI;
+  const hasSendTransaction = hasConnectUI && typeof tonConnectUI.sendTransaction === 'function';
+  const isConnected = hasConnectUI && !!tonConnectUI.connected;
+  const hasWallet = hasConnectUI && !!tonConnectUI.wallet;
+  const hasAccount = hasConnectUI && !!tonConnectUI.account;
+  const hasAddress = hasAccount && !!tonConnectUI.account?.address;
+  
+  // Подробный отладочный лог с безопасной проверкой свойств
+  debugLog('isTonPaymentReady состояние:', {
+    hasConnectUI,
+    hasSendTransaction,
+    isConnected,
+    hasWallet,
+    hasAccount,
+    hasAddress,
+    wallet: hasWallet ? {
+      // Безопасно получаем информацию о кошельке
+      deviceAppName: tonConnectUI.wallet?.device?.appName,
+      // Проверяем свойства, которые могут отсутствовать у некоторых типов Wallet
+      walletInfo: {
+        hasWalletObject: !!tonConnectUI.wallet,
+        type: typeof tonConnectUI.wallet,
+        appName: tonConnectUI.wallet?.device?.appName || 'unknown', 
+      }
+    } : null,
+    account: hasAccount ? {
+      chain: tonConnectUI.account?.chain,
+      hasAddress: !!tonConnectUI.account?.address,
+      address: tonConnectUI.account?.address 
+        ? (tonConnectUI.account.address.slice(0, 10) + '...' + tonConnectUI.account.address.slice(-10))
+        : 'no-address',
+    } : null
+  });
+  
+  // Более строгая проверка - требуем наличие подключенного кошелька и аккаунта
+  const isReady = hasConnectUI && hasSendTransaction && isConnected && hasWallet && hasAccount && hasAddress;
+  
+  // Если не готов, логируем причину
+  if (!isReady) {
+    const reasons = [];
+    if (!hasConnectUI) reasons.push('tonConnectUI отсутствует');
+    if (!hasSendTransaction) reasons.push('sendTransaction не является функцией');
+    if (!isConnected) reasons.push('кошелек не подключен (tonConnectUI.connected = false)');
+    if (!hasWallet) reasons.push('информация о кошельке отсутствует (tonConnectUI.wallet = null)');
+    if (!hasAccount) reasons.push('информация об аккаунте отсутствует (tonConnectUI.account = null)');
+    if (!hasAddress) reasons.push('адрес кошелька отсутствует (tonConnectUI.account.address = null)');
+    
+    debugLog('isTonPaymentReady вернул FALSE. Причины:', reasons);
+  } else {
+    debugLog('isTonPaymentReady вернул TRUE. Все проверки пройдены.');
+  }
+  
+  // Возвращаем результат проверки
+  return isReady;
 }
 
 /**
