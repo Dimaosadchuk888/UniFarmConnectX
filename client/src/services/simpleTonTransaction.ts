@@ -169,9 +169,8 @@ export async function sendTonTransaction(
     // ПО ТЗ: Умножаем на 1e9 и преобразуем в строку через BigInt для точности
     const nanoTonAmount = (BigInt(tonAmount * 1e9)).toString();
     
-    // Добавляем логирование по ТЗ
-    console.log("[TON] Сумма в TON:", amount);
-    console.log("[TON] Сумма в nanoTON:", nanoTonAmount);
+    // ТЗ: Выводим сумму в nanoTON с особой пометкой ✅
+    console.log("✅ nanoAmount:", nanoTonAmount);
     
     // Генерируем простой комментарий без бинарного форматирования
     // Форма: UniFarmBoost:userId:boostId
@@ -185,14 +184,14 @@ export async function sendTonTransaction(
       messages: [
         {
           address: TON_PROJECT_ADDRESS, // UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8
-          amount: nanoTonAmount, // ПО ТЗ: Используем nanoTonAmount вместо tonAmount
+          amount: nanoTonAmount, // Убедились, что используем nanoTonAmount, а не tonAmount!
           // Убираем payload для тестирования базовой функциональности
         }
       ]
     };
     
-    // ПО ТЗ: Добавляем дополнительный лог для проверки значения amount перед отправкой
-    console.log("[TON] Сумма в nanoTON перед отправкой:", nanoTonAmount);
+    // ТЗ: Логируем объект транзакции перед отправкой
+    console.log("✅ transaction:", transaction);
     
     console.log("[DEBUG] Sending simplified transaction without payload:", transaction);
     
