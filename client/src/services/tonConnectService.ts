@@ -147,8 +147,8 @@ export async function sendTonTransaction(
     // ПО ТЗ: для тестирования используем фиксированную сумму
     const testAmount = "200000000"; // 0.2 TON
     
-    // ПО ТЗ: Используем base64-кодирование для payload
-    const payload = btoa("TestBoost");
+    // По новому ТЗ: убираем поле payload полностью для тестирования
+    // ВАЖНО: payload удален для проверки, работает ли транзакция без него
     
     // Создаем транзакцию в соответствии с ТЗ
     const transaction = {
@@ -156,8 +156,8 @@ export async function sendTonTransaction(
       messages: [
         {
           address: TON_PROJECT_ADDRESS, // UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8
-          amount: testAmount, // для тестов используем фиксированную сумму
-          payload: payload // закодированное сообщение в base64
+          amount: testAmount // для тестов используем фиксированную сумму
+          // поле payload удалено по ТЗ для проверки
         }
       ]
     };
