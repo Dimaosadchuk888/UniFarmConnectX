@@ -11,7 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Wallet, CreditCard } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import { isTonWalletConnected, isTonPaymentReady } from '../../services/tonConnectService';
+import { 
+  isTonWalletConnected, 
+  isTonPaymentReady, 
+  sendTonTransaction,
+  createTonTransactionComment 
+} from '../../services/tonConnectService';
 
 interface PaymentMethodDialogProps {
   open: boolean;
