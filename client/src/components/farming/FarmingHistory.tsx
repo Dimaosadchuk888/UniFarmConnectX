@@ -312,6 +312,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           // Используем все доступные типы транзакций
           if (tx.type === 'farming') type = 'Фарминг';
           else if (tx.type === 'farming_reward') type = 'Награда за фарминг';
+          else if (tx.type === 'boost_farming') type = 'TON фарминг';
           else if (tx.type === 'deposit') type = 'Депозит';
           else if (tx.type === 'boost') type = 'Boost';
           else if (tx.type === 'check-in') type = 'Ежедневный бонус';
@@ -587,7 +588,19 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                           className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
                         >
                           <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
-                          <td className="py-2 text-sm text-foreground">{item.type}</td>
+                          <td className="py-2 text-sm text-foreground">
+                            <div className="flex items-center">
+                              <span className={`
+                                inline-block w-2 h-2 rounded-full mr-2
+                                ${item.type === 'Фарминг' ? 'bg-green-500' : 
+                                  item.type === 'Депозит' ? 'bg-purple-500' : 
+                                  item.type === 'Награда за фарминг' ? 'bg-pink-500' : 
+                                  item.type === 'Ежедневный бонус' ? 'bg-yellow-500' : 
+                                  'bg-blue-500'}
+                              `}></span>
+                              {item.type}
+                            </div>
+                          </td>
                           <td className="py-2 text-sm text-right">
                             <span className={item.currency === 'UNI' ? "text-purple-300" : "text-blue-300"}>
                               +{item.amount.toFixed(item.amount < 0.001 ? 6 : 2)}
@@ -731,7 +744,20 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                         className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
                       >
                         <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
-                        <td className="py-2 text-sm text-foreground">{item.type}</td>
+                        <td className="py-2 text-sm text-foreground">
+                          <div className="flex items-center">
+                            <span className={`
+                              inline-block w-2 h-2 rounded-full mr-2
+                              ${item.type === 'Фарминг' ? 'bg-green-500' : 
+                                item.type === 'Депозит' ? 'bg-blue-500' : 
+                                item.type === 'Награда за фарминг' ? 'bg-blue-300' : 
+                                item.type === 'TON фарминг' ? 'bg-blue-400' : 
+                                item.type === 'Boost' ? 'bg-cyan-500' : 
+                                'bg-blue-500'}
+                            `}></span>
+                            {item.type}
+                          </div>
+                        </td>
                         <td className="py-2 text-sm text-right">
                           <span className="text-blue-300">+{(item.amount || 0).toFixed((item.amount || 0) < 0.001 ? 6 : 4)}</span>
                           <span className="text-gray-400 ml-1.5 text-xs">TON</span>
