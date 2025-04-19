@@ -584,8 +584,26 @@ export class TonBoostService {
       // Размер буст-пакета - это сумма транзакции
       const amount = transaction.amount;
       
+      // ТЗ: Преобразуем суммы в nanoTON для корректного сравнения
+      const transactionAmount = BigInt(parseFloat(amount) * 1e9);
+      
       // Находим буст-пакет с соответствующей ценой
-      const boostPackage = this.boostPackages.find(pkg => pkg.priceTon === amount);
+      // ТЗ: Логируем для отладки
+      console.log("[TON Boost] Подтверждение платежа, поиск буст-пакета для суммы:", {
+        transactionAmount: transactionAmount.toString(),
+        availablePackages: this.boostPackages.map(pkg => ({
+          id: pkg.id,
+          name: pkg.name,
+          price: pkg.priceTon,
+          priceNano: BigInt(parseFloat(pkg.priceTon) * 1e9).toString()
+        }))
+      });
+      
+      // Ищем пакет по сумме, сравнивая nanoTON значения через BigInt
+      const boostPackage = this.boostPackages.find(pkg => {
+        const packageAmount = BigInt(parseFloat(pkg.priceTon) * 1e9);
+        return packageAmount === transactionAmount;
+      });
       
       if (!boostPackage) {
         return {
@@ -721,7 +739,18 @@ export class TonBoostService {
       }
       
       // Проверяем, соответствует ли сумма стоимости буст-пакета
-      if (boostPackage.priceTon !== amount) {
+      // Преобразуем суммы в nanoTON через BigInt для корректного сравнения
+      // Форма: 1.0 TON = 1000000000 nanoTON
+      const receivedAmount = BigInt(parseFloat(amount) * 1e9);
+      const expectedAmount = BigInt(parseFloat(boostPackage.priceTon) * 1e9);
+      
+      // ТЗ: Логируем для отладки
+      console.log("[TON Boost] Проверка суммы:", {
+        received: receivedAmount.toString(),
+        expected: expectedAmount.toString(),
+      });
+      
+      if (receivedAmount !== expectedAmount) {
         return {
           success: false,
           message: `Сумма платежа (${amount} TON) не соответствует стоимости буст-пакета (${boostPackage.priceTon} TON)`
