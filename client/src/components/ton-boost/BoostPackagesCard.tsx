@@ -12,7 +12,8 @@ import ExternalPaymentStatus from './ExternalPaymentStatus';
 import { 
   sendTonTransaction, 
   createTonTransactionComment,
-  isTonWalletConnected
+  isTonWalletConnected,
+  isTonPaymentReady
 } from '../../services/tonConnectService';
 import { getUserIdFromURL } from '@/lib/utils';
 
@@ -72,8 +73,37 @@ const BoostPackagesCard: React.FC = () => {
       isConnected: isTonWalletConnected(tonConnectUI)
     });
     
+    // Проверяем статус подключения кошелька и отображаем соответствующее действие
+    const walletConnected = isTonWalletConnected(tonConnectUI);
+    
+    // Сохраняем ID буста в любом случае
     setSelectedBoostId(boostId);
-    setPaymentMethodDialogOpen(true);
+    
+    if (!walletConnected) {
+      // Если кошелек не подключен, показываем уведомление вместо диалога
+      toast({
+        title: "Подключите TON-кошелёк",
+        description: "Для покупки TON Boost-пакета необходимо подключить TON-кошелёк",
+        variant: "default",
+        action: (
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={() => {
+              if (tonConnectUI && typeof tonConnectUI.connectWallet === 'function') {
+                tonConnectUI.connectWallet();
+              }
+            }}
+          >
+            Подключить
+          </Button>
+        )
+      });
+    } else {
+      // Если кошелек подключен, показываем диалог выбора способа оплаты
+      setPaymentMethodDialogOpen(true);
+    }
   };
 
   // Обработчик выбора способа оплаты
@@ -127,25 +157,21 @@ const BoostPackagesCard: React.FC = () => {
             comment
           });
           
-          // Проверяем доступность tonConnectUI
-          if (!tonConnectUI) {
-            console.error('[ERROR] tonConnectUI not initialized');
-            toast({
-              title: "Ошибка инициализации",
-              description: "Произошла ошибка инициализации TonConnect. Пожалуйста, обновите страницу и попробуйте снова.",
-              variant: "destructive"
-            });
+          // Выполняем комплексную проверку готовности к транзакции
+          if (!checkWalletConnection()) {
+            setIsLoading(false);
             return;
           }
           
-          // Проверяем наличие функции sendTransaction
-          if (typeof tonConnectUI.sendTransaction !== 'function') {
+          // Проверяем наличие функции sendTransaction (дополнительная проверка)
+          if (!tonConnectUI || typeof tonConnectUI.sendTransaction !== 'function') {
             console.error('[ERROR] tonConnectUI.sendTransaction is not a function');
             toast({
               title: "Ошибка TonConnect",
               description: "Ваш кошелек не поддерживает отправку транзакций через TonConnect",
               variant: "destructive"
             });
+            setIsLoading(false);
             return;
           }
           
@@ -280,14 +306,39 @@ const BoostPackagesCard: React.FC = () => {
   
   // Функция для проверки подключения TON-кошелька и показа уведомления, если не подключен
   const checkWalletConnection = (): boolean => {
-    const isConnected = isTonWalletConnected(tonConnectUI); // Используем tonConnectUI из хука
-    
-    if (!isConnected) {
+    if (!tonConnectUI) {
+      console.error('[ERROR] tonConnectUI not initialized');
       toast({
-        title: "Кошелек не подключен",
-        description: "Пожалуйста, подключите TON-кошелёк, чтобы купить Boost-пакет.",
+        title: "Ошибка инициализации",
+        description: "Произошла ошибка инициализации TonConnect. Пожалуйста, обновите страницу и попробуйте снова.",
         variant: "destructive"
       });
+      return false;
+    }
+    
+    // Используем более строгую проверку, которая проверяет не только подключение, но и готовность к транзакциям
+    const isReady = isTonPaymentReady(tonConnectUI);
+    
+    if (!isReady) {
+      const isConnected = isTonWalletConnected(tonConnectUI);
+      
+      if (isConnected) {
+        // Подключен, но не готов к транзакциям
+        console.error('[ERROR] Wallet connected but not ready for transactions');
+        toast({
+          title: "Ошибка кошелька",
+          description: "Ваш кошелек подключен, но не готов для отправки TON. Попробуйте переподключить кошелек.",
+          variant: "destructive"
+        });
+      } else {
+        // Просто не подключен
+        console.error('[ERROR] Wallet not connected');
+        toast({
+          title: "Кошелек не подключен",
+          description: "Пожалуйста, подключите TON-кошелёк, чтобы купить Boost-пакет.",
+          variant: "destructive"
+        });
+      }
       return false;
     }
     

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Wallet, CreditCard } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import { isTonWalletConnected } from '../../services/tonConnectService';
+import { isTonWalletConnected, isTonPaymentReady } from '../../services/tonConnectService';
 
 interface PaymentMethodDialogProps {
   open: boolean;
@@ -35,14 +35,60 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
     if (boostId !== null) {
       // Если выбран внешний кошелек, проверяем подключение TonConnect
       if (method === 'external_wallet') {
-        const isConnected = isTonWalletConnected(tonConnectUI);
-        
-        if (!isConnected) {
+        if (!tonConnectUI) {
+          console.error('[ERROR] tonConnectUI not initialized in PaymentMethodDialog');
           toast({
-            title: "Кошелек не подключен",
-            description: "Пожалуйста, подключите TON-кошелёк, чтобы купить Boost-пакет.",
+            title: "Ошибка инициализации",
+            description: "Произошла ошибка инициализации TonConnect. Пожалуйста, обновите страницу и попробуйте снова.",
             variant: "destructive"
           });
+          onOpenChange(false);
+          return;
+        }
+        
+        // Проверяем готовность к транзакциям
+        const isReady = isTonPaymentReady(tonConnectUI);
+        
+        if (!isReady) {
+          const isConnected = isTonWalletConnected(tonConnectUI);
+          
+          console.log('[DEBUG] PaymentMethodDialog check wallet:', {
+            tonConnectUI: !!tonConnectUI,
+            isReady,
+            isConnected,
+            wallet: tonConnectUI.wallet
+          });
+          
+          if (isConnected) {
+            // Кошелек подключен, но не готов к транзакциям
+            toast({
+              title: "Ошибка кошелька",
+              description: "Ваш кошелек подключен, но не готов для отправки TON. Попробуйте переподключить кошелек.",
+              variant: "destructive"
+            });
+          } else {
+            // Кошелек просто не подключен
+            toast({
+              title: "Кошелек не подключен",
+              description: "Пожалуйста, подключите TON-кошелёк, чтобы оплатить с помощью внешнего кошелька.",
+              variant: "destructive",
+              action: (
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => {
+                    if (tonConnectUI && typeof tonConnectUI.connectWallet === 'function') {
+                      tonConnectUI.connectWallet();
+                    }
+                  }}
+                >
+                  Подключить
+                </Button>
+              )
+            });
+          }
+          
           onOpenChange(false);
           return;
         }
