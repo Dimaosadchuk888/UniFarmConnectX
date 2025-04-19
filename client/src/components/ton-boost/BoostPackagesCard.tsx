@@ -155,6 +155,7 @@ const BoostPackagesCard: React.FC = () => {
             userId: userIdInt,
             boostId,
             comment,
+            boostPrice: selectedBoost.priceTon
           });
           
           console.log('[DEBUG] Начинаем процесс оплаты через внешний кошелек', {

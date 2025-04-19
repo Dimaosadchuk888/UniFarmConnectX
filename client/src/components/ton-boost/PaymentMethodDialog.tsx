@@ -42,6 +42,14 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   const handleSelectMethod = async (method: 'internal_balance' | 'external_wallet') => {
     // ТЗ: Добавляем логирование значения boostPriceTon используя ✅
     console.log("✅ boostPriceTon:", boostPriceTon);
+    
+    // Убедимся, что boostPriceTon всегда имеет значение, используя дефолтную цену при null
+    if (boostPriceTon === null || boostPriceTon === undefined) {
+      const defaultPrices = { 1: "1", 2: "5", 3: "15", 4: "25" };
+      const defaultPrice = defaultPrices[boostId] || "1";
+      console.log("✅ boostPriceTon был null, используем дефолтную цену:", defaultPrice);
+      boostPriceTon = defaultPrice;
+    }
     console.log("[DIALOG DEBUG] handleSelectMethod вызван:", { method, boostId, boostPriceTon });
     
     // Отправка TON транзакции без использования Buffer или @ton/core
