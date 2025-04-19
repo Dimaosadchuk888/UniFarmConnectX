@@ -36,6 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Маршруты для транзакций
   app.get("/api/transactions", TransactionController.getUserTransactions);
+  app.get("/api/transactions/:user_id", TransactionController.getUserTransactions);
   app.post("/api/withdraw", TransactionController.withdrawFunds);
   app.post("/api/transactions/create", TransactionController.createTransaction);
   

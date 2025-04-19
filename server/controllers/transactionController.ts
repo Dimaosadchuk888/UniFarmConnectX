@@ -186,13 +186,46 @@ export class TransactionController {
    */
   static async createTransaction(req: Request, res: Response): Promise<void> {
     try {
-      // В реальной реализации здесь должен быть код для создания транзакции
+      const schema = z.object({
+        user_id: z.number(),
+        type: z.string(),
+        currency: z.string(),
+        amount: z.string().or(z.number()),
+        status: z.string().optional(),
+        source: z.string().optional(),
+        category: z.string().optional(),
+        tx_hash: z.string().optional()
+      });
+
+      const validation = schema.safeParse(req.body);
+      if (!validation.success) {
+        console.error("[TransactionController] Ошибка валидации запроса:", validation.error);
+        res.status(400).json({
+          success: false,
+          message: "Некорректные параметры запроса",
+          errors: validation.error.format()
+        });
+        return;
+      }
+
+      const { user_id, type, currency, amount, status, source, category, tx_hash } = validation.data;
+
+      // Создаем транзакцию через сервис
+      const transaction = await TransactionService.logTransaction({
+        userId: user_id,
+        type,
+        currency,
+        amount,
+        status,
+        source,
+        category,
+        txHash: tx_hash
+      });
+
       res.status(200).json({
         success: true,
         message: "Транзакция создана",
-        data: {
-          transaction_id: Math.floor(Math.random() * 1000) + 1
-        }
+        data: { transaction }
       });
     } catch (error) {
       console.error("[TransactionController] Ошибка при создании транзакции:", error);

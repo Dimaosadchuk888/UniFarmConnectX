@@ -2,6 +2,7 @@ import { db } from '../db';
 import { users, uniFarmingDeposits } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { BigNumber } from 'bignumber.js';
+import { TransactionService, TransactionType, Currency, TransactionStatus } from './transactionService';
 
 // Глобальное объявление для TypeScript
 declare global {
@@ -164,6 +165,21 @@ export class NewUniFarmingService {
         
         if (updateResult && updateResult.length > 0) {
           console.log(`[MultiFarming] Balance Updated OK User ${userId} new balance confirmed: ${updateResult[0].balance_uni}`);
+          
+          // Логируем транзакцию в БД
+          try {
+            await TransactionService.logTransaction({
+              userId,
+              type: TransactionType.FARMING_REWARD,
+              currency: Currency.UNI,
+              amount: totalEarnedAmount.toString(),
+              status: TransactionStatus.CONFIRMED,
+              source: 'MultiFarming',
+              category: 'farming'
+            });
+          } catch (logError) {
+            console.error(`[MultiFarming] Transaction Logging Error User ${userId}:`, logError);
+          }
         } else {
           console.error(`[MultiFarming] Balance Update Failed User ${userId} - no rows updated`);
         }
@@ -303,6 +319,17 @@ export class NewUniFarmingService {
           balance_uni: balanceUni.minus(depositAmount).toFixed(6)
         })
         .where(eq(users.id, userId));
+        
+      // Логируем транзакцию создания депозита
+      await TransactionService.logTransaction({
+        userId,
+        type: TransactionType.DEPOSIT,
+        currency: Currency.UNI,
+        amount: depositAmount.toString(),
+        status: TransactionStatus.CONFIRMED,
+        source: 'UNI Farming Deposit',
+        category: 'deposit'
+      });
       
       return {
         success: true,
