@@ -7,6 +7,7 @@ import BoostPackagesCard from '../components/farming/BoostPackagesCard';
 import ActiveBoostsCard from '../components/farming/ActiveBoostsCard';
 import FarmingHistory from '../components/farming/FarmingHistory';
 import TonBoostPackagesCard from '../components/ton-boost/BoostPackagesCard';
+import TonFarmingStatusCard from '../components/ton-boost/TonFarmingStatusCard';
 
 const Farming: React.FC = () => {
   // Хардкод ID=1 для демонстрации
@@ -45,12 +46,13 @@ const Farming: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="ton">
+          {/* Статус TON фарминга - добавлен новый компонент */}
+          <TonFarmingStatusCard />
+          
           {/* TON Boost-пакеты */}
           <div className="mb-6">
             <TonBoostPackagesCard />
           </div>
-          
-          {/* В будущем здесь будут компоненты для TON фарминга */}
         </TabsContent>
       </Tabs>
       

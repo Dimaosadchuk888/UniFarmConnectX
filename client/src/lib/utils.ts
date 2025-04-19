@@ -25,6 +25,39 @@ declare global {
 }
 
 /**
+ * Форматирует число с заданной точностью
+ * @param value Число для форматирования
+ * @param precision Количество цифр после запятой
+ * @returns Отформатированное число в виде строки
+ */
+export function formatNumberWithPrecision(value: number, precision: number = 2): string {
+  // Проверяем, что значение существует и является числом
+  if (value === undefined || value === null || isNaN(value)) {
+    return "0".padEnd(precision + 2, "0");
+  }
+  
+  // Форматируем число с заданной точностью
+  const valueStr = value.toFixed(precision);
+  
+  // Убираем лишние нули в конце, но оставляем минимум precision знаков
+  const parts = valueStr.split('.');
+  if (parts.length === 2) {
+    const integerPart = parts[0];
+    const decimalPart = parts[1];
+    
+    // Если значение близко к нулю (меньше 0.00001), показываем "0.00000"
+    if (value > 0 && value < 0.00001) {
+      return "0".padEnd(precision + 2, "0");
+    }
+    
+    // Приводим к заданной точности
+    return `${integerPart}.${decimalPart}`;
+  }
+  
+  return valueStr;
+}
+
+/**
  * Извлекает userId из параметров URL Telegram Mini App
  * @returns userId или null, если не найден
  */
