@@ -40,26 +40,27 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   const handleSelectMethod = async (method: 'internal_balance' | 'external_wallet') => {
     console.log("[DIALOG DEBUG] handleSelectMethod вызван:", { method, boostId });
     
-    // ПО ТЗ: Прямой вызов sendTonTransaction для теста
+    // Отправка TON транзакции без использования Buffer или @ton/core
     if (method === 'external_wallet' && boostId !== null) {
       try {
         // Закрываем диалог перед вызовом
         onOpenChange(false);
         
-        console.log("[TEST] НАЧИНАЕМ ТЕСТОВЫЙ ВЫЗОВ ТРАНЗАКЦИИ...");
+        console.log("[TON] Запуск отправки транзакции...");
         
         // Проверяем наличие tonConnectUI
         if (!tonConnectUI) {
-          console.error("[TEST ERROR] tonConnectUI is null or undefined");
+          console.error("[ERROR] tonConnectUI отсутствует");
           toast({
-            title: "Ошибка тестирования",
-            description: "tonConnectUI отсутствует (null). Невозможно вызвать транзакцию.",
+            title: "Ошибка подключения кошелька",
+            description: "TonConnect не инициализирован. Перезагрузите приложение.",
             variant: "destructive"
           });
           return;
         }
         
-        console.log("[TEST] tonConnectUI состояние:", {
+        // Логируем состояние подключения
+        console.log("[TON] Состояние подключения:", {
           connected: tonConnectUI.connected,
           hasWallet: !!tonConnectUI.wallet,
           hasAccount: !!tonConnectUI.account,
@@ -67,28 +68,24 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
           hasSendTransaction: typeof tonConnectUI.sendTransaction === 'function'
         });
         
-        // ПРЯМОЕ ВЫПОЛНЕНИЕ ТРАНЗАКЦИИ БЕЗ ПРОВЕРОК
-        console.log("[TEST] FORCING sendTonTransaction...");
-        
-        // Получаем данные для теста
-        const testAmount = "0.01"; // Минимальная сумма для теста
-        const userId = 1; // Тестовый ID пользователя  
+        // Получаем данные для транзакции
+        const userId = 1; // Тестовый ID пользователя
         const comment = createTonTransactionComment(userId, boostId);
         
-        // Прямой вызов sendTonTransaction
-        const result = await sendTonTransaction(tonConnectUI, testAmount, comment);
+        // Вызываем новую версию sendTonTransaction без Buffer
+        const result = await sendTonTransaction(tonConnectUI, "0.2", comment);
         
-        console.log("[TEST] Результат вызова транзакции:", result);
+        console.log("[TON] Результат транзакции:", result);
         
-        if (result) {
+        if (result && result.status === 'success') {
           toast({
-            title: "Тест успешен",
-            description: "Вызов sendTransaction успешно выполнен, Tonkeeper открылся",
+            title: "Транзакция отправлена",
+            description: "Платеж успешно отправлен в блокчейн TON",
           });
         } else {
           toast({
-            title: "Отменено пользователем",
-            description: "Транзакция была отменена в Tonkeeper",
+            title: "Транзакция отменена",
+            description: "Вы отменили транзакцию или произошла ошибка",
             variant: "default"
           });
         }

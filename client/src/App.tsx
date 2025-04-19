@@ -25,11 +25,14 @@ declare global {
         ready: () => void;
         initData: string;
         initDataUnsafe: any;
+        platform?: string;
+        colorScheme?: string;
       };
     };
-    Buffer: typeof Buffer;
-    process: any;
-    TextEncoder: any;
+    process: {
+      env: Record<string, string | undefined>;
+    };
+    TextEncoder: typeof TextEncoder;
   }
 }
 

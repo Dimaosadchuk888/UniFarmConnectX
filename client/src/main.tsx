@@ -9,6 +9,27 @@ import "./index.css";
 // Обеспечиваем простой процесс для Telegram WebApp
 window.process = { env: {} };
 
+// Обеспечиваем интерфейс для Telegram WebApp
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        expand: () => void;
+        ready: () => void;
+        initData: string;
+        initDataUnsafe: { 
+          user?: { 
+            id: number; 
+            username?: string;
+          } 
+        };
+        platform?: string;
+        colorScheme?: string;
+      };
+    };
+  }
+}
+
 // Telegram WebApp integration setup
 const initTelegramWebApp = () => {
   if (window.Telegram?.WebApp) {
@@ -23,8 +44,6 @@ const initTelegramWebApp = () => {
       initData: typeof window.Telegram?.WebApp?.initData === 'string' 
         ? window.Telegram?.WebApp?.initData?.substring(0, 20) + '...' 
         : 'not available',
-      platform: window.Telegram?.WebApp?.platform,
-      colorScheme: window.Telegram?.WebApp?.colorScheme,
     });
   } else {
     console.log('⚠️ Telegram WebApp not available (normal when running outside Telegram)');

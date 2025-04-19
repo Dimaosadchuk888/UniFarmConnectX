@@ -127,7 +127,7 @@ export async function sendTonTransaction(
     const userId = parts.length > 1 ? parts[1] : '1';
     const boostId = parts.length > 2 ? parts[2] : '1';
     
-    // ПО ТЗ: Добавляем максимально заметный лог для отладки
+    // Добавляем максимально заметный лог для отладки
     console.log("===============================================================");
     console.log("🔴 ВЫЗОВ sendTonTransaction ПО НОВОМУ ТЗ");
     console.log("🔴 СУММА:", amount, "TON");
@@ -138,69 +138,48 @@ export async function sendTonTransaction(
     console.log("🔴 ФУНКЦИЯ sendTransaction:", typeof tonConnectUI?.sendTransaction === 'function' ? "ДОСТУПНА" : "НЕДОСТУПНА");
     console.log("===============================================================");
     
-    // Проверяем только наличие tonConnectUI и состояние подключения
+    // Проверяем наличие tonConnectUI
     if (!tonConnectUI) {
       console.error('[ERROR] tonConnectUI is null or undefined');
       throw new Error('TonConnectUI is not initialized');
     }
     
-    // По ТЗ: проверяем только подключение
+    // Проверяем подключение кошелька
     if (!tonConnectUI.connected) {
       console.log('[INFO] Кошелек не подключен, пытаемся подключить...');
       await connectTonWallet(tonConnectUI);
       
-      // Проверяем подключение снова
       if (!tonConnectUI.connected) {
         console.error('[ERROR] Не удалось подключить кошелек');
         throw new WalletNotConnectedError();
       }
     }
     
-    // ПО ТЗ: для тестирования используем фиксированную сумму
+    // Для тестирования используем фиксированную сумму
     const testAmount = "200000000"; // 0.2 TON
     
-    // По ТЗ: генерируем rawPayload в формате UniFarmBoost:userId:boostId
-    const rawPayload = `UniFarmBoost:${userId}:${boostId}`;
+    // Генерируем простой комментарий без бинарного форматирования
+    // Форма: UniFarmBoost:userId:boostId
+    const commentText = `UniFarmBoost:${userId}:${boostId}`;
     
-    // Создаем простой payload (без использования Buffer)
-    let payload: string;
-    
-    try {
-      // Пробуем создать payload в формате "простой текстовой ячейки"
-      payload = createSimpleTextCellPayload(rawPayload);
-      console.log("✅ Создан упрощенный TextCell-payload без использования Buffer");
-    } catch (error) {
-      console.error('Ошибка при создании TextCell payload:', error);
-      
-      // Если не удалось, используем простой base64
-      payload = createSimpleBase64Payload(rawPayload);
-      console.log("⚠️ Использован fallback - простой base64 кодированный комментарий");
-    }
-    
-    // Для дополнительной проверки - в консоли выводим длину payload
-    console.log(`✅ Payload длина: ${payload.length} символов`);
-    
-    // По ТЗ: добавляем логирование payload
-    console.log("📦 rawPayload:", rawPayload);
-    console.log("📦 Payload (base64):", payload);
-    
-    // Создаем транзакцию в соответствии с ТЗ
+    // Создаем транзакцию без использования payload
+    // В этой версии просто передаем адрес и сумму, без комментария,
+    // чтобы минимизировать потенциальные проблемы с Buffer
     const transaction = {
-      validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут по ТЗ
+      validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут
       messages: [
         {
           address: TON_PROJECT_ADDRESS, // UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8
-          amount: testAmount, // для тестов используем фиксированную сумму
-          payload: payload // Base64 закодированное сообщение
+          amount: testAmount
+          // Убираем payload для тестирования базовой функциональности
         }
       ]
     };
     
-    // По ТЗ: добавляем лог с данными транзакции перед отправкой
-    console.log("[DEBUG] Sending transaction", transaction);
+    console.log("[DEBUG] Sending simplified transaction without payload:", transaction);
     
     try {
-      // Только проверяем подключение (по ТЗ)
+      // Двойная проверка подключения перед отправкой
       if (!tonConnectUI.connected) {
         console.log('[INFO] Кошелек не подключен непосредственно перед транзакцией, пытаемся подключить...');
         await connectTonWallet(tonConnectUI);
@@ -211,29 +190,23 @@ export async function sendTonTransaction(
         }
       }
       
-      // Отправляем транзакцию без дополнительных проверок (по ТЗ)
-      console.log("[TON] Отправляем транзакцию через TonConnect...");
+      // Отправляем упрощенную транзакцию без payload
+      console.log("[TON] Отправляем упрощенную транзакцию через TonConnect...");
       
       const result = await tonConnectUI.sendTransaction(transaction);
       debugLog('*** РЕЗУЛЬТАТ sendTransaction ***', result);
       
-      // По ТЗ: добавляем лог результата транзакции
+      // Добавляем лог результата транзакции
       console.log("✅ Transaction result:", result);
       
-      // Вызов успешно выполнен - пользователь подтвердил транзакцию в Tonkeeper
-      debugLog('Транзакция успешно отправлена, результат:', {
-        boc: result.boc ? `есть (${result.boc.length} символов)` : 'нет',
-        has_result: !!result
-      });
-      
       return {
-        txHash: result.boc,
+        txHash: result.boc || '',
         status: 'success'
       };
     } catch (error) {
       const txError = error as Error; // Типизируем ошибку как Error для доступа к свойствам
       
-      debugLog('ОШИБКА при вызове sendTransaction:', { 
+      console.error('ОШИБКА при вызове sendTransaction:', { 
         errorType: typeof error,
         errorName: txError.name,
         errorMessage: txError.message,
@@ -242,13 +215,13 @@ export async function sendTonTransaction(
       
       // Классифицируем ошибку для более детального логирования
       if (error instanceof UserRejectsError) {
-        debugLog('Пользователь отклонил транзакцию в кошельке');
+        console.log('Пользователь отклонил транзакцию в кошельке');
       }
       else if (error instanceof WalletNotConnectedError) {
-        debugLog('Ошибка: кошелек не подключен');
+        console.log('Ошибка: кошелек не подключен');
       }
       else {
-        debugLog('Неизвестная ошибка при отправке транзакции', {
+        console.log('Неизвестная ошибка при отправке транзакции', {
           errorToString: String(error),
           errorJSON: JSON.stringify(error)
         });
