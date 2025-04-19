@@ -158,13 +158,20 @@ export async function sendTonTransaction(
       }
     }
     
-    // Используем сумму из параметра, которая будет передана от боста
-    // 1 TON = 1_000_000_000 нано TON, поэтому умножаем на 10^9
-    const tonAmount = new BigNumber(amount).multipliedBy(1000000000).toString();
+    // ИСПРАВЛЕНИЕ ПО ТЗ: Конвертируем TON в nanoTON
+    // Сначала проверяем, что amount является строкой с десятичным числом
+    const tonAmount = parseFloat(amount);
+    if (isNaN(tonAmount)) {
+      console.error('[ERROR] Невалидная сумма TON:', amount);
+      throw new Error('Невалидная сумма TON');
+    }
     
-    // Логируем для проверки
+    // ПО ТЗ: Умножаем на 1e9 и преобразуем в строку через BigInt для точности
+    const nanoTonAmount = (BigInt(tonAmount * 1e9)).toString();
+    
+    // Добавляем логирование по ТЗ
     console.log("[TON] Сумма в TON:", amount);
-    console.log("[TON] Сумма в нано TON:", tonAmount);
+    console.log("[TON] Сумма в nanoTON:", nanoTonAmount);
     
     // Генерируем простой комментарий без бинарного форматирования
     // Форма: UniFarmBoost:userId:boostId
@@ -178,11 +185,14 @@ export async function sendTonTransaction(
       messages: [
         {
           address: TON_PROJECT_ADDRESS, // UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8
-          amount: tonAmount
+          amount: nanoTonAmount, // ПО ТЗ: Используем nanoTonAmount вместо tonAmount
           // Убираем payload для тестирования базовой функциональности
         }
       ]
     };
+    
+    // ПО ТЗ: Добавляем дополнительный лог для проверки значения amount перед отправкой
+    console.log("[TON] Сумма в nanoTON перед отправкой:", nanoTonAmount);
     
     console.log("[DEBUG] Sending simplified transaction without payload:", transaction);
     

@@ -40,7 +40,9 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   const [tonConnectUI] = useTonConnectUI();
 
   const handleSelectMethod = async (method: 'internal_balance' | 'external_wallet') => {
-    console.log("[DIALOG DEBUG] handleSelectMethod вызван:", { method, boostId });
+    // Добавляем логирование значения boostPriceTon по ТЗ
+    console.log("[DEBUG] boostPriceTon в PaymentMethodDialog:", boostPriceTon);
+    console.log("[DIALOG DEBUG] handleSelectMethod вызван:", { method, boostId, boostPriceTon });
     
     // Отправка TON транзакции без использования Buffer или @ton/core
     if (method === 'external_wallet' && boostId !== null) {
@@ -74,9 +76,12 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
         const userId = 1; // Тестовый ID пользователя
         const comment = createTonTransactionComment(userId, boostId);
         
-        // Вызываем новую версию sendTonTransaction без Buffer с правильной ценой пакета
-        console.log("[TON] Отправка транзакции с суммой:", boostPriceTon, "TON");
-        const result = await sendTonTransaction(tonConnectUI, boostPriceTon, comment);
+        // ПО ТЗ: Конвертируем boostPriceTon в nanoTON и безопасно приводим к строке
+        const amount = String(boostPriceTon);
+        console.log("[TON] Сумма перед отправкой (TON):", amount);
+        
+        // Вызываем sendTonTransaction с проверенной суммой
+        const result = await sendTonTransaction(tonConnectUI, amount, comment);
         
         console.log("[TON] Результат транзакции:", result);
         
