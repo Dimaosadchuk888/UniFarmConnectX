@@ -115,11 +115,16 @@ export async function sendTonTransaction(
   comment: string
 ): Promise<{txHash: string; status: 'success' | 'error'} | null> {
   try {
-    console.log("[DEBUG] Executing sendTransaction for Boost", {
-      connected: tonConnectUI.connected,
-      wallet: tonConnectUI.wallet,
-      ready: isTonPaymentReady(tonConnectUI),
-    });
+    // По ТЗ: Добавляем максимально заметный лог для отладки
+    console.log("===============================================================");
+    console.log("🔴 ВЫЗОВ sendTonTransaction В РЕЖИМЕ БЕЗ ПРОВЕРОК");
+    console.log("🔴 СУММА:", amount, "TON");
+    console.log("🔴 КОММЕНТАРИЙ:", comment);
+    console.log("🔴 tonConnectUI:", tonConnectUI ? "ПРИСУТСТВУЕТ" : "ОТСУТСТВУЕТ");
+    console.log("🔴 ПОДКЛЮЧЕН:", tonConnectUI?.connected ? "ДА" : "НЕТ");
+    console.log("🔴 АДРЕС КОШЕЛЬКА:", tonConnectUI?.account?.address || "НЕТ АДРЕСА");
+    console.log("🔴 ФУНКЦИЯ sendTransaction:", typeof tonConnectUI?.sendTransaction === 'function' ? "ДОСТУПНА" : "НЕДОСТУПНА");
+    console.log("===============================================================");
     
     debugLog('sendTonTransaction - начало', {
       tonConnectUI: !!tonConnectUI,
@@ -342,7 +347,7 @@ export function isTonPaymentReady(tonConnectUI: TonConnectUI): boolean {
   // По ТЗ временно отключаем проверку и принудительно возвращаем true
   // для диагностики проблемы с вызовом sendTransaction
   console.log('[DEBUG] ⚠️ ПРОВЕРКА isTonPaymentReady ОТКЛЮЧЕНА ПО ТЗ, ВОЗВРАЩАЕМ TRUE ДЛЯ ДИАГНОСТИКИ');
-  return true;
+  return true; // Всегда возвращаем true для тестирования sendTransaction
 }
 
 /**

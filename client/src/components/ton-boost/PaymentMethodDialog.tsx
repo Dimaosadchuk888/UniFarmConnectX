@@ -31,8 +31,73 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   const { toast } = useToast();
   const [tonConnectUI] = useTonConnectUI();
 
-  const handleSelectMethod = (method: 'internal_balance' | 'external_wallet') => {
+  const handleSelectMethod = async (method: 'internal_balance' | 'external_wallet') => {
     console.log("[DIALOG DEBUG] handleSelectMethod вызван:", { method, boostId });
+    
+    // ПО ТЗ: Прямой вызов sendTonTransaction для теста
+    if (method === 'external_wallet' && boostId !== null) {
+      try {
+        // Закрываем диалог перед вызовом
+        onOpenChange(false);
+        
+        console.log("[TEST] НАЧИНАЕМ ТЕСТОВЫЙ ВЫЗОВ ТРАНЗАКЦИИ...");
+        
+        // Проверяем наличие tonConnectUI
+        if (!tonConnectUI) {
+          console.error("[TEST ERROR] tonConnectUI is null or undefined");
+          toast({
+            title: "Ошибка тестирования",
+            description: "tonConnectUI отсутствует (null). Невозможно вызвать транзакцию.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        console.log("[TEST] tonConnectUI состояние:", {
+          connected: tonConnectUI.connected,
+          hasWallet: !!tonConnectUI.wallet,
+          hasAccount: !!tonConnectUI.account,
+          hasAddress: tonConnectUI.account?.address ? true : false,
+          hasSendTransaction: typeof tonConnectUI.sendTransaction === 'function'
+        });
+        
+        // ПРЯМОЕ ВЫПОЛНЕНИЕ ТРАНЗАКЦИИ БЕЗ ПРОВЕРОК
+        console.log("[TEST] FORCING sendTonTransaction...");
+        
+        // Получаем данные для теста
+        const testAmount = "0.01"; // Минимальная сумма для теста
+        const userId = 1; // Тестовый ID пользователя  
+        const comment = createTonTransactionComment(userId, boostId);
+        
+        // Прямой вызов sendTonTransaction
+        const result = await sendTonTransaction(tonConnectUI, testAmount, comment);
+        
+        console.log("[TEST] Результат вызова транзакции:", result);
+        
+        if (result) {
+          toast({
+            title: "Тест успешен",
+            description: "Вызов sendTransaction успешно выполнен, Tonkeeper открылся",
+          });
+        } else {
+          toast({
+            title: "Отменено пользователем",
+            description: "Транзакция была отменена в Tonkeeper",
+            variant: "default"
+          });
+        }
+      } catch (error) {
+        console.error("[TEST ERROR] Ошибка при тестовом вызове sendTonTransaction:", error);
+        toast({
+          title: "Ошибка теста",
+          description: `Не удалось вызвать sendTransaction: ${error}`,
+          variant: "destructive"
+        });
+      }
+      return;
+    }
+    
+    // ОРИГИНАЛЬНЫЙ КОД (НЕ ВЫПОЛНЯЕТСЯ В ТЕСТОВОМ РЕЖИМЕ)
     if (boostId !== null) {
       // Если выбран внешний кошелек, проверяем подключение TonConnect
       if (method === 'external_wallet') {
@@ -47,52 +112,9 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
           return;
         }
         
-        // Проверяем готовность к транзакциям
-        const isReady = isTonPaymentReady(tonConnectUI);
-        
-        if (!isReady) {
-          const isConnected = isTonWalletConnected(tonConnectUI);
-          
-          console.log('[DEBUG] PaymentMethodDialog check wallet:', {
-            tonConnectUI: !!tonConnectUI,
-            isReady,
-            isConnected,
-            wallet: tonConnectUI.wallet
-          });
-          
-          if (isConnected) {
-            // Кошелек подключен, но не готов к транзакциям
-            toast({
-              title: "Ошибка кошелька",
-              description: "Ваш кошелек подключен, но не готов для отправки TON. Попробуйте переподключить кошелек.",
-              variant: "destructive"
-            });
-          } else {
-            // Кошелек просто не подключен
-            toast({
-              title: "Кошелек не подключен",
-              description: "Пожалуйста, подключите TON-кошелёк, чтобы оплатить с помощью внешнего кошелька.",
-              variant: "destructive",
-              action: (
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => {
-                    if (tonConnectUI && typeof tonConnectUI.connectWallet === 'function') {
-                      tonConnectUI.connectWallet();
-                    }
-                  }}
-                >
-                  Подключить
-                </Button>
-              )
-            });
-          }
-          
-          onOpenChange(false);
-          return;
-        }
+        // УДАЛЕНО ПО ТЗ: Временно убираем проверку готовности
+        // const isReady = isTonPaymentReady(tonConnectUI);
+        // if (!isReady) { ... }
       }
       
       onSelectPaymentMethod(boostId, method);
