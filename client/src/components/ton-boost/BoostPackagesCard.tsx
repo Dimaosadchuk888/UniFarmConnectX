@@ -157,15 +157,28 @@ const BoostPackagesCard: React.FC = () => {
             comment
           });
           
+          console.log("==========================================================");
+          console.log("[DEBUG] Executing sendTransaction for Boost", {
+            connected: tonConnectUI?.connected,
+            wallet: tonConnectUI?.wallet,
+            ready: tonConnectUI ? isTonPaymentReady(tonConnectUI) : false,
+          });
+          console.log("==========================================================");
+          
           // Выполняем комплексную проверку готовности к транзакции
           if (!checkWalletConnection()) {
+            console.log("[DEBUG] CRITICAL! checkWalletConnection() вернул false");
             setIsLoading(false);
             return;
           }
           
+          // Еще одна проверка - дополнительный лог
+          console.log("[DEBUG] !!! ПРОШЛИ checkWalletConnection !!!");
+          
           // Проверяем наличие функции sendTransaction (дополнительная проверка)
           if (!tonConnectUI || typeof tonConnectUI.sendTransaction !== 'function') {
             console.error('[ERROR] tonConnectUI.sendTransaction is not a function');
+            console.log("[DEBUG] CRITICAL! tonConnectUI.sendTransaction is not a function");
             toast({
               title: "Ошибка TonConnect",
               description: "Ваш кошелек не поддерживает отправку транзакций через TonConnect",

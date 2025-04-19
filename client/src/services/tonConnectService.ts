@@ -8,7 +8,7 @@ import {
 } from '@tonconnect/ui-react';
 import { CHAIN } from '@tonconnect/protocol';
 
-// Для отладки
+// Для отладки - используем прямой console.log вместо debugLog для большей видимости
 const DEBUG_ENABLED = true;
 function debugLog(...args: any[]) {
   if (DEBUG_ENABLED) {
@@ -152,13 +152,17 @@ export async function sendTonTransaction(
     const amountNumber = parseFloat(amount);
     const amountNano = Math.floor(amountNumber * 1_000_000_000).toString();
     
-    console.log('[DEBUG] TonConnect transaction:', {
-      amount: amount,
-      amountNumber: amountNumber,
-      amountNano: amountNano,
-      comment: comment,
-      address: TON_PROJECT_ADDRESS
+    console.log("====================================================");
+    console.log("[TonConnect] Sending transaction with params:", {
+      amount,
+      amountNano,
+      comment,
+      address: TON_PROJECT_ADDRESS,
+      connected: tonConnectUI?.connected,
+      wallet: tonConnectUI?.wallet ? "present" : "null",
+      account: tonConnectUI?.account ? "present" : "null"
     });
+    console.log("====================================================");
     
     const transaction = {
       validUntil,
@@ -172,7 +176,7 @@ export async function sendTonTransaction(
       ]
     };
     
-    console.log('[DEBUG] Sending transaction with params:', JSON.stringify(transaction));
+    console.log('[TonConnect] Sending transaction with message:', transaction.messages);
     
     try {
       debugLog('Начинаем отправку транзакции через TonConnect');
