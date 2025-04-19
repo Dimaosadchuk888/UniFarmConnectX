@@ -89,12 +89,20 @@ const TransactionHistory: React.FC = () => {
     // Используем новое поле category, если оно доступно
     if (tx.category === 'farming' || tx.type === 'farming') {
       title = tx.source ? `Доход от ${tx.source}` : 'Доход от фарминга';
+    } else if (tx.type === 'farming_reward') {
+      title = 'Награда за фарминг';
+    } else if (tx.type === 'boost_farming') {
+      title = 'TON фарминг';
+    } else if (tx.type === 'ton_boost') {
+      title = 'TON Boost';
     } else if (tx.category === 'bonus' || tx.type === 'bonus') {
       title = tx.source ? `Бонус от ${tx.source}` : 'Бонусное начисление';
     } else if (tx.category === 'purchase' || tx.type === 'purchase') {
       title = tx.source ? `Покупка ${tx.source}` : 'Покупка';
     } else if (tx.type === 'reward') {
       title = 'Награда за миссию';
+    } else if (tx.type === 'check-in' || tx.type === 'daily_bonus') {
+      title = 'Ежедневный бонус';
     } else if (tx.type === 'deposit') {
       title = 'Пополнение';
     } else if (tx.type === 'withdraw') {
@@ -310,9 +318,39 @@ const TransactionHistory: React.FC = () => {
                 className="flex items-center justify-between py-3 border-b border-gray-800/50 hover:bg-black/20 transition-all duration-300 px-2 rounded-md animate-fadeIn"
               >
                 <div className="flex items-center">
-                  {/* Иконка транзакции в зависимости от типа токена */}
-                  <div className={`w-9 h-9 rounded-full ${transaction.tokenType === 'UNI' ? 'bg-green-500/20' : 'bg-cyan-500/20'} flex items-center justify-center mr-3 transition-all duration-300`}>
-                    <i className={`fas ${transaction.tokenType === 'UNI' ? 'fa-leaf text-green-400' : 'fa-tenge text-cyan-400'}`}></i>
+                  {/* Иконка транзакции в зависимости от типа токена и типа транзакции */}
+                  <div className={`w-9 h-9 rounded-full ${
+                    transaction.tokenType === 'UNI' 
+                      ? 'bg-green-500/20' 
+                      : transaction.type === 'ton_boost' || transaction.type === 'boost'
+                        ? 'bg-indigo-500/20'
+                        : 'bg-cyan-500/20'
+                    } flex items-center justify-center mr-3 transition-all duration-300`}>
+                    <i className={`fas ${
+                      transaction.type === 'farming' || transaction.type === 'farming_reward'
+                        ? 'fa-seedling' 
+                        : transaction.type === 'boost_farming'
+                          ? 'fa-bolt' 
+                          : transaction.type === 'ton_boost' || transaction.type === 'boost'
+                            ? 'fa-rocket'
+                            : transaction.type === 'check-in' || transaction.type === 'daily_bonus'
+                              ? 'fa-gift'
+                              : transaction.type === 'reward' || transaction.type === 'mission'
+                                ? 'fa-award'
+                                : transaction.type === 'withdraw'
+                                  ? 'fa-arrow-up'
+                                  : transaction.type === 'deposit'
+                                    ? 'fa-arrow-down'
+                                    : transaction.tokenType === 'UNI' 
+                                      ? 'fa-leaf' 
+                                      : 'fa-tenge'
+                    } ${
+                      transaction.tokenType === 'UNI' 
+                        ? 'text-green-400' 
+                        : transaction.type === 'ton_boost' || transaction.type === 'boost'
+                          ? 'text-indigo-400'
+                          : 'text-cyan-400'
+                    }`}></i>
                   </div>
                   
                   <div>
@@ -334,7 +372,13 @@ const TransactionHistory: React.FC = () => {
                 </div>
                 
                 {/* Сумма транзакции */}
-                <div className={`px-2 py-1 rounded ${transaction.tokenType === 'UNI' ? 'bg-green-500/10 text-green-400' : 'bg-cyan-500/10 text-cyan-400'} font-medium text-sm`}>
+                <div className={`px-2 py-1 rounded ${
+                  transaction.tokenType === 'UNI' 
+                    ? 'bg-green-500/10 text-green-400' 
+                    : transaction.type === 'ton_boost' || transaction.type === 'boost'
+                      ? 'bg-indigo-500/10 text-indigo-400'
+                      : 'bg-cyan-500/10 text-cyan-400'
+                  } font-medium text-sm`}>
                   {formatAmount(transaction.amount, transaction.tokenType, transaction.type)}
                 </div>
               </div>
