@@ -63,4 +63,17 @@ export class UserService {
     
     return updatedUser;
   }
+  
+  /**
+   * Обновляет баланс пользователя (специально для реферальной системы)
+   * @param userId ID пользователя
+   * @param balanceData Данные баланса для обновления
+   * @returns Обновленные данные пользователя
+   */
+  static async updateUserBalance(userId: number, balanceData: {
+    balance_uni?: string,
+    balance_ton?: string
+  }): Promise<User | undefined> {
+    return this.updateUser(userId, balanceData);
+  }
 }

@@ -1,9 +1,9 @@
 import { db } from '../db';
 import { ReferralService } from './referralService';
 import { UserService } from './userService';
-import { TransactionService, TransactionType, Currency } from './transactionService';
+import { TransactionType, Currency } from './transactionService';
 import { eq } from 'drizzle-orm';
-import { users, referrals } from '@shared/schema';
+import { users, referrals, transactions } from '@shared/schema';
 
 /**
  * Сервис для обработки реферальных вознаграждений
@@ -68,16 +68,16 @@ export class ReferralBonusService {
       
       // Создаем последующие уровни (до MAX_LEVELS)
       for (const ref of inviterReferrals) {
-        // Проверяем, что не превышаем MAX_LEVELS
-        if (ref.level >= this.MAX_LEVELS) {
+        // Проверяем, что уровень определен и не превышаем MAX_LEVELS
+        if (ref.level !== null && ref.level >= this.MAX_LEVELS) {
           break;
         }
         
-        // Записываем новый уровень
+        // Записываем новый уровень, предварительно убедившись, что ref.level не null
         await ReferralService.createReferral({
           user_id: userId,
           inviter_id: ref.inviter_id,
-          level: ref.level + 1
+          level: ref.level !== null ? ref.level + 1 : 1
         });
       }
       
@@ -104,6 +104,11 @@ export class ReferralBonusService {
       
       // Для каждого уровня начисляем вознаграждение
       for (const ref of userReferrals) {
+        // Проверяем, что уровень определен
+        if (ref.level === null) {
+          continue;
+        }
+        
         const level = ref.level;
         
         // Проверяем, что уровень в пределах допустимых
@@ -118,33 +123,41 @@ export class ReferralBonusService {
         const bonusAmount = amount * (percent / 100);
         
         // Начисляем вознаграждение пригласителю
-        if (bonusAmount > 0) {
+        if (bonusAmount > 0 && ref.inviter_id !== null) {
           // Получаем пользователя-приглашателя
           const inviter = await UserService.getUserById(ref.inviter_id);
           if (!inviter) {
             continue;
           }
           
+          // Проверяем значения баланса и обрабатываем null значения
+          const uniBalance = inviter.balance_uni !== null ? inviter.balance_uni : "0";
+          const tonBalance = inviter.balance_ton !== null ? inviter.balance_ton : "0";
+          
           // Увеличиваем баланс пользователя
           const newBalance = currency === Currency.UNI 
-            ? Number(inviter.balance_uni) + bonusAmount 
-            : Number(inviter.balance_ton) + bonusAmount;
+            ? Number(uniBalance) + bonusAmount 
+            : Number(tonBalance) + bonusAmount;
           
-          // Обновляем баланс
-          await UserService.updateUser(ref.inviter_id, {
-            balance_uni: currency === Currency.UNI ? newBalance.toString() : inviter.balance_uni,
-            balance_ton: currency === Currency.TON ? newBalance.toString() : inviter.balance_ton
+          // Обновляем баланс пользователя
+          await UserService.updateUserBalance(ref.inviter_id, {
+            balance_uni: currency === Currency.UNI ? newBalance.toString() : uniBalance,
+            balance_ton: currency === Currency.TON ? newBalance.toString() : tonBalance
           });
           
-          // Создаем транзакцию
-          await TransactionService.createTransaction({
-            userId: ref.inviter_id,
-            type: TransactionType.REFERRAL,
-            amount: bonusAmount.toString(),
-            currency,
-            status: 'confirmed',
-            description: `Реферальное вознаграждение ${percent}% (уровень ${level})`
-          });
+          // Создаем транзакцию через TransactionService
+          await db
+            .insert(transactions)
+            .values({
+              user_id: ref.inviter_id,
+              type: TransactionType.REFERRAL,
+              amount: bonusAmount.toString(),
+              currency: currency,
+              status: 'confirmed',
+              description: `Реферальное вознаграждение ${percent}% (уровень ${level})`,
+              source: "Referral",
+              category: "bonus"
+            });
           
           console.log(
             `[ReferralBonus] Level ${level} (${percent}%) | Amount: ${bonusAmount} ${currency} | ` +
