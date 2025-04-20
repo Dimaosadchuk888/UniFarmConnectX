@@ -54,27 +54,60 @@ class UserService {
       // Делаем запрос к API
       const data = await apiRequest('/api/me');
       
+      // Подробный лог для отладки
+      console.log('[UserService] API /me result:', {
+        fullResponse: data,
+        success: data?.success,
+        userId: data?.data?.id,
+        username: data?.data?.username,
+        telegramId: data?.data?.telegram_id
+      });
+      
       if (!data.success || !data.data) {
+        console.error('[UserService] Invalid API response:', data);
         throw new Error('Invalid response from server');
       }
       
       // Кешируем полученный userId
       localStorage.setItem(USER_ID_STORAGE_KEY, data.data.id.toString());
       
+      // Лог успешного результата
+      console.log('[UserService] Successfully got user data, ID:', data.data.id);
+      
       return data.data;
     } catch (error) {
       console.error('[UserService] Error fetching current user:', error);
       
-      // В режиме разработки можно использовать тестовые данные
+      // В режиме разработки пробуем получить данные с сервера, но с ID=1
       if (IS_DEV) {
-        console.warn('[UserService] Using development test user data');
-        return {
-          id: 1984, // Тестовый ID только для разработки
-          telegram_id: 12345,
-          username: "dev_test_user",
-          balance_uni: "1000",
-          balance_ton: "0"
-        };
+        console.warn('[UserService] In DEV mode, trying to get user with ID=1 from API');
+        try {
+          const devData = await apiRequest('/api/users/1');
+          if (devData.success && devData.data) {
+            console.log('[UserService] Successfully got DEV user data from API:', devData.data);
+            return devData.data;
+          } else {
+            // Если не удалось получить реальные данные, используем заглушку
+            console.warn('[UserService] Failed to get user from API in DEV mode, using fallback data');
+            return {
+              id: 1, // Обычно в devdb всегда есть пользователь с id=1
+              telegram_id: 12345,
+              username: "dev_test_user",
+              balance_uni: "1000",
+              balance_ton: "0"
+            };
+          }
+        } catch (devError) {
+          console.error('[UserService] Error fetching DEV user:', devError);
+          // Возвращаем заглушку в случае ошибки
+          return {
+            id: 1,
+            telegram_id: 12345,
+            username: "dev_test_user",
+            balance_uni: "1000",
+            balance_ton: "0"
+          };
+        }
       }
       
       // В production режиме пробрасываем ошибку

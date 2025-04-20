@@ -87,7 +87,11 @@ const ReferralLinkCard: React.FC = () => {
   console.log('[ReferralLinkCard] ID sources:', {
     currentUser: currentUser?.id,
     telegramUserId,
-    cachedUserId
+    cachedUserId,
+    isUserLoading,
+    isError,
+    errorMessage: queryError instanceof Error ? queryError.message : 'unknown error',
+    retryCount
   });
   
   // Определяем наличие userId (проверяем все доступные источники) 
@@ -256,7 +260,7 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {!isUserLoading && !error && hasUserId && (
+        {!isUserLoading && !error.hasError && hasUserId && (
           <div className="flex relative">
             <div className="flex-grow relative">
               <input 
@@ -329,6 +333,15 @@ const ReferralLinkCard: React.FC = () => {
             <p className="text-xs text-yellow-500/80 mb-3 text-center">
               Ваш аккаунт Telegram не распознан. Убедитесь, что вы открыли приложение через Telegram.
             </p>
+            
+            <div className="bg-black/30 p-2 rounded text-xs text-white/80 mb-3 text-left overflow-auto max-h-36 w-full">
+              <p className="font-mono">Отладочная информация:</p>
+              <p className="font-mono">ID пользователя: {currentUser?.id || 'не получен'}</p>
+              <p className="font-mono">Telegram ID: {telegramUserId || 'не получен'}</p>
+              <p className="font-mono">Кэш ID: {cachedUserId || 'не получен'}</p>
+              <p className="font-mono">В режиме разработки: {IS_DEV ? 'да' : 'нет'}</p>
+              <p className="font-mono">hasUserId: {hasUserId ? 'true' : 'false'}</p>
+            </div>
             
             {telegram ? (
               <p className="text-xs text-green-500/80 mb-3 text-center">
