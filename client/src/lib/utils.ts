@@ -25,7 +25,7 @@ declare global {
 }
 
 /**
- * Форматирует число с заданной точностью
+ * Форматирует число с заданной точностью, корректно обрабатывая очень маленькие значения
  * @param value Число для форматирования
  * @param precision Количество цифр после запятой
  * @returns Отформатированное число в виде строки
@@ -36,14 +36,44 @@ export function formatNumberWithPrecision(value: number, precision: number = 2):
     return "0".padEnd(precision + 2, "0");
   }
   
-  // Для очень малых чисел используем научную нотацию, которую корректно преобразуем
+  // Преобразуем научную нотацию в строковое представление
+  // Если число очень маленькое (например, 4.629629621e-7)
   if (value > 0 && value < Math.pow(10, -precision)) {
-    // Для значений меньше минимального отображаемого с текущей точностью
-    // Всегда показываем реальное значение, а не нули
-    return value.toFixed(precision);
+    // Создаем строку с фиксированным числом значащих цифр
+    // Это гарантирует, что мы увидим ненулевые цифры для очень маленьких чисел
+    const significantDigits = precision + 2;
+    let formatted = value.toExponential(significantDigits);
+    
+    // Преобразуем научную запись в десятичную форму
+    const match = formatted.match(/^(\d+\.\d+)e([+-])(\d+)$/);
+    if (match) {
+      const base = parseFloat(match[1]);
+      const sign = match[2];
+      const exponent = parseInt(match[3], 10);
+      
+      if (sign === '-') {
+        // Для отрицательной степени (очень маленькие числа)
+        // Добавляем нужное количество нулей после запятой
+        let result = '0.';
+        for (let i = 0; i < exponent - 1; i++) {
+          result += '0';
+        }
+        
+        // Добавляем значащие цифры из мантиссы без десятичной точки
+        result += base.toString().replace('.', '');
+        
+        // Обрезаем до заданной точности, если результат слишком длинный
+        const decimalPart = result.split('.')[1] || '';
+        if (decimalPart.length > precision) {
+          return result.substring(0, result.indexOf('.') + precision + 1);
+        }
+        
+        return result;
+      }
+    }
   }
   
-  // Стандартное форматирование для обычных чисел
+  // Для обычных чисел используем стандартное форматирование
   return value.toFixed(precision);
 }
 

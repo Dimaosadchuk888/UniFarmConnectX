@@ -57,13 +57,15 @@ const TonFarmingStatusCard: React.FC = () => {
       // Установка статуса активности
       setIsActive(farmingData.isActive);
       
-      // Анимируем нарастание значений
-      const animationDuration = 1000;
-      const startTime = Date.now();
-      
-      console.log("[DEBUG] TON Farming data:", {
+      // Расширенное логирование всех полей для отладки
+      console.log("[AUDIT] TON Farming полные данные:", farmingData);
+      console.log("[AUDIT] TON Farming основные значения:", {
         dailyIncomeTon: farmingData.dailyIncomeTon,
-        totalTonRatePerSecond: farmingData.totalTonRatePerSecond
+        dailyIncomeType: typeof farmingData.dailyIncomeTon,
+        dailyIncomeJSON: JSON.stringify(farmingData.dailyIncomeTon),
+        totalTonRatePerSecond: farmingData.totalTonRatePerSecond,
+        perSecondType: typeof farmingData.totalTonRatePerSecond,
+        perSecondJSON: JSON.stringify(farmingData.totalTonRatePerSecond)
       });
       
       // Преобразуем строковые значения непосредственно в числа
@@ -76,7 +78,7 @@ const TonFarmingStatusCard: React.FC = () => {
         parseFloat(farmingData.totalTonRatePerSecond) : 
         (farmingData.totalTonRatePerSecond || 0);
       
-      console.log("[TON-DEBUG] Parsed values:", {
+      console.log("[AUDIT] Преобразованные значения:", {
         targetDaily,
         targetPerSecond,
         dailyType: typeof targetDaily,
@@ -87,6 +89,15 @@ const TonFarmingStatusCard: React.FC = () => {
       setIsPulsing(true);
       setTimeout(() => setIsPulsing(false), 1000);
       
+      // Тест форматирования для отладки, проверяем форматирование без анимации
+      console.log("[AUDIT] Тест форматирования без анимации:");
+      console.log("  Daily yield:", targetDaily, "->", formatNumberWithPrecision(targetDaily, 5));
+      console.log("  Per second:", targetPerSecond, "->", formatNumberWithPrecision(targetPerSecond, 8));
+      
+      // Анимируем нарастание значений
+      const animationDuration = 1000;
+      const startTime = Date.now();
+      
       const animate = () => {
         const currentTime = Date.now();
         const elapsed = currentTime - startTime;
@@ -95,8 +106,15 @@ const TonFarmingStatusCard: React.FC = () => {
         // Эффект замедления к концу
         const easeOutProgress = 1 - Math.pow(1 - progress, 3);
         
-        setDailyYield(targetDaily * easeOutProgress);
-        setPerSecond(targetPerSecond * easeOutProgress);
+        // В последний шаг анимации (progress === 1) устанавливаем точные значения
+        // чтобы избежать ошибок округления при анимации
+        if (progress === 1) {
+          setDailyYield(targetDaily);
+          setPerSecond(targetPerSecond);
+        } else {
+          setDailyYield(targetDaily * easeOutProgress);
+          setPerSecond(targetPerSecond * easeOutProgress);
+        }
         
         if (progress < 1) {
           requestAnimationFrame(animate);
