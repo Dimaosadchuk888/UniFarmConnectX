@@ -19,6 +19,11 @@ export function initTelegramWebApp(): void {
     }
   } else {
     console.warn('Telegram WebApp API не доступен');
+    
+    // Вывести уведомление в консоль только в режиме разработки
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('⚠️ Telegram WebApp not available (normal when running outside Telegram)');
+    }
   }
 }
 
@@ -58,6 +63,25 @@ export function getTelegramUserData(): TelegramUserData | null {
   } catch (error) {
     console.error('Error extracting user data from Telegram WebApp:', error);
     return null;
+  }
+}
+
+/**
+ * Получает заголовки с данными аутентификации Telegram для запросов к API
+ * @returns Объект с заголовками или пустой объект, если данные Telegram недоступны
+ */
+export function getTelegramAuthHeaders(): Record<string, string> {
+  if (!isTelegramWebApp() || !window.Telegram?.WebApp?.initData) {
+    return {};
+  }
+  
+  try {
+    return {
+      'x-telegram-init-data': window.Telegram.WebApp.initData
+    };
+  } catch (error) {
+    console.error('Error getting Telegram auth headers:', error);
+    return {};
   }
 }
 

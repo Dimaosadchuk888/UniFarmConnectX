@@ -16,23 +16,66 @@ import { and, eq } from 'drizzle-orm';
  */
 export class UserController {
   /**
-   * Получает информацию о текущем пользователе по сессии
+   * Получает информацию о текущем пользователе через Telegram Auth
    */
   static async getCurrentUser(req: Request, res: Response): Promise<void> {
     try {
-      // Получаем userId из сессии или заголовка запроса
-      // В реальном приложении это будет получено из сессии или JWT-токена
-      const userId = req.query.user_id ? parseInt(req.query.user_id as string) : 
-                   req.headers['x-user-id'] ? parseInt(req.headers['x-user-id'] as string) : 1; // Используем 1 как fallback для тестирования
+      // Первый приоритет: Телеграм данные из initData в заголовке
+      const telegramInitData = req.headers['x-telegram-init-data'] as string;
+      let userId: number | null = null;
       
-      if (isNaN(userId)) {
-        return sendError(res, 'Invalid user ID', 400);
+      if (telegramInitData) {
+        try {
+          // Парсим данные из строки query-параметров
+          const authParams = new URLSearchParams(telegramInitData);
+          
+          // Извлекаем ID пользователя из Telegram
+          userId = authParams.get('id') ? parseInt(authParams.get('id')!) : null;
+          
+          if (userId) {
+            // Ищем пользователя по Telegram ID
+            const userByTelegram = await UserService.getUserByTelegramId(userId);
+            if (userByTelegram) {
+              userId = userByTelegram.id;
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing Telegram initData:', parseError);
+        }
+      }
+      
+      // Второй приоритет: Сессия или заголовок user_id (для тестирования API)
+      if (!userId) {
+        userId = req.query.user_id ? parseInt(req.query.user_id as string) : 
+                req.headers['x-user-id'] ? parseInt(req.headers['x-user-id'] as string) : null;
+      }
+      
+      // Третий приоритет (для dev): Тестовый пользователь
+      const IS_DEV = process.env.NODE_ENV === 'development';
+      if (!userId && IS_DEV) {
+        userId = 1; // Тестовый пользователь только для разработки
+        console.warn('[UserController] Using test user (ID=1) for development only');
+      }
+      
+      if (!userId || isNaN(userId)) {
+        return sendError(res, 'Не удалось определить пользователя', 401);
       }
 
       const user = await UserService.getUserById(userId);
 
       if (!user) {
-        return sendError(res, 'User not found', 404);
+        return sendError(res, 'Пользователь не найден', 404);
+      }
+
+      // Получаем информацию о языке из Telegram данных
+      let languageCode = 'ru'; // По умолчанию русский
+      
+      if (telegramInitData) {
+        const authParams = new URLSearchParams(telegramInitData);
+        const langFromTelegram = authParams.get('language_code');
+        if (langFromTelegram) {
+          languageCode = langFromTelegram;
+        }
       }
 
       sendSuccess(res, {
@@ -40,7 +83,8 @@ export class UserController {
         telegram_id: user.telegram_id,
         username: user.username,
         balance_uni: user.balance_uni,
-        balance_ton: user.balance_ton
+        balance_ton: user.balance_ton,
+        language: languageCode
       });
     } catch (error) {
       console.error('Error in getCurrentUser:', error);

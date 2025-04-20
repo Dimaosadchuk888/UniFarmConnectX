@@ -2,26 +2,45 @@ import React, { useState, useEffect } from 'react';
 import userService from '@/services/userService';
 import { useQuery } from '@tanstack/react-query';
 
+// Определяем, находимся ли мы в режиме разработки
+const IS_DEV = process.env.NODE_ENV === 'development';
+
 const ReferralLinkCard: React.FC = () => {
-  // Получаем информацию о текущем пользователе - два источника
-  // 1. Из Telegram WebApp
-  const telegram = window.Telegram?.WebApp;
-  const telegramUserId = telegram?.initDataUnsafe?.user?.id;
+  // Состояние для отображения ошибки, если не удалось получить ID
+  const [error, setError] = useState<boolean>(false);
   
-  // 2. Из API (если API недоступно, используем данные из Telegram)
-  const { data: currentUser, isLoading: isUserLoading } = useQuery({
+  // Получаем информацию о текущем пользователе из API
+  const { data: currentUser, isLoading: isUserLoading, isError } = useQuery({
     queryKey: ['/api/me'],
     queryFn: () => userService.getCurrentUser(),
     staleTime: 1000 * 60 * 5, // Кэшируем данные на 5 минут
-    enabled: !telegramUserId, // Запрашиваем только если нет данных из Telegram
-    retry: 1, // Уменьшаем количество повторных попыток
+    retry: 2, // Пробуем получить данные трижды
   });
   
-  // Используем первый доступный ID или фиксированный для тестирования
-  // Приоритет: 1) текущий пользователь из API 2) из Telegram 3) тестовый ID
-  const fixedUserId = 1; // Фиксированный ID для тестирования
-  const userId = `user${currentUser?.id || telegramUserId || fixedUserId}`;
-  const referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
+  // Обработка ошибок через useEffect
+  useEffect(() => {
+    if (isError) {
+      console.error('[ReferralLinkCard] Failed to get user data from API');
+      setError(true);
+    }
+  }, [isError]);
+
+  // Если кеширование уже работает, можно быстро получить пользователя из Telegram
+  const telegram = window.Telegram?.WebApp;
+  const telegramUserId = telegram?.initDataUnsafe?.user?.id;
+  
+  // Определяем наличие userId (должен быть получен только из легитимных источников)
+  const hasUserId = !!(currentUser?.id || (IS_DEV && telegramUserId));
+  
+  // Формируем реферальную ссылку только если есть userId
+  let userId = '';
+  let referralLink = '';
+  
+  if (hasUserId) {
+    // Приоритет: текущий пользователь из API, затем из Telegram (в режиме разработки)
+    userId = `user${currentUser?.id || (IS_DEV ? telegramUserId : '')}`;
+    referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
+  }
   
   // Состояния для анимаций и взаимодействий
   const [isCopied, setIsCopied] = useState(false);
@@ -112,65 +131,97 @@ const ReferralLinkCard: React.FC = () => {
           Реферальная ссылка
         </h3>
         
-        <div className="flex relative">
-          <div className="flex-grow relative">
-            <input 
-              type="text" 
-              value={referralLink} 
-              readOnly
+        {isUserLoading && (
+          <div className="flex justify-center items-center py-3">
+            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+            <span className="text-sm text-muted-foreground">Получение ссылки...</span>
+          </div>
+        )}
+        
+        {error && (
+          <div className="flex flex-col items-center py-3 px-2 bg-red-900/20 rounded-lg">
+            <div className="flex items-center text-red-400 mb-2">
+              <i className="fas fa-exclamation-circle mr-2"></i>
+              <span className="text-sm">Не удалось получить ссылку</span>
+            </div>
+            <button 
+              className="text-xs bg-primary/20 hover:bg-primary/30 transition-colors py-1 px-3 rounded-full"
+              onClick={() => window.location.reload()}
+            >
+              Попробовать снова
+            </button>
+          </div>
+        )}
+        
+        {!isUserLoading && !error && hasUserId && (
+          <div className="flex relative">
+            <div className="flex-grow relative">
+              <input 
+                type="text" 
+                value={referralLink} 
+                readOnly
+                className={`
+                  w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
+                  transition-all duration-300
+                  ${isHovered ? 'bg-muted/80' : ''}
+                `}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+              />
+              
+              {/* Эффект выделения при наведении */}
+              {isHovered && (
+                <div className="absolute inset-0 border border-primary/30 rounded-l-lg pointer-events-none"></div>
+              )}
+            </div>
+            
+            <button 
               className={`
-                w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
+                px-3 py-2 rounded-r-lg relative overflow-hidden
+                ${isCopied ? 'bg-accent' : 'bg-primary'}
                 transition-all duration-300
-                ${isHovered ? 'bg-muted/80' : ''}
               `}
+              onClick={copyToClipboard}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
-            />
+            >
+              {/* Анимированный фон для кнопки */}
+              <div 
+                className="absolute inset-0" 
+                style={{
+                  background: isCopied 
+                    ? 'linear-gradient(45deg, #00FF99, #00CC77)' 
+                    : 'linear-gradient(45deg, #A259FF, #B368F7)',
+                  opacity: isHovered ? 1 : 0.9,
+                  transition: 'opacity 0.3s ease'
+                }}
+              ></div>
+              
+              {/* Иконка в кнопке */}
+              <i className={`
+                fas ${isCopied ? 'fa-check' : 'fa-copy'} 
+                relative z-10 text-white
+                ${isCopied ? 'scale-110' : ''}
+                transition-transform duration-300
+              `}></i>
+            </button>
             
-            {/* Эффект выделения при наведении */}
-            {isHovered && (
-              <div className="absolute inset-0 border border-primary/30 rounded-l-lg pointer-events-none"></div>
+            {/* Тултип о статусе копирования */}
+            {isCopied && (
+              <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
+                Скопировано!
+              </div>
             )}
           </div>
-          
-          <button 
-            className={`
-              px-3 py-2 rounded-r-lg relative overflow-hidden
-              ${isCopied ? 'bg-accent' : 'bg-primary'}
-              transition-all duration-300
-            `}
-            onClick={copyToClipboard}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          >
-            {/* Анимированный фон для кнопки */}
-            <div 
-              className="absolute inset-0" 
-              style={{
-                background: isCopied 
-                  ? 'linear-gradient(45deg, #00FF99, #00CC77)' 
-                  : 'linear-gradient(45deg, #A259FF, #B368F7)',
-                opacity: isHovered ? 1 : 0.9,
-                transition: 'opacity 0.3s ease'
-              }}
-            ></div>
-            
-            {/* Иконка в кнопке */}
-            <i className={`
-              fas ${isCopied ? 'fa-check' : 'fa-copy'} 
-              relative z-10 text-white
-              ${isCopied ? 'scale-110' : ''}
-              transition-transform duration-300
-            `}></i>
-          </button>
-          
-          {/* Тултип о статусе копирования */}
-          {isCopied && (
-            <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
-              Скопировано!
-            </div>
-          )}
-        </div>
+        )}
+        
+        {/* Если нет userId и не в состоянии загрузки или ошибки */}
+        {!isUserLoading && !error && !hasUserId && (
+          <div className="flex justify-center items-center py-3 px-2 bg-yellow-900/20 rounded-lg">
+            <i className="fas fa-info-circle text-yellow-500 mr-2"></i>
+            <span className="text-sm text-yellow-500/90">Не удалось получить ссылку, попробуйте позже</span>
+          </div>
+        )}
       </div>
       
       {/* Секция с статистикой */}
