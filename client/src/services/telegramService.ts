@@ -4,7 +4,24 @@
 
 // Проверяет, запущено ли приложение в Telegram WebApp
 export function isTelegramWebApp(): boolean {
-  return window.Telegram?.WebApp !== undefined;
+  const hasTelegram = !!(
+    typeof window !== 'undefined' &&
+    window.Telegram &&
+    window.Telegram.WebApp &&
+    typeof window.Telegram.WebApp.initData === 'string' &&
+    window.Telegram.WebApp.initData !== ''
+  );
+  
+  console.log('[telegramService] isTelegramWebApp check:', {
+    windowDefined: typeof window !== 'undefined',
+    hasTelegramObject: !!(window?.Telegram),
+    hasWebAppObject: !!(window?.Telegram?.WebApp),
+    hasInitData: !!(window?.Telegram?.WebApp?.initData),
+    initDataLength: window?.Telegram?.WebApp?.initData?.length || 0,
+    result: hasTelegram
+  });
+  
+  return hasTelegram;
 }
 
 // Инициализирует Telegram WebApp
@@ -39,15 +56,29 @@ interface TelegramUserData {
 
 // Получает данные пользователя из Telegram WebApp
 export function getTelegramUserData(): TelegramUserData | null {
-  if (!isTelegramWebApp() || !window.Telegram?.WebApp?.initDataUnsafe) {
+  console.log('[telegramService] getTelegramUserData called');
+  
+  if (!window.Telegram?.WebApp?.initDataUnsafe) {
+    console.warn('[telegramService] initDataUnsafe not available');
     return null;
   }
 
   try {
-    const { user, auth_date, hash } = window.Telegram.WebApp.initDataUnsafe;
+    // Делаем копию данных, чтобы избежать возможных ошибок при обращении к свойствам
+    const initDataUnsafe = { ...window.Telegram.WebApp.initDataUnsafe };
+    const user = initDataUnsafe.user;
+    
+    console.log('[telegramService] initDataUnsafe:', { 
+      hasUser: !!user,
+      userId: user?.id,
+      username: user?.username,
+      firstName: user?.first_name,
+      lastName: user?.last_name,
+      initDataKeys: Object.keys(initDataUnsafe)
+    });
     
     if (!user) {
-      console.warn('User data not available in Telegram WebApp');
+      console.warn('[telegramService] User data not available in Telegram WebApp');
       return null;
     }
 
@@ -62,9 +93,15 @@ export function getTelegramUserData(): TelegramUserData | null {
       authData: window.Telegram.WebApp.initData  // Данные для проверки подписи на сервере
     };
     
+    console.log('[telegramService] Successfully extracted user data:', {
+      userId: userData.userId,
+      username: userData.username || 'not set',
+      firstName: userData.firstName || 'not set'
+    });
+    
     return userData;
   } catch (error) {
-    console.error('Error extracting user data from Telegram WebApp:', error);
+    console.error('[telegramService] Error extracting user data from Telegram WebApp:', error);
     return null;
   }
 }
@@ -74,16 +111,31 @@ export function getTelegramUserData(): TelegramUserData | null {
  * @returns Объект с заголовками или пустой объект, если данные Telegram недоступны
  */
 export function getTelegramAuthHeaders(): Record<string, string> {
-  if (!isTelegramWebApp() || !window.Telegram?.WebApp?.initData) {
+  console.log('[telegramService] Getting Telegram auth headers');
+  
+  if (!window.Telegram?.WebApp?.initData) {
+    console.warn('[telegramService] initData is not available');
     return {};
   }
   
   try {
-    return {
-      'x-telegram-init-data': window.Telegram.WebApp.initData
+    const initData = window.Telegram.WebApp.initData;
+    
+    // Логируем часть данных (не полностью, чтобы не раскрывать секретную информацию)
+    console.log('[telegramService] initData preview:', 
+      initData.length > 20 ? 
+      `${initData.substring(0, 10)}...${initData.substring(initData.length - 10)}` :
+      'too short');
+    
+    // Добавляем данные в заголовки для передачи на сервер
+    const headers = {
+      'x-telegram-init-data': initData
     };
+    
+    console.log('[telegramService] Auth headers prepared successfully');
+    return headers;
   } catch (error) {
-    console.error('Error getting Telegram auth headers:', error);
+    console.error('[telegramService] Error getting Telegram auth headers:', error);
     return {};
   }
 }

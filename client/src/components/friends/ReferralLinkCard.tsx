@@ -25,6 +25,15 @@ const ReferralLinkCard: React.FC = () => {
       setError(true);
     }
   }, [isError]);
+  
+  // Логируем userId каждый раз при его обновлении
+  useEffect(() => {
+    if (currentUser?.id) {
+      console.log('[ReferralLinkCard] Received userId from API:', currentUser.id);
+    } else {
+      console.warn('[ReferralLinkCard] No userId received from API yet');
+    }
+  }, [currentUser?.id]);
 
   // Если кеширование уже работает, можно быстро получить пользователя из Telegram
   const telegram = window.Telegram?.WebApp;

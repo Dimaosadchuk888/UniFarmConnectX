@@ -10,10 +10,13 @@ async function throwIfResNotOk(res: Response) {
 
 // Получает все необходимые заголовки для запросов к API
 function getApiHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {
+  console.log('[queryClient] Getting API headers');
+  
   // Получаем заголовки с данными Telegram
   const telegramHeaders = getTelegramAuthHeaders();
   
-  return {
+  // Базовые заголовки для API запросов
+  const headers = {
     "Content-Type": "application/json",
     "Accept": "application/json",
     "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -22,6 +25,14 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
     ...telegramHeaders, // Добавляем заголовки Telegram
     ...customHeaders    // Добавляем пользовательские заголовки
   };
+  
+  // Логируем наличие x-telegram-init-data заголовка (но не его содержимое)
+  console.log('[queryClient] API headers prepared:', {
+    hasTelegramData: !!headers['x-telegram-init-data'],
+    totalHeadersCount: Object.keys(headers).length
+  });
+  
+  return headers;
 }
 
 // Обновляем тип apiRequest, чтобы он возвращал ответ с данными, а не Response
@@ -30,8 +41,13 @@ export async function apiRequest(
   options?: RequestInit
 ): Promise<any> {
   try {
+    console.log(`[queryClient] apiRequest to ${url}`);
+    
     // Добавляем заголовки Telegram к стандартным заголовкам
     const headers = getApiHeaders(options?.headers as Record<string, string> || {});
+    
+    // Логируем запрос перед отправкой
+    console.log(`[queryClient] Making ${options?.method || 'GET'} request to: ${url}`);
     
     const res = await fetch(url, {
       ...options,
@@ -39,11 +55,29 @@ export async function apiRequest(
       credentials: "include",
     });
 
+    // Логируем статус ответа
+    console.log(`[queryClient] Response status: ${res.status} ${res.statusText}`);
+    
     await throwIfResNotOk(res);
-    const data = await res.json();
-    return data;
+    
+    // Пробуем распарсить JSON
+    try {
+      const data = await res.json();
+      
+      // Логируем общую структуру ответа (без раскрытия всех данных)
+      console.log(`[queryClient] Response received:`, {
+        success: data?.success,
+        hasData: data?.data !== undefined,
+        dataType: data?.data ? (Array.isArray(data.data) ? 'array' : typeof data.data) : 'undefined'
+      });
+      
+      return data;
+    } catch (jsonError) {
+      console.error(`[queryClient] JSON parse error:`, jsonError);
+      throw new Error(`Invalid JSON in response: ${jsonError.message}`);
+    }
   } catch (error) {
-    console.error("API request error:", error);
+    console.error(`[queryClient] API request error to ${url}:`, error);
     throw error;
   }
 }

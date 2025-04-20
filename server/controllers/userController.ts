@@ -22,32 +22,93 @@ export class UserController {
     try {
       // Первый приоритет: Телеграм данные из initData в заголовке
       const telegramInitData = req.headers['x-telegram-init-data'] as string;
+      let telegramId: number | null = null;
       let userId: number | null = null;
+      let username: string | null = null;
+      let languageCode = 'ru'; // По умолчанию русский
+      
+      console.log('[UserController] Request headers:', 
+        JSON.stringify(Object.keys(req.headers).filter(h => h.startsWith('x-'))));
       
       if (telegramInitData) {
         try {
+          console.log('[UserController] Got Telegram initData from headers');
+          
           // Парсим данные из строки query-параметров
           const authParams = new URLSearchParams(telegramInitData);
           
           // Извлекаем ID пользователя из Telegram
-          userId = authParams.get('id') ? parseInt(authParams.get('id')!) : null;
+          telegramId = authParams.get('id') ? parseInt(authParams.get('id')!) : null;
+          username = authParams.get('username') || null;
           
-          if (userId) {
-            // Ищем пользователя по Telegram ID
-            const userByTelegram = await UserService.getUserByTelegramId(userId);
+          // Получаем язык из Telegram данных
+          const langFromTelegram = authParams.get('language_code');
+          if (langFromTelegram) {
+            languageCode = langFromTelegram;
+          }
+          
+          if (telegramId) {
+            console.log(`[UserController] Found Telegram ID: ${telegramId}, searching for user...`);
+            
+            // Пробуем найти пользователя по Telegram ID
+            const userByTelegram = await UserService.getUserByTelegramId(telegramId);
+            
             if (userByTelegram) {
+              // Пользователь найден - используем его ID
               userId = userByTelegram.id;
+              console.log(`[UserController] User found with ID ${userId} for Telegram ID ${telegramId}`);
+            } else {
+              // Пользователь не найден - создаем нового
+              console.log(`[UserController] No user found for Telegram ID ${telegramId}, creating new user...`);
+              
+              const firstName = authParams.get('first_name') || '';
+              const lastName = authParams.get('last_name') || '';
+              
+              // Используем имя и фамилию для создания username, если его нет
+              if (!username) {
+                username = [firstName, lastName].filter(Boolean).join('_');
+                if (!username) {
+                  username = `telegram_${telegramId}`;
+                }
+              }
+              
+              // Создаем нового пользователя
+              const newUser = await UserService.createUser({
+                telegram_id: telegramId,
+                username,
+                created_at: new Date(),
+                updated_at: new Date(),
+                balance_uni: '0',
+                balance_ton: '0',
+                uni_deposit_amount: '0',
+                uni_farming_balance: '0',
+                uni_farming_rate: '0',
+                ton_deposit_amount: '0',
+                ton_farming_balance: '0',
+                ton_farming_rate: '0'
+              });
+              
+              userId = newUser.id;
+              console.log(`[UserController] Created new user with ID ${userId} for Telegram ID ${telegramId}`);
             }
+          } else {
+            console.warn('[UserController] Telegram initData does not contain user ID');
           }
         } catch (parseError) {
-          console.error('Error parsing Telegram initData:', parseError);
+          console.error('[UserController] Error parsing Telegram initData:', parseError);
         }
+      } else {
+        console.warn('[UserController] No Telegram initData found in headers');
       }
       
       // Второй приоритет: Сессия или заголовок user_id (для тестирования API)
       if (!userId) {
         userId = req.query.user_id ? parseInt(req.query.user_id as string) : 
                 req.headers['x-user-id'] ? parseInt(req.headers['x-user-id'] as string) : null;
+                
+        if (userId) {
+          console.log(`[UserController] Using userId ${userId} from query parameters or headers`);
+        }
       }
       
       // Третий приоритет (для dev): Тестовый пользователь
@@ -57,27 +118,21 @@ export class UserController {
         console.warn('[UserController] Using test user (ID=1) for development only');
       }
       
+      // Проверка наличия userId
       if (!userId || isNaN(userId)) {
+        console.error('[UserController] Could not determine user ID');
         return sendError(res, 'Не удалось определить пользователя', 401);
       }
 
+      // Получаем пользователя по ID
       const user = await UserService.getUserById(userId);
 
       if (!user) {
+        console.error(`[UserController] User with ID ${userId} not found`);
         return sendError(res, 'Пользователь не найден', 404);
       }
 
-      // Получаем информацию о языке из Telegram данных
-      let languageCode = 'ru'; // По умолчанию русский
-      
-      if (telegramInitData) {
-        const authParams = new URLSearchParams(telegramInitData);
-        const langFromTelegram = authParams.get('language_code');
-        if (langFromTelegram) {
-          languageCode = langFromTelegram;
-        }
-      }
-
+      console.log(`[UserController] Returning user data for ID ${userId}`);
       sendSuccess(res, {
         id: user.id,
         telegram_id: user.telegram_id,
@@ -87,7 +142,7 @@ export class UserController {
         language: languageCode
       });
     } catch (error) {
-      console.error('Error in getCurrentUser:', error);
+      console.error('[UserController] Error in getCurrentUser:', error);
       sendServerError(res, error);
     }
   }
