@@ -1,7 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import FarmingStatusCard from '../components/farming/FarmingStatusCard';
 import UniFarmingCard from '../components/farming/UniFarmingCard';
 import BoostPackagesCard from '../components/farming/BoostPackagesCard';
 import ActiveBoostsCard from '../components/farming/ActiveBoostsCard';
@@ -33,9 +32,6 @@ const Farming: React.FC = () => {
         </TabsList>
         
         <TabsContent value="uni">
-          {/* Статус фарминга */}
-          <FarmingStatusCard />
-          
           {/* Основной UNI пакет */}
           <UniFarmingCard userData={userData} />
           
