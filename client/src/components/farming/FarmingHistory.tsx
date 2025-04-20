@@ -534,10 +534,12 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
       );
     }
     
-    // Фильтруем депозиты, чтобы показать только UNI фарминг (packageId = 0)
-    const uniDeposits = deposits.filter(d => d.packageId === 0);
+    // Проверяем наличие UNI транзакций
+    const hasUniTransactions = farmingHistory.filter(item => 
+      item.currency === 'UNI'
+    ).length > 0;
     
-    if (uniDeposits.length === 0) {
+    if (!hasUniTransactions) {
       return (
         <div 
           className="text-center py-16 flex flex-col items-center justify-center"
@@ -552,11 +554,11 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           </div>
           
           <p className="text-md text-foreground opacity-80 mb-2">
-            У вас пока нет активного UNI фарминга
+            У вас пока нет UNI транзакций
           </p>
           
           <p className="text-sm text-foreground opacity-50 max-w-sm mx-auto">
-            Откройте фарминг, чтобы начать зарабатывать UNI
+            Откройте UNI фарминг на главной вкладке, чтобы начать зарабатывать
           </p>
           
           <button className="mt-6 gradient-button text-white px-4 py-2 rounded-lg font-medium transition-transform hover:scale-105">
@@ -567,149 +569,78 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     }
     
     return (
-      <div className="overflow-hidden relative">
-        {/* Эффект затухания вверху и внизу для скролла */}
-        <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-card to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent z-10 pointer-events-none"></div>
-        
-        {/* Блок для скрытия белой полосы справа */}
-        <div className="absolute top-0 bottom-0 right-0 w-[1px] bg-card z-20"></div>
-        
-        <div className="space-y-4 max-h-[350px] overflow-y-auto overflow-x-hidden farming-history-scroll">
-          {uniDeposits.map((deposit) => (
-            <div 
-              key={deposit.id} 
-              className={`
-                rounded-xl p-4 transition-all duration-300
-                ${deposit.isActive ? 'bg-primary/10 border border-primary/40' : 'bg-card'}
-                ${deposit.isActive ? 'shadow-[0_0_15px_rgba(162,89,255,0.15)]' : ''}
-              `}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center mb-1">
-                    <i className="fas fa-seedling text-sm text-purple-300 mr-2"></i>
-                    <h3 className="font-medium">Основной UNI пакет ({deposit.uniYield})</h3>
-                  </div>
-                  <p className="text-xs text-foreground opacity-70 mb-2">
-                    Дата активации: {formatDate(deposit.createdAt)}
-                  </p>
-                </div>
-                <div>
-                  <span 
-                    className={`
-                      inline-block px-2 py-1 text-xs rounded-full
-                      ${deposit.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}
-                    `}
-                  >
-                    {deposit.isActive ? `Активен (${deposit.daysLeft} дн.)` : 'Завершён'}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <div>
-                  <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
-                  <div className="flex items-center">
-                    <span className="text-purple-300">
-                      +{uniFarmingResponse?.success && uniFarmingResponse?.data?.totalRatePerSecond ? 
-                        (parseFloat(uniFarmingResponse.data.totalRatePerSecond) * 86400).toFixed(2) : 
-                        "0.00"}
-                    </span>
-                    <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
-                  <div className="flex items-center">
-                    <span className="text-purple-300">
-                      +{uniFarmingResponse?.success && uniFarmingResponse?.data?.totalRatePerSecond ? 
-                        parseFloat(uniFarmingResponse.data.totalRatePerSecond).toFixed(8) : 
-                        "0.00000000"}
-                    </span>
-                    <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+      <div className="space-y-4">
+        {/* Отображаем только историю транзакций UNI фарминга */}
+        <div className="mt-6 pt-6 border-t border-gray-800/30">
+          <h3 className="text-md font-medium mb-4">История UNI фарминга</h3>
           
-          {/* Отображаем историю транзакций UNI фарминга */}
-          <div className="mt-6 pt-6 border-t border-gray-800/30">
-            <h3 className="text-md font-medium mb-4">История UNI фарминга</h3>
-            
-            <div className="overflow-hidden relative">
-              {farmingHistory.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-foreground opacity-70">
-                    У вас пока нет транзакций по фармингу UNI
-                  </p>
-                </div>
-              ) : (
-                <>
-                  
-                  <table className="w-full">
-                    <thead className="sticky top-0 bg-card z-10">
-                      <tr className="border-b border-gray-800">
-                        <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
-                        <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
-                        <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
+          <div className="overflow-hidden relative">
+            {farmingHistory.filter(item => item.currency === 'UNI').length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-foreground opacity-70">
+                  У вас пока нет транзакций по фармингу UNI
+                </p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b border-gray-800">
+                    <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
+                    <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
+                    <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Добавлена фильтрация по активной вкладке */}
+                  {farmingHistory
+                    .filter(item => {
+                      // Фильтрация по активной вкладке
+                      if (activeTab === 'uni') {
+                        return item.currency === 'UNI';
+                      } else {
+                        return item.currency === 'TON';
+                      }
+                    })
+                    .map((item) => (
+                      <tr 
+                        key={item.id} 
+                        className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
+                      >
+                        <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
+                        <td className="py-2 text-sm text-foreground">
+                          <div className="flex items-center">
+                            <span className={`
+                              inline-block w-2 h-2 rounded-full mr-2
+                              ${item.type === 'Фарминг' ? 'bg-green-500' : 
+                                item.type === 'Депозит' ? 'bg-purple-500' : 
+                                item.type === 'Награда за фарминг' ? 'bg-pink-500' : 
+                                item.type === 'TON фарминг' ? 'bg-blue-500' : 
+                                item.type === 'Ежедневный бонус' ? 'bg-yellow-500' : 
+                                'bg-blue-500'}
+                            `}></span>
+                            {item.type}
+                          </div>
+                        </td>
+                        <td className="py-2 text-sm text-right">
+                          <span className={item.currency === 'UNI' ? "text-purple-300" : "text-blue-300"}>
+                            +{item.currency === 'TON' ? 
+                              // TON показываем с разной точностью в зависимости от размера суммы
+                              item.amount.toFixed(item.amount < 0.001 ? 6 : 3) : 
+                              // UNI показываем с разной точностью в зависимости от размера суммы
+                              item.amount.toFixed(
+                                item.amount < 0.0001 ? 8 : 
+                                item.amount < 0.01 ? 6 : 
+                                item.amount < 1 ? 4 : 2
+                              )
+                            }
+                          </span>
+                          <span className="text-gray-400 ml-1.5 text-xs">{item.currency}</span>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {/* Добавлена фильтрация по активной вкладке и минимальной значимой сумме */}
-                      {farmingHistory
-                        .filter(item => {
-                          // Фильтрация по активной вкладке
-                          if (activeTab === 'uni') {
-                            return item.currency === 'UNI';
-                          } else {
-                            return item.currency === 'TON';
-                          }
-                        })
-                        .map((item) => (
-                          <tr 
-                            key={item.id} 
-                            className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
-                          >
-                            <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
-                            <td className="py-2 text-sm text-foreground">
-                              <div className="flex items-center">
-                                <span className={`
-                                  inline-block w-2 h-2 rounded-full mr-2
-                                  ${item.type === 'Фарминг' ? 'bg-green-500' : 
-                                    item.type === 'Депозит' ? 'bg-purple-500' : 
-                                    item.type === 'Награда за фарминг' ? 'bg-pink-500' : 
-                                    item.type === 'TON фарминг' ? 'bg-blue-500' : 
-                                    item.type === 'Ежедневный бонус' ? 'bg-yellow-500' : 
-                                    'bg-blue-500'}
-                                `}></span>
-                                {item.type}
-                              </div>
-                            </td>
-                            <td className="py-2 text-sm text-right">
-                              <span className={item.currency === 'UNI' ? "text-purple-300" : "text-blue-300"}>
-                                +{item.currency === 'TON' ? 
-                                  // TON показываем с разной точностью в зависимости от размера суммы
-                                  item.amount.toFixed(item.amount < 0.001 ? 6 : 3) : 
-                                  // UNI показываем с разной точностью в зависимости от размера суммы
-                                  item.amount.toFixed(
-                                    item.amount < 0.0001 ? 8 : 
-                                    item.amount < 0.01 ? 6 : 
-                                    item.amount < 1 ? 4 : 2
-                                  )
-                                }
-                              </span>
-                              <span className="text-gray-400 ml-1.5 text-xs">{item.currency}</span>
-                            </td>
-                          </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-            </div>
+                    ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
