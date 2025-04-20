@@ -442,6 +442,8 @@ export function getTelegramAuthHeaders(): Record<string, string> {
     // Шаг 5: Формирование заголовков для отправки на сервер
     const headers: Record<string, string> = {
       'Telegram-Data': initData,
+      'X-Telegram-Data': initData, // Дублируем заголовок для обратной совместимости
+      'X-Telegram-Init-Data': initData, // Добавляем оригинальный формат заголовка
       'X-Telegram-Auth': 'true' // Дополнительный маркер для сервера
     };
     

@@ -26,9 +26,11 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
     ...customHeaders    // Добавляем пользовательские заголовки
   };
   
-  // Логируем наличие x-telegram-init-data заголовка (но не его содержимое)
+  // Логируем наличие telegram-заголовков (но не их содержимое)
   console.log('[queryClient] API headers prepared:', {
-    hasTelegramData: 'x-telegram-init-data' in telegramHeaders,
+    hasTelegramData: 'Telegram-Data' in telegramHeaders || 'X-Telegram-Data' in telegramHeaders || 'x-telegram-init-data' in telegramHeaders,
+    hasTelegramUserId: 'X-Telegram-User-Id' in telegramHeaders,
+    telegramHeadersCount: Object.keys(telegramHeaders).length,
     totalHeadersCount: Object.keys(headers).length
   });
   
