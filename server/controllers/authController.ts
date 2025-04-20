@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/userService';
+import { ReferralService } from '../services/referralService';
 import { createHmac, createHash } from 'crypto';
 import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
 import { db } from '../db';
@@ -18,7 +19,7 @@ export class AuthController {
    */
   static async authenticateTelegram(req: Request, res: Response): Promise<void> {
     try {
-      const { authData } = req.body;
+      const { authData, referrerId } = req.body;
       
       if (!authData) {
         return sendError(res, 'Отсутствуют данные аутентификации', 400);
@@ -91,9 +92,12 @@ export class AuthController {
 
       // Пытаемся найти пользователя по Telegram ID
       let user = await UserService.getUserByTelegramId(userId);
+      let isNewUser = false;
+      let referrerRegistered = false;
       
       // Если пользователь не найден, создаем нового
       if (!user) {
+        isNewUser = true;
         user = await UserService.createUser({
           telegram_id: userId,
           username: username || `user_${userId}`,
@@ -115,13 +119,44 @@ export class AuthController {
         return sendError(res, 'Не удалось создать или найти пользователя', 500);
       }
 
+      // Обработка реферальной связи, если есть параметр referrerId и пользователь новый
+      if (referrerId && isNewUser) {
+        try {
+          // Проверяем, существует ли пользователь с указанным referrerId
+          let inviterId = parseInt(referrerId);
+          if (!isNaN(inviterId)) {
+            // Проверяем, существует ли пользователь-приглашающий
+            const inviter = await UserService.getUserById(inviterId);
+            
+            if (inviter) {
+              // Создаем реферальную связь (уровень 1)
+              const referral = await ReferralService.createReferral({
+                user_id: user.id,
+                inviter_id: inviterId,
+                level: 1,
+                created_at: new Date()
+              });
+              
+              if (referral) {
+                console.log(`Создана реферальная связь: пользователь ${user.id} приглашен пользователем ${inviterId}`);
+                referrerRegistered = true;
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Ошибка при создании реферальной связи:', error);
+          // Продолжаем выполнение, так как ошибка реферальной системы не критична для аутентификации
+        }
+      }
+
       // Отправляем успешный ответ с данными пользователя
       sendSuccess(res, {
         user_id: user.id,
         telegram_id: user.telegram_id,
         username: user.username,
         balance_uni: user.balance_uni,
-        balance_ton: user.balance_ton
+        balance_ton: user.balance_ton,
+        referrer_registered: referrerRegistered // Флаг успешной регистрации реферальной связи
       });
     } catch (error) {
       console.error('Ошибка аутентификации через Telegram:', error);

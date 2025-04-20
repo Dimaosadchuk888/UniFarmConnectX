@@ -123,7 +123,8 @@ export const insertReferralSchema = createInsertSchema(referrals).pick({
   user_id: true,
   inviter_id: true,
   level: true,
-  reward_uni: true
+  reward_uni: true,
+  created_at: true
 });
 
 export type InsertReferral = z.infer<typeof insertReferralSchema>;

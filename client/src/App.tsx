@@ -18,6 +18,7 @@ import Friends from "@/pages/Friends";
 import Wallet from "@/pages/Wallet";
 
 // For Telegram WebApp types
+// Обновлено определение глобального интерфейса для Telegram WebApp
 declare global {
   interface Window {
     Telegram?: {
@@ -25,7 +26,18 @@ declare global {
         expand: () => void;
         ready: () => void;
         initData: string;
-        initDataUnsafe: any;
+        initDataUnsafe: {
+          user?: {
+            id: number;
+            username?: string;
+            first_name?: string;
+            last_name?: string;
+            photo_url?: string;
+          };
+          auth_date?: string;
+          hash?: string;
+          platform?: string;
+        };
         platform?: string;
         colorScheme?: string;
       };
@@ -68,16 +80,29 @@ function App() {
         return;
       }
 
+      // Проверяем, есть ли параметр реферера в URL
+      const referrerId = getReferrerIdFromURL();
+      console.log('Параметр реферера из URL:', referrerId);
+
       // Отправляем данные на сервер для аутентификации
       const authResult = await apiRequest('/api/auth/telegram', {
         method: 'POST',
-        body: JSON.stringify({ authData: telegramData.authData }),
+        body: JSON.stringify({ 
+          authData: telegramData.authData,
+          referrerId: referrerId // Добавляем ID приглашающего пользователя
+        })
       });
 
       if (authResult.success && authResult.data) {
         // Сохраняем ID пользователя
         setUserId(authResult.data.user_id);
         console.log('Пользователь авторизован:', authResult.data);
+        
+        // Если был реферер, показываем сообщение
+        if (referrerId && authResult.data.referrer_registered) {
+          console.log('Вы были приглашены пользователем:', referrerId);
+          // Здесь можно добавить Toast или другое уведомление
+        }
         
         // Обновляем кэш запросов, которые зависят от авторизации
         queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
