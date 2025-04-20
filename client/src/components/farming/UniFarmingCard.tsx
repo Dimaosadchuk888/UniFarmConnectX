@@ -139,11 +139,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   
   // Расчет дневного дохода (для отображения)
   const calculateDailyIncome = (): string => {
-    if (!isActive || !farmingInfo.depositAmount) return '0';
+    if (!isActive || !farmingInfo.totalDepositAmount) return '0';
     try {
-      // Доходность составляет 0.5% в день от депозита
-      const depositAmount = new BigNumber(farmingInfo.depositAmount);
-      return depositAmount.multipliedBy(0.005).toFixed(3); // 3 знака после запятой для дневного дохода
+      // Доходность составляет 0.5% в день от общего депозита
+      const totalDepositAmount = new BigNumber(farmingInfo.totalDepositAmount);
+      return totalDepositAmount.multipliedBy(0.005).toFixed(3); // 3 знака после запятой для дневного дохода
     } catch (err) {
       return '0';
     }
@@ -151,11 +151,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   
   // Расчет дохода в секунду (для отображения)
   const calculateSecondRate = (): string => {
-    if (!isActive || !farmingInfo.depositAmount) return '0';
+    if (!isActive || !farmingInfo.totalDepositAmount) return '0';
     try {
-      // Доходность составляет 0.5% в день от депозита, делим на количество секунд в сутках
-      const depositAmount = new BigNumber(farmingInfo.depositAmount);
-      const dailyIncome = depositAmount.multipliedBy(0.005);
+      // Доходность составляет 0.5% в день от общего депозита, делим на количество секунд в сутках
+      const totalDepositAmount = new BigNumber(farmingInfo.totalDepositAmount);
+      const dailyIncome = totalDepositAmount.multipliedBy(0.005);
       const secondsInDay = 86400;
       return dailyIncome.dividedBy(secondsInDay).toFixed(8); // 8 знаков для секундного дохода
     } catch (err) {
@@ -187,7 +187,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-foreground opacity-70">Текущий депозит</p>
-              <p className="text-lg font-medium">{formatNumber(farmingInfo.depositAmount)} UNI</p>
+              <p className="text-lg font-medium">{formatNumber(farmingInfo.totalDepositAmount)} UNI</p>
             </div>
             <div>
               <p className="text-sm text-foreground opacity-70">Дата активации</p>
