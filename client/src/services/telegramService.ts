@@ -24,6 +24,9 @@ declare global {
         };
         platform?: string;
         colorScheme?: string;
+        startParam?: string; // Параметр start= из ссылки запуска бота
+        version?: string;    // Версия API
+        themeParams?: Record<string, string>; // Параметры темы
       };
     };
   }
@@ -112,31 +115,82 @@ interface TelegramUserData {
 export function getTelegramUserData(): TelegramUserData | null {
   console.log('[telegramService] getTelegramUserData called');
   
-  // Шаг 1: Проверка базовой доступности API
+  // Шаг 1: Полная диагностика с подробным логированием состояния
+  console.log('[telegramService] Telegram WebApp state diagnostic:', {
+    windowDefined: typeof window !== 'undefined',
+    telegramAvailable: !!window?.Telegram,
+    webAppAvailable: !!window?.Telegram?.WebApp,
+    initDataAvailable: !!window?.Telegram?.WebApp?.initData,
+    initDataLength: typeof window?.Telegram?.WebApp?.initData === 'string' ? window.Telegram.WebApp.initData.length : 0,
+    initDataUnsafeAvailable: !!window?.Telegram?.WebApp?.initDataUnsafe,
+    userAvailable: !!window?.Telegram?.WebApp?.initDataUnsafe?.user,
+    userIdAvailable: typeof window?.Telegram?.WebApp?.initDataUnsafe?.user?.id === 'number',
+    // @ts-ignore - startParam может быть недоступен в типе, но доступен в реальном API
+    startParamAvailable: !!window?.Telegram?.WebApp?.startParam,
+    // @ts-ignore - startParam может быть недоступен в типе, но доступен в реальном API
+    startParamValue: window?.Telegram?.WebApp?.startParam || 'none',
+    platform: window?.Telegram?.WebApp?.platform || 'unknown'
+  });
+  
+  // Шаг 2: Проверка базовой доступности API
   if (!isTelegramWebApp()) {
     console.warn('[telegramService] Telegram WebApp API not available');
-    return null;
+    
+    // Попытка переинициализации, если Telegram объект есть, но не прошел проверки
+    if (window?.Telegram?.WebApp) {
+      try {
+        console.log('[telegramService] Attempting to reinitialize Telegram WebApp');
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+        
+        // Повторная проверка после переинициализации
+        if (isTelegramWebApp()) {
+          console.log('[telegramService] Successfully reinitialized Telegram WebApp');
+        } else {
+          console.warn('[telegramService] Failed to reinitialize Telegram WebApp');
+          return null;
+        }
+      } catch (error) {
+        console.error('[telegramService] Error during WebApp reinitialization:', error);
+        return null;
+      }
+    } else {
+      return null;
+    }
   }
   
-  // Шаг 2: Дополнительная проверка доступности initDataUnsafe
+  // Шаг 3: Дополнительная проверка доступности initDataUnsafe
   if (!window.Telegram?.WebApp?.initDataUnsafe) {
-    console.warn('[telegramService] initDataUnsafe not available');
+    console.warn('[telegramService] initDataUnsafe not available, trying alternative methods');
+    
+    // Если initData есть, но initDataUnsafe нет, можно попробовать 
+    // проверить startParam для получения дополнительной информации
+    if (window.Telegram?.WebApp?.startParam) {
+      console.log('[telegramService] No initDataUnsafe, but startParam available:', 
+                  window.Telegram.WebApp.startParam);
+    }
+    
     return null;
   }
 
   try {
-    // Шаг 3: Безопасное создание копии данных
+    // Шаг 4: Безопасное создание копии данных
     const initDataUnsafe = { ...window.Telegram.WebApp.initDataUnsafe };
     const user = initDataUnsafe.user;
     
-    // Расширенное логирование
-    console.log('[telegramService] initDataUnsafe:', { 
+    // Расширенное логирование всех доступных данных
+    console.log('[telegramService] Full Telegram WebApp diagnostic:', { 
       hasUser: !!user,
       userId: typeof user?.id === 'number' ? user.id : 'invalid',
       username: user?.username || 'not available',
       firstName: user?.first_name || 'not available',
       lastName: user?.last_name || 'not available',
-      initDataKeys: Object.keys(initDataUnsafe)
+      initDataKeys: Object.keys(initDataUnsafe),
+      startParam: window.Telegram?.WebApp?.startParam || 'not available',
+      platform: window.Telegram?.WebApp?.platform || 'not available',
+      version: window.Telegram?.WebApp?.version || 'not available',
+      initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
+      themeParams: window.Telegram?.WebApp?.themeParams ? 'available' : 'not available'
     });
     
     // Шаг 4: Проверка наличия объекта user и корректности данных

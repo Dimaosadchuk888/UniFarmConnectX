@@ -156,8 +156,9 @@ export function getReferrerIdFromURL(): string | null {
     // Шаг 2: Проверяем данные Telegram WebApp
     if (window.Telegram?.WebApp) {
       // В Telegram WebApp параметр start передается как часть initData
-      // или может быть доступен в startParam
+      // или может быть доступен как startParam
       
+      // @ts-ignore - startParam может быть недоступен в типе, но доступен в реальном API
       const telegramStartParam = window.Telegram.WebApp.startParam;
       if (telegramStartParam) {
         console.log('[utils] Found startParam in Telegram WebApp:', telegramStartParam);

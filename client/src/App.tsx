@@ -40,6 +40,9 @@ declare global {
         };
         platform?: string;
         colorScheme?: string;
+        startParam?: string; // Параметр start= из ссылки запуска бота
+        version?: string;    // Версия API
+        themeParams?: Record<string, string>; // Параметры темы
       };
     };
     process: {
