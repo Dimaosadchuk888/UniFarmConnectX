@@ -1,6 +1,11 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
+
+// Расширяем тип WebSocket для поддержки пользовательских свойств
+interface ExtendedWebSocket extends WebSocket {
+  userId?: number;
+}
 import { storage } from "./storage";
 
 // Импортируем контроллеры
@@ -104,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
   // Обработка подключений WebSocket
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws: ExtendedWebSocket) => {
     console.log('[WebSocket] Новое подключение установлено');
     
     // Отправляем приветственное сообщение
@@ -156,9 +161,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Функция для отправки обновлений всем подключенным пользователям
   // Можно использовать из других модулей, например из сервисов
   (global as any).broadcastUserUpdate = (userId: number, data: any) => {
-    wss.clients.forEach((client: any) => {
-      if (client.readyState === client.OPEN && client.userId == userId) {
-        client.send(JSON.stringify({
+    wss.clients.forEach((client: WebSocket) => {
+      const extClient = client as ExtendedWebSocket;
+      if (extClient.readyState === WebSocket.OPEN && extClient.userId === userId) {
+        extClient.send(JSON.stringify({
           type: 'update',
           ...data
         }));

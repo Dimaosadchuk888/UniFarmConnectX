@@ -46,6 +46,49 @@ const BalanceCard: React.FC = () => {
   const [lastFetchTime, setLastFetchTime] = useState<string>('');
   const [rawUniBalance, setRawUniBalance] = useState<string>('');
   
+  // Статус WebSocket подключения
+  const [wsStatus, setWsStatus] = useState<string>('Подключение...');
+  
+  // Используем WebSocket хук для обновления в реальном времени
+  const { isConnected, lastMessage, send, subscribeToUserUpdates } = useWebSocket({
+    onOpen: () => {
+      setWsStatus('Соединение установлено');
+      // Подписываемся на обновления для пользователя с ID 1
+      subscribeToUserUpdates(1);
+    },
+    onMessage: (data) => {
+      // Обрабатываем сообщения от сервера
+      if (data.type === 'update' && data.balanceData) {
+        console.log('[WebSocket] Получено обновление баланса:', data.balanceData);
+        
+        // Обновляем баланс из WebSocket данных
+        if (data.balanceData.balance_uni) {
+          const newUniBalance = parseFloat(data.balanceData.balance_uni);
+          if (!isNaN(newUniBalance)) {
+            updateUniBalanceWithAnimation(newUniBalance);
+          }
+        }
+        
+        if (data.balanceData.balance_ton) {
+          const newTonBalance = parseFloat(data.balanceData.balance_ton);
+          if (!isNaN(newTonBalance)) {
+            setTonBalance(newTonBalance);
+            setTonAnimating(true);
+            setTimeout(() => setTonAnimating(false), 800);
+          }
+        }
+      }
+    },
+    onClose: () => {
+      setWsStatus('Соединение закрыто');
+    },
+    onError: () => {
+      setWsStatus('Ошибка соединения');
+    },
+    autoReconnect: true,
+    reconnectAttempts: 5
+  });
+  
   // Получаем баланс из API
   const { data, isLoading, refetch } = useQuery<WalletBalanceResponse>({
     queryKey: ['/api/wallet/balance?user_id=1'],
@@ -325,7 +368,8 @@ const BalanceCard: React.FC = () => {
             Last fetch: {lastFetchTime || 'не было'}<br/>
             Raw balance: {rawUniBalance || 'не загружен'}<br/>
             Last update: {localStorage.getItem('last_balance_update_time') || 'никогда'}<br/>
-            Last value: {localStorage.getItem('last_balance_value') || 'нет данных'}
+            Last value: {localStorage.getItem('last_balance_value') || 'нет данных'}<br/>
+            WS status: <span className={`${isConnected ? 'text-green-400' : 'text-red-400'}`}>{wsStatus}</span>
           </div>
         </div>
         
