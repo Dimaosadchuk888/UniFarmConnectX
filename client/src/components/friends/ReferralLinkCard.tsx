@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import userService from '@/services/userService';
 import { useQuery } from '@tanstack/react-query';
+import { isTelegramWebApp } from '@/services/telegramService';
 
 // Определяем, находимся ли мы в режиме разработки
 const IS_DEV = process.env.NODE_ENV === 'development';

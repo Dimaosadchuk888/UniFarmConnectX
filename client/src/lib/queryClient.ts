@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { getTelegramAuthHeaders } from "@/services/telegramService";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -7,18 +8,34 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Получает все необходимые заголовки для запросов к API
+function getApiHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {
+  // Получаем заголовки с данными Telegram
+  const telegramHeaders = getTelegramAuthHeaders();
+  
+  return {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+    ...telegramHeaders, // Добавляем заголовки Telegram
+    ...customHeaders    // Добавляем пользовательские заголовки
+  };
+}
+
 // Обновляем тип apiRequest, чтобы он возвращал ответ с данными, а не Response
 export async function apiRequest(
   url: string,
   options?: RequestInit
 ): Promise<any> {
   try {
+    // Добавляем заголовки Telegram к стандартным заголовкам
+    const headers = getApiHeaders(options?.headers as Record<string, string> || {});
+    
     const res = await fetch(url, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(options?.headers || {})
-      },
+      headers,
       credentials: "include",
     });
 
@@ -45,19 +62,18 @@ export const getQueryFn: <T>(options: {
       const queryKeyStr = queryKey[0] as string;
       const url = `${queryKeyStr}${queryKeyStr.includes('?') ? '&' : '?'}nocache=${timestamp}`;
       
+      // Получаем заголовки с данными Telegram
+      const headers = getApiHeaders();
+      
       const res = await fetch(url, {
         credentials: "include",
-        headers: {
-          "Accept": "application/json",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
-        }
+        headers
       });
 
-      console.log("[DEBUG] QueryClient - Response status:", res.status);
-      console.log("[DEBUG] QueryClient - Response headers:", 
-        Object.fromEntries(res.headers.entries()));
+      // Уменьшаем количество отладочной информации
+      if (process.env.NODE_ENV === 'development') {
+        console.log("[DEBUG] QueryClient - Response status:", res.status);
+      }
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
         console.log("[DEBUG] QueryClient - Returning null due to 401");
@@ -69,12 +85,9 @@ export const getQueryFn: <T>(options: {
         
         // Получаем текст ответа и проверяем его валидность как JSON
         const text = await res.text();
-        console.log("[DEBUG] QueryClient - Response text (first 100 chars):", 
-          text.substring(0, 100));
         
         try {
           const data = JSON.parse(text);
-          console.log("[DEBUG] QueryClient - JSON parsed successfully");
           return data;
         } catch (parseError) {
           console.error("[DEBUG] QueryClient - JSON parse error:", parseError);

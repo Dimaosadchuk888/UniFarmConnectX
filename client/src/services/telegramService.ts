@@ -51,8 +51,9 @@ export function getTelegramUserData(): TelegramUserData | null {
       return null;
     }
 
+    // Мы используем типы, определенные в main.tsx 
     // Формируем данные, которые будут отправлены на сервер
-    return {
+    const userData: TelegramUserData = {
       userId: user.id,
       username: user.username,
       firstName: user.first_name,
@@ -60,6 +61,8 @@ export function getTelegramUserData(): TelegramUserData | null {
       photoUrl: user.photo_url,
       authData: window.Telegram.WebApp.initData  // Данные для проверки подписи на сервере
     };
+    
+    return userData;
   } catch (error) {
     console.error('Error extracting user data from Telegram WebApp:', error);
     return null;

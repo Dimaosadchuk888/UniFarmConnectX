@@ -6,8 +6,12 @@ import "./index.css";
 // Вместо добавления Buffer, который не работает в Telegram Mini App,
 // мы используем стандартные WebAPI для работы с бинарными данными
 
-// Обеспечиваем простой процесс для Telegram WebApp
-window.process = { env: {} };
+// Обеспечиваем глобальный процесс для приложения
+interface CustomProcess {
+  env: Record<string, string | undefined>
+}
+
+window.process = { env: {} } as unknown as CustomProcess;
 
 // Обеспечиваем интерфейс для Telegram WebApp
 declare global {
@@ -21,7 +25,12 @@ declare global {
           user?: { 
             id: number; 
             username?: string;
-          } 
+            first_name?: string;
+            last_name?: string;
+            photo_url?: string;
+          };
+          auth_date?: string;
+          hash?: string;
         };
         platform?: string;
         colorScheme?: string;
