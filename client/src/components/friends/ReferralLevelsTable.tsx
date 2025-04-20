@@ -30,15 +30,21 @@ const ReferralLevelsTable: React.FC = () => {
     success: boolean;
   }
 
-  // Получаем userId из Telegram
-  const telegram = window.Telegram?.WebApp;
-  const userId = telegram?.initDataUnsafe?.user?.id;
+  // Получаем данные о текущем пользователе
+  const { data: currentUser, isLoading: isUserLoading } = useQuery({
+    queryKey: ['/api/me'],
+    queryFn: () => import('@/services/userService').then(module => module.default.getCurrentUser()),
+    staleTime: 1000 * 60 * 5, // Кэшируем данные на 5 минут
+  });
+  
+  const userId = currentUser?.id;
   
   console.log('[ReferralLevelsTable] Текущий пользователь:', userId);
   
   // Запрос на получение структуры рефералов с сервера
   const { data: referralsData, isLoading, error } = useQuery<ReferralsResponse>({
     queryKey: ['/api/referrals', userId],
+    enabled: !!userId, // Запрос выполняется только при наличии userId
     queryFn: async () => {
       if (!userId) {
         throw new Error('Отсутствует идентификатор пользователя');

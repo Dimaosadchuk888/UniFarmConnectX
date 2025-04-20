@@ -16,6 +16,39 @@ import { and, eq } from 'drizzle-orm';
  */
 export class UserController {
   /**
+   * Получает информацию о текущем пользователе по сессии
+   */
+  static async getCurrentUser(req: Request, res: Response): Promise<void> {
+    try {
+      // Получаем userId из сессии или заголовка запроса
+      // В реальном приложении это будет получено из сессии или JWT-токена
+      const userId = req.query.user_id ? parseInt(req.query.user_id as string) : 
+                   req.headers['x-user-id'] ? parseInt(req.headers['x-user-id'] as string) : 1; // Используем 1 как fallback для тестирования
+      
+      if (isNaN(userId)) {
+        return sendError(res, 'Invalid user ID', 400);
+      }
+
+      const user = await UserService.getUserById(userId);
+
+      if (!user) {
+        return sendError(res, 'User not found', 404);
+      }
+
+      sendSuccess(res, {
+        id: user.id,
+        telegram_id: user.telegram_id,
+        username: user.username,
+        balance_uni: user.balance_uni,
+        balance_ton: user.balance_ton
+      });
+    } catch (error) {
+      console.error('Error in getCurrentUser:', error);
+      sendServerError(res, error);
+    }
+  }
+  
+  /**
    * Получает информацию о пользователе по ID
    */
   static async getUserById(req: Request, res: Response): Promise<void> {

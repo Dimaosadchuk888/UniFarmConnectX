@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import userService from '@/services/userService';
+import { useQuery } from '@tanstack/react-query';
 
 const ReferralLinkCard: React.FC = () => {
-  // В реальном приложении это пришло бы из данных пользователя
-  const userId = "user" + Math.floor(Math.random() * 10000); // Динамический ID для примера
+  // Получаем информацию о текущем пользователе
+  const { data: currentUser, isLoading: isUserLoading } = useQuery({
+    queryKey: ['/api/me'],
+    queryFn: () => userService.getCurrentUser(),
+    staleTime: 1000 * 60 * 5, // Кэшируем данные на 5 минут
+  });
+  
+  // Генерируем стабильную реферальную ссылку на основе userId
+  const userId = currentUser ? `user${currentUser.id}` : 'loading';
   const referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
   
   // Состояния для анимаций и взаимодействий

@@ -118,6 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для пользователей
   app.get("/api/users/:id", UserController.getUserById);
   app.get("/api/wallet/balance", UserController.getUserBalance);
+  app.get("/api/me", UserController.getCurrentUser);
   
   // Маршруты для работы с TON-кошельком
   app.post("/api/user/link-wallet", WalletController.linkWalletAddress);
