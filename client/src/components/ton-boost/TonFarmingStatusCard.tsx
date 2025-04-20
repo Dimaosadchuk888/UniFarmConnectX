@@ -32,8 +32,16 @@ const TonFarmingStatusCard: React.FC = () => {
   
   // Получаем информацию о TON фарминге
   const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
-    queryKey: [`/api/ton-farming/info?user_id=${userId}`],
+    queryKey: ['/api/ton-farming/info', userId],
     refetchInterval: 10000, // Обновляем каждые 10 секунд
+    
+    // Добавляем отладочные обработчики
+    onSuccess: (data) => {
+      console.log("[TON-DEBUG] Success API response:", JSON.stringify(data, null, 2));
+    },
+    onError: (error) => {
+      console.error("[TON-DEBUG] API error:", error);
+    }
   });
   
   // Анимация статуса активности фарминга
@@ -62,13 +70,21 @@ const TonFarmingStatusCard: React.FC = () => {
         totalTonRatePerSecond: farmingData.totalTonRatePerSecond
       });
       
-      // Корректно обрабатываем научную нотацию
-      const targetDaily = Number(farmingData.dailyIncomeTon) || 0;
-      const targetPerSecond = Number(farmingData.totalTonRatePerSecond) || 0;
+      // Преобразуем строковые значения непосредственно в числа
+      // Используем строгое приведение типов с обработкой научной нотации
+      const targetDaily = typeof farmingData.dailyIncomeTon === 'string' ? 
+        parseFloat(farmingData.dailyIncomeTon) : 
+        (farmingData.dailyIncomeTon || 0);
+        
+      const targetPerSecond = typeof farmingData.totalTonRatePerSecond === 'string' ? 
+        parseFloat(farmingData.totalTonRatePerSecond) : 
+        (farmingData.totalTonRatePerSecond || 0);
       
-      console.log("[DEBUG] TON Farming parsed values:", {
-        targetDaily, 
-        targetPerSecond
+      console.log("[TON-DEBUG] Parsed values:", {
+        targetDaily,
+        targetPerSecond,
+        dailyType: typeof targetDaily,
+        perSecondType: typeof targetPerSecond
       });
       
       // Запускаем импульс при обновлении значений
@@ -140,7 +156,7 @@ const TonFarmingStatusCard: React.FC = () => {
                 <span className="text-blue-400 text-xl font-medium">
                   {(() => {
                     const formattedValue = formatNumberWithPrecision(dailyYield, 5);
-                    console.log("[DEBUG] Formatted daily yield:", dailyYield, "->", formattedValue);
+                    console.log("[TON-DEBUG] Formatted daily yield:", dailyYield, "->", formattedValue);
                     return formattedValue;
                   })()}
                 </span>
@@ -154,7 +170,7 @@ const TonFarmingStatusCard: React.FC = () => {
                 <span className="text-blue-400 text-xl font-medium">
                   {(() => {
                     const formattedValue = formatNumberWithPrecision(perSecond, 8);
-                    console.log("[DEBUG] Formatted per second:", perSecond, "->", formattedValue);
+                    console.log("[TON-DEBUG] Formatted per second:", perSecond, "->", formattedValue);
                     return formattedValue;
                   })()}
                 </span>
