@@ -31,17 +31,13 @@ const TonFarmingStatusCard: React.FC = () => {
   const [dotOpacity, setDotOpacity] = useState(0.5);
   
   // Получаем информацию о TON фарминге
+  // Используем явный url с параметрами для большей надежности отладки
+  const apiUrl = `/api/ton-farming/info?user_id=${userId}`;
+  console.log("[TON-DEBUG] Making request to:", apiUrl);
+  
   const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
-    queryKey: ['/api/ton-farming/info', userId],
-    refetchInterval: 10000, // Обновляем каждые 10 секунд
-    
-    // Добавляем отладочные обработчики
-    onSuccess: (data) => {
-      console.log("[TON-DEBUG] Success API response:", JSON.stringify(data, null, 2));
-    },
-    onError: (error) => {
-      console.error("[TON-DEBUG] API error:", error);
-    }
+    queryKey: [apiUrl],
+    refetchInterval: 5000, // Обновляем каждые 5 секунд
   });
   
   // Анимация статуса активности фарминга
