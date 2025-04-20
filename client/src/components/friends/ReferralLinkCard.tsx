@@ -3,15 +3,24 @@ import userService from '@/services/userService';
 import { useQuery } from '@tanstack/react-query';
 
 const ReferralLinkCard: React.FC = () => {
-  // Получаем информацию о текущем пользователе
+  // Получаем информацию о текущем пользователе - два источника
+  // 1. Из Telegram WebApp
+  const telegram = window.Telegram?.WebApp;
+  const telegramUserId = telegram?.initDataUnsafe?.user?.id;
+  
+  // 2. Из API (если API недоступно, используем данные из Telegram)
   const { data: currentUser, isLoading: isUserLoading } = useQuery({
     queryKey: ['/api/me'],
     queryFn: () => userService.getCurrentUser(),
     staleTime: 1000 * 60 * 5, // Кэшируем данные на 5 минут
+    enabled: !telegramUserId, // Запрашиваем только если нет данных из Telegram
+    retry: 1, // Уменьшаем количество повторных попыток
   });
   
-  // Генерируем стабильную реферальную ссылку на основе userId
-  const userId = currentUser ? `user${currentUser.id}` : 'loading';
+  // Используем первый доступный ID или фиксированный для тестирования
+  // Приоритет: 1) текущий пользователь из API 2) из Telegram 3) тестовый ID
+  const fixedUserId = 1; // Фиксированный ID для тестирования
+  const userId = `user${currentUser?.id || telegramUserId || fixedUserId}`;
   const referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
   
   // Состояния для анимаций и взаимодействий
