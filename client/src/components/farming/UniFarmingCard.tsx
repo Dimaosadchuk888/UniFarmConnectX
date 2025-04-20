@@ -11,6 +11,8 @@ interface FarmingInfo {
   isActive: boolean;
   depositAmount: string;
   ratePerSecond: string;
+  depositCount?: number;
+  totalDepositAmount?: string;
   startDate?: string | null;
   uni_farming_start_timestamp?: string | null;
 }
@@ -31,6 +33,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     isActive: false, 
     depositAmount: '0', 
     ratePerSecond: '0',
+    depositCount: 0,
+    totalDepositAmount: '0',
     startDate: null,
     uni_farming_start_timestamp: null 
   };
@@ -179,6 +183,19 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             </div>
           </div>
           
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-sm text-foreground opacity-70">Активных депозитов UNI</p>
+              <p className="text-md font-medium">{farmingInfo.depositCount || 0} шт.</p>
+            </div>
+            <div>
+              <p className="text-sm text-foreground opacity-70">Процент доходности</p>
+              <p className="text-md font-medium">
+                <span className="text-primary">0.5%</span> в сутки
+              </p>
+            </div>
+          </div>
+          
           <div className="mb-3">
             <p className="text-sm text-foreground opacity-70">Скорость начисления</p>
             <p className="text-md font-medium">
@@ -243,9 +260,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           )}
           
           <div className="mb-4">
-            <p className="text-sm text-foreground opacity-70">Доходность</p>
+            <p className="text-sm text-foreground opacity-70">Минимальный депозит</p>
             <p className="text-md font-medium">
-              <span className="text-primary">0.5%</span> в день
+              <span className="text-primary">5</span> UNI
             </p>
           </div>
           
