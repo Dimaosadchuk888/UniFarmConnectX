@@ -139,11 +139,25 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   
   // Расчет дневного дохода (для отображения)
   const calculateDailyIncome = (): string => {
-    if (!isActive || !farmingInfo.ratePerSecond) return '0';
+    if (!isActive || !farmingInfo.depositAmount) return '0';
     try {
-      const ratePerSecond = new BigNumber(farmingInfo.ratePerSecond);
+      // Доходность составляет 0.5% в день от депозита
+      const depositAmount = new BigNumber(farmingInfo.depositAmount);
+      return depositAmount.multipliedBy(0.005).toFixed(3); // 3 знака после запятой для дневного дохода
+    } catch (err) {
+      return '0';
+    }
+  };
+  
+  // Расчет дохода в секунду (для отображения)
+  const calculateSecondRate = (): string => {
+    if (!isActive || !farmingInfo.depositAmount) return '0';
+    try {
+      // Доходность составляет 0.5% в день от депозита, делим на количество секунд в сутках
+      const depositAmount = new BigNumber(farmingInfo.depositAmount);
+      const dailyIncome = depositAmount.multipliedBy(0.005);
       const secondsInDay = 86400;
-      return ratePerSecond.multipliedBy(secondsInDay).toFixed(3); // 3 знака после запятой для дневного дохода
+      return dailyIncome.dividedBy(secondsInDay).toFixed(8); // 8 знаков для секундного дохода
     } catch (err) {
       return '0';
     }
@@ -199,7 +213,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="mb-3">
             <p className="text-sm text-foreground opacity-70">Скорость начисления</p>
             <p className="text-md font-medium">
-              <span className="text-primary">+{formatNumber(farmingInfo.ratePerSecond, 8)}</span> UNI/сек
+              <span className="text-primary">+{formatNumber(calculateSecondRate(), 8)}</span> UNI/сек
               <span className="text-foreground opacity-70 ml-2">
                 (≈ +{formatNumber(calculateDailyIncome())} UNI в день)
               </span>
@@ -220,13 +234,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             </div>
           </div>
           
-          {/* Дополнительная кнопка для обновления баланса */}
-          <button 
-            onClick={handleShowInfo}
-            className="mt-3 w-full py-1 px-2 bg-indigo-900/30 border border-indigo-500/30 rounded-lg text-indigo-300 text-sm hover:bg-indigo-900/50 transition-colors"
-          >
-            Проверить начисления
-          </button>
+
         </div>
       )}
       
