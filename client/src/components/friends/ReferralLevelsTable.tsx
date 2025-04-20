@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Coins } from 'lucide-react';
 
 const ReferralLevelsTable: React.FC = () => {
-  // Статические данные для таблицы с 20 уровнями согласно запросу
+  // Статические данные для таблицы с 20 уровнями согласно запросу с новой структурой процентов
   const levels = [
     { level: "Уровень 1", friends: 2, income: { uni: "120.25 UNI", ton: "1.455 TON" }, percent: "100%" },
     { level: "Уровень 2", friends: 5, income: { uni: "53.12 UNI", ton: "0 TON" }, percent: "2%" },
@@ -131,10 +131,10 @@ const ReferralLevelsTable: React.FC = () => {
           
           <div className="absolute right-0 top-6 w-64 bg-card p-3 rounded-md shadow-lg text-xs opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-30">
             <p className="mb-2">
-              <span className="font-medium">Как работает доход от дохода?</span>
+              <span className="font-medium">Как работает доход от бустов?</span>
             </p>
-            <p className="mb-1">Вы получаете процент от дохода приглашенных пользователей до 20 уровней в глубину!</p>
-            <p>Чем больше друзей на каждом уровне, тем выше ваш доход.</p>
+            <p className="mb-1">Вы получаете процент от покупок бустов приглашенных пользователей до 20 уровней в глубину!</p>
+            <p>С первого уровня – 100%, со 2-го по 20-й от 2% до 20% соответственно.</p>
           </div>
         </div>
       </div>
@@ -328,7 +328,7 @@ const ReferralLevelsTable: React.FC = () => {
       <div className="mt-1 text-xs text-center text-foreground opacity-50 italic">
         <div className="flex justify-center items-center">
           <i className="fas fa-sync-alt text-primary/50 mr-1 animate-spin-slow"></i>
-          <span>Ваши партнерские уровни и доходы обновляются в реальном времени</span>
+          <span>Ваши партнерские уровни и доходы обновляются в реальном времени (от 2% до 20% на уровнях 2-20)</span>
         </div>
       </div>
     </div>
