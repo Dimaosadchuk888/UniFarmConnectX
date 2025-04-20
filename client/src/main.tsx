@@ -12,7 +12,7 @@ interface ProcessEnv {
 }
 
 // Устанавливаем глобальный процесс, который требуется некоторым библиотекам
-window.process = { env: {} } as unknown as ProcessEnv;
+window.process = { env: {} } as any;
 
 // Telegram WebApp integration setup
 const initTelegramWebApp = () => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import userService from '@/services/userService';
 import { useQuery } from '@tanstack/react-query';
-import { isTelegramWebApp } from '@/services/telegramService';
+import { isTelegramWebApp, getCachedTelegramUserId } from '@/services/telegramService';
 
 // Определяем, находимся ли мы в режиме разработки
 const IS_DEV = process.env.NODE_ENV === 'development';
@@ -78,21 +78,36 @@ const ReferralLinkCard: React.FC = () => {
     }
   }, [currentUser?.id]);
 
-  // Если кеширование уже работает, можно быстро получить пользователя из Telegram
+  // Получаем и кэшируем ID пользователя из доступных источников
+  // Используем телеграм напрямую и через getCachedTelegramUserId 
   const telegram = window.Telegram?.WebApp;
   const telegramUserId = telegram?.initDataUnsafe?.user?.id;
+  const cachedUserId = getCachedTelegramUserId();
   
-  // Определяем наличие userId (должен быть получен только из легитимных источников)
-  const hasUserId = !!(currentUser?.id || (IS_DEV && telegramUserId));
+  console.log('[ReferralLinkCard] ID sources:', {
+    currentUser: currentUser?.id,
+    telegramUserId,
+    cachedUserId
+  });
+  
+  // Определяем наличие userId (проверяем все доступные источники) 
+  const hasUserId = !!(
+    currentUser?.id || 
+    (telegramUserId) || 
+    (cachedUserId) || 
+    (IS_DEV && '1')
+  );
   
   // Формируем реферальную ссылку только если есть userId
   let userId = '';
   let referralLink = '';
   
   if (hasUserId) {
-    // Приоритет: текущий пользователь из API, затем из Telegram (в режиме разработки)
-    userId = `user${currentUser?.id || (IS_DEV ? telegramUserId : '')}`;
+    // Приоритет: текущий пользователь из API, затем прямо из Telegram, затем из кэша, затем из режима разработки
+    userId = `user${currentUser?.id || telegramUserId || cachedUserId || (IS_DEV ? '1' : '')}`;
     referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
+    
+    console.log('[ReferralLinkCard] Generated referral link:', referralLink);
   }
   
   // Состояния для анимаций и взаимодействий

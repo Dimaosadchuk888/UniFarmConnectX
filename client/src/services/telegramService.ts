@@ -120,6 +120,16 @@ export function getTelegramUserData(): TelegramUserData | null {
       authData: window.Telegram.WebApp.initData  // Данные для проверки подписи на сервере
     };
     
+    // Кэшируем userId в localStorage для дополнительной надежности
+    try {
+      if (userData.userId) {
+        localStorage.setItem('telegram_user_id', String(userData.userId));
+        console.log('[telegramService] Cached userId in localStorage:', userData.userId);
+      }
+    } catch (err) {
+      console.warn('[telegramService] Failed to cache userId in localStorage:', err);
+    }
+    
     console.log('[telegramService] Successfully extracted user data:', {
       userId: userData.userId,
       username: userData.username || 'not set',
@@ -168,10 +178,44 @@ export function getTelegramAuthHeaders(): Record<string, string> {
 }
 
 // Получает имя пользователя из Telegram WebApp для отображения
+/**
+ * Получает ID пользователя из Telegram WebApp или кэша в localStorage
+ * @returns ID пользователя или null
+ */
+export function getCachedTelegramUserId(): string | null {
+  console.log('[telegramService] Getting cached user ID');
+  
+  // Сначала пробуем получить из Telegram WebApp
+  const telegramData = getTelegramUserData();
+  if (telegramData?.userId) {
+    console.log('[telegramService] Returning user ID from Telegram WebApp:', telegramData.userId);
+    return String(telegramData.userId);
+  }
+  
+  // Если не получилось, пробуем достать из localStorage
+  try {
+    const cachedId = localStorage.getItem('telegram_user_id');
+    if (cachedId) {
+      console.log('[telegramService] Returning cached user ID from localStorage:', cachedId);
+      return cachedId;
+    }
+  } catch (err) {
+    console.warn('[telegramService] Error accessing localStorage:', err);
+  }
+  
+  console.log('[telegramService] No user ID available');
+  return null;
+}
+
 export function getTelegramUserDisplayName(): string {
   const userData = getTelegramUserData();
   
   if (!userData) {
+    // Пробуем получить ID из кэша для улучшенного отображения
+    const cachedId = getCachedTelegramUserId();
+    if (cachedId) {
+      return `Пользователь ${cachedId}`;
+    }
     return 'Пользователь';
   }
   

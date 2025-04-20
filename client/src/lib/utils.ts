@@ -62,10 +62,31 @@ export function formatNumberWithPrecision(value: number, precision: number = 2):
  * Извлекает userId из параметров URL Telegram Mini App
  * @returns userId или null, если не найден
  */
+/**
+ * Получает userId из различных источников с приоритетом:
+ * 1. Telegram WebApp initDataUnsafe
+ * 2. URL параметры
+ * 3. Кэш в localStorage
+ * 4. Фиксированный ID для разработки
+ * @returns userId или null
+ */
 export function getUserIdFromURL(): string | null {
+  console.log('[utils] Getting user ID from all available sources');
+  
   // Пытаемся получить данные из Telegram WebApp
   if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-    return String(window.Telegram.WebApp.initDataUnsafe.user.id);
+    const telegramId = String(window.Telegram.WebApp.initDataUnsafe.user.id);
+    console.log('[utils] Found user ID in Telegram WebApp:', telegramId);
+    
+    // Кэшируем ID в localStorage
+    try {
+      localStorage.setItem('telegram_user_id', telegramId);
+      console.log('[utils] Cached Telegram user ID in localStorage');
+    } catch (err) {
+      console.warn('[utils] Failed to cache user ID:', err);
+    }
+    
+    return telegramId;
   }
   
   // Пытаемся получить из параметров URL
@@ -73,14 +94,28 @@ export function getUserIdFromURL(): string | null {
   const userId = urlParams.get('user_id');
   
   if (userId) {
+    console.log('[utils] Found user ID in URL parameters:', userId);
     return userId;
+  }
+  
+  // Пытаемся восстановить из кэша в localStorage
+  try {
+    const cachedId = localStorage.getItem('telegram_user_id');
+    if (cachedId) {
+      console.log('[utils] Restored user ID from localStorage cache:', cachedId);
+      return cachedId;
+    }
+  } catch (err) {
+    console.warn('[utils] Error accessing localStorage:', err);
   }
   
   // В режиме разработки можно использовать фиксированный ID
   if (import.meta.env.DEV) {
+    console.log('[utils] Using development user ID');
     return '1'; // ID пользователя для разработки
   }
   
+  console.log('[utils] No user ID found from any source');
   return null;
 }
 
