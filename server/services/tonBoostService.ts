@@ -370,6 +370,24 @@ export class TonBoostService {
             category: "bonus"   // Категория - бонус
           })
           .returning();
+          
+        // 7. Обрабатываем реферальные вознаграждения для TON транзакции
+        try {
+          // Конвертируем сумму TON в числовой формат для правильного расчета
+          const tonAmount = parseFloat(boostPackage.priceTon);
+          
+          // Вызываем сервис начисления реферальных бонусов
+          await ReferralBonusService.processReferralBonus(
+            userId, 
+            tonAmount, 
+            Currency.TON
+          );
+          
+          console.log(`[TON Boost] Referral bonuses processed for user ${userId} (amount: ${tonAmount} TON)`);
+        } catch (error) {
+          console.error('[TON Boost] Error processing referral bonuses:', error);
+          // Продолжаем выполнение даже при ошибке в начислении реферальных бонусов
+        }
 
         return {
           success: true,
