@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import WalletConnectionCard from '@/components/wallet/WalletConnectionCard';
 import WithdrawalForm from '@/components/wallet/WithdrawalForm';
 import BalanceCard from '@/components/wallet/BalanceCard';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
@@ -85,7 +84,6 @@ const Wallet: React.FC = () => {
       </div>
       
       <BalanceCard />
-      <WalletConnectionCard />
       
       {/* Вместо локального состояния используем прямой вызов isWalletConnected() */}
       {walletConnected && (
