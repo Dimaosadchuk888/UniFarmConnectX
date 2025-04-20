@@ -3,7 +3,8 @@ import { ReferralService } from './referralService';
 import { UserService } from './userService';
 import { TransactionType, Currency } from './transactionService';
 import { eq } from 'drizzle-orm';
-import { users, referrals, transactions } from '@shared/schema';
+import { users, referrals, transactions, insertTransactionSchema } from '@shared/schema';
+import { z } from 'zod';
 
 /**
  * Сервис для обработки реферальных вознаграждений
@@ -145,19 +146,21 @@ export class ReferralBonusService {
             balance_ton: currency === Currency.TON ? newBalance.toString() : tonBalance
           });
           
-          // Создаем транзакцию через TransactionService
+          // Создаем и валидируем данные транзакции через схему
+          const transactionData = insertTransactionSchema.parse({
+            user_id: ref.inviter_id,
+            type: TransactionType.REFERRAL,
+            amount: bonusAmount.toString(),
+            currency: currency,
+            status: 'confirmed',
+            source: "Referral",
+            category: "bonus"
+          });
+          
+          // Вставляем данные в таблицу транзакций
           await db
             .insert(transactions)
-            .values({
-              user_id: ref.inviter_id,
-              type: TransactionType.REFERRAL,
-              amount: bonusAmount.toString(),
-              currency: currency,
-              status: 'confirmed',
-              description: `Реферальное вознаграждение ${percent}% (уровень ${level})`,
-              source: "Referral",
-              category: "bonus"
-            });
+            .values(transactionData);
           
           console.log(
             `[ReferralBonus] Level ${level} (${percent}%) | Amount: ${bonusAmount} ${currency} | ` +
