@@ -28,7 +28,7 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
   
   // Логируем наличие x-telegram-init-data заголовка (но не его содержимое)
   console.log('[queryClient] API headers prepared:', {
-    hasTelegramData: !!headers['x-telegram-init-data'],
+    hasTelegramData: 'x-telegram-init-data' in telegramHeaders,
     totalHeadersCount: Object.keys(headers).length
   });
   
@@ -72,9 +72,9 @@ export async function apiRequest(
       });
       
       return data;
-    } catch (jsonError) {
-      console.error(`[queryClient] JSON parse error:`, jsonError);
-      throw new Error(`Invalid JSON in response: ${jsonError.message}`);
+    } catch (error: any) {
+      console.error(`[queryClient] JSON parse error:`, error);
+      throw new Error(`Invalid JSON in response: ${error?.message || 'Unknown error'}`);
     }
   } catch (error) {
     console.error(`[queryClient] API request error to ${url}:`, error);
@@ -123,8 +123,8 @@ export const getQueryFn: <T>(options: {
         try {
           const data = JSON.parse(text);
           return data;
-        } catch (parseError) {
-          console.error("[DEBUG] QueryClient - JSON parse error:", parseError);
+        } catch (error: any) {
+          console.error("[DEBUG] QueryClient - JSON parse error:", error);
           // Если JSON невалидный, возвращаем пустой массив для защиты от ошибок
           return Array.isArray(queryKey[0]) ? [] : {};
         }

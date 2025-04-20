@@ -5,25 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Декларация для Telegram Web App
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        expand: () => void;
-        ready: () => void;
-        initData: string;
-        initDataUnsafe: {
-          user?: {
-            id: number;
-            username?: string;
-          };
-        };
-      };
-    };
-  }
-}
-
 /**
  * Форматирует число с заданной точностью, корректно обрабатывая очень маленькие значения
  * @param value Число для форматирования

@@ -7,37 +7,12 @@ import "./index.css";
 // мы используем стандартные WebAPI для работы с бинарными данными
 
 // Обеспечиваем глобальный процесс для приложения
-interface CustomProcess {
+interface ProcessEnv {
   env: Record<string, string | undefined>
 }
 
-window.process = { env: {} } as unknown as CustomProcess;
-
-// Обеспечиваем интерфейс для Telegram WebApp
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        expand: () => void;
-        ready: () => void;
-        initData: string;
-        initDataUnsafe: { 
-          user?: { 
-            id: number; 
-            username?: string;
-            first_name?: string;
-            last_name?: string;
-            photo_url?: string;
-          };
-          auth_date?: string;
-          hash?: string;
-        };
-        platform?: string;
-        colorScheme?: string;
-      };
-    };
-  }
-}
+// Устанавливаем глобальный процесс, который требуется некоторым библиотекам
+window.process = { env: {} } as unknown as ProcessEnv;
 
 // Telegram WebApp integration setup
 const initTelegramWebApp = () => {

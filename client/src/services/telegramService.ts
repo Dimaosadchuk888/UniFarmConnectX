@@ -2,6 +2,33 @@
  * Сервис для работы с Telegram WebApp
  */
 
+// Расширение типов для Telegram WebApp API
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        expand: () => void;
+        ready: () => void;
+        initData: string;
+        initDataUnsafe: {
+          user?: {
+            id: number;
+            username?: string;
+            first_name?: string;
+            last_name?: string;
+            photo_url?: string;
+          };
+          auth_date?: string;
+          hash?: string;
+          platform?: string;
+        };
+        platform?: string;
+        colorScheme?: string;
+      };
+    };
+  }
+}
+
 // Проверяет, запущено ли приложение в Telegram WebApp
 export function isTelegramWebApp(): boolean {
   const hasTelegram = !!(
