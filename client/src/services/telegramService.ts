@@ -165,7 +165,9 @@ export function getTelegramUserData(): TelegramUserData | null {
     
     // Если initData есть, но initDataUnsafe нет, можно попробовать 
     // проверить startParam для получения дополнительной информации
+    // @ts-ignore - startParam может быть недоступен в типе, но доступен в реальном API
     if (window.Telegram?.WebApp?.startParam) {
+      // @ts-ignore - startParam может быть недоступен в типе, но доступен в реальном API
       console.log('[telegramService] No initDataUnsafe, but startParam available:', 
                   window.Telegram.WebApp.startParam);
     }
@@ -186,10 +188,13 @@ export function getTelegramUserData(): TelegramUserData | null {
       firstName: user?.first_name || 'not available',
       lastName: user?.last_name || 'not available',
       initDataKeys: Object.keys(initDataUnsafe),
+      // @ts-ignore - startParam может быть недоступен в типе, но доступен в реальном API
       startParam: window.Telegram?.WebApp?.startParam || 'not available',
       platform: window.Telegram?.WebApp?.platform || 'not available',
+      // @ts-ignore - version может быть недоступен в типе, но доступен в реальном API
       version: window.Telegram?.WebApp?.version || 'not available',
       initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
+      // @ts-ignore - themeParams может быть недоступен в типе, но доступен в реальном API
       themeParams: window.Telegram?.WebApp?.themeParams ? 'available' : 'not available'
     });
     
