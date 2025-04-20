@@ -125,16 +125,28 @@ export class UserController {
           if (telegramId) {
             console.log(`[UserController] Found Telegram ID: ${telegramId}, searching for user...`);
             
-            // Пробуем найти пользователя по Telegram ID
-            const userByTelegram = await UserService.getUserByTelegramId(telegramId);
+            // Пробуем найти пользователя по Telegram ID с более подробным логированием
+            console.log(`[UserController] Searching for user with Telegram ID ${telegramId} (type: ${typeof telegramId})`);
             
-            if (userByTelegram) {
-              // Пользователь найден - используем его ID
-              userId = userByTelegram.id;
-              console.log(`[UserController] User found with ID ${userId} for Telegram ID ${telegramId}`);
-            } else {
-              // Пользователь не найден - создаем нового
-              console.log(`[UserController] [TelegramAuth] No user found for Telegram ID ${telegramId}, creating new user...`);
+            let existingUser = null;
+            
+            try {
+              existingUser = await UserService.getUserByTelegramId(telegramId);
+              
+              if (existingUser) {
+                // Пользователь найден - используем его ID
+                userId = existingUser.id;
+                console.log(`[UserController] User found with ID ${userId} for Telegram ID ${telegramId}`);
+              } else {
+                console.log(`[UserController] No user found for Telegram ID ${telegramId}`);
+              }
+            } catch (searchError) {
+              console.error(`[UserController] Error searching for user with telegramId ${telegramId}:`, searchError);
+            }
+            
+            // Если пользователь не найден, создаем нового
+            if (!existingUser) {
+              console.log(`[UserController] [TelegramAuth] Creating new user for Telegram ID ${telegramId}...`);
               
               // Переменные для имени и фамилии
               let firstName = '';
@@ -383,8 +395,8 @@ export class UserController {
       // Логируем для отладки полное значение как основного, так и виртуального баланса
       console.log(`[getUserBalance] User ${userId} balance: ${baseUniBalance.toFixed(8)} UNI + ${farmingAccumulated.toFixed(8)} (virtual: ${balanceUni})`);
 
-      // Получаем информацию о фарминге для новых депозитов
-      let uniFarmingInfo = {
+      // Информация о фарминге по умолчанию
+      const farmingInfo = {
         active: false,
         depositAmount: '0',
         depositCount: 0,
@@ -393,41 +405,22 @@ export class UserController {
 
       if (newDeposits.length > 0) {
         // Если есть новые депозиты, собираем статистику
-        const totalDepositsAmount = newDeposits.reduce((sum, deposit) => 
-          sum.plus(new BigNumber(deposit.amount.toString())), new BigNumber(0));
+        const totalDeposit = newDeposits.reduce((sum, deposit) => 
+          sum.plus(new BigNumber(deposit.amount || 0)), new BigNumber(0));
           
-        const totalRatePerSecond = newDeposits.reduce((sum, deposit) => 
-          sum.plus(new BigNumber(deposit.rate_per_second.toString())), new BigNumber(0));
-        
-        uniFarmingInfo = {
-          active: true,
-          depositAmount: totalDepositsAmount.toFixed(6),
-          depositCount: newDeposits.length,
-          ratePerSecond: totalRatePerSecond.toFixed(12)
-        };
-      } else if (user.uni_deposit_amount && new BigNumber(user.uni_deposit_amount).gt(0)) {
-        // Для обратной совместимости используем старые данные
-        uniFarmingInfo = {
-          active: true,
-          depositAmount: new BigNumber(user.uni_deposit_amount).toFixed(6),
-          depositCount: 1,
-          ratePerSecond: UniFarmingService.calculateRatePerSecond(user.uni_deposit_amount)
-        };
+        farmingInfo.active = true;
+        farmingInfo.depositAmount = totalDeposit.toFixed(2);
+        farmingInfo.depositCount = newDeposits.length;
+        farmingInfo.ratePerSecond = user.uni_farming_rate || '0';
       }
 
       sendSuccess(res, {
-        balance_uni: balanceUni,
-        balance_ton: balanceTon,
-        // Добавляем дополнительные данные для фарминга
-        uni_farming_active: uniFarmingInfo.active,
-        uni_deposit_amount: uniFarmingInfo.depositAmount,
-        uni_deposit_count: uniFarmingInfo.depositCount,
-        uni_farming_rate: uniFarmingInfo.ratePerSecond,
-        uni_farming_balance: user.uni_farming_balance ? 
-                           new BigNumber(user.uni_farming_balance).toFixed(8) : '0.00000000' // Увеличиваем точность
+        balance_uni: balanceUni, 
+        balance_ton: balanceTon, 
+        farming: farmingInfo
       });
     } catch (error) {
-      console.error('Error in getUserBalance:', error);
+      console.error('[getUserBalance] Error:', error);
       sendServerError(res, error);
     }
   }

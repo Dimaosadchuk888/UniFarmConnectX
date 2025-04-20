@@ -26,12 +26,31 @@ export class UserService {
    * @returns Данные пользователя или undefined
    */
   static async getUserByTelegramId(telegramId: number): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.telegram_id, telegramId));
+    console.log(`[UserService] Searching for user with telegramId ${telegramId} (type: ${typeof telegramId})`);
     
-    return user;
+    // Проверка на валидность ID
+    if (!telegramId || isNaN(telegramId)) {
+      console.error(`[UserService] Invalid telegramId: ${telegramId}`);
+      return undefined;
+    }
+    
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegram_id, telegramId));
+      
+      if (user) {
+        console.log(`[UserService] Found user with id=${user.id} for telegramId=${telegramId}`);
+      } else {
+        console.log(`[UserService] No user found for telegramId=${telegramId}`);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error(`[UserService] Error retrieving user by telegramId ${telegramId}:`, error);
+      throw error;
+    }
   }
 
   /**
