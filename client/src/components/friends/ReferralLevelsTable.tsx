@@ -30,11 +30,52 @@ const ReferralLevelsTable: React.FC = () => {
     success: boolean;
   }
 
+  // Получаем userId из Telegram
+  const telegram = window.Telegram?.WebApp;
+  const userId = telegram?.initDataUnsafe?.user?.id;
+  
+  console.log('[ReferralLevelsTable] Текущий пользователь:', userId);
+  
   // Запрос на получение структуры рефералов с сервера
-  const { data: referralsData, isLoading } = useQuery<ReferralsResponse>({
-    queryKey: ['/api/referrals'],
+  const { data: referralsData, isLoading, error } = useQuery<ReferralsResponse>({
+    queryKey: ['/api/referrals', userId],
+    queryFn: async () => {
+      if (!userId) {
+        throw new Error('Отсутствует идентификатор пользователя');
+      }
+      
+      // Использовать правильный параметр user_id вместо userId согласно API
+      const response = await fetch(`/api/referrals?user_id=${userId}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[ReferralLevelsTable] Ошибка API:', errorText);
+        throw new Error(`Ошибка получения данных о рефералах: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    enabled: !!userId,
     refetchOnWindowFocus: false,
+    retry: 1, // Повторить запрос только 1 раз в случае ошибки
+    refetchInterval: false, // Отключить автоматическое обновление
   });
+  
+  // Логи для отладки
+  React.useEffect(() => {
+    if (error) {
+      console.error('[ReferralLevelsTable] Ошибка запроса:', error);
+    }
+    if (referralsData) {
+      console.log('[ReferralLevelsTable] Данные получены:', referralsData);
+    }
+  }, [referralsData, error]);
+  
+  // Проверка на отсутствие рефералов
+  const hasReferrals = React.useMemo(() => {
+    if (!referralsData) return false;
+    const totalReferrals = referralsData.data.total_referrals || 0;
+    return totalReferrals > 0;
+  }, [referralsData]);
 
   // Преобразуем данные с сервера в нужный формат для отображения
   const levels: ReferralLevel[] = React.useMemo(() => {
@@ -48,29 +89,55 @@ const ReferralLevelsTable: React.FC = () => {
       }));
     }
     
-    // Получаем количество рефералов по уровням и доходы
-    const referralCounts = referralsData.data.referral_counts || {};
-    const levelIncome = referralsData.data.level_income || {};
-    
-    // Формируем массив уровней с данными из API
-    return Array.from({ length: 20 }, (_, i) => {
-      const levelNumber = i + 1;
-      const count = referralCounts[levelNumber] || 0;
+    try {
+      // Получаем количество рефералов по уровням и доходы
+      const referralCounts = referralsData.data.referral_counts || {};
+      const levelIncome = referralsData.data.level_income || {};
       
-      // Получаем доходы от рефералов по уровням или устанавливаем нулевые значения
-      const uniIncome = levelIncome[levelNumber]?.uni || 0;
-      const tonIncome = levelIncome[levelNumber]?.ton || 0;
+      console.log('[ReferralLevelsTable] API данные:', { 
+        referralCounts, 
+        levelIncome,
+        totalReferrals: referralsData.data.total_referrals
+      });
       
-      return {
-        level: `Уровень ${levelNumber}`,
-        friends: count,
-        income: { 
-          uni: `${uniIncome} UNI`, 
-          ton: `${tonIncome} TON` 
-        },
+      // Формируем массив уровней с данными из API
+      return Array.from({ length: 20 }, (_, i) => {
+        const levelNumber = i + 1;
+        const count = referralCounts[levelNumber] || 0;
+        
+        // Получаем доходы от рефералов по уровням или устанавливаем нулевые значения
+        const uniIncome = levelIncome[levelNumber]?.uni || 0;
+        const tonIncome = levelIncome[levelNumber]?.ton || 0;
+        
+        // Форматируем числа до 8 знаков для UNI и до 6 знаков для TON
+        const formattedUniIncome = typeof uniIncome === 'number' 
+          ? parseFloat(uniIncome.toFixed(8)) 
+          : 0;
+        
+        const formattedTonIncome = typeof tonIncome === 'number' 
+          ? parseFloat(tonIncome.toFixed(6)) 
+          : 0;
+        
+        return {
+          level: `Уровень ${levelNumber}`,
+          friends: count,
+          income: { 
+            uni: `${formattedUniIncome} UNI`, 
+            ton: `${formattedTonIncome} TON` 
+          },
+          percent: `${LEVEL_PERCENTAGES[i]}%`
+        };
+      });
+    } catch (error) {
+      console.error('[ReferralLevelsTable] Ошибка обработки данных:', error);
+      // В случае ошибки возвращаем пустые уровни
+      return Array.from({ length: 20 }, (_, i) => ({
+        level: `Уровень ${i + 1}`,
+        friends: 0,
+        income: { uni: "0 UNI", ton: "0 TON" },
         percent: `${LEVEL_PERCENTAGES[i]}%`
-      };
-    });
+      }));
+    }
   }, [referralsData]);
   
   // Состояния для анимаций и эффектов
@@ -168,7 +235,24 @@ const ReferralLevelsTable: React.FC = () => {
       ></div>
       
       <div className="flex justify-between items-center mb-3">
-        <h2 className="text-md font-medium">Уровни партнерской программы</h2>
+        <div className="flex items-center">
+          <h2 className="text-md font-medium">Уровни партнерской программы</h2>
+          
+          {/* Индикатор загрузки */}
+          {isLoading && (
+            <div className="ml-2 animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+          )}
+          
+          {/* Индикатор ошибки */}
+          {error && (
+            <div className="ml-2 text-red-500 text-xs">
+              <span className="flex items-center">
+                <i className="fas fa-exclamation-circle mr-1"></i>
+                Ошибка загрузки
+              </span>
+            </div>
+          )}
+        </div>
         
         {/* Иконка вопроса с всплывающей подсказкой */}
         <div className="relative group">

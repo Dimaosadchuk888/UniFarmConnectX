@@ -117,7 +117,10 @@ export class ReferralController {
         return;
       }
 
-      const inviterUser = inviter.inviter_id !== null ? await UserService.getUserById(inviter.inviter_id) : null;
+      let inviterUser = null;
+      if (inviter.inviter_id !== null && typeof inviter.inviter_id === 'number') {
+        inviterUser = await UserService.getUserById(inviter.inviter_id);
+      }
       
       const response = {
         user_id: userId,
