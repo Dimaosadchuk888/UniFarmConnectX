@@ -1,5 +1,9 @@
 import { apiRequest } from "@/lib/queryClient";
+import { getCachedTelegramUserId } from "@/services/telegramService";
 
+/**
+ * Интерфейс пользователя, возвращаемый API
+ */
 export interface User {
   id: number;
   telegram_id: number;
@@ -8,118 +12,278 @@ export interface User {
   balance_ton: string;
 }
 
-// Ключ для хранения userId в localStorage
-const USER_ID_STORAGE_KEY = 'unifarm_user_id';
+/**
+ * Интерфейс ошибки, который может вернуть API
+ */
+export interface ApiError {
+  hasError: boolean;
+  message: string;
+  code?: string;
+  details?: any;
+}
 
-// Определяем, находимся ли мы в режиме разработки
+/**
+ * Ключ для хранения данных пользователя в localStorage
+ */
+const USER_DATA_STORAGE_KEY = 'unifarm_user_data';
+
+/**
+ * Определяем, находимся ли мы в режиме разработки
+ */
 const IS_DEV = process.env.NODE_ENV === 'development';
 
+/**
+ * Максимальное время хранения кэша пользователя (1 час)
+ */
+const CACHE_TTL = 60 * 60 * 1000;
+
+/**
+ * Класс для работы с API запросами, связанными с пользователями
+ */
 class UserService {
   /**
-   * Получает информацию о текущем пользователе
-   * @returns Данные текущего пользователя или выбрасывает ошибку
+   * Получает информацию о текущем пользователе с оптимизированной обработкой ошибок
+   * @param {boolean} [forceReload=false] - Если true, игнорирует кэш и делает новый запрос
+   * @returns {Promise<User>} Данные текущего пользователя
+   * @throws {Error} Если не удалось получить данные пользователя
    */
-  async getCurrentUser(): Promise<User> {
+  async getCurrentUser(forceReload: boolean = false): Promise<User> {
+    console.log(`[UserService] Getting current user, forceReload: ${forceReload}`);
+    
     try {
-      // Проверяем наличие кешированного userId в localStorage
-      const cachedUserId = localStorage.getItem(USER_ID_STORAGE_KEY);
-      
-      // Если есть кешированный userId и это не режим разработки, используем его
-      if (cachedUserId && !IS_DEV) {
-        console.log('[UserService] Using cached userId:', cachedUserId);
-        
-        // Все равно делаем запрос для получения актуальных данных
-        try {
-          const data = await apiRequest('/api/me');
-          if (data.success && data.data) {
-            // Обновляем кеш, если ID изменился
-            if (data.data.id.toString() !== cachedUserId) {
-              localStorage.setItem(USER_ID_STORAGE_KEY, data.data.id.toString());
-            }
-            return data.data;
-          }
-        } catch (apiError) {
-          console.warn('[UserService] Failed to refresh user data, using cached ID', apiError);
-          // Если запрос не удался, но у нас есть кешированный ID, создаем минимальный объект
-          return {
-            id: parseInt(cachedUserId),
-            telegram_id: 0, // Неизвестно
-            username: "user",
-            balance_uni: "0",
-            balance_ton: "0"
-          };
+      // Шаг 1: Проверяем кэшированные данные пользователя, если не требуется принудительная перезагрузка
+      if (!forceReload) {
+        const cachedUserData = this.getCachedUserData();
+        if (cachedUserData && this.isValidCachedData(cachedUserData)) {
+          console.log('[UserService] Using cached user data:', { id: cachedUserData.id });
+          
+          // Даже если используем кэш, делаем фоновый запрос для обновления данных
+          this.refreshUserDataInBackground();
+          
+          return cachedUserData;
         }
       }
       
-      // Делаем запрос к API
-      const data = await apiRequest('/api/me');
-      
-      // Подробный лог для отладки
-      console.log('[UserService] API /me result:', {
-        fullResponse: data,
-        success: data?.success,
-        userId: data?.data?.id,
-        username: data?.data?.username,
-        telegramId: data?.data?.telegram_id
-      });
-      
-      if (!data.success || !data.data) {
-        console.error('[UserService] Invalid API response:', data);
-        throw new Error('Invalid response from server');
-      }
-      
-      // Кешируем полученный userId
-      localStorage.setItem(USER_ID_STORAGE_KEY, data.data.id.toString());
+      // Шаг 2: Запрашиваем данные с сервера
+      console.log('[UserService] Requesting user data from API');
+      const data = await this.fetchUserFromApi();
       
       // Лог успешного результата
-      console.log('[UserService] Successfully got user data, ID:', data.data.id);
+      console.log('[UserService] Successfully got user data, ID:', data.id);
       
-      return data.data;
+      return data;
     } catch (error) {
       console.error('[UserService] Error fetching current user:', error);
       
-      // В режиме разработки пробуем получить данные с сервера, но с ID=1
+      // Шаг 3: Попытка восстановления из кэша в случае ошибки
+      const cachedUserData = this.getCachedUserData();
+      if (cachedUserData) {
+        console.warn('[UserService] Fallback to cached user data due to API error');
+        return cachedUserData;
+      }
+      
+      // Шаг 4: В режиме разработки пробуем получить тестовые данные с сервера
       if (IS_DEV) {
-        console.warn('[UserService] In DEV mode, trying to get user with ID=1 from API');
         try {
-          const devData = await apiRequest('/api/users/1');
-          if (devData.success && devData.data) {
-            console.log('[UserService] Successfully got DEV user data from API:', devData.data);
-            return devData.data;
-          } else {
-            // Если не удалось получить реальные данные, используем заглушку
-            console.warn('[UserService] Failed to get user from API in DEV mode, using fallback data');
-            return {
-              id: 1, // Обычно в devdb всегда есть пользователь с id=1
-              telegram_id: 12345,
-              username: "dev_test_user",
-              balance_uni: "1000",
-              balance_ton: "0"
-            };
-          }
+          console.warn('[UserService] In DEV mode, trying to get user data');
+          return await this.fetchDevUserFromApi();
         } catch (devError) {
           console.error('[UserService] Error fetching DEV user:', devError);
-          // Возвращаем заглушку в случае ошибки
-          return {
-            id: 1,
-            telegram_id: 12345,
-            username: "dev_test_user",
-            balance_uni: "1000",
-            balance_ton: "0"
-          };
         }
       }
       
-      // В production режиме пробрасываем ошибку
+      // Шаг 5: Если все предыдущие шаги не удались - пробрасываем ошибку
+      console.error('[UserService] All recovery methods failed');
+      throw new Error(`Failed to get user data: ${(error as Error)?.message || 'Unknown error'}`);
+    }
+  }
+  
+  /**
+   * Получает Telegram ID пользователя и делает запрос к API
+   * @returns {Promise<User>} Данные пользователя из API
+   * @private
+   */
+  private async fetchUserFromApi(): Promise<User> {
+    // Получаем Telegram ID пользователя, принудительно переподключая к API
+    const telegramUserId = getCachedTelegramUserId(true);
+    console.log('[UserService] Telegram user ID for API request:', telegramUserId);
+    
+    // Делаем запрос к API
+    const data = await apiRequest('/api/me');
+    
+    // Подробный лог для отладки
+    console.log('[UserService] API /me result:', {
+      success: data?.success,
+      userId: data?.data?.id,
+      username: data?.data?.username,
+      telegramId: data?.data?.telegram_id
+    });
+    
+    if (!data.success || !data.data) {
+      console.error('[UserService] Invalid API response:', data);
+      throw new Error('Invalid response from server');
+    }
+    
+    // Валидируем и кэшируем полученные данные
+    if (this.isValidUserData(data.data)) {
+      this.cacheUserData(data.data);
+      return data.data;
+    } else {
+      throw new Error('Invalid user data structure received from API');
+    }
+  }
+  
+  /**
+   * Запрашивает данные пользователя в фоновом режиме для обновления кэша
+   * @private
+   */
+  private async refreshUserDataInBackground(): Promise<void> {
+    try {
+      console.log('[UserService] Refreshing user data in background');
+      const data = await this.fetchUserFromApi();
+      this.cacheUserData(data);
+      console.log('[UserService] Background refresh completed, new data cached');
+    } catch (error) {
+      console.warn('[UserService] Background refresh failed:', error);
+      // Игнорируем ошибки, т.к. это фоновое обновление
+    }
+  }
+  
+  /**
+   * Проверяет валидность структуры данных пользователя
+   * @param data Данные пользователя для проверки
+   * @returns {boolean} True если данные валидны, false в противном случае
+   * @private
+   */
+  private isValidUserData(data: any): data is User {
+    return (
+      data &&
+      typeof data.id === 'number' &&
+      data.id > 0 &&
+      (typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string') &&
+      typeof data.username === 'string' &&
+      typeof data.balance_uni === 'string' &&
+      typeof data.balance_ton === 'string'
+    );
+  }
+  
+  /**
+   * Проверяет актуальность кэшированных данных
+   * @param data Кэшированные данные пользователя
+   * @returns {boolean} True если данные актуальны, false в противном случае
+   * @private
+   */
+  private isValidCachedData(data: any): boolean {
+    if (!data || !data._cacheTimestamp) {
+      return false;
+    }
+    
+    // Проверяем, не устарел ли кэш (1 час)
+    const cacheAge = Date.now() - data._cacheTimestamp;
+    return cacheAge < CACHE_TTL;
+  }
+  
+  /**
+   * Сохраняет данные пользователя в кэш
+   * @param userData Данные пользователя для кэширования
+   * @private
+   */
+  private cacheUserData(userData: User): void {
+    try {
+      // Добавляем метку времени для контроля актуальности кэша
+      const dataToCache = {
+        ...userData,
+        _cacheTimestamp: Date.now()
+      };
+      
+      localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(dataToCache));
+      console.log('[UserService] User data cached successfully:', { id: userData.id });
+    } catch (error) {
+      console.error('[UserService] Error caching user data:', error);
+    }
+  }
+  
+  /**
+   * Получает кэшированные данные пользователя
+   * @returns {User | null} Кэшированные данные пользователя или null
+   * @private
+   */
+  private getCachedUserData(): User | null {
+    try {
+      const cachedDataStr = localStorage.getItem(USER_DATA_STORAGE_KEY);
+      if (!cachedDataStr) {
+        return null;
+      }
+      
+      const cachedData = JSON.parse(cachedDataStr);
+      if (this.isValidUserData(cachedData)) {
+        return cachedData;
+      }
+      return null;
+    } catch (error) {
+      console.warn('[UserService] Error reading cached user data:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Получает данные тестового пользователя в режиме разработки
+   * @returns {Promise<User>} Данные тестового пользователя
+   * @private
+   */
+  private async fetchDevUserFromApi(): Promise<User> {
+    try {
+      const devData = await apiRequest('/api/users/1');
+      if (devData.success && devData.data && this.isValidUserData(devData.data)) {
+        console.log('[UserService] Successfully got DEV user data from API:', { id: devData.data.id });
+        return devData.data;
+      } else {
+        throw new Error('Invalid dev user data structure');
+      }
+    } catch (error) {
+      console.error('[UserService] Error fetching DEV user:', error);
       throw error;
     }
   }
   
   /**
-   * Очищает кешированный userId
+   * Очищает кэш данных пользователя
    */
   clearUserCache(): void {
-    localStorage.removeItem(USER_ID_STORAGE_KEY);
+    localStorage.removeItem(USER_DATA_STORAGE_KEY);
+    // Для обратной совместимости удаляем и по старому ключу
+    localStorage.removeItem('unifarm_user_id');
+    console.log('[UserService] User data cache cleared');
+  }
+  
+  /**
+   * Проверяет наличие реального пользовательского ID
+   * @returns {Promise<boolean>} True если есть реальный ID пользователя
+   */
+  async hasRealUserId(): Promise<boolean> {
+    try {
+      // Проверяем Telegram ID
+      const telegramUserId = getCachedTelegramUserId();
+      if (telegramUserId && telegramUserId !== '1') {
+        return true;
+      }
+      
+      // Проверяем кэшированные данные
+      const cachedData = this.getCachedUserData();
+      if (cachedData && cachedData.id > 0 && cachedData.id !== 1) {
+        return true;
+      }
+      
+      // Пробуем получить с сервера
+      try {
+        const userData = await this.fetchUserFromApi();
+        return userData.id > 0 && userData.id !== 1;
+      } catch {
+        return false;
+      }
+    } catch {
+      return false;
+    }
   }
 }
 

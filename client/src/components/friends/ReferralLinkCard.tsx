@@ -94,9 +94,32 @@ const ReferralLinkCard: React.FC = () => {
     retryCount
   });
   
-  // Определяем наличие userId - теперь используем ТОЛЬКО реальные ID
-  // Не используем фиксированные значения '1' даже в режиме разработки
-  const hasRealUserId = !!(currentUser?.id || telegramUserId || cachedUserId);
+  // Определяем наличие реального userId, используя новую функцию из userService
+  // которая обеспечивает надежную проверку ID
+  const [hasRealUserIdState, setHasRealUserIdState] = useState<boolean | null>(null);
+  
+  // Используем useEffect для получения асинхронного статуса hasRealUserId
+  useEffect(() => {
+    async function checkRealUserId() {
+      try {
+        // Используем усовершенствованную функцию из userService
+        const hasReal = await userService.hasRealUserId();
+        setHasRealUserIdState(hasReal);
+        console.log('[ReferralLinkCard] Real user ID check result:', hasReal);
+      } catch (error) {
+        console.error('[ReferralLinkCard] Error checking real user ID:', error);
+        setHasRealUserIdState(false);
+      }
+    }
+    
+    // Вызываем функцию проверки
+    checkRealUserId();
+  }, [currentUser?.id, telegramUserId, cachedUserId, retryCount]);
+  
+  // Используем состояние или делаем резервную проверку, если состояние еще не инициализировано
+  const hasRealUserId = hasRealUserIdState !== null ? 
+    hasRealUserIdState : 
+    !!(currentUser?.id && currentUser.id !== 1 || telegramUserId && telegramUserId !== 1 || cachedUserId && cachedUserId !== '1');
   
   // Формируем реферальную ссылку только если есть реальный userId
   let userId = '';
@@ -346,6 +369,7 @@ const ReferralLinkCard: React.FC = () => {
               <p className="font-mono">Кэш ID: {cachedUserId || 'не получен'}</p>
               <p className="font-mono">В режиме разработки: {IS_DEV ? 'да' : 'нет'}</p>
               <p className="font-mono">hasRealUserId: {hasRealUserId ? 'true' : 'false'}</p>
+              <p className="font-mono">hasRealUserIdState: {hasRealUserIdState === null ? 'null' : hasRealUserIdState ? 'true' : 'false'}</p>
             </div>
             
             {telegram ? (
