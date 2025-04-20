@@ -3,6 +3,8 @@ import { users, uniFarmingDeposits, tonBoostDeposits } from '@shared/schema';
 import { UniFarmingService } from './services/uniFarmingService';
 import { NewUniFarmingService } from './services/newUniFarmingService';
 import { TonBoostService } from './services/tonBoostService';
+import { ReferralBonusService } from './services/referralBonusService';
+import { Currency } from './services/transactionService';
 import { and, ne, isNotNull, eq } from 'drizzle-orm';
 
 /**

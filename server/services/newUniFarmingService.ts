@@ -3,6 +3,7 @@ import { users, uniFarmingDeposits } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { BigNumber } from 'bignumber.js';
 import { TransactionService, TransactionType, Currency, TransactionStatus } from './transactionService';
+import { ReferralBonusService } from './referralBonusService';
 
 // Глобальное объявление для TypeScript
 declare global {
