@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 const ReferralLinkCard: React.FC = () => {
   // В реальном приложении это пришло бы из данных пользователя
   const userId = "user" + Math.floor(Math.random() * 10000); // Динамический ID для примера
-  const referralLink = `https://t.me/UniFarm_bot?start=${userId}`;
+  const referralLink = `https://t.me/UniFarm_bot?startapp=${userId}`;
   
   // Состояния для анимаций и взаимодействий
   const [isCopied, setIsCopied] = useState(false);
