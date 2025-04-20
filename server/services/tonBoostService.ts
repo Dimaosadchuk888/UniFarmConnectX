@@ -5,7 +5,9 @@ import {
   type TonBoostDeposit, 
   type InsertTonBoostDeposit,
   transactions,
-  users
+  users,
+  insertTransactionSchema,
+  type InsertTransaction
 } from "@shared/schema";
 import BigNumber from "bignumber.js";
 import { ReferralBonusService } from "./referralBonusService";
@@ -616,7 +618,8 @@ export class TonBoostService {
         .where(eq(transactions.id, transactionId));
 
       // Размер буст-пакета - это сумма транзакции
-      const amount = transaction.amount;
+      // Проверка на null и установка дефолтного значения
+      const amount = transaction.amount || "0";
       
       // [АУДИТ ПЛАТЕЖЕЙ - УБРАТЬ ПОСЛЕ ТЕСТИРОВАНИЯ]
       console.log("[TON AUDIT] confirmExternalPayment вход:", { 
@@ -923,10 +926,8 @@ export class TonBoostService {
         };
       }
       
-      // Создаем транзакцию внешнего платежа
-      const [transaction] = await db
-        .insert(transactions)
-        .values({
+      // Создаем транзакцию внешнего платежа, используя схему
+      const transactionData = insertTransactionSchema.parse({
           user_id: userId,
           type: "boost_purchase_external",
           currency: "TON",
@@ -934,12 +935,13 @@ export class TonBoostService {
           status: "pending",
           source: "External Wallet",
           category: "purchase",
-          metadata: JSON.stringify({
-            sender_address: senderAddress,
-            comment: comment,
-            boost_id: boostId
-          }) as any
-        })
+          // Пока убираем metadata, так как оно не включено в схему
+          tx_hash: null // Можно оставить пустым, если не требуется
+      });
+      
+      const [transaction] = await db
+        .insert(transactions)
+        .values(transactionData)
         .returning();
       
       // Подтверждаем платеж и активируем буст
