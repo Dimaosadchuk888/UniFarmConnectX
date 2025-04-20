@@ -512,6 +512,10 @@ const BoostPackagesCard: React.FC = () => {
                           const priceTon = parseFloat(boost.priceTon);
                           const ratePercent = parseFloat(boost.rateTon);
                           const dailyIncome = priceTon * (ratePercent / 100);
+                          
+                          // Добавляем логирование для отладки
+                          console.log(`[TON Boost доход по пакету] id=${boost.id}, price=${priceTon}, rate=${ratePercent}%, daily=${dailyIncome}`);
+                          
                           return formatNumberWithPrecision(dailyIncome, 5) + ' TON';
                         })()}
                       </span>
@@ -525,6 +529,10 @@ const BoostPackagesCard: React.FC = () => {
                           const ratePercent = parseFloat(boost.rateTon);
                           const secondsInDay = 24 * 60 * 60;
                           const incomePerSecond = priceTon * (ratePercent / 100) / secondsInDay;
+                          
+                          // Добавляем логирование для отладки
+                          console.log(`[TON Boost доход по пакету] id=${boost.id}, perSecond=${incomePerSecond}`);
+                          
                           return formatNumberWithPrecision(incomePerSecond, 8) + ' TON';
                         })()}
                       </span>
