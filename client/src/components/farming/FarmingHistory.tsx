@@ -339,31 +339,64 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           }
         }
         
-        // Преобразуем транзакции в историю
-        historyItems = farmingTransactions.map((tx: Transaction) => {
-          // Определение типа операции на основе данных транзакции
-          let type = 'Операция';
-          
-          // Используем все доступные типы транзакций
-          if (tx.type === 'farming') type = 'Фарминг';
-          else if (tx.type === 'farming_reward') type = 'Награда за фарминг';
-          else if (tx.type === 'boost_farming') type = 'TON фарминг';
-          else if (tx.type === 'ton_boost') type = 'TON Boost';
-          else if (tx.type === 'deposit') type = 'Депозит';
-          else if (tx.type === 'boost') type = 'Boost';
-          else if (tx.type === 'check-in') type = 'Ежедневный бонус';
-          else if (tx.type === 'reward') type = 'Награда';
-          
-          return {
-            id: tx.id,
-            time: new Date(tx.created_at),
-            type,
-            amount: parseFloat(tx.amount || '0'),
-            currency: tx.currency || 'UNI', // По умолчанию UNI
-            boost_id: tx.boost_id,
-            isNew: false
-          };
-        });
+        // Определяем минимальные значимые суммы для каждой валюты
+        const MIN_SIGNIFICANT_AMOUNT = {
+          UNI: 0.00001, // Минимальная значимая сумма для UNI
+          TON: 0.000001 // Минимальная значимая сумма для TON
+        };
+        
+        // Преобразуем транзакции в историю с фильтрацией незначительных сумм
+        historyItems = farmingTransactions
+          .map((tx: Transaction) => {
+            // Определение типа операции на основе данных транзакции
+            let type = 'Операция';
+            
+            // Используем все доступные типы транзакций
+            if (tx.type === 'farming') type = 'Фарминг';
+            else if (tx.type === 'farming_reward') type = 'Награда за фарминг';
+            else if (tx.type === 'boost_farming') type = 'TON фарминг';
+            else if (tx.type === 'ton_boost') type = 'TON Boost';
+            else if (tx.type === 'deposit') type = 'Депозит';
+            else if (tx.type === 'boost') type = 'Boost';
+            else if (tx.type === 'check-in') type = 'Ежедневный бонус';
+            else if (tx.type === 'reward') type = 'Награда';
+            
+            const currency = tx.currency || 'UNI'; // По умолчанию UNI
+            const amount = parseFloat(tx.amount || '0');
+            
+            // Отладочное логирование для TON транзакций
+            if (currency === 'TON') {
+              console.log("[TON История] Обработка транзакции:", {
+                id: tx.id,
+                time: new Date(tx.created_at),
+                type: tx.type,
+                rawAmount: tx.amount,
+                parsedAmount: amount,
+                boost_id: tx.boost_id
+              });
+            }
+            
+            return {
+              id: tx.id,
+              time: new Date(tx.created_at),
+              type,
+              amount,
+              currency,
+              boost_id: tx.boost_id,
+              isNew: false
+            };
+          })
+          // Фильтруем транзакции с нулевыми или слишком малыми суммами
+          .filter(item => {
+            const minAmount = MIN_SIGNIFICANT_AMOUNT[item.currency as keyof typeof MIN_SIGNIFICANT_AMOUNT] || 0.00001;
+            const isSignificant = item.amount > minAmount;
+            
+            if (!isSignificant && item.currency === 'TON') {
+              console.log(`[TON История] Отфильтрована незначительная транзакция: ID=${item.id}, Сумма=${item.amount}`);
+            }
+            
+            return isSignificant;
+          });
         
         // Сортируем по дате (сначала новые)
         historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
@@ -625,33 +658,52 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {/* ВАЖНО: Здесь убрана дополнительная фильтрация по UNI - это может быть причиной проблемы */}
-                      {farmingHistory.map((item) => (
-                        <tr 
-                          key={item.id} 
-                          className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
-                        >
-                          <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
-                          <td className="py-2 text-sm text-foreground">
-                            <div className="flex items-center">
-                              <span className={`
-                                inline-block w-2 h-2 rounded-full mr-2
-                                ${item.type === 'Фарминг' ? 'bg-green-500' : 
-                                  item.type === 'Депозит' ? 'bg-purple-500' : 
-                                  item.type === 'Награда за фарминг' ? 'bg-pink-500' : 
-                                  item.type === 'Ежедневный бонус' ? 'bg-yellow-500' : 
-                                  'bg-blue-500'}
-                              `}></span>
-                              {item.type}
-                            </div>
-                          </td>
-                          <td className="py-2 text-sm text-right">
-                            <span className={item.currency === 'UNI' ? "text-purple-300" : "text-blue-300"}>
-                              +{item.amount.toFixed(item.amount < 0.001 ? 6 : 2)}
-                            </span>
-                            <span className="text-gray-400 ml-1.5 text-xs">{item.currency}</span>
-                          </td>
-                        </tr>
+                      {/* Добавлена фильтрация по активной вкладке и минимальной значимой сумме */}
+                      {farmingHistory
+                        .filter(item => {
+                          // Фильтрация по активной вкладке
+                          if (activeTab === 'uni') {
+                            return item.currency === 'UNI';
+                          } else {
+                            return item.currency === 'TON';
+                          }
+                        })
+                        .map((item) => (
+                          <tr 
+                            key={item.id} 
+                            className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
+                          >
+                            <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
+                            <td className="py-2 text-sm text-foreground">
+                              <div className="flex items-center">
+                                <span className={`
+                                  inline-block w-2 h-2 rounded-full mr-2
+                                  ${item.type === 'Фарминг' ? 'bg-green-500' : 
+                                    item.type === 'Депозит' ? 'bg-purple-500' : 
+                                    item.type === 'Награда за фарминг' ? 'bg-pink-500' : 
+                                    item.type === 'TON фарминг' ? 'bg-blue-500' : 
+                                    item.type === 'Ежедневный бонус' ? 'bg-yellow-500' : 
+                                    'bg-blue-500'}
+                                `}></span>
+                                {item.type}
+                              </div>
+                            </td>
+                            <td className="py-2 text-sm text-right">
+                              <span className={item.currency === 'UNI' ? "text-purple-300" : "text-blue-300"}>
+                                +{item.currency === 'TON' ? 
+                                  // TON показываем с разной точностью в зависимости от размера суммы
+                                  item.amount.toFixed(item.amount < 0.001 ? 6 : 3) : 
+                                  // UNI показываем с разной точностью в зависимости от размера суммы
+                                  item.amount.toFixed(
+                                    item.amount < 0.0001 ? 8 : 
+                                    item.amount < 0.01 ? 6 : 
+                                    item.amount < 1 ? 4 : 2
+                                  )
+                                }
+                              </span>
+                              <span className="text-gray-400 ml-1.5 text-xs">{item.currency}</span>
+                            </td>
+                          </tr>
                       ))}
                     </tbody>
                   </table>
@@ -860,7 +912,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           <h3 className="text-md font-medium mb-4">История TON транзакций</h3>
           
           <div className="overflow-hidden relative">
-            {farmingHistory.filter(item => item.currency === 'TON').length === 0 ? (
+            {farmingHistory.filter(item => item.currency === 'TON' && item.amount >= 0.000001).length === 0 ? (
               <div className="text-center py-4">
                 <p className="text-sm text-foreground opacity-70">
                   У вас пока нет транзакций по TON
@@ -877,7 +929,11 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                 </thead>
                 <tbody>
                   {farmingHistory
-                    .filter(item => item.currency === 'TON')
+                    .filter(item => 
+                      // Фильтрация только TON транзакций со значимыми суммами
+                      item.currency === 'TON' && 
+                      item.amount >= 0.000001
+                    )
                     .map((item) => (
                       <tr 
                         key={item.id} 
@@ -900,7 +956,14 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                           </div>
                         </td>
                         <td className="py-2 text-sm text-right">
-                          <span className="text-blue-300">+{(item.amount || 0).toFixed((item.amount || 0) < 0.001 ? 6 : 4)}</span>
+                          <span className="text-blue-300">
+                            +{(item.amount || 0).toFixed(
+                              // Настраиваем точность отображения TON в зависимости от суммы
+                              (item.amount || 0) < 0.0001 ? 6 : 
+                              (item.amount || 0) < 0.01 ? 5 : 
+                              (item.amount || 0) < 1 ? 4 : 3
+                            )}
+                          </span>
                           <span className="text-gray-400 ml-1.5 text-xs">TON</span>
                         </td>
                       </tr>
