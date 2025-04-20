@@ -94,24 +94,29 @@ const ReferralLinkCard: React.FC = () => {
     retryCount
   });
   
-  // Определяем наличие userId (проверяем все доступные источники) 
-  const hasUserId = !!(
-    currentUser?.id || 
-    (telegramUserId) || 
-    (cachedUserId) || 
-    (IS_DEV && '1')
-  );
+  // Определяем наличие userId - теперь используем ТОЛЬКО реальные ID
+  // Не используем фиксированные значения '1' даже в режиме разработки
+  const hasRealUserId = !!(currentUser?.id || telegramUserId || cachedUserId);
   
-  // Формируем реферальную ссылку только если есть userId
+  // Формируем реферальную ссылку только если есть реальный userId
   let userId = '';
   let referralLink = '';
   
-  if (hasUserId) {
-    // Приоритет: текущий пользователь из API, затем прямо из Telegram, затем из кэша, затем из режима разработки
-    userId = `user${currentUser?.id || telegramUserId || cachedUserId || (IS_DEV ? '1' : '')}`;
-    referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
+  if (hasRealUserId) {
+    // Получаем реальный ID (без fallback на '1')
+    const realId = currentUser?.id || telegramUserId || cachedUserId;
     
-    console.log('[ReferralLinkCard] Generated referral link:', referralLink);
+    // Валидируем - только положительные числовые значения
+    const numericId = typeof realId === 'string' ? parseInt(realId) : realId;
+    if (numericId && numericId > 0) {
+      userId = `user${realId}`;
+      referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
+      console.log('[ReferralLinkCard] Generated unique referral link:', referralLink, 'for user ID:', realId);
+    } else {
+      console.warn('[ReferralLinkCard] Invalid user ID detected:', realId);
+    }
+  } else {
+    console.warn('[ReferralLinkCard] No real user ID available to generate referral link');
   }
   
   // Состояния для анимаций и взаимодействий
@@ -260,7 +265,7 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {!isUserLoading && !error.hasError && hasUserId && (
+        {!isUserLoading && !error.hasError && hasRealUserId && referralLink && (
           <div className="flex relative">
             <div className="flex-grow relative">
               <input 
@@ -323,7 +328,7 @@ const ReferralLinkCard: React.FC = () => {
         )}
         
         {/* Если нет userId и не в состоянии загрузки или ошибки */}
-        {!isUserLoading && !error.hasError && !hasUserId && (
+        {!isUserLoading && !error.hasError && !hasRealUserId && (
           <div className="flex flex-col items-center py-3 px-2 bg-yellow-900/20 rounded-lg">
             <div className="flex items-center text-yellow-500 mb-2">
               <i className="fas fa-info-circle mr-2"></i>
@@ -340,7 +345,7 @@ const ReferralLinkCard: React.FC = () => {
               <p className="font-mono">Telegram ID: {telegramUserId || 'не получен'}</p>
               <p className="font-mono">Кэш ID: {cachedUserId || 'не получен'}</p>
               <p className="font-mono">В режиме разработки: {IS_DEV ? 'да' : 'нет'}</p>
-              <p className="font-mono">hasUserId: {hasUserId ? 'true' : 'false'}</p>
+              <p className="font-mono">hasRealUserId: {hasRealUserId ? 'true' : 'false'}</p>
             </div>
             
             {telegram ? (
