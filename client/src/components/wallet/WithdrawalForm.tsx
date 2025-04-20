@@ -104,9 +104,9 @@ const WithdrawalForm: React.FC = () => {
           {showTooltip && (
             <div className="absolute right-0 top-6 w-64 bg-card p-3 rounded-md shadow-lg text-xs z-20">
               <p className="mb-2">
-                <span className="font-medium">Зачем подключать TON?</span>
+                <span className="font-medium">Зачем указывать TON-адрес?</span>
               </p>
-              <p>TON-адрес нужен для получения токенов UNI напрямую в ваш кошелек через блокчейн TON.</p>
+              <p>TON-адрес нужен для вывода TON напрямую в ваш кошелек через блокчейн TON.</p>
             </div>
           )}
         </div>
@@ -196,7 +196,7 @@ const WithdrawalForm: React.FC = () => {
                   transition-all duration-300
                   ${amountFocused ? 'bg-muted/80 border-r-2 border-t-2 border-b-2 border-primary/30' : ''}
                 `}>
-                  UNI
+                  TON
                 </div>
               </div>
               
