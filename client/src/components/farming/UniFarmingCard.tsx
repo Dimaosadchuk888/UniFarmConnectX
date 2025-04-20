@@ -139,7 +139,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     try {
       const ratePerSecond = new BigNumber(farmingInfo.ratePerSecond);
       const secondsInDay = 86400;
-      return ratePerSecond.multipliedBy(secondsInDay).toFixed(6);
+      return ratePerSecond.multipliedBy(secondsInDay).toFixed(3); // 3 знака после запятой для дневного дохода
     } catch (err) {
       return '0';
     }
@@ -182,9 +182,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="mb-3">
             <p className="text-sm text-foreground opacity-70">Скорость начисления</p>
             <p className="text-md font-medium">
-              <span className="text-primary">+{formatNumber(farmingInfo.ratePerSecond, 6)}</span> UNI/сек
+              <span className="text-primary">+{formatNumber(farmingInfo.ratePerSecond, 8)}</span> UNI/сек
               <span className="text-foreground opacity-70 ml-2">
-                (+{formatNumber(calculateDailyIncome())} UNI в день)
+                (≈ +{formatNumber(calculateDailyIncome())} UNI в день)
               </span>
             </p>
           </div>
