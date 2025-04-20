@@ -8,6 +8,10 @@ interface ExtendedWebSocket extends WebSocket {
 }
 import { storage } from "./storage";
 
+// Импортируем сервисы
+import { UserService } from './services/userService';
+import { ReferralService } from './services/referralService';
+
 // Импортируем контроллеры
 import { UserController } from './controllers/userController';
 import { TransactionController } from './controllers/transactionController';
@@ -31,6 +35,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Маршруты для аутентификации
   app.post("/api/auth/telegram", AuthController.authenticateTelegram);
+  
+  // Тестовый API для реферальной системы (только для режима разработки)
+  if (process.env.NODE_ENV === 'development') {
+    app.post("/api/auth/test-referral", async (req: Request, res: Response) => {
+      try {
+        console.log('[TEST API] Тестирование реферальной системы');
+        
+        const { referrerId } = req.body;
+        
+        // Создаем тестового пользователя
+        const testUserId = Math.floor(Math.random() * 10000000) + 1000000; // Случайный большой ID
+        let isNewUser = true;
+        let referrerRegistered = false;
+        
+        // Создаем нового пользователя, используя сервис напрямую
+        // Импортируем UserService в начале файла
+        const user = await UserService.createUser({
+          telegram_id: testUserId,
+          username: `test_user_${testUserId}`,
+          balance_uni: "5000", // Тестовый бонус
+          balance_ton: "5",
+          created_at: new Date()
+        });
+        
+        console.log(`[TEST API] Создан новый тестовый пользователь: ${user.id}, telegram_id: ${testUserId}`);
+        
+        // Обработка реферальной связи
+        if (referrerId) {
+          try {
+            // Проверяем, существует ли пользователь с указанным referrerId
+            let inviterId = parseInt(referrerId);
+            if (!isNaN(inviterId)) {
+              // Проверяем, существует ли пользователь-приглашающий
+              const inviter = await UserService.getUserById(inviterId);
+              
+              if (inviter) {
+                // Создаем реферальную связь (уровень 1)
+                const referral = await ReferralService.createReferral({
+                  user_id: user.id,
+                  inviter_id: inviterId,
+                  level: 1,
+                  created_at: new Date()
+                });
+                
+                if (referral) {
+                  console.log(`[TEST API] Создана реферальная связь: пользователь ${user.id} приглашен пользователем ${inviterId}`);
+                  referrerRegistered = true;
+                }
+              } else {
+                console.log(`[TEST API] Пользователь с ID ${inviterId} не найден`);
+              }
+            }
+          } catch (error) {
+            console.error('[TEST API] Ошибка при создании реферальной связи:', error);
+          }
+        }
+        
+        // Отправляем успешный ответ с данными пользователя
+        return res.status(200).json({
+          success: true,
+          data: {
+            user_id: user.id,
+            telegram_id: user.telegram_id,
+            username: user.username,
+            balance_uni: user.balance_uni,
+            balance_ton: user.balance_ton,
+            referrer_registered: referrerRegistered,
+            test_mode: true
+          }
+        });
+      } catch (error) {
+        console.error('[TEST API] Ошибка тестирования реферальной системы:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Ошибка при тестировании реферальной системы'
+        });
+      }
+    });
+  }
   
   // Маршруты для пользователей
   app.get("/api/users/:id", UserController.getUserById);
