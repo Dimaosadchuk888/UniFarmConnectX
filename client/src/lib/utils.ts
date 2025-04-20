@@ -102,3 +102,26 @@ export function getUserIdFromURL(): string | null {
   
   return null;
 }
+
+/**
+ * Извлекает ID реферера (пригласившего пользователя) из параметров URL Telegram Mini App
+ * @returns ID реферера или null, если не найден
+ */
+export function getReferrerIdFromURL(): string | null {
+  // Пытаемся получить из параметров URL
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  // Проверяем новый формат ссылки с параметром startapp
+  const startappParam = urlParams.get('startapp');
+  if (startappParam) {
+    return startappParam;
+  }
+  
+  // Проверяем старый формат ссылки с параметром start (для обратной совместимости)
+  const startParam = urlParams.get('start');
+  if (startParam) {
+    return startParam;
+  }
+  
+  return null;
+}

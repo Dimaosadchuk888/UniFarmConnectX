@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { getTelegramUserData, initTelegramWebApp, isTelegramWebApp } from "./services/telegramService";
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import { TONCONNECT_MANIFEST_URL } from './config/tonConnect';
+import { getReferrerIdFromURL } from './lib/utils';
 
 import Header from "@/components/layout/Header";
 import NavigationBar from "@/components/layout/NavigationBar";
