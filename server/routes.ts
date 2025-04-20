@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer } from 'ws';
 import { storage } from "./storage";
 
 // Импортируем контроллеры
@@ -98,5 +99,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Создаем WebSocket сервер на отдельном пути, чтобы не конфликтовать с Vite HMR
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Обработка подключений WebSocket
+  wss.on('connection', (ws) => {
+    console.log('[WebSocket] Новое подключение установлено');
+    
+    // Отправляем приветственное сообщение
+    ws.send(JSON.stringify({ type: 'connected', message: 'Соединение с сервером успешно установлено' }));
+    
+    // Отправляем периодические пинги для поддержания соединения
+    const pingInterval = setInterval(() => {
+      if (ws.readyState === ws.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() }));
+      }
+    }, 30000); // каждые 30 секунд
+    
+    // Обработка сообщений от клиента
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        console.log('[WebSocket] Получено сообщение:', data);
+        
+        // Обработка различных типов сообщений
+        if (data.type === 'pong') {
+          // Пользователь ответил на пинг
+          console.log('[WebSocket] Получен pong от клиента');
+        } else if (data.type === 'subscribe' && data.userId) {
+          // Подписка на обновления для конкретного пользователя
+          ws.userId = data.userId;
+          ws.send(JSON.stringify({ 
+            type: 'subscribed', 
+            userId: data.userId,
+            message: `Подписка на обновления для пользователя ${data.userId} оформлена` 
+          }));
+        }
+      } catch (error) {
+        console.error('[WebSocket] Ошибка обработки сообщения:', error);
+      }
+    });
+    
+    // Обработка закрытия соединения
+    ws.on('close', () => {
+      console.log('[WebSocket] Соединение закрыто');
+      clearInterval(pingInterval);
+    });
+    
+    // Обработка ошибок
+    ws.on('error', (error) => {
+      console.error('[WebSocket] Ошибка соединения:', error);
+    });
+  });
+  
+  // Функция для отправки обновлений всем подключенным пользователям
+  // Можно использовать из других модулей, например из сервисов
+  (global as any).broadcastUserUpdate = (userId: number, data: any) => {
+    wss.clients.forEach((client: any) => {
+      if (client.readyState === client.OPEN && client.userId == userId) {
+        client.send(JSON.stringify({
+          type: 'update',
+          ...data
+        }));
+      }
+    });
+  };
+  
   return httpServer;
 }

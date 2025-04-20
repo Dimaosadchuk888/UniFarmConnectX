@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
+import useWebSocket from '@/hooks/useWebSocket';
 
 interface WalletBalanceResponse {
   success: boolean;
