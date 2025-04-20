@@ -261,27 +261,61 @@ class UserService {
    * @returns {Promise<boolean>} True если есть реальный ID пользователя
    */
   async hasRealUserId(): Promise<boolean> {
+    console.log('[UserService] Checking for real user ID...');
+    
     try {
-      // Проверяем Telegram ID
-      const telegramUserId = getCachedTelegramUserId();
-      if (telegramUserId && telegramUserId !== '1') {
-        return true;
+      // Шаг 1: Проверка наличия Telegram WebApp API и пользовательского ID
+      if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+        const telegramUserId = window.Telegram.WebApp.initDataUnsafe.user.id;
+        if (telegramUserId && telegramUserId !== 1) {
+          console.log('[UserService] Found real user ID from Telegram WebApp:', telegramUserId);
+          return true;
+        } else {
+          console.warn('[UserService] Telegram WebApp userId is invalid:', telegramUserId);
+        }
+      } else {
+        console.warn('[UserService] No user data available from Telegram WebApp API');
       }
       
-      // Проверяем кэшированные данные
+      // Шаг 2: Проверка кэшированного Telegram ID
+      const cachedTelegramId = getCachedTelegramUserId();
+      if (cachedTelegramId && cachedTelegramId !== '1') {
+        console.log('[UserService] Found real user ID from cached Telegram ID:', cachedTelegramId);
+        return true;
+      } else {
+        console.warn('[UserService] Cached Telegram ID is missing or invalid:', cachedTelegramId);
+      }
+      
+      // Шаг 3: Проверка кэшированных данных пользователя
       const cachedData = this.getCachedUserData();
       if (cachedData && cachedData.id > 0 && cachedData.id !== 1) {
+        console.log('[UserService] Found real user ID from cached user data:', cachedData.id);
         return true;
+      } else if (cachedData) {
+        console.warn('[UserService] Cached user data available but ID is invalid:', cachedData.id);
+      } else {
+        console.warn('[UserService] No cached user data available');
       }
       
-      // Пробуем получить с сервера
+      // Шаг 4: Пробуем получить данные с сервера
+      console.log('[UserService] Attempting to get real user ID from API');
       try {
         const userData = await this.fetchUserFromApi();
-        return userData.id > 0 && userData.id !== 1;
-      } catch {
+        const isValid = userData && userData.id > 0 && userData.id !== 1;
+        
+        if (isValid) {
+          console.log('[UserService] Successfully retrieved valid user ID from API:', userData.id);
+          return true;
+        } else {
+          console.warn('[UserService] API returned invalid user ID:', userData?.id);
+          return false;
+        }
+      } catch (error) {
+        console.error('[UserService] Error getting user data from API:', error);
         return false;
       }
-    } catch {
+    } catch (error) {
+      console.error('[UserService] Unexpected error in hasRealUserId:', error);
       return false;
     }
   }

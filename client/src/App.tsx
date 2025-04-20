@@ -55,13 +55,77 @@ function App() {
   const [userId, setUserId] = useState<number | null>(null);
   const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
 
-  // Инициализация Telegram WebApp при запуске
+  // Усиленная инициализация Telegram WebApp при запуске
   useEffect(() => {
-    // Если это Telegram WebApp, инициализируем его
-    if (isTelegramWebApp()) {
-      initTelegramWebApp();
-      authenticateWithTelegram();
-    }
+    // Для отладки - всегда выводим информацию о состоянии WebApp
+    console.log('App initialization: checking Telegram.WebApp availability...');
+    
+    // Добавим проверку на 3 попытки инициализации
+    let initAttempt = 0;
+    const maxAttempts = 3;
+    
+    const attemptInit = () => {
+      initAttempt++;
+      console.log(`Telegram WebApp initialization attempt ${initAttempt}/${maxAttempts}`);
+      
+      // Проверяем, доступен ли Telegram WebApp
+      if (isTelegramWebApp()) {
+        console.log('✅ Telegram WebApp обнаружен, инициализируем...');
+        
+        try {
+          // Вызываем инициализацию
+          initTelegramWebApp();
+          
+          // Выводим доступные данные для отладки
+          if (window.Telegram?.WebApp) {
+            console.log('window.Telegram.WebApp object:', {
+              initDataAvailable: !!window.Telegram.WebApp.initData,
+              initDataLength: (window.Telegram.WebApp.initData || '').length,
+              initDataUnsafeAvailable: !!window.Telegram.WebApp.initDataUnsafe,
+              userAvailable: !!window.Telegram.WebApp.initDataUnsafe?.user,
+              userId: window.Telegram.WebApp.initDataUnsafe?.user?.id || 'недоступен'
+            });
+          }
+          
+          // Попытка авторизации через Telegram
+          authenticateWithTelegram();
+          
+          return true; // Успешная инициализация
+        } catch (error) {
+          console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
+        }
+      } else {
+        console.warn(`⚠️ Telegram WebApp не обнаружен (попытка ${initAttempt}/${maxAttempts})`);
+      }
+      
+      // Если мы еще не достигли максимального количества попыток, пробуем снова
+      if (initAttempt < maxAttempts) {
+        console.log(`Повторная попытка через 1 секунду...`);
+        setTimeout(attemptInit, 1000);
+      } else {
+        console.warn('❌ Все попытки инициализации Telegram WebApp исчерпаны');
+      }
+      
+      return false;
+    };
+    
+    // Запускаем первую попытку инициализации
+    attemptInit();
+    
+    // Обработка события загрузки страницы для повторной проверки
+    const handleLoad = () => {
+      console.log('Страница полностью загружена, проверяем статус Telegram WebApp еще раз');
+      if (!isTelegramWebApp() && initAttempt >= maxAttempts) {
+        attemptInit(); // Дополнительная попытка после полной загрузки
+      }
+    };
+    
+    window.addEventListener('load', handleLoad);
+    
+    // Очистка обработчика при размонтировании
+    return () => {
+      window.removeEventListener('load', handleLoad);
+    };
   }, []);
 
   // Авторизация через Telegram
