@@ -27,24 +27,71 @@ export class UserController {
       let username: string | null = null;
       let languageCode = 'ru'; // По умолчанию русский
       
-      console.log('[UserController] Request headers:', 
-        JSON.stringify(Object.keys(req.headers).filter(h => h.startsWith('x-'))));
+      // Подробный лог всех заголовков, начинающихся с "x-"
+      const telegramHeaders = Object.keys(req.headers).filter(h => h.startsWith('x-'));
+      console.log('[UserController] [TelegramAuth] Available Telegram headers:', 
+        JSON.stringify(telegramHeaders));
       
       if (telegramInitData) {
         try {
-          console.log('[UserController] Got Telegram initData from headers');
+          console.log('[UserController] [TelegramAuth] Got Telegram initData from headers');
           
-          // Парсим данные из строки query-параметров
-          const authParams = new URLSearchParams(telegramInitData);
-          
-          // Извлекаем ID пользователя из Telegram
-          telegramId = authParams.get('id') ? parseInt(authParams.get('id')!) : null;
-          username = authParams.get('username') || null;
-          
-          // Получаем язык из Telegram данных
-          const langFromTelegram = authParams.get('language_code');
-          if (langFromTelegram) {
-            languageCode = langFromTelegram;
+          // Проверяем, является ли initData корректной строкой в формате query-params
+          if (telegramInitData.includes('=') && telegramInitData.includes('&')) {
+            // Парсим данные из строки query-параметров
+            const authParams = new URLSearchParams(telegramInitData);
+            
+            // Вывод содержимого в лог (без секретных данных)
+            console.log('[UserController] [TelegramAuth] initData contains keys:', 
+              JSON.stringify(Array.from(authParams.keys())));
+            
+            // Извлекаем ID пользователя из Telegram
+            telegramId = authParams.get('id') ? parseInt(authParams.get('id')!) : null;
+            username = authParams.get('username') || null;
+            
+            // Если не нашли напрямую id, ищем в user структуре (может быть внутри JSON)
+            if (!telegramId && authParams.get('user')) {
+              try {
+                const userData = JSON.parse(authParams.get('user')!);
+                if (userData && userData.id) {
+                  telegramId = parseInt(userData.id.toString());
+                  username = userData.username || username;
+                  console.log('[UserController] [TelegramAuth] Extracted user data from JSON:', 
+                    JSON.stringify({ id: telegramId, username }));
+                }
+              } catch (jsonError) {
+                console.error('[UserController] [TelegramAuth] Failed to parse user JSON:', jsonError);
+              }
+            }
+            
+            // Получаем язык из Telegram данных
+            const langFromTelegram = authParams.get('language_code');
+            if (langFromTelegram) {
+              languageCode = langFromTelegram;
+            }
+          } else {
+            // Если данные не в формате query-params, возможно это JSON или другой формат
+            try {
+              const initDataObj = JSON.parse(telegramInitData);
+              console.log('[UserController] [TelegramAuth] initData is JSON with keys:', 
+                JSON.stringify(Object.keys(initDataObj)));
+              
+              if (initDataObj.user && initDataObj.user.id) {
+                telegramId = parseInt(initDataObj.user.id.toString());
+                username = initDataObj.user.username || null;
+                console.log('[UserController] [TelegramAuth] Extracted user from JSON format:', 
+                  JSON.stringify({ id: telegramId, username }));
+              }
+              
+              if (initDataObj.language_code) {
+                languageCode = initDataObj.language_code;
+              }
+            } catch (jsonError) {
+              console.error('[UserController] [TelegramAuth] initData is not valid JSON or query params:', 
+                telegramInitData.length > 20 ? 
+                  `${telegramInitData.substring(0, 10)}...${telegramInitData.substring(telegramInitData.length - 10)}` : 
+                  'data too short');
+            }
           }
           
           if (telegramId) {
@@ -59,10 +106,32 @@ export class UserController {
               console.log(`[UserController] User found with ID ${userId} for Telegram ID ${telegramId}`);
             } else {
               // Пользователь не найден - создаем нового
-              console.log(`[UserController] No user found for Telegram ID ${telegramId}, creating new user...`);
+              console.log(`[UserController] [TelegramAuth] No user found for Telegram ID ${telegramId}, creating new user...`);
               
-              const firstName = authParams.get('first_name') || '';
-              const lastName = authParams.get('last_name') || '';
+              // Переменные для имени и фамилии
+              let firstName = '';
+              let lastName = '';
+              
+              // Пробуем получить имя и фамилию из разных источников
+              if (telegramInitData.includes('=') && telegramInitData.includes('&')) {
+                // Из query-params, если данные в таком формате
+                const authParams = new URLSearchParams(telegramInitData);
+                firstName = authParams.get('first_name') || '';
+                lastName = authParams.get('last_name') || '';
+              } else {
+                // Из JSON, если данные в другом формате
+                try {
+                  const initDataObj = JSON.parse(telegramInitData);
+                  if (initDataObj.user) {
+                    firstName = initDataObj.user.first_name || '';
+                    lastName = initDataObj.user.last_name || '';
+                  }
+                } catch (e) {
+                  console.error('[UserController] [TelegramAuth] Error extracting name from JSON:', e);
+                }
+              }
+              
+              console.log(`[UserController] [TelegramAuth] User info: firstName="${firstName}", lastName="${lastName}", username="${username || 'none'}"`);
               
               // Используем имя и фамилию для создания username, если его нет
               if (!username) {
@@ -71,6 +140,9 @@ export class UserController {
                   username = `telegram_${telegramId}`;
                 }
               }
+              
+              console.log(`[UserController] [TelegramAuth] Final username for new user: "${username}"`);
+              
               
               // Создаем нового пользователя
               const newUser = await UserService.createUser({

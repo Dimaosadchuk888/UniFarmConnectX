@@ -7,24 +7,67 @@ import { isTelegramWebApp } from '@/services/telegramService';
 const IS_DEV = process.env.NODE_ENV === 'development';
 
 const ReferralLinkCard: React.FC = () => {
-  // Состояние для отображения ошибки, если не удалось получить ID
-  const [error, setError] = useState<boolean>(false);
+  // Улучшенное состояние для ошибок с деталями
+  const [error, setError] = useState<{
+    hasError: boolean,
+    message: string,
+    details?: string
+  }>({
+    hasError: false,
+    message: ''
+  });
+  
+  // Состояние для отслеживания количества попыток
+  const [retryCount, setRetryCount] = useState<number>(0);
   
   // Получаем информацию о текущем пользователе из API
-  const { data: currentUser, isLoading: isUserLoading, isError } = useQuery({
+  const { data: currentUser, isLoading: isUserLoading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['/api/me'],
     queryFn: () => userService.getCurrentUser(),
     staleTime: 1000 * 60 * 5, // Кэшируем данные на 5 минут
-    retry: 2, // Пробуем получить данные трижды
+    retry: 3, // Увеличили до трёх попыток
   });
+  
+  // Функция для повторной попытки получения данных
+  const handleRetry = () => {
+    setRetryCount(prevCount => prevCount + 1);
+    setError({ hasError: false, message: '' });
+    refetch();
+  };
   
   // Обработка ошибок через useEffect
   useEffect(() => {
     if (isError) {
-      console.error('[ReferralLinkCard] Failed to get user data from API');
-      setError(true);
+      console.error('[ReferralLinkCard] Failed to get user data from API:', queryError);
+      
+      // Анализируем тип ошибки и устанавливаем конкретное сообщение
+      let errorMessage = 'Не удалось получить ссылку';
+      let errorDetails = '';
+      
+      if (queryError instanceof Error) {
+        // Если сервер вернул 401, значит проблема с аутентификацией
+        if (queryError.message.includes('401')) {
+          errorMessage = 'Не удалось подтвердить ваш аккаунт Telegram';
+          errorDetails = 'Попробуйте обновить страницу или открыть приложение напрямую через Telegram';
+        } 
+        // Если сервер недоступен или другая ошибка сети
+        else if (queryError.message.includes('NetworkError') || queryError.message.includes('Failed to fetch')) {
+          errorMessage = 'Проблема с соединением';
+          errorDetails = 'Проверьте интернет-соединение и попробуйте снова';
+        }
+        // Любая другая ошибка
+        else {
+          errorDetails = queryError.message;
+        }
+      }
+      
+      setError({
+        hasError: true,
+        message: errorMessage,
+        details: errorDetails
+      });
     }
-  }, [isError]);
+  }, [isError, queryError]);
   
   // Логируем userId каждый раз при его обновлении
   useEffect(() => {
@@ -148,18 +191,53 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {error && (
+        {error.hasError && (
           <div className="flex flex-col items-center py-3 px-2 bg-red-900/20 rounded-lg">
             <div className="flex items-center text-red-400 mb-2">
               <i className="fas fa-exclamation-circle mr-2"></i>
-              <span className="text-sm">Не удалось получить ссылку</span>
+              <span className="text-sm">{error.message}</span>
             </div>
-            <button 
-              className="text-xs bg-primary/20 hover:bg-primary/30 transition-colors py-1 px-3 rounded-full"
-              onClick={() => window.location.reload()}
-            >
-              Попробовать снова
-            </button>
+            
+            {/* Отображаем детали ошибки, если они есть */}
+            {error.details && (
+              <p className="text-xs text-red-400/80 mb-3 text-center">
+                {error.details}
+              </p>
+            )}
+            
+            {/* Информация о попытках восстановления */}
+            {retryCount > 0 && (
+              <p className="text-xs text-amber-500/80 mb-3">
+                Попытка {retryCount}/3
+              </p>
+            )}
+            
+            {/* Кнопка для ручного обновления */}
+            <div className="flex gap-2">
+              <button 
+                className="text-xs bg-primary/20 hover:bg-primary/30 transition-colors py-1 px-3 rounded-full"
+                onClick={handleRetry}
+                disabled={isUserLoading}
+              >
+                {isUserLoading ? (
+                  <span className="flex items-center">
+                    <i className="fas fa-spinner fa-spin mr-1"></i> Загрузка...
+                  </span>
+                ) : (
+                  "Попробовать снова"
+                )}
+              </button>
+              
+              {/* Показываем кнопку обновления страницы только после нескольких попыток */}
+              {retryCount >= 2 && (
+                <button 
+                  className="text-xs bg-red-900/30 hover:bg-red-900/40 transition-colors py-1 px-3 rounded-full"
+                  onClick={() => window.location.reload()}
+                >
+                  Перезагрузить страницу
+                </button>
+              )}
+            </div>
           </div>
         )}
         
@@ -226,10 +304,33 @@ const ReferralLinkCard: React.FC = () => {
         )}
         
         {/* Если нет userId и не в состоянии загрузки или ошибки */}
-        {!isUserLoading && !error && !hasUserId && (
-          <div className="flex justify-center items-center py-3 px-2 bg-yellow-900/20 rounded-lg">
-            <i className="fas fa-info-circle text-yellow-500 mr-2"></i>
-            <span className="text-sm text-yellow-500/90">Не удалось получить ссылку, попробуйте позже</span>
+        {!isUserLoading && !error.hasError && !hasUserId && (
+          <div className="flex flex-col items-center py-3 px-2 bg-yellow-900/20 rounded-lg">
+            <div className="flex items-center text-yellow-500 mb-2">
+              <i className="fas fa-info-circle mr-2"></i>
+              <span className="text-sm">Не удалось получить ссылку</span>
+            </div>
+            
+            <p className="text-xs text-yellow-500/80 mb-3 text-center">
+              Ваш аккаунт Telegram не распознан. Убедитесь, что вы открыли приложение через Telegram.
+            </p>
+            
+            {telegram ? (
+              <p className="text-xs text-green-500/80 mb-3 text-center">
+                Telegram WebApp обнаружен, но ID пользователя не найден.
+              </p>
+            ) : (
+              <p className="text-xs text-red-500/80 mb-3 text-center">
+                Telegram WebApp не обнаружен. Откройте через Telegram.
+              </p>
+            )}
+            
+            <button 
+              className="text-xs bg-primary/20 hover:bg-primary/30 transition-colors py-1 px-3 rounded-full"
+              onClick={handleRetry}
+            >
+              Попробовать снова
+            </button>
           </div>
         )}
       </div>
