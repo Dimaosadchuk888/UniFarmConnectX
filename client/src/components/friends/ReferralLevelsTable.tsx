@@ -1,30 +1,77 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Coins } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+
+// Интерфейс для данных уровня реферальной программы
+interface ReferralLevel {
+  level: string;
+  friends: number;
+  income: {
+    uni: string;
+    ton: string;
+  };
+  percent: string;
+}
+
+// Константа с процентами выплат по уровням
+const LEVEL_PERCENTAGES = [100, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 
 const ReferralLevelsTable: React.FC = () => {
-  // Статические данные для таблицы с 20 уровнями согласно запросу с новой структурой процентов
-  const levels = [
-    { level: "Уровень 1", friends: 2, income: { uni: "120.25 UNI", ton: "1.455 TON" }, percent: "100%" },
-    { level: "Уровень 2", friends: 5, income: { uni: "53.12 UNI", ton: "0 TON" }, percent: "2%" },
-    { level: "Уровень 3", friends: 3, income: { uni: "0 UNI", ton: "0.324 TON" }, percent: "3%" },
-    { level: "Уровень 4", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "4%" },
-    { level: "Уровень 5", friends: 1, income: { uni: "2.15 UNI", ton: "0 TON" }, percent: "5%" },
-    { level: "Уровень 6", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "6%" },
-    { level: "Уровень 7", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "7%" },
-    { level: "Уровень 8", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "8%" },
-    { level: "Уровень 9", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "9%" },
-    { level: "Уровень 10", friends: 4, income: { uni: "8.65 UNI", ton: "0.075 TON" }, percent: "10%" },
-    { level: "Уровень 11", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "11%" },
-    { level: "Уровень 12", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "12%" },
-    { level: "Уровень 13", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "13%" },
-    { level: "Уровень 14", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "14%" },
-    { level: "Уровень 15", friends: 2, income: { uni: "1.85 UNI", ton: "0 TON" }, percent: "15%" },
-    { level: "Уровень 16", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "16%" },
-    { level: "Уровень 17", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "17%" },
-    { level: "Уровень 18", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "18%" },
-    { level: "Уровень 19", friends: 0, income: { uni: "0 UNI", ton: "0 TON" }, percent: "19%" },
-    { level: "Уровень 20", friends: 1, income: { uni: "0 UNI", ton: "0.015 TON" }, percent: "20%" },
-  ];
+  // Интерфейс для ответа API
+  interface ReferralsResponse {
+    data: {
+      user_id: number;
+      username: string;
+      total_referrals: number;
+      referral_counts: Record<number, number>;
+      level_income: Record<number, { uni: number, ton: number }>;
+      referrals: any[];
+    };
+    success: boolean;
+  }
+
+  // Запрос на получение структуры рефералов с сервера
+  const { data: referralsData, isLoading } = useQuery<ReferralsResponse>({
+    queryKey: ['/api/referrals'],
+    refetchOnWindowFocus: false,
+  });
+
+  // Преобразуем данные с сервера в нужный формат для отображения
+  const levels: ReferralLevel[] = React.useMemo(() => {
+    // Если данные еще не загружены, возвращаем пустые уровни
+    if (!referralsData) {
+      return Array.from({ length: 20 }, (_, i) => ({
+        level: `Уровень ${i + 1}`,
+        friends: 0,
+        income: { uni: "0 UNI", ton: "0 TON" },
+        percent: `${LEVEL_PERCENTAGES[i]}%`
+      }));
+    }
+    
+    // Получаем количество рефералов по уровням и доходы
+    const referralCounts = referralsData.data.referral_counts || {};
+    const levelIncome = referralsData.data.level_income || {};
+    
+    // Формируем массив уровней с данными из API
+    return Array.from({ length: 20 }, (_, i) => {
+      const levelNumber = i + 1;
+      const count = referralCounts[levelNumber] || 0;
+      
+      // Получаем доходы от рефералов по уровням или устанавливаем нулевые значения
+      const uniIncome = levelIncome[levelNumber]?.uni || 0;
+      const tonIncome = levelIncome[levelNumber]?.ton || 0;
+      
+      return {
+        level: `Уровень ${levelNumber}`,
+        friends: count,
+        income: { 
+          uni: `${uniIncome} UNI`, 
+          ton: `${tonIncome} TON` 
+        },
+        percent: `${LEVEL_PERCENTAGES[i]}%`
+      };
+    });
+  }, [referralsData]);
   
   // Состояния для анимаций и эффектов
   const [activeRow, setActiveRow] = useState<number | null>(null);
