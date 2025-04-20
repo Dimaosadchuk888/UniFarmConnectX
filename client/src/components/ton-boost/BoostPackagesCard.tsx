@@ -505,6 +505,31 @@ const BoostPackagesCard: React.FC = () => {
                       <span className="text-blue-300">{boost.rateTon}% / день</span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-blue-400/80">В сутки:</span>
+                      <span className="text-blue-300">
+                        {(() => {
+                          // Рассчитываем доход в день на основе стоимости пакета и процентной ставки
+                          const priceTon = parseFloat(boost.priceTon);
+                          const ratePercent = parseFloat(boost.rateTon);
+                          const dailyIncome = priceTon * (ratePercent / 100);
+                          return formatNumberWithPrecision(dailyIncome, 5) + ' TON';
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-400/80">В секунду:</span>
+                      <span className="text-blue-300">
+                        {(() => {
+                          // Рассчитываем доход в секунду на основе стоимости пакета и процентной ставки
+                          const priceTon = parseFloat(boost.priceTon);
+                          const ratePercent = parseFloat(boost.rateTon);
+                          const secondsInDay = 24 * 60 * 60;
+                          const incomePerSecond = priceTon * (ratePercent / 100) / secondsInDay;
+                          return formatNumberWithPrecision(incomePerSecond, 8) + ' TON';
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-blue-400/80">Доходность UNI:</span>
                       <span className="text-purple-300">{boost.rateUni}% / день</span>
                     </div>
