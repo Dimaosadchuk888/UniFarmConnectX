@@ -64,8 +64,12 @@ export class AuthController {
       // Формируем строку параметров в виде key=value
       dataCheckString = sortedParams.map(([key, value]) => `${key}=${value}`).join('\n');
 
-      // Проверяем подпись только если токен бота задан
-      if (AuthController.BOT_TOKEN) {
+      // Проверка на наличие тестового режима в URL или в теле запроса
+      const testModeParam = req.body.testMode === true || authParams.get('test_mode') === 'true';
+      const isTestMode = process.env.NODE_ENV === 'development' && testModeParam;
+      
+      // Проверяем подпись только если токен бота задан и не включен тестовый режим
+      if (AuthController.BOT_TOKEN && !isTestMode) {
         // Создаем токен подписи
         const secretKey = createHash('sha256')
           .update(AuthController.BOT_TOKEN)
@@ -88,6 +92,11 @@ export class AuthController {
         if (currentTimestamp - authTimestamp > 86400) {
           return sendError(res, 'Данные аутентификации устарели', 401);
         }
+      }
+      
+      // Если включен тестовый режим, выводим информацию в лог
+      if (isTestMode) {
+        console.log('[AUTH] Тестовый режим: пропускаем проверку подписи данных');
       }
 
       // Пытаемся найти пользователя по Telegram ID
