@@ -15,7 +15,7 @@ import {
   isTonWalletConnected,
   isTonPaymentReady
 } from '../../services/simpleTonTransaction';
-import { getUserIdFromURL } from '@/lib/utils';
+import { formatNumberWithPrecision, getUserIdFromURL } from '@/lib/utils';
 
 // Класс ошибки для неподключенного кошелька
 class WalletNotConnectedError extends Error {
