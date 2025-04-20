@@ -111,16 +111,16 @@ export function getReferrerIdFromURL(): string | null {
   // Пытаемся получить из параметров URL
   const urlParams = new URLSearchParams(window.location.search);
   
-  // Проверяем новый формат ссылки с параметром startapp
-  const startappParam = urlParams.get('startapp');
-  if (startappParam) {
-    return startappParam;
-  }
-  
-  // Проверяем старый формат ссылки с параметром start (для обратной совместимости)
+  // Проверяем формат ссылки с параметром start
   const startParam = urlParams.get('start');
   if (startParam) {
     return startParam;
+  }
+  
+  // Проверяем старый формат ссылки с параметром startapp (для обратной совместимости)
+  const startappParam = urlParams.get('startapp');
+  if (startappParam) {
+    return startappParam;
   }
   
   return null;
