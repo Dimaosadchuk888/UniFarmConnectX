@@ -178,6 +178,22 @@ export class NewUniFarmingService {
               source: 'MultiFarming',
               category: 'farming'
             });
+            
+            // Обрабатываем реферальные бонусы от дохода фарминга
+            try {
+              // Пытаемся начислить "доход от дохода" рефералам
+              const { totalRewardsDistributed } = await ReferralBonusService.processFarmingReferralReward(
+                userId,
+                totalEarnedAmount.toNumber(),
+                Currency.UNI
+              );
+              
+              if (totalRewardsDistributed > 0) {
+                console.log(`[MultiFarming] Referral Income From Income | User ${userId} earned ${totalEarnedAmount.toString()} UNI and distributed ${totalRewardsDistributed.toFixed(8)} UNI to referrals`);
+              }
+            } catch (referralError) {
+              console.error(`[MultiFarming] Error processing referral rewards from farming income for user ${userId}:`, referralError);
+            }
           } catch (logError) {
             console.error(`[MultiFarming] Transaction Logging Error User ${userId}:`, logError);
           }

@@ -521,6 +521,22 @@ export class TonBoostService {
             .where(eq(tonBoostDeposits.id, deposit.id));
         }
         
+        // Обрабатываем реферальные бонусы от дохода фарминга TON
+        try {
+          // Пытаемся начислить "доход от дохода" рефералам
+          const { totalRewardsDistributed } = await ReferralBonusService.processFarmingReferralReward(
+            userId,
+            totalAccumulatedTon.toNumber(),
+            Currency.UNI // Все реферальные бонусы начисляются в UNI, даже для TON
+          );
+          
+          if (totalRewardsDistributed > 0) {
+            console.log(`[TonFarming] Referral Income From Income | User ${userId} earned ${totalAccumulatedTon.toString()} TON and distributed ${totalRewardsDistributed.toFixed(8)} UNI to referrals`);
+          }
+        } catch (referralError) {
+          console.error(`[TonFarming] Error processing referral rewards from farming income for user ${userId}:`, referralError);
+        }
+        
         console.log(`[TonFarming] User ${userId} earned ${totalAccumulatedTon.toString()} TON from boosts (balance updated to ${newTonBalance})`);
       } else {
         console.log(`[TonFarming] User ${userId} accumulated ${totalAccumulatedTon.toString()} TON (waiting for threshold ${this.TON_MIN_CHANGE_THRESHOLD})`);
