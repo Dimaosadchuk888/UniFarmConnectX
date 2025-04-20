@@ -21,16 +21,44 @@ export class UserController {
   static async getCurrentUser(req: Request, res: Response): Promise<void> {
     try {
       // Первый приоритет: Телеграм данные из initData в заголовке
-      const telegramInitData = req.headers['x-telegram-init-data'] as string;
+      let telegramInitData = req.headers['telegram-data'] as string || req.headers['x-telegram-data'] as string;
+      
+      // Проверяем различные заголовки для обратной совместимости
+      if (!telegramInitData) {
+        telegramInitData = req.headers['x-telegram-init-data'] as string;
+      }
+      
       let telegramId: number | null = null;
       let userId: number | null = null;
       let username: string | null = null;
       let languageCode = 'ru'; // По умолчанию русский
       
-      // Подробный лог всех заголовков, начинающихся с "x-"
-      const telegramHeaders = Object.keys(req.headers).filter(h => h.startsWith('x-'));
-      console.log('[UserController] [TelegramAuth] Available Telegram headers:', 
+      // Подробный лог всех заголовков для отладки
+      console.log('[UserController] [TelegramAuth] All headers:', 
+        JSON.stringify(Object.keys(req.headers)));
+      
+      // Отдельно логируем все Telegram заголовки
+      const telegramHeaders = Object.keys(req.headers).filter(h => 
+        h.toLowerCase().includes('telegram') || h.toLowerCase().startsWith('x-')
+      );
+      console.log('[UserController] [TelegramAuth] Telegram-related headers:', 
         JSON.stringify(telegramHeaders));
+        
+      // Проверяем наличие пользовательского ID в заголовке
+      const headerUserId = req.headers['x-telegram-user-id'] || req.headers['x-user-id'];
+      if (headerUserId) {
+        console.log(`[UserController] Found user ID in headers: ${headerUserId}`);
+        
+        // Если у нас нет telegramId из initData, но есть в заголовке, используем его
+        if (!telegramId && typeof headerUserId === 'string' && headerUserId.trim() !== '') {
+          try {
+            telegramId = parseInt(headerUserId);
+            console.log(`[UserController] Using user ID from header as telegramId: ${telegramId}`);
+          } catch (parseError) {
+            console.error(`[UserController] Failed to parse headerUserId: ${headerUserId}`, parseError);
+          }
+        }
+      }
       
       if (telegramInitData) {
         try {

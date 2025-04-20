@@ -377,15 +377,22 @@ export function getTelegramAuthHeaders(): Record<string, string> {
     // Попытка переинициализации
     try {
       console.log('[telegramService] Attempting to reinitialize Telegram WebApp for initData');
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
       
-      // Повторная проверка после инициализации
-      if (window.Telegram?.WebApp?.initData && window.Telegram.WebApp.initData.trim() !== '') {
-        console.log('[telegramService] Successfully re-acquired initData');
+      // Убедимся, что Telegram WebApp доступен перед вызовом методов
+      if (window?.Telegram?.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+        
+        // Повторная проверка после инициализации
+        if (window.Telegram.WebApp.initData && window.Telegram.WebApp.initData.trim() !== '') {
+          console.log('[telegramService] Successfully re-acquired initData');
+        } else {
+          console.error('[telegramService] Failed to re-acquire initData after reinitialization');
+          return {}; // Выход, так как данные не получены
+        }
       } else {
-        console.error('[telegramService] Failed to re-acquire initData after reinitialization');
-        return {}; // Выход, так как данные не получены
+        console.error('[telegramService] Telegram WebApp is not available for reinitialization');
+        return {}; // Выход, так как нет доступа к Telegram WebApp
       }
     } catch (reinitError) {
       console.error('[telegramService] Error during reinitialization:', reinitError);
@@ -394,6 +401,12 @@ export function getTelegramAuthHeaders(): Record<string, string> {
   }
   
   try {
+    // Дополнительная проверка перед использованием
+    if (!window?.Telegram?.WebApp?.initData) {
+      console.error('[telegramService] initData still not available after reinit attempt');
+      return {};
+    }
+    
     const initData = window.Telegram.WebApp.initData;
     
     // Шаг 3: Логирование информации для отладки (без полного раскрытия данных)
