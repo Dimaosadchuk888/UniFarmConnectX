@@ -270,198 +270,238 @@ const ReferralLevelsTable: React.FC = () => {
         </div>
       </div>
       
-      {/* Скроллируемая таблица со всеми уровнями */}
-      <div 
-        ref={tableRef}
-        className="overflow-y-auto max-h-[350px] relative scrollbar-none pr-2 transition-all duration-300"
-        style={{
-          boxShadow: 'inset 0 -10px 10px -10px rgba(0,0,0,0.3), inset 0 10px 10px -10px rgba(0,0,0,0.3)',
-          maskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)'
-        }}
-      >
-        <table className="w-full">
-          <thead className="sticky top-0 bg-card z-10">
-            <tr className="border-b border-muted">
-              <th className="py-2 text-left text-sm text-foreground opacity-70">Уровень</th>
-              <th className="py-2 text-left text-sm text-foreground opacity-70">Друзей</th>
-              <th className="py-2 text-left text-sm text-foreground opacity-70">Доход</th>
-              <th className="py-2 text-right text-sm text-foreground opacity-70">Выплаты</th>
-            </tr>
-          </thead>
-          
-          <tbody>
-            {levels.map((item, index) => {
-              const isVisible = visibleRows.includes(index);
-              const isActive = activeRow === index;
-              
-              return (
-                <tr 
-                  key={index} 
-                  className={`
-                    relative
-                    transition-all duration-300
-                    ${isVisible ? 'opacity-100' : 'opacity-0'}
-                    ${isActive ? 'bg-primary/5' : 'hover:bg-primary/5'}
-                    ${index % 2 === 0 ? 'bg-black/5' : ''}
-                  `}
-                  style={{
-                    transform: isVisible ? 'translateY(0)' : 'translateY(10px)',
-                    transitionDelay: `${index * 30}ms`,
-                    boxShadow: isActive ? '0 0 10px rgba(162, 89, 255, 0.1)' : 'none'
-                  }}
-                  onMouseEnter={() => setActiveRow(index)}
-                  onMouseLeave={() => setActiveRow(null)}
-                >
-                  <td className="py-2 text-sm px-2 border-b border-muted/20">
-                    <div className="flex items-center">
-                      {/* Цветной индикатор уровня с градиентом */}
-                      <div 
-                        className={`
-                          w-2 h-2 rounded-full mr-2
-                          ${getLevelColor(index)}
-                          transition-all duration-300
-                          ${isActive ? 'scale-125' : ''}
-                        `}
-                      ></div>
-                      <span 
-                        className={`
-                          transition-transform duration-300 
-                          ${isActive ? 'translate-x-1 text-primary/90 font-medium' : ''}
-                        `}
-                      >
-                        {item.level}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-2 text-sm px-2 border-b border-muted/20">
-                    {item.friends > 0 ? (
-                      <div className="flex items-center">
-                        <span className="bg-green-900/20 text-green-400 px-2 py-0.5 rounded-md flex items-center">
-                          <i className="fas fa-user-friends text-[9px] mr-1.5"></i>
-                          {item.friends}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 opacity-60">0</span>
-                    )}
-                  </td>
-                  <td className="py-2 text-sm px-2 border-b border-muted/20">
-                    <div className="flex flex-col">
-                      {/* UNI доход */}
-                      <div className={`
-                        flex items-center
-                        ${item.income.uni !== "0 UNI" ? "bg-purple-900/20 px-2 py-0.5 rounded-md" : ""}
-                      `}>
-                        {item.income.uni !== "0 UNI" && (
-                          <Coins className="h-3 w-3 text-purple-400 mr-1.5 flex-shrink-0" />
-                        )}
-                        <span className={`
-                          ${item.income.uni === "0 UNI" 
-                            ? "text-gray-400 opacity-60" 
-                            : "text-purple-300"
-                          }
-                        `}>
-                          {item.income.uni.split(" ")[0]}
-                        </span>
-                        <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                      </div>
-                      
-                      {/* TON доход */}
-                      <div className={`
-                        flex items-center mt-0.5
-                        ${item.income.ton !== "0 TON" ? "bg-blue-900/20 px-2 py-0.5 rounded-md" : ""}
-                      `}>
-                        {item.income.ton !== "0 TON" && (
-                          <i className="fas fa-diamond text-blue-400 text-[9px] mr-1.5 flex-shrink-0"></i>
-                        )}
-                        <span className={`
-                          ${item.income.ton === "0 TON" 
-                            ? "text-gray-400 opacity-60" 
-                            : "text-blue-400"
-                          }
-                        `}>
-                          {item.income.ton.split(" ")[0]}
-                        </span>
-                        <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-2 text-sm text-right px-2 border-b border-muted/20">
-                    {index === 0 ? (
-                      <span 
-                        className={`
-                          inline-block px-3 py-1.5 rounded-full text-xs font-bold
-                          transition-all duration-300 
-                          bg-gradient-to-r from-primary to-purple-400
-                          text-white
-                          ${isActive ? 'scale-110 shadow-lg shadow-primary/30' : 'shadow-md shadow-primary/20'}
-                        `}
-                      >
-                        {item.percent}
-                        <i className="fas fa-star text-[10px] ml-1 opacity-70"></i>
-                      </span>
-                    ) : (
-                      <span 
-                        className={`
-                          inline-block px-2 py-1 rounded-full text-xs
-                          transition-all duration-300
-                          ${isActive ? 'scale-110' : ''}
-                        `}
-                        style={{
-                          background: `linear-gradient(90deg, hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 0.2), hsla(${180 - (index / (levels.length - 1)) * 30}, 80%, 65%, 0.05))`,
-                          color: `hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 1)`
-                        }}
-                      >
-                        {item.percent}
-                      </span>
-                    )}
-                  </td>
-                  
-                  {/* Анимированный эффект при наведении */}
-                  {isActive && (
-                    <td className="absolute inset-0 pointer-events-none overflow-hidden">
-                      <div 
-                        className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0"
-                        style={{
-                          animation: 'pulse-fade 2s infinite',
-                          animationDelay: '0.5s'
-                        }}
-                      ></div>
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      
-      {/* Кнопки для плавного скролла */}
-      <div className="flex justify-center mt-3 mb-1 space-x-2">
-        <button
-          className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all duration-300"
-          onClick={() => scrollTable('up')}
-          aria-label="Scroll up"
-        >
-          <i className="fas fa-chevron-up text-xs"></i>
-        </button>
-        <button
-          className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all duration-300"
-          onClick={() => scrollTable('down')}
-          aria-label="Scroll down"
-        >
-          <i className="fas fa-chevron-down text-xs"></i>
-        </button>
-      </div>
-      
-      {/* Информационное сообщение */}
-      <div className="mt-1 text-xs text-center text-foreground opacity-50 italic">
-        <div className="flex justify-center items-center">
-          <i className="fas fa-sync-alt text-primary/50 mr-1 animate-spin-slow"></i>
-          <span>Ваши партнерские уровни и доходы обновляются в реальном времени (от 2% до 20% на уровнях 2-20)</span>
+      {/* Сообщение об отсутствии рефералов */}
+      {referralsData && !hasReferrals && !isLoading && (
+        <div className="py-6 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <i className="fas fa-users text-primary/70 text-xl"></i>
+          </div>
+          <h3 className="text-lg font-medium mb-2">У вас пока нет рефералов</h3>
+          <p className="text-muted-foreground text-sm max-w-[280px] mb-5">
+            Приглашайте друзей в приложение, чтобы получать доход от их активности и покупок в UnisFarm
+          </p>
+          <div className="bg-primary/10 px-4 py-3 rounded-lg text-sm mt-2">
+            <div className="flex items-center justify-center mb-2">
+              <i className="fas fa-info-circle text-primary mr-2"></i>
+              <span className="font-medium">Преимущества партнерской программы:</span>
+            </div>
+            <ul className="text-left text-xs space-y-2">
+              <li className="flex items-start">
+                <i className="fas fa-check text-green-500 mr-2 mt-0.5"></i>
+                <span>100% доход с первого уровня</span>
+              </li>
+              <li className="flex items-start">
+                <i className="fas fa-check text-green-500 mr-2 mt-0.5"></i>
+                <span>До 20% с покупок на глубине до 20 уровней</span>
+              </li>
+              <li className="flex items-start">
+                <i className="fas fa-check text-green-500 mr-2 mt-0.5"></i>
+                <span>Пассивный доход с фарминга ваших рефералов</span>
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Скроллируемая таблица со всеми уровнями */}
+      {(!referralsData || isLoading || hasReferrals) && (
+        <div 
+          ref={tableRef}
+          className="overflow-y-auto max-h-[350px] relative scrollbar-none pr-2 transition-all duration-300"
+          style={{
+            boxShadow: 'inset 0 -10px 10px -10px rgba(0,0,0,0.3), inset 0 10px 10px -10px rgba(0,0,0,0.3)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%)'
+          }}
+        >
+          <table className="w-full">
+            <thead className="sticky top-0 bg-card z-10">
+              <tr className="border-b border-muted">
+                <th className="py-2 text-left text-sm text-foreground opacity-70">Уровень</th>
+                <th className="py-2 text-left text-sm text-foreground opacity-70">Друзей</th>
+                <th className="py-2 text-left text-sm text-foreground opacity-70">Доход</th>
+                <th className="py-2 text-right text-sm text-foreground opacity-70">Выплаты</th>
+              </tr>
+            </thead>
+            
+            <tbody>
+              {levels.map((item, index) => {
+                const isVisible = visibleRows.includes(index);
+                const isActive = activeRow === index;
+                
+                return (
+                  <tr 
+                    key={index} 
+                    className={`
+                      relative
+                      transition-all duration-300
+                      ${isVisible ? 'opacity-100' : 'opacity-0'}
+                      ${isActive ? 'bg-primary/5' : 'hover:bg-primary/5'}
+                      ${index % 2 === 0 ? 'bg-black/5' : ''}
+                    `}
+                    style={{
+                      transform: isVisible ? 'translateY(0)' : 'translateY(10px)',
+                      transitionDelay: `${index * 30}ms`,
+                      boxShadow: isActive ? '0 0 10px rgba(162, 89, 255, 0.1)' : 'none'
+                    }}
+                    onMouseEnter={() => setActiveRow(index)}
+                    onMouseLeave={() => setActiveRow(null)}
+                  >
+                    <td className="py-2 text-sm px-2 border-b border-muted/20">
+                      <div className="flex items-center">
+                        {/* Цветной индикатор уровня с градиентом */}
+                        <div 
+                          className={`
+                            w-2 h-2 rounded-full mr-2
+                            ${getLevelColor(index)}
+                            transition-all duration-300
+                            ${isActive ? 'scale-125' : ''}
+                          `}
+                        ></div>
+                        <span 
+                          className={`
+                            transition-transform duration-300 
+                            ${isActive ? 'translate-x-1 text-primary/90 font-medium' : ''}
+                          `}
+                        >
+                          {item.level}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-2 text-sm px-2 border-b border-muted/20">
+                      {item.friends > 0 ? (
+                        <div className="flex items-center">
+                          <span className="bg-green-900/20 text-green-400 px-2 py-0.5 rounded-md flex items-center">
+                            <i className="fas fa-user-friends text-[9px] mr-1.5"></i>
+                            {item.friends}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 opacity-60">0</span>
+                      )}
+                    </td>
+                    <td className="py-2 text-sm px-2 border-b border-muted/20">
+                      <div className="flex flex-col">
+                        {/* UNI доход */}
+                        <div className={`
+                          flex items-center
+                          ${item.income.uni !== "0 UNI" ? "bg-purple-900/20 px-2 py-0.5 rounded-md" : ""}
+                        `}>
+                          {item.income.uni !== "0 UNI" && (
+                            <Coins className="h-3 w-3 text-purple-400 mr-1.5 flex-shrink-0" />
+                          )}
+                          <span className={`
+                            ${item.income.uni === "0 UNI" 
+                              ? "text-gray-400 opacity-60" 
+                              : "text-purple-300"
+                            }
+                          `}>
+                            {item.income.uni.split(" ")[0]}
+                          </span>
+                          <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
+                        </div>
+                        
+                        {/* TON доход */}
+                        <div className={`
+                          flex items-center mt-0.5
+                          ${item.income.ton !== "0 TON" ? "bg-blue-900/20 px-2 py-0.5 rounded-md" : ""}
+                        `}>
+                          {item.income.ton !== "0 TON" && (
+                            <i className="fas fa-diamond text-blue-400 text-[9px] mr-1.5 flex-shrink-0"></i>
+                          )}
+                          <span className={`
+                            ${item.income.ton === "0 TON" 
+                              ? "text-gray-400 opacity-60" 
+                              : "text-blue-400"
+                            }
+                          `}>
+                            {item.income.ton.split(" ")[0]}
+                          </span>
+                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-2 text-sm text-right px-2 border-b border-muted/20">
+                      {index === 0 ? (
+                        <span 
+                          className={`
+                            inline-block px-3 py-1.5 rounded-full text-xs font-bold
+                            transition-all duration-300 
+                            bg-gradient-to-r from-primary to-purple-400
+                            text-white
+                            ${isActive ? 'scale-110 shadow-lg shadow-primary/30' : 'shadow-md shadow-primary/20'}
+                          `}
+                        >
+                          {item.percent}
+                          <i className="fas fa-star text-[10px] ml-1 opacity-70"></i>
+                        </span>
+                      ) : (
+                        <span 
+                          className={`
+                            inline-block px-2 py-1 rounded-full text-xs
+                            transition-all duration-300
+                            ${isActive ? 'scale-110' : ''}
+                          `}
+                          style={{
+                            background: `linear-gradient(90deg, hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 0.2), hsla(${180 - (index / (levels.length - 1)) * 30}, 80%, 65%, 0.05))`,
+                            color: `hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 1)`
+                          }}
+                        >
+                          {item.percent}
+                        </span>
+                      )}
+                    </td>
+                    
+                    {/* Анимированный эффект при наведении */}
+                    {isActive && (
+                      <td className="absolute inset-0 pointer-events-none overflow-hidden">
+                        <div 
+                          className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0"
+                          style={{
+                            animation: 'pulse-fade 2s infinite',
+                            animationDelay: '0.5s'
+                          }}
+                        ></div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      
+      {/* Кнопки для плавного скролла и информационное сообщение - только при наличии рефералов */}
+      {(!referralsData || isLoading || hasReferrals) && (
+        <>
+          {/* Кнопки для плавного скролла */}
+          <div className="flex justify-center mt-3 mb-1 space-x-2">
+            <button
+              className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all duration-300"
+              onClick={() => scrollTable('up')}
+              aria-label="Scroll up"
+            >
+              <i className="fas fa-chevron-up text-xs"></i>
+            </button>
+            <button
+              className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all duration-300"
+              onClick={() => scrollTable('down')}
+              aria-label="Scroll down"
+            >
+              <i className="fas fa-chevron-down text-xs"></i>
+            </button>
+          </div>
+          
+          {/* Информационное сообщение */}
+          <div className="mt-1 text-xs text-center text-foreground opacity-50 italic">
+            <div className="flex justify-center items-center">
+              <i className="fas fa-sync-alt text-primary/50 mr-1 animate-spin-slow"></i>
+              <span>Ваши партнерские уровни и доходы обновляются в реальном времени (от 2% до 20% на уровнях 2-20)</span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
