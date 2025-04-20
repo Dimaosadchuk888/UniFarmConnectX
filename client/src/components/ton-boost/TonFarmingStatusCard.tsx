@@ -31,9 +31,7 @@ const TonFarmingStatusCard: React.FC = () => {
   const [dotOpacity, setDotOpacity] = useState(0.5);
   
   // Получаем информацию о TON фарминге
-  // Используем явный url с параметрами для большей надежности отладки
   const apiUrl = `/api/ton-farming/info?user_id=${userId}`;
-  console.log("[TON-DEBUG] Making request to:", apiUrl);
   
   const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
     queryKey: [apiUrl],
@@ -57,17 +55,6 @@ const TonFarmingStatusCard: React.FC = () => {
       // Установка статуса активности
       setIsActive(farmingData.isActive);
       
-      // Расширенное логирование всех полей для отладки
-      console.log("[AUDIT] TON Farming полные данные:", farmingData);
-      console.log("[AUDIT] TON Farming основные значения:", {
-        dailyIncomeTon: farmingData.dailyIncomeTon,
-        dailyIncomeType: typeof farmingData.dailyIncomeTon,
-        dailyIncomeJSON: JSON.stringify(farmingData.dailyIncomeTon),
-        totalTonRatePerSecond: farmingData.totalTonRatePerSecond,
-        perSecondType: typeof farmingData.totalTonRatePerSecond,
-        perSecondJSON: JSON.stringify(farmingData.totalTonRatePerSecond)
-      });
-      
       // Преобразуем строковые значения непосредственно в числа
       // Используем строгое приведение типов с обработкой научной нотации
       const targetDaily = typeof farmingData.dailyIncomeTon === 'string' ? 
@@ -78,21 +65,9 @@ const TonFarmingStatusCard: React.FC = () => {
         parseFloat(farmingData.totalTonRatePerSecond) : 
         (farmingData.totalTonRatePerSecond || 0);
       
-      console.log("[AUDIT] Преобразованные значения:", {
-        targetDaily,
-        targetPerSecond,
-        dailyType: typeof targetDaily,
-        perSecondType: typeof targetPerSecond
-      });
-      
       // Запускаем импульс при обновлении значений
       setIsPulsing(true);
       setTimeout(() => setIsPulsing(false), 1000);
-      
-      // Тест форматирования для отладки, проверяем форматирование без анимации
-      console.log("[AUDIT] Тест форматирования без анимации:");
-      console.log("  Daily yield:", targetDaily, "->", formatNumberWithPrecision(targetDaily, 5));
-      console.log("  Per second:", targetPerSecond, "->", formatNumberWithPrecision(targetPerSecond, 8));
       
       // Анимируем нарастание значений
       const animationDuration = 1000;
@@ -168,11 +143,7 @@ const TonFarmingStatusCard: React.FC = () => {
               <div className="text-blue-300/80 text-sm mb-1">Доход в сутки</div>
               <div className="flex items-baseline">
                 <span className="text-blue-400 text-xl font-medium">
-                  {(() => {
-                    const formattedValue = formatNumberWithPrecision(dailyYield, 5);
-                    console.log("[TON-DEBUG] Formatted daily yield:", dailyYield, "->", formattedValue);
-                    return formattedValue;
-                  })()}
+                  {formatNumberWithPrecision(dailyYield, 5)}
                 </span>
                 <span className="text-blue-400/70 ml-1.5">TON</span>
               </div>
@@ -182,11 +153,7 @@ const TonFarmingStatusCard: React.FC = () => {
               <div className="text-blue-300/80 text-sm mb-1">В секунду</div>
               <div className="flex items-baseline">
                 <span className="text-blue-400 text-xl font-medium">
-                  {(() => {
-                    const formattedValue = formatNumberWithPrecision(perSecond, 8);
-                    console.log("[TON-DEBUG] Formatted per second:", perSecond, "->", formattedValue);
-                    return formattedValue;
-                  })()}
+                  {formatNumberWithPrecision(perSecond, 8)}
                 </span>
                 <span className="text-blue-400/70 ml-1.5">TON</span>
               </div>
