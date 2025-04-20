@@ -8,6 +8,8 @@ import {
   users
 } from "@shared/schema";
 import BigNumber from "bignumber.js";
+import { ReferralBonusService } from "./referralBonusService";
+import { Currency } from "./transactionService";
 
 /**
  * Модель буст-пакета для TON
