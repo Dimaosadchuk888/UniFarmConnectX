@@ -744,10 +744,13 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
       );
     }
     
-    // Фильтруем депозиты, чтобы показать только TON Boost (packageId > 0 или id > 4000000)
-    const tonBoostDeposits = deposits.filter(d => d.id >= 4000000 || (d.packageId > 0 && d.id >= 3000000));
+    // Проверка наличия TON транзакций
+    const hasTonTransactions = farmingHistory.filter(item => 
+      item.currency === 'TON' && item.amount >= 0.000001
+    ).length > 0;
     
-    if (tonBoostDeposits.length === 0) {
+    // Если нет TON транзакций, показываем информационное сообщение
+    if (!hasTonTransactions) {
       return (
         <div 
           className="text-center py-16 flex flex-col items-center justify-center"
@@ -762,152 +765,23 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           </div>
           
           <p className="text-md text-foreground opacity-80 mb-2">
-            У вас пока нет TON Boost пакетов
+            У вас пока нет TON транзакций
           </p>
           
           <p className="text-sm text-foreground opacity-50 max-w-sm mx-auto">
-            Купите TON Boost, чтобы повысить доходность
+            Приобретите TON Boost на вкладке "TON Фарминг", чтобы начать получать доход в TON
           </p>
           
           <button className="mt-6 gradient-button-blue text-white px-4 py-2 rounded-lg font-medium transition-transform hover:scale-105">
-            Купить TON Boost
+            Перейти к TON Boost
           </button>
-        </div>
-      );
-    }
-    
-    // Получаем данные о фарминге
-    const dailyIncomeTon = tonFarmingInfo?.success && tonFarmingInfo.data?.dailyIncomeTon
-      ? parseFloat(tonFarmingInfo.data.dailyIncomeTon)
-      : 0;
-    
-    const perSecondTon = tonFarmingInfo?.success && tonFarmingInfo.data?.totalTonRatePerSecond
-      ? parseFloat(tonFarmingInfo.data.totalTonRatePerSecond)
-      : 0;
-    
-    // Получаем данные о депозитах из API
-    const apiDeposits = tonFarmingInfo?.success && tonFarmingInfo.data?.deposits
-      ? tonFarmingInfo.data.deposits
-      : [];
-    
-    const totalDepositsCount = tonFarmingInfo?.success && tonFarmingInfo.data
-      ? tonFarmingInfo.data.depositCount 
-      : tonBoostDeposits.length;
-    
-    // Функция для получения данных о доходе для конкретного депозита
-    const getDepositIncomeRates = (deposit: FarmingDeposit) => {
-      // Сначала пробуем найти депозит в списке API
-      const apiDeposit = apiDeposits.find(d => 
-        d.boost_package_id === deposit.packageId || d.id === deposit.id
-      );
-      
-      if (apiDeposit) {
-        // Нашли в API - берем точную ставку
-        const rateTonPerSecond = parseFloat(apiDeposit.rate_ton_per_second || "0");
-        const dailyRate = rateTonPerSecond * 86400; // Секунд в сутках
-        
-        return { 
-          perSecond: rateTonPerSecond,
-          daily: dailyRate
-        };
-      }
-      
-      // Не нашли - рассчитываем пропорционально сумме депозита
-      if (tonBoostDeposits.length > 0 && dailyIncomeTon > 0) {
-        // Получаем общую сумму всех депозитов
-        const totalDepositAmount = tonBoostDeposits.reduce(
-          (sum, d) => sum + parseFloat(d.amount || "0"), 
-          0
-        );
-        
-        if (totalDepositAmount > 0) {
-          const depositShare = parseFloat(deposit.amount || "0") / totalDepositAmount;
-          return {
-            daily: dailyIncomeTon * depositShare,
-            perSecond: perSecondTon * depositShare
-          };
-        }
-      }
-      
-      // Если не получилось, используем процентное значение из tonYield как запасной вариант
-      const yieldPercent = parseFloat((deposit.tonYield || "0").replace("%", "")) / 100;
-      const amount = parseFloat(deposit.amount || "0");
-      const daily = amount * yieldPercent;
-      const perSecond = daily / 86400;
-      
-      return { daily, perSecond };
-    };
-    
-    // Если загружаем данные TON фарминга, показываем индикатор загрузки только в этой секции
-    if (isLoadingTonFarming) {
-      return (
-        <div className="space-y-4">
-          <div className="flex justify-center items-center py-6">
-            <div className="animate-spin w-6 h-6 border-3 border-blue-400 border-opacity-50 border-t-blue-400 rounded-full"></div>
-          </div>
         </div>
       );
     }
     
     return (
       <div className="space-y-4">
-        {tonBoostDeposits.map((deposit) => {
-          // Получаем данные о доходности для этого депозита
-          const incomeRates = getDepositIncomeRates(deposit);
-          
-          return (
-            <div 
-              key={deposit.id} 
-              className={`
-                rounded-xl p-4 transition-all duration-300
-                ${deposit.isActive ? 'bg-blue-500/10 border border-blue-400/40' : 'bg-card'}
-                ${deposit.isActive ? 'shadow-[0_0_15px_rgba(109,191,255,0.15)]' : ''}
-              `}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center mb-1">
-                    <i className="fas fa-rocket text-sm text-blue-300 mr-2"></i>
-                    <h3 className="font-medium">TON Boost #{deposit.packageId}</h3>
-                  </div>
-                  <p className="text-xs text-foreground opacity-70 mb-2">
-                    Дата активации: {formatDate(deposit.createdAt)}
-                  </p>
-                </div>
-                <div>
-                  <span 
-                    className={`
-                      inline-block px-2 py-1 text-xs rounded-full
-                      ${deposit.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}
-                    `}
-                  >
-                    {deposit.isActive ? `Активен (${deposit.daysLeft} дн.)` : 'Завершён'}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <div>
-                  <p className="text-xs text-foreground opacity-70 mb-1">Доход в сутки</p>
-                  <div className="flex items-center">
-                    <span className="text-blue-300">+{formatNumberWithPrecision(incomeRates.daily, 5)}</span>
-                    <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <p className="text-xs text-foreground opacity-70 mb-1">Доход в секунду</p>
-                  <div className="flex items-center">
-                    <span className="text-blue-300">+{formatNumberWithPrecision(incomeRates.perSecond, 8)}</span>
-                    <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        
-        {/* Отображаем историю транзакций TON фарминга */}
+        {/* Отображаем только историю транзакций TON фарминга, без карточек активных буст-пакетов */}
         <div className="mt-6 pt-6 border-t border-gray-800/30">
           <h3 className="text-md font-medium mb-4">История TON транзакций</h3>
           
