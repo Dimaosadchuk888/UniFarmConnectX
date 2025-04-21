@@ -144,13 +144,15 @@ const ReferralLinkCard: React.FC = () => {
   const telegramInitData = extractTelegramInitData();
   console.log('[ReferralLinkCard] АУДИТ: Полная проверка Telegram initData:', telegramInitData);
   
-  // Получаем ID из Telegram с помощью новых более надёжных методов
+  // Получаем ID и ref_code из Telegram с помощью новых более надёжных методов
   const newTelegramUserId = getTelegramUserId();
   const hasTelegramId = hasTelegramUserId();
+  const telegramRefCode = telegramInitData.refCode; // Извлекаем ref_code из initData
   
   console.log('[ReferralLinkCard] АУДИТ: Новые методы Telegram ID:', {
     newTelegramUserId,
     hasTelegramId,
+    telegramRefCode,
     isRunningInTelegram: isRunningInTelegram()
   });
   
@@ -186,7 +188,8 @@ const ReferralLinkCard: React.FC = () => {
   
   // Проверяем наличие ref_code
   if (refCode) {
-    // Используем формат с "startapp=ref_{ref_code}" для Telegram Mini App
+    // Используем корректный формат для Telegram Mini App по ТЗ
+    // Формат строго такой: https://t.me/UniFarmingBot/app?startapp=ref_КОД
     referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${refCode}`;
     console.log('[ReferralLinkCard] Generated referral link:', referralLink, 'for ref_code:', refCode);
   } else {
