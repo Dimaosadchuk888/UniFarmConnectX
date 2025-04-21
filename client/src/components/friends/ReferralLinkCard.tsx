@@ -88,14 +88,33 @@ const ReferralLinkCard: React.FC = () => {
   const telegramUserId = telegram?.initDataUnsafe?.user?.id;
   const cachedUserId = getCachedTelegramUserId();
   
-  console.log('[ReferralLinkCard] ID sources:', {
-    currentUser: currentUser?.id,
+  // АУДИТ: расширенное логирование для диагностики проблемы
+  console.log('[ReferralLinkCard] АУДИТ: Telegram WebApp состояние:', {
+    isTelegramAvailable: !!window.Telegram,
+    isWebAppAvailable: !!window.Telegram?.WebApp,
+    initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
+    hasInitDataUnsafe: !!window.Telegram?.WebApp?.initDataUnsafe,
+    hasUser: !!window.Telegram?.WebApp?.initDataUnsafe?.user,
+    telegramUserId: telegramUserId || 'not available',
+    startParam: window.Telegram?.WebApp?.startParam || 'not available',
+    platform: window.Telegram?.WebApp?.platform || 'not available',
+    isInIframe: window !== window.parent,
+    userAgent: navigator.userAgent,
+    time: new Date().toISOString()
+  });
+  
+  // Логируем полную информацию о доступных идентификаторах
+  console.log('[ReferralLinkCard] АУДИТ: Источники ID пользователя:', {
+    currentUserId: currentUser?.id,
     telegramUserId,
     cachedUserId,
     isUserLoading,
     isError,
     errorMessage: queryError instanceof Error ? queryError.message : 'unknown error',
-    retryCount
+    retryCount,
+    protocol: window.location.protocol,
+    host: window.location.host,
+    pathname: window.location.pathname
   });
   
   // Определяем наличие реального userId, используя новую функцию из userService

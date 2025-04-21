@@ -79,14 +79,32 @@ function App() {
           // Вызываем инициализацию
           initTelegramWebApp();
           
-          // Выводим доступные данные для отладки
+          // АУДИТ: Расширенная диагностика состояния Telegram WebApp
           if (window.Telegram?.WebApp) {
-            console.log('window.Telegram.WebApp object:', {
+            // Полное логирование всех доступных данных
+            console.log('[АУДИТ] DIAG: Telegram WebApp state after initialization:', {
+              // Основные поля
               initDataAvailable: !!window.Telegram.WebApp.initData,
               initDataLength: (window.Telegram.WebApp.initData || '').length,
+              // Добавляем само значение initData для анализа
+              initData: window.Telegram.WebApp.initData || 'empty',
+              // Проверка объекта с пользовательскими данными
               initDataUnsafeAvailable: !!window.Telegram.WebApp.initDataUnsafe,
               userAvailable: !!window.Telegram.WebApp.initDataUnsafe?.user,
-              userId: window.Telegram.WebApp.initDataUnsafe?.user?.id || 'недоступен'
+              userId: window.Telegram.WebApp.initDataUnsafe?.user?.id || 'недоступен',
+              username: window.Telegram.WebApp.initDataUnsafe?.user?.username || 'недоступен',
+              firstName: window.Telegram.WebApp.initDataUnsafe?.user?.first_name || 'недоступен',
+              // Проверка служебных полей
+              startParam: window.Telegram.WebApp.startParam || 'недоступен',
+              platform: window.Telegram.WebApp.platform || 'недоступен',
+              version: window.Telegram.WebApp.version || 'недоступен',
+              // Контекст запуска
+              isInIframe: window !== window.parent,
+              currentUrl: window.location.href,
+              referrer: document.referrer || 'no-referrer',
+              userAgent: navigator.userAgent,
+              time: new Date().toISOString(),
+              initAttempt: initAttempt
             });
           }
           

@@ -38,9 +38,29 @@ declare global {
  */
 export function isTelegramWebApp(): boolean {
   // АУДИТ: Расширенное логирование для проверки инициализации Telegram WebApp
-  console.log("[АУДИТ] initData from Telegram:", window.Telegram?.WebApp?.initData);
-  console.log("[АУДИТ] initDataUnsafe from Telegram:", JSON.stringify(window.Telegram?.WebApp?.initDataUnsafe));
-  
+  // Выводим полное состояние Telegram объекта, включая initData и startParam
+  console.log("[АУДИТ] [DIAG] Telegram WebApp State:", {
+    isTelegramAvailable: !!window.Telegram,
+    isWebAppAvailable: !!window.Telegram?.WebApp,
+    initData: window.Telegram?.WebApp?.initData,
+    initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
+    hasInitDataUnsafe: !!window.Telegram?.WebApp?.initDataUnsafe,
+    hasUser: !!window.Telegram?.WebApp?.initDataUnsafe?.user,
+    userId: window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'not available',
+    username: window.Telegram?.WebApp?.initDataUnsafe?.user?.username || 'not available',
+    firstName: window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || 'not available',
+    startParam: window.Telegram?.WebApp?.startParam || 'not available',
+    authDate: window.Telegram?.WebApp?.initDataUnsafe?.auth_date || 'not available',
+    platform: window.Telegram?.WebApp?.platform || 'not available',
+    version: window.Telegram?.WebApp?.version || 'not available',
+    hash: window.Telegram?.WebApp?.initDataUnsafe?.hash ? 'present' : 'absent',
+    fullInitData: window.Telegram?.WebApp?.initData || 'empty',
+    documentURL: typeof document !== 'undefined' ? document.URL : 'not available',
+    isIframe: typeof window !== 'undefined' ? window !== window.parent : false,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'not available',
+    time: new Date().toISOString()
+  });
+
   // Шаг 1: Проверка доступности window
   if (typeof window === 'undefined') {
     console.error('[telegramService] isTelegramWebApp check: window object not available');
@@ -65,6 +85,7 @@ export function isTelegramWebApp(): boolean {
   
   if (!hasValidInitData) {
     console.error('[telegramService] isTelegramWebApp check: initData is missing or empty');
+    console.log('[telegramService] initData value:', window.Telegram.WebApp.initData);
   }
   
   // Шаг 5: Проверка наличия объекта initDataUnsafe
@@ -72,6 +93,8 @@ export function isTelegramWebApp(): boolean {
   
   if (!hasInitDataUnsafe) {
     console.error('[telegramService] isTelegramWebApp check: initDataUnsafe is missing');
+  } else {
+    console.log('[telegramService] initDataUnsafe content:', JSON.stringify(window.Telegram.WebApp.initDataUnsafe));
   }
   
   // Шаг 6: Проверка наличия объекта user в initDataUnsafe
@@ -79,6 +102,8 @@ export function isTelegramWebApp(): boolean {
   
   if (!hasUser && hasInitDataUnsafe) {
     console.error('[telegramService] isTelegramWebApp check: user object is missing in initDataUnsafe');
+  } else if (hasUser) {
+    console.log('[telegramService] user object found:', JSON.stringify(window.Telegram.WebApp.initDataUnsafe.user));
   }
   
   // Шаг 7: Проверка наличия id пользователя
@@ -86,6 +111,15 @@ export function isTelegramWebApp(): boolean {
   
   if (!hasUserId && hasUser) {
     console.error('[telegramService] isTelegramWebApp check: user.id is missing or not a number');
+  } else if (hasUserId) {
+    console.log('[telegramService] user.id found:', window.Telegram.WebApp.initDataUnsafe?.user?.id);
+  }
+  
+  // Проверка наличия startParam для реферальной программы
+  if (window.Telegram.WebApp.startParam) {
+    console.log('[telegramService] startParam detected:', window.Telegram.WebApp.startParam);
+  } else {
+    console.warn('[telegramService] No startParam available in Telegram WebApp');
   }
   
   // Финальный результат - нормальная работа требует наличия как initData, так и initDataUnsafe
