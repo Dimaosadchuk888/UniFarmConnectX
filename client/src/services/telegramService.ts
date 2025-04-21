@@ -407,6 +407,21 @@ export function getTelegramAuthHeaders(): Record<string, string> {
       return {};
     }
     
+    // Логируем параметр start, если он есть в WebApp
+    if (window.Telegram.WebApp.startParam) {
+      console.log('[telegramService] Detected startParam from Telegram WebApp:', window.Telegram.WebApp.startParam);
+      
+      // Отправляем на сервер, добавляя его в заголовок для последующей обработки
+      fetch('/api/referral/register-start-param', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-start-param': window.Telegram.WebApp.startParam
+        },
+        body: JSON.stringify({ startParam: window.Telegram.WebApp.startParam })
+      }).catch(err => console.error('[telegramService] Error sending startParam to server:', err));
+    }
+    
     const initData = window.Telegram.WebApp.initData;
     
     // Шаг 3: Логирование информации для отладки (без полного раскрытия данных)

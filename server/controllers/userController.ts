@@ -44,6 +44,12 @@ export class UserController {
       console.log('[UserController] [TelegramAuth] Telegram-related headers:', 
         JSON.stringify(telegramHeaders));
         
+      // Логируем наличие параметра start для реферальной системы
+      const startParam = req.query.start || req.headers['x-start-param'];
+      if (startParam) {
+        console.log(`[UserController] [ReferralSystem] Detected start parameter: ${startParam}`);
+      }
+        
       // Проверяем наличие пользовательского ID в заголовке
       const headerUserId = req.headers['x-telegram-user-id'] || req.headers['x-user-id'];
       if (headerUserId) {
