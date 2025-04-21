@@ -277,7 +277,8 @@ export class UserController {
         username: user.username,
         balance_uni: user.balance_uni,
         balance_ton: user.balance_ton,
-        language: languageCode
+        language: languageCode,
+        ref_code: user.ref_code
       });
     } catch (error) {
       console.error('[UserController] Error in getCurrentUser:', error);
