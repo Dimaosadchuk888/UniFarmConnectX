@@ -6,7 +6,7 @@ import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils'
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { validateTelegramInitData, TelegramValidationResult, isForbiddenUserId, logTelegramData, logTelegramId } from '../utils/telegramUtils';
+import { validateTelegramInitData, TelegramValidationResult, isForbiddenUserId, logTelegramData } from '../utils/telegramUtils';
 
 /**
  * Контроллер для аутентификации пользователей
@@ -192,9 +192,6 @@ export class AuthController {
       let isNewUser = false;
       let referrerRegistered = false;
       
-      // Логируем результат поиска пользователя
-      console.log(`[AUTH] Поиск пользователя по Telegram ID: ${telegramUserId}, результат: ${user ? 'найден' : 'не найден'}`);
-      
       // Если пользователь не найден, создаем нового
       if (!user) {
         isNewUser = true;
@@ -206,17 +203,12 @@ export class AuthController {
           created_at: new Date()
         });
         
-        console.log(`[AUTH] Создан новый пользователь: ${user.id}, telegram_id: ${telegramUserId}`);
-        // Используем нашу новую функцию логирования для диагностики
-        logTelegramId(user, 'AuthController:NewUser');
+        console.log(`Создан новый пользователь: ${user.id}, telegram_id: ${telegramUserId}`);
       } else {
         // Обновляем информацию о пользователе, если она изменилась
         if (username && username !== user.username) {
           user = await UserService.updateUser(user.id, { username });
         }
-        
-        // Логируем существующего пользователя для диагностики
-        logTelegramId(user, 'AuthController:ExistingUser');
       }
 
       // Проверяем, что пользователь был успешно создан или найден
