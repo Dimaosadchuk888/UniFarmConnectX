@@ -78,8 +78,25 @@ async function sendMessage(chatId: number, text: string, options: Record<string,
  * Отправляет ответное сообщение для проверки работоспособности бота
  */
 async function handlePingCommand(chatId: number): Promise<any> {
+  const startTime = Date.now();
   const responseTime = new Date().toISOString();
-  return sendMessage(chatId, `🟢 Бот работает!\nВремя ответа: ${responseTime}`);
+  
+  // Получаем webhookInfo для проверки статуса соединения
+  const webhookStatus = await getWebhookInfo();
+  const webhookUrl = webhookStatus?.data?.url || 'Не настроен';
+  const processingTime = Date.now() - startTime;
+  
+  const message = `
+<b>🟢 Pong! Бот работает</b>
+
+⏱ Время ответа: ${processingTime}ms
+⏰ Дата/время: ${responseTime}
+🔌 Webhook: ${webhookUrl}
+
+<i>Если вы видите это сообщение, значит бот успешно получает и обрабатывает команды.</i>
+  `;
+  
+  return sendMessage(chatId, message);
 }
 
 /**
@@ -141,6 +158,43 @@ User ID в системе: <code>${user.id}</code>
 }
 
 /**
+ * Обрабатывает команду /start
+ * Приветствует пользователя и отображает клавиатуру с командами
+ */
+async function handleStartCommand(chatId: number, { userId, username, firstName }: { userId: number, username?: string, firstName?: string }): Promise<any> {
+  const welcomeMessage = `
+👋 <b>Привет${firstName ? ', ' + firstName : ''}!</b>
+
+Я бот <b>UniFarm</b> - твой помощник в криптофарминге.
+
+Ты можешь воспользоваться следующими командами:
+• /ping - проверить связь с ботом
+• /info - получить информацию о себе
+• /refcode - получить реферальный код
+
+🚀 Для полного доступа к функциональности запусти <a href="https://t.me/UniFarmingBot/app">Mini App</a>
+  `;
+
+  // Создаем клавиатуру с основными командами
+  const replyMarkup = {
+    keyboard: [
+      [{ text: "🔄 Проверить связь (/ping)" }],
+      [{ text: "ℹ️ Моя информация (/info)" }],
+      [{ text: "🔗 Мой реф. код (/refcode)" }],
+      [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarmingBot/app" } }]
+    ],
+    resize_keyboard: true,
+    one_time_keyboard: false
+  };
+
+  return sendMessage(chatId, welcomeMessage, { 
+    parse_mode: 'HTML',
+    reply_markup: JSON.stringify(replyMarkup),
+    disable_web_page_preview: true
+  });
+}
+
+/**
  * Обрабатывает HTTP-запрос от webhook Telegram
  * @param update - Объект обновления от Telegram
  */
@@ -160,12 +214,17 @@ async function handleTelegramUpdate(update: TelegramUpdate): Promise<any> {
   const firstName = message.from.first_name;
 
   // Обрабатываем команды
-  if (messageText === '/ping') {
+  if (messageText === '/start') {
+    return handleStartCommand(chatId, { userId, username, firstName });
+  } else if (messageText === '/ping' || messageText === '🔄 Проверить связь (/ping)') {
     return handlePingCommand(chatId);
-  } else if (messageText === '/info') {
+  } else if (messageText === '/info' || messageText === 'ℹ️ Моя информация (/info)') {
     return handleInfoCommand(chatId, { userId, username, firstName });
-  } else if (messageText === '/refcode') {
+  } else if (messageText === '/refcode' || messageText === '🔗 Мой реф. код (/refcode)') {
     return handleRefCodeCommand(chatId, userId);
+  } else {
+    // Для сообщений, которые не являются командами
+    return sendMessage(chatId, `Я не понимаю эту команду. Попробуйте /start для отображения доступных действий.`);
   }
 }
 
