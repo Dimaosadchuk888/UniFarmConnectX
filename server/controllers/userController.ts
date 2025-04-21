@@ -10,6 +10,7 @@ import BigNumber from 'bignumber.js';
 import { db } from '../db';
 import { uniFarmingDeposits, users } from '@shared/schema';
 import { and, eq } from 'drizzle-orm';
+import { logTelegramId } from '../utils/telegramUtils';
 
 /**
  * Контроллер для работы с пользователями
