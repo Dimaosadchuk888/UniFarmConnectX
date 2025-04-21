@@ -142,6 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для реферальной системы
   app.get("/api/referrals", ReferralController.getUserReferrals);
   app.get("/api/referrals/inviter/:id", ReferralController.getUserInviter);
+  app.post("/api/referral/register-start-param", ReferralController.registerStartParam);
   
   // Маршруты для ежедневного бонуса
   app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);

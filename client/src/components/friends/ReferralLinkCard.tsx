@@ -11,7 +11,8 @@ const ReferralLinkCard: React.FC = () => {
   const [error, setError] = useState<{
     hasError: boolean,
     message: string,
-    details?: string
+    details?: string,
+    isTelegramError?: boolean  // Флаг, указывающий что ошибка связана с отсутствием Telegram WebApp
   }>({
     hasError: false,
     message: ''
@@ -43,12 +44,14 @@ const ReferralLinkCard: React.FC = () => {
       // Анализируем тип ошибки и устанавливаем конкретное сообщение
       let errorMessage = 'Не удалось получить ссылку';
       let errorDetails = '';
+      let isTelegramError = false;
       
       if (queryError instanceof Error) {
         // Если сервер вернул 401, значит проблема с аутентификацией
         if (queryError.message.includes('401')) {
           errorMessage = 'Не удалось подтвердить ваш аккаунт Telegram';
           errorDetails = 'Попробуйте обновить страницу или открыть приложение напрямую через Telegram';
+          isTelegramError = true;
         } 
         // Если сервер недоступен или другая ошибка сети
         else if (queryError.message.includes('NetworkError') || queryError.message.includes('Failed to fetch')) {
@@ -64,7 +67,8 @@ const ReferralLinkCard: React.FC = () => {
       setError({
         hasError: true,
         message: errorMessage,
-        details: errorDetails
+        details: errorDetails,
+        isTelegramError
       });
     }
   }, [isError, queryError]);
@@ -284,6 +288,30 @@ const ReferralLinkCard: React.FC = () => {
                   Перезагрузить страницу
                 </button>
               )}
+            </div>
+          </div>
+        )}
+        
+        {/* Телеграм-специфичная ошибка - показываем только если явно проблема с Telegram */}
+        {!isUserLoading && error.hasError && error.isTelegramError && !isTelegramWebApp() && (
+          <div className="bg-orange-900/20 rounded-lg p-3 mt-2">
+            <div className="flex items-center text-orange-400 mb-2">
+              <i className="fas fa-info-circle mr-2"></i>
+              <span className="text-sm font-medium">Запустите через Telegram</span>
+            </div>
+            <p className="text-xs text-orange-400/80">
+              Для полного доступа к партнерской программе откройте приложение через Telegram. Вы можете установить ссылку на партнерский бот:
+            </p>
+            <div className="flex justify-center mt-2">
+              <a 
+                href="https://t.me/UniFarmingBot" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs bg-orange-900/30 hover:bg-orange-900/40 transition-colors py-1 px-3 rounded-full flex items-center mt-1"
+              >
+                <i className="fab fa-telegram mr-2"></i>
+                Открыть в Telegram
+              </a>
             </div>
           </div>
         )}

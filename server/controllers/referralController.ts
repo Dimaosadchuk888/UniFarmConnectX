@@ -9,6 +9,71 @@ import { extractUserId } from '../utils/validationUtils';
  */
 export class ReferralController {
   /**
+   * Обрабатывает запрос на регистрацию параметра start
+   * Этот параметр получается из Telegram WebApp.startParam и используется для
+   * отслеживания реферальных приглашений
+   */
+  static async registerStartParam(req: Request, res: Response): Promise<void> {
+    try {
+      const startParam = req.body.startParam || req.headers['x-start-param'];
+      const telegramUserId = req.headers['x-telegram-user-id'];
+      
+      // Подробное логирование для отладки
+      console.log(`[ReferralController] [StartParam] Processing request:`, {
+        startParam,
+        telegramUserId,
+        hasBody: !!req.body,
+        headers: Object.keys(req.headers)
+      });
+      
+      if (!startParam) {
+        console.warn('[ReferralController] [StartParam] No startParam provided');
+        return sendError(res, 'Отсутствует параметр start', 400);
+      }
+      
+      // Проверяем формат параметра (должен начинаться с "user" + userId)
+      const userPattern = /^user(\d+)$/;
+      const match = String(startParam).match(userPattern);
+      
+      if (!match) {
+        console.warn(`[ReferralController] [StartParam] Invalid startParam format: ${startParam}`);
+        return sendError(res, 'Неверный формат параметра start', 400);
+      }
+      
+      const inviterId = parseInt(match[1]);
+      
+      if (isNaN(inviterId) || inviterId <= 0) {
+        console.warn(`[ReferralController] [StartParam] Invalid inviterId extracted from startParam: ${inviterId}`);
+        return sendError(res, 'Некорректный ID пригласителя', 400);
+      }
+      
+      console.log(`[ReferralController] [StartParam] Successfully parsed inviterId: ${inviterId}`);
+      
+      // Проверка на существование пользователя-пригласителя
+      const inviter = await UserService.getUserById(inviterId);
+      
+      if (!inviter) {
+        console.warn(`[ReferralController] [StartParam] Inviter with ID ${inviterId} not found`);
+        return sendError(res, 'Пригласитель не найден', 404);
+      }
+      
+      console.log(`[ReferralController] [StartParam] Inviter found: ${inviter.username} (ID: ${inviter.id})`);
+      
+      // В будущем здесь будет логика для регистрации реферала,
+      // когда пользователь авторизуется по Telegram
+      
+      // Возвращаем успешный результат
+      sendSuccess(res, {
+        message: 'Параметр start успешно зарегистрирован',
+        inviterId: inviter.id,
+        inviterUsername: inviter.username
+      });
+    } catch (error) {
+      console.error('[ReferralController] [StartParam] Error processing startParam:', error);
+      sendServerError(res, 'Ошибка обработки параметра start');
+    }
+  }
+  /**
    * Получает данные по партнерке для пользователя
    */
   static async getUserReferrals(req: Request, res: Response): Promise<void> {
