@@ -259,6 +259,20 @@ export function isForbiddenUserId(userId: number | null): boolean {
 }
 
 /**
+ * Логирует Telegram ID пользователя для диагностики
+ * @param user Объект с данными пользователя
+ * @param source Источник логирования для однозначной идентификации места вызова
+ */
+export function logTelegramId(user: { telegram_id?: number | null, id?: number | null, username?: string | null }, source: string = 'Auth'): void {
+  const IS_DEV = process.env.NODE_ENV === 'development';
+  
+  // В режиме разработки всегда логируем, в production - только если есть telegram_id
+  if (IS_DEV || (user && user.telegram_id)) {
+    console.log(`[${source}] Telegram ID: ${user?.telegram_id ?? 'null'} (User ID: ${user?.id ?? 'unknown'}, Username: ${user?.username ?? 'unknown'})`);
+  }
+}
+
+/**
  * Логирует информацию о Telegram initData для отладки
  */
 export function logTelegramData(
