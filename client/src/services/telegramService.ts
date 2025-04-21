@@ -502,12 +502,30 @@ export function getTelegramAuthHeaders(): Record<string, string> {
 export function getCachedTelegramUserId(forceRevalidate: boolean = false): string | null {
   console.log('[telegramService] Getting telegram user ID, forceRevalidate:', forceRevalidate);
   
+  // АУДИТ: Расширенная диагностика памяти и доступности Telegram WebApp
+  console.log('[АУДИТ] [telegramService] Telegram WebApp state before getting ID:', {
+    windowDefined: typeof window !== 'undefined',
+    telegramAvailable: !!window?.Telegram,
+    webAppAvailable: !!window?.Telegram?.WebApp,
+    initDataAvailable: !!window?.Telegram?.WebApp?.initData,
+    initDataLength: typeof window?.Telegram?.WebApp?.initData === 'string' ? window.Telegram.WebApp.initData.length : 0,
+    userAvailable: !!window?.Telegram?.WebApp?.initDataUnsafe?.user,
+    hasLocalStorage: typeof localStorage !== 'undefined',
+    hasCachedData: typeof localStorage !== 'undefined' ? 
+                  !!localStorage.getItem('telegram_user_data') : false,
+    hasLegacyCache: typeof localStorage !== 'undefined' ?
+                   !!localStorage.getItem('telegram_user_id') : false
+  });
+  
   // Шаг 1: Если запрошена перепроверка или это первый вызов, пробуем получить прямо из Telegram WebApp
   if (forceRevalidate || !localStorage.getItem('telegram_user_data')) {
+    console.log('[АУДИТ] [telegramService] Trying to get fresh user data from Telegram WebApp');
     const telegramData = getTelegramUserData();
     if (telegramData?.userId) {
       console.log('[telegramService] Returning fresh user ID from Telegram WebApp:', telegramData.userId);
       return String(telegramData.userId);
+    } else {
+      console.warn('[АУДИТ] [telegramService] Failed to get fresh user data from Telegram WebApp');
     }
   }
   
