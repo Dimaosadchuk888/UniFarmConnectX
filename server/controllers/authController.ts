@@ -6,7 +6,7 @@ import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils'
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { validateTelegramInitData, TelegramValidationResult, isForbiddenUserId, logTelegramData } from '../utils/telegramUtils';
+import { validateTelegramInitData, TelegramValidationResult, isForbiddenUserId } from '../utils/telegramUtils';
 
 /**
  * Контроллер для аутентификации пользователей
@@ -150,8 +150,7 @@ export class AuthController {
         }
       );
       
-      // Подробное логирование результатов проверки
-      logTelegramData(authData, validationResult, 'AUTH');
+      // Подробное логирование результатов проверки отключено
       
       // Проверяем результаты валидации
       if (!validationResult.isValid) {
