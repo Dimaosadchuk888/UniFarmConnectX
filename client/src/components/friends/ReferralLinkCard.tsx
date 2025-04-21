@@ -190,27 +190,31 @@ const ReferralLinkCard: React.FC = () => {
     referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${refCode}`;
     console.log('[ReferralLinkCard] Generated unique referral link:', referralLink, 'for ref_code:', refCode);
   } else {
-    // Если ref_code отсутствует, используем старый метод с использованием user ID
+    // Если ref_code отсутствует, используем fallback с использованием user ID
+    
     // Получаем лучший доступный ID с приоритетом на новые методы получения Telegram ID
     const realId = newTelegramUserId || currentUser?.id || telegramUserId || cachedUserId;
     
-    // Валидируем - только положительные числовые значения и исключаем fallback ID=1
+    // Валидируем - только положительные числовые значения и исключаем fallback ID=1 (кроме режима разработки)
     const numericId = typeof realId === 'string' ? parseInt(realId) : realId;
+    const IS_DEV = process.env.NODE_ENV === 'development';
     
-    if (numericId && numericId > 1) {
+    if (numericId && (numericId > 1 || IS_DEV)) {
       // Используем формат с "startapp=ref_{userId}" как запасной вариант
       referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${numericId}`;
-      console.log('[ReferralLinkCard] Fallback: Using user ID for referral link:', referralLink, 'for user ID:', realId);
-    } else {
-      // Только в режиме разработки разрешаем использовать ID=1 для тестирования
-      const IS_DEV = process.env.NODE_ENV === 'development';
       
       if (IS_DEV && numericId === 1) {
-        // Также используем новый формат для режима разработки
-        referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${numericId}`;
         console.log('[ReferralLinkCard] DEV MODE: Using test ID=1 for referral link:', referralLink);
       } else {
-        console.warn('[ReferralLinkCard] Invalid or fallback user ID detected:', realId);
+        console.log('[ReferralLinkCard] Fallback: Using user ID for referral link:', referralLink, 'for user ID:', realId);
+      }
+    } else {
+      console.warn('[ReferralLinkCard] Invalid or missing userID for referral link generation:', realId);
+      
+      // Даже при отсутствии валидного ID в режиме разработки, мы создаем тестовую ссылку
+      if (IS_DEV) {
+        referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_TEST123`;
+        console.log('[ReferralLinkCard] DEV MODE: Using fallback TEST123 code for referral link:', referralLink);
       }
     }
   }
@@ -317,11 +321,15 @@ const ReferralLinkCard: React.FC = () => {
             Реферальная ссылка
           </h3>
           
-          {/* Реферальный код */}
-          {currentUser?.ref_code && !isUserLoading && !error.hasError && (
+          {/* Реферальный код - показываем блок всегда, но содержимое зависит от наличия кода */}
+          {!isUserLoading && !error.hasError && (
             <div className="flex items-center text-sm text-muted-foreground mt-1 sm:mt-0">
               <span className="mr-2">Ваш код:</span>
-              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">{currentUser.ref_code}</span>
+              {currentUser?.ref_code ? (
+                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">{currentUser.ref_code}</span>
+              ) : (
+                <span className="bg-muted/30 px-2 py-0.5 rounded text-muted-foreground">не назначен</span>
+              )}
             </div>
           )}
         </div>
@@ -470,7 +478,8 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {/* Показываем информативный fallback-контейнер только если нет ссылки и нет загрузки или ошибки */}
+        {/* Показываем информативный fallback-контейнер только если нет ссылки и нет загрузки или ошибки 
+            Добавляем независимость от ref_code, чтобы избежать бесконечной загрузки */}
         {!isUserLoading && !error.hasError && !referralLink && (
           <div className="flex flex-col items-center py-3 px-2 bg-amber-600/10 rounded-lg">
             <div className="flex items-center text-amber-600 mb-2">
