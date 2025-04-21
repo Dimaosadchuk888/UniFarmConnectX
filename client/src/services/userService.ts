@@ -10,6 +10,7 @@ export interface User {
   username: string;
   balance_uni: string;
   balance_ton: string;
+  ref_code?: string; // Реферальный код пользователя
 }
 
 /**

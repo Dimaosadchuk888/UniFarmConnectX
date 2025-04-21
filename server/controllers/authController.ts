@@ -216,13 +216,16 @@ export class AuthController {
         }
         
         // Проверяем, есть ли у пользователя ref_code, если нет - генерируем
-        if (!user.ref_code) {
+        if (user && !user.ref_code) {
           const refCode = storage.generateRefCode();
           await storage.updateUserRefCode(user.id, refCode);
           console.log(`Обновлен реферальный код для пользователя ${user.id}: ${refCode}`);
           
           // Обновляем объект пользователя
-          user = await UserService.getUserById(user.id);
+          const updatedUser = await UserService.getUserById(user.id);
+          if (updatedUser) {
+            user = updatedUser;
+          }
         }
       }
 

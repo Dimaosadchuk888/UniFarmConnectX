@@ -178,29 +178,40 @@ const ReferralLinkCard: React.FC = () => {
     cachedUserIdValid: cachedUserId && cachedUserId !== '1'
   });
   
-  // Формируем реферальную ссылку независимо от hasRealUserId, если есть положительный userId > 1
+  // Формируем реферальную ссылку, используя ref_code
   let referralLink = '';
   
-  // Получаем лучший доступный ID с приоритетом на новые методы получения Telegram ID
-  const realId = newTelegramUserId || currentUser?.id || telegramUserId || cachedUserId;
+  // Получаем ref_code из данных пользователя
+  const refCode = currentUser?.ref_code;
   
-  // Валидируем - только положительные числовые значения и исключаем fallback ID=1
-  const numericId = typeof realId === 'string' ? parseInt(realId) : realId;
-  
-  if (numericId && numericId > 1) {
-    // Используем новый формат с "startapp=ref_{userId}" вместо "start=user{userId}"
-    referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${numericId}`;
-    console.log('[ReferralLinkCard] Generated unique referral link:', referralLink, 'for user ID:', realId);
+  // Проверяем наличие ref_code
+  if (refCode) {
+    // Используем формат с "startapp=ref_{ref_code}" для Telegram Mini App
+    referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${refCode}`;
+    console.log('[ReferralLinkCard] Generated unique referral link:', referralLink, 'for ref_code:', refCode);
   } else {
-    // Только в режиме разработки разрешаем использовать ID=1 для тестирования
-    const IS_DEV = process.env.NODE_ENV === 'development';
+    // Если ref_code отсутствует, используем старый метод с использованием user ID
+    // Получаем лучший доступный ID с приоритетом на новые методы получения Telegram ID
+    const realId = newTelegramUserId || currentUser?.id || telegramUserId || cachedUserId;
     
-    if (IS_DEV && numericId === 1) {
-      // Также используем новый формат для режима разработки
+    // Валидируем - только положительные числовые значения и исключаем fallback ID=1
+    const numericId = typeof realId === 'string' ? parseInt(realId) : realId;
+    
+    if (numericId && numericId > 1) {
+      // Используем формат с "startapp=ref_{userId}" как запасной вариант
       referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${numericId}`;
-      console.log('[ReferralLinkCard] DEV MODE: Using test ID=1 for referral link:', referralLink);
+      console.log('[ReferralLinkCard] Fallback: Using user ID for referral link:', referralLink, 'for user ID:', realId);
     } else {
-      console.warn('[ReferralLinkCard] Invalid or fallback user ID detected:', realId);
+      // Только в режиме разработки разрешаем использовать ID=1 для тестирования
+      const IS_DEV = process.env.NODE_ENV === 'development';
+      
+      if (IS_DEV && numericId === 1) {
+        // Также используем новый формат для режима разработки
+        referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${numericId}`;
+        console.log('[ReferralLinkCard] DEV MODE: Using test ID=1 for referral link:', referralLink);
+      } else {
+        console.warn('[ReferralLinkCard] Invalid or fallback user ID detected:', realId);
+      }
     }
   }
 
@@ -300,10 +311,20 @@ const ReferralLinkCard: React.FC = () => {
       
       {/* Секция с реферальной ссылкой */}
       <div className="mb-6 bg-black/20 p-4 rounded-lg backdrop-blur-sm relative">
-        <h3 className="text-md font-medium text-white/90 mb-2 flex items-center">
-          <i className="fas fa-link text-primary/90 mr-2 text-sm"></i>
-          Реферальная ссылка
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2">
+          <h3 className="text-md font-medium text-white/90 flex items-center">
+            <i className="fas fa-link text-primary/90 mr-2 text-sm"></i>
+            Реферальная ссылка
+          </h3>
+          
+          {/* Реферальный код */}
+          {currentUser?.ref_code && !isUserLoading && !error.hasError && (
+            <div className="flex items-center text-sm text-muted-foreground mt-1 sm:mt-0">
+              <span className="mr-2">Ваш код:</span>
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">{currentUser.ref_code}</span>
+            </div>
+          )}
+        </div>
         
         {isUserLoading && (
           <div className="flex justify-center items-center py-3">
@@ -469,11 +490,12 @@ const ReferralLinkCard: React.FC = () => {
                 <p className="font-mono">Telegram ID: {telegramUserId || 'не получен'}</p>
                 <p className="font-mono">New Telegram ID: {newTelegramUserId || 'не получен'}</p>
                 <p className="font-mono">Кэш ID: {cachedUserId || 'не получен'}</p>
-                <p className="font-mono">Числовой ID: {numericId}</p>
+                <p className="font-mono">Ref Code: {currentUser?.ref_code || 'не получен'}</p>
                 <p className="font-mono">Источник ID: {idSource}</p>
                 <p className="font-mono">В режиме разработки: {process.env.NODE_ENV === 'development' ? 'да' : 'нет'}</p>
                 <p className="font-mono">hasRealUserId: {hasRealUserId ? 'true' : 'false'}</p>
                 <p className="font-mono">hasRealUserIdState: {hasRealUserIdState === null ? 'null' : hasRealUserIdState ? 'true' : 'false'}</p>
+                <p className="font-mono">Время проверки: {new Date().toLocaleTimeString()}</p>
               </div>
             )}
             
