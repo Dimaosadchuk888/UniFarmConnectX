@@ -20,26 +20,26 @@ export class ReferralBonusService {
   
   // Проценты для вознаграждений на каждом уровне (в %)
   static readonly LEVEL_PERCENTS: number[] = [
-    100, // Уровень 1
-    2,   // Уровень 2
-    3,   // Уровень 3
-    4,   // Уровень 4
-    5,   // Уровень 5
-    6,   // Уровень 6
-    7,   // Уровень 7
-    8,   // Уровень 8
-    9,   // Уровень 9
-    10,  // Уровень 10
-    11,  // Уровень 11
-    12,  // Уровень 12
-    13,  // Уровень 13
-    14,  // Уровень 14
-    15,  // Уровень 15
-    16,  // Уровень 16
-    17,  // Уровень 17
-    18,  // Уровень 18
-    19,  // Уровень 19
-    20   // Уровень 20
+    15,  // Уровень 1 - 15%
+    8,   // Уровень 2 - 8%
+    5,   // Уровень 3 - 5%
+    3,   // Уровень 4 - 3%
+    2,   // Уровень 5 - 2%
+    1,   // Уровень 6 - 1%
+    0.9, // Уровень 7 - 0.9%
+    0.8, // Уровень 8 - 0.8%
+    0.7, // Уровень 9 - 0.7%
+    0.6, // Уровень 10 - 0.6%
+    0.5, // Уровень 11 - 0.5%
+    0.4, // Уровень 12 - 0.4%
+    0.3, // Уровень 13 - 0.3%
+    0.2, // Уровень 14 - 0.2%
+    0.1, // Уровень 15 - 0.1%
+    0.1, // Уровень 16 - 0.1%
+    0.1, // Уровень 17 - 0.1%
+    0.1, // Уровень 18 - 0.1%
+    0.1, // Уровень 19 - 0.1%
+    0.1  // Уровень 20 - 0.1%
   ];
   
   /**
@@ -211,14 +211,39 @@ export class ReferralBonusService {
     }
   }
   
-  static async processReferralBonus(userId: number, amount: number, currency: Currency): Promise<void> {
+  /**
+   * Начисляет реферальное вознаграждение при пополнении баланса или покупке буста
+   * @param userId ID пользователя, который совершил пополнение
+   * @param amount Сумма пополнения
+   * @param currency Валюта (UNI/TON)
+   * @returns Сумма начисленных бонусов
+   */
+  static async processReferralBonus(userId: number, amount: number, currency: Currency): Promise<number> {
     try {
+      console.log(`[ReferralBonus] Processing bonus for user ${userId}, amount: ${amount} ${currency}`);
+      
+      let totalDistributed = 0;
+      
+      // Если сумма меньше порогового значения, не начисляем бонусы
+      if (amount < this.MIN_REWARD_THRESHOLD) {
+        console.log(`[ReferralBonus] Amount ${amount} is too small, skipping`);
+        return 0;
+      }
+      
       // Получаем всех пригласителей пользователя
       const userReferrals = await db
         .select()
         .from(referrals)
         .where(eq(referrals.user_id, userId))
         .orderBy(referrals.level);
+      
+      // Если нет реферальных связей, выходим
+      if (userReferrals.length === 0) {
+        console.log(`[ReferralBonus] No referrals found for user ${userId}`);
+        return 0;
+      }
+      
+      console.log(`[ReferralBonus] Found ${userReferrals.length} referral links for user ${userId}`);
       
       // Для каждого уровня начисляем вознаграждение
       for (const ref of userReferrals) {
@@ -240,11 +265,18 @@ export class ReferralBonusService {
         // Вычисляем сумму вознаграждения
         const bonusAmount = amount * (percent / 100);
         
+        // Пропускаем микро-начисления
+        if (bonusAmount < this.MIN_REWARD_THRESHOLD) {
+          console.log(`[ReferralBonus] Bonus amount ${bonusAmount} for level ${level} is too small, skipping`);
+          continue;
+        }
+        
         // Начисляем вознаграждение пригласителю
         if (bonusAmount > 0 && ref.inviter_id !== null) {
           // Получаем пользователя-приглашателя
           const inviter = await UserService.getUserById(ref.inviter_id);
           if (!inviter) {
+            console.log(`[ReferralBonus] Inviter ID ${ref.inviter_id} not found, skipping`);
             continue;
           }
           
@@ -263,7 +295,7 @@ export class ReferralBonusService {
             balance_ton: currency === Currency.TON ? newBalance.toString() : tonBalance
           });
           
-          // Создаем и валидируем данные транзакции через схему
+          // Создаем и валидируем данные транзакции через схему с дополнительными метаданными
           const transactionData = insertTransactionSchema.parse({
             user_id: ref.inviter_id,
             type: TransactionType.REFERRAL,
@@ -271,9 +303,15 @@ export class ReferralBonusService {
             currency: currency,
             status: TransactionStatus.CONFIRMED,
             source: "Referral",
-            description: "Referral reward from boost purchase",
+            description: `Referral reward from level ${level} (${percent}%)`,
             source_user_id: userId,
-            category: "bonus"
+            category: "bonus",
+            data: JSON.stringify({
+              level: level,
+              percent: percent,
+              sourceFriend: userId,
+              bonusType: 'purchase'
+            })
           });
           
           // Вставляем данные в таблицу транзакций
@@ -281,14 +319,21 @@ export class ReferralBonusService {
             .insert(transactions)
             .values(transactionData);
           
+          // Суммируем распределенные бонусы
+          totalDistributed += bonusAmount;
+          
           console.log(
-            `[ReferralBonus] Level ${level} (${percent}%) | Amount: ${bonusAmount} ${currency} | ` +
+            `[ReferralBonus] Level ${level} (${percent}%) | Amount: ${bonusAmount.toFixed(8)} ${currency} | ` +
             `From: ${userId} | To: ${ref.inviter_id} | Processed`
           );
         }
       }
+      
+      console.log(`[ReferralBonus] Total distributed: ${totalDistributed} ${currency}`);
+      return totalDistributed;
     } catch (error) {
       console.error('[ReferralBonusService] Error processing referral bonus:', error);
+      return 0;
     }
   }
 }

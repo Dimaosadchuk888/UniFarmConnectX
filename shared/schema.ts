@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -93,6 +93,9 @@ export const transactions = pgTable("transactions", {
   source: text("source"), // источник транзакции (например, "TON Boost")
   category: text("category"), // категория транзакции (например, "bonus")
   tx_hash: text("tx_hash"), // хеш транзакции для блокчейн-операций
+  description: text("description"), // описание транзакции
+  source_user_id: integer("source_user_id"), // ID пользователя-источника (например, реферала)
+  data: text("data"), // JSON-строка с дополнительными данными транзакции
   created_at: timestamp("created_at").defaultNow()
 });
 
@@ -105,7 +108,10 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
   status: true,
   source: true,
   category: true,
-  tx_hash: true
+  tx_hash: true,
+  description: true,
+  source_user_id: true,
+  data: true
 });
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;

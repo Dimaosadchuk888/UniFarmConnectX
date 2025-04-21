@@ -15,6 +15,58 @@ import { storage } from '../storage';
 export class AuthController {
   // Telegram Bot API token должен быть установлен в переменных окружения
   private static BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+  // Максимальный уровень реферальной программы
+  private static readonly MAX_REFERRAL_LEVEL = 5;
+  
+  /**
+   * Создает многоуровневую реферальную структуру
+   * Для каждого нового пользователя создается структура связей с вышестоящими рефералами
+   * @param userId ID нового пользователя
+   * @param directInviterId ID прямого пригласителя (уровень 1)
+   */
+  static async createMultiLevelReferrals(userId: number, directInviterId: number): Promise<void> {
+    try {
+      console.log(`[ReferralSystem] Создание многоуровневой реферальной структуры для пользователя ${userId}`);
+      
+      // Уже создали уровень 1, теперь нужно получить вышестоящих рефералов (2-5 уровни)
+      let currentInviterId = directInviterId;
+      
+      // Для уровней 2-5
+      for (let level = 2; level <= this.MAX_REFERRAL_LEVEL; level++) {
+        // Получаем пригласителя для текущего пользователя
+        const referralLink = await ReferralService.getUserInviter(currentInviterId);
+        
+        if (!referralLink || !referralLink.inviter_id) {
+          console.log(`[ReferralSystem] Цепочка рефералов прервана на уровне ${level}. Пользователь ${currentInviterId} не имеет пригласителя.`);
+          break; // Если цепочка прервана, выходим из цикла
+        }
+        
+        // Получаем ID пригласителя для следующего уровня
+        const uplineInviterId = referralLink.inviter_id;
+        
+        // Создаем реферальную связь для текущего уровня
+        const referral = await ReferralService.createReferral({
+          user_id: userId,
+          inviter_id: uplineInviterId,
+          level: level,
+          created_at: new Date()
+        });
+        
+        if (referral) {
+          console.log(`[ReferralSystem] Создана реферальная связь уровня ${level}: пользователь ${userId} -> ${uplineInviterId}`);
+          // Обновляем inviterId для следующего уровня
+          currentInviterId = uplineInviterId;
+        } else {
+          console.log(`[ReferralSystem] Не удалось создать реферальную связь для уровня ${level}`);
+          break;
+        }
+      }
+      
+      console.log(`[ReferralSystem] Завершено создание многоуровневой реферальной структуры для пользователя ${userId}`);
+    } catch (error) {
+      console.error(`[ReferralSystem] Ошибка при создании многоуровневой реферальной структуры:`, error);
+    }
+  }
 
   /**
    * Аутентификация пользователя через Telegram
@@ -234,14 +286,33 @@ export class AuthController {
         return sendError(res, 'Не удалось создать или найти пользователя', 500);
       }
 
-      // Обработка реферальной связи
+      // Обработка реферальной связи с поддержкой многоуровневой структуры
       // Проверяем startParam из Telegram (для ref_code)
       const startParam = validationResult.startParam || '';
       
-      // Проверяем формат startapp=ref_{ref_code}
+      console.log(`[AUTH] [ReferralSystem] Проверка startParam: "${startParam}"`);
+      
+      // Улучшенная проверка формата для разных вариантов реферальных ссылок
       let refCode = '';
+      
+      // Проверяем формат startapp=ref_{ref_code}
       if (startParam.startsWith('ref_')) {
         refCode = startParam.substring(4);
+        console.log(`[AUTH] [ReferralSystem] Обнаружен реферальный код: ${refCode}`);
+      }
+      // Поддержка устаревшего формата user{id}
+      else if (startParam.startsWith('user')) {
+        const userId = startParam.substring(4);
+        console.log(`[AUTH] [ReferralSystem] Обнаружен устаревший формат с userId: ${userId}`);
+        
+        // Пытаемся найти пользователя по ID
+        if (userId && !isNaN(parseInt(userId))) {
+          const foundUser = await UserService.getUserById(parseInt(userId));
+          if (foundUser && foundUser.ref_code) {
+            refCode = foundUser.ref_code;
+            console.log(`[AUTH] [ReferralSystem] Преобразовано в ref_code: ${refCode}`);
+          }
+        }
       }
       
       // Если в startParam нет ref_code, проверяем referrerId
@@ -249,18 +320,21 @@ export class AuthController {
       if (!refCode && referrerId) {
         // Проверяем, может быть это числовой userId
         inviterId = parseInt(referrerId);
+        console.log(`[AUTH] [ReferralSystem] Используем referrerId из запроса: ${inviterId}`);
       }
       
-      // Обрабатываем реферальную связь только для новых пользователей
-      if (isNewUser && (refCode || inviterId)) {
+      // Расширенная логика создания реферальных связей
+      // Обрабатываем для новых пользователей или если явно передан reregister=true
+      if ((isNewUser || req.body.reregister === true) && (refCode || inviterId)) {
         try {
+          console.log(`[AUTH] [ReferralSystem] Начинаем обработку реферальной связи...`);
           let inviter = null;
           
           // Сначала пробуем найти пользователя по ref_code
           if (refCode) {
             inviter = await storage.getUserByRefCode(refCode);
             if (inviter) {
-              console.log(`[AUTH] Найден пригласитель по ref_code ${refCode}: ${inviter.id}`);
+              console.log(`[AUTH] [ReferralSystem] Найден пригласитель по ref_code ${refCode}: ID ${inviter.id}, Username: ${inviter.username}`);
               inviterId = inviter.id;
             }
           }
@@ -268,30 +342,52 @@ export class AuthController {
           // Если не нашли по ref_code или ref_code не был указан, используем userId
           if (!inviter && inviterId && !isNaN(inviterId)) {
             inviter = await UserService.getUserById(inviterId);
-            console.log(`[AUTH] Найден пригласитель по user_id ${inviterId}`);
+            if (inviter) {
+              console.log(`[AUTH] [ReferralSystem] Найден пригласитель по user_id ${inviterId}: Username: ${inviter.username}`);
+            }
+          }
+          
+          // Проверка на самореферальность
+          if (inviter && inviter.id === user.id) {
+            console.log(`[AUTH] [ReferralSystem] Попытка самореферальности отклонена: ${user.id}`);
+            inviter = null;
           }
           
           // Если пригласитель найден, создаем реферальную связь
           if (inviter) {
-            // Создаем реферальную связь (уровень 1)
-            const referral = await ReferralService.createReferral({
-              user_id: user.id,
-              inviter_id: inviter.id,
-              level: 1,
-              created_at: new Date()
-            });
+            // Проверяем, нет ли уже существующей связи
+            const existingReferral = await ReferralService.getUserInviter(user.id);
             
-            if (referral) {
-              console.log(`Создана реферальная связь: пользователь ${user.id} приглашен пользователем ${inviter.id} (ref_code: ${inviter.ref_code})`);
-              referrerRegistered = true;
+            if (!existingReferral) {
+              // Создаем реферальную связь (уровень 1)
+              const referral = await ReferralService.createReferral({
+                user_id: user.id,
+                inviter_id: inviter.id,
+                level: 1,
+                created_at: new Date()
+              });
+              
+              if (referral) {
+                console.log(`[AUTH] [ReferralSystem] Создана прямая реферальная связь: пользователь ${user.id} приглашен пользователем ${inviter.id} (ref_code: ${inviter.ref_code})`);
+                referrerRegistered = true;
+                
+                // Теперь создаем связи для вышестоящих уровней (2-5 уровни)
+                await AuthController.createMultiLevelReferrals(user.id, inviter.id);
+              }
+            } else {
+              console.log(`[AUTH] [ReferralSystem] Пользователь ${user.id} уже имеет пригласителя: ${existingReferral.inviter_id}`);
             }
           } else {
-            console.log(`[AUTH] Пригласитель не найден: ref_code=${refCode}, user_id=${inviterId}`);
+            console.log(`[AUTH] [ReferralSystem] Пригласитель не найден: ref_code=${refCode}, user_id=${inviterId}`);
           }
         } catch (error) {
-          console.error('Ошибка при создании реферальной связи:', error);
+          console.error('[AUTH] [ReferralSystem] Ошибка при создании реферальной связи:', error);
           // Продолжаем выполнение, так как ошибка реферальной системы не критична для аутентификации
         }
+      } else if (!isNewUser) {
+        console.log(`[AUTH] [ReferralSystem] Пропускаем создание реферальной связи для существующего пользователя: ${user.id}`);
+      } else {
+        console.log(`[AUTH] [ReferralSystem] Нет реферального параметра в запросе`);
       }
 
       // Логируем успешную аутентификацию
