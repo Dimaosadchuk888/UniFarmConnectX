@@ -188,34 +188,15 @@ const ReferralLinkCard: React.FC = () => {
   if (refCode) {
     // Используем формат с "startapp=ref_{ref_code}" для Telegram Mini App
     referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${refCode}`;
-    console.log('[ReferralLinkCard] Generated unique referral link:', referralLink, 'for ref_code:', refCode);
+    console.log('[ReferralLinkCard] Generated referral link:', referralLink, 'for ref_code:', refCode);
   } else {
-    // Если ref_code отсутствует, используем fallback с использованием user ID
+    // Если пользователь не авторизован через Telegram, не показываем ссылку
+    console.warn('[ReferralLinkCard] No ref_code available for link generation.');
     
-    // Получаем лучший доступный ID с приоритетом на новые методы получения Telegram ID
-    const realId = newTelegramUserId || currentUser?.id || telegramUserId || cachedUserId;
-    
-    // Валидируем - только положительные числовые значения и исключаем fallback ID=1 (кроме режима разработки)
-    const numericId = typeof realId === 'string' ? parseInt(realId) : realId;
-    const IS_DEV = process.env.NODE_ENV === 'development';
-    
-    if (numericId && (numericId > 1 || IS_DEV)) {
-      // Используем формат с "startapp=ref_{userId}" как запасной вариант
-      referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${numericId}`;
-      
-      if (IS_DEV && numericId === 1) {
-        console.log('[ReferralLinkCard] DEV MODE: Using test ID=1 for referral link:', referralLink);
-      } else {
-        console.log('[ReferralLinkCard] Fallback: Using user ID for referral link:', referralLink, 'for user ID:', realId);
-      }
-    } else {
-      console.warn('[ReferralLinkCard] Invalid or missing userID for referral link generation:', realId);
-      
-      // Даже при отсутствии валидного ID в режиме разработки, мы создаем тестовую ссылку
-      if (IS_DEV) {
-        referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_TEST123`;
-        console.log('[ReferralLinkCard] DEV MODE: Using fallback TEST123 code for referral link:', referralLink);
-      }
+    // В режиме разработки создаем тестовую ссылку для отладки
+    if (process.env.NODE_ENV === 'development') {
+      referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_TEST123`;
+      console.log('[ReferralLinkCard] DEV MODE: Using test code for referral link:', referralLink);
     }
   }
 
@@ -391,15 +372,15 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {/* Телеграм-специфичная ошибка - показываем только если явно проблема с Telegram */}
-        {!isUserLoading && error.hasError && error.isTelegramError && !isTelegramWebApp() && (
+        {/* Телеграм-специфичная ошибка - показываем когда пользователь не вошел через Telegram или нет ref_code */}
+        {!isUserLoading && !error.hasError && !referralLink && (
           <div className="bg-orange-900/20 rounded-lg p-3 mt-2">
             <div className="flex items-center text-orange-400 mb-2">
               <i className="fas fa-info-circle mr-2"></i>
-              <span className="text-sm font-medium">Запустите через Telegram</span>
+              <span className="text-sm font-medium">Для получения реферальной ссылки войдите через Telegram</span>
             </div>
             <p className="text-xs text-orange-400/80">
-              Для полного доступа к партнерской программе откройте приложение через Telegram. Вы можете установить ссылку на партнерский бот:
+              Для полного доступа к партнерской программе откройте приложение через Telegram. Вы можете использовать официальный бот:
             </p>
             <div className="flex justify-center mt-2">
               <a 
