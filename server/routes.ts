@@ -27,6 +27,25 @@ import { WalletController } from './controllers/walletController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // АУДИТ: Логирование заголовков всех запросов к API
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    // Логирование всех заголовков запросов для диагностики проблем с Telegram
+    if (req.url.startsWith('/api/')) {
+      console.log(`[АУДИТ] [${new Date().toISOString()}] Request to ${req.method} ${req.url}`);
+      console.log('[АУДИТ] Headers:', JSON.stringify(req.headers, null, 2));
+      
+      // Если есть данные от Telegram, логируем их
+      const telegramData = req.headers['telegram-data'] || 
+                          req.headers['x-telegram-data'] || 
+                          req.headers['x-telegram-init-data'];
+      if (telegramData) {
+        console.log('[АУДИТ] Telegram data found in headers with length:', 
+          typeof telegramData === 'string' ? telegramData.length : 'not a string');
+      }
+    }
+    next();
+  });
+  
   // Простой маршрут для проверки API (для отладки)
   app.get("/api/test-json", (req, res) => {
     res.setHeader('Content-Type', 'application/json');

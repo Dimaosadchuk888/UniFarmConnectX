@@ -73,20 +73,33 @@ export function formatNumberWithPrecision(value: number, precision: number = 2):
 export function getUserIdFromURL(): string | null {
   console.log('[utils] Getting user ID from all available sources');
   
-  // Пытаемся получить данные из Telegram WebApp
-  if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-    const telegramId = String(window.Telegram.WebApp.initDataUnsafe.user.id);
-    console.log('[utils] Found user ID in Telegram WebApp:', telegramId);
+  // АУДИТ: Расширенная проверка данных из Telegram WebApp
+  if (window.Telegram?.WebApp) {
+    console.log('[АУДИТ] [utils] Telegram WebApp object available:', {
+      initDataLength: typeof window.Telegram.WebApp.initData === 'string' ? window.Telegram.WebApp.initData.length : 0,
+      initDataUnsafe: window.Telegram.WebApp.initDataUnsafe ? 'present' : 'missing',
+      userObject: window.Telegram.WebApp.initDataUnsafe?.user ? 'present' : 'missing',
+      userId: window.Telegram.WebApp.initDataUnsafe?.user?.id || 'none'
+    });
     
-    // Кэшируем ID в localStorage
-    try {
-      localStorage.setItem('telegram_user_id', telegramId);
-      console.log('[utils] Cached Telegram user ID in localStorage');
-    } catch (err) {
-      console.warn('[utils] Failed to cache user ID:', err);
+    if (window.Telegram.WebApp.initDataUnsafe?.user?.id) {
+      const telegramId = String(window.Telegram.WebApp.initDataUnsafe.user.id);
+      console.log('[utils] Found user ID in Telegram WebApp:', telegramId);
+      
+      // Кэшируем ID в localStorage
+      try {
+        localStorage.setItem('telegram_user_id', telegramId);
+        console.log('[utils] Cached Telegram user ID in localStorage');
+      } catch (err) {
+        console.warn('[utils] Failed to cache user ID:', err);
+      }
+      
+      return telegramId;
+    } else {
+      console.warn('[АУДИТ] [utils] Telegram WebApp available but user.id is missing');
     }
-    
-    return telegramId;
+  } else {
+    console.warn('[АУДИТ] [utils] Telegram WebApp object not available');
   }
   
   // Пытаемся получить из параметров URL
@@ -153,8 +166,20 @@ export function getReferrerIdFromURL(): string | null {
       return startappParam;
     }
     
-    // Шаг 2: Проверяем данные Telegram WebApp
+    // Шаг 2: Проверяем данные Telegram WebApp с расширенной диагностикой
     if (window.Telegram?.WebApp) {
+      console.log('[АУДИТ] [utils] Checking Telegram WebApp for startParam:', {
+        webAppAvailable: !!window.Telegram.WebApp,
+        // @ts-ignore - startParam может быть недоступен в типе, но доступен в реальном API
+        startParamAvailable: !!window.Telegram.WebApp.startParam,
+        // @ts-ignore
+        startParamValue: window.Telegram.WebApp.startParam || 'none',
+        initDataLength: typeof window.Telegram.WebApp.initData === 'string' ? 
+                        window.Telegram.WebApp.initData.length : 0,
+        hasInitDataUnsafe: !!window.Telegram.WebApp.initDataUnsafe,
+        userId: window.Telegram.WebApp.initDataUnsafe?.user?.id || 'none'
+      });
+      
       // В Telegram WebApp параметр start передается как часть initData
       // или может быть доступен как startParam
       

@@ -89,12 +89,12 @@ export class UserController {
               JSON.stringify(Array.from(authParams.keys())));
             
             // АУДИТ: Показываем первые несколько символов значений для анализа
-            const keysAndValues = {};
+            const keysAndValues: Record<string, string> = {};
             authParams.forEach((value, key) => {
               if (key !== 'hash') { // Не показываем полный hash для безопасности
                 keysAndValues[key] = value.length > 10 ? value.substring(0, 10) + '...' : value;
               } else {
-                keysAndValues[key] = value.length > 0 ? 'present' : 'empty';
+                keysAndValues['hash'] = value.length > 0 ? 'present' : 'empty';
               }
             });
             console.log('[АУДИТ] [UserController] initData key-value pairs preview:', keysAndValues);
