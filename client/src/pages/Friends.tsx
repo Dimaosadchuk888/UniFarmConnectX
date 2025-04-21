@@ -60,7 +60,10 @@ const TelegramKeyInfoBlock = () => {
     });
   }, [userData]);
   
-  // Отображаем блок в любом случае, не зависимо от режима или наличия данных
+  // Определяем статус соединения с Telegram
+  const telegramStatus = window.Telegram?.WebApp?.initData ? "OK" : "Не подключен";
+  
+  // Отображаем блок в любом случае, независимо от режима или наличия данных
   return (
     <div className="bg-amber-800/20 border border-amber-500/30 rounded-md p-3 mb-4 overflow-hidden">
       <div className="text-center mb-2">
@@ -68,9 +71,18 @@ const TelegramKeyInfoBlock = () => {
       </div>
       
       <div className="text-white text-sm leading-relaxed">
-        <div>Ваш ref_code: <span className="text-amber-300 font-mono">{telegramData.refCode || "не получен"}</span></div>
-        <div>Telegram ID: <span className="text-amber-300 font-mono">{telegramData.userId || "не получен"}</span></div>
-        <div>Источник ID: <span className="text-xs opacity-75 font-mono">{telegramData.source}</span></div>
+        <div>
+          Ваш ref_code: <span className="text-amber-300 font-mono">{telegramData.refCode || "не получен"}</span>
+        </div>
+        <div>
+          Telegram ID: <span className="text-amber-300 font-mono">{telegramData.userId || "не получен"}</span>
+        </div>
+        <div>
+          initData status: <span className={`font-mono ${telegramStatus === "OK" ? "text-green-400" : "text-red-400"}`}>{telegramStatus}</span>
+        </div>
+        <div>
+          Источник ID: <span className="text-xs opacity-75 font-mono">{telegramData.source}</span>
+        </div>
       </div>
     </div>
   );

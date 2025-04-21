@@ -19,6 +19,9 @@ export interface TelegramInitData {
   platform?: string;
   authDate?: string;
   
+  // Реферальные данные
+  refCode?: string;  // Извлеченный реферальный код из startParam
+  
   // Полные данные для отладки
   rawInitData?: string;
   rawInitDataUnsafe?: any;
@@ -97,6 +100,22 @@ export function extractTelegramInitData(): TelegramInitData {
   result.startParam = WebApp.startParam;
   result.platform = WebApp.platform;
   
+  // Пытаемся извлечь ref_code из startParam, если он имеет формат startapp=ref_CODE
+  if (result.startParam) {
+    if (result.startParam.startsWith('ref_')) {
+      // Прямой формат ref_CODE
+      result.refCode = result.startParam;
+      console.log('[telegramInitData] Извлечен ref_code из startParam:', result.refCode);
+    } else if (result.startParam.includes('=ref_')) {
+      // Формат startapp=ref_CODE или другие параметры с ref_CODE
+      const match = result.startParam.match(/=ref_([^&]+)/);
+      if (match && match[1]) {
+        result.refCode = `ref_${match[1]}`;
+        console.log('[telegramInitData] Извлечен ref_code из сложного startParam:', result.refCode);
+      }
+    }
+  }
+  
   // Проверка метаданных
   if (!result.authDate) {
     result.validationErrors.push('auth_date отсутствует');
@@ -157,6 +176,15 @@ export function getTelegramUserId(): number | null {
 export function getTelegramStartParam(): string | null {
   const telegramData = extractTelegramInitData();
   return telegramData.startParam || null;
+}
+
+/**
+ * Извлекает реферальный код из startParam Telegram WebApp
+ * @returns ref_code или null, если он недоступен
+ */
+export function getTelegramRefCode(): string | null {
+  const telegramData = extractTelegramInitData();
+  return telegramData.refCode || null;
 }
 
 /**

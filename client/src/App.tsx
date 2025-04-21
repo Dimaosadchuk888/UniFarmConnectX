@@ -195,22 +195,24 @@ function App() {
           // АУДИТ: Расширенная диагностика состояния Telegram WebApp
           if (window.Telegram?.WebApp) {
             // Полное логирование всех доступных данных
+            const tg = window.Telegram.WebApp;
             console.log('[АУДИТ] DIAG: Telegram WebApp state after initialization:', {
               // Основные поля
-              initDataAvailable: !!window.Telegram.WebApp.initData,
-              initDataLength: (window.Telegram.WebApp.initData || '').length,
-              // Добавляем само значение initData для анализа
-              initData: window.Telegram.WebApp.initData || 'empty',
+              initDataAvailable: !!tg.initData,
+              initDataLength: (tg.initData || '').length,
+              // Добавляем само значение initData и initDataUnsafe для отладки согласно ТЗ
+              initData: tg.initData || 'empty',
+              initDataUnsafe: tg.initDataUnsafe,
               // Проверка объекта с пользовательскими данными
-              initDataUnsafeAvailable: !!window.Telegram.WebApp.initDataUnsafe,
-              userAvailable: !!window.Telegram.WebApp.initDataUnsafe?.user,
-              userId: window.Telegram.WebApp.initDataUnsafe?.user?.id || 'недоступен',
-              username: window.Telegram.WebApp.initDataUnsafe?.user?.username || 'недоступен',
-              firstName: window.Telegram.WebApp.initDataUnsafe?.user?.first_name || 'недоступен',
+              initDataUnsafeAvailable: !!tg.initDataUnsafe,
+              userAvailable: !!tg.initDataUnsafe?.user,
+              userId: tg.initDataUnsafe?.user?.id || 'недоступен',
+              username: tg.initDataUnsafe?.user?.username || 'недоступен',
+              firstName: tg.initDataUnsafe?.user?.first_name || 'недоступен',
               // Проверка служебных полей
-              startParam: window.Telegram.WebApp.startParam || 'недоступен',
-              platform: window.Telegram.WebApp.platform || 'недоступен',
-              version: window.Telegram.WebApp.version || 'недоступен',
+              startParam: tg.startParam || 'недоступен',
+              platform: tg.platform || 'недоступен',
+              version: tg.version || 'недоступен',
               // Контекст запуска
               isInIframe: window !== window.parent,
               currentUrl: window.location.href,
