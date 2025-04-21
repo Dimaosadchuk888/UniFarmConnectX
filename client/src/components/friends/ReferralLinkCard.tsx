@@ -416,21 +416,29 @@ const ReferralLinkCard: React.FC = () => {
         )}
         
         {/* Отображаем ссылку, если она сгенерирована, независимо от hasRealUserId */}
-        {!isUserLoading && !error.hasError && referralLink && (
+        {/* Блок с реферальной ссылкой - всегда отображается после загрузки */}
+        {!isUserLoading && !error.hasError && (
           <div className="flex relative">
             <div className="flex-grow relative">
-              <input 
-                type="text" 
-                value={referralLink} 
-                readOnly
-                className={`
-                  w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
-                  transition-all duration-300
-                  ${isHovered ? 'bg-muted/80' : ''}
-                `}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-              />
+              {referralLink ? (
+                <input 
+                  type="text" 
+                  value={referralLink} 
+                  readOnly
+                  className={`
+                    w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
+                    transition-all duration-300
+                    ${isHovered ? 'bg-muted/80' : ''}
+                  `}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                />
+              ) : (
+                <div className="w-full bg-muted/30 text-muted-foreground rounded-l-lg px-3 py-2 text-sm flex items-center">
+                  <i className="fas fa-exclamation-circle mr-2 text-amber-500/70"></i>
+                  <span>Ссылка не сгенерирована</span>
+                </div>
+              )}
               
               {/* Эффект выделения при наведении */}
               {isHovered && (
@@ -478,17 +486,17 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {/* Показываем информативный fallback-контейнер только если нет ссылки и нет загрузки или ошибки 
-            Добавляем независимость от ref_code, чтобы избежать бесконечной загрузки */}
-        {!isUserLoading && !error.hasError && !referralLink && (
-          <div className="flex flex-col items-center py-3 px-2 bg-amber-600/10 rounded-lg">
-            <div className="flex items-center text-amber-600 mb-2">
-              <i className="fas fa-exclamation-triangle mr-2"></i>
-              <span className="text-sm font-medium">Необходим запуск через Telegram</span>
+        {/* Больше не нужно показывать отдельный fallback-контейнер, так как мы уже показываем информацию внутри поля */}
+        {/* Отображаем дополнительную информацию только в режиме разработки */}
+        {process.env.NODE_ENV === 'development' && !isUserLoading && !error.hasError && (
+          <div className="flex flex-col items-center py-3 px-2 bg-gray-900/30 rounded-lg mt-3">
+            <div className="flex items-center text-primary mb-2">
+              <i className="fas fa-bug mr-2"></i>
+              <span className="text-sm font-medium">Режим разработки</span>
             </div>
             
-            <p className="text-xs text-amber-700/90 dark:text-amber-400/90 mb-3 text-center">
-              Для получения реферальной ссылки необходимо открыть приложение через официального Telegram бота UniFarm.
+            <p className="text-xs text-primary/90 mb-3 text-center">
+              Информация о состоянии компонента и доступности данных Telegram
             </p>
             
             {/* Отладочная информация - показываем только в режиме разработки */}
