@@ -179,7 +179,6 @@ const ReferralLinkCard: React.FC = () => {
   });
   
   // Формируем реферальную ссылку независимо от hasRealUserId, если есть положительный userId > 1
-  let userId = '';
   let referralLink = '';
   
   // Получаем лучший доступный ID с приоритетом на новые методы получения Telegram ID
@@ -189,16 +188,16 @@ const ReferralLinkCard: React.FC = () => {
   const numericId = typeof realId === 'string' ? parseInt(realId) : realId;
   
   if (numericId && numericId > 1) {
-    userId = `user${realId}`;
-    referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
+    // Используем новый формат с "startapp=ref_{userId}" вместо "start=user{userId}"
+    referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${numericId}`;
     console.log('[ReferralLinkCard] Generated unique referral link:', referralLink, 'for user ID:', realId);
   } else {
     // Только в режиме разработки разрешаем использовать ID=1 для тестирования
     const IS_DEV = process.env.NODE_ENV === 'development';
     
     if (IS_DEV && numericId === 1) {
-      userId = `user${realId}`;
-      referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
+      // Также используем новый формат для режима разработки
+      referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${numericId}`;
       console.log('[ReferralLinkCard] DEV MODE: Using test ID=1 for referral link:', referralLink);
     } else {
       console.warn('[ReferralLinkCard] Invalid or fallback user ID detected:', realId);
