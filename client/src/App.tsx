@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { apiRequest } from "@/lib/queryClient";
-import { getTelegramUserData, initTelegramWebApp, isTelegramWebApp } from "./services/telegramService";
+import { getTelegramUserData, initTelegramWebApp, isTelegramWebApp, getCachedTelegramUserId } from "./services/telegramService";
 import { extractTelegramInitData, getTelegramUserId, hasTelegramUserId, isRunningInTelegram } from "./services/telegramInitData";
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import { TONCONNECT_MANIFEST_URL } from './config/tonConnect';
 import { getReferrerIdFromURL } from './lib/utils';
+import userService from '@/services/userService';
 
 import Header from "@/components/layout/Header";
 import NavigationBar from "@/components/layout/NavigationBar";
@@ -53,11 +54,119 @@ declare global {
   }
 }
 
+/**
+ * Компонент для корневой диагностики (Telegram WebApp, ref_code и telegramId)
+ */
+const RootTelegramDiagnostics = () => {
+  // Для диагностики получаем telegramId из разных источников
+  const [telegramData, setTelegramData] = useState<{
+    userId: string | number | null,
+    refCode: string | null,
+    telegramAvailable: boolean,
+    webAppAvailable: boolean,
+    initDataLength: number,
+    hasInitDataUnsafe: boolean,
+    hasUser: boolean,
+    startParam: string | null,
+    time: string
+  }>({
+    userId: null,
+    refCode: null,
+    telegramAvailable: false,
+    webAppAvailable: false,
+    initDataLength: 0,
+    hasInitDataUnsafe: false,
+    hasUser: false,
+    startParam: null,
+    time: new Date().toISOString()
+  });
+  
+  // Запрос на получение данных пользователя
+  const { data: userData } = useQuery({
+    queryKey: ['/api/me'], 
+    queryFn: () => userService.getCurrentUser(),
+    staleTime: 10000
+  });
+  
+  useEffect(() => {
+    // Определяем доступность Telegram объекта
+    const telegram = window.Telegram;
+    const webApp = telegram?.WebApp;
+    const telegramUser = webApp?.initDataUnsafe?.user;
+    
+    // Собираем диагностические данные
+    const diagnosticData = {
+      userId: telegramUser?.id || userData?.telegram_id || getTelegramUserId() || null,
+      refCode: userData?.ref_code || null,
+      telegramAvailable: !!telegram,
+      webAppAvailable: !!webApp,
+      initDataLength: (webApp?.initData || '').length,
+      hasInitDataUnsafe: !!webApp?.initDataUnsafe,
+      hasUser: !!telegramUser,
+      startParam: webApp?.startParam || null,
+      time: new Date().toISOString()
+    };
+    
+    setTelegramData(diagnosticData);
+    
+    // Логируем подробную диагностику
+    console.log('[АУДИТ] [DIAG] Telegram WebApp State:', {
+      isTelegramAvailable: diagnosticData.telegramAvailable,
+      isWebAppAvailable: diagnosticData.webAppAvailable,
+      initDataLength: diagnosticData.initDataLength,
+      hasInitDataUnsafe: diagnosticData.hasInitDataUnsafe,
+      hasUser: diagnosticData.hasUser,
+      userId: diagnosticData.userId || 'not available',
+      username: telegramUser?.username || 'not available',
+      firstName: telegramUser?.first_name || 'not available',
+      startParam: diagnosticData.startParam || 'not available',
+      authDate: webApp?.initDataUnsafe?.auth_date || 'not available',
+      platform: webApp?.platform || 'not available',
+      version: webApp?.version || 'not available',
+      hash: webApp?.initDataUnsafe?.hash || 'absent',
+      fullInitData: webApp?.initData || 'empty',
+      documentURL: document.URL,
+      isIframe: window !== window.parent,
+      userAgent: navigator.userAgent,
+      time: diagnosticData.time
+    });
+  }, [userData]);
+  
+  // Стиль для блока, который будет виден вне основного контента но не закрывая его
+  const diagnosticsStyle = {
+    position: 'fixed' as const,
+    top: 0,
+    left: 0,
+    zIndex: 9999,
+    background: 'rgba(0,0,0,0.7)',
+    color: '#fff',
+    padding: '8px',
+    fontSize: '10px',
+    maxWidth: '100%',
+    width: 'auto',
+    height: 'auto',
+    overflow: 'hidden',
+    fontFamily: 'monospace',
+    lineHeight: '1.3',
+    opacity: 0.9
+  };
+  
+  return (
+    <div style={diagnosticsStyle}>
+      <div style={{fontSize: '9px', color: '#ff9800', marginBottom: '3px'}}>⚠️ TELEGRAM DIAGNOSTICS</div>
+      <div>U:{telegramData.userId || 'n/a'} | R:{telegramData.refCode || 'n/a'}</div>
+      <div>TG:{telegramData.telegramAvailable?'✓':'✗'} WebApp:{telegramData.webAppAvailable?'✓':'✗'}</div>
+      <div>initData:{telegramData.initDataLength}b | User:{telegramData.hasUser?'✓':'✗'}</div>
+    </div>
+  );
+};
+
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
+  const [showDiagnostics] = useState(true); // Всегда показываем диагностику
 
   // Усиленная инициализация Telegram WebApp при запуске
   useEffect(() => {
@@ -264,6 +373,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TonConnectUIProvider manifestUrl="https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json">
+        {/* Безусловный диагностический блок на самом верхнем уровне */}
+        {showDiagnostics && <RootTelegramDiagnostics />}
+        
         <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
           <Header />
           <main className="px-4 pt-2 pb-20">

@@ -3,12 +3,83 @@ import ReferralLinkCard from '@/components/friends/ReferralLinkCard';
 import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
+import { getCachedTelegramUserId } from '@/services/telegramService';
+import { getTelegramUserId } from '@/services/telegramInitData';
 
 /**
- * Тестовый блок для аудита ref_code
- * Отображается только в режиме разработки
+ * Компонент для аудита вывода ref_code и Telegram ID
+ * Безусловно отображается во всех режимах (включая production)
  */
-const RefCodeAuditBlock = ({userData, isLoading}) => {
+const TelegramKeyInfoBlock = () => {
+  // Для диагностики получаем ref_code и telegramId из разных источников
+  const [telegramData, setTelegramData] = useState<{
+    userId: string | number | null,
+    refCode: string | null,
+    source: string
+  }>({
+    userId: null,
+    refCode: null,
+    source: 'загрузка...'
+  });
+  
+  // Запрос на получение данных пользователя
+  const { data: userData } = useQuery({
+    queryKey: ['/api/me'], 
+    queryFn: () => userService.getCurrentUser(),
+    staleTime: 10000
+  });
+  
+  useEffect(() => {
+    // Соберем все возможные источники telegramId и ref_code
+    const telegramId = getTelegramUserId();
+    const cachedId = getCachedTelegramUserId();
+    const telegramWebAppId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    const userDataId = userData?.telegram_id;
+    
+    // Выбираем лучший доступный источник
+    let bestId = telegramId || telegramWebAppId || userDataId || cachedId || null;
+    let source = 'неизвестно';
+    
+    if (telegramId) source = 'telegramInitData.getTelegramUserId()';
+    else if (telegramWebAppId) source = 'window.Telegram.WebApp';
+    else if (userDataId) source = 'userData.telegram_id';
+    else if (cachedId) source = 'cachedTelegramUserId';
+    
+    setTelegramData({
+      userId: bestId,
+      refCode: userData?.ref_code || null,
+      source
+    });
+    
+    console.log('[AUDIT_BLOCK] Найденные данные:', {
+      telegramId,
+      telegramWebAppId,
+      userDataId,
+      cachedId,
+      refCode: userData?.ref_code
+    });
+  }, [userData]);
+  
+  // Отображаем блок в любом случае, не зависимо от режима или наличия данных
+  return (
+    <div className="bg-amber-800/20 border border-amber-500/30 rounded-md p-3 mb-4 overflow-hidden">
+      <div className="text-center mb-2">
+        <span className="font-bold text-amber-400">ТЕЛЕГРАМ ДИАГНОСТИКА</span>
+      </div>
+      
+      <div className="text-white text-sm leading-relaxed">
+        <div>Ваш ref_code: <span className="text-amber-300 font-mono">{telegramData.refCode || "не получен"}</span></div>
+        <div>Telegram ID: <span className="text-amber-300 font-mono">{telegramData.userId || "не получен"}</span></div>
+        <div>Источник ID: <span className="text-xs opacity-75 font-mono">{telegramData.source}</span></div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Тестовый блок для аудита ref_code (только режим разработки)
+ */
+const RefCodeAuditBlock = ({userData, isLoading}: {userData: any, isLoading: boolean}) => {
   if (process.env.NODE_ENV !== 'development') return null;
   
   return (
@@ -103,7 +174,10 @@ const Friends: React.FC = () => {
         Партнёрская программа
       </h1>
       
-      {/* Тестовый блок аудита */}
+      {/* Диагностический блок - виден всегда, включая production */}
+      <TelegramKeyInfoBlock />
+      
+      {/* Расширенный тестовый блок аудита - только для режима разработки */}
       <RefCodeAuditBlock userData={userData} isLoading={isLoading} />
       
       {/* Карточка с реферальной ссылкой */}
