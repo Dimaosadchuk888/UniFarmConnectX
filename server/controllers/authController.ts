@@ -6,6 +6,7 @@ import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils'
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { validateTelegramInitData, TelegramValidationResult, isForbiddenUserId, logTelegramData } from '../utils/telegramUtils';
 
 /**
  * Контроллер для аутентификации пользователей
@@ -33,6 +34,14 @@ export class AuthController {
         console.error("[АУДИТ] ОШИБКА: Отсутствуют данные аутентификации в запросе");
         return sendError(res, 'Отсутствуют данные аутентификации', 400);
       }
+      
+      // Создаем переменную среды для режима разработки/тестирования
+      const IS_DEV = process.env.NODE_ENV === 'development' || 
+                    process.env.IS_DEV === 'true' || 
+                    req.body.testMode === true;
+                    
+      // Информируем о режиме работы
+      console.log("[АУДИТ] Режим работы:", IS_DEV ? 'development' : 'production');
 
       // Проверка на наличие токена бота
       if (!AuthController.BOT_TOKEN) {
@@ -129,51 +138,49 @@ export class AuthController {
       const testModeParam = req.body.testMode === true || authParams.get('test_mode') === 'true';
       const isTestMode = process.env.NODE_ENV === 'development' && testModeParam;
       
-      // Проверяем подпись, только если токен бота задан и не включен тестовый режим
-      let signatureValid = false;
-      let timeValid = false;
+      // Проверяем подпись и валидность данных Telegram с новой утилитой
+      const validationResult: TelegramValidationResult = validateTelegramInitData(
+        authData,
+        AuthController.BOT_TOKEN,
+        {
+          maxAgeSeconds: 86400, // 24 часа по умолчанию
+          isDevelopment: isTestMode || process.env.NODE_ENV !== 'production',
+          requireUserId: !isTestMode, // В тестовом режиме не требуем userId
+          allowFallbackId: isTestMode // В продакшене запрещаем ID=1
+        }
+      );
       
-      if (AuthController.BOT_TOKEN && !isTestMode) {
-        // Создаем секретный ключ из токена бота согласно документации Telegram
-        const secretKey = createHash('sha256')
-          .update(AuthController.BOT_TOKEN)
-          .digest();
+      // Подробное логирование результатов проверки
+      logTelegramData(authData, validationResult, 'AUTH');
+      
+      // Проверяем результаты валидации
+      if (!validationResult.isValid) {
+        console.error("[АУДИТ] ОШИБКА: Данные инициализации Telegram недействительны");
+        console.error("[АУДИТ] Причины:", validationResult.validationErrors);
         
-        // Вычисляем хеш по алгоритму HMAC-SHA-256
-        const calculatedHash = createHmac('sha256', secretKey)
-          .update(dataCheckString)
-          .digest('hex');
-        
-        // Проверяем совпадение хешей
-        signatureValid = calculatedHash === hashFromTelegram;
-        
-        if (!signatureValid) {
-          console.error("[АУДИТ] ОШИБКА: Недействительная подпись данных");
-          console.log("[АУДИТ] Хеш от Telegram:", hashFromTelegram);
-          console.log("[АУДИТ] Вычисленный хеш:", calculatedHash);
-          return sendError(res, 'Недействительная подпись данных Telegram', 401);
+        // В тестовом режиме игнорируем ошибки валидации
+        if (!isTestMode) {
+          return sendError(res, 'Данные аутентификации Telegram недействительны', 401);
+        } else {
+          console.log("[АУДИТ] Тестовый режим: игнорируем ошибки валидации");
         }
-        
-        // Проверяем актуальность данных (не старше 24 часов по умолчанию)
-        const currentTimestamp = Math.floor(Date.now() / 1000);
-        const authTimestamp = parseInt(authDate);
-        const maxAgeSeconds = 86400; // 24 часа
-        
-        timeValid = (currentTimestamp - authTimestamp) <= maxAgeSeconds;
-        
-        if (!timeValid) {
-          console.error("[АУДИТ] ОШИБКА: Данные аутентификации устарели");
-          console.log("[АУДИТ] Текущее время:", new Date(currentTimestamp * 1000).toISOString());
-          console.log("[АУДИТ] Время авторизации:", new Date(authTimestamp * 1000).toISOString());
-          console.log("[АУДИТ] Разница (секунды):", currentTimestamp - authTimestamp);
-          return sendError(res, 'Данные аутентификации устарели', 401);
-        }
-      } else {
-        // В тестовом режиме считаем подпись действительной
-        signatureValid = true;
-        timeValid = true;
-        console.log("[АУДИТ] Тестовый режим: пропускаем проверку подписи и времени");
       }
+      
+      // Дополнительная проверка на запрещенные ID (например, ID=1 в продакшене)
+      if (isForbiddenUserId(validationResult.userId) && !isTestMode) {
+        console.error("[АУДИТ] КРИТИЧЕСКАЯ ОШИБКА: Использование запрещенного userId:", validationResult.userId);
+        return sendError(res, 'Недопустимый ID пользователя', 400);
+      }
+      
+      // Используем userId из валидационного результата, если он доступен
+      let telegramUserId = validationResult.userId || userId;
+      
+      // Логируем успешную валидацию
+      console.log("[АУДИТ] Данные Telegram успешно проверены:", {
+        userId,
+        username: validationResult.username || username,
+        startParam: validationResult.startParam
+      });
       
       // Если включен тестовый режим, выводим информацию в лог
       if (isTestMode) {
@@ -246,8 +253,7 @@ export class AuthController {
         username: user.username,
         isNewUser: isNewUser,
         referrerRegistered: referrerRegistered,
-        signatureValid: signatureValid,
-        timeValid: timeValid
+        validationSuccess: validationResult.isValid
       });
       
       // Отправляем успешный ответ с данными пользователя
