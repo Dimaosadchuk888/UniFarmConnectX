@@ -178,26 +178,44 @@ const ReferralLinkCard: React.FC = () => {
     cachedUserIdValid: cachedUserId && cachedUserId !== '1'
   });
   
-  // Формируем реферальную ссылку только если есть реальный userId
+  // Формируем реферальную ссылку независимо от hasRealUserId, если есть положительный userId > 1
   let userId = '';
   let referralLink = '';
   
-  if (hasRealUserId) {
-    // Получаем реальный ID с приоритетом на новые методы получения Telegram ID
-    const realId = newTelegramUserId || currentUser?.id || telegramUserId || cachedUserId;
+  // Получаем лучший доступный ID с приоритетом на новые методы получения Telegram ID
+  const realId = newTelegramUserId || currentUser?.id || telegramUserId || cachedUserId;
+  
+  // Валидируем - только положительные числовые значения и исключаем fallback ID=1
+  const numericId = typeof realId === 'string' ? parseInt(realId) : realId;
+  
+  if (numericId && numericId > 1) {
+    userId = `user${realId}`;
+    referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
+    console.log('[ReferralLinkCard] Generated unique referral link:', referralLink, 'for user ID:', realId);
+  } else {
+    // Только в режиме разработки разрешаем использовать ID=1 для тестирования
+    const IS_DEV = process.env.NODE_ENV === 'development';
     
-    // Валидируем - только положительные числовые значения и исключаем fallback ID=1
-    const numericId = typeof realId === 'string' ? parseInt(realId) : realId;
-    if (numericId && numericId > 1) {
+    if (IS_DEV && numericId === 1) {
       userId = `user${realId}`;
       referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
-      console.log('[ReferralLinkCard] Generated unique referral link:', referralLink, 'for user ID:', realId);
+      console.log('[ReferralLinkCard] DEV MODE: Using test ID=1 for referral link:', referralLink);
     } else {
       console.warn('[ReferralLinkCard] Invalid or fallback user ID detected:', realId);
     }
-  } else {
-    console.warn('[ReferralLinkCard] No real user ID available to generate referral link');
   }
+
+  // Для отладки сохраняем в состоянии информацию об источнике ID
+  const [idSource, setIdSource] = useState<string>('unknown');
+  useEffect(() => {
+    let source = 'fallback';
+    if (newTelegramUserId && newTelegramUserId > 0) source = 'newTelegramUserId';
+    else if (currentUser?.id && currentUser.id > 0) source = 'currentUser.id';
+    else if (telegramUserId && telegramUserId > 0) source = 'telegramUserId';
+    else if (cachedUserId) source = 'cachedUserId';
+    
+    setIdSource(source);
+  }, [newTelegramUserId, currentUser?.id, telegramUserId, cachedUserId]);
   
   // Состояния для анимаций и взаимодействий
   const [isCopied, setIsCopied] = useState(false);
@@ -369,7 +387,8 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {!isUserLoading && !error.hasError && hasRealUserId && referralLink && (
+        {/* Отображаем ссылку, если она сгенерирована, независимо от hasRealUserId */}
+        {!isUserLoading && !error.hasError && referralLink && (
           <div className="flex relative">
             <div className="flex-grow relative">
               <input 
@@ -431,8 +450,8 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {/* Если нет userId и не в состоянии загрузки или ошибки */}
-        {!isUserLoading && !error.hasError && !hasRealUserId && (
+        {/* Показываем блок с отладочной информацией только если нет ссылки и нет загрузки или ошибки */}
+        {!isUserLoading && !error.hasError && !hasRealUserId && !referralLink && (
           <div className="flex flex-col items-center py-3 px-2 bg-yellow-900/20 rounded-lg">
             <div className="flex items-center text-yellow-500 mb-2">
               <i className="fas fa-info-circle mr-2"></i>
@@ -443,15 +462,21 @@ const ReferralLinkCard: React.FC = () => {
               Ваш аккаунт Telegram не распознан. Убедитесь, что вы открыли приложение через Telegram.
             </p>
             
-            <div className="bg-black/30 p-2 rounded text-xs text-white/80 mb-3 text-left overflow-auto max-h-36 w-full">
-              <p className="font-mono">Отладочная информация:</p>
-              <p className="font-mono">ID пользователя: {currentUser?.id || 'не получен'}</p>
-              <p className="font-mono">Telegram ID: {telegramUserId || 'не получен'}</p>
-              <p className="font-mono">Кэш ID: {cachedUserId || 'не получен'}</p>
-              <p className="font-mono">В режиме разработки: {IS_DEV ? 'да' : 'нет'}</p>
-              <p className="font-mono">hasRealUserId: {hasRealUserId ? 'true' : 'false'}</p>
-              <p className="font-mono">hasRealUserIdState: {hasRealUserIdState === null ? 'null' : hasRealUserIdState ? 'true' : 'false'}</p>
-            </div>
+            {/* Отладочная информация - показываем только в режиме разработки */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="bg-black/30 p-2 rounded text-xs text-white/80 mb-3 text-left overflow-auto max-h-36 w-full">
+                <p className="font-mono">Отладочная информация (DEV):</p>
+                <p className="font-mono">ID пользователя: {currentUser?.id || 'не получен'}</p>
+                <p className="font-mono">Telegram ID: {telegramUserId || 'не получен'}</p>
+                <p className="font-mono">New Telegram ID: {newTelegramUserId || 'не получен'}</p>
+                <p className="font-mono">Кэш ID: {cachedUserId || 'не получен'}</p>
+                <p className="font-mono">Числовой ID: {numericId}</p>
+                <p className="font-mono">Источник ID: {idSource}</p>
+                <p className="font-mono">В режиме разработки: {process.env.NODE_ENV === 'development' ? 'да' : 'нет'}</p>
+                <p className="font-mono">hasRealUserId: {hasRealUserId ? 'true' : 'false'}</p>
+                <p className="font-mono">hasRealUserIdState: {hasRealUserIdState === null ? 'null' : hasRealUserIdState ? 'true' : 'false'}</p>
+              </div>
+            )}
             
             {telegram ? (
               <p className="text-xs text-green-500/80 mb-3 text-center">
