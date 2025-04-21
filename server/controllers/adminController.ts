@@ -75,6 +75,73 @@ export class AdminController {
       sendServerError(res, error);
     }
   }
+  
+  /**
+   * Запускает диагностику Telegram ID для всех пользователей
+   * Этот метод проверяет все Telegram ID в системе и записывает подробную информацию в лог
+   * @access Только администраторы
+   */
+  static async diagnosticTelegramIds(req: Request, res: Response): Promise<void> {
+    try {
+      // Проверяем права доступа
+      if (!AdminController.hasAdminAccess(req)) {
+        return sendError(res, 'Доступ запрещен', 403);
+      }
+      
+      console.log('[AdminController] Запуск диагностики Telegram ID для всех пользователей');
+      
+      // Получаем всех пользователей из базы
+      const allUsers = await db.select({
+        id: users.id,
+        telegramId: users.telegram_id,
+        username: users.username,
+        createdAt: users.created_at
+      }).from(users);
+      
+      // Проходим по каждому пользователю и логируем его Telegram ID
+      const diagnosticResults = allUsers.map(user => {
+        // Для каждого пользователя логируем информацию о Telegram ID
+        logTelegramId({
+          id: user.id,
+          telegram_id: user.telegramId,
+          username: user.username
+        }, 'AdminDiagnostic');
+        
+        // Готовим результат для ответа
+        return {
+          id: user.id,
+          telegramId: user.telegramId,
+          username: user.username,
+          status: user.telegramId && user.telegramId > 1 ? 'valid' : (user.telegramId === 1 ? 'fallback' : 'missing'),
+          isTestAccount: !user.telegramId || user.telegramId === 1
+        };
+      });
+      
+      // Группируем результаты по статусу для упрощения анализа
+      const groupedResults = {
+        valid: diagnosticResults.filter(r => r.status === 'valid'),
+        fallback: diagnosticResults.filter(r => r.status === 'fallback'),
+        missing: diagnosticResults.filter(r => r.status === 'missing')
+      };
+      
+      // Отправляем ответ с результатами диагностики
+      sendSuccess(res, {
+        diagnosticResults,
+        groupedResults,
+        summary: {
+          totalUsers: diagnosticResults.length,
+          validUsers: groupedResults.valid.length,
+          fallbackUsers: groupedResults.fallback.length,
+          missingUsers: groupedResults.missing.length,
+          duplicateTelegramIds: findDuplicateTelegramIds(allUsers)
+        },
+        generatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('[AdminController] Ошибка при диагностике Telegram ID:', error);
+      sendServerError(res, error);
+    }
+  }
 }
 
 /**

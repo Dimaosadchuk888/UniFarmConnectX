@@ -142,6 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Административные маршруты (защищены ключом)
   app.get("/api/admin/users/list-with-telegram-id", AdminController.listUsersWithTelegramId);
+  app.get("/api/admin/diagnostic/telegram-ids", AdminController.diagnosticTelegramIds);
   
   // Маршруты для работы с TON-кошельком
   app.post("/api/user/link-wallet", WalletController.linkWalletAddress);
