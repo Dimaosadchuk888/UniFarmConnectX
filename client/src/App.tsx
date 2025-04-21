@@ -17,6 +17,7 @@ import Dashboard from "@/pages/Dashboard";
 import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
 import Friends from "@/pages/Friends";
+import FriendsMinimal from "@/pages/FriendsMinimal";
 import Wallet from "@/pages/Wallet";
 
 // For Telegram WebApp types
