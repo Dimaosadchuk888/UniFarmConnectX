@@ -124,35 +124,46 @@ export class ReferralController {
       const transactions = (await import('@shared/schema')).transactions;
       const { eq, and, sql } = await import('drizzle-orm');
       
-      // Запрос для получения суммы доходов от рефералов по уровням
-      const referralTransactions = await db
-        .select({
-          level: sql<number>`CAST(data->>'level' AS INTEGER)`,
-          uni_amount: sql<string>`SUM(CASE WHEN currency = 'UNI' THEN amount ELSE 0 END)`,
-          ton_amount: sql<string>`SUM(CASE WHEN currency = 'TON' THEN amount ELSE 0 END)`
-        })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.user_id, userId),
-            eq(transactions.type, 'referral_bonus')
+      try {
+        // Запрос для получения суммы доходов от рефералов по уровням
+        const referralTransactions = await db
+          .select({
+            level: sql<number>`CAST(data->>'level' AS INTEGER)`,
+            uni_amount: sql<string>`SUM(CASE WHEN currency = 'UNI' THEN amount ELSE 0 END)`,
+            ton_amount: sql<string>`SUM(CASE WHEN currency = 'TON' THEN amount ELSE 0 END)`
+          })
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.user_id, userId),
+              eq(transactions.type, 'referral_bonus')
+            )
           )
-        )
-        .groupBy(sql`data->>'level'`);
-      
-      // Преобразуем результат в объект { level: { uni: amount, ton: amount } }
-      const result: Record<number, { uni: number, ton: number }> = {};
-      
-      for (const row of referralTransactions) {
-        if (row.level !== null) {
-          result[row.level] = {
-            uni: parseFloat(row.uni_amount || '0'),
-            ton: parseFloat(row.ton_amount || '0')
-          };
+          .groupBy(sql`data->>'level'`);
+          
+        // Преобразуем результат в объект { level: { uni: amount, ton: amount } }
+        const result: Record<number, { uni: number, ton: number }> = {};
+        
+        for (const row of referralTransactions) {
+          if (row.level !== null) {
+            result[row.level] = {
+              uni: parseFloat(row.uni_amount || '0'),
+              ton: parseFloat(row.ton_amount || '0')
+            };
+          }
         }
+        
+        return result;
+      } catch (error: any) {
+        // Если ошибка связана с отсутствием поля data, возвращаем пустой объект
+        if (error.message && error.message.includes("column \"data\" does not exist")) {
+          console.log('Поле "data" не найдено в таблице transactions, возвращаем пустой результат');
+          return {};
+        }
+        
+        // Если ошибка другая, пробрасываем исключение выше
+        throw error;
       }
-      
-      return result;
     } catch (error) {
       console.error('Error calculating level income:', error);
       return {};
