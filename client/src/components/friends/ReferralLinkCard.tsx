@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import userService from '@/services/userService';
 import { useQuery } from '@tanstack/react-query';
 import { isTelegramWebApp, getCachedTelegramUserId } from '@/services/telegramService';
+import { getTelegramUserId, hasTelegramUserId, extractTelegramInitData, isRunningInTelegram } from '@/services/telegramInitData';
 
 // Определяем, находимся ли мы в режиме разработки
 const IS_DEV = process.env.NODE_ENV === 'development';
@@ -139,27 +140,50 @@ const ReferralLinkCard: React.FC = () => {
     checkRealUserId();
   }, [currentUser?.id, telegramUserId, cachedUserId, retryCount]);
   
-  // Используем состояние или делаем резервную проверку, если состояние еще не инициализировано
+  // АУДИТ: Используем новый метод из telegramInitData для проверки Telegram ID
+  const telegramInitData = extractTelegramInitData();
+  console.log('[ReferralLinkCard] АУДИТ: Полная проверка Telegram initData:', telegramInitData);
+  
+  // Получаем ID из Telegram с помощью новых более надёжных методов
+  const newTelegramUserId = getTelegramUserId();
+  const hasTelegramId = hasTelegramUserId();
+  
+  console.log('[ReferralLinkCard] АУДИТ: Новые методы Telegram ID:', {
+    newTelegramUserId,
+    hasTelegramId,
+    isRunningInTelegram: isRunningInTelegram()
+  });
+  
+  // Используем состояние или делаем резервную проверку с приоритетом на новые методы
   const hasRealUserId = hasRealUserIdState !== null ? 
     hasRealUserIdState : 
-    !!(currentUser?.id && currentUser.id !== 1 || telegramUserId && telegramUserId !== 1 || cachedUserId && cachedUserId !== '1');
+    !!(
+      // Приоритет 1: ID из новых специальных функций для Telegram
+      newTelegramUserId && newTelegramUserId > 1 || 
+      // Приоритет 2: Данные из API
+      currentUser?.id && currentUser.id > 1 || 
+      // Приоритет 3: Обычные Telegram данные
+      telegramUserId && telegramUserId > 1 || 
+      // Приоритет 4: Кэшированные данные
+      cachedUserId && cachedUserId !== '1'
+    );
   
   // Формируем реферальную ссылку только если есть реальный userId
   let userId = '';
   let referralLink = '';
   
   if (hasRealUserId) {
-    // Получаем реальный ID (без fallback на '1')
-    const realId = currentUser?.id || telegramUserId || cachedUserId;
+    // Получаем реальный ID с приоритетом на новые методы получения Telegram ID
+    const realId = newTelegramUserId || currentUser?.id || telegramUserId || cachedUserId;
     
-    // Валидируем - только положительные числовые значения
+    // Валидируем - только положительные числовые значения и исключаем fallback ID=1
     const numericId = typeof realId === 'string' ? parseInt(realId) : realId;
-    if (numericId && numericId > 0) {
+    if (numericId && numericId > 1) {
       userId = `user${realId}`;
       referralLink = `https://t.me/UniFarmingBot?start=${userId}`;
       console.log('[ReferralLinkCard] Generated unique referral link:', referralLink, 'for user ID:', realId);
     } else {
-      console.warn('[ReferralLinkCard] Invalid user ID detected:', realId);
+      console.warn('[ReferralLinkCard] Invalid or fallback user ID detected:', realId);
     }
   } else {
     console.warn('[ReferralLinkCard] No real user ID available to generate referral link');

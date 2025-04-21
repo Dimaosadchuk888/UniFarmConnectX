@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { apiRequest } from "@/lib/queryClient";
 import { getTelegramUserData, initTelegramWebApp, isTelegramWebApp } from "./services/telegramService";
+import { extractTelegramInitData, getTelegramUserId, hasTelegramUserId, isRunningInTelegram } from "./services/telegramInitData";
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import { TONCONNECT_MANIFEST_URL } from './config/tonConnect';
 import { getReferrerIdFromURL } from './lib/utils';
@@ -149,17 +150,56 @@ function App() {
     };
   }, []);
 
-  // Авторизация через Telegram
+  // Авторизация через Telegram с усиленной проверкой в telegramInitData.ts
   const authenticateWithTelegram = async () => {
     try {
       setIsLoading(true);
       setTelegramAuthError(null);
 
-      // Получаем данные из Telegram WebApp
-      const telegramData = getTelegramUserData();
+      // АУДИТ: Получаем данные через улучшенный метод проверки Telegram WebApp
+      const telegramInitData = extractTelegramInitData();
+      console.log('[App] АУДИТ: Получены данные Telegram WebApp через новый метод:', {
+        isValid: telegramInitData.isValid,
+        userId: telegramInitData.userId || 'недоступен',
+        startParam: telegramInitData.startParam || 'недоступен',
+        errors: telegramInitData.validationErrors
+      });
       
-      if (!telegramData) {
-        console.warn('Не удалось получить данные Telegram WebApp');
+      // Получаем userId через разные методы для диагностики
+      const telegramUserId = getTelegramUserId();
+      const oldTelegramData = getTelegramUserData();
+      
+      console.log('[App] АУДИТ: Сравнение источников ID:', {
+        newMethod: telegramUserId,
+        oldMethod: oldTelegramData?.userId || 'недоступен',
+        dataValid: !!oldTelegramData
+      });
+      
+      // Используем новые данные для авторизации, если доступны,
+      // в противном случае падаем на старую имплементацию
+      let authData = null;
+      let hasTelegramValidData = telegramInitData.isValid && telegramInitData.userId;
+      
+      if (hasTelegramValidData) {
+        // Формируем данные для авторизации на основе нового метода
+        authData = {
+          id: telegramInitData.userId,
+          initData: telegramInitData.rawInitData,
+          username: telegramInitData.username,
+          firstName: telegramInitData.firstName,
+          lastName: telegramInitData.lastName,
+          photoUrl: telegramInitData.photoUrl,
+          startParam: telegramInitData.startParam
+        };
+        console.log('[App] АУДИТ: Используем новый метод для авторизации, ID:', telegramInitData.userId);
+      } else if (oldTelegramData) {
+        // Используем старый метод как запасной
+        authData = oldTelegramData.authData;
+        console.log('[App] АУДИТ: Используем старый метод для авторизации, ID:', oldTelegramData.userId);
+      }
+      
+      if (!authData) {
+        console.warn('[App] АУДИТ: Не удалось получить данные Telegram WebApp ни через один метод');
         setTelegramAuthError('Не удалось получить данные пользователя из Telegram');
         setIsLoading(false);
         return;
@@ -173,7 +213,7 @@ function App() {
       const authResult = await apiRequest('/api/auth/telegram', {
         method: 'POST',
         body: JSON.stringify({ 
-          authData: telegramData.authData,
+          authData: authData, // Теперь используем полученные данные из улучшенного метода
           referrerId: referrerId // Добавляем ID приглашающего пользователя
         })
       });
