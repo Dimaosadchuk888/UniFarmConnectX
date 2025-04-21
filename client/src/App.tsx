@@ -20,6 +20,7 @@ import Friends from "@/pages/Friends";
 import FriendsMinimal from "@/pages/FriendsMinimal";
 import Wallet from "@/pages/Wallet";
 import TelegramTest from "./pages/TelegramTest";
+import WebhookSetup from "./pages/WebhookSetup";
 
 // For Telegram WebApp types
 // Обновлено определение глобального интерфейса для Telegram WebApp
@@ -398,6 +399,11 @@ function App() {
             {/* Специальная страница для тестирования Telegram */}
             <Route path="/telegram-test">
               <TelegramTest />
+            </Route>
+            
+            {/* Страница настройки Telegram Webhook */}
+            <Route path="/webhook-setup">
+              <WebhookSetup />
             </Route>
             
             {/* Основной интерфейс приложения */}
