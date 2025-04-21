@@ -37,6 +37,10 @@ declare global {
  * @returns {boolean} true если Telegram WebApp API доступен и содержит необходимые данные
  */
 export function isTelegramWebApp(): boolean {
+  // АУДИТ: Расширенное логирование для проверки инициализации Telegram WebApp
+  console.log("[АУДИТ] initData from Telegram:", window.Telegram?.WebApp?.initData);
+  console.log("[АУДИТ] initDataUnsafe from Telegram:", JSON.stringify(window.Telegram?.WebApp?.initDataUnsafe));
+  
   // Шаг 1: Проверка доступности window
   if (typeof window === 'undefined') {
     console.error('[telegramService] isTelegramWebApp check: window object not available');

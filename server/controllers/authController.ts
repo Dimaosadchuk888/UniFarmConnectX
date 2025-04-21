@@ -21,6 +21,10 @@ export class AuthController {
     try {
       const { authData, referrerId } = req.body;
       
+      // АУДИТ: логируем все заголовки запроса для анализа
+      console.log("[АУДИТ] Received headers:", req.headers);
+      console.log("[АУДИТ] Request body:", { authData, referrerId });
+      
       if (!authData) {
         return sendError(res, 'Отсутствуют данные аутентификации', 400);
       }

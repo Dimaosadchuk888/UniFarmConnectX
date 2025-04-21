@@ -33,16 +33,19 @@ export class UserController {
       let username: string | null = null;
       let languageCode = 'ru'; // По умолчанию русский
       
-      // Подробный лог всех заголовков для отладки
-      console.log('[UserController] [TelegramAuth] All headers:', 
-        JSON.stringify(Object.keys(req.headers)));
+      // АУДИТ: Подробный лог всех заголовков запроса для диагностики
+      console.log('[АУДИТ] [UserController] All headers:', req.headers);
       
-      // Отдельно логируем все Telegram заголовки
+      // АУДИТ: Отдельно логируем все Telegram заголовки
       const telegramHeaders = Object.keys(req.headers).filter(h => 
         h.toLowerCase().includes('telegram') || h.toLowerCase().startsWith('x-')
       );
-      console.log('[UserController] [TelegramAuth] Telegram-related headers:', 
+      console.log('[АУДИТ] [UserController] Telegram-related headers:', 
         JSON.stringify(telegramHeaders));
+      
+      // АУДИТ: Проверяем значение telegramInitData
+      console.log('[АУДИТ] [UserController] telegramInitData value (first 100 chars):', 
+        telegramInitData ? telegramInitData.substring(0, 100) + '...' : 'null or empty');
         
       // Логируем наличие параметра start для реферальной системы
       const startParam = req.query.start || req.headers['x-start-param'];
@@ -70,14 +73,31 @@ export class UserController {
         try {
           console.log('[UserController] [TelegramAuth] Got Telegram initData from headers');
           
+          // АУДИТ: Расширенная проверка и логирование initData
+          console.log('[АУДИТ] [UserController] Analyzing telegramInitData format...');
+          console.log('[АУДИТ] [UserController] initData type:', typeof telegramInitData);
+          console.log('[АУДИТ] [UserController] initData includes "=":', telegramInitData.includes('='));
+          console.log('[АУДИТ] [UserController] initData includes "&":', telegramInitData.includes('&'));
+          
           // Проверяем, является ли initData корректной строкой в формате query-params
           if (telegramInitData.includes('=') && telegramInitData.includes('&')) {
             // Парсим данные из строки query-параметров
             const authParams = new URLSearchParams(telegramInitData);
             
-            // Вывод содержимого в лог (без секретных данных)
-            console.log('[UserController] [TelegramAuth] initData contains keys:', 
+            // АУДИТ: Полный вывод содержимого в лог для анализа
+            console.log('[АУДИТ] [UserController] initData contains keys:', 
               JSON.stringify(Array.from(authParams.keys())));
+            
+            // АУДИТ: Показываем первые несколько символов значений для анализа
+            const keysAndValues = {};
+            authParams.forEach((value, key) => {
+              if (key !== 'hash') { // Не показываем полный hash для безопасности
+                keysAndValues[key] = value.length > 10 ? value.substring(0, 10) + '...' : value;
+              } else {
+                keysAndValues[key] = value.length > 0 ? 'present' : 'empty';
+              }
+            });
+            console.log('[АУДИТ] [UserController] initData key-value pairs preview:', keysAndValues);
             
             // Извлекаем ID пользователя из Telegram
             telegramId = authParams.get('id') ? parseInt(authParams.get('id')!) : null;
