@@ -21,81 +21,158 @@ export class AuthController {
     try {
       const { authData, referrerId } = req.body;
       
-      // АУДИТ: логируем все заголовки запроса для анализа
-      console.log("[АУДИТ] Received headers:", req.headers);
-      console.log("[АУДИТ] Request body:", { authData, referrerId });
+      // АУДИТ: подробное логирование для анализа проблемы
+      console.log("[АУДИТ] Received headers:", JSON.stringify(req.headers, null, 2));
+      console.log("[АУДИТ] Request body:", { 
+        authData: authData ? `${authData.substring(0, 20)}...` : 'отсутствует',
+        referrerId 
+      });
       
+      // Проверяем наличие данных аутентификации
       if (!authData) {
+        console.error("[АУДИТ] ОШИБКА: Отсутствуют данные аутентификации в запросе");
         return sendError(res, 'Отсутствуют данные аутентификации', 400);
       }
 
-      // Если есть аутентификационные данные, но нет токена бота, предупреждаем в логе
-      // В тестовом режиме можно продолжить без проверки подписи
+      // Проверка на наличие токена бота
       if (!AuthController.BOT_TOKEN) {
-        console.warn('TELEGRAM_BOT_TOKEN не установлен. Пропускаем проверку подписи данных.');
+        console.error('[АУДИТ] КРИТИЧЕСКАЯ ОШИБКА: TELEGRAM_BOT_TOKEN не установлен');
+        
+        // Проверяем секрет в окружении
+        console.log('[АУДИТ] Проверка переменных окружения:', {
+          hasTelegramBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
+          envKeys: Object.keys(process.env).filter(key => key.includes('TELEGRAM') || key.includes('BOT')),
+          nodeEnv: process.env.NODE_ENV
+        });
+        
+        // В тестовом/дев режиме продолжаем без токена
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[АУДИТ] Продолжаем без проверки подписи в режиме разработки');
+        } else {
+          // В продакшене требуем валидный токен
+          return sendError(res, 'Ошибка конфигурации сервера. Пожалуйста, свяжитесь с поддержкой.', 500);
+        }
       }
 
       // Парсим данные из строки query-параметров
       const authParams = new URLSearchParams(authData);
       
-      // Извлекаем параметры
+      // Извлекаем и логируем все параметры для диагностики
+      const allParams: Record<string, string> = {};
+      authParams.forEach((value, key) => {
+        allParams[key] = key === 'hash' ? `${value.substring(0, 10)}...` : value;
+      });
+      console.log("[АУДИТ] Все параметры из initData:", allParams);
+      
+      // Извлекаем необходимые параметры
       const hashFromTelegram = authParams.get('hash');
       const authDate = authParams.get('auth_date');
-      const userId = authParams.get('id') ? parseInt(authParams.get('id')!) : null;
-      const firstName = authParams.get('first_name');
-      const username = authParams.get('username');
-      const languageCode = authParams.get('language_code');
+      const userId = authParams.get('id') ? parseInt(authParams.get('id')!) : 
+                    authParams.get('user') ? JSON.parse(authParams.get('user')!).id : null;
+      const firstName = authParams.get('first_name') || 
+                        (authParams.get('user') ? JSON.parse(authParams.get('user')!).first_name : null);
+      const username = authParams.get('username') || 
+                      (authParams.get('user') ? JSON.parse(authParams.get('user')!).username : null);
+      
+      // Поддержка разных форматов initData (обычный и мини-приложения)
+      const userDataFormat = authParams.has('user') ? 'mini-app' : 'standard';
+      
+      console.log("[АУДИТ] Извлеченные ключевые параметры:", {
+        dataFormat: userDataFormat,
+        hashPresent: !!hashFromTelegram,
+        authDatePresent: !!authDate,
+        userIdPresent: !!userId,
+        userId: userId,
+        username: username || 'не указан',
+        firstName: firstName || 'не указан'
+      });
       
       // Проверяем наличие обязательных полей
-      if (!hashFromTelegram || !authDate || !userId) {
-        return sendError(res, 'Некорректные данные аутентификации', 400);
+      if (!hashFromTelegram) {
+        console.error("[АУДИТ] ОШИБКА: Отсутствует hash в данных аутентификации");
+        return sendError(res, 'Отсутствует хеш подписи в данных аутентификации', 400);
+      }
+      
+      if (!authDate) {
+        console.error("[АУДИТ] ОШИБКА: Отсутствует auth_date в данных аутентификации");
+        return sendError(res, 'Отсутствует дата аутентификации', 400);
+      }
+      
+      if (!userId) {
+        console.error("[АУДИТ] ОШИБКА: Отсутствует id пользователя в данных аутентификации");
+        return sendError(res, 'Отсутствует ID пользователя Telegram', 400);
       }
 
-      // Формируем строку для проверки
+      // Формируем строку для проверки согласно спецификации Telegram WebApp
       let dataCheckString = '';
       
       // Удаляем hash из параметров для проверки
-      authParams.delete('hash');
+      const checkParams = new URLSearchParams(authData);
+      checkParams.delete('hash');
       
-      // Сортируем оставшиеся параметры
+      // Сортируем параметры по алфавиту (требование Telegram API)
       const sortedParams: [string, string][] = [];
-      authParams.forEach((value, key) => {
+      checkParams.forEach((value, key) => {
         sortedParams.push([key, value]);
       });
       
       sortedParams.sort(([a], [b]) => a.localeCompare(b));
       
-      // Формируем строку параметров в виде key=value
+      // Формируем строку проверки согласно документации Telegram
+      // https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
       dataCheckString = sortedParams.map(([key, value]) => `${key}=${value}`).join('\n');
+      
+      console.log("[АУДИТ] Строка для проверки подписи (первые 50 символов):", 
+                 dataCheckString.substring(0, 50) + '...');
 
-      // Проверка на наличие тестового режима в URL или в теле запроса
+      // Проверка на тестовый режим
       const testModeParam = req.body.testMode === true || authParams.get('test_mode') === 'true';
       const isTestMode = process.env.NODE_ENV === 'development' && testModeParam;
       
-      // Проверяем подпись только если токен бота задан и не включен тестовый режим
+      // Проверяем подпись, только если токен бота задан и не включен тестовый режим
+      let signatureValid = false;
+      let timeValid = false;
+      
       if (AuthController.BOT_TOKEN && !isTestMode) {
-        // Создаем токен подписи
+        // Создаем секретный ключ из токена бота согласно документации Telegram
         const secretKey = createHash('sha256')
           .update(AuthController.BOT_TOKEN)
           .digest();
         
-        // Вычисляем хеш от dataCheckString
+        // Вычисляем хеш по алгоритму HMAC-SHA-256
         const calculatedHash = createHmac('sha256', secretKey)
           .update(dataCheckString)
           .digest('hex');
         
         // Проверяем совпадение хешей
-        if (calculatedHash !== hashFromTelegram) {
-          return sendError(res, 'Недействительная подпись данных', 401);
+        signatureValid = calculatedHash === hashFromTelegram;
+        
+        if (!signatureValid) {
+          console.error("[АУДИТ] ОШИБКА: Недействительная подпись данных");
+          console.log("[АУДИТ] Хеш от Telegram:", hashFromTelegram);
+          console.log("[АУДИТ] Вычисленный хеш:", calculatedHash);
+          return sendError(res, 'Недействительная подпись данных Telegram', 401);
         }
         
-        // Проверяем актуальность данных (не старше 24 часов)
+        // Проверяем актуальность данных (не старше 24 часов по умолчанию)
         const currentTimestamp = Math.floor(Date.now() / 1000);
         const authTimestamp = parseInt(authDate);
+        const maxAgeSeconds = 86400; // 24 часа
         
-        if (currentTimestamp - authTimestamp > 86400) {
+        timeValid = (currentTimestamp - authTimestamp) <= maxAgeSeconds;
+        
+        if (!timeValid) {
+          console.error("[АУДИТ] ОШИБКА: Данные аутентификации устарели");
+          console.log("[АУДИТ] Текущее время:", new Date(currentTimestamp * 1000).toISOString());
+          console.log("[АУДИТ] Время авторизации:", new Date(authTimestamp * 1000).toISOString());
+          console.log("[АУДИТ] Разница (секунды):", currentTimestamp - authTimestamp);
           return sendError(res, 'Данные аутентификации устарели', 401);
         }
+      } else {
+        // В тестовом режиме считаем подпись действительной
+        signatureValid = true;
+        timeValid = true;
+        console.log("[АУДИТ] Тестовый режим: пропускаем проверку подписи и времени");
       }
       
       // Если включен тестовый режим, выводим информацию в лог
@@ -162,6 +239,17 @@ export class AuthController {
         }
       }
 
+      // Логируем успешную аутентификацию
+      console.log("[АУДИТ] Успешная аутентификация через Telegram:", {
+        userId: user.id,
+        telegramId: user.telegram_id,
+        username: user.username,
+        isNewUser: isNewUser,
+        referrerRegistered: referrerRegistered,
+        signatureValid: signatureValid,
+        timeValid: timeValid
+      });
+      
       // Отправляем успешный ответ с данными пользователя
       sendSuccess(res, {
         user_id: user.id,
@@ -169,10 +257,35 @@ export class AuthController {
         username: user.username,
         balance_uni: user.balance_uni,
         balance_ton: user.balance_ton,
-        referrer_registered: referrerRegistered // Флаг успешной регистрации реферальной связи
+        referrer_registered: referrerRegistered, // Флаг успешной регистрации реферальной связи
+        auth_source: 'telegram',
+        auth_status: 'verified'
       });
     } catch (error) {
-      console.error('Ошибка аутентификации через Telegram:', error);
+      console.error('[АУДИТ] Ошибка аутентификации через Telegram:', error);
+      
+      // Добавим подробную диагностику ошибки
+      let errorMessage = 'Внутренняя ошибка сервера';
+      let errorDetails = {};
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        errorDetails = {
+          name: error.name,
+          stack: error.stack?.substring(0, 200) // Первые 200 символов стека вызовов
+        };
+      }
+      
+      console.error('[АУДИТ] Детали ошибки:', {
+        message: errorMessage,
+        details: errorDetails,
+        requestBody: {
+          hasAuthData: !!req.body.authData,
+          authDataLength: req.body.authData ? req.body.authData.length : 0,
+          referrerId: req.body.referrerId
+        }
+      });
+      
       sendServerError(res, error);
     }
   }
