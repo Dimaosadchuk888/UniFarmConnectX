@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   username: text("username"),
   wallet: text("wallet"),
   ton_wallet_address: text("ton_wallet_address"), // Новое поле для хранения TON-адреса кошелька
+  ref_code: text("ref_code").unique(), // Уникальный реферальный код для пользователя
   balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default("0"),
   balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default("0"),
   // Поля для основного UNI фарминга
@@ -57,7 +58,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   telegram_id: true,
   username: true,
   wallet: true,
-  ton_wallet_address: true, // Добавляем новое поле в схему вставки
+  ton_wallet_address: true,
+  ref_code: true, // Добавляем поле ref_code в схему вставки
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

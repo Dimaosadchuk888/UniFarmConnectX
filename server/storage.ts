@@ -1,6 +1,7 @@
 import { authUsers, users, type AuthUser, type InsertAuthUser, type User } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import crypto from "crypto";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -16,6 +17,11 @@ export interface IStorage {
   // Новые методы для работы с TON-адресом кошелька
   getUserByWalletAddress(walletAddress: string): Promise<User | undefined>;
   updateUserWalletAddress(userId: number, walletAddress: string): Promise<User | undefined>;
+  
+  // Методы для работы с реферальным кодом
+  generateRefCode(): string;
+  getUserByRefCode(refCode: string): Promise<User | undefined>;
+  updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -117,6 +123,70 @@ export class DatabaseStorage implements IStorage {
       return updatedUser;
     } catch (error) {
       console.error(`[Storage] Ошибка при обновлении адреса кошелька пользователя ${userId}:`, error);
+      return undefined;
+    }
+  }
+  
+  // Методы для работы с ref_code
+  
+  // Генерирует уникальный реферальный код
+  generateRefCode(): string {
+    // Генерируем случайную строку из 8 символов
+    const randomBytes = crypto.randomBytes(4);
+    return randomBytes.toString('hex').slice(0, 8);
+  }
+  
+  // Получает пользователя по реферальному коду
+  async getUserByRefCode(refCode: string): Promise<User | undefined> {
+    console.log(`[Storage] Поиск пользователя по реферальному коду: ${refCode}`);
+    
+    try {
+      const [user] = await db.select().from(users).where(eq(users.ref_code, refCode));
+      
+      if (user) {
+        console.log(`[Storage AUDIT] Найден пользователь по реферальному коду: ID=${user.id}, ref_code=${user.ref_code}`);
+      } else {
+        console.log(`[Storage AUDIT] Пользователь с реферальным кодом ${refCode} не найден в базе`);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при поиске пользователя по реферальному коду ${refCode}:`, error);
+      return undefined;
+    }
+  }
+  
+  // Обновляет реферальный код пользователя
+  async updateUserRefCode(userId: number, refCode: string): Promise<User | undefined> {
+    console.log(`[Storage] Обновление реферального кода для пользователя ${userId}: ${refCode}`);
+    
+    try {
+      // Получаем текущего пользователя для логирования
+      const [currentUser] = await db.select().from(users).where(eq(users.id, userId));
+      
+      if (!currentUser) {
+        console.log(`[Storage] Пользователь с ID ${userId} не найден`);
+        return undefined;
+      }
+      
+      // Для аудита сохраняем предыдущее значение
+      const oldRefCode = currentUser.ref_code;
+      
+      // Обновляем реферальный код
+      const [updatedUser] = await db
+        .update(users)
+        .set({ ref_code: refCode })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      console.log(`[Storage] Реферальный код для пользователя ${userId} успешно обновлен`);
+      console.log(`[Storage AUDIT] Обновлен реферальный код для пользователя ${userId}:`);
+      console.log(`[Storage AUDIT]   Было: ${oldRefCode || 'null'}`);
+      console.log(`[Storage AUDIT]   Стало: ${refCode}`);
+      
+      return updatedUser;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при обновлении реферального кода пользователя ${userId}:`, error);
       return undefined;
     }
   }

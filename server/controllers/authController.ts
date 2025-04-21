@@ -7,6 +7,7 @@ import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { validateTelegramInitData, TelegramValidationResult, isForbiddenUserId } from '../utils/telegramUtils';
+import { storage } from '../storage';
 
 /**
  * Контроллер для аутентификации пользователей
