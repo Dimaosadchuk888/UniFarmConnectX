@@ -215,15 +215,20 @@ async function handleTelegramUpdate(update: TelegramUpdate): Promise<any> {
 
   // Обрабатываем команды
   if (messageText === '/start') {
+    console.log(`[Telegram Bot] Получена команда /start от пользователя ${username || userId}`);
     return handleStartCommand(chatId, { userId, username, firstName });
   } else if (messageText === '/ping' || messageText === '🔄 Проверить связь (/ping)') {
+    console.log(`[Telegram Bot] Получена команда /ping от пользователя ${username || userId}`);
     return handlePingCommand(chatId);
   } else if (messageText === '/info' || messageText === 'ℹ️ Моя информация (/info)') {
+    console.log(`[Telegram Bot] Получена команда /info от пользователя ${username || userId}`);
     return handleInfoCommand(chatId, { userId, username, firstName });
   } else if (messageText === '/refcode' || messageText === '🔗 Мой реф. код (/refcode)') {
+    console.log(`[Telegram Bot] Получена команда /refcode от пользователя ${username || userId}`);
     return handleRefCodeCommand(chatId, userId);
   } else {
     // Для сообщений, которые не являются командами
+    console.log(`[Telegram Bot] Получено неизвестное сообщение от пользователя ${username || userId}: ${messageText}`);
     return sendMessage(chatId, `Я не понимаю эту команду. Попробуйте /start для отображения доступных действий.`);
   }
 }
