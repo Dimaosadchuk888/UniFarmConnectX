@@ -304,15 +304,15 @@ const ReferralLevelsTable: React.FC = () => {
         </div>
       </div>
       
-      {/* Сообщение об отсутствии рефералов */}
-      {referralsData && !hasReferrals && !isLoading && (
+      {/* Сообщение об отсутствии рефералов - всегда отображаем, если нет загрузки или ошибки */}
+      {referralsData && !hasReferrals && !isLoading && !error && (
         <div className="py-6 flex flex-col items-center justify-center text-center">
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
             <i className="fas fa-users text-primary/70 text-xl"></i>
           </div>
           <h3 className="text-lg font-medium mb-2">У вас пока нет рефералов</h3>
           <p className="text-muted-foreground text-sm max-w-[280px] mb-5">
-            Приглашайте друзей в приложение, чтобы получать доход от их активности и покупок в UnisFarm
+            Приглашайте друзей в приложение, чтобы получать доход от их активности и покупок в UniFarm
           </p>
           <div className="bg-primary/10 px-4 py-3 rounded-lg text-sm mt-2">
             <div className="flex items-center justify-center mb-2">
@@ -336,9 +336,40 @@ const ReferralLevelsTable: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Сообщение о проблеме с идентификацией - отображаем, если нет userId */}
+      {!userId && !isLoading && (
+        <div className="py-6 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-600/10 flex items-center justify-center mb-4">
+            <i className="fas fa-exclamation-triangle text-amber-600/70 text-xl"></i>
+          </div>
+          <h3 className="text-lg font-medium mb-2">Невозможно загрузить данные</h3>
+          <p className="text-muted-foreground text-sm max-w-[280px] mb-3">
+            Для доступа к партнерской программе необходимо открыть приложение через Telegram
+          </p>
+          <div className="bg-amber-600/10 px-4 py-3 rounded-lg text-sm mt-2 mb-4 max-w-[320px]">
+            <div className="flex items-center justify-center mb-2">
+              <i className="fas fa-info-circle text-amber-600 mr-2"></i>
+              <span className="font-medium">Что делать?</span>
+            </div>
+            <p className="text-amber-700/90 dark:text-amber-400/90 text-xs">
+              Пожалуйста, откройте приложение через официального Telegram бота UniFarm и повторите попытку.
+            </p>
+          </div>
+          <a 
+            href="https://t.me/UniFarmingBot" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm bg-primary/60 hover:bg-primary/80 transition-colors py-1.5 px-4 rounded-full flex items-center mt-1"
+          >
+            <i className="fab fa-telegram mr-2"></i>
+            Открыть бот в Telegram
+          </a>
+        </div>
+      )}
 
-      {/* Скроллируемая таблица со всеми уровнями */}
-      {(!referralsData || isLoading || hasReferrals) && (
+      {/* Скроллируемая таблица со всеми уровнями - показываем если есть данные и userId */}
+      {userId && (!referralsData || isLoading || hasReferrals) && (
         <div 
           ref={tableRef}
           className="overflow-y-auto max-h-[350px] relative scrollbar-none pr-2 transition-all duration-300"
