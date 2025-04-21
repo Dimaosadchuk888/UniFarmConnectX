@@ -450,16 +450,16 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {/* Показываем блок с отладочной информацией только если нет ссылки и нет загрузки или ошибки */}
-        {!isUserLoading && !error.hasError && !hasRealUserId && !referralLink && (
-          <div className="flex flex-col items-center py-3 px-2 bg-yellow-900/20 rounded-lg">
-            <div className="flex items-center text-yellow-500 mb-2">
-              <i className="fas fa-info-circle mr-2"></i>
-              <span className="text-sm">Не удалось получить ссылку</span>
+        {/* Показываем информативный fallback-контейнер только если нет ссылки и нет загрузки или ошибки */}
+        {!isUserLoading && !error.hasError && !referralLink && (
+          <div className="flex flex-col items-center py-3 px-2 bg-amber-600/10 rounded-lg">
+            <div className="flex items-center text-amber-600 mb-2">
+              <i className="fas fa-exclamation-triangle mr-2"></i>
+              <span className="text-sm font-medium">Необходим запуск через Telegram</span>
             </div>
             
-            <p className="text-xs text-yellow-500/80 mb-3 text-center">
-              Ваш аккаунт Telegram не распознан. Убедитесь, что вы открыли приложение через Telegram.
+            <p className="text-xs text-amber-700/90 dark:text-amber-400/90 mb-3 text-center">
+              Для получения реферальной ссылки необходимо открыть приложение через официального Telegram бота UniFarm.
             </p>
             
             {/* Отладочная информация - показываем только в режиме разработки */}
@@ -478,22 +478,17 @@ const ReferralLinkCard: React.FC = () => {
               </div>
             )}
             
-            {telegram ? (
-              <p className="text-xs text-green-500/80 mb-3 text-center">
-                Telegram WebApp обнаружен, но ID пользователя не найден.
-              </p>
-            ) : (
-              <p className="text-xs text-red-500/80 mb-3 text-center">
-                Telegram WebApp не обнаружен. Откройте через Telegram.
-              </p>
-            )}
-            
-            <button 
-              className="text-xs bg-primary/20 hover:bg-primary/30 transition-colors py-1 px-3 rounded-full"
-              onClick={handleRetry}
-            >
-              Попробовать снова
-            </button>
+            <div className="flex justify-center mt-2">
+              <a 
+                href="https://t.me/UniFarmingBot" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs bg-amber-600/40 hover:bg-amber-600/60 transition-colors py-1.5 px-3 rounded-full flex items-center"
+              >
+                <i className="fab fa-telegram mr-2"></i>
+                Открыть в Telegram
+              </a>
+            </div>
           </div>
         )}
       </div>
