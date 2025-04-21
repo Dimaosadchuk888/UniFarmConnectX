@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { users, User } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { storage } from '../storage';
 
 /**
  * Сервис для работы с пользователями
@@ -94,5 +95,52 @@ export class UserService {
     balance_ton?: string
   }): Promise<User | undefined> {
     return this.updateUser(userId, balanceData);
+  }
+
+  /**
+   * Получает пользователя по реферальному коду
+   * @param refCode Реферальный код
+   * @returns Данные пользователя или undefined
+   */
+  static async getUserByRefCode(refCode: string): Promise<User | undefined> {
+    if (!refCode) {
+      console.error('[UserService] Invalid ref_code: empty value');
+      return undefined;
+    }
+
+    try {
+      return await storage.getUserByRefCode(refCode);
+    } catch (error) {
+      console.error(`[UserService] Error retrieving user by ref_code ${refCode}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Обновляет реферальный код пользователя
+   * @param userId ID пользователя
+   * @param refCode Новый реферальный код
+   * @returns Обновленные данные пользователя
+   */
+  static async updateUserRefCode(userId: number, refCode: string): Promise<User | undefined> {
+    if (!refCode) {
+      console.error('[UserService] Invalid ref_code for update: empty value');
+      return undefined;
+    }
+
+    try {
+      return await storage.updateUserRefCode(userId, refCode);
+    } catch (error) {
+      console.error(`[UserService] Error updating ref_code for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Генерирует новый уникальный реферальный код
+   * @returns Сгенерированный код
+   */
+  static generateRefCode(): string {
+    return storage.generateRefCode();
   }
 }

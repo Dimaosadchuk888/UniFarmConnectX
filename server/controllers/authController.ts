@@ -195,19 +195,34 @@ export class AuthController {
       // Если пользователь не найден, создаем нового
       if (!user) {
         isNewUser = true;
+        
+        // Генерируем уникальный реферальный код
+        const refCode = storage.generateRefCode();
+        
         user = await UserService.createUser({
           telegram_id: telegramUserId,
           username: username || `user_${telegramUserId}`,
           balance_uni: "1000", // Начальный бонус
           balance_ton: "0",
+          ref_code: refCode,
           created_at: new Date()
         });
         
-        console.log(`Создан новый пользователь: ${user.id}, telegram_id: ${telegramUserId}`);
+        console.log(`Создан новый пользователь: ${user.id}, telegram_id: ${telegramUserId}, ref_code: ${refCode}`);
       } else {
         // Обновляем информацию о пользователе, если она изменилась
         if (username && username !== user.username) {
           user = await UserService.updateUser(user.id, { username });
+        }
+        
+        // Проверяем, есть ли у пользователя ref_code, если нет - генерируем
+        if (!user.ref_code) {
+          const refCode = storage.generateRefCode();
+          await storage.updateUserRefCode(user.id, refCode);
+          console.log(`Обновлен реферальный код для пользователя ${user.id}: ${refCode}`);
+          
+          // Обновляем объект пользователя
+          user = await UserService.getUserById(user.id);
         }
       }
 
@@ -216,29 +231,59 @@ export class AuthController {
         return sendError(res, 'Не удалось создать или найти пользователя', 500);
       }
 
-      // Обработка реферальной связи, если есть параметр referrerId и пользователь новый
-      if (referrerId && isNewUser) {
+      // Обработка реферальной связи
+      // Проверяем startParam из Telegram (для ref_code)
+      const startParam = validationResult.startParam || '';
+      
+      // Проверяем формат startapp=ref_{ref_code}
+      let refCode = '';
+      if (startParam.startsWith('ref_')) {
+        refCode = startParam.substring(4);
+      }
+      
+      // Если в startParam нет ref_code, проверяем referrerId
+      let inviterId = 0;
+      if (!refCode && referrerId) {
+        // Проверяем, может быть это числовой userId
+        inviterId = parseInt(referrerId);
+      }
+      
+      // Обрабатываем реферальную связь только для новых пользователей
+      if (isNewUser && (refCode || inviterId)) {
         try {
-          // Проверяем, существует ли пользователь с указанным referrerId
-          let inviterId = parseInt(referrerId);
-          if (!isNaN(inviterId)) {
-            // Проверяем, существует ли пользователь-приглашающий
-            const inviter = await UserService.getUserById(inviterId);
-            
+          let inviter = null;
+          
+          // Сначала пробуем найти пользователя по ref_code
+          if (refCode) {
+            inviter = await storage.getUserByRefCode(refCode);
             if (inviter) {
-              // Создаем реферальную связь (уровень 1)
-              const referral = await ReferralService.createReferral({
-                user_id: user.id,
-                inviter_id: inviterId,
-                level: 1,
-                created_at: new Date()
-              });
-              
-              if (referral) {
-                console.log(`Создана реферальная связь: пользователь ${user.id} приглашен пользователем ${inviterId}`);
-                referrerRegistered = true;
-              }
+              console.log(`[AUTH] Найден пригласитель по ref_code ${refCode}: ${inviter.id}`);
+              inviterId = inviter.id;
             }
+          }
+          
+          // Если не нашли по ref_code или ref_code не был указан, используем userId
+          if (!inviter && inviterId && !isNaN(inviterId)) {
+            inviter = await UserService.getUserById(inviterId);
+            console.log(`[AUTH] Найден пригласитель по user_id ${inviterId}`);
+          }
+          
+          // Если пригласитель найден, создаем реферальную связь
+          if (inviter) {
+            // Создаем реферальную связь (уровень 1)
+            const referral = await ReferralService.createReferral({
+              user_id: user.id,
+              inviter_id: inviter.id,
+              level: 1,
+              created_at: new Date()
+            });
+            
+            if (referral) {
+              console.log(`Создана реферальная связь: пользователь ${user.id} приглашен пользователем ${inviter.id} (ref_code: ${inviter.ref_code})`);
+              referrerRegistered = true;
+            }
+          } else {
+            console.log(`[AUTH] Пригласитель не найден: ref_code=${refCode}, user_id=${inviterId}`);
           }
         } catch (error) {
           console.error('Ошибка при создании реферальной связи:', error);
