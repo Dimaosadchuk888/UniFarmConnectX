@@ -287,6 +287,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ton-farming/info", TonBoostController.getUserTonFarmingInfo);
   app.get("/api/ton-farming/update-balance", TonBoostController.calculateAndUpdateTonFarming);
 
+  // Добавление обработчика для всех маршрутов, которые не соответствуют API
+  // Это необходимо для корректной работы с Telegram Mini App
+  app.get(/^\/(?!api\/).*$/, (req: Request, res: Response, next: NextFunction) => {
+    // Проверка на наличие параметров Telegram WebApp в URL
+    const hasTelegramParams = req.query.tgWebAppStartParam || 
+                              req.query.tgWebAppData || 
+                              req.query.tgWebAppVersion;
+                              
+    // Логирование для отладки
+    if (hasTelegramParams) {
+      console.log('[TelegramWebApp] Обнаружены параметры в URL:', req.url);
+    }
+    
+    // Передать управление следующему middleware (в продакшне - будет serveStatic, 
+    // в разработке - будет vite middleware из setupVite)
+    next();
+  });
+
   // Централизованная обработка ошибок
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     console.error('Unhandled error in API route:', err);

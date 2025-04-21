@@ -48,6 +48,28 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // Добавление обработчика для Telegram WebApp параметров
+  app.use((req, res, next) => {
+    // Добавляем специальные заголовки для корректной работы в Telegram Mini App
+    res.header("Access-Control-Allow-Origin", "*");
+    // Модифицированная политика безопасности для Telegram
+    res.header("Content-Security-Policy", "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'");
+    
+    // Логирование параметров Telegram
+    const telegramParams = ['tgWebAppData', 'tgWebAppVersion', 'tgWebAppPlatform', 'tgWebAppStartParam']
+      .filter(param => req.query[param])
+      .reduce((acc, param) => {
+        acc[param] = req.query[param];
+        return acc;
+      }, {} as Record<string, any>);
+      
+    if (Object.keys(telegramParams).length > 0) {
+      console.log('[TelegramWebApp] Параметры в URL:', telegramParams);
+    }
+    
+    next();
+  });
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
