@@ -158,6 +158,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Административные маршруты для управления вебхуком Telegram
+  // Эти маршруты должны быть защищены (например, доступны только в режиме разработки)
+  if (process.env.NODE_ENV === 'development') {
+    // Установка webhook
+    app.post("/api/telegram/set-webhook", async (req, res) => {
+      try {
+        const { webhookUrl } = req.body;
+        
+        if (!webhookUrl) {
+          return res.status(400).json({
+            success: false,
+            message: 'Отсутствует обязательный параметр webhookUrl'
+          });
+        }
+        
+        const result = await telegramBot.setWebhook(webhookUrl);
+        return res.status(result.success ? 200 : 400).json(result);
+      } catch (error: any) {
+        console.error('[Admin API] Ошибка установки вебхука:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Ошибка при установке вебхука',
+          error: error.message
+        });
+      }
+    });
+    
+    // Удаление webhook
+    app.post("/api/telegram/delete-webhook", async (req, res) => {
+      try {
+        const result = await telegramBot.deleteWebhook();
+        return res.status(result.success ? 200 : 400).json(result);
+      } catch (error: any) {
+        console.error('[Admin API] Ошибка удаления вебхука:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Ошибка при удалении вебхука',
+          error: error.message
+        });
+      }
+    });
+    
+    // Получение информации о webhook
+    app.get("/api/telegram/webhook-info", async (req, res) => {
+      try {
+        const result = await telegramBot.getWebhookInfo();
+        return res.status(result.success ? 200 : 400).json(result);
+      } catch (error: any) {
+        console.error('[Admin API] Ошибка получения информации о вебхуке:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Ошибка при получении информации о вебхуке',
+          error: error.message
+        });
+      }
+    });
+  }
+  
   // Маршруты для работы с TON-кошельком
   app.post("/api/user/link-wallet", WalletController.linkWalletAddress);
   app.get("/api/user/wallet-address", WalletController.getUserWalletAddress);

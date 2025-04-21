@@ -169,8 +169,114 @@ async function handleTelegramUpdate(update: TelegramUpdate): Promise<any> {
   }
 }
 
+/**
+ * Настраивает webhook для Telegram бота
+ * @param webhookUrl - URL для вебхука (например, https://your-domain.com/api/telegram/webhook)
+ * @returns Результат настройки вебхука
+ */
+async function setWebhook(webhookUrl: string): Promise<any> {
+  if (!BOT_TOKEN) {
+    console.error('Невозможно настроить вебхук: отсутствует токен бота');
+    return { success: false, error: 'Отсутствует токен бота' };
+  }
+
+  console.log(`[Telegram Bot] Настройка вебхука на URL: ${webhookUrl}`);
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: webhookUrl,
+        drop_pending_updates: true, // Опционально: игнорировать накопившиеся обновления
+        allowed_updates: ["message"] // Опционально: фильтр типов обновлений
+      })
+    });
+
+    const data: any = await response.json();
+    
+    if (data.ok) {
+      console.log('[Telegram Bot] Вебхук успешно настроен');
+      return { success: true, data };
+    } else {
+      console.error('[Telegram Bot] Ошибка настройки вебхука:', data.description);
+      return { success: false, error: data.description };
+    }
+  } catch (error: any) {
+    console.error('[Telegram Bot] Ошибка при настройке вебхука:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Удаляет настройки webhook для бота
+ * @returns Результат удаления вебхука
+ */
+async function deleteWebhook(): Promise<any> {
+  if (!BOT_TOKEN) {
+    console.error('Невозможно удалить вебхук: отсутствует токен бота');
+    return { success: false, error: 'Отсутствует токен бота' };
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        drop_pending_updates: true // Опционально: игнорировать накопившиеся обновления
+      })
+    });
+
+    const data: any = await response.json();
+    
+    if (data.ok) {
+      console.log('[Telegram Bot] Вебхук успешно удален');
+      return { success: true, data };
+    } else {
+      console.error('[Telegram Bot] Ошибка удаления вебхука:', data.description);
+      return { success: false, error: data.description };
+    }
+  } catch (error: any) {
+    console.error('[Telegram Bot] Ошибка при удалении вебхука:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Получает информацию о текущем webhook
+ * @returns Информация о вебхуке
+ */
+async function getWebhookInfo(): Promise<any> {
+  if (!BOT_TOKEN) {
+    console.error('Невозможно получить информацию о вебхуке: отсутствует токен бота');
+    return { success: false, error: 'Отсутствует токен бота' };
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`, {
+      method: 'GET'
+    });
+
+    const data: any = await response.json();
+    
+    if (data.ok) {
+      console.log('[Telegram Bot] Получена информация о вебхуке:', data.result);
+      return { success: true, data: data.result };
+    } else {
+      console.error('[Telegram Bot] Ошибка получения информации о вебхуке:', data.description);
+      return { success: false, error: data.description };
+    }
+  } catch (error: any) {
+    console.error('[Telegram Bot] Ошибка при получении информации о вебхуке:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 // Экспортируем функции для использования в routes.ts
 export {
   sendMessage,
-  handleTelegramUpdate
+  handleTelegramUpdate,
+  setWebhook,
+  deleteWebhook,
+  getWebhookInfo
 };
