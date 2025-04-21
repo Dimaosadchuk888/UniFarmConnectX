@@ -355,6 +355,19 @@ function App() {
 
   // Switch between tabs without using routes (simpler for Telegram Mini App)
   const renderActivePage = () => {
+    // Для тестирования, временно перенаправляем "friends" на минимальную версию
+    // В реальной телеграм среде будет отображаться минимальная версия для диагностики
+    const useMinimalFriends = isRunningInTelegram();
+    
+    // Проверяем URL на наличие параметра тестирования
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceMinimal = urlParams.get('minimal') === 'true';
+    
+    // Используем минимальную версию, если:
+    // 1. Мы в Telegram Mini App
+    // 2. ИЛИ в URL есть параметр minimal=true для тестирования
+    const shouldUseMinimal = useMinimalFriends || forceMinimal;
+    
     switch (activeTab) {
       case "dashboard":
         return <Dashboard />;
@@ -363,7 +376,9 @@ function App() {
       case "missions":
         return <Missions />;
       case "friends":
-        return <Friends />;
+        // В Telegram Mini App или при наличии специального URL параметра
+        // используем минимальную версию для тестирования
+        return shouldUseMinimal ? <FriendsMinimal /> : <Friends />;
       case "wallet":
         return <Wallet />;
       default:

@@ -36,6 +36,79 @@ declare global {
  * Проверяет, запущено ли приложение в Telegram WebApp и доступны ли все необходимые свойства API
  * @returns {boolean} true если Telegram WebApp API доступен и содержит необходимые данные
  */
+/**
+ * Проверяет, запущено ли приложение в реальной среде Telegram Mini App
+ * Эта функция является более простой проверкой, чем isTelegramWebApp().
+ * Она проверяет только минимальные свойства, чтобы определить, запущено ли 
+ * приложение в Telegram Mini App или же в обычном браузере.
+ * 
+ * @returns {boolean} true если приложение запущено в Telegram Mini App
+ */
+export function isRunningInTelegram(): boolean {
+  // Проверяем наличие объекта Telegram и WebApp
+  const hasTelegramObject = !!window.Telegram;
+  const hasWebAppObject = !!window.Telegram?.WebApp;
+  
+  // В режиме разработки сначала проверяем параметр в URL для эмуляции
+  if (process.env.NODE_ENV === 'development') {
+    // Специальный параметр URL для эмуляции Telegram в режиме разработки
+    const urlParams = new URLSearchParams(window.location.search);
+    const emulateTelegram = urlParams.get('telegram_mode') === 'true';
+    
+    // Для тестирования: если передан параметр, эмулируем Telegram
+    if (emulateTelegram) {
+      console.log('[telegramService] Emulating Telegram environment via URL param');
+      return true;
+    }
+    
+    // Если включена специальная отладка в localStorage
+    try {
+      const debugMode = localStorage.getItem('telegram_debug_mode') === 'true';
+      if (debugMode) {
+        console.log('[telegramService] Telegram debug mode active via localStorage');
+        return true;
+      }
+    } catch (e) {
+      // Игнорируем ошибки доступа к localStorage
+    }
+  }
+  
+  // Быстрая проверка - в Telegram наше приложение запускается в iframe
+  const isInIframe = window !== window.parent;
+  
+  // Проверяем наличие Telegram-специфичных заголовков в куках или UserAgent
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isTelegramUA = userAgent.includes('telegram') || 
+                      userAgent.includes('tgweb') || 
+                      document.referrer.includes('telegram');
+  
+  // Если есть прямые индикаторы Telegram, возвращаем true
+  if (hasTelegramObject && hasWebAppObject) {
+    console.log('[telegramService] Running in Telegram: WebApp API detected');
+    return true;
+  }
+  
+  // Если страница запущена в iframe и референсом является телеграм, это вероятно MiniApp
+  if (isInIframe && isTelegramUA) {
+    console.log('[telegramService] Likely running in Telegram: iframe + Telegram UserAgent');
+    return true;
+  }
+  
+  // В режиме разработки всегда возвращаем false, чтобы показать обычную версию страницы
+  if (process.env.NODE_ENV === 'development') {
+    return false;
+  }
+  
+  // В продакшене, более агрессивно определяем запуск в Telegram
+  // Если мы в iframe, вероятно это телеграм
+  if (isInIframe) {
+    console.log('[telegramService] Assuming Telegram environment: running in iframe');
+    return true;
+  }
+  
+  return false;
+}
+
 export function isTelegramWebApp(): boolean {
   // АУДИТ: Расширенное логирование для проверки инициализации Telegram WebApp
   // Выводим полное состояние Telegram объекта, включая initData и startParam
