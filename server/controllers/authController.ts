@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/userService';
 import { ReferralService } from '../services/referralService';
+import { ReferralBonusService } from '../services/referralBonusService';
 import { createHmac, createHash } from 'crypto';
 import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
 import { db } from '../db';
@@ -15,58 +16,7 @@ import { storage } from '../storage';
 export class AuthController {
   // Telegram Bot API token должен быть установлен в переменных окружения
   private static BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-  // Максимальный уровень реферальной программы
-  private static readonly MAX_REFERRAL_LEVEL = 5;
-  
-  /**
-   * Создает многоуровневую реферальную структуру
-   * Для каждого нового пользователя создается структура связей с вышестоящими рефералами
-   * @param userId ID нового пользователя
-   * @param directInviterId ID прямого пригласителя (уровень 1)
-   */
-  static async createMultiLevelReferrals(userId: number, directInviterId: number): Promise<void> {
-    try {
-      console.log(`[ReferralSystem] Создание многоуровневой реферальной структуры для пользователя ${userId}`);
-      
-      // Уже создали уровень 1, теперь нужно получить вышестоящих рефералов (2-5 уровни)
-      let currentInviterId = directInviterId;
-      
-      // Для уровней 2-5
-      for (let level = 2; level <= this.MAX_REFERRAL_LEVEL; level++) {
-        // Получаем пригласителя для текущего пользователя
-        const referralLink = await ReferralService.getUserInviter(currentInviterId);
-        
-        if (!referralLink || !referralLink.inviter_id) {
-          console.log(`[ReferralSystem] Цепочка рефералов прервана на уровне ${level}. Пользователь ${currentInviterId} не имеет пригласителя.`);
-          break; // Если цепочка прервана, выходим из цикла
-        }
-        
-        // Получаем ID пригласителя для следующего уровня
-        const uplineInviterId = referralLink.inviter_id;
-        
-        // Создаем реферальную связь для текущего уровня
-        const referral = await ReferralService.createReferral({
-          user_id: userId,
-          inviter_id: uplineInviterId,
-          level: level,
-          created_at: new Date()
-        });
-        
-        if (referral) {
-          console.log(`[ReferralSystem] Создана реферальная связь уровня ${level}: пользователь ${userId} -> ${uplineInviterId}`);
-          // Обновляем inviterId для следующего уровня
-          currentInviterId = uplineInviterId;
-        } else {
-          console.log(`[ReferralSystem] Не удалось создать реферальную связь для уровня ${level}`);
-          break;
-        }
-      }
-      
-      console.log(`[ReferralSystem] Завершено создание многоуровневой реферальной структуры для пользователя ${userId}`);
-    } catch (error) {
-      console.error(`[ReferralSystem] Ошибка при создании многоуровневой реферальной структуры:`, error);
-    }
-  }
+
 
   /**
    * Аутентификация пользователя через Telegram
@@ -371,8 +321,8 @@ export class AuthController {
                 console.log(`[AUTH] [ReferralSystem] Создана прямая реферальная связь: пользователь ${user.id} приглашен пользователем ${inviter.id} (ref_code: ${inviter.ref_code})`);
                 referrerRegistered = true;
                 
-                // Теперь создаем связи для вышестоящих уровней (2-5 уровни)
-                await AuthController.createMultiLevelReferrals(user.id, inviter.id);
+                // Теперь создаем связи для вышестоящих уровней (до 20 уровней)
+                await ReferralBonusService.createReferralChain(user.id, inviter.id);
               }
             } else {
               console.log(`[AUTH] [ReferralSystem] Пользователь ${user.id} уже имеет пригласителя: ${existingReferral.inviter_id}`);
