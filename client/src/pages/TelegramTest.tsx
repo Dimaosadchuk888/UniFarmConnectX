@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container } from '../components/ui/container';
+import { Container } from '@/components/ui/container';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import TelegramDiagnostics from '../components/telegram/TelegramDiagnostics';
