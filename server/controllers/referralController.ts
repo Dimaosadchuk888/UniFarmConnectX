@@ -93,7 +93,7 @@ export class ReferralController {
       const referralCounts = await ReferralService.getReferralCounts(userId);
       
       // Получаем данные по доходам с каждого уровня рефералов
-      const levelIncome = await this.getLevelIncomeData(userId);
+      const levelIncome = await ReferralController.getLevelIncomeData(userId);
       
       // Формируем ответ
       const response = {
