@@ -188,7 +188,7 @@ export class AuthController {
       }
 
       // Пытаемся найти пользователя по Telegram ID
-      let user = await UserService.getUserByTelegramId(userId);
+      let user = await UserService.getUserByTelegramId(telegramUserId);
       let isNewUser = false;
       let referrerRegistered = false;
       
@@ -196,14 +196,14 @@ export class AuthController {
       if (!user) {
         isNewUser = true;
         user = await UserService.createUser({
-          telegram_id: userId,
-          username: username || `user_${userId}`,
+          telegram_id: telegramUserId,
+          username: username || `user_${telegramUserId}`,
           balance_uni: "1000", // Начальный бонус
           balance_ton: "0",
           created_at: new Date()
         });
         
-        console.log(`Создан новый пользователь: ${user.id}, telegram_id: ${userId}`);
+        console.log(`Создан новый пользователь: ${user.id}, telegram_id: ${telegramUserId}`);
       } else {
         // Обновляем информацию о пользователе, если она изменилась
         if (username && username !== user.username) {
