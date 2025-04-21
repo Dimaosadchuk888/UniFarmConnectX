@@ -18,6 +18,9 @@ import { TransactionController } from './controllers/transactionController';
 import { MissionController } from './controllers/missionController';
 import { FarmingController } from './controllers/farmingController';
 import { ReferralController } from './controllers/referralController';
+
+// Импорт обработчика команд для Telegram-бота
+import * as telegramBot from './telegramBot';
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { UniFarmingController } from './controllers/uniFarmingController';
 import { BoostController } from './controllers/boostController';
@@ -142,6 +145,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Административные маршруты (защищены ключом)
   app.get("/api/admin/users/list-with-telegram-id", AdminController.listUsersWithTelegramId);
+  
+  // Маршрут для обработки вебхуков от Telegram
+  app.post("/api/telegram/webhook", async (req, res) => {
+    console.log('[Telegram Webhook] Получен входящий запрос:', JSON.stringify(req.body));
+    try {
+      await telegramBot.handleTelegramUpdate(req.body);
+      res.status(200).json({ ok: true });
+    } catch (error: any) {
+      console.error('[Telegram Webhook] Ошибка при обработке вебхука:', error);
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
   
   // Маршруты для работы с TON-кошельком
   app.post("/api/user/link-wallet", WalletController.linkWalletAddress);
