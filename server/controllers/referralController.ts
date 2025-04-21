@@ -31,33 +31,29 @@ export class ReferralController {
         return sendError(res, 'Отсутствует параметр start', 400);
       }
       
-      // Проверяем формат параметра (должен начинаться с "user" + userId)
-      const userPattern = /^user(\d+)$/;
-      const match = String(startParam).match(userPattern);
+      // Проверяем формат параметра (должен начинаться с "ref_" + ref_code)
+      const refPattern = /^ref_([a-zA-Z0-9]+)$/;
+      const match = String(startParam).match(refPattern);
       
       if (!match) {
         console.warn(`[ReferralController] [StartParam] Invalid startParam format: ${startParam}`);
         return sendError(res, 'Неверный формат параметра start', 400);
       }
       
-      const inviterId = parseInt(match[1]);
+      const refCode = match[1];
+      console.log(`[ReferralController] [StartParam] Successfully parsed refCode: ${refCode}`);
       
-      if (isNaN(inviterId) || inviterId <= 0) {
-        console.warn(`[ReferralController] [StartParam] Invalid inviterId extracted from startParam: ${inviterId}`);
-        return sendError(res, 'Некорректный ID пригласителя', 400);
-      }
+      // Ищем пользователя с таким ref_code
+      const inviterUser = await UserService.getUserByRefCode(refCode);
       
-      console.log(`[ReferralController] [StartParam] Successfully parsed inviterId: ${inviterId}`);
-      
-      // Проверка на существование пользователя-пригласителя
-      const inviter = await UserService.getUserById(inviterId);
-      
-      if (!inviter) {
-        console.warn(`[ReferralController] [StartParam] Inviter with ID ${inviterId} not found`);
+      if (!inviterUser) {
+        console.warn(`[ReferralController] [StartParam] No user found with ref_code: ${refCode}`);
         return sendError(res, 'Пригласитель не найден', 404);
       }
       
-      console.log(`[ReferralController] [StartParam] Inviter found: ${inviter.username} (ID: ${inviter.id})`);
+      const inviterId = inviterUser.id;
+      console.log(`[ReferralController] [StartParam] Found inviter by ref_code: ${refCode}, userId: ${inviterId}`);
+      console.log(`[ReferralController] [StartParam] Inviter found: ${inviterUser.username} (ID: ${inviterUser.id})`);
       
       // В будущем здесь будет логика для регистрации реферала,
       // когда пользователь авторизуется по Telegram
@@ -65,8 +61,8 @@ export class ReferralController {
       // Возвращаем успешный результат
       sendSuccess(res, {
         message: 'Параметр start успешно зарегистрирован',
-        inviterId: inviter.id,
-        inviterUsername: inviter.username
+        inviterId: inviterUser.id,
+        inviterUsername: inviterUser.username
       });
     } catch (error) {
       console.error('[ReferralController] [StartParam] Error processing startParam:', error);
