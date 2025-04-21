@@ -161,13 +161,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Маршрут для обработки вебхуков от Telegram
   app.post("/api/telegram/webhook", async (req, res) => {
-    console.log('[Telegram Webhook] Получен входящий запрос:', JSON.stringify(req.body));
+    // Добавляем метки времени и делаем вывод более структурированным
+    console.log(`\n[Telegram Webhook] [${new Date().toISOString()}] Получен входящий запрос:`);
+    
+    // Проверка структуры запроса для лучшей диагностики
+    if (!req.body) {
+      console.warn('[Telegram Webhook] Получен пустой запрос без тела');
+      return res.status(400).json({ ok: false, error: 'Empty request body' });
+    }
+    
+    // Логирование в более читабельном формате
+    console.log(JSON.stringify(req.body, null, 2));
+    
     try {
+      // Добавляем проверку на наличие ключевых полей в обновлении
+      if (req.body.message) {
+        console.log(`[Telegram Webhook] Сообщение от: ${req.body.message.from?.username || req.body.message.from?.id || 'неизвестно'}`);
+        if (req.body.message.text) {
+          console.log(`[Telegram Webhook] Текст: "${req.body.message.text}"`);
+        }
+      }
+      
+      // Обрабатываем обновление
       await telegramBot.handleTelegramUpdate(req.body);
-      res.status(200).json({ ok: true });
+      
+      // Успешный ответ
+      console.log('[Telegram Webhook] Обновление успешно обработано');
+      return res.status(200).json({ ok: true });
     } catch (error: any) {
-      console.error('[Telegram Webhook] Ошибка при обработке вебхука:', error);
-      res.status(500).json({ ok: false, error: error.message });
+      // Расширенное логирование ошибок
+      console.error('[Telegram Webhook] Ошибка при обработке вебхука:');
+      console.error(`   Тип: ${error.name}`);
+      console.error(`   Сообщение: ${error.message}`);
+      console.error(`   Стек: ${error.stack}`);
+      
+      return res.status(500).json({ ok: false, error: error.message });
     }
   });
   
@@ -223,6 +251,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({
           success: false,
           message: 'Ошибка при получении информации о вебхуке',
+          error: error.message
+        });
+      }
+    });
+    
+    // Тестовый маршрут для отправки сообщения через бота
+    app.post("/api/telegram/send-test-message", async (req, res) => {
+      try {
+        const { chatId, message } = req.body;
+        
+        if (!chatId || !message) {
+          return res.status(400).json({
+            success: false,
+            message: 'Отсутствуют обязательные параметры chatId и message'
+          });
+        }
+        
+        console.log(`[Admin API] Отправка тестового сообщения в чат ${chatId}: "${message}"`);
+        
+        const result = await telegramBot.sendMessage(Number(chatId), message);
+        
+        return res.status(200).json({
+          success: true,
+          message: 'Сообщение успешно отправлено',
+          result
+        });
+      } catch (error: any) {
+        console.error('[Admin API] Ошибка отправки тестового сообщения:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Ошибка при отправке тестового сообщения',
+          error: error.message
+        });
+      }
+    });
+    
+    // Маршрут для отправки уведомлений о статусе приложения
+    app.post("/api/telegram/notify-app-status", async (req, res) => {
+      try {
+        const { chatId, status, details } = req.body;
+        
+        if (!chatId || !status) {
+          return res.status(400).json({
+            success: false,
+            message: 'Отсутствуют обязательные параметры chatId и status'
+          });
+        }
+        
+        // Проверяем, что статус имеет допустимое значение
+        if (!['started', 'deployed', 'updated', 'error'].includes(status)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Некорректное значение статуса. Допустимые значения: started, deployed, updated, error'
+          });
+        }
+        
+        console.log(`[Admin API] Отправка уведомления о статусе приложения: ${status}`);
+        
+        const result = await telegramBot.sendAppStatusNotification(
+          Number(chatId), 
+          status as "started" | "deployed" | "updated" | "error",
+          details
+        );
+        
+        return res.status(200).json({
+          success: true,
+          message: `Уведомление о статусе "${status}" успешно отправлено`,
+          result
+        });
+      } catch (error: any) {
+        console.error('[Admin API] Ошибка отправки уведомления о статусе:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Ошибка при отправке уведомления о статусе',
           error: error.message
         });
       }

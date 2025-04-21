@@ -199,36 +199,84 @@ async function handleStartCommand(chatId: number, { userId, username, firstName 
  * @param update - Объект обновления от Telegram
  */
 async function handleTelegramUpdate(update: TelegramUpdate): Promise<any> {
-  console.log('Получено обновление от Telegram:', JSON.stringify(update));
-
-  // Проверяем, что это сообщение с командой
-  if (!update.message || !update.message.text) {
+  // Проверка на валидные данные
+  if (!update) {
+    console.error('[Telegram Bot] Получено пустое или невалидное обновление');
     return;
   }
 
+  // Обработка различных типов обновлений
+  if (update.message) {
+    return handleMessageUpdate(update);
+  } else {
+    console.log('[Telegram Bot] Получен неподдерживаемый тип обновления:', 
+      Object.keys(update).filter(key => key !== 'update_id').join(', '));
+    return;
+  }
+}
+
+/**
+ * Обрабатывает обновление с сообщением
+ * @param update - Объект обновления от Telegram, содержащий сообщение
+ */
+async function handleMessageUpdate(update: TelegramUpdate): Promise<any> {
   const { message } = update;
+  
+  if (!message) {
+    console.error('[Telegram Bot] Сообщение отсутствует в обновлении');
+    return;
+  }
+  
   const chatId = message.chat.id;
-  const messageText = message.text;
   const userId = message.from.id;
   const username = message.from.username;
   const firstName = message.from.first_name;
-
+  
+  // Формируем информацию о пользователе для логов
+  const userInfo = username ? `@${username} (ID: ${userId})` : `User ID: ${userId}`;
+  
+  // Проверяем наличие текста сообщения
+  if (!message.text) {
+    console.log(`[Telegram Bot] Получено сообщение без текста от ${userInfo}`);
+    return sendMessage(chatId, 'Я могу обрабатывать только текстовые сообщения. Используйте /start, чтобы увидеть доступные команды.');
+  }
+  
+  const messageText = message.text.trim();
+  
+  // Красивый лог в консоль
+  console.log(`\n[Telegram Bot] [${new Date().toISOString()}] Сообщение от ${userInfo}:`);
+  console.log(`   Текст: "${messageText}"`);
+  console.log(`   Чат: ${message.chat.type} (ID: ${chatId})`);
+  
   // Обрабатываем команды
   if (messageText === '/start') {
-    console.log(`[Telegram Bot] Получена команда /start от пользователя ${username || userId}`);
+    console.log(`[Telegram Bot] Обработка команды /start`);
     return handleStartCommand(chatId, { userId, username, firstName });
   } else if (messageText === '/ping' || messageText === '🔄 Проверить связь (/ping)') {
-    console.log(`[Telegram Bot] Получена команда /ping от пользователя ${username || userId}`);
+    console.log(`[Telegram Bot] Обработка команды /ping`);
     return handlePingCommand(chatId);
   } else if (messageText === '/info' || messageText === 'ℹ️ Моя информация (/info)') {
-    console.log(`[Telegram Bot] Получена команда /info от пользователя ${username || userId}`);
+    console.log(`[Telegram Bot] Обработка команды /info`);
     return handleInfoCommand(chatId, { userId, username, firstName });
   } else if (messageText === '/refcode' || messageText === '🔗 Мой реф. код (/refcode)') {
-    console.log(`[Telegram Bot] Получена команда /refcode от пользователя ${username || userId}`);
+    console.log(`[Telegram Bot] Обработка команды /refcode`);
     return handleRefCodeCommand(chatId, userId);
   } else {
-    // Для сообщений, которые не являются командами
-    console.log(`[Telegram Bot] Получено неизвестное сообщение от пользователя ${username || userId}: ${messageText}`);
+    // Для сообщений, которые не являются известными командами
+    console.log(`[Telegram Bot] Получена неизвестная команда: ${messageText}`);
+    
+    // Проверяем, может это частичное совпадение с известными командами
+    if (messageText.startsWith('/start')) {
+      return handleStartCommand(chatId, { userId, username, firstName });
+    } else if (messageText.includes('ping') || messageText.includes('пинг')) {
+      return handlePingCommand(chatId);
+    } else if (messageText.includes('info') || messageText.includes('инфо')) {
+      return handleInfoCommand(chatId, { userId, username, firstName });
+    } else if (messageText.includes('ref') || messageText.includes('код') || messageText.includes('реф')) {
+      return handleRefCodeCommand(chatId, userId);
+    }
+    
+    // Если ничего не подошло, отправляем подсказку
     return sendMessage(chatId, `Я не понимаю эту команду. Попробуйте /start для отображения доступных действий.`);
   }
 }
@@ -336,11 +384,58 @@ async function getWebhookInfo(): Promise<any> {
   }
 }
 
+/**
+ * Отправляет уведомление о состоянии приложения в указанный чат
+ * @param chatId - ID чата для отправки уведомления
+ * @param status - Статус приложения ("started", "deployed", "updated", "error")
+ * @param details - Дополнительная информация о статусе
+ */
+async function sendAppStatusNotification(
+  chatId: number, 
+  status: "started" | "deployed" | "updated" | "error",
+  details?: string
+): Promise<any> {
+  let emoji: string;
+  let title: string;
+  
+  switch (status) {
+    case "started":
+      emoji = "🚀";
+      title = "Приложение запущено";
+      break;
+    case "deployed":
+      emoji = "✅";
+      title = "Приложение успешно развёрнуто";
+      break;
+    case "updated":
+      emoji = "🔄";
+      title = "Приложение обновлено";
+      break;
+    case "error":
+      emoji = "❌";
+      title = "Ошибка в приложении";
+      break;
+  }
+  
+  const message = `
+${emoji} <b>${title}</b>
+
+⏱ Дата/время: ${new Date().toISOString()}
+🌐 URL: ${process.env.APP_URL || "Не указан"}
+
+${details ? `<i>${details}</i>` : ""}
+`;
+
+  return sendMessage(chatId, message);
+}
+
 // Экспортируем функции для использования в routes.ts
 export {
   sendMessage,
   handleTelegramUpdate,
+  handleMessageUpdate,
   setWebhook,
   deleteWebhook,
-  getWebhookInfo
+  getWebhookInfo,
+  sendAppStatusNotification
 };
