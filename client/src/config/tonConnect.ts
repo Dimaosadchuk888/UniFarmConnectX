@@ -3,7 +3,8 @@
  */
 
 // Манифест для подключения TonConnect
-export const TONCONNECT_MANIFEST_URL = 'https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json';
+// Используем локальный манифест из /public/tonconnect-manifest.json
+export const TONCONNECT_MANIFEST_URL = '/tonconnect-manifest.json';
 
 // Опции для TonConnect UI
 export const tonConnectOptions = {
