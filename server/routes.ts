@@ -24,6 +24,7 @@ import { BoostController } from './controllers/boostController';
 import { TonBoostController } from './controllers/tonBoostController';
 import { AuthController } from './controllers/authController';
 import { WalletController } from './controllers/walletController';
+import { AdminController } from './controllers/adminController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -138,6 +139,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:id", UserController.getUserById);
   app.get("/api/wallet/balance", UserController.getUserBalance);
   app.get("/api/me", UserController.getCurrentUser);
+  
+  // Административные маршруты (защищены ключом)
+  app.get("/api/admin/users/list-with-telegram-id", AdminController.listUsersWithTelegramId);
   
   // Маршруты для работы с TON-кошельком
   app.post("/api/user/link-wallet", WalletController.linkWalletAddress);
