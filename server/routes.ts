@@ -31,6 +31,19 @@ import { AdminController } from './controllers/adminController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Добавляем CORS заголовки для работы с Telegram WebApp
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Добавляем CORS заголовки для поддержки Telegram Mini App
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    
+    // Добавляем Content-Security-Policy для работы в Telegram
+    res.header("Content-Security-Policy", "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'");
+    
+    next();
+  });
+  
   // АУДИТ: Логирование заголовков всех запросов к API
   app.use((req: Request, _res: Response, next: NextFunction) => {
     // Логирование всех заголовков запросов для диагностики проблем с Telegram
