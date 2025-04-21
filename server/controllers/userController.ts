@@ -271,6 +271,9 @@ export class UserController {
         return sendError(res, 'Пользователь не найден', 404);
       }
 
+      // Логируем информацию о Telegram ID пользователя для диагностики
+      logTelegramId(user, 'UserController:getUserById');
+      
       console.log(`[UserController] Returning user data for ID ${userId}`);
       sendSuccess(res, {
         id: user.id,
@@ -303,6 +306,9 @@ export class UserController {
       if (!user) {
         return sendError(res, 'User not found', 404);
       }
+      
+      // Логируем информацию о Telegram ID пользователя при получении по ID
+      logTelegramId(user, 'UserController:getById');
 
       sendSuccess(res, user);
     } catch (error) {
@@ -402,6 +408,12 @@ export class UserController {
 
       if (!user) {
         return sendError(res, 'User not found', 404);
+      }
+      
+      // Логируем информацию о Telegram ID пользователя при запросе баланса
+      // Так как этот эндпоинт часто используется, используем более низкий уровень логирования
+      if (process.env.NODE_ENV === 'development') {
+        logTelegramId(user, 'UserController:getBalance');
       }
 
       // Форматируем баланс для отображения
