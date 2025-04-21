@@ -13,8 +13,8 @@ import { z } from 'zod';
  * 2. От фарминга (доход от дохода - processFarmingReferralReward)
  */
 export class ReferralBonusService {
-  // Минимальный порог для начисления реферального вознаграждения (для избежания микротранзакций)
-  private static readonly MIN_REWARD_THRESHOLD = 0.000001;
+  // Минимальный порог для начисления реферального вознаграждения отключен (в маркетинге важна каждая транзакция)
+  private static readonly MIN_REWARD_THRESHOLD = 0.0;
   // Максимальное количество уровней в партнерской программе
   static readonly MAX_LEVELS = 20;
   
