@@ -43,10 +43,20 @@ const ReferralLevelsTable: React.FC = () => {
     retry: 1 // Уменьшаем количество повторных попыток
   });
   
-  // Используем первый доступный ID или фиксированный для тестирования
-  // Приоритет: 1) текущий пользователь из API 2) из Telegram 3) тестовый ID
-  const fixedUserId = 1; // Фиксированный ID для тестирования
-  const userId = currentUser?.id || telegramUserId || fixedUserId;
+  // Используем первый доступный ID, стараясь не использовать фиксированный fallback ID=1
+  // Приоритет: 1) текущий пользователь из API 2) из Telegram
+  // Определяем, находимся ли мы в режиме разработки
+  const IS_DEV = process.env.NODE_ENV === 'development';
+  
+  // Фиксированный ID используем только в режиме разработки
+  const fixedUserId = IS_DEV ? 1 : undefined; // Фиксированный ID только для разработки
+  
+  // В production режиме не используем fallback ID=1
+  const userId = currentUser?.id && currentUser.id > 1 
+    ? currentUser.id 
+    : telegramUserId && telegramUserId > 1 
+      ? telegramUserId 
+      : IS_DEV ? fixedUserId : undefined;
   
   console.log('[ReferralLevelsTable] Текущий пользователь:', userId);
   

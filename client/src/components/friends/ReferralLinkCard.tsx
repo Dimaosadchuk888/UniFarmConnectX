@@ -167,6 +167,16 @@ const ReferralLinkCard: React.FC = () => {
       // Приоритет 4: Кэшированные данные
       cachedUserId && cachedUserId !== '1'
     );
+    
+  // Расширенное логирование условий отображения
+  console.log('[ReferralLinkCard] Условия отображения:', {
+    hasRealUserIdState,
+    hasRealUserId,
+    newTelegramUserIdValid: newTelegramUserId && newTelegramUserId > 1,
+    currentUserIdValid: currentUser?.id && currentUser.id > 1,
+    telegramUserIdValid: telegramUserId && telegramUserId > 1,
+    cachedUserIdValid: cachedUserId && cachedUserId !== '1'
+  });
   
   // Формируем реферальную ссылку только если есть реальный userId
   let userId = '';
