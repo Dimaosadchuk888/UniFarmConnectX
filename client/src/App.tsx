@@ -19,6 +19,7 @@ import Missions from "@/pages/Missions";
 import Friends from "@/pages/Friends";
 import FriendsMinimal from "@/pages/FriendsMinimal";
 import Wallet from "@/pages/Wallet";
+import TelegramTest from "./pages/TelegramTest";
 
 // For Telegram WebApp types
 // Обновлено определение глобального интерфейса для Telegram WebApp
@@ -393,22 +394,32 @@ function App() {
         {showDiagnostics && <RootTelegramDiagnostics />}
         
         <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
-          <Header />
-          <main className="px-4 pt-2 pb-20">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
-              </div>
-            ) : telegramAuthError ? (
-              <div className="p-4 mt-4 bg-red-50 border border-red-200 rounded-md text-red-600">
-                <p className="font-medium">Ошибка авторизации</p>
-                <p className="text-sm">{telegramAuthError}</p>
-              </div>
-            ) : (
-              renderActivePage()
-            )}
-          </main>
-          <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Switch>
+            {/* Специальная страница для тестирования Telegram */}
+            <Route path="/telegram-test">
+              <TelegramTest />
+            </Route>
+            
+            {/* Основной интерфейс приложения */}
+            <Route path="*">
+              <Header />
+              <main className="px-4 pt-2 pb-20">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                  </div>
+                ) : telegramAuthError ? (
+                  <div className="p-4 mt-4 bg-red-50 border border-red-200 rounded-md text-red-600">
+                    <p className="font-medium">Ошибка авторизации</p>
+                    <p className="text-sm">{telegramAuthError}</p>
+                  </div>
+                ) : (
+                  renderActivePage()
+                )}
+              </main>
+              <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
+            </Route>
+          </Switch>
         </div>
         <Toaster />
       </TonConnectUIProvider>

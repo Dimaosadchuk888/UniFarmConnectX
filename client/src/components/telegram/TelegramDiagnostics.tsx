@@ -20,7 +20,7 @@ const TelegramDiagnostics = () => {
   const [progress, setProgress] = useState(0);
   
   // Функция для проверки Telegram объекта
-  const checkTelegramObject = () => {
+  const checkTelegramObject = (): DiagnosticResult => {
     const isTelegramAvailable = typeof window !== 'undefined' && 'Telegram' in window;
     return {
       name: 'Telegram API',
@@ -35,7 +35,7 @@ const TelegramDiagnostics = () => {
   };
   
   // Функция для проверки WebApp
-  const checkWebApp = () => {
+  const checkWebApp = (): DiagnosticResult => {
     const isTelegramAvailable = typeof window !== 'undefined' && 'Telegram' in window;
     const isWebAppAvailable = isTelegramAvailable && 'WebApp' in (window as any).Telegram;
     return {
@@ -51,7 +51,7 @@ const TelegramDiagnostics = () => {
   };
   
   // Функция для проверки initData
-  const checkInitData = () => {
+  const checkInitData = (): DiagnosticResult => {
     const isTelegramAvailable = typeof window !== 'undefined' && 'Telegram' in window;
     const isWebAppAvailable = isTelegramAvailable && 'WebApp' in (window as any).Telegram;
     const hasInitData = isWebAppAvailable && 'initData' in (window as any).Telegram.WebApp && (window as any).Telegram.WebApp.initData.length > 0;
@@ -68,7 +68,7 @@ const TelegramDiagnostics = () => {
   };
   
   // Функция для проверки User
-  const checkUser = () => {
+  const checkUser = (): DiagnosticResult => {
     const isTelegramAvailable = typeof window !== 'undefined' && 'Telegram' in window;
     const isWebAppAvailable = isTelegramAvailable && 'WebApp' in (window as any).Telegram;
     const hasInitDataUnsafe = isWebAppAvailable && 'initDataUnsafe' in (window as any).Telegram.WebApp;
@@ -89,7 +89,7 @@ const TelegramDiagnostics = () => {
   };
 
   // Функция для проверки startParam (реферальный код)
-  const checkStartParam = () => {
+  const checkStartParam = (): DiagnosticResult => {
     const isTelegramAvailable = typeof window !== 'undefined' && 'Telegram' in window;
     const isWebAppAvailable = isTelegramAvailable && 'WebApp' in (window as any).Telegram;
     const hasStartParam = isWebAppAvailable && 'startParam' in (window as any).Telegram.WebApp && (window as any).Telegram.WebApp.startParam;
