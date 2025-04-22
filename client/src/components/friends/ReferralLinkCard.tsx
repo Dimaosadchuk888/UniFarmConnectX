@@ -94,7 +94,7 @@ const ReferralLinkCard: React.FC = () => {
       timeElapsedSinceLastRefresh: Date.now() - lastRefreshTime
     });
     
-    // Сначала всегда показываем лоадер
+    // Сначала всегда показываем лоадер, но только на короткое время
     if (isUserLoading) {
       setShowLoading(true);
     }
@@ -153,15 +153,21 @@ const ReferralLinkCard: React.FC = () => {
     } else {
       // Ограничиваем время показа лоадера даже если загрузка продолжается
       const maxLoadingTimer = setTimeout(() => {
-        // Проверяем наличие ref_code в объекте пользователя
-        if (currentUser && typeof currentUser === 'object' && 'ref_code' in currentUser) {
-          // Безопасный доступ к свойству ref_code с приведением типа
-          const refCodeValue = (currentUser as {ref_code?: string}).ref_code || '';
-          console.log('[ReferralLinkCard] Found ref_code after timeout:', refCodeValue);
-          setShowLoading(false);
-          setLoadingTimedOut(false);
+        if (currentUser) {
+          // В любом случае, если у нас есть объект пользователя, проверяем ref_code
+          const refCodeValue = currentUser.ref_code || '';
+          
+          if (refCodeValue) {
+            console.log('[ReferralLinkCard] Found ref_code after timeout:', refCodeValue);
+            setShowLoading(false);
+            setLoadingTimedOut(false);
+          } else {
+            console.warn('[ReferralLinkCard] User exists but ref_code is missing');
+            setShowLoading(false);
+            setLoadingTimedOut(true);
+          }
         } else {
-          console.warn('[ReferralLinkCard] Loading timed out without ref_code');
+          console.warn('[ReferralLinkCard] Loading timed out without user data');
           setShowLoading(false);
           setLoadingTimedOut(true);
         }
