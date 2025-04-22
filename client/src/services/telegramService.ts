@@ -764,10 +764,13 @@ export function getTelegramAuthHeaders(): Record<string, string> {
     }
     
     // Шаг 5: Формирование заголовков для отправки на сервер
+    // Важно! Передаем полные данные initData, без сокращений и модификаций
     headers['Telegram-Data'] = initData;
-    headers['X-Telegram-Data'] = initData.length > 1000 ? dataPreview : initData; // Ограничиваем длину для совместимости
-    headers['X-Telegram-Init-Data'] = initData.substring(0, 100) + '...'; // Укороченная версия 
-    headers['X-Telegram-Auth'] = 'true'; // Дополнительный маркер для сервера
+    // Обеспечиваем совместимость с различными способами получения данных на сервере
+    headers['X-Telegram-Data'] = initData;
+    headers['X-Telegram-Init-Data'] = initData;
+    // Добавляем метку, что данные аутентификации Telegram присутствуют
+    headers['X-Telegram-Auth'] = 'true';
     
     // Шаг 6: Добавление userId в заголовки (если доступен)
     const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;

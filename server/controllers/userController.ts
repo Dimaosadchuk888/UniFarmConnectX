@@ -20,17 +20,32 @@ export class UserController {
    */
   static async getCurrentUser(req: Request, res: Response): Promise<void> {
     try {
-      // Первый приоритет: Телеграм данные из initData в заголовке
-      let telegramInitData = req.headers['telegram-data'] as string || req.headers['x-telegram-data'] as string;
+      // Тщательно проверяем все возможные заголовки, содержащие данные Telegram
+      // ВАЖНО: Реальная Telegram Mini App может отправлять данные в разных форматах заголовков
       
-      // Проверяем различные заголовки для обратной совместимости
-      if (!telegramInitData) {
-        telegramInitData = req.headers['x-telegram-init-data'] as string;
+      // Проверяем все стандартные заголовки (с учетом регистра)
+      const telegramDataHeaderNames = [
+        'telegram-data', 'Telegram-Data', 'TELEGRAM-DATA',
+        'x-telegram-data', 'X-Telegram-Data', 'X-TELEGRAM-DATA',
+        'x-telegram-init-data', 'X-Telegram-Init-Data', 'X-TELEGRAM-INIT-DATA',
+        'initdata', 'Initdata', 'INITDATA',
+        'x-initdata', 'X-Initdata', 'X-INITDATA'
+      ];
+      
+      // Ищем первый непустой заголовок из списка
+      let telegramInitData: string | undefined;
+      for (const headerName of telegramDataHeaderNames) {
+        const headerValue = req.headers[headerName] as string;
+        if (headerValue && headerValue.trim() !== '') {
+          telegramInitData = headerValue;
+          console.log(`[АУДИТ] [UserController] Found Telegram data in header: ${headerName}`);
+          break;
+        }
       }
       
-      // Добавляем поддержку заголовка initdata (в нижнем регистре), часто используемого клиентами
+      // Если не нашли, логируем информацию обо всех заголовках
       if (!telegramInitData) {
-        telegramInitData = req.headers['initdata'] as string || req.headers['x-initdata'] as string;
+        console.warn(`[АУДИТ] [UserController] No Telegram data found in headers`);
       }
       
       let telegramId: number | null = null;
