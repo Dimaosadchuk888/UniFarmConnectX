@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink'; // Новый улучшенный компонент
+import ReferralDirectLinkCard from '@/components/friends/ReferralDirectLinkCard'; // Дополнительный компонент для отображения ссылки
 import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
@@ -77,6 +78,17 @@ const Friends: React.FC = () => {
         }}
       >
         <ReferralLevelsTable />
+      </div>
+      
+      {/* Дополнительный независимый блок с реферальной ссылкой */}
+      <div 
+        style={{
+          opacity: isLoaded ? 1 : 0,
+          transform: `translateY(${isLoaded ? 0 : 20}px)`,
+          transition: 'opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s'
+        }}
+      >
+        <ReferralDirectLinkCard />
       </div>
     </div>
   );
