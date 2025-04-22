@@ -43,9 +43,40 @@ const TelegramDebugger: React.FC = () => {
     }
   };
 
+  // Определение интерфейса для данных о Telegram WebApp
+  interface TelegramWebAppInfo {
+    timestamp: string;
+    isTelegramAvailable: boolean;
+    isWebAppAvailable: boolean;
+    browserEnvironment: {
+      userAgent: string;
+      href: string;
+      referrer: string;
+      isIframe: boolean;
+    };
+    webAppInfo?: {
+      platform: string;
+      version: string;
+      colorScheme: string;
+      themeParams: string | Record<string, string>;
+      startParam: string;
+      // Дополнительные поля, которые могут быть доступны в более новых версиях
+      // но не включены в наше объявление типов
+      [key: string]: any;
+    };
+    userData?: Record<string, any> | string;
+    initData?: {
+      length: number;
+      sample: string;
+    } | string;
+    initDataFormat?: string;
+    initDataParams?: string[];
+    initDataParseError?: string;
+  }
+
   // Прямое получение данных из Telegram WebApp
   const getTelegramWebAppInfo = () => {
-    const telegramInfo: Record<string, any> = {
+    const telegramInfo: TelegramWebAppInfo = {
       timestamp: new Date().toISOString(),
       isTelegramAvailable: !!window.Telegram,
       isWebAppAvailable: !!window.Telegram?.WebApp,
@@ -65,10 +96,12 @@ const TelegramDebugger: React.FC = () => {
         version: webApp.version || 'not available',
         colorScheme: webApp.colorScheme || 'not available',
         themeParams: webApp.themeParams || 'not available',
-        isExpanded: webApp.isExpanded || false,
-        viewportHeight: webApp.viewportHeight || 'not available',
-        viewportWidth: webApp.viewportWidth || 'not available',
         startParam: webApp.startParam || 'not available',
+        // Безопасно добавляем дополнительные поля, которые могут быть в более новых версиях
+        // но не указаны в нашем объявлении типов
+        isExpanded: (webApp as any).isExpanded || false,
+        viewportHeight: (webApp as any).viewportHeight || 'not available',
+        viewportWidth: (webApp as any).viewportWidth || 'not available',
       };
 
       // Безопасно извлекаем информацию о пользователе
@@ -79,7 +112,8 @@ const TelegramDebugger: React.FC = () => {
           first_name: user.first_name || 'not available',
           last_name: user.last_name || 'not available',
           username: user.username || 'not available',
-          language_code: user.language_code || 'not available',
+          // Безопасно обращаемся к полям, которых может не быть в типах
+          language_code: (user as any).language_code || 'not available',
           has_photo: !!user.photo_url
         };
       } else {
@@ -116,7 +150,7 @@ const TelegramDebugger: React.FC = () => {
     }
 
     // Сохраняем информацию в состоянии
-    setDebugInfo(prevState => {
+    setDebugInfo((prevState: any) => {
       return {
         ...prevState,
         clientSideInfo: telegramInfo

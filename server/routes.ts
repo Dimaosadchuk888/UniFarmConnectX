@@ -72,8 +72,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Диагностический эндпоинт для отладки Telegram данных
   app.get("/api/telegram-debug", async (req: Request, res: Response) => {
     try {
+      // Определяем тип данных для отладочной информации
+      interface TelegramDebugInfo {
+        headers: typeof req.headers;
+        telegramSpecificHeaders: {
+          telegramData: string | string[] | undefined;
+          telegramInitData: string | string[] | undefined;
+          telegramUserId: string | string[] | undefined;
+          startParam: string | string[] | undefined;
+        };
+        queryParams: typeof req.query;
+        timestamp: string;
+        environment: string | undefined;
+        ipInfo: {
+          ip: string | undefined;
+          forwardedFor: string | string[] | undefined;
+        };
+        parsedInitData?: Record<string, any>;
+        initDataFormat?: string;
+        initDataParseError?: string;
+      }
+
       // Собираем всю информацию об окружении и заголовках
-      const debugInfo = {
+      const debugInfo: TelegramDebugInfo = {
         headers: req.headers,
         telegramSpecificHeaders: {
           telegramData: req.headers['telegram-data'] || req.headers['x-telegram-data'],
@@ -118,24 +139,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             });
             
-            debugInfo['parsedInitData'] = parsedData;
+            debugInfo.parsedInitData = parsedData;
           } 
           // Если это JSON, пытаемся распарсить
           else {
             try {
               const jsonData = JSON.parse(initData);
-              debugInfo['parsedInitData'] = jsonData;
+              debugInfo.parsedInitData = jsonData;
               
               // Если есть hash, маскируем его для безопасности
               if (jsonData.hash) {
                 jsonData.hash = 'present (masked for security)';
               }
             } catch {
-              debugInfo['initDataFormat'] = 'unknown (not query params or JSON)';
+              debugInfo.initDataFormat = 'unknown (not query params or JSON)';
             }
           }
         } catch (parseError) {
-          debugInfo['initDataParseError'] = `Error parsing initData: ${(parseError as Error).message}`;
+          debugInfo.initDataParseError = `Error parsing initData: ${(parseError as Error).message}`;
         }
       }
       
