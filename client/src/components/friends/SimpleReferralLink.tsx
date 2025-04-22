@@ -26,7 +26,7 @@ const SimpleReferralLink: React.FC = () => {
   
   // Формируем ссылку
   const referralLink = refCode 
-    ? `https://t.me/UniFarming_Bot/app?startapp=ref_${refCode}`
+    ? `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${refCode}`
     : '';
 
   // Копирование в буфер обмена
