@@ -23,6 +23,7 @@ const ReferralLinkCard: React.FC = () => {
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
+  const [forceShowLink, setForceShowLink] = useState(false); // Для принудительного отображения ссылки при наличии ref_code
   
   // Получаем информацию о текущем пользователе из API
   const { 
@@ -60,10 +61,11 @@ const ReferralLinkCard: React.FC = () => {
         refCode: result.data?.ref_code || 'missing'
       });
       
-      // Если получили данные и там есть ref_code, убираем загрузку
+      // Если получили данные и там есть ref_code, убираем загрузку и включаем отображение ссылки
       if (result.data?.ref_code) {
         setShowLoading(false);
         setLoadingTimedOut(false);
+        setForceShowLink(true); // Принудительно показываем ссылку
       } else if (retryAttempt >= MAX_RETRY_ATTEMPTS) {
         // Если превысили лимит попыток, показываем ошибку
         console.warn(`[ReferralLinkCard] Maximum retry attempts (${MAX_RETRY_ATTEMPTS}) reached without getting ref_code`);
@@ -153,14 +155,18 @@ const ReferralLinkCard: React.FC = () => {
     } else {
       // Ограничиваем время показа лоадера даже если загрузка продолжается
       const maxLoadingTimer = setTimeout(() => {
-        if (currentUser) {
+        if (currentUser && typeof currentUser === 'object') {
           // В любом случае, если у нас есть объект пользователя, проверяем ref_code
-          const refCodeValue = currentUser.ref_code || '';
+          // Безопасный доступ к свойству в объекте с проверкой типа
+          const refCodeValue = typeof currentUser === 'object' && currentUser !== null && 'ref_code' in currentUser 
+            ? (currentUser as any).ref_code || '' 
+            : '';
           
           if (refCodeValue) {
             console.log('[ReferralLinkCard] Found ref_code after timeout:', refCodeValue);
             setShowLoading(false);
             setLoadingTimedOut(false);
+            setForceShowLink(true); // Включаем отображение ссылки
           } else {
             console.warn('[ReferralLinkCard] User exists but ref_code is missing');
             setShowLoading(false);
@@ -329,8 +335,8 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {/* Отображаем ссылку только если она сгенерирована (есть refCode) - БЕЗ зависимости от Telegram WebApp */}
-        {!showLoading && refCode && (
+        {/* Отображаем ссылку если есть refCode или принудительно включено ее отображение */}
+        {(!showLoading && refCode) || (forceShowLink && refCode) ? (
           <div className="flex relative">
             <div className="flex-grow relative">
               <input 
@@ -390,7 +396,7 @@ const ReferralLinkCard: React.FC = () => {
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </div>
       
       {/* Секция с статистикой */}
