@@ -30,7 +30,7 @@ const FriendsMinimal: React.FC = () => {
   
   // Формируем реферальную ссылку прямо в компоненте
   const referralLink = userData?.ref_code 
-    ? `https://t.me/UniFarmingBot/app?startapp=ref_${userData.ref_code}`
+    ? `https://t.me/UniFarming_Bot/app?startapp=ref_${userData.ref_code}`
     : "";
   
   return (

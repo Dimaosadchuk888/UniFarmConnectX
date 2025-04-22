@@ -213,8 +213,8 @@ const ReferralLinkCard: React.FC = () => {
   // Проверяем наличие ref_code и формируем ссылку независимо от наличия Telegram WebApp
   if (refCode) {
     // Используем корректный формат для Telegram Mini App по ТЗ
-    // Формат строго такой: https://t.me/UniFarmingBot/app?startapp=ref_КОД
-    referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${refCode}`;
+    // Формат строго такой: https://t.me/UniFarming_Bot/app?startapp=ref_КОД
+    referralLink = `https://t.me/UniFarming_Bot/app?startapp=ref_${refCode}`;
   }
   
   // Состояния для анимаций и взаимодействий

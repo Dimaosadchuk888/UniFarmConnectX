@@ -143,7 +143,7 @@ async function handleRefCodeCommand(chatId: number, userId: number): Promise<any
 <b>🔗 Ваш реферальный код</b>
 
 Код: <code>${user.ref_code}</code>
-Ссылка: <code>https://t.me/UniFarmingBot/app?startapp=ref_${user.ref_code}</code>
+Ссылка: <code>https://t.me/UniFarming_Bot/app?startapp=ref_${user.ref_code}</code>
 
 Telegram ID: <code>${userId}</code>
 User ID в системе: <code>${user.id}</code>
