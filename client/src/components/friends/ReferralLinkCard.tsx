@@ -419,22 +419,7 @@ const ReferralLinkCard: React.FC = () => {
               Информация о состоянии компонента и доступности данных Telegram
             </p>
             
-            {/* Отладочная информация - показываем только в режиме разработки */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="bg-black/30 p-2 rounded text-xs text-white/80 mb-3 text-left overflow-auto max-h-36 w-full">
-                <p className="font-mono">Отладочная информация (DEV):</p>
-                <p className="font-mono">ID пользователя: {currentUser?.id || 'не получен'}</p>
-                <p className="font-mono">Telegram ID: {telegramUserId || 'не получен'}</p>
-                <p className="font-mono">New Telegram ID: {newTelegramUserId || 'не получен'}</p>
-                <p className="font-mono">Кэш ID: {cachedUserId || 'не получен'}</p>
-                <p className="font-mono">Ref Code: {currentUser?.ref_code || 'не получен'}</p>
-                <p className="font-mono">Источник ID: {idSource}</p>
-                <p className="font-mono">В режиме разработки: {process.env.NODE_ENV === 'development' ? 'да' : 'нет'}</p>
-                <p className="font-mono">hasRealUserId: {hasRealUserId ? 'true' : 'false'}</p>
-                <p className="font-mono">hasRealUserIdState: {hasRealUserIdState === null ? 'null' : hasRealUserIdState ? 'true' : 'false'}</p>
-                <p className="font-mono">Время проверки: {new Date().toLocaleTimeString()}</p>
-              </div>
-            )}
+            {/* Отладочная информация удалена */}
             
             <div className="flex justify-center mt-2">
               <a 
