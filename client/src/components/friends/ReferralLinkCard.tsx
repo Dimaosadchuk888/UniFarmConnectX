@@ -238,9 +238,11 @@ const ReferralLinkCard: React.FC = () => {
   // и НЕ должно зависеть от других условий (например, isTelegramAvailable)
   if (refCode) {
     // Используем корректный формат для Telegram Mini App по ТЗ
-    // Формат строго такой: https://t.me/UniFarming_Bot/app?startapp=ref_КОД
+    // Формат строго такой: https://t.me/UniFarming_Bot/UniFarm?startapp=ref_КОД
     // Используется новый бот - UniFarming_Bot (с подчеркиванием) вместо старого UniFarmingBot
-    referralLink = `https://t.me/UniFarming_Bot/app?startapp=ref_${refCode}`;
+    referralLink = `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${refCode}`;
+    // Добавляем отладочное логирование для отслеживания генерации ссылки
+    console.debug('Referral rendered', { refCodeAvailable: !!refCode, refLink: referralLink });
     // Принудительно включаем отображение ссылки при наличии ref_code
     setForceShowLink(true);
   }
@@ -425,6 +427,22 @@ const ReferralLinkCard: React.FC = () => {
                 transition-transform duration-300
               `}></i>
             </button>
+            
+            {/* Кнопка "Поделиться в Telegram" - отображается только если доступен Telegram WebApp */}
+            {typeof window !== 'undefined' && window.Telegram?.WebApp && (
+              <button 
+                className="ml-2 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-300 flex items-center"
+                onClick={() => {
+                  // Безопасный вызов метода openLink
+                  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.openLink) {
+                    window.Telegram.WebApp.openLink(referralLink);
+                  }
+                }}
+              >
+                <i className="fab fa-telegram-plane mr-2"></i>
+                <span className="text-sm">Поделиться</span>
+              </button>
+            )}
             
             {/* Тултип о статусе копирования */}
             {isCopied && (
