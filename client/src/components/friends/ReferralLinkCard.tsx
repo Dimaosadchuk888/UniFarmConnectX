@@ -378,9 +378,9 @@ const ReferralLinkCard: React.FC = () => {
              ВАЖНО: убрали зависимость от состояния загрузки - показываем ссылку, как только получили refCode */}
         {refCode && (
           <>
-            {/* Отображаем стандартную форму, если доступен Telegram */}
-            {typeof window !== 'undefined' && window.Telegram ? (
-              <div className="flex relative">
+            {/* ВСЕГДА отображаем ссылку, независимо от доступности Telegram 
+                 Мы убираем проверку на window.Telegram, чтобы ссылка отображалась в любом случае */}
+            <div className="flex relative">
                 <div className="flex-grow relative">
                   <input 
                     type="text" 
@@ -455,10 +455,6 @@ const ReferralLinkCard: React.FC = () => {
                   </div>
                 )}
               </div>
-            ) : (
-              /* Fallback компонент когда Telegram недоступен */
-              <FallbackReferralLink refCode={refCode} />
-            )}
           </>
         )}
       </div>
