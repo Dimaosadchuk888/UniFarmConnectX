@@ -264,6 +264,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/wallet/balance", UserController.getUserBalance);
   app.get("/api/me", UserController.getCurrentUser);
   
+  // Отладочный эндпоинт для анализа заголовков и данных пользователя
+  app.get("/debug/me/raw", async (req: Request, res: Response) => {
+    try {
+      // Получаем текущего пользователя из запроса
+      const user = req.user;
+
+      // Собираем данные для отладки
+      const debugInfo = {
+        headers: req.headers,
+        user: user,
+        timestamp: new Date().toISOString(),
+        ip: req.ip,
+        forwardedFor: req.headers['x-forwarded-for'],
+        cookies: req.cookies,
+        telegramSpecificHeaders: {
+          telegramData: req.headers['telegram-data'] || req.headers['x-telegram-data'],
+          telegramInitData: req.headers['x-telegram-init-data'] || req.headers['initdata'] || req.headers['x-initdata'],
+          telegramUserId: req.headers['x-telegram-user-id'] || req.headers['telegram-user-id'],
+          startParam: req.headers['x-start-param'],
+        },
+      };
+
+      // Возвращаем полный отчет
+      return res.json({
+        success: true,
+        data: debugInfo
+      });
+    } catch (error: any) {
+      console.error('[API] Error in /debug/me/raw endpoint:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+  
   // Административные маршруты (защищены ключом)
   app.get("/api/admin/users/list-with-telegram-id", AdminController.listUsersWithTelegramId);
   
