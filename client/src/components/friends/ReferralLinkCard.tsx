@@ -208,7 +208,12 @@ const ReferralLinkCard: React.FC = () => {
   let referralLink = '';
   
   // Получаем ref_code из данных пользователя
-  const refCode = currentUser?.ref_code;
+  // Важно: явно приводим currentUser к типу User | undefined, чтобы корректно обработать ref_code
+  const safeUser = currentUser as User | undefined;
+  const refCode = safeUser?.ref_code;
+  
+  // ОТЛАДКА: явно логируем получение ref_code
+  console.log('[ReferralLinkCard] Received ref_code:', refCode || 'MISSING');
   
   // Проверяем наличие ref_code и формируем ссылку независимо от наличия Telegram WebApp
   // ВАЖНО: По требованию задачи, отображение ссылки зависит ТОЛЬКО от наличия ref_code
@@ -218,6 +223,8 @@ const ReferralLinkCard: React.FC = () => {
     // Формат строго такой: https://t.me/UniFarming_Bot/app?startapp=ref_КОД
     // Используется новый бот - UniFarming_Bot (с подчеркиванием) вместо старого UniFarmingBot
     referralLink = `https://t.me/UniFarming_Bot/app?startapp=ref_${refCode}`;
+    // Принудительно включаем отображение ссылки при наличии ref_code
+    setForceShowLink(true);
   }
   
   // Состояния для анимаций и взаимодействий
