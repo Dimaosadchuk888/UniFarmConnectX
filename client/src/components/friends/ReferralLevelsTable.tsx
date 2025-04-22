@@ -304,38 +304,7 @@ const ReferralLevelsTable: React.FC = () => {
         </div>
       </div>
       
-      {/* Сообщение об отсутствии рефералов - всегда отображаем, если нет загрузки или ошибки */}
-      {referralsData && !hasReferrals && !isLoading && !error && (
-        <div className="py-6 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <i className="fas fa-users text-primary/70 text-xl"></i>
-          </div>
-          <h3 className="text-lg font-medium mb-2">У вас пока нет рефералов</h3>
-          <p className="text-muted-foreground text-sm max-w-[280px] mb-5">
-            Приглашайте друзей в приложение, чтобы получать доход от их активности и покупок в UniFarm
-          </p>
-          <div className="bg-primary/10 px-4 py-3 rounded-lg text-sm mt-2">
-            <div className="flex items-center justify-center mb-2">
-              <i className="fas fa-info-circle text-primary mr-2"></i>
-              <span className="font-medium">Преимущества партнерской программы:</span>
-            </div>
-            <ul className="text-left text-xs space-y-2">
-              <li className="flex items-start">
-                <i className="fas fa-check text-green-500 mr-2 mt-0.5"></i>
-                <span>100% доход с первого уровня</span>
-              </li>
-              <li className="flex items-start">
-                <i className="fas fa-check text-green-500 mr-2 mt-0.5"></i>
-                <span>До 20% с покупок на глубине до 20 уровней</span>
-              </li>
-              <li className="flex items-start">
-                <i className="fas fa-check text-green-500 mr-2 mt-0.5"></i>
-                <span>Пассивный доход с фарминга ваших рефералов</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      )}
+      {/* Сообщение об отсутствии рефералов удалено - теперь всегда показываем таблицу */}
       
       {/* Сообщение о проблеме с идентификацией - отображаем, если нет userId */}
       {!userId && !isLoading && (
@@ -368,8 +337,8 @@ const ReferralLevelsTable: React.FC = () => {
         </div>
       )}
 
-      {/* Скроллируемая таблица со всеми уровнями - показываем если есть данные и userId */}
-      {userId && (!referralsData || isLoading || hasReferrals) && (
+      {/* Скроллируемая таблица со всеми уровнями - показываем всегда, если есть userId */}
+      {userId && (
         <div 
           ref={tableRef}
           className="overflow-y-auto max-h-[350px] relative scrollbar-none pr-2 transition-all duration-300"
@@ -537,8 +506,8 @@ const ReferralLevelsTable: React.FC = () => {
         </div>
       )}
       
-      {/* Кнопки для плавного скролла и информационное сообщение - только при наличии рефералов */}
-      {(!referralsData || isLoading || hasReferrals) && (
+      {/* Кнопки для плавного скролла и информационное сообщение - показываем всегда при наличии userId */}
+      {userId && (
         <>
           {/* Кнопки для плавного скролла */}
           <div className="flex justify-center mt-3 mb-1 space-x-2">
