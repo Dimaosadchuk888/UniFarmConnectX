@@ -100,7 +100,9 @@ const ReferralLinkCard: React.FC = () => {
     });
     
     // Сначала всегда показываем лоадер, но только на короткое время
-    if (isUserLoading && !currentUser?.ref_code) {
+    // Используем безопасное приведение типа для предотвращения LSP ошибки
+    const safeUserForLoader = currentUser as User | undefined;
+    if (isUserLoading && !safeUserForLoader?.ref_code) {
       setShowLoading(true);
     }
     
@@ -329,7 +331,7 @@ const ReferralLinkCard: React.FC = () => {
         </div>
         
         {/* Состояния загрузки и ошибок */}
-        {(isUserLoading || showLoading) && (
+        {(!refCode && (isUserLoading || showLoading)) && (
           <div className="flex justify-center items-center py-3">
             <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
             <span className="text-sm text-muted-foreground">Получение ссылки...</span>
@@ -353,7 +355,8 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {/* Отображаем ссылку при любом наличии refCode, независимо от других условий */}
+        {/* Отображаем ссылку при любом наличии refCode, независимо от других условий
+             ВАЖНО: убрали зависимость от состояния загрузки - показываем ссылку, как только получили refCode */}
         {refCode && (
           <div className="flex relative">
             <div className="flex-grow relative">

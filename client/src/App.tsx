@@ -23,6 +23,7 @@ import TelegramTest from "./pages/TelegramTest";
 import WebhookSetup from "./pages/WebhookSetup";
 import DebugPage from "./pages/DebugPage";
 import AdminPage from "./pages/AdminPage";
+import ReferralDebug from "./pages/ReferralDebug";
 
 // For Telegram WebApp types
 // Обновлено определение глобального интерфейса для Telegram WebApp
