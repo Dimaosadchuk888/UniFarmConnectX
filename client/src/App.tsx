@@ -73,6 +73,28 @@ function App() {
   const [showDiagnostics] = useState(true); // Всегда показываем диагностику
 
   // Усиленная инициализация Telegram WebApp при запуске
+  // Специальный useEffect для проверки Telegram WebApp
+  useEffect(() => {
+    // выводим в консоль, чтобы было видно и в DEV‑режиме Replit
+    console.log('TG check →', window.Telegram?.WebApp);
+
+    // визуальная метка в правом‑верхнем углу (только в NODE_ENV !== 'production')
+    if (process.env.NODE_ENV !== 'production') {
+      const tag = document.createElement('div');
+      tag.style.cssText =
+        'position:fixed;top:6px;right:6px;padding:2px 6px;font:12px monospace;' +
+        'border-radius:4px;z-index:9999;background:' +
+        (window.Telegram?.WebApp ? "#0f0" : "#f00") +
+        ';color:#000;';
+      tag.textContent = window.Telegram?.WebApp ? 'TG OK' : 'TG ⛔️';
+      document.body.appendChild(tag);
+    }
+
+    // сообщаем Telegram, что приложение готово
+    if (window.Telegram?.WebApp) window.Telegram.WebApp.ready();
+  }, []);
+  
+  // Усиленная инициализация Telegram WebApp при запуске
   useEffect(() => {
     // Для отладки - всегда выводим информацию о состоянии WebApp
     console.log('App initialization: checking Telegram.WebApp availability...');
