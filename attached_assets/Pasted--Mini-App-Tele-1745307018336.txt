@@ -1,0 +1,61 @@
+Техническое задание: Полный аудит и устранение ошибки отображения реферальной ссылки в Mini App Telegram
+
+Цель
+
+Убедиться, что:
+ 1. Реферальная ссылка успешно отображается внутри Telegram Mini App;
+ 2. Ошибки “Не удалось получить ссылку. Попробуйте позже” исчезают;
+ 3. Все состояния (загрузка, успех, ошибка) корректно отображаются.
+
+⸻
+
+Что проверить и устранить
+
+1. Инициализация Telegram WebApp
+ • Убедиться, что объект Telegram.WebApp корректно определяется внутри Telegram.
+ • Обработать сценарии, где window.Telegram может быть undefined (fallback).
+ • Проверить компонент telegramService.ts:
+ • Логика isTelegramWebApp() — правильно ли определяет Telegram-среду;
+ • Методы getCachedTelegramUserId() — возвращает ли он telegram_id.
+
+2. Обработка данных Telegram в backend
+ • Проверить UserController.ts:
+ • Корректно ли извлекается telegram_id;
+ • Создаётся ли ref_code при первом входе.
+ • Убедиться, что telegram_id, username и ref_code сохраняются в БД.
+ • API /api/me и /api/referral-code должны возвращать: {
+  "telegram_id": "...",
+  "ref_code": "3988f632025e",
+  ...
+} 
+
+
+
+3. Компонент ReferralLinkCard.tsx
+ • Логика отображения должна быть следующей:
+ • Если ref_code доступен — показываем ссылку;
+ • Если ссылка загружается — показываем loader;
+ • Если ошибка — выводим сообщение.
+ • Добавить debug log в консоли в DEV режиме:
+ • Telegram ID
+ • ref_code
+ • Состояние isLoading, hasError
+
+4. /debug страница и endpoint /api/telegram-debug
+ • Убедиться, что:
+ • Страница /debug открывается;
+ • Показывает текущий Telegram ID, username и ref_code;
+ • Показывает флаг isTelegramWebAppAvailable.
+
+5. Дополнительно
+ • Проверить, как Mini App открывается:
+ • Через https://t.me/UniFarmingBot/app — telegram_id должен попадать в initData.
+ • Убедиться, что ref_code генерируется только при первом входе.
+ • Обновить кеш и синхронизацию данных в ReferralLinkCard при повторном заходе.
+
+⸻
+
+Результат после выполнения
+ • Telegram Mini App корректно отображает реферальную ссылку для всех пользователей;
+ • Ошибки больше не появляются;
+ • Пользователь может скопировать и делиться ссылкой: https://t.me/UniFarmingBot/app?startapp=ref_КОД.
