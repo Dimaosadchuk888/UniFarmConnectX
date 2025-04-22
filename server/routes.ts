@@ -68,6 +68,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).send(JSON.stringify({ status: "ok", message: "API работает" }));
   });
+  
+  // Диагностический эндпоинт для отладки Telegram данных
+  app.get("/api/telegram-debug", async (req: Request, res: Response) => {
+    try {
+      // Собираем всю информацию об окружении и заголовках
+      const debugInfo = {
+        headers: req.headers,
+        telegramSpecificHeaders: {
+          telegramData: req.headers['telegram-data'] || req.headers['x-telegram-data'],
+          telegramInitData: req.headers['x-telegram-init-data'] || req.headers['initdata'] || req.headers['x-initdata'],
+          telegramUserId: req.headers['x-telegram-user-id'] || req.headers['telegram-user-id'],
+          startParam: req.headers['x-start-param'],
+        },
+        queryParams: req.query,
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+        ipInfo: {
+          ip: req.ip,
+          forwardedFor: req.headers['x-forwarded-for'],
+        }
+      };
+      
+      // Анализируем initData, если она есть
+      let initData = debugInfo.telegramSpecificHeaders.telegramInitData as string;
+      if (initData) {
+        try {
+          // Если это строка query-параметров, пытаемся распарсить
+          if (initData.includes('=') && initData.includes('&')) {
+            const params = new URLSearchParams(initData);
+            const parsedData: Record<string, any> = {};
+            
+            params.forEach((value, key) => {
+              // Для безопасности - не показываем полный hash
+              if (key === 'hash') {
+                parsedData[key] = 'present (masked for security)';
+              } 
+              // Попытка прочитать JSON в полях user и др.
+              else if (key === 'user' || key === 'auth_data') {
+                try {
+                  parsedData[key] = JSON.parse(value);
+                } catch {
+                  // Если не JSON, сохраняем как текст
+                  parsedData[key] = value;
+                }
+              } 
+              else {
+                parsedData[key] = value;
+              }
+            });
+            
+            debugInfo['parsedInitData'] = parsedData;
+          } 
+          // Если это JSON, пытаемся распарсить
+          else {
+            try {
+              const jsonData = JSON.parse(initData);
+              debugInfo['parsedInitData'] = jsonData;
+              
+              // Если есть hash, маскируем его для безопасности
+              if (jsonData.hash) {
+                jsonData.hash = 'present (masked for security)';
+              }
+            } catch {
+              debugInfo['initDataFormat'] = 'unknown (not query params or JSON)';
+            }
+          }
+        } catch (parseError) {
+          debugInfo['initDataParseError'] = `Error parsing initData: ${(parseError as Error).message}`;
+        }
+      }
+      
+      // Логирование для аудита использования
+      console.log(`[ДИАГНОСТИКА] Запрос к API telegram-debug от ${req.ip}`);
+      
+      res.json({
+        success: true,
+        data: debugInfo
+      });
+    } catch (error) {
+      console.error('[API] Error in telegram-debug endpoint:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during diagnostics',
+        error: (error as Error).message
+      });
+    }
+  });
 
   // Маршруты для аутентификации
   app.post("/api/auth/telegram", AuthController.authenticateTelegram);
