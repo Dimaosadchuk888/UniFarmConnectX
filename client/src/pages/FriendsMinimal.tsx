@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
 import SimpleReferralLink from '@/components/friends/SimpleReferralLink';
+import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink';
 
 /**
  * Минимальная версия страницы партнерской программы для диагностики отображения реферальной ссылки
- * Без любых диагностических блоков или дополнительных UI компонентов
+ * Показывает оба компонента (старый и новый) для сравнения их работы
+ * ОБНОВЛЕНО: Добавлен новый компонент UniFarmReferralLink с упрощенной логикой
  */
 const FriendsMinimal: React.FC = () => {
   // Состояние для отслеживания привязки к API
@@ -47,7 +49,12 @@ const FriendsMinimal: React.FC = () => {
         Минимальная партнёрская программа
       </h1>
       
-      {/* Новый упрощенный компонент для отображения реферальной ссылки */}
+      {/* Новый основной компонент для отображения реферальной ссылки */}
+      <div className="mb-6">
+        <UniFarmReferralLink />
+      </div>
+      
+      {/* Альтернативный тестовый компонент для сравнения */}
       <div className="mb-6">
         <SimpleReferralLink />
       </div>
