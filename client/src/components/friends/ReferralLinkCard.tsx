@@ -250,7 +250,8 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {error.hasError && (
+        {/* Отображаем ошибку только если нет реферального кода */}
+        {error.hasError && !refCode && (
           <div className="flex flex-col items-center py-3 px-2 bg-red-900/20 rounded-lg">
             <div className="flex items-center text-red-400 mb-2">
               <i className="fas fa-exclamation-circle mr-2"></i>
@@ -302,9 +303,9 @@ const ReferralLinkCard: React.FC = () => {
         
         {/* Убрали блок с предупреждением про Telegram */}
         
-        {/* Отображаем ссылку, если она сгенерирована, независимо от hasRealUserId */}
-        {/* Блок с реферальной ссылкой - всегда отображается после загрузки */}
-        {!isUserLoading && !error.hasError && (
+        {/* Отображаем ссылку, если она сгенерирована, независимо от наличия ошибки */}
+        {/* Блок с реферальной ссылкой - всегда отображается после загрузки, если есть refCode */}
+        {!isUserLoading && (refCode || !error.hasError) && (
           <div className="flex relative">
             <div className="flex-grow relative">
               {referralLink ? (
