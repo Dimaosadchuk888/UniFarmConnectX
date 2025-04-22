@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startBackgroundTasks } from "./background-tasks";
+import { updateRefCodes } from "./migrations/update-ref-codes";
 
 const app = express();
 app.use(express.json());
@@ -92,5 +93,18 @@ app.use((req, res, next) => {
     
     // Запуск фоновых задач
     startBackgroundTasks();
+    
+    // Обновление реферальных кодов
+    try {
+      updateRefCodes()
+        .then(() => {
+          console.log('[Server] Миграция реферальных кодов успешно выполнена');
+        })
+        .catch(error => {
+          console.error('[Server] Ошибка при выполнении миграции реферальных кодов:', error);
+        });
+    } catch (error) {
+      console.error('[Server] Ошибка при запуске миграции реферальных кодов:', error);
+    }
   });
 })();
