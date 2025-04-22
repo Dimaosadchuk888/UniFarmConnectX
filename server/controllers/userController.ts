@@ -28,17 +28,26 @@ export class UserController {
         telegramInitData = req.headers['x-telegram-init-data'] as string;
       }
       
+      // Добавляем поддержку заголовка initdata (в нижнем регистре), часто используемого клиентами
+      if (!telegramInitData) {
+        telegramInitData = req.headers['initdata'] as string || req.headers['x-initdata'] as string;
+      }
+      
       let telegramId: number | null = null;
       let userId: number | null = null;
       let username: string | null = null;
       let languageCode = 'ru'; // По умолчанию русский
+      
+      console.log(`[UserController] [АУДИТ] Запрос на /api/me, SOURCE: ${req.headers['user-agent']?.substring(0, 50) || 'unknown'}`);
       
       // АУДИТ: Подробный лог всех заголовков запроса для диагностики
       console.log('[АУДИТ] [UserController] All headers:', req.headers);
       
       // АУДИТ: Отдельно логируем все Telegram заголовки
       const telegramHeaders = Object.keys(req.headers).filter(h => 
-        h.toLowerCase().includes('telegram') || h.toLowerCase().startsWith('x-')
+        h.toLowerCase().includes('telegram') || 
+        h.toLowerCase().startsWith('x-') || 
+        h.toLowerCase().includes('init')
       );
       console.log('[АУДИТ] [UserController] Telegram-related headers:', 
         JSON.stringify(telegramHeaders));
@@ -53,13 +62,23 @@ export class UserController {
         console.log(`[UserController] [ReferralSystem] Detected start parameter: ${startParam}`);
       }
         
+      // 1. УЛУЧШЕННОЕ ПОЛУЧЕНИЕ TELEGRAM ID
+      // ========================================
+      
+      // Проверяем параметры URL
+      const urlTelegramId = req.query.telegram_id ? parseInt(req.query.telegram_id as string) : null;
+      if (urlTelegramId && !isNaN(urlTelegramId)) {
+        telegramId = urlTelegramId;
+        console.log(`[UserController] Found telegram_id in URL parameters: ${telegramId}`);
+      }
+      
       // Проверяем наличие пользовательского ID в заголовке
-      const headerUserId = req.headers['x-telegram-user-id'] || req.headers['x-user-id'];
-      if (headerUserId) {
+      const headerUserId = req.headers['x-telegram-user-id'] || req.headers['x-user-id'] || req.headers['telegram-user-id'];
+      if (headerUserId && !telegramId) {
         console.log(`[UserController] Found user ID in headers: ${headerUserId}`);
         
         // Если у нас нет telegramId из initData, но есть в заголовке, используем его
-        if (!telegramId && typeof headerUserId === 'string' && headerUserId.trim() !== '') {
+        if (typeof headerUserId === 'string' && headerUserId.trim() !== '') {
           try {
             telegramId = parseInt(headerUserId);
             console.log(`[UserController] Using user ID from header as telegramId: ${telegramId}`);
@@ -69,6 +88,7 @@ export class UserController {
         }
       }
       
+      // Обработка initData от Telegram
       if (telegramInitData) {
         try {
           console.log('[UserController] [TelegramAuth] Got Telegram initData from headers');
@@ -100,7 +120,10 @@ export class UserController {
             console.log('[АУДИТ] [UserController] initData key-value pairs preview:', keysAndValues);
             
             // Извлекаем ID пользователя из Telegram
-            telegramId = authParams.get('id') ? parseInt(authParams.get('id')!) : null;
+            if (authParams.get('id')) {
+              telegramId = parseInt(authParams.get('id')!);
+              console.log(`[UserController] Found telegram_id in initData params: ${telegramId}`);
+            }
             username = authParams.get('username') || null;
             
             // Если не нашли напрямую id, ищем в user структуре (может быть внутри JSON)
@@ -147,100 +170,127 @@ export class UserController {
                   'data too short');
             }
           }
-          
-          if (telegramId) {
-            console.log(`[UserController] Found Telegram ID: ${telegramId}, searching for user...`);
-            
-            // Пробуем найти пользователя по Telegram ID с более подробным логированием
-            console.log(`[UserController] Searching for user with Telegram ID ${telegramId} (type: ${typeof telegramId})`);
-            
-            let existingUser = null;
-            
-            try {
-              existingUser = await UserService.getUserByTelegramId(telegramId);
-              
-              if (existingUser) {
-                // Пользователь найден - используем его ID
-                userId = existingUser.id;
-                console.log(`[UserController] User found with ID ${userId} for Telegram ID ${telegramId}`);
-              } else {
-                console.log(`[UserController] No user found for Telegram ID ${telegramId}`);
-              }
-            } catch (searchError) {
-              console.error(`[UserController] Error searching for user with telegramId ${telegramId}:`, searchError);
-            }
-            
-            // Если пользователь не найден, создаем нового
-            if (!existingUser) {
-              console.log(`[UserController] [TelegramAuth] Creating new user for Telegram ID ${telegramId}...`);
-              
-              // Переменные для имени и фамилии
-              let firstName = '';
-              let lastName = '';
-              
-              // Пробуем получить имя и фамилию из разных источников
-              if (telegramInitData.includes('=') && telegramInitData.includes('&')) {
-                // Из query-params, если данные в таком формате
-                const authParams = new URLSearchParams(telegramInitData);
-                firstName = authParams.get('first_name') || '';
-                lastName = authParams.get('last_name') || '';
-              } else {
-                // Из JSON, если данные в другом формате
-                try {
-                  const initDataObj = JSON.parse(telegramInitData);
-                  if (initDataObj.user) {
-                    firstName = initDataObj.user.first_name || '';
-                    lastName = initDataObj.user.last_name || '';
-                  }
-                } catch (e) {
-                  console.error('[UserController] [TelegramAuth] Error extracting name from JSON:', e);
-                }
-              }
-              
-              console.log(`[UserController] [TelegramAuth] User info: firstName="${firstName}", lastName="${lastName}", username="${username || 'none'}"`);
-              
-              // Используем имя и фамилию для создания username, если его нет
-              if (!username) {
-                username = [firstName, lastName].filter(Boolean).join('_');
-                if (!username) {
-                  username = `telegram_${telegramId}`;
-                }
-              }
-              
-              console.log(`[UserController] [TelegramAuth] Final username for new user: "${username}"`);
-              
-              // Генерируем уникальный реферальный код для нового пользователя
-              const refCode = UserService.generateRefCode();
-              console.log(`[UserController] [TelegramAuth] Generated ref_code for new user: "${refCode}"`);
-              
-              // Создаем нового пользователя
-              const newUser = await UserService.createUser({
-                telegram_id: telegramId,
-                username,
-                created_at: new Date(),
-                updated_at: new Date(),
-                balance_uni: '0',
-                balance_ton: '0',
-                uni_deposit_amount: '0',
-                uni_farming_balance: '0',
-                uni_farming_rate: '0',
-                ton_deposit_amount: '0',
-                ton_farming_balance: '0',
-                ton_farming_rate: '0',
-                ref_code: refCode // Устанавливаем сгенерированный реферальный код
-              });
-              
-              userId = newUser.id;
-              console.log(`[UserController] Created new user with ID ${userId} for Telegram ID ${telegramId} with ref_code: ${refCode}`);
-            }
-          } else {
-            console.warn('[UserController] Telegram initData does not contain user ID');
-          }
         } catch (parseError) {
           console.error('[UserController] Error parsing Telegram initData:', parseError);
         }
       } else {
         console.warn('[UserController] No Telegram initData found in headers');
+      }
+      
+      // 2. ПОИСК ИЛИ СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ
+      // ====================================
+
+      let existingUser = null;
+      
+      // Если есть telegram_id, ищем пользователя
+      if (telegramId) {
+        console.log(`[UserController] Searching for user with Telegram ID ${telegramId} (type: ${typeof telegramId})`);
+        
+        try {
+          existingUser = await UserService.getUserByTelegramId(telegramId);
+          
+          if (existingUser) {
+            // Пользователь найден - используем его ID
+            userId = existingUser.id;
+            console.log(`[UserController] User found with ID ${userId} for Telegram ID ${telegramId}`);
+            
+            // ПРОВЕРКА И ОБНОВЛЕНИЕ ref_code: если у существующего пользователя нет ref_code, генерируем его
+            if (!existingUser.ref_code) {
+              const refCode = UserService.generateRefCode();
+              console.log(`[UserController] Existing user ${userId} has no ref_code. Generating new ref_code: ${refCode}`);
+              
+              try {
+                await UserService.updateUser(userId, { ref_code: refCode });
+                console.log(`[UserController] Updated existing user ${userId} with new ref_code: ${refCode}`);
+                
+                // Обновляем объект пользователя
+                existingUser = await UserService.getUserById(userId);
+                console.log(`[UserController] Refreshed user data for ID ${userId}:`, { 
+                  id: existingUser?.id, 
+                  hasRefCode: !!existingUser?.ref_code,
+                  refCode: existingUser?.ref_code || 'still missing'
+                });
+              } catch (updateError) {
+                console.error(`[UserController] Failed to update ref_code for user ${userId}:`, updateError);
+              }
+            }
+          } else {
+            console.log(`[UserController] No user found for Telegram ID ${telegramId}. Will create new user.`);
+          }
+        } catch (searchError) {
+          console.error(`[UserController] Error searching for user with telegramId ${telegramId}:`, searchError);
+        }
+        
+        // Если пользователь не найден, создаем нового
+        if (!existingUser) {
+          console.log(`[UserController] [TelegramAuth] Creating new user for Telegram ID ${telegramId}...`);
+          
+          // Переменные для имени и фамилии
+          let firstName = '';
+          let lastName = '';
+          
+          // Пробуем получить имя и фамилию из разных источников
+          if (telegramInitData) {
+            if (telegramInitData.includes('=') && telegramInitData.includes('&')) {
+              // Из query-params, если данные в таком формате
+              const authParams = new URLSearchParams(telegramInitData);
+              firstName = authParams.get('first_name') || '';
+              lastName = authParams.get('last_name') || '';
+            } else {
+              // Из JSON, если данные в другом формате
+              try {
+                const initDataObj = JSON.parse(telegramInitData);
+                if (initDataObj.user) {
+                  firstName = initDataObj.user.first_name || '';
+                  lastName = initDataObj.user.last_name || '';
+                }
+              } catch (e) {
+                console.error('[UserController] [TelegramAuth] Error extracting name from JSON:', e);
+              }
+            }
+          }
+          
+          console.log(`[UserController] [TelegramAuth] User info: firstName="${firstName}", lastName="${lastName}", username="${username || 'none'}"`);
+          
+          // Используем имя и фамилию для создания username, если его нет
+          if (!username) {
+            username = [firstName, lastName].filter(Boolean).join('_');
+            if (!username) {
+              username = `telegram_${telegramId}`;
+            }
+          }
+          
+          console.log(`[UserController] [TelegramAuth] Final username for new user: "${username}"`);
+          
+          // Генерируем уникальный реферальный код для нового пользователя
+          const refCode = UserService.generateRefCode();
+          console.log(`[UserController] [TelegramAuth] Generated ref_code for new user: "${refCode}"`);
+          
+          // Создаем нового пользователя
+          try {
+            const newUser = await UserService.createUser({
+              telegram_id: telegramId,
+              username,
+              created_at: new Date(),
+              updated_at: new Date(),
+              balance_uni: '0',
+              balance_ton: '0',
+              uni_deposit_amount: '0',
+              uni_farming_balance: '0',
+              uni_farming_rate: '0',
+              ton_deposit_amount: '0',
+              ton_farming_balance: '0',
+              ton_farming_rate: '0',
+              ref_code: refCode // Устанавливаем сгенерированный реферальный код
+            });
+            
+            userId = newUser.id;
+            existingUser = newUser;
+            console.log(`[UserController] Successfully created new user with ID ${userId} for Telegram ID ${telegramId} with ref_code: ${refCode}`);
+          } catch (createError) {
+            console.error(`[UserController] Failed to create new user for Telegram ID ${telegramId}:`, createError);
+          }
+        }
       }
       
       // Второй приоритет: Сессия или заголовок user_id (для тестирования API)
@@ -266,15 +316,56 @@ export class UserController {
         return sendError(res, 'Не удалось определить пользователя', 401);
       }
 
-      // Получаем пользователя по ID
-      const user = await UserService.getUserById(userId);
+      // Получаем актуальные данные пользователя по ID
+      let user = existingUser;
+      
+      // Если еще не загрузили пользователя, загружаем его
+      if (!user) {
+        user = await UserService.getUserById(userId);
+      }
 
       if (!user) {
         console.error(`[UserController] User with ID ${userId} not found`);
         return sendError(res, 'Пользователь не найден', 404);
       }
-
-      console.log(`[UserController] Returning user data for ID ${userId}`);
+      
+      // ПРОВЕРКА НАЛИЧИЯ ref_code У ПОЛЬЗОВАТЕЛЯ
+      // ========================================
+      // Если у пользователя все еще нет ref_code, генерируем его
+      if (!user.ref_code) {
+        const refCode = UserService.generateRefCode();
+        console.log(`[UserController] User ${userId} missing ref_code. Generating new one: ${refCode}`);
+        
+        try {
+          await UserService.updateUser(userId, { ref_code: refCode });
+          console.log(`[UserController] Successfully updated user ${userId} with new ref_code: ${refCode}`);
+          
+          // Обновляем объект пользователя с новым ref_code
+          user = await UserService.getUserById(userId);
+          console.log(`[UserController] Updated user data:`, { 
+            id: user?.id, 
+            refCodePresent: !!user?.ref_code,
+            refCode: user?.ref_code || 'failed to update'
+          });
+        } catch (updateError) {
+          console.error(`[UserController] Failed to update ref_code for final user check ${userId}:`, updateError);
+        }
+      }
+      
+      // Добавляем проверку на null
+      if (!user) {
+        console.error(`[UserController] User with ID ${userId} missing after all checks`);
+        return sendError(res, 'Пользователь не найден', 404);
+      }
+      
+      // Финальный лог перед отправкой данных
+      console.log(`[UserController] Returning user data for ID ${userId}:`, {
+        id: user.id,
+        telegramId: user.telegram_id,
+        hasRefCode: !!user.ref_code,
+        refCode: user.ref_code || 'missing'
+      });
+      
       sendSuccess(res, {
         id: user.id,
         telegram_id: user.telegram_id,

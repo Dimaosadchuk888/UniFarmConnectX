@@ -1,5 +1,6 @@
 /**
  * Сервис для работы с Telegram WebApp
+ * Обеспечивает стабильное взаимодействие с Telegram API в Mini App
  */
 
 // Расширение типов для Telegram WebApp API
@@ -27,10 +28,27 @@ declare global {
         startParam?: string; // Параметр start= из ссылки запуска бота
         version?: string;    // Версия API
         themeParams?: Record<string, string>; // Параметры темы
+        
+        // Методы из полного API
+        MainButton?: {
+          show: () => void;
+          hide: () => void;
+          setText: (text: string) => void;
+          onClick: (callback: Function) => void;
+        };
+        sendData?: (data: string) => void;
+        openLink?: (url: string) => void;
       };
     };
+    // Добавляем поддержку фиксации Telegram ID в localStorage
+    localStorage?: Storage;
   }
 }
+
+// Ключ для хранения ID пользователя в localStorage
+const TELEGRAM_USER_ID_KEY = 'telegram_user_id';
+// Ключ для хранения времени последнего сохранения telegram_id
+const TELEGRAM_ID_TIMESTAMP_KEY = 'telegram_id_timestamp';
 
 /**
  * Проверяет, запущено ли приложение в Telegram WebApp и доступны ли все необходимые свойства API
