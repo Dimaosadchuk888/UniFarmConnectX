@@ -11,6 +11,9 @@ const MAX_LOADING_TIME = 3000;
 // Максимальное время обновления данных
 const AUTO_REFRESH_INTERVAL = 60 * 1000; // 1 минута
 
+// Максимальное количество попыток получения ref_code
+const MAX_RETRY_ATTEMPTS = 3;
+
 const ReferralLinkCard: React.FC = () => {
   // Получаем доступ к queryClient для ручного обновления данных
   const queryClient = useQueryClient();
@@ -29,7 +32,7 @@ const ReferralLinkCard: React.FC = () => {
     refetch,
   } = useQuery<User>({
     queryKey: ['/api/me'],
-    queryFn: () => userService.getCurrentUser(),
+    queryFn: () => userService.getCurrentUser(true), // Всегда делаем свежий запрос
     staleTime: 1000 * 60 * 1, // Кэшируем данные на 1 минуту
     retry: 3, // Три попытки запроса
     refetchOnWindowFocus: true, // Обновлять данные при фокусе окна
@@ -44,7 +47,10 @@ const ReferralLinkCard: React.FC = () => {
     setLastRefreshTime(Date.now());
     
     try {
-      // Сначала очищаем кэш, затем запрашиваем новые данные
+      // Очищаем пользовательский кэш для получения свежих данных
+      userService.clearUserCache();
+      
+      // Очищаем кэш запросов и делаем новый запрос
       await queryClient.invalidateQueries({ queryKey: ['/api/me'] });
       const result = await refetch();
       
@@ -58,16 +64,27 @@ const ReferralLinkCard: React.FC = () => {
       if (result.data?.ref_code) {
         setShowLoading(false);
         setLoadingTimedOut(false);
+      } else if (retryAttempt >= MAX_RETRY_ATTEMPTS) {
+        // Если превысили лимит попыток, показываем ошибку
+        console.warn(`[ReferralLinkCard] Maximum retry attempts (${MAX_RETRY_ATTEMPTS}) reached without getting ref_code`);
+        setShowLoading(false);
+        setLoadingTimedOut(true);
       }
     } catch (error) {
       console.error('[ReferralLinkCard] Error during manual refresh:', error);
+      
+      // Если ошибка после нескольких попыток, показываем сообщение
+      if (retryAttempt >= MAX_RETRY_ATTEMPTS) {
+        setShowLoading(false);
+        setLoadingTimedOut(true);
+      }
     }
-  }, [queryClient, refetch]);
+  }, [queryClient, refetch, retryAttempt]);
   
   // Эффект для отслеживания состояния загрузки и таймаутов
   useEffect(() => {
     // АУДИТ: Расширенное логирование для диагностики
-    console.log('[АУДИТ] [ReferralLinkCard] Loading state changed:', {
+    console.log('[ReferralLinkCard] Loading state changed:', {
       isUserLoading,
       isUserError,
       hasUser: !!currentUser,
@@ -86,8 +103,13 @@ const ReferralLinkCard: React.FC = () => {
     if (currentUser) {
       console.log('[ReferralLinkCard] User data loaded:', {
         id: currentUser.id,
+        telegram_id: currentUser.telegram_id,
         ref_code: currentUser.ref_code || 'missing'
       });
+      
+      if (!currentUser.ref_code) {
+        console.warn('[Friends] АУДИТ: ref_code отсутствует в данных пользователя');
+      }
     }
     
     // Если загрузка данных завершена
@@ -110,12 +132,18 @@ const ReferralLinkCard: React.FC = () => {
           // Запускаем таймер для отображения ошибки
           const timer = setTimeout(() => {
             setShowLoading(false);
-            setLoadingTimedOut(true);
             
-            // После таймаута сразу пробуем повторный запрос
-            if (retryAttempt === 0) {
-              console.log('[ReferralLinkCard] Auto-retry after timeout');
-              refreshUserData();
+            // Проверяем наличие ref_code еще раз
+            if (currentUser?.ref_code) {
+              setLoadingTimedOut(false);
+            } else {
+              setLoadingTimedOut(true);
+              
+              // После таймаута сразу пробуем повторный запрос
+              if (retryAttempt === 0) {
+                console.log('[ReferralLinkCard] Auto-retry after timeout');
+                refreshUserData();
+              }
             }
           }, MAX_LOADING_TIME);
           
@@ -125,18 +153,14 @@ const ReferralLinkCard: React.FC = () => {
     } else {
       // Ограничиваем время показа лоадера даже если загрузка продолжается
       const maxLoadingTimer = setTimeout(() => {
-        setShowLoading(false);
-        
         // Проверяем наличие ref_code
-        if (currentUser && typeof currentUser === 'object') {
-          // Сначала проверяем, что это объект, затем проверяем наличие ref_code
-          const userData = currentUser as any;
-          if (userData.ref_code) {
-            setLoadingTimedOut(false);
-          } else {
-            setLoadingTimedOut(true);
-          }
+        if (currentUser?.ref_code) {
+          console.log('[ReferralLinkCard] Found ref_code after timeout:', currentUser.ref_code);
+          setShowLoading(false);
+          setLoadingTimedOut(false);
         } else {
+          console.warn('[ReferralLinkCard] Loading timed out without ref_code');
+          setShowLoading(false);
           setLoadingTimedOut(true);
         }
       }, MAX_LOADING_TIME);
@@ -147,12 +171,7 @@ const ReferralLinkCard: React.FC = () => {
     // Эффект для автоматического периодического обновления данных
     const autoRefreshTimer = setInterval(() => {
       // Проверяем, нужно ли обновить данные (если нет ref_code или прошло достаточно времени)
-      let hasRefCode = false;
-      
-      if (currentUser && typeof currentUser === 'object') {
-        const userData = currentUser as any;
-        hasRefCode = !!userData.ref_code;
-      }
+      const hasRefCode = !!currentUser?.ref_code;
       
       if (!hasRefCode && Date.now() - lastRefreshTime > AUTO_REFRESH_INTERVAL) {
         console.log('[ReferralLinkCard] Auto-refresh triggered');
