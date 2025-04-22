@@ -436,21 +436,31 @@ export class UserController {
       // Здесь должна быть валидация тела запроса
       const userData = req.body;
       
+      let wasNewUser = true;
+      
       // Проверка на существование пользователя с таким telegram_id
       if (userData.telegram_id) {
+        console.log(`[UserController] [AUDIT] createUser запрошено с telegram_id: ${userData.telegram_id}`);
         const existingUser = await UserService.getUserByTelegramId(userData.telegram_id);
         if (existingUser) {
+          console.log(`[UserController] [AUDIT] Пользователь с telegram_id ${userData.telegram_id} уже существует. ID: ${existingUser.id}, ref_code: ${existingUser.ref_code || 'НЕ УСТАНОВЛЕН'}`);
+          wasNewUser = false;
           return sendError(res, 'User with this Telegram ID already exists', 409);
         }
+      } else {
+        console.log(`[UserController] [AUDIT] createUser запрошено БЕЗ telegram_id. Данные:`, userData);
       }
       
       // Если ref_code не задан явно, генерируем его
       if (!userData.ref_code) {
         userData.ref_code = UserService.generateRefCode();
-        console.log(`[UserController] Generated ref_code for new user: "${userData.ref_code}"`);
+        console.log(`[UserController] [AUDIT] Сгенерирован ref_code для нового пользователя: "${userData.ref_code}"`);
+      } else {
+        console.log(`[UserController] [AUDIT] Использован предоставленный ref_code: "${userData.ref_code}"`);
       }
 
       const newUser = await UserService.createUser(userData);
+      console.log(`[UserController] [AUDIT] Пользователь создан: telegram_id=${userData.telegram_id || 'N/A'}, wasNewUser=${wasNewUser}, ref_code="${newUser.ref_code}", userId=${newUser.id}`);
       sendSuccess(res, newUser);
     } catch (error) {
       if (error instanceof ZodError) {
