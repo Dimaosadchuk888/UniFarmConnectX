@@ -15,24 +15,36 @@ const ReferralLinkCard: React.FC = () => {
     retry: 3, // Три попытки запроса
   });
   
-  // Эффект для показа лоадера на 3 секунды
+  // Эффект для показа лоадера на 5 секунд (по ТЗ)
   useEffect(() => {
-    if (isUserLoading) {
-      // Показываем лоадер
-      setShowLoading(true);
-      setLoadingTimedOut(false);
-    } else {
-      // Если загрузка закончилась, но нет refCode - показываем сообщение об ошибке после таймера
-      if (!currentUser?.ref_code) {
+    // Сначала всегда показываем лоадер, независимо от наличия данных в кэше
+    setShowLoading(true);
+    setLoadingTimedOut(false);
+    
+    // Логируем состояние загрузки
+    console.log('[ReferralLinkCard] Loading state:', {
+      isUserLoading,
+      hasUser: !!currentUser,
+      hasRefCode: !!currentUser?.ref_code,
+      refCode: currentUser?.ref_code || 'не определен'
+    });
+    
+    // Если загрузка данных завершена
+    if (!isUserLoading) {
+      // Если получен ref_code, убираем лоадер немедленно
+      if (currentUser?.ref_code) {
+        console.log('[ReferralLinkCard] Ref code found, hiding loader');
+        setShowLoading(false);
+        setLoadingTimedOut(false);
+      } else {
+        // Если нет ref_code - показываем сообщение об ошибке после 5-секундного таймера
+        console.log('[ReferralLinkCard] No ref code found, setting timeout for error message');
         const timer = setTimeout(() => {
           setShowLoading(false);
           setLoadingTimedOut(true);
-        }, 3000);
+        }, 5000); // 5 секунд по ТЗ
         
         return () => clearTimeout(timer);
-      } else {
-        // Если есть refCode - сразу убираем лоадер
-        setShowLoading(false);
       }
     }
   }, [isUserLoading, currentUser?.ref_code]);
@@ -159,7 +171,7 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {/* Сообщение о проблеме загрузки, когда нет ссылки */}
+        {/* Сообщение о проблеме загрузки, когда нет ссылки (оранжевое, не красное) */}
         {!isUserLoading && !refCode && loadingTimedOut && (
           <div className="flex justify-center items-center py-3 px-2 bg-amber-500/10 rounded-lg">
             <i className="fas fa-exclamation-circle text-amber-500/80 mr-2"></i>

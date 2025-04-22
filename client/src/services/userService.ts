@@ -10,7 +10,7 @@ export interface User {
   username: string;
   balance_uni: string;
   balance_ton: string;
-  ref_code?: string; // Реферальный код пользователя
+  ref_code: string; // Реферальный код пользователя всегда должен быть определен
 }
 
 /**
@@ -157,15 +157,32 @@ class UserService {
    * @private
    */
   private isValidUserData(data: any): data is User {
-    return (
+    const isValid = (
       data &&
       typeof data.id === 'number' &&
       data.id > 0 &&
       (typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string') &&
       typeof data.username === 'string' &&
       typeof data.balance_uni === 'string' &&
-      typeof data.balance_ton === 'string'
+      typeof data.balance_ton === 'string' &&
+      typeof data.ref_code === 'string' // Добавлена проверка на ref_code
     );
+    
+    // Подробный лог для отладки валидации данных
+    if (!isValid && data) {
+      console.warn('[UserService] Invalid user data structure:', {
+        hasId: typeof data.id === 'number',
+        idIsPositive: data.id > 0,
+        hasTelegramId: typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string',
+        hasUsername: typeof data.username === 'string',
+        hasBalanceUni: typeof data.balance_uni === 'string',
+        hasBalanceTon: typeof data.balance_ton === 'string',
+        hasRefCode: typeof data.ref_code === 'string',
+        refCodeValue: data.ref_code || 'missing'
+      });
+    }
+    
+    return isValid;
   }
   
   /**
