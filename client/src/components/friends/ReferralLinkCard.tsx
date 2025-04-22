@@ -407,33 +407,7 @@ const ReferralLinkCard: React.FC = () => {
         )}
         
         {/* Больше не нужно показывать отдельный fallback-контейнер, так как мы уже показываем информацию внутри поля */}
-        {/* Отображаем дополнительную информацию только в режиме разработки */}
-        {process.env.NODE_ENV === 'development' && !isUserLoading && !error.hasError && (
-          <div className="flex flex-col items-center py-3 px-2 bg-gray-900/30 rounded-lg mt-3">
-            <div className="flex items-center text-primary mb-2">
-              <i className="fas fa-bug mr-2"></i>
-              <span className="text-sm font-medium">Режим разработки</span>
-            </div>
-            
-            <p className="text-xs text-primary/90 mb-3 text-center">
-              Информация о состоянии компонента и доступности данных Telegram
-            </p>
-            
-            {/* Отладочная информация удалена */}
-            
-            <div className="flex justify-center mt-2">
-              <a 
-                href="https://t.me/UniFarmingBot" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-xs bg-amber-600/40 hover:bg-amber-600/60 transition-colors py-1.5 px-3 rounded-full flex items-center"
-              >
-                <i className="fab fa-telegram mr-2"></i>
-                Открыть в Telegram
-              </a>
-            </div>
-          </div>
-        )}
+        {/* Блок "Режим разработки" удален */}
       </div>
       
       {/* Секция с статистикой */}
