@@ -336,7 +336,7 @@ const ReferralLinkCard: React.FC = () => {
         )}
         
         {/* Отображаем ссылку если есть refCode или принудительно включено ее отображение */}
-        {(!showLoading && refCode) || (forceShowLink && refCode) ? (
+        {((!showLoading && refCode) || (forceShowLink && refCode)) && (
           <div className="flex relative">
             <div className="flex-grow relative">
               <input 
@@ -396,7 +396,7 @@ const ReferralLinkCard: React.FC = () => {
               </div>
             )}
           </div>
-        ) : null}
+        )}
       </div>
       
       {/* Секция с статистикой */}
