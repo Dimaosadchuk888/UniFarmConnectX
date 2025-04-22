@@ -22,6 +22,7 @@ import Wallet from "@/pages/Wallet";
 import TelegramTest from "./pages/TelegramTest";
 import WebhookSetup from "./pages/WebhookSetup";
 import DebugPage from "./pages/DebugPage";
+import AdminPage from "./pages/AdminPage";
 
 // For Telegram WebApp types
 // Обновлено определение глобального интерфейса для Telegram WebApp
@@ -306,6 +307,11 @@ function App() {
             {/* Страница настройки Telegram Webhook */}
             <Route path="/webhook-setup">
               <WebhookSetup />
+            </Route>
+            
+            {/* Административная страница для настройки бота */}
+            <Route path="/admin">
+              <AdminPage />
             </Route>
             
             {/* Основной интерфейс приложения */}
