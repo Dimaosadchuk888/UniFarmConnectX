@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
+import SimpleReferralLink from '@/components/friends/SimpleReferralLink';
 
 /**
  * Минимальная версия страницы партнерской программы для диагностики отображения реферальной ссылки
@@ -14,13 +15,20 @@ const FriendsMinimal: React.FC = () => {
   const { data: userData, isLoading } = useQuery({
     queryKey: ['/api/me'], 
     queryFn: () => userService.getCurrentUser(),
-    staleTime: 1000 // Уменьшаем время кэширования для более быстрой проверки
+    staleTime: 0 // Без кэширования для немедленного обновления
   });
   
   // Отслеживаем изменения в данных
   useEffect(() => {
     if (userData) {
       setApiStatus("Данные получены");
+      // Явно логируем полученные данные
+      console.log('[FriendsMinimal] User data received:', {
+        id: userData.id,
+        telegram_id: userData.telegram_id,
+        username: userData.username,
+        ref_code: userData.ref_code || 'MISSING'
+      });
     } else if (isLoading) {
       setApiStatus("Загрузка...");
     } else {
@@ -38,6 +46,11 @@ const FriendsMinimal: React.FC = () => {
       <h1 className="text-xl font-semibold text-primary mb-6">
         Минимальная партнёрская программа
       </h1>
+      
+      {/* Новый упрощенный компонент для отображения реферальной ссылки */}
+      <div className="mb-6">
+        <SimpleReferralLink />
+      </div>
       
       {/* Минимальный блок с данными для диагностики */}
       <div className="bg-black/30 rounded-lg p-3 mb-4 text-sm overflow-hidden">

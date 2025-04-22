@@ -315,6 +315,11 @@ function App() {
               <AdminPage />
             </Route>
             
+            {/* Диагностика реферальной системы */}
+            <Route path="/referral-debug">
+              <ReferralDebug />
+            </Route>
+            
             {/* Основной интерфейс приложения */}
             <Route path="*">
               <Header />
