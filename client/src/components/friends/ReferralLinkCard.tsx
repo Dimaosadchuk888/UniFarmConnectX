@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import userService, { User } from '@/services/userService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { requestInitData } from '@/services/telegramService';
 
 // Определяем, находимся ли мы в режиме разработки
 const IS_DEV = process.env.NODE_ENV === 'development';
 
-// Максимальное время отображения загрузки (по ТЗ - 5 секунд)
-const MAX_LOADING_TIME = 5000;
+// Максимальное время отображения загрузки (убрали искусственную задержку)
+const MAX_LOADING_TIME = 0;
 
 // Максимальное время обновления данных
 const AUTO_REFRESH_INTERVAL = 60 * 1000; // 1 минута
@@ -98,6 +99,21 @@ const ReferralLinkCard: React.FC = () => {
       loadingTimedOut,
       forceShowLink
     });
+    
+    // Если у пользователя нет telegram_id, запрашиваем инициализацию Telegram WebApp
+    if (currentUser && !currentUser.telegram_id) {
+      console.log('[ReferralLinkCard] User has no telegram_id, requesting Telegram initData...');
+      // Асинхронно запрашиваем initData от Telegram без ожидания
+      requestInitData().then(success => {
+        console.log('[ReferralLinkCard] RequestInitData result:', success);
+        if (success) {
+          // Если успешно получили данные, обновляем информацию о пользователе
+          refreshUserData();
+        }
+      }).catch(error => {
+        console.error('[ReferralLinkCard] Error during requestInitData:', error);
+      });
+    }
     
     // Сначала всегда показываем лоадер, но только на короткое время
     // Используем безопасное приведение типа для предотвращения LSP ошибки

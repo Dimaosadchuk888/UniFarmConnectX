@@ -257,6 +257,78 @@ export function isTelegramWebApp(): boolean {
  * Инициализирует Telegram WebApp с расширенной проверкой состояния и ошибок
  * @returns {boolean} true если инициализация прошла успешно
  */
+/**
+ * Активно запрашивает данные инициализации у Telegram WebApp
+ * Полезно в случаях, когда данные не были получены автоматически
+ * @returns {Promise<boolean>} true если удалось получить данные инициализации
+ */
+export async function requestInitData(): Promise<boolean> {
+  console.log('[telegramService] Actively requesting initData from Telegram WebApp...');
+  
+  // Проверяем, доступен ли базовый объект Telegram.WebApp
+  if (!window?.Telegram?.WebApp) {
+    console.error('[telegramService] 🔴 Cannot request initData: Telegram.WebApp is not available');
+    
+    // Для отладки: выводим полную информацию о window.Telegram объекте
+    console.log('[telegramService] DIAG: Telegram object state:', {
+      telegramExists: !!window.Telegram,
+      telegramType: typeof window.Telegram,
+      telegramKeys: window.Telegram ? Object.keys(window.Telegram) : [],
+      fullObj: window.Telegram
+    });
+    
+    return false;
+  }
+  
+  try {
+    // Пытаемся переинициализировать Telegram WebApp
+    window.Telegram.WebApp.ready();
+    
+    // Расширяем на весь экран
+    window.Telegram.WebApp.expand();
+    
+    // Проверяем, появились ли данные инициализации после переинициализации
+    const initData = window.Telegram.WebApp.initData;
+    const initDataLength = initData ? initData.length : 0;
+    
+    // Детальное логирование после попытки переинициализации
+    console.log('[telegramService] 📊 After reinitialization:', {
+      initDataAvailable: !!initData,
+      initDataLength: initDataLength,
+      initDataSample: initData && initDataLength > 0 ? 
+                    `${initData.substring(0, Math.min(20, initDataLength))}...` : 'empty',
+      initDataUnsafeAvailable: !!window.Telegram.WebApp.initDataUnsafe,
+      userAvailable: !!window.Telegram.WebApp.initDataUnsafe?.user,
+      userId: window.Telegram.WebApp.initDataUnsafe?.user?.id || 'not available'
+    });
+    
+    // Проверяем, появились ли данные о пользователе
+    if (window.Telegram.WebApp.initDataUnsafe?.user?.id) {
+      console.log('[telegramService] ✅ Successfully obtained user data after reinitialization!');
+      
+      // Публикуем событие об успешной инициализации
+      const event = new CustomEvent('telegram-webapp-initialized', { 
+        detail: { 
+          userId: window.Telegram.WebApp.initDataUnsafe.user.id,
+          // @ts-ignore
+          startParam: window.Telegram.WebApp.startParam,
+          initDataLength: initDataLength,
+          wasReinitialized: true
+        } 
+      });
+      window.dispatchEvent(event);
+      
+      return true;
+    }
+    
+    console.warn('[telegramService] ⚠️ Reinitialization did not provide user data');
+    return false;
+  } catch (error) {
+    console.error('[telegramService] 🔴 Error during initData request:', error);
+    return false;
+  }
+}
+
 export function initTelegramWebApp(): boolean {
   console.log('[telegramService] Initializing Telegram WebApp...');
   
