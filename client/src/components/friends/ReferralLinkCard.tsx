@@ -1,125 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import userService from '@/services/userService';
 import { useQuery } from '@tanstack/react-query';
-import { isTelegramWebApp, getCachedTelegramUserId } from '@/services/telegramService';
-import { getTelegramUserId, hasTelegramUserId, extractTelegramInitData, isRunningInTelegram } from '@/services/telegramInitData';
-
-// Режим разработки больше не используется
 
 const ReferralLinkCard: React.FC = () => {
-  // Улучшенное состояние для ошибок с деталями
-  const [error, setError] = useState<{
-    hasError: boolean,
-    message: string,
-    details?: string,
-    isTelegramError?: boolean  // Флаг, указывающий что ошибка связана с отсутствием Telegram WebApp
-  }>({
-    hasError: false,
-    message: ''
-  });
-  
-  // Состояние для отслеживания количества попыток
-  const [retryCount, setRetryCount] = useState<number>(0);
+  // Состояние для отображения таймера загрузки
+  const [showLoading, setShowLoading] = useState(true);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   
   // Получаем информацию о текущем пользователе из API
-  const { data: currentUser, isLoading: isUserLoading, isError, error: queryError, refetch } = useQuery({
+  const { data: currentUser, isLoading: isUserLoading } = useQuery({
     queryKey: ['/api/me'],
     queryFn: () => userService.getCurrentUser(),
     staleTime: 1000 * 60 * 5, // Кэшируем данные на 5 минут
-    retry: 3, // Увеличили до трёх попыток
+    retry: 3, // Три попытки запроса
   });
   
-  // Функция для повторной попытки получения данных
-  const handleRetry = () => {
-    setRetryCount(prevCount => prevCount + 1);
-    setError({ hasError: false, message: '' });
-    refetch();
-  };
-  
-  // Обработка ошибок через useEffect
+  // Эффект для показа лоадера на 3 секунды
   useEffect(() => {
-    if (isError) {
-      console.error('[ReferralLinkCard] Failed to get user data from API:', queryError);
-      
-      // Устанавливаем нейтральное сообщение об ошибке без деталей о Telegram
-      let errorMessage = 'Не удалось загрузить данные';
-      let errorDetails = 'Пожалуйста, попробуйте еще раз';
-      
-      // Если сервер недоступен или другая ошибка сети, уточняем сообщение
-      if (queryError instanceof Error && 
-          (queryError.message.includes('NetworkError') || 
-           queryError.message.includes('Failed to fetch'))) {
-        errorMessage = 'Проблема с соединением';
-        errorDetails = 'Проверьте интернет-соединение и попробуйте снова';
-      }
-      
-      setError({
-        hasError: true,
-        message: errorMessage,
-        details: errorDetails,
-        isTelegramError: false
-      });
-    }
-  }, [isError, queryError]);
-  
-  // Логируем userId каждый раз при его обновлении
-  useEffect(() => {
-    if (currentUser?.id) {
-      console.log('[ReferralLinkCard] Received userId from API:', currentUser.id);
+    if (isUserLoading) {
+      // Показываем лоадер
+      setShowLoading(true);
+      setLoadingTimedOut(false);
     } else {
-      console.warn('[ReferralLinkCard] No userId received from API yet');
-    }
-  }, [currentUser?.id]);
-
-  // Получаем и кэшируем ID пользователя из доступных источников
-  // Используем телеграм напрямую и через getCachedTelegramUserId 
-  const telegram = window.Telegram?.WebApp;
-  const telegramUserId = telegram?.initDataUnsafe?.user?.id;
-  const cachedUserId = getCachedTelegramUserId();
-  
-  // Отладочные сообщения удалены
-  
-  // Определяем наличие реального userId, используя новую функцию из userService
-  // которая обеспечивает надежную проверку ID
-  const [hasRealUserIdState, setHasRealUserIdState] = useState<boolean | null>(null);
-  
-  // Используем useEffect для получения асинхронного статуса hasRealUserId
-  useEffect(() => {
-    async function checkRealUserId() {
-      try {
-        // Используем усовершенствованную функцию из userService
-        const hasReal = await userService.hasRealUserId();
-        setHasRealUserIdState(hasReal);
-        console.log('[ReferralLinkCard] Real user ID check result:', hasReal);
-      } catch (error) {
-        console.error('[ReferralLinkCard] Error checking real user ID:', error);
-        setHasRealUserIdState(false);
+      // Если загрузка закончилась, но нет refCode - показываем сообщение об ошибке после таймера
+      if (!currentUser?.ref_code) {
+        const timer = setTimeout(() => {
+          setShowLoading(false);
+          setLoadingTimedOut(true);
+        }, 3000);
+        
+        return () => clearTimeout(timer);
+      } else {
+        // Если есть refCode - сразу убираем лоадер
+        setShowLoading(false);
       }
     }
-    
-    // Вызываем функцию проверки
-    checkRealUserId();
-  }, [currentUser?.id, telegramUserId, cachedUserId, retryCount]);
-  
-  // Используем данные из Telegram
-  const telegramInitData = extractTelegramInitData();
-  const newTelegramUserId = getTelegramUserId();
-  const hasTelegramId = hasTelegramUserId();
-  const telegramRefCode = telegramInitData.refCode; // Извлекаем ref_code из initData
-  
-  // Используем состояние или делаем резервную проверку с приоритетом на новые методы
-  const hasRealUserId = hasRealUserIdState !== null ? 
-    hasRealUserIdState : 
-    !!(
-      // Приоритет 1: ID из новых специальных функций для Telegram
-      newTelegramUserId && newTelegramUserId > 1 || 
-      // Приоритет 2: Данные из API
-      currentUser?.id && currentUser.id > 1 || 
-      // Приоритет 3: Обычные Telegram данные
-      telegramUserId && telegramUserId > 1 || 
-      // Приоритет 4: Кэшированные данные
-      cachedUserId && cachedUserId !== '1'
-    );
+  }, [isUserLoading, currentUser?.ref_code]);
   
   // Формируем реферальную ссылку, используя ref_code
   let referralLink = '';
@@ -132,13 +48,7 @@ const ReferralLinkCard: React.FC = () => {
     // Используем корректный формат для Telegram Mini App по ТЗ
     // Формат строго такой: https://t.me/UniFarmingBot/app?startapp=ref_КОД
     referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_${refCode}`;
-    console.log('[ReferralLinkCard] Generated referral link:', referralLink, 'for ref_code:', refCode);
-  } else {
-    // Если пользователь не авторизован через Telegram, не показываем ссылку
-    console.warn('[ReferralLinkCard] No ref_code available for link generation.');
   }
-
-  // Отладочное состояние источника ID удалено
   
   // Состояния для анимаций и взаимодействий
   const [isCopied, setIsCopied] = useState(false);
@@ -154,8 +64,10 @@ const ReferralLinkCard: React.FC = () => {
     setTranslateY(0);
   }, []);
   
-  // Имитация копирования в буфер обмена
+  // Копирование в буфер обмена
   const copyToClipboard = () => {
+    if (!referralLink) return;
+    
     try {
       // Пытаемся скопировать в буфер обмена (работает только с HTTPS)
       try {
@@ -181,7 +93,7 @@ const ReferralLinkCard: React.FC = () => {
     }
   };
   
-  // Демонстрация анимации приглашения (чисто визуальный эффект)
+  // Демонстрация анимации приглашения (визуальный эффект)
   const playInviteDemo = () => {
     if (isDemoPlaying) return;
     
@@ -230,103 +142,47 @@ const ReferralLinkCard: React.FC = () => {
             Реферальная ссылка
           </h3>
           
-          {/* Реферальный код - показываем блок всегда, но содержимое зависит от наличия кода */}
-          {!isUserLoading && !error.hasError && (
+          {/* Реферальный код - показываем, если он есть */}
+          {!isUserLoading && refCode && (
             <div className="flex items-center text-sm text-muted-foreground mt-1 sm:mt-0">
               <span className="mr-2">Ваш код:</span>
-              {currentUser?.ref_code ? (
-                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">{currentUser.ref_code}</span>
-              ) : (
-                <span className="bg-muted/30 px-2 py-0.5 rounded text-muted-foreground">не назначен</span>
-              )}
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">{refCode}</span>
             </div>
           )}
         </div>
         
-        {isUserLoading && (
+        {/* Состояния загрузки и ошибок */}
+        {(isUserLoading || showLoading) && (
           <div className="flex justify-center items-center py-3">
             <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
             <span className="text-sm text-muted-foreground">Получение ссылки...</span>
           </div>
         )}
         
-        {/* Отображаем ошибку только если нет реферального кода */}
-        {error.hasError && !refCode && (
-          <div className="flex flex-col items-center py-3 px-2 bg-red-900/20 rounded-lg">
-            <div className="flex items-center text-red-400 mb-2">
-              <i className="fas fa-exclamation-circle mr-2"></i>
-              <span className="text-sm">{error.message}</span>
-            </div>
-            
-            {/* Отображаем детали ошибки, если они есть */}
-            {error.details && (
-              <p className="text-xs text-red-400/80 mb-3 text-center">
-                {error.details}
-              </p>
-            )}
-            
-            {/* Информация о попытках восстановления */}
-            {retryCount > 0 && (
-              <p className="text-xs text-amber-500/80 mb-3">
-                Попытка {retryCount}/3
-              </p>
-            )}
-            
-            {/* Кнопка для ручного обновления */}
-            <div className="flex gap-2">
-              <button 
-                className="text-xs bg-primary/20 hover:bg-primary/30 transition-colors py-1 px-3 rounded-full"
-                onClick={handleRetry}
-                disabled={isUserLoading}
-              >
-                {isUserLoading ? (
-                  <span className="flex items-center">
-                    <i className="fas fa-spinner fa-spin mr-1"></i> Загрузка...
-                  </span>
-                ) : (
-                  "Попробовать снова"
-                )}
-              </button>
-              
-              {/* Показываем кнопку обновления страницы только после нескольких попыток */}
-              {retryCount >= 2 && (
-                <button 
-                  className="text-xs bg-red-900/30 hover:bg-red-900/40 transition-colors py-1 px-3 rounded-full"
-                  onClick={() => window.location.reload()}
-                >
-                  Перезагрузить страницу
-                </button>
-              )}
-            </div>
+        {/* Сообщение о проблеме загрузки, когда нет ссылки */}
+        {!isUserLoading && !refCode && loadingTimedOut && (
+          <div className="flex justify-center items-center py-3 px-2 bg-amber-500/10 rounded-lg">
+            <i className="fas fa-exclamation-circle text-amber-500/80 mr-2"></i>
+            <span className="text-sm text-amber-500/80">Не удалось получить ссылку. Попробуйте позже.</span>
           </div>
         )}
         
-        {/* Убрали блок с предупреждением про Telegram */}
-        
-        {/* Отображаем ссылку, если она сгенерирована, независимо от наличия ошибки */}
-        {/* Блок с реферальной ссылкой - всегда отображается после загрузки, если есть refCode */}
-        {!isUserLoading && (refCode || !error.hasError) && (
+        {/* Отображаем ссылку только если она сгенерирована (есть refCode) */}
+        {!isUserLoading && !showLoading && refCode && (
           <div className="flex relative">
             <div className="flex-grow relative">
-              {referralLink ? (
-                <input 
-                  type="text" 
-                  value={referralLink} 
-                  readOnly
-                  className={`
-                    w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
-                    transition-all duration-300
-                    ${isHovered ? 'bg-muted/80' : ''}
-                  `}
-                  onMouseEnter={() => setIsHovered(true)}
-                  onMouseLeave={() => setIsHovered(false)}
-                />
-              ) : (
-                <div className="w-full bg-muted/30 text-muted-foreground rounded-l-lg px-3 py-2 text-sm flex items-center">
-                  <i className="fas fa-exclamation-circle mr-2 text-amber-500/70"></i>
-                  <span>Ссылка не сгенерирована</span>
-                </div>
-              )}
+              <input 
+                type="text" 
+                value={referralLink} 
+                readOnly
+                className={`
+                  w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
+                  transition-all duration-300
+                  ${isHovered ? 'bg-muted/80' : ''}
+                `}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+              />
               
               {/* Эффект выделения при наведении */}
               {isHovered && (
@@ -368,14 +224,11 @@ const ReferralLinkCard: React.FC = () => {
             {/* Тултип о статусе копирования */}
             {isCopied && (
               <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
-                Скопировано!
+                Ссылка скопирована
               </div>
             )}
           </div>
         )}
-        
-        {/* Больше не нужно показывать отдельный fallback-контейнер, так как мы уже показываем информацию внутри поля */}
-        {/* Блок "Режим разработки" удален */}
       </div>
       
       {/* Секция с статистикой */}
