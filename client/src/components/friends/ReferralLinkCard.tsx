@@ -433,9 +433,9 @@ const ReferralLinkCard: React.FC = () => {
               <button 
                 className="ml-2 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-300 flex items-center"
                 onClick={() => {
-                  // Безопасный вызов метода openLink
-                  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.openLink) {
-                    window.Telegram.WebApp.openLink(referralLink);
+                  // Безопасный вызов метода openTelegramLink
+                  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.openTelegramLink) {
+                    window.Telegram.WebApp.openTelegramLink(referralLink);
                   }
                 }}
               >
