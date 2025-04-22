@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 
-interface SimpleReferralLinkProps {
+interface FallbackReferralLinkProps {
   refCode: string;
 }
 
 /**
- * Упрощенный компонент для отображения реферальной ссылки без зависимости от Telegram.
- * Всегда отображается независимо от наличия window.Telegram.
+ * Упрощенный компонент для отображения реферальной ссылки в fallback режиме.
+ * Используется когда window.Telegram недоступен.
  */
-const SimpleReferralLink: React.FC<SimpleReferralLinkProps> = ({ refCode }) => {
+const FallbackReferralLink: React.FC<FallbackReferralLinkProps> = ({ refCode }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   
@@ -16,7 +16,7 @@ const SimpleReferralLink: React.FC<SimpleReferralLinkProps> = ({ refCode }) => {
   const referralLink = `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${refCode}`;
   
   // Отладочное логирование
-  console.debug('SimpleReferralLink rendered', { refCode, referralLink });
+  console.debug('FallbackReferralLink rendered', { refCode, referralLink });
   
   // Копирование в буфер обмена
   const copyToClipboard = () => {
@@ -48,11 +48,13 @@ const SimpleReferralLink: React.FC<SimpleReferralLinkProps> = ({ refCode }) => {
   };
   
   return (
-    <div className="bg-black/20 p-4 rounded-lg backdrop-blur-sm relative mb-4">
-      <h3 className="text-md font-medium text-white/90 flex items-center mb-3">
-        <i className="fas fa-link text-primary/90 mr-2 text-sm"></i>
-        Ваша реферальная ссылка
-      </h3>
+    <div className="mt-4 mb-2">
+      <div className="p-2 bg-amber-500/10 rounded-lg mb-2">
+        <p className="text-xs text-amber-400">
+          <i className="fas fa-info-circle mr-1"></i>
+          Fallback режим активен. Telegram WebApp не обнаружен.
+        </p>
+      </div>
       
       <div className="flex relative">
         <div className="flex-grow relative">
@@ -117,4 +119,4 @@ const SimpleReferralLink: React.FC<SimpleReferralLinkProps> = ({ refCode }) => {
   );
 };
 
-export default SimpleReferralLink;
+export default FallbackReferralLink;

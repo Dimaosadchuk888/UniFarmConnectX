@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import userService, { User } from '@/services/userService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { requestInitData } from '@/services/telegramService';
+import FallbackReferralLink from './FallbackReferralLink';
 
 // Определяем, находимся ли мы в режиме разработки
 const IS_DEV = process.env.NODE_ENV === 'development';
@@ -376,81 +377,89 @@ const ReferralLinkCard: React.FC = () => {
         {/* Отображаем ссылку при любом наличии refCode, независимо от других условий
              ВАЖНО: убрали зависимость от состояния загрузки - показываем ссылку, как только получили refCode */}
         {refCode && (
-          <div className="flex relative">
-            <div className="flex-grow relative">
-              <input 
-                type="text" 
-                value={referralLink} 
-                readOnly
-                className={`
-                  w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
-                  transition-all duration-300
-                  ${isHovered ? 'bg-muted/80' : ''}
-                `}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-              />
-              
-              {/* Эффект выделения при наведении */}
-              {isHovered && (
-                <div className="absolute inset-0 border border-primary/30 rounded-l-lg pointer-events-none"></div>
-              )}
-            </div>
-            
-            <button 
-              className={`
-                px-3 py-2 rounded-r-lg relative overflow-hidden
-                ${isCopied ? 'bg-accent' : 'bg-primary'}
-                transition-all duration-300
-              `}
-              onClick={copyToClipboard}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-            >
-              {/* Анимированный фон для кнопки */}
-              <div 
-                className="absolute inset-0" 
-                style={{
-                  background: isCopied 
-                    ? 'linear-gradient(45deg, #00FF99, #00CC77)' 
-                    : 'linear-gradient(45deg, #A259FF, #B368F7)',
-                  opacity: isHovered ? 1 : 0.9,
-                  transition: 'opacity 0.3s ease'
-                }}
-              ></div>
-              
-              {/* Иконка в кнопке */}
-              <i className={`
-                fas ${isCopied ? 'fa-check' : 'fa-copy'} 
-                relative z-10 text-white
-                ${isCopied ? 'scale-110' : ''}
-                transition-transform duration-300
-              `}></i>
-            </button>
-            
-            {/* Кнопка "Поделиться в Telegram" - отображается только если доступен Telegram WebApp */}
-            {typeof window !== 'undefined' && window.Telegram?.WebApp && (
-              <button 
-                className="ml-2 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-300 flex items-center"
-                onClick={() => {
-                  // Безопасный вызов метода openTelegramLink
-                  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.openTelegramLink) {
-                    window.Telegram.WebApp.openTelegramLink(referralLink);
-                  }
-                }}
-              >
-                <i className="fab fa-telegram-plane mr-2"></i>
-                <span className="text-sm">Поделиться</span>
-              </button>
-            )}
-            
-            {/* Тултип о статусе копирования */}
-            {isCopied && (
-              <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
-                Ссылка скопирована
+          <>
+            {/* Отображаем стандартную форму, если доступен Telegram */}
+            {typeof window !== 'undefined' && window.Telegram ? (
+              <div className="flex relative">
+                <div className="flex-grow relative">
+                  <input 
+                    type="text" 
+                    value={referralLink} 
+                    readOnly
+                    className={`
+                      w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
+                      transition-all duration-300
+                      ${isHovered ? 'bg-muted/80' : ''}
+                    `}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                  />
+                  
+                  {/* Эффект выделения при наведении */}
+                  {isHovered && (
+                    <div className="absolute inset-0 border border-primary/30 rounded-l-lg pointer-events-none"></div>
+                  )}
+                </div>
+                
+                <button 
+                  className={`
+                    px-3 py-2 rounded-r-lg relative overflow-hidden
+                    ${isCopied ? 'bg-accent' : 'bg-primary'}
+                    transition-all duration-300
+                  `}
+                  onClick={copyToClipboard}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                >
+                  {/* Анимированный фон для кнопки */}
+                  <div 
+                    className="absolute inset-0" 
+                    style={{
+                      background: isCopied 
+                        ? 'linear-gradient(45deg, #00FF99, #00CC77)' 
+                        : 'linear-gradient(45deg, #A259FF, #B368F7)',
+                      opacity: isHovered ? 1 : 0.9,
+                      transition: 'opacity 0.3s ease'
+                    }}
+                  ></div>
+                  
+                  {/* Иконка в кнопке */}
+                  <i className={`
+                    fas ${isCopied ? 'fa-check' : 'fa-copy'} 
+                    relative z-10 text-white
+                    ${isCopied ? 'scale-110' : ''}
+                    transition-transform duration-300
+                  `}></i>
+                </button>
+                
+                {/* Кнопка "Поделиться в Telegram" - отображается только если доступен Telegram WebApp */}
+                {typeof window !== 'undefined' && window.Telegram?.WebApp && (
+                  <button 
+                    className="ml-2 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-300 flex items-center"
+                    onClick={() => {
+                      // Безопасный вызов метода openLink
+                      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.openLink) {
+                        window.Telegram.WebApp.openLink(referralLink);
+                      }
+                    }}
+                  >
+                    <i className="fab fa-telegram-plane mr-2"></i>
+                    <span className="text-sm">Поделиться</span>
+                  </button>
+                )}
+                
+                {/* Тултип о статусе копирования */}
+                {isCopied && (
+                  <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
+                    Ссылка скопирована
+                  </div>
+                )}
               </div>
+            ) : (
+              /* Fallback компонент когда Telegram недоступен */
+              <FallbackReferralLink refCode={refCode} />
             )}
-          </div>
+          </>
         )}
       </div>
       
