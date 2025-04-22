@@ -34,9 +34,18 @@ interface TelegramMessage {
   text?: string;
 }
 
+interface TelegramCallbackQuery {
+  id: string;
+  from: TelegramUser;
+  message?: TelegramMessage;
+  chat_instance: string;
+  data?: string;
+}
+
 interface TelegramUpdate {
   update_id: number;
   message?: TelegramMessage;
+  callback_query?: TelegramCallbackQuery;
 }
 
 /**
@@ -162,36 +171,339 @@ User ID в системе: <code>${user.id}</code>
  * Приветствует пользователя и отображает клавиатуру с командами
  */
 async function handleStartCommand(chatId: number, { userId, username, firstName }: { userId: number, username?: string, firstName?: string }): Promise<any> {
+  // Проверяем, есть ли параметр startapp в команде (для обработки реферальных ссылок)
   const welcomeMessage = `
-👋 <b>Привет${firstName ? ', ' + firstName : ''}!</b>
+👋 <b>Добро пожаловать${firstName ? ', ' + firstName : ''}!</b>
 
-Я бот <b>UniFarm</b> - твой помощник в криптофарминге.
+Я бот <b>UniFarm</b> - твой проводник в мире криптофарминга и инвестиций.
 
-Ты можешь воспользоваться следующими командами:
-• /ping - проверить связь с ботом
-• /info - получить информацию о себе
-• /refcode - получить реферальный код
+🌟 <b>С нами вы можете:</b>
+• Инвестировать в фарминг без технических знаний
+• Получать стабильный доход в криптовалюте
+• Участвовать в партнёрской программе с 20 уровнями
+• Получать бонусы и выполнять миссии
 
-🚀 Для полного доступа к функциональности запусти <a href="https://t.me/UniFarmingBot/app">Mini App</a>
+📱 Нажмите кнопку "<b>Открыть UniFarm</b>" ниже, чтобы начать.
   `;
 
-  // Создаем клавиатуру с основными командами
+  // Создаем инлайн-кнопки для приветствия
+  const inlineKeyboard = {
+    inline_keyboard: [
+      [
+        { 
+          text: "📱 Открыть UniFarm", 
+          web_app: { url: "https://t.me/UniFarmingBot/app" }
+        }
+      ],
+      [
+        { 
+          text: "🔍 Что такое UniFarm?", 
+          callback_data: "about_unifarm" 
+        },
+        { 
+          text: "💰 Как заработать", 
+          callback_data: "how_to_earn" 
+        }
+      ],
+      [
+        { 
+          text: "🔗 Моя реферальная ссылка", 
+          callback_data: "get_ref_link" 
+        }
+      ]
+    ]
+  };
+
+  // Создаем обычную клавиатуру с командами (будет показана после первого сообщения)
   const replyMarkup = {
     keyboard: [
-      [{ text: "🔄 Проверить связь (/ping)" }],
-      [{ text: "ℹ️ Моя информация (/info)" }],
-      [{ text: "🔗 Мой реф. код (/refcode)" }],
-      [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarmingBot/app" } }]
+      [
+        { text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarmingBot/app" } }
+      ],
+      [
+        { text: "🔄 Проверить связь" },
+        { text: "ℹ️ Моя информация" }
+      ],
+      [
+        { text: "🔗 Мой реф. код" },
+        { text: "❓ Помощь" }
+      ]
     ],
     resize_keyboard: true,
     one_time_keyboard: false
   };
 
-  return sendMessage(chatId, welcomeMessage, { 
+  // Отправляем первое сообщение с инлайн-кнопками
+  await sendMessage(chatId, welcomeMessage, { 
     parse_mode: 'HTML',
-    reply_markup: JSON.stringify(replyMarkup),
+    reply_markup: JSON.stringify(inlineKeyboard),
     disable_web_page_preview: true
   });
+
+  // Отправляем второе сообщение с подсказкой и обычной клавиатурой
+  return sendMessage(chatId, `
+<b>💡 Подсказка:</b> Используйте меню внизу экрана для быстрого доступа к основным функциям.
+
+<i>Бот находится в режиме активной разработки. Новые функции появляются регулярно!</i>
+  `, {
+    parse_mode: 'HTML',
+    reply_markup: JSON.stringify(replyMarkup)
+  });
+}
+
+/**
+ * Отправляет ответ на callback_query
+ * @param callbackQueryId - ID callback query для ответа
+ * @param text - Текст уведомления (опционально)
+ * @param showAlert - Показывать как alert или как всплывающее уведомление
+ */
+async function answerCallbackQuery(callbackQueryId: string, text?: string, showAlert: boolean = false): Promise<any> {
+  if (!BOT_TOKEN) {
+    console.error('Невозможно ответить на callback_query: отсутствует токен бота');
+    return;
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text,
+        show_alert: showAlert
+      })
+    });
+
+    const data: any = await response.json();
+    if (!data.ok) {
+      console.error('Ошибка при ответе на callback_query:', data.description);
+    }
+    return data;
+  } catch (error) {
+    console.error('Ошибка при ответе на callback_query:', error);
+  }
+}
+
+/**
+ * Редактирует сообщение
+ * @param chatId - ID чата/пользователя
+ * @param messageId - ID сообщения для редактирования
+ * @param text - Новый текст сообщения
+ * @param options - Дополнительные опции
+ */
+async function editMessageText(chatId: number, messageId: number, text: string, options: Record<string, any> = {}): Promise<any> {
+  if (!BOT_TOKEN) {
+    console.error('Невозможно отредактировать сообщение: отсутствует токен бота');
+    return;
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        parse_mode: 'HTML',
+        ...options
+      })
+    });
+
+    const data: any = await response.json();
+    if (!data.ok) {
+      console.error('Ошибка при редактировании сообщения:', data.description);
+    }
+    return data;
+  } catch (error) {
+    console.error('Ошибка при редактировании сообщения:', error);
+  }
+}
+
+/**
+ * Обрабатывает callback_query от инлайн-кнопок
+ * @param callbackQuery - Объект callback_query от Telegram
+ */
+async function handleCallbackQuery(callbackQuery: TelegramCallbackQuery): Promise<any> {
+  // Проверка валидности данных
+  if (!callbackQuery.data || !callbackQuery.message) {
+    console.error('[Telegram Bot] Получен неполный callback_query без data или message');
+    return;
+  }
+
+  const data = callbackQuery.data;
+  const chatId = callbackQuery.message.chat.id;
+  const messageId = callbackQuery.message.message_id;
+  const userId = callbackQuery.from.id;
+  const username = callbackQuery.from.username;
+  
+  console.log(`[Telegram Bot] Получен callback_query: ${data} от пользователя ${username || userId}`);
+  
+  // Обрабатываем разные типы callback_data
+  switch (data) {
+    case 'about_unifarm':
+      // Показываем информацию о проекте UniFarm
+      await answerCallbackQuery(callbackQuery.id, 'Загрузка информации о UniFarm...');
+      
+      await editMessageText(chatId, messageId, `
+<b>🌟 О проекте UniFarm</b>
+
+UniFarm - это инновационная платформа для криптофарминга, которая позволяет получать пассивный доход в криптовалюте без специальных технических знаний.
+
+<b>Основные преимущества:</b>
+• Простой и понятный интерфейс
+• Низкий порог входа
+• Прозрачная система начисления вознаграждений
+• Партнёрская программа с 20 уровнями
+• Быстрое получение вознаграждений
+• Поддержка TON и других популярных криптовалют
+
+<i>Начните прямо сейчас, нажав на кнопку "Открыть UniFarm"</i>
+      `, {
+        reply_markup: JSON.stringify({
+          inline_keyboard: [
+            [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarmingBot/app" } }],
+            [{ text: "⬅️ Назад", callback_data: "back_to_menu" }]
+          ]
+        })
+      });
+      break;
+      
+    case 'how_to_earn':
+      // Показываем способы заработка
+      await answerCallbackQuery(callbackQuery.id, 'Загрузка информации о заработке...');
+      
+      await editMessageText(chatId, messageId, `
+<b>💰 Как заработать с UniFarm</b>
+
+У нас есть несколько способов получения дохода:
+
+1️⃣ <b>Фарминг UNI</b>
+• Вложите средства в фарминг-депозит
+• Получайте ежедневные начисления
+• Увеличивайте доход с помощью бустов
+
+2️⃣ <b>Партнёрская программа</b>
+• Пригласите друзей по своей реферальной ссылке
+• Получайте до 100% от их дохода (на 1 уровне)
+• 20 уровней вознаграждений (до 2-20% на уровнях 2-20)
+
+3️⃣ <b>Ежедневные бонусы</b>
+• Заходите в приложение каждый день
+• Получайте бесплатные UNI-токены
+• Участвуйте в миссиях для дополнительных бонусов
+
+<i>Откройте приложение, чтобы начать зарабатывать прямо сейчас!</i>
+      `, {
+        reply_markup: JSON.stringify({
+          inline_keyboard: [
+            [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarmingBot/app" } }],
+            [{ text: "⬅️ Назад", callback_data: "back_to_menu" }]
+          ]
+        })
+      });
+      break;
+      
+    case 'get_ref_link':
+      // Получение реферальной ссылки (используем существующий метод)
+      await answerCallbackQuery(callbackQuery.id, 'Получение вашей реферальной ссылки...');
+      
+      try {
+        // Пытаемся найти пользователя по Telegram ID
+        const [user] = await db.select()
+          .from(users)
+          .where(eq(users.telegram_id, userId));
+    
+        if (user && user.ref_code) {
+          await editMessageText(chatId, messageId, `
+<b>🔗 Ваша реферальная ссылка</b>
+
+Пригласите друзей и получайте вознаграждение от их фарминга.
+
+Код: <code>${user.ref_code}</code>
+Ссылка для приглашения друзей:
+<code>https://t.me/UniFarmingBot/app?startapp=ref_${user.ref_code}</code>
+
+<i>Отправьте эту ссылку друзьям, чтобы они присоединились к UniFarm по вашему приглашению.</i>
+          `, {
+            reply_markup: JSON.stringify({
+              inline_keyboard: [
+                [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarmingBot/app" } }],
+                [{ text: "⬅️ Назад", callback_data: "back_to_menu" }]
+              ]
+            })
+          });
+        } else {
+          await editMessageText(chatId, messageId, `
+⚠️ <b>Реферальный код не найден</b>
+
+Возможные причины:
+• Вы не зарегистрированы в системе
+• Ваш Telegram ID (${userId}) не привязан к аккаунту
+• Произошла ошибка при генерации кода
+
+Откройте приложение и завершите регистрацию, чтобы получить реферальный код.
+          `, {
+            reply_markup: JSON.stringify({
+              inline_keyboard: [
+                [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarmingBot/app" } }],
+                [{ text: "⬅️ Назад", callback_data: "back_to_menu" }]
+              ]
+            })
+          });
+        }
+      } catch (error: any) {
+        console.error('Ошибка при получении ref_code:', error);
+        await editMessageText(chatId, messageId, `
+❌ <b>Ошибка при получении реферального кода</b>
+
+Произошла техническая ошибка. Попробуйте позже или обратитесь в поддержку.
+        `, {
+          reply_markup: JSON.stringify({
+            inline_keyboard: [
+              [{ text: "⬅️ Назад", callback_data: "back_to_menu" }]
+            ]
+          })
+        });
+      }
+      break;
+      
+    case 'back_to_menu':
+      // Возврат к основному меню
+      await answerCallbackQuery(callbackQuery.id, 'Возврат в главное меню...');
+      
+      await editMessageText(chatId, messageId, `
+👋 <b>Добро пожаловать!</b>
+
+Я бот <b>UniFarm</b> - твой проводник в мире криптофарминга и инвестиций.
+
+🌟 <b>С нами вы можете:</b>
+• Инвестировать в фарминг без технических знаний
+• Получать стабильный доход в криптовалюте
+• Участвовать в партнёрской программе с 20 уровнями
+• Получать бонусы и выполнять миссии
+
+📱 Нажмите кнопку "<b>Открыть UniFarm</b>" ниже, чтобы начать.
+      `, {
+        reply_markup: JSON.stringify({
+          inline_keyboard: [
+            [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarmingBot/app" } }],
+            [
+              { text: "🔍 Что такое UniFarm?", callback_data: "about_unifarm" },
+              { text: "💰 Как заработать", callback_data: "how_to_earn" }
+            ],
+            [{ text: "🔗 Моя реферальная ссылка", callback_data: "get_ref_link" }]
+          ]
+        })
+      });
+      break;
+      
+    default:
+      // Неизвестная команда
+      await answerCallbackQuery(callbackQuery.id, 'Команда не распознана', true);
+      console.log(`[Telegram Bot] Неизвестный callback_data: ${data}`);
+      break;
+  }
 }
 
 /**
@@ -207,8 +519,13 @@ async function handleTelegramUpdate(update: TelegramUpdate): Promise<any> {
 
   // Обработка различных типов обновлений
   if (update.message) {
+    // Обработка обычных сообщений
     return handleMessageUpdate(update);
+  } else if (update.callback_query) {
+    // Обработка callback_query от инлайн-кнопок
+    return handleCallbackQuery(update.callback_query);
   } else {
+    // Логирование неподдерживаемых типов обновлений
     console.log('[Telegram Bot] Получен неподдерживаемый тип обновления:', 
       Object.keys(update).filter(key => key !== 'update_id').join(', '));
     return;
