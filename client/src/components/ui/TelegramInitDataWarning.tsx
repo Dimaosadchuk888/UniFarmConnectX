@@ -5,6 +5,18 @@ import { isTelegramWebApp } from '@/services/telegramService';
  * Компонент для отображения предупреждения, когда Telegram WebApp не инициализирован правильно
  * или когда initData отсутствует/пустой
  */
+
+// Объявляем тип Window с Telegram для этого модуля
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        initData?: string;
+        [key: string]: any;
+      };
+    };
+  }
+}
 const TelegramInitDataWarning: React.FC = () => {
   const [showWarning, setShowWarning] = useState(false);
   const [initDataLength, setInitDataLength] = useState(0);
@@ -15,7 +27,7 @@ const TelegramInitDataWarning: React.FC = () => {
     const checkTelegramWebAppState = () => {
       const hasTelegramObj = typeof window !== 'undefined' && !!window.Telegram;
       const hasWebAppObj = hasTelegramObj && !!window.Telegram?.WebApp;
-      const initData = hasWebAppObj ? window.Telegram.WebApp.initData : '';
+      const initData = hasWebAppObj && window.Telegram?.WebApp?.initData ? window.Telegram.WebApp.initData : '';
       const initDataLen = typeof initData === 'string' ? initData.length : 0;
       
       setHasTelegram(hasTelegramObj && hasWebAppObj);

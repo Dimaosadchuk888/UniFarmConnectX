@@ -11,6 +11,9 @@ import { TONCONNECT_MANIFEST_URL } from './config/tonConnect';
 import { getReferrerIdFromURL } from './lib/utils';
 import userService from '@/services/userService';
 
+// Компонент для отображения предупреждения о Telegram initData
+import TelegramInitDataWarning from "@/components/ui/TelegramInitDataWarning";
+
 import Header from "@/components/layout/Header";
 import NavigationBar from "@/components/layout/NavigationBar";
 import Dashboard from "@/pages/Dashboard";
@@ -323,6 +326,8 @@ function App() {
             {/* Основной интерфейс приложения */}
             <Route path="*">
               <Header />
+              {/* Показываем предупреждение о проблемах с Telegram WebApp */}
+              <TelegramInitDataWarning />
               <main className="px-4 pt-2 pb-20">
                 {isLoading ? (
                   <div className="flex items-center justify-center h-32">
