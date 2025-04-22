@@ -364,6 +364,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
     
+    // Настройка команд для бота
+    app.post("/api/telegram/set-commands", async (req, res) => {
+      try {
+        console.log('[Admin API] Настройка команд для бота');
+        const result = await telegramBot.setMyCommands();
+        return res.status(result.success ? 200 : 400).json(result);
+      } catch (error: any) {
+        console.error('[Admin API] Ошибка установки команд бота:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Ошибка при установке команд бота',
+          error: error.message
+        });
+      }
+    });
+    
     // Тестовый маршрут для отправки сообщения через бота
     app.post("/api/telegram/send-test-message", async (req, res) => {
       try {

@@ -746,6 +746,47 @@ ${details ? `<i>${details}</i>` : ""}
   return sendMessage(chatId, message);
 }
 
+/**
+ * Устанавливает команды для бота
+ * @returns Результат установки команд
+ */
+async function setMyCommands(): Promise<any> {
+  if (!BOT_TOKEN) {
+    console.error('Невозможно установить команды: отсутствует токен бота');
+    return { success: false, error: 'Отсутствует токен бота' };
+  }
+  
+  try {
+    // Определяем список команд для меню бота
+    const commands = [
+      { command: 'start', description: 'Запуск бота и приветствие' },
+      { command: 'ping', description: 'Проверить работу бота' },
+      { command: 'info', description: 'Показать мою информацию' },
+      { command: 'refcode', description: 'Получить мой реферальный код' },
+      { command: 'app', description: 'Открыть приложение UniFarm' }
+    ];
+    
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commands })
+    });
+    
+    const data: any = await response.json();
+    
+    if (data.ok) {
+      console.log('[Telegram Bot] Команды успешно установлены');
+      return { success: true, data };
+    } else {
+      console.error('[Telegram Bot] Ошибка установки команд:', data.description);
+      return { success: false, error: data.description };
+    }
+  } catch (error: any) {
+    console.error('[Telegram Bot] Ошибка при установке команд:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 // Экспортируем функции для использования в routes.ts
 export {
   sendMessage,
@@ -754,5 +795,6 @@ export {
   setWebhook,
   deleteWebhook,
   getWebhookInfo,
-  sendAppStatusNotification
+  sendAppStatusNotification,
+  setMyCommands
 };

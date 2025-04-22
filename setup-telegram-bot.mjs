@@ -5,11 +5,10 @@
  * - Настраивает кнопки приветствия
  */
 
-import fetch from 'node-fetch';
-import dotenv from 'dotenv';
+// В Node.js ESM режиме, fetch доступен по умолчанию
+// Используем встроенный URL и не импортируем dotenv
 
-// Загружаем переменные окружения
-dotenv.config();
+// Напрямую получаем переменные окружения из process.env
 
 // Получаем токен бота из переменных окружения
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
