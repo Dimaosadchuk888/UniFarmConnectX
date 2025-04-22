@@ -41,34 +41,23 @@ const ReferralLinkCard: React.FC = () => {
     if (isError) {
       console.error('[ReferralLinkCard] Failed to get user data from API:', queryError);
       
-      // Анализируем тип ошибки и устанавливаем конкретное сообщение
-      let errorMessage = 'Не удалось получить ссылку';
-      let errorDetails = '';
-      let isTelegramError = false;
+      // Устанавливаем нейтральное сообщение об ошибке без деталей о Telegram
+      let errorMessage = 'Не удалось загрузить данные';
+      let errorDetails = 'Пожалуйста, попробуйте еще раз';
       
-      if (queryError instanceof Error) {
-        // Если сервер вернул 401, значит проблема с аутентификацией
-        if (queryError.message.includes('401')) {
-          errorMessage = 'Не удалось подтвердить ваш аккаунт Telegram';
-          errorDetails = 'Попробуйте обновить страницу или открыть приложение напрямую через Telegram';
-          isTelegramError = true;
-        } 
-        // Если сервер недоступен или другая ошибка сети
-        else if (queryError.message.includes('NetworkError') || queryError.message.includes('Failed to fetch')) {
-          errorMessage = 'Проблема с соединением';
-          errorDetails = 'Проверьте интернет-соединение и попробуйте снова';
-        }
-        // Любая другая ошибка
-        else {
-          errorDetails = queryError.message;
-        }
+      // Если сервер недоступен или другая ошибка сети, уточняем сообщение
+      if (queryError instanceof Error && 
+          (queryError.message.includes('NetworkError') || 
+           queryError.message.includes('Failed to fetch'))) {
+        errorMessage = 'Проблема с соединением';
+        errorDetails = 'Проверьте интернет-соединение и попробуйте снова';
       }
       
       setError({
         hasError: true,
         message: errorMessage,
         details: errorDetails,
-        isTelegramError
+        isTelegramError: false
       });
     }
   }, [isError, queryError]);
@@ -311,29 +300,7 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {/* Телеграм-специфичная ошибка - показываем когда пользователь не вошел через Telegram или нет ref_code */}
-        {!isUserLoading && !error.hasError && !referralLink && (
-          <div className="bg-orange-900/20 rounded-lg p-3 mt-2">
-            <div className="flex items-center text-orange-400 mb-2">
-              <i className="fas fa-info-circle mr-2"></i>
-              <span className="text-sm font-medium">Для получения реферальной ссылки войдите через Telegram</span>
-            </div>
-            <p className="text-xs text-orange-400/80">
-              Для полного доступа к партнерской программе откройте приложение через Telegram. Вы можете использовать официальный бот:
-            </p>
-            <div className="flex justify-center mt-2">
-              <a 
-                href="https://t.me/UniFarmingBot" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-xs bg-orange-900/30 hover:bg-orange-900/40 transition-colors py-1 px-3 rounded-full flex items-center mt-1"
-              >
-                <i className="fab fa-telegram mr-2"></i>
-                Открыть в Telegram
-              </a>
-            </div>
-          </div>
-        )}
+        {/* Убрали блок с предупреждением про Telegram */}
         
         {/* Отображаем ссылку, если она сгенерирована, независимо от hasRealUserId */}
         {/* Блок с реферальной ссылкой - всегда отображается после загрузки */}
