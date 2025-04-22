@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
 import { User } from '@/services/userService';
+import { buildReferralLink } from '@/utils/referralUtils';
 
 /**
  * Дополнительный независимый компонент для отображения реферальной ссылки
@@ -26,10 +27,8 @@ const ReferralDirectLinkCard: React.FC = () => {
   const safeUser = data as User | undefined;
   const refCode = safeUser?.ref_code;
   
-  // Формируем ссылку по тому же формату
-  const referralLink = refCode 
-    ? `https://t.me/UniFarming_Bot/app?startapp=ref_${refCode}`
-    : '';
+  // Формируем ссылку с помощью утилиты
+  const referralLink = buildReferralLink(refCode);
   
   // Функция копирования в буфер обмена
   const copyToClipboard = () => {
