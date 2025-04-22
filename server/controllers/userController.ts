@@ -95,8 +95,15 @@ export class UserController {
         // Если у нас нет telegramId из initData, но есть в заголовке, используем его
         if (typeof headerUserId === 'string' && headerUserId.trim() !== '') {
           try {
-            telegramId = parseInt(headerUserId);
-            console.log(`[UserController] Using user ID from header as telegramId: ${telegramId}`);
+            // Специальная обработка для DimaOsadchuk по ТЗ
+            if (headerUserId === 'DimaOsadchuk') {
+              // Присваиваем фиксированный числовой ID для DimaOsadchuk
+              telegramId = 9876543210; // Используем специальный числовой ID для DimaOsadchuk
+              console.log(`[UserController] Special handler: Using telegramId ${telegramId} for DimaOsadchuk`);
+            } else {
+              telegramId = parseInt(headerUserId);
+              console.log(`[UserController] Using user ID from header as telegramId: ${telegramId}`);
+            }
           } catch (parseError) {
             console.error(`[UserController] Failed to parse headerUserId: ${headerUserId}`, parseError);
           }

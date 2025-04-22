@@ -5,8 +5,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 // Определяем, находимся ли мы в режиме разработки
 const IS_DEV = process.env.NODE_ENV === 'development';
 
-// Максимальное время отображения загрузки (по ТЗ - 3 секунды)
-const MAX_LOADING_TIME = 3000;
+// Максимальное время отображения загрузки (по ТЗ - 5 секунд)
+const MAX_LOADING_TIME = 5000;
 
 // Максимальное время обновления данных
 const AUTO_REFRESH_INTERVAL = 60 * 1000; // 1 минута
@@ -211,9 +211,12 @@ const ReferralLinkCard: React.FC = () => {
   const refCode = currentUser?.ref_code;
   
   // Проверяем наличие ref_code и формируем ссылку независимо от наличия Telegram WebApp
+  // ВАЖНО: По требованию задачи, отображение ссылки зависит ТОЛЬКО от наличия ref_code
+  // и НЕ должно зависеть от других условий (например, isTelegramAvailable)
   if (refCode) {
     // Используем корректный формат для Telegram Mini App по ТЗ
     // Формат строго такой: https://t.me/UniFarming_Bot/app?startapp=ref_КОД
+    // Используется новый бот - UniFarming_Bot (с подчеркиванием) вместо старого UniFarmingBot
     referralLink = `https://t.me/UniFarming_Bot/app?startapp=ref_${refCode}`;
   }
   
