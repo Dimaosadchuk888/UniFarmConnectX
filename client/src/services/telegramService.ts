@@ -260,6 +260,21 @@ export function isTelegramWebApp(): boolean {
 export function initTelegramWebApp(): boolean {
   console.log('[telegramService] Initializing Telegram WebApp...');
   
+  // Расширенное логирование для отладки проблем в production
+  console.log('[telegramService] 📱 DEBUG: Current Telegram object state:', {
+    telegramObjectExists: !!window.Telegram,
+    webAppObjectExists: !!window.Telegram?.WebApp,
+    initDataExists: !!window.Telegram?.WebApp?.initData,
+    initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
+    initDataUnsafeExists: !!window.Telegram?.WebApp?.initDataUnsafe,
+    userIdAvailable: !!window.Telegram?.WebApp?.initDataUnsafe?.user?.id,
+    runningInIframe: window !== window.parent,
+    documentReferrer: document.referrer || 'none',
+    locationHref: window.location.href,
+    inIframe: window !== window.parent,
+    userAgent: navigator.userAgent,
+  });
+  
   // Проверяем доступность основного API
   if (!window?.Telegram?.WebApp) {
     console.error('[telegramService] Failed to initialize - WebApp API not available');
