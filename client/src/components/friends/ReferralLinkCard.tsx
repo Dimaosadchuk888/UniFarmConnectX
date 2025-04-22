@@ -1,37 +1,92 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import userService, { User } from '@/services/userService';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Определяем, находимся ли мы в режиме разработки
 const IS_DEV = process.env.NODE_ENV === 'development';
 
+// Максимальное время отображения загрузки (по ТЗ - 3 секунды)
+const MAX_LOADING_TIME = 3000;
+
+// Максимальное время обновления данных
+const AUTO_REFRESH_INTERVAL = 60 * 1000; // 1 минута
+
 const ReferralLinkCard: React.FC = () => {
-  // Состояние для отображения таймера загрузки
+  // Получаем доступ к queryClient для ручного обновления данных
+  const queryClient = useQueryClient();
+  
+  // Состояние для отображения таймера загрузки и ошибок
   const [showLoading, setShowLoading] = useState(true);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
   
   // Получаем информацию о текущем пользователе из API
-  const { data: currentUser, isLoading: isUserLoading } = useQuery<User>({
+  const { 
+    data: currentUser, 
+    isLoading: isUserLoading, 
+    isError: isUserError,
+    refetch,
+  } = useQuery<User>({
     queryKey: ['/api/me'],
     queryFn: () => userService.getCurrentUser(),
-    staleTime: 1000 * 60 * 1, // Кэшируем данные на 1 минуту (уменьшено)
+    staleTime: 1000 * 60 * 1, // Кэшируем данные на 1 минуту
     retry: 3, // Три попытки запроса
+    refetchOnWindowFocus: true, // Обновлять данные при фокусе окна
   });
   
-  // Эффект для показа лоадера максимум на 3 секунды (по ТЗ)
-  useEffect(() => {
-    // Сначала всегда показываем лоадер, независимо от наличия данных в кэше
+  // Функция для обновления данных пользователя и реферального кода
+  const refreshUserData = useCallback(async () => {
+    console.log('[ReferralLinkCard] Manual refresh of user data requested');
     setShowLoading(true);
     setLoadingTimedOut(false);
+    setRetryAttempt(prev => prev + 1);
+    setLastRefreshTime(Date.now());
     
-    // Логируем ref_code в режиме разработки
-    if (IS_DEV) {
-      console.log('ref_code:', currentUser?.ref_code);
-      console.log('[ReferralLinkCard] Loading state:', {
-        isUserLoading,
-        hasUser: !!currentUser,
-        hasRefCode: !!currentUser?.ref_code,
-        refCode: currentUser?.ref_code || 'не определен'
+    try {
+      // Сначала очищаем кэш, затем запрашиваем новые данные
+      await queryClient.invalidateQueries({ queryKey: ['/api/me'] });
+      const result = await refetch();
+      
+      console.log('[ReferralLinkCard] Manual refresh result:', {
+        success: !!result.data,
+        hasRefCode: !!result.data?.ref_code,
+        refCode: result.data?.ref_code || 'missing'
+      });
+      
+      // Если получили данные и там есть ref_code, убираем загрузку
+      if (result.data?.ref_code) {
+        setShowLoading(false);
+        setLoadingTimedOut(false);
+      }
+    } catch (error) {
+      console.error('[ReferralLinkCard] Error during manual refresh:', error);
+    }
+  }, [queryClient, refetch]);
+  
+  // Эффект для отслеживания состояния загрузки и таймаутов
+  useEffect(() => {
+    // АУДИТ: Расширенное логирование для диагностики
+    console.log('[АУДИТ] [ReferralLinkCard] Loading state changed:', {
+      isUserLoading,
+      isUserError,
+      hasUser: !!currentUser,
+      hasRefCode: !!currentUser?.ref_code,
+      refCode: currentUser?.ref_code || 'not defined',
+      retryAttempt,
+      timeElapsedSinceLastRefresh: Date.now() - lastRefreshTime
+    });
+    
+    // Сначала всегда показываем лоадер
+    if (isUserLoading) {
+      setShowLoading(true);
+    }
+    
+    // Логируем ref_code в режиме разработки и для диагностики
+    if (currentUser) {
+      console.log('[ReferralLinkCard] User data loaded:', {
+        id: currentUser.id,
+        ref_code: currentUser.ref_code || 'missing'
       });
     }
     
@@ -39,36 +94,74 @@ const ReferralLinkCard: React.FC = () => {
     if (!isUserLoading) {
       // Если получен ref_code, убираем лоадер немедленно
       if (currentUser?.ref_code) {
-        if (IS_DEV) console.log('[ReferralLinkCard] Ref code found, hiding loader');
+        console.log('[ReferralLinkCard] Ref code found:', currentUser.ref_code);
         setShowLoading(false);
         setLoadingTimedOut(false);
       } else {
-        // Если нет ref_code - показываем сообщение об ошибке после 3-секундного таймера
-        if (IS_DEV) console.log('[ReferralLinkCard] No ref code found, setting timeout for error message');
-        const timer = setTimeout(() => {
+        // Если нет ref_code - проверяем, был ли это повторный запрос
+        if (retryAttempt > 0) {
+          console.log(`[ReferralLinkCard] Retry ${retryAttempt} did not return ref_code, showing error`);
           setShowLoading(false);
           setLoadingTimedOut(true);
-        }, 3000); // 3 секунды по новому ТЗ
-        
-        return () => clearTimeout(timer);
+        } else {
+          // Если это первый запрос без ref_code - показываем сообщение об ошибке после 3-секундного таймера
+          console.log('[ReferralLinkCard] No ref code found, setting timeout for error message');
+          
+          // Запускаем таймер для отображения ошибки
+          const timer = setTimeout(() => {
+            setShowLoading(false);
+            setLoadingTimedOut(true);
+            
+            // После таймаута сразу пробуем повторный запрос
+            if (retryAttempt === 0) {
+              console.log('[ReferralLinkCard] Auto-retry after timeout');
+              refreshUserData();
+            }
+          }, MAX_LOADING_TIME);
+          
+          return () => clearTimeout(timer);
+        }
       }
     } else {
       // Ограничиваем время показа лоадера даже если загрузка продолжается
       const maxLoadingTimer = setTimeout(() => {
         setShowLoading(false);
-        // Проверяем наличие ref_code, чтобы определить, показывать ли сообщение об ошибке
+        
+        // Проверяем наличие ref_code
         if (currentUser && typeof currentUser === 'object') {
-          // Делаем безопасную проверку на наличие ref_code
-          const user = currentUser as User; // TypeScript приведение типа
-          setLoadingTimedOut(!user.ref_code);
+          // Сначала проверяем, что это объект, затем проверяем наличие ref_code
+          const userData = currentUser as any;
+          if (userData.ref_code) {
+            setLoadingTimedOut(false);
+          } else {
+            setLoadingTimedOut(true);
+          }
         } else {
-          setLoadingTimedOut(true); // Если данных пользователя нет или нет ref_code - показываем ошибку
+          setLoadingTimedOut(true);
         }
-      }, 3000);
+      }, MAX_LOADING_TIME);
       
       return () => clearTimeout(maxLoadingTimer);
     }
-  }, [isUserLoading, currentUser]);
+    
+    // Эффект для автоматического периодического обновления данных
+    const autoRefreshTimer = setInterval(() => {
+      // Проверяем, нужно ли обновить данные (если нет ref_code или прошло достаточно времени)
+      let hasRefCode = false;
+      
+      if (currentUser && typeof currentUser === 'object') {
+        const userData = currentUser as any;
+        hasRefCode = !!userData.ref_code;
+      }
+      
+      if (!hasRefCode && Date.now() - lastRefreshTime > AUTO_REFRESH_INTERVAL) {
+        console.log('[ReferralLinkCard] Auto-refresh triggered');
+        refreshUserData();
+      }
+    }, AUTO_REFRESH_INTERVAL);
+    
+    return () => clearInterval(autoRefreshTimer);
+  }, [isUserLoading, currentUser, retryAttempt, lastRefreshTime, refreshUserData, isUserError]);
   
   // Формируем реферальную ссылку, используя ref_code
   let referralLink = '';
@@ -194,9 +287,18 @@ const ReferralLinkCard: React.FC = () => {
         
         {/* Сообщение о проблеме загрузки, когда нет ссылки (оранжевое, не красное) */}
         {!isUserLoading && !refCode && loadingTimedOut && (
-          <div className="flex justify-center items-center py-3 px-2 bg-amber-500/10 rounded-lg">
-            <i className="fas fa-exclamation-circle text-amber-500/80 mr-2"></i>
-            <span className="text-sm text-amber-500/80">Не удалось получить ссылку. Попробуйте позже.</span>
+          <div className="flex flex-col justify-center items-center py-3 px-2 bg-amber-500/10 rounded-lg">
+            <div className="flex items-center mb-2">
+              <i className="fas fa-exclamation-circle text-amber-500/80 mr-2"></i>
+              <span className="text-sm text-amber-500/80">Не удалось получить ссылку.</span>
+            </div>
+            <button
+              onClick={refreshUserData}
+              className="text-xs bg-primary/20 hover:bg-primary/30 text-primary px-3 py-1 rounded-full transition-colors flex items-center mt-1"
+            >
+              <i className="fas fa-sync-alt mr-1 text-xs"></i>
+              Обновить
+            </button>
           </div>
         )}
         
