@@ -4,8 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { isTelegramWebApp, getCachedTelegramUserId } from '@/services/telegramService';
 import { getTelegramUserId, hasTelegramUserId, extractTelegramInitData, isRunningInTelegram } from '@/services/telegramInitData';
 
-// Определяем, находимся ли мы в режиме разработки
-const IS_DEV = process.env.NODE_ENV === 'development';
+// Режим разработки больше не используется
 
 const ReferralLinkCard: React.FC = () => {
   // Улучшенное состояние для ошибок с деталями
@@ -89,34 +88,7 @@ const ReferralLinkCard: React.FC = () => {
   const telegramUserId = telegram?.initDataUnsafe?.user?.id;
   const cachedUserId = getCachedTelegramUserId();
   
-  // АУДИТ: расширенное логирование для диагностики проблемы
-  console.log('[ReferralLinkCard] АУДИТ: Telegram WebApp состояние:', {
-    isTelegramAvailable: !!window.Telegram,
-    isWebAppAvailable: !!window.Telegram?.WebApp,
-    initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
-    hasInitDataUnsafe: !!window.Telegram?.WebApp?.initDataUnsafe,
-    hasUser: !!window.Telegram?.WebApp?.initDataUnsafe?.user,
-    telegramUserId: telegramUserId || 'not available',
-    startParam: window.Telegram?.WebApp?.startParam || 'not available',
-    platform: window.Telegram?.WebApp?.platform || 'not available',
-    isInIframe: window !== window.parent,
-    userAgent: navigator.userAgent,
-    time: new Date().toISOString()
-  });
-  
-  // Логируем полную информацию о доступных идентификаторах
-  console.log('[ReferralLinkCard] АУДИТ: Источники ID пользователя:', {
-    currentUserId: currentUser?.id,
-    telegramUserId,
-    cachedUserId,
-    isUserLoading,
-    isError,
-    errorMessage: queryError instanceof Error ? queryError.message : 'unknown error',
-    retryCount,
-    protocol: window.location.protocol,
-    host: window.location.host,
-    pathname: window.location.pathname
-  });
+  // Отладочные сообщения удалены
   
   // Определяем наличие реального userId, используя новую функцию из userService
   // которая обеспечивает надежную проверку ID
@@ -140,21 +112,11 @@ const ReferralLinkCard: React.FC = () => {
     checkRealUserId();
   }, [currentUser?.id, telegramUserId, cachedUserId, retryCount]);
   
-  // АУДИТ: Используем новый метод из telegramInitData для проверки Telegram ID
+  // Используем данные из Telegram
   const telegramInitData = extractTelegramInitData();
-  console.log('[ReferralLinkCard] АУДИТ: Полная проверка Telegram initData:', telegramInitData);
-  
-  // Получаем ID и ref_code из Telegram с помощью новых более надёжных методов
   const newTelegramUserId = getTelegramUserId();
   const hasTelegramId = hasTelegramUserId();
   const telegramRefCode = telegramInitData.refCode; // Извлекаем ref_code из initData
-  
-  console.log('[ReferralLinkCard] АУДИТ: Новые методы Telegram ID:', {
-    newTelegramUserId,
-    hasTelegramId,
-    telegramRefCode,
-    isRunningInTelegram: isRunningInTelegram()
-  });
   
   // Используем состояние или делаем резервную проверку с приоритетом на новые методы
   const hasRealUserId = hasRealUserIdState !== null ? 
@@ -169,16 +131,6 @@ const ReferralLinkCard: React.FC = () => {
       // Приоритет 4: Кэшированные данные
       cachedUserId && cachedUserId !== '1'
     );
-    
-  // Расширенное логирование условий отображения
-  console.log('[ReferralLinkCard] Условия отображения:', {
-    hasRealUserIdState,
-    hasRealUserId,
-    newTelegramUserIdValid: newTelegramUserId && newTelegramUserId > 1,
-    currentUserIdValid: currentUser?.id && currentUser.id > 1,
-    telegramUserIdValid: telegramUserId && telegramUserId > 1,
-    cachedUserIdValid: cachedUserId && cachedUserId !== '1'
-  });
   
   // Формируем реферальную ссылку, используя ref_code
   let referralLink = '';
@@ -195,25 +147,9 @@ const ReferralLinkCard: React.FC = () => {
   } else {
     // Если пользователь не авторизован через Telegram, не показываем ссылку
     console.warn('[ReferralLinkCard] No ref_code available for link generation.');
-    
-    // В режиме разработки создаем тестовую ссылку для отладки
-    if (process.env.NODE_ENV === 'development') {
-      referralLink = `https://t.me/UniFarmingBot/app?startapp=ref_TEST123`;
-      console.log('[ReferralLinkCard] DEV MODE: Using test code for referral link:', referralLink);
-    }
   }
 
-  // Для отладки сохраняем в состоянии информацию об источнике ID
-  const [idSource, setIdSource] = useState<string>('unknown');
-  useEffect(() => {
-    let source = 'fallback';
-    if (newTelegramUserId && newTelegramUserId > 0) source = 'newTelegramUserId';
-    else if (currentUser?.id && currentUser.id > 0) source = 'currentUser.id';
-    else if (telegramUserId && telegramUserId > 0) source = 'telegramUserId';
-    else if (cachedUserId) source = 'cachedUserId';
-    
-    setIdSource(source);
-  }, [newTelegramUserId, currentUser?.id, telegramUserId, cachedUserId]);
+  // Отладочное состояние источника ID удалено
   
   // Состояния для анимаций и взаимодействий
   const [isCopied, setIsCopied] = useState(false);
