@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import userService from '@/services/userService';
+import userService, { User } from '@/services/userService';
 import { useQuery } from '@tanstack/react-query';
+
+// Определяем, находимся ли мы в режиме разработки
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 const ReferralLinkCard: React.FC = () => {
   // Состояние для отображения таймера загрузки
@@ -8,46 +11,64 @@ const ReferralLinkCard: React.FC = () => {
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   
   // Получаем информацию о текущем пользователе из API
-  const { data: currentUser, isLoading: isUserLoading } = useQuery({
+  const { data: currentUser, isLoading: isUserLoading } = useQuery<User>({
     queryKey: ['/api/me'],
     queryFn: () => userService.getCurrentUser(),
-    staleTime: 1000 * 60 * 5, // Кэшируем данные на 5 минут
+    staleTime: 1000 * 60 * 1, // Кэшируем данные на 1 минуту (уменьшено)
     retry: 3, // Три попытки запроса
   });
   
-  // Эффект для показа лоадера на 5 секунд (по ТЗ)
+  // Эффект для показа лоадера максимум на 3 секунды (по ТЗ)
   useEffect(() => {
     // Сначала всегда показываем лоадер, независимо от наличия данных в кэше
     setShowLoading(true);
     setLoadingTimedOut(false);
     
-    // Логируем состояние загрузки
-    console.log('[ReferralLinkCard] Loading state:', {
-      isUserLoading,
-      hasUser: !!currentUser,
-      hasRefCode: !!currentUser?.ref_code,
-      refCode: currentUser?.ref_code || 'не определен'
-    });
+    // Логируем ref_code в режиме разработки
+    if (IS_DEV) {
+      console.log('ref_code:', currentUser?.ref_code);
+      console.log('[ReferralLinkCard] Loading state:', {
+        isUserLoading,
+        hasUser: !!currentUser,
+        hasRefCode: !!currentUser?.ref_code,
+        refCode: currentUser?.ref_code || 'не определен'
+      });
+    }
     
     // Если загрузка данных завершена
     if (!isUserLoading) {
       // Если получен ref_code, убираем лоадер немедленно
       if (currentUser?.ref_code) {
-        console.log('[ReferralLinkCard] Ref code found, hiding loader');
+        if (IS_DEV) console.log('[ReferralLinkCard] Ref code found, hiding loader');
         setShowLoading(false);
         setLoadingTimedOut(false);
       } else {
-        // Если нет ref_code - показываем сообщение об ошибке после 5-секундного таймера
-        console.log('[ReferralLinkCard] No ref code found, setting timeout for error message');
+        // Если нет ref_code - показываем сообщение об ошибке после 3-секундного таймера
+        if (IS_DEV) console.log('[ReferralLinkCard] No ref code found, setting timeout for error message');
         const timer = setTimeout(() => {
           setShowLoading(false);
           setLoadingTimedOut(true);
-        }, 5000); // 5 секунд по ТЗ
+        }, 3000); // 3 секунды по новому ТЗ
         
         return () => clearTimeout(timer);
       }
+    } else {
+      // Ограничиваем время показа лоадера даже если загрузка продолжается
+      const maxLoadingTimer = setTimeout(() => {
+        setShowLoading(false);
+        // Проверяем наличие ref_code, чтобы определить, показывать ли сообщение об ошибке
+        if (currentUser && typeof currentUser === 'object') {
+          // Делаем безопасную проверку на наличие ref_code
+          const user = currentUser as User; // TypeScript приведение типа
+          setLoadingTimedOut(!user.ref_code);
+        } else {
+          setLoadingTimedOut(true); // Если данных пользователя нет или нет ref_code - показываем ошибку
+        }
+      }, 3000);
+      
+      return () => clearTimeout(maxLoadingTimer);
     }
-  }, [isUserLoading, currentUser?.ref_code]);
+  }, [isUserLoading, currentUser]);
   
   // Формируем реферальную ссылку, используя ref_code
   let referralLink = '';
@@ -55,7 +76,7 @@ const ReferralLinkCard: React.FC = () => {
   // Получаем ref_code из данных пользователя
   const refCode = currentUser?.ref_code;
   
-  // Проверяем наличие ref_code
+  // Проверяем наличие ref_code и формируем ссылку независимо от наличия Telegram WebApp
   if (refCode) {
     // Используем корректный формат для Telegram Mini App по ТЗ
     // Формат строго такой: https://t.me/UniFarmingBot/app?startapp=ref_КОД
@@ -179,8 +200,8 @@ const ReferralLinkCard: React.FC = () => {
           </div>
         )}
         
-        {/* Отображаем ссылку только если она сгенерирована (есть refCode) */}
-        {!isUserLoading && !showLoading && refCode && (
+        {/* Отображаем ссылку только если она сгенерирована (есть refCode) - БЕЗ зависимости от Telegram WebApp */}
+        {!showLoading && refCode && (
           <div className="flex relative">
             <div className="flex-grow relative">
               <input 
