@@ -131,9 +131,11 @@ export class DatabaseStorage implements IStorage {
   
   // Генерирует уникальный реферальный код
   generateRefCode(): string {
-    // Генерируем случайную строку из 8 символов
-    const randomBytes = crypto.randomBytes(4);
-    return randomBytes.toString('hex').slice(0, 8);
+    // Генерируем случайную строку из 12 символов для большей уникальности
+    const randomBytes = crypto.randomBytes(6);
+    const refCode = randomBytes.toString('hex').slice(0, 12);
+    console.log(`[Storage] Сгенерирован новый реферальный код: ${refCode}`);
+    return refCode;
   }
   
   // Получает пользователя по реферальному коду

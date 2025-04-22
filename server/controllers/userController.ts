@@ -209,6 +209,9 @@ export class UserController {
               
               console.log(`[UserController] [TelegramAuth] Final username for new user: "${username}"`);
               
+              // Генерируем уникальный реферальный код для нового пользователя
+              const refCode = UserService.generateRefCode();
+              console.log(`[UserController] [TelegramAuth] Generated ref_code for new user: "${refCode}"`);
               
               // Создаем нового пользователя
               const newUser = await UserService.createUser({
@@ -223,11 +226,12 @@ export class UserController {
                 uni_farming_rate: '0',
                 ton_deposit_amount: '0',
                 ton_farming_balance: '0',
-                ton_farming_rate: '0'
+                ton_farming_rate: '0',
+                ref_code: refCode // Устанавливаем сгенерированный реферальный код
               });
               
               userId = newUser.id;
-              console.log(`[UserController] Created new user with ID ${userId} for Telegram ID ${telegramId}`);
+              console.log(`[UserController] Created new user with ID ${userId} for Telegram ID ${telegramId} with ref_code: ${refCode}`);
             }
           } else {
             console.warn('[UserController] Telegram initData does not contain user ID');
@@ -325,6 +329,12 @@ export class UserController {
         if (existingUser) {
           return sendError(res, 'User with this Telegram ID already exists', 409);
         }
+      }
+      
+      // Если ref_code не задан явно, генерируем его
+      if (!userData.ref_code) {
+        userData.ref_code = UserService.generateRefCode();
+        console.log(`[UserController] Generated ref_code for new user: "${userData.ref_code}"`);
       }
 
       const newUser = await UserService.createUser(userData);
