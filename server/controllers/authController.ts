@@ -209,7 +209,7 @@ export class AuthController {
         
         user = await UserService.createUser({
           telegram_id: telegramUserId,
-          username: username || `user_${telegramUserId}`,
+          username: parsedUsername || bodyUsername || `user_${telegramUserId}`,
           balance_uni: "1000", // Начальный бонус
           balance_ton: "0",
           ref_code: refCode,
@@ -219,8 +219,9 @@ export class AuthController {
         console.log(`Создан новый пользователь: ${user.id}, telegram_id: ${telegramUserId}, ref_code: ${refCode}`);
       } else {
         // Обновляем информацию о пользователе, если она изменилась
-        if (username && username !== user.username) {
-          user = await UserService.updateUser(user.id, { username });
+        const effectiveUsername = parsedUsername || bodyUsername;
+        if (effectiveUsername && effectiveUsername !== user.username) {
+          user = await UserService.updateUser(user.id, { username: effectiveUsername });
         }
         
         // Проверяем, есть ли у пользователя ref_code, если нет - генерируем
