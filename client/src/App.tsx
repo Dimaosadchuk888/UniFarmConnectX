@@ -28,6 +28,7 @@ import DebugPage from "./pages/DebugPage";
 import AdminPage from "./pages/AdminPage";
 import ReferralDebug from "./pages/ReferralDebug";
 import AuditPage from "./pages/AuditPage";
+import TelegramSetupGuide from "./pages/TelegramSetupGuide";
 
 // For Telegram WebApp types
 // Обновлено определение глобального интерфейса для Telegram WebApp
@@ -73,26 +74,67 @@ function App() {
   const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
   const [showDiagnostics] = useState(true); // Всегда показываем диагностику
 
-  // Жёсткая проверка Telegram WebApp API
+  // Детальная проверка инициализации Telegram WebApp API
   useEffect(() => {
+    // Этап 1.1: Проверка существования window.Telegram.WebApp
+    console.log('[TG AUDIT] Этап 1.1: Проверка window.Telegram.WebApp');
+    console.log('[TG AUDIT] window.Telegram существует:', !!window.Telegram);
+    console.log('[TG AUDIT] window.Telegram?.WebApp существует:', !!window.Telegram?.WebApp);
+    
     const webApp = window.Telegram?.WebApp;
 
     if (webApp) {
-      // Сообщаем Telegram, что приложение готово
-      webApp.ready();
-      console.log('Telegram WebApp готов.');
-      console.log('InitData:', webApp.initData);
-      console.log('InitDataUnsafe:', webApp.initDataUnsafe);
-      console.log('User:', webApp.initDataUnsafe?.user);
+      console.log('[TG AUDIT] ✓ WebApp API найден и доступен');
+      
+      // Этап 1.2: Вывод в консоль данных
+      console.log('[TG AUDIT] Этап 1.2: Вывод данных инициализации');
+      console.log('[TG AUDIT] initData:', webApp.initData);
+      console.log('[TG AUDIT] initData длина:', webApp.initData?.length || 0);
+      console.log('[TG AUDIT] initDataUnsafe:', webApp.initDataUnsafe);
+      console.log('[TG AUDIT] initDataUnsafe.user:', webApp.initDataUnsafe?.user);
+      console.log('[TG AUDIT] initDataUnsafe.auth_date:', webApp.initDataUnsafe?.auth_date);
+      console.log('[TG AUDIT] initDataUnsafe.hash:', webApp.initDataUnsafe?.hash);
+      console.log('[TG AUDIT] platform:', webApp.platform);
+      console.log('[TG AUDIT] version:', webApp.version);
+      console.log('[TG AUDIT] colorScheme:', webApp.colorScheme);
+      console.log('[TG AUDIT] themeParams:', webApp.themeParams);
+      console.log('[TG AUDIT] startParam:', webApp.startParam);
 
+      // Проверяем полноту данных
       if (!webApp.initData || !webApp.initDataUnsafe?.user) {
-        console.error('Ошибка: Telegram WebApp не передал данные пользователя!');
+        console.error('[TG AUDIT] ⚠️ Ошибка: Telegram WebApp не передал данные пользователя!');
+      } else {
+        console.log('[TG AUDIT] ✓ Данные пользователя получены успешно');
+      }
+      
+      // Этап 1.3: Вызов Telegram.WebApp.ready()
+      console.log('[TG AUDIT] Этап 1.3: Вызов Telegram.WebApp.ready()');
+      try {
+        webApp.ready();
+        console.log('[TG AUDIT] ✓ Метод webApp.ready() вызван успешно');
+      } catch (error) {
+        console.error('[TG AUDIT] ⚠️ Ошибка при вызове webApp.ready():', error);
+      }
+      
+      // Расширяем приложение на весь доступный размер
+      try {
+        webApp.expand();
+        console.log('[TG AUDIT] ✓ Метод webApp.expand() вызван успешно');
+      } catch (error) {
+        console.error('[TG AUDIT] ⚠️ Ошибка при вызове webApp.expand():', error);
       }
       
       // Попытка авторизации через Telegram
       authenticateWithTelegram();
     } else {
-      console.error('Ошибка: Telegram WebApp не загружен!');
+      console.error('[TG AUDIT] ⚠️ Ошибка: Telegram WebApp не загружен!');
+      console.log('[TG AUDIT] Детали window:', {
+        windowDefined: typeof window !== 'undefined',
+        telegramDefined: typeof window.Telegram !== 'undefined',
+        userAgent: navigator.userAgent,
+        isIframe: window.self !== window.top,
+        documentURL: window.location.href
+      });
       
       // Продолжаем инициализацию приложения даже без Telegram WebApp
       authenticateWithTelegram();
@@ -266,6 +308,11 @@ function App() {
             {/* Полный аудит приложения */}
             <Route path="/audit">
               <AuditPage />
+            </Route>
+            
+            {/* Руководство по настройке Telegram Mini App */}
+            <Route path="/telegram-setup">
+              <TelegramSetupGuide />
             </Route>
             
             {/* Основной интерфейс приложения */}
