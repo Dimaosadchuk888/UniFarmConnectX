@@ -42,11 +42,19 @@ const UniFarmReferralLink: React.FC = () => {
       console.log('✅ [UniFarmReferralLink] РЕФ КОД НАЙДЕН:', refCode);
       console.log('📋 [UniFarmReferralLink] ССЫЛКА:', referralLink);
     } else if (!isLoading) {
+      // Добавляем более подробную диагностику согласно ТЗ пункт 5
+      console.log('[TG AUDIT] Не удалось получить ссылку');
       console.log('❌ [UniFarmReferralLink] РЕФ КОД ОТСУТСТВУЕТ', { 
         isLoading, 
         isError,
-        userData: safeUser 
+        userData: safeUser,
+        telegramId: safeUser?.telegram_id || 'отсутствует'
       });
+      
+      // Попытка получить телеграм ID для дополнительной диагностики
+      if (!safeUser?.telegram_id) {
+        console.log('[TG AUDIT] User получен с сервера, но telegram_id отсутствует');
+      }
     }
   }, [refCode, referralLink, isLoading, isError, safeUser]);
   

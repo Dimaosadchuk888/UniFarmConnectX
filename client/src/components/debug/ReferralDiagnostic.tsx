@@ -38,7 +38,7 @@ const ReferralDiagnostic: React.FC = () => {
   
   // Создаем реферальную ссылку напрямую
   const refCode = data?.data?.ref_code;
-  const referralLink = refCode ? `https://t.me/UniFarming_Bot/app?startapp=ref_${refCode}` : '';
+  const referralLink = refCode ? `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${refCode}` : '';
   
   // Диагностическая информация для отладки
   useEffect(() => {

@@ -295,6 +295,13 @@ export class UserController {
           const refCode = UserService.generateRefCode();
           console.log(`[UserController] [TelegramAuth] Generated ref_code for new user: "${refCode}"`);
           
+          // Добавляем проверку согласно пункту 4 ТЗ
+          if (telegramId) {
+            console.log(`[ReferralService] Создание пользователя с telegram_id: ${telegramId}, ref_code: ${refCode}`);
+          } else {
+            console.log(`[ReferralService] ВНИМАНИЕ! Создание пользователя БЕЗ telegram_id, но с ref_code: ${refCode}`);
+          }
+          
           // Создаем нового пользователя
           try {
             const newUser = await UserService.createUser({

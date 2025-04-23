@@ -70,7 +70,7 @@ const ReferralSystemDiagnostics: React.FC = () => {
           
           // Формируем реферальную ссылку с правильным форматом
           if (referralData.userInfo.refCode) {
-            referralData.userInfo.referralLink = `https://t.me/UniFarming_Bot/app?startapp=ref_${referralData.userInfo.refCode}`;
+            referralData.userInfo.referralLink = `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${referralData.userInfo.refCode}`;
             referralData.fallbackComponents.actualRefLinkFormatted = referralData.userInfo.referralLink;
           }
         }
