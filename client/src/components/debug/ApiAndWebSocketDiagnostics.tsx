@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { apiRequest } from '@/lib/api';
+import { apiRequest } from '../../lib/queryClient';
 
 /**
  * Компонент для диагностики работы API и WebSocket соединений

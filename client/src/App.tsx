@@ -27,6 +27,7 @@ import WebhookSetup from "./pages/WebhookSetup";
 import DebugPage from "./pages/DebugPage";
 import AdminPage from "./pages/AdminPage";
 import ReferralDebug from "./pages/ReferralDebug";
+import AuditPage from "./pages/AuditPage";
 
 // For Telegram WebApp types
 // Обновлено определение глобального интерфейса для Telegram WebApp
@@ -260,6 +261,11 @@ function App() {
             {/* Диагностика реферальной системы */}
             <Route path="/referral-debug">
               <ReferralDebug />
+            </Route>
+            
+            {/* Полный аудит приложения */}
+            <Route path="/audit">
+              <AuditPage />
             </Route>
             
             {/* Основной интерфейс приложения */}
