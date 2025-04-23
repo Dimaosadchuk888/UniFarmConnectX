@@ -143,7 +143,7 @@ async function handleRefCodeCommand(chatId: number, userId: number): Promise<any
 <b>🔗 Ваш реферальный код</b>
 
 Код: <code>${user.ref_code}</code>
-Ссылка: <code>https://t.me/UniFarming_Bot/app?startapp=ref_${user.ref_code}</code>
+Ссылка: <code>https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${user.ref_code}</code>
 
 Telegram ID: <code>${userId}</code>
 User ID в системе: <code>${user.id}</code>
@@ -192,7 +192,7 @@ async function handleStartCommand(chatId: number, { userId, username, firstName 
       [
         { 
           text: "📱 Открыть UniFarm", 
-          web_app: { url: "https://t.me/UniFarming_Bot/app" }
+          web_app: { url: "https://t.me/UniFarming_Bot/UniFarm" }
         }
       ],
       [
@@ -218,7 +218,7 @@ async function handleStartCommand(chatId: number, { userId, username, firstName 
   const replyMarkup = {
     keyboard: [
       [
-        { text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/app" } }
+        { text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/UniFarm" } }
       ],
       [
         { text: "🔄 Проверить связь" },
@@ -362,7 +362,7 @@ UniFarm - это инновационная платформа для крипт
       `, {
         reply_markup: JSON.stringify({
           inline_keyboard: [
-            [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/app" } }],
+            [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/UniFarm" } }],
             [{ text: "⬅️ Назад", callback_data: "back_to_menu" }]
           ]
         })
@@ -397,7 +397,7 @@ UniFarm - это инновационная платформа для крипт
       `, {
         reply_markup: JSON.stringify({
           inline_keyboard: [
-            [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/app" } }],
+            [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/UniFarm" } }],
             [{ text: "⬅️ Назад", callback_data: "back_to_menu" }]
           ]
         })
@@ -422,13 +422,13 @@ UniFarm - это инновационная платформа для крипт
 
 Код: <code>${user.ref_code}</code>
 Ссылка для приглашения друзей:
-<code>https://t.me/UniFarming_Bot/app?startapp=ref_${user.ref_code}</code>
+<code>https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${user.ref_code}</code>
 
 <i>Отправьте эту ссылку друзьям, чтобы они присоединились к UniFarm по вашему приглашению.</i>
           `, {
             reply_markup: JSON.stringify({
               inline_keyboard: [
-                [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/app" } }],
+                [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/UniFarm" } }],
                 [{ text: "⬅️ Назад", callback_data: "back_to_menu" }]
               ]
             })
@@ -446,7 +446,7 @@ UniFarm - это инновационная платформа для крипт
           `, {
             reply_markup: JSON.stringify({
               inline_keyboard: [
-                [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/app" } }],
+                [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/UniFarm" } }],
                 [{ text: "⬅️ Назад", callback_data: "back_to_menu" }]
               ]
             })
@@ -487,7 +487,7 @@ UniFarm - это инновационная платформа для крипт
       `, {
         reply_markup: JSON.stringify({
           inline_keyboard: [
-            [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/app" } }],
+            [{ text: "📱 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/UniFarm" } }],
             [
               { text: "🔍 Что такое UniFarm?", callback_data: "about_unifarm" },
               { text: "💰 Как заработать", callback_data: "how_to_earn" }
