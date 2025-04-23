@@ -303,10 +303,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Административные маршруты (защищены ключом)
   app.get("/api/admin/users/list-with-telegram-id", AdminController.listUsersWithTelegramId);
   
-  // Маршрут для обработки вебхуков от Telegram
+  // Маршрут для обработки вебхуков от Telegram (корневой путь /webhook)
+  app.post("/webhook", async (req, res) => {
+    // Добавляем метки времени и делаем вывод более структурированным
+    console.log(`\n[Telegram Webhook] [${new Date().toISOString()}] Получен входящий запрос на /webhook:`);
+    
+    // Проверка структуры запроса для лучшей диагностики
+    if (!req.body) {
+      console.warn('[Telegram Webhook] Получен пустой запрос без тела');
+      return res.status(400).json({ ok: false, error: 'Empty request body' });
+    }
+    
+    // Логирование в более читабельном формате
+    console.log(JSON.stringify(req.body, null, 2));
+    
+    try {
+      // Добавляем проверку на наличие ключевых полей в обновлении
+      if (req.body.message) {
+        console.log(`[Telegram Webhook] Сообщение от: ${req.body.message.from?.username || req.body.message.from?.id || 'неизвестно'}`);
+        if (req.body.message.text) {
+          console.log(`[Telegram Webhook] Текст: "${req.body.message.text}"`);
+        }
+      }
+      
+      // Обрабатываем обновление
+      await telegramBot.handleTelegramUpdate(req.body);
+      
+      // Успешный ответ
+      console.log('[Telegram Webhook] Обновление успешно обработано');
+      return res.status(200).json({ ok: true });
+    } catch (error: any) {
+      // Расширенное логирование ошибок
+      console.error('[Telegram Webhook] Ошибка при обработке вебхука:');
+      console.error(`   Тип: ${error.name}`);
+      console.error(`   Сообщение: ${error.message}`);
+      console.error(`   Стек: ${error.stack}`);
+      
+      return res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+  
+  // Маршрут для обработки вебхуков от Telegram (сохраняем совместимость)
   app.post("/api/telegram/webhook", async (req, res) => {
     // Добавляем метки времени и делаем вывод более структурированным
-    console.log(`\n[Telegram Webhook] [${new Date().toISOString()}] Получен входящий запрос:`);
+    console.log(`\n[Telegram Webhook] [${new Date().toISOString()}] Получен входящий запрос на /api/telegram/webhook:`);
     
     // Проверка структуры запроса для лучшей диагностики
     if (!req.body) {
@@ -551,7 +591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Добавление обработчика для всех маршрутов, которые не соответствуют API
   // Это необходимо для корректной работы с Telegram Mini App
-  app.get(/^\/(?!api\/).*$/, (req: Request, res: Response, next: NextFunction) => {
+  app.get(/^\/(?!api\/)(?!webhook).*$/, (req: Request, res: Response, next: NextFunction) => {
     // Проверка на наличие параметров Telegram WebApp в URL
     const hasTelegramParams = req.query.tgWebAppStartParam || 
                               req.query.tgWebAppData || 
