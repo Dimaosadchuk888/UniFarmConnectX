@@ -89,14 +89,14 @@ function App() {
     if (webApp) {
       console.log('==[ InitData Fields Check ]==', {
         user: !!webApp.initDataUnsafe?.user,
-        query_id: !!webApp.initDataUnsafe?.query_id,
-        auth_date: !!webApp.initDataUnsafe?.auth_date
+        auth_date: !!webApp.initDataUnsafe?.auth_date,
+        hash: !!webApp.initDataUnsafe?.hash
       });
     } else {
       console.log('==[ InitData Fields Check ]==', {
         user: false,
-        query_id: false,
-        auth_date: false
+        auth_date: false,
+        hash: false
       });
     }
   }, []);
@@ -234,12 +234,38 @@ function App() {
       console.log('Параметр реферера из URL:', referrerId);
 
       // Отправляем данные на сервер для аутентификации
+      console.log('[App] Отправка данных аутентификации на сервер:', {
+        hasAuthData: !!authData,
+        authDataType: authData ? typeof authData : null,
+        authDataFormat: authData && typeof authData === 'object' ? 'object' : 
+                       (authData && typeof authData === 'string' ? 'string' : 'unknown'),
+        referrerId: referrerId
+      });
+      
+      // Формируем тело запроса в зависимости от типа данных authData
+      let requestBody;
+      if (authData && typeof authData === 'object') {
+        // Если authData это объект, отправляем его как есть
+        requestBody = JSON.stringify({
+          authData: authData.initData || '', // Передаем саму строку initData, если она есть
+          userId: authData.id,
+          username: authData.username,
+          firstName: authData.firstName,
+          lastName: authData.lastName,
+          startParam: authData.startParam,
+          referrerId: referrerId
+        });
+      } else {
+        // Если это строка или другой тип, отправляем как есть
+        requestBody = JSON.stringify({ 
+          authData: authData, 
+          referrerId: referrerId
+        });
+      }
+      
       const authResult = await apiRequest('/api/auth/telegram', {
         method: 'POST',
-        body: JSON.stringify({ 
-          authData: authData, // Теперь используем полученные данные из улучшенного метода
-          referrerId: referrerId // Добавляем ID приглашающего пользователя
-        })
+        body: requestBody
       });
 
       if (authResult.success && authResult.data) {

@@ -23,13 +23,19 @@ export class AuthController {
    */
   static async authenticateTelegram(req: Request, res: Response): Promise<void> {
     try {
-      const { authData, referrerId } = req.body;
+      // Извлекаем все поля из req.body для более гибкой обработки
+      const { authData, userId: bodyUserId, username: bodyUsername, firstName: bodyFirstName, lastName: bodyLastName, startParam: bodyStartParam, referrerId } = req.body;
       
       // АУДИТ: подробное логирование для анализа проблемы
       console.log("[АУДИТ] Received headers:", JSON.stringify(req.headers, null, 2));
-      console.log("[АУДИТ] Request body:", { 
-        authData: authData ? `${authData.substring(0, 20)}...` : 'отсутствует',
-        referrerId 
+      console.log("[АУДИТ] Request body полный:", req.body);
+      console.log("[АУДИТ] Request body детали:", { 
+        authData: authData ? `${typeof authData === 'string' ? authData.substring(0, 20) : JSON.stringify(authData).substring(0, 20)}...` : 'отсутствует',
+        userId: bodyUserId || 'не передан',
+        username: bodyUsername || 'не передан',
+        firstName: bodyFirstName || 'не передан',
+        startParam: bodyStartParam || 'не передан',
+        referrerId: referrerId || 'не передан'
       });
       
       // Проверяем наличие данных аутентификации
@@ -79,11 +85,11 @@ export class AuthController {
       // Извлекаем необходимые параметры
       const hashFromTelegram = authParams.get('hash');
       const authDate = authParams.get('auth_date');
-      const userId = authParams.get('id') ? parseInt(authParams.get('id')!) : 
+      const parsedUserId = authParams.get('id') ? parseInt(authParams.get('id')!) : 
                     authParams.get('user') ? JSON.parse(authParams.get('user')!).id : null;
-      const firstName = authParams.get('first_name') || 
+      const parsedFirstName = authParams.get('first_name') || 
                         (authParams.get('user') ? JSON.parse(authParams.get('user')!).first_name : null);
-      const username = authParams.get('username') || 
+      const parsedUsername = authParams.get('username') || 
                       (authParams.get('user') ? JSON.parse(authParams.get('user')!).username : null);
       
       // Поддержка разных форматов initData (обычный и мини-приложения)
@@ -93,10 +99,10 @@ export class AuthController {
         dataFormat: userDataFormat,
         hashPresent: !!hashFromTelegram,
         authDatePresent: !!authDate,
-        userIdPresent: !!userId,
-        userId: userId,
-        username: username || 'не указан',
-        firstName: firstName || 'не указан'
+        userIdPresent: !!parsedUserId,
+        userId: parsedUserId,
+        username: parsedUsername || 'не указан',
+        firstName: parsedFirstName || 'не указан'
       });
       
       // Проверяем наличие обязательных полей
@@ -110,7 +116,7 @@ export class AuthController {
         return sendError(res, 'Отсутствует дата аутентификации', 400);
       }
       
-      if (!userId) {
+      if (!parsedUserId && !bodyUserId) {
         console.error("[АУДИТ] ОШИБКА: Отсутствует id пользователя в данных аутентификации");
         return sendError(res, 'Отсутствует ID пользователя Telegram', 400);
       }
@@ -175,13 +181,13 @@ export class AuthController {
       }
       
       // Используем userId из валидационного результата, если он доступен
-      let telegramUserId = validationResult.userId || userId;
+      let telegramUserId = validationResult.userId || parsedUserId || bodyUserId;
       
       // Логируем успешную валидацию
       console.log("[АУДИТ] Данные Telegram успешно проверены:", {
-        userId,
-        username: validationResult.username || username,
-        startParam: validationResult.startParam
+        userId: telegramUserId,
+        username: validationResult.username || parsedUsername || bodyUsername,
+        startParam: validationResult.startParam || bodyStartParam
       });
       
       // Если включен тестовый режим, выводим информацию в лог
