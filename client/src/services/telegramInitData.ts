@@ -43,6 +43,14 @@ export function extractTelegramInitData(): TelegramInitData {
     validationErrors: []
   };
   
+  // Расширенное логирование состояния перед началом
+  console.log('[telegramInitData] Начинаю извлечение данных Telegram:', {
+    windowDefined: typeof window !== 'undefined',
+    telegramAvailable: typeof window !== 'undefined' ? !!window.Telegram : false,
+    webAppAvailable: typeof window !== 'undefined' && !!window.Telegram ? !!window.Telegram.WebApp : false,
+    environment: typeof process !== 'undefined' ? process.env.NODE_ENV : 'unknown'
+  });
+  
   // Проверка основных объектов
   if (typeof window === 'undefined') {
     result.validationErrors.push('window объект недоступен (SSR)');
@@ -62,45 +70,87 @@ export function extractTelegramInitData(): TelegramInitData {
   // Добавляем все доступные данные, даже если некоторые поля отсутствуют
   const { WebApp } = window.Telegram;
   
+  // Логирование формата initData
+  console.log('[telegramInitData] Формат raw данных:', {
+    initDataType: typeof WebApp.initData,
+    initDataValue: WebApp.initData ? 
+      (typeof WebApp.initData === 'string' ? 
+        `${WebApp.initData.substring(0, 50)}...` : 
+        'не является строкой') : 'отсутствует',
+    initDataUnsafeType: typeof WebApp.initDataUnsafe,
+    initDataUnsafeFormat: WebApp.initDataUnsafe ? 
+      (WebApp.initDataUnsafe.user ? 'содержит user' : 'без user') : 
+      'отсутствует'
+  });
+  
   // Сохраняем raw данные для отладки
   result.rawInitData = WebApp.initData || undefined;
   result.rawInitDataUnsafe = WebApp.initDataUnsafe;
   
-  // Проверка initData
-  if (!WebApp.initData || WebApp.initData.trim() === '') {
+  // Проверка initData с поддержкой разных форматов
+  if (!WebApp.initData || (typeof WebApp.initData === 'string' && WebApp.initData.trim() === '')) {
     result.validationErrors.push('WebApp.initData отсутствует или пустой');
   }
   
-  // Проверка initDataUnsafe
+  // Извлечение userId с поддержкой различных форматов данных
+  let extractedUserId: number | string | undefined;
+  
+  // Проверка initDataUnsafe с более гибкой логикой
   if (!WebApp.initDataUnsafe) {
     result.validationErrors.push('WebApp.initDataUnsafe отсутствует');
   } else {
-    // Проверка user
+    // Проверка user с различными форматами
     if (!WebApp.initDataUnsafe.user) {
-      result.validationErrors.push('WebApp.initDataUnsafe.user отсутствует');
+      // Попытка извлечь id напрямую из initDataUnsafe, если оно есть
+      if (WebApp.initDataUnsafe.id) {
+        extractedUserId = WebApp.initDataUnsafe.id;
+        console.log('[telegramInitData] Нашел id напрямую в initDataUnsafe:', extractedUserId);
+      } else {
+        result.validationErrors.push('WebApp.initDataUnsafe.user отсутствует');
+      }
     } else {
-      // Извлечение информации о пользователе
-      result.userId = WebApp.initDataUnsafe.user.id;
+      // Извлечение информации о пользователе из стандартного user объекта
+      extractedUserId = WebApp.initDataUnsafe.user.id;
       result.username = WebApp.initDataUnsafe.user.username;
       result.firstName = WebApp.initDataUnsafe.user.first_name;
       result.lastName = WebApp.initDataUnsafe.user.last_name;
       result.photoUrl = WebApp.initDataUnsafe.user.photo_url;
       
-      // Проверка на обязательный userId
-      if (typeof result.userId !== 'number') {
-        result.validationErrors.push('WebApp.initDataUnsafe.user.id не является числом');
-      }
+      console.log('[telegramInitData] Извлечены данные пользователя из user объекта:', {
+        userId: extractedUserId,
+        username: result.username || 'отсутствует',
+        firstName: result.firstName || 'отсутствует'
+      });
     }
     
     // Извлечение метаданных
     result.authDate = WebApp.initDataUnsafe.auth_date;
   }
   
+  // Конвертация userId в числовой тип, если возможно
+  if (extractedUserId !== undefined) {
+    if (typeof extractedUserId === 'number') {
+      result.userId = extractedUserId;
+    } else if (typeof extractedUserId === 'string') {
+      const numericUserId = Number(extractedUserId);
+      // Проверяем, что конвертация прошла успешно (не NaN)
+      if (!isNaN(numericUserId)) {
+        result.userId = numericUserId;
+        console.log('[telegramInitData] Конвертирован userId из строки в число:', numericUserId);
+      } else {
+        // Оставляем как строку, если конвертация не удалась
+        // Всё равно присваиваем значение для последующей обработки
+        result.userId = extractedUserId as any; // Используем any для обхода типизации
+        console.log('[telegramInitData] Не удалось конвертировать userId в число, оставляю как строку:', extractedUserId);
+      }
+    }
+  }
+  
   // Извлечение дополнительных полей
   result.startParam = WebApp.startParam;
   result.platform = WebApp.platform;
   
-  // Пытаемся извлечь ref_code из startParam, если он имеет формат startapp=ref_CODE
+  // Пытаемся извлечь ref_code из startParam с поддержкой разных форматов
   if (result.startParam) {
     if (result.startParam.startsWith('ref_')) {
       // Прямой формат ref_CODE
@@ -116,17 +166,28 @@ export function extractTelegramInitData(): TelegramInitData {
     }
   }
   
-  // Проверка метаданных
-  if (!result.authDate) {
-    result.validationErrors.push('auth_date отсутствует');
+  // Проверка метаданных - делаем более мягкой
+  if (!result.authDate && !process.env.NODE_ENV?.includes('dev')) {
+    // В production требуем auth_date, в development можно без него
+    result.validationErrors.push('auth_date отсутствует (не критично в development)');
   }
   
-  // Установка флага валидности
-  result.isValid = result.validationErrors.length === 0 && typeof result.userId === 'number';
+  // Установка флага валидности с более гибкими правилами:
+  // - Допускаем userId как number ИЛИ string
+  // - В development не требуем всех проверок
+  const userIdValid = (typeof result.userId === 'number' || typeof result.userId === 'string') && 
+                      result.userId !== undefined && result.userId !== null;
+                      
+  // Соблюдаем ограничения: сохраняем структуру возвращаемого значения
+  // В production режиме проверки строже, в development - мягче
+  result.isValid = process.env.NODE_ENV === 'development' ? 
+                    userIdValid :  // В dev режиме достаточно валидного userId
+                    result.validationErrors.length === 0 && userIdValid; // В prod нужна полная валидность
   
   // Подробный отчет в консоль для отладки
-  console.log('[telegramInitData] Извлеченные данные:', {
+  console.log('[telegramInitData] Итоговые данные:', {
     isValid: result.isValid,
+    userIdType: typeof result.userId,
     userId: result.userId || 'отсутствует',
     username: result.username || 'отсутствует',
     firstName: result.firstName || 'отсутствует',
@@ -135,7 +196,8 @@ export function extractTelegramInitData(): TelegramInitData {
     errors: result.validationErrors,
     rawDataLength: result.rawInitData ? result.rawInitData.length : 0,
     hasInitDataUnsafe: !!result.rawInitDataUnsafe,
-    isInIframe: window !== window.parent
+    isInIframe: window !== window.parent,
+    isDev: process.env.NODE_ENV === 'development'
   });
   
   return result;
