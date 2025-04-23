@@ -98,20 +98,7 @@ function App() {
     }
   }, []);
 
-  // Отображение текущего домена на экране для отладки
-  useEffect(() => {
-    const originBanner = document.createElement('div');
-    originBanner.style.position = 'fixed';
-    originBanner.style.bottom = '10px';
-    originBanner.style.left = '10px';
-    originBanner.style.background = '#000';
-    originBanner.style.color = '#fff';
-    originBanner.style.padding = '5px 10px';
-    originBanner.style.borderRadius = '5px';
-    originBanner.style.zIndex = '9999';
-    originBanner.innerText = `Origin: ${location.origin}`;
-    document.body.appendChild(originBanner);
-  }, []);
+  // Отладочный баннер с отображением домена удален для улучшения UX
 
   // Авторизация через Telegram с усиленной проверкой в telegramInitData.ts
   const authenticateWithTelegram = async () => {
