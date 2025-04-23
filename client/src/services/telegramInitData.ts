@@ -4,11 +4,34 @@
  */
 
 /**
+ * Расширенный интерфейс для initDataUnsafe с поддержкой нестандартных полей
+ * которые могут присутствовать в объекте в разных версиях Telegram WebApp API
+ */
+interface ExtendedInitDataUnsafe {
+  user?: {
+    id: number;
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+    photo_url?: string;
+  };
+  auth_date?: string;
+  hash?: string;
+  platform?: string;
+  
+  // Нестандартные поля, которые могут присутствовать в некоторых версиях API
+  id?: number | string;  // ID пользователя может быть непосредственно в корне объекта
+  query_id?: string;     // Идентификатор запроса в некоторых версиях
+  start_param?: string;  // Альтернативное положение startParam
+  [key: string]: any;    // Другие произвольные поля
+}
+
+/**
  * Представляет данные пользователя из Telegram WebApp
  */
 export interface TelegramInitData {
   // Данные пользователя
-  userId?: number;
+  userId?: number | string;  // Поддерживаем как числовой, так и строковый ID
   username?: string;
   firstName?: string;
   lastName?: string;
@@ -24,7 +47,7 @@ export interface TelegramInitData {
   
   // Полные данные для отладки
   rawInitData?: string;
-  rawInitDataUnsafe?: any;
+  rawInitDataUnsafe?: ExtendedInitDataUnsafe;
   
   // Флаги состояния
   isValid: boolean;
@@ -150,18 +173,52 @@ export function extractTelegramInitData(): TelegramInitData {
   result.startParam = WebApp.startParam;
   result.platform = WebApp.platform;
   
-  // Пытаемся извлечь ref_code из startParam с поддержкой разных форматов
+  // Пытаемся извлечь ref_code из startParam с расширенной поддержкой всех возможных форматов
   if (result.startParam) {
+    console.log('[telegramInitData] Анализ startParam для извлечения ref_code:', result.startParam);
+    
+    // Формат 1: Прямой формат ref_CODE
     if (result.startParam.startsWith('ref_')) {
-      // Прямой формат ref_CODE
       result.refCode = result.startParam;
-      console.log('[telegramInitData] Извлечен ref_code из startParam:', result.refCode);
-    } else if (result.startParam.includes('=ref_')) {
-      // Формат startapp=ref_CODE или другие параметры с ref_CODE
+      console.log('[telegramInitData] Извлечен ref_code из прямого формата startParam:', result.refCode);
+    } 
+    // Формат 2: startapp=ref_CODE или другие параметры с ref_CODE
+    else if (result.startParam.includes('=ref_')) {
       const match = result.startParam.match(/=ref_([^&]+)/);
       if (match && match[1]) {
         result.refCode = `ref_${match[1]}`;
-        console.log('[telegramInitData] Извлечен ref_code из сложного startParam:', result.refCode);
+        console.log('[telegramInitData] Извлечен ref_code из формата =ref_:', result.refCode);
+      }
+    }
+    // Формат 3: ref-CODE (через дефис)
+    else if (result.startParam.startsWith('ref-')) {
+      const code = result.startParam.substring(4);
+      result.refCode = `ref_${code}`;
+      console.log('[telegramInitData] Преобразован ref-code с дефисом в стандартный формат:', result.refCode);
+    }
+    // Формат 4: refcode_CODE или refcode-CODE
+    else if (result.startParam.startsWith('refcode_') || result.startParam.startsWith('refcode-')) {
+      const code = result.startParam.substring(8);
+      result.refCode = `ref_${code}`;
+      console.log('[telegramInitData] Преобразован расширенный формат refcode в стандартный:', result.refCode);
+    }
+    // Формат 5: Произвольный формат, где ref_code может быть частью URL-параметров
+    else {
+      // Пробуем найти реферальный код в любом месте startParam
+      const refPattern = /ref[_\-]([a-zA-Z0-9]+)/i;
+      const match = result.startParam.match(refPattern);
+      if (match && match[1]) {
+        result.refCode = `ref_${match[1]}`;
+        console.log('[telegramInitData] Извлечен ref_code из произвольного формата:', result.refCode);
+      } else {
+        // Если ничего не нашли, но startParam выглядит как возможный код,
+        // используем весь startParam как код
+        if (/^[a-zA-Z0-9]{6,}$/.test(result.startParam)) {
+          result.refCode = `ref_${result.startParam}`;
+          console.log('[telegramInitData] Использован весь startParam как реферальный код:', result.refCode);
+        } else {
+          console.log('[telegramInitData] Не удалось извлечь ref_code из startParam:', result.startParam);
+        }
       }
     }
   }
@@ -242,11 +299,26 @@ export function getTelegramStartParam(): string | null {
 
 /**
  * Извлекает реферальный код из startParam Telegram WebApp
+ * с расширенным логированием для диагностики
  * @returns ref_code или null, если он недоступен
  */
 export function getTelegramRefCode(): string | null {
   const telegramData = extractTelegramInitData();
-  return telegramData.refCode || null;
+  
+  if (telegramData.refCode) {
+    console.log('[telegramRefCode] Успешно извлечен реферальный код:', telegramData.refCode);
+    return telegramData.refCode;
+  }
+  
+  // Если код не удалось извлечь, но есть startParam, выводим дополнительную диагностику
+  if (telegramData.startParam) {
+    console.warn('[telegramRefCode] Не удалось извлечь реферальный код из startParam:', telegramData.startParam);
+    console.log('[telegramRefCode] Возможные причины: неожиданный формат или startParam не содержит реферальный код');
+  } else {
+    console.warn('[telegramRefCode] Отсутствует startParam в данных Telegram WebApp');
+  }
+  
+  return null;
 }
 
 /**
