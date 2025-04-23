@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink'; // Новый улучшенный компонент
-import ReferralDirectLinkCard from '@/components/friends/ReferralDirectLinkCard'; // Дополнительный компонент для отображения ссылки
+import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink'; // Основной компонент для отображения ссылки
 import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable';
-import FallbackReferralLink from '@/components/friends/FallbackReferralLink'; // Резервный компонент для гарантированного отображения ссылки
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
 
@@ -10,8 +8,9 @@ import userService from '@/services/userService';
  * Страница партнерской программы
  * Показывает реферальную ссылку и таблицу с уровнями партнерской программы
  * 
- * ВАЖНО: Обновлена для использования нового компонента UniFarmReferralLink,
- * который имеет упрощенную логику отображения ссылки, зависящую только от наличия ref_code.
+ * АУДИТ: Оставлен только основной компонент UniFarmReferralLink,
+ * который отображает ссылку на основе наличия ref_code без зависимости от Telegram WebApp.
+ * Удалены лишние компоненты для исключения конфликтов и дублирования.
  */
 const Friends: React.FC = () => {
   // Состояние для отслеживания видимости элементов
@@ -59,7 +58,7 @@ const Friends: React.FC = () => {
         Партнёрская программа
       </h1>
       
-      {/* Карточка с реферальной ссылкой - обновлена на новый компонент */}
+      {/* Карточка с реферальной ссылкой - единственный компонент по итогам аудита */}
       <div 
         style={{
           opacity: isLoaded ? 1 : 0,
@@ -68,11 +67,6 @@ const Friends: React.FC = () => {
         }}
       >
         <UniFarmReferralLink />
-        
-        {/* Резервный компонент, который всегда отображается независимо от состояния Telegram API */}
-        <div className="mt-6">
-          <FallbackReferralLink />
-        </div>
       </div>
       
       {/* Таблица с уровнями партнерской программы */}
@@ -84,17 +78,6 @@ const Friends: React.FC = () => {
         }}
       >
         <ReferralLevelsTable />
-      </div>
-      
-      {/* Дополнительный независимый блок с реферальной ссылкой */}
-      <div 
-        style={{
-          opacity: isLoaded ? 1 : 0,
-          transform: `translateY(${isLoaded ? 0 : 20}px)`,
-          transition: 'opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s'
-        }}
-      >
-        <ReferralDirectLinkCard />
       </div>
     </div>
   );
