@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink'; // Новый улучшенный компонент
 import ReferralDirectLinkCard from '@/components/friends/ReferralDirectLinkCard'; // Дополнительный компонент для отображения ссылки
 import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable';
+import FallbackReferralLink from '@/components/friends/FallbackReferralLink'; // Резервный компонент для гарантированного отображения ссылки
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
 
@@ -67,6 +68,11 @@ const Friends: React.FC = () => {
         }}
       >
         <UniFarmReferralLink />
+        
+        {/* Резервный компонент, который всегда отображается независимо от состояния Telegram API */}
+        <div className="mt-6">
+          <FallbackReferralLink />
+        </div>
       </div>
       
       {/* Таблица с уровнями партнерской программы */}
