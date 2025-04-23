@@ -75,17 +75,14 @@ function App() {
   // Жёсткая проверка Telegram WebApp API
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
-    console.log("Проверка Telegram WebApp объекта:", webApp);
+
     if (webApp) {
+      // Сообщаем Telegram, что приложение готово
       webApp.ready();
-      console.log("Telegram API готов. InitData:", webApp.initData);
-      
-      // Дополнительная отладочная информация
+      console.log('Telegram WebApp готов.');
+      console.log('InitData:', webApp.initData);
       console.log('InitDataUnsafe:', webApp.initDataUnsafe);
       console.log('User:', webApp.initDataUnsafe?.user);
-      console.log('startParam:', webApp.startParam);
-      console.log('platform:', webApp.platform);
-      console.log('version:', webApp.version);
 
       if (!webApp.initData || !webApp.initDataUnsafe?.user) {
         console.error('Ошибка: Telegram WebApp не передал данные пользователя!');
@@ -94,16 +91,10 @@ function App() {
       // Попытка авторизации через Telegram
       authenticateWithTelegram();
     } else {
-      console.error("Telegram WebApp объект отсутствует!");
+      console.error('Ошибка: Telegram WebApp не загружен!');
       
       // Продолжаем инициализацию приложения даже без Telegram WebApp
       authenticateWithTelegram();
-      
-      // Проверка, загружен ли скрипт Telegram SDK
-      const telegramScriptExists = Array.from(document.scripts).some(
-        script => script.src && script.src.includes('telegram-web-app.js')
-      );
-      console.log("Скрипт Telegram SDK загружен:", telegramScriptExists);
     }
   }, []);
 
