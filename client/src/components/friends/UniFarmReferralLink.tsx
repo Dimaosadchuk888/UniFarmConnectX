@@ -110,44 +110,48 @@ const UniFarmReferralLink: React.FC = () => {
     }
   };
   
-  // Улучшенная логика рендеринга согласно ТЗ:
-  // 1. Если идет загрузка - показываем только лоадер
-  // 2. Если нет пользователя - не показываем компонент вообще
-  // 3. Если есть пользователь, но нет refCode - показываем кнопку "Попробовать снова"
-  // 4. Если есть и пользователь и refCode - показываем реферальную ссылку
+  // Обновленная логика рендеринга:
+  // Компонент всегда отображается, даже если:
+  // - пользователь не загружен (hasUser === false)
+  // - refCode еще не получен или временно отсутствует
+  // - идет загрузка (isLoading === true)
   
-  // Показываем только лоадер в процессе загрузки
-  if (isLoading) {
-    return (
-      <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
-        <div className="flex justify-center items-center py-6">
-          <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-          <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
-        </div>
-      </div>
-    );
-  }
-  
-  // Если нет пользователя вообще - не показываем компонент
-  if (!hasUser) {
-    return null;
-  }
-  
-  // Если есть пользователь, но нет refCode - показываем кнопку "Попробовать снова"
-  if (!hasRefCode) {
+  // Если есть refCode, отрисовываем основной контент с реферальной ссылкой
+  if (hasRefCode) {
+    // Обычный вывод с реферальной ссылкой - этот блок не меняем
+    // Только выводим основной контент - код ниже из return остается неизменным
+  } else {
+    // Если refCode отсутствует, показываем соответствующий контент в зависимости от состояния
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex justify-center items-center flex-col py-4">
-          <p className="text-amber-400/80 mb-3 text-center">
-            Партнерский код еще не сформирован для вашего аккаунта
-          </p>
-          <button
-            onClick={() => refetch()}
-            className="bg-primary/80 hover:bg-primary text-white px-4 py-2 rounded-full text-sm flex items-center transition-colors"
-          >
-            <i className="fas fa-sync-alt mr-2 text-xs"></i>
-            Попробовать снова
-          </button>
+          {isLoading ? (
+            <>
+              <div className="flex items-center mb-3">
+                <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+                <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
+              </div>
+              <p className="text-center text-xs text-muted-foreground">
+                Реферальная ссылка будет доступна после загрузки данных
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-amber-400/80 mb-3 text-center">
+                {!hasUser 
+                  ? "Ожидание данных пользователя..." 
+                  : "Партнерский код еще не сформирован для вашего аккаунта"
+                }
+              </p>
+              <button
+                onClick={() => refetch()}
+                className="bg-primary/80 hover:bg-primary text-white px-4 py-2 rounded-full text-sm flex items-center transition-colors"
+              >
+                <i className="fas fa-sync-alt mr-2 text-xs"></i>
+                Попробовать снова
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
