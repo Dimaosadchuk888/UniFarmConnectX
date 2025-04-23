@@ -16,7 +16,12 @@ const SimpleReferralLink: React.FC<SimpleReferralLinkProps> = ({ refLink }) => {
   const referralLink = refLink;
   
   // Отладочное логирование
-  console.debug('SimpleReferralLink rendered', { referralLink });
+  console.log('[SimpleReferralLink] ДИАГНОСТИКА:', { 
+    hasLink: !!referralLink, 
+    linkLength: referralLink ? referralLink.length : 0,
+    linkPreview: referralLink ? `${referralLink.substring(0, 30)}...` : 'ПУСТО',
+    fullLink: referralLink || 'НЕТ ССЫЛКИ'
+  });
   
   // Копирование в буфер обмена
   const copyToClipboard = () => {

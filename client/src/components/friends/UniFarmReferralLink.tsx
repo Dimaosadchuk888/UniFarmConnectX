@@ -38,6 +38,22 @@ const UniFarmReferralLink: React.FC = () => {
   
   // Дополнительная отладочная функция для логирования ссылки
   useEffect(() => {
+    // Всегда логируем состояние компонента для диагностики
+    console.log('[UniFarmReferralLink] СОСТОЯНИЕ:', { 
+      isLoading, 
+      isError, 
+      hasUser: !!safeUser,
+      hasRefCode: !!refCode,
+      refCode: refCode || 'НЕТ КОДА',
+      referralLink: referralLink || 'НЕТ ССЫЛКИ',
+      userData: safeUser ? {
+        id: safeUser.id,
+        telegram_id: safeUser.telegram_id,
+        username: safeUser.username,
+        ref_code: safeUser.ref_code || 'ОТСУТСТВУЕТ'
+      } : 'НЕТ ДАННЫХ'
+    });
+    
     if (refCode) {
       console.log('✅ [UniFarmReferralLink] РЕФ КОД НАЙДЕН:', refCode);
       console.log('📋 [UniFarmReferralLink] ССЫЛКА:', referralLink);
