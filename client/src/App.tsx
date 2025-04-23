@@ -79,6 +79,26 @@ function App() {
     const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
     console.log('==[ Telegram WebApp Init Check ]==');
     console.log('Telegram.WebApp:', webApp);
+    
+    // Шаг 1.2 — Проверка initData в Telegram WebApp
+    console.log('==[ InitData Check ]==', 
+      webApp?.initData || null, 
+      webApp?.initDataUnsafe || null
+    );
+    
+    if (webApp) {
+      console.log('==[ InitData Fields Check ]==', {
+        user: !!webApp.initDataUnsafe?.user,
+        query_id: !!webApp.initDataUnsafe?.query_id,
+        auth_date: !!webApp.initDataUnsafe?.auth_date
+      });
+    } else {
+      console.log('==[ InitData Fields Check ]==', {
+        user: false,
+        query_id: false,
+        auth_date: false
+      });
+    }
   }, []);
 
   // Детальная проверка инициализации Telegram WebApp API
