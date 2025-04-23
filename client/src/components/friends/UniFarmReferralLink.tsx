@@ -32,9 +32,11 @@ const UniFarmReferralLink: React.FC = () => {
   // Безопасное приведение типов для избежания ошибок
   const safeUser = data as User | undefined;
   const refCode = safeUser?.ref_code;
+  const hasUser = !!safeUser;
+  const hasRefCode = !!refCode;
   
-  // Формируем ссылку с помощью утилиты
-  const referralLink = buildReferralLink(refCode);
+  // Формируем ссылку с помощью утилиты только если есть ref_code
+  const referralLink = hasRefCode ? buildReferralLink(refCode) : "";
   
   // Дополнительная отладочная функция для логирования ссылки
   useEffect(() => {
@@ -112,6 +114,25 @@ const UniFarmReferralLink: React.FC = () => {
   // 1. Если загрузка - показываем лоадер
   // 2. Если есть ref_code - показываем ссылку
   // 3. Если нет ref_code (после загрузки) - показываем сообщение об ошибке
+  
+  // Ранний выход из рендеринга, если не загружены данные
+  if (isLoading || !hasUser || !hasRefCode) {
+    // Показываем только лоадер в процессе загрузки
+    if (isLoading) {
+      return (
+        <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
+          <div className="flex justify-center items-center py-6">
+            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+            <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
+          </div>
+        </div>
+      );
+    }
+    
+    // Если данные загружены, но нет пользователя или реферального кода - не показываем ничего
+    return null;
+  }
+  
   return (
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg card-hover-effect relative overflow-hidden">
       {/* Декоративные элементы фона */}
@@ -143,97 +164,68 @@ const UniFarmReferralLink: React.FC = () => {
           )}
         </div>
         
-        {/* ОСНОВНАЯ ЛОГИКА ОТОБРАЖЕНИЯ - только две ветки: загрузка или содержимое */}
-        {/* 1. Загрузка - показываем лоадер */}
-        {isLoading && (
-          <div className="flex justify-center items-center py-3">
-            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-            <span className="text-sm text-muted-foreground">Получение ссылки...</span>
-          </div>
-        )}
-        
-        {/* 2. Данные загружены - показываем либо ссылку, либо сообщение об ошибке */}
-        {!isLoading && (
-          <>
-            {/* Если есть refCode - показываем ссылку */}
-            {refCode ? (
-              <div className="flex relative">
-                <div className="flex-grow relative">
-                  <input 
-                    type="text" 
-                    value={referralLink} 
-                    readOnly
-                    className={`
-                      w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
-                      transition-all duration-300
-                      ${isHovered ? 'bg-muted/80' : ''}
-                    `}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                  />
-                  
-                  {/* Эффект выделения при наведении */}
-                  {isHovered && (
-                    <div className="absolute inset-0 border border-primary/30 rounded-l-lg pointer-events-none"></div>
-                  )}
-                </div>
-                
-                <button 
-                  className={`
-                    px-3 py-2 rounded-r-lg relative overflow-hidden
-                    ${isCopied ? 'bg-accent' : 'bg-primary'}
-                    transition-all duration-300
-                  `}
-                  onClick={copyToClipboard}
-                  onMouseEnter={() => setIsHovered(true)}
-                  onMouseLeave={() => setIsHovered(false)}
-                >
-                  {/* Анимированный фон для кнопки */}
-                  <div 
-                    className="absolute inset-0" 
-                    style={{
-                      background: isCopied 
-                        ? 'linear-gradient(45deg, #00FF99, #00CC77)' 
-                        : 'linear-gradient(45deg, #A259FF, #B368F7)',
-                      opacity: isHovered ? 1 : 0.9,
-                      transition: 'opacity 0.3s ease'
-                    }}
-                  ></div>
-                  
-                  {/* Иконка в кнопке */}
-                  <i className={`
-                    fas ${isCopied ? 'fa-check' : 'fa-copy'} 
-                    relative z-10 text-white
-                    ${isCopied ? 'scale-110' : ''}
-                    transition-transform duration-300
-                  `}></i>
-                </button>
-                
-                {/* Тултип о статусе копирования */}
-                {isCopied && (
-                  <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
-                    Ссылка скопирована
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Если нет refCode - показываем сообщение об ошибке */
-              <div className="flex flex-col justify-center items-center py-3 px-2 bg-amber-500/10 rounded-lg">
-                <div className="flex items-center mb-2">
-                  <i className="fas fa-exclamation-circle text-amber-500/80 mr-2"></i>
-                  <span className="text-sm text-amber-500/80">Не удалось получить реферальную ссылку.</span>
-                </div>
-                <button
-                  onClick={() => refetch()}
-                  className="text-xs bg-primary/20 hover:bg-primary/30 text-primary px-3 py-1 rounded-full transition-colors flex items-center mt-1"
-                >
-                  <i className="fas fa-sync-alt mr-1 text-xs"></i>
-                  Обновить
-                </button>
-              </div>
+        {/* ОСНОВНАЯ ЛОГИКА ОТОБРАЖЕНИЯ - упрощена, т.к. проверки уже выполнены раньше */}
+        {/* К этому блоку кода мы дойдем только если загрузка завершена и hasUser и hasRefCode == true */}
+        {/* Отображаем готовую ссылку */}
+        <div className="flex relative">
+          <div className="flex-grow relative">
+            <input 
+              type="text" 
+              value={referralLink} 
+              readOnly
+              className={`
+                w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
+                transition-all duration-300
+                ${isHovered ? 'bg-muted/80' : ''}
+              `}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            />
+            
+            {/* Эффект выделения при наведении */}
+            {isHovered && (
+              <div className="absolute inset-0 border border-primary/30 rounded-l-lg pointer-events-none"></div>
             )}
-          </>
-        )}
+          </div>
+          
+          <button 
+            className={`
+              px-3 py-2 rounded-r-lg relative overflow-hidden
+              ${isCopied ? 'bg-accent' : 'bg-primary'}
+              transition-all duration-300
+            `}
+            onClick={copyToClipboard}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            {/* Анимированный фон для кнопки */}
+            <div 
+              className="absolute inset-0" 
+              style={{
+                background: isCopied 
+                  ? 'linear-gradient(45deg, #00FF99, #00CC77)' 
+                  : 'linear-gradient(45deg, #A259FF, #B368F7)',
+                opacity: isHovered ? 1 : 0.9,
+                transition: 'opacity 0.3s ease'
+              }}
+            ></div>
+            
+            {/* Иконка в кнопке */}
+            <i className={`
+              fas ${isCopied ? 'fa-check' : 'fa-copy'} 
+              relative z-10 text-white
+              ${isCopied ? 'scale-110' : ''}
+              transition-transform duration-300
+            `}></i>
+          </button>
+          
+          {/* Тултип о статусе копирования */}
+          {isCopied && (
+            <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
+              Ссылка скопирована
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Подсказка о принципе работы */}
