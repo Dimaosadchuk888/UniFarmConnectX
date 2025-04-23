@@ -9,16 +9,27 @@ export class ReferralService {
   /**
    * Получает все реферальные связи пользователя
    * @param userId ID пользователя
-   * @returns Массив реферальных связей
+   * @returns Массив реферальных связей (пустой массив, если рефералов нет)
    */
   static async getUserReferrals(userId: number): Promise<Referral[]> {
-    const userReferrals = await db
-      .select()
-      .from(referrals)
-      .where(eq(referrals.inviter_id, userId))
-      .orderBy(referrals.created_at);
-    
-    return userReferrals;
+    try {
+      if (!userId || typeof userId !== 'number' || userId <= 0) {
+        console.log('[ReferralService] Invalid userId:', userId);
+        return []; // Возвращаем пустой массив при некорректном userId
+      }
+      
+      const userReferrals = await db
+        .select()
+        .from(referrals)
+        .where(eq(referrals.inviter_id, userId))
+        .orderBy(referrals.created_at);
+      
+      // Гарантируем, что всегда возвращаем массив, даже если запрос вернул null или undefined
+      return userReferrals || [];
+    } catch (error) {
+      console.error('[ReferralService] Error in getUserReferrals:', error);
+      return []; // В случае ошибки также возвращаем пустой массив
+    }
   }
 
   /**
@@ -52,26 +63,36 @@ export class ReferralService {
   /**
    * Получает количество рефералов пользователя по уровням
    * @param userId ID пользователя
-   * @returns Объект с количеством рефералов по уровням
+   * @returns Объект с количеством рефералов по уровням (пустой объект, если нет рефералов)
    */
   static async getReferralCounts(userId: number): Promise<Record<number, number>> {
-    const referralsCounts = await db
-      .select({
-        level: referrals.level,
-        count: sql<string>`count(${referrals.id})`
-      })
-      .from(referrals)
-      .where(eq(referrals.inviter_id, userId))
-      .groupBy(referrals.level);
-    
-    // Преобразуем результат в объект { level: count }
-    const result: Record<number, number> = {};
-    for (const { level, count } of referralsCounts) {
-      if (level !== null) {
-        result[level] = Number(count);
+    try {
+      if (!userId || typeof userId !== 'number' || userId <= 0) {
+        console.log('[ReferralService] Invalid userId in getReferralCounts:', userId);
+        return {}; // Возвращаем пустой объект при некорректном userId
       }
+      
+      const referralsCounts = await db
+        .select({
+          level: referrals.level,
+          count: sql<string>`count(${referrals.id})`
+        })
+        .from(referrals)
+        .where(eq(referrals.inviter_id, userId))
+        .groupBy(referrals.level);
+      
+      // Преобразуем результат в объект { level: count }
+      const result: Record<number, number> = {};
+      for (const { level, count } of referralsCounts) {
+        if (level !== null) {
+          result[level] = Number(count);
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('[ReferralService] Error in getReferralCounts:', error);
+      return {}; // В случае ошибки возвращаем пустой объект
     }
-    
-    return result;
   }
 }

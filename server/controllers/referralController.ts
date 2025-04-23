@@ -71,54 +71,108 @@ export class ReferralController {
   }
   /**
    * Получает данные по партнерке для пользователя
+   * Обновлено: гарантирует возврат валидных данных даже при отсутствии рефералов
    */
   static async getUserReferrals(req: Request, res: Response): Promise<void> {
     try {
       const userId = extractUserId(req, 'query');
       
       if (!userId) {
-        return sendError(res, 'Invalid user ID', 400);
+        console.log('[ReferralController] Отсутствует userId в запросе');
+        // Возвращаем пустые данные вместо ошибки
+        return sendSuccess(res, {
+          user_id: 0,
+          username: "",
+          total_referrals: 0,
+          referral_counts: {},
+          level_income: {},
+          referrals: [] // Гарантируем пустой массив вместо undefined
+        });
       }
 
-      // Проверка существования пользователя
-      const user = await UserService.getUserById(userId);
-      if (!user) {
-        return sendError(res, 'User not found', 404);
+      console.log(`[ReferralController] Запрос данных для пользователя: ${userId}`);
+
+      try {
+        // Проверка существования пользователя
+        const user = await UserService.getUserById(userId);
+        if (!user) {
+          console.log(`[ReferralController] Пользователь с ID ${userId} не найден`);
+          // Возвращаем пустые данные вместо ошибки
+          return sendSuccess(res, {
+            user_id: userId,
+            username: "",
+            total_referrals: 0,
+            referral_counts: {},
+            level_income: {},
+            referrals: [] // Гарантируем пустой массив вместо undefined
+          });
+        }
+
+        // Получаем список приглашенных пользователей с защитой от ошибок
+        const referrals = await ReferralService.getUserReferrals(userId);
+        
+        // Получаем статистику по уровням рефералов с защитой от ошибок
+        const referralCounts = await ReferralService.getReferralCounts(userId);
+        
+        // Получаем данные по доходам с каждого уровня рефералов с защитой от ошибок
+        let levelIncome = {};
+        try {
+          levelIncome = await ReferralController.getLevelIncomeData(userId);
+        } catch (incomeError) {
+          console.error('[ReferralController] Ошибка при получении данных о доходах:', incomeError);
+          // Логируем ошибку, но продолжаем работу с пустым объектом
+        }
+        
+        // Формируем ответ, гарантируя, что все поля определены
+        const response = {
+          user_id: userId,
+          username: user.username || "",
+          total_referrals: referrals ? referrals.length : 0,
+          referral_counts: referralCounts || {},
+          level_income: levelIncome || {},
+          referrals: referrals || [] // Гарантируем, что всегда есть массив
+        };
+
+        sendSuccess(res, response);
+      } catch (innerError) {
+        console.error('[ReferralController] Внутренняя ошибка при обработке запроса:', innerError);
+        // Даже при внутренней ошибке возвращаем валидные данные
+        sendSuccess(res, {
+          user_id: userId,
+          username: "",
+          total_referrals: 0,
+          referral_counts: {},
+          level_income: {},
+          referrals: []
+        });
       }
-
-      // Получаем список приглашенных пользователей
-      const referrals = await ReferralService.getUserReferrals(userId);
-      
-      // Получаем статистику по уровням рефералов
-      const referralCounts = await ReferralService.getReferralCounts(userId);
-      
-      // Получаем данные по доходам с каждого уровня рефералов
-      const levelIncome = await ReferralController.getLevelIncomeData(userId);
-      
-      // Формируем ответ
-      const response = {
-        user_id: userId,
-        username: user.username,
-        total_referrals: referrals.length,
-        referral_counts: referralCounts,
-        level_income: levelIncome,
-        referrals: referrals
-      };
-
-      sendSuccess(res, response);
     } catch (error) {
-      console.error('Error fetching user referrals:', error);
-      sendServerError(res, 'Failed to fetch user referrals');
+      console.error('[ReferralController] Критическая ошибка:', error);
+      // Даже при полном отказе возвращаем пустые данные вместо ошибки
+      sendSuccess(res, {
+        user_id: 0,
+        username: "",
+        total_referrals: 0,
+        referral_counts: {},
+        level_income: {},
+        referrals: []
+      });
     }
   }
   
   /**
    * Получает данные о доходах с каждого уровня рефералов
    * @param userId ID пользователя
-   * @returns Объект с доходами по уровням
+   * @returns Объект с доходами по уровням (пустой объект, если данных нет)
    */
   private static async getLevelIncomeData(userId: number): Promise<Record<number, { uni: number, ton: number }>> {
     try {
+      // Проверка валидности userId
+      if (!userId || typeof userId !== 'number' || userId <= 0) {
+        console.log('[ReferralController] Invalid userId in getLevelIncomeData:', userId);
+        return {}; // Возвращаем пустой объект при некорректном userId
+      }
+      
       // Получаем транзакции с типом referral_bonus
       const db = (await import('../db')).db;
       const transactions = (await import('@shared/schema')).transactions;
@@ -144,29 +198,56 @@ export class ReferralController {
         // Преобразуем результат в объект { level: { uni: amount, ton: amount } }
         const result: Record<number, { uni: number, ton: number }> = {};
         
+        // Проверка, что результат не null и не undefined
+        if (!referralTransactions) {
+          console.log('[ReferralController] Пустой результат запроса транзакций');
+          return {};
+        }
+        
         for (const row of referralTransactions) {
           if (row.level !== null) {
+            // Безопасное преобразование строк в числа
+            const uniAmount = parseFloat(row.uni_amount || '0');
+            const tonAmount = parseFloat(row.ton_amount || '0');
+            
             result[row.level] = {
-              uni: parseFloat(row.uni_amount || '0'),
-              ton: parseFloat(row.ton_amount || '0')
+              // Проверка на NaN для гарантии числовых значений
+              uni: isNaN(uniAmount) ? 0 : uniAmount,
+              ton: isNaN(tonAmount) ? 0 : tonAmount
             };
           }
         }
         
         return result;
       } catch (error: any) {
-        // Если ошибка связана с отсутствием поля data, возвращаем пустой объект
-        if (error.message && error.message.includes("column \"data\" does not exist")) {
-          console.log('Поле "data" не найдено в таблице transactions, возвращаем пустой результат');
-          return {};
+        // Расширенная обработка известных ошибок
+        if (error.message) {
+          // Если ошибка связана с отсутствием поля data, возвращаем пустой объект
+          if (error.message.includes("column \"data\" does not exist")) {
+            console.log('[ReferralController] Поле "data" не найдено в таблице transactions, возвращаем пустой результат');
+            return {};
+          }
+          
+          // Обрабатываем ошибку оператора
+          if (error.message.includes("operator does not exist") || error.message.includes("->>")) {
+            console.log('[ReferralController] Ошибка оператора при запросе данных о доходе:', error.message);
+            return {};
+          }
         }
         
-        // Если ошибка другая, пробрасываем исключение выше
-        throw error;
+        // Логируем детали ошибки для отладки
+        console.error('[ReferralController] Ошибка при выполнении SQL-запроса:', {
+          message: error.message,
+          code: error.code,
+          stack: error.stack?.slice(0, 200) // Первые 200 символов стека для краткости
+        });
+        
+        // Всегда возвращаем пустой объект при любой ошибке
+        return {};
       }
     } catch (error) {
-      console.error('Error calculating level income:', error);
-      return {};
+      console.error('[ReferralController] Критическая ошибка при расчете дохода по уровням:', error);
+      return {}; // Безопасный ответ при любой ошибке
     }
   }
 

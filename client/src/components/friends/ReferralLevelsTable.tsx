@@ -65,6 +65,22 @@ const ReferralLevelsTable: React.FC = () => {
     queryKey: ['/api/referrals', userId],
     queryFn: async () => {
       try {
+        // Проверка: если userId отсутствует или не определен, не отправляем запрос
+        if (!userId) {
+          console.log('[ReferralLevelsTable] userId отсутствует, пропускаем запрос');
+          return {
+            success: true,
+            data: {
+              user_id: 0,
+              username: "",
+              total_referrals: 0,
+              referral_counts: {},
+              level_income: {},
+              referrals: [] // Всегда возвращаем пустой массив вместо undefined
+            }
+          };
+        }
+
         // Использовать правильный параметр user_id вместо userId согласно API
         const response = await fetch(`/api/referrals?user_id=${userId}`);
         if (!response.ok) {
@@ -73,23 +89,42 @@ const ReferralLevelsTable: React.FC = () => {
           throw new Error(`Ошибка получения данных о рефералах: ${response.status}`);
         }
         
-        return response.json();
+        // Получаем данные из ответа
+        const responseData = await response.json();
+        
+        // Проверяем, что массив referrals существует, если нет - устанавливаем пустой массив
+        if (!responseData.data.referrals) {
+          responseData.data.referrals = [];
+        }
+        
+        // Убеждаемся, что level_income и referral_counts существуют
+        if (!responseData.data.level_income) {
+          responseData.data.level_income = {};
+        }
+        
+        if (!responseData.data.referral_counts) {
+          responseData.data.referral_counts = {};
+        }
+        
+        return responseData;
       } catch (error) {
         console.error('[ReferralLevelsTable] Ошибка запроса:', error);
-        // Возвращаем тестовые данные для демонстрации
+        // Возвращаем безопасную структуру данных
         return {
           success: true,
           data: {
-            user_id: userId,
-            username: "test_user",
+            user_id: userId || 0,
+            username: "",
             total_referrals: 0,
             referral_counts: {},
             level_income: {},
-            referrals: []
+            referrals: [] // Всегда возвращаем пустой массив вместо undefined
           }
         };
       }
     },
+    // Отключаем запрос, если userId не определен
+    enabled: !!userId && !isUserLoading,
     refetchOnWindowFocus: false,
     refetchInterval: false
   });
