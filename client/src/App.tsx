@@ -74,6 +74,13 @@ function App() {
   const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
   const [showDiagnostics] = useState(true); // Всегда показываем диагностику
 
+  // Простая проверка инициализации Telegram WebApp по ТЗ
+  useEffect(() => {
+    const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+    console.log('==[ Telegram WebApp Init Check ]==');
+    console.log('Telegram.WebApp:', webApp);
+  }, []);
+
   // Детальная проверка инициализации Telegram WebApp API
   useEffect(() => {
     // Этап 1.1: Проверка существования window.Telegram.WebApp
