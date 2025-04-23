@@ -16,13 +16,13 @@ describe('referralUtils', () => {
 
     it('should correctly format the link with a valid refCode', () => {
       const refCode = 'ABC123456789';
-      const expectedLink = `https://t.me/UniFarming_Bot/app?startapp=ref_${refCode}`;
+      const expectedLink = `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${refCode}`;
       expect(buildReferralLink(refCode)).toBe(expectedLink);
     });
     
     it('should work with numeric refCode values', () => {
       const refCode = '123456789012';
-      const expectedLink = `https://t.me/UniFarming_Bot/app?startapp=ref_${refCode}`;
+      const expectedLink = `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${refCode}`;
       expect(buildReferralLink(refCode)).toBe(expectedLink);
     });
   });
