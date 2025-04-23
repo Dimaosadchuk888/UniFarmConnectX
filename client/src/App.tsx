@@ -202,6 +202,7 @@ function App() {
       
       if (hasTelegramValidData) {
         // Формируем данные для авторизации на основе нового метода
+        // Добавляем refCode в объект авторизации для передачи реферального кода
         authData = {
           id: telegramInitData.userId,
           initData: telegramInitData.rawInitData,
@@ -209,8 +210,14 @@ function App() {
           firstName: telegramInitData.firstName,
           lastName: telegramInitData.lastName,
           photoUrl: telegramInitData.photoUrl,
-          startParam: telegramInitData.startParam
+          startParam: telegramInitData.startParam,
+          refCode: telegramInitData.refCode  // Добавлено поле refCode из обработчика
         };
+        
+        // Улучшенная диагностика наличия реферального кода
+        if (telegramInitData.refCode) {
+          console.log('[App] АУДИТ: Извлечен реферальный код из Telegram WebApp:', telegramInitData.refCode);
+        }
         console.log('[App] АУДИТ: Используем новый метод для авторизации, ID:', telegramInitData.userId);
       } else if (oldTelegramData) {
         // Используем старый метод как запасной
@@ -245,7 +252,19 @@ function App() {
       // Формируем тело запроса в зависимости от типа данных authData
       let requestBody;
       if (authData && typeof authData === 'object') {
-        // Если authData это объект, отправляем его как есть
+        // Проверка приоритета для реферального кода
+        // Приоритет 1: refCode из обработанных данных (наш обработчик extractTelegramInitData)
+        // Приоритет 2: referrerId из URL параметров (метод getReferrerIdFromURL)
+        const refCodeToUse = authData.refCode || null;
+        
+        // Расширенное логирование по определению реферального кода
+        console.log('[App] Аутентификация: реферальные данные:', {
+          refCodeFromInitData: authData.refCode || 'отсутствует',
+          refCodeFromURL: referrerId || 'отсутствует',
+          finalRefCode: refCodeToUse || referrerId || 'отсутствует'
+        });
+        
+        // Если authData это объект, отправляем его с дополнительными параметрами
         requestBody = JSON.stringify({
           authData: authData.initData || '', // Передаем саму строку initData, если она есть
           userId: authData.id,
@@ -253,7 +272,8 @@ function App() {
           firstName: authData.firstName,
           lastName: authData.lastName,
           startParam: authData.startParam,
-          referrerId: referrerId
+          refCode: refCodeToUse,     // Добавляем обработанный реферальный код
+          referrerId: referrerId     // Оставляем для обратной совместимости
         });
       } else {
         // Если это строка или другой тип, отправляем как есть
