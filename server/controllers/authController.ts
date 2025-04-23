@@ -24,7 +24,7 @@ export class AuthController {
   static async authenticateTelegram(req: Request, res: Response): Promise<void> {
     try {
       // Извлекаем все поля из req.body для более гибкой обработки
-      const { authData, userId: bodyUserId, username: bodyUsername, firstName: bodyFirstName, lastName: bodyLastName, startParam: bodyStartParam, referrerId } = req.body;
+      const { authData, userId: bodyUserId, username: bodyUsername, firstName: bodyFirstName, lastName: bodyLastName, startParam: bodyStartParam, referrerId, refCode: bodyRefCode } = req.body;
       
       // АУДИТ: подробное логирование для анализа проблемы
       console.log("[АУДИТ] Received headers:", JSON.stringify(req.headers, null, 2));
@@ -35,7 +35,8 @@ export class AuthController {
         username: bodyUsername || 'не передан',
         firstName: bodyFirstName || 'не передан',
         startParam: bodyStartParam || 'не передан',
-        referrerId: referrerId || 'не передан'
+        referrerId: referrerId || 'не передан',
+        refCode: bodyRefCode || 'не передан' // Добавляем новое поле refCode
       });
       
       // Проверяем наличие данных аутентификации
@@ -244,21 +245,36 @@ export class AuthController {
       }
 
       // Обработка реферальной связи с поддержкой многоуровневой структуры
-      // Проверяем startParam из Telegram (для ref_code)
+      // Приоритет:
+      // 1. Наличие bodyRefCode из объекта запроса (обработанный формат)
+      // 2. Проверка startParam из Telegram (исходный формат)
       const startParam = validationResult.startParam || '';
       
-      console.log(`[AUTH] [ReferralSystem] Проверка startParam: "${startParam}"`);
+      console.log(`[AUTH] [ReferralSystem] Проверка параметров: startParam="${startParam}", refCode="${bodyRefCode || 'нет'}"`);
       
       // Улучшенная проверка формата для разных вариантов реферальных ссылок
       let refCode = '';
       
-      // Проверяем формат startapp=ref_{ref_code}
-      if (startParam.startsWith('ref_')) {
+      // Сначала проверяем, есть ли уже готовый refCode из тела запроса (наш предпочтительный метод)
+      if (bodyRefCode) {
+        // Если формат уже ref_XXX, используем как есть
+        if (bodyRefCode.startsWith('ref_')) {
+          refCode = bodyRefCode.substring(4); // Отрезаем префикс ref_
+          console.log(`[AUTH] [ReferralSystem] Обнаружен готовый реферальный код: ${refCode}`);
+        } else {
+          // Если формат произвольный, используем как есть
+          refCode = bodyRefCode;
+          console.log(`[AUTH] [ReferralSystem] Обнаружен нестандартный реферальный код: ${refCode}`);
+        }
+      }
+      
+      // Проверяем формат startapp=ref_{ref_code} только если еще не получили код из bodyRefCode
+      if (!refCode && startParam.startsWith('ref_')) {
         refCode = startParam.substring(4);
-        console.log(`[AUTH] [ReferralSystem] Обнаружен реферальный код: ${refCode}`);
+        console.log(`[AUTH] [ReferralSystem] Обнаружен реферальный код из startParam: ${refCode}`);
       }
       // Поддержка устаревшего формата user{id}
-      else if (startParam.startsWith('user')) {
+      else if (!refCode && startParam.startsWith('user')) {
         const userId = startParam.substring(4);
         console.log(`[AUTH] [ReferralSystem] Обнаружен устаревший формат с userId: ${userId}`);
         
@@ -389,7 +405,9 @@ export class AuthController {
         requestBody: {
           hasAuthData: !!req.body.authData,
           authDataLength: req.body.authData ? req.body.authData.length : 0,
-          referrerId: req.body.referrerId
+          referrerId: req.body.referrerId,
+          refCode: req.body.refCode,
+          startParam: req.body.startParam
         }
       });
       
