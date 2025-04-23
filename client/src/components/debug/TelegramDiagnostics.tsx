@@ -46,7 +46,10 @@ const TelegramDiagnostics: React.FC = () => {
         const hasInitDataUnsafe = isWebAppAvailable && !!window.Telegram?.WebApp?.initDataUnsafe;
         const hasUser = hasInitDataUnsafe && !!window.Telegram?.WebApp?.initDataUnsafe?.user;
         
-        const userId = hasUser ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id : 'not available';
+        // Используем явное приведение типов для устранения ошибок
+        const userId: number | string = hasUser && window.Telegram?.WebApp?.initDataUnsafe?.user?.id 
+            ? window.Telegram.WebApp.initDataUnsafe.user.id 
+            : 'not available';
         const username = hasUser ? window.Telegram?.WebApp?.initDataUnsafe?.user?.username || 'not available' : 'not available';
         const firstName = hasUser ? window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || 'not available' : 'not available';
         const startParam = isWebAppAvailable ? window.Telegram?.WebApp?.startParam || 'not available' : 'not available';

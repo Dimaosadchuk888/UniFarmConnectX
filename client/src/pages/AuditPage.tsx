@@ -17,10 +17,8 @@ const AuditPage: React.FC = () => {
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">UniFarm Полный Аудит</h1>
-        <Link href="/">
-          <a className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-md text-sm">
-            Вернуться в приложение
-          </a>
+        <Link href="/" className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-md text-sm">
+          Вернуться в приложение
         </Link>
       </div>
 
@@ -174,25 +172,17 @@ const AuditPage: React.FC = () => {
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-4">
         <h2 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">Быстрые действия</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-          <Link href="/debug">
-            <a className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 py-2 px-3 rounded text-sm text-center">
-              Телеграм отладка
-            </a>
+          <Link href="/debug" className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 py-2 px-3 rounded text-sm text-center">
+            Телеграм отладка
           </Link>
-          <Link href="/referral-debug">
-            <a className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 py-2 px-3 rounded text-sm text-center">
-              Реферальная отладка
-            </a>
+          <Link href="/referral-debug" className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 py-2 px-3 rounded text-sm text-center">
+            Реферальная отладка
           </Link>
-          <Link href="/webhook-setup">
-            <a className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 py-2 px-3 rounded text-sm text-center">
-              Настройка вебхука
-            </a>
+          <Link href="/webhook-setup" className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 py-2 px-3 rounded text-sm text-center">
+            Настройка вебхука
           </Link>
-          <Link href="/admin">
-            <a className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 py-2 px-3 rounded text-sm text-center">
-              Админ-панель
-            </a>
+          <Link href="/admin" className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 py-2 px-3 rounded text-sm text-center">
+            Админ-панель
           </Link>
         </div>
       </div>
