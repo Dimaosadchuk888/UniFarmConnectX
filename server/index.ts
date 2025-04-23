@@ -3,15 +3,10 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startBackgroundTasks } from "./background-tasks";
 import { updateRefCodes } from "./migrations/update-ref-codes";
-import { webhookApp } from './webhook';
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Монтируем webhook-приложение на корневой путь
-// Это позволит обрабатывать запросы к /webhook напрямую
-app.use(webhookApp);
 
 app.use((req, res, next) => {
   const start = Date.now();
