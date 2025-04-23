@@ -58,6 +58,13 @@ export class UserController {
       // АУДИТ: Подробный лог всех заголовков запроса для диагностики
       console.log('[АУДИТ] [UserController] All headers:', req.headers);
       
+      // Проверяем Telegram ID в заголовках - добавляем специальный лог согласно ТЗ
+      if (req.headers['x-telegram-user-id']) {
+        console.log("===[Telegram User ID Check]===", req.headers['x-telegram-user-id']);
+      } else {
+        console.log("===[Telegram User ID Check]=== Заголовок X-Telegram-User-Id отсутствует");
+      }
+      
       // АУДИТ: Отдельно логируем все Telegram заголовки
       const telegramHeaders = Object.keys(req.headers).filter(h => 
         h.toLowerCase().includes('telegram') || 

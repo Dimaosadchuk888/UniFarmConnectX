@@ -695,6 +695,7 @@ export function getTelegramAuthHeaders(): Record<string, string> {
       time: new Date().toISOString()
     };
     
+    console.log('===[Telegram User ID Check]=== API недоступен, нет ID для передачи');
     console.log('[АУДИТ] [DIAG] Telegram WebApp State:', diagData);
     
     // В режиме разработки мы можем использовать тестовый ID
@@ -863,6 +864,7 @@ export function getTelegramAuthHeaders(): Record<string, string> {
     const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
     if (userId) {
       headers['X-Telegram-User-Id'] = String(userId);
+      console.log('===[Telegram User ID Check]===', userId);
       
       // Сохраняем ID в localStorage для будущего использования в dev-mode
       try {
@@ -877,6 +879,8 @@ export function getTelegramAuthHeaders(): Record<string, string> {
       } catch (e) {
         console.warn('[telegramService] Error saving userId to localStorage:', e);
       }
+    } else {
+      console.log('===[Telegram User ID Check]=== ID не найден в initDataUnsafe');
     }
     
     // Шаг 7: Добавить больше диагностической информации, если доступно
