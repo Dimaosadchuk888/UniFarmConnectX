@@ -33,10 +33,9 @@ const TelegramInitDataWarning: React.FC = () => {
       setHasTelegram(hasTelegramObj && hasWebAppObj);
       setInitDataLength(initDataLen);
       
-      // Показываем предупреждение только если есть объект Telegram.WebApp, но нет initData
-      // Или если мы в "production" окружении
-      const shouldShowWarning = (hasWebAppObj && initDataLen === 0) || 
-                               (!hasTelegramObj && process.env.NODE_ENV === 'production');
+      // Никогда не показываем предупреждение - это позволит приложению работать в режиме гостя
+      // без блокирующих уведомлений
+      const shouldShowWarning = false; // Отключаем предупреждения полностью
       
       setShowWarning(shouldShowWarning);
       

@@ -150,8 +150,12 @@ function App() {
       
       if (!authData) {
         console.warn('[App] АУДИТ: Не удалось получить данные Telegram WebApp ни через один метод');
-        setTelegramAuthError('Не удалось получить данные пользователя из Telegram');
+        // Не устанавливаем ошибку авторизации, чтобы не блокировать отображение интерфейса
+        // setTelegramAuthError('Не удалось получить данные пользователя из Telegram');
         setIsLoading(false);
+        
+        // Продолжаем обработку без данных Telegram - используем гостевой режим
+        // Это позволит приложению работать независимо от авторизации через Telegram
         return;
       }
 
@@ -268,12 +272,8 @@ function App() {
                   <div className="flex items-center justify-center h-32">
                     <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
                   </div>
-                ) : telegramAuthError ? (
-                  <div className="p-4 mt-4 bg-red-50 border border-red-200 rounded-md text-red-600">
-                    <p className="font-medium">Ошибка авторизации</p>
-                    <p className="text-sm">{telegramAuthError}</p>
-                  </div>
                 ) : (
+                  /* Просто рендерим страницу, не показываем ошибку Telegram авторизации */
                   renderActivePage()
                 )}
               </main>
