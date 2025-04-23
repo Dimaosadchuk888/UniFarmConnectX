@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
 
 interface SimpleReferralLinkProps {
-  refCode: string;
+  refLink: string;
 }
 
 /**
  * Упрощенный компонент для отображения реферальной ссылки без зависимости от Telegram.
  * Всегда отображается независимо от наличия window.Telegram.
  */
-const SimpleReferralLink: React.FC<SimpleReferralLinkProps> = ({ refCode }) => {
+const SimpleReferralLink: React.FC<SimpleReferralLinkProps> = ({ refLink }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   
-  // Формируем реферальную ссылку с правильным URL
-  const referralLink = `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${refCode}`;
+  // Используем готовую ссылку, переданную в props
+  const referralLink = refLink;
   
   // Отладочное логирование
-  console.debug('SimpleReferralLink rendered', { refCode, referralLink });
+  console.debug('SimpleReferralLink rendered', { referralLink });
   
   // Копирование в буфер обмена
   const copyToClipboard = () => {

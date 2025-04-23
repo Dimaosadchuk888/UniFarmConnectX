@@ -1,22 +1,34 @@
 import React, { useState } from 'react';
-
-interface FallbackReferralLinkProps {
-  refCode: string;
-}
+import SimpleReferralLink from '@/components/friends/SimpleReferralLink';
+import { useQuery } from '@tanstack/react-query';
+import userService from '@/services/userService';
 
 /**
  * Упрощенный компонент для отображения реферальной ссылки в fallback режиме.
- * Используется когда window.Telegram недоступен.
+ * Используется когда window.Telegram недоступен или реферальный код недоступен.
+ * Самостоятельно запрашивает данные пользователя через API.
  */
-const FallbackReferralLink: React.FC<FallbackReferralLinkProps> = ({ refCode }) => {
+const FallbackReferralLink = () => {
+  const { data: currentUser, isLoading } = useQuery({
+    queryKey: ['/api/me'],
+    queryFn: () => userService.getCurrentUser(),
+    staleTime: 1000 * 60,
+  });
+
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   
   // Формируем реферальную ссылку с правильным URL
-  const referralLink = `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${refCode}`;
+  const referralLink = currentUser?.ref_code
+    ? `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${currentUser.ref_code}`
+    : null;
   
   // Отладочное логирование
-  console.debug('FallbackReferralLink rendered', { refCode, referralLink });
+  console.debug('FallbackReferralLink rendered', { 
+    userId: currentUser?.id, 
+    refCode: currentUser?.ref_code, 
+    referralLink 
+  });
   
   // Копирование в буфер обмена
   const copyToClipboard = () => {
@@ -47,74 +59,20 @@ const FallbackReferralLink: React.FC<FallbackReferralLinkProps> = ({ refCode }) 
     }
   };
   
+  // Показываем загрузчик, пока данные не получены
+  if (isLoading) {
+    return <div className="p-4 text-center">Загрузка реферальной ссылки...</div>;
+  }
+
+  // Если не получили реферальную ссылку, показываем сообщение об ошибке
+  if (!referralLink) {
+    return <div className="p-4 text-center text-red-500">Реферальная ссылка не найдена.</div>;
+  }
+
+  // Если есть ссылка, используем SimpleReferralLink для отображения
   return (
     <div className="mt-4 mb-2">
-      <div className="p-2 bg-amber-500/10 rounded-lg mb-2">
-        <p className="text-xs text-amber-400">
-          <i className="fas fa-info-circle mr-1"></i>
-          Fallback режим активен. Telegram WebApp не обнаружен.
-        </p>
-      </div>
-      
-      <div className="flex relative">
-        <div className="flex-grow relative">
-          <input 
-            type="text" 
-            value={referralLink} 
-            readOnly
-            className={`
-              w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
-              transition-all duration-300
-              ${isHovered ? 'bg-muted/80' : ''}
-            `}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          />
-          
-          {/* Эффект выделения при наведении */}
-          {isHovered && (
-            <div className="absolute inset-0 border border-primary/30 rounded-l-lg pointer-events-none"></div>
-          )}
-        </div>
-        
-        <button 
-          className={`
-            px-3 py-2 rounded-r-lg relative overflow-hidden
-            ${isCopied ? 'bg-accent' : 'bg-primary'}
-            transition-all duration-300
-          `}
-          onClick={copyToClipboard}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          {/* Анимированный фон для кнопки */}
-          <div 
-            className="absolute inset-0" 
-            style={{
-              background: isCopied 
-                ? 'linear-gradient(45deg, #00FF99, #00CC77)' 
-                : 'linear-gradient(45deg, #A259FF, #B368F7)',
-              opacity: isHovered ? 1 : 0.9,
-              transition: 'opacity 0.3s ease'
-            }}
-          ></div>
-          
-          {/* Иконка в кнопке */}
-          <i className={`
-            fas ${isCopied ? 'fa-check' : 'fa-copy'} 
-            relative z-10 text-white
-            ${isCopied ? 'scale-110' : ''}
-            transition-transform duration-300
-          `}></i>
-        </button>
-        
-        {/* Тултип о статусе копирования */}
-        {isCopied && (
-          <div className="absolute -top-8 right-0 bg-accent/90 text-white text-xs px-2 py-1 rounded shadow-md animate-fadeIn">
-            Ссылка скопирована
-          </div>
-        )}
-      </div>
+      <SimpleReferralLink refLink={referralLink} />
     </div>
   );
 };

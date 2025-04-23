@@ -72,97 +72,30 @@ function App() {
   const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
   const [showDiagnostics] = useState(true); // Всегда показываем диагностику
 
-  // Усиленная инициализация Telegram WebApp при запуске
+  // Жёсткая проверка Telegram WebApp API
   useEffect(() => {
-    // Для отладки - всегда выводим информацию о состоянии WebApp
-    console.log('App initialization: checking Telegram.WebApp availability...');
-    
-    // Добавим проверку на 3 попытки инициализации
-    let initAttempt = 0;
-    const maxAttempts = 3;
-    
-    const attemptInit = () => {
-      initAttempt++;
-      console.log(`Telegram WebApp initialization attempt ${initAttempt}/${maxAttempts}`);
-      
-      // Проверяем, доступен ли Telegram WebApp
-      if (isTelegramWebApp()) {
-        console.log('✅ Telegram WebApp обнаружен, инициализируем...');
-        
-        try {
-          // Вызываем инициализацию
-          initTelegramWebApp();
-          
-          // АУДИТ: Расширенная диагностика состояния Telegram WebApp
-          if (window.Telegram?.WebApp) {
-            // Полное логирование всех доступных данных
-            const tg = window.Telegram.WebApp;
-            console.log('[АУДИТ] DIAG: Telegram WebApp state after initialization:', {
-              // Основные поля
-              initDataAvailable: !!tg.initData,
-              initDataLength: (tg.initData || '').length,
-              // Добавляем само значение initData и initDataUnsafe для отладки согласно ТЗ
-              initData: tg.initData || 'empty',
-              initDataUnsafe: tg.initDataUnsafe,
-              // Проверка объекта с пользовательскими данными
-              initDataUnsafeAvailable: !!tg.initDataUnsafe,
-              userAvailable: !!tg.initDataUnsafe?.user,
-              userId: tg.initDataUnsafe?.user?.id || 'недоступен',
-              username: tg.initDataUnsafe?.user?.username || 'недоступен',
-              firstName: tg.initDataUnsafe?.user?.first_name || 'недоступен',
-              // Проверка служебных полей
-              startParam: tg.startParam || 'недоступен',
-              platform: tg.platform || 'недоступен',
-              version: tg.version || 'недоступен',
-              // Контекст запуска
-              isInIframe: window !== window.parent,
-              currentUrl: window.location.href,
-              referrer: document.referrer || 'no-referrer',
-              userAgent: navigator.userAgent,
-              time: new Date().toISOString(),
-              initAttempt: initAttempt
-            });
-          }
-          
-          // Попытка авторизации через Telegram
-          authenticateWithTelegram();
-          
-          return true; // Успешная инициализация
-        } catch (error) {
-          console.error('❌ Ошибка при инициализации Telegram WebApp:', error);
-        }
-      } else {
-        console.warn(`⚠️ Telegram WebApp не обнаружен (попытка ${initAttempt}/${maxAttempts})`);
+    const webApp = window.Telegram?.WebApp;
+
+    if (webApp) {
+      // Сообщаем Telegram, что приложение готово
+      webApp.ready();
+      console.log('Telegram WebApp готов.');
+      console.log('InitData:', webApp.initData);
+      console.log('InitDataUnsafe:', webApp.initDataUnsafe);
+      console.log('User:', webApp.initDataUnsafe?.user);
+
+      if (!webApp.initData || !webApp.initDataUnsafe?.user) {
+        console.error('Ошибка: Telegram WebApp не передал данные пользователя!');
       }
       
-      // Если мы еще не достигли максимального количества попыток, пробуем снова
-      if (initAttempt < maxAttempts) {
-        console.log(`Повторная попытка через 1 секунду...`);
-        setTimeout(attemptInit, 1000);
-      } else {
-        console.warn('❌ Все попытки инициализации Telegram WebApp исчерпаны');
-      }
+      // Попытка авторизации через Telegram
+      authenticateWithTelegram();
+    } else {
+      console.error('Ошибка: Telegram WebApp не загружен!');
       
-      return false;
-    };
-    
-    // Запускаем первую попытку инициализации
-    attemptInit();
-    
-    // Обработка события загрузки страницы для повторной проверки
-    const handleLoad = () => {
-      console.log('Страница полностью загружена, проверяем статус Telegram WebApp еще раз');
-      if (!isTelegramWebApp() && initAttempt >= maxAttempts) {
-        attemptInit(); // Дополнительная попытка после полной загрузки
-      }
-    };
-    
-    window.addEventListener('load', handleLoad);
-    
-    // Очистка обработчика при размонтировании
-    return () => {
-      window.removeEventListener('load', handleLoad);
-    };
+      // Продолжаем инициализацию приложения даже без Telegram WebApp
+      authenticateWithTelegram();
+    }
   }, []);
 
   // Авторизация через Telegram с усиленной проверкой в telegramInitData.ts
