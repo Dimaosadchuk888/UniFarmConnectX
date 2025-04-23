@@ -591,7 +591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Добавление обработчика для всех маршрутов, которые не соответствуют API
   // Это необходимо для корректной работы с Telegram Mini App
-  app.get(/^\/(?!api\/)(?!webhook).*$/, (req: Request, res: Response, next: NextFunction) => {
+  app.get(/^\/(?!api\/).*$/, (req: Request, res: Response, next: NextFunction) => {
     // Проверка на наличие параметров Telegram WebApp в URL
     const hasTelegramParams = req.query.tgWebAppStartParam || 
                               req.query.tgWebAppData || 
