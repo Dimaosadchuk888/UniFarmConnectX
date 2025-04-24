@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
 import { User } from '@/services/userService';
-import { buildReferralLink } from '@/utils/referralUtils';
+import { buildReferralLink, buildDirectBotReferralLink } from '@/utils/referralUtils';
 import { apiRequest } from '@/lib/queryClient';
 
 /**
@@ -18,6 +18,9 @@ const UniFarmReferralLink: React.FC = () => {
   // Состояния UI
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  
+  // Состояние для отслеживания выбранного типа ссылки
+  const [linkType, setLinkType] = useState<'app' | 'bot'>('app');
   
   // Определяем, запущены ли мы в режиме разработки
   const isDev = process.env.NODE_ENV === 'development';
@@ -179,8 +182,9 @@ const UniFarmReferralLink: React.FC = () => {
     time: new Date().toISOString()
   });
   
-  // Формируем ссылку с помощью утилиты только если есть ref_code
+  // Формируем ссылки с помощью утилит (Mini App и прямая ссылка на бота)
   const referralLink = hasRefCode ? buildReferralLink(refCode) : "";
+  const directBotLink = hasRefCode ? buildDirectBotReferralLink(refCode) : "";
   
   // Дополнительная отладочная функция для логирования ссылки
   useEffect(() => {
@@ -223,13 +227,19 @@ const UniFarmReferralLink: React.FC = () => {
     }
   }, [refCode, referralLink, isLoading, isError, safeUser, isDev]);
   
-  // Копирование ссылки в буфер обмена
-  const copyToClipboard = () => {
-    if (!referralLink) return;
+  // Копирование ссылки в буфер обмена с выбором типа ссылки
+  const copyToClipboard = (type: 'app' | 'bot' = linkType) => {
+    // Выбираем нужную ссылку в зависимости от типа
+    const linkToCopy = type === 'app' ? referralLink : directBotLink;
+    
+    if (!linkToCopy) return;
     
     try {
-      navigator.clipboard.writeText(referralLink);
+      navigator.clipboard.writeText(linkToCopy);
       setIsCopied(true);
+      
+      // Для аналитики
+      console.log(`[UniFarmReferralLink] Скопирована ссылка типа: ${type}`, linkToCopy);
       
       setTimeout(() => {
         setIsCopied(false);
@@ -240,7 +250,7 @@ const UniFarmReferralLink: React.FC = () => {
       // Fallback для устройств без поддержки clipboard API
       try {
         const textArea = document.createElement('textarea');
-        textArea.value = referralLink;
+        textArea.value = linkToCopy;
         document.body.appendChild(textArea);
         textArea.select();
         document.execCommand('copy');
@@ -333,10 +343,7 @@ const UniFarmReferralLink: React.FC = () => {
   
   // Обновленная логика рендеринга:
   // Если есть refCode, отрисовываем основной контент с реферальной ссылкой
-  if (hasRefCode) {
-    // Обычный вывод с реферальной ссылкой - этот блок не меняем
-    // Только выводим основной контент
-  } else {
+  if (!hasRefCode) {
     // Если ID пользователя в URL - telegram_id = 425855744 (ваш ID), показываем
     // дополнительную информацию и кнопку для принудительной загрузки данных ID=7
     const urlParams = new URLSearchParams(window.location.search);
@@ -413,6 +420,7 @@ const UniFarmReferralLink: React.FC = () => {
     );
   }
   
+  // Основной UI с реферальной ссылкой (отображается только когда есть refCode)
   return (
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg card-hover-effect relative overflow-hidden">
       {/* Декоративные элементы фона */}
@@ -444,17 +452,40 @@ const UniFarmReferralLink: React.FC = () => {
           )}
         </div>
         
-        {/* ОТОБРАЖЕНИЕ РЕФЕРАЛЬНОЙ ССЫЛКИ */}
-        {/* К этому блоку кода мы дойдем только если:
-          1. Загрузка данных завершена (isLoading === false)
-          2. Пользователь существует (hasUser === true)
-          3. Реферальный код существует (hasRefCode === true)
-        */}
+        {/* Переключатель типа ссылки */}
+        <div className="flex justify-center mb-3">
+          <div className="bg-black/30 rounded-full p-1 flex text-xs">
+            <button
+              className={`px-3 py-1.5 rounded-full transition-all ${
+                linkType === 'app' 
+                  ? 'bg-primary text-white' 
+                  : 'text-white/70 hover:text-white'
+              }`}
+              onClick={() => setLinkType('app')}
+            >
+              <i className="fas fa-mobile-alt mr-1"></i>
+              Mini App
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded-full transition-all ${
+                linkType === 'bot' 
+                  ? 'bg-primary text-white' 
+                  : 'text-white/70 hover:text-white'
+              }`}
+              onClick={() => setLinkType('bot')}
+            >
+              <i className="fas fa-robot mr-1"></i>
+              Telegram Bot
+            </button>
+          </div>
+        </div>
+
+        {/* Отображение выбранной ссылки */}
         <div className="flex relative">
           <div className="flex-grow relative">
             <input 
               type="text" 
-              value={referralLink} 
+              value={linkType === 'app' ? referralLink : directBotLink} 
               readOnly
               className={`
                 w-full bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
@@ -477,7 +508,7 @@ const UniFarmReferralLink: React.FC = () => {
               ${isCopied ? 'bg-accent' : 'bg-primary'}
               transition-all duration-300
             `}
-            onClick={copyToClipboard}
+            onClick={() => copyToClipboard(linkType)}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
@@ -509,6 +540,14 @@ const UniFarmReferralLink: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Подсказка о типе ссылки */}
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          {linkType === 'app' 
+            ? "Ссылка для запуска Mini App в Telegram" 
+            : "Ссылка для перехода к диалогу с ботом"
+          }
+        </p>
       </div>
       
       {/* Подсказка о принципе работы */}
