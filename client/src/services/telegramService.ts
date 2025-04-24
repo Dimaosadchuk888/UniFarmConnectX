@@ -546,6 +546,19 @@ export function getTelegramUserData(): TelegramUserData | null {
     platform: window?.Telegram?.WebApp?.platform || 'unknown'
   });
   
+  // Добавляем в заголовки initData согласно требованиям задания 1.2 ТЗ
+  if (window?.Telegram?.WebApp?.initData) {
+    try {
+      // Используем глобальную переменную, чтобы все последующие запросы имели нужный заголовок
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('telegramInitData', window.Telegram.WebApp.initData);
+        console.log('[telegramService] Сохранен initData в localStorage для передачи в заголовках');
+      }
+    } catch (e) {
+      console.error('[telegramService] Ошибка при сохранении initData:', e);
+    }
+  }
+  
   // Шаг 2: Проверка базовой доступности API
   if (!isTelegramWebApp()) {
     console.warn('[telegramService] Telegram WebApp API not available');

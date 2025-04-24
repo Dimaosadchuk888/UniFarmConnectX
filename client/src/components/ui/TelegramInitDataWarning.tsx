@@ -6,17 +6,8 @@ import { isTelegramWebApp } from '@/services/telegramService';
  * или когда initData отсутствует/пустой
  */
 
-// Объявляем тип Window с Telegram для этого модуля
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        initData?: string;
-        [key: string]: any;
-      };
-    };
-  }
-}
+// Используем типы из глобального объявления в App.tsx
+// Не переопределяем Window.Telegram, чтобы избежать конфликтов типов
 const TelegramInitDataWarning: React.FC = () => {
   const [showWarning, setShowWarning] = useState(false);
   const [initDataLength, setInitDataLength] = useState(0);
@@ -33,9 +24,9 @@ const TelegramInitDataWarning: React.FC = () => {
       setHasTelegram(hasTelegramObj && hasWebAppObj);
       setInitDataLength(initDataLen);
       
-      // Никогда не показываем предупреждение - это позволит приложению работать в режиме гостя
-      // без блокирующих уведомлений
-      const shouldShowWarning = false; // Отключаем предупреждения полностью
+      // По ТЗ: Если данных нет — отображать сообщение: «Приложение не открыто из Telegram».
+      const isDev = process.env.NODE_ENV === 'development';
+      const shouldShowWarning = !isDev && (!hasTelegramObj || !hasWebAppObj || initDataLen === 0);
       
       setShowWarning(shouldShowWarning);
       
@@ -75,18 +66,15 @@ const TelegramInitDataWarning: React.FC = () => {
             Предупреждение о доступе к Telegram
           </h3>
           <div className="mt-2 text-xs text-amber-800">
-            {!hasTelegram ? (
-              <p>
-                Telegram API не обнаружен. Приложение может работать с ограниченной функциональностью.
-                Попробуйте открыть через официальный клиент Telegram.
-              </p>
-            ) : (
-              <p>
-                Telegram initData отсутствует (длина: {initDataLength}). 
-                Некоторые функции приложения могут быть недоступны.
-                Попробуйте перезапустить приложение или открыть его через официальный клиент Telegram.
-              </p>
-            )}
+            <p>
+              <strong>Приложение не открыто из Telegram.</strong>
+            </p>
+            <p className="mt-1">
+              {!hasTelegram 
+                ? "Отсутствует доступ к Telegram API. Откройте через официальный клиент Telegram."
+                : `Telegram initData отсутствует (длина: ${initDataLength}). Перезапустите приложение в Telegram.`
+              }
+            </p>
           </div>
         </div>
       </div>
