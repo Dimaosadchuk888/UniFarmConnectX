@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
+import path from "path";
 
 // Расширяем тип WebSocket для поддержки пользовательских свойств
 interface ExtendedWebSocket extends WebSocket {
@@ -786,6 +787,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Добавление обработчика для всех маршрутов, которые не соответствуют API
   // Это необходимо для корректной работы с Telegram Mini App
+  // Специальный маршрут для перенаправления URL с слешем на конце
+  app.get('/telegram-redirect.html', (req: Request, res: Response) => {
+    res.sendFile(path.join(process.cwd(), 'client', 'public', 'telegram-redirect.html'));
+  });
+  
+  // Если URL заканчивается на слеш, редиректим на страницу-обработчик
+  app.get('*/', (req: Request, res: Response) => {
+    // Убираем конечный слеш для правильной работы Telegram WebApp
+    const redirectUrl = '/telegram-redirect.html' + (req.url.length > 1 ? req.url.slice(0, -1) : '');
+    console.log(`[Redirect] URL с слешем в конце: ${req.url} -> ${redirectUrl}`);
+    res.redirect(redirectUrl);
+  });
+  
   app.get(/^\/(?!api\/).*$/, (req: Request, res: Response, next: NextFunction) => {
     // Проверка на наличие параметров Telegram WebApp в URL
     const hasTelegramParams = req.query.tgWebAppStartParam || 
