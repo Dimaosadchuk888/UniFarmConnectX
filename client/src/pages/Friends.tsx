@@ -3,21 +3,22 @@ import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink'; // �
 import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
+import { User } from '@/services/userService';
 
 /**
  * Страница партнерской программы
  * Показывает реферальную ссылку и таблицу с уровнями партнерской программы
  * 
- * АУДИТ: Оставлен только основной компонент UniFarmReferralLink,
- * который отображает ссылку на основе наличия ref_code без зависимости от Telegram WebApp.
- * Удалены лишние компоненты для исключения конфликтов и дублирования.
+ * АУДИТ ЭТАП 4.1: Объединенная версия Friends и FriendsMinimal.
+ * Удалена проверка на минимальный режим, добавлена статистика реферального кода, 
+ * стабильная работа в любой среде запуска.
  */
 const Friends: React.FC = () => {
   // Состояние для отслеживания видимости элементов
   const [isLoaded, setIsLoaded] = useState(false);
   
   // Получаем информацию о пользователе - принудительно отключаем кэширование
-  const { data: userData, isLoading } = useQuery({
+  const { data: userData, isLoading, isError } = useQuery({
     queryKey: ['/api/me'], 
     queryFn: () => userService.getCurrentUser(true), // Принудительно получаем свежие данные
     staleTime: 10000, // Уменьшаем время кэширования до 10 секунд
@@ -45,8 +46,11 @@ const Friends: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [userData?.ref_code, isLoading, userData]);
   
+  // Безопасное приведение типов
+  const safeUser = userData as User | undefined;
+  
   return (
-    <div>
+    <div className="w-full">
       <h1 
         className="text-xl font-semibold text-primary mb-6"
         style={{
@@ -67,6 +71,44 @@ const Friends: React.FC = () => {
         }}
       >
         <UniFarmReferralLink />
+      </div>
+      
+      {/* Статистика реферального кода */}
+      <div
+        className="bg-black/30 rounded-lg p-3 mb-4 mt-4"
+        style={{
+          opacity: isLoaded ? 1 : 0,
+          transform: `translateY(${isLoaded ? 0 : 12}px)`,
+          transition: 'opacity 0.6s ease 0.15s, transform 0.6s ease 0.15s'
+        }}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-primary font-bold text-sm">
+            Статистика вашего реферального кода
+          </h3>
+          <div className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-300">
+            {isLoading ? 'загрузка' : (isError ? 'ошибка' : 'готово')}
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-2 text-xs">
+          <div className="flex justify-between bg-black/20 p-2 rounded">
+            <span className="text-gray-400">ID пользователя:</span>
+            <span className="text-white font-mono">{safeUser?.id || '—'}</span>
+          </div>
+          <div className="flex justify-between bg-black/20 p-2 rounded">
+            <span className="text-gray-400">Telegram ID:</span>
+            <span className="text-white font-mono">{safeUser?.telegram_id || '—'}</span>
+          </div>
+          <div className="flex justify-between bg-black/20 p-2 rounded">
+            <span className="text-gray-400">Реферальный код:</span>
+            <span className="text-accent font-mono font-bold">{safeUser?.ref_code || 'НЕ НАЗНАЧЕН'}</span>
+          </div>
+          <div className="flex justify-between bg-black/20 p-2 rounded">
+            <span className="text-gray-400">Приглашенных друзей:</span>
+            <span className="text-white font-mono">{safeUser?.referral_count || '0'}</span>
+          </div>
+        </div>
       </div>
       
       {/* Таблица с уровнями партнерской программы */}
