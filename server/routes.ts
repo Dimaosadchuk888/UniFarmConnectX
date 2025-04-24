@@ -21,6 +21,7 @@ import { ReferralController } from './controllers/referralController';
 
 // Импорт обработчика команд для Telegram-бота
 import * as telegramBot from './telegramBot';
+import { TelegramController } from './controllers/telegramController'; // Новый TypeScript контроллер для Telegram
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { UniFarmingController } from './controllers/uniFarmingController';
 import { BoostController } from './controllers/boostController';
