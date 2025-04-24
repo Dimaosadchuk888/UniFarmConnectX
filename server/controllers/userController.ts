@@ -147,38 +147,17 @@ export class UserController {
         }
       }
       
-      // Только для режима разработки - получение ID из других источников
-      // В продакшене (согласно п.1.2 ТЗ) используем только верифицированные данные
+      // В PRODUCTION мы полностью исключаем использование telegram_id из заголовков (п.2.1 ТЗ)
+      // В DEV режиме можем использовать fallback для удобства разработки
       if (process.env.NODE_ENV === 'development' && !telegramId) {
-        // Проверяем параметры URL
-        const urlTelegramId = req.query.telegram_id ? parseInt(req.query.telegram_id as string) : null;
-        if (urlTelegramId && !isNaN(urlTelegramId)) {
-          telegramId = urlTelegramId;
-          console.log(`[UserController] [DEV] Using telegram_id from URL parameters: ${telegramId}`);
-        }
+        console.log('[UserController] В режиме разработки включен fallback для Telegram ID');
         
-        // Проверяем наличие пользовательского ID в заголовке (только для разработки)
-        const headerUserId = req.headers['x-telegram-user-id'] || req.headers['x-user-id'] || req.headers['telegram-user-id'];
-        if (headerUserId && !telegramId) {
-          console.log(`[UserController] [DEV] Found user ID in headers: ${headerUserId}`);
-          
-          // Если у нас нет telegramId из initData, но есть в заголовке, используем его
-          if (typeof headerUserId === 'string' && headerUserId.trim() !== '') {
-            try {
-              // Специальная обработка для DimaOsadchuk по ТЗ
-              if (headerUserId === 'DimaOsadchuk') {
-                // Присваиваем фиксированный числовой ID для DimaOsadchuk
-                telegramId = 9876543210; // Используем специальный числовой ID для DimaOsadchuk
-                console.log(`[UserController] [DEV] Special handler: Using telegramId ${telegramId} for DimaOsadchuk`);
-              } else {
-                telegramId = parseInt(headerUserId);
-                console.log(`[UserController] [DEV] Using user ID from header as telegramId: ${telegramId}`);
-              }
-            } catch (parseError) {
-              console.error(`[UserController] [DEV] Failed to parse headerUserId: ${headerUserId}`, parseError);
-            }
-          }
-        }
+        // Только для режима разработки - создаем тестового пользователя с ID=1
+        telegramId = 1;
+        console.log(`[UserController] [DEV] Using development test ID: ${telegramId}`);
+        
+        // Отмечаем в логах для аудита, что используется тестовый ID
+        console.log('===[Telegram User ID Check]=== Используется тестовый ID для разработки =1');
       }
       
       // 2. ПОИСК ИЛИ СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ
