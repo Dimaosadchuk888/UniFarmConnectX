@@ -49,6 +49,12 @@ declare global {
 const TELEGRAM_USER_ID_KEY = 'telegram_user_id';
 // Ключ для хранения времени последнего сохранения telegram_id
 const TELEGRAM_ID_TIMESTAMP_KEY = 'telegram_id_timestamp';
+// Ключ для хранения данных initData
+const TELEGRAM_INIT_DATA_KEY = 'telegramInitData';
+// Ключ для хранения данных пользователя Telegram
+const TELEGRAM_USER_DATA_KEY = 'telegram_user_data';
+// Ключ для режима отладки
+const TELEGRAM_DEBUG_MODE_KEY = 'telegram_debug_mode';
 
 /**
  * Проверяет, запущено ли приложение в Telegram WebApp и доступны ли все необходимые свойства API
@@ -125,6 +131,45 @@ export function isRunningInTelegram(): boolean {
   }
   
   return false;
+}
+
+/**
+ * Очищает все данные Telegram из localStorage, включая кэшированные initData и ID
+ * Это критически важно при смене бота или обнаружении проблем с инициализацией
+ * @returns {boolean} true если очистка прошла успешно
+ */
+export function clearTelegramCache(): boolean {
+  console.log('[telegramService] 🧹 Clearing all Telegram cached data...');
+  
+  try {
+    // Очищаем все ключи, связанные с Telegram
+    localStorage.removeItem(TELEGRAM_INIT_DATA_KEY);
+    localStorage.removeItem(TELEGRAM_USER_DATA_KEY);
+    localStorage.removeItem(TELEGRAM_USER_ID_KEY);
+    localStorage.removeItem(TELEGRAM_ID_TIMESTAMP_KEY);
+    localStorage.removeItem(TELEGRAM_DEBUG_MODE_KEY);
+    
+    // Дополнительно ищем и удаляем любые ключи, содержащие ключевые слова
+    const keysToCheck = ['telegram', 'tg_', 'webApp', 'initData', 'botId'];
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        const keyLower = key.toLowerCase();
+        // Если ключ содержит любое из ключевых слов - удаляем
+        if (keysToCheck.some(keyword => keyLower.includes(keyword))) {
+          localStorage.removeItem(key);
+          console.log(`[telegramService] Removed additional key: ${key}`);
+        }
+      }
+    }
+    
+    console.log('[telegramService] ✅ All Telegram cache cleared successfully');
+    return true;
+  } catch (error) {
+    console.error('[telegramService] ❌ Failed to clear Telegram cache:', error);
+    return false;
+  }
 }
 
 export function isTelegramWebApp(): boolean {
@@ -692,6 +737,35 @@ export function getTelegramAuthHeaders(): Record<string, string> {
   
   // Шаг 1: Подготовим результат с заголовками и добавим поддержку dev-mode
   const headers: Record<string, string> = {};
+  
+  // Добавляем проверку метаданных для выявления устаревших данных
+  try {
+    // Проверка по временной метке, устаревшие данные старше 24 часов автоматически очищаются
+    const timestampStr = localStorage.getItem(TELEGRAM_ID_TIMESTAMP_KEY);
+    if (timestampStr) {
+      const timestamp = parseInt(timestampStr, 10);
+      const now = Date.now();
+      const ageHours = (now - timestamp) / (1000 * 60 * 60);
+      
+      if (ageHours > 24) {
+        console.warn(`[telegramService] ⚠️ Обнаружены устаревшие данные Telegram (возраст: ${ageHours.toFixed(1)} часов), очищаем кэш...`);
+        clearTelegramCache();
+      }
+    }
+    
+    // Проверяем версию API и бота для выявления устаревших данных
+    const cachedInitData = localStorage.getItem(TELEGRAM_INIT_DATA_KEY);
+    if (cachedInitData) {
+      // Проверка по хешу или метаданным, чтобы определить, от какого бота данные
+      if (cachedInitData.includes('old_bot_marker') || 
+          (cachedInitData.includes('auth_date') && !cachedInitData.includes('7980427501'))) {
+        console.warn('[telegramService] ⚠️ Обнаружены данные от старого бота, очищаем кэш...');
+        clearTelegramCache();
+      }
+    }
+  } catch (e) {
+    console.error('[telegramService] Ошибка при проверке актуальности данных:', e);
+  }
   
   // Получаем initData - сначала из Telegram API, потом из localStorage (согласно п.1.2 ТЗ)
   let initData = window.Telegram?.WebApp?.initData;

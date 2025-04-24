@@ -4,7 +4,13 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { apiRequest } from "@/lib/queryClient";
-import { getTelegramUserData, initTelegramWebApp, isTelegramWebApp, getCachedTelegramUserId } from "./services/telegramService";
+import { 
+  getTelegramUserData, 
+  initTelegramWebApp, 
+  isTelegramWebApp, 
+  getCachedTelegramUserId,
+  clearTelegramCache  // Импортируем функцию очистки кэша
+} from "./services/telegramService";
 import { extractTelegramInitData, getTelegramUserId, hasTelegramUserId } from "./services/telegramInitData";
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import { TONCONNECT_MANIFEST_URL } from './config/tonConnect';
@@ -98,6 +104,15 @@ function App() {
         hash: false
       });
     }
+  }, []);
+
+  // Очистка кэша Telegram при старте приложения
+  useEffect(() => {
+    // Принудительная очистка всех кэшированных данных Telegram при загрузке приложения
+    // Это необходимо для удаления устаревших данных от старого бота
+    console.log('[App] 🧹 Очистка кэша Telegram при старте приложения...');
+    clearTelegramCache();
+    console.log('[App] ✅ Кэш Telegram очищен, обновляем локальные данные...');
   }, []);
 
   // Детальная проверка инициализации Telegram WebApp API
