@@ -278,8 +278,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Отладочный эндпоинт для анализа заголовков и данных пользователя
   app.get("/debug/me/raw", async (req: Request, res: Response) => {
     try {
-      // Получаем текущего пользователя из запроса
-      const user = req.user;
+      // В Express user не объявлен в типе Request, добавляем безопасную проверку
+      // @ts-ignore используем, поскольку req.user может быть добавлен middleware аутентификации
+      const user = req.user || null;
 
       // Собираем данные для отладки
       const debugInfo = {

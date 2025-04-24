@@ -347,6 +347,17 @@ export function initTelegramWebApp(): boolean {
     userAgent: navigator.userAgent,
   });
   
+  // Сразу сохраняем initData в localStorage, если оно доступно (согласно п.1.2 ТЗ)
+  if (window.Telegram?.WebApp?.initData && window.Telegram.WebApp.initData.trim() !== '') {
+    try {
+      localStorage.setItem('telegramInitData', window.Telegram.WebApp.initData);
+      console.log('[telegramService] Successfully saved Telegram initData to localStorage with length:', 
+        window.Telegram.WebApp.initData.length);
+    } catch (e) {
+      console.error('[telegramService] Error saving Telegram initData to localStorage:', e);
+    }
+  }
+  
   // Проверяем доступность основного API
   if (!window?.Telegram?.WebApp) {
     console.error('[telegramService] Failed to initialize - WebApp API not available');
@@ -682,16 +693,36 @@ export function getTelegramAuthHeaders(): Record<string, string> {
   // Шаг 1: Подготовим результат с заголовками и добавим поддержку dev-mode
   const headers: Record<string, string> = {};
   
-  // Получаем сохраненные данные initData из localStorage (согласно п.1.2 ТЗ)
-  try {
-    const savedInitData = localStorage.getItem('telegramInitData');
-    if (savedInitData) {
-      // Добавляем initData в заголовок для передачи на сервер
-      headers['Telegram-Init-Data'] = savedInitData;
-      console.log('[telegramService] Added Telegram-Init-Data header from localStorage');
+  // Получаем initData - сначала из Telegram API, потом из localStorage (согласно п.1.2 ТЗ)
+  let initData = window.Telegram?.WebApp?.initData;
+  
+  // Если initData от Telegram доступен и не пустой, сохраняем его в localStorage
+  if (initData && initData.trim() !== '') {
+    try {
+      localStorage.setItem('telegramInitData', initData);
+      console.log('[telegramService] Saved current Telegram initData to localStorage');
+    } catch (e) {
+      console.error('[telegramService] Error saving telegramInitData to localStorage:', e);
     }
-  } catch (e) {
-    console.error('[telegramService] Error reading telegramInitData from localStorage:', e);
+  } else {
+    // Если текущего initData нет, пробуем получить сохраненный из localStorage
+    try {
+      const savedInitData = localStorage.getItem('telegramInitData');
+      if (savedInitData) {
+        initData = savedInitData;
+        console.log('[telegramService] Retrieved Telegram initData from localStorage');
+      }
+    } catch (e) {
+      console.error('[telegramService] Error reading telegramInitData from localStorage:', e);
+    }
+  }
+  
+  // Если у нас есть initData (текущий или из localStorage), добавляем его в заголовки
+  if (initData && initData.trim() !== '') {
+    headers['Telegram-Init-Data'] = initData;
+    console.log('[telegramService] Added Telegram-Init-Data header with length:', initData.length);
+  } else {
+    console.warn('[telegramService] No Telegram initData available to add to headers');
   }
   
   // Обработка случая, когда Telegram WebApp API недоступен
