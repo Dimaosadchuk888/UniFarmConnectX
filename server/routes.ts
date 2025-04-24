@@ -102,6 +102,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parsedInitData?: Record<string, any>;
         initDataFormat?: string;
         initDataParseError?: string;
+        validationResult?: {
+          isValid: boolean;
+          userId: number | null;
+          errors?: string[];
+          botTokenAvailable: boolean;
+          botTokenLength?: number;
+        };
       }
 
       // Собираем всю информацию об окружении и заголовках
@@ -152,12 +159,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             
             debugInfo.parsedInitData = parsedData;
+            debugInfo.initDataFormat = 'url-encoded';
           } 
           // Если это JSON, пытаемся распарсить
           else {
             try {
               const jsonData = JSON.parse(initData);
               debugInfo.parsedInitData = jsonData;
+              debugInfo.initDataFormat = 'json';
               
               // Если есть hash, маскируем его для безопасности
               if (jsonData.hash) {
@@ -169,6 +178,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (parseError) {
           debugInfo.initDataParseError = `Error parsing initData: ${(parseError as Error).message}`;
+        }
+        
+        // Добавляем результаты валидации initData
+        try {
+          // Импортируем функцию валидации
+          const { validateTelegramInitData } = await import('./utils/telegramUtils');
+          
+          // Получаем токен бота из переменных окружения
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          
+          // Проверяем данные с различными настройками
+          const validationResult = validateTelegramInitData(
+            initData,
+            botToken,
+            {
+              maxAgeSeconds: 172800, // 48 часов
+              isDevelopment: process.env.NODE_ENV !== 'production',
+              requireUserId: false, // Для отладки не требуем
+              allowFallbackId: true, // Для отладки разрешаем ID=1
+              verboseLogging: true,
+              skipSignatureCheck: req.query.skip_signature === 'true'
+            }
+          );
+          
+          // Добавляем результат валидации в ответ
+          debugInfo.validationResult = {
+            isValid: validationResult.isValid,
+            userId: validationResult.userId,
+            errors: validationResult.validationErrors,
+            botTokenAvailable: !!botToken,
+            botTokenLength: botToken?.length
+          };
+        } catch (validationError) {
+          console.error('Error during initData validation:', validationError);
         }
       }
       
@@ -316,6 +359,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Административные маршруты (защищены ключом)
   app.get("/api/admin/users/list-with-telegram-id", AdminController.listUsersWithTelegramId);
+  
+  // Добавляем новый эндпоинт для проверки валидации initData с разными настройками
+  app.post("/api/telegram/validate-init-data", async (req: Request, res: Response) => {
+    try {
+      // Получаем параметры из тела запроса
+      const { initData, options = {} } = req.body;
+      
+      if (!initData) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bad Request',
+          message: 'initData is required'
+        });
+      }
+      
+      // Получаем токен бота из переменных окружения
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      
+      // Импортируем функцию валидации
+      const { validateTelegramInitData, logTelegramData } = await import('./utils/telegramUtils');
+      
+      // Логируем данные перед валидацией
+      logTelegramData(initData, null, 'ValidationEndpoint');
+      
+      // Объединяем настройки по умолчанию с переданными
+      const validationOptions = {
+        maxAgeSeconds: 172800, // 48 часов
+        isDevelopment: process.env.NODE_ENV !== 'production',
+        requireUserId: process.env.NODE_ENV === 'production',
+        allowFallbackId: process.env.NODE_ENV !== 'production',
+        verboseLogging: true,
+        skipSignatureCheck: process.env.NODE_ENV !== 'production',
+        ...options
+      };
+      
+      // Проверяем данные
+      const validationResult = validateTelegramInitData(
+        initData,
+        botToken,
+        validationOptions
+      );
+      
+      // Логируем результат
+      console.log('[ValidationEndpoint] Результаты валидации:', {
+        isValid: validationResult.isValid,
+        userId: validationResult.userId,
+        username: validationResult.username,
+        errors: validationResult.validationErrors || []
+      });
+      
+      // Отправляем результат
+      res.json({
+        success: true,
+        data: {
+          isValid: validationResult.isValid,
+          userId: validationResult.userId,
+          username: validationResult.username,
+          firstName: validationResult.firstName,
+          lastName: validationResult.lastName,
+          startParam: validationResult.startParam,
+          errors: validationResult.validationErrors,
+          options: validationOptions,
+          botTokenAvailable: !!botToken,
+          botTokenLength: botToken?.length,
+          rawInitDataLength: initData?.length || 0
+        }
+      });
+    } catch (error) {
+      console.error('Error in telegram/validate-init-data endpoint:', error);
+      
+      res.status(500).json({
+        success: false,
+        error: 'Internal Server Error',
+        message: `${error}`
+      });
+    }
+  });
   
   // Маршрут для обработки вебхуков от Telegram (корневой путь /webhook)
   app.post("/webhook", async (req, res) => {
