@@ -23,14 +23,24 @@ export class AuthController {
    */
   static async authenticateTelegram(req: Request, res: Response): Promise<void> {
     try {
+      // Проверяем заголовки на наличие Telegram-Init-Data (согласно п.1.2 ТЗ)
+      const telegramInitData = req.headers['telegram-init-data'] || 
+                              req.headers['x-telegram-init-data'] || 
+                              req.headers['telegram-data'] ||
+                              req.headers['x-telegram-data'];
+      
       // Извлекаем все поля из req.body для более гибкой обработки
-      const { authData, userId: bodyUserId, username: bodyUsername, firstName: bodyFirstName, lastName: bodyLastName, startParam: bodyStartParam, referrerId, refCode: bodyRefCode } = req.body;
+      const { authData: bodyAuthData, userId: bodyUserId, username: bodyUsername, firstName: bodyFirstName, lastName: bodyLastName, startParam: bodyStartParam, referrerId, refCode: bodyRefCode } = req.body;
+      
+      // Используем данные из заголовка, если они есть, иначе из тела запроса
+      const authData = typeof telegramInitData === 'string' ? telegramInitData : bodyAuthData;
       
       // АУДИТ: подробное логирование для анализа проблемы
       console.log("[АУДИТ] Received headers:", JSON.stringify(req.headers, null, 2));
       console.log("[АУДИТ] Request body полный:", req.body);
       console.log("[АУДИТ] Request body детали:", { 
-        authData: authData ? `${typeof authData === 'string' ? authData.substring(0, 20) : JSON.stringify(authData).substring(0, 20)}...` : 'отсутствует',
+        headerInitData: telegramInitData ? `${typeof telegramInitData === 'string' ? telegramInitData.substring(0, 20) : 'не строка'}...` : 'отсутствует',
+        bodyAuthData: bodyAuthData ? `${typeof bodyAuthData === 'string' ? bodyAuthData.substring(0, 20) : JSON.stringify(bodyAuthData).substring(0, 20)}...` : 'отсутствует',
         userId: bodyUserId || 'не передан',
         username: bodyUsername || 'не передан',
         firstName: bodyFirstName || 'не передан',
@@ -41,7 +51,7 @@ export class AuthController {
       
       // Проверяем наличие данных аутентификации
       if (!authData) {
-        console.error("[АУДИТ] ОШИБКА: Отсутствуют данные аутентификации в запросе");
+        console.error("[АУДИТ] ОШИБКА: Отсутствуют данные аутентификации в запросе (ни в заголовках, ни в теле)");
         return sendError(res, 'Отсутствуют данные аутентификации', 400);
       }
       
@@ -86,12 +96,26 @@ export class AuthController {
       // Извлекаем необходимые параметры
       const hashFromTelegram = authParams.get('hash');
       const authDate = authParams.get('auth_date');
+      
+      // Корректно обрабатываем параметр user (который может быть JSON)
+      let userObj = null;
+      if (authParams.has('user')) {
+        try {
+          const userJson = authParams.get('user');
+          if (userJson) {
+            userObj = JSON.parse(userJson);
+          }
+        } catch (e) {
+          console.error("[АУДИТ] Ошибка при разборе JSON в параметре user:", e);
+        }
+      }
+      
       const parsedUserId = authParams.get('id') ? parseInt(authParams.get('id')!) : 
-                    authParams.get('user') ? JSON.parse(authParams.get('user')!).id : null;
+                    userObj ? userObj.id : null;
       const parsedFirstName = authParams.get('first_name') || 
-                        (authParams.get('user') ? JSON.parse(authParams.get('user')!).first_name : null);
+                        (userObj ? userObj.first_name : null);
       const parsedUsername = authParams.get('username') || 
-                      (authParams.get('user') ? JSON.parse(authParams.get('user')!).username : null);
+                      (userObj ? userObj.username : null);
       
       // Поддержка разных форматов initData (обычный и мини-приложения)
       const userDataFormat = authParams.has('user') ? 'mini-app' : 'standard';
