@@ -797,9 +797,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendFile(path.join(process.cwd(), 'client', 'public', 'telegram-redirect.html'));
   });
   
-  // Убираем редирект с корня, т.к. он создает проблемы
+  // Обработчик для редиректа URL с слешем в конце (согласно ТЗ)
+  app.get('*/', (req: Request, res: Response, next: NextFunction) => {
+    if (req.path.endsWith('/') && req.path !== '/') {
+      res.redirect(301, req.path.slice(0, -1) + req.url.slice(req.path.length));
+    } else {
+      next();
+    }
+  });
+  
+  // Корневой URL всегда обрабатываем обычным образом
   app.get('/', (req: Request, res: Response, next: NextFunction) => {
-    // Корневой URL всегда обрабатываем обычным образом
     next();
   });
   
