@@ -1,3 +1,11 @@
+// Отладочная проверка состояния Telegram объекта
+console.log('[TG INIT] Telegram object state:', {
+  telegramDefined: typeof window.Telegram !== 'undefined',
+  webAppDefined: typeof window.Telegram?.WebApp !== 'undefined',
+  initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
+  savedInitData: sessionStorage.getItem('telegramInitData')?.length || 0
+});
+
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";

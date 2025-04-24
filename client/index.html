@@ -2,18 +2,40 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <meta name="telegram-web-app-ready" content="true" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
-    <!-- Скрипт для исправления URL с слешем в конце (согласно ТЗ) -->
+    <!-- Скрипт для исправления URL с слешем в конце и сохранения Telegram WebApp данных -->
     <script>
+      // Удаление слеша
       if (window.location.pathname.endsWith('/') && window.location.pathname !== '/') {
         window.history.replaceState({}, document.title,
           window.location.pathname.slice(0, -1) + window.location.search + window.location.hash
         );
         console.log('[URL Fix] Исправлен URL со слешем в конце');
       }
+
+      // Проверка Telegram API
+      window.addEventListener('DOMContentLoaded', function () {
+        const isTelegramAvailable = typeof window.Telegram !== 'undefined';
+        const isWebAppAvailable = isTelegramAvailable && typeof window.Telegram.WebApp !== 'undefined';
+        
+        console.log('[Telegram WebApp] Проверка доступности API:', {
+          isTelegramAvailable,
+          isWebAppAvailable,
+          initData: isWebAppAvailable ? (window.Telegram.WebApp.initData?.length || 0) : 0
+        });
+
+        if (isWebAppAvailable && window.Telegram.WebApp.initData) {
+          try {
+            sessionStorage.setItem('telegramInitData', window.Telegram.WebApp.initData);
+            console.log('[Telegram WebApp] InitData сохранен в sessionStorage');
+          } catch (e) {
+            console.error('[Telegram WebApp] Save error:', e);
+          }
+        }
+      });
     </script>
   </head>
   <body>
