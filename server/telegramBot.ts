@@ -7,6 +7,7 @@ import fetch from 'node-fetch';
 import { db } from './db';
 import { users } from '../shared/schema';
 import { eq } from 'drizzle-orm';
+import { storage } from './storage';
 
 // Проверяем наличие токена
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -164,6 +165,38 @@ User ID в системе: <code>${user.id}</code>
     console.error('Ошибка при получении ref_code:', error);
     return sendMessage(chatId, `❌ Ошибка при получении реферального кода: ${error.message}`);
   }
+}
+
+/**
+ * Обрабатывает команду /app
+ * Отправляет ссылку для открытия Telegram Mini App
+ */
+async function handleAppCommand(chatId: number): Promise<any> {
+  console.log(`[Telegram Bot] Отправка ссылки на приложение UniFarm в чат ${chatId}`);
+  
+  // URL для открытия Mini App
+  const appUrl = "https://t.me/UniFarming_Bot/UniFarm";
+  
+  const messageText = `
+🚀 <b>Приложение UniFarm</b>
+
+Нажмите кнопку ниже, чтобы открыть приложение UniFarm и начать зарабатывать на криптофарминге прямо сейчас!
+
+<i>Вы также можете открыть приложение, нажав на кнопку в меню бота.</i>
+  `;
+  
+  return sendMessage(chatId, messageText, {
+    parse_mode: 'HTML',
+    reply_markup: JSON.stringify({
+      inline_keyboard: [
+        [{ 
+          text: "📱 Открыть UniFarm", 
+          web_app: { url: appUrl } 
+        }]
+      ]
+    }),
+    disable_web_page_preview: true
+  });
 }
 
 /**
@@ -578,6 +611,9 @@ async function handleMessageUpdate(update: TelegramUpdate): Promise<any> {
   } else if (messageText === '/refcode' || messageText === '🔗 Мой реф. код (/refcode)') {
     console.log(`[Telegram Bot] Обработка команды /refcode`);
     return handleRefCodeCommand(chatId, userId);
+  } else if (messageText === '/app' || messageText === '📱 Открыть приложение (/app)') {
+    console.log(`[Telegram Bot] Обработка команды /app`);
+    return handleAppCommand(chatId);
   } else {
     // Для сообщений, которые не являются известными командами
     console.log(`[Telegram Bot] Получена неизвестная команда: ${messageText}`);
@@ -591,6 +627,8 @@ async function handleMessageUpdate(update: TelegramUpdate): Promise<any> {
       return handleInfoCommand(chatId, { userId, username, firstName });
     } else if (messageText.includes('ref') || messageText.includes('код') || messageText.includes('реф')) {
       return handleRefCodeCommand(chatId, userId);
+    } else if (messageText.includes('app') || messageText.includes('прил') || messageText.includes('открыть')) {
+      return handleAppCommand(chatId);
     }
     
     // Если ничего не подошло, отправляем подсказку
