@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink'; // Основной компонент для отображения ссылки
-// Используем отладочную версию таблицы для проверки проблемы
-import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable.debug';
+import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
 import { User } from '@/services/userService';
