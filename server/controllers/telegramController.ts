@@ -232,7 +232,7 @@ export class TelegramController {
 🆔 ID пользователя: <code>${userData.id}</code>
 👤 Имя: ${user.first_name || ''} ${user.last_name || ''}
 🔑 Telegram ID: <code>${telegramId}</code>
-${userData.wallet_address ? `💼 TON Кошелек: <code>${userData.wallet_address}</code>` : '💼 TON Кошелек: не подключен'}
+${userData.ton_wallet_address ? `💼 TON Кошелек: <code>${userData.ton_wallet_address}</code>` : '💼 TON Кошелек: не подключен'}
 💰 Баланс UNI: <b>${userData.balance_uni || '0'}</b>
 🪙 Баланс TON: <b>${userData.balance_ton || '0'}</b>
         `;
