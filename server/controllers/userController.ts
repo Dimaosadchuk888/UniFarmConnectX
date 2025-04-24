@@ -85,6 +85,27 @@ export class UserController {
         console.log(`[UserController] [ReferralSystem] Detected start parameter: ${startParam}`);
       }
       
+      // Обработка реферального кода из startParam (пункт 2.2 ТЗ)
+      let refInviterId: number | null = null;
+      let refCode: string | null = null;
+      
+      if (startParam) {
+        try {
+          const { ReferralService } = await import('../services/referralService');
+          const startParamResult = await ReferralService.processStartParam(startParam);
+          refInviterId = startParamResult.inviterId;
+          refCode = startParamResult.refCode;
+          
+          if (refInviterId) {
+            console.log(`[UserController] [ReferralSystem] Processed startParam. Found inviter ID: ${refInviterId}, refCode: ${refCode}`);
+          } else {
+            console.log(`[UserController] [ReferralSystem] Processed startParam. No valid inviter found for refCode: ${refCode || 'none'}`);
+          }
+        } catch (error) {
+          console.error(`[UserController] [ReferralSystem] Error processing startParam:`, error);
+        }
+      }
+      
       // 1. УЛУЧШЕННОЕ ПОЛУЧЕНИЕ TELEGRAM ID ЧЕРЕЗ ВЕРИФИКАЦИЮ ДАННЫХ
       // ============================================================
       
@@ -277,6 +298,25 @@ export class UserController {
             userId = newUser.id;
             existingUser = newUser;
             console.log(`[UserController] Successfully created new user with ID ${userId} for Telegram ID ${telegramId} with ref_code: ${refCode}`);
+            
+            // Пункт 2.2 ТЗ: Создание реферальной связи, если есть пригласитель
+            if (refInviterId && refInviterId !== userId) {
+              try {
+                console.log(`[UserController] [ReferralSystem] Creating referral relationship: user ${userId} invited by ${refInviterId}`);
+                const { ReferralService } = await import('../services/referralService');
+                const referral = await ReferralService.createReferralRelationship(userId, refInviterId, 1);
+                
+                if (referral) {
+                  console.log(`[UserController] [ReferralSystem] Successfully created referral ID=${referral.id}`);
+                } else {
+                  console.warn(`[UserController] [ReferralSystem] Failed to create referral relationship`);
+                }
+              } catch (referralError) {
+                console.error(`[UserController] [ReferralSystem] Error creating referral relationship:`, referralError);
+              }
+            } else if (refInviterId) {
+              console.warn(`[UserController] [ReferralSystem] Self-referral attempt detected: userId ${userId} = inviterId ${refInviterId}`);
+            }
           } catch (createError) {
             console.error(`[UserController] Failed to create new user for Telegram ID ${telegramId}:`, createError);
           }

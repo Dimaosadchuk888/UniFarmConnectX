@@ -92,7 +92,8 @@ export function validateTelegramInitData(
   }
 
   // Извлечение параметра start (для реферальной системы)
-  const startParam = params.get('start_param') || params.get('startParam');
+  // Пункт 2.2 ТЗ: Улучшенное извлечение startParam для поддержки реферальных ссылок
+  const startParam = params.get('start_param') || params.get('startParam') || params.get('tgWebAppStartParam');
 
   // Извлечение данных пользователя
   let userId: number | null = null;
