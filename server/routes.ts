@@ -110,7 +110,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         telegramSpecificHeaders: {
           telegramData: req.headers['telegram-data'] || req.headers['x-telegram-data'],
           telegramInitData: req.headers['telegram-init-data'] || req.headers['x-telegram-init-data'] || req.headers['initdata'] || req.headers['x-initdata'],
-          telegramUserId: req.headers['x-telegram-user-id'] || req.headers['telegram-user-id'],
+          // Не используем прямое чтение telegram_id из заголовков (п.2.1 ТЗ)
+          telegramUserId: process.env.NODE_ENV === 'development' ? '(только в режиме разработки)' : '(отключено в production)',
           startParam: req.headers['x-start-param'],
         },
         queryParams: req.query,
@@ -293,7 +294,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         telegramSpecificHeaders: {
           telegramData: req.headers['telegram-data'] || req.headers['x-telegram-data'],
           telegramInitData: req.headers['telegram-init-data'] || req.headers['x-telegram-init-data'] || req.headers['initdata'] || req.headers['x-initdata'],
-          telegramUserId: req.headers['x-telegram-user-id'] || req.headers['telegram-user-id'],
+          // Не используем прямое чтение telegram_id из заголовков (согласно п.2.1 ТЗ)
+          telegramUserId: process.env.NODE_ENV === 'development' ? '(доступно только в режиме разработки)' : '(отключено в production)',
           startParam: req.headers['x-start-param'],
         },
       };
