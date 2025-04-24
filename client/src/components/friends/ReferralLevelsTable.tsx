@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Coins } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
+/**
+ * Таблица уровней реферальной программы
+ * ЭТАП 4.2-4.3: Оптимизирован код, удалены условные проверки и лишние параметры,
+ * работает стабильно как в Telegram так и в обычной среде
+ */
+
 // Интерфейс для данных уровня реферальной программы
 interface ReferralLevel {
   level: string;
@@ -30,61 +36,25 @@ const ReferralLevelsTable: React.FC = () => {
     success: boolean;
   }
 
-  // Получаем информацию о текущем пользователе - два источника
-  // 1. Из Telegram WebApp
-  const telegram = window.Telegram?.WebApp;
-  const telegramUserId = telegram?.initDataUnsafe?.user?.id;
-  
-  // 2. Из API (если API недоступно, используем данные из Telegram)
+  // Получаем информацию о текущем пользователе из API
   const { data: currentUser, isLoading: isUserLoading } = useQuery({
     queryKey: ['/api/me'],
     queryFn: () => import('@/services/userService').then(module => module.default.getCurrentUser()),
-    staleTime: 1000 * 5, // Кэшируем данные только на 5 секунд для быстрого обновления
+    staleTime: 1000 * 5, // Кэшируем данные только на 5 секунд
     refetchOnWindowFocus: true, // Обновляем при возвращении на страницу
-    retry: 2 // Увеличиваем количество повторных попыток
+    retry: 2 // Пробуем несколько раз при ошибке
   });
   
-  // Используем первый доступный ID, стараясь не использовать фиксированный fallback ID=1
-  // Приоритет: 1) текущий пользователь из API 2) из Telegram
-  // Определяем, находимся ли мы в режиме разработки
-  const IS_DEV = process.env.NODE_ENV === 'development';
-  
-  // Приоритетный порядок ID для проверки реферальных ссылок: 7, 2, потом остальные
-  const priorityUserIds = [7, 2]; // Сначала проверяем ID=7 (владелец), затем ID=2
-  
-  // Проверяем наличие userId в списке приоритетных
-  let manualOverrideId = undefined;
-  // В режиме разработки можем использовать приоритетные ID
-  if (IS_DEV) {
-    // Проверяем наличие URL параметра для ручного выбора ID
-    const urlParams = new URLSearchParams(window.location.search);
-    const userIdParam = urlParams.get('user_id');
-    if (userIdParam && !isNaN(parseInt(userIdParam))) {
-      manualOverrideId = parseInt(userIdParam);
-      console.log(`[ReferralLevelsTable] Использую ID из URL параметра: ${manualOverrideId}`);
-    } else {
-      // Если нет параметра, используем первый приоритетный ID
-      manualOverrideId = priorityUserIds[0];
-      console.log(`[ReferralLevelsTable] Использую приоритетный ID: ${manualOverrideId}`);
-    }
-  }
-  
-  // Логика выбора ID с учетом приоритетов
-  const userId = manualOverrideId || 
-                (currentUser?.id && currentUser.id > 0 ? currentUser.id : 
-                 telegramUserId && telegramUserId > 0 ? telegramUserId : 
-                 IS_DEV ? 7 : undefined);
-  
-  console.log('[ReferralLevelsTable] Текущий пользователь:', userId);
+  // Простая логика определения userId из данных пользователя
+  const userId = currentUser?.id;
   
   // Запрос на получение структуры рефералов с сервера
   const { data: referralsData, isLoading, error } = useQuery<ReferralsResponse>({
     queryKey: ['/api/referrals', userId],
     queryFn: async () => {
       try {
-        // Проверка: если userId отсутствует или не определен, не отправляем запрос
+        // Проверка: если userId отсутствует, возвращаем пустые данные
         if (!userId) {
-          console.log('[ReferralLevelsTable] userId отсутствует, пропускаем запрос');
           return {
             success: true,
             data: {
@@ -93,40 +63,29 @@ const ReferralLevelsTable: React.FC = () => {
               total_referrals: 0,
               referral_counts: {},
               level_income: {},
-              referrals: [] // Всегда возвращаем пустой массив вместо undefined
+              referrals: []
             }
           };
         }
 
-        // Использовать правильный параметр user_id вместо userId согласно API
+        // Запрос данных с сервера
         const response = await fetch(`/api/referrals?user_id=${userId}`);
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('[ReferralLevelsTable] Ошибка API:', errorText);
           throw new Error(`Ошибка получения данных о рефералах: ${response.status}`);
         }
         
         // Получаем данные из ответа
         const responseData = await response.json();
         
-        // Проверяем, что массив referrals существует, если нет - устанавливаем пустой массив
-        if (!responseData.data.referrals) {
-          responseData.data.referrals = [];
-        }
-        
-        // Убеждаемся, что level_income и referral_counts существуют
-        if (!responseData.data.level_income) {
-          responseData.data.level_income = {};
-        }
-        
-        if (!responseData.data.referral_counts) {
-          responseData.data.referral_counts = {};
-        }
+        // Гарантируем, что все необходимые поля существуют
+        if (!responseData.data.referrals) responseData.data.referrals = [];
+        if (!responseData.data.level_income) responseData.data.level_income = {};
+        if (!responseData.data.referral_counts) responseData.data.referral_counts = {};
         
         return responseData;
       } catch (error) {
         console.error('[ReferralLevelsTable] Ошибка запроса:', error);
-        // Возвращаем безопасную структуру данных
+        // Возвращаем безопасную структуру данных при ошибке
         return {
           success: true,
           data: {
@@ -135,36 +94,18 @@ const ReferralLevelsTable: React.FC = () => {
             total_referrals: 0,
             referral_counts: {},
             level_income: {},
-            referrals: [] // Всегда возвращаем пустой массив вместо undefined
+            referrals: []
           }
         };
       }
     },
-    // Отключаем запрос, если userId не определен
+    // Запрос выполняется только если есть userId
     enabled: !!userId && !isUserLoading,
-    staleTime: 1000 * 5, // Короткое время кэширования (5 секунд)
-    refetchOnWindowFocus: true, // Обновляем при возвращении пользователя на страницу
-    refetchOnMount: true, // Обновляем при каждом монтировании компонента
-    refetchInterval: IS_DEV ? 5000 : false // В режиме разработки обновляем каждые 5 секунд
+    staleTime: 1000 * 5, // Кэшируем на 5 секунд
+    refetchOnWindowFocus: true, // Обновляем при возврате фокуса
+    refetchOnMount: true // Обновляем при монтировании компонента
   });
   
-  // Логи для отладки
-  React.useEffect(() => {
-    if (error) {
-      console.error('[ReferralLevelsTable] Ошибка запроса:', error);
-    }
-    if (referralsData) {
-      console.log('[ReferralLevelsTable] Данные получены:', referralsData);
-    }
-  }, [referralsData, error]);
-  
-  // Проверка на отсутствие рефералов
-  const hasReferrals = React.useMemo(() => {
-    if (!referralsData) return false;
-    const totalReferrals = referralsData.data.total_referrals || 0;
-    return totalReferrals > 0;
-  }, [referralsData]);
-
   // Преобразуем данные с сервера в нужный формат для отображения
   const levels: ReferralLevel[] = React.useMemo(() => {
     // Если данные еще не загружены, возвращаем пустые уровни
@@ -403,121 +344,34 @@ const ReferralLevelsTable: React.FC = () => {
                 >
                   <td className="py-2 text-sm px-2 border-b border-muted/20">
                     <div className="flex items-center">
-                      {/* Цветной индикатор уровня с градиентом */}
-                      <div 
-                        className={`
-                          w-2 h-2 rounded-full mr-2
-                          ${getLevelColor(index)}
-                          transition-all duration-300
-                          ${isActive ? 'scale-125' : ''}
-                        `}
-                      ></div>
-                      <span 
-                        className={`
-                          transition-transform duration-300 
-                          ${isActive ? 'translate-x-1 text-primary/90 font-medium' : ''}
-                        `}
-                      >
-                        {item.level}
-                      </span>
+                      <div className={`w-2 h-2 rounded-full mr-2 ${getLevelColor(index)}`}></div>
+                      <span className="font-medium">{item.level}</span>
                     </div>
                   </td>
                   <td className="py-2 text-sm px-2 border-b border-muted/20">
-                    {item.friends > 0 ? (
-                      <div className="flex items-center">
-                        <span className="bg-green-900/20 text-green-400 px-2 py-0.5 rounded-md flex items-center">
-                          <i className="fas fa-user-friends text-[9px] mr-1.5"></i>
-                          {item.friends}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 opacity-60">0</span>
-                    )}
+                    <span className={`${item.friends > 0 ? 'text-accent font-medium' : 'text-muted-foreground'}`}>
+                      {item.friends}
+                    </span>
                   </td>
                   <td className="py-2 text-sm px-2 border-b border-muted/20">
                     <div className="flex flex-col">
-                      {/* UNI доход */}
-                      <div className={`
-                        flex items-center
-                        ${item.income.uni !== "0 UNI" ? "bg-purple-900/20 px-2 py-0.5 rounded-md" : ""}
-                      `}>
-                        {item.income.uni !== "0 UNI" && (
-                          <Coins className="h-3 w-3 text-purple-400 mr-1.5 flex-shrink-0" />
-                        )}
-                        <span className={`
-                          ${item.income.uni === "0 UNI" 
-                            ? "text-gray-400 opacity-60" 
-                            : "text-purple-300"
-                          }
-                        `}>
-                          {item.income.uni.split(" ")[0]}
-                        </span>
-                        <span className="text-gray-400 ml-1.5 text-xs">UNI</span>
-                      </div>
-                      
-                      {/* TON доход */}
-                      <div className={`
-                        flex items-center mt-0.5
-                        ${item.income.ton !== "0 TON" ? "bg-blue-900/20 px-2 py-0.5 rounded-md" : ""}
-                      `}>
-                        {item.income.ton !== "0 TON" && (
-                          <i className="fas fa-diamond text-blue-400 text-[9px] mr-1.5 flex-shrink-0"></i>
-                        )}
-                        <span className={`
-                          ${item.income.ton === "0 TON" 
-                            ? "text-gray-400 opacity-60" 
-                            : "text-blue-400"
-                          }
-                        `}>
-                          {item.income.ton.split(" ")[0]}
-                        </span>
-                        <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                      </div>
+                      <span className="text-xs">
+                        <span className="text-blue-400">{item.income.ton}</span>
+                      </span>
+                      <span className="text-xs opacity-80">
+                        <span className="text-purple-400">{item.income.uni}</span>
+                      </span>
                     </div>
                   </td>
-                  <td className="py-2 text-sm text-right px-2 border-b border-muted/20">
-                    {index === 0 ? (
-                      <span 
-                        className={`
-                          inline-block px-3 py-1.5 rounded-full text-xs font-bold
-                          transition-all duration-300 
-                          bg-gradient-to-r from-primary to-purple-400
-                          text-white
-                          ${isActive ? 'scale-110 shadow-lg shadow-primary/30' : 'shadow-md shadow-primary/20'}
-                        `}
-                      >
-                        {item.percent}
-                        <i className="fas fa-star text-[10px] ml-1 opacity-70"></i>
-                      </span>
-                    ) : (
-                      <span 
-                        className={`
-                          inline-block px-2 py-1 rounded-full text-xs
-                          transition-all duration-300
-                          ${isActive ? 'scale-110' : ''}
-                        `}
-                        style={{
-                          background: `linear-gradient(90deg, hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 0.2), hsla(${180 - (index / (levels.length - 1)) * 30}, 80%, 65%, 0.05))`,
-                          color: `hsla(${280 - (index / (levels.length - 1)) * 140}, 80%, 65%, 1)`
-                        }}
-                      >
-                        {item.percent}
-                      </span>
-                    )}
+                  <td className="py-2 text-sm px-2 border-b border-muted/20 text-right">
+                    <span className={`
+                      px-2 py-1 rounded text-xs 
+                      ${index === 0 ? 'bg-gradient-to-r from-primary to-purple-500 text-white' : 
+                                     'bg-black/10 text-foreground'}
+                    `}>
+                      {item.percent}
+                    </span>
                   </td>
-                  
-                  {/* Анимированный эффект при наведении */}
-                  {isActive && (
-                    <td className="absolute inset-0 pointer-events-none overflow-hidden">
-                      <div 
-                        className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0"
-                        style={{
-                          animation: 'pulse-fade 2s infinite',
-                          animationDelay: '0.5s'
-                        }}
-                      ></div>
-                    </td>
-                  )}
                 </tr>
               );
             })}
@@ -525,29 +379,27 @@ const ReferralLevelsTable: React.FC = () => {
         </table>
       </div>
       
-      {/* Кнопки для плавного скролла и информационное сообщение - показываем всегда */}
-      <div className="flex justify-center mt-3 mb-1 space-x-2">
-        <button
-          className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all duration-300"
-          onClick={() => scrollTable('up')}
-          aria-label="Scroll up"
-        >
-          <i className="fas fa-chevron-up text-xs"></i>
-        </button>
-        <button
-          className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all duration-300"
-          onClick={() => scrollTable('down')}
-          aria-label="Scroll down"
-        >
-          <i className="fas fa-chevron-down text-xs"></i>
-        </button>
-      </div>
-      
-      {/* Информационное сообщение */}
-      <div className="mt-1 text-xs text-center text-foreground opacity-50 italic">
-        <div className="flex justify-center items-center">
-          <i className="fas fa-sync-alt text-primary/50 mr-1 animate-spin-slow"></i>
-          <span>Ваши партнерские уровни и доходы обновляются в реальном времени (от 2% до 20% на уровнях 2-20)</span>
+      {/* Кнопки скролла и общее количество друзей */}
+      <div className="flex justify-between items-center mt-4">
+        <div className="text-sm text-muted-foreground">
+          <span className="text-primary font-medium">
+            {referralsData?.data?.total_referrals || 0}
+          </span> друзей в сети
+        </div>
+        
+        <div className="flex space-x-2">
+          <button 
+            className="bg-muted/50 hover:bg-muted p-1.5 rounded-full"
+            onClick={() => scrollTable('up')}
+          >
+            <i className="fas fa-chevron-up text-xs"></i>
+          </button>
+          <button 
+            className="bg-muted/50 hover:bg-muted p-1.5 rounded-full"
+            onClick={() => scrollTable('down')}
+          >
+            <i className="fas fa-chevron-down text-xs"></i>
+          </button>
         </div>
       </div>
     </div>
