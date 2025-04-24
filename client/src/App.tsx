@@ -5,7 +5,7 @@ import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { apiRequest } from "@/lib/queryClient";
 import { getTelegramUserData, initTelegramWebApp, isTelegramWebApp, getCachedTelegramUserId } from "./services/telegramService";
-import { extractTelegramInitData, getTelegramUserId, hasTelegramUserId, isRunningInTelegram } from "./services/telegramInitData";
+import { extractTelegramInitData, getTelegramUserId, hasTelegramUserId } from "./services/telegramInitData";
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import { TONCONNECT_MANIFEST_URL } from './config/tonConnect';
 import { getReferrerIdFromURL } from './lib/utils';
@@ -20,7 +20,6 @@ import Dashboard from "@/pages/Dashboard";
 import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
 import Friends from "@/pages/Friends";
-import FriendsMinimal from "@/pages/FriendsMinimal";
 import Wallet from "@/pages/Wallet";
 import TelegramTest from "./pages/TelegramTest";
 import WebhookSetup from "./pages/WebhookSetup";
@@ -315,18 +314,8 @@ function App() {
 
   // Switch between tabs without using routes (simpler for Telegram Mini App)
   const renderActivePage = () => {
-    // Для тестирования, временно перенаправляем "friends" на минимальную версию
-    // В реальной телеграм среде будет отображаться минимальная версия для диагностики
-    const useMinimalFriends = isRunningInTelegram();
-    
-    // Проверяем URL на наличие параметра тестирования
-    const urlParams = new URLSearchParams(window.location.search);
-    const forceMinimal = urlParams.get('minimal') === 'true';
-    
-    // Используем минимальную версию, если:
-    // 1. Мы в Telegram Mini App
-    // 2. ИЛИ в URL есть параметр minimal=true для тестирования
-    const shouldUseMinimal = useMinimalFriends || forceMinimal;
+    // ЭТАП 4.1: Удалена проверка на минимальную версию.
+    // Всегда используем единый компонент Friends, работающий во всех средах.
     
     switch (activeTab) {
       case "dashboard":
@@ -336,9 +325,8 @@ function App() {
       case "missions":
         return <Missions />;
       case "friends":
-        // В Telegram Mini App или при наличии специального URL параметра
-        // используем минимальную версию для тестирования
-        return shouldUseMinimal ? <FriendsMinimal /> : <Friends />;
+        // ЭТАП 4.1: Всегда используем единый компонент Friends
+        return <Friends />;
       case "wallet":
         return <Wallet />;
       default:

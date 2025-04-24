@@ -106,7 +106,7 @@ const Friends: React.FC = () => {
           </div>
           <div className="flex justify-between bg-black/20 p-2 rounded">
             <span className="text-gray-400">Приглашенных друзей:</span>
-            <span className="text-white font-mono">{safeUser?.referral_count || '0'}</span>
+            <span className="text-white font-mono">0</span>
           </div>
         </div>
       </div>
