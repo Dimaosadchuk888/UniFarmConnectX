@@ -116,6 +116,44 @@ User ID в системе: <code>${user.id}</code>
 }
 
 /**
+ * Обрабатывает команду /start
+ * Отправляет приветственное сообщение с кнопкой запуска Mini App
+ */
+async function handleStartCommand(chatId, { userId, username, firstName }) {
+  const MINI_APP_URL = 'https://t.me/UniFarming_Bot/UniFarm';
+  
+  const welcomeText = `Добро пожаловать в UniFarm!  
+Запустить Mini App: ${MINI_APP_URL}`;
+
+  return sendMessage(chatId, welcomeText, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🚀 Открыть UniFarm", web_app: { url: MINI_APP_URL } }]
+      ]
+    },
+    parse_mode: "Markdown"
+  });
+}
+
+/**
+ * Обрабатывает команду /app
+ * Отправляет ссылку для открытия мини-приложения
+ */
+async function handleAppCommand(chatId) {
+  const MINI_APP_URL = 'https://t.me/UniFarming_Bot/UniFarm';
+  
+  const appText = `Перейдите в Mini App: ${MINI_APP_URL}`;
+
+  return sendMessage(chatId, appText, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🚀 Открыть UniFarm", web_app: { url: MINI_APP_URL } }]
+      ]
+    }
+  });
+}
+
+/**
  * Обрабатывает HTTP-запрос от webhook Telegram
  * @param {Object} update - Объект обновления от Telegram
  */
@@ -141,11 +179,20 @@ async function handleTelegramUpdate(update) {
     return handleInfoCommand(chatId, { userId, username, firstName });
   } else if (messageText === '/refcode') {
     return handleRefCodeCommand(chatId, userId);
+  } else if (messageText === '/start') {
+    return handleStartCommand(chatId, { userId, username, firstName });
+  } else if (messageText === '/app') {
+    return handleAppCommand(chatId);
   }
 }
 
 // Экспортируем функции для использования в routes.ts
 export {
   sendMessage,
-  handleTelegramUpdate
+  handleTelegramUpdate,
+  handleStartCommand,
+  handleAppCommand,
+  handlePingCommand,
+  handleInfoCommand,
+  handleRefCodeCommand
 };

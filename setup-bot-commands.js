@@ -4,8 +4,12 @@
  * согласно техническому заданию.
  */
 
-const fs = require('fs');
-require('dotenv').config();
+import fs from 'fs';
+import { config } from 'dotenv';
+import fetch from 'node-fetch';
+
+// Загружаем переменные окружения
+config();
 
 const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
 

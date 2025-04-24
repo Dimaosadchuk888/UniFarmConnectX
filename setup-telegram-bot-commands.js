@@ -12,7 +12,11 @@
  * для корректной работы Mini App: https://t.me/UniFarming_Bot/UniFarm
  */
 
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
+import { config } from 'dotenv';
+
+// Загружаем переменные окружения
+config();
 
 // Константы
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
