@@ -29,6 +29,9 @@ import { AuthController } from './controllers/authController';
 import { WalletController } from './controllers/walletController';
 import { AdminController } from './controllers/adminController';
 
+// Импортируем миграцию для реферальных кодов
+import { migrateRefCodes, checkAndUpdateUserRefCode, setRefCodeForUser } from './migrations/refCodeMigration';
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Добавляем CORS заголовки для работы с Telegram WebApp
@@ -383,9 +386,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+
+
   // Административные маршруты для управления вебхуком Telegram
   // Эти маршруты должны быть защищены (например, доступны только в режиме разработки)
   if (process.env.NODE_ENV === 'development') {
+    
+    // Маршрут для запуска миграции реферальных кодов
+    app.post("/api/admin/migrate-ref-codes", async (req, res) => {
+      try {
+        console.log('[Admin API] Запуск миграции реферальных кодов');
+        
+        const result = await migrateRefCodes();
+        
+        return res.status(200).json({
+          success: true,
+          message: `Миграция успешно выполнена. Обновлено ${result.updated} из ${result.total} пользователей`,
+          data: result
+        });
+      } catch (error: any) {
+        console.error('[Admin API] Ошибка при выполнении миграции реферальных кодов:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Ошибка при выполнении миграции реферальных кодов',
+          error: error.message
+        });
+      }
+    });
+    
+    // Маршрут для обновления реферального кода конкретного пользователя
+    app.post("/api/admin/update-user-ref-code", async (req, res) => {
+      try {
+        const { userId } = req.body;
+        
+        if (!userId || isNaN(Number(userId))) {
+          return res.status(400).json({
+            success: false,
+            message: 'Отсутствует или некорректен обязательный параметр userId'
+          });
+        }
+        
+        console.log(`[Admin API] Обновление реферального кода для пользователя ID=${userId}`);
+        
+        const result = await checkAndUpdateUserRefCode(Number(userId));
+        
+        return res.status(200).json({
+          success: true,
+          message: result.updated 
+            ? `Реферальный код для пользователя ID=${userId} успешно обновлен: ${result.newRefCode}`
+            : `Пользователь ID=${userId} уже имеет реферальный код: ${result.oldRefCode}`,
+          data: result
+        });
+      } catch (error: any) {
+        console.error(`[Admin API] Ошибка при обновлении реферального кода:`, error);
+        return res.status(500).json({
+          success: false,
+          message: 'Ошибка при обновлении реферального кода',
+          error: error.message
+        });
+      }
+    });
+    
+    // Маршрут для ручной установки реферального кода
+    app.post("/api/admin/set-ref-code", async (req, res) => {
+      try {
+        const { userId, refCode } = req.body;
+        
+        if (!userId || isNaN(Number(userId)) || !refCode) {
+          return res.status(400).json({
+            success: false,
+            message: 'Отсутствуют или некорректны обязательные параметры userId и refCode'
+          });
+        }
+        
+        console.log(`[Admin API] Установка реферального кода ${refCode} для пользователя ID=${userId}`);
+        
+        const result = await setRefCodeForUser(Number(userId), refCode);
+        
+        return res.status(result ? 200 : 400).json({
+          success: result,
+          message: result 
+            ? `Реферальный код ${refCode} успешно установлен для пользователя ID=${userId}`
+            : `Не удалось установить реферальный код ${refCode} для пользователя ID=${userId}`
+        });
+      } catch (error: any) {
+        console.error(`[Admin API] Ошибка при установке реферального кода:`, error);
+        return res.status(500).json({
+          success: false,
+          message: 'Ошибка при установке реферального кода',
+          error: error.message
+        });
+      }
+    });
     // Установка webhook
     app.post("/api/telegram/set-webhook", async (req, res) => {
       try {

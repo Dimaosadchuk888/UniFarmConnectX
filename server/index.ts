@@ -96,11 +96,11 @@ app.use((req, res, next) => {
     
     // Обновление реферальных кодов
     try {
-      updateRefCodes()
-        .then(() => {
-          console.log('[Server] Миграция реферальных кодов успешно выполнена');
+      migrateRefCodes()
+        .then((result) => {
+          console.log(`[Server] Миграция реферальных кодов успешно выполнена. Обновлено ${result.updated} из ${result.total} пользователей`);
         })
-        .catch(error => {
+        .catch((error: Error) => {
           console.error('[Server] Ошибка при выполнении миграции реферальных кодов:', error);
         });
     } catch (error) {
