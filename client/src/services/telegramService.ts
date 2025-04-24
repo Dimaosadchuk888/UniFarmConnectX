@@ -719,8 +719,14 @@ export function getTelegramAuthHeaders(): Record<string, string> {
   
   // Если у нас есть initData (текущий или из localStorage), добавляем его в заголовки
   if (initData && initData.trim() !== '') {
+    // Добавляем в нескольких вариантах для совместимости (согласно п.1.2 ТЗ)
     headers['Telegram-Init-Data'] = initData;
-    console.log('[telegramService] Added Telegram-Init-Data header with length:', initData.length);
+    headers['X-Telegram-Init-Data'] = initData; // Добавляем X- версию для совместимости
+    console.log('[telegramService] Added Telegram initData headers with length:', initData.length);
+    
+    // Добавляем информацию о том, был ли initData получен непосредственно из Telegram API
+    // или загружен из localStorage (для отслеживания источника данных)
+    headers['X-Telegram-Data-Source'] = window.Telegram?.WebApp?.initData ? 'telegram-api' : 'localStorage';
   } else {
     console.warn('[telegramService] No Telegram initData available to add to headers');
   }

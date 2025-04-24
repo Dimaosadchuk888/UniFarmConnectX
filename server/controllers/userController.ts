@@ -10,6 +10,7 @@ import BigNumber from 'bignumber.js';
 import { db } from '../db';
 import { uniFarmingDeposits, users } from '@shared/schema';
 import { and, eq } from 'drizzle-orm';
+import { validateTelegramInitData, TelegramValidationResult, logTelegramData } from '../utils/telegramUtils';
 
 /**
  * Контроллер для работы с пользователями
@@ -21,7 +22,7 @@ export class UserController {
   static async getCurrentUser(req: Request, res: Response): Promise<void> {
     try {
       // Тщательно проверяем все возможные заголовки, содержащие данные Telegram
-      // ВАЖНО: Реальная Telegram Mini App может отправлять данные в разных форматах заголовков
+      // ВАЖНО: Используем только верифицированные данные Telegram для авторизации (п.1.2 ТЗ)
       
       // Проверяем все стандартные заголовки (с учетом регистра)
       const telegramDataHeaderNames = [
@@ -29,15 +30,19 @@ export class UserController {
         'x-telegram-data', 'X-Telegram-Data', 'X-TELEGRAM-DATA',
         'x-telegram-init-data', 'X-Telegram-Init-Data', 'X-TELEGRAM-INIT-DATA',
         'initdata', 'Initdata', 'INITDATA',
-        'x-initdata', 'X-Initdata', 'X-INITDATA'
+        'x-initdata', 'X-Initdata', 'X-INITDATA',
+        'telegram-init-data', 'Telegram-Init-Data', 'TELEGRAM-INIT-DATA'
       ];
       
       // Ищем первый непустой заголовок из списка
       let telegramInitData: string | undefined;
+      let usedHeaderName: string | undefined;
+      
       for (const headerName of telegramDataHeaderNames) {
         const headerValue = req.headers[headerName] as string;
         if (headerValue && headerValue.trim() !== '') {
           telegramInitData = headerValue;
+          usedHeaderName = headerName;
           console.log(`[АУДИТ] [UserController] Found Telegram data in header: ${headerName}`);
           break;
         }
@@ -51,19 +56,15 @@ export class UserController {
       let telegramId: number | null = null;
       let userId: number | null = null;
       let username: string | null = null;
+      let firstName: string | null = null;
+      let lastName: string | null = null;
+      let startParam: string | null = null;
       let languageCode = 'ru'; // По умолчанию русский
       
       console.log(`[UserController] [АУДИТ] Запрос на /api/me, SOURCE: ${req.headers['user-agent']?.substring(0, 50) || 'unknown'}`);
       
       // АУДИТ: Подробный лог всех заголовков запроса для диагностики
       console.log('[АУДИТ] [UserController] All headers:', req.headers);
-      
-      // Проверяем Telegram ID в заголовках - добавляем специальный лог согласно ТЗ
-      if (req.headers['x-telegram-user-id']) {
-        console.log("===[Telegram User ID Check]===", req.headers['x-telegram-user-id']);
-      } else {
-        console.log("===[Telegram User ID Check]=== Заголовок X-Telegram-User-Id отсутствует");
-      }
       
       // АУДИТ: Отдельно логируем все Telegram заголовки
       const telegramHeaders = Object.keys(req.headers).filter(h => 
@@ -79,131 +80,105 @@ export class UserController {
         telegramInitData ? telegramInitData.substring(0, 100) + '...' : 'null or empty');
         
       // Логируем наличие параметра start для реферальной системы
-      const startParam = req.query.start || req.headers['x-start-param'];
+      startParam = req.query.start as string || req.headers['x-start-param'] as string;
       if (startParam) {
         console.log(`[UserController] [ReferralSystem] Detected start parameter: ${startParam}`);
       }
-        
-      // 1. УЛУЧШЕННОЕ ПОЛУЧЕНИЕ TELEGRAM ID
-      // ========================================
       
-      // Проверяем параметры URL
-      const urlTelegramId = req.query.telegram_id ? parseInt(req.query.telegram_id as string) : null;
-      if (urlTelegramId && !isNaN(urlTelegramId)) {
-        telegramId = urlTelegramId;
-        console.log(`[UserController] Found telegram_id in URL parameters: ${telegramId}`);
-      }
+      // 1. УЛУЧШЕННОЕ ПОЛУЧЕНИЕ TELEGRAM ID ЧЕРЕЗ ВЕРИФИКАЦИЮ ДАННЫХ
+      // ============================================================
       
-      // Проверяем наличие пользовательского ID в заголовке
-      const headerUserId = req.headers['x-telegram-user-id'] || req.headers['x-user-id'] || req.headers['telegram-user-id'];
-      if (headerUserId && !telegramId) {
-        console.log(`[UserController] Found user ID in headers: ${headerUserId}`);
-        
-        // Если у нас нет telegramId из initData, но есть в заголовке, используем его
-        if (typeof headerUserId === 'string' && headerUserId.trim() !== '') {
-          try {
-            // Специальная обработка для DimaOsadchuk по ТЗ
-            if (headerUserId === 'DimaOsadchuk') {
-              // Присваиваем фиксированный числовой ID для DimaOsadchuk
-              telegramId = 9876543210; // Используем специальный числовой ID для DimaOsadchuk
-              console.log(`[UserController] Special handler: Using telegramId ${telegramId} for DimaOsadchuk`);
-            } else {
-              telegramId = parseInt(headerUserId);
-              console.log(`[UserController] Using user ID from header as telegramId: ${telegramId}`);
-            }
-          } catch (parseError) {
-            console.error(`[UserController] Failed to parse headerUserId: ${headerUserId}`, parseError);
-          }
-        }
-      }
-      
-      // Обработка initData от Telegram
+      // Согласно п.1.2 ТЗ используем только верифицированные данные Telegram для авторизации
       if (telegramInitData) {
         try {
-          console.log('[UserController] [TelegramAuth] Got Telegram initData from headers');
+          console.log('[UserController] [TelegramAuth] Validating Telegram initData using telegramUtils...');
           
-          // АУДИТ: Расширенная проверка и логирование initData
-          console.log('[АУДИТ] [UserController] Analyzing telegramInitData format...');
-          console.log('[АУДИТ] [UserController] initData type:', typeof telegramInitData);
-          console.log('[АУДИТ] [UserController] initData includes "=":', telegramInitData.includes('='));
-          console.log('[АУДИТ] [UserController] initData includes "&":', telegramInitData.includes('&'));
+          // Получаем токен бота из переменных окружения
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
           
-          // Проверяем, является ли initData корректной строкой в формате query-params
-          if (telegramInitData.includes('=') && telegramInitData.includes('&')) {
-            // Парсим данные из строки query-параметров
-            const authParams = new URLSearchParams(telegramInitData);
-            
-            // АУДИТ: Полный вывод содержимого в лог для анализа
-            console.log('[АУДИТ] [UserController] initData contains keys:', 
-              JSON.stringify(Array.from(authParams.keys())));
-            
-            // АУДИТ: Показываем первые несколько символов значений для анализа
-            const keysAndValues: Record<string, string> = {};
-            authParams.forEach((value, key) => {
-              if (key !== 'hash') { // Не показываем полный hash для безопасности
-                keysAndValues[key] = value.length > 10 ? value.substring(0, 10) + '...' : value;
-              } else {
-                keysAndValues['hash'] = value.length > 0 ? 'present' : 'empty';
-              }
-            });
-            console.log('[АУДИТ] [UserController] initData key-value pairs preview:', keysAndValues);
-            
-            // Извлекаем ID пользователя из Telegram
-            if (authParams.get('id')) {
-              telegramId = parseInt(authParams.get('id')!);
-              console.log(`[UserController] Found telegram_id in initData params: ${telegramId}`);
+          // Дополнительно логируем данные для диагностики
+          logTelegramData(telegramInitData, null, 'UserController');
+          
+          // Проверяем подлинность данных с использованием импортированной функции
+          const validationResult = validateTelegramInitData(
+            telegramInitData,
+            botToken,
+            {
+              maxAgeSeconds: 86400, // 24 часа максимальный возраст данных
+              isDevelopment: process.env.NODE_ENV !== 'production',
+              requireUserId: process.env.NODE_ENV === 'production', // В продакшн всегда требуем userId
+              allowFallbackId: process.env.NODE_ENV !== 'production' // В продакшн запрещаем ID=1
             }
-            username = authParams.get('username') || null;
+          );
+          
+          // Логируем результат валидации
+          console.log('[UserController] [TelegramAuth] Validation result:', {
+            isValid: validationResult.isValid,
+            userId: validationResult.userId,
+            username: validationResult.username,
+            startParam: validationResult.startParam,
+            errors: validationResult.validationErrors || 'none'
+          });
+          
+          // Если данные прошли проверку, используем полученные значения
+          if (validationResult.isValid) {
+            telegramId = validationResult.userId;
+            username = validationResult.username || username;
+            firstName = validationResult.firstName || null;
+            lastName = validationResult.lastName || null;
+            startParam = validationResult.startParam || startParam;
             
-            // Если не нашли напрямую id, ищем в user структуре (может быть внутри JSON)
-            if (!telegramId && authParams.get('user')) {
-              try {
-                const userData = JSON.parse(authParams.get('user')!);
-                if (userData && userData.id) {
-                  telegramId = parseInt(userData.id.toString());
-                  username = userData.username || username;
-                  console.log('[UserController] [TelegramAuth] Extracted user data from JSON:', 
-                    JSON.stringify({ id: telegramId, username }));
-                }
-              } catch (jsonError) {
-                console.error('[UserController] [TelegramAuth] Failed to parse user JSON:', jsonError);
-              }
-            }
-            
-            // Получаем язык из Telegram данных
-            const langFromTelegram = authParams.get('language_code');
-            if (langFromTelegram) {
-              languageCode = langFromTelegram;
-            }
+            console.log(`[UserController] [TelegramAuth] Using verified Telegram ID: ${telegramId}`);
           } else {
-            // Если данные не в формате query-params, возможно это JSON или другой формат
-            try {
-              const initDataObj = JSON.parse(telegramInitData);
-              console.log('[UserController] [TelegramAuth] initData is JSON with keys:', 
-                JSON.stringify(Object.keys(initDataObj)));
+            console.warn('[UserController] [TelegramAuth] Telegram data validation failed:', 
+              validationResult.validationErrors);
               
-              if (initDataObj.user && initDataObj.user.id) {
-                telegramId = parseInt(initDataObj.user.id.toString());
-                username = initDataObj.user.username || null;
-                console.log('[UserController] [TelegramAuth] Extracted user from JSON format:', 
-                  JSON.stringify({ id: telegramId, username }));
-              }
-              
-              if (initDataObj.language_code) {
-                languageCode = initDataObj.language_code;
-              }
-            } catch (jsonError) {
-              console.error('[UserController] [TelegramAuth] initData is not valid JSON or query params:', 
-                telegramInitData.length > 20 ? 
-                  `${telegramInitData.substring(0, 10)}...${telegramInitData.substring(telegramInitData.length - 10)}` : 
-                  'data too short');
+            // В режиме разработки продолжаем использовать непроверенные данные
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('[UserController] [DEV] Continuing with unverified data in development mode');
+            } else {
+              console.error('[UserController] [PROD] Rejecting unverified Telegram data in production');
+              // В продакшн сбрасываем Telegram ID, если валидация не прошла
+              telegramId = null;
             }
           }
-        } catch (parseError) {
-          console.error('[UserController] Error parsing Telegram initData:', parseError);
+        } catch (validationError) {
+          console.error('[UserController] Error during Telegram data validation:', validationError);
         }
-      } else {
-        console.warn('[UserController] No Telegram initData found in headers');
+      }
+      
+      // Только для режима разработки - получение ID из других источников
+      // В продакшене (согласно п.1.2 ТЗ) используем только верифицированные данные
+      if (process.env.NODE_ENV === 'development' && !telegramId) {
+        // Проверяем параметры URL
+        const urlTelegramId = req.query.telegram_id ? parseInt(req.query.telegram_id as string) : null;
+        if (urlTelegramId && !isNaN(urlTelegramId)) {
+          telegramId = urlTelegramId;
+          console.log(`[UserController] [DEV] Using telegram_id from URL parameters: ${telegramId}`);
+        }
+        
+        // Проверяем наличие пользовательского ID в заголовке (только для разработки)
+        const headerUserId = req.headers['x-telegram-user-id'] || req.headers['x-user-id'] || req.headers['telegram-user-id'];
+        if (headerUserId && !telegramId) {
+          console.log(`[UserController] [DEV] Found user ID in headers: ${headerUserId}`);
+          
+          // Если у нас нет telegramId из initData, но есть в заголовке, используем его
+          if (typeof headerUserId === 'string' && headerUserId.trim() !== '') {
+            try {
+              // Специальная обработка для DimaOsadchuk по ТЗ
+              if (headerUserId === 'DimaOsadchuk') {
+                // Присваиваем фиксированный числовой ID для DimaOsadchuk
+                telegramId = 9876543210; // Используем специальный числовой ID для DimaOsadchuk
+                console.log(`[UserController] [DEV] Special handler: Using telegramId ${telegramId} for DimaOsadchuk`);
+              } else {
+                telegramId = parseInt(headerUserId);
+                console.log(`[UserController] [DEV] Using user ID from header as telegramId: ${telegramId}`);
+              }
+            } catch (parseError) {
+              console.error(`[UserController] [DEV] Failed to parse headerUserId: ${headerUserId}`, parseError);
+            }
+          }
+        }
       }
       
       // 2. ПОИСК ИЛИ СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ
