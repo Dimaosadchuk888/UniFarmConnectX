@@ -39,8 +39,9 @@ const ReferralLevelsTable: React.FC = () => {
   const { data: currentUser, isLoading: isUserLoading } = useQuery({
     queryKey: ['/api/me'],
     queryFn: () => import('@/services/userService').then(module => module.default.getCurrentUser()),
-    staleTime: 1000 * 60 * 5, // Кэшируем данные на 5 минут
-    retry: 1 // Уменьшаем количество повторных попыток
+    staleTime: 1000 * 5, // Кэшируем данные только на 5 секунд для быстрого обновления
+    refetchOnWindowFocus: true, // Обновляем при возвращении на страницу
+    retry: 2 // Увеличиваем количество повторных попыток
   });
   
   // Используем первый доступный ID, стараясь не использовать фиксированный fallback ID=1
@@ -48,15 +49,31 @@ const ReferralLevelsTable: React.FC = () => {
   // Определяем, находимся ли мы в режиме разработки
   const IS_DEV = process.env.NODE_ENV === 'development';
   
-  // Фиксированный ID используем только в режиме разработки
-  const fixedUserId = IS_DEV ? 1 : undefined; // Фиксированный ID только для разработки
+  // Приоритетный порядок ID для проверки реферальных ссылок: 7, 2, потом остальные
+  const priorityUserIds = [7, 2]; // Сначала проверяем ID=7 (владелец), затем ID=2
   
-  // В production режиме не используем fallback ID=1
-  const userId = currentUser?.id && currentUser.id > 1 
-    ? currentUser.id 
-    : telegramUserId && telegramUserId > 1 
-      ? telegramUserId 
-      : IS_DEV ? fixedUserId : undefined;
+  // Проверяем наличие userId в списке приоритетных
+  let manualOverrideId = undefined;
+  // В режиме разработки можем использовать приоритетные ID
+  if (IS_DEV) {
+    // Проверяем наличие URL параметра для ручного выбора ID
+    const urlParams = new URLSearchParams(window.location.search);
+    const userIdParam = urlParams.get('user_id');
+    if (userIdParam && !isNaN(parseInt(userIdParam))) {
+      manualOverrideId = parseInt(userIdParam);
+      console.log(`[ReferralLevelsTable] Использую ID из URL параметра: ${manualOverrideId}`);
+    } else {
+      // Если нет параметра, используем первый приоритетный ID
+      manualOverrideId = priorityUserIds[0];
+      console.log(`[ReferralLevelsTable] Использую приоритетный ID: ${manualOverrideId}`);
+    }
+  }
+  
+  // Логика выбора ID с учетом приоритетов
+  const userId = manualOverrideId || 
+                (currentUser?.id && currentUser.id > 0 ? currentUser.id : 
+                 telegramUserId && telegramUserId > 0 ? telegramUserId : 
+                 IS_DEV ? 7 : undefined);
   
   console.log('[ReferralLevelsTable] Текущий пользователь:', userId);
   
@@ -125,8 +142,10 @@ const ReferralLevelsTable: React.FC = () => {
     },
     // Отключаем запрос, если userId не определен
     enabled: !!userId && !isUserLoading,
-    refetchOnWindowFocus: false,
-    refetchInterval: false
+    staleTime: 1000 * 5, // Короткое время кэширования (5 секунд)
+    refetchOnWindowFocus: true, // Обновляем при возвращении пользователя на страницу
+    refetchOnMount: true, // Обновляем при каждом монтировании компонента
+    refetchInterval: IS_DEV ? 5000 : false // В режиме разработки обновляем каждые 5 секунд
   });
   
   // Логи для отладки

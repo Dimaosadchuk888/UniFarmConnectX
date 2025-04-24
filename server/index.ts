@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startBackgroundTasks } from "./background-tasks";
-import { updateRefCodes } from "./migrations/update-ref-codes";
+import { migrateRefCodes } from "./migrations/refCodeMigration";
 
 const app = express();
 app.use(express.json());
