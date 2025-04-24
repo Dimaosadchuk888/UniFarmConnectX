@@ -49,22 +49,33 @@ const TelegramInitDataWarning: React.FC = () => {
         console.log('[DEV] Using cached telegram_launch flag for development');
       }
       
-      if ((!initData || initData.trim() === '') && typeof window !== 'undefined' && window.localStorage) {
+      if ((!initData || initData.trim() === '') && typeof window !== 'undefined') {
         try {
-          const savedInitData = localStorage.getItem('telegramInitData');
-          if (savedInitData && savedInitData.trim() !== '') {
-            initData = savedInitData;
+          // Сначала проверяем sessionStorage (рекомендуется для чувствительных данных)
+          const sessionInitData = sessionStorage.getItem('telegramInitData');
+          if (sessionInitData && sessionInitData.trim() !== '') {
+            initData = sessionInitData;
             usingCachedData = true;
-            console.log('[TelegramInitDataWarning] Using cached initData from localStorage');
+            console.log('[TelegramInitDataWarning] Using cached initData from sessionStorage');
           }
           
-          // Для режима разработки - проверяем кэшированные данные пользователя
-          if (isDev && localStorage.getItem('telegram_user_data')) {
-            usingCachedData = true;
-            console.log('[DEV] Using cached Telegram user data for development');
+          // Затем проверяем localStorage (для совместимости)
+          if ((!initData || initData.trim() === '') && window.localStorage) {
+            const savedInitData = localStorage.getItem('telegramInitData');
+            if (savedInitData && savedInitData.trim() !== '') {
+              initData = savedInitData;
+              usingCachedData = true;
+              console.log('[TelegramInitDataWarning] Using cached initData from localStorage');
+            }
+            
+            // Для режима разработки - проверяем кэшированные данные пользователя
+            if (isDev && localStorage.getItem('telegram_user_data')) {
+              usingCachedData = true;
+              console.log('[DEV] Using cached Telegram user data for development');
+            }
           }
         } catch (e) {
-          console.error('[TelegramInitDataWarning] Error reading from localStorage:', e);
+          console.error('[TelegramInitDataWarning] Error reading from storage:', e);
         }
       }
       
@@ -104,14 +115,30 @@ const TelegramInitDataWarning: React.FC = () => {
 
   // Функция активации режима разработки
   const enableDevMode = () => {
-    localStorage.setItem('dev_mode', 'true');
-    localStorage.setItem('telegram_launch', 'true');
-    localStorage.setItem('telegram_user_data', JSON.stringify({
+    // Создаем тестовые данные
+    const testUserData = {
       id: 1,
       username: 'dev_user',
       first_name: 'Test',
       last_name: 'User'
-    }));
+    };
+    
+    // Генерируем фиктивный initData для тестирования
+    const mockInitData = 'dev_mode=true&user=%7B%22id%22%3A1%2C%22first_name%22%3A%22Test%22%7D&auth_date=1619631535';
+    
+    // Сохраняем данные в localStorage (для долгосрочного хранения)
+    localStorage.setItem('dev_mode', 'true');
+    localStorage.setItem('telegram_launch', 'true');
+    localStorage.setItem('telegram_user_data', JSON.stringify(testUserData));
+    localStorage.setItem('telegramInitData', mockInitData);
+    
+    // Сохраняем данные также в sessionStorage (для текущей сессии)
+    try {
+      sessionStorage.setItem('telegramInitData', mockInitData);
+      console.log('[DEV] Saved mock initData to sessionStorage');
+    } catch (e) {
+      console.error('[DEV] Error saving to sessionStorage:', e);
+    }
     
     alert('🛠️ Режим разработки включен! Страница будет перезагружена.');
     window.location.reload();
