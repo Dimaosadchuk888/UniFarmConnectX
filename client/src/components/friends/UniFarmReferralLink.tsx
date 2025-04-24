@@ -3,19 +3,58 @@ import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
 import { User } from '@/services/userService';
 import { buildReferralLink } from '@/utils/referralUtils';
+import { apiRequest } from '@/lib/queryClient';
 
 /**
  * Основной компонент для отображения реферальной ссылки 
  * с упрощенной логикой и улучшенным UI
  * 
- * АУДИТ: Компонент специально оптимизирован для работы независимо от Telegram WebApp.
- * Показывает ссылку только на основе наличия ref_code в данных пользователя,
- * что решает проблему отображения ссылки при отсутствии Telegram API.
+ * АУДИТ 2.0: Улучшен для работы в режиме разработки с фиксированным ID=7.
+ * Всегда пытается получить данные для пользователя ID=7 при отсутствии
+ * Telegram API, что решает проблему отображения реферальной ссылки 
+ * при локальном тестировании.
  */
 const UniFarmReferralLink: React.FC = () => {
   // Состояния UI
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  
+  // Определяем, запущены ли мы в режиме разработки
+  const isDev = process.env.NODE_ENV === 'development';
+  
+  // В режиме разработки всегда принудительно запрашиваем данные пользователя ID=7
+  const userQueryFn = async () => {
+    try {
+      // Для логирования запроса
+      console.log('[UniFarmReferralLink] Executing custom query function');
+      
+      // Сначала пробуем стандартный метод получения текущего пользователя
+      let userData = await userService.getCurrentUser(true);
+      
+      // В режиме разработки, если нет данных от Telegram, принудительно запрашиваем ID=7
+      if (isDev && (!userData || userData.id === 1)) {
+        console.log('[UniFarmReferralLink] В режиме разработки и без Telegram API запрашиваем фиксированного пользователя ID=7');
+        
+        try {
+          const response = await apiRequest('/api/users/7');
+          if (response && response.success && response.data) {
+            userData = response.data;
+            console.log('[UniFarmReferralLink] Успешно получены данные пользователя ID=7:', {
+              id: userData.id,
+              refCode: userData.ref_code
+            });
+          }
+        } catch (error) {
+          console.error('[UniFarmReferralLink] Ошибка при запросе пользователя ID=7:', error);
+        }
+      }
+      
+      return userData;
+    } catch (error) {
+      console.error('[UniFarmReferralLink] Ошибка в пользовательском queryFn:', error);
+      throw error;
+    }
+  };
   
   // Прямой запрос к API с отключенным кэшированием для актуальных данных
   const { 
@@ -24,8 +63,8 @@ const UniFarmReferralLink: React.FC = () => {
     isError, 
     refetch 
   } = useQuery({
-    queryKey: ['/api/me'],
-    queryFn: () => userService.getCurrentUser(true), // force reload
+    queryKey: ['/api/me', isDev ? '7' : ''],
+    queryFn: userQueryFn,
     staleTime: 5000, // Обновлять данные каждые 5 секунд
   });
   
@@ -53,7 +92,8 @@ const UniFarmReferralLink: React.FC = () => {
         telegram_id: safeUser.telegram_id,
         username: safeUser.username,
         ref_code: safeUser.ref_code || 'ОТСУТСТВУЕТ'
-      } : 'НЕТ ДАННЫХ'
+      } : 'НЕТ ДАННЫХ',
+      isDev
     });
     
     if (refCode) {
@@ -66,7 +106,9 @@ const UniFarmReferralLink: React.FC = () => {
         isLoading, 
         isError,
         userData: safeUser,
-        telegramId: safeUser?.telegram_id || 'отсутствует'
+        telegramId: safeUser?.telegram_id || 'отсутствует',
+        isDev,
+        queryKey: '/api/me' + (isDev ? '7' : '')
       });
       
       // Попытка получить телеграм ID для дополнительной диагностики
@@ -74,7 +116,7 @@ const UniFarmReferralLink: React.FC = () => {
         console.log('[TG AUDIT] User получен с сервера, но telegram_id отсутствует');
       }
     }
-  }, [refCode, referralLink, isLoading, isError, safeUser]);
+  }, [refCode, referralLink, isLoading, isError, safeUser, isDev]);
   
   // Копирование ссылки в буфер обмена
   const copyToClipboard = () => {
@@ -111,15 +153,10 @@ const UniFarmReferralLink: React.FC = () => {
   };
   
   // Обновленная логика рендеринга:
-  // Компонент всегда отображается, даже если:
-  // - пользователь не загружен (hasUser === false)
-  // - refCode еще не получен или временно отсутствует
-  // - идет загрузка (isLoading === true)
-  
   // Если есть refCode, отрисовываем основной контент с реферальной ссылкой
   if (hasRefCode) {
     // Обычный вывод с реферальной ссылкой - этот блок не меняем
-    // Только выводим основной контент - код ниже из return остается неизменным
+    // Только выводим основной контент
   } else {
     // Если refCode отсутствует, показываем соответствующий контент в зависимости от состояния
     return (
