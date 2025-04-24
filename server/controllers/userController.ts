@@ -422,7 +422,23 @@ export class UserController {
    */
   static async getUserById(req: Request, res: Response): Promise<void> {
     try {
-      // Валидация параметров запроса
+      // Если передан параметр telegram_id, используем его вместо обычного id
+      const telegramId = req.query.telegram_id;
+      if (telegramId) {
+        console.log(`[UserController] Trying to get user by telegram_id: ${telegramId}`);
+        try {
+          const user = await UserService.getUserByTelegramId(parseInt(telegramId as string));
+          if (!user) {
+            return sendError(res, `User with telegram_id ${telegramId} not found`, 404);
+          }
+          return sendSuccess(res, user);
+        } catch (err) {
+          console.error(`[UserController] Error getting user by telegram_id ${telegramId}:`, err);
+          return sendError(res, 'Error retrieving user by Telegram ID', 500);
+        }
+      }
+      
+      // Стандартная обработка - получение по ID
       const validationResult = getUserParamsSchema.safeParse(req.params);
       if (!validationResult.success) {
         return sendError(res, 'Invalid user ID', 400, validationResult.error.format());
