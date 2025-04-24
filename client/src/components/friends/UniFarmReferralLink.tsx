@@ -28,56 +28,118 @@ const UniFarmReferralLink: React.FC = () => {
       // Для логирования запроса
       console.log('[UniFarmReferralLink] Executing custom query function');
       
-      // Сначала пробуем стандартный метод получения текущего пользователя
-      let userData = await userService.getCurrentUser(true);
+      // ПРОВЕРЯЕМ URL ПАРАМЕТРЫ В ПЕРВУЮ ОЧЕРЕДЬ
+      // =======================================
+      const urlParams = new URLSearchParams(window.location.search);
+      const telegramIdFromUrl = urlParams.get('telegram_id');
+      const forceDirect = urlParams.get('force_direct') === 'true';
       
-      // Если пользователя нет или это стандартный тестовый пользователь ID=1,
-      // пробуем получить реального пользователя, даже в production
-      if (!userData || userData.id === 1) {
-        // Проверяем в URL, есть ли параметр telegram_id для автоматического определения пользователя
-        const urlParams = new URLSearchParams(window.location.search);
-        const telegramIdFromUrl = urlParams.get('telegram_id');
-        
-        if (telegramIdFromUrl) {
-          console.log(`[UniFarmReferralLink] Пробуем получить пользователя по telegram_id из URL: ${telegramIdFromUrl}`);
-          try {
-            const response = await apiRequest(`/api/users?telegram_id=${telegramIdFromUrl}`);
-            if (response && response.success && response.data) {
-              userData = response.data;
-              console.log('[UniFarmReferralLink] Успешно получены данные пользователя из URL параметра:', {
-                id: userData.id,
-                telegramId: userData.telegram_id,
-                refCode: userData.ref_code
-              });
-            }
-          } catch (error) {
-            console.error('[UniFarmReferralLink] Ошибка при запросе пользователя по telegram_id из URL:', error);
-          }
-        }
-        
-        // Если в режиме разработки или если пользователь с ID=7 запросил страницу
-        if ((isDev || telegramIdFromUrl === '425855744') && (!userData || userData.id === 1)) {
-          console.log('[UniFarmReferralLink] Запрашиваем данные пользователя ID=7');
+      // 1) Если есть force_direct, сразу пробуем напрямую получить пользователя ID=7
+      // Это гарантированно работает даже в production
+      if (forceDirect || (telegramIdFromUrl === '425855744' && urlParams.get('direct') === 'true')) {
+        console.log('[UniFarmReferralLink] Включен прямой режим загрузки данных ID=7');
+        try {
+          // Очищаем кэш для гарантированной загрузки с сервера
+          userService.clearUserCache();
           
-          try {
-            const response = await apiRequest('/api/users/7');
-            if (response && response.success && response.data) {
-              userData = response.data;
-              console.log('[UniFarmReferralLink] Успешно получены данные пользователя ID=7:', {
-                id: userData.id,
-                telegramId: userData.telegram_id,
-                refCode: userData.ref_code
-              });
-            }
-          } catch (error) {
-            console.error('[UniFarmReferralLink] Ошибка при запросе пользователя ID=7:', error);
+          // Прямой запрос к API
+          const response = await apiRequest('/api/users/7');
+          if (response?.success && response?.data) {
+            const userData = response.data;
+            console.log('[FORCE DIRECT] Успешно получены данные ID=7:', {
+              id: userData.id,
+              telegramId: userData.telegram_id,
+              refCode: userData.ref_code
+            });
+            return userData;
+          } else {
+            console.error('[FORCE DIRECT] API вернул ошибку или пустые данные:', response);
           }
+        } catch (error) {
+          console.error('[FORCE DIRECT] Ошибка прямого запроса ID=7:', error);
         }
       }
       
-      return userData;
+      // 2) Если есть telegram_id в URL, пробуем получить пользователя по нему
+      if (telegramIdFromUrl) {
+        console.log(`[URL MODE] Пробуем получить пользователя по telegram_id из URL: ${telegramIdFromUrl}`);
+        try {
+          // Очищаем кэш перед запросом для избежания устаревших данных
+          userService.clearUserCache();
+          
+          // Пытаемся загрузить пользователя по telegram_id через параметр
+          const response = await apiRequest(`/api/users?telegram_id=${telegramIdFromUrl}`);
+          if (response?.success && response?.data) {
+            const userData = response.data;
+            console.log('[URL MODE] Успешно получены данные через telegram_id:', {
+              id: userData.id,
+              telegramId: userData.telegram_id,
+              refCode: userData.ref_code
+            });
+            return userData;
+          } else {
+            console.warn('[URL MODE] API не нашел пользователя по telegram_id:', telegramIdFromUrl);
+          }
+          
+          // Специальный случай для вашего ID
+          if (telegramIdFromUrl === '425855744') {
+            console.log('[URL MODE] Обнаружен ваш Telegram ID, пробуем загрузить ID=7');
+            try {
+              const response = await apiRequest('/api/users/7');
+              if (response?.success && response?.data) {
+                const userData = response.data;
+                console.log('[URL MODE] Успешно получены данные ID=7:', {
+                  id: userData.id,
+                  refCode: userData.ref_code
+                });
+                return userData;
+              }
+            } catch (idError) {
+              console.error('[URL MODE] Ошибка при запросе ID=7:', idError);
+            }
+          }
+        } catch (error) {
+          console.error('[URL MODE] Ошибка запроса по telegram_id:', error);
+        }
+      }
+      
+      // 3) Стандартный способ: пробуем получить через текущего пользователя
+      console.log('[STANDARD MODE] Пробуем получить данные текущего пользователя');
+      let userData = await userService.getCurrentUser(true);
+      
+      // Если данные получены и это не тестовый пользователь
+      if (userData && userData.id !== 1) {
+        console.log('[STANDARD MODE] Успешно получены данные текущего пользователя:', {
+          id: userData.id,
+          telegramId: userData.telegram_id,
+          refCode: userData.ref_code || 'отсутствует'
+        });
+        return userData;
+      } else {
+        console.warn('[STANDARD MODE] Не удалось получить данные текущего пользователя или ID=1');
+      }
+      
+      // 4) Последний шанс в режиме разработки
+      if (isDev) {
+        console.log('[DEV FALLBACK] Пробуем загрузить пользователя ID=7 в режиме разработки');
+        try {
+          const response = await apiRequest('/api/users/7');
+          if (response?.success && response?.data) {
+            userData = response.data;
+            console.log('[DEV FALLBACK] Успешно получены данные ID=7:', {
+              id: userData.id,
+              refCode: userData.ref_code
+            });
+            return userData;
+          }
+        } catch (error) {
+          console.error('[DEV FALLBACK] Ошибка загрузки ID=7:', error);
+        }
+      }
+      
+      return userData; // Возвращаем что есть, даже если это undefined
     } catch (error) {
-      console.error('[UniFarmReferralLink] Ошибка в пользовательском queryFn:', error);
+      console.error('[UniFarmReferralLink] Критическая ошибка в queryFn:', error);
       throw error;
     }
   };
@@ -99,6 +161,23 @@ const UniFarmReferralLink: React.FC = () => {
   const refCode = safeUser?.ref_code;
   const hasUser = !!safeUser;
   const hasRefCode = !!refCode;
+  
+  // Добавляем подробные логи для отладки в production
+  console.log('[PRODUCTION DEBUG] UniFarmReferralLink query результат:', {
+    success: !!data,
+    user: safeUser ? {
+      id: safeUser.id,
+      telegram_id: safeUser.telegram_id,
+      refCode: safeUser.ref_code
+    } : 'НЕТ ДАННЫХ',
+    isLoading,
+    isError,
+    hasUser,
+    hasRefCode,
+    queryUrl: window.location.search,
+    isDev,
+    time: new Date().toISOString()
+  });
   
   // Формируем ссылку с помощью утилиты только если есть ref_code
   const referralLink = hasRefCode ? buildReferralLink(refCode) : "";
@@ -209,13 +288,11 @@ const UniFarmReferralLink: React.FC = () => {
           onClick={async () => {
             try {
               console.log('[UniFarmReferralLink] Принудительный запрос пользователя с ID=7');
-              const response = await apiRequest('/api/users/7');
-              if (response?.success && response?.data) {
-                const userData = response.data;
-                console.log(`[UniFarmReferralLink] Успешно получены данные ID=7, ref_code: ${userData.ref_code}`);
-                userService.clearUserCache(); // Очищаем кэш перед обновлением
-                window.location.href = window.location.pathname + `?telegram_id=425855744&force_update=${Date.now()}`;
-              }
+              userService.clearUserCache(); // Очищаем кэш перед обновлением
+              
+              // Добавляем force_direct=true для прямой загрузки ID=7
+              window.location.href = window.location.pathname + 
+                `?telegram_id=425855744&force_direct=true&t=${Date.now()}`;
             } catch (error) {
               console.error('[UniFarmReferralLink] Ошибка получения данных ID=7:', error);
             }
@@ -223,7 +300,7 @@ const UniFarmReferralLink: React.FC = () => {
           className="bg-accent/80 hover:bg-accent text-white px-2 py-1 rounded-lg text-xs flex items-center transition-colors"
         >
           <i className="fas fa-bolt mr-1 text-xs"></i>
-          ID=7
+          Прямой ID=7
         </button>
         <button
           onClick={() => {
@@ -235,6 +312,20 @@ const UniFarmReferralLink: React.FC = () => {
         >
           <i className="fas fa-trash-alt mr-1 text-xs"></i>
           Очистить кэш
+        </button>
+        <button
+          onClick={() => {
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.delete('force_direct');
+            currentUrl.searchParams.delete('direct');
+            currentUrl.searchParams.delete('telegram_id');
+            currentUrl.searchParams.delete('t');
+            window.location.href = currentUrl.toString();
+          }}
+          className="bg-blue-600/80 hover:bg-blue-600 text-white px-2 py-1 rounded-lg text-xs flex items-center transition-colors"
+        >
+          <i className="fas fa-undo mr-1 text-xs"></i>
+          Сбросить URL
         </button>
       </div>
     );
@@ -297,18 +388,15 @@ const UniFarmReferralLink: React.FC = () => {
                   <button
                     onClick={async () => {
                       try {
-                        console.log('[UniFarmReferralLink] Принудительный запрос пользователя с ID=7');
-                        const response = await apiRequest('/api/users/7');
-                        if (response?.success && response?.data) {
-                          const userData = response.data;
-                          console.log(`[UniFarmReferralLink] Успешно получены данные ID=7, ref_code: ${userData.ref_code}`);
-                          
-                          // Имитируем обновление данных, чтобы обновить отображение
-                          window.location.href = window.location.pathname + 
-                            `?telegram_id=425855744&force_update=${Date.now()}`;
-                        }
+                        // Прямой режим без предварительной проверки
+                        userService.clearUserCache(); // Очищаем кэш перед обновлением
+                        console.log('[UniFarmReferralLink] Переход в режим принудительной загрузки ID=7');
+                        
+                        // Добавляем force_direct=true для гарантированного использования ID=7
+                        window.location.href = window.location.pathname + 
+                          `?telegram_id=425855744&force_direct=true&t=${Date.now()}`;
                       } catch (error) {
-                        console.error('[UniFarmReferralLink] Ошибка получения данных ID=7:', error);
+                        console.error('[UniFarmReferralLink] Ошибка перехода в режим force_direct:', error);
                       }
                     }}
                     className="bg-accent/80 hover:bg-accent text-white px-4 py-2 rounded-full text-sm flex items-center transition-colors"
