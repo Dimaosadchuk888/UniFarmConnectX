@@ -50,7 +50,25 @@ export class UserController {
       
       // Если не нашли, логируем информацию обо всех заголовках
       if (!telegramInitData) {
-        console.warn(`[АУДИТ] [UserController] No Telegram data found in headers`);
+        console.warn(`[АУДИТ] [UserController] ⚠️ No Telegram data found in headers`);
+        
+        // Подробное логирование всех заголовков запроса (КРИТИЧНО для диагностики)
+        console.log(`[АУДИТ] [UserController] 🔍 All request headers: ${JSON.stringify(req.headers)}`);
+        
+        // Проверяем все возможные ключи заголовков, которые содержат критические слова
+        const criticalHeaderPatterns = ['telegram', 'init', 'data', 'tg'];
+        
+        // Собираем и выводим все заголовки, содержащие хотя бы одно ключевое слово
+        Object.keys(req.headers).forEach(headerKey => {
+          const lcKey = headerKey.toLowerCase();
+          if (criticalHeaderPatterns.some(pattern => lcKey.includes(pattern))) {
+            const headerValue = req.headers[headerKey];
+            console.log(`[АУДИТ] [UserController] 🔑 Critical header "${headerKey}": ` + 
+              (typeof headerValue === 'string' 
+                ? `Length ${headerValue.length}, Sample: ${headerValue.substring(0, 30)}...` 
+                : `Value: ${headerValue}`));
+          }
+        });
       }
       
       let telegramId: number | null = null;
@@ -117,8 +135,20 @@ export class UserController {
           // Получаем токен бота из переменных окружения
           const botToken = process.env.TELEGRAM_BOT_TOKEN;
           
+          // Проверяем наличие и валидность токена бота
+          if (!botToken) {
+            console.error('[UserController] [TelegramAuth] ⚠️ КРИТИЧЕСКАЯ ОШИБКА: Отсутствует токен бота TELEGRAM_BOT_TOKEN!');
+            console.error('[UserController] [TelegramAuth] Убедитесь, что TELEGRAM_BOT_TOKEN установлен в переменных окружения');
+          } else {
+            console.log('[UserController] [TelegramAuth] ✅ Токен бота получен, длина:', botToken.length);
+          }
+          
           // Дополнительно логируем данные для диагностики
           logTelegramData(telegramInitData, null, 'UserController');
+          
+          // Добавляем подробное логирование перед валидацией
+          console.log('[UserController] [TelegramAuth] Начинаем валидацию initData с длиной:', 
+            telegramInitData ? telegramInitData.length : 0);
           
           // Проверяем подлинность данных с использованием импортированной функции
           const validationResult = validateTelegramInitData(

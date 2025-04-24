@@ -794,15 +794,64 @@ export function getTelegramAuthHeaders(): Record<string, string> {
   // Если у нас есть initData (текущий или из localStorage), добавляем его в заголовки
   if (initData && initData.trim() !== '') {
     // Добавляем в нескольких вариантах для совместимости (согласно п.1.2 ТЗ)
-    headers['Telegram-Init-Data'] = initData;
-    headers['X-Telegram-Init-Data'] = initData; // Добавляем X- версию для совместимости
-    console.log('[telegramService] Added Telegram initData headers with length:', initData.length);
+    // Используем все возможные варианты названий заголовков для максимальной совместимости
+    const headerVariants = [
+      'telegram-init-data', 'Telegram-Init-Data', 'x-telegram-init-data', 'X-Telegram-Init-Data',
+      'telegramInitData', 'telegram-data', 'x-telegram-data'
+    ];
+    
+    // Добавляем все варианты заголовков
+    headerVariants.forEach(headerName => {
+      headers[headerName] = initData;
+    });
+    
+    console.log('[telegramService] ✅ Added Telegram initData to headers (length:', initData.length + ')');
+    
+    // Для аудита сохраняем краткий образец данных
+    const sampleStart = initData.substring(0, 20);
+    const sampleEnd = initData.substring(initData.length - 20);
+    console.log(`[telegramService] InitData sample: ${sampleStart}...${sampleEnd}`);
     
     // Добавляем информацию о том, был ли initData получен непосредственно из Telegram API
     // или загружен из localStorage (для отслеживания источника данных)
-    headers['X-Telegram-Data-Source'] = window.Telegram?.WebApp?.initData ? 'telegram-api' : 'localStorage';
+    const source = window.Telegram?.WebApp?.initData ? 'telegram-api' : 'localStorage';
+    headers['X-Telegram-Data-Source'] = source;
+    console.log(`[telegramService] Data source: ${source}`);
+    
+    // Пытаемся добавить доп. информацию для отладки, если данные в формате URL-параметров
+    try {
+      if (initData.includes('=') && initData.includes('&')) {
+        const params = new URLSearchParams(initData);
+        if (params.has('user')) {
+          const user = JSON.parse(params.get('user') || '{}');
+          if (user.id) {
+            headers['X-Telegram-User-Id'] = String(user.id);
+            console.log(`[telegramService] Added user.id from initData: ${user.id}`);
+          }
+        }
+        
+        if (params.has('auth_date')) {
+          const authDate = params.get('auth_date');
+          if (authDate) {
+            headers['X-Telegram-Auth-Date'] = authDate;
+            // Проверяем свежесть данных
+            const authDateNum = parseInt(authDate);
+            const nowSeconds = Math.floor(Date.now() / 1000);
+            const ageHours = (nowSeconds - authDateNum) / 3600;
+            console.log(`[telegramService] Auth data age: ${ageHours.toFixed(2)} hours`);
+            
+            // Если данные старше 24 часов, выводим предупреждение
+            if (ageHours > 24) {
+              console.warn(`[telegramService] ⚠️ WARNING: Telegram initData is ${ageHours.toFixed(1)} hours old!`);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[telegramService] Error extracting additional data from initData:', err);
+    }
   } else {
-    console.warn('[telegramService] No Telegram initData available to add to headers');
+    console.warn('[telegramService] ⚠️ No Telegram initData available to add to headers');
   }
   
   // Обработка случая, когда Telegram WebApp API недоступен

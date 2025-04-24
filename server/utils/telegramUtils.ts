@@ -148,39 +148,68 @@ export function validateTelegramInitData(
 
   // Проверка подписи, если переданы все необходимые параметры и botToken
   let signatureValid = false;
+  let hashCheckDetails = '';
+  
   if (isValid && hash && botToken) {
-    // Создание проверочной строки (без hash параметра)
-    const checkParams = new URLSearchParams(initData);
-    checkParams.delete('hash');
+    try {
+      // Создание проверочной строки (без hash параметра)
+      const checkParams = new URLSearchParams(initData);
+      checkParams.delete('hash');
 
-    // Сортировка параметров по алфавиту (требование Telegram API)
-    const sortedParams: [string, string][] = [];
-    checkParams.forEach((value, key) => {
-      sortedParams.push([key, value]);
-    });
-    sortedParams.sort(([a], [b]) => a.localeCompare(b));
+      // Сортировка параметров по алфавиту (требование Telegram API)
+      const sortedParams: [string, string][] = [];
+      checkParams.forEach((value, key) => {
+        sortedParams.push([key, value]);
+      });
+      sortedParams.sort(([a], [b]) => a.localeCompare(b));
 
-    // Формирование строки для проверки
-    const dataCheckString = sortedParams.map(([key, value]) => `${key}=${value}`).join('\n');
+      // Формирование строки для проверки
+      const dataCheckString = sortedParams.map(([key, value]) => `${key}=${value}`).join('\n');
 
-    // Создание секретного ключа из токена бота
-    const secretKey = createHash('sha256').update(botToken).digest();
+      // Расширенное логирование для отладки подписи
+      console.log('[telegramUtils] Проверка подписи Telegram:', {
+        params: Object.fromEntries(sortedParams.map(([key, value]) => 
+          [key, key === 'user' ? `${value.substring(0, 20)}...` : value])
+        ),
+        paramsCount: sortedParams.length,
+        dataCheckStringLength: dataCheckString.length,
+        hashToCheck: `${hash.substring(0, 10)}...`
+      });
 
-    // Вычисление хеша
-    const calculatedHash = createHmac('sha256', secretKey)
-      .update(dataCheckString)
-      .digest('hex');
+      // Создание секретного ключа из токена бота
+      const secretKey = createHash('sha256').update(botToken).digest();
 
-    // Сравнение хешей
-    signatureValid = calculatedHash === hash;
+      // Вычисление хеша
+      const calculatedHash = createHmac('sha256', secretKey)
+        .update(dataCheckString)
+        .digest('hex');
 
-    if (!signatureValid && !isDevelopment) {
-      errors.push('Недействительная подпись данных');
+      // Сравнение хешей
+      signatureValid = calculatedHash === hash;
+      
+      // Сохраняем детали проверки для диагностики
+      hashCheckDetails = `calculated=${calculatedHash.substring(0, 10)}..., received=${hash.substring(0, 10)}...`;
+
+      if (!signatureValid) {
+        console.warn(`[telegramUtils] ⚠️ Ошибка проверки подписи: ${hashCheckDetails}`);
+        if (!isDevelopment) {
+          errors.push(`Недействительная подпись данных: ${hashCheckDetails}`);
+          isValid = false;
+        }
+      } else {
+        console.log(`[telegramUtils] ✅ Подпись Telegram данных верифицирована: ${hashCheckDetails}`);
+      }
+    } catch (error) {
+      console.error('[telegramUtils] 🔴 Ошибка при проверке подписи Telegram:', error);
+      errors.push(`Ошибка при проверке подписи: ${error instanceof Error ? error.message : 'Unknown'}`);
+      isValid = isDevelopment; // В разработке не блокируем доступ
+    }
+  } else if (!botToken) {
+    console.warn('[telegramUtils] ⚠️ Отсутствует токен бота для проверки подписи');
+    if (!isDevelopment) {
+      errors.push('Отсутствует токен бота для проверки подписи');
       isValid = false;
     }
-  } else if (!botToken && !isDevelopment) {
-    errors.push('Отсутствует токен бота для проверки подписи');
-    isValid = false;
   }
 
   // В режиме разработки пропускаем некоторые проверки
