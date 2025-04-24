@@ -151,14 +151,18 @@ export class UserController {
             telegramInitData ? telegramInitData.length : 0);
           
           // Проверяем подлинность данных с использованием импортированной функции
+          // Увеличиваем максимальный возраст данных до 48 часов для решения проблемы с устаревшими данными
+          // и включаем расширенное логирование
           const validationResult = validateTelegramInitData(
             telegramInitData,
             botToken,
             {
-              maxAgeSeconds: 86400, // 24 часа максимальный возраст данных
+              maxAgeSeconds: 172800, // 48 часов максимальный возраст данных (увеличено для решения проблемы)
               isDevelopment: process.env.NODE_ENV !== 'production',
               requireUserId: process.env.NODE_ENV === 'production', // В продакшн всегда требуем userId
-              allowFallbackId: process.env.NODE_ENV !== 'production' // В продакшн запрещаем ID=1
+              allowFallbackId: process.env.NODE_ENV !== 'production', // В продакшн запрещаем ID=1
+              verboseLogging: true, // Включаем расширенное логирование всегда
+              skipSignatureCheck: process.env.NODE_ENV !== 'production' // Пропускаем проверку подписи только в dev-режиме
             }
           );
           

@@ -61,8 +61,20 @@ declare global {
         startParam?: string; // Параметр start= из ссылки запуска бота
         version?: string;    // Версия API
         themeParams?: Record<string, string>; // Параметры темы
+        MainButton?: {
+          show: () => void;
+          hide: () => void;
+          setText: (text: string) => void;
+          onClick: (callback: () => void) => void;
+        };
+        onEvent?: (eventType: string, callback: () => void) => void;
+        sendData?: (data: string) => void;
+        openLink?: (url: string) => void;
+        close?: () => void;
       };
     };
+    // Добавляем localStorage для хранения параметров
+    localStorage?: Storage;
     process: {
       env: Record<string, string | undefined>;
     };

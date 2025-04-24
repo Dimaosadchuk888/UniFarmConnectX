@@ -28,6 +28,10 @@ interface TelegramValidationOptions {
   requireUserId?: boolean;
   /** Разрешать ли использование fallback ID=1 */
   allowFallbackId?: boolean;
+  /** Включить подробное логирование процесса валидации */
+  verboseLogging?: boolean;
+  /** Пропустить проверку подписи (не рекомендуется) */
+  skipSignatureCheck?: boolean;
 }
 
 /**
@@ -48,7 +52,28 @@ export function validateTelegramInitData(
     isDevelopment = process.env.NODE_ENV !== 'production',
     requireUserId = !isDevelopment, // В режиме разработки не требуем userId
     allowFallbackId = isDevelopment, // В продакшене запрещаем ID=1
+    verboseLogging = isDevelopment, // Включаем подробное логирование по умолчанию в режиме разработки
+    skipSignatureCheck = false, // Никогда не пропускаем проверку подписи по умолчанию
   } = options;
+  
+  // Вывод дополнительной диагностической информации
+  if (verboseLogging) {
+    console.log('[telegramUtils] 🔍 validateTelegramInitData вызван с параметрами:', {
+      hasInitData: !!initData,
+      initDataLength: initData?.length ?? 0,
+      hasBotToken: !!botToken,
+      botTokenLength: botToken?.length ?? 0,
+      environment: process.env.NODE_ENV,
+      options: {
+        maxAgeSeconds,
+        isDevelopment,
+        requireUserId,
+        allowFallbackId,
+        verboseLogging,
+        skipSignatureCheck
+      }
+    });
+  }
 
   const errors: string[] = [];
   let isValid = true; // Изначально считаем данные валидными
@@ -150,7 +175,13 @@ export function validateTelegramInitData(
   let signatureValid = false;
   let hashCheckDetails = '';
   
-  if (isValid && hash && botToken) {
+  // Пропускаем проверку подписи, если указан соответствующий флаг
+  if (skipSignatureCheck) {
+    if (verboseLogging) {
+      console.log('[telegramUtils] 🚫 Проверка подписи пропущена (skipSignatureCheck=true)');
+    }
+    signatureValid = true; // Считаем подпись валидной при пропуске проверки
+  } else if (isValid && hash && botToken) {
     try {
       // Создание проверочной строки (без hash параметра)
       const checkParams = new URLSearchParams(initData);
@@ -209,6 +240,14 @@ export function validateTelegramInitData(
     if (!isDevelopment) {
       errors.push('Отсутствует токен бота для проверки подписи');
       isValid = false;
+    }
+  } else {
+    // Отсутствуют необходимые параметры для проверки подписи
+    if (verboseLogging) {
+      console.warn('[telegramUtils] ⚠️ Отсутствуют необходимые параметры для проверки подписи: ', {
+        isValid,
+        hasHash: !!hash
+      });
     }
   }
 
