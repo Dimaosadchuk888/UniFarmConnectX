@@ -13,8 +13,20 @@ const TelegramInitDataWarning: React.FC = () => {
   const [initDataLength, setInitDataLength] = useState(0);
   const [hasTelegram, setHasTelegram] = useState(true);
   const [usingCachedData, setUsingCachedData] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(false);
 
   useEffect(() => {
+    // Проверяем режим разработки (из localStorage или из process.env)
+    const checkDevMode = () => {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const devMode = localStorage.getItem('dev_mode') === 'true';
+        const envDevMode = process.env.NODE_ENV === 'development';
+        setIsDevMode(devMode || envDevMode);
+        return devMode || envDevMode;
+      }
+      return process.env.NODE_ENV === 'development';
+    };
+    
     // Проверяем состояние Telegram WebApp
     const checkTelegramWebAppState = () => {
       // Проверяем наличие API
@@ -25,8 +37,18 @@ const TelegramInitDataWarning: React.FC = () => {
       let initData = hasWebAppObj && window.Telegram?.WebApp?.initData 
                      ? window.Telegram.WebApp.initData : '';
                      
+      // Проверяем режим разработки
+      const isDev = checkDevMode();
+                     
       // Если Telegram initData не доступно, проверяем localStorage (согласно п.1.2 ТЗ)
       let usingCachedData = false;
+      
+      // В режиме разработки кэшируем Telegram Launch для эмуляции Mini App
+      if (isDev && !hasTelegramObj && localStorage.getItem('telegram_launch') === 'true') {
+        usingCachedData = true;
+        console.log('[DEV] Using cached telegram_launch flag for development');
+      }
+      
       if ((!initData || initData.trim() === '') && typeof window !== 'undefined' && window.localStorage) {
         try {
           const savedInitData = localStorage.getItem('telegramInitData');
@@ -34,6 +56,12 @@ const TelegramInitDataWarning: React.FC = () => {
             initData = savedInitData;
             usingCachedData = true;
             console.log('[TelegramInitDataWarning] Using cached initData from localStorage');
+          }
+          
+          // Для режима разработки - проверяем кэшированные данные пользователя
+          if (isDev && localStorage.getItem('telegram_user_data')) {
+            usingCachedData = true;
+            console.log('[DEV] Using cached Telegram user data for development');
           }
         } catch (e) {
           console.error('[TelegramInitDataWarning] Error reading from localStorage:', e);
@@ -47,10 +75,9 @@ const TelegramInitDataWarning: React.FC = () => {
       setUsingCachedData(usingCachedData);
       
       // По ТЗ: Если данных нет — отображать сообщение: «Приложение не открыто из Telegram».
-      // Но теперь учитываем и данные из localStorage
-      const isDev = process.env.NODE_ENV === 'development';
-      const hasValidData = initDataLen > 0;
-      const shouldShowWarning = !isDev && (!hasValidData);
+      // Но теперь учитываем и данные из localStorage и режим разработки
+      const hasValidData = initDataLen > 0 || usingCachedData;
+      const shouldShowWarning = !isDev && !hasValidData;
       
       setShowWarning(shouldShowWarning);
       
@@ -60,7 +87,8 @@ const TelegramInitDataWarning: React.FC = () => {
         initDataLen,
         usingCachedData,
         shouldShowWarning,
-        env: process.env.NODE_ENV
+        env: process.env.NODE_ENV,
+        isDev
       });
     };
     
@@ -73,6 +101,21 @@ const TelegramInitDataWarning: React.FC = () => {
     
     return () => clearTimeout(timeoutId);
   }, []);
+
+  // Функция активации режима разработки
+  const enableDevMode = () => {
+    localStorage.setItem('dev_mode', 'true');
+    localStorage.setItem('telegram_launch', 'true');
+    localStorage.setItem('telegram_user_data', JSON.stringify({
+      id: 1,
+      username: 'dev_user',
+      first_name: 'Test',
+      last_name: 'User'
+    }));
+    
+    alert('🛠️ Режим разработки включен! Страница будет перезагружена.');
+    window.location.reload();
+  };
 
   if (!showWarning) {
     return null;
@@ -111,6 +154,14 @@ const TelegramInitDataWarning: React.FC = () => {
                     ? "Отсутствует доступ к Telegram API. Откройте через официальный клиент Telegram."
                     : `Telegram initData отсутствует (длина: ${initDataLength}). Перезапустите приложение в Telegram.`
                   }
+                </p>
+                <p className="mt-2">
+                  <button 
+                    onClick={enableDevMode}
+                    className="px-3 py-1 text-xs bg-gray-800 text-white rounded-full hover:bg-gray-700 transition-colors"
+                  >
+                    Включить режим разработки
+                  </button>
                 </p>
               </>
             )}

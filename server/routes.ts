@@ -787,17 +787,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Добавление обработчика для всех маршрутов, которые не соответствуют API
   // Это необходимо для корректной работы с Telegram Mini App
-  // Специальный маршрут для перенаправления URL с слешем на конце
+  // Специальный маршрут для обслуживания страницы редиректа
   app.get('/telegram-redirect.html', (req: Request, res: Response) => {
     res.sendFile(path.join(process.cwd(), 'client', 'public', 'telegram-redirect.html'));
   });
   
-  // Если URL заканчивается на слеш, редиректим на страницу-обработчик
-  app.get('*/', (req: Request, res: Response) => {
-    // Убираем конечный слеш для правильной работы Telegram WebApp
-    const redirectUrl = '/telegram-redirect.html' + (req.url.length > 1 ? req.url.slice(0, -1) : '');
-    console.log(`[Redirect] URL с слешем в конце: ${req.url} -> ${redirectUrl}`);
-    res.redirect(redirectUrl);
+  // Специальный маршрут для перенаправления в режиме разработки
+  app.get('/dev-mode', (req: Request, res: Response) => {
+    res.sendFile(path.join(process.cwd(), 'client', 'public', 'telegram-redirect.html'));
+  });
+  
+  // Убираем редирект с корня, т.к. он создает проблемы
+  app.get('/', (req: Request, res: Response, next: NextFunction) => {
+    // Корневой URL всегда обрабатываем обычным образом
+    next();
   });
   
   app.get(/^\/(?!api\/).*$/, (req: Request, res: Response, next: NextFunction) => {
