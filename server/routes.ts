@@ -39,7 +39,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Добавляем CORS заголовки для поддержки Telegram Mini App
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Telegram-Init-Data, X-Telegram-Init-Data, Telegram-Data, X-Telegram-Data, X-Telegram-Auth, X-Telegram-User-Id, X-Telegram-Start-Param, X-Telegram-Platform");
     
     // Добавляем Content-Security-Policy для работы в Telegram
     res.header("Content-Security-Policy", "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'");
@@ -57,10 +57,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Если есть данные от Telegram, логируем их
       const telegramData = req.headers['telegram-data'] || 
                           req.headers['x-telegram-data'] || 
-                          req.headers['x-telegram-init-data'];
+                          req.headers['x-telegram-init-data'] ||
+                          req.headers['telegram-init-data'];
       if (telegramData) {
         console.log('[АУДИТ] Telegram data found in headers with length:', 
           typeof telegramData === 'string' ? telegramData.length : 'not a string');
+      }
+      
+      // Проверяем наличие нового заголовка (согласно п.1.2 ТЗ)
+      const telegramInitData = req.headers['telegram-init-data'];
+      if (telegramInitData) {
+        console.log('[АУДИТ] Successfully received Telegram-Init-Data header with length:', 
+          typeof telegramInitData === 'string' ? telegramInitData.length : 'not a string');
       }
     }
     next();
@@ -101,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         headers: req.headers,
         telegramSpecificHeaders: {
           telegramData: req.headers['telegram-data'] || req.headers['x-telegram-data'],
-          telegramInitData: req.headers['x-telegram-init-data'] || req.headers['initdata'] || req.headers['x-initdata'],
+          telegramInitData: req.headers['telegram-init-data'] || req.headers['x-telegram-init-data'] || req.headers['initdata'] || req.headers['x-initdata'],
           telegramUserId: req.headers['x-telegram-user-id'] || req.headers['telegram-user-id'],
           startParam: req.headers['x-start-param'],
         },
@@ -283,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cookies: req.cookies,
         telegramSpecificHeaders: {
           telegramData: req.headers['telegram-data'] || req.headers['x-telegram-data'],
-          telegramInitData: req.headers['x-telegram-init-data'] || req.headers['initdata'] || req.headers['x-initdata'],
+          telegramInitData: req.headers['telegram-init-data'] || req.headers['x-telegram-init-data'] || req.headers['initdata'] || req.headers['x-initdata'],
           telegramUserId: req.headers['x-telegram-user-id'] || req.headers['telegram-user-id'],
           startParam: req.headers['x-start-param'],
         },

@@ -682,6 +682,18 @@ export function getTelegramAuthHeaders(): Record<string, string> {
   // Шаг 1: Подготовим результат с заголовками и добавим поддержку dev-mode
   const headers: Record<string, string> = {};
   
+  // Получаем сохраненные данные initData из localStorage (согласно п.1.2 ТЗ)
+  try {
+    const savedInitData = localStorage.getItem('telegramInitData');
+    if (savedInitData) {
+      // Добавляем initData в заголовок для передачи на сервер
+      headers['Telegram-Init-Data'] = savedInitData;
+      console.log('[telegramService] Added Telegram-Init-Data header from localStorage');
+    }
+  } catch (e) {
+    console.error('[telegramService] Error reading telegramInitData from localStorage:', e);
+  }
+  
   // Обработка случая, когда Telegram WebApp API недоступен
   if (!isTelegramWebApp()) {
     console.warn('[telegramService] Telegram WebApp API not available');
