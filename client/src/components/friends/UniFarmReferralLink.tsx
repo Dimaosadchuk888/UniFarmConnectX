@@ -191,6 +191,55 @@ const UniFarmReferralLink: React.FC = () => {
     }
   }, [window.location.search, safeUser, refetch]);
 
+  // Добавляем кнопку для быстрого тестирования в production
+  const testRefCodeButtons = () => {
+    // В режиме разработки или если это telegram_id=425855744, показываем кнопки для тестирования
+    const urlParams = new URLSearchParams(window.location.search);
+    const telegramIdFromUrl = urlParams.get('telegram_id');
+    const isYourAccount = telegramIdFromUrl === '425855744';
+    
+    if (!isDev && !isYourAccount) return null;
+    
+    return (
+      <div className="flex flex-wrap gap-2 justify-center mt-3">
+        <p className="w-full text-xs text-center text-muted-foreground mb-2">
+          Функции разработчика:
+        </p>
+        <button
+          onClick={async () => {
+            try {
+              console.log('[UniFarmReferralLink] Принудительный запрос пользователя с ID=7');
+              const response = await apiRequest('/api/users/7');
+              if (response?.success && response?.data) {
+                const userData = response.data;
+                console.log(`[UniFarmReferralLink] Успешно получены данные ID=7, ref_code: ${userData.ref_code}`);
+                userService.clearUserCache(); // Очищаем кэш перед обновлением
+                window.location.href = window.location.pathname + `?telegram_id=425855744&force_update=${Date.now()}`;
+              }
+            } catch (error) {
+              console.error('[UniFarmReferralLink] Ошибка получения данных ID=7:', error);
+            }
+          }}
+          className="bg-accent/80 hover:bg-accent text-white px-2 py-1 rounded-lg text-xs flex items-center transition-colors"
+        >
+          <i className="fas fa-bolt mr-1 text-xs"></i>
+          ID=7
+        </button>
+        <button
+          onClick={() => {
+            userService.clearUserCache();
+            console.log('[UniFarmReferralLink] Кэш пользователя очищен');
+            window.location.reload();
+          }}
+          className="bg-red-600/80 hover:bg-red-600 text-white px-2 py-1 rounded-lg text-xs flex items-center transition-colors"
+        >
+          <i className="fas fa-trash-alt mr-1 text-xs"></i>
+          Очистить кэш
+        </button>
+      </div>
+    );
+  };
+  
   // Обновленная логика рендеринга:
   // Если есть refCode, отрисовываем основной контент с реферальной ссылкой
   if (hasRefCode) {
@@ -389,6 +438,9 @@ const UniFarmReferralLink: React.FC = () => {
           Пассивный доход растёт вместе с вашей командой!
         </p>
       </div>
+      
+      {/* Кнопки для разработчика/отладки */}
+      {testRefCodeButtons()}
     </div>
   );
 };

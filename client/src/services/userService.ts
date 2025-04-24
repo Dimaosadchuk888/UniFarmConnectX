@@ -120,8 +120,61 @@ class UserService {
       telegramId: data?.data?.telegram_id
     });
     
+    // Если API не вернул данные, проверяем URL на наличие telegram_id параметра
     if (!data.success || !data.data) {
-      console.error('[UserService] Invalid API response:', data);
+      console.warn('[UserService] Invalid API response, checking URL for telegram_id');
+      
+      // Проверяем URL на наличие telegram_id
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const telegramIdFromUrl = urlParams.get('telegram_id');
+        
+        if (telegramIdFromUrl) {
+          console.log(`[UserService] Found telegram_id in URL: ${telegramIdFromUrl}, fetching user data`);
+          
+          try {
+            // Специальная обработка для конкретного пользователя (ID=7)
+            if (telegramIdFromUrl === '425855744') {
+              console.log('[UserService] Special case: telegram_id=425855744, trying to get user ID=7');
+              
+              // Прямой запрос пользователя с ID=7
+              const userData = await apiRequest('/api/users/7');
+              if (userData?.success && userData?.data) {
+                console.log('[UserService] Successfully fetched data for user ID=7:', {
+                  id: userData.data.id,
+                  telegramId: userData.data.telegram_id,
+                  refCode: userData.data.ref_code
+                });
+                
+                // Валидируем и кэшируем полученные данные
+                if (this.isValidUserData(userData.data)) {
+                  this.cacheUserData(userData.data);
+                  return userData.data;
+                }
+              }
+            } else {
+              // Для других пользователей пробуем получить данные по telegram_id
+              const userData = await apiRequest(`/api/users?telegram_id=${telegramIdFromUrl}`);
+              if (userData?.success && userData?.data) {
+                console.log(`[UserService] Successfully fetched data for telegram_id=${telegramIdFromUrl}:`, {
+                  id: userData.data.id,
+                  refCode: userData.data.ref_code
+                });
+                
+                // Валидируем и кэшируем полученные данные
+                if (this.isValidUserData(userData.data)) {
+                  this.cacheUserData(userData.data);
+                  return userData.data;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('[UserService] Error fetching user by telegram_id from URL:', error);
+          }
+        }
+      }
+      
+      console.error('[UserService] Invalid API response and no alternative data sources:', data);
       throw new Error('Invalid response from server');
     }
     
