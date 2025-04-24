@@ -3,16 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
 import { User } from '@/services/userService';
 import { buildReferralLink, buildDirectBotReferralLink } from '@/utils/referralUtils';
-import { apiRequest } from '@/lib/queryClient';
 
 /**
- * Основной компонент для отображения реферальной ссылки 
- * с упрощенной логикой и улучшенным UI
- * 
- * АУДИТ 2.0: Улучшен для работы в режиме разработки с фиксированным ID=7.
- * Всегда пытается получить данные для пользователя ID=7 при отсутствии
- * Telegram API, что решает проблему отображения реферальной ссылки 
- * при локальном тестировании.
+ * Упрощенный компонент для отображения реферальной ссылки 
+ * Версия 3.0: Максимально упрощенная логика согласно ТЗ п.3.2
  */
 const UniFarmReferralLink: React.FC = () => {
   // Состояния UI
@@ -22,231 +16,52 @@ const UniFarmReferralLink: React.FC = () => {
   // Состояние для отслеживания выбранного типа ссылки
   const [linkType, setLinkType] = useState<'app' | 'bot'>('app');
   
-  // Определяем, запущены ли мы в режиме разработки
-  const isDev = process.env.NODE_ENV === 'development';
-  
-  // Расширенный метод получения данных пользователя с возможностью фолбека на ID=7 в разных режимах
-  const userQueryFn = async () => {
-    try {
-      // Для логирования запроса
-      console.log('[UniFarmReferralLink] Executing custom query function');
-      
-      // ПРОВЕРЯЕМ URL ПАРАМЕТРЫ В ПЕРВУЮ ОЧЕРЕДЬ
-      // =======================================
-      const urlParams = new URLSearchParams(window.location.search);
-      const telegramIdFromUrl = urlParams.get('telegram_id');
-      const forceDirect = urlParams.get('force_direct') === 'true';
-      
-      // 1) Если есть force_direct, сразу пробуем напрямую получить пользователя ID=7
-      // Это гарантированно работает даже в production
-      if (forceDirect || (telegramIdFromUrl === '425855744' && urlParams.get('direct') === 'true')) {
-        console.log('[UniFarmReferralLink] Включен прямой режим загрузки данных ID=7');
-        try {
-          // Очищаем кэш для гарантированной загрузки с сервера
-          userService.clearUserCache();
-          
-          // Прямой запрос к API
-          const response = await apiRequest('/api/users/7');
-          if (response?.success && response?.data) {
-            const userData = response.data;
-            console.log('[FORCE DIRECT] Успешно получены данные ID=7:', {
-              id: userData.id,
-              telegramId: userData.telegram_id,
-              refCode: userData.ref_code
-            });
-            return userData;
-          } else {
-            console.error('[FORCE DIRECT] API вернул ошибку или пустые данные:', response);
-          }
-        } catch (error) {
-          console.error('[FORCE DIRECT] Ошибка прямого запроса ID=7:', error);
-        }
-      }
-      
-      // 2) Если есть telegram_id в URL, пробуем получить пользователя по нему
-      if (telegramIdFromUrl) {
-        console.log(`[URL MODE] Пробуем получить пользователя по telegram_id из URL: ${telegramIdFromUrl}`);
-        try {
-          // Очищаем кэш перед запросом для избежания устаревших данных
-          userService.clearUserCache();
-          
-          // Пытаемся загрузить пользователя по telegram_id через параметр
-          const response = await apiRequest(`/api/users?telegram_id=${telegramIdFromUrl}`);
-          if (response?.success && response?.data) {
-            const userData = response.data;
-            console.log('[URL MODE] Успешно получены данные через telegram_id:', {
-              id: userData.id,
-              telegramId: userData.telegram_id,
-              refCode: userData.ref_code
-            });
-            return userData;
-          } else {
-            console.warn('[URL MODE] API не нашел пользователя по telegram_id:', telegramIdFromUrl);
-          }
-          
-          // Специальный случай для вашего ID
-          if (telegramIdFromUrl === '425855744') {
-            console.log('[URL MODE] Обнаружен ваш Telegram ID, пробуем загрузить ID=7');
-            try {
-              const response = await apiRequest('/api/users/7');
-              if (response?.success && response?.data) {
-                const userData = response.data;
-                console.log('[URL MODE] Успешно получены данные ID=7:', {
-                  id: userData.id,
-                  refCode: userData.ref_code
-                });
-                return userData;
-              }
-            } catch (idError) {
-              console.error('[URL MODE] Ошибка при запросе ID=7:', idError);
-            }
-          }
-        } catch (error) {
-          console.error('[URL MODE] Ошибка запроса по telegram_id:', error);
-        }
-      }
-      
-      // 3) Стандартный способ: пробуем получить через текущего пользователя
-      console.log('[STANDARD MODE] Пробуем получить данные текущего пользователя');
-      let userData = await userService.getCurrentUser(true);
-      
-      // Если данные получены и это не тестовый пользователь
-      if (userData && userData.id !== 1) {
-        console.log('[STANDARD MODE] Успешно получены данные текущего пользователя:', {
-          id: userData.id,
-          telegramId: userData.telegram_id,
-          refCode: userData.ref_code || 'отсутствует'
-        });
-        return userData;
-      } else {
-        console.warn('[STANDARD MODE] Не удалось получить данные текущего пользователя или ID=1');
-      }
-      
-      // 4) Последний шанс в режиме разработки
-      if (isDev) {
-        console.log('[DEV FALLBACK] Пробуем загрузить пользователя ID=7 в режиме разработки');
-        try {
-          const response = await apiRequest('/api/users/7');
-          if (response?.success && response?.data) {
-            userData = response.data;
-            console.log('[DEV FALLBACK] Успешно получены данные ID=7:', {
-              id: userData.id,
-              refCode: userData.ref_code
-            });
-            return userData;
-          }
-        } catch (error) {
-          console.error('[DEV FALLBACK] Ошибка загрузки ID=7:', error);
-        }
-      }
-      
-      return userData; // Возвращаем что есть, даже если это undefined
-    } catch (error) {
-      console.error('[UniFarmReferralLink] Критическая ошибка в queryFn:', error);
-      throw error;
-    }
-  };
-  
-  // Прямой запрос к API с отключенным кэшированием для актуальных данных
+  // Запрос данных пользователя напрямую из API
   const { 
     data, 
     isLoading, 
-    isError, 
-    refetch 
+    isError
   } = useQuery({
-    queryKey: ['/api/me', isDev ? '7' : ''],
-    queryFn: userQueryFn,
-    staleTime: 5000, // Обновлять данные каждые 5 секунд
+    queryKey: ['/api/me'],
+    queryFn: () => userService.getCurrentUser(),
+    staleTime: 10000, // Кэшируем на 10 секунд
   });
   
-  // Безопасное приведение типов для избежания ошибок
+  // Безопасное приведение типов
   const safeUser = data as User | undefined;
   const refCode = safeUser?.ref_code;
-  const hasUser = !!safeUser;
   const hasRefCode = !!refCode;
   
-  // Добавляем подробные логи для отладки в production
-  console.log('[PRODUCTION DEBUG] UniFarmReferralLink query результат:', {
-    success: !!data,
-    user: safeUser ? {
-      id: safeUser.id,
-      telegram_id: safeUser.telegram_id,
-      refCode: safeUser.ref_code
-    } : 'НЕТ ДАННЫХ',
-    isLoading,
-    isError,
-    hasUser,
-    hasRefCode,
-    queryUrl: window.location.search,
-    isDev,
-    time: new Date().toISOString()
-  });
+  // Логирование при отсутствии ref_code согласно п.3.1
+  useEffect(() => {
+    if (safeUser && !refCode) {
+      console.log('[AUDIT] UniFarmReferralLink: Пользователь получен, но ref_code отсутствует', {
+        userId: safeUser.id,
+        telegramId: safeUser.telegram_id,
+        username: safeUser.username
+      });
+    } else if (refCode) {
+      console.log('[AUDIT] UniFarmReferralLink: ref_code получен успешно:', refCode);
+    }
+  }, [safeUser, refCode]);
   
-  // Формируем ссылки с помощью утилит (Mini App и прямая ссылка на бота)
+  // Формируем ссылки с помощью утилит
   const referralLink = hasRefCode ? buildReferralLink(refCode) : "";
   const directBotLink = hasRefCode ? buildDirectBotReferralLink(refCode) : "";
   
-  // Дополнительная отладочная функция для логирования ссылки
-  useEffect(() => {
-    // Всегда логируем состояние компонента для диагностики
-    console.log('[UniFarmReferralLink] СОСТОЯНИЕ:', { 
-      isLoading, 
-      isError, 
-      hasUser: !!safeUser,
-      hasRefCode: !!refCode,
-      refCode: refCode || 'НЕТ КОДА',
-      referralLink: referralLink || 'НЕТ ССЫЛКИ',
-      userData: safeUser ? {
-        id: safeUser.id,
-        telegram_id: safeUser.telegram_id,
-        username: safeUser.username,
-        ref_code: safeUser.ref_code || 'ОТСУТСТВУЕТ'
-      } : 'НЕТ ДАННЫХ',
-      isDev
-    });
-    
-    if (refCode) {
-      console.log('✅ [UniFarmReferralLink] РЕФ КОД НАЙДЕН:', refCode);
-      console.log('📋 [UniFarmReferralLink] ССЫЛКА:', referralLink);
-    } else if (!isLoading) {
-      // Добавляем более подробную диагностику согласно ТЗ пункт 5
-      console.log('[TG AUDIT] Не удалось получить ссылку');
-      console.log('❌ [UniFarmReferralLink] РЕФ КОД ОТСУТСТВУЕТ', { 
-        isLoading, 
-        isError,
-        userData: safeUser,
-        telegramId: safeUser?.telegram_id || 'отсутствует',
-        isDev,
-        queryKey: '/api/me' + (isDev ? '7' : '')
-      });
-      
-      // Попытка получить телеграм ID для дополнительной диагностики
-      if (!safeUser?.telegram_id) {
-        console.log('[TG AUDIT] User получен с сервера, но telegram_id отсутствует');
-      }
-    }
-  }, [refCode, referralLink, isLoading, isError, safeUser, isDev]);
-  
-  // Копирование ссылки в буфер обмена с выбором типа ссылки
+  // Копирование ссылки в буфер обмена
   const copyToClipboard = (type: 'app' | 'bot' = linkType) => {
-    // Выбираем нужную ссылку в зависимости от типа
     const linkToCopy = type === 'app' ? referralLink : directBotLink;
-    
     if (!linkToCopy) return;
     
     try {
       navigator.clipboard.writeText(linkToCopy);
       setIsCopied(true);
       
-      // Для аналитики
-      console.log(`[UniFarmReferralLink] Скопирована ссылка типа: ${type}`, linkToCopy);
-      
       setTimeout(() => {
         setIsCopied(false);
       }, 2000);
     } catch (err) {
-      console.error('Не удалось скопировать текст в буфер обмена', err);
-      
       // Fallback для устройств без поддержки clipboard API
       try {
         const textArea = document.createElement('textarea');
@@ -261,166 +76,54 @@ const UniFarmReferralLink: React.FC = () => {
           setIsCopied(false);
         }, 2000);
       } catch (fallbackErr) {
-        console.error('Fallback copy тоже не сработал:', fallbackErr);
+        console.error('Не удалось скопировать ссылку:', fallbackErr);
         alert('Не удалось скопировать. Пожалуйста, выделите ссылку вручную и скопируйте.');
       }
     }
   };
   
-  // Добавляем возможность ручного указания Telegram ID через URL для тестирования
-  useEffect(() => {
-    // Проверяем URL на наличие параметра для удобной отладки
-    const urlParams = new URLSearchParams(window.location.search);
-    const telegramIdFromUrl = urlParams.get('telegram_id');
-    
-    // Если есть telegram_id в URL и нет данных пользователя, запускаем повторный запрос
-    if (telegramIdFromUrl && (!safeUser || safeUser.id === 1)) {
-      console.log(`[UniFarmReferralLink] Обнаружен telegram_id в URL: ${telegramIdFromUrl}, запускаем повторную загрузку`);
-      refetch();
-    }
-  }, [window.location.search, safeUser, refetch]);
+  // Простая логика отображения согласно ТЗ п.3.2:
+  // 1. Если идет загрузка - показываем лоадер
+  // 2. Если ref_code отсутствует - показываем сообщение
+  // 3. Если ref_code есть - показываем ссылку с UI
 
-  // Добавляем кнопку для быстрого тестирования в production
-  const testRefCodeButtons = () => {
-    // В режиме разработки или если это telegram_id=425855744, показываем кнопки для тестирования
-    const urlParams = new URLSearchParams(window.location.search);
-    const telegramIdFromUrl = urlParams.get('telegram_id');
-    const isYourAccount = telegramIdFromUrl === '425855744';
-    
-    if (!isDev && !isYourAccount) return null;
-    
-    return (
-      <div className="flex flex-wrap gap-2 justify-center mt-3">
-        <p className="w-full text-xs text-center text-muted-foreground mb-2">
-          Функции разработчика:
-        </p>
-        <button
-          onClick={async () => {
-            try {
-              console.log('[UniFarmReferralLink] Принудительный запрос пользователя с ID=7');
-              userService.clearUserCache(); // Очищаем кэш перед обновлением
-              
-              // Добавляем force_direct=true для прямой загрузки ID=7
-              window.location.href = window.location.pathname + 
-                `?telegram_id=425855744&force_direct=true&t=${Date.now()}`;
-            } catch (error) {
-              console.error('[UniFarmReferralLink] Ошибка получения данных ID=7:', error);
-            }
-          }}
-          className="bg-accent/80 hover:bg-accent text-white px-2 py-1 rounded-lg text-xs flex items-center transition-colors"
-        >
-          <i className="fas fa-bolt mr-1 text-xs"></i>
-          Прямой ID=7
-        </button>
-        <button
-          onClick={() => {
-            userService.clearUserCache();
-            console.log('[UniFarmReferralLink] Кэш пользователя очищен');
-            window.location.reload();
-          }}
-          className="bg-red-600/80 hover:bg-red-600 text-white px-2 py-1 rounded-lg text-xs flex items-center transition-colors"
-        >
-          <i className="fas fa-trash-alt mr-1 text-xs"></i>
-          Очистить кэш
-        </button>
-        <button
-          onClick={() => {
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.delete('force_direct');
-            currentUrl.searchParams.delete('direct');
-            currentUrl.searchParams.delete('telegram_id');
-            currentUrl.searchParams.delete('t');
-            window.location.href = currentUrl.toString();
-          }}
-          className="bg-blue-600/80 hover:bg-blue-600 text-white px-2 py-1 rounded-lg text-xs flex items-center transition-colors"
-        >
-          <i className="fas fa-undo mr-1 text-xs"></i>
-          Сбросить URL
-        </button>
-      </div>
-    );
-  };
-  
-  // Обновленная логика рендеринга:
-  // Если есть refCode, отрисовываем основной контент с реферальной ссылкой
-  if (!hasRefCode) {
-    // Если ID пользователя в URL - telegram_id = 425855744 (ваш ID), показываем
-    // дополнительную информацию и кнопку для принудительной загрузки данных ID=7
-    const urlParams = new URLSearchParams(window.location.search);
-    const telegramIdFromUrl = urlParams.get('telegram_id');
-    const isYourAccount = telegramIdFromUrl === '425855744';
-    
-    // Если refCode отсутствует, показываем соответствующий контент в зависимости от состояния
+  // Загрузка данных
+  if (isLoading) {
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex justify-center items-center flex-col py-4">
-          {isLoading ? (
-            <>
-              <div className="flex items-center mb-3">
-                <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-                <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
-              </div>
-              <p className="text-center text-xs text-muted-foreground">
-                Реферальная ссылка будет доступна после загрузки данных
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-amber-400/80 mb-3 text-center">
-                {!hasUser 
-                  ? "Ожидание данных пользователя..." 
-                  : "Партнерский код еще не сформирован для вашего аккаунта"
-                }
-              </p>
-              
-              {/* Дополнительная информация для вашего аккаунта */}
-              {isYourAccount && (
-                <div className="bg-primary/10 p-3 rounded-lg mb-3 text-xs text-primary/90">
-                  <p className="mb-1">Обнаружен ваш Telegram ID: {telegramIdFromUrl}</p>
-                  <p>Для принудительного отображения реф-кода, нажмите кнопку ниже</p>
-                </div>
-              )}
-              
-              <div className="flex flex-wrap gap-2 justify-center">
-                <button
-                  onClick={() => refetch()}
-                  className="bg-primary/80 hover:bg-primary text-white px-4 py-2 rounded-full text-sm flex items-center transition-colors"
-                >
-                  <i className="fas fa-sync-alt mr-2 text-xs"></i>
-                  Попробовать снова
-                </button>
-                
-                {/* Специальная кнопка для вашего аккаунта */}
-                {isYourAccount && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        // Прямой режим без предварительной проверки
-                        userService.clearUserCache(); // Очищаем кэш перед обновлением
-                        console.log('[UniFarmReferralLink] Переход в режим принудительной загрузки ID=7');
-                        
-                        // Добавляем force_direct=true для гарантированного использования ID=7
-                        window.location.href = window.location.pathname + 
-                          `?telegram_id=425855744&force_direct=true&t=${Date.now()}`;
-                      } catch (error) {
-                        console.error('[UniFarmReferralLink] Ошибка перехода в режим force_direct:', error);
-                      }
-                    }}
-                    className="bg-accent/80 hover:bg-accent text-white px-4 py-2 rounded-full text-sm flex items-center transition-colors"
-                  >
-                    <i className="fas fa-bolt mr-2 text-xs"></i>
-                    Принудительно загрузить ID=7
-                  </button>
-                )}
-              </div>
-            </>
-          )}
+          <div className="flex items-center mb-3">
+            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+            <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
+          </div>
+          <p className="text-center text-xs text-muted-foreground">
+            Реферальная ссылка будет доступна после загрузки данных
+          </p>
         </div>
       </div>
     );
   }
   
-  // Основной UI с реферальной ссылкой (отображается только когда есть refCode)
+  // Ошибка или отсутствие ref_code
+  if (isError || !hasRefCode) {
+    return (
+      <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
+        <div className="flex justify-center items-center flex-col py-4">
+          <p className="text-amber-400/80 mb-3 text-center">
+            Реферальный код не получен. Попробуйте перезайти.
+          </p>
+          <div className="text-xs text-muted-foreground">
+            {isError ? 
+              "Произошла ошибка при загрузке данных." : 
+              "Ваш реферальный код не найден в системе."
+            }
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Основной UI с реферальной ссылкой (только если есть refCode)
   return (
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg card-hover-effect relative overflow-hidden">
       {/* Декоративные элементы фона */}
@@ -443,13 +146,11 @@ const UniFarmReferralLink: React.FC = () => {
             Реферальная ссылка
           </h3>
           
-          {/* Реферальный код - показываем, если он есть */}
-          {!isLoading && refCode && (
-            <div className="flex items-center text-sm text-muted-foreground mt-1 sm:mt-0">
-              <span className="mr-2">Ваш код:</span>
-              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">{refCode}</span>
-            </div>
-          )}
+          {/* Реферальный код */}
+          <div className="flex items-center text-sm text-muted-foreground mt-1 sm:mt-0">
+            <span className="mr-2">Ваш код:</span>
+            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">{refCode}</span>
+          </div>
         </div>
         
         {/* Переключатель типа ссылки */}
@@ -565,9 +266,6 @@ const UniFarmReferralLink: React.FC = () => {
           Пассивный доход растёт вместе с вашей командой!
         </p>
       </div>
-      
-      {/* Кнопки для разработчика/отладки */}
-      {testRefCodeButtons()}
     </div>
   );
 };
