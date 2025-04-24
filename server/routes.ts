@@ -33,6 +33,9 @@ import { AdminController } from './controllers/adminController';
 // Импортируем миграцию для реферальных кодов
 import { migrateRefCodes, checkAndUpdateUserRefCode, setRefCodeForUser } from './migrations/refCodeMigration';
 
+// Импортируем middleware для логирования Telegram initData
+import { telegramInitDataLogger } from './middleware/telegramInitDataLogger';
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Добавляем CORS заголовки для работы с Telegram WebApp
@@ -74,6 +77,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   });
+  
+  // Подключаем улучшенный логгер для Telegram initData - анализирует данные подробно
+  app.use(telegramInitDataLogger);
   
   // Простой маршрут для проверки API (для отладки)
   app.get("/api/test-json", (req, res) => {
