@@ -34,6 +34,7 @@ import AdminPage from "./pages/AdminPage";
 import ReferralDebug from "./pages/ReferralDebug";
 import AuditPage from "./pages/AuditPage";
 import TelegramSetupGuide from "./pages/TelegramSetupGuide";
+import TelegramValidationTool from "./pages/TelegramValidationTool";
 
 // For Telegram WebApp types
 // Обновлено определение глобального интерфейса для Telegram WebApp
@@ -396,6 +397,11 @@ function App() {
             {/* Полный аудит приложения */}
             <Route path="/audit">
               <AuditPage />
+            </Route>
+            
+            {/* Инструмент валидации Telegram initData */}
+            <Route path="/telegram-validation">
+              <TelegramValidationTool />
             </Route>
             
             {/* Руководство по настройке Telegram Mini App */}
