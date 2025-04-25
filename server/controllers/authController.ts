@@ -383,7 +383,7 @@ export class AuthController {
       }
 
       // Пытаемся найти пользователя по Telegram ID
-      let user = await UserService.getUserByTelegramId(telegramUserId);
+      let user = await storage.getUserByTelegramId(telegramUserId);
       let isNewUser = false;
       let referrerRegistered = false;
       
@@ -427,7 +427,7 @@ export class AuthController {
           console.log(`Обновлен реферальный код для пользователя ${user.id}: ${refCode}`);
           
           // Обновляем объект пользователя
-          const updatedUser = await UserService.getUserById(user.id);
+          const updatedUser = await storage.getUserById(user.id);
           if (updatedUser) {
             user = updatedUser;
           }
@@ -475,7 +475,7 @@ export class AuthController {
         
         // Пытаемся найти пользователя по ID
         if (userId && !isNaN(parseInt(userId))) {
-          const foundUser = await UserService.getUserById(parseInt(userId));
+          const foundUser = await storage.getUserById(parseInt(userId));
           if (foundUser && foundUser.ref_code) {
             refCode = foundUser.ref_code;
             console.log(`[AUTH] [ReferralSystem] Преобразовано в ref_code: ${refCode}`);
@@ -509,7 +509,7 @@ export class AuthController {
           
           // Если не нашли по ref_code или ref_code не был указан, используем userId
           if (!inviter && inviterId && !isNaN(inviterId)) {
-            inviter = await UserService.getUserById(inviterId);
+            inviter = await storage.getUserById(inviterId);
             if (inviter) {
               console.log(`[AUTH] [ReferralSystem] Найден пригласитель по user_id ${inviterId}: Username: ${inviter.username}`);
             }
