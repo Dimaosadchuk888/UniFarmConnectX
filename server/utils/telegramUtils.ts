@@ -84,9 +84,40 @@ export function validateTelegramInitData(
     isValid = false;
     return { isValid: false, userId: null, validationErrors: errors };
   }
-
-  // Парсим параметры из initData
-  const params = new URLSearchParams(initData);
+  
+  // Определяем формат данных: JSON или URL params
+  let params: URLSearchParams;
+  let isJsonFormat = false;
+  
+  // Проверяем, похоже ли это на JSON
+  if (initData.trim().startsWith('{') && initData.trim().endsWith('}')) {
+    try {
+      const jsonData = JSON.parse(initData);
+      console.log('[telegramUtils] 📄 Обнаружен формат JSON, преобразуем к URLSearchParams');
+      
+      // Создаем новые URLSearchParams и заполняем из JSON
+      params = new URLSearchParams();
+      
+      // Добавляем все ключи из JSON, кроме вложенных объектов
+      for (const [key, value] of Object.entries(jsonData)) {
+        if (typeof value === 'object' && value !== null) {
+          // Для вложенных объектов типа "user" преобразуем в JSON-строку
+          params.append(key, JSON.stringify(value));
+        } else {
+          params.append(key, String(value));
+        }
+      }
+      
+      isJsonFormat = true;
+    } catch (error) {
+      console.error('[telegramUtils] ⚠️ Ошибка при попытке разбора JSON:', error);
+      // Если это не JSON, пробуем как обычные URL-параметры
+      params = new URLSearchParams(initData);
+    }
+  } else {
+    // Обычный формат URL-параметров
+    params = new URLSearchParams(initData);
+  }
 
   // Проверяем наличие хеша подписи
   const hash = params.get('hash');
