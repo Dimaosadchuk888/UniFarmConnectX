@@ -24,37 +24,92 @@ export class ReferralService {
     }
     
     try {
-      const refPath: number[] = [];
-      let currentUserInviter = await this.getUserInviter(userId);
-      
-      // Если у пользователя нет пригласителя, возвращаем пустой массив
-      if (!currentUserInviter) {
-        console.log(`[ReferralService] No inviter found for user ${userId}`);
-        return [];
-      }
-      
-      // Итеративно поднимаемся вверх по цепочке пригласителей
-      let depth = 0;
-      let currentUserId = userId;
-      
-      while (currentUserInviter && depth < MAX_REFERRAL_PATH_DEPTH) {
-        // Добавляем ID пригласителя в путь
-        if (currentUserInviter.inviter_id) {
-          refPath.push(currentUserInviter.inviter_id);
-          
-          // Переходим к пригласителю текущего пригласителя
-          currentUserId = currentUserInviter.inviter_id;
-          currentUserInviter = await this.getUserInviter(currentUserId);
-        } else {
-          // Если по какой-то причине inviter_id не определен, прерываем цикл
-          break;
+      // Новый подход с использованием parent_ref_code
+      try {
+        const { users } = await import('@shared/schema');
+        const refPath: number[] = [];
+        
+        // Получаем пользователя и его parent_ref_code
+        let [currentUser] = await db
+          .select({
+            id: users.id,
+            parent_ref_code: users.parent_ref_code
+          })
+          .from(users)
+          .where(eq(users.id, userId));
+        
+        // Если у пользователя нет parent_ref_code, возвращаем пустой массив
+        if (!currentUser || !currentUser.parent_ref_code) {
+          console.log(`[ReferralService] User ${userId} has no parent_ref_code`);
+          return [];
         }
         
-        depth++;
+        let depth = 0;
+        // Итеративно поднимаемся вверх по цепочке пригласителей
+        while (currentUser && currentUser.parent_ref_code && depth < MAX_REFERRAL_PATH_DEPTH) {
+          // Находим пользователя с ref_code = parent_ref_code текущего пользователя
+          const [inviter] = await db
+            .select({
+              id: users.id,
+              ref_code: users.ref_code,
+              parent_ref_code: users.parent_ref_code
+            })
+            .from(users)
+            .where(eq(users.ref_code, currentUser.parent_ref_code));
+            
+          if (inviter) {
+            // Добавляем ID пригласителя в путь
+            refPath.push(inviter.id);
+            
+            // Переходим к следующему пригласителю
+            currentUser = inviter;
+          } else {
+            // Если пригласитель не найден, прерываем цикл
+            break;
+          }
+          
+          depth++;
+        }
+        
+        console.log(`[referral] Построен ref_path с parent_ref_code: [${refPath.join(', ')}]`);
+        return refPath;
+      } catch (innerError) {
+        console.error('[ReferralService] Error building ref_path with parent_ref_code:', innerError);
+        
+        // Старый метод через таблицу referrals
+        console.log('[ReferralService] Falling back to legacy ref_path building');
+        const refPath: number[] = [];
+        let currentUserInviter = await this.getUserInviter(userId);
+        
+        // Если у пользователя нет пригласителя, возвращаем пустой массив
+        if (!currentUserInviter) {
+          console.log(`[ReferralService] No inviter found for user ${userId}`);
+          return [];
+        }
+        
+        // Итеративно поднимаемся вверх по цепочке пригласителей
+        let depth = 0;
+        let currentUserId = userId;
+        
+        while (currentUserInviter && depth < MAX_REFERRAL_PATH_DEPTH) {
+          // Добавляем ID пригласителя в путь
+          if (currentUserInviter.inviter_id) {
+            refPath.push(currentUserInviter.inviter_id);
+            
+            // Переходим к пригласителю текущего пригласителя
+            currentUserId = currentUserInviter.inviter_id;
+            currentUserInviter = await this.getUserInviter(currentUserId);
+          } else {
+            // Если по какой-то причине inviter_id не определен, прерываем цикл
+            break;
+          }
+          
+          depth++;
+        }
+        
+        console.log(`[referral] Построен ref_path через legacy метод: [${refPath.join(', ')}]`);
+        return refPath;
       }
-      
-      console.log(`[referral] Построен ref_path: [${refPath.join(', ')}]`);
-      return refPath;
     } catch (error) {
       console.error(`[ReferralService] Error building ref_path for user ${userId}:`, error);
       return []; // В случае ошибки возвращаем пустой массив
@@ -72,14 +127,57 @@ export class ReferralService {
         return []; // Возвращаем пустой массив при некорректном userId
       }
       
-      const userReferrals = await db
-        .select()
-        .from(referrals)
-        .where(eq(referrals.inviter_id, userId))
-        .orderBy(referrals.created_at);
-      
-      // Гарантируем, что всегда возвращаем массив, даже если запрос вернул null или undefined
-      return userReferrals || [];
+      try {
+        // Сначала получаем ref_code пользователя
+        const { users } = await import('@shared/schema');
+        const [user] = await db
+          .select({ ref_code: users.ref_code })
+          .from(users)
+          .where(eq(users.id, userId));
+          
+        if (!user || !user.ref_code) {
+          console.log(`[ReferralService] User ${userId} has no ref_code`);
+          return [];
+        }
+        
+        // Теперь ищем всех пользователей, у которых parent_ref_code равен ref_code пользователя
+        const referralUsers = await db
+          .select({
+            id: users.id,
+            username: users.username,
+            parent_ref_code: users.parent_ref_code,
+            created_at: users.created_at
+          })
+          .from(users)
+          .where(eq(users.parent_ref_code, user.ref_code))
+          .orderBy(users.created_at);
+
+        // Преобразуем в формат, совместимый с Referral
+        const result: Referral[] = referralUsers.map(refUser => ({
+          id: 0, // Временный ID
+          user_id: refUser.id,
+          inviter_id: userId,
+          level: 1, // По умолчанию уровень 1
+          ref_path: [], // Пустой ref_path
+          created_at: refUser.created_at || new Date(),
+          reward_uni: null // Нет информации о наградах
+        }));
+        
+        console.log(`[ReferralService] Found ${result.length} referrals for user ${userId} using parent_ref_code`);
+        return result;
+      } catch (innerError) {
+        console.error('[ReferralService] Error in getUserReferrals with parent_ref_code:', innerError);
+        
+        // В случае ошибки пытаемся использовать старый метод через таблицу referrals
+        console.log('[ReferralService] Falling back to legacy referrals table lookup');
+        const userReferrals = await db
+          .select()
+          .from(referrals)
+          .where(eq(referrals.inviter_id, userId))
+          .orderBy(referrals.created_at);
+        
+        return userReferrals || [];
+      }
     } catch (error) {
       console.error('[ReferralService] Error in getUserReferrals:', error);
       return []; // В случае ошибки также возвращаем пустой массив
@@ -106,12 +204,72 @@ export class ReferralService {
    * @returns Реферальная связь или undefined, если пригласителя нет
    */
   static async getUserInviter(userId: number): Promise<Referral | undefined> {
-    const [referral] = await db
-      .select()
-      .from(referrals)
-      .where(eq(referrals.user_id, userId));
-    
-    return referral;
+    try {
+      // Сначала проверяем новый подход с parent_ref_code
+      const { users } = await import('@shared/schema');
+      
+      // Получаем пользователя и его parent_ref_code
+      const [user] = await db
+        .select({
+          id: users.id,
+          parent_ref_code: users.parent_ref_code
+        })
+        .from(users)
+        .where(eq(users.id, userId));
+        
+      if (user && user.parent_ref_code) {
+        // Если у пользователя есть parent_ref_code, ищем пользователя с таким ref_code
+        const [inviter] = await db
+          .select({
+            id: users.id,
+            username: users.username,
+            ref_code: users.ref_code
+          })
+          .from(users)
+          .where(eq(users.ref_code, user.parent_ref_code));
+          
+        if (inviter) {
+          console.log(`[ReferralService] Found inviter by parent_ref_code: user ${userId} invited by ${inviter.id}`);
+          
+          // Создаем объект, совместимый с Referral
+          const referral: Referral = {
+            id: 0, // Временный ID
+            user_id: userId,
+            inviter_id: inviter.id,
+            level: 1, // По умолчанию уровень 1
+            ref_path: [], // Пустой ref_path
+            created_at: new Date(),
+            reward_uni: null // Нет информации о наградах
+          };
+          
+          return referral;
+        }
+      }
+      
+      // Если новый подход не дал результатов, используем старый через таблицу referrals
+      console.log(`[ReferralService] No parent_ref_code found for user ${userId}, using legacy table`);
+      const [referral] = await db
+        .select()
+        .from(referrals)
+        .where(eq(referrals.user_id, userId));
+      
+      return referral;
+    } catch (error) {
+      console.error('[ReferralService] Error in getUserInviter:', error);
+      
+      // В случае ошибки пытаемся использовать старый метод
+      try {
+        const [referral] = await db
+          .select()
+          .from(referrals)
+          .where(eq(referrals.user_id, userId));
+        
+        return referral;
+      } catch (fallbackError) {
+        console.error('[ReferralService] Error in fallback getUserInviter:', fallbackError);
+        return undefined;
+      }
+    }
   }
 
   /**
@@ -126,24 +284,61 @@ export class ReferralService {
         return {}; // Возвращаем пустой объект при некорректном userId
       }
       
-      const referralsCounts = await db
-        .select({
-          level: referrals.level,
-          count: sql<string>`count(${referrals.id})`
-        })
-        .from(referrals)
-        .where(eq(referrals.inviter_id, userId))
-        .groupBy(referrals.level);
-      
-      // Преобразуем результат в объект { level: count }
-      const result: Record<number, number> = {};
-      for (const { level, count } of referralsCounts) {
-        if (level !== null) {
-          result[level] = Number(count);
+      try {
+        // Новый подход с использованием parent_ref_code
+        const { users } = await import('@shared/schema');
+        
+        // Сначала получаем ref_code пользователя
+        const [user] = await db
+          .select({ ref_code: users.ref_code })
+          .from(users)
+          .where(eq(users.id, userId));
+          
+        if (!user || !user.ref_code) {
+          console.log(`[ReferralService] User ${userId} has no ref_code, cannot count referrals`);
+          return {}; // Если у пользователя нет ref_code, возвращаем пустой объект
         }
-      }
+        
+        // Считаем количество пользователей с parent_ref_code, равным ref_code пользователя
+        const [referralsCount] = await db
+          .select({
+            count: sql<string>`count(*)`
+          })
+          .from(users)
+          .where(eq(users.parent_ref_code, user.ref_code));
+          
+        console.log(`[ReferralService] Found ${referralsCount.count} direct referrals for user ${userId} using parent_ref_code`);
+        
+        // Пока что все рефералы считаются уровня 1
+        const result: Record<number, number> = {
+          1: Number(referralsCount.count)
+        };
+        
+        return result;
+      } catch (innerError) {
+        console.error('[ReferralService] Error counting referrals with parent_ref_code:', innerError);
       
-      return result;
+        // Если новый подход не сработал, используем старый через таблицу referrals
+        console.log('[ReferralService] Falling back to legacy referrals count');
+        const referralsCounts = await db
+          .select({
+            level: referrals.level,
+            count: sql<string>`count(${referrals.id})`
+          })
+          .from(referrals)
+          .where(eq(referrals.inviter_id, userId))
+          .groupBy(referrals.level);
+        
+        // Преобразуем результат в объект { level: count }
+        const result: Record<number, number> = {};
+        for (const { level, count } of referralsCounts) {
+          if (level !== null) {
+            result[level] = Number(count);
+          }
+        }
+        
+        return result;
+      }
     } catch (error) {
       console.error('[ReferralService] Error in getReferralCounts:', error);
       return {}; // В случае ошибки возвращаем пустой объект
