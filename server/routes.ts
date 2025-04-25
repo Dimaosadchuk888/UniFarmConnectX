@@ -12,6 +12,10 @@ import { storage } from "./storage";
 // Импортируем сервисы
 import { UserService } from './services/userService';
 import { ReferralService } from './services/referralService';
+import { ReferralBonusService } from './services/referralBonusService';
+import { db } from './db';
+import { referrals } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 // Импортируем контроллеры
 import { UserController } from './controllers/userController';
@@ -537,6 +541,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Тестовый маршрут для проверки статуса реферальной связи
+  app.get('/api/test/referral/user/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Необходимо указать userId'
+        });
+      }
+      
+      console.log(`[TEST] Проверка реферальной связи для пользователя ID=${userId}`);
+      
+      // Получаем информацию о пригласителе
+      const userInviter = await ReferralService.getUserInviter(Number(userId));
+      
+      // Получаем все реферальные связи пользователя
+      const userReferrals = await ReferralService.getUserReferrals(Number(userId));
+      
+      // Получаем количество рефералов по уровням
+      const referralCounts = await ReferralService.getReferralCounts(Number(userId));
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Информация о реферальных связях',
+        data: {
+          userId: Number(userId),
+          hasInviter: !!userInviter,
+          inviterId: userInviter ? userInviter.inviter_id : null,
+          inviterInfo: userInviter ? {
+            id: userInviter.id,
+            level: userInviter.level,
+            createdAt: userInviter.created_at
+          } : null,
+          referralsCount: userReferrals.length,
+          referralsByLevel: referralCounts,
+          referrals: userReferrals.map(ref => ({
+            id: ref.id,
+            referralId: ref.user_id,
+            level: ref.level,
+            createdAt: ref.created_at
+          }))
+        }
+      });
+    } catch (error) {
+      console.error('[TEST] Ошибка при получении реферальной информации:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Внутренняя ошибка сервера',
+        error: (error as Error).message
+      });
+    }
+  });
+
   // Тестовый маршрут для проверки активации реферальной цепочки (ТЗ 3.1)
   app.post('/api/test/referral/chain', async (req, res) => {
     try {
@@ -580,58 +639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Тестовый маршрут для проверки наличия реферальной связи
-  app.get('/api/test/referral/user/:userId', async (req, res) => {
-    try {
-      const userId = Number(req.params.userId);
-      
-      if (!userId || isNaN(userId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Некорректный userId'
-        });
-      }
-      
-      console.log(`[TEST] Проверка реферальной связи для пользователя ID=${userId}`);
-      
-      // Проверяем, есть ли у пользователя пригласитель
-      const referral = await ReferralService.getUserInviter(userId);
-      
-      // Получаем всю реферальную цепочку
-      const allReferrals = referral 
-        ? await db
-            .select()
-            .from(referrals)
-            .where(eq(referrals.user_id, userId))
-            .orderBy(referrals.level)
-        : [];
-      
-      return res.status(200).json({
-        success: true,
-        message: referral 
-          ? `Пользователь ${userId} имеет пригласителя: ${referral.inviter_id}`
-          : `Пользователь ${userId} не имеет пригласителя`,
-        data: {
-          hasInviter: !!referral,
-          inviterId: referral?.inviter_id || null,
-          level: referral?.level || null,
-          referralChain: allReferrals.map(ref => ({
-            id: ref.id,
-            inviter_id: ref.inviter_id,
-            level: ref.level,
-            created_at: ref.created_at
-          }))
-        }
-      });
-    } catch (error: any) {
-      console.error('[TEST] Ошибка при проверке реферальной связи:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера',
-        error: error.message
-      });
-    }
-  });
+  // Этот маршрут удален, так как дублирует ранее созданный
   
   // Административные маршруты для управления вебхуком Telegram
   // Эти маршруты должны быть защищены (например, доступны только в режиме разработки)

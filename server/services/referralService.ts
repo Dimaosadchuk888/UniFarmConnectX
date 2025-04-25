@@ -3,10 +3,58 @@ import { referrals, Referral, InsertReferral } from '@shared/schema';
 import { eq, sql, and } from 'drizzle-orm';
 import { UserService } from './userService';
 
+// Максимальная глубина реферальной цепочки согласно ТЗ
+const MAX_REFERRAL_PATH_DEPTH = 20;
+
 /**
  * Сервис для работы с реферальной системой
  */
 export class ReferralService {
+  /**
+   * Строит реферальный путь для пользователя (Этап 4.1)
+   * Рекурсивно проходит вверх по цепочке приглашений до 20 уровня
+   * 
+   * @param userId ID пользователя, для которого нужно построить ref_path
+   * @returns Массив ID пригласителей [inviter_id, inviter_inviter_id, ...]
+   */
+  static async buildRefPath(userId: number): Promise<number[]> {
+    if (!userId) {
+      console.log('[ReferralService] Cannot build ref_path for null userId');
+      return [];
+    }
+    
+    try {
+      const refPath: number[] = [];
+      let currentUserInviter = await this.getUserInviter(userId);
+      
+      // Если у пользователя нет пригласителя, возвращаем пустой массив
+      if (!currentUserInviter) {
+        console.log(`[ReferralService] No inviter found for user ${userId}`);
+        return [];
+      }
+      
+      // Итеративно поднимаемся вверх по цепочке пригласителей
+      let depth = 0;
+      let currentUserId = userId;
+      
+      while (currentUserInviter && depth < MAX_REFERRAL_PATH_DEPTH) {
+        // Добавляем ID пригласителя в путь
+        refPath.push(currentUserInviter.inviter_id);
+        
+        // Переходим к пригласителю текущего пригласителя
+        currentUserId = currentUserInviter.inviter_id;
+        currentUserInviter = await this.getUserInviter(currentUserId);
+        
+        depth++;
+      }
+      
+      console.log(`[referral] Построен ref_path: [${refPath.join(', ')}]`);
+      return refPath;
+    } catch (error) {
+      console.error(`[ReferralService] Error building ref_path for user ${userId}:`, error);
+      return []; // В случае ошибки возвращаем пустой массив
+    }
+  }
   /**
    * Получает все реферальные связи пользователя
    * @param userId ID пользователя
@@ -222,15 +270,31 @@ export class ReferralService {
       // Создаем новую реферальную связь
       console.log(`[ReferralService] Creating referral relationship: user ${userId} invited by ${inviterId} at level ${level}`);
       
+      // Строим реферальный путь для пользователя
+      const refPath = [inviterId]; // Начинаем с непосредственного приглашающего
+      
+      // Если inviterId имеет свой ref_path, добавляем его элементы
+      // Сначала строим ref_path для пригласителя
+      const inviterRefPath = await this.buildRefPath(inviterId);
+      if (inviterRefPath.length > 0) {
+        // Объединяем пути
+        refPath.push(...inviterRefPath);
+      }
+      
+      // Ограничиваем длину пути до 20 элементов
+      const limitedRefPath = refPath.slice(0, MAX_REFERRAL_PATH_DEPTH);
+      
       const referralData: InsertReferral = {
         user_id: userId,
         inviter_id: inviterId,
         level,
+        ref_path: limitedRefPath,
         created_at: new Date()
       };
       
       const referral = await this.createReferral(referralData);
       console.log(`[referral] Привязка успешно: user ${userId} → inviter ${inviterId}`);
+      console.log(`[referral] Цепочка построена для user_id: ${userId} → [${limitedRefPath.join(', ')}]`);
       
       return {
         referral,

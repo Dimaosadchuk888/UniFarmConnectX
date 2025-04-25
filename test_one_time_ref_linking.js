@@ -11,7 +11,8 @@
 import fetch from 'node-fetch';
 
 // Базовый URL API
-const API_BASE_URL = 'http://localhost:5000';
+// Используем URL Replit проекта
+const API_BASE_URL = 'https://8ac7b219-438d-4a0b-ab0e-d8b58de37c6d-00-8ncue1micrhz.sisko.replit.dev';
 
 // ID пользователей для тестирования
 const TEST_USER_ID = 3; // Пользователь, которого будем привязывать
