@@ -31,7 +31,8 @@ export class AuthController {
         last_name,
         photo_url,
         startParam,
-        ref_code
+        ref_code,
+        parent_ref_code // Добавляем поддержку реферальных кодов для 2.2
       } = req.body;
       
       // Проверяем, что передан ID пользователя Telegram (AirDrop Upgrade)
@@ -61,7 +62,8 @@ export class AuthController {
         first_name: first_name || 'не указан', 
         last_name: last_name || 'не указан',
         startParam: startParam || 'не указан',
-        ref_code: ref_code || 'не указан'
+        ref_code: ref_code || 'не указан',
+        parent_ref_code: parent_ref_code || 'не указан'
       });
       
       // Проверяем, существует ли уже пользователь с таким Telegram ID
@@ -84,6 +86,7 @@ export class AuthController {
             telegram_id: user_telegram_id,
             username: username || `user_${user_telegram_id}`,
             ref_code: newRefCode,
+            parent_ref_code: parent_ref_code || 'не указан', // Добавляем родительский реферальный код для логирования
             mode: isAirdropMode ? 'AirDrop' : 'Standard'
           });
         
@@ -120,7 +123,7 @@ export class AuthController {
             }
           }
           
-          // Создаем нового пользователя с поддержкой guest_id
+          // Создаем нового пользователя с поддержкой guest_id и parent_ref_code
           user = await storage.createMainUser({
             telegram_id: user_telegram_id,
             guest_id: guest_id, // Используем переданный guest_id или он будет сгенерирован автоматически
@@ -128,6 +131,7 @@ export class AuthController {
             balance_uni: "100", // Начальный бонус
             balance_ton: "0",
             ref_code: newRefCode,
+            parent_ref_code: parent_ref_code, // Добавляем родительский реферальный код
             created_at: new Date()
           });
           
