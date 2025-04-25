@@ -18,6 +18,7 @@ export const users = pgTable("users", {
   wallet: text("wallet"),
   ton_wallet_address: text("ton_wallet_address"), // Новое поле для хранения TON-адреса кошелька
   ref_code: text("ref_code").unique(), // Уникальный реферальный код для пользователя
+  parent_ref_code: text("parent_ref_code"), // Реферальный код пригласившего пользователя
   balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default("0"),
   balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default("0"),
   // Поля для основного UNI фарминга
