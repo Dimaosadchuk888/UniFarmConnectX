@@ -55,6 +55,8 @@ const TELEGRAM_INIT_DATA_KEY = 'telegramInitData';
 const TELEGRAM_USER_DATA_KEY = 'telegram_user_data';
 // Ключ для режима отладки
 const TELEGRAM_DEBUG_MODE_KEY = 'telegram_debug_mode';
+// Ключ для хранения статуса регистрации пользователя
+const TELEGRAM_REGISTERED_KEY = 'telegram_user_registered';
 
 /**
  * Проверяет, запущено ли приложение в Telegram WebApp и доступны ли все необходимые свойства API
