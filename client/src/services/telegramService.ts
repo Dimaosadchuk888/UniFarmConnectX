@@ -395,11 +395,26 @@ export function initTelegramWebApp(): boolean {
   // Сразу сохраняем initData в localStorage, если оно доступно (согласно п.1.2 ТЗ)
   if (window.Telegram?.WebApp?.initData && window.Telegram.WebApp.initData.trim() !== '') {
     try {
+      // Сначала сохраняем в sessionStorage (приоритетный способ)
+      sessionStorage.setItem('telegramInitData', window.Telegram.WebApp.initData);
+      // Также сохраняем в localStorage как резервную копию
       localStorage.setItem('telegramInitData', window.Telegram.WebApp.initData);
-      console.log('[telegramService] Successfully saved Telegram initData to localStorage with length:', 
+      
+      console.log('[telegramService] Successfully saved Telegram initData to sessionStorage and localStorage with length:', 
         window.Telegram.WebApp.initData.length);
+      
+      // Сохраняем данные пользователя
+      const unsafe = window.Telegram.WebApp.initDataUnsafe;
+      if (unsafe) {
+        sessionStorage.setItem('telegram_user_data', JSON.stringify(unsafe));
+        if (unsafe.user?.id) {
+          sessionStorage.setItem('telegram_user_id', unsafe.user.id.toString());
+        }
+      }
+      
+      console.log('[telegramService] initData сохранено в sessionStorage');
     } catch (e) {
-      console.error('[telegramService] Error saving Telegram initData to localStorage:', e);
+      console.error('[telegramService] Error saving Telegram initData to storage:', e);
     }
   }
   

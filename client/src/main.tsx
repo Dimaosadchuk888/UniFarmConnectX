@@ -1,14 +1,10 @@
-// Отладочная проверка состояния Telegram объекта
-console.log('[TG INIT] Telegram object state:', {
-  telegramDefined: typeof window.Telegram !== 'undefined',
-  webAppDefined: typeof window.Telegram?.WebApp !== 'undefined',
-  initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
-  savedInitData: sessionStorage.getItem('telegramInitData')?.length || 0
-});
-
+// Импорты для React
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+
+// Импортируем функцию инициализации из telegramService
+import { initTelegramWebApp } from './services/telegramService';
 
 // Объявление интерфейса Window для доступа к Telegram WebApp
 // Вместо добавления Buffer, который не работает в Telegram Mini App,
@@ -22,27 +18,23 @@ interface ProcessEnv {
 // Устанавливаем глобальный процесс, который требуется некоторым библиотекам
 window.process = { env: {} } as any;
 
-// Telegram WebApp integration setup
-const initTelegramWebApp = () => {
-  if (window.Telegram?.WebApp) {
-    const webApp = window.Telegram.WebApp;
-    webApp.expand(); // Расширяем приложение на весь экран
-    webApp.ready(); // Сообщаем Telegram, что приложение инициализировано
-    
-    // Логируем информацию о WebApp для отладки
-    console.log('✅ Telegram WebApp initialized', {
-      hasTelegramObject: !!window.Telegram,
-      hasWebApp: !!window.Telegram?.WebApp,
-      initData: typeof window.Telegram?.WebApp?.initData === 'string' 
-        ? window.Telegram?.WebApp?.initData?.substring(0, 20) + '...' 
-        : 'not available',
-    });
-  } else {
-    console.log('⚠️ Telegram WebApp not available (normal when running outside Telegram)');
-  }
-};
+// Инициализируем Telegram WebApp до рендеринга React-приложения
+initTelegramWebApp();
 
-// Initialize when DOM is ready
-document.addEventListener("DOMContentLoaded", initTelegramWebApp);
+// Отладочная проверка состояния Telegram объекта
+console.log('[TG INIT] Telegram object state:', {
+  telegramDefined: typeof window.Telegram !== 'undefined',
+  webAppDefined: typeof window.Telegram?.WebApp !== 'undefined',
+  initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
+  savedInitData: sessionStorage.getItem('telegramInitData')?.length || 0
+});
 
+// Для гарантии инициализации также добавим слушатель DOMContentLoaded
+document.addEventListener("DOMContentLoaded", () => {
+  console.log('[main] DOMContentLoaded event, повторная проверка инициализации Telegram WebApp');
+  // Повторно вызываем функцию после полной загрузки DOM
+  initTelegramWebApp();
+});
+
+// Рендеринг React-приложения
 createRoot(document.getElementById("root")!).render(<App />);
