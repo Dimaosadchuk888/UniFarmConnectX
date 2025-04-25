@@ -8,12 +8,43 @@ export class TelegramController {
     try {
       console.log('[TelegramController] Получен webhook от Telegram');
       
+      // Расширенное логирование для отладки
+      if (req.body) {
+        console.log('[TelegramWebhook] Детали запроса:', {
+          updateId: req.body?.update_id,
+          hasMessage: !!req.body?.message,
+          hasCallback: !!req.body?.callback_query,
+          messageId: req.body?.message?.message_id,
+          from: req.body?.message?.from ? 
+                `${req.body.message.from.first_name || ''} ${req.body.message.from.last_name || ''} (@${req.body.message.from.username || 'нет_username'}) [ID: ${req.body.message.from.id}]` : 
+                'нет_данных',
+          text: req.body?.message?.text || 'нет_текста',
+          chat: req.body?.message?.chat ? 
+                `${req.body.message.chat.type} [ID: ${req.body.message.chat.id}]` : 
+                'нет_данных_чата'
+        });
+        
+        // Проверяем наличие команды
+        if (req.body?.message?.entities) {
+          const hasCommand = req.body.message.entities.some((e: any) => e.type === 'bot_command');
+          if (hasCommand) {
+            console.log('[TelegramWebhook] Обнаружена команда в сообщении:', req.body.message.text);
+          }
+        }
+        
+        // Полный вывод содержимого для отладки (только в режиме разработки)
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[TelegramWebhook] Полное содержимое webhook:', JSON.stringify(req.body, null, 2));
+        }
+      } else {
+        console.warn('[TelegramWebhook] Получен пустой запрос без тела');
+      }
+      
       // Ответим Telegram, что запрос получен
       res.status(200).send('OK');
       
-      // Обработка запроса может быть выполнена асинхронно
-      // В данном случае просто логируем полученные данные
-      console.log('[TelegramWebhook] Данные:', req.body);
+      // Дополнительная обработка запроса может быть выполнена асинхронно
+      // Например, вызов функций из telegramBot.js
       
     } catch (error) {
       console.error('[TelegramWebhook] Ошибка при обработке webhook:', error);

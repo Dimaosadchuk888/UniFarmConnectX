@@ -369,6 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/users/list-with-telegram-id", AdminController.listUsersWithTelegramId);
   
   // Новый маршрут для обработки вебхуков от Telegram через TypeScript контроллер
+
   
   // Добавляем новый эндпоинт для проверки валидации initData с разными настройками
   app.post("/api/telegram/validate-init-data", async (req: Request, res: Response) => {
