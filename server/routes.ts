@@ -243,6 +243,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для аутентификации
   app.post("/api/auth/telegram", AuthController.authenticateTelegram);
   
+  // Маршрут для регистрации через Telegram (согласно ТЗ 2.1)
+  app.post("/api/register", AuthController.registerUser);
+  
   // Тестовый API для реферальной системы (только для режима разработки)
   if (process.env.NODE_ENV === 'development') {
     app.post("/api/auth/test-referral", async (req: Request, res: Response) => {

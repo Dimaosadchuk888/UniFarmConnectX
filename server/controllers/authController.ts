@@ -16,6 +16,133 @@ import { storage } from '../storage';
 export class AuthController {
   // Telegram Bot API token должен быть установлен в переменных окружения
   private static BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+  
+  /**
+   * Регистрация нового пользователя по данным из Telegram WebApp initData (ТЗ 2.1)
+   */
+  static async registerUser(req: Request, res: Response): Promise<void> {
+    try {
+      // Извлекаем данные из тела запроса
+      const {
+        telegram_user_id,
+        username,
+        first_name, 
+        last_name,
+        photo_url,
+        startParam,
+        ref_code
+      } = req.body;
+      
+      // Проверяем, что передан ID пользователя Telegram
+      if (!telegram_user_id) {
+        console.error('[REGISTER] Отсутствует обязательный параметр telegram_user_id');
+        return sendError(res, 'Отсутствует ID пользователя Telegram', 400);
+      }
+      
+      // Логируем получение запроса на регистрацию
+      console.log(`[REGISTER] Запрос на регистрацию пользователя: ID=${telegram_user_id}, username=${username || 'не указан'}`);
+      console.log(`[REGISTER] Дополнительные данные:`, { 
+        first_name: first_name || 'не указан', 
+        last_name: last_name || 'не указан',
+        startParam: startParam || 'не указан',
+        ref_code: ref_code || 'не указан'
+      });
+      
+      // Проверяем, существует ли уже пользователь с таким Telegram ID
+      let user = await storage.getUserByTelegramId(telegram_user_id);
+      let isNewUser = false;
+      
+      if (user) {
+        // Пользователь уже существует, просто возвращаем информацию
+        console.log(`[REGISTER] Пользователь уже существует: telegram_id=${telegram_user_id}, user_id=${user.id}`);
+      } else {
+        // Создаем нового пользователя
+        isNewUser = true;
+        
+        // Генерируем уникальный реферальный код
+        const newRefCode = storage.generateRefCode();
+        
+        // Создаем пользователя
+        user = await UserService.createUser({
+          telegram_id: telegram_user_id,
+          username: username || `user_${telegram_user_id}`,
+          balance_uni: "100", // Начальный бонус
+          balance_ton: "0",
+          ref_code: newRefCode,
+          created_at: new Date()
+        });
+        
+        console.log(`[REGISTER] Новый пользователь создан: id=${user.id}, telegram_id=${telegram_user_id}, ref_code=${newRefCode}`);
+      }
+      
+      // Проверяем, что пользователь был успешно создан или найден
+      if (!user) {
+        return sendError(res, 'Не удалось создать или найти пользователя', 500);
+      }
+      
+      // Обработка реферальной привязки (только для новых пользователей)
+      let referrerRegistered = false;
+      
+      if (isNewUser && (ref_code || startParam)) {
+        // Определяем ref_code для поиска реферера
+        let refCodeToUse = ref_code || '';
+        
+        // Если передан startParam в формате ref_XXX, извлекаем код
+        if (!refCodeToUse && startParam && startParam.startsWith('ref_')) {
+          refCodeToUse = startParam.substring(4);
+          console.log(`[REGISTER] [ReferralSystem] Извлечен ref_code из startParam: ${refCodeToUse}`);
+        }
+        
+        if (refCodeToUse) {
+          try {
+            // Ищем пользователя с таким ref_code
+            const inviter = await storage.getUserByRefCode(refCodeToUse);
+            
+            if (inviter && inviter.id !== user.id) {
+              // Проверяем, нет ли уже реферальной связи
+              const existingReferral = await ReferralService.getUserInviter(user.id);
+              
+              if (!existingReferral) {
+                // Создаем реферальную связь (уровень 1)
+                const referral = await ReferralService.createReferralRelationship(user.id, inviter.id);
+                
+                if (referral) {
+                  console.log(`[REGISTER] [ReferralSystem] Создана реферальная связь: пользователь ${user.id} приглашен пользователем ${inviter.id}`);
+                  referrerRegistered = true;
+                  
+                  // Создаем многоуровневую реферальную цепочку
+                  await ReferralBonusService.createReferralChain(user.id, inviter.id);
+                }
+              } else {
+                console.log(`[REGISTER] [ReferralSystem] Пользователь ${user.id} уже имеет пригласителя: ${existingReferral.inviter_id}`);
+              }
+            } else if (inviter && inviter.id === user.id) {
+              console.log(`[REGISTER] [ReferralSystem] Отклонена попытка самореферальности: ${user.id}`);
+            } else {
+              console.log(`[REGISTER] [ReferralSystem] Пригласитель с ref_code=${refCodeToUse} не найден`);
+            }
+          } catch (error) {
+            console.error('[REGISTER] [ReferralSystem] Ошибка при создании реферальной связи:', error);
+          }
+        }
+      }
+      
+      // Отправляем успешный ответ с данными пользователя
+      sendSuccess(res, {
+        id: user.id,
+        telegram_id: user.telegram_id,
+        username: user.username,
+        ref_code: user.ref_code,
+        balance_uni: user.balance_uni,
+        balance_ton: user.balance_ton,
+        is_new_user: isNewUser,
+        referrer_registered: referrerRegistered
+      });
+    } catch (error) {
+      console.error('[REGISTER] Ошибка при регистрации пользователя:', error);
+      sendServerError(res, error);
+    }
+  }
 
 
   /**
