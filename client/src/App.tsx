@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { apiRequest } from "@/lib/queryClient";
+import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { 
   registerUserWithTelegram, // Функция регистрации пользователя
   logAppLaunch, // Функция логирования запуска Mini App
@@ -53,31 +54,25 @@ function App() {
   const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
   const [showDiagnostics] = useState(true); // Всегда показываем диагностику
 
-  // Простая проверка инициализации Telegram WebApp по ТЗ
+  // Проверка инициализации приложения (без Telegram WebApp по требованиям фазы 10.3)
   useEffect(() => {
-    const webApp = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
-    console.log('==[ Telegram WebApp Init Check ]==');
-    console.log('Telegram.WebApp:', webApp);
+    console.log('==[ App Init Check (No Telegram WebApp) ]==');
+    console.log('Running in environment:', process.env.NODE_ENV);
+    console.log('Window available:', typeof window !== 'undefined');
     
     // Шаг 1.2 — Проверка initData в Telegram WebApp
-    console.log('==[ InitData Check ]==', 
-      webApp?.initData || null, 
-      webApp?.initDataUnsafe || null
+    console.log('==[ Guest ID Check ]==', 
+      sessionRestoreService.getGuestId() || 'not found'
     );
     
-    if (webApp) {
-      console.log('==[ InitData Fields Check ]==', {
-        user: !!webApp.initDataUnsafe?.user,
-        auth_date: !!webApp.initDataUnsafe?.auth_date,
-        hash: !!webApp.initDataUnsafe?.hash
-      });
-    } else {
-      console.log('==[ InitData Fields Check ]==', {
-        user: false,
-        auth_date: false,
-        hash: false
-      });
-    }
+    // Отладочная информация для проверки наличия реферального кода
+    const urlParams = new URLSearchParams(window.location.search);
+    console.log('==[ Ref Code Check ]==', {
+      inUrl: urlParams.has('ref_code') || urlParams.has('refCode'),
+      refCode: urlParams.get('ref_code') || urlParams.get('refCode') || 'not found',
+      inSession: !!sessionStorage.getItem('referrer_code'),
+      sessionRefCode: sessionStorage.getItem('referrer_code') || 'not found'
+    });
   }, []);
 
   // Очистка кэша Telegram при старте приложения
@@ -215,12 +210,15 @@ function App() {
         // Получаем реферальный код только из URL параметров
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('ref_code') || urlParams.has('refCode')) {
-          referrerCode = urlParams.get('ref_code') || urlParams.get('refCode');
+          const refCodeFromUrl = urlParams.get('ref_code') || urlParams.get('refCode');
+          referrerCode = refCodeFromUrl || '';  // Преобразуем в пустую строку вместо null
           console.log('[App] Обнаружен реферальный код в URL:', referrerCode);
           
-          // Сохраняем реферальный код в sessionStorage
-          sessionStorage.setItem('referrer_code', referrerCode);
-          sessionStorage.setItem('referrer_code_timestamp', Date.now().toString());
+          // Сохраняем реферальный код в sessionStorage (если он есть)
+          if (referrerCode) {
+            sessionStorage.setItem('referrer_code', referrerCode);
+            sessionStorage.setItem('referrer_code_timestamp', Date.now().toString());
+          }
         } else {
           console.log('[App] Реферальный код в URL не обнаружен');
           
@@ -258,7 +256,9 @@ function App() {
           console.log('[App] Пользователь не найден, регистрируем нового с guest_id');
           
           // Регистрируем пользователя с guest_id и реферальным кодом (если есть)
-          const registrationResult = await registerUserWithTelegram(guestId, referrerCode);
+          // Если referrerCode пустой или null, передаем undefined
+          const refCodeToSend = referrerCode && referrerCode.length > 0 ? referrerCode : undefined;
+          const registrationResult = await registerUserWithTelegram(guestId, refCodeToSend);
           
           if (registrationResult && registrationResult.success) {
             console.log('[App] Пользователь успешно зарегистрирован:', registrationResult);

@@ -99,9 +99,10 @@ export function getTelegramUserData(): Promise<UserData> {
 
 /**
  * Получает сохраненный ID пользователя из localStorage
+ * @param forceReconnect Игнорируется (оставлен для обратной совместимости)
  * @returns ID пользователя или null, если он не сохранен
  */
-export function getCachedTelegramUserId(): number | null {
+export function getCachedTelegramUserId(forceReconnect: boolean = false): number | null {
   if (process.env.NODE_ENV === 'development') {
     return 1; // В режиме разработки возвращаем тестовый ID
   }
@@ -226,8 +227,9 @@ export async function registerUserWithTelegram(guestId: string, referrerCode?: s
 
 /**
  * Логирует запуск Mini App и передает базовые метрики
+ * @returns {Promise<boolean>} Результат логирования
  */
-export async function logAppLaunch(): Promise<void> {
+export async function logAppLaunch(): Promise<boolean> {
   try {
     // Создаем объект с метаданными запуска
     const launchData: Record<string, any> = {
@@ -259,14 +261,18 @@ export async function logAppLaunch(): Promise<void> {
       
       if (response.ok) {
         console.log('[telegramService] App launch logged successfully');
+        return true;
       } else {
         console.warn('[telegramService] Failed to log app launch:', response.status, response.statusText);
+        return false;
       }
     } catch (requestError) {
       console.error('[telegramService] Error sending app launch log:', requestError);
+      return false;
     }
   } catch (error) {
     console.error('[telegramService] Error logging app launch:', error);
+    return false;
   }
 }
 

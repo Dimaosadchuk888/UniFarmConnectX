@@ -214,8 +214,8 @@ class UserService {
    * @private
    */
   private async fetchUserFromApi(): Promise<User> {
-    // Получаем Telegram ID пользователя, принудительно переподключая к API
-    const telegramUserId = getCachedTelegramUserId(true);
+    // Получаем Telegram ID пользователя
+    const telegramUserId = getCachedTelegramUserId();
     console.log('[UserService] Telegram user ID for API request:', telegramUserId);
     
     // Делаем запрос к API
@@ -478,22 +478,12 @@ class UserService {
     console.log('[UserService] Checking for real user ID...');
     
     try {
-      // Шаг 1: Проверка наличия Telegram WebApp API и пользовательского ID
-      if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-        const telegramUserId = window.Telegram.WebApp.initDataUnsafe.user.id;
-        if (telegramUserId && telegramUserId !== 1) {
-          console.log('[UserService] Found real user ID from Telegram WebApp:', telegramUserId);
-          return true;
-        } else {
-          console.warn('[UserService] Telegram WebApp userId is invalid:', telegramUserId);
-        }
-      } else {
-        console.warn('[UserService] No user data available from Telegram WebApp API');
-      }
+      // С Этапа 10.3 Telegram WebApp больше не используется
+      console.warn('[UserService] Telegram WebApp проверки отключены (Этап 10.3)');
       
-      // Шаг 2: Проверка кэшированного Telegram ID
+      // Проверяем только кэшированный Telegram ID
       const cachedTelegramId = getCachedTelegramUserId();
-      if (cachedTelegramId && cachedTelegramId !== '1') {
+      if (cachedTelegramId && cachedTelegramId !== 1 && cachedTelegramId !== '1') {
         console.log('[UserService] Found real user ID from cached Telegram ID:', cachedTelegramId);
         return true;
       } else {
