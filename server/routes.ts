@@ -1089,8 +1089,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Обработчик для редиректа URL с слешем в конце (согласно ТЗ)
   app.get('*/', (req: Request, res: Response, next: NextFunction) => {
+    // Проверяем, является ли запрос от Telegram Mini App
+    const isTelegramUserAgent = req.headers['user-agent']?.includes('TelegramWebApp');
+    const hasTelegramData = req.headers['telegram-data'] || req.headers['x-telegram-data'] || 
+                          req.headers['telegram-init-data'] || req.headers['x-telegram-init-data'];
+    
+    // Если запрос от Telegram Mini App со слешем на конце, не делаем редирект
+    // Это помогает с проблемой, когда BotFather автоматически добавляет слеш в URL
+    if ((isTelegramUserAgent || hasTelegramData) && req.path === '/') {
+      console.log('[Route] Запрос от Telegram WebApp с / на конце, не делаем редирект');
+      return next();
+    }
+    
+    // Обычная обработка - удаляем слеш в конце URL
     if (req.path.endsWith('/') && req.path !== '/') {
-      res.redirect(301, req.path.slice(0, -1) + req.url.slice(req.path.length));
+      console.log('[Route] Редирект URL со слешем в конце:', req.url);
+      return res.redirect(301, req.path.slice(0, -1) + req.url.slice(req.path.length));
     } else {
       next();
     }

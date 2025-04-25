@@ -45,6 +45,12 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
         return;
       }
       
+      // Проверяем, пришел ли запрос со слэшем в конце (возможная проблема BotFather)
+      const hasTrailingSlash = window.location.pathname.endsWith('/') && window.location.pathname !== '/';
+      if (hasTrailingSlash) {
+        console.log('[TelegramWebAppCheck] ⚠️ Обнаружен завершающий слэш в URL - это может вызвать проблемы с Telegram WebApp:', window.location.pathname);
+      }
+      
       // Проверяем наличие объекта Telegram.WebApp но не делаем редирект
       const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram;
       const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
@@ -52,6 +58,7 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
       console.log('[TelegramWebAppCheck] Проверка запуска в Telegram Mini App:', {
         isTelegramAvailable,
         isWebAppAvailable,
+        hasTrailingSlash,
         currentLocation: location,
         userAgent: navigator.userAgent
       });
