@@ -9,6 +9,7 @@
  */
 
 import { apiRequest } from "@/lib/queryClient";
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Константы для хранения ключей в localStorage/sessionStorage
@@ -227,6 +228,45 @@ const updateSessionWithTelegramData = (telegramId: number, userId: number): void
   }
 };
 
+/**
+ * Получает существующий guest_id или создает новый
+ * @returns {string} Уникальный идентификатор гостя
+ */
+const getOrCreateGuestId = (): string => {
+  try {
+    // Пытаемся получить существующий guest_id
+    const existingGuestId = getGuestId();
+    
+    if (existingGuestId) {
+      console.log('[sessionRestoreService] Используем существующий guest_id:', existingGuestId);
+      return existingGuestId;
+    }
+    
+    // Если guest_id не найден, создаем новый на основе UUID v4
+    const newGuestId = uuidv4();
+    console.log('[sessionRestoreService] Создан новый guest_id:', newGuestId);
+    
+    // Сохраняем новый guest_id
+    saveGuestId(newGuestId);
+    
+    return newGuestId;
+  } catch (error) {
+    console.error('[sessionRestoreService] Ошибка при создании guest_id:', error);
+    
+    // В случае ошибки создаем fallback ID на основе timestamp
+    const fallbackId = `fb-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    console.warn('[sessionRestoreService] Используем fallback guest_id:', fallbackId);
+    
+    try {
+      saveGuestId(fallbackId);
+    } catch (saveError) {
+      console.error('[sessionRestoreService] Не удалось сохранить fallback guest_id:', saveError);
+    }
+    
+    return fallbackId;
+  }
+};
+
 // Экспортируем методы сервиса
 const sessionRestoreService = {
   shouldAttemptRestore,
@@ -235,7 +275,8 @@ const sessionRestoreService = {
   restoreSession,
   clearGuestIdAndSession,
   hasTelegramUserChanged,
-  updateSessionWithTelegramData
+  updateSessionWithTelegramData,
+  getOrCreateGuestId
 };
 
 export default sessionRestoreService;

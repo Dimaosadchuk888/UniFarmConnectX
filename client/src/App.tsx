@@ -113,84 +113,33 @@ function App() {
     setTimeout(logLaunch, 1000);
   }, []); // Пустой массив зависимостей означает, что эффект выполнится только при монтировании компонента
 
-  // Детальная проверка инициализации Telegram WebApp API
+  // Обновленная инициализация приложения без зависимости от Telegram WebApp
+  // (Этап 10.3 - удалены все обращения к window.Telegram.WebApp)
   useEffect(() => {
-    // Этап 1.1: Проверка существования window.Telegram.WebApp
-    console.log('[TG AUDIT] Этап 1.1: Проверка window.Telegram.WebApp');
-    console.log('[TG AUDIT] window.Telegram существует:', !!window.Telegram);
-    console.log('[TG AUDIT] window.Telegram?.WebApp существует:', !!window.Telegram?.WebApp);
+    console.log('[App] Этап 10.3: Инициализация без зависимости от Telegram WebApp');
     
-    const webApp = window.Telegram?.WebApp;
-
-    if (webApp) {
-      console.log('[TG AUDIT] ✓ WebApp API найден и доступен');
-      
-      // Этап 1.2: Вывод в консоль данных
-      console.log('[TG AUDIT] Этап 1.2: Вывод данных инициализации');
-      console.log('[TG AUDIT] initData:', webApp.initData);
-      console.log('[TG AUDIT] initData длина:', webApp.initData?.length || 0);
-      console.log('[TG AUDIT] initDataUnsafe:', webApp.initDataUnsafe);
-      console.log('[TG AUDIT] initDataUnsafe.user:', webApp.initDataUnsafe?.user);
-      console.log('[TG AUDIT] initDataUnsafe.auth_date:', webApp.initDataUnsafe?.auth_date);
-      console.log('[TG AUDIT] initDataUnsafe.hash:', webApp.initDataUnsafe?.hash);
-      console.log('[TG AUDIT] platform:', webApp.platform);
-      console.log('[TG AUDIT] version:', webApp.version);
-      console.log('[TG AUDIT] colorScheme:', webApp.colorScheme);
-      console.log('[TG AUDIT] themeParams:', webApp.themeParams);
-      console.log('[TG AUDIT] startParam:', webApp.startParam);
-
-      // Проверяем полноту данных
-      if (!webApp.initData || !webApp.initDataUnsafe?.user) {
-        console.error('[TG AUDIT] ⚠️ Ошибка: Telegram WebApp не передал данные пользователя!');
-      } else {
-        console.log('[TG AUDIT] ✓ Данные пользователя получены успешно');
-      }
-      
-      // Этап 1.3: Вызов Telegram.WebApp.ready()
-      console.log('[TG AUDIT] Этап 1.3: Вызов Telegram.WebApp.ready()');
-      try {
-        webApp.ready();
-        console.log('[TG AUDIT] ✓ Метод webApp.ready() вызван успешно');
-      } catch (error) {
-        console.error('[TG AUDIT] ⚠️ Ошибка при вызове webApp.ready():', error);
-      }
-      
-      // Расширяем приложение на весь доступный размер
-      try {
-        webApp.expand();
-        console.log('[TG AUDIT] ✓ Метод webApp.expand() вызван успешно');
-      } catch (error) {
-        console.error('[TG AUDIT] ⚠️ Ошибка при вызове webApp.expand():', error);
-      }
-      
-      // Попытка авторизации через Telegram
-      authenticateWithTelegram();
+    // Отображаем информацию о среде выполнения для диагностики
+    console.log('[App] Детали среды выполнения:', {
+      userAgent: navigator.userAgent,
+      isIframe: window.self !== window.top,
+      documentURL: window.location.href
+    });
+    
+    // Проверяем, можно ли восстановить сессию из локального хранилища
+    if (sessionRestoreService.shouldAttemptRestore()) {
+      console.log('[App] 🔄 Пытаемся восстановить сессию по guest_id из локального хранилища...');
+      restoreSessionFromStorage();
     } else {
-      console.error('[TG AUDIT] ⚠️ Ошибка: Telegram WebApp не загружен!');
-      console.log('[TG AUDIT] Детали window:', {
-        windowDefined: typeof window !== 'undefined',
-        telegramDefined: typeof window.Telegram !== 'undefined',
-        userAgent: navigator.userAgent,
-        isIframe: window.self !== window.top,
-        documentURL: window.location.href
-      });
-      
-      // Продолжаем инициализацию приложения даже без Telegram WebApp
-      // Сначала проверяем, можно ли восстановить сессию из localStorage/sessionStorage
-      if (sessionRestoreService.shouldAttemptRestore()) {
-        console.log('[TG AUDIT] 🔄 Пытаемся восстановить сессию по guest_id из локального хранилища...');
-        restoreSessionFromStorage();
-      } else {
-        // Если нет сохраненной сессии, продолжаем обычную авторизацию
-        console.log('[TG AUDIT] ⚙️ Нет сохраненной сессии, продолжаем обычную авторизацию...');
-        authenticateWithTelegram();
-      }
+      // Если нет сохраненной сессии, продолжаем обычную авторизацию
+      console.log('[App] ⚙️ Нет сохраненной сессии, продолжаем авторизацию через guest_id...');
+      authenticateWithTelegram();
     }
   }, []);
 
   // Отладочный баннер с отображением домена удален для улучшения UX
 
   // Метод для безопасного восстановления сессии из локального хранилища (Этап 5)
+  // Обновлен для Этапа 10.3: удалены зависимости от Telegram WebApp
   const restoreSessionFromStorage = async () => {
     try {
       setIsLoading(true);
@@ -202,22 +151,8 @@ function App() {
       // Получаем guest_id из хранилища
       const guestId = sessionRestoreService.getGuestId();
       
-      // Получаем текущий Telegram ID (если доступен)
-      const currentTelegramId = getTelegramUserId();
-      console.log(`[App] Текущий Telegram ID: ${currentTelegramId || 'отсутствует'}`);
-      
-      // Если пользователь изменился (сменил Telegram аккаунт), очищаем сессию
-      if (currentTelegramId && sessionRestoreService.hasTelegramUserChanged(currentTelegramId)) {
-        console.log('[App] ⚠️ Обнаружена смена пользователя Telegram, очищаем предыдущую сессию');
-        sessionRestoreService.clearGuestIdAndSession();
-        
-        // Переходим к обычной авторизации с новым пользователем
-        authenticateWithTelegram();
-        return;
-      }
-      
       // Если guest_id отсутствует, значит пользователь либо впервые зашел в приложение,
-      // либо удалил Telegram-бот (очистил данные)
+      // либо очистил данные
       if (!guestId) {
         console.warn('[App] ⚠️ Не найден guest_id в локальном хранилище');
         console.log('[App] Создаем новый кабинет в соответствии с Этапом 5...');
@@ -237,11 +172,6 @@ function App() {
         // Успешно восстановили сессию
         setUserId(result.data.user_id);
         console.log('[App] ✅ Кабинет успешно восстановлен для пользователя:', result.data);
-        
-        // Если доступен Telegram ID, обновляем информацию о сессии
-        if (currentTelegramId) {
-          sessionRestoreService.updateSessionWithTelegramData(currentTelegramId, result.data.user_id);
-        }
         
         // Обновляем кэш запросов для получения актуальных данных пользователя
         queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
@@ -269,174 +199,96 @@ function App() {
     }
   };
 
-  // Авторизация через Telegram с усиленной проверкой в telegramInitData.ts
+  // Метод для аутентификации только через guest_id и ref_code
+  // (Этап 10.3 - полностью убрана зависимость от Telegram WebApp initData)
   const authenticateWithTelegram = async () => {
     try {
       setIsLoading(true);
       setTelegramAuthError(null);
 
-      // АУДИТ: Получаем данные через улучшенный метод проверки Telegram WebApp
-      const telegramInitData = extractTelegramInitData();
-      console.log('[App] АУДИТ: Получены данные Telegram WebApp через новый метод:', {
-        isValid: telegramInitData.isValid,
-        userId: telegramInitData.userId || 'недоступен',
-        startParam: telegramInitData.startParam || 'недоступен',
-        errors: telegramInitData.validationErrors
-      });
+      console.log('[App] Начинаем аутентификацию только через guest_id и ref_code');
       
-      // Получаем userId через разные методы для диагностики
-      const telegramUserId = getTelegramUserId();
-      const oldTelegramData = getTelegramUserData();
+      // Этап 3.1: Проверка наличия реферального кода в URL
+      let referrerCode: string | null = null;
       
-      console.log('[App] АУДИТ: Сравнение источников ID:', {
-        newMethod: telegramUserId,
-        oldMethod: oldTelegramData?.userId || 'недоступен',
-        dataValid: !!oldTelegramData
-      });
-      
-      // Используем новые данные для авторизации, если доступны,
-      // в противном случае падаем на старую имплементацию
-      let authData = null;
-      let hasTelegramValidData = telegramInitData.isValid && telegramInitData.userId;
-      
-      if (hasTelegramValidData) {
-        // Формируем данные для авторизации на основе нового метода
-        // Добавляем refCode в объект авторизации для передачи реферального кода
-        authData = {
-          id: telegramInitData.userId,
-          initData: telegramInitData.rawInitData,
-          username: telegramInitData.username,
-          firstName: telegramInitData.firstName,
-          lastName: telegramInitData.lastName,
-          photoUrl: telegramInitData.photoUrl,
-          startParam: telegramInitData.startParam,
-          refCode: telegramInitData.refCode  // Добавлено поле refCode из обработчика
-        };
-        
-        // Улучшенная диагностика наличия реферального кода
-        if (telegramInitData.refCode) {
-          console.log('[App] АУДИТ: Извлечен реферальный код из Telegram WebApp:', telegramInitData.refCode);
-        }
-        console.log('[App] АУДИТ: Используем новый метод для авторизации, ID:', telegramInitData.userId);
-      } else if (oldTelegramData) {
-        // Используем старый метод как запасной
-        authData = oldTelegramData.authData;
-        console.log('[App] АУДИТ: Используем старый метод для авторизации, ID:', oldTelegramData.userId);
-      }
-      
-      if (!authData) {
-        console.warn('[App] АУДИТ: Не удалось получить данные Telegram WebApp ни через один метод');
-        // Не устанавливаем ошибку авторизации, чтобы не блокировать отображение интерфейса
-        // setTelegramAuthError('Не удалось получить данные пользователя из Telegram');
-        setIsLoading(false);
-        
-        // Продолжаем обработку без данных Telegram - используем гостевой режим
-        // Это позволит приложению работать независимо от авторизации через Telegram
-        return;
-      }
-
-      // Проверяем, есть ли параметр реферера в URL
-      const referrerId = getReferrerIdFromURL();
-      console.log('Параметр реферера из URL:', referrerId);
-
-      // Отправляем данные на сервер для аутентификации
-      console.log('[App] Отправка данных аутентификации на сервер:', {
-        hasAuthData: !!authData,
-        authDataType: authData ? typeof authData : null,
-        authDataFormat: authData && typeof authData === 'object' ? 'object' : 
-                       (authData && typeof authData === 'string' ? 'string' : 'unknown'),
-        referrerId: referrerId
-      });
-      
-      // Вызываем функцию регистрации пользователя при первом запуске
-      // Используем refCode из данных Telegram WebApp или URL параметр
-      const refCode = telegramInitData.refCode || referrerId || '';
-      const registrationResult = await registerUserWithTelegram(refCode);
-      console.log('[App] Результат регистрации пользователя:', registrationResult);
-      
-      // Формируем тело запроса в зависимости от типа данных authData
-      let requestBody;
-      if (authData && typeof authData === 'object') {
-        // Проверка приоритета для реферального кода
-        // Приоритет 1: refCode из обработанных данных (наш обработчик extractTelegramInitData)
-        // Приоритет 2: referrerId из URL параметров (метод getReferrerIdFromURL)
-        const refCodeToUse = authData.refCode || null;
-        
-        // Расширенное логирование по определению реферального кода
-        console.log('[App] Аутентификация: реферальные данные:', {
-          refCodeFromInitData: authData.refCode || 'отсутствует',
-          refCodeFromURL: referrerId || 'отсутствует',
-          finalRefCode: refCodeToUse || referrerId || 'отсутствует'
-        });
-        
-        // Если authData это объект, отправляем его с дополнительными параметрами
-        requestBody = JSON.stringify({
-          authData: authData.initData || '', // Передаем саму строку initData, если она есть
-          userId: authData.id,
-          username: authData.username,
-          firstName: authData.firstName,
-          lastName: authData.lastName,
-          startParam: authData.startParam,
-          refCode: refCodeToUse,     // Добавляем обработанный реферальный код
-          referrerId: referrerId     // Оставляем для обратной совместимости
-        });
-      } else {
-        // Если это строка или другой тип, отправляем как есть
-        requestBody = JSON.stringify({ 
-          authData: authData, 
-          referrerId: referrerId
-        });
-      }
-      
-      const authResult = await apiRequest('/api/auth/telegram', {
-        method: 'POST',
-        body: requestBody
-      });
-
-      if (authResult.success && authResult.data) {
-        // Сохраняем ID пользователя
-        setUserId(authResult.data.user_id);
-        console.log('[App] ✅ Пользователь успешно авторизован:', authResult.data);
-        
-        // Этап 5: Сохраняем guest_id в локальное хранилище для последующих восстановлений сессии
-        if (authResult.data.guest_id) {
-          console.log('[App] 💾 Сохраняем guest_id для Этапа 5:', authResult.data.guest_id);
-          sessionRestoreService.saveGuestId(authResult.data.guest_id);
+      try {
+        // Получаем реферальный код только из URL параметров
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('ref_code') || urlParams.has('refCode')) {
+          referrerCode = urlParams.get('ref_code') || urlParams.get('refCode');
+          console.log('[App] Обнаружен реферальный код в URL:', referrerCode);
           
-          // Если есть Telegram ID, сохраняем его вместе с информацией о сессии
-          if (telegramInitData.userId) {
-            // Преобразуем строковый ID в число для корректной типизации
-            const telegramIdAsNumber = Number(telegramInitData.userId);
-            if (!isNaN(telegramIdAsNumber)) {
-              sessionRestoreService.updateSessionWithTelegramData(
-                telegramIdAsNumber,
-                authResult.data.user_id
-              );
-              console.log('[App] 💾 Сохранена связь с Telegram ID:', telegramIdAsNumber);
-            } else {
-              console.warn('[App] ⚠️ Невозможно сохранить связь с Telegram ID - некорректный формат:', telegramInitData.userId);
-            }
-          }
+          // Сохраняем реферальный код в sessionStorage
+          sessionStorage.setItem('referrer_code', referrerCode);
+          sessionStorage.setItem('referrer_code_timestamp', Date.now().toString());
         } else {
-          console.warn('[App] ⚠️ Сервер не вернул guest_id при авторизации!');
+          console.log('[App] Реферальный код в URL не обнаружен');
+          
+          // Проверяем сохраненный реферальный код
+          const savedRefCode = sessionStorage.getItem('referrer_code');
+          if (savedRefCode) {
+            console.log('[App] Используем ранее сохраненный реферальный код:', savedRefCode);
+            referrerCode = savedRefCode;
+          }
         }
+      } catch (error) {
+        console.error('[App] Ошибка при обработке реферального кода:', error);
+      }
+      
+      // Этап 5.1: Получение или создание гостевого ID
+      const guestId = sessionRestoreService.getOrCreateGuestId();
+      console.log('[App] Используем guest_id:', guestId);
+      
+      // Этап 5.2: Проверка существующего пользователя и создание нового при необходимости
+      try {
+        const existingUser = await userService.getUserByGuestId(guestId)
+          .catch(() => null);
         
-        // Если был реферер, показываем сообщение
-        if (referrerId && authResult.data.referrer_registered) {
-          console.log('[App] 👥 Вы были приглашены пользователем:', referrerId);
-          // Здесь можно добавить Toast или другое уведомление
+        if (existingUser) {
+          console.log('[App] Найден существующий пользователь по guest_id:', existingUser);
+          setUserId(existingUser.id);
+          
+          // Сохраняем guest_id для восстановления сессии
+          sessionRestoreService.saveGuestId(guestId);
+          
+          // Обновляем кэш запросов для получения актуальных данных
+          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/me'] });
+        } else {
+          console.log('[App] Пользователь не найден, регистрируем нового с guest_id');
+          
+          // Регистрируем пользователя с guest_id и реферальным кодом (если есть)
+          const registrationResult = await registerUserWithTelegram(guestId, referrerCode);
+          
+          if (registrationResult && registrationResult.success) {
+            console.log('[App] Пользователь успешно зарегистрирован:', registrationResult);
+            
+            // Сохраняем данные о новом пользователе
+            if (registrationResult.data && registrationResult.data.user_id) {
+              const newUserId = registrationResult.data.user_id;
+              setUserId(newUserId);
+              
+              // Сохраняем guest_id для будущего восстановления сессии
+              sessionRestoreService.saveGuestId(guestId);
+              
+              // Устанавливаем статус зарегистрированного пользователя
+              console.log('[App] Пользователь успешно идентифицирован и авторизован');
+            } else {
+              console.error('[App] API вернул успех, но отсутствуют данные пользователя');
+              setTelegramAuthError('Ошибка получения ID пользователя');
+            }
+          } else {
+            console.error('[App] Ошибка регистрации пользователя:', registrationResult);
+            setTelegramAuthError('Ошибка регистрации пользователя');
+          }
         }
-        
-        // Обновляем кэш запросов, которые зависят от авторизации
-        queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/me'] });
-      } else {
-        console.error('Ошибка аутентификации:', authResult.message || 'Неизвестная ошибка');
-        setTelegramAuthError(authResult.message || 'Не удалось авторизоваться');
+      } catch (error) {
+        console.error('[App] Ошибка при работе с пользователем:', error);
+        setTelegramAuthError('Ошибка доступа к серверу');
       }
     } catch (error) {
-      console.error('Ошибка при аутентификации через Telegram:', error);
-      setTelegramAuthError('Ошибка подключения к серверу');
+      console.error('[App] Общая ошибка аутентификации:', error);
+      setTelegramAuthError('Ошибка аутентификации');
     } finally {
       setIsLoading(false);
     }

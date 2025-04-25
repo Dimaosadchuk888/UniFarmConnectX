@@ -427,6 +427,40 @@ class UserService {
   }
   
   /**
+   * Получает пользователя по guest_id
+   * @param {string} guestId Уникальный идентификатор гостя
+   * @returns {Promise<User | null>} Данные пользователя или null, если пользователь не найден
+   */
+  async getUserByGuestId(guestId: string): Promise<User | null> {
+    try {
+      if (!guestId) {
+        console.error('[UserService] Невозможно получить пользователя: отсутствует guest_id');
+        return null;
+      }
+      
+      console.log(`[UserService] Запрос пользователя по guest_id: ${guestId}`);
+      
+      // Отправляем запрос к API для получения пользователя по guest_id
+      const response = await apiRequest(`/api/users/guest/${guestId}`);
+      
+      if (response.success && response.data) {
+        console.log('[UserService] Успешно получен пользователь по guest_id:', response.data);
+        
+        // Сохраняем данные пользователя в кэш
+        this.cacheUserData(response.data);
+        
+        return response.data;
+      } else {
+        console.log('[UserService] Пользователь с guest_id не найден:', guestId);
+        return null;
+      }
+    } catch (error) {
+      console.error('[UserService] Ошибка при получении пользователя по guest_id:', error);
+      return null;
+    }
+  }
+
+  /**
    * Очищает кэш данных пользователя
    */
   clearUserCache(): void {
