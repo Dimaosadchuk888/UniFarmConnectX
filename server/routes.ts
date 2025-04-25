@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import path from "path";
@@ -1223,6 +1223,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   };
+  
+  // Сначала обрабатываем статические ресурсы из assets (JS, CSS и т.д.)
+  app.use('/assets', express.static(path.resolve('dist', 'public', 'assets'), {
+    maxAge: '30d' // кэширование на 30 дней
+  }));
+
+  // Статические файлы в корне
+  app.use(express.static(path.resolve('dist', 'public'), {
+    index: false // не используем index.html из static middleware
+  }));
+  
+  // И только потом добавляем универсальный fallback для HTML-запросов
+  // Этот обработчик должен быть определен ПОСЛЕ всех остальных маршрутов
+  app.get('*', (req: Request, res: Response) => {
+    // Если запрос на статические файлы - пропускаем их, они должны были обработаться выше
+    if (req.url.match(/\.(js|css|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2)$/)) {
+      console.log(`[TelegramWebApp] Skipping HTML fallback for static file: ${req.url}`);
+      return res.status(404).send('Not found');
+    }
+    
+    console.log(`[TelegramWebApp] HTML fallback for: ${req.url}`);
+    
+    // Список возможных путей к index.html в порядке приоритета
+    const possiblePaths = [
+      path.resolve('dist', 'public', 'index.html'),
+      path.resolve('client', 'dist', 'index.html'),
+      path.resolve('public', 'index.html'),
+      path.resolve('dist', 'index.html'),
+      path.resolve('client', 'public', 'index.html'),
+      path.resolve('client', 'index.html')
+    ];
+    
+    // Ищем первый существующий файл
+    for (const indexPath of possiblePaths) {
+      if (fs.existsSync(indexPath)) {
+        console.log(`[TelegramWebApp] Serving index.html from: ${indexPath} for URL: ${req.url}`);
+        return res.sendFile(indexPath);
+      }
+    }
+    
+    // Если ни один из путей не существует, отдаем ошибку
+    console.error('[TelegramWebApp] ERROR: index.html не найден ни по одному из путей!');
+    return res.status(500).send('Server configuration error: index.html not found');
+  });
   
   return httpServer;
 }
