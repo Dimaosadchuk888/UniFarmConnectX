@@ -789,7 +789,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Это необходимо для корректной работы с Telegram Mini App
   // Специальный маршрут для обслуживания страницы редиректа
   app.get('/telegram-redirect.html', (req: Request, res: Response) => {
-    res.sendFile(path.join(process.cwd(), 'client', 'public', 'telegram-redirect.html'));
+    // Перенаправляем на нашу React-страницу для редиректа в Telegram Mini App
+    res.redirect('/telegram-redirect');
   });
   
   // Специальный маршрут для перенаправления в режиме разработки

@@ -22,11 +22,96 @@ export interface IStorage {
   generateRefCode(): string;
   getUserByRefCode(refCode: string): Promise<User | undefined>;
   updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
+  
+  // Методы для работы с Telegram
+  getUserByTelegramId(telegramId: number): Promise<User | undefined>;
+  createUserWithTelegram(userData: {
+    telegram_id: number;
+    username: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    balance: number;
+    farming_rate: number;
+    wallet_address: string | null;
+    ref_code: string;
+    referrer_id: number | null;
+    created_at: Date;
+    updated_at: Date;
+  }): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
   constructor() {
     console.log('[Storage] Инициализация DatabaseStorage');
+  }
+  
+  // Методы для работы с Telegram
+  async getUserByTelegramId(telegramId: number): Promise<User | undefined> {
+    console.log(`[Storage] Поиск пользователя по Telegram ID: ${telegramId}`);
+    
+    try {
+      const [user] = await db.select().from(users).where(eq(users.telegram_id, telegramId));
+      
+      if (user) {
+        console.log(`[Storage AUDIT] Найден пользователь по Telegram ID: ID=${user.id}, telegram_id=${user.telegram_id}`);
+      } else {
+        console.log(`[Storage AUDIT] Пользователь с Telegram ID ${telegramId} не найден в базе`);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при поиске пользователя по Telegram ID ${telegramId}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createUserWithTelegram(userData: {
+    telegram_id: number;
+    username: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    balance: number;
+    farming_rate: number;
+    wallet_address: string | null;
+    ref_code: string;
+    referrer_id: number | null;
+    created_at: Date;
+    updated_at: Date;
+  }): Promise<User> {
+    console.log(`[Storage] Создание пользователя через Telegram: ${userData.telegram_id}`);
+    
+    try {
+      // Проверяем, существует ли уже пользователь с таким Telegram ID
+      const existingUser = await this.getUserByTelegramId(userData.telegram_id);
+      
+      if (existingUser) {
+        console.log(`[Storage] Пользователь с Telegram ID ${userData.telegram_id} уже существует`);
+        return existingUser;
+      }
+      
+      // Создаем нового пользователя
+      const [user] = await db
+        .insert(users)
+        .values({
+          telegram_id: userData.telegram_id,
+          username: userData.username, // Основной username для отображения
+          wallet: null, // Поле wallet для совместимости
+          ton_wallet_address: userData.wallet_address,
+          ref_code: userData.ref_code,
+          balance_uni: "0", // Нулевой баланс UNI
+          balance_ton: "0", // Нулевой баланс TON
+          uni_farming_rate: userData.farming_rate.toString(), // Преобразуем в строку
+          created_at: userData.created_at
+        })
+        .returning();
+      
+      console.log(`[Storage] Пользователь через Telegram успешно создан: ID=${user.id}, telegram_id=${user.telegram_id}`);
+      
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при создании пользователя через Telegram ${userData.telegram_id}:`, error);
+      throw error;
+    }
   }
   
   async getUserById(id: number): Promise<User | undefined> {
