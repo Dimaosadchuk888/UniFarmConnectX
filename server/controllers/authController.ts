@@ -88,8 +88,42 @@ export class AuthController {
           });
         
           // Используем метод storage.createMainUser для создания в основной таблице пользователей
+          if (guest_id) {
+            console.log(`[REGISTER] Получен guest_id: ${guest_id}`);
+          }
+          
+          // Проверяем, существует ли пользователь с таким guest_id (если он был передан)
+          let existingUserByGuestId = null;
+          if (guest_id) {
+            existingUserByGuestId = await storage.getUserByGuestId(guest_id);
+            if (existingUserByGuestId) {
+              console.log(`[REGISTER] Найден существующий пользователь по guest_id: ${guest_id}, user_id=${existingUserByGuestId.id}`);
+              // Если у пользователя нет telegram_id, но он передан в запросе, обновляем запись
+              if (!existingUserByGuestId.telegram_id && user_telegram_id) {
+                // Обновляем telegram_id для существующего пользователя
+                const [updatedUser] = await db
+                  .update(users)
+                  .set({ telegram_id: user_telegram_id })
+                  .where(eq(users.id, existingUserByGuestId.id))
+                  .returning();
+                
+                console.log(`[REGISTER] Обновлен telegram_id для пользователя с guest_id ${guest_id}: ${user_telegram_id}`);
+                user = updatedUser;
+                isNewUser = false;
+                return;
+              } else {
+                // Просто используем существующего пользователя
+                user = existingUserByGuestId;
+                isNewUser = false;
+                return;
+              }
+            }
+          }
+          
+          // Создаем нового пользователя с поддержкой guest_id
           user = await storage.createMainUser({
             telegram_id: user_telegram_id,
+            guest_id: guest_id, // Используем переданный guest_id или он будет сгенерирован автоматически
             username: username || `user_${user_telegram_id}`,
             balance_uni: "100", // Начальный бонус
             balance_ton: "0",
@@ -163,10 +197,11 @@ export class AuthController {
         }
       }
       
-      // Отправляем успешный ответ с данными пользователя
+      // Отправляем успешный ответ с данными пользователя, включая guest_id
       sendSuccess(res, {
         id: user.id,
         telegram_id: user.telegram_id,
+        guest_id: user.guest_id, // Добавляем guest_id в ответ
         username: user.username,
         ref_code: user.ref_code,
         balance_uni: user.balance_uni,
@@ -193,7 +228,17 @@ export class AuthController {
                               req.headers['x-telegram-data'];
       
       // Извлекаем все поля из req.body для более гибкой обработки
-      const { authData: bodyAuthData, userId: bodyUserId, username: bodyUsername, firstName: bodyFirstName, lastName: bodyLastName, startParam: bodyStartParam, referrerId, refCode: bodyRefCode } = req.body;
+      const { 
+        authData: bodyAuthData, 
+        userId: bodyUserId, 
+        username: bodyUsername, 
+        firstName: bodyFirstName, 
+        lastName: bodyLastName, 
+        startParam: bodyStartParam, 
+        referrerId, 
+        refCode: bodyRefCode,
+        guest_id: bodyGuestId // Добавляем поддержку guest_id
+      } = req.body;
       
       // Используем данные из заголовка, если они есть, иначе из тела запроса
       const authData = typeof telegramInitData === 'string' ? telegramInitData : bodyAuthData;
@@ -209,7 +254,8 @@ export class AuthController {
         firstName: bodyFirstName || 'не передан',
         startParam: bodyStartParam || 'не передан',
         referrerId: referrerId || 'не передан',
-        refCode: bodyRefCode || 'не передан' // Добавляем новое поле refCode
+        refCode: bodyRefCode || 'не передан',
+        guest_id: bodyGuestId || 'не передан' // Добавляем информацию о guest_id
       });
       
       // Проверяем наличие данных аутентификации
@@ -383,21 +429,53 @@ export class AuthController {
         console.log('[AUTH] Тестовый режим: пропускаем проверку подписи данных');
       }
 
-      // Пытаемся найти пользователя по Telegram ID
-      let user = await storage.getUserByTelegramId(telegramUserId);
+      // Проверяем, есть ли guest_id в запросе
+      if (bodyGuestId) {
+        console.log(`[AUTH] Получен guest_id: ${bodyGuestId}`);
+      }
+
+      // Пытаемся найти пользователя по Telegram ID или guest_id
+      let user = null;
       let isNewUser = false;
       let referrerRegistered = false;
       
-      // Если пользователь не найден, создаем нового
+      // Сначала ищем по Telegram ID, если он есть
+      if (telegramUserId) {
+        user = await storage.getUserByTelegramId(telegramUserId);
+      }
+      
+      // Если не нашли пользователя по Telegram ID, ищем по guest_id (если он предоставлен)
+      if (!user && bodyGuestId) {
+        user = await storage.getUserByGuestId(bodyGuestId);
+        
+        // Если нашли пользователя по guest_id, но у него нет Telegram ID и он предоставлен в запросе,
+        // обновляем пользователя, чтобы добавить Telegram ID
+        if (user && !user.telegram_id && telegramUserId) {
+          const [updatedUser] = await db
+            .update(users)
+            .set({ telegram_id: telegramUserId })
+            .where(eq(users.id, user.id))
+            .returning();
+          
+          if (updatedUser) {
+            console.log(`[AUTH] Обновлен Telegram ID для пользователя с guest_id ${bodyGuestId}: ${telegramUserId}`);
+            user = updatedUser;
+          }
+        }
+      }
+      
+      // Если пользователь не найден ни по Telegram ID, ни по guest_id, создаем нового
       if (!user) {
         isNewUser = true;
         
         // Генерируем уникальный реферальный код
         const refCode = storage.generateRefCode();
         
+        // Создаем пользователя с поддержкой guest_id
         user = await storage.createMainUser({
           telegram_id: telegramUserId,
-          username: parsedUsername || bodyUsername || `user_${telegramUserId}`,
+          guest_id: bodyGuestId, // Используем переданный guest_id если есть
+          username: parsedUsername || bodyUsername || `user_${telegramUserId || 'guest'}`,
           balance_uni: "1000", // Начальный бонус
           balance_ton: "0",
           ref_code: refCode,
@@ -570,13 +648,15 @@ export class AuthController {
         validationSuccess: validationResult.isValid
       });
       
-      // Отправляем успешный ответ с данными пользователя
+      // Отправляем успешный ответ с данными пользователя, включая guest_id
       sendSuccess(res, {
         user_id: user.id,
         telegram_id: user.telegram_id,
+        guest_id: user.guest_id, // Добавляем guest_id в ответ
         username: user.username,
         balance_uni: user.balance_uni,
         balance_ton: user.balance_ton,
+        ref_code: user.ref_code, // Добавляем ref_code для улучшения клиентского опыта
         referrer_registered: referrerRegistered, // Флаг успешной регистрации реферальной связи
         auth_source: 'telegram',
         auth_status: 'verified'

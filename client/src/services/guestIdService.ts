@@ -1,165 +1,132 @@
 /**
- * Сервис для управления идентификаторами гостевых пользователей
- * Это часть новой архитектуры, позволяющей приложению работать вне Telegram
+ * Сервис для управления уникальным идентификатором гостя (guest_id)
+ * Позволяет приложению работать независимо от Telegram API данных
+ * и поддерживает единую идентификацию пользователя в режиме AirDrop
  */
 
-const GUEST_ID_STORAGE_KEY = 'unifarm_guest_id';
+import { v4 as uuidv4 } from 'uuid';
 
-/**
- * Проверяет наличие guest_id в локальном хранилище
- * @returns {boolean} true если guest_id существует в localStorage
- */
-export function hasGuestId(): boolean {
-  try {
-    return !!localStorage.getItem(GUEST_ID_STORAGE_KEY);
-  } catch (error) {
-    console.error('[guestIdService] Ошибка при проверке наличия guest_id:', error);
-    return false;
-  }
+export interface GuestIdOptions {
+  storageKey?: string;
+  generateIfMissing?: boolean;
 }
 
 /**
- * Получает существующий guest_id из локального хранилища
- * @returns {string|null} guest_id или null, если его нет
+ * Ключ для хранения guest_id в localStorage
  */
-export function getGuestId(): string | null {
-  try {
-    return localStorage.getItem(GUEST_ID_STORAGE_KEY);
-  } catch (error) {
-    console.error('[guestIdService] Ошибка при получении guest_id:', error);
-    return null;
-  }
-}
+const DEFAULT_STORAGE_KEY = 'unifarm_guest_id';
 
 /**
- * Сохраняет guest_id в локальное хранилище
- * @param {string} guestId - уникальный идентификатор гостя
- * @returns {boolean} true если операция прошла успешно
+ * Получает существующий guest_id из localStorage или создает новый
+ * @param options Параметры для работы с guest_id
+ * @returns Существующий или новый guest_id
  */
-export function saveGuestId(guestId: string): boolean {
+export const getGuestId = (options: GuestIdOptions = {}): string => {
+  const storageKey = options.storageKey || DEFAULT_STORAGE_KEY;
+  const generateIfMissing = options.generateIfMissing !== false; // По умолчанию true
+  
   try {
-    localStorage.setItem(GUEST_ID_STORAGE_KEY, guestId);
-    return true;
-  } catch (error) {
-    console.error('[guestIdService] Ошибка при сохранении guest_id:', error);
-    return false;
-  }
-}
-
-/**
- * Создает и сохраняет новый guest_id, использует UUID v4
- * @returns {string|null} новый guest_id или null в случае ошибки
- */
-export function createGuestId(): string | null {
-  try {
-    // Проверяем, есть ли уже guest_id
-    if (hasGuestId()) {
-      console.log('[guestIdService] guest_id уже существует, используем существующий');
-      return getGuestId();
-    }
-
-    // Генерируем UUID v4
-    // На клиенте мы можем использовать crypto.randomUUID() в современных браузерах
-    // или Math.random() с преобразованием в UUID-подобную строку как запасной вариант
-    let guestId: string;
+    // Попытка получить существующий guest_id из localStorage
+    const existingGuestId = localStorage.getItem(storageKey);
     
-    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-      guestId = window.crypto.randomUUID();
-    } else {
-      // Запасной вариант для старых браузеров
-      guestId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
+    if (existingGuestId) {
+      console.log('[GuestIdService] Найден существующий guest_id:', existingGuestId);
+      return existingGuestId;
     }
     
-    console.log('[guestIdService] Создан новый guest_id:', guestId);
+    // Если guest_id не найден и нужно создать новый
+    if (generateIfMissing) {
+      // Генерируем новый UUID v4
+      const newGuestId = uuidv4();
+      
+      // Сохраняем в localStorage
+      localStorage.setItem(storageKey, newGuestId);
+      
+      console.log('[GuestIdService] Создан новый guest_id:', newGuestId);
+      return newGuestId;
+    }
     
-    // Сохраняем в localStorage
-    saveGuestId(guestId);
+    console.log('[GuestIdService] guest_id не найден и автоматическое создание отключено');
+    return '';
+  } catch (error) {
+    console.error('[GuestIdService] Ошибка при работе с guest_id:', error);
     
-    return guestId;
-  } catch (error) {
-    console.error('[guestIdService] Ошибка при создании guest_id:', error);
-    return null;
+    // В случае ошибки генерируем временный guest_id, но не сохраняем его
+    if (generateIfMissing) {
+      const tempGuestId = uuidv4();
+      console.warn('[GuestIdService] Создан временный guest_id (не сохранен):', tempGuestId);
+      return tempGuestId;
+    }
+    
+    return '';
   }
-}
-
-/**
- * Получает или создает guest_id
- * Эта функция гарантирует, что будет возвращен действительный guest_id
- * @returns {string} существующий или новый guest_id
- */
-export function getOrCreateGuestId(): string {
-  const existingGuestId = getGuestId();
-  
-  if (existingGuestId) {
-    return existingGuestId;
-  }
-  
-  const newGuestId = createGuestId();
-  
-  if (!newGuestId) {
-    console.error('[guestIdService] Не удалось создать guest_id, возвращаем временный идентификатор');
-    // В крайнем случае генерируем простой временный идентификатор
-    // Это позволит приложению продолжить работу, хотя не идеальное решение
-    return `temp-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-  }
-  
-  return newGuestId;
-}
-
-/**
- * Удаляет guest_id из локального хранилища
- * @returns {boolean} true если операция прошла успешно
- */
-export function clearGuestId(): boolean {
-  try {
-    localStorage.removeItem(GUEST_ID_STORAGE_KEY);
-    return true;
-  } catch (error) {
-    console.error('[guestIdService] Ошибка при удалении guest_id:', error);
-    return false;
-  }
-}
-
-/**
- * Расширенный способ получения идентификатора пользователя,
- * учитывающий как Telegram ID (если доступен), так и guest_id
- * @returns {Object} Объект, содержащий информацию о пользовательском ID
- */
-export function getUserIdentifier(): { 
-  hasTelegramId: boolean, 
-  hasGuestId: boolean, 
-  telegramId?: number | null, 
-  guestId: string 
-} {
-  // Импортируем функцию для получения Telegram ID
-  // Оставляем динамическим импортом, чтобы избежать циклических зависимостей
-  const telegramService = require('./telegramService');
-  
-  // Получаем Telegram ID, если доступен
-  const telegramId = telegramService.getCachedTelegramUserId();
-  const hasTelegramId = !!telegramId && telegramId !== '0' && telegramId !== 'null';
-  
-  // Всегда получаем или создаем guest_id
-  const guestId = getOrCreateGuestId();
-  
-  return {
-    hasTelegramId,
-    hasGuestId: !!guestId,
-    telegramId: hasTelegramId ? Number(telegramId) : null,
-    guestId
-  };
-}
-
-export default {
-  hasGuestId,
-  getGuestId,
-  saveGuestId,
-  createGuestId,
-  getOrCreateGuestId,
-  clearGuestId,
-  getUserIdentifier
 };
+
+/**
+ * Сохраняет новый guest_id в localStorage
+ * @param guestId Новый guest_id для сохранения
+ * @param options Параметры для работы с guest_id
+ * @returns true если сохранение успешно, иначе false
+ */
+export const saveGuestId = (guestId: string, options: GuestIdOptions = {}): boolean => {
+  const storageKey = options.storageKey || DEFAULT_STORAGE_KEY;
+  
+  if (!guestId) {
+    console.error('[GuestIdService] Попытка сохранить пустой guest_id');
+    return false;
+  }
+  
+  try {
+    localStorage.setItem(storageKey, guestId);
+    console.log('[GuestIdService] guest_id успешно сохранен:', guestId);
+    return true;
+  } catch (error) {
+    console.error('[GuestIdService] Ошибка при сохранении guest_id:', error);
+    return false;
+  }
+};
+
+/**
+ * Проверяет, существует ли уже guest_id в localStorage
+ * @param options Параметры для работы с guest_id
+ * @returns true если guest_id существует, иначе false
+ */
+export const hasGuestId = (options: GuestIdOptions = {}): boolean => {
+  const storageKey = options.storageKey || DEFAULT_STORAGE_KEY;
+  
+  try {
+    const existingGuestId = localStorage.getItem(storageKey);
+    return !!existingGuestId;
+  } catch (error) {
+    console.error('[GuestIdService] Ошибка при проверке наличия guest_id:', error);
+    return false;
+  }
+};
+
+/**
+ * Удаляет guest_id из localStorage
+ * @param options Параметры для работы с guest_id
+ * @returns true если удаление успешно, иначе false
+ */
+export const removeGuestId = (options: GuestIdOptions = {}): boolean => {
+  const storageKey = options.storageKey || DEFAULT_STORAGE_KEY;
+  
+  try {
+    localStorage.removeItem(storageKey);
+    console.log('[GuestIdService] guest_id успешно удален');
+    return true;
+  } catch (error) {
+    console.error('[GuestIdService] Ошибка при удалении guest_id:', error);
+    return false;
+  }
+};
+
+// Экспортируем объект сервиса для удобства использования
+export const GuestIdService = {
+  get: getGuestId,
+  save: saveGuestId,
+  has: hasGuestId,
+  remove: removeGuestId
+};
+
+export default GuestIdService;
