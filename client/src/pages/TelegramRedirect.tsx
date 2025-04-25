@@ -11,6 +11,9 @@ export default function TelegramRedirect() {
   const telegramAppUrl = "https://t.me/UniFarming_Bot/UniFarm";
   
   useEffect(() => {
+    // Устанавливаем флаг попытки редиректа
+    sessionStorage.setItem('redirect_attempted', 'true');
+    
     // Запускаем обратный отсчет
     const timer = setInterval(() => {
       setCountdown(prevCount => {

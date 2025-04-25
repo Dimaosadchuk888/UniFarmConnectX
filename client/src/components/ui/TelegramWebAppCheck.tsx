@@ -39,6 +39,7 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
       const noRedirect = urlParams.get('no_redirect') === 'true';
       const debugMode = urlParams.get('debug') === 'true';
       const redirectDisabled = localStorage.getItem('disable_redirect') === 'true';
+      const redirectAttempted = sessionStorage.getItem('redirect_attempted') === 'true';
       
       // В режиме разработки не делаем перенаправление
       if (process.env.NODE_ENV === 'development' && !debugMode) {
@@ -48,9 +49,13 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
         return;
       }
       
-      // Если пользователь явно отключил перенаправление
-      if (noRedirect || redirectDisabled) {
-        console.log('[TelegramWebAppCheck] Перенаправление отключено параметром или localStorage');
+      // Если пользователь явно отключил перенаправление или уже была попытка
+      if (noRedirect || redirectDisabled || redirectAttempted) {
+        console.log('[TelegramWebAppCheck] Перенаправление отключено:', { 
+          noRedirect, 
+          redirectDisabled,
+          redirectAttempted 
+        });
         setIsTelegramApp(true);
         setIsChecking(false);
         return;
@@ -63,6 +68,7 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
       console.log('[TelegramWebAppCheck] Проверка запуска в Telegram Mini App:', {
         isTelegramAvailable,
         isWebAppAvailable,
+        redirectAttempted,
         currentLocation: location,
         userAgent: navigator.userAgent
       });
@@ -70,6 +76,9 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
       // Если мы не в Telegram WebApp, выполняем редирект
       if (!isWebAppAvailable) {
         console.log('[TelegramWebAppCheck] Требуется перенаправление на Telegram Mini App');
+        
+        // Устанавливаем флаг, что была попытка редиректа
+        sessionStorage.setItem('redirect_attempted', 'true');
         
         // Поскольку мы находимся в компоненте React, используем wouter для навигации
         setLocation('/telegram-redirect');
