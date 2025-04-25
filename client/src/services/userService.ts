@@ -60,7 +60,15 @@ class UserService {
       
       console.log(`[UserService] AirDrop: Сгенерирован временный ID: ${tempId} для пользователя ${username}`);
       
-      // Отправляем запрос на регистрацию с минимальными данными
+      // Импортируем GuestIdService для получения guest_id
+      const { getGuestId } = await import('./guestIdService');
+      
+      // Получаем guest_id из localStorage или создаем новый
+      const guestId = getGuestId();
+      
+      console.log(`[UserService] AirDrop: Используем guest_id: ${guestId}`);
+      
+      // Отправляем запрос на регистрацию с минимальными данными, включая guest_id
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: {
@@ -69,7 +77,8 @@ class UserService {
         body: JSON.stringify({
           telegram_user_id: tempId,
           username: username,
-          airdrop_mode: true // Явно указываем, что это режим AirDrop
+          airdrop_mode: true, // Явно указываем, что это режим AirDrop
+          guest_id: guestId // Добавляем guest_id в запрос
         })
       });
       

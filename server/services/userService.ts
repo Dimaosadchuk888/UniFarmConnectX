@@ -2,6 +2,7 @@ import { db } from '../db';
 import { users, User } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { storage } from '../storage';
+import * as crypto from 'crypto';
 
 /**
  * Сервис для работы с пользователями
@@ -63,7 +64,8 @@ export class UserService {
     console.log(`[UserService] createUser: Trying to create user with userData:`, {
       telegram_id: userData.telegram_id,
       username: userData.username,
-      ref_code: userData.ref_code
+      ref_code: userData.ref_code,
+      guest_id: userData.guest_id || 'not provided'
     });
     
     try {
@@ -89,6 +91,12 @@ export class UserService {
         console.log(`[UserService] Generated new ref_code: ${userData.ref_code}`);
       }
       
+      // Генерируем guest_id, если он не предоставлен
+      if (!userData.guest_id) {
+        userData.guest_id = crypto.randomUUID();
+        console.log(`[UserService] Generated new guest_id: ${userData.guest_id}`);
+      }
+      
       // Установка значений по умолчанию для баланса
       if (!userData.balance_uni) {
         userData.balance_uni = "100"; // Начальный бонус в UNI
@@ -104,7 +112,7 @@ export class UserService {
         .values(userData)
         .returning();
       
-      console.log(`[UserService] Successfully created user: id=${user.id}, telegram_id=${user.telegram_id}, ref_code=${user.ref_code}`);
+      console.log(`[UserService] Successfully created user: id=${user.id}, telegram_id=${user.telegram_id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
       
       return user;
     } catch (error) {
@@ -187,5 +195,27 @@ export class UserService {
    */
   static generateRefCode(): string {
     return storage.generateRefCode();
+  }
+
+  /**
+   * Получает пользователя по guest_id
+   * @param guestId Уникальный идентификатор гостя
+   * @returns Данные пользователя или undefined
+   */
+  static async getUserByGuestId(guestId: string): Promise<User | undefined> {
+    console.log(`[UserService] Searching for user with guestId ${guestId}`);
+    
+    // Проверка на валидность ID
+    if (!guestId || guestId.trim() === '') {
+      console.error(`[UserService] Invalid guestId: ${guestId}`);
+      return undefined;
+    }
+    
+    try {
+      return await storage.getUserByGuestId(guestId);
+    } catch (error) {
+      console.error(`[UserService] Error retrieving user by guestId ${guestId}:`, error);
+      throw error;
+    }
   }
 }

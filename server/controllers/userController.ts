@@ -221,9 +221,43 @@ export class UserController {
         }
       }
       
+      // Проверяем наличие guest_id в разных источниках
+      let guestId: string | undefined;
+      
+      // 1. Проверяем query параметры
+      if (req.query.guest_id) {
+        guestId = req.query.guest_id as string;
+        console.log(`[UserController] Found guest_id in query params: ${guestId}`);
+      }
+      
+      // 2. Проверяем HTTP заголовки
+      if (!guestId) {
+        const guestIdHeaders = [
+          'guest-id', 'Guest-Id', 'GUEST-ID', 
+          'x-guest-id', 'X-Guest-Id', 'X-GUEST-ID'
+        ];
+        
+        for (const headerName of guestIdHeaders) {
+          const headerValue = req.headers[headerName] as string;
+          if (headerValue && headerValue.trim() !== '') {
+            guestId = headerValue;
+            console.log(`[UserController] Found guest_id in header ${headerName}: ${guestId}`);
+            break;
+          }
+        }
+      }
+      
+      // 3. Проверяем тело запроса
+      if (!guestId && req.method === 'POST' && req.body) {
+        if (typeof req.body === 'object' && req.body.guest_id) {
+          guestId = req.body.guest_id;
+          console.log(`[UserController] Found guest_id in request body: ${guestId}`);
+        }
+      }
+      
       // В PRODUCTION мы полностью исключаем использование telegram_id из заголовков (п.2.1 ТЗ)
       // В DEV режиме можем использовать fallback для удобства разработки
-      if (process.env.NODE_ENV === 'development' && !telegramId) {
+      if (process.env.NODE_ENV === 'development' && !telegramId && !guestId) {
         console.log('[UserController] В режиме разработки включен fallback для Telegram ID');
         
         // Только для режима разработки - создаем тестового пользователя с ID=1
@@ -239,8 +273,26 @@ export class UserController {
 
       let existingUser = null;
       
-      // Если есть telegram_id, ищем пользователя
-      if (telegramId) {
+      // Сначала ищем пользователя по guest_id (более приоритетный идентификатор)
+      if (guestId) {
+        console.log(`[UserController] Searching for user with guest_id ${guestId}`);
+        try {
+          existingUser = await UserService.getUserByGuestId(guestId);
+          
+          if (existingUser) {
+            // Пользователь найден - используем его ID
+            userId = existingUser.id;
+            console.log(`[UserController] User found with ID ${userId} for guest_id ${guestId}`);
+          } else {
+            console.log(`[UserController] No user found with guest_id ${guestId}`);
+          }
+        } catch (error) {
+          console.error(`[UserController] Error searching for user by guest_id:`, error);
+        }
+      }
+      
+      // Если пользователь не найден по guest_id и есть telegram_id, ищем по нему
+      if (!existingUser && telegramId) {
         console.log(`[UserController] Searching for user with Telegram ID ${telegramId} (type: ${typeof telegramId})`);
         
         try {
