@@ -29,7 +29,7 @@ export interface IStorage {
   updateUserParentRefCode(userId: number, parentRefCode: string): Promise<User | undefined>;
   getUsersByParentRefCode(parentRefCode: string): Promise<User[]>;
   
-  // Методы для работы с guest_id
+  // Методы для работы с guest_id (Этап 3.1)
   generateGuestId(): string;
   getUserByGuestId(guestId: string): Promise<User | undefined>;
   

@@ -418,6 +418,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/wallet/balance", UserController.getUserBalance);
   app.get("/api/me", UserController.getCurrentUser);
   
+  // Маршрут для восстановления сессии по guest_id (Этап 3.1)
+  app.get("/api/restore-session", SessionController.restoreSession);
+  
   // Маршруты для миграций и обслуживания базы данных (только для разработки)
   app.post("/api/migrations/add-guest-id", runAddGuestIdMigration);
   

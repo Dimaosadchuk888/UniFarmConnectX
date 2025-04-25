@@ -196,7 +196,7 @@ export class UserController {
           
           // Если данные прошли проверку, используем полученные значения
           if (validationResult.isValid) {
-            telegramId = validationResult.userId;
+            telegramId = validationResult.userId !== undefined ? validationResult.userId : null;
             username = validationResult.username || username;
             firstName = validationResult.firstName || null;
             lastName = validationResult.lastName || null;
@@ -409,10 +409,10 @@ export class UserController {
               try {
                 console.log(`[UserController] [ReferralSystem] Creating referral relationship: user ${userId} invited by ${refInviterId}`);
                 const { ReferralService } = await import('../services/referralService');
-                const referral = await ReferralService.createReferralRelationship(userId, refInviterId, 1);
+                const result = await ReferralService.createReferralRelationship(userId, refInviterId, 1);
                 
-                if (referral) {
-                  console.log(`[UserController] [ReferralSystem] Successfully created referral ID=${referral.id}`);
+                if (result && result.referral) {
+                  console.log(`[UserController] [ReferralSystem] Successfully created referral ID=${result.referral.id}`);
                 } else {
                   console.warn(`[UserController] [ReferralSystem] Failed to create referral relationship`);
                 }
