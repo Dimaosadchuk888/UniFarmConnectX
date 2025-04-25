@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import path from "path";
+import fs from "fs";
 
 // Расширяем тип WebSocket для поддержки пользовательских свойств
 interface ExtendedWebSocket extends WebSocket {
@@ -1097,6 +1098,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Корневой URL всегда обрабатываем обычным образом
   app.get('/', (req: Request, res: Response, next: NextFunction) => {
+    // Проверяем, содержит ли URL параметр startapp, который используется Telegram
+    if (req.query.startapp !== undefined) {
+      console.log('[TelegramWebApp] Обнаружен запуск через ?startapp параметр:', req.url);
+      
+      // Для продакшн-окружения возвращаем index.html
+      if (process.env.NODE_ENV === 'production') {
+        const indexPath = path.resolve('dist/public/index.html');
+        if (fs.existsSync(indexPath)) {
+          console.log('[TelegramWebApp] Отправляем index.html из', indexPath);
+          return res.sendFile(indexPath);
+        } else {
+          console.warn('[TelegramWebApp] Файл index.html не найден по пути:', indexPath);
+          // Пробуем альтернативные пути
+          const altPaths = [
+            path.resolve('dist/index.html'),
+            path.resolve('public/index.html'),
+            path.resolve('client/dist/index.html')
+          ];
+          
+          for (const altPath of altPaths) {
+            if (fs.existsSync(altPath)) {
+              console.log('[TelegramWebApp] Отправляем index.html из альтернативного пути:', altPath);
+              return res.sendFile(altPath);
+            }
+          }
+        }
+      }
+    }
     next();
   });
   
