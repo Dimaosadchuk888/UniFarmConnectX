@@ -459,17 +459,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  // Создание пользователя только на основе guest_id (без Telegram)
-  /**
-   * Метод заменен на более новую версию в конце файла
-   * @see createGuestUser implementation for Этап 4 and 5
-   */
-  async createGuestUserLegacy(): Promise<User> {
-    // Этот метод оставлен для совместимости, но не должен использоваться
-    // Вместо него используйте обновленную версию createGuestUser
-    console.warn('[Storage] ⚠️ Попытка вызова устаревшего метода createGuestUserLegacy');
-    throw new Error('Метод устарел. Используйте новую версию createGuestUser');
-  }
+  // Метод createGuestUserLegacy удален в рамках Этапа 10 (финальная зачистка)
   
   // Методы для работы с ref_code
   
