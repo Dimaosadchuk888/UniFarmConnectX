@@ -653,20 +653,7 @@ export class AuthController {
         refCode = startParam.substring(4);
         console.log(`[AUTH] [ReferralSystem] Обнаружен реферальный код из startParam: ${refCode}`);
       }
-      // Поддержка устаревшего формата user{id}
-      else if (!refCode && startParam.startsWith('user')) {
-        const userId = startParam.substring(4);
-        console.log(`[AUTH] [ReferralSystem] Обнаружен устаревший формат с userId: ${userId}`);
-        
-        // Пытаемся найти пользователя по ID
-        if (userId && !isNaN(parseInt(userId))) {
-          const foundUser = await storage.getUserById(parseInt(userId));
-          if (foundUser && foundUser.ref_code) {
-            refCode = foundUser.ref_code;
-            console.log(`[AUTH] [ReferralSystem] Преобразовано в ref_code: ${refCode}`);
-          }
-        }
-      }
+      // Поддержка устаревшего формата user{id} удалена в рамках Этапа 10 (финальная зачистка)
       
       // Если в startParam нет ref_code, проверяем referrerId
       let inviterId = 0;
