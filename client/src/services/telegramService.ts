@@ -1457,7 +1457,13 @@ export async function registerUserWithTelegram(refCode?: string): Promise<{
       }
     }
     
-    // Создаем тело запроса
+    // Импортируем GuestIdService для получения guest_id
+    const { getGuestId } = await import('./guestIdService');
+    
+    // Получаем guest_id из localStorage или создаем новый
+    const guestId = getGuestId();
+    
+    // Создаем тело запроса с включением guest_id
     const requestBody = {
       telegram_user_id: userData.userId,
       username: userData.username || '',
@@ -1465,7 +1471,8 @@ export async function registerUserWithTelegram(refCode?: string): Promise<{
       last_name: userData.lastName || '',
       photo_url: userData.photoUrl || '',
       ref_code: refCode || window.Telegram?.WebApp?.startParam || '',
-      init_data: initData
+      init_data: initData,
+      guest_id: guestId // Добавляем guest_id в запрос на регистрацию
     };
     
     console.log('[telegramService] Sending registration request with data:', {
