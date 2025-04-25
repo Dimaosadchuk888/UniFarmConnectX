@@ -18,6 +18,108 @@ export class AuthController {
   private static BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
   
   /**
+   * Регистрация гостевого пользователя только по guest_id (Этап 4 - AirDrop режим)
+   * Создает пользователя без требования Telegram данных
+   */
+  static async registerGuestUser(req: Request, res: Response): Promise<void> {
+    try {
+      // Извлекаем данные из тела запроса
+      const {
+        guest_id,
+        username,
+        parent_ref_code,
+        startapp // Параметр для обработки реферальных ссылок в AirDrop режиме
+      } = req.body;
+      
+      console.log(`[AirDrop] Запрос на создание гостевого пользователя:`, {
+        guest_id: guest_id || 'не указан',
+        username: username || 'не указан', 
+        parent_ref_code: parent_ref_code || 'не указан',
+        startapp: startapp || 'не указан'
+      });
+      
+      // Проверяем наличие guest_id
+      if (!guest_id) {
+        console.error('[AirDrop] Отсутствует обязательный параметр guest_id');
+        return sendError(res, 'Отсутствует идентификатор гостя', 400);
+      }
+      
+      // Проверяем, существует ли пользователь с таким guest_id
+      let user = await storage.getUserByGuestId(guest_id);
+      let isNewUser = false;
+      
+      if (user) {
+        // Пользователь уже существует, просто возвращаем информацию
+        console.log(`[AirDrop] Пользователь уже существует по guest_id=${guest_id}, user_id=${user.id}`);
+      } else {
+        // Создаем нового пользователя
+        isNewUser = true;
+        
+        // Обрабатываем реферальный код из startapp параметра
+        let refCodeFromStartApp = null;
+        if (startapp && startapp.length > 0) {
+          console.log(`[AirDrop] Получен параметр startapp: ${startapp}`);
+          refCodeFromStartApp = startapp;
+        }
+        
+        // Определяем родительский реферальный код
+        const effectiveParentRefCode = parent_ref_code || refCodeFromStartApp || null;
+        
+        if (effectiveParentRefCode) {
+          console.log(`[AirDrop] Установлен родительский реферальный код: ${effectiveParentRefCode}`);
+        }
+        
+        try {
+          // Создаем пользователя через метод createGuestUser
+          user = await storage.createGuestUser({
+            guest_id: guest_id,
+            username: username || `airdrop_${Math.floor(Math.random() * 10000)}`,
+            balance_uni: "100", // Начальный бонус
+            balance_ton: "0", 
+            parent_ref_code: effectiveParentRefCode,
+            created_at: new Date()
+          });
+          
+          console.log(`[AirDrop] Пользователь успешно создан:`, {
+            id: user?.id,
+            guest_id: user?.guest_id,
+            ref_code: user?.ref_code,
+            parent_ref_code: user?.parent_ref_code
+          });
+        } catch (err) {
+          const createError = err as Error;
+          console.error(`[AirDrop] Ошибка при создании пользователя:`, createError);
+          return sendServerError(res, `Ошибка при создании пользователя: ${createError.message || 'Неизвестная ошибка'}`);
+        }
+      }
+      
+      // Проверяем, что пользователь был успешно создан или найден
+      if (!user) {
+        return sendError(res, 'Не удалось создать или найти пользователя', 500);
+      }
+      
+      // Формируем ответ с данными пользователя
+      const responseData = {
+        user_id: user.id,
+        username: user.username,
+        ref_code: user.ref_code,
+        guest_id: user.guest_id,
+        parent_ref_code: user.parent_ref_code,
+        balance_uni: user.balance_uni,
+        created_at: user.created_at,
+        is_new_user: isNewUser
+      };
+      
+      // Отправляем успешный ответ
+      sendSuccess(res, responseData);
+    } catch (err) {
+      const error = err as Error;
+      console.error('[AirDrop] Ошибка при обработке запроса:', error);
+      sendServerError(res, error.message || 'Неизвестная ошибка');
+    }
+  }
+  
+  /**
    * Регистрация нового пользователя по данным из Telegram WebApp initData (ТЗ 2.1)
    */
   static async registerUser(req: Request, res: Response): Promise<void> {
