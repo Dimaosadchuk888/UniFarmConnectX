@@ -43,6 +43,52 @@ const CACHE_TTL = 60 * 60 * 1000;
  */
 class UserService {
   /**
+   * Регистрирует пользователя в режиме AirDrop без требования данных Telegram
+   * Используется как альтернативный способ регистрации для максимальной доступности
+   * @returns {Promise<boolean>} Результат операции
+   */
+  async registerInAirDropMode(): Promise<boolean> {
+    console.log('[UserService] Запуск регистрации в режиме AirDrop...');
+    
+    try {
+      // Генерируем временный ID на основе timestamp
+      const tempId = Math.floor(Date.now() / 1000);
+      const username = `airdrop_user_${tempId}`;
+      
+      // Отправляем запрос на регистрацию с минимальными данными
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          telegram_user_id: tempId,
+          username: username,
+          airdrop_mode: true // Явно указываем, что это режим AirDrop
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('[UserService] Успешная регистрация в режиме AirDrop:', result);
+        
+        // Сохраняем данные пользователя в кэш
+        if (result && result.data) {
+          this.cacheUserData(result.data);
+        }
+        
+        return true;
+      } else {
+        console.error('[UserService] Ошибка регистрации в режиме AirDrop:', 
+          await response.text());
+        return false;
+      }
+    } catch (error) {
+      console.error('[UserService] Исключение при регистрации в режиме AirDrop:', error);
+      return false;
+    }
+  }
+  /**
    * Получает информацию о текущем пользователе с оптимизированной обработкой ошибок
    * @param {boolean} [forceReload=false] - Если true, игнорирует кэш и делает новый запрос
    * @returns {Promise<User>} Данные текущего пользователя

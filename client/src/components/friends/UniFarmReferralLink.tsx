@@ -124,7 +124,7 @@ const UniFarmReferralLink: React.FC = () => {
                     // После успешной регистрации обновляем данные
                     window.location.reload();
                   })
-                  .catch(err => {
+                  .catch((err: Error) => {
                     console.error("Ошибка регистрации в режиме AirDrop:", err);
                     alert("Не удалось выполнить регистрацию. Пожалуйста, попробуйте еще раз.");
                   });

@@ -87,7 +87,7 @@ export class AuthController {
           created_at: new Date()
         });
         
-        console.log(`[REGISTER] Новый пользователь создан: id=${user.id}, telegram_id=${telegram_user_id}, ref_code=${newRefCode}`);
+        console.log(`[REGISTER] Новый пользователь создан: id=${user.id}, telegram_id=${user_telegram_id}, ref_code=${newRefCode}`);
       }
       
       // Проверяем, что пользователь был успешно создан или найден
