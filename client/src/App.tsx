@@ -35,6 +35,7 @@ import ReferralDebug from "./pages/ReferralDebug";
 import AuditPage from "./pages/AuditPage";
 import TelegramSetupGuide from "./pages/TelegramSetupGuide";
 import TelegramValidationTool from "./pages/TelegramValidationTool";
+import TelegramRedirect from "./pages/TelegramRedirect";
 
 // For Telegram WebApp types
 // Обновлено определение глобального интерфейса для Telegram WebApp
@@ -369,6 +370,11 @@ function App() {
         
         <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
           <Switch>
+            {/* Специальная страница для перенаправления на Telegram Mini App */}
+            <Route path="/telegram-redirect">
+              <TelegramRedirect />
+            </Route>
+            
             {/* Специальная страница для тестирования Telegram */}
             <Route path="/telegram-test">
               <TelegramTest />

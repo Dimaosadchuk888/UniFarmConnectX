@@ -8,7 +8,7 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
-    <!-- Скрипт для исправления URL с слешем в конце и сохранения Telegram WebApp данных -->
+    <!-- Скрипт для исправления URL и перенаправления на Telegram Mini App -->
     <script>
       // Удаление слеша
       if (window.location.pathname.endsWith('/') && window.location.pathname !== '/') {
@@ -17,6 +17,53 @@
         );
         console.log('[URL Fix] Исправлен URL со слешем в конце');
       }
+
+      // Перенаправление на Telegram Mini App если приложение открыто в обычном браузере
+      (function() {
+        const hostParts = location.host.split('.');
+        const isDevelopmentHost = location.host.includes('replit.dev');
+        const productionHost = 'uni-farm-connect-2-misterxuniverse.replit.app';
+        
+        // Получаем настройки из localStorage
+        const redirectDisabled = localStorage.getItem('disable_redirect') === 'true';
+        const isTelegramAvailable = typeof window.Telegram !== 'undefined';
+        const hasURLParam = location.search.includes('no_redirect=true');
+        
+        console.log('[Redirect Check]', {
+          currentHost: location.host,
+          isDevelopmentHost,
+          isTelegramAvailable,
+          redirectDisabled,
+          hasURLParam
+        });
+        
+        // Если открыто в обычном браузере и не в режиме разработки
+        if (!isTelegramAvailable && !redirectDisabled && !hasURLParam && !isDevelopmentHost) {
+          const telegramMiniAppUrl = 'https://t.me/UniFarming_Bot/UniFarm';
+          
+          console.log(`[Redirect] Перенаправление на Telegram Mini App: ${telegramMiniAppUrl}`);
+          
+          // Показываем сообщение и даем пользователю 2 секунды на чтение
+          const message = document.createElement('div');
+          message.style.position = 'fixed';
+          message.style.top = '0';
+          message.style.left = '0';
+          message.style.width = '100%';
+          message.style.padding = '20px';
+          message.style.backgroundColor = '#1B73E8';
+          message.style.color = 'white';
+          message.style.textAlign = 'center';
+          message.style.zIndex = '9999';
+          message.innerHTML = 'Перенаправление на Telegram Mini App...';
+          
+          document.body ? document.body.appendChild(message) : document.addEventListener('DOMContentLoaded', () => document.body.appendChild(message));
+          
+          // Делаем перенаправление с небольшой задержкой
+          setTimeout(() => {
+            window.location.href = telegramMiniAppUrl;
+          }, 1500);
+        }
+      })();
 
       // Проверка Telegram API
       window.addEventListener('DOMContentLoaded', function () {
@@ -31,8 +78,16 @@
 
         if (isWebAppAvailable && window.Telegram.WebApp.initData) {
           try {
+            // Сохраняем и в sessionStorage, и в localStorage для надежности
             sessionStorage.setItem('telegramInitData', window.Telegram.WebApp.initData);
-            console.log('[Telegram WebApp] InitData сохранен в sessionStorage');
+            localStorage.setItem('telegramInitData', window.Telegram.WebApp.initData);
+            console.log('[Telegram WebApp] InitData сохранен в sessionStorage и localStorage');
+            
+            // Сохраняем ключевые поля отдельно для большей надежности
+            if (window.Telegram.WebApp.initDataUnsafe?.user?.id) {
+              localStorage.setItem('telegram_user_id', window.Telegram.WebApp.initDataUnsafe.user.id);
+              console.log('[Telegram WebApp] User ID сохранен:', window.Telegram.WebApp.initDataUnsafe.user.id);
+            }
           } catch (e) {
             console.error('[Telegram WebApp] Save error:', e);
           }
