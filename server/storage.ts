@@ -23,6 +23,10 @@ export interface IStorage {
   getUserByRefCode(refCode: string): Promise<User | undefined>;
   updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
   
+  // Методы для работы с guest_id
+  generateGuestId(): string;
+  getUserByGuestId(guestId: string): Promise<User | undefined>;
+  
   // Методы для работы с Telegram
   getUserByTelegramId(telegramId: number): Promise<User | undefined>;
   createUserWithTelegram(userData: {
@@ -42,6 +46,17 @@ export interface IStorage {
   // Новый метод для создания пользователя в основной таблице users
   createMainUser(userData: {
     telegram_id: number;
+    guest_id?: string; // Добавляем guest_id
+    username?: string;
+    balance_uni?: string;
+    balance_ton?: string;
+    ref_code: string;
+    created_at?: Date;
+  }): Promise<User>;
+  
+  // Создание пользователя только на основе guest_id (без Telegram)
+  createGuestUser(userData: {
+    guest_id: string;
     username?: string;
     balance_uni?: string;
     balance_ton?: string;
@@ -58,6 +73,7 @@ export class DatabaseStorage implements IStorage {
   // Создание пользователя в таблице users для AirDrop и аутентификации
   async createMainUser(userData: {
     telegram_id: number;
+    guest_id?: string; // Добавляем поддержку guest_id
     username?: string;
     balance_uni?: string;
     balance_ton?: string;
@@ -66,6 +82,7 @@ export class DatabaseStorage implements IStorage {
   }): Promise<User> {
     console.log(`[Storage] Создание пользователя в основной таблице users:`, {
       telegram_id: userData.telegram_id,
+      guest_id: userData.guest_id || 'not provided',
       username: userData.username,
       ref_code: userData.ref_code
     });
@@ -74,6 +91,7 @@ export class DatabaseStorage implements IStorage {
       // Подготавливаем данные для вставки
       const insertData = {
         telegram_id: userData.telegram_id,
+        guest_id: userData.guest_id || this.generateGuestId(), // Если не указан, генерируем новый guest_id
         username: userData.username || `user_${userData.telegram_id}`,
         ref_code: userData.ref_code,
         balance_uni: userData.balance_uni || "100", // По умолчанию даем 100 UNI
@@ -87,7 +105,7 @@ export class DatabaseStorage implements IStorage {
         .values(insertData)
         .returning();
       
-      console.log(`[Storage] Пользователь успешно создан в таблице users: ID=${user.id}, telegram_id=${user.telegram_id}, ref_code=${user.ref_code}`);
+      console.log(`[Storage] Пользователь успешно создан в таблице users: ID=${user.id}, telegram_id=${user.telegram_id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
       
       return user;
     } catch (error) {
@@ -128,6 +146,7 @@ export class DatabaseStorage implements IStorage {
     referrer_id: number | null;
     created_at: Date;
     updated_at: Date;
+    guest_id?: string; // Добавляем поддержку guest_id
   }): Promise<User> {
     console.log(`[Storage] Создание пользователя через Telegram: ${userData.telegram_id}`);
     
@@ -137,6 +156,20 @@ export class DatabaseStorage implements IStorage {
       
       if (existingUser) {
         console.log(`[Storage] Пользователь с Telegram ID ${userData.telegram_id} уже существует`);
+        
+        // Если у существующего пользователя нет guest_id, но он был передан в этот метод,
+        // обновляем запись пользователя, добавив guest_id
+        if (!existingUser.guest_id && userData.guest_id) {
+          console.log(`[Storage] Обновляем существующего пользователя, добавляя guest_id: ${userData.guest_id}`);
+          const [updatedUser] = await db
+            .update(users)
+            .set({ guest_id: userData.guest_id })
+            .where(eq(users.id, existingUser.id))
+            .returning();
+          
+          return updatedUser;
+        }
+        
         return existingUser;
       }
       
@@ -145,18 +178,19 @@ export class DatabaseStorage implements IStorage {
         .insert(users)
         .values({
           telegram_id: userData.telegram_id,
+          guest_id: userData.guest_id || this.generateGuestId(), // Генерируем guest_id, если не передан
           username: userData.username, // Основной username для отображения
           wallet: null, // Поле wallet для совместимости
           ton_wallet_address: userData.wallet_address,
           ref_code: userData.ref_code,
           balance_uni: "0", // Нулевой баланс UNI
           balance_ton: "0", // Нулевой баланс TON
-          uni_farming_rate: userData.farming_rate.toString(), // Преобразуем в строку
+          uni_farming_rate: userData.farming_rate?.toString() || "0", // Преобразуем в строку
           created_at: userData.created_at
         })
         .returning();
       
-      console.log(`[Storage] Пользователь через Telegram успешно создан: ID=${user.id}, telegram_id=${user.telegram_id}`);
+      console.log(`[Storage] Пользователь через Telegram успешно создан: ID=${user.id}, telegram_id=${user.telegram_id}, guest_id=${user.guest_id}`);
       
       return user;
     } catch (error) {
@@ -260,6 +294,82 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`[Storage] Ошибка при обновлении адреса кошелька пользователя ${userId}:`, error);
       return undefined;
+    }
+  }
+  
+  // Методы для работы с guest_id
+  
+  // Генерирует уникальный guest_id на основе UUID v4
+  generateGuestId(): string {
+    // UUID v4 для большей уникальности и безопасности
+    const uuid = crypto.randomUUID();
+    console.log(`[Storage] Сгенерирован новый guest_id (UUID v4): ${uuid}`);
+    return uuid;
+  }
+  
+  // Получает пользователя по guest_id
+  async getUserByGuestId(guestId: string): Promise<User | undefined> {
+    console.log(`[Storage] Поиск пользователя по guest_id: ${guestId}`);
+    
+    try {
+      const [user] = await db.select().from(users).where(eq(users.guest_id, guestId));
+      
+      if (user) {
+        console.log(`[Storage AUDIT] Найден пользователь по guest_id: ID=${user.id}, guest_id=${user.guest_id}`);
+      } else {
+        console.log(`[Storage AUDIT] Пользователь с guest_id ${guestId} не найден в базе`);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при поиске пользователя по guest_id ${guestId}:`, error);
+      return undefined;
+    }
+  }
+  
+  // Создание пользователя только на основе guest_id (без Telegram)
+  async createGuestUser(userData: {
+    guest_id: string;
+    username?: string;
+    balance_uni?: string;
+    balance_ton?: string;
+    ref_code: string;
+    created_at?: Date;
+  }): Promise<User> {
+    console.log(`[Storage] Создание гостевого пользователя с guest_id: ${userData.guest_id}`);
+    
+    try {
+      // Проверяем, существует ли уже пользователь с таким guest_id
+      const existingUser = await this.getUserByGuestId(userData.guest_id);
+      
+      if (existingUser) {
+        console.log(`[Storage] Пользователь с guest_id ${userData.guest_id} уже существует`);
+        return existingUser;
+      }
+      
+      // Подготавливаем данные для вставки
+      const insertData = {
+        // telegram_id оставляем null, так как это гостевой пользователь
+        guest_id: userData.guest_id,
+        username: userData.username || `guest_${userData.guest_id.substring(0, 8)}`,
+        ref_code: userData.ref_code,
+        balance_uni: userData.balance_uni || "100", // По умолчанию даем 100 UNI
+        balance_ton: userData.balance_ton || "0",
+        created_at: userData.created_at || new Date()
+      };
+      
+      // Выполняем вставку
+      const [user] = await db
+        .insert(users)
+        .values(insertData)
+        .returning();
+      
+      console.log(`[Storage] Гостевой пользователь успешно создан: ID=${user.id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
+      
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при создании гостевого пользователя с guest_id ${userData.guest_id}:`, error);
+      throw error;
     }
   }
   

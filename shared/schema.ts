@@ -13,6 +13,7 @@ export const authUsers = pgTable("auth_users", {
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   telegram_id: bigint("telegram_id", { mode: "number" }).unique(),
+  guest_id: text("guest_id").unique(), // Уникальный идентификатор пользователя, независимый от Telegram
   username: text("username"),
   wallet: text("wallet"),
   ton_wallet_address: text("ton_wallet_address"), // Новое поле для хранения TON-адреса кошелька
@@ -57,6 +58,7 @@ export type AuthUser = typeof authUsers.$inferSelect;
 // Схемы для таблицы users
 export const insertUserSchema = createInsertSchema(users).pick({
   telegram_id: true,
+  guest_id: true, // Добавляем guest_id в схему вставки
   username: true,
   wallet: true,
   ton_wallet_address: true,
