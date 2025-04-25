@@ -1428,7 +1428,13 @@ export async function registerUserWithTelegram(refCode?: string): Promise<{
       // Создаем временный ID для режима AirDrop (для тестирования или работы без Telegram)
       const tempId = Math.floor(Date.now() / 1000); // Используем текущий timestamp
       
-      // Отправляем запрос на сервер с минимальными данными
+      // Импортируем GuestIdService для получения guest_id
+      const { getGuestId } = await import('./guestIdService');
+      
+      // Получаем guest_id из localStorage или создаем новый
+      const guestId = getGuestId();
+      
+      // Отправляем запрос на сервер с минимальными данными, включая guest_id
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: {
@@ -1437,7 +1443,8 @@ export async function registerUserWithTelegram(refCode?: string): Promise<{
         body: JSON.stringify({
           telegram_user_id: tempId,
           username: `airdrop_user_${tempId}`,
-          ref_code: refCode || ''
+          ref_code: refCode || '',
+          guest_id: guestId // Добавляем guest_id в запрос на регистрацию
         })
       });
       
@@ -1478,7 +1485,8 @@ export async function registerUserWithTelegram(refCode?: string): Promise<{
     console.log('[telegramService] Sending registration request with data:', {
       telegram_user_id: requestBody.telegram_user_id,
       username: requestBody.username,
-      ref_code: requestBody.ref_code
+      ref_code: requestBody.ref_code,
+      guest_id: requestBody.guest_id // Добавляем логирование guest_id для отладки
     });
     
     // Отправляем запрос на сервер
