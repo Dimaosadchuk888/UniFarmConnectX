@@ -1352,6 +1352,83 @@ export function getTelegramUserDisplayName(): string {
  * @param {string} refCode - Реферальный код для привязки нового пользователя (необязательно)
  * @returns {Promise<{success: boolean, user_id?: number, message?: string}>} Результат регистрации
  */
+/**
+ * Логирует запуск Mini App в системе (Этап 5.1 ТЗ)
+ * Отправляет информацию о запуске в базу данных через API
+ * 
+ * @returns {Promise<boolean>} true если логирование успешно выполнено
+ */
+export async function logAppLaunch(): Promise<boolean> {
+  console.log('[telegramService] Logging Mini App launch...');
+  
+  try {
+    // Получаем информацию о пользователе из Telegram WebApp
+    const userData = getTelegramUserData();
+    if (!userData || !userData.userId) {
+      console.warn('[telegramService] Cannot log launch: missing user data');
+      return false;
+    }
+    
+    // Получаем параметр запуска (может содержать реферальный код)
+    const startParam = window.Telegram?.WebApp?.startParam || '';
+    
+    // Получаем initData для передачи на сервер (ограничиваем длину для безопасности)
+    const initData = window.Telegram?.WebApp?.initData || '';
+    const truncatedInitData = initData.length > 1000 ? 
+      initData.substring(0, 1000) + '...[truncated]' : 
+      initData;
+    
+    // Получаем информацию о платформе
+    const platform = window.Telegram?.WebApp?.platform || 
+                    (typeof navigator !== 'undefined' ? navigator.platform : 'unknown');
+    
+    // Подготавливаем данные для логирования
+    const launchData = {
+      telegram_user_id: userData.userId,
+      ref_code: startParam,
+      platform,
+      timestamp: new Date().toISOString(),
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      init_data: truncatedInitData
+    };
+    
+    console.log('[telegramService] Sending launch log data:', {
+      telegram_user_id: launchData.telegram_user_id,
+      platform: launchData.platform,
+      ref_code: launchData.ref_code || 'none'
+    });
+    
+    // Отправляем данные на сервер
+    const response = await fetch('/api/log-launch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getTelegramAuthHeaders()
+      },
+      body: JSON.stringify(launchData)
+    });
+    
+    // Проверяем успешность запроса
+    if (response.ok) {
+      const result = await response.json();
+      console.log('[telegramService] Launch logged successfully:', result);
+      return true;
+    } else {
+      // Если превышен лимит запросов, тихо игнорируем
+      if (response.status === 429) {
+        console.warn('[telegramService] Rate limit exceeded for launch logging');
+        return false;
+      }
+      
+      console.error('[telegramService] Failed to log launch:', await response.text());
+      return false;
+    }
+  } catch (error) {
+    console.error('[telegramService] Error logging app launch:', error);
+    return false;
+  }
+}
+
 export async function registerUserWithTelegram(refCode?: string): Promise<{
   success: boolean;
   user_id?: number;
