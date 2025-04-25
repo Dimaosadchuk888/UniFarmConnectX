@@ -59,111 +59,85 @@ const TELEGRAM_DEBUG_MODE_KEY = 'telegram_debug_mode';
 const TELEGRAM_REGISTERED_KEY = 'telegram_user_registered';
 
 /**
- * Проверяет, запущено ли приложение в Telegram WebApp и доступны ли все необходимые свойства API
- * @returns {boolean} true если Telegram WebApp API доступен и содержит необходимые данные
- */
-/**
- * Проверяет, запущено ли приложение в реальной среде Telegram Mini App
- * Включает строгую проверку согласно новым требованиям безопасности
+ * Упрощенная проверка на Telegram WebApp согласно ТЗ для AirDrop приложения
  * 
- * @returns {boolean} true только если приложение точно запущено в Telegram Mini App
+ * Минимальная проверка без строгих ограничений для обеспечения максимальной доступности
+ * 
+ * @returns {boolean} true практически всегда, кроме полностью неподдерживаемых окружений
  */
 export function isRunningInTelegram(): boolean {
-  console.log('[TG INIT] Checking if running in Telegram...');
+  console.log('[TG INIT] Проверка запуска в Telegram (упрощенная для AirDrop)...');
   
-  // 1. Проверяем наличие объекта Telegram и WebApp
+  // 1. Проверяем базовые условия
   const hasTelegramObject = !!window.Telegram;
   const hasWebAppObject = !!window.Telegram?.WebApp;
   
-  // Для логирования
-  let reason = '';
-  let hasValidInitData = false;
-  let initDataLength = 0;
+  // 2. Проверка наличия сохраненных в хранилище данных
+  let hasCachedData = false;
   
-  // 2. Проверяем наличие и длину initData
-  if (hasWebAppObject && window.Telegram && window.Telegram.WebApp && 
-      typeof window.Telegram.WebApp.initData === 'string') {
-    initDataLength = window.Telegram.WebApp.initData.length;
-    hasValidInitData = initDataLength > 10; // Требуем минимальную длину 10 символов
-  }
-  
-  // 3. Проверяем запуск в iframe (как обычно запускаются Mini Apps)
-  const isInIframe = window !== window.parent;
-  
-  // 4. Проверяем User-Agent на признаки Telegram
-  const userAgent = navigator.userAgent.toLowerCase();
-  const isTelegramUA = userAgent.includes('telegram') || 
-                       userAgent.includes('tgweb');
-  
-  // 5. Проверяем referrer на наличие telegram
-  const hasTelegramReferrer = document.referrer.toLowerCase().includes('telegram');
-  
-  // Все проверки должны соответствовать запуску в Telegram Mini App
-  // (кроме режима разработки)
-  
-  // В режиме разработки разрешаем эмуляцию через URL параметр для отладки
-  if (process.env.NODE_ENV === 'development') {
-    // Специальный параметр URL для эмуляции Telegram в режиме разработки
-    const urlParams = new URLSearchParams(window.location.search);
-    const emulateTelegram = urlParams.get('telegram_mode') === 'true';
-    
-    // Для тестирования: если передан параметр, эмулируем Telegram
-    if (emulateTelegram) {
-      console.log('[TG INIT] ⚠️ Telegram environment emulated via URL param (dev mode)');
-      return true;
+  try {
+    // Проверяем sessionStorage
+    const sessionInitData = sessionStorage.getItem('telegramInitData');
+    if (sessionInitData && sessionInitData.length > 0) {
+      hasCachedData = true;
     }
     
-    // Если включена специальная отладка в localStorage
-    try {
-      const debugMode = localStorage.getItem('telegram_debug_mode') === 'true';
-      if (debugMode) {
-        console.log('[TG INIT] ⚠️ Telegram debug mode active via localStorage (dev mode)');
-        return true;
+    // Проверяем localStorage
+    if (!hasCachedData) {
+      const localInitData = localStorage.getItem('telegramInitData');
+      if (localInitData && localInitData.length > 0) {
+        hasCachedData = true;
       }
-    } catch (e) {
-      // Игнорируем ошибки доступа к localStorage
     }
+    
+    // Проверяем флаг запуска в Telegram
+    if (!hasCachedData) {
+      hasCachedData = localStorage.getItem('telegram_launch') === 'true';
+    }
+  } catch (e) {
+    // Игнорируем ошибки доступа к хранилищам
+    console.log('[TG INIT] Ошибка доступа к хранилищу:', e);
   }
   
-  // СТРОГАЯ ПРОВЕРКА: все необходимые условия
-  const isFullTelegramEnvironment = hasTelegramObject && 
-                                   hasWebAppObject && 
-                                   hasValidInitData &&
-                                   (isInIframe || isTelegramUA || hasTelegramReferrer);
-  
-  // Определяем причину отказа для логов
-  if (!hasTelegramObject) {
-    reason = 'window.Telegram объект отсутствует';
-  } else if (!hasWebAppObject) {
-    reason = 'window.Telegram.WebApp объект отсутствует';
-  } else if (!hasValidInitData) {
-    reason = `initData отсутствует или слишком короткий (длина: ${initDataLength})`;
-  } else if (!(isInIframe || isTelegramUA || hasTelegramReferrer)) {
-    reason = 'Окружение не похоже на Telegram (не iframe, нет Telegram в User-Agent или referrer)';
+  // 3. В режиме разработки всегда разрешаем
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[TG INIT] ✅ Режим разработки - разрешаем запуск');
+    return true;
   }
   
-  // Полное логирование всех проверок для отладки
-  console.log('[TG INIT] Telegram environment check:', {
+  // 4. Поддержка параметров URL для тестирования
+  const urlParams = new URLSearchParams(window.location.search);
+  const emulateTelegram = urlParams.get('telegram_mode') === 'true';
+  const debugMode = urlParams.get('debug') === 'true';
+  
+  if (emulateTelegram || debugMode) {
+    console.log('[TG INIT] ✅ Telegram эмулируется через параметры URL');
+    return true;
+  }
+  
+  // 5. УПРОЩЕННАЯ ПРОВЕРКА - достаточно любого признака Telegram
+  const simpleCheckPassed = hasTelegramObject || hasWebAppObject || hasCachedData;
+  
+  // Всегда возвращаем true в production для лучшей совместимости AirDrop
+  if (!simpleCheckPassed && process.env.NODE_ENV === 'production') {
+    console.log('[TG INIT] ⚠️ Признаки Telegram не обнаружены, но разрешаем запуск для AirDrop');
+    return true;
+  }
+  
+  // Диагностическое логирование
+  console.log('[TG INIT] Результат упрощенной проверки Telegram:', {
     hasTelegramObject,
     hasWebAppObject,
-    initDataLength,
-    hasValidInitData,
-    isInIframe,
-    isTelegramUA,
-    hasTelegramReferrer,
-    result: isFullTelegramEnvironment,
-    reason: isFullTelegramEnvironment ? 'OK' : reason,
-    userAgent,
-    referrer: document.referrer || 'none'
+    hasCachedData,
+    environment: process.env.NODE_ENV,
+    emulateTelegram,
+    debugMode,
+    result: simpleCheckPassed
   });
   
-  console.log(`[TG CHECK] Telegram доступен: ${isFullTelegramEnvironment}`);
+  console.log(`[TG CHECK] Telegram доступен для AirDrop: ${simpleCheckPassed}`);
   
-  if (!isFullTelegramEnvironment) {
-    console.log(`[TG CHECK] Инициализация Telegram WebApp невозможна: ${reason}`);
-  }
-  
-  return isFullTelegramEnvironment;
+  return simpleCheckPassed;
 }
 
 /**

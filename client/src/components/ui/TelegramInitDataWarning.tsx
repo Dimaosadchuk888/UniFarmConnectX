@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { isTelegramWebApp } from '@/services/telegramService';
 
 /**
- * Компонент для отображения предупреждения, когда Telegram WebApp не инициализирован правильно
- * или когда initData отсутствует/пустой
+ * Компонент для информационного уведомления о работе в упрощенном режиме для AirDrop
+ * Не блокирует доступ к приложению согласно обновленному ТЗ
  */
-
-// Используем типы из глобального объявления в App.tsx
-// Не переопределяем Window.Telegram, чтобы избежать конфликтов типов
 const TelegramInitDataWarning: React.FC = () => {
+  // Всегда возвращаем null, чтобы не показывать предупреждение
+  // согласно новому ТЗ - "Удалить или отключить компонент TelegramInitDataWarning"
+  return null;
+  
+  // Ниже закомментирован код старой реализации, который можно восстановить при необходимости
+  /*
   const [showWarning, setShowWarning] = useState(false);
   const [initDataLength, setInitDataLength] = useState(0);
   const [hasTelegram, setHasTelegram] = useState(true);
@@ -27,7 +30,8 @@ const TelegramInitDataWarning: React.FC = () => {
       return process.env.NODE_ENV === 'development';
     };
     
-    // Проверяем состояние Telegram WebApp
+    // Проверяем состояние Telegram WebApp и сохраняем информацию в журнал,
+    // но не блокируем доступ к приложению
     const checkTelegramWebAppState = () => {
       // Проверяем наличие API
       const hasTelegramObj = typeof window !== 'undefined' && !!window.Telegram;
@@ -51,28 +55,16 @@ const TelegramInitDataWarning: React.FC = () => {
       
       if ((!initData || initData.trim() === '') && typeof window !== 'undefined') {
         try {
-          // Сначала проверяем sessionStorage (рекомендуется для чувствительных данных)
+          // Проверяем sessionStorage и localStorage
           const sessionInitData = sessionStorage.getItem('telegramInitData');
+          const localInitData = localStorage.getItem('telegramInitData');
+          
           if (sessionInitData && sessionInitData.trim() !== '') {
             initData = sessionInitData;
             usingCachedData = true;
-            console.log('[TelegramInitDataWarning] Using cached initData from sessionStorage');
-          }
-          
-          // Затем проверяем localStorage (для совместимости)
-          if ((!initData || initData.trim() === '') && window.localStorage) {
-            const savedInitData = localStorage.getItem('telegramInitData');
-            if (savedInitData && savedInitData.trim() !== '') {
-              initData = savedInitData;
-              usingCachedData = true;
-              console.log('[TelegramInitDataWarning] Using cached initData from localStorage');
-            }
-            
-            // Для режима разработки - проверяем кэшированные данные пользователя
-            if (isDev && localStorage.getItem('telegram_user_data')) {
-              usingCachedData = true;
-              console.log('[DEV] Using cached Telegram user data for development');
-            }
+          } else if (localInitData && localInitData.trim() !== '') {
+            initData = localInitData;
+            usingCachedData = true;
           }
         } catch (e) {
           console.error('[TelegramInitDataWarning] Error reading from storage:', e);
@@ -81,126 +73,31 @@ const TelegramInitDataWarning: React.FC = () => {
       
       const initDataLen = typeof initData === 'string' ? initData.length : 0;
       
-      setHasTelegram(hasTelegramObj && hasWebAppObj);
-      setInitDataLength(initDataLen);
-      setUsingCachedData(usingCachedData);
-      
-      // Обновлено: всегда показывать предупреждение если не в Telegram,
-      // но разрешать продолжить работу
-      const hasValidData = initDataLen > 0 || usingCachedData;
-      
-      // Показываем предупреждение если:
-      // - Не в режиме разработки И
-      // - Либо нет объекта Telegram, либо нет initData
-      const shouldShowWarning = !isDev && (!hasTelegramObj || !hasValidData);
-      
-      setShowWarning(shouldShowWarning);
-      
+      // Только логирование для аудита, но не показываем пользователю
       console.log('[AUDIT] TelegramInitDataWarning check:', {
         hasTelegramObj,
         hasWebAppObj,
         initDataLen,
         usingCachedData,
-        shouldShowWarning,
         env: process.env.NODE_ENV,
         isDev
       });
     };
     
-    // Проверяем при монтировании
+    // Выполняем только проверку и логирование
     checkTelegramWebAppState();
-    
-    // И повторно проверяем через короткий промежуток времени
-    // для случаев, когда Telegram WebApp инициализируется с задержкой
-    const timeoutId = setTimeout(checkTelegramWebAppState, 3000);
-    
-    return () => clearTimeout(timeoutId);
   }, []);
 
-  // Функция активации режима разработки
+  // Функция активации режима разработки (только для информации)
   const enableDevMode = () => {
-    // Создаем тестовые данные
-    const testUserData = {
-      id: 1,
-      username: 'dev_user',
-      first_name: 'Test',
-      last_name: 'User'
-    };
-    
-    // Генерируем фиктивный initData для тестирования
-    const mockInitData = 'dev_mode=true&user=%7B%22id%22%3A1%2C%22first_name%22%3A%22Test%22%7D&auth_date=1619631535';
-    
-    // Сохраняем данные в localStorage (для долгосрочного хранения)
     localStorage.setItem('dev_mode', 'true');
     localStorage.setItem('telegram_launch', 'true');
-    localStorage.setItem('telegram_user_data', JSON.stringify(testUserData));
-    localStorage.setItem('telegramInitData', mockInitData);
-    
-    // Сохраняем данные также в sessionStorage (для текущей сессии)
-    try {
-      sessionStorage.setItem('telegramInitData', mockInitData);
-      console.log('[DEV] Saved mock initData to sessionStorage');
-    } catch (e) {
-      console.error('[DEV] Error saving to sessionStorage:', e);
-    }
-    
-    alert('🛠️ Режим разработки включен! Страница будет перезагружена.');
     window.location.reload();
   };
 
-  if (!showWarning) {
-    return null;
-  }
-
-  return (
-    <div className={`${usingCachedData ? 'bg-blue-500/90' : 'bg-amber-500/90'} text-black p-3 rounded-lg shadow-lg max-w-md mx-auto mb-4 mt-3`}>
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${usingCachedData ? 'text-blue-800' : 'text-amber-800'}`} viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-        </div>
-        <div className="ml-3">
-          <h3 className={`text-sm font-medium ${usingCachedData ? 'text-blue-900' : 'text-amber-900'}`}>
-            {usingCachedData ? 'Информация о Telegram-сессии' : 'Предупреждение о доступе к Telegram'}
-          </h3>
-          <div className={`mt-2 text-xs ${usingCachedData ? 'text-blue-800' : 'text-amber-800'}`}>
-            {usingCachedData ? (
-              <>
-                <p>
-                  <strong>Используются сохраненные данные Telegram из предыдущей сессии.</strong>
-                </p>
-                <p className="mt-1">
-                  Приложение будет использовать ранее сохраненные данные аутентификации (согласно п.1.2 ТЗ).
-                  {initDataLength > 0 && ` Длина сохраненных данных: ${initDataLength}.`}
-                </p>
-              </>
-            ) : (
-              <>
-                <p>
-                  <strong>Приложение не открыто из Telegram.</strong>
-                </p>
-                <p className="mt-1">
-                  {!hasTelegram 
-                    ? "Отсутствует доступ к Telegram API. Откройте через официальный клиент Telegram."
-                    : `Telegram initData отсутствует (длина: ${initDataLength}). Перезапустите приложение в Telegram.`
-                  }
-                </p>
-                <p className="mt-2">
-                  <button 
-                    onClick={enableDevMode}
-                    className="px-3 py-1 text-xs bg-gray-800 text-white rounded-full hover:bg-gray-700 transition-colors"
-                  >
-                    Включить режим разработки
-                  </button>
-                </p>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // Всегда возвращаем null - компонент отключен согласно ТЗ
+  return null;
+  */
 };
 
 export default TelegramInitDataWarning;
