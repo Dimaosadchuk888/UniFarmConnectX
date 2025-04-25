@@ -26,6 +26,7 @@ import { TransactionController } from './controllers/transactionController';
 import { MissionController } from './controllers/missionController';
 import { FarmingController } from './controllers/farmingController';
 import { ReferralController } from './controllers/referralController';
+import { SessionController } from './controllers/sessionController';
 import { runAddGuestIdMigration } from './controllers/migrationController';
 
 // Импорт обработчика команд для Telegram-бота
