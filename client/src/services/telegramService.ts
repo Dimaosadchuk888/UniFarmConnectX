@@ -782,27 +782,74 @@ export function getTelegramAuthHeaders(): Record<string, string> {
     console.error('[telegramService] Ошибка при проверке актуальности данных:', e);
   }
   
-  // Получаем initData - сначала из Telegram API, потом из localStorage (согласно п.1.2 ТЗ)
-  let initData = window.Telegram?.WebApp?.initData;
+  // Получаем initData из всех возможных источников
+  let initData: string | null = null;
   
-  // Если initData от Telegram доступен и не пустой, сохраняем его в localStorage
-  if (initData && initData.trim() !== '') {
-    try {
-      localStorage.setItem('telegramInitData', initData);
-      console.log('[telegramService] Saved current Telegram initData to localStorage');
-    } catch (e) {
-      console.error('[telegramService] Error saving telegramInitData to localStorage:', e);
+  // Приоритет источников:
+  // 1. Напрямую из Telegram API (текущий сеанс)
+  // 2. Из sessionStorage (сохраненные с текущего сеанса)
+  // 3. Из localStorage (сохраненные с прошлых сеансов)
+  
+  // 1. Пробуем получить данные напрямую из Telegram API
+  try {
+    if (window?.Telegram?.WebApp?.initData) {
+      initData = window.Telegram.WebApp.initData;
+      console.log('[telegramService] получены данные из Telegram WebApp API (длина:', initData.length, ')');
+      
+      // Сохраняем свежие данные в обоих хранилищах для резервного копирования
+      try {
+        localStorage.setItem('telegramInitData', initData);
+        sessionStorage.setItem('telegramInitData', initData);
+        console.log('[telegramService] Свежие данные сохранены в обоих хранилищах');
+      } catch (e) {
+        console.error('[telegramService] Ошибка при сохранении данных в хранилище:', e);
+      }
     }
-  } else {
-    // Если текущего initData нет, пробуем получить сохраненный из localStorage
+  } catch (e) {
+    console.error('[telegramService] Ошибка при получении данных из Telegram WebApp:', e);
+  }
+  
+  // 2. Если не получили напрямую, пробуем из sessionStorage
+  if (!initData) {
     try {
-      const savedInitData = localStorage.getItem('telegramInitData');
-      if (savedInitData) {
-        initData = savedInitData;
-        console.log('[telegramService] Retrieved Telegram initData from localStorage');
+      const sessionData = sessionStorage.getItem('telegramInitData');
+      if (sessionData) {
+        initData = sessionData;
+        console.log('[telegramService] Получены данные из sessionStorage (длина:', initData.length, ')');
       }
     } catch (e) {
-      console.error('[telegramService] Error reading telegramInitData from localStorage:', e);
+      console.error('[telegramService] Ошибка при чтении данных из sessionStorage:', e);
+    }
+  }
+  
+  // 3. Если все еще нет данных, пробуем из localStorage
+  if (!initData) {
+    try {
+      const localData = localStorage.getItem('telegramInitData');
+      if (localData) {
+        initData = localData;
+        console.log('[telegramService] Получены данные из localStorage (длина:', initData.length, ')');
+      }
+    } catch (e) {
+      console.error('[telegramService] Ошибка при чтении данных из localStorage:', e);
+    }
+  }
+  
+  // 4. Альтернативные ключи в хранилищах
+  if (!initData) {
+    try {
+      // Проверяем альтернативные ключи
+      const alternativeKeys = ['telegram_data', 'tg_init_data', 'tgInitData'];
+      for (const key of alternativeKeys) {
+        const data = localStorage.getItem(key) || sessionStorage.getItem(key);
+        if (data) {
+          initData = data;
+          console.log(`[telegramService] Получены данные из альтернативного ключа ${key} (длина:`, initData.length, ')');
+          break;
+        }
+      }
+    } catch (e) {
+      console.error('[telegramService] Ошибка при чтении данных из альтернативных ключей:', e);
     }
   }
   

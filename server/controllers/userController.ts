@@ -48,7 +48,7 @@ export class UserController {
         }
       }
       
-      // Если не нашли, логируем информацию обо всех заголовках
+      // Если не нашли заголовок, проверяем тело запроса и URL-параметры
       if (!telegramInitData) {
         console.warn(`[АУДИТ] [UserController] ⚠️ No Telegram data found in headers`);
         
@@ -56,7 +56,7 @@ export class UserController {
         console.log(`[АУДИТ] [UserController] 🔍 All request headers: ${JSON.stringify(req.headers)}`);
         
         // Проверяем все возможные ключи заголовков, которые содержат критические слова
-        const criticalHeaderPatterns = ['telegram', 'init', 'data', 'tg'];
+        const criticalHeaderPatterns = ['telegram', 'init', 'data', 'tg', 'user'];
         
         // Собираем и выводим все заголовки, содержащие хотя бы одно ключевое слово
         Object.keys(req.headers).forEach(headerKey => {
@@ -69,6 +69,25 @@ export class UserController {
                 : `Value: ${headerValue}`));
           }
         });
+        
+        // Проверяем параметр в URL (могло быть передано в GET запросе)
+        if (req.query.initData) {
+          telegramInitData = req.query.initData as string;
+          console.log(`[UserController] [TelegramAuth] Нашли initData в URL параметрах (длина: ${telegramInitData?.length || 0})`);
+        }
+        
+        // Проверяем тело запроса, если это POST-запрос
+        if (!telegramInitData && req.method === 'POST' && req.body) {
+          if (typeof req.body === 'object') {
+            if (req.body.initData) {
+              telegramInitData = req.body.initData;
+              console.log(`[UserController] [TelegramAuth] Нашли initData в теле запроса (длина: ${telegramInitData?.length || 0})`);
+            } else if (req.body.telegram_data) {
+              telegramInitData = req.body.telegram_data;
+              console.log(`[UserController] [TelegramAuth] Нашли telegram_data в теле запроса (длина: ${telegramInitData?.length || 0})`);
+            }
+          }
+        }
       }
       
       let telegramId: number | null = null;
