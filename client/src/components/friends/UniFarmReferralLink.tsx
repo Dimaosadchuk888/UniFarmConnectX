@@ -6,12 +6,13 @@ import { buildReferralLink, buildDirectBotReferralLink } from '@/utils/referralU
 
 /**
  * Упрощенный компонент для отображения реферальной ссылки 
- * Версия 3.0: Максимально упрощенная логика согласно ТЗ п.3.2
+ * Версия 4.0: Добавлен режим AirDrop с отображением состояния загрузки
  */
 const UniFarmReferralLink: React.FC = () => {
   // Состояния UI
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false); // Состояние процесса регистрации в AirDrop режиме
   
   // Состояние для отслеживания выбранного типа ссылки
   const [linkType, setLinkType] = useState<'app' | 'bot'>('app');
@@ -116,10 +117,11 @@ const UniFarmReferralLink: React.FC = () => {
               Загрузка партнерской программы...
             </p>
             <button 
-              className="px-4 py-2 bg-primary rounded-md text-white text-sm shadow-md" 
+              className={`px-4 py-2 ${isRegistering ? 'bg-primary/60' : 'bg-primary'} rounded-md text-white text-sm shadow-md flex items-center justify-center min-w-[200px]`} 
+              disabled={isRegistering}
               onClick={() => {
                 // Показываем пользователю, что идет процесс
-                setIsLoading(true);
+                setIsRegistering(true);
                 
                 // Запускаем регистрацию в режиме AirDrop
                 userService.registerInAirDropMode()
@@ -137,17 +139,22 @@ const UniFarmReferralLink: React.FC = () => {
                     } else {
                       console.error("Регистрация в режиме AirDrop не удалась");
                       alert("Не удалось выполнить регистрацию. Пожалуйста, попробуйте еще раз.");
-                      setIsLoading(false);
+                      setIsRegistering(false);
                     }
                   })
                   .catch((err: Error) => {
                     console.error("Ошибка регистрации в режиме AirDrop:", err);
                     alert("Произошла ошибка при регистрации. Пожалуйста, попробуйте еще раз.");
-                    setIsLoading(false);
+                    setIsRegistering(false);
                   });
               }}
             >
-              Получить реферальный код
+              {isRegistering ? (
+                <>
+                  <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                  Регистрация...
+                </>
+              ) : 'Получить реферальный код'}
             </button>
             <div className="text-xs text-muted-foreground mt-3">
               Нажмите кнопку выше, чтобы получить реферальный код для приглашения друзей
