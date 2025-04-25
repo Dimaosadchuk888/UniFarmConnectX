@@ -39,11 +39,16 @@ export class ReferralService {
       
       while (currentUserInviter && depth < MAX_REFERRAL_PATH_DEPTH) {
         // Добавляем ID пригласителя в путь
-        refPath.push(currentUserInviter.inviter_id);
-        
-        // Переходим к пригласителю текущего пригласителя
-        currentUserId = currentUserInviter.inviter_id;
-        currentUserInviter = await this.getUserInviter(currentUserId);
+        if (currentUserInviter.inviter_id) {
+          refPath.push(currentUserInviter.inviter_id);
+          
+          // Переходим к пригласителю текущего пригласителя
+          currentUserId = currentUserInviter.inviter_id;
+          currentUserInviter = await this.getUserInviter(currentUserId);
+        } else {
+          // Если по какой-то причине inviter_id не определен, прерываем цикл
+          break;
+        }
         
         depth++;
       }

@@ -574,8 +574,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           inviterInfo: userInviter ? {
             id: userInviter.id,
             level: userInviter.level,
-            createdAt: userInviter.created_at
+            createdAt: userInviter.created_at,
+            ref_path: userInviter.ref_path || []
           } : null,
+          ref_path: userInviter?.ref_path || [],
           referralsCount: userReferrals.length,
           referralsByLevel: referralCounts,
           referrals: userReferrals.map(ref => ({
@@ -583,7 +585,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             referralId: ref.user_id,
             level: ref.level,
             createdAt: ref.created_at
-          }))
+          })),
+          referralChain: userInviter ? [
+            {
+              id: userInviter.id,
+              inviter_id: userInviter.inviter_id,
+              level: userInviter.level,
+              created_at: userInviter.created_at,
+              ref_path: userInviter.ref_path || []
+            }
+          ] : []
         }
       });
     } catch (error) {
@@ -640,6 +651,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Этот маршрут удален, так как дублирует ранее созданный
+  
+  // Тестовый маршрут для создания реферальной связи (Для ТЗ 4.1)
+  app.post('/api/test/referral/link', async (req: Request, res: Response) => {
+    try {
+      const { userId, inviterId } = req.body;
+      
+      if (!userId || !inviterId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Необходимо указать userId и inviterId'
+        });
+      }
+      
+      console.log(`[TEST 4.1] Создание реферальной связи: user=${userId}, inviter=${inviterId}`);
+      
+      // Проверяем существование пользователей
+      const user = await UserService.getUserById(Number(userId));
+      const inviter = await UserService.getUserById(Number(inviterId));
+      
+      if (!user || !inviter) {
+        return res.status(404).json({
+          success: false,
+          message: 'Пользователь или пригласитель не найден'
+        });
+      }
+      
+      // Создаем реферальную связь с поддержкой ref_path
+      const result = await ReferralService.createReferralRelationship(
+        Number(userId), 
+        Number(inviterId),
+        1 // Уровень = 1 (прямой реферал)
+      );
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Результат создания реферальной связи',
+        data: result
+      });
+    } catch (error: any) {
+      console.error('[TEST 4.1] Ошибка при создании реферальной связи:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Внутренняя ошибка сервера',
+        error: error.message
+      });
+    }
+  });
   
   // Административные маршруты для управления вебхуком Telegram
   // Эти маршруты должны быть защищены (например, доступны только в режиме разработки)
