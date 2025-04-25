@@ -1344,3 +1344,111 @@ export function getTelegramUserDisplayName(): string {
   // Шаг 4: Если всё остальное не сработало, возвращаем общее имя
   return 'Пользователь';
 }
+
+/**
+ * Регистрирует пользователя через Telegram API
+ * Использует данные initData для аутентификации и регистрации пользователя
+ * 
+ * @param {string} refCode - Реферальный код для привязки нового пользователя (необязательно)
+ * @returns {Promise<{success: boolean, user_id?: number, message?: string}>} Результат регистрации
+ */
+export async function registerUserWithTelegram(refCode?: string): Promise<{
+  success: boolean;
+  user_id?: number;
+  message?: string;
+}> {
+  console.log('[telegramService] Registering user with Telegram...');
+  
+  try {
+    // Проверяем, запущены ли мы в среде Telegram
+    if (!isRunningInTelegram()) {
+      console.error('[telegramService] Cannot register user: not running in Telegram environment');
+      return {
+        success: false,
+        message: 'Регистрация возможна только через Telegram Mini App'
+      };
+    }
+    
+    // Получаем данные пользователя Telegram
+    const userData = getTelegramUserData();
+    if (!userData) {
+      console.error('[telegramService] Cannot register user: failed to get Telegram user data');
+      return {
+        success: false,
+        message: 'Не удалось получить данные пользователя из Telegram'
+      };
+    }
+    
+    // Получаем initData для отправки на сервер
+    const initData = window.Telegram?.WebApp?.initData;
+    if (!initData || initData.trim() === '') {
+      console.error('[telegramService] Cannot register user: initData is empty');
+      return {
+        success: false,
+        message: 'Отсутствуют данные инициализации Telegram'
+      };
+    }
+    
+    // Создаем тело запроса
+    const requestBody = {
+      telegram_user_id: userData.userId,
+      username: userData.username || '',
+      first_name: userData.firstName || '',
+      last_name: userData.lastName || '',
+      photo_url: userData.photoUrl || '',
+      ref_code: refCode || window.Telegram?.WebApp?.startParam || '',
+      init_data: initData
+    };
+    
+    console.log('[telegramService] Sending registration request with data:', {
+      telegram_user_id: requestBody.telegram_user_id,
+      username: requestBody.username,
+      ref_code: requestBody.ref_code
+    });
+    
+    // Отправляем запрос на сервер
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getTelegramAuthHeaders()
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    // Обрабатываем ответ
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      console.log('[telegramService] User successfully registered:', result);
+      
+      // Сохраняем информацию о регистрации в localStorage
+      try {
+        localStorage.setItem(TELEGRAM_REGISTERED_KEY, 'true');
+        if (result.user_id) {
+          localStorage.setItem(TELEGRAM_USER_ID_KEY, result.user_id.toString());
+        }
+      } catch (e) {
+        console.warn('[telegramService] Failed to save registration status:', e);
+      }
+      
+      return {
+        success: true,
+        user_id: result.user_id,
+        message: result.message || 'Регистрация успешно завершена'
+      };
+    } else {
+      console.error('[telegramService] Failed to register user:', result);
+      return {
+        success: false,
+        message: result.message || 'Ошибка при регистрации пользователя'
+      };
+    }
+  } catch (error) {
+    console.error('[telegramService] Registration error:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Неизвестная ошибка при регистрации'
+    };
+  }
+}

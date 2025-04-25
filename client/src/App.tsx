@@ -9,7 +9,8 @@ import {
   initTelegramWebApp, 
   isTelegramWebApp, 
   getCachedTelegramUserId,
-  clearTelegramCache  // Импортируем функцию очистки кэша
+  clearTelegramCache,  // Импортируем функцию очистки кэша
+  registerUserWithTelegram // Добавляем функцию регистрации пользователя
 } from "./services/telegramService";
 import { extractTelegramInitData, getTelegramUserId, hasTelegramUserId } from "./services/telegramInitData";
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
@@ -38,46 +39,10 @@ import TelegramSetupGuide from "./pages/TelegramSetupGuide";
 import TelegramValidationTool from "./pages/TelegramValidationTool";
 import TelegramRedirect from "./pages/TelegramRedirect";
 
-// For Telegram WebApp types
-// Обновлено определение глобального интерфейса для Telegram WebApp
+// Note: мы используем определение интерфейса Telegram из файла services/telegramService.ts
+// здесь оставляем только необходимые дополнительные типы
 declare global {
   interface Window {
-    Telegram?: {
-      WebApp?: {
-        expand: () => void;
-        ready: () => void;
-        initData: string;
-        initDataUnsafe: {
-          user?: {
-            id: number;
-            username?: string;
-            first_name?: string;
-            last_name?: string;
-            photo_url?: string;
-          };
-          auth_date?: string;
-          hash?: string;
-          platform?: string;
-        };
-        platform?: string;
-        colorScheme?: string;
-        startParam?: string; // Параметр start= из ссылки запуска бота
-        version?: string;    // Версия API
-        themeParams?: Record<string, string>; // Параметры темы
-        MainButton?: {
-          show: () => void;
-          hide: () => void;
-          setText: (text: string) => void;
-          onClick: (callback: () => void) => void;
-        };
-        onEvent?: (eventType: string, callback: () => void) => void;
-        sendData?: (data: string) => void;
-        openLink?: (url: string) => void;
-        close?: () => void;
-      };
-    };
-    // Добавляем localStorage для хранения параметров
-    localStorage?: Storage;
     process: {
       env: Record<string, string | undefined>;
     };
@@ -275,6 +240,12 @@ function App() {
                        (authData && typeof authData === 'string' ? 'string' : 'unknown'),
         referrerId: referrerId
       });
+      
+      // Вызываем функцию регистрации пользователя при первом запуске
+      // Используем refCode из данных Telegram WebApp или URL параметр
+      const refCode = telegramInitData.refCode || referrerId || '';
+      const registrationResult = await registerUserWithTelegram(refCode);
+      console.log('[App] Результат регистрации пользователя:', registrationResult);
       
       // Формируем тело запроса в зависимости от типа данных authData
       let requestBody;
