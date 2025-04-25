@@ -1313,5 +1313,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
   
+  // ВАЖНО: абсолютно ЛЮБОЙ запрос, если до этого он не был обработан - должен возвращать index.html
+  // Это критично для Telegram Mini App и SPA приложений
+  app.get('*', (req: Request, res: Response) => {
+    // Проверяем, является ли запрос API запросом
+    if (req.url.startsWith('/api/')) {
+      console.log(`[TelegramWebApp] Skip catch-all for API request: ${req.url}`);
+      return res.status(404).json({
+        success: false,
+        message: 'API endpoint not found'
+      });
+    }
+    
+    // Проверяем на специфичные расширения статических файлов
+    if (req.url.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)(\?.*)?$/)) {
+      console.log(`[TelegramWebApp] Skip catch-all for static file: ${req.url}`);
+      return res.status(404).send('Static file not found');
+    }
+    
+    // Логируем запрос, чтобы видеть, что он реально попадает в catch-all
+    console.log(`[TelegramWebApp] CATCH-ALL serving index.html for: ${req.url}`);
+    
+    // Ищем index.html в нескольких возможных местах, в порядке приоритета
+    const possiblePaths = [
+      path.resolve('dist', 'public', 'index.html'),
+      path.resolve('server', 'public', 'index.html'),
+      path.resolve('client', 'dist', 'index.html'),
+      path.resolve('client', 'public', 'index.html')
+    ];
+    
+    // Перебираем все возможные пути и отдаем первый найденный index.html
+    for (const indexPath of possiblePaths) {
+      if (fs.existsSync(indexPath)) {
+        console.log(`[TelegramWebApp] Found index.html at: ${indexPath}, serving for URL: ${req.url}`);
+        return res.sendFile(indexPath);
+      }
+    }
+    
+    // Если ничего не найдено, отправляем ошибку с подробностями
+    console.error(`[TelegramWebApp] CRITICAL ERROR: index.html not found in any location!`);
+    console.error(`[TelegramWebApp] Checked paths: ${possiblePaths.join(', ')}`);
+    
+    return res.status(500).send(`
+      <html>
+        <head><title>Server Error</title></head>
+        <body>
+          <h1>Critical Server Error</h1>
+          <p>index.html file not found in any expected location.</p>
+          <p>Please contact support.</p>
+        </body>
+      </html>
+    `);
+  });
+  
   return httpServer;
 }
