@@ -3,6 +3,10 @@ import { storage } from "../storage";
 
 /**
  * Контроллер для управления сессиями пользователей и восстановления кабинета
+ * 
+ * Этап 5: Безопасное восстановление пользователя
+ * Обеспечивает стабильную работу системы, при которой один и тот же пользователь (по guest_id)
+ * всегда получает доступ к своему кабинету, даже при повторных заходах.
  */
 export class SessionController {
   /**
@@ -14,6 +18,8 @@ export class SessionController {
     try {
       // Получаем guest_id из тела запроса
       const { guest_id } = req.body;
+      // Получаем telegram_id из тела запроса (если есть)
+      const { telegram_id } = req.body;
       
       // Проверяем наличие guest_id
       if (!guest_id) {
@@ -25,7 +31,10 @@ export class SessionController {
         return;
       }
       
-      console.log(`[SessionController] Попытка восстановления сессии для guest_id: ${guest_id}`);
+      console.log(`[SessionController] Этап 5: Попытка безопасного восстановления сессии для guest_id: ${guest_id}`);
+      if (telegram_id) {
+        console.log(`[SessionController] Дополнительно передан telegram_id: ${telegram_id}`);
+      }
       
       // Ищем пользователя по guest_id
       const user = await storage.getUserByGuestId(guest_id);
@@ -40,8 +49,15 @@ export class SessionController {
         return;
       }
       
-      // Успешно нашли пользователя
-      console.log(`[SessionController] Сессия успешно восстановлена для пользователя с ID: ${user.id}`);
+      // Если передан telegram_id и он отличается от сохраненного, логируем этот факт
+      // но не блокируем восстановление, так как приоритет у guest_id (согласно Этапу 5)
+      if (telegram_id && user.telegram_id && telegram_id !== user.telegram_id) {
+        console.warn(`[SessionController] ⚠️ Обнаружено различие в telegram_id: сохранённый=${user.telegram_id}, переданный=${telegram_id}`);
+        console.log(`[SessionController] В соответствии с требованиями Этапа 5, продолжаем восстановление по guest_id`);
+      }
+      
+      // Успешно нашли и восстановили пользователя
+      console.log(`[SessionController] ✅ Сессия успешно восстановлена для пользователя с ID: ${user.id}`);
       
       // Возвращаем данные пользователя (без конфиденциальной информации)
       res.status(200).json({
@@ -50,12 +66,13 @@ export class SessionController {
         data: {
           user_id: user.id,
           username: user.username,
-          telegram_id: user.telegram_id,
+          telegram_id: user.telegram_id, 
           balance_uni: user.balance_uni,
           balance_ton: user.balance_ton,
           ref_code: user.ref_code,
           guest_id: user.guest_id,
-          created_at: user.created_at
+          created_at: user.created_at,
+          parent_ref_code: user.parent_ref_code
         }
       });
     } catch (error) {

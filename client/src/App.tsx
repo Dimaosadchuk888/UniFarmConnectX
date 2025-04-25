@@ -412,11 +412,17 @@ function App() {
           
           // Если есть Telegram ID, сохраняем его вместе с информацией о сессии
           if (telegramInitData.userId) {
-            sessionRestoreService.updateSessionWithTelegramData(
-              telegramInitData.userId,
-              authResult.data.user_id
-            );
-            console.log('[App] 💾 Сохранена связь с Telegram ID:', telegramInitData.userId);
+            // Преобразуем строковый ID в число для корректной типизации
+            const telegramIdAsNumber = Number(telegramInitData.userId);
+            if (!isNaN(telegramIdAsNumber)) {
+              sessionRestoreService.updateSessionWithTelegramData(
+                telegramIdAsNumber,
+                authResult.data.user_id
+              );
+              console.log('[App] 💾 Сохранена связь с Telegram ID:', telegramIdAsNumber);
+            } else {
+              console.warn('[App] ⚠️ Невозможно сохранить связь с Telegram ID - некорректный формат:', telegramInitData.userId);
+            }
           }
         } else {
           console.warn('[App] ⚠️ Сервер не вернул guest_id при авторизации!');
