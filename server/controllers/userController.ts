@@ -580,12 +580,21 @@ export class UserController {
         console.log(`[UserController] [AUDIT] createUser запрошено БЕЗ telegram_id. Данные:`, userData);
       }
       
-      // Если ref_code не задан явно, генерируем его
-      if (!userData.ref_code) {
-        userData.ref_code = UserService.generateRefCode();
-        console.log(`[UserController] [AUDIT] Сгенерирован ref_code для нового пользователя: "${userData.ref_code}"`);
-      } else {
+      // Если ref_code не задан явно, он будет сгенерирован автоматически при создании пользователя
+      // Нам не нужно вызывать generateUniqueRefCode() здесь, так как это уже реализовано в методах storage
+      // Тем не менее, мы можем использовать предоставленный ref_code, если он есть
+      if (userData.ref_code) {
         console.log(`[UserController] [AUDIT] Использован предоставленный ref_code: "${userData.ref_code}"`);
+        
+        // Проверим уникальность предоставленного ref_code
+        const isUnique = await UserService.isRefCodeUnique(userData.ref_code);
+        if (!isUnique) {
+          console.log(`[UserController] [AUDIT] Предоставленный ref_code "${userData.ref_code}" уже используется. Будет сгенерирован новый.`);
+          // Устанавливаем undefined, чтобы методы storage сгенерировали новый код автоматически
+          userData.ref_code = undefined;
+        }
+      } else {
+        console.log(`[UserController] [AUDIT] ref_code не предоставлен, будет сгенерирован автоматически`);
       }
 
       const newUser = await UserService.createUser(userData);
