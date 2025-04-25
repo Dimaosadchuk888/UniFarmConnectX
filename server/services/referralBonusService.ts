@@ -97,12 +97,24 @@ export class ReferralBonusService {
           break;
         }
         
-        // Записываем новый уровень, предварительно убедившись, что ref.level не null
-        await ReferralService.createReferral({
-          user_id: userId,
-          inviter_id: ref.inviter_id,
-          level: ref.level !== null ? ref.level + 1 : 1
-        });
+        // Определяем уровень для новой связи
+        const newLevel = ref.level !== null ? ref.level + 1 : 1;
+        
+        try {
+          // Записываем новый уровень, используя низкоуровневый createReferral (без проверки на существующую связь)
+          // поскольку проверка на первом уровне уже выполнена и мы строим полную цепочку
+          await ReferralService.createReferral({
+            user_id: userId,
+            inviter_id: ref.inviter_id,
+            level: newLevel
+          });
+          
+          console.log(`[ReferralBonusService] Создана связь уровня ${newLevel}: пользователь ${userId} → пригласитель ${ref.inviter_id}`);
+        } catch (error) {
+          // Возможна ошибка нарушения уникальности, если связь уже существует
+          console.error(`[ReferralBonusService] Ошибка при создании связи уровня ${newLevel}: ${error}`);
+          // Продолжаем для остальных уровней
+        }
       }
       
       console.log(`[ReferralBonusService] Complete referral chain created for user ${userId} with inviter ${inviterId}`);
