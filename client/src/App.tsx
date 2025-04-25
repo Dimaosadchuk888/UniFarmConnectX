@@ -366,6 +366,21 @@ function App() {
         <TelegramWebAppCheck>
           <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
             <Switch>
+              {/* Специальный обработчик для URL с завершающим слешем (BotFather добавляет автоматически) */}
+              <Route path="/UniFarm/">
+                <TelegramSlashHandler />
+              </Route>
+              
+              {/* Для совместимости, маршрут для Mini App не зависимо от регистра */}
+              <Route path="/unifarm/">
+                <TelegramSlashHandler />
+              </Route>
+              
+              {/* Специальный обработчик для маршрута /app/ */}
+              <Route path="/app/">
+                <TelegramSlashHandler />
+              </Route>
+              
               {/* Специальная страница для перенаправления на Telegram Mini App */}
               <Route path="/telegram-redirect">
                 <TelegramRedirect />
