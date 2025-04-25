@@ -25,6 +25,10 @@ export interface IStorage {
   getUserByRefCode(refCode: string): Promise<User | undefined>;
   updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
   
+  // Методы для работы с родительским реферальным кодом
+  updateUserParentRefCode(userId: number, parentRefCode: string): Promise<User | undefined>;
+  getUsersByParentRefCode(parentRefCode: string): Promise<User[]>;
+  
   // Методы для работы с guest_id
   generateGuestId(): string;
   getUserByGuestId(guestId: string): Promise<User | undefined>;
@@ -64,6 +68,7 @@ export interface IStorage {
     balance_uni?: string;
     balance_ton?: string;
     ref_code?: string; // Делаем ref_code опциональным
+    parent_ref_code?: string; // Добавляем parent_ref_code
     created_at?: Date;
   }): Promise<User>;
 }
