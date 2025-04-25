@@ -134,6 +134,11 @@ async function handleStartCommand(chatId, { userId, username, firstName }) {
     },
     parse_mode: "Markdown"
   });
+} }]
+      ]
+    },
+    parse_mode: "Markdown"
+  });
 }`;
 
   return sendMessage(chatId, welcomeText, {
@@ -157,6 +162,10 @@ async function handleAppCommand(chatId) {
     reply_markup: {
       inline_keyboard: [
         [{ text: "🚀 Открыть UniFarm", web_app: { url: "https://t.me/UniFarming_Bot/UniFarm" } }]
+      ]
+    }
+  });
+} }]
       ]
     }
   });
