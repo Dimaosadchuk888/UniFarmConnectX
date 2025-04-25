@@ -39,6 +39,7 @@ import AuditPage from "./pages/AuditPage";
 import TelegramSetupGuide from "./pages/TelegramSetupGuide";
 import TelegramValidationTool from "./pages/TelegramValidationTool";
 import TelegramRedirect from "./pages/TelegramRedirect";
+import TelegramSlashHandler from "./pages/TelegramSlashHandler";
 
 // Note: мы используем определение интерфейса Telegram из файла services/telegramService.ts
 // здесь оставляем только необходимые дополнительные типы
