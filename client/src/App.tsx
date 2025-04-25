@@ -17,8 +17,9 @@ import { TONCONNECT_MANIFEST_URL } from './config/tonConnect';
 import { getReferrerIdFromURL } from './lib/utils';
 import userService from '@/services/userService';
 
-// Компонент для отображения предупреждения о Telegram initData
+// Импортируем компоненты для работы с Telegram WebApp
 import TelegramInitDataWarning from "@/components/ui/TelegramInitDataWarning";
+import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
 
 import Header from "@/components/layout/Header";
 import NavigationBar from "@/components/layout/NavigationBar";
@@ -83,8 +84,6 @@ declare global {
     TextEncoder: typeof TextEncoder;
   }
 }
-
-// Компонент RootTelegramDiagnostics удален
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -366,75 +365,76 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TonConnectUIProvider manifestUrl="https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json">
-        {/* Диагностический блок удален */}
-        
-        <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
-          <Switch>
-            {/* Специальная страница для перенаправления на Telegram Mini App */}
-            <Route path="/telegram-redirect">
-              <TelegramRedirect />
-            </Route>
-            
-            {/* Специальная страница для тестирования Telegram */}
-            <Route path="/telegram-test">
-              <TelegramTest />
-            </Route>
-            
-            {/* Страница отладки Telegram Mini App */}
-            <Route path="/debug">
-              <DebugPage />
-            </Route>
-            
-            {/* Страница настройки Telegram Webhook */}
-            <Route path="/webhook-setup">
-              <WebhookSetup />
-            </Route>
-            
-            {/* Административная страница для настройки бота */}
-            <Route path="/admin">
-              <AdminPage />
-            </Route>
-            
-            {/* Диагностика реферальной системы */}
-            <Route path="/referral-debug">
-              <ReferralDebug />
-            </Route>
-            
-            {/* Полный аудит приложения */}
-            <Route path="/audit">
-              <AuditPage />
-            </Route>
-            
-            {/* Инструмент валидации Telegram initData */}
-            <Route path="/telegram-validation">
-              <TelegramValidationTool />
-            </Route>
-            
-            {/* Руководство по настройке Telegram Mini App */}
-            <Route path="/telegram-setup">
-              <TelegramSetupGuide />
-            </Route>
-            
-            {/* Основной интерфейс приложения */}
-            <Route path="*">
-              <Header />
-              {/* Показываем предупреждение о проблемах с Telegram WebApp */}
-              <TelegramInitDataWarning />
-              <main className="px-4 pt-2 pb-20">
-                {isLoading ? (
-                  <div className="flex items-center justify-center h-32">
-                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
-                  </div>
-                ) : (
-                  /* Просто рендерим страницу, не показываем ошибку Telegram авторизации */
-                  renderActivePage()
-                )}
-              </main>
-              <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
-            </Route>
-          </Switch>
-        </div>
-        <Toaster />
+        {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
+        <TelegramWebAppCheck>
+          <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
+            <Switch>
+              {/* Специальная страница для перенаправления на Telegram Mini App */}
+              <Route path="/telegram-redirect">
+                <TelegramRedirect />
+              </Route>
+              
+              {/* Специальная страница для тестирования Telegram */}
+              <Route path="/telegram-test">
+                <TelegramTest />
+              </Route>
+              
+              {/* Страница отладки Telegram Mini App */}
+              <Route path="/debug">
+                <DebugPage />
+              </Route>
+              
+              {/* Страница настройки Telegram Webhook */}
+              <Route path="/webhook-setup">
+                <WebhookSetup />
+              </Route>
+              
+              {/* Административная страница для настройки бота */}
+              <Route path="/admin">
+                <AdminPage />
+              </Route>
+              
+              {/* Диагностика реферальной системы */}
+              <Route path="/referral-debug">
+                <ReferralDebug />
+              </Route>
+              
+              {/* Полный аудит приложения */}
+              <Route path="/audit">
+                <AuditPage />
+              </Route>
+              
+              {/* Инструмент валидации Telegram initData */}
+              <Route path="/telegram-validation">
+                <TelegramValidationTool />
+              </Route>
+              
+              {/* Руководство по настройке Telegram Mini App */}
+              <Route path="/telegram-setup">
+                <TelegramSetupGuide />
+              </Route>
+              
+              {/* Основной интерфейс приложения */}
+              <Route path="*">
+                <Header />
+                {/* Показываем предупреждение о проблемах с Telegram WebApp */}
+                <TelegramInitDataWarning />
+                <main className="px-4 pt-2 pb-20">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-32">
+                      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                    </div>
+                  ) : (
+                    /* Просто рендерим страницу, не показываем ошибку Telegram авторизации */
+                    renderActivePage()
+                  )}
+                </main>
+                <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
+              </Route>
+            </Switch>
+          </div>
+          <Toaster />
+        </TelegramWebAppCheck>
       </TonConnectUIProvider>
     </QueryClientProvider>
   );
