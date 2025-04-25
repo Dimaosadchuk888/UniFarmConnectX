@@ -5,13 +5,15 @@
  * Запуск: node migrate-guest-id.js
  */
 
+// Используем глобальный fetch (доступен в Node.js >=18)
+
 // Функция для выполнения HTTP-запроса
 async function makeRequest() {
   try {
     console.log('Запуск миграции guest_id...');
     
     // Определяем URL для запроса
-    const baseUrl = process.env.API_URL || 'http://localhost:3000';
+    const baseUrl = process.env.API_URL || 'https://8ac7b219-438d-4a0b-ab0e-d8b58de37c6d-00-8ncue1micrhz.sisko.replit.dev';
     const url = `${baseUrl}/api/migrations/add-guest-id`;
     
     // Выполняем POST-запрос к API
