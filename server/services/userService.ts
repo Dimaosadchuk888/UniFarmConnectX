@@ -196,6 +196,24 @@ export class UserService {
   static generateRefCode(): string {
     return storage.generateRefCode();
   }
+  
+  /**
+   * Генерирует гарантированно уникальный реферальный код
+   * и проверяет его на отсутствие коллизий в базе данных
+   * @returns Promise разрешающийся в уникальный реферальный код
+   */
+  static async generateUniqueRefCode(): Promise<string> {
+    return await storage.generateUniqueRefCode();
+  }
+  
+  /**
+   * Проверяет уникальность реферального кода
+   * @param refCode Реферальный код для проверки
+   * @returns Promise разрешающийся в true, если код уникален
+   */
+  static async isRefCodeUnique(refCode: string): Promise<boolean> {
+    return await storage.isRefCodeUnique(refCode);
+  }
 
   /**
    * Получает пользователя по guest_id

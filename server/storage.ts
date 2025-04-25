@@ -20,6 +20,8 @@ export interface IStorage {
   
   // Методы для работы с реферальным кодом
   generateRefCode(): string;
+  generateUniqueRefCode(): Promise<string>;
+  isRefCodeUnique(refCode: string): Promise<boolean>;
   getUserByRefCode(refCode: string): Promise<User | undefined>;
   updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
   
@@ -37,10 +39,11 @@ export interface IStorage {
     balance: number;
     farming_rate: number;
     wallet_address: string | null;
-    ref_code: string;
+    ref_code?: string;
     referrer_id: number | null;
     created_at: Date;
     updated_at: Date;
+    guest_id?: string;
   }): Promise<User>;
   
   // Новый метод для создания пользователя в основной таблице users
@@ -50,7 +53,7 @@ export interface IStorage {
     username?: string;
     balance_uni?: string;
     balance_ton?: string;
-    ref_code: string;
+    ref_code?: string; // Делаем ref_code опциональным
     created_at?: Date;
   }): Promise<User>;
   
@@ -60,7 +63,7 @@ export interface IStorage {
     username?: string;
     balance_uni?: string;
     balance_ton?: string;
-    ref_code: string;
+    ref_code?: string; // Делаем ref_code опциональным
     created_at?: Date;
   }): Promise<User>;
 }
@@ -77,23 +80,35 @@ export class DatabaseStorage implements IStorage {
     username?: string;
     balance_uni?: string;
     balance_ton?: string;
-    ref_code: string;
+    ref_code?: string; // Делаем ref_code опциональным
     created_at?: Date;
   }): Promise<User> {
+    // Генерируем guest_id, если он не был предоставлен
+    const guestId = userData.guest_id || this.generateGuestId();
+    
+    // Проверяем, существует ли пользователь с таким guest_id
+    const existingUser = await this.getUserByGuestId(guestId);
+    if (existingUser) {
+      console.log(`[Storage] Пользователь с guest_id ${guestId} уже существует, ID=${existingUser.id}`);
+      return existingUser;
+    }
+    
     console.log(`[Storage] Создание пользователя в основной таблице users:`, {
       telegram_id: userData.telegram_id,
-      guest_id: userData.guest_id || 'not provided',
-      username: userData.username,
-      ref_code: userData.ref_code
+      guest_id: guestId,
+      username: userData.username
     });
     
     try {
+      // Генерируем уникальный ref_code, если он не был предоставлен
+      const refCode = userData.ref_code || await this.generateUniqueRefCode();
+      
       // Подготавливаем данные для вставки
       const insertData = {
         telegram_id: userData.telegram_id,
-        guest_id: userData.guest_id || this.generateGuestId(), // Если не указан, генерируем новый guest_id
+        guest_id: guestId,
         username: userData.username || `user_${userData.telegram_id}`,
-        ref_code: userData.ref_code,
+        ref_code: refCode,
         balance_uni: userData.balance_uni || "100", // По умолчанию даем 100 UNI
         balance_ton: userData.balance_ton || "0",
         created_at: userData.created_at || new Date()
@@ -142,7 +157,7 @@ export class DatabaseStorage implements IStorage {
     balance: number;
     farming_rate: number;
     wallet_address: string | null;
-    ref_code: string;
+    ref_code?: string; // Делаем ref_code опциональным
     referrer_id: number | null;
     created_at: Date;
     updated_at: Date;
@@ -151,6 +166,43 @@ export class DatabaseStorage implements IStorage {
     console.log(`[Storage] Создание пользователя через Telegram: ${userData.telegram_id}`);
     
     try {
+      // Если предоставлен guest_id, сначала ищем пользователя по guest_id
+      if (userData.guest_id) {
+        const userByGuestId = await this.getUserByGuestId(userData.guest_id);
+        if (userByGuestId) {
+          console.log(`[Storage] Найден пользователь по guest_id ${userData.guest_id}`);
+          
+          // Если у существующего пользователя нет telegram_id, обновляем его
+          if (!userByGuestId.telegram_id) {
+            console.log(`[Storage] Обновляем существующего пользователя, добавляя telegram_id: ${userData.telegram_id}`);
+            const [updatedUser] = await db
+              .update(users)
+              .set({ telegram_id: userData.telegram_id })
+              .where(eq(users.id, userByGuestId.id))
+              .returning();
+            
+            return updatedUser;
+          }
+          
+          // Проверяем, есть ли у пользователя ref_code
+          if (!userByGuestId.ref_code) {
+            // Если нет ref_code, генерируем новый и обновляем пользователя
+            const newRefCode = await this.generateUniqueRefCode();
+            console.log(`[Storage] Существующий пользователь не имеет ref_code. Генерируем новый: ${newRefCode}`);
+            
+            const [updatedUser] = await db
+              .update(users)
+              .set({ ref_code: newRefCode })
+              .where(eq(users.id, userByGuestId.id))
+              .returning();
+              
+            return updatedUser;
+          }
+          
+          return userByGuestId;
+        }
+      }
+      
       // Проверяем, существует ли уже пользователь с таким Telegram ID
       const existingUser = await this.getUserByTelegramId(userData.telegram_id);
       
@@ -170,27 +222,46 @@ export class DatabaseStorage implements IStorage {
           return updatedUser;
         }
         
+        // Проверяем, есть ли у пользователя ref_code
+        if (!existingUser.ref_code) {
+          // Если нет ref_code, генерируем новый и обновляем пользователя
+          const newRefCode = await this.generateUniqueRefCode();
+          console.log(`[Storage] Существующий пользователь не имеет ref_code. Генерируем новый: ${newRefCode}`);
+          
+          const [updatedUser] = await db
+            .update(users)
+            .set({ ref_code: newRefCode })
+            .where(eq(users.id, existingUser.id))
+            .returning();
+            
+          return updatedUser;
+        }
+        
         return existingUser;
       }
+      
+      // Генерируем уникальный ref_code, если он не был предоставлен
+      const refCode = userData.ref_code || await this.generateUniqueRefCode();
+      const guestId = userData.guest_id || this.generateGuestId();
       
       // Создаем нового пользователя
       const [user] = await db
         .insert(users)
         .values({
           telegram_id: userData.telegram_id,
-          guest_id: userData.guest_id || this.generateGuestId(), // Генерируем guest_id, если не передан
+          guest_id: guestId, // Используем предоставленный или новый guest_id
           username: userData.username, // Основной username для отображения
           wallet: null, // Поле wallet для совместимости
           ton_wallet_address: userData.wallet_address,
-          ref_code: userData.ref_code,
-          balance_uni: "0", // Нулевой баланс UNI
+          ref_code: refCode, // Используем предоставленный или новый ref_code
+          balance_uni: "100", // Начальный баланс 100 UNI
           balance_ton: "0", // Нулевой баланс TON
           uni_farming_rate: userData.farming_rate?.toString() || "0", // Преобразуем в строку
           created_at: userData.created_at
         })
         .returning();
       
-      console.log(`[Storage] Пользователь через Telegram успешно создан: ID=${user.id}, telegram_id=${user.telegram_id}, guest_id=${user.guest_id}`);
+      console.log(`[Storage] Пользователь через Telegram успешно создан: ID=${user.id}, telegram_id=${user.telegram_id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
       
       return user;
     } catch (error) {
@@ -333,7 +404,7 @@ export class DatabaseStorage implements IStorage {
     username?: string;
     balance_uni?: string;
     balance_ton?: string;
-    ref_code: string;
+    ref_code?: string; // Делаем ref_code опциональным
     created_at?: Date;
   }): Promise<User> {
     console.log(`[Storage] Создание гостевого пользователя с guest_id: ${userData.guest_id}`);
@@ -344,15 +415,34 @@ export class DatabaseStorage implements IStorage {
       
       if (existingUser) {
         console.log(`[Storage] Пользователь с guest_id ${userData.guest_id} уже существует`);
+        
+        // Проверяем, есть ли у пользователя ref_code
+        if (!existingUser.ref_code) {
+          // Если нет ref_code, генерируем новый и обновляем пользователя
+          const newRefCode = await this.generateUniqueRefCode();
+          console.log(`[Storage] Существующий пользователь не имеет ref_code. Генерируем новый: ${newRefCode}`);
+          
+          const [updatedUser] = await db
+            .update(users)
+            .set({ ref_code: newRefCode })
+            .where(eq(users.id, existingUser.id))
+            .returning();
+            
+          return updatedUser;
+        }
+        
         return existingUser;
       }
+      
+      // Генерируем уникальный ref_code, если он не был предоставлен
+      const refCode = userData.ref_code || await this.generateUniqueRefCode();
       
       // Подготавливаем данные для вставки
       const insertData = {
         // telegram_id оставляем null, так как это гостевой пользователь
         guest_id: userData.guest_id,
         username: userData.username || `guest_${userData.guest_id.substring(0, 8)}`,
-        ref_code: userData.ref_code,
+        ref_code: refCode,
         balance_uni: userData.balance_uni || "100", // По умолчанию даем 100 UNI
         balance_ton: userData.balance_ton || "0",
         created_at: userData.created_at || new Date()
@@ -377,11 +467,59 @@ export class DatabaseStorage implements IStorage {
   
   // Генерирует уникальный реферальный код
   generateRefCode(): string {
-    // Генерируем случайную строку из 12 символов для большей уникальности
-    const randomBytes = crypto.randomBytes(6);
-    const refCode = randomBytes.toString('hex').slice(0, 12);
+    // Набор символов, из которых будет формироваться реферальный код
+    // Исключаем символы, которые могут быть неоднозначно восприняты: 0, O, 1, I, l
+    const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+    
+    // Генерируем 8 символов - компромисс между длиной и надежностью
+    // 8 символов из 32 возможных = 32^8 = 1,099,511,627,776 возможных комбинаций
+    const length = 8;
+    
+    // Используем crypto.randomBytes для криптографически стойкой генерации
+    const randomBytes = crypto.randomBytes(length);
+    
+    // Преобразуем байты в символы из нашего набора
+    let refCode = '';
+    for (let i = 0; i < length; i++) {
+      const randomIndex = randomBytes[i] % chars.length;
+      refCode += chars[randomIndex];
+    }
+    
     console.log(`[Storage] Сгенерирован новый реферальный код: ${refCode}`);
     return refCode;
+  }
+  
+  // Проверяет уникальность реферального кода
+  async isRefCodeUnique(refCode: string): Promise<boolean> {
+    const existingUser = await this.getUserByRefCode(refCode);
+    return !existingUser;
+  }
+  
+  // Генерирует гарантированно уникальный реферальный код
+  async generateUniqueRefCode(): Promise<string> {
+    let attempts = 0;
+    const maxAttempts = 10; // Ограничиваем количество попыток
+    
+    while (attempts < maxAttempts) {
+      const refCode = this.generateRefCode();
+      
+      // Проверяем уникальность
+      const isUnique = await this.isRefCodeUnique(refCode);
+      
+      if (isUnique) {
+        console.log(`[Storage] Подтверждена уникальность реферального кода: ${refCode}`);
+        return refCode;
+      }
+      
+      console.log(`[Storage] Реферальный код ${refCode} уже существует, генерируем новый. Попытка ${attempts + 1} из ${maxAttempts}`);
+      attempts++;
+    }
+    
+    // Если после максимального количества попыток не нашли уникальный код,
+    // генерируем более длинный код для увеличения вероятности уникальности
+    const extendedRefCode = this.generateRefCode() + this.generateRefCode().substring(0, 4);
+    console.log(`[Storage] Сгенерирован расширенный реферальный код: ${extendedRefCode}`);
+    return extendedRefCode;
   }
   
   // Получает пользователя по реферальному коду
