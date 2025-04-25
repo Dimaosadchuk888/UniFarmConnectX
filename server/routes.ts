@@ -258,6 +258,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршрут для регистрации через Telegram (согласно ТЗ 2.1)
   app.post("/api/register", AuthController.registerUser);
   
+  // Маршрут для регистрации пользователя в режиме AirDrop (Этап 4)
+  app.post("/api/airdrop/register", AuthController.registerGuestUser);
+  
   // Маршрут для логирования запусков Mini App (Этап 5.1)
   app.post("/api/log-launch", async (req: Request, res: Response) => {
     try {
