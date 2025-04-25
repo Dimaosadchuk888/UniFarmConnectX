@@ -58,6 +58,7 @@ export interface IStorage {
     balance_uni?: string;
     balance_ton?: string;
     ref_code?: string; // Делаем ref_code опциональным
+    parent_ref_code?: string; // Добавляем поле parent_ref_code
     created_at?: Date;
   }): Promise<User>;
   
@@ -86,6 +87,7 @@ export class DatabaseStorage implements IStorage {
     balance_uni?: string;
     balance_ton?: string;
     ref_code?: string; // Делаем ref_code опциональным
+    parent_ref_code?: string; // Добавляем поле parent_ref_code
     created_at?: Date;
   }): Promise<User> {
     // Генерируем guest_id, если он не был предоставлен
@@ -95,18 +97,67 @@ export class DatabaseStorage implements IStorage {
     const existingUser = await this.getUserByGuestId(guestId);
     if (existingUser) {
       console.log(`[Storage] Пользователь с guest_id ${guestId} уже существует, ID=${existingUser.id}`);
+      
+      // Если предоставлен parent_ref_code и у пользователя его еще нет, 
+      // устанавливаем его для существующего пользователя
+      if (userData.parent_ref_code && !existingUser.parent_ref_code) {
+        console.log(`[Storage] Устанавливаем parent_ref_code ${userData.parent_ref_code} для существующего пользователя ID=${existingUser.id}`);
+        
+        // Проверяем, что родительский код не является кодом самого пользователя
+        if (existingUser.ref_code === userData.parent_ref_code) {
+          console.log(`[Storage] ⚠️ Попытка самореферрала для пользователя ID=${existingUser.id} предотвращена`);
+          return existingUser;
+        }
+        
+        // Проверяем, что родительский код существует в базе
+        const parentUser = await this.getUserByRefCode(userData.parent_ref_code);
+        if (!parentUser) {
+          console.log(`[Storage] ⚠️ Пользователь с ref_code ${userData.parent_ref_code} не найден, связь не будет установлена`);
+          return existingUser;
+        }
+        
+        // Устанавливаем parent_ref_code
+        const [updatedUser] = await db
+          .update(users)
+          .set({ parent_ref_code: userData.parent_ref_code })
+          .where(eq(users.id, existingUser.id))
+          .returning();
+          
+        console.log(`[Storage] Для пользователя ID=${existingUser.id} установлен parent_ref_code=${userData.parent_ref_code}`);
+        return updatedUser;
+      }
+      
       return existingUser;
     }
     
     console.log(`[Storage] Создание пользователя в основной таблице users:`, {
       telegram_id: userData.telegram_id,
       guest_id: guestId,
-      username: userData.username
+      username: userData.username,
+      parent_ref_code: userData.parent_ref_code
     });
     
     try {
       // Генерируем уникальный ref_code, если он не был предоставлен
       const refCode = userData.ref_code || await this.generateUniqueRefCode();
+      
+      // Проверяем parent_ref_code, если он предоставлен
+      if (userData.parent_ref_code) {
+        // Проверяем, что этот код не совпадает с ref_code пользователя
+        if (refCode === userData.parent_ref_code) {
+          console.log(`[Storage] ⚠️ Попытка самореферрала (ref_code = parent_ref_code) предотвращена`);
+          userData.parent_ref_code = undefined; // Отключаем parent_ref_code
+        } else {
+          // Проверяем, что пользователь с таким реферальным кодом существует
+          const parentUser = await this.getUserByRefCode(userData.parent_ref_code);
+          if (!parentUser) {
+            console.log(`[Storage] ⚠️ Пользователь с ref_code ${userData.parent_ref_code} не найден, связь не будет установлена`);
+            userData.parent_ref_code = undefined; // Отключаем parent_ref_code
+          } else {
+            console.log(`[Storage] ✅ Пользователь с ref_code ${userData.parent_ref_code} найден (ID=${parentUser.id}), будет установлена реферальная связь`);
+          }
+        }
+      }
       
       // Подготавливаем данные для вставки
       const insertData = {
@@ -114,6 +165,7 @@ export class DatabaseStorage implements IStorage {
         guest_id: guestId,
         username: userData.username || `user_${userData.telegram_id}`,
         ref_code: refCode,
+        parent_ref_code: userData.parent_ref_code, // Добавляем parent_ref_code
         balance_uni: userData.balance_uni || "100", // По умолчанию даем 100 UNI
         balance_ton: userData.balance_ton || "0",
         created_at: userData.created_at || new Date()
@@ -125,7 +177,11 @@ export class DatabaseStorage implements IStorage {
         .values(insertData)
         .returning();
       
-      console.log(`[Storage] Пользователь успешно создан в таблице users: ID=${user.id}, telegram_id=${user.telegram_id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
+      if (userData.parent_ref_code) {
+        console.log(`[Storage] Пользователь успешно создан в таблице users с реферальной связью: ID=${user.id}, telegram_id=${user.telegram_id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}, parent_ref_code=${user.parent_ref_code}`);
+      } else {
+        console.log(`[Storage] Пользователь успешно создан в таблице users: ID=${user.id}, telegram_id=${user.telegram_id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
+      }
       
       return user;
     } catch (error) {
@@ -410,6 +466,7 @@ export class DatabaseStorage implements IStorage {
     balance_uni?: string;
     balance_ton?: string;
     ref_code?: string; // Делаем ref_code опциональным
+    parent_ref_code?: string; // Добавляем parent_ref_code
     created_at?: Date;
   }): Promise<User> {
     console.log(`[Storage] Создание гостевого пользователя с guest_id: ${userData.guest_id}`);
@@ -420,6 +477,35 @@ export class DatabaseStorage implements IStorage {
       
       if (existingUser) {
         console.log(`[Storage] Пользователь с guest_id ${userData.guest_id} уже существует`);
+        
+        // Если предоставлен parent_ref_code и у пользователя его еще нет, 
+        // устанавливаем его для существующего пользователя
+        if (userData.parent_ref_code && !existingUser.parent_ref_code) {
+          console.log(`[Storage] Устанавливаем parent_ref_code ${userData.parent_ref_code} для существующего пользователя ID=${existingUser.id}`);
+          
+          // Проверяем, что родительский код не является кодом самого пользователя
+          if (existingUser.ref_code === userData.parent_ref_code) {
+            console.log(`[Storage] ⚠️ Попытка самореферрала для пользователя ID=${existingUser.id} предотвращена`);
+            return existingUser;
+          }
+          
+          // Проверяем, что родительский код существует в базе
+          const parentUser = await this.getUserByRefCode(userData.parent_ref_code);
+          if (!parentUser) {
+            console.log(`[Storage] ⚠️ Пользователь с ref_code ${userData.parent_ref_code} не найден, связь не будет установлена`);
+            return existingUser;
+          }
+          
+          // Устанавливаем parent_ref_code
+          const [updatedUser] = await db
+            .update(users)
+            .set({ parent_ref_code: userData.parent_ref_code })
+            .where(eq(users.id, existingUser.id))
+            .returning();
+            
+          console.log(`[Storage] Для пользователя ID=${existingUser.id} установлен parent_ref_code=${userData.parent_ref_code}`);
+          return updatedUser;
+        }
         
         // Проверяем, есть ли у пользователя ref_code
         if (!existingUser.ref_code) {
@@ -442,12 +528,31 @@ export class DatabaseStorage implements IStorage {
       // Генерируем уникальный ref_code, если он не был предоставлен
       const refCode = userData.ref_code || await this.generateUniqueRefCode();
       
+      // Проверяем parent_ref_code, если он предоставлен
+      if (userData.parent_ref_code) {
+        // Проверяем, что этот код не совпадает с ref_code пользователя
+        if (refCode === userData.parent_ref_code) {
+          console.log(`[Storage] ⚠️ Попытка самореферрала (ref_code = parent_ref_code) предотвращена`);
+          userData.parent_ref_code = undefined; // Отключаем parent_ref_code
+        } else {
+          // Проверяем, что пользователь с таким реферальным кодом существует
+          const parentUser = await this.getUserByRefCode(userData.parent_ref_code);
+          if (!parentUser) {
+            console.log(`[Storage] ⚠️ Пользователь с ref_code ${userData.parent_ref_code} не найден, связь не будет установлена`);
+            userData.parent_ref_code = undefined; // Отключаем parent_ref_code
+          } else {
+            console.log(`[Storage] ✅ Пользователь с ref_code ${userData.parent_ref_code} найден (ID=${parentUser.id}), будет установлена реферальная связь`);
+          }
+        }
+      }
+      
       // Подготавливаем данные для вставки
       const insertData = {
         // telegram_id оставляем null, так как это гостевой пользователь
         guest_id: userData.guest_id,
         username: userData.username || `guest_${userData.guest_id.substring(0, 8)}`,
         ref_code: refCode,
+        parent_ref_code: userData.parent_ref_code, // Добавляем parent_ref_code
         balance_uni: userData.balance_uni || "100", // По умолчанию даем 100 UNI
         balance_ton: userData.balance_ton || "0",
         created_at: userData.created_at || new Date()
@@ -459,7 +564,11 @@ export class DatabaseStorage implements IStorage {
         .values(insertData)
         .returning();
       
-      console.log(`[Storage] Гостевой пользователь успешно создан: ID=${user.id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
+      if (userData.parent_ref_code) {
+        console.log(`[Storage] Гостевой пользователь успешно создан с реферальной связью: ID=${user.id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}, parent_ref_code=${user.parent_ref_code}`);
+      } else {
+        console.log(`[Storage] Гостевой пользователь успешно создан: ID=${user.id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
+      }
       
       return user;
     } catch (error) {
@@ -579,6 +688,78 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`[Storage] Ошибка при обновлении реферального кода пользователя ${userId}:`, error);
       return undefined;
+    }
+  }
+  
+  // Обновляет родительский реферальный код пользователя (только если его ещё нет)
+  async updateUserParentRefCode(userId: number, parentRefCode: string): Promise<User | undefined> {
+    console.log(`[Storage] Обновление родительского реферального кода для пользователя ${userId}: ${parentRefCode}`);
+    
+    try {
+      // Получаем текущего пользователя для проверки
+      const [currentUser] = await db.select().from(users).where(eq(users.id, userId));
+      
+      if (!currentUser) {
+        console.log(`[Storage] Пользователь с ID ${userId} не найден`);
+        return undefined;
+      }
+      
+      // Проверяем, является ли этот ref_code кодом самого пользователя (предотвращение самореферрала)
+      if (currentUser.ref_code === parentRefCode) {
+        console.log(`[Storage] ⚠️ Попытка самореферрала для пользователя ${userId} с кодом ${parentRefCode} предотвращена`);
+        return currentUser; // Возвращаем текущего пользователя без изменений
+      }
+      
+      // Проверяем, есть ли уже родительский реферальный код
+      if (currentUser.parent_ref_code) {
+        console.log(`[Storage] Пользователь ${userId} уже имеет родительский реферальный код: ${currentUser.parent_ref_code}`);
+        console.log(`[Storage] Новый код ${parentRefCode} игнорируется согласно требованиям ТЗ`);
+        return currentUser; // Возвращаем текущего пользователя без изменений
+      }
+      
+      // Проверяем, существует ли пользователь с таким реферальным кодом
+      const parentUser = await this.getUserByRefCode(parentRefCode);
+      if (!parentUser) {
+        console.log(`[Storage] ⚠️ Пользователь с реферальным кодом ${parentRefCode} не найден в базе`);
+        return currentUser; // Возвращаем текущего пользователя без изменений
+      }
+      
+      // Обновляем родительский реферальный код
+      const [updatedUser] = await db
+        .update(users)
+        .set({ parent_ref_code: parentRefCode })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      console.log(`[Storage] Родительский реферальный код для пользователя ${userId} успешно установлен: ${parentRefCode}`);
+      console.log(`[Storage AUDIT] Установлен родительский реферальный код для пользователя ${userId}:`);
+      console.log(`[Storage AUDIT]   Было: ${currentUser.parent_ref_code || 'null'}`);
+      console.log(`[Storage AUDIT]   Стало: ${parentRefCode}`);
+      console.log(`[Storage AUDIT]   Parent User ID: ${parentUser.id}`);
+      
+      return updatedUser;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при обновлении родительского реферального кода пользователя ${userId}:`, error);
+      return undefined;
+    }
+  }
+  
+  // Получает пользователей по родительскому реферальному коду
+  async getUsersByParentRefCode(parentRefCode: string): Promise<User[]> {
+    console.log(`[Storage] Получение пользователей с родительским реферальным кодом: ${parentRefCode}`);
+    
+    try {
+      const referrals = await db
+        .select()
+        .from(users)
+        .where(eq(users.parent_ref_code, parentRefCode));
+      
+      console.log(`[Storage] Найдено ${referrals.length} пользователей с родительским реферальным кодом ${parentRefCode}`);
+      
+      return referrals;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при получении пользователей с родительским реферальным кодом ${parentRefCode}:`, error);
+      return [];
     }
   }
 }
