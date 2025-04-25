@@ -180,45 +180,62 @@ export class ReferralController {
       
       try {
         // Запрос для получения суммы доходов от рефералов по уровням
-        const referralTransactions = await db
-          .select({
-            level: sql<number>`CAST(data->>'level' AS INTEGER)`,
-            uni_amount: sql<string>`SUM(CASE WHEN currency = 'UNI' THEN amount ELSE 0 END)`,
-            ton_amount: sql<string>`SUM(CASE WHEN currency = 'TON' THEN amount ELSE 0 END)`
-          })
-          .from(transactions)
-          .where(
-            and(
-              eq(transactions.user_id, userId),
-              eq(transactions.type, 'referral_bonus')
-            )
-          )
-          .groupBy(sql`data->>'level'`);
-          
-        // Преобразуем результат в объект { level: { uni: amount, ton: amount } }
-        const result: Record<number, { uni: number, ton: number }> = {};
+        // Проверяем наличие поля data перед использованием оператора ->
+        const hasDataColumnResult = await db
+          .execute(sql`SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'transactions' AND column_name = 'data'
+          ) AS exists`);
         
-        // Проверка, что результат не null и не undefined
-        if (!referralTransactions) {
-          console.log('[ReferralController] Пустой результат запроса транзакций');
+        const hasDataColumn = hasDataColumnResult && 
+                          hasDataColumnResult.length > 0 && 
+                          hasDataColumnResult[0] && 
+                          (hasDataColumnResult[0] as Record<string, unknown>).exists === true;
+        
+        if (hasDataColumn) {
+          const referralTransactions = await db
+            .select({
+              level: sql<number>`CAST(data->>'level' AS INTEGER)`,
+              uni_amount: sql<string>`SUM(CASE WHEN currency = 'UNI' THEN amount ELSE 0 END)`,
+              ton_amount: sql<string>`SUM(CASE WHEN currency = 'TON' THEN amount ELSE 0 END)`
+            })
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.user_id, userId),
+                eq(transactions.type, 'referral_bonus')
+              )
+            )
+            .groupBy(sql`data->>'level'`);
+          
+          // Преобразуем результат в объект { level: { uni: amount, ton: amount } }
+          const result: Record<number, { uni: number, ton: number }> = {};
+          
+          // Проверка, что результат не null и не undefined
+          if (!referralTransactions) {
+            console.log('[ReferralController] Пустой результат запроса транзакций');
+            return {};
+          }
+          
+          for (const row of referralTransactions) {
+            if (row.level !== null) {
+              // Безопасное преобразование строк в числа
+              const uniAmount = parseFloat(row.uni_amount || '0');
+              const tonAmount = parseFloat(row.ton_amount || '0');
+              
+              result[row.level] = {
+                // Проверка на NaN для гарантии числовых значений
+                uni: isNaN(uniAmount) ? 0 : uniAmount,
+                ton: isNaN(tonAmount) ? 0 : tonAmount
+              };
+            }
+          }
+          
+          return result;
+        } else {
+          console.log('[ReferralController] Поле data в таблице transactions отсутствует, возвращаем пустой результат');
           return {};
         }
-        
-        for (const row of referralTransactions) {
-          if (row.level !== null) {
-            // Безопасное преобразование строк в числа
-            const uniAmount = parseFloat(row.uni_amount || '0');
-            const tonAmount = parseFloat(row.ton_amount || '0');
-            
-            result[row.level] = {
-              // Проверка на NaN для гарантии числовых значений
-              uni: isNaN(uniAmount) ? 0 : uniAmount,
-              ton: isNaN(tonAmount) ? 0 : tonAmount
-            };
-          }
-        }
-        
-        return result;
       } catch (error: any) {
         // Расширенная обработка известных ошибок
         if (error.message) {

@@ -131,8 +131,8 @@ async function testReferralStructure() {
     } else {
       console.log(`Получено ${referralsData.data.referrals.length} рефералов`);
       
-      // Проверка наличия реферала в списке
-      const foundReferral = referralsData.data.referrals.find(ref => ref.id === referralId);
+      // Проверка наличия реферала в списке (используем user_id в новой схеме)
+      const foundReferral = referralsData.data.referrals.find(ref => ref.user_id === referralId);
       
       if (foundReferral) {
         console.log('✅ Реферал найден в структуре реферера');
