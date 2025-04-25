@@ -1,6 +1,6 @@
 /**
  * Компонент для проверки запуска приложения в Telegram Mini App
- * Если приложение запущено не в Telegram, перенаправляет на страницу telegram-redirect
+ * Логика автоматического перенаправления отключена
  */
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
@@ -12,12 +12,11 @@ interface TelegramWebAppCheckProps {
 export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckProps) {
   const [isChecking, setIsChecking] = useState(true);
   const [isTelegramApp, setIsTelegramApp] = useState(false);
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   
   useEffect(() => {
     // Пропускаем проверку на специальных маршрутах
     const skipRoutes = [
-      '/telegram-redirect',
       '/telegram-test',
       '/debug',
       '/webhook-setup',
@@ -34,14 +33,11 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
     
     // Проверка запуска в Telegram
     const checkTelegramWebApp = () => {
-      // Получаем параметры из URL
+      // Параметры URL и флаги для отладки
       const urlParams = new URLSearchParams(window.location.search);
-      const noRedirect = urlParams.get('no_redirect') === 'true';
       const debugMode = urlParams.get('debug') === 'true';
-      const redirectDisabled = localStorage.getItem('disable_redirect') === 'true';
-      const redirectAttempted = sessionStorage.getItem('redirect_attempted') === 'true';
       
-      // В режиме разработки не делаем перенаправление
+      // В режиме разработки всегда пропускаем проверку
       if (process.env.NODE_ENV === 'development' && !debugMode) {
         console.log('[TelegramWebAppCheck] Пропуск проверки в режиме разработки');
         setIsTelegramApp(true);
@@ -49,43 +45,19 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
         return;
       }
       
-      // Если пользователь явно отключил перенаправление или уже была попытка
-      if (noRedirect || redirectDisabled || redirectAttempted) {
-        console.log('[TelegramWebAppCheck] Перенаправление отключено:', { 
-          noRedirect, 
-          redirectDisabled,
-          redirectAttempted 
-        });
-        setIsTelegramApp(true);
-        setIsChecking(false);
-        return;
-      }
-      
-      // Проверяем наличие объекта Telegram.WebApp
+      // Проверяем наличие объекта Telegram.WebApp но не делаем редирект
       const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram;
       const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
       
       console.log('[TelegramWebAppCheck] Проверка запуска в Telegram Mini App:', {
         isTelegramAvailable,
         isWebAppAvailable,
-        redirectAttempted,
         currentLocation: location,
         userAgent: navigator.userAgent
       });
       
-      // Если мы не в Telegram WebApp, выполняем редирект
-      if (!isWebAppAvailable) {
-        console.log('[TelegramWebAppCheck] Требуется перенаправление на Telegram Mini App');
-        
-        // Устанавливаем флаг, что была попытка редиректа
-        sessionStorage.setItem('redirect_attempted', 'true');
-        
-        // Поскольку мы находимся в компоненте React, используем wouter для навигации
-        setLocation('/telegram-redirect');
-        return;
-      }
-      
-      // Если все проверки пройдены, разрешаем продолжить
+      // Всегда разрешаем продолжить, даже если это не Telegram WebApp
+      // Предупреждение будет показано через компонент TelegramInitDataWarning
       setIsTelegramApp(true);
       setIsChecking(false);
     };
@@ -96,7 +68,7 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
     }, 300);
     
     return () => clearTimeout(timeout);
-  }, [location, setLocation]);
+  }, [location]);
   
   // Пока идет проверка, показываем индикатор загрузки
   if (isChecking) {
@@ -107,6 +79,6 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
     );
   }
   
-  // Если это Telegram App или страница из списка исключений, показываем содержимое
+  // Всегда показываем содержимое
   return <>{children}</>;
 }

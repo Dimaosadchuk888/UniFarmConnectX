@@ -18,122 +18,18 @@
         console.log('[URL Fix] Исправлен URL со слешем в конце');
       }
 
-      // Перенаправление на Telegram Mini App если приложение открыто в обычном браузере
+      // Проверка доступности Telegram
       (function() {
-        const hostParts = location.host.split('.');
-        const isDevelopmentHost = location.host.includes('replit.dev');
-        const productionHost = 'uni-farm-connect-2-misterxuniverse.replit.app';
-        
-        // Получаем настройки из localStorage и sessionStorage
-        const redirectDisabled = localStorage.getItem('disable_redirect') === 'true';
-        const redirectAttempted = sessionStorage.getItem('redirect_attempted') === 'true';
         const isTelegramAvailable = typeof window.Telegram !== 'undefined';
-        const hasURLParam = location.search.includes('no_redirect=true');
         
-        console.log('[Redirect Check]', {
-          currentHost: location.host,
-          isDevelopmentHost,
-          isTelegramAvailable,
-          redirectDisabled,
-          redirectAttempted,
-          hasURLParam
+        console.log('[Telegram Check]', {
+          isTelegramAvailable: isTelegramAvailable,
+          host: location.host,
+          isDevelopment: location.host.includes('replit.dev') || process.env.NODE_ENV === 'development'
         });
         
-        // Если открыто в обычном браузере, не в режиме разработки, и ещё не было попытки редиректа
-        if (!isTelegramAvailable && !redirectDisabled && !redirectAttempted && !hasURLParam && !isDevelopmentHost) {
-          const telegramMiniAppUrl = 'https://t.me/UniFarming_Bot/UniFarm';
-          
-          console.log(`[Redirect] Перенаправление на Telegram Mini App: ${telegramMiniAppUrl}`);
-          
-          // Устанавливаем флаг, что попытка редиректа была сделана
-          sessionStorage.setItem('redirect_attempted', 'true');
-          
-          // Показываем сообщение и даем пользователю время на чтение
-          const message = document.createElement('div');
-          message.style.position = 'fixed';
-          message.style.top = '0';
-          message.style.left = '0';
-          message.style.width = '100%';
-          message.style.padding = '20px';
-          message.style.backgroundColor = '#1B73E8';
-          message.style.color = 'white';
-          message.style.textAlign = 'center';
-          message.style.zIndex = '9999';
-          message.innerHTML = 'Перенаправление на Telegram Mini App...';
-          
-          document.body ? document.body.appendChild(message) : document.addEventListener('DOMContentLoaded', () => document.body.appendChild(message));
-          
-          // Делаем перенаправление с небольшой задержкой
-          setTimeout(() => {
-            window.location.href = telegramMiniAppUrl;
-          }, 1500);
-        }
-        // Если Telegram недоступен, но уже была попытка редиректа, показываем кнопку вместо автоматического редиректа
-        else if (!isTelegramAvailable && !redirectDisabled && redirectAttempted && !hasURLParam && !isDevelopmentHost) {
-          console.log('[Redirect] Показываем кнопку для ручного перехода вместо автоматического редиректа');
-          
-          // Ждём, пока DOM загрузится
-          document.addEventListener('DOMContentLoaded', () => {
-            const telegramMiniAppUrl = 'https://t.me/UniFarming_Bot/UniFarm';
-            
-            // Создаём контейнер для информационного сообщения
-            const container = document.createElement('div');
-            container.style.position = 'fixed';
-            container.style.top = '0';
-            container.style.left = '0';
-            container.style.width = '100%';
-            container.style.height = '100%';
-            container.style.display = 'flex';
-            container.style.flexDirection = 'column';
-            container.style.alignItems = 'center';
-            container.style.justifyContent = 'center';
-            container.style.backgroundColor = 'white';
-            container.style.zIndex = '9999';
-            
-            // Создаём содержимое
-            const content = document.createElement('div');
-            content.style.maxWidth = '500px';
-            content.style.textAlign = 'center';
-            content.style.padding = '20px';
-            
-            const title = document.createElement('h2');
-            title.textContent = 'Для корректной работы откройте приложение в Telegram';
-            title.style.marginBottom = '20px';
-            title.style.color = '#333';
-            
-            const telegramButton = document.createElement('button');
-            telegramButton.textContent = 'Открыть в Telegram';
-            telegramButton.style.backgroundColor = '#1B73E8';
-            telegramButton.style.color = 'white';
-            telegramButton.style.border = 'none';
-            telegramButton.style.padding = '12px 24px';
-            telegramButton.style.borderRadius = '8px';
-            telegramButton.style.cursor = 'pointer';
-            telegramButton.style.marginBottom = '15px';
-            telegramButton.onclick = () => window.location.href = telegramMiniAppUrl;
-            
-            const skipButton = document.createElement('button');
-            skipButton.textContent = 'Продолжить на сайте';
-            skipButton.style.backgroundColor = '#f0f0f0';
-            skipButton.style.color = '#333';
-            skipButton.style.border = 'none';
-            skipButton.style.padding = '12px 24px';
-            skipButton.style.borderRadius = '8px';
-            skipButton.style.cursor = 'pointer';
-            skipButton.onclick = () => {
-              localStorage.setItem('disable_redirect', 'true');
-              container.style.display = 'none';
-            };
-            
-            content.appendChild(title);
-            content.appendChild(telegramButton);
-            content.appendChild(document.createElement('br'));
-            content.appendChild(skipButton);
-            container.appendChild(content);
-            
-            document.body.appendChild(container);
-          });
-        }
+        // Удалена логика автоматического перенаправления
+        // Предупреждение будет показано через компонент TelegramInitDataWarning
       })();
 
       // Проверка Telegram API

@@ -85,10 +85,14 @@ const TelegramInitDataWarning: React.FC = () => {
       setInitDataLength(initDataLen);
       setUsingCachedData(usingCachedData);
       
-      // По ТЗ: Если данных нет — отображать сообщение: «Приложение не открыто из Telegram».
-      // Но теперь учитываем и данные из localStorage и режим разработки
+      // Обновлено: всегда показывать предупреждение если не в Telegram,
+      // но разрешать продолжить работу
       const hasValidData = initDataLen > 0 || usingCachedData;
-      const shouldShowWarning = !isDev && !hasValidData;
+      
+      // Показываем предупреждение если:
+      // - Не в режиме разработки И
+      // - Либо нет объекта Telegram, либо нет initData
+      const shouldShowWarning = !isDev && (!hasTelegramObj || !hasValidData);
       
       setShowWarning(shouldShowWarning);
       
