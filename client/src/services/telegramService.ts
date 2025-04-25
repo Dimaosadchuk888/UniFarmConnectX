@@ -1408,36 +1408,53 @@ export async function registerUserWithTelegram(refCode?: string): Promise<{
   user_id?: number;
   message?: string;
 }> {
-  console.log('[telegramService] Registering user with Telegram...');
+  console.log('[telegramService] Registering user with Telegram - AirDrop упрощенный режим...');
   
   try {
-    // Проверяем, запущены ли мы в среде Telegram
-    if (!isRunningInTelegram()) {
-      console.error('[telegramService] Cannot register user: not running in Telegram environment');
-      return {
-        success: false,
-        message: 'Регистрация возможна только через Telegram Mini App'
-      };
-    }
+    // В соответствии с требованиями AirDrop, отключаем строгую проверку
+    // Это позволит регистрироваться даже без телеграма - согласно обновленному ТЗ
     
-    // Получаем данные пользователя Telegram
+    // Получаем данные пользователя Telegram, если доступны
     const userData = getTelegramUserData();
-    if (!userData) {
-      console.error('[telegramService] Cannot register user: failed to get Telegram user data');
-      return {
-        success: false,
-        message: 'Не удалось получить данные пользователя из Telegram'
-      };
-    }
     
-    // Получаем initData для отправки на сервер
+    // Получаем initData для отправки на сервер, если доступны
     const initData = window.Telegram?.WebApp?.initData;
-    if (!initData || initData.trim() === '') {
-      console.error('[telegramService] Cannot register user: initData is empty');
-      return {
-        success: false,
-        message: 'Отсутствуют данные инициализации Telegram'
-      };
+    
+    // АИРДРОП РЕЖИМ: Если нет данных телеграма, используем минимальный набор для регистрации
+    // создаем пользователя с временным ID чтобы хотя бы обеспечить работу
+    if (!userData) {
+      console.warn('[telegramService] AirDrop Mode: No Telegram data available, using fallback registration');
+      
+      // Создаем временный ID для режима AirDrop (для тестирования или работы без Telegram)
+      const tempId = Math.floor(Date.now() / 1000); // Используем текущий timestamp
+      
+      // Отправляем запрос на сервер с минимальными данными
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          telegram_user_id: tempId,
+          username: `airdrop_user_${tempId}`,
+          ref_code: refCode || ''
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        return {
+          success: true,
+          user_id: result.id,
+          message: 'Регистрация успешна (AirDrop mode)'
+        };
+      } else {
+        console.error('[telegramService] Failed AirDrop registration:', await response.text());
+        return {
+          success: false,
+          message: 'Ошибка регистрации в режиме AirDrop'
+        };
+      }
     }
     
     // Создаем тело запроса
