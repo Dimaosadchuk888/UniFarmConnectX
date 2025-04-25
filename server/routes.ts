@@ -26,6 +26,7 @@ import { TransactionController } from './controllers/transactionController';
 import { MissionController } from './controllers/missionController';
 import { FarmingController } from './controllers/farmingController';
 import { ReferralController } from './controllers/referralController';
+import { runAddGuestIdMigration } from './controllers/migrationController';
 
 // Импорт обработчика команд для Telegram-бота
 import * as telegramBot from './telegramBot';
@@ -415,6 +416,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:id", UserController.getUserById);
   app.get("/api/wallet/balance", UserController.getUserBalance);
   app.get("/api/me", UserController.getCurrentUser);
+  
+  // Маршруты для миграций и обслуживания базы данных (только для разработки)
+  app.post("/api/migrations/add-guest-id", runAddGuestIdMigration);
   
   // Отладочный эндпоинт для анализа заголовков и данных пользователя
   app.get("/debug/me/raw", async (req: Request, res: Response) => {

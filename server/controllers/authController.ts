@@ -25,6 +25,7 @@ export class AuthController {
       // Извлекаем данные из тела запроса
       const {
         telegram_user_id,
+        guest_id, // Добавляем поддержку guest_id
         username,
         first_name, 
         last_name,
