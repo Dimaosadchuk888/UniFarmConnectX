@@ -1224,12 +1224,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   };
   
-  // Простой обработчик для маршрута с параметром startapp
+  // Обработчик для маршрута с параметром startapp
   app.get('/', (req: Request, res: Response, next: NextFunction) => {
     if (req.query.startapp !== undefined) {
       console.log('[TelegramWebApp] Обнаружен запуск через ?startapp параметр:', req.url);
-      // Только логируем и продолжаем обработку запроса
-      // В production среде index.html отдаст serveStatic
+      const refCode = req.query.startapp.toString();
+      
+      // Если параметр startapp содержит реферальный код, логируем его
+      if (refCode.startsWith('ref_')) {
+        console.log('[TelegramWebApp] 🔍 Обнаружен реферальный код в startapp:', refCode);
+      }
     }
     next();
   });
