@@ -1,14 +1,17 @@
 // Импорты для React
 import { createRoot } from "react-dom/client";
+import { createElement } from "react";
 import App from "./App";
 import "./index.css";
 
-// Импортируем функцию инициализации из telegramService
-import { initTelegramWebApp } from './services/telegramService';
+// Импортируем функции из telegramService
+import { 
+  initTelegramWebApp, 
+  isRunningInTelegram 
+} from './services/telegramService';
 
-// Объявление интерфейса Window для доступа к Telegram WebApp
-// Вместо добавления Buffer, который не работает в Telegram Mini App,
-// мы используем стандартные WebAPI для работы с бинарными данными
+// Импортируем компонент блокировки
+import NotInTelegramWarning from "./components/ui/NotInTelegramWarning";
 
 // Обеспечиваем глобальный процесс для приложения
 interface ProcessEnv {
@@ -18,16 +21,23 @@ interface ProcessEnv {
 // Устанавливаем глобальный процесс, который требуется некоторым библиотекам
 window.process = { env: {} } as any;
 
-// Инициализируем Telegram WebApp до рендеринга React-приложения
-initTelegramWebApp();
+// ЭТАП 1.1: СТРОГАЯ ПРОВЕРКА ЗАПУСКА ИЗ TELEGRAM
+// Проверяем, запущено ли приложение в Telegram до рендеринга
+const isTelegramEnvironment = isRunningInTelegram();
 
 // Отладочная проверка состояния Telegram объекта
-console.log('[TG INIT] Telegram object state:', {
+console.log('[TG INIT] Telegram environment check result:', {
+  isTelegramEnvironment,
   telegramDefined: typeof window.Telegram !== 'undefined',
   webAppDefined: typeof window.Telegram?.WebApp !== 'undefined',
   initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
-  savedInitData: sessionStorage.getItem('telegramInitData')?.length || 0
+  savedInitData: sessionStorage.getItem('telegramInitData')?.length || 0,
+  timestamp: new Date().toISOString()
 });
+
+// ЭТАП 1.2: Инициализируем Telegram WebApp до рендеринга React-приложения
+// Вызываем, даже если не прошла проверка, чтобы получить хотя бы логи
+initTelegramWebApp();
 
 // Для гарантии инициализации также добавим слушатель DOMContentLoaded
 document.addEventListener("DOMContentLoaded", () => {
@@ -36,5 +46,18 @@ document.addEventListener("DOMContentLoaded", () => {
   initTelegramWebApp();
 });
 
-// Рендеринг React-приложения
-createRoot(document.getElementById("root")!).render(<App />);
+// Выбираем компонент для рендеринга в зависимости от результата проверки
+let ComponentToRender;
+
+// ЭТАП 1.3: В режиме разработки всегда рендерим приложение
+if (process.env.NODE_ENV === 'development' || isTelegramEnvironment) {
+  console.log('[TG CHECK] Рендеринг основного приложения: работа в Telegram или режим разработки');
+  ComponentToRender = App;
+} else {
+  // В production, если не в Telegram - показываем блокировочный экран
+  console.log('[TG CHECK] Блокировка: приложение запущено вне Telegram');
+  ComponentToRender = NotInTelegramWarning;
+}
+
+// Рендеринг выбранного компонента
+createRoot(document.getElementById("root")!).render(createElement(ComponentToRender));
