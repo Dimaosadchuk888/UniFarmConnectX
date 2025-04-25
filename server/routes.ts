@@ -252,6 +252,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для аутентификации
   app.post("/api/auth/telegram", AuthController.authenticateTelegram);
   
+  // Маршрут для восстановления сессии по guest_id (Этап 3)
+  app.post("/api/session/restore", SessionController.restoreSession);
+  
   // Маршрут для регистрации через Telegram (согласно ТЗ 2.1)
   app.post("/api/register", AuthController.registerUser);
   

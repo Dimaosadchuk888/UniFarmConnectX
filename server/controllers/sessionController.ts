@@ -1,7 +1,5 @@
-import { Request, Response } from 'express';
-import { storage } from '../storage';
-import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
-import { ReferralService } from '../services/referralService';
+import { Request, Response } from "express";
+import { storage } from "../storage";
 
 /**
  * Контроллер для управления сессиями пользователей и восстановления кабинета
@@ -14,86 +12,58 @@ export class SessionController {
    */
   static async restoreSession(req: Request, res: Response): Promise<void> {
     try {
-      // Получаем guest_id из запроса
-      const { guest_id, ref_code } = req.query;
+      // Получаем guest_id из тела запроса
+      const { guest_id } = req.body;
       
-      // Проверяем наличие обязательного параметра
-      if (!guest_id || typeof guest_id !== 'string') {
-        console.log('[SESSION] Отсутствует обязательный параметр guest_id');
-        return sendError(res, 'Не указан идентификатор гостя (guest_id)', 400);
+      // Проверяем наличие guest_id
+      if (!guest_id) {
+        console.error('[SessionController] Отсутствует guest_id в запросе');
+        res.status(400).json({
+          success: false,
+          message: 'Отсутствует guest_id в запросе'
+        });
+        return;
       }
       
-      console.log(`[SESSION] Запрос на восстановление сессии по guest_id: ${guest_id}`);
+      console.log(`[SessionController] Попытка восстановления сессии для guest_id: ${guest_id}`);
       
       // Ищем пользователя по guest_id
       const user = await storage.getUserByGuestId(guest_id);
       
+      // Проверяем, найден ли пользователь
       if (!user) {
-        console.log(`[SESSION] Пользователь с guest_id ${guest_id} не найден в базе данных`);
-        return sendError(res, 'Пользователь не найден', 404);
+        console.log(`[SessionController] Пользователь с guest_id ${guest_id} не найден`);
+        res.status(404).json({
+          success: false,
+          message: 'Пользователь не найден'
+        });
+        return;
       }
       
-      console.log(`[SESSION] Найден пользователь: id=${user.id}, telegram_id=${user.telegram_id}, username=${user.username}`);
+      // Успешно нашли пользователя
+      console.log(`[SessionController] Сессия успешно восстановлена для пользователя с ID: ${user.id}`);
       
-      // Если передан ref_code, и у пользователя еще нет родительского реферального кода,
-      // можно обновить его, но только если это разрешено бизнес-логикой
-      if (ref_code && typeof ref_code === 'string' && !user.parent_ref_code) {
-        try {
-          // Проверяем валидность реферального кода
-          const inviter = await storage.getUserByRefCode(ref_code);
-          
-          if (inviter && inviter.id !== user.id) {
-            console.log(`[SESSION] Обновляем parent_ref_code для пользователя ${user.id} на ${ref_code}`);
-            
-            // Обновляем родительский реферальный код для пользователя
-            await storage.updateUserParentRefCode(user.id, ref_code);
-            
-            // Создаем реферальную связь, если ее еще нет
-            const existingReferral = await ReferralService.getUserInviter(user.id);
-            
-            if (!existingReferral) {
-              // Создаем реферальную связь (уровень 1)
-              const referral = await ReferralService.createReferralRelationship(user.id, inviter.id);
-              
-              if (referral) {
-                console.log(`[SESSION] Создана реферальная связь: пользователь ${user.id} приглашен пользователем ${inviter.id}`);
-              }
-            } else {
-              console.log(`[SESSION] Пользователь ${user.id} уже имеет пригласителя: ${existingReferral.inviter_id}`);
-            }
-          } else if (inviter && inviter.id === user.id) {
-            console.log(`[SESSION] Отклонена попытка самореферальности: ${user.id}`);
-          } else {
-            console.log(`[SESSION] Пригласитель с ref_code=${ref_code} не найден`);
-          }
-        } catch (error) {
-          console.error('[SESSION] Ошибка при обработке реферального кода:', error);
-          // Продолжаем выполнение - ошибка обработки реферального кода не должна мешать восстановлению сессии
+      // Возвращаем данные пользователя (без конфиденциальной информации)
+      res.status(200).json({
+        success: true,
+        message: 'Сессия успешно восстановлена',
+        data: {
+          user_id: user.id,
+          username: user.username,
+          telegram_id: user.telegram_id,
+          balance_uni: user.balance_uni,
+          balance_ton: user.balance_ton,
+          ref_code: user.ref_code,
+          guest_id: user.guest_id,
+          created_at: user.created_at
         }
-      }
-      
-      // Получаем обновленные данные пользователя после возможных изменений
-      const updatedUser = await storage.getUserById(user.id);
-      
-      if (!updatedUser) {
-        return sendError(res, 'Ошибка при получении обновленных данных пользователя', 500);
-      }
-      
-      // Отправляем успешный ответ с данными пользователя
-      sendSuccess(res, {
-        id: updatedUser.id,
-        telegram_id: updatedUser.telegram_id,
-        guest_id: updatedUser.guest_id,
-        username: updatedUser.username,
-        ref_code: updatedUser.ref_code,
-        parent_ref_code: updatedUser.parent_ref_code,
-        balance_uni: updatedUser.balance_uni,
-        balance_ton: updatedUser.balance_ton,
-        session_restored: true,
       });
     } catch (error) {
-      console.error('[SESSION] Ошибка при восстановлении сессии:', error);
-      sendServerError(res, error);
+      console.error('[SessionController] Ошибка при восстановлении сессии:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Внутренняя ошибка сервера при восстановлении сессии'
+      });
     }
   }
 }
