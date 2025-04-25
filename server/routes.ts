@@ -1224,48 +1224,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   };
   
-  // Сначала обрабатываем статические ресурсы из assets (JS, CSS и т.д.)
-  app.use('/assets', express.static(path.resolve('dist', 'public', 'assets'), {
-    maxAge: '30d' // кэширование на 30 дней
-  }));
-
-  // Статические файлы в корне
-  app.use(express.static(path.resolve('dist', 'public'), {
-    index: false // не используем index.html из static middleware
-  }));
-  
-  // И только потом добавляем универсальный fallback для HTML-запросов
-  // Этот обработчик должен быть определен ПОСЛЕ всех остальных маршрутов
-  app.get('*', (req: Request, res: Response) => {
-    // Если запрос на статические файлы - пропускаем их, они должны были обработаться выше
-    if (req.url.match(/\.(js|css|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2)$/)) {
-      console.log(`[TelegramWebApp] Skipping HTML fallback for static file: ${req.url}`);
-      return res.status(404).send('Not found');
+  // Создаем или обновляем символическую ссылку server/public -> dist/public
+  // Это нужно, чтобы serveStatic в продакшн режиме работал правильно
+  try {
+    // Создаем директорию public в папке server, если ее нет
+    const serverPublicPath = path.resolve(import.meta.dirname, 'public');
+    const distPublicPath = path.resolve('dist', 'public');
+    
+    // Проверяем, существует ли директория server/public
+    if (!fs.existsSync(serverPublicPath)) {
+      console.log(`[TelegramWebApp] Creating directory: ${serverPublicPath}`);
+      fs.mkdirSync(serverPublicPath, { recursive: true });
     }
     
-    console.log(`[TelegramWebApp] HTML fallback for: ${req.url}`);
-    
-    // Список возможных путей к index.html в порядке приоритета
-    const possiblePaths = [
-      path.resolve('dist', 'public', 'index.html'),
-      path.resolve('client', 'dist', 'index.html'),
-      path.resolve('public', 'index.html'),
-      path.resolve('dist', 'index.html'),
-      path.resolve('client', 'public', 'index.html'),
-      path.resolve('client', 'index.html')
-    ];
-    
-    // Ищем первый существующий файл
-    for (const indexPath of possiblePaths) {
+    // Копируем все необходимые файлы из dist/public в server/public
+    if (fs.existsSync(distPublicPath)) {
+      console.log(`[TelegramWebApp] Copying files from ${distPublicPath} to ${serverPublicPath}`);
+      
+      // Копируем index.html
+      const sourceIndexHtml = path.resolve(distPublicPath, 'index.html');
+      const targetIndexHtml = path.resolve(serverPublicPath, 'index.html');
+      
+      if (fs.existsSync(sourceIndexHtml)) {
+        fs.copyFileSync(sourceIndexHtml, targetIndexHtml);
+        console.log(`[TelegramWebApp] Successfully copied index.html to ${targetIndexHtml}`);
+      }
+      
+      // Создаем директорию assets, если нужно
+      const serverAssetsPath = path.resolve(serverPublicPath, 'assets');
+      if (!fs.existsSync(serverAssetsPath)) {
+        fs.mkdirSync(serverAssetsPath, { recursive: true });
+      }
+      
+      // Копируем все файлы из директории assets
+      const distAssetsPath = path.resolve(distPublicPath, 'assets');
+      if (fs.existsSync(distAssetsPath)) {
+        const assetFiles = fs.readdirSync(distAssetsPath);
+        assetFiles.forEach(file => {
+          const sourcePath = path.resolve(distAssetsPath, file);
+          const targetPath = path.resolve(serverAssetsPath, file);
+          fs.copyFileSync(sourcePath, targetPath);
+          console.log(`[TelegramWebApp] Copied asset file: ${file}`);
+        });
+      }
+      
+      // Копируем manifest и другие файлы в корне public
+      const wellKnownSource = path.resolve(distPublicPath, '.well-known');
+      const wellKnownTarget = path.resolve(serverPublicPath, '.well-known');
+      
+      if (fs.existsSync(wellKnownSource)) {
+        if (!fs.existsSync(wellKnownTarget)) {
+          fs.mkdirSync(wellKnownTarget, { recursive: true });
+        }
+        
+        const wellKnownFiles = fs.readdirSync(wellKnownSource);
+        wellKnownFiles.forEach(file => {
+          const sourcePath = path.resolve(wellKnownSource, file);
+          const targetPath = path.resolve(wellKnownTarget, file);
+          fs.copyFileSync(sourcePath, targetPath);
+          console.log(`[TelegramWebApp] Copied .well-known file: ${file}`);
+        });
+      }
+      
+      // Копируем manifest для TonConnect
+      const tonManifestSource = path.resolve(distPublicPath, 'tonconnect-manifest.json');
+      const tonManifestTarget = path.resolve(serverPublicPath, 'tonconnect-manifest.json');
+      
+      if (fs.existsSync(tonManifestSource)) {
+        fs.copyFileSync(tonManifestSource, tonManifestTarget);
+        console.log(`[TelegramWebApp] Copied tonconnect-manifest.json`);
+      }
+    }
+  } catch (error) {
+    console.error('[TelegramWebApp] Error setting up static files:', error);
+  }
+  
+  // Специальный обработчик для ?startapp параметра (Telegram Mini App)
+  app.get('/', (req: Request, res: Response, next: NextFunction) => {
+    if (req.query.startapp !== undefined) {
+      console.log(`[TelegramWebApp] Detected startapp parameter: ${req.url}`);
+      const indexPath = path.resolve('dist', 'public', 'index.html');
+      
       if (fs.existsSync(indexPath)) {
-        console.log(`[TelegramWebApp] Serving index.html from: ${indexPath} for URL: ${req.url}`);
+        console.log(`[TelegramWebApp] Serving index.html for startapp from: ${indexPath}`);
         return res.sendFile(indexPath);
       }
     }
-    
-    // Если ни один из путей не существует, отдаем ошибку
-    console.error('[TelegramWebApp] ERROR: index.html не найден ни по одному из путей!');
-    return res.status(500).send('Server configuration error: index.html not found');
+    next();
   });
   
   return httpServer;
