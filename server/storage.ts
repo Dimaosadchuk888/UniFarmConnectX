@@ -460,121 +460,15 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Создание пользователя только на основе guest_id (без Telegram)
-  async createGuestUser(userData: {
-    guest_id: string;
-    username?: string;
-    balance_uni?: string;
-    balance_ton?: string;
-    ref_code?: string; // Делаем ref_code опциональным
-    parent_ref_code?: string; // Добавляем parent_ref_code
-    created_at?: Date;
-  }): Promise<User> {
-    console.log(`[Storage] Создание гостевого пользователя с guest_id: ${userData.guest_id}`);
-    
-    try {
-      // Проверяем, существует ли уже пользователь с таким guest_id
-      const existingUser = await this.getUserByGuestId(userData.guest_id);
-      
-      if (existingUser) {
-        console.log(`[Storage] Пользователь с guest_id ${userData.guest_id} уже существует`);
-        
-        // Если предоставлен parent_ref_code и у пользователя его еще нет, 
-        // устанавливаем его для существующего пользователя
-        if (userData.parent_ref_code && !existingUser.parent_ref_code) {
-          console.log(`[Storage] Устанавливаем parent_ref_code ${userData.parent_ref_code} для существующего пользователя ID=${existingUser.id}`);
-          
-          // Проверяем, что родительский код не является кодом самого пользователя
-          if (existingUser.ref_code === userData.parent_ref_code) {
-            console.log(`[Storage] ⚠️ Попытка самореферрала для пользователя ID=${existingUser.id} предотвращена`);
-            return existingUser;
-          }
-          
-          // Проверяем, что родительский код существует в базе
-          const parentUser = await this.getUserByRefCode(userData.parent_ref_code);
-          if (!parentUser) {
-            console.log(`[Storage] ⚠️ Пользователь с ref_code ${userData.parent_ref_code} не найден, связь не будет установлена`);
-            return existingUser;
-          }
-          
-          // Устанавливаем parent_ref_code
-          const [updatedUser] = await db
-            .update(users)
-            .set({ parent_ref_code: userData.parent_ref_code })
-            .where(eq(users.id, existingUser.id))
-            .returning();
-            
-          console.log(`[Storage] Для пользователя ID=${existingUser.id} установлен parent_ref_code=${userData.parent_ref_code}`);
-          return updatedUser;
-        }
-        
-        // Проверяем, есть ли у пользователя ref_code
-        if (!existingUser.ref_code) {
-          // Если нет ref_code, генерируем новый и обновляем пользователя
-          const newRefCode = await this.generateUniqueRefCode();
-          console.log(`[Storage] Существующий пользователь не имеет ref_code. Генерируем новый: ${newRefCode}`);
-          
-          const [updatedUser] = await db
-            .update(users)
-            .set({ ref_code: newRefCode })
-            .where(eq(users.id, existingUser.id))
-            .returning();
-            
-          return updatedUser;
-        }
-        
-        return existingUser;
-      }
-      
-      // Генерируем уникальный ref_code, если он не был предоставлен
-      const refCode = userData.ref_code || await this.generateUniqueRefCode();
-      
-      // Проверяем parent_ref_code, если он предоставлен
-      if (userData.parent_ref_code) {
-        // Проверяем, что этот код не совпадает с ref_code пользователя
-        if (refCode === userData.parent_ref_code) {
-          console.log(`[Storage] ⚠️ Попытка самореферрала (ref_code = parent_ref_code) предотвращена`);
-          userData.parent_ref_code = undefined; // Отключаем parent_ref_code
-        } else {
-          // Проверяем, что пользователь с таким реферальным кодом существует
-          const parentUser = await this.getUserByRefCode(userData.parent_ref_code);
-          if (!parentUser) {
-            console.log(`[Storage] ⚠️ Пользователь с ref_code ${userData.parent_ref_code} не найден, связь не будет установлена`);
-            userData.parent_ref_code = undefined; // Отключаем parent_ref_code
-          } else {
-            console.log(`[Storage] ✅ Пользователь с ref_code ${userData.parent_ref_code} найден (ID=${parentUser.id}), будет установлена реферальная связь`);
-          }
-        }
-      }
-      
-      // Подготавливаем данные для вставки
-      const insertData = {
-        // telegram_id оставляем null, так как это гостевой пользователь
-        guest_id: userData.guest_id,
-        username: userData.username || `guest_${userData.guest_id.substring(0, 8)}`,
-        ref_code: refCode,
-        parent_ref_code: userData.parent_ref_code, // Добавляем parent_ref_code
-        balance_uni: userData.balance_uni || "100", // По умолчанию даем 100 UNI
-        balance_ton: userData.balance_ton || "0",
-        created_at: userData.created_at || new Date()
-      };
-      
-      // Выполняем вставку
-      const [user] = await db
-        .insert(users)
-        .values(insertData)
-        .returning();
-      
-      if (userData.parent_ref_code) {
-        console.log(`[Storage] Гостевой пользователь успешно создан с реферальной связью: ID=${user.id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}, parent_ref_code=${user.parent_ref_code}`);
-      } else {
-        console.log(`[Storage] Гостевой пользователь успешно создан: ID=${user.id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
-      }
-      
-      return user;
-    } catch (error) {
-      console.error(`[Storage] Ошибка при создании гостевого пользователя с guest_id ${userData.guest_id}:`, error);
-      throw error;
-    }
+  /**
+   * Метод заменен на более новую версию в конце файла
+   * @see createGuestUser implementation for Этап 4 and 5
+   */
+  async createGuestUserLegacy(): Promise<User> {
+    // Этот метод оставлен для совместимости, но не должен использоваться
+    // Вместо него используйте обновленную версию createGuestUser
+    console.warn('[Storage] ⚠️ Попытка вызова устаревшего метода createGuestUserLegacy');
+    throw new Error('Метод устарел. Используйте новую версию createGuestUser');
   }
   
   // Методы для работы с ref_code
@@ -763,7 +657,8 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  // Создание пользователя только на основе guest_id (без Telegram) для Этапа 4
+  // Создание пользователя только на основе guest_id (без Telegram) для Этапа 4 и 5
+  // Этот метод обновлен для соответствия требованиям Этапа 5: безопасное восстановление пользователя
   async createGuestUser(userData: {
     guest_id: string;
     username?: string;
