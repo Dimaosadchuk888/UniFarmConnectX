@@ -106,11 +106,46 @@ const UniFarmReferralLink: React.FC = () => {
   
   // Ошибка или отсутствие ref_code
   if (isError || !hasRefCode) {
+    // Дополнительная проверка: если у нас нет данных пользователя вообще (не только ref_code)
+    // то мы пробуем запустить регистрацию в режиме AirDrop
+    if (!safeUser || !safeUser.id) {
+      return (
+        <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
+          <div className="flex justify-center items-center flex-col py-4">
+            <p className="text-amber-400/80 mb-3 text-center">
+              Загрузка партнерской программы...
+            </p>
+            <button 
+              className="px-4 py-2 bg-primary rounded-md text-white text-sm shadow-md" 
+              onClick={() => {
+                // Запускаем регистрацию в режиме AirDrop
+                userService.registerInAirDropMode()
+                  .then(() => {
+                    // После успешной регистрации обновляем данные
+                    window.location.reload();
+                  })
+                  .catch(err => {
+                    console.error("Ошибка регистрации в режиме AirDrop:", err);
+                    alert("Не удалось выполнить регистрацию. Пожалуйста, попробуйте еще раз.");
+                  });
+              }}
+            >
+              Получить реферальный код
+            </button>
+            <div className="text-xs text-muted-foreground mt-3">
+              Нажмите кнопку выше, чтобы получить реферальный код для приглашения друзей
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Обычное сообщение об ошибке, когда пользователь есть, но нет ref_code
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex justify-center items-center flex-col py-4">
           <p className="text-amber-400/80 mb-3 text-center">
-            Реферальный код не получен. Попробуйте перезайти.
+            Реферальный код не получен. Попробуйте перезагрузить страницу.
           </p>
           <div className="text-xs text-muted-foreground">
             {isError ? 

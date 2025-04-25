@@ -33,14 +33,29 @@ export class AuthController {
         ref_code
       } = req.body;
       
-      // Проверяем, что передан ID пользователя Telegram
-      if (!telegram_user_id) {
-        console.error('[REGISTER] Отсутствует обязательный параметр telegram_user_id');
+      // Проверяем, что передан ID пользователя Telegram (AirDrop Upgrade)
+      // В режиме AirDrop мы разрешаем регистрацию без Telegram ID
+      const isAirdropMode = req.body.airdrop_mode === true || 
+                           process.env.ALLOW_AIRDROP_MODE === 'true' ||
+                           process.env.NODE_ENV === 'development';
+      
+      // Создаем переменную для ID с возможностью изменения
+      let user_telegram_id = telegram_user_id;
+      
+      if (!user_telegram_id && !isAirdropMode) {
+        console.error('[REGISTER] Отсутствует обязательный параметр telegram_user_id и не включен режим AirDrop');
         return sendError(res, 'Отсутствует ID пользователя Telegram', 400);
       }
       
+      // Если режим AirDrop включен и ID не передан, генерируем временный ID
+      if (!user_telegram_id && isAirdropMode) {
+        // Генерируем уникальный временный ID на основе timestamp
+        user_telegram_id = Math.floor(Date.now() / 1000);
+        console.log(`[REGISTER] AirDrop Mode: Сгенерирован временный ID: ${user_telegram_id}`);
+      }
+      
       // Логируем получение запроса на регистрацию
-      console.log(`[REGISTER] Запрос на регистрацию пользователя: ID=${telegram_user_id}, username=${username || 'не указан'}`);
+      console.log(`[REGISTER] Запрос на регистрацию пользователя: ID=${user_telegram_id}, username=${username || 'не указан'}`);
       console.log(`[REGISTER] Дополнительные данные:`, { 
         first_name: first_name || 'не указан', 
         last_name: last_name || 'не указан',
@@ -49,12 +64,12 @@ export class AuthController {
       });
       
       // Проверяем, существует ли уже пользователь с таким Telegram ID
-      let user = await storage.getUserByTelegramId(telegram_user_id);
+      let user = await storage.getUserByTelegramId(user_telegram_id);
       let isNewUser = false;
       
       if (user) {
         // Пользователь уже существует, просто возвращаем информацию
-        console.log(`[REGISTER] Пользователь уже существует: telegram_id=${telegram_user_id}, user_id=${user.id}`);
+        console.log(`[REGISTER] Пользователь уже существует: telegram_id=${user_telegram_id}, user_id=${user.id}`);
       } else {
         // Создаем нового пользователя
         isNewUser = true;
@@ -64,8 +79,8 @@ export class AuthController {
         
         // Создаем пользователя
         user = await UserService.createUser({
-          telegram_id: telegram_user_id,
-          username: username || `user_${telegram_user_id}`,
+          telegram_id: user_telegram_id,
+          username: username || `user_${user_telegram_id}`,
           balance_uni: "100", // Начальный бонус
           balance_ton: "0",
           ref_code: newRefCode,
