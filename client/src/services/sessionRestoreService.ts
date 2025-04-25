@@ -1,132 +1,147 @@
 /**
- * Сервис для восстановления сессии пользователя по guest_id
+ * Сервис для восстановления сессии по guest_id
  * 
- * Этот сервис отвечает за:
- * 1. Проверку наличия guest_id в localStorage/sessionStorage
- * 2. Выполнение авторизации по guest_id без создания нового аккаунта
- * 3. Предотвращение создания дубликатов аккаунтов
+ * Этап 3: Восстановление кабинета по guest_id
+ * Позволяет восстановить сессию пользователя на основе сохраненного guest_id
+ * для предотвращения создания дублирующих аккаунтов.
  */
 
 import { apiRequest } from "@/lib/queryClient";
-import { GuestIdService } from "./guestIdService";
-import { referralService } from "./referralService";
-
-interface SessionRestoreResult {
-  success: boolean;
-  message: string;
-  user?: any;
-  isAuthenticated?: boolean;
-  useExistingSession?: boolean;
-}
 
 /**
- * Сервис для восстановления сессии пользователя
+ * Константы для хранения ключей в localStorage/sessionStorage
  */
-class SessionRestoreService {
-  /**
-   * Проверяет наличие существующего guest_id и восстанавливает сессию по нему
-   * Использует все доступные методы хранения (localStorage, sessionStorage)
-   * @returns {Promise<SessionRestoreResult>} Результат попытки восстановления сессии
-   */
-  async restoreSession(): Promise<SessionRestoreResult> {
-    console.log('[SessionRestore] Начинаем проверку наличия сохраненного guest_id...');
+const STORAGE_KEYS = {
+  GUEST_ID: 'unifarm_guest_id',
+  LAST_SESSION: 'unifarm_last_session'
+};
+
+/**
+ * Проверяет, следует ли пытаться восстановить сессию
+ * @returns true если guest_id существует и можно попытаться восстановить сессию
+ */
+const shouldAttemptRestore = (): boolean => {
+  try {
+    // Проверяем наличие guest_id в localStorage
+    const guestId = localStorage.getItem(STORAGE_KEYS.GUEST_ID);
     
-    // Шаг 1: Проверяем наличие guest_id в localStorage
-    const guestId = GuestIdService.get({ generateIfMissing: false });
+    // Если guest_id существует, возвращаем true
+    if (guestId) {
+      console.log('[sessionRestoreService] Найден guest_id в localStorage:', guestId);
+      return true;
+    }
     
+    // Проверяем также наличие guest_id в sessionStorage (запасной вариант)
+    const sessionGuestId = sessionStorage.getItem(STORAGE_KEYS.GUEST_ID);
+    if (sessionGuestId) {
+      console.log('[sessionRestoreService] Найден guest_id в sessionStorage:', sessionGuestId);
+      // Мигрируем guest_id из sessionStorage в localStorage для долгосрочного хранения
+      localStorage.setItem(STORAGE_KEYS.GUEST_ID, sessionGuestId);
+      return true;
+    }
+    
+    console.log('[sessionRestoreService] Не найден guest_id ни в одном хранилище');
+    return false;
+  } catch (error) {
+    console.error('[sessionRestoreService] Ошибка при проверке guest_id:', error);
+    return false;
+  }
+};
+
+/**
+ * Получает guest_id из хранилища
+ * @returns guest_id или null, если его нет
+ */
+const getGuestId = (): string | null => {
+  try {
+    // Приоритетно проверяем localStorage (более долговременное хранилище)
+    const guestId = localStorage.getItem(STORAGE_KEYS.GUEST_ID);
+    if (guestId) {
+      return guestId;
+    }
+    
+    // Запасной вариант - проверяем sessionStorage
+    const sessionGuestId = sessionStorage.getItem(STORAGE_KEYS.GUEST_ID);
+    if (sessionGuestId) {
+      // Мигрируем в localStorage для постоянного хранения
+      localStorage.setItem(STORAGE_KEYS.GUEST_ID, sessionGuestId);
+      return sessionGuestId;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('[sessionRestoreService] Ошибка при получении guest_id:', error);
+    return null;
+  }
+};
+
+/**
+ * Сохраняет guest_id в localStorage
+ * @param guestId уникальный идентификатор гостя
+ */
+const saveGuestId = (guestId: string): void => {
+  try {
     if (!guestId) {
-      console.log('[SessionRestore] Guest ID не найден в localStorage');
-      return {
-        success: false,
-        message: 'Guest ID не найден в хранилище'
-      };
+      console.error('[sessionRestoreService] Попытка сохранить пустой guest_id');
+      return;
     }
     
-    console.log(`[SessionRestore] Найден guest_id: ${guestId}, пытаемся восстановить сессию`);
+    // Сохраняем в localStorage для долгосрочного хранения
+    localStorage.setItem(STORAGE_KEYS.GUEST_ID, guestId);
     
-    try {
-      // Шаг 2: Делаем запрос к API для восстановления сессии по guest_id
-      const response = await this.fetchUserByGuestId(guestId);
-      
-      if (response.success && response.data) {
-        console.log('[SessionRestore] Успешно восстановлена сессия по guest_id:', {
-          userId: response.data.id,
-          username: response.data.username,
-          telegramId: response.data.telegram_id
-        });
-        
-        return {
-          success: true,
-          message: 'Сессия успешно восстановлена',
-          user: response.data,
-          isAuthenticated: true,
-          useExistingSession: true
-        };
-      } else {
-        console.log('[SessionRestore] API вернул ошибку или пустые данные:', response);
-        return {
-          success: false,
-          message: response.message || 'Не удалось восстановить сессию по guest_id'
-        };
-      }
-    } catch (error) {
-      console.error('[SessionRestore] Ошибка при восстановлении сессии:', error);
-      return {
-        success: false,
-        message: `Ошибка при восстановлении сессии: ${(error as Error)?.message || 'Неизвестная ошибка'}`
-      };
-    }
+    // Сохраняем также в sessionStorage для максимальной совместимости
+    sessionStorage.setItem(STORAGE_KEYS.GUEST_ID, guestId);
+    
+    console.log('[sessionRestoreService] guest_id успешно сохранен:', guestId);
+  } catch (error) {
+    console.error('[sessionRestoreService] Ошибка при сохранении guest_id:', error);
   }
-  
-  /**
-   * Делает запрос к API для проверки существования пользователя по guest_id
-   * @param {string} guestId - Guest ID для проверки
-   * @returns {Promise<any>} Ответ от API
-   * @private
-   */
-  private async fetchUserByGuestId(guestId: string): Promise<any> {
-    try {
-      // Получаем реферальный код из URL, чтобы передать его при восстановлении сессии
-      const refCode = referralService.getReferralCodeForRegistration();
-      
-      // Формируем параметры запроса с guest_id и, опционально, с реферальным кодом
-      const params = new URLSearchParams({ guest_id: guestId });
-      if (refCode) {
-        params.append('ref_code', refCode);
-      }
-      
-      // Делаем GET запрос с параметрами
-      return await apiRequest(`/api/restore-session?${params.toString()}`);
-    } catch (error) {
-      console.error('[SessionRestore] Ошибка при запросе к API:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Проверяет, нужно ли попытаться восстановить сессию
-   * Возвращает true, если есть сохраненный guest_id и нет активной сессии
-   * @returns {boolean} Нужно ли пытаться восстановить сессию
-   */
-  shouldAttemptRestore(): boolean {
-    // Проверяем наличие guest_id
-    const hasGuestId = GuestIdService.has();
+};
+
+/**
+ * Отправляет запрос на восстановление сессии
+ * @param guestId уникальный идентификатор гостя
+ * @returns Promise с результатом запроса
+ */
+const restoreSession = async (guestId: string) => {
+  try {
+    console.log('[sessionRestoreService] Отправка запроса на восстановление сессии с guest_id:', guestId);
     
-    // Проверяем отсутствие активной сессии (кэшированных данных пользователя)
-    const hasUserCache = !!localStorage.getItem('unifarm_user_data');
-    
-    // Логируем для диагностики
-    console.log('[SessionRestore] Проверка необходимости восстановления сессии:', { 
-      hasGuestId, 
-      hasUserCache
+    // Отправляем запрос на восстановление сессии
+    const result = await apiRequest('/api/session/restore', {
+      method: 'POST',
+      body: JSON.stringify({ guest_id: guestId })
     });
     
-    // Восстанавливаем сессию, если есть guest_id и нет активной сессии
-    return hasGuestId && !hasUserCache;
+    if (result.success && result.data) {
+      console.log('[sessionRestoreService] Сессия успешно восстановлена:', result.data);
+      
+      // Сохраняем информацию о последней сессии
+      localStorage.setItem(STORAGE_KEYS.LAST_SESSION, JSON.stringify({
+        timestamp: new Date().toISOString(),
+        user_id: result.data.user_id
+      }));
+      
+      return result;
+    } else {
+      console.error('[sessionRestoreService] Не удалось восстановить сессию:', result.message);
+      return result;
+    }
+  } catch (error) {
+    console.error('[sessionRestoreService] Ошибка при восстановлении сессии:', error);
+    return {
+      success: false,
+      message: 'Ошибка при восстановлении сессии'
+    };
   }
-}
+};
 
-// Экспортируем синглтон сервиса
-export const sessionRestoreService = new SessionRestoreService();
+// Экспортируем методы сервиса
+const sessionRestoreService = {
+  shouldAttemptRestore,
+  getGuestId,
+  saveGuestId,
+  restoreSession
+};
 
 export default sessionRestoreService;

@@ -18,6 +18,7 @@ import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import { TONCONNECT_MANIFEST_URL } from './config/tonConnect';
 import { getReferrerIdFromURL } from './lib/utils';
 import userService from '@/services/userService';
+import sessionRestoreService from '@/services/sessionRestoreService'; // Импортируем сервис восстановления сессии
 
 // Импортируем компоненты для работы с Telegram WebApp
 import TelegramInitDataWarning from "@/components/ui/TelegramInitDataWarning";
@@ -182,11 +183,65 @@ function App() {
       });
       
       // Продолжаем инициализацию приложения даже без Telegram WebApp
-      authenticateWithTelegram();
+      // Сначала проверяем, можно ли восстановить сессию из localStorage/sessionStorage
+      if (sessionRestoreService.shouldAttemptRestore()) {
+        console.log('[TG AUDIT] 🔄 Пытаемся восстановить сессию по guest_id из локального хранилища...');
+        restoreSessionFromStorage();
+      } else {
+        // Если нет сохраненной сессии, продолжаем обычную авторизацию
+        console.log('[TG AUDIT] ⚙️ Нет сохраненной сессии, продолжаем обычную авторизацию...');
+        authenticateWithTelegram();
+      }
     }
   }, []);
 
   // Отладочный баннер с отображением домена удален для улучшения UX
+
+  // Метод для восстановления сессии из локального хранилища
+  const restoreSessionFromStorage = async () => {
+    try {
+      setIsLoading(true);
+      setTelegramAuthError(null);
+      
+      console.log('[App] 🔍 Восстановление сессии из локального хранилища...');
+      
+      // Получаем guest_id из хранилища
+      const guestId = sessionRestoreService.getGuestId();
+      
+      if (!guestId) {
+        console.warn('[App] ⚠️ Не найден guest_id в локальном хранилище');
+        // Если восстановление невозможно, переходим к обычной авторизации
+        authenticateWithTelegram();
+        return;
+      }
+      
+      console.log('[App] ✓ Найден guest_id в локальном хранилище:', guestId);
+      
+      // Пытаемся восстановить сессию через API
+      const result = await sessionRestoreService.restoreSession(guestId);
+      
+      if (result.success && result.data) {
+        // Успешно восстановили сессию
+        setUserId(result.data.user_id);
+        console.log('[App] ✅ Сессия успешно восстановлена для пользователя:', result.data);
+        
+        // Обновляем кэш запросов
+        queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+      } else {
+        // Не удалось восстановить сессию
+        console.error('[App] ❌ Не удалось восстановить сессию:', result.message);
+        
+        // Переходим к обычной авторизации
+        authenticateWithTelegram();
+      }
+    } catch (error) {
+      console.error('[App] ❌ Ошибка при восстановлении сессии:', error);
+      // Переходим к обычной авторизации при ошибке
+      authenticateWithTelegram();
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Авторизация через Telegram с усиленной проверкой в telegramInitData.ts
   const authenticateWithTelegram = async () => {
