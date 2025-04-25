@@ -40,37 +40,43 @@ export default function TelegramSlashHandler() {
         if (isWebAppAvailable) {
           console.log('[TelegramSlashHandler] ✅ Telegram WebApp обнаружен, выполняем инициализацию...');
           
-          // Получаем всю информацию о WebApp
-          const webAppInfo = {
-            initData: window.Telegram.WebApp.initData,
-            initDataUnsafe: window.Telegram.WebApp.initDataUnsafe ? 'доступно' : 'недоступно',
-            version: window.Telegram.WebApp.version,
-            platform: window.Telegram.WebApp.platform,
-            colorScheme: window.Telegram.WebApp.colorScheme
-          };
+          // Определяем временную переменную для работы с Telegram API, чтобы TypeScript не ругался
+          const telegram = window.Telegram as any;
+          const webApp = telegram?.WebApp;
           
-          console.log('[TelegramSlashHandler] 📊 WebApp info:', webAppInfo);
-          
-          // Сохраняем initData из Telegram WebApp (если доступно)
-          if (window.Telegram.WebApp.initData) {
-            try {
-              localStorage.setItem('telegramInitData', window.Telegram.WebApp.initData);
-              console.log('[TelegramSlashHandler] 💾 initData сохранен в localStorage');
-            } catch (e) {
-              console.error('[TelegramSlashHandler] ⚠️ Ошибка при сохранении initData:', e);
+          if (telegram && webApp) {
+            // Получаем всю информацию о WebApp
+            const webAppInfo = {
+              initData: webApp.initData || '',
+              initDataUnsafe: webApp.initDataUnsafe ? 'доступно' : 'недоступно',
+              version: webApp.version || 'неизвестно',
+              platform: webApp.platform || 'неизвестно',
+              colorScheme: webApp.colorScheme || 'неизвестно'
+            };
+            
+            console.log('[TelegramSlashHandler] 📊 WebApp info:', webAppInfo);
+            
+            // Сохраняем initData из Telegram WebApp (если доступно)
+            if (webApp.initData) {
+              try {
+                localStorage.setItem('telegramInitData', webApp.initData);
+                console.log('[TelegramSlashHandler] 💾 initData сохранен в localStorage');
+              } catch (e) {
+                console.error('[TelegramSlashHandler] ⚠️ Ошибка при сохранении initData:', e);
+              }
             }
-          }
-          
-          // Сигнализируем Telegram о готовности приложения
-          window.Telegram.WebApp.ready();
-          console.log('[TelegramSlashHandler] ✅ Метод ready() вызван успешно');
-          
-          // Расширяем окно до максимальной высоты
-          try {
-            window.Telegram.WebApp.expand();
-            console.log('[TelegramSlashHandler] ✅ Метод expand() вызван успешно');
-          } catch (e) {
-            console.error('[TelegramSlashHandler] ⚠️ Ошибка при вызове expand():', e);
+            
+            // Сигнализируем Telegram о готовности приложения
+            webApp.ready();
+            console.log('[TelegramSlashHandler] ✅ Метод ready() вызван успешно');
+            
+            // Расширяем окно до максимальной высоты
+            try {
+              webApp.expand();
+              console.log('[TelegramSlashHandler] ✅ Метод expand() вызван успешно');
+            } catch (e) {
+              console.error('[TelegramSlashHandler] ⚠️ Ошибка при вызове expand():', e);
+            }
           }
           
           // Проверяем наличие параметра startapp в URL
