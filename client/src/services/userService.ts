@@ -80,18 +80,16 @@ class UserService {
         console.log('[UserService] AirDrop: Реферальный код не найден');
       }
       
-      // Отправляем запрос на регистрацию с минимальными данными, включая guest_id и parent_ref_code
-      const response = await fetch('/api/register', {
+      // Отправляем запрос на регистрацию в режиме AirDrop 
+      const response = await fetch('/api/airdrop/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          telegram_user_id: tempId,
+          guest_id: guestId, // Передаем guest_id, который будет основным идентификатором
           username: username,
-          airdrop_mode: true, // Явно указываем, что это режим AirDrop
-          guest_id: guestId, // Добавляем guest_id в запрос
-          parent_ref_code: referralCode // Добавляем реферальный код, если он есть
+          startapp: referralCode // Передаем реферальный код через параметр startapp согласно API
         })
       });
       
