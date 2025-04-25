@@ -5,22 +5,16 @@ import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { apiRequest } from "@/lib/queryClient";
 import { 
-  getTelegramUserData, 
-  initTelegramWebApp, 
-  isTelegramWebApp, 
-  getCachedTelegramUserId,
-  clearTelegramCache,  // Импортируем функцию очистки кэша
-  registerUserWithTelegram, // Добавляем функцию регистрации пользователя
-  logAppLaunch // Добавляем функцию логирования запуска Mini App
+  registerUserWithTelegram, // Функция регистрации пользователя
+  logAppLaunch, // Функция логирования запуска Mini App
+  clearTelegramCache // Функция очистки кэша (для совместимости)
 } from "./services/telegramService";
-import { extractTelegramInitData, getTelegramUserId, hasTelegramUserId } from "./services/telegramInitData";
-import { TonConnectUIProvider } from '@tonconnect/ui-react';
-import { TONCONNECT_MANIFEST_URL } from './config/tonConnect';
 import { getReferrerIdFromURL } from './lib/utils';
 import userService from '@/services/userService';
-import sessionRestoreService from '@/services/sessionRestoreService'; // Импортируем сервис восстановления сессии
+import sessionRestoreService from '@/services/sessionRestoreService'; // Сервис восстановления сессии
+import { GuestIdService } from '@/services/guestIdService'; // Сервис работы с guest_id
 
-// Импортируем компоненты для работы с Telegram WebApp
+// Импортируем компоненты UI
 import TelegramInitDataWarning from "@/components/ui/TelegramInitDataWarning";
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
 
@@ -42,8 +36,7 @@ import TelegramValidationTool from "./pages/TelegramValidationTool";
 import TelegramRedirect from "./pages/TelegramRedirect";
 import TelegramSlashHandler from "./pages/TelegramSlashHandler";
 
-// Note: мы используем определение интерфейса Telegram из файла services/telegramService.ts
-// здесь оставляем только необходимые дополнительные типы
+// Дополнительные определения для глобальных объектов
 declare global {
   interface Window {
     process: {
