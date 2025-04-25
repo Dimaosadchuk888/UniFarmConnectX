@@ -163,17 +163,36 @@ export class ReferralService {
    * @param userId ID нового пользователя
    * @param inviterId ID пригласившего пользователя
    * @param level Уровень реферальной связи (по умолчанию 1)
-   * @returns Созданная реферальная связь или null при ошибке
+   * @returns Объект с информацией о реферальной связи и статусе операции
    */
-  static async createReferralRelationship(userId: number, inviterId: number, level: number = 1): Promise<Referral | null> {
+  static async createReferralRelationship(
+    userId: number, 
+    inviterId: number, 
+    level: number = 1
+  ): Promise<{
+    referral: Referral | null;
+    success: boolean;
+    isNewConnection: boolean;
+    message: string;
+  }> {
     if (!userId || !inviterId) {
       console.error(`[ReferralService] Invalid userId (${userId}) or inviterId (${inviterId})`);
-      return null;
+      return {
+        referral: null,
+        success: false,
+        isNewConnection: false,
+        message: 'Недопустимый ID пользователя или пригласителя'
+      };
     }
     
     if (userId === inviterId) {
       console.error(`[ReferralService] Cannot create self-referral: userId ${userId} equals inviterId ${inviterId}`);
-      return null;
+      return {
+        referral: null,
+        success: false,
+        isNewConnection: false,
+        message: 'Невозможно создать реферальную связь с самим собой'
+      };
     }
     
     try {
@@ -181,8 +200,23 @@ export class ReferralService {
       const existingReferral = await this.getUserInviter(userId);
       
       if (existingReferral) {
-        console.log(`[ReferralService] User ${userId} already has an inviter: ${existingReferral.inviter_id} at level ${existingReferral.level}`);
-        return existingReferral;
+        // Важно! Реализация задания из ТЗ (Этап 3.1)
+        // При повторной попытке привязки возвращаем существующую связь, но флаг isNewConnection = false
+        console.warn(`[referral] Ref_code ignored, user ${userId} already bound to inviter ${existingReferral.inviter_id}`);
+        
+        const sameInviter = existingReferral.inviter_id === inviterId;
+        const logMessage = sameInviter
+          ? `[referral] Попытка повторной привязки к тому же пригласителю: ${inviterId}`
+          : `[referral] Отмена: пользователь ${userId} уже привязан к другому пригласителю: ${existingReferral.inviter_id}`;
+        
+        console.log(logMessage);
+        
+        return {
+          referral: existingReferral,
+          success: true,
+          isNewConnection: false,
+          message: 'Пользователь уже привязан к пригласителю'
+        };
       }
       
       // Создаем новую реферальную связь
@@ -196,12 +230,22 @@ export class ReferralService {
       };
       
       const referral = await this.createReferral(referralData);
-      console.log(`[ReferralService] Successfully created referral ID=${referral.id}`);
+      console.log(`[referral] Привязка успешно: user ${userId} → inviter ${inviterId}`);
       
-      return referral;
+      return {
+        referral,
+        success: true,
+        isNewConnection: true,
+        message: 'Реферальная связь успешно создана'
+      };
     } catch (error) {
       console.error(`[ReferralService] Error creating referral relationship: `, error);
-      return null;
+      return {
+        referral: null,
+        success: false,
+        isNewConnection: false,
+        message: `Ошибка при создании реферальной связи: ${error}`
+      };
     }
   }
 }

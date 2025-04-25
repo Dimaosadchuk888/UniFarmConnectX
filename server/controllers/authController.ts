@@ -111,7 +111,8 @@ export class AuthController {
                   referrerRegistered = true;
                   
                   // Создаем многоуровневую реферальную цепочку
-                  await ReferralBonusService.createReferralChain(user.id, inviter.id);
+                  const chainResult = await ReferralBonusService.createReferralChain(user.id, inviter.id);
+                  console.log(`[REGISTER] [ReferralSystem] Создание реферальной цепочки: ${chainResult.success ? 'успешно' : 'ошибка'}, ${chainResult.message}`);
                 }
               } else {
                 console.log(`[REGISTER] [ReferralSystem] Пользователь ${user.id} уже имеет пригласителя: ${existingReferral.inviter_id}`);

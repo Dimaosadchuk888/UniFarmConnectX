@@ -44,10 +44,17 @@ export class ReferralBonusService {
   
   /**
    * Создаёт реферальную цепочку до 20 уровней на основе приглашающего
+   * В рамках ТЗ (Этап 3.1) реализует однократную и необратимую привязку
+   * 
    * @param userId ID пользователя
    * @param inviterId ID приглашающего пользователя
+   * @returns Объект с информацией о результате операции
    */
-  static async createReferralChain(userId: number, inviterId: number): Promise<void> {
+  static async createReferralChain(userId: number, inviterId: number): Promise<{
+    success: boolean;
+    isNewConnection: boolean;
+    message: string;
+  }> {
     try {
       // Проверка существования пользователей
       const user = await UserService.getUserById(userId);
@@ -55,15 +62,26 @@ export class ReferralBonusService {
       
       if (!user || !inviter) {
         console.error('[ReferralBonusService] User or inviter not found:', { userId, inviterId });
-        return;
+        return {
+          success: false,
+          isNewConnection: false,
+          message: 'Пользователь или пригласитель не найден'
+        };
       }
       
       // Записываем первый уровень - прямое приглашение
-      await ReferralService.createReferral({
-        user_id: userId,
-        inviter_id: inviterId,
-        level: 1
-      });
+      // Используем новый интерфейс метода createReferralRelationship, который реализует требования ТЗ 3.1
+      const result = await ReferralService.createReferralRelationship(userId, inviterId, 1);
+      
+      // Если связь не была создана (уже существовала), выходим сразу
+      if (!result.isNewConnection) {
+        console.log(`[ReferralBonusService] User ${userId} already has a referral chain, operation skipped`);
+        return {
+          success: result.success,
+          isNewConnection: false,
+          message: 'Пользователь уже имеет реферальную связь'
+        };
+      }
       
       // Получаем все вышестоящие уровни для пригласителя
       const inviterReferrals = await db
@@ -87,9 +105,19 @@ export class ReferralBonusService {
         });
       }
       
-      console.log(`[ReferralBonusService] Referral chain created for user ${userId} with inviter ${inviterId}`);
+      console.log(`[ReferralBonusService] Complete referral chain created for user ${userId} with inviter ${inviterId}`);
+      return {
+        success: true,
+        isNewConnection: true,
+        message: 'Реферальная цепочка успешно создана'
+      };
     } catch (error) {
       console.error('[ReferralBonusService] Error creating referral chain:', error);
+      return {
+        success: false,
+        isNewConnection: false,
+        message: `Ошибка при создании реферальной цепочки: ${error}`
+      };
     }
   }
   
