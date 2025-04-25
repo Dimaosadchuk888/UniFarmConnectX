@@ -1,9 +1,11 @@
 /**
  * Сервис для восстановления сессии по guest_id
  * 
- * Этап 3: Восстановление кабинета по guest_id
- * Позволяет восстановить сессию пользователя на основе сохраненного guest_id
- * для предотвращения создания дублирующих аккаунтов.
+ * Этап 5: Безопасное восстановление пользователя
+ * Обеспечивает стабильную работу системы, при которой один и тот же пользователь (по guest_id)
+ * всегда получает доступ к своему кабинету, даже при повторных заходах.
+ * Новый кабинет создаётся только в случае, если пользователь вручную удалил Telegram-бот
+ * или это первый запуск приложения.
  */
 
 import { apiRequest } from "@/lib/queryClient";
@@ -136,12 +138,104 @@ const restoreSession = async (guestId: string) => {
   }
 };
 
+/**
+ * Безопасно очищает guest_id и всю связанную информацию о сессии из хранилища
+ * Используется при явном выходе пользователя или при удалении бота
+ */
+const clearGuestIdAndSession = (): void => {
+  try {
+    console.log('[sessionRestoreService] Очистка guest_id и данных сессии...');
+    
+    // Удаляем все связанные с сессией данные из хранилищ
+    localStorage.removeItem(STORAGE_KEYS.GUEST_ID);
+    sessionStorage.removeItem(STORAGE_KEYS.GUEST_ID);
+    localStorage.removeItem(STORAGE_KEYS.LAST_SESSION);
+    
+    console.log('[sessionRestoreService] ✅ Данные сессии успешно очищены');
+  } catch (error) {
+    console.error('[sessionRestoreService] ❌ Ошибка при очистке данных сессии:', error);
+  }
+};
+
+/**
+ * Проверяет, изменился ли Telegram пользователь
+ * Сравнивает текущий telegram_id с тем, который был в последней сессии
+ * @param currentTelegramId текущий ID пользователя Telegram
+ * @returns true если пользователь изменился, false если тот же или данные отсутствуют
+ */
+const hasTelegramUserChanged = (currentTelegramId: number | null): boolean => {
+  try {
+    if (!currentTelegramId) {
+      console.log('[sessionRestoreService] Невозможно проверить изменение пользователя: отсутствует текущий Telegram ID');
+      return false;
+    }
+    
+    // Получаем последнюю сохраненную сессию
+    const lastSessionJson = localStorage.getItem(STORAGE_KEYS.LAST_SESSION);
+    if (!lastSessionJson) {
+      console.log('[sessionRestoreService] Нет сохраненной информации о последней сессии');
+      return false;
+    }
+    
+    try {
+      const lastSession = JSON.parse(lastSessionJson);
+      if (lastSession && lastSession.telegram_id) {
+        // Проверяем, изменился ли ID пользователя Telegram
+        const lastTelegramId = Number(lastSession.telegram_id);
+        
+        if (lastTelegramId !== currentTelegramId) {
+          console.log(`[sessionRestoreService] ⚠️ Обнаружена смена пользователя Telegram: было ${lastTelegramId}, стало ${currentTelegramId}`);
+          return true;
+        } else {
+          console.log(`[sessionRestoreService] ✅ Пользователь Telegram не изменился: ID=${currentTelegramId}`);
+          return false;
+        }
+      }
+    } catch (parseError) {
+      console.error('[sessionRestoreService] Ошибка при разборе данных о последней сессии:', parseError);
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('[sessionRestoreService] Ошибка при проверке изменения пользователя Telegram:', error);
+    return false;
+  }
+};
+
+/**
+ * Обновляет информацию о последней сессии с данными пользователя Telegram
+ * @param telegramId ID пользователя Telegram
+ * @param userId ID пользователя в системе
+ */
+const updateSessionWithTelegramData = (telegramId: number, userId: number): void => {
+  try {
+    if (!telegramId || !userId) {
+      console.warn('[sessionRestoreService] Отсутствуют данные для обновления сессии');
+      return;
+    }
+    
+    // Сохраняем расширенную информацию о последней сессии
+    localStorage.setItem(STORAGE_KEYS.LAST_SESSION, JSON.stringify({
+      timestamp: new Date().toISOString(),
+      user_id: userId,
+      telegram_id: telegramId
+    }));
+    
+    console.log(`[sessionRestoreService] ✅ Сессия обновлена с данными пользователя Telegram: ID=${telegramId}`);
+  } catch (error) {
+    console.error('[sessionRestoreService] Ошибка при обновлении данных сессии:', error);
+  }
+};
+
 // Экспортируем методы сервиса
 const sessionRestoreService = {
   shouldAttemptRestore,
   getGuestId,
   saveGuestId,
-  restoreSession
+  restoreSession,
+  clearGuestIdAndSession,
+  hasTelegramUserChanged,
+  updateSessionWithTelegramData
 };
 
 export default sessionRestoreService;
