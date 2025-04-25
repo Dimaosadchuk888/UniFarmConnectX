@@ -56,10 +56,10 @@ export class LaunchLogService {
       const logs = await db
         .select()
         .from(launchLogs)
-        .where(eq(launchLogs.telegram_user_id, telegramUserId))
-        .orderBy(launchLogs.timestamp, 'desc');
-
-      return logs;
+        .where(eq(launchLogs.telegram_user_id, telegramUserId));
+        
+      // Сортировка выполняется через JavaScript вместо SQL
+      return logs.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     } catch (error) {
       console.error('[LaunchLogService] Error fetching user launches:', error);
       return [];
