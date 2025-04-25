@@ -38,11 +38,62 @@ export interface IStorage {
     created_at: Date;
     updated_at: Date;
   }): Promise<User>;
+  
+  // Новый метод для создания пользователя в основной таблице users
+  createMainUser(userData: {
+    telegram_id: number;
+    username?: string;
+    balance_uni?: string;
+    balance_ton?: string;
+    ref_code: string;
+    created_at?: Date;
+  }): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
   constructor() {
     console.log('[Storage] Инициализация DatabaseStorage');
+  }
+  
+  // Создание пользователя в таблице users для AirDrop и аутентификации
+  async createMainUser(userData: {
+    telegram_id: number;
+    username?: string;
+    balance_uni?: string;
+    balance_ton?: string;
+    ref_code: string;
+    created_at?: Date;
+  }): Promise<User> {
+    console.log(`[Storage] Создание пользователя в основной таблице users:`, {
+      telegram_id: userData.telegram_id,
+      username: userData.username,
+      ref_code: userData.ref_code
+    });
+    
+    try {
+      // Подготавливаем данные для вставки
+      const insertData = {
+        telegram_id: userData.telegram_id,
+        username: userData.username || `user_${userData.telegram_id}`,
+        ref_code: userData.ref_code,
+        balance_uni: userData.balance_uni || "100", // По умолчанию даем 100 UNI
+        balance_ton: userData.balance_ton || "0",
+        created_at: userData.created_at || new Date()
+      };
+      
+      // Выполняем вставку
+      const [user] = await db
+        .insert(users)
+        .values(insertData)
+        .returning();
+      
+      console.log(`[Storage] Пользователь успешно создан в таблице users: ID=${user.id}, telegram_id=${user.telegram_id}, ref_code=${user.ref_code}`);
+      
+      return user;
+    } catch (error) {
+      console.error(`[Storage] Ошибка при создании пользователя в таблице users:`, error);
+      throw error;
+    }
   }
   
   // Методы для работы с Telegram

@@ -86,7 +86,8 @@ export class AuthController {
             mode: isAirdropMode ? 'AirDrop' : 'Standard'
           });
         
-          user = await UserService.createUser({
+          // Используем метод storage.createMainUser для создания в основной таблице пользователей
+          user = await storage.createMainUser({
             telegram_id: user_telegram_id,
             username: username || `user_${user_telegram_id}`,
             balance_uni: "100", // Начальный бонус
@@ -393,7 +394,7 @@ export class AuthController {
         // Генерируем уникальный реферальный код
         const refCode = storage.generateRefCode();
         
-        user = await UserService.createUser({
+        user = await storage.createMainUser({
           telegram_id: telegramUserId,
           username: parsedUsername || bodyUsername || `user_${telegramUserId}`,
           balance_uni: "1000", // Начальный бонус
@@ -407,7 +408,16 @@ export class AuthController {
         // Обновляем информацию о пользователе, если она изменилась
         const effectiveUsername = parsedUsername || bodyUsername;
         if (effectiveUsername && effectiveUsername !== user.username) {
-          user = await UserService.updateUser(user.id, { username: effectiveUsername });
+          // Обновляем имя пользователя, если оно изменилось
+          const [updatedUser] = await db
+            .update(users)
+            .set({ username: effectiveUsername })
+            .where(eq(users.id, user.id))
+            .returning();
+          
+          if (updatedUser) {
+            user = updatedUser;
+          }
         }
         
         // Проверяем, есть ли у пользователя ref_code, если нет - генерируем
