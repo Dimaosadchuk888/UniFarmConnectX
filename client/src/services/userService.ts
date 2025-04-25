@@ -51,9 +51,14 @@ class UserService {
     console.log('[UserService] Запуск регистрации в режиме AirDrop...');
     
     try {
-      // Генерируем временный ID на основе timestamp
-      const tempId = Math.floor(Date.now() / 1000);
+      // Генерируем временный ID на основе timestamp с некоторой случайностью
+      // для избежания коллизий при одновременной регистрации
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000);
+      const tempId = Math.floor(timestamp / 1000) * 10000 + random;
       const username = `airdrop_user_${tempId}`;
+      
+      console.log(`[UserService] AirDrop: Сгенерирован временный ID: ${tempId} для пользователя ${username}`);
       
       // Отправляем запрос на регистрацию с минимальными данными
       const response = await fetch('/api/register', {
@@ -68,23 +73,61 @@ class UserService {
         })
       });
       
+      // Полностью логируем ответ для отладки
+      const responseText = await response.text();
+      console.log(`[UserService] Получен ответ от сервера (status: ${response.status}):`, responseText);
+      
       if (response.ok) {
-        const result = await response.json();
-        console.log('[UserService] Успешная регистрация в режиме AirDrop:', result);
+        try {
+          // Пробуем распарсить ответ как JSON
+          const result = JSON.parse(responseText);
+          console.log('[UserService] Успешная регистрация в режиме AirDrop. Данные:', result);
+          
+          // Проверяем, есть ли данные пользователя в ответе
+          if (result && result.data) {
+            console.log('[UserService] Кэширование данных пользователя:', result.data);
+            
+            // Сохраняем данные пользователя в кэш
+            this.cacheUserData(result.data);
+            
+            // Сохраняем Telegram ID в localStorage для последующих запросов
+            if (result.data.telegram_id) {
+              try {
+                localStorage.setItem('telegram_user_id', result.data.telegram_id.toString());
+                console.log(`[UserService] Telegram ID ${result.data.telegram_id} сохранен в localStorage`);
+              } catch (e) {
+                console.warn('[UserService] Не удалось сохранить Telegram ID в localStorage:', e);
+              }
+            }
+            
+            // Принудительно обновляем данные после короткой задержки
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+            
+            return true;
+          } else {
+            console.error('[UserService] В ответе отсутствуют данные пользователя:', result);
+            return false;
+          }
+        } catch (parseError) {
+          console.error('[UserService] Ошибка при разборе JSON ответа:', parseError, 'Ответ:', responseText);
+          return false;
+        }
+      } else {
+        console.error('[UserService] Ошибка HTTP при регистрации:', response.status, responseText);
         
-        // Сохраняем данные пользователя в кэш
-        if (result && result.data) {
-          this.cacheUserData(result.data);
+        // Анализируем возможные причины ошибки
+        if (response.status === 400) {
+          console.warn('[UserService] Возможно, проблема с валидацией данных на сервере.');
+        } else if (response.status === 500) {
+          console.warn('[UserService] Возможно, проблема с базой данных или внутренняя ошибка сервера.');
         }
         
-        return true;
-      } else {
-        console.error('[UserService] Ошибка регистрации в режиме AirDrop:', 
-          await response.text());
         return false;
       }
     } catch (error) {
-      console.error('[UserService] Исключение при регистрации в режиме AirDrop:', error);
+      console.error('[UserService] Критическая ошибка при регистрации в режиме AirDrop:', error);
       return false;
     }
   }
