@@ -213,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Добавляем результат валидации в ответ
           debugInfo.validationResult = {
             isValid: validationResult.isValid,
-            userId: validationResult.userId,
+            userId: validationResult.userId || null,
             errors: validationResult.validationErrors,
             botTokenAvailable: !!botToken,
             botTokenLength: botToken?.length
@@ -418,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Логируем результат
       console.log('[ValidationEndpoint] Результаты валидации:', {
         isValid: validationResult.isValid,
-        userId: validationResult.userId,
+        userId: validationResult.userId || null,
         username: validationResult.username,
         errors: validationResult.validationErrors || []
       });
@@ -428,7 +428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         data: {
           isValid: validationResult.isValid,
-          userId: validationResult.userId,
+          userId: validationResult.userId || null,
           username: validationResult.username,
           firstName: validationResult.firstName,
           lastName: validationResult.lastName,
