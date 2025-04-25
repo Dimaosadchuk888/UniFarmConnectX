@@ -13,9 +13,11 @@ import { storage } from "./storage";
 import { UserService } from './services/userService';
 import { ReferralService } from './services/referralService';
 import { ReferralBonusService } from './services/referralBonusService';
+import { LaunchLogService } from './services/launchLogService'; // Добавлен сервис логирования запусков
 import { db } from './db';
-import { referrals } from '@shared/schema';
+import { referrals, type InsertLaunchLog } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import crypto from 'crypto';
 
 // Импортируем контроллеры
 import { UserController } from './controllers/userController';
@@ -249,6 +251,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Маршрут для регистрации через Telegram (согласно ТЗ 2.1)
   app.post("/api/register", AuthController.registerUser);
+  
+  // Маршрут для логирования запусков Mini App (Этап 5.1)
+  app.post("/api/log-launch", async (req: Request, res: Response) => {
+    try {
+      // Получаем информацию о запуске из тела запроса
+      const { 
+        telegram_user_id,
+        ref_code,
+        platform,
+        timestamp,
+        user_agent,
+        init_data
+      } = req.body;
+      
+      // Базовая валидация данных запроса
+      if (!telegram_user_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Отсутствует обязательный параметр telegram_user_id'
+        });
+      }
+      
+      // Подготавливаем данные для логирования
+      const launchData: InsertLaunchLog = {
+        telegram_user_id: Number(telegram_user_id),
+        ref_code: ref_code || null,
+        platform: platform || 'unknown',
+        timestamp: timestamp ? new Date(timestamp) : new Date(),
+        user_agent: user_agent || req.headers['user-agent'] || null,
+        init_data: init_data || null,
+        ip_address: req.ip || null,
+        request_id: crypto.randomUUID(),
+        // Пытаемся найти пользователя в нашей системе по telegram_id
+        user_id: null // Заполним позже, если найдем пользователя
+      };
+      
+      // Если есть telegram_user_id, пытаемся найти пользователя
+      // для привязки записи к конкретному аккаунту
+      if (telegram_user_id) {
+        try {
+          const user = await UserService.getUserByTelegramId(Number(telegram_user_id));
+          if (user) {
+            launchData.user_id = user.id;
+          }
+        } catch (error) {
+          console.warn(`[launch-log] Не удалось найти пользователя с telegram_id=${telegram_user_id}`);
+        }
+      }
+      
+      // Записываем информацию о запуске
+      const log = await LaunchLogService.logLaunch(launchData);
+      
+      // Отправляем успешный ответ
+      return res.status(200).json({
+        success: true,
+        message: 'Запуск успешно записан',
+        data: {
+          log_id: log.id,
+          timestamp: log.timestamp
+        }
+      });
+    } catch (error) {
+      console.error('[API] Ошибка при логировании запуска:', error);
+      
+      // Если это ошибка превышения лимита запросов, возвращаем 429
+      if ((error as Error).message.includes('Rate limit exceeded')) {
+        return res.status(429).json({
+          success: false,
+          message: 'Слишком много запросов. Пожалуйста, повторите позже.'
+        });
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Внутренняя ошибка сервера',
+        error: (error as Error).message
+      });
+    }
+  });
   
   // Тестовый API для реферальной системы (только для режима разработки)
   if (process.env.NODE_ENV === 'development') {

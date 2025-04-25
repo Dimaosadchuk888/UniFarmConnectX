@@ -230,3 +230,33 @@ export const insertTonBoostDepositSchema = createInsertSchema(tonBoostDeposits).
 
 export type InsertTonBoostDeposit = z.infer<typeof insertTonBoostDepositSchema>;
 export type TonBoostDeposit = typeof tonBoostDeposits.$inferSelect;
+
+// Таблица для логирования запусков Mini App (Этап 5.1)
+export const launchLogs = pgTable("launch_logs", {
+  id: serial("id").primaryKey(),
+  telegram_user_id: bigint("telegram_user_id", { mode: "number" }),
+  ref_code: text("ref_code"),
+  platform: text("platform"), // android / ios / web / unknown
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  user_agent: text("user_agent"),
+  init_data: text("init_data"),
+  ip_address: text("ip_address"),
+  request_id: text("request_id"), // Для отслеживания уникальных запросов
+  user_id: integer("user_id").references(() => users.id) // Связь с таблицей пользователей (если есть)
+});
+
+// Схемы для таблицы launch_logs
+export const insertLaunchLogSchema = createInsertSchema(launchLogs).pick({
+  telegram_user_id: true,
+  ref_code: true,
+  platform: true,
+  timestamp: true,
+  user_agent: true, 
+  init_data: true,
+  ip_address: true,
+  request_id: true,
+  user_id: true
+});
+
+export type InsertLaunchLog = z.infer<typeof insertLaunchLogSchema>;
+export type LaunchLog = typeof launchLogs.$inferSelect;
