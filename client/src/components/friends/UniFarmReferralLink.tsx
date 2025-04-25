@@ -118,15 +118,32 @@ const UniFarmReferralLink: React.FC = () => {
             <button 
               className="px-4 py-2 bg-primary rounded-md text-white text-sm shadow-md" 
               onClick={() => {
+                // Показываем пользователю, что идет процесс
+                setIsLoading(true);
+                
                 // Запускаем регистрацию в режиме AirDrop
                 userService.registerInAirDropMode()
-                  .then(() => {
-                    // После успешной регистрации обновляем данные
-                    window.location.reload();
+                  .then((success) => {
+                    if (success) {
+                      console.log("Регистрация в режиме AirDrop успешна!");
+                      // Показываем сообщение об успехе
+                      alert("Регистрация успешна! Сейчас страница будет перезагружена.");
+                      
+                      // Делаем паузу перед перезагрузкой, чтобы пользователь увидел сообщение
+                      setTimeout(() => {
+                        // После успешной регистрации обновляем данные принудительно
+                        window.location.href = window.location.pathname + "?t=" + Date.now();
+                      }, 1500);
+                    } else {
+                      console.error("Регистрация в режиме AirDrop не удалась");
+                      alert("Не удалось выполнить регистрацию. Пожалуйста, попробуйте еще раз.");
+                      setIsLoading(false);
+                    }
                   })
                   .catch((err: Error) => {
                     console.error("Ошибка регистрации в режиме AirDrop:", err);
-                    alert("Не удалось выполнить регистрацию. Пожалуйста, попробуйте еще раз.");
+                    alert("Произошла ошибка при регистрации. Пожалуйста, попробуйте еще раз.");
+                    setIsLoading(false);
                   });
               }}
             >

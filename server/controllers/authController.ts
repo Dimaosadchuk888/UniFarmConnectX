@@ -78,14 +78,32 @@ export class AuthController {
         const newRefCode = storage.generateRefCode();
         
         // Создаем пользователя
-        user = await UserService.createUser({
-          telegram_id: user_telegram_id,
-          username: username || `user_${user_telegram_id}`,
-          balance_uni: "100", // Начальный бонус
-          balance_ton: "0",
-          ref_code: newRefCode,
-          created_at: new Date()
-        });
+        try {
+          console.log(`[REGISTER] Создаю пользователя с данными:`, {
+            telegram_id: user_telegram_id,
+            username: username || `user_${user_telegram_id}`,
+            ref_code: newRefCode,
+            mode: isAirdropMode ? 'AirDrop' : 'Standard'
+          });
+        
+          user = await UserService.createUser({
+            telegram_id: user_telegram_id,
+            username: username || `user_${user_telegram_id}`,
+            balance_uni: "100", // Начальный бонус
+            balance_ton: "0",
+            ref_code: newRefCode,
+            created_at: new Date()
+          });
+          
+          console.log(`[REGISTER] Пользователь успешно создан:`, {
+            id: user?.id,
+            telegram_id: user?.telegram_id,
+            ref_code: user?.ref_code
+          });
+        } catch (createError) {
+          console.error(`[REGISTER] Ошибка при создании пользователя:`, createError);
+          throw createError;
+        }
         
         console.log(`[REGISTER] Новый пользователь создан: id=${user.id}, telegram_id=${user_telegram_id}, ref_code=${newRefCode}`);
       }

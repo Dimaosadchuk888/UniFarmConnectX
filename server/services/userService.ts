@@ -60,12 +60,57 @@ export class UserService {
    * @returns Созданный пользователь
    */
   static async createUser(userData: any): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .returning();
+    console.log(`[UserService] createUser: Trying to create user with userData:`, {
+      telegram_id: userData.telegram_id,
+      username: userData.username,
+      ref_code: userData.ref_code
+    });
     
-    return user;
+    try {
+      // Превращаем telegram_id в число, если это возможно (чтобы избежать ошибок БД)
+      if (userData.telegram_id && typeof userData.telegram_id === 'string') {
+        userData.telegram_id = parseInt(userData.telegram_id, 10);
+        console.log(`[UserService] Converted telegram_id to number: ${userData.telegram_id}`);
+      }
+      
+      // Проверка на null для telegram_id (PostgreSQL требует строгой типизации)
+      if (userData.telegram_id === undefined || userData.telegram_id === null) {
+        console.log(`[UserService] telegram_id is undefined/null, generating temporary ID`);
+        userData.telegram_id = Math.floor(Date.now() / 1000);
+      }
+      
+      // Проверка и установка базовых полей
+      if (!userData.username) {
+        userData.username = `user_${userData.telegram_id}`;
+      }
+      
+      if (!userData.ref_code) {
+        userData.ref_code = storage.generateRefCode();
+        console.log(`[UserService] Generated new ref_code: ${userData.ref_code}`);
+      }
+      
+      // Установка значений по умолчанию для баланса
+      if (!userData.balance_uni) {
+        userData.balance_uni = "100"; // Начальный бонус в UNI
+      }
+      
+      if (!userData.balance_ton) {
+        userData.balance_ton = "0";
+      }
+      
+      // Вставка в базу данных
+      const [user] = await db
+        .insert(users)
+        .values(userData)
+        .returning();
+      
+      console.log(`[UserService] Successfully created user: id=${user.id}, telegram_id=${user.telegram_id}, ref_code=${user.ref_code}`);
+      
+      return user;
+    } catch (error) {
+      console.error(`[UserService] Error creating user:`, error);
+      throw new Error(`Failed to create user: ${(error as Error)?.message || 'Unknown database error'}`);
+    }
   }
 
   /**
