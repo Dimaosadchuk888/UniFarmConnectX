@@ -98,41 +98,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Подключаем улучшенный логгер для Telegram initData - анализирует данные подробно
   app.use(telegramInitDataLogger);
   
-  // Специальный маршрут для тестовой страницы Telegram WebApp
-  app.get("/telegram-simple.html", (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'server/public/telegram-simple.html'));
-  });
+  // Улучшенные маршруты для работы с Telegram Mini App
+  app.use(express.static(path.join(projectRoot, 'client', 'dist')));
+  console.log('[Server] Основные файлы React доступны из папки:', path.join(projectRoot, 'client', 'dist'));
   
-  // Специальный маршрут для Mini App Telegram
-  app.get("/telegram-mini-app.html", (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
-  });
-  
-  // Отдельный маршрут для Mini App по специальному URL
-  app.get("/UniFarm", (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
-  });
-  
-  // Дополнительные маршруты для разных вариантов URL Mini App
-  app.get("/unifarm", (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
-  });
-  
-  app.get("/UniFarm/", (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
-  });
-  
-  app.get("/unifarm/", (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
-  });
-  
-  // Маршрут для /app - используется в телеграм
-  app.get("/app", (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
-  });
-  
-  app.get("/app/", (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
+  // Специальные маршруты для Telegram Mini App - обрабатываем напрямую
+  app.get(["/UniFarm", "/UniFarm/", "/unifarm", "/unifarm/", "/app", "/app/"], (req, res) => {
+    console.log(`[Telegram Mini App] Запрос к специальному маршруту: ${req.path}`);
+    res.sendFile(path.join(projectRoot, 'client', 'dist', 'index.html'));
   });
   
   // Простой маршрут для проверки API (для отладки)
