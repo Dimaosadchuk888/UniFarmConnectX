@@ -332,9 +332,8 @@ class UserService {
   /**
    * Сохраняет данные пользователя в кэш
    * @param userData Данные пользователя для кэширования
-   * @private
    */
-  private cacheUserData(userData: User): void {
+  cacheUserData(userData: User): void {
     try {
       // Добавляем метку времени для контроля актуальности кэша
       const dataToCache = {

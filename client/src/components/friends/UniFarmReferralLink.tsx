@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { User } from '@/services/userService';
+import userService from '@/services/userService';
 import { buildReferralLink, buildDirectBotReferralLink } from '@/utils/referralUtils';
+import { apiRequest } from '@/lib/queryClient';
 
 /**
  * Компонент для отображения реферальной ссылки
- * Версия 5.1: Исправлена ошибка с порядком React-хуков
+ * Версия 6.0: Улучшенная работа с отсутствующим ref_code и синхронизация данных
  */
 const UniFarmReferralLink: React.FC = () => {
   // Состояния UI (все useState должны быть вызваны в одном и том же порядке)
@@ -13,55 +15,19 @@ const UniFarmReferralLink: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [linkType, setLinkType] = useState<'app' | 'bot'>('app');
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   
-  // Запрос данных пользователя напрямую с сервера через React Query
+  // Доступ к React Query Client для управления кэшем
+  const queryClient = useQueryClient();
+  
+  // Запрос данных пользователя через централизованный userService
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['/api/me'],
-    queryFn: async () => {
-      try {
-        // Отправляем прямой запрос к API, минуя промежуточные слои
-        const response = await fetch('/api/me', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          }
-        });
-
-        // Обрабатываем ошибки HTTP без автоматической перезагрузки страницы
-        if (!response.ok) {
-          console.warn(`[UniFarmReferralLink] HTTP error (${response.status}) при запросе данных`);
-          throw new Error(`API error: ${response.status}`);
-        }
-        
-        // Парсим ответ от сервера
-        const result = await response.json();
-
-        // Проверяем формат ответа и наличие данных
-        if (!result.success || !result.data) {
-          console.warn('[UniFarmReferralLink] Некорректный формат ответа от API');
-          throw new Error('Invalid API response format');
-        }
-
-        // Проверяем наличие реферального кода
-        if (!result.data.ref_code) {
-          console.warn('[UniFarmReferralLink] В ответе API отсутствует ref_code');
-        } else {
-          console.log('[UniFarmReferralLink] Реферальный код успешно получен:', result.data.ref_code);
-        }
-        
-        // Возвращаем данные пользователя напрямую
-        return result.data as User;
-      } catch (error) {
-        console.error('[UniFarmReferralLink] Ошибка при запросе данных пользователя:', error);
-        throw error;
-      }
-    },
-    retry: 2, // Пробуем повторить запрос 2 раза в случае ошибки
-    retryDelay: 1000, // Задержка между повторами 1 секунда
-    staleTime: 10000, // Данные считаются свежими в течение 10 секунд
-    refetchOnWindowFocus: false, // Отключаем автоматическое обновление при фокусе окна
+    queryFn: () => userService.getCurrentUser(false),
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 10000,
+    refetchOnWindowFocus: false,
   });
   
   // Извлекаем реферальный код из данных пользователя
@@ -71,8 +37,96 @@ const UniFarmReferralLink: React.FC = () => {
   const referralLink = refCode ? buildReferralLink(refCode) : "";
   const directBotLink = refCode ? buildDirectBotReferralLink(refCode) : "";
   
+  // Слушатель событий обновления пользователя
+  useEffect(() => {
+    const handleUserUpdate = (event: CustomEvent) => {
+      const updatedUser = event.detail;
+      if (updatedUser && updatedUser.ref_code) {
+        console.log('[UniFarmReferralLink] Получено событие обновления пользователя:', { 
+          id: updatedUser.id,
+          hasRefCode: !!updatedUser.ref_code
+        });
+        
+        // Обновляем кэш React Query с новыми данными пользователя
+        queryClient.setQueryData(['/api/me'], updatedUser);
+      }
+    };
+    
+    // Добавляем слушатель пользовательских событий
+    window.addEventListener('user:updated', handleUserUpdate as EventListener);
+    
+    // Удаляем слушатель при размонтировании компонента
+    return () => {
+      window.removeEventListener('user:updated', handleUserUpdate as EventListener);
+    };
+  }, [queryClient]);
+  
+  // Функция генерации реферального кода (если он отсутствует)
+  const generateRefCode = useCallback(async () => {
+    if (isGeneratingCode || !data || !data.id) return;
+    
+    setIsGeneratingCode(true);
+    try {
+      console.log('[UniFarmReferralLink] Запрос на генерацию реферального кода');
+      
+      // Генерируем реферальный код через специальный API endpoint
+      const result = await apiRequest('/api/users/generate-refcode', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: data.id })
+      });
+      
+      if (result.success && result.data && result.data.ref_code) {
+        console.log('[UniFarmReferralLink] Реферальный код успешно сгенерирован:', result.data.ref_code);
+        
+        // Создаем обновленный объект пользователя со всеми существующими полями
+        const updatedUser = { ...data, ref_code: result.data.ref_code };
+        
+        // Обновляем кэш React Query
+        queryClient.setQueryData(['/api/me'], updatedUser);
+        
+        // Генерируем событие обновления пользователя
+        window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
+        
+        // Обновляем кэш в userService
+        userService.cacheUserData(updatedUser);
+        
+        return result.data.ref_code;
+      } else {
+        console.error('[UniFarmReferralLink] Ошибка при генерации кода:', result);
+        throw new Error('Не удалось сгенерировать реферальный код');
+      }
+    } catch (error) {
+      console.error('[UniFarmReferralLink] Ошибка при генерации реферального кода:', error);
+      throw error;
+    } finally {
+      setIsGeneratingCode(false);
+    }
+  }, [data, isGeneratingCode, queryClient]);
+  
+  // Проверяем наличие ref_code и пытаемся получить его при необходимости
+  useEffect(() => {
+    if (data && !data.ref_code && !isLoading && !isGeneratingCode) {
+      console.log('[UniFarmReferralLink] Отсутствует ref_code, запрашиваем обновленные данные');
+      
+      // Сначала пробуем просто получить свежие данные (возможно, код уже создан)
+      const timer = setTimeout(() => {
+        refetch()
+          .then((result) => {
+            // Если и в обновленных данных нет кода - генерируем его
+            if (result.isSuccess && result.data && !result.data.ref_code) {
+              console.log('[UniFarmReferralLink] После обновления ref_code всё ещё отсутствует, генерируем новый');
+              return generateRefCode();
+            }
+          })
+          .catch(error => console.error('[UniFarmReferralLink] Ошибка при обновлении данных:', error));
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [data, isLoading, refetch, generateRefCode, isGeneratingCode]);
+  
   // Копирование ссылки в буфер обмена
-  const copyToClipboard = (type: 'app' | 'bot' = linkType) => {
+  const copyToClipboard = useCallback((type: 'app' | 'bot' = linkType) => {
     const linkToCopy = type === 'app' ? referralLink : directBotLink;
     if (!linkToCopy) return;
     
@@ -102,19 +156,25 @@ const UniFarmReferralLink: React.FC = () => {
         alert('Не удалось скопировать. Пожалуйста, выделите ссылку вручную и скопируйте.');
       }
     }
-  };
+  }, [linkType, referralLink, directBotLink]);
   
   // Функция для повторной попытки получения данных
-  const handleRetry = async () => {
+  const handleRetry = useCallback(async () => {
     setIsRetrying(true);
     try {
-      await refetch();
+      const result = await refetch();
+      
+      // Если данные получены, но ref_code отсутствует, пробуем его сгенерировать
+      if (result.isSuccess && result.data && !result.data.ref_code) {
+        console.log('[UniFarmReferralLink] После повторного запроса ref_code отсутствует, генерируем');
+        await generateRefCode();
+      }
     } catch (error) {
       console.error('[UniFarmReferralLink] Ошибка при повторном запросе:', error);
     } finally {
       setIsRetrying(false);
     }
-  };
+  }, [refetch, generateRefCode]);
   
   // Загрузка данных
   if (isLoading) {
@@ -128,8 +188,20 @@ const UniFarmReferralLink: React.FC = () => {
     );
   }
 
+  // Если генерируется новый код
+  if (isGeneratingCode) {
+    return (
+      <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
+        <div className="flex justify-center items-center py-4">
+          <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+          <span className="text-sm text-muted-foreground">Создание вашей реферальной ссылки...</span>
+        </div>
+      </div>
+    );
+  }
+
   // Если произошла ошибка или данные отсутствуют
-  if (isError || !data || !refCode) {
+  if (isError || !data) {
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex flex-col items-center justify-center py-4 text-center">
@@ -137,7 +209,7 @@ const UniFarmReferralLink: React.FC = () => {
             <i className="fas fa-exclamation-triangle text-xl"></i>
           </div>
           <p className="text-sm text-muted-foreground mb-3">
-            Не удалось загрузить реферальную ссылку
+            Не удалось загрузить данные для реферальной ссылки
           </p>
           
           <div className="flex space-x-2">
@@ -163,16 +235,45 @@ const UniFarmReferralLink: React.FC = () => {
                 </div>
               )}
             </button>
-            
-            {/* Кнопка для полной перезагрузки страницы (запасной вариант) */}
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-3 py-1.5 bg-black/20 rounded-md text-white/80 text-xs hover:text-white hover:bg-black/30 transition-colors"
-            >
-              <i className="fas fa-redo-alt mr-1"></i>
-              <span>Перезагрузить</span>
-            </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Если данные получены, но ref_code отсутствует - отображаем состояние создания ссылки
+  if (!refCode) {
+    return (
+      <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
+        <div className="flex flex-col items-center justify-center py-4 text-center">
+          <div className="text-primary mb-2">
+            <i className="fas fa-link text-xl"></i>
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Необходимо создать вашу реферальную ссылку
+          </p>
+          
+          <button 
+            onClick={() => generateRefCode()}
+            disabled={isGeneratingCode}
+            className={`
+              px-4 py-1.5 rounded-md text-white text-xs
+              ${isGeneratingCode ? 'bg-primary/60 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}
+              transition-colors
+            `}
+          >
+            {isGeneratingCode ? (
+              <div className="flex items-center">
+                <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full mr-1.5"></div>
+                <span>Создание ссылки...</span>
+              </div>
+            ) : (
+              <div className="flex items-center">
+                <i className="fas fa-magic mr-1.5"></i>
+                <span>Создать реферальную ссылку</span>
+              </div>
+            )}
+          </button>
         </div>
       </div>
     );
