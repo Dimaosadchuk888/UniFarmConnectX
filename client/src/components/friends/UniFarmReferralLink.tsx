@@ -1,140 +1,60 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import userService from '@/services/userService';
 import { User } from '@/services/userService';
 import { buildReferralLink, buildDirectBotReferralLink } from '@/utils/referralUtils';
 
 /**
- * Компонент для отображения реферальной ссылки в режиме прямого получения данных
- * Версия 4.2: Исправление проблем с отображением реферальной ссылки в Telegram
+ * Компонент для отображения реферальной ссылки
+ * Версия 5.0: Максимально оптимизированная версия, показывающая реферальную 
+ * ссылку сразу после получения данных с сервера
  */
 const UniFarmReferralLink: React.FC = () => {
   // Состояния UI
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
-  
-  // Состояние для отслеживания выбранного типа ссылки
   const [linkType, setLinkType] = useState<'app' | 'bot'>('app');
   
-  // Состояние для принудительного получения данных от API напрямую
-  const [directApiResult, setDirectApiResult] = useState<User | null>(null);
-  const [isLoadingDirect, setIsLoadingDirect] = useState(true);
-  const [apiError, setApiError] = useState<string | null>(null);
-  
-  // Стандартный запрос через React Query (для поддержки совместимости)
-  const { 
-    data, 
-    isLoading: isLoadingQuery, 
-    isError: isErrorQuery
-  } = useQuery({
+  // Запрос данных пользователя
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['/api/me'],
-    queryFn: () => userService.getCurrentUser(),
-    staleTime: 5000,
-    retry: 2,
-    enabled: !directApiResult, // Отключаем, если у нас есть прямой результат
-  });
-  
-  // Безопасное приведение типов из стандартного запроса
-  const safeUser = directApiResult || (data as User | undefined);
-  const refCode = safeUser?.ref_code;
-  const hasRefCode = !!refCode;
-  
-  // Прямой запрос к API без React Query для гарантированного получения данных
-  useEffect(() => {
-    if (!directApiResult) {
-      setIsLoadingDirect(true);
-      setApiError(null);
-      
-      // Делаем прямой fetch запрос к API
-      fetch('/api/me', {
+    queryFn: async () => {
+      const response = await fetch('/api/me', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control': 'no-cache'
         }
-      })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(result => {
-          if (result && result.success && result.data) {
-            console.log("[DIRECT API] Получены данные напрямую:", result.data);
-            setDirectApiResult(result.data);
-            
-            if (result.data.ref_code) {
-              console.log("[DIRECT API] Получен ref_code:", result.data.ref_code);
-            } else {
-              console.warn("[DIRECT API] Отсутствует ref_code в ответе API");
-            }
-          } else {
-            console.error("[DIRECT API] Некорректный формат ответа API:", result);
-            setApiError("Ошибка формата данных");
-          }
-          setIsLoadingDirect(false);
-        })
-        .catch(error => {
-          console.error("[DIRECT API] Ошибка при запросе данных:", error);
-          setApiError(error.message);
-          setIsLoadingDirect(false);
-        });
-    }
-  }, [directApiResult]);
+      });
+      
+      if (!response.ok) {
+        // Если получили ошибку 401, значит сессия устарела
+        if (response.status === 401) {
+          // Перезагружаем страницу для восстановления сессии
+          window.location.reload();
+          throw new Error('Session expired');
+        }
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success || !result.data) {
+        throw new Error('Invalid API response');
+      }
+      
+      return result.data as User;
+    },
+    retry: 1,
+    staleTime: 30000, // Кэшируем на 30 секунд
+    refetchOnWindowFocus: false
+  });
+  
+  // Извлекаем реферальный код из данных пользователя
+  const refCode = data?.ref_code;
   
   // Формируем ссылки с помощью утилит
-  const referralLink = hasRefCode ? buildReferralLink(refCode) : "";
-  const directBotLink = hasRefCode ? buildDirectBotReferralLink(refCode) : "";
-  
-  // Запускаем получение реферального кода, если его нет
-  useEffect(() => {
-    if (safeUser && !hasRefCode && !isRegistering) {
-      console.log("[UniFarmReferralLink] Запуск принудительной генерации реф. кода");
-      setIsRegistering(true);
-      
-      // Запускаем регистрацию в режиме AirDrop для получения реферального кода
-      userService.registerInAirDropMode()
-        .then((result) => {
-          if (result.success) {
-            console.log("✅ Успешно получен реферальный код:", result.data?.ref_code);
-            
-            // Выполняем прямой запрос к API для получения обновленных данных
-            return fetch('/api/me', {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache, no-store, must-revalidate'
-              }
-            });
-          } else {
-            console.error("❌ Не удалось получить реферальный код:", result);
-            setIsRegistering(false);
-            return null;
-          }
-        })
-        .then(response => {
-          if (response && response.ok) {
-            return response.json();
-          }
-          return null;
-        })
-        .then(result => {
-          if (result && result.success && result.data) {
-            console.log("✅ Данные пользователя обновлены:", result.data);
-            setDirectApiResult(result.data);
-          }
-          setIsRegistering(false);
-        })
-        .catch((err: Error) => {
-          console.error("❌ Ошибка при получении реферального кода:", err);
-          setIsRegistering(false);
-        });
-    }
-  }, [safeUser, hasRefCode, isRegistering]);
+  const referralLink = refCode ? buildReferralLink(refCode) : "";
+  const directBotLink = refCode ? buildDirectBotReferralLink(refCode) : "";
   
   // Копирование ссылки в буфер обмена
   const copyToClipboard = (type: 'app' | 'bot' = linkType) => {
@@ -169,130 +89,39 @@ const UniFarmReferralLink: React.FC = () => {
     }
   };
   
-  // Принудительное получение реферального кода
-  const forceGetReferralCode = async () => {
-    setIsRegistering(true);
-    
-    try {
-      // Запускаем прямой запрос к API регистрации
-      const response = await fetch('/api/airdrop/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          guest_id: safeUser?.guest_id,
-          username: safeUser?.username || 'user_' + Math.floor(Math.random() * 100000)
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        console.log("✅ Регистрация успешна, код:", result.data.ref_code);
-        
-        // Получаем обновленные данные
-        const userResponse = await fetch('/api/me');
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          if (userData.success && userData.data) {
-            setDirectApiResult(userData.data);
-            console.log("✅ Данные успешно обновлены:", userData.data);
-          }
-        }
-      } else {
-        console.error("❌ Ошибка при регистрации:", result);
-      }
-    } catch (error) {
-      console.error("❌ Критическая ошибка:", error);
-    } finally {
-      setIsRegistering(false);
-    }
-  };
-  
-  // Все состояния загрузки
-  const isLoading = isLoadingDirect || isLoadingQuery;
-  
   // Загрузка данных
-  if (isLoading && !safeUser) {
+  if (isLoading) {
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
-        <div className="flex justify-center items-center flex-col py-4">
-          <div className="flex items-center mb-3">
-            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-            <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
-          </div>
-          <p className="text-center text-xs text-muted-foreground">
-            Реферальная ссылка будет доступна после загрузки данных
-          </p>
+        <div className="flex justify-center items-center py-4">
+          <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+          <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
         </div>
       </div>
     );
   }
 
-  // Ошибка или отсутствие ref_code
-  if (!hasRefCode || apiError) {
+  // Ошибка при загрузке
+  if (isError || !data || !refCode) {
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
-        <div className="flex justify-center items-center flex-col py-4">
-          <div className="flex items-center mb-3">
-            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-            <span className="text-sm text-muted-foreground">
-              {isRegistering 
-                ? "Генерация реферального кода..." 
-                : "Загрузка партнерской программы..."}
-            </span>
-          </div>
-          <p className="text-center text-xs text-muted-foreground">
-            {isRegistering 
-              ? "Подождите, создаем уникальный реферальный код" 
-              : "Подготовка реферальной ссылки..."}
+        <div className="flex flex-col items-center justify-center py-4 text-center">
+          <div className="text-red-500 mb-2"><i className="fas fa-exclamation-triangle"></i></div>
+          <p className="text-sm text-muted-foreground mb-2">
+            Не удалось загрузить реферальную ссылку
           </p>
-          
-          {/* Дополнительная информация о пользователе */}
-          {safeUser && (
-            <div className="mt-3 text-xs text-gray-500 max-w-xs">
-              <p>ID: {safeUser.id}</p>
-              {safeUser.telegram_id && <p>Telegram ID: {safeUser.telegram_id}</p>}
-              <p>Guest ID: {safeUser.guest_id?.substring(0, 8) + '...'}</p>
-            </div>
-          )}
-          
-          {/* Кнопка принудительного получения реферального кода */}
           <button 
-            onClick={forceGetReferralCode} 
-            disabled={isRegistering}
-            className={`
-              mt-4 py-2 px-4 rounded-md text-xs 
-              ${isRegistering 
-                ? 'bg-gray-700 cursor-not-allowed' 
-                : 'bg-primary hover:bg-primary/80'
-              }
-              transition-colors duration-300
-            `}
+            onClick={() => window.location.reload()} 
+            className="mt-2 px-4 py-1 bg-primary rounded-md text-white text-xs hover:bg-primary/90"
           >
-            {isRegistering 
-              ? 'Получение кода...' 
-              : 'Получить реферальный код'
-            }
+            Обновить страницу
           </button>
-          
-          {/* Отображение ошибки */}
-          {apiError && (
-            <div className="mt-3 text-xs text-red-500">
-              <p>Ошибка: {apiError}</p>
-            </div>
-          )}
         </div>
       </div>
     );
   }
   
-  // Основной UI с реферальной ссылкой (только если есть refCode)
+  // Основной UI с реферальной ссылкой
   return (
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg card-hover-effect relative overflow-hidden">
       {/* Декоративные элементы фона */}

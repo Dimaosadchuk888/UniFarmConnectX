@@ -6,11 +6,14 @@ import { getCachedTelegramUserId } from "@/services/telegramService";
  */
 export interface User {
   id: number;
-  telegram_id: number;
+  telegram_id: number | null;
   username: string;
   balance_uni: string;
   balance_ton: string;
   ref_code: string; // Реферальный код пользователя всегда должен быть определен
+  guest_id: string; // Идентификатор гостя
+  created_at?: string;
+  parent_ref_code?: string | null;
 }
 
 /**
