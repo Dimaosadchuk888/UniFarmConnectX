@@ -21,13 +21,29 @@ const UniFarmReferralLink: React.FC = () => {
   const queryClient = useQueryClient();
   
   // Запрос данных пользователя через централизованный userService
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['/api/me'],
-    queryFn: () => userService.getCurrentUser(false),
+    queryFn: () => {
+      console.log('[UniFarmReferralLink] Запрос данных пользователя через userService.getCurrentUser()');
+      return userService.getCurrentUser(false).then(result => {
+        console.log('[UniFarmReferralLink] Результат запроса данных:', {
+          success: !!result,
+          hasRefCode: !!result?.ref_code,
+          refCode: result?.ref_code
+        });
+        return result;
+      }).catch(err => {
+        console.error('[UniFarmReferralLink] Ошибка при запросе данных пользователя:', err);
+        throw err;
+      });
+    },
     retry: 2,
     retryDelay: 1000,
     staleTime: 10000,
     refetchOnWindowFocus: false,
+    onError: (err) => {
+      console.error('[UniFarmReferralLink] React Query - ошибка запроса данных:', err);
+    }
   });
   
   // Извлекаем реферальный код из данных пользователя
