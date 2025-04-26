@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { storage } from "../storage";
+import { UserService } from "../services/userService";
 import 'express-session';
 
 // Для корректной работы с сессией расширяем интерфейс Request
@@ -74,34 +75,61 @@ export class SessionController {
       // Успешно нашли и восстановили пользователя
       console.log(`[SessionController] ✅ Сессия успешно восстановлена для пользователя с ID: ${user.id}`);
       
+      // Проверяем наличие реферального кода у пользователя
+      let updatedUser = user;
+      if (!user.ref_code) {
+        console.log(`[SessionController] ⚠️ У пользователя с ID ${user.id} отсутствует реферальный код, генерируем новый`);
+        
+        try {
+          // Генерируем уникальный реферальный код
+          const refCode = await UserService.generateUniqueRefCode();
+          console.log(`[SessionController] Сгенерирован новый реферальный код: ${refCode}`);
+          
+          // Обновляем пользователя с новым кодом
+          const result = await UserService.updateUserRefCode(user.id, refCode);
+          
+          if (result) {
+            updatedUser = result;
+            console.log(`[SessionController] ✅ Успешно обновлен реферальный код для пользователя ${user.id}: ${refCode}`);
+          } else {
+            console.error(`[SessionController] ❌ Не удалось обновить реферальный код для пользователя ${user.id}`);
+          }
+        } catch (err) {
+          console.error(`[SessionController] Ошибка при генерации реферального кода:`, err);
+        }
+      } else {
+        console.log(`[SessionController] У пользователя уже есть реферальный код: ${user.ref_code}`);
+      }
+      
       // Сохраняем данные пользователя в Express-сессии для последующих запросов
       if (req.session) {
-        req.session.userId = user.id;
+        req.session.userId = updatedUser.id;
         req.session.user = {
-          id: user.id,
-          username: user.username,
-          ref_code: user.ref_code,
-          guest_id: user.guest_id
+          id: updatedUser.id,
+          username: updatedUser.username || '',
+          ref_code: updatedUser.ref_code || undefined,
+          guest_id: updatedUser.guest_id || undefined
         };
-        console.log(`[SessionController] ✅ Данные пользователя сохранены в Express-сессии: userId=${user.id}, ref_code=${user.ref_code || 'не указан'}`);
+        console.log(`[SessionController] ✅ Данные пользователя сохранены в Express-сессии: userId=${updatedUser.id}, ref_code=${updatedUser.ref_code || 'не указан'}`);
       } else {
         console.warn(`[SessionController] ⚠️ Express-сессия недоступна, нельзя сохранить данные пользователя`);
       }
       
       // Возвращаем данные пользователя (без конфиденциальной информации)
+      // Используем updatedUser, чтобы вернуть актуальный ref_code
       res.status(200).json({
         success: true,
         message: 'Сессия успешно восстановлена',
         data: {
-          user_id: user.id,
-          username: user.username,
-          telegram_id: user.telegram_id, 
-          balance_uni: user.balance_uni,
-          balance_ton: user.balance_ton,
-          ref_code: user.ref_code,
-          guest_id: user.guest_id,
-          created_at: user.created_at,
-          parent_ref_code: user.parent_ref_code
+          user_id: updatedUser.id,
+          username: updatedUser.username,
+          telegram_id: updatedUser.telegram_id, 
+          balance_uni: updatedUser.balance_uni,
+          balance_ton: updatedUser.balance_ton,
+          ref_code: updatedUser.ref_code,
+          guest_id: updatedUser.guest_id,
+          created_at: updatedUser.created_at,
+          parent_ref_code: updatedUser.parent_ref_code
         }
       });
     } catch (error) {
