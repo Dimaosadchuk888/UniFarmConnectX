@@ -38,25 +38,25 @@ const TelegramDiagnostics: React.FC = () => {
     const runDiagnostics = async () => {
       try {
         // Базовые проверки Telegram WebApp
-        const isTelegramAvailable = !!window.Telegram;
-        const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
+        const isTelegramAvailable = !!(window as any).Telegram;
+        const isWebAppAvailable = isTelegramAvailable && !!(window as any).Telegram?.WebApp;
         
         // Проверка данных в Telegram WebApp с защитой от undefined
-        const initDataLength = isWebAppAvailable ? (window.Telegram?.WebApp?.initData?.length || 0) : 0;
-        const hasInitDataUnsafe = isWebAppAvailable && !!window.Telegram?.WebApp?.initDataUnsafe;
-        const hasUser = hasInitDataUnsafe && !!window.Telegram?.WebApp?.initDataUnsafe?.user;
+        const initDataLength = isWebAppAvailable ? ((window as any).Telegram?.WebApp?.initData?.length || 0) : 0;
+        const hasInitDataUnsafe = isWebAppAvailable && !!(window as any).Telegram?.WebApp?.initDataUnsafe;
+        const hasUser = hasInitDataUnsafe && !!(window as any).Telegram?.WebApp?.initDataUnsafe?.user;
         
         // Используем явное приведение типов для устранения ошибок
-        const userId: number | string = hasUser && window.Telegram?.WebApp?.initDataUnsafe?.user?.id 
-            ? window.Telegram.WebApp.initDataUnsafe.user.id 
+        const userId: number | string = hasUser && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id 
+            ? (window as any).Telegram.WebApp.initDataUnsafe.user.id 
             : 'not available';
-        const username = hasUser ? window.Telegram?.WebApp?.initDataUnsafe?.user?.username || 'not available' : 'not available';
-        const firstName = hasUser ? window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || 'not available' : 'not available';
-        const startParam = isWebAppAvailable ? window.Telegram?.WebApp?.startParam || 'not available' : 'not available';
-        const authDate = hasInitDataUnsafe ? window.Telegram?.WebApp?.initDataUnsafe?.auth_date || 'not available' : 'not available';
-        const platform = isWebAppAvailable ? window.Telegram?.WebApp?.platform || 'not available' : 'not available';
-        const version = isWebAppAvailable ? window.Telegram?.WebApp?.version || 'not available' : 'not available';
-        const hash = hasInitDataUnsafe && window.Telegram?.WebApp?.initDataUnsafe?.hash ? 'present' : 'absent';
+        const username = hasUser ? (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.username || 'not available' : 'not available';
+        const firstName = hasUser ? (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || 'not available' : 'not available';
+        const startParam = isWebAppAvailable ? (window as any).Telegram?.WebApp?.startParam || 'not available' : 'not available';
+        const authDate = hasInitDataUnsafe ? (window as any).Telegram?.WebApp?.initDataUnsafe?.auth_date || 'not available' : 'not available';
+        const platform = isWebAppAvailable ? (window as any).Telegram?.WebApp?.platform || 'not available' : 'not available';
+        const version = isWebAppAvailable ? (window as any).Telegram?.WebApp?.version || 'not available' : 'not available';
+        const hash = hasInitDataUnsafe && (window as any).Telegram?.WebApp?.initDataUnsafe?.hash ? 'present' : 'absent';
         const fullInitData = initDataLength > 0 ? 'present' : 'empty';
         
         // Дополнительная информация

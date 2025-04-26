@@ -156,7 +156,7 @@ const ApiAndWebSocketDiagnostics: React.FC = () => {
         
         // Обновляем состояние с результатами диагностики
         const finalData: ApiAndWebSocketDiagnosticsData = {
-          apiTests: apiResults,
+          apiTests: apiResults as ApiTestResult[],
           webSocket: webSocketStatus,
           time: new Date().toISOString()
         };

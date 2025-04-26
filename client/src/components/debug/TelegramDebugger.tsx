@@ -78,8 +78,8 @@ const TelegramDebugger: React.FC = () => {
   const getTelegramWebAppInfo = () => {
     const telegramInfo: TelegramWebAppInfo = {
       timestamp: new Date().toISOString(),
-      isTelegramAvailable: !!window.Telegram,
-      isWebAppAvailable: !!window.Telegram?.WebApp,
+      isTelegramAvailable: !!(window as any).Telegram,
+      isWebAppAvailable: !!(window as any).Telegram?.WebApp,
       browserEnvironment: {
         userAgent: navigator.userAgent,
         href: window.location.href,
@@ -88,8 +88,8 @@ const TelegramDebugger: React.FC = () => {
       }
     };
 
-    if (window.Telegram?.WebApp) {
-      const webApp = window.Telegram.WebApp;
+    if ((window as any).Telegram?.WebApp) {
+      const webApp = (window as any).Telegram.WebApp;
       
       telegramInfo.webAppInfo = {
         platform: webApp.platform || 'not available',
