@@ -183,7 +183,7 @@ const testScenarios = [
   },
   {
     name: 'Сценарий 4: Приоритет URL над localStorage',
-    url: 'https://example.com/?startapp=URL12345',
+    url: 'https://example.com/?ref_code=URL12345',
     prepareStorage: (service) => {
       service.saveRefCode('STOR12345');
     },

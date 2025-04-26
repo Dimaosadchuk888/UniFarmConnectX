@@ -12,7 +12,7 @@ import crypto from 'crypto';
 
 // Функция для отправки запросов к API
 async function callApi(endpoint, method = 'GET', data = null) {
-  const url = `https://8ac7b219-438d-4a0b-ab0e-d8b58de37c6d-00-8ncue1micrhz.sisko.replit.dev/api${endpoint}`;
+  const url = `https://uni-farm-connect-2-misterxuniverse.replit.app/api${endpoint}`;
   const options = {
     method,
     headers: {
