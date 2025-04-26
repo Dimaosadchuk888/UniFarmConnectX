@@ -102,10 +102,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(express.static(path.join(projectRoot, 'client', 'dist')));
   console.log('[Server] Основные файлы React доступны из папки:', path.join(projectRoot, 'client', 'dist'));
   
-  // Специальные маршруты для Telegram Mini App - обрабатываем напрямую
-  app.get(["/UniFarm", "/UniFarm/", "/unifarm", "/unifarm/", "/app", "/app/"], (req, res) => {
+  // Специальные маршруты для Telegram Mini App - обрабатываем через bridge
+  app.get([
+    "/UniFarm", "/UniFarm/", "/unifarm", "/unifarm/", 
+    "/app", "/app/", 
+    "/telegram", "/telegram/",
+    "/telegram-app", "/telegram-app/"
+  ], (req, res) => {
     console.log(`[Telegram Mini App] Запрос к специальному маршруту: ${req.path}`);
-    res.sendFile(path.join(projectRoot, 'client', 'dist', 'index.html'));
+    res.sendFile(path.join(projectRoot, 'client', 'public', 'telegram-bridge.html'));
   });
   
   // Простой маршрут для проверки API (для отладки)
@@ -1109,13 +1114,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Это необходимо для корректной работы с Telegram Mini App
   // Специальный маршрут для обслуживания страницы редиректа
   app.get('/telegram-redirect.html', (req: Request, res: Response) => {
-    // Перенаправляем на нашу React-страницу для редиректа в Telegram Mini App
-    res.redirect('/telegram-redirect');
+    // Используем нашу страницу-мост для инициализации Telegram WebApp API
+    res.sendFile(path.join(projectRoot, 'client', 'public', 'telegram-bridge.html'));
   });
   
   // Специальный маршрут для перенаправления в режиме разработки
   app.get('/dev-mode', (req: Request, res: Response) => {
-    res.sendFile(path.join(process.cwd(), 'client', 'public', 'telegram-redirect.html'));
+    // Используем нашу страницу-мост для инициализации Telegram WebApp API
+    res.sendFile(path.join(projectRoot, 'client', 'public', 'telegram-bridge.html'));
   });
   
   // Обработчик для редиректа URL с слешем в конце (согласно ТЗ)
