@@ -20,7 +20,7 @@ const FallbackReferralLink = () => {
   
   // Формируем реферальную ссылку с правильным URL
   const referralLink = currentUser?.ref_code
-    ? `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${currentUser.ref_code}`
+    ? `https://t.me/UniFarming_Bot/UniFarm?ref_code=${currentUser.ref_code}`
     : null;
   
   // Отладочное логирование

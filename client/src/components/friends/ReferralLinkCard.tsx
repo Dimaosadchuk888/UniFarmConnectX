@@ -239,9 +239,9 @@ const ReferralLinkCard: React.FC = () => {
   // и НЕ должно зависеть от других условий (например, isTelegramAvailable)
   if (refCode) {
     // Используем корректный формат для Telegram Mini App по ТЗ
-    // Формат строго такой: https://t.me/UniFarming_Bot/UniFarm?startapp=ref_КОД
+    // Формат строго такой: https://t.me/UniFarming_Bot/UniFarm?ref_code=КОД
     // Используется новый бот - UniFarming_Bot (с подчеркиванием) вместо старого UniFarmingBot
-    referralLink = `https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${refCode}`;
+    referralLink = `https://t.me/UniFarming_Bot/UniFarm?ref_code=${refCode}`;
     // Добавляем отладочное логирование для отслеживания генерации ссылки
     console.debug('Referral rendered', { refCodeAvailable: !!refCode, refLink: referralLink });
     // Принудительно включаем отображение ссылки при наличии ref_code
