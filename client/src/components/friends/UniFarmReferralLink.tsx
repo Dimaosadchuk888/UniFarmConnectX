@@ -6,34 +6,56 @@ import { buildReferralLink, buildDirectBotReferralLink } from '@/utils/referralU
 
 /**
  * Упрощенный компонент для отображения реферальной ссылки 
- * Версия 4.0: Добавлен режим AirDrop с отображением состояния загрузки
+ * Версия 4.1: Исправлен черный экран в Telegram, улучшена логика отображения реферального кода
  */
 const UniFarmReferralLink: React.FC = () => {
   // Состояния UI
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false); // Состояние процесса регистрации в AirDrop режиме
+  const [debugInfo, setDebugInfo] = useState<{
+    hasUser: boolean;
+    userId?: number;
+    refCodeExists: boolean;
+    refCode?: string;
+  }>({ hasUser: false, refCodeExists: false });
   
   // Состояние для отслеживания выбранного типа ссылки
   const [linkType, setLinkType] = useState<'app' | 'bot'>('app');
   
-  // Запрос данных пользователя напрямую из API
+  // Запрос данных пользователя напрямую из API - уменьшаем частоту обновлений для стабильности
   const { 
     data, 
     isLoading, 
     isError
   } = useQuery({
     queryKey: ['/api/me'],
-    queryFn: () => userService.getCurrentUser(),
-    staleTime: 10000, // Кэшируем на 10 секунд
+    queryFn: () => userService.getCurrentUser(false), // Используем кэш при наличии
+    staleTime: 30000, // Увеличиваем время кэширования до 30 секунд
+    retry: 1, // Ограничиваем количество повторных запросов
+    refetchOnWindowFocus: false, // Отключаем для стабильности работы в Telegram
   });
   
-  // Безопасное приведение типов
+  // Безопасное приведение типов и расширенная информация о статусе
   const safeUser = data as User | undefined;
-  const refCode = safeUser?.ref_code;
+  const refCode = safeUser?.ref_code || '';
   const hasRefCode = !!refCode;
+
+  // Обновляем отладочную информацию при изменении данных
+  useEffect(() => {
+    if (safeUser) {
+      const newDebugInfo = {
+        hasUser: true,
+        userId: safeUser.id,
+        refCodeExists: !!safeUser.ref_code,
+        refCode: safeUser.ref_code
+      };
+      setDebugInfo(newDebugInfo);
+      console.log('[DEBUG] UniFarmReferralLink данные:', newDebugInfo);
+    }
+  }, [safeUser]);
   
-  // Логирование при отсутствии ref_code согласно п.3.1
+  // Логирование при отсутствии ref_code
   useEffect(() => {
     if (safeUser && !refCode) {
       console.log('[AUDIT] UniFarmReferralLink: Пользователь получен, но ref_code отсутствует', {
@@ -49,6 +71,27 @@ const UniFarmReferralLink: React.FC = () => {
   // Формируем ссылки с помощью утилит
   const referralLink = hasRefCode ? buildReferralLink(refCode) : "";
   const directBotLink = hasRefCode ? buildDirectBotReferralLink(refCode) : "";
+  
+  // Принудительное обновление данных если реферального кода нет
+  useEffect(() => {
+    // Если данные загружены и пользователь есть, но рефкода нет
+    if (!isLoading && safeUser && !hasRefCode && !isRegistering) {
+      // Запускаем принудительное обновление данных через 500 мс
+      const timer = setTimeout(() => {
+        console.log('[FORCE UPDATE] Принудительный запрос данных пользователя...');
+        userService.getCurrentUser(true)
+          .then(updatedUser => {
+            if (updatedUser && updatedUser.ref_code) {
+              console.log('[FORCE UPDATE] Успешно получен ref_code после обновления:', updatedUser.ref_code);
+              window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
+            }
+          })
+          .catch(err => console.error('[FORCE UPDATE] Ошибка обновления:', err));
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, safeUser, hasRefCode, isRegistering]);
   
   // Копирование ссылки в буфер обмена
   const copyToClipboard = (type: 'app' | 'bot' = linkType) => {
@@ -83,14 +126,9 @@ const UniFarmReferralLink: React.FC = () => {
     }
   };
   
-  // Простая логика отображения согласно ТЗ п.3.2:
-  // 1. Если идет загрузка - показываем лоадер
-  // 2. Если ref_code отсутствует - показываем сообщение
-  // 3. Если ref_code есть - показываем ссылку с UI
-
   // Проверяем наличие данных о пользователе для отображения корректного состояния
   useEffect(() => {
-    // Если у нас есть пользователь, но нет реферального кода
+    // Если у нас есть пользователь, но нет реферального кода и не запущена регистрация
     if (safeUser && !hasRefCode && !isRegistering) {
       console.log("[UniFarmReferralLink] Пользователь без реферального кода - запускаем регистрацию");
       setIsRegistering(true);
@@ -123,7 +161,7 @@ const UniFarmReferralLink: React.FC = () => {
     }
   }, [safeUser, hasRefCode, isRegistering]);
   
-  // Загрузка данных - после вызова всех хуков!
+  // Загрузка данных - проверяем после вызова всех хуков!
   if (isLoading) {
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
@@ -140,8 +178,8 @@ const UniFarmReferralLink: React.FC = () => {
     );
   }
 
-  // Ошибка или отсутствие ref_code
-  if (isError || !hasRefCode) {
+  // Обработка отсутствия ref_code - проверяем после вызова всех хуков!
+  if (!hasRefCode) {
     // Показываем индикатор загрузки с более информативным сообщением
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
@@ -159,6 +197,27 @@ const UniFarmReferralLink: React.FC = () => {
               ? "Подождите, система создает для вас уникальный реферальный код" 
               : "Подготовка реферальной ссылки..."}
           </p>
+          
+          {/* Добавляем кнопку принудительного обновления для отладки */}
+          <button 
+            onClick={() => {
+              userService.getCurrentUser(true).then(user => {
+                if (user) {
+                  console.log("Принудительное обновление данных:", user);
+                  window.dispatchEvent(new CustomEvent('user:updated', { detail: user }));
+                }
+              });
+            }}
+            className="mt-4 px-3 py-1 bg-black/20 rounded-md text-xs text-white/70 hover:text-white"
+          >
+            Обновить данные
+          </button>
+          
+          {/* Отображаем отладочную информацию */}
+          <div className="mt-3 text-xs text-muted-foreground">
+            <p>ID пользователя: {debugInfo.userId || 'не найден'}</p>
+            <p>Реф. код: {debugInfo.refCode || 'отсутствует'}</p>
+          </div>
         </div>
       </div>
     );
