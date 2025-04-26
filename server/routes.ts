@@ -1112,30 +1112,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Добавление обработчика для всех маршрутов, которые не соответствуют API
   // Это необходимо для корректной работы с Telegram Mini App
-  // Специальный маршрут для обслуживания страницы редиректа
-  app.get('/telegram-redirect.html', (req: Request, res: Response) => {
-    // Используем нашу страницу-мост для инициализации Telegram WebApp API
-    res.sendFile(path.join(projectRoot, 'client', 'public', 'telegram-bridge.html'));
-  });
-  
   // Специальный маршрут для перенаправления в режиме разработки
-  app.get('/dev-mode', (req: Request, res: Response) => {
-    // Используем нашу страницу-мост для инициализации Telegram WebApp API
-    res.sendFile(path.join(projectRoot, 'client', 'public', 'telegram-bridge.html'));
+  app.get('/dev-mode', (req: Request, res: Response, next: NextFunction) => {
+    // В продакшене отдаем index.html, в разработке передаем управление Vite middleware
+    if (process.env.NODE_ENV === 'production') {
+      const indexPath = path.resolve('dist/public/index.html');
+      if (fs.existsSync(indexPath)) {
+        return res.sendFile(indexPath);
+      }
+    }
+    next();
   });
   
   // Специальные маршруты для Telegram Mini App
-  app.get(['/UniFarm', '/UniFarm/', '/app', '/app/', '/unifarm', '/unifarm/'], (req: Request, res: Response) => {
+  app.get(['/UniFarm', '/UniFarm/', '/app', '/app/', '/unifarm', '/unifarm/'], (req: Request, res: Response, next: NextFunction) => {
     console.log('[TelegramMiniApp] Запрос к специальному пути Telegram Mini App:', req.path);
     
-    // Передаем все параметры из URL (особенно это важно для параметра ref_code)
-    const queryParams = new URLSearchParams(req.query as any).toString();
-    const queryString = queryParams ? `?${queryParams}` : '';
+    // В продакшн режиме отдаем index.html
+    if (process.env.NODE_ENV === 'production') {
+      const indexPath = path.resolve('dist/public/index.html');
+      if (fs.existsSync(indexPath)) {
+        console.log('[TelegramMiniApp] Отправляем index.html из:', indexPath);
+        return res.sendFile(indexPath);
+      }
+    }
     
-    // Используем нашу страницу-мост для инициализации Telegram WebApp API
-    const bridgePath = path.join(projectRoot, 'client', 'public', 'telegram-bridge.html');
-    console.log('[TelegramMiniApp] Отправляем telegram-bridge.html с путем:', bridgePath);
-    res.sendFile(bridgePath);
+    // В режиме разработки передаем управление дальше (в Vite middleware)
+    next();
   });
 
   // Обработчик для редиректа URL с слешем в конце (согласно ТЗ)

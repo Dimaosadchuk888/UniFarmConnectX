@@ -11,11 +11,11 @@ const TelegramInitializer = () => {
     console.log('[TelegramInitializer] 🔄 Инициализация...');
     
     try {
-      // Проверяем доступность Telegram WebApp
+      // Проверяем доступность официального Telegram WebApp API
       const isTelegram = isTelegramWebApp();
       
       if (isTelegram) {
-        console.log('[TelegramInitializer] ✅ Telegram WebApp API обнаружен или доступен через sessionStorage');
+        console.log('[TelegramInitializer] ✅ Официальный Telegram WebApp API обнаружен');
         
         // Инициализируем Telegram WebApp API
         const initResult = initTelegramWebApp();
@@ -32,7 +32,7 @@ const TelegramInitializer = () => {
           console.error('[TelegramInitializer] Ошибка при логировании запуска:', error);
         });
       } else {
-        console.log('[TelegramInitializer] ℹ️ Telegram WebApp API не обнаружен, работаем в стандартном режиме');
+        console.log('[TelegramInitializer] ℹ️ Telegram WebApp API не обнаружен, работаем в гостевом режиме');
         
         // Всё равно логируем запуск приложения для аналитики
         logAppLaunch().catch(error => {
