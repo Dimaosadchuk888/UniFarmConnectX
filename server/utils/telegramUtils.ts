@@ -130,10 +130,12 @@ export async function verifyTelegramWebAppData(initData: string): Promise<Telegr
     if (userDataString) {
       try {
         const userData = JSON.parse(userDataString) as TelegramInitDataUnsafe['user'];
-        userId = userData.id;
-        username = userData.username;
-        firstName = userData.first_name;
-        lastName = userData.last_name;
+        if (userData) {
+          userId = userData.id;
+          username = userData.username;
+          firstName = userData.first_name;
+          lastName = userData.last_name;
+        }
       } catch (err) {
         console.error('[telegramUtils] Ошибка при разборе данных пользователя:', err);
         return {
