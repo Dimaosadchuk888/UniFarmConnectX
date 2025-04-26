@@ -194,6 +194,6 @@ export function getTelegramRefCode(): string | null {
  * Проверяет запущено ли приложение в среде Telegram WebApp
  * Переопределена для совместимости - всегда возвращает true
  */
-export function isRunningInTelegram(): boolean {
+export function isTelegramWebApp(): boolean {
   return true;
 }

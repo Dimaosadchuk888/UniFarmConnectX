@@ -3,7 +3,7 @@ import { Container } from '@/components/ui/container';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import TelegramDiagnostics from '../components/telegram/TelegramDiagnostics';
-import { isRunningInTelegram } from '../services/telegramService';
+import { isTelegramWebApp } from '../services/telegramService';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 
@@ -15,7 +15,7 @@ const TelegramTest: React.FC = () => {
   // При загрузке проверяем доступность Telegram API
   useEffect(() => {
     const checkTelegram = () => {
-      const result = isRunningInTelegram();
+      const result = isTelegramWebApp();
       setTelegramAvailable(result);
       
       console.log('Telegram API check:', result ? 'Available' : 'Not available');

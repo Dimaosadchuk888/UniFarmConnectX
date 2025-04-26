@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { isRunningInTelegram } from '../../services/telegramService';
+import { isTelegramWebApp } from '../../services/telegramService';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
