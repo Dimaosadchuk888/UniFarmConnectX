@@ -5,136 +5,50 @@ import { User } from '@/services/userService';
 import { buildReferralLink, buildDirectBotReferralLink } from '@/utils/referralUtils';
 
 /**
- * Компонент для отображения реферальной ссылки в режиме прямого получения данных
- * Версия 4.2: Исправление проблем с отображением реферальной ссылки в Telegram
+ * Упрощенный компонент для отображения реферальной ссылки 
+ * Версия 4.0: Добавлен режим AirDrop с отображением состояния загрузки
  */
 const UniFarmReferralLink: React.FC = () => {
   // Состояния UI
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false); // Состояние процесса регистрации в AirDrop режиме
   
   // Состояние для отслеживания выбранного типа ссылки
   const [linkType, setLinkType] = useState<'app' | 'bot'>('app');
   
-  // Состояние для принудительного получения данных от API напрямую
-  const [directApiResult, setDirectApiResult] = useState<User | null>(null);
-  const [isLoadingDirect, setIsLoadingDirect] = useState(true);
-  const [apiError, setApiError] = useState<string | null>(null);
-  
-  // Стандартный запрос через React Query (для поддержки совместимости)
+  // Запрос данных пользователя напрямую из API
   const { 
     data, 
-    isLoading: isLoadingQuery, 
-    isError: isErrorQuery
+    isLoading, 
+    isError
   } = useQuery({
     queryKey: ['/api/me'],
     queryFn: () => userService.getCurrentUser(),
-    staleTime: 5000,
-    retry: 2,
-    enabled: !directApiResult, // Отключаем, если у нас есть прямой результат
+    staleTime: 10000, // Кэшируем на 10 секунд
   });
   
-  // Безопасное приведение типов из стандартного запроса
-  const safeUser = directApiResult || (data as User | undefined);
+  // Безопасное приведение типов
+  const safeUser = data as User | undefined;
   const refCode = safeUser?.ref_code;
   const hasRefCode = !!refCode;
   
-  // Прямой запрос к API без React Query для гарантированного получения данных
+  // Логирование при отсутствии ref_code согласно п.3.1
   useEffect(() => {
-    if (!directApiResult) {
-      setIsLoadingDirect(true);
-      setApiError(null);
-      
-      // Делаем прямой fetch запрос к API
-      fetch('/api/me', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(result => {
-          if (result && result.success && result.data) {
-            console.log("[DIRECT API] Получены данные напрямую:", result.data);
-            setDirectApiResult(result.data);
-            
-            if (result.data.ref_code) {
-              console.log("[DIRECT API] Получен ref_code:", result.data.ref_code);
-            } else {
-              console.warn("[DIRECT API] Отсутствует ref_code в ответе API");
-            }
-          } else {
-            console.error("[DIRECT API] Некорректный формат ответа API:", result);
-            setApiError("Ошибка формата данных");
-          }
-          setIsLoadingDirect(false);
-        })
-        .catch(error => {
-          console.error("[DIRECT API] Ошибка при запросе данных:", error);
-          setApiError(error.message);
-          setIsLoadingDirect(false);
-        });
+    if (safeUser && !refCode) {
+      console.log('[AUDIT] UniFarmReferralLink: Пользователь получен, но ref_code отсутствует', {
+        userId: safeUser.id,
+        telegramId: safeUser.telegram_id,
+        username: safeUser.username
+      });
+    } else if (refCode) {
+      console.log('[AUDIT] UniFarmReferralLink: ref_code получен успешно:', refCode);
     }
-  }, [directApiResult]);
+  }, [safeUser, refCode]);
   
   // Формируем ссылки с помощью утилит
   const referralLink = hasRefCode ? buildReferralLink(refCode) : "";
   const directBotLink = hasRefCode ? buildDirectBotReferralLink(refCode) : "";
-  
-  // Запускаем получение реферального кода, если его нет
-  useEffect(() => {
-    if (safeUser && !hasRefCode && !isRegistering) {
-      console.log("[UniFarmReferralLink] Запуск принудительной генерации реф. кода");
-      setIsRegistering(true);
-      
-      // Запускаем регистрацию в режиме AirDrop для получения реферального кода
-      userService.registerInAirDropMode()
-        .then((result) => {
-          if (result.success) {
-            console.log("✅ Успешно получен реферальный код:", result.data?.ref_code);
-            
-            // Выполняем прямой запрос к API для получения обновленных данных
-            return fetch('/api/me', {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache, no-store, must-revalidate'
-              }
-            });
-          } else {
-            console.error("❌ Не удалось получить реферальный код:", result);
-            setIsRegistering(false);
-            return null;
-          }
-        })
-        .then(response => {
-          if (response && response.ok) {
-            return response.json();
-          }
-          return null;
-        })
-        .then(result => {
-          if (result && result.success && result.data) {
-            console.log("✅ Данные пользователя обновлены:", result.data);
-            setDirectApiResult(result.data);
-          }
-          setIsRegistering(false);
-        })
-        .catch((err: Error) => {
-          console.error("❌ Ошибка при получении реферального кода:", err);
-          setIsRegistering(false);
-        });
-    }
-  }, [safeUser, hasRefCode, isRegistering]);
   
   // Копирование ссылки в буфер обмена
   const copyToClipboard = (type: 'app' | 'bot' = linkType) => {
@@ -169,56 +83,43 @@ const UniFarmReferralLink: React.FC = () => {
     }
   };
   
-  // Принудительное получение реферального кода
-  const forceGetReferralCode = async () => {
-    setIsRegistering(true);
-    
-    try {
-      // Запускаем прямой запрос к API регистрации
-      const response = await fetch('/api/airdrop/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          guest_id: safeUser?.guest_id,
-          username: safeUser?.username || 'user_' + Math.floor(Math.random() * 100000)
-        })
-      });
+  // Проверяем наличие данных о пользователе для отображения корректного состояния
+  useEffect(() => {
+    // Если у нас есть пользователь, но нет реферального кода
+    if (safeUser && !hasRefCode && !isRegistering) {
+      console.log("[UniFarmReferralLink] Пользователь без реферального кода - запускаем регистрацию");
+      setIsRegistering(true);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        console.log("✅ Регистрация успешна, код:", result.data.ref_code);
-        
-        // Получаем обновленные данные
-        const userResponse = await fetch('/api/me');
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          if (userData.success && userData.data) {
-            setDirectApiResult(userData.data);
-            console.log("✅ Данные успешно обновлены:", userData.data);
+      // Запускаем регистрацию в режиме AirDrop для получения реферального кода
+      userService.registerInAirDropMode()
+        .then((result) => {
+          if (result.success) {
+            console.log("✅ Успешно получен реферальный код:", result.data?.ref_code);
+            // Вызываем принудительное обновление данных пользователя через API запрос
+            return userService.getCurrentUser(true);
+          } else {
+            console.error("❌ Не удалось получить реферальный код:", result);
+            setIsRegistering(false);
+            return null;
           }
-        }
-      } else {
-        console.error("❌ Ошибка при регистрации:", result);
-      }
-    } catch (error) {
-      console.error("❌ Критическая ошибка:", error);
-    } finally {
-      setIsRegistering(false);
+        })
+        .then((updatedUser) => {
+          if (updatedUser) {
+            console.log("✅ Данные пользователя успешно обновлены с новым реферальным кодом");
+            // Не перезагружаем страницу, просто повторно запрашиваем данные
+            window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
+          }
+          setIsRegistering(false);
+        })
+        .catch((err: Error) => {
+          console.error("❌ Ошибка при получении реферального кода:", err);
+          setIsRegistering(false);
+        });
     }
-  };
+  }, [safeUser, hasRefCode, isRegistering]);
   
-  // Все состояния загрузки
-  const isLoading = isLoadingDirect || isLoadingQuery;
-  
-  // Загрузка данных
-  if (isLoading && !safeUser) {
+  // Загрузка данных - после вызова всех хуков!
+  if (isLoading) {
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex justify-center items-center flex-col py-4">
@@ -235,7 +136,8 @@ const UniFarmReferralLink: React.FC = () => {
   }
 
   // Ошибка или отсутствие ref_code
-  if (!hasRefCode || apiError) {
+  if (isError || !hasRefCode) {
+    // Показываем индикатор загрузки с более информативным сообщением
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex justify-center items-center flex-col py-4">
@@ -249,44 +151,9 @@ const UniFarmReferralLink: React.FC = () => {
           </div>
           <p className="text-center text-xs text-muted-foreground">
             {isRegistering 
-              ? "Подождите, создаем уникальный реферальный код" 
+              ? "Подождите, система создает для вас уникальный реферальный код" 
               : "Подготовка реферальной ссылки..."}
           </p>
-          
-          {/* Дополнительная информация о пользователе */}
-          {safeUser && (
-            <div className="mt-3 text-xs text-gray-500 max-w-xs">
-              <p>ID: {safeUser.id}</p>
-              {safeUser.telegram_id && <p>Telegram ID: {safeUser.telegram_id}</p>}
-              <p>Guest ID: {safeUser.guest_id?.substring(0, 8) + '...'}</p>
-            </div>
-          )}
-          
-          {/* Кнопка принудительного получения реферального кода */}
-          <button 
-            onClick={forceGetReferralCode} 
-            disabled={isRegistering}
-            className={`
-              mt-4 py-2 px-4 rounded-md text-xs 
-              ${isRegistering 
-                ? 'bg-gray-700 cursor-not-allowed' 
-                : 'bg-primary hover:bg-primary/80'
-              }
-              transition-colors duration-300
-            `}
-          >
-            {isRegistering 
-              ? 'Получение кода...' 
-              : 'Получить реферальный код'
-            }
-          </button>
-          
-          {/* Отображение ошибки */}
-          {apiError && (
-            <div className="mt-3 text-xs text-red-500">
-              <p>Ошибка: {apiError}</p>
-            </div>
-          )}
         </div>
       </div>
     );
