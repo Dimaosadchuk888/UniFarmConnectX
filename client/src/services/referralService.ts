@@ -8,7 +8,7 @@
  * 4. Применение реферального кода при создании новых пользователей
  */
 
-import { GuestIdService } from './guestIdService';
+import guestIdService from './guestIdService';
 
 // Ключ для хранения реферального кода в локальном хранилище
 const REFERRAL_CODE_KEY = 'unifarm_referral_code';
@@ -148,7 +148,7 @@ class ReferralService {
       this.saveRefCode(refCodeFromUrl);
       
       // Логируем событие для аналитики
-      console.log(`[АУДИТ] Обработан реферальный код из URL: ${refCodeFromUrl}, guest_id: ${GuestIdService.get()}`);
+      console.log(`[АУДИТ] Обработан реферальный код из URL: ${refCodeFromUrl}, guest_id: ${guestIdService.getGuestId()}`);
     } else {
       console.log('[ReferralService] В URL не найден валидный реферальный код');
     }
