@@ -101,20 +101,9 @@ const ReferralLinkCard: React.FC = () => {
       forceShowLink
     });
     
-    // Если у пользователя нет telegram_id, запрашиваем инициализацию Telegram WebApp
-    if (currentUser && !currentUser.telegram_id) {
-      console.log('[ReferralLinkCard] User has no telegram_id, requesting Telegram initData...');
-      // Асинхронно запрашиваем initData от Telegram без ожидания
-      requestInitData().then((success: boolean) => {
-        console.log('[ReferralLinkCard] RequestInitData result:', success);
-        if (success) {
-          // Если успешно получили данные, обновляем информацию о пользователе
-          refreshUserData();
-        }
-      }).catch((error: Error) => {
-        console.error('[ReferralLinkCard] Error during requestInitData:', error);
-      });
-    }
+    // Этап 11.1: Удалена зависимость от telegram_id, больше не делаем запрос initData
+    // Оставляем только логирование
+    console.log('[ReferralLinkCard] Этап 11.1: Нет зависимости от telegram_id, используем только guest_id');
     
     // Сначала всегда показываем лоадер, но только на короткое время
     // Используем безопасное приведение типа для предотвращения LSP ошибки
@@ -429,21 +418,7 @@ const ReferralLinkCard: React.FC = () => {
                 `}></i>
               </button>
               
-              {/* Кнопка "Поделиться в Telegram" - отображается только если доступен Telegram WebApp */}
-              {typeof window !== 'undefined' && window.Telegram?.WebApp && (
-                <button 
-                  className="ml-2 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-300 flex items-center"
-                  onClick={() => {
-                    // Безопасный вызов метода openLink
-                    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.openLink) {
-                      window.Telegram.WebApp.openLink(referralLink);
-                    }
-                  }}
-                >
-                  <i className="fab fa-telegram-plane mr-2"></i>
-                  <span className="text-sm">Поделиться</span>
-                </button>
-              )}
+              {/* Этап 11.1: Кнопка "Поделиться в Telegram" удалена для устранения зависимости от WebApp API */}
               
               {/* Тултип о статусе копирования */}
               {isCopied && (
