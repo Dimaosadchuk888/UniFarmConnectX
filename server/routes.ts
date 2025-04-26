@@ -103,6 +103,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendFile(path.join(process.cwd(), 'server/public/telegram-simple.html'));
   });
   
+  // Специальный маршрут для Mini App Telegram
+  app.get("/telegram-mini-app.html", (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
+  });
+  
+  // Отдельный маршрут для Mini App по специальному URL
+  app.get("/UniFarm", (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
+  });
+  
+  // Дополнительные маршруты для разных вариантов URL Mini App
+  app.get("/unifarm", (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
+  });
+  
+  app.get("/UniFarm/", (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
+  });
+  
+  app.get("/unifarm/", (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
+  });
+  
+  // Маршрут для /app - используется в телеграм
+  app.get("/app", (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
+  });
+  
+  app.get("/app/", (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'server/public/telegram-mini-app.html'));
+  });
+  
   // Простой маршрут для проверки API (для отладки)
   app.get("/api/test-json", (req, res) => {
     res.setHeader('Content-Type', 'application/json');
