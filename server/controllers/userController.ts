@@ -13,18 +13,8 @@ import { and, eq } from 'drizzle-orm';
 import { validateTelegramInitData, TelegramValidationResult, logTelegramData } from '../utils/telegramUtils';
 import { storage } from '../storage';
 
-// Расширяем интерфейс сессии чтобы TypeScript понимал наши данные
-declare module 'express-session' {
-  interface SessionData {
-    userId?: number;
-    user?: {
-      id: number;
-      username: string;
-      ref_code?: string;
-      guest_id?: string;
-    };
-  }
-}
+// Используем интерфейс сессии без расширения, 
+// поскольку модификация express-session требует дополнительного типа через @types/express-session
 
 /**
  * Контроллер для работы с пользователями
@@ -287,9 +277,46 @@ export class UserController {
 
       let existingUser = null;
       
-      // Сначала ищем пользователя по guest_id (более приоритетный идентификатор)
-      if (guestId) {
-        console.log(`[UserController] Searching for user with guest_id ${guestId}`);
+      // ПЕРВЫЙ ПРИОРИТЕТ: Проверяем наличие пользователя в Express-сессии
+      // Это исправляет проблему с разгерметизацией данных между /api/session/restore и /api/me
+      if (req.session && req.session.userId) {
+        const sessionUserId = req.session.userId;
+        console.log(`[UserController] ВЫСОКИЙ ПРИОРИТЕТ: Найден userId ${sessionUserId} в активной сессии`);
+        
+        try {
+          // Загружаем пользователя из базы данных по ID из сессии
+          existingUser = await UserService.getUserById(sessionUserId);
+          
+          if (existingUser) {
+            // Пользователь найден в сессии - устанавливаем его ID
+            userId = sessionUserId;
+            console.log(`[UserController] ✅ Успешно загружен пользователь из сессии: ID=${userId}, ref_code=${existingUser.ref_code || 'нет'}`);
+            
+            // Дополнительный аудит для отладки
+            if (req.session.user) {
+              console.log(`[UserController] Сверка данных сессии:`, {
+                sessionUserId: req.session.userId,
+                userIdFromUserObj: req.session.user.id,
+                sessionRefCode: req.session.user.ref_code || 'нет',
+                actualRefCode: existingUser.ref_code || 'нет'
+              });
+            }
+          } else {
+            console.warn(`[UserController] ⚠️ Не удалось найти пользователя из сессии с ID=${sessionUserId}`);
+            // Сбрасываем userId и existingUser, чтобы продолжить стандартную идентификацию
+            userId = null;
+            existingUser = null;
+          }
+        } catch (error) {
+          console.error(`[UserController] Ошибка при загрузке пользователя из сессии с ID=${sessionUserId}:`, error);
+          userId = null;
+          existingUser = null;
+        }
+      }
+      
+      // ВТОРОЙ ПРИОРИТЕТ: Если пользователь не найден в сессии, ищем по guest_id
+      if (!existingUser && guestId) {
+        console.log(`[UserController] Поиск пользователя по guest_id ${guestId} (сессия не найдена)`);
         try {
           existingUser = await UserService.getUserByGuestId(guestId);
           
@@ -297,6 +324,18 @@ export class UserController {
             // Пользователь найден - используем его ID
             userId = existingUser.id;
             console.log(`[UserController] User found with ID ${userId} for guest_id ${guestId}`);
+            
+            // Сохраняем в сессию для последующих запросов
+            if (req.session) {
+              req.session.userId = userId;
+              req.session.user = {
+                id: existingUser.id,
+                username: existingUser.username,
+                ref_code: existingUser.ref_code,
+                guest_id: existingUser.guest_id
+              };
+              console.log(`[UserController] User data saved to session from guest_id lookup: ID=${userId}`);
+            }
           } else {
             console.log(`[UserController] No user found with guest_id ${guestId}`);
           }
@@ -305,7 +344,7 @@ export class UserController {
         }
       }
       
-      // Если пользователь не найден по guest_id и есть telegram_id, ищем по нему
+      // ТРЕТИЙ ПРИОРИТЕТ: Если пользователь не найден по guest_id и есть telegram_id, ищем по нему
       if (!existingUser && telegramId) {
         console.log(`[UserController] Searching for user with Telegram ID ${telegramId} (type: ${typeof telegramId})`);
         

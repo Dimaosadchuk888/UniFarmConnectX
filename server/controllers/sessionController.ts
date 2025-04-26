@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { storage } from "../storage";
+import 'express-session';
 
 /**
  * Контроллер для управления сессиями пользователей и восстановления кабинета
@@ -58,6 +59,20 @@ export class SessionController {
       
       // Успешно нашли и восстановили пользователя
       console.log(`[SessionController] ✅ Сессия успешно восстановлена для пользователя с ID: ${user.id}`);
+      
+      // Сохраняем данные пользователя в Express-сессии для последующих запросов
+      if (req.session) {
+        req.session.userId = user.id;
+        req.session.user = {
+          id: user.id,
+          username: user.username,
+          ref_code: user.ref_code,
+          guest_id: user.guest_id
+        };
+        console.log(`[SessionController] ✅ Данные пользователя сохранены в Express-сессии: userId=${user.id}, ref_code=${user.ref_code || 'не указан'}`);
+      } else {
+        console.warn(`[SessionController] ⚠️ Express-сессия недоступна, нельзя сохранить данные пользователя`);
+      }
       
       // Возвращаем данные пользователя (без конфиденциальной информации)
       res.status(200).json({
