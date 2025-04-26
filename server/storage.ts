@@ -651,6 +651,7 @@ export class DatabaseStorage implements IStorage {
   // Этот метод обновлен для соответствия требованиям Этапа 5: безопасное восстановление пользователя
   async createGuestUser(userData: {
     guest_id: string;
+    telegram_id?: number; // Добавляем опциональный telegram_id для поддержки режима AirDrop
     username?: string;
     balance_uni?: string;
     balance_ton?: string;
@@ -723,13 +724,13 @@ export class DatabaseStorage implements IStorage {
         .insert(users)
         .values({
           guest_id: userData.guest_id,
+          telegram_id: userData.telegram_id, // Добавляем поддержку telegram_id если он передан
           username: userData.username || `user_${Math.floor(Math.random() * 100000)}`,
           balance_uni: userData.balance_uni || '100',
           balance_ton: userData.balance_ton || '0',
           ref_code: refCode,
           parent_ref_code: parentRefCode,
           created_at: userData.created_at || new Date(),
-          // Для AirDrop режима telegram_id не устанавливается
         })
         .returning();
       

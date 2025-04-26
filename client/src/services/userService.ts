@@ -45,9 +45,9 @@ class UserService {
   /**
    * Регистрирует пользователя в режиме AirDrop без требования данных Telegram
    * Используется как альтернативный способ регистрации для максимальной доступности
-   * @returns {Promise<boolean>} Результат операции
+   * @returns {Promise<{success: boolean, data?: any}>} Результат операции и данные пользователя
    */
-  async registerInAirDropMode(): Promise<boolean> {
+  async registerInAirDropMode(): Promise<{success: boolean, data?: any}> {
     console.log('[UserService] Запуск регистрации в режиме AirDrop...');
     
     try {
@@ -80,7 +80,7 @@ class UserService {
         console.log('[UserService] AirDrop: Реферальный код не найден');
       }
       
-      // Отправляем запрос на регистрацию в режиме AirDrop 
+      // Отправляем запрос на регистрацию в режиме AirDrop
       const response = await fetch('/api/airdrop/register', {
         method: 'POST',
         headers: {
@@ -89,7 +89,8 @@ class UserService {
         body: JSON.stringify({
           guest_id: guestId, // Передаем guest_id, который будет основным идентификатором
           username: username,
-          ref_code: referralCode // Передаем реферальный код через параметр ref_code
+          ref_code: referralCode, // Передаем реферальный код через параметр ref_code
+          airdrop_mode: true // Явно указываем, что это режим AirDrop
         })
       });
       
@@ -105,27 +106,30 @@ class UserService {
           
           // Проверяем, есть ли данные пользователя в ответе
           if (result && result.data) {
+            // Проверяем наличие реферального кода в ответе
+            if (result.data.ref_code) {
+              console.log('[UserService] Получен реферальный код:', result.data.ref_code);
+            } else {
+              console.warn('[UserService] Реферальный код отсутствует в ответе от сервера');
+            }
+            
             console.log('[UserService] Кэширование данных пользователя:', result.data);
             
             // Сохраняем данные пользователя в кэш
             this.cacheUserData(result.data);
             
-            // Удалено сохранение telegram_id в localStorage (Этап 10.4)
-            // Используем только guest_id для идентификации
-            
-            // Принудительно обновляем данные после короткой задержки
-            setTimeout(() => {
-              window.location.reload();
-            }, 500);
-            
-            return true;
+            // Возвращаем успешный результат и данные
+            return { 
+              success: true, 
+              data: result.data 
+            };
           } else {
             console.error('[UserService] В ответе отсутствуют данные пользователя:', result);
-            return false;
+            return { success: false };
           }
         } catch (parseError) {
           console.error('[UserService] Ошибка при разборе JSON ответа:', parseError, 'Ответ:', responseText);
-          return false;
+          return { success: false };
         }
       } else {
         console.error('[UserService] Ошибка HTTP при регистрации:', response.status, responseText);
@@ -137,11 +141,26 @@ class UserService {
           console.warn('[UserService] Возможно, проблема с базой данных или внутренняя ошибка сервера.');
         }
         
-        return false;
+        try {
+          // Пробуем распарсить текст ошибки, если это JSON
+          const errorObj = JSON.parse(responseText);
+          return { 
+            success: false, 
+            data: { error: errorObj.message || 'Неизвестная ошибка' } 
+          };
+        } catch (e) {
+          return { 
+            success: false, 
+            data: { error: `HTTP ошибка ${response.status}` } 
+          };
+        }
       }
     } catch (error) {
       console.error('[UserService] Критическая ошибка при регистрации в режиме AirDrop:', error);
-      return false;
+      return { 
+        success: false, 
+        data: { error: (error as Error).message || 'Неизвестная ошибка' }
+      };
     }
   }
   /**

@@ -105,42 +105,59 @@ const UniFarmReferralLink: React.FC = () => {
     );
   }
   
-  // Ошибка или отсутствие ref_code
-  if (isError || !hasRefCode) {
-    // Автоматически запускаем регистрацию в режиме AirDrop без ожидания клика
-    // Это устраняет заглушку и позволяет пользователю всегда получить реферальный код
-    if (!isRegistering) {
-      console.log("[AUDIT] Автоматическая регистрация в режиме AirDrop для получения ref_code");
+  // Проверяем наличие данных о пользователе для отображения корректного состояния
+  useEffect(() => {
+    // Если у нас есть пользователь, но нет реферального кода
+    if (safeUser && !hasRefCode && !isRegistering) {
+      console.log("[UniFarmReferralLink] Пользователь без реферального кода - запускаем регистрацию");
       setIsRegistering(true);
       
-      // Запускаем регистрацию в режиме AirDrop автоматически
+      // Запускаем регистрацию в режиме AirDrop для получения реферального кода
       userService.registerInAirDropMode()
-        .then((success) => {
-          if (success) {
-            console.log("✅ Автоматическая регистрация в режиме AirDrop успешна!");
-            // После успешной регистрации обновляем данные принудительно
-            window.location.href = window.location.pathname + "?t=" + Date.now();
+        .then((result) => {
+          if (result.success) {
+            console.log("✅ Успешно получен реферальный код:", result.data?.ref_code);
+            // Вызываем принудительное обновление данных пользователя через API запрос
+            return userService.getCurrentUser(true);
           } else {
-            console.error("❌ Автоматическая регистрация в режиме AirDrop не удалась");
+            console.error("❌ Не удалось получить реферальный код:", result);
             setIsRegistering(false);
+            return null;
           }
         })
+        .then((updatedUser) => {
+          if (updatedUser) {
+            console.log("✅ Данные пользователя успешно обновлены с новым реферальным кодом");
+            // Не перезагружаем страницу, просто повторно запрашиваем данные
+            window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
+          }
+          setIsRegistering(false);
+        })
         .catch((err: Error) => {
-          console.error("❌ Ошибка автоматической регистрации в режиме AirDrop:", err);
+          console.error("❌ Ошибка при получении реферального кода:", err);
           setIsRegistering(false);
         });
     }
-  
-    // Показываем индикатор загрузки
+  }, [safeUser, hasRefCode, isRegistering]);
+
+  // Ошибка или отсутствие ref_code
+  if (isError || !hasRefCode) {
+    // Показываем индикатор загрузки с более информативным сообщением
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex justify-center items-center flex-col py-4">
           <div className="flex items-center mb-3">
             <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-            <span className="text-sm text-muted-foreground">Генерация реферального кода...</span>
+            <span className="text-sm text-muted-foreground">
+              {isRegistering 
+                ? "Генерация реферального кода..." 
+                : "Загрузка партнерской программы..."}
+            </span>
           </div>
           <p className="text-center text-xs text-muted-foreground">
-            Подождите, система создает для вас уникальный реферальный код
+            {isRegistering 
+              ? "Подождите, система создает для вас уникальный реферальный код" 
+              : "Подготовка реферальной ссылки..."}
           </p>
         </div>
       </div>
