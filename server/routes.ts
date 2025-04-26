@@ -442,10 +442,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   // Маршруты для пользователей
-  // Сначала более специфичные маршруты
+  // ВАЖНО: Сначала размещаем более специфичные маршруты, потом общие с параметрами
+  // Это нужно, потому что Express обрабатывает маршруты в порядке их определения
+  // Если маршрут с :id будет первым, то /guest/xxx будет обработан как {id: 'guest'}
+  
+  // Маршрут для получения пользователя по guest_id
+  // Этот маршрут необходим для поддержки метода getUserByGuestId из клиентского сервиса
   app.get("/api/users/guest/:guestId", UserController.getUserByGuestId);
   
-  // Затем более общие с параметрами
+  // Более общий маршрут для получения пользователя по ID
   app.get("/api/users/:id", UserController.getUserById);
   app.post("/api/users/generate-refcode", UserController.generateRefCode);
   app.get("/api/wallet/balance", UserController.getUserBalance);
