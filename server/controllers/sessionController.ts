@@ -2,6 +2,20 @@ import { Request, Response } from "express";
 import { storage } from "../storage";
 import 'express-session';
 
+// Для корректной работы с сессией расширяем интерфейс Request
+// Это временное решение, обходящее проблему с типизацией express-session
+type RequestWithSession = Request & {
+  session?: {
+    userId?: number;
+    user?: {
+      id: number;
+      username: string;
+      ref_code?: string;
+      guest_id?: string;
+    };
+  };
+};
+
 /**
  * Контроллер для управления сессиями пользователей и восстановления кабинета
  * 
@@ -15,7 +29,7 @@ export class SessionController {
    * @param req Запрос с guest_id в параметрах
    * @param res Ответ с данными пользователя или ошибкой
    */
-  static async restoreSession(req: Request, res: Response): Promise<void> {
+  static async restoreSession(req: RequestWithSession, res: Response): Promise<void> {
     try {
       // Получаем guest_id из тела запроса
       const { guest_id } = req.body;

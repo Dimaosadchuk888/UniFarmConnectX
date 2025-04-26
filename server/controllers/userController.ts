@@ -12,9 +12,21 @@ import { uniFarmingDeposits, users } from '@shared/schema';
 import { and, eq } from 'drizzle-orm';
 import { validateTelegramInitData, TelegramValidationResult, logTelegramData } from '../utils/telegramUtils';
 import { storage } from '../storage';
+import 'express-session';
 
-// Используем интерфейс сессии без расширения, 
-// поскольку модификация express-session требует дополнительного типа через @types/express-session
+// Для корректной работы с сессией расширяем интерфейс Request
+// Это временное решение, обходящее проблему с типизацией express-session
+type RequestWithSession = Request & {
+  session?: {
+    userId?: number;
+    user?: {
+      id: number;
+      username: string;
+      ref_code?: string;
+      guest_id?: string;
+    };
+  };
+};
 
 /**
  * Контроллер для работы с пользователями
@@ -23,7 +35,7 @@ export class UserController {
   /**
    * Получает информацию о текущем пользователе через Telegram Auth
    */
-  static async getCurrentUser(req: Request, res: Response): Promise<void> {
+  static async getCurrentUser(req: RequestWithSession, res: Response): Promise<void> {
     try {
       // Тщательно проверяем все возможные заголовки, содержащие данные Telegram
       // ВАЖНО: Используем только верифицированные данные Telegram для авторизации (п.1.2 ТЗ)
