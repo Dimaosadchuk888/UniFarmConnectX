@@ -11,6 +11,7 @@ import { db } from '../db';
 import { uniFarmingDeposits, users } from '@shared/schema';
 import { and, eq } from 'drizzle-orm';
 import { validateTelegramInitData, TelegramValidationResult, logTelegramData } from '../utils/telegramUtils';
+import { storage } from '../storage';
 
 /**
  * Контроллер для работы с пользователями
@@ -720,6 +721,57 @@ export class UserController {
     } catch (error) {
       console.error('[getUserBalance] Error:', error);
       sendServerError(res, error);
+    }
+  }
+
+  /**
+   * Генерирует реферальный код для пользователя
+   * Создает новый уникальный код и назначает его пользователю
+   * 
+   * @param req Запрос, который должен содержать user_id в теле
+   * @param res Ответ
+   */
+  static async generateRefCode(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('[UserController] Запрос на генерацию реферального кода:', req.body);
+      
+      // Проверяем наличие user_id в запросе
+      const userId = req.body.user_id;
+      if (!userId) {
+        return sendError(res, 'Отсутствует ID пользователя', 400);
+      }
+      
+      // Получаем пользователя по ID
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return sendError(res, `Пользователь с ID ${userId} не найден`, 404);
+      }
+      
+      // Проверяем, есть ли уже реферальный код
+      if (user.ref_code) {
+        console.log(`[UserController] У пользователя с ID ${userId} уже есть реферальный код: ${user.ref_code}`);
+        return sendSuccess(res, { ref_code: user.ref_code });
+      }
+      
+      // Генерируем новый уникальный реферальный код
+      const refCode = await storage.generateUniqueRefCode();
+      console.log(`[UserController] Сгенерирован новый реферальный код для пользователя ${userId}: ${refCode}`);
+      
+      // Обновляем пользователя, добавляя реферальный код
+      const updatedUser = await storage.updateUserRefCode(userId, refCode);
+      if (!updatedUser) {
+        return sendServerError(res, 'Не удалось обновить реферальный код пользователя');
+      }
+      
+      // Возвращаем успешный результат с новым кодом
+      return sendSuccess(res, { 
+        ref_code: refCode,
+        user_id: userId
+      });
+      
+    } catch (error) {
+      console.error('[UserController] Ошибка при генерации реферального кода:', error);
+      return sendServerError(res, 'Ошибка при генерации реферального кода');
     }
   }
 }
