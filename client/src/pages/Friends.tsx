@@ -81,7 +81,7 @@ const Friends: React.FC = () => {
         Партнёрская программа
       </h1>
       
-      {/* Карточка с реферальной ссылкой - единственный компонент по итогам аудита */}
+      {/* Карточка с реферальной ссылкой - передаем данные пользователя напрямую */}
       <div 
         style={{
           opacity: isLoaded ? 1 : 0,
@@ -89,7 +89,8 @@ const Friends: React.FC = () => {
           transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
         }}
       >
-        <UniFarmReferralLink />
+        {/* Передаем userData напрямую для синхронизации */}
+        <UniFarmReferralLink userData={userData} parentIsLoading={isLoading} parentIsError={isError} />
       </div>
       
       {/* Статистика реферального кода */}

@@ -7,9 +7,20 @@ import { apiRequest } from '@/lib/queryClient';
 
 /**
  * Компонент для отображения реферальной ссылки
- * Версия 6.0: Улучшенная работа с отсутствующим ref_code и синхронизация данных
+ * Версия 7.0: Принимает данные пользователя от родительского компонента
+ * и имеет локальный запрос данных как резервный вариант
  */
-const UniFarmReferralLink: React.FC = () => {
+interface UniFarmReferralLinkProps {
+  userData?: User;  // Данные пользователя от родителя
+  parentIsLoading?: boolean;  // Состояние загрузки родителя
+  parentIsError?: boolean;    // Состояние ошибки родителя
+}
+
+const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({ 
+  userData, 
+  parentIsLoading = false,
+  parentIsError = false
+}) => {
   // Состояния UI (все useState должны быть вызваны в одном и том же порядке)
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -20,31 +31,43 @@ const UniFarmReferralLink: React.FC = () => {
   // Доступ к React Query Client для управления кэшем
   const queryClient = useQueryClient();
   
-  // Запрос данных пользователя через централизованный userService
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  // Запрос данных пользователя через централизованный userService (резервный вариант)
+  const { 
+    data: queryData, 
+    isLoading: queryIsLoading, 
+    isError: queryIsError, 
+    refetch 
+  } = useQuery({
     queryKey: ['/api/me'],
-    queryFn: () => {
-      console.log('[UniFarmReferralLink] Запрос данных пользователя через userService.getCurrentUser()');
-      return userService.getCurrentUser(false).then(result => {
+    queryFn: async () => {
+      console.log('[UniFarmReferralLink] Резервный запрос данных пользователя');
+      try {
+        const result = await userService.getCurrentUser(false);
         console.log('[UniFarmReferralLink] Результат запроса данных:', {
           success: !!result,
           hasRefCode: !!result?.ref_code,
           refCode: result?.ref_code
         });
         return result;
-      }).catch(err => {
-        console.error('[UniFarmReferralLink] Ошибка при запросе данных пользователя:', err);
-        throw err;
-      });
+      } catch (error) {
+        console.error('[UniFarmReferralLink] Ошибка при запросе данных пользователя:', error);
+        throw error;
+      }
     },
     retry: 2,
     retryDelay: 1000,
     staleTime: 10000,
     refetchOnWindowFocus: false,
-    onError: (err) => {
-      console.error('[UniFarmReferralLink] React Query - ошибка запроса данных:', err);
-    }
+    // Если есть данные от родителя, отключаем запрос
+    enabled: !userData
   });
+  
+  // Используем данные от родителя или из запроса
+  const data = userData || queryData;
+  
+  // Объединяем состояния загрузки и ошибки
+  const isLoading = parentIsLoading || (queryIsLoading && !userData);
+  const isError = parentIsError || (queryIsError && !userData);
   
   // Извлекаем реферальный код из данных пользователя
   const refCode = data?.ref_code;
