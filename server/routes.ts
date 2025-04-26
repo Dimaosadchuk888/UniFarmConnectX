@@ -1124,6 +1124,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendFile(path.join(projectRoot, 'client', 'public', 'telegram-bridge.html'));
   });
   
+  // Специальные маршруты для Telegram Mini App
+  app.get(['/UniFarm', '/UniFarm/', '/app', '/app/', '/unifarm', '/unifarm/'], (req: Request, res: Response) => {
+    console.log('[TelegramMiniApp] Запрос к специальному пути Telegram Mini App:', req.path);
+    
+    // Передаем все параметры из URL (особенно это важно для параметра ref_code)
+    const queryParams = new URLSearchParams(req.query as any).toString();
+    const queryString = queryParams ? `?${queryParams}` : '';
+    
+    // Используем нашу страницу-мост для инициализации Telegram WebApp API
+    const bridgePath = path.join(projectRoot, 'client', 'public', 'telegram-bridge.html');
+    console.log('[TelegramMiniApp] Отправляем telegram-bridge.html с путем:', bridgePath);
+    res.sendFile(bridgePath);
+  });
+
   // Обработчик для редиректа URL с слешем в конце (согласно ТЗ)
   app.get('*/', (req: Request, res: Response, next: NextFunction) => {
     // Для отладки
@@ -1149,7 +1163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Если запрос от Telegram и запрашивается путь с завершающим слэшем
     if ((isTelegramUserAgent || hasTelegramData) && req.path.endsWith('/')) {
       // Для путей, которые используются в Telegram Mini App, не делаем редирект
-      if (req.path === '/UniFarm/' || req.path === '/app/') {
+      if (req.path === '/UniFarm/' || req.path === '/app/' || req.path === '/unifarm/') {
         console.log('[Route] Запрос от Telegram к мини-приложению - не редиректим');
         return next();
       }
