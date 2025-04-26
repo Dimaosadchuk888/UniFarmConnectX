@@ -18,8 +18,9 @@ export class AuthController {
   private static BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
   
   /**
-   * Регистрация гостевого пользователя только по guest_id (Этап 4 - AirDrop режим)
+   * Регистрация пользователя только по guest_id (Режим полной независимости от Telegram)
    * Создает пользователя без требования Telegram данных
+   * Поддерживает работу с разных Telegram-аккаунтов на одном устройстве
    */
   static async registerGuestUser(req: Request, res: Response): Promise<void> {
     try {
@@ -28,14 +29,18 @@ export class AuthController {
         guest_id,
         username,
         parent_ref_code,
-        ref_code // Параметр для обработки реферальных ссылок в AirDrop режиме (заменен с startapp)
+        ref_code, // Параметр для обработки реферальных ссылок
+        airdrop_mode, // Получаем флаг режима AirDrop
+        telegram_id // Параметр для опциональной привязки к Telegram ID
       } = req.body;
       
       console.log(`[AirDrop] Запрос на создание гостевого пользователя:`, {
         guest_id: guest_id || 'не указан',
         username: username || 'не указан', 
         parent_ref_code: parent_ref_code || 'не указан',
-        ref_code: ref_code || 'не указан'
+        ref_code: ref_code || 'не указан',
+        airdrop_mode: airdrop_mode ? 'true' : 'false',
+        has_telegram_id: telegram_id ? 'yes' : 'no'
       });
       
       // Проверяем наличие guest_id
@@ -51,6 +56,29 @@ export class AuthController {
       if (user) {
         // Пользователь уже существует, просто возвращаем информацию
         console.log(`[AirDrop] Пользователь уже существует по guest_id=${guest_id}, user_id=${user.id}`);
+        
+        // Если у пользователя нет реферального кода, генерируем его
+        if (!user.ref_code) {
+          console.log(`[AirDrop] У существующего пользователя (ID=${user.id}) отсутствует ref_code. Генерируем...`);
+          try {
+            // Генерируем и устанавливаем новый реферальный код
+            const newRefCode = storage.generateRefCode();
+            
+            // Обновляем пользователя
+            const [updatedUser] = await db
+              .update(users)
+              .set({ ref_code: newRefCode })
+              .where(eq(users.id, user.id))
+              .returning();
+            
+            if (updatedUser) {
+              console.log(`[AirDrop] Успешно обновлен ref_code для пользователя ID=${user.id}: ${newRefCode}`);
+              user = updatedUser;
+            }
+          } catch (updateError) {
+            console.error(`[AirDrop] Ошибка при обновлении ref_code:`, updateError);
+          }
+        }
       } else {
         // Создаем нового пользователя
         isNewUser = true;
@@ -73,6 +101,7 @@ export class AuthController {
           // Создаем пользователя через метод createGuestUser
           user = await storage.createGuestUser({
             guest_id: guest_id,
+            telegram_id: telegram_id, // Опционально сохраняем telegram_id, если он был передан
             username: username || `airdrop_${Math.floor(Math.random() * 10000)}`,
             balance_uni: "100", // Начальный бонус
             balance_ton: "0", 
@@ -84,7 +113,8 @@ export class AuthController {
             id: user?.id,
             guest_id: user?.guest_id,
             ref_code: user?.ref_code,
-            parent_ref_code: user?.parent_ref_code
+            parent_ref_code: user?.parent_ref_code,
+            telegram_id: user?.telegram_id || 'не задан'
           });
         } catch (err) {
           const createError = err as Error;

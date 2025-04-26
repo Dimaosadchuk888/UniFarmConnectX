@@ -292,19 +292,28 @@ export function checkTelegramWebApp(): Record<string, any> {
  * @param referrerCode Реферальный код пригласившего (опционально)
  * @returns Promise с результатом регистрации
  */
+/**
+ * Регистрирует пользователя на основе guest_id, полностью независимо от Telegram-данных
+ * Это позволяет использовать приложение с разных Telegram-аккаунтов на одном устройстве
+ * @param guestId Уникальный идентификатор гостя
+ * @param referrerCode Реферальный код, если есть
+ */
 export async function registerUserWithTelegram(guestId: string, referrerCode?: string): Promise<any> {
   try {
-    console.log(`[telegramService] Registering user with guest_id: ${guestId}, referrerCode: ${referrerCode || 'none'}`);
+    console.log(`[telegramService] Регистрация пользователя с guest_id: ${guestId}, referrerCode: ${referrerCode || 'none'}`);
     
     // Добавляем базовые данные регистрации
     const registrationData = {
       guest_id: guestId,
-      ...(referrerCode ? { parent_ref_code: referrerCode } : {})
+      ...(referrerCode ? { parent_ref_code: referrerCode } : {}),
+      // Добавляем флаг, указывающий на создание пользователя в режиме AirDrop
+      // Это предотвратит любые проверки telegram_id на сервере
+      airdrop_mode: true
     };
     
-    console.log('[telegramService] Registration data prepared:', registrationData);
+    console.log('[telegramService] Данные регистрации:', registrationData);
     
-    // Отправляем запрос на регистрацию
+    // Отправляем запрос на регистрацию через AirDrop API
     const response = await fetch('/api/airdrop/register', {
       method: 'POST',
       headers: {
@@ -315,16 +324,23 @@ export async function registerUserWithTelegram(guestId: string, referrerCode?: s
     
     // Обработка ответа
     if (!response.ok) {
-      throw new Error(`Registration failed: ${response.status} ${response.statusText}`);
+      throw new Error(`Ошибка регистрации: ${response.status} ${response.statusText}`);
     }
     
     const result = await response.json();
     
-    console.log('[telegramService] Registration result:', result);
+    console.log('[telegramService] Результат регистрации:', result);
+    
+    // Проверяем наличие реферального кода в ответе
+    if (result.success && result.data && result.data.ref_code) {
+      console.log('[telegramService] Пользователь получил реферальный код:', result.data.ref_code);
+    } else if (result.success && result.data) {
+      console.warn('[telegramService] Регистрация успешна, но ref_code отсутствует в ответе');
+    }
     
     return result;
   } catch (error) {
-    console.error('[telegramService] Registration error:', error);
+    console.error('[telegramService] Ошибка регистрации:', error);
     throw error;
   }
 }
