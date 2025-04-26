@@ -98,14 +98,12 @@ export function getTelegramUserData(): Promise<UserData> {
 }
 
 /**
- * Получает сохраненный ID пользователя из localStorage
- * @param forceReconnect Игнорируется (оставлен для обратной совместимости)
- * @returns ID пользователя или null, если он не сохранен
+ * Заглушка для совместимости
+ * Этап 10.4: Удаление устаревших функций для работы с telegram_user_id
+ * @returns Всегда null, так как не используем больше telegram_id
  */
-export function getCachedTelegramUserId(forceReconnect: boolean = false): number | null {
-  if (process.env.NODE_ENV === 'development') {
-    return 1; // В режиме разработки возвращаем тестовый ID
-  }
+export function getCachedTelegramUserId(): null {
+  console.warn('[telegramService] getCachedTelegramUserId: функция устарела (Этап 10.4), возвращает null');
   return null;
 }
 

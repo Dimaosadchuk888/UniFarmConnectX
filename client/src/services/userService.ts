@@ -110,15 +110,8 @@ class UserService {
             // Сохраняем данные пользователя в кэш
             this.cacheUserData(result.data);
             
-            // Сохраняем Telegram ID в localStorage для последующих запросов
-            if (result.data.telegram_id) {
-              try {
-                localStorage.setItem('telegram_user_id', result.data.telegram_id.toString());
-                console.log(`[UserService] Telegram ID ${result.data.telegram_id} сохранен в localStorage`);
-              } catch (e) {
-                console.warn('[UserService] Не удалось сохранить Telegram ID в localStorage:', e);
-              }
-            }
+            // Удалено сохранение telegram_id в localStorage (Этап 10.4)
+            // Используем только guest_id для идентификации
             
             // Принудительно обновляем данные после короткой задержки
             setTimeout(() => {
@@ -229,61 +222,9 @@ class UserService {
       telegramId: data?.data?.telegram_id
     });
     
-    // Если API не вернул данные, проверяем URL на наличие telegram_id параметра
+    // Если API не вернул данные, выдаем ошибку (Этап 10.4 - удаление поддержки telegram_id в URL)
     if (!data.success || !data.data) {
-      console.warn('[UserService] Invalid API response, checking URL for telegram_id');
-      
-      // Проверяем URL на наличие telegram_id
-      if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const telegramIdFromUrl = urlParams.get('telegram_id');
-        
-        if (telegramIdFromUrl) {
-          console.log(`[UserService] Found telegram_id in URL: ${telegramIdFromUrl}, fetching user data`);
-          
-          try {
-            // Специальная обработка для конкретного пользователя (ID=7)
-            if (telegramIdFromUrl === '425855744') {
-              console.log('[UserService] Special case: telegram_id=425855744, trying to get user ID=7');
-              
-              // Прямой запрос пользователя с ID=7
-              const userData = await apiRequest('/api/users/7');
-              if (userData?.success && userData?.data) {
-                console.log('[UserService] Successfully fetched data for user ID=7:', {
-                  id: userData.data.id,
-                  telegramId: userData.data.telegram_id,
-                  refCode: userData.data.ref_code
-                });
-                
-                // Валидируем и кэшируем полученные данные
-                if (this.isValidUserData(userData.data)) {
-                  this.cacheUserData(userData.data);
-                  return userData.data;
-                }
-              }
-            } else {
-              // Для других пользователей пробуем получить данные по telegram_id
-              const userData = await apiRequest(`/api/users?telegram_id=${telegramIdFromUrl}`);
-              if (userData?.success && userData?.data) {
-                console.log(`[UserService] Successfully fetched data for telegram_id=${telegramIdFromUrl}:`, {
-                  id: userData.data.id,
-                  refCode: userData.data.ref_code
-                });
-                
-                // Валидируем и кэшируем полученные данные
-                if (this.isValidUserData(userData.data)) {
-                  this.cacheUserData(userData.data);
-                  return userData.data;
-                }
-              }
-            }
-          } catch (error) {
-            console.error('[UserService] Error fetching user by telegram_id from URL:', error);
-          }
-        }
-      }
-      
-      console.error('[UserService] Invalid API response and no alternative data sources:', data);
+      console.error('[UserService] Invalid API response from server:', data);
       throw new Error('Invalid response from server');
     }
     
@@ -481,14 +422,9 @@ class UserService {
       // С Этапа 10.3 Telegram WebApp больше не используется
       console.warn('[UserService] Telegram WebApp проверки отключены (Этап 10.3)');
       
-      // Проверяем только кэшированный Telegram ID
-      const cachedTelegramId = getCachedTelegramUserId();
-      if (cachedTelegramId && cachedTelegramId !== 1 && cachedTelegramId !== '1') {
-        console.log('[UserService] Found real user ID from cached Telegram ID:', cachedTelegramId);
-        return true;
-      } else {
-        console.warn('[UserService] Cached Telegram ID is missing or invalid:', cachedTelegramId);
-      }
+      // Этап 10.4: Удалены проверки Telegram ID - больше не поддерживаются
+      console.log('[UserService] Telegram ID проверки пропущены (Этап 10.4)');
+      // Всегда переходим к проверке данных пользователя
       
       // Шаг 3: Проверка кэшированных данных пользователя
       const cachedData = this.getCachedUserData();

@@ -159,73 +159,23 @@ const clearGuestIdAndSession = (): void => {
 };
 
 /**
- * Проверяет, изменился ли Telegram пользователь
- * Сравнивает текущий telegram_id с тем, который был в последней сессии
- * @param currentTelegramId текущий ID пользователя Telegram
- * @returns true если пользователь изменился, false если тот же или данные отсутствуют
+ * Заглушка для совместимости с предыдущими версиями
+ * Этап 10.4: Удаление зависимостей от telegram_user_id
+ * @param _ параметр игнорируется
+ * @returns всегда false
  */
-const hasTelegramUserChanged = (currentTelegramId: number | null): boolean => {
-  try {
-    if (!currentTelegramId) {
-      console.log('[sessionRestoreService] Невозможно проверить изменение пользователя: отсутствует текущий Telegram ID');
-      return false;
-    }
-    
-    // Получаем последнюю сохраненную сессию
-    const lastSessionJson = localStorage.getItem(STORAGE_KEYS.LAST_SESSION);
-    if (!lastSessionJson) {
-      console.log('[sessionRestoreService] Нет сохраненной информации о последней сессии');
-      return false;
-    }
-    
-    try {
-      const lastSession = JSON.parse(lastSessionJson);
-      if (lastSession && lastSession.telegram_id) {
-        // Проверяем, изменился ли ID пользователя Telegram
-        const lastTelegramId = Number(lastSession.telegram_id);
-        
-        if (lastTelegramId !== currentTelegramId) {
-          console.log(`[sessionRestoreService] ⚠️ Обнаружена смена пользователя Telegram: было ${lastTelegramId}, стало ${currentTelegramId}`);
-          return true;
-        } else {
-          console.log(`[sessionRestoreService] ✅ Пользователь Telegram не изменился: ID=${currentTelegramId}`);
-          return false;
-        }
-      }
-    } catch (parseError) {
-      console.error('[sessionRestoreService] Ошибка при разборе данных о последней сессии:', parseError);
-    }
-    
-    return false;
-  } catch (error) {
-    console.error('[sessionRestoreService] Ошибка при проверке изменения пользователя Telegram:', error);
-    return false;
-  }
+const hasTelegramUserChanged = (_: any): boolean => {
+  console.warn('[sessionRestoreService] hasTelegramUserChanged: функция устарела (Этап 10.4), использовать нельзя');
+  return false;
 };
 
 /**
- * Обновляет информацию о последней сессии с данными пользователя Telegram
- * @param telegramId ID пользователя Telegram
- * @param userId ID пользователя в системе
+ * Заглушка для совместимости с предыдущими версиями
+ * Этап 10.4: Удаление зависимостей от telegram_user_id
+ * @param _ параметры игнорируются
  */
-const updateSessionWithTelegramData = (telegramId: number, userId: number): void => {
-  try {
-    if (!telegramId || !userId) {
-      console.warn('[sessionRestoreService] Отсутствуют данные для обновления сессии');
-      return;
-    }
-    
-    // Сохраняем расширенную информацию о последней сессии
-    localStorage.setItem(STORAGE_KEYS.LAST_SESSION, JSON.stringify({
-      timestamp: new Date().toISOString(),
-      user_id: userId,
-      telegram_id: telegramId
-    }));
-    
-    console.log(`[sessionRestoreService] ✅ Сессия обновлена с данными пользователя Telegram: ID=${telegramId}`);
-  } catch (error) {
-    console.error('[sessionRestoreService] Ошибка при обновлении данных сессии:', error);
-  }
+const updateSessionWithTelegramData = (_telegramId: any, _userId: any): void => {
+  console.warn('[sessionRestoreService] updateSessionWithTelegramData: функция устарела (Этап 10.4), использовать нельзя');
 };
 
 /**
