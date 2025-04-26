@@ -104,7 +104,7 @@ async function testReferralLink(referrerUser) {
       body: JSON.stringify({
         guest_id: secondGuestId,
         username: `referred_user_${Date.now()}`,
-        startapp: referrerUser.refCode, // Используем реферальный код первого пользователя
+        ref_code: referrerUser.refCode, // Используем реферальный код первого пользователя
       })
     });
     
