@@ -16,7 +16,6 @@ import sessionRestoreService from '@/services/sessionRestoreService'; // Сер�
 import { GuestIdService } from '@/services/guestIdService'; // Сервис работы с guest_id
 
 // Импортируем компоненты UI
-import TelegramInitDataWarning from "@/components/ui/TelegramInitDataWarning";
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
 
 import Header from "@/components/layout/Header";
@@ -387,7 +386,6 @@ function App() {
               <Route path="*">
                 <Header />
                 {/* Показываем предупреждение о проблемах с Telegram WebApp */}
-                <TelegramInitDataWarning />
                 <main className="px-4 pt-2 pb-20">
                   {isLoading ? (
                     <div className="flex items-center justify-center h-32">
