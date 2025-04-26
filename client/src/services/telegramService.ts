@@ -298,3 +298,21 @@ export function getTelegramId(defaultValue: number | null = null): number | null
     return defaultValue;
   }
 }
+
+/**
+ * Возвращает отображаемое имя пользователя Telegram для приветствия
+ * Этап 10.3: Используем заглушку вместо данных из Telegram WebApp
+ * @returns {string} Отображаемое имя пользователя или 'Уважаемый пользователь'
+ */
+export function getTelegramUserDisplayName(): string {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      return 'Тестовый пользователь';
+    }
+    
+    return 'Уважаемый пользователь';
+  } catch (error) {
+    console.error('[telegramService] Error getting user display name:', error);
+    return 'Уважаемый пользователь';
+  }
+}

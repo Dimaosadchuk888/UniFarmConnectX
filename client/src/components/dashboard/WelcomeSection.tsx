@@ -36,11 +36,9 @@ const WelcomeSection: React.FC = () => {
   }, [tonConnectUI]);
   
   useEffect(() => {
-    // Получаем имя пользователя из Telegram WebApp
-    if (isTelegramWebApp()) {
-      const displayName = getTelegramUserDisplayName();
-      setUserName(displayName);
-    }
+    // Этап 10.3: Всегда используем getTelegramUserDisplayName независимо от среды
+    const displayName = getTelegramUserDisplayName();
+    setUserName(displayName);
   }, []);
   
   return (
