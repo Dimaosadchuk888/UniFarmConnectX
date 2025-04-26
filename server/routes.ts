@@ -47,6 +47,13 @@ import { migrateRefCodes, checkAndUpdateUserRefCode, setRefCodeForUser } from '.
 import { telegramInitDataLogger } from './middleware/telegramInitDataLogger';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Обслуживание статических файлов из папки public
+  // Это важно для тестовых HTML-файлов  
+  const projectRoot = process.cwd(); 
+  const publicPath = path.join(projectRoot, 'server', 'public');
+  
+  app.use('/static', express.static(publicPath));
+  console.log('[Server] Статические файлы доступны по URL /static из папки:', publicPath);
   
   // Добавляем CORS заголовки для работы с Telegram WebApp
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -90,6 +97,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Подключаем улучшенный логгер для Telegram initData - анализирует данные подробно
   app.use(telegramInitDataLogger);
+  
+  // Специальный маршрут для тестовой страницы Telegram WebApp
+  app.get("/telegram-simple.html", (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'server/public/telegram-simple.html'));
+  });
   
   // Простой маршрут для проверки API (для отладки)
   app.get("/api/test-json", (req, res) => {
