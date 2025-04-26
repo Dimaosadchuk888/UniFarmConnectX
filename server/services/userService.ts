@@ -193,7 +193,12 @@ export class UserService {
    * Генерирует новый уникальный реферальный код
    * @returns Сгенерированный код
    */
+  /**
+   * Простая генерация реферального кода (без проверки на уникальность)
+   * @deprecated Используйте generateUniqueRefCode() для гарантии уникальности кода
+   */
   static generateRefCode(): string {
+    console.warn('[UserService] ⚠️ Использование устаревшего метода generateRefCode(). Рекомендуется использовать generateUniqueRefCode()');
     return storage.generateRefCode();
   }
   

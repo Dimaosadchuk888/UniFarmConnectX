@@ -448,8 +448,9 @@ export class UserController {
           console.log(`[UserController] [TelegramAuth] Final username for new user: "${username}"`);
           
           // Генерируем уникальный реферальный код для нового пользователя
-          const refCode = UserService.generateRefCode();
-          console.log(`[UserController] [TelegramAuth] Generated ref_code for new user: "${refCode}"`);
+          // Используем асинхронный метод для гарантии уникальности
+          const refCode = await UserService.generateUniqueRefCode();
+          console.log(`[UserController] [TelegramAuth] Generated unique ref_code for new user: "${refCode}"`);
           
           // Добавляем проверку согласно пункту 4 ТЗ
           if (telegramId) {
