@@ -13,6 +13,19 @@ import { and, eq } from 'drizzle-orm';
 import { validateTelegramInitData, TelegramValidationResult, logTelegramData } from '../utils/telegramUtils';
 import { storage } from '../storage';
 
+// Расширяем интерфейс сессии чтобы TypeScript понимал наши данные
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+    user?: {
+      id: number;
+      username: string;
+      ref_code?: string;
+      guest_id?: string;
+    };
+  }
+}
+
 /**
  * Контроллер для работы с пользователями
  */
