@@ -120,6 +120,17 @@ export function clearTelegramCache(): void {
 }
 
 /**
+ * Запрашивает initData от Telegram WebApp API (заглушка для совместимости)
+ * @returns {Promise<boolean>} Промис с результатом запроса
+ */
+export function requestInitData(): Promise<boolean> {
+  return new Promise((resolve) => {
+    console.log('[telegramService] requestInitData: функция устарела (Этап 10.5), всегда возвращает false');
+    resolve(false);
+  });
+}
+
+/**
  * Подготавливает заголовки для API запросов с гостевой идентификацией
  * @returns Объект с заголовками авторизации
  */

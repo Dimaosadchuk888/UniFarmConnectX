@@ -105,13 +105,13 @@ const ReferralLinkCard: React.FC = () => {
     if (currentUser && !currentUser.telegram_id) {
       console.log('[ReferralLinkCard] User has no telegram_id, requesting Telegram initData...');
       // Асинхронно запрашиваем initData от Telegram без ожидания
-      requestInitData().then(success => {
+      requestInitData().then((success: boolean) => {
         console.log('[ReferralLinkCard] RequestInitData result:', success);
         if (success) {
           // Если успешно получили данные, обновляем информацию о пользователе
           refreshUserData();
         }
-      }).catch(error => {
+      }).catch((error: Error) => {
         console.error('[ReferralLinkCard] Error during requestInitData:', error);
       });
     }

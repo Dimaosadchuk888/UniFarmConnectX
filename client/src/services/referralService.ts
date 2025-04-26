@@ -147,7 +147,7 @@ class ReferralService {
   initialize(): void {
     console.log('[ReferralService] Инициализация...');
     
-    // Проверяем, есть ли в URL параметр startapp
+    // Проверяем, есть ли в URL реферальный код (ref_code или устаревший startapp)
     const refCodeFromUrl = this.getRefCodeFromUrl();
     
     if (refCodeFromUrl && this.isValidRefCode(refCodeFromUrl)) {
