@@ -647,6 +647,36 @@ export class UserController {
       sendServerError(res, error);
     }
   }
+  
+  /**
+   * Получает информацию о пользователе по guest_id
+   * @param req Запрос с guest_id в параметрах
+   * @param res Ответ с данными пользователя или ошибкой
+   */
+  static async getUserByGuestId(req: Request, res: Response): Promise<void> {
+    try {
+      const guestId = req.params.guestId;
+      
+      if (!guestId) {
+        return sendError(res, 'Guest ID is required', 400);
+      }
+      
+      console.log(`[UserController] Поиск пользователя по guest_id: ${guestId}`);
+      
+      const user = await UserService.getUserByGuestId(guestId);
+      
+      if (!user) {
+        console.log(`[UserController] Пользователь с guest_id ${guestId} не найден`);
+        return sendError(res, 'User not found', 404);
+      }
+      
+      console.log(`[UserController] Найден пользователь с ID=${user.id} для guest_id=${guestId}`);
+      sendSuccess(res, user);
+    } catch (error) {
+      console.error(`[UserController] Ошибка при получении пользователя по guest_id:`, error);
+      sendServerError(res, error);
+    }
+  }
 
   /**
    * Создает нового пользователя
