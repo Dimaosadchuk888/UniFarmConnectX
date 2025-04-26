@@ -12,39 +12,58 @@ import { User } from '@/services/userService';
  * АУДИТ ЭТАП 4.1: Объединенная версия Friends и FriendsMinimal.
  * Удалена проверка на минимальный режим, добавлена статистика реферального кода, 
  * стабильная работа в любой среде запуска.
+ * 
+ * Исправлено для телеграм: устранен черный экран при работе в Telegram WebApp
  */
 const Friends: React.FC = () => {
   // Состояние для отслеживания видимости элементов
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(true); // Сразу показываем компоненты
   
-  // Получаем информацию о пользователе - принудительно отключаем кэширование
+  // Получаем информацию о пользователе без принудительного обновления
+  // чтобы избежать мерцания и черного экрана в Telegram
   const { data: userData, isLoading, isError } = useQuery({
     queryKey: ['/api/me'], 
-    queryFn: () => userService.getCurrentUser(true), // Принудительно получаем свежие данные
-    staleTime: 10000, // Уменьшаем время кэширования до 10 секунд
-    refetchOnWindowFocus: true // Обновляем при возврате на вкладку
+    queryFn: () => userService.getCurrentUser(false), // Используем кэшированные данные если есть
+    staleTime: 30000, // Увеличиваем время кэширования для стабильности
+    refetchOnWindowFocus: false, // Отключаем автообновление при фокусе для стабильности в Telegram
+    retry: 1, // Ограничиваем количество повторных запросов
   });
   
-  // Эффект появления компонентов с задержкой
+  // Эффект для логирования данных пользователя
   useEffect(() => {
-    // Устанавливаем задержку для плавного появления
-    const timeoutId = setTimeout(() => {
-      setIsLoaded(true);
-    }, 100);
-    
     // Для аудита логируем полученный ref_code
     if (userData?.ref_code) {
       console.log('[Friends] АУДИТ: получен ref_code:', userData.ref_code);
-    } else if (!isLoading) {
+    } else if (!isLoading && userData) {
       console.warn('[Friends] АУДИТ: ref_code отсутствует в данных пользователя:', {
         hasUserData: !!userData,
         userId: userData?.id,
         telegramId: userData?.telegram_id
       });
     }
-    
-    return () => clearTimeout(timeoutId);
-  }, [userData?.ref_code, isLoading, userData]);
+  }, [userData, isLoading]);
+  
+  // Фиксируем возможную проблему с ref_code
+  useEffect(() => {
+    // Если данные пользователя загружены, но ref_code отсутствует
+    if (userData && !userData.ref_code && !isLoading) {
+      console.log('[Friends] Запрос обновления данных пользователя из-за отсутствия ref_code');
+      // Пробуем получить обновленные данные через 1 секунду
+      const timer = setTimeout(() => {
+        userService.getCurrentUser(true)
+          .then(updatedUser => {
+            if (updatedUser && updatedUser.ref_code) {
+              console.log('[Friends] Успешно получен ref_code после обновления:', updatedUser.ref_code);
+              // Принудительно обновляем данные
+              window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
+            }
+          })
+          .catch(err => console.error('[Friends] Ошибка при обновлении данных пользователя:', err));
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [userData, isLoading]);
   
   // Безопасное приведение типов
   const safeUser = userData as User | undefined;

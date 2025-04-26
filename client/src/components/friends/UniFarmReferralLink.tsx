@@ -88,23 +88,6 @@ const UniFarmReferralLink: React.FC = () => {
   // 2. Если ref_code отсутствует - показываем сообщение
   // 3. Если ref_code есть - показываем ссылку с UI
 
-  // Загрузка данных
-  if (isLoading) {
-    return (
-      <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
-        <div className="flex justify-center items-center flex-col py-4">
-          <div className="flex items-center mb-3">
-            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-            <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
-          </div>
-          <p className="text-center text-xs text-muted-foreground">
-            Реферальная ссылка будет доступна после загрузки данных
-          </p>
-        </div>
-      </div>
-    );
-  }
-  
   // Проверяем наличие данных о пользователе для отображения корректного состояния
   useEffect(() => {
     // Если у нас есть пользователь, но нет реферального кода
@@ -139,6 +122,23 @@ const UniFarmReferralLink: React.FC = () => {
         });
     }
   }, [safeUser, hasRefCode, isRegistering]);
+  
+  // Загрузка данных - после вызова всех хуков!
+  if (isLoading) {
+    return (
+      <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
+        <div className="flex justify-center items-center flex-col py-4">
+          <div className="flex items-center mb-3">
+            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+            <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
+          </div>
+          <p className="text-center text-xs text-muted-foreground">
+            Реферальная ссылка будет доступна после загрузки данных
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Ошибка или отсутствие ref_code
   if (isError || !hasRefCode) {
