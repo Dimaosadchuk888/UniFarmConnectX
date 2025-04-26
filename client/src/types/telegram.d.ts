@@ -41,6 +41,8 @@ interface TelegramWebApp {
   isExpanded: boolean;
   viewportHeight: number;
   viewportStableHeight: number;
+  version?: string;          // Добавлено в Этапе 10.5 для поддержки отладочной страницы
+  platform?: string;         // Добавлено в Этапе 10.5 для поддержки отладочной страницы
   sendData(data: any): void;
   onEvent(eventType: string, eventHandler: Function): void;
   offEvent(eventType: string, eventHandler: Function): void;
