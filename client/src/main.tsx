@@ -7,7 +7,7 @@ import "./index.css";
 // Импортируем функции из telegramService
 import { 
   initTelegramWebApp, 
-  isRunningInTelegram 
+  isTelegramWebApp 
 } from './services/telegramService';
 
 // Импортируем компонент блокировки
@@ -23,15 +23,15 @@ window.process = { env: {} } as any;
 
 // ЭТАП 1.1: СТРОГАЯ ПРОВЕРКА ЗАПУСКА ИЗ TELEGRAM
 // Проверяем, запущено ли приложение в Telegram до рендеринга
-const isTelegramEnvironment = isRunningInTelegram();
+const isTelegramEnvironment = isTelegramWebApp();
 
-// Отладочная проверка состояния Telegram объекта
-console.log('[TG INIT] Telegram environment check result:', {
+// Отладочная проверка состояния Telegram объекта (Этап 10.3: больше не зависим от window.Telegram)
+console.log('[TG INIT] Этап 10.3: Проверка среды выполнения:', {
   isTelegramEnvironment,
-  telegramDefined: typeof window.Telegram !== 'undefined',
-  webAppDefined: typeof window.Telegram?.WebApp !== 'undefined',
-  initDataLength: window.Telegram?.WebApp?.initData?.length || 0,
-  savedInitData: sessionStorage.getItem('telegramInitData')?.length || 0,
+  isDevelopment: process.env.NODE_ENV === 'development',
+  hasLocalStorage: typeof localStorage !== 'undefined',
+  hasSessionStorage: typeof sessionStorage !== 'undefined',
+  savedGuestId: localStorage.getItem('unifarm_guest_id') || 'отсутствует',
   timestamp: new Date().toISOString()
 });
 
