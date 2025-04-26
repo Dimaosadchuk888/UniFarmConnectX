@@ -647,26 +647,33 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  // Создание пользователя только на основе guest_id (без Telegram) для Этапа 4 и 5
-  // Этот метод обновлен для соответствия требованиям Этапа 5: безопасное восстановление пользователя
+  /**
+   * Создание пользователя только на основе guest_id (без Telegram) 
+   * Обновленная версия с подробным логированием и обработкой ошибок
+   * 
+   * @param userData Данные пользователя, включая обязательный guest_id
+   * @returns Созданный или существующий пользователь
+   */
   async createGuestUser(userData: {
     guest_id: string;
-    telegram_id?: number; // Добавляем опциональный telegram_id для поддержки режима AirDrop
+    telegram_id?: number; 
     username?: string;
     balance_uni?: string;
     balance_ton?: string;
     ref_code?: string;
     parent_ref_code?: string;
     created_at?: Date;
+    wallet?: string;
+    ton_wallet_address?: string;
   }): Promise<User> {
-    console.log(`[Storage] Создание нового пользователя в режиме AirDrop с guest_id: ${userData.guest_id}`);
+    console.log(`[Storage] Создание/проверка пользователя в режиме AirDrop с guest_id: ${userData.guest_id}`);
     
     try {
       // Проверяем, существует ли уже пользователь с таким guest_id
       const existingUser = await this.getUserByGuestId(userData.guest_id);
       
       if (existingUser) {
-        console.log(`[Storage] Пользователь с guest_id ${userData.guest_id} уже существует`);
+        console.log(`[Storage] Пользователь с guest_id ${userData.guest_id} уже существует (ID=${existingUser.id})`);
         
         // Если предоставлен parent_ref_code и у пользователя его еще нет, 
         // устанавливаем его для существующего пользователя
@@ -705,6 +712,7 @@ export class DatabaseStorage implements IStorage {
       
       // Генерируем ref_code, если не предоставлен
       const refCode = userData.ref_code || await this.generateUniqueRefCode();
+      console.log(`[Storage] Генерация ref_code: ${refCode}`);
       
       // Проверяем parent_ref_code, если он предоставлен
       let parentRefCode = null;
@@ -719,31 +727,96 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // Создаем нового пользователя
-      const [user] = await db
-        .insert(users)
-        .values({
-          guest_id: userData.guest_id,
-          telegram_id: userData.telegram_id, // Добавляем поддержку telegram_id если он передан
-          username: userData.username || `user_${Math.floor(Math.random() * 100000)}`,
-          balance_uni: userData.balance_uni || '100',
-          balance_ton: userData.balance_ton || '0',
-          ref_code: refCode,
-          parent_ref_code: parentRefCode,
-          created_at: userData.created_at || new Date(),
-        })
-        .returning();
+      // Создаем новые значения для пользователя с подробным логированием
+      const insertValues = {
+        guest_id: userData.guest_id,
+        telegram_id: userData.telegram_id || null,
+        username: userData.username || `airdrop_${Math.floor(Math.random() * 10000)}`,
+        balance_uni: userData.balance_uni || '100',
+        balance_ton: userData.balance_ton || '0',
+        ref_code: refCode,
+        parent_ref_code: parentRefCode,
+        created_at: userData.created_at || new Date(),
+        wallet: userData.wallet || null,
+        ton_wallet_address: userData.ton_wallet_address || null,
+        uni_farming_rate: '0',
+        uni_farming_balance: '0',
+        uni_deposit_amount: '0',
+        checkin_streak: 0
+      };
       
-      // Логируем результат
-      if (parentRefCode) {
-        console.log(`[Storage] Пользователь успешно создан в режиме AirDrop с реферальной связью: ID=${user.id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}, parent_ref_code=${user.parent_ref_code}`);
-      } else {
-        console.log(`[Storage] Пользователь успешно создан в режиме AirDrop: ID=${user.id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
+      // Логируем значения перед вставкой для диагностики
+      console.log('[Storage] Подготовленные значения для создания пользователя:', {
+        guest_id: insertValues.guest_id,
+        username: insertValues.username,
+        ref_code: insertValues.ref_code,
+        parent_ref_code: insertValues.parent_ref_code,
+        initial_balance_uni: insertValues.balance_uni,
+        wallet_status: insertValues.ton_wallet_address ? 'Установлен' : 'NULL'
+      });
+      
+      try {
+        // Создаем нового пользователя
+        const [user] = await db
+          .insert(users)
+          .values(insertValues)
+          .returning();
+        
+        // Логируем результат
+        if (parentRefCode) {
+          console.log(`[Storage] Пользователь успешно создан в режиме AirDrop с реферальной связью: ID=${user.id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}, parent_ref_code=${user.parent_ref_code}`);
+        } else {
+          console.log(`[Storage] Пользователь успешно создан в режиме AirDrop: ID=${user.id}, guest_id=${user.guest_id}, ref_code=${user.ref_code}`);
+        }
+        
+        return user;
+      } catch (insertError) {
+        // Детальное логирование ошибки вставки
+        console.error(`[Storage] ❌ Ошибка при вставке записи пользователя в БД:`, insertError);
+        console.error(`[Storage] ❌ Текст ошибки: ${insertError.message}`);
+        
+        if (insertError.code) {
+          console.error(`[Storage] ❌ Код ошибки БД: ${insertError.code}`);
+        }
+        
+        if (insertError.detail) {
+          console.error(`[Storage] ❌ Детали ошибки БД: ${insertError.detail}`);
+        }
+        
+        if (insertError.constraint) {
+          console.error(`[Storage] ❌ Нарушено ограничение БД: ${insertError.constraint}`);
+        }
+        
+        // Повторно проверяем пользователя по guest_id для исключения race condition
+        const userAfterError = await this.getUserByGuestId(userData.guest_id);
+        if (userAfterError) {
+          console.log(`[Storage] ⚠️ Несмотря на ошибку вставки, пользователь с guest_id ${userData.guest_id} найден в БД (ID=${userAfterError.id})`);
+          return userAfterError;
+        }
+        
+        // Если ошибка связана с дублированием и мы не нашли пользователя выше,
+        // пробуем создать пользователя с другим ref_code
+        if (insertError.code === '23505' && insertError.constraint?.includes('ref_code')) {
+          console.log(`[Storage] ⚠️ Конфликт реферального кода. Пробуем создать с новым ref_code`);
+          
+          // Генерируем новый реферальный код и пробуем снова
+          const newRefCode = await this.generateUniqueRefCode();
+          insertValues.ref_code = newRefCode;
+          
+          const [retryUser] = await db
+            .insert(users)
+            .values(insertValues)
+            .returning();
+            
+          console.log(`[Storage] ✅ Пользователь успешно создан при повторной попытке: ID=${retryUser.id}, ref_code=${retryUser.ref_code}`);
+          return retryUser;
+        }
+        
+        // В случае других ошибок пробрасываем исключение дальше
+        throw insertError;
       }
-      
-      return user;
     } catch (error) {
-      console.error(`[Storage] Ошибка при создании пользователя в режиме AirDrop:`, error);
+      console.error(`[Storage] Критическая ошибка при создании пользователя в режиме AirDrop:`, error);
       throw error;
     }
   }
