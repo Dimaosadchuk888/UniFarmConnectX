@@ -63,8 +63,8 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
         userAgent: navigator.userAgent
       });
       
-      // Всегда разрешаем продолжить, даже если это не Telegram WebApp
-      // Предупреждение будет показано через компонент TelegramInitDataWarning
+      // Этап 10.3: Всегда разрешаем продолжить, независимо от Telegram WebApp
+      // Приложение работает в режиме AirDrop без зависимости от Telegram
       setIsTelegramApp(true);
       setIsChecking(false);
     };

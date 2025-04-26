@@ -67,11 +67,11 @@ const UiDiagnostics: React.FC = () => {
               details: 'Компонент корректно отображается'
             },
             {
-              name: 'TelegramInitDataWarning',
+              name: 'TelegramWebAppCheck',
               rendered: true,
               errorsCount: 0,
-              status: 'warning',
-              details: 'Предупреждение отображается из-за отсутствия данных Telegram'
+              status: 'success',
+              details: 'Компонент успешно проверяет окружение'
             }
           ],
           pages: [
