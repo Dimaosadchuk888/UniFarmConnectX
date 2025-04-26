@@ -100,19 +100,19 @@ const TelegramTest: React.FC = () => {
       
       <Card className="my-6">
         <CardHeader>
-          <CardTitle>Тестовая форма для параметра startParam</CardTitle>
+          <CardTitle>Тестовая форма для параметра ref_code</CardTitle>
           <CardDescription>
-            Здесь вы можете проверить передачу реферального кода через startParam
+            Здесь вы можете проверить передачу реферального кода через ref_code
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="mb-4">
             Чтобы проверить передачу реферального кода, откройте Mini App со ссылкой:<br/>
-            <code className="bg-gray-100 p-1 rounded">https://t.me/yourbotname/app?startapp=ref_123456</code>
+            <code className="bg-gray-100 p-1 rounded">https://t.me/yourbotname/app?ref_code=123456</code>
           </p>
           
           <p className="text-sm text-muted-foreground">
-            После открытия через ссылку с параметром startapp=ref_XXX, код XXX будет доступен через 
+            После открытия через ссылку с параметром ref_code=XXX, код XXX будет доступен через 
             Telegram.WebApp.startParam и будет отображен в диагностике выше.
           </p>
         </CardContent>
