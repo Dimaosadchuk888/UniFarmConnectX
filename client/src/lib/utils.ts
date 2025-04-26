@@ -159,10 +159,17 @@ export function getReferrerIdFromURL(): string | null {
       return startParam; // Возвращаем как есть, если формат другой
     }
     
+    // Сначала проверяем новый формат с параметром ref_code
+    const refCodeParam = urlParams.get('ref_code');
+    if (refCodeParam) {
+      console.log('[utils] Found ref_code parameter in URL:', refCodeParam);
+      return refCodeParam;
+    }
+    
     // Проверяем старый формат ссылки с параметром startapp (для обратной совместимости)
     const startappParam = urlParams.get('startapp');
     if (startappParam) {
-      console.log('[utils] Found startapp parameter in URL:', startappParam);
+      console.log('[utils] Found legacy startapp parameter in URL:', startappParam);
       return startappParam;
     }
     

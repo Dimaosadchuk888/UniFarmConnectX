@@ -15,18 +15,18 @@ export default function TelegramSlashHandler() {
     // Анализируем URL с отладочной информацией
     const currentPath = window.location.pathname;
     const currentUrl = window.location.href;
-    const hasStartParam = window.location.search.includes('startapp');
+    const hasRefCodeParam = window.location.search.includes('ref_code') || window.location.search.includes('startapp');
     const userAgent = navigator.userAgent;
     
     // Устанавливаем отладочную информацию
-    setDetails(`URL: ${currentUrl}, startParam: ${hasStartParam ? 'есть' : 'нет'}, user-agent: ${userAgent.substr(0, 50)}...`);
+    setDetails(`URL: ${currentUrl}, refCodeParam: ${hasRefCodeParam ? 'есть' : 'нет'}, user-agent: ${userAgent.substr(0, 50)}...`);
 
     // Функция для инициализации Telegram WebApp при наличии слэша в конце URL
     const initTelegramFromSlashUrl = () => {
       console.log('[TelegramSlashHandler] 🔄 Инициализация Telegram WebApp', {
         url: currentUrl,
         path: currentPath,
-        hasStartParam,
+        hasRefCodeParam,
         userAgent
       });
       
@@ -79,12 +79,21 @@ export default function TelegramSlashHandler() {
             }
           }
           
-          // Проверяем наличие параметра startapp в URL
+          // Проверяем наличие параметров реферальной ссылки в URL
           const urlParams = new URLSearchParams(window.location.search);
-          const startParam = urlParams.get('startapp');
           
+          // Сначала проверяем новый формат с параметром ref_code
+          const refCodeParam = urlParams.get('ref_code');
+          if (refCodeParam) {
+            console.log('[TelegramSlashHandler] 🔍 Обнаружен параметр ref_code:', refCodeParam);
+            // Сохраняем параметр в localStorage для последующего использования
+            localStorage.setItem('referralCode', refCodeParam);
+          }
+          
+          // Для обратной совместимости также проверяем старый формат startapp
+          const startParam = urlParams.get('startapp');
           if (startParam) {
-            console.log('[TelegramSlashHandler] 🔍 Обнаружен параметр startapp:', startParam);
+            console.log('[TelegramSlashHandler] 🔍 Обнаружен устаревший параметр startapp:', startParam);
             // Сохраняем параметр startapp в localStorage для последующего использования
             localStorage.setItem('telegramStartParam', startParam);
           }
