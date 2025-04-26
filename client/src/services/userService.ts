@@ -202,14 +202,17 @@ class UserService {
   }
   
   /**
-   * Получает Telegram ID пользователя и делает запрос к API
+   * Выполняет запрос к API для получения данных пользователя
+   * Этап 10.4: Убрана зависимость от telegram_id, используем только guest_id
    * @returns {Promise<User>} Данные пользователя из API
    * @private
    */
   private async fetchUserFromApi(): Promise<User> {
-    // Получаем Telegram ID пользователя
-    const telegramUserId = getCachedTelegramUserId();
-    console.log('[UserService] Telegram user ID for API request:', telegramUserId);
+    // Импортируем guestIdService для получения guest_id
+    const { getGuestId } = await import('./guestIdService');
+    const guestId = getGuestId();
+    
+    console.log('[UserService] Запрос к API с guest_id:', guestId);
     
     // Делаем запрос к API
     const data = await apiRequest('/api/me');
@@ -219,7 +222,7 @@ class UserService {
       success: data?.success,
       userId: data?.data?.id,
       username: data?.data?.username,
-      telegramId: data?.data?.telegram_id
+      guestId: data?.data?.guest_id
     });
     
     // Если API не вернул данные, выдаем ошибку (Этап 10.4 - удаление поддержки telegram_id в URL)

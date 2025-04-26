@@ -13,7 +13,7 @@ import {
 import { getReferrerIdFromURL } from './lib/utils';
 import userService from '@/services/userService';
 import sessionRestoreService from '@/services/sessionRestoreService'; // Сервис восстановления сессии
-import { GuestIdService } from '@/services/guestIdService'; // Сервис работы с guest_id
+// Импорт guestIdService удален, так как не используется в этом файле
 
 // Импортируем компоненты UI
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
