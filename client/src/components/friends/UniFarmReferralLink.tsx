@@ -14,39 +14,55 @@ const UniFarmReferralLink: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [linkType, setLinkType] = useState<'app' | 'bot'>('app');
   
-  // Запрос данных пользователя
-  const { data, isLoading, isError } = useQuery({
+  // Запрос данных пользователя напрямую с сервера через React Query
+  // Обязательно используем queryKey ['/api/me'] для совместимости с остальным кодом
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['/api/me'],
     queryFn: async () => {
-      const response = await fetch('/api/me', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+      try {
+        // Отправляем прямой запрос к API, минуя промежуточные слои
+        const response = await fetch('/api/me', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+
+        // Обрабатываем ошибки HTTP без автоматической перезагрузки страницы
+        if (!response.ok) {
+          console.warn(`[UniFarmReferralLink] HTTP error (${response.status}) при запросе данных`);
+          throw new Error(`API error: ${response.status}`);
         }
-      });
-      
-      if (!response.ok) {
-        // Если получили ошибку 401, значит сессия устарела
-        if (response.status === 401) {
-          // Перезагружаем страницу для восстановления сессии
-          window.location.reload();
-          throw new Error('Session expired');
+        
+        // Парсим ответ от сервера
+        const result = await response.json();
+
+        // Проверяем формат ответа и наличие данных
+        if (!result.success || !result.data) {
+          console.warn('[UniFarmReferralLink] Некорректный формат ответа от API');
+          throw new Error('Invalid API response format');
         }
-        throw new Error(`API error: ${response.status}`);
+
+        // Проверяем наличие реферального кода
+        if (!result.data.ref_code) {
+          console.warn('[UniFarmReferralLink] В ответе API отсутствует ref_code');
+        } else {
+          console.log('[UniFarmReferralLink] Реферальный код успешно получен:', result.data.ref_code);
+        }
+        
+        // Возвращаем данные пользователя напрямую
+        return result.data as User;
+      } catch (error) {
+        console.error('[UniFarmReferralLink] Ошибка при запросе данных пользователя:', error);
+        throw error;
       }
-      
-      const result = await response.json();
-      
-      if (!result.success || !result.data) {
-        throw new Error('Invalid API response');
-      }
-      
-      return result.data as User;
     },
-    retry: 1,
-    staleTime: 30000, // Кэшируем на 30 секунд
-    refetchOnWindowFocus: false
+    retry: 2, // Пробуем повторить запрос 2 раза в случае ошибки
+    retryDelay: 1000, // Задержка между повторами 1 секунда
+    staleTime: 10000, // Данные считаются свежими в течение 10 секунд
+    refetchOnWindowFocus: false, // Отключаем автоматическое обновление при фокусе окна
   });
   
   // Извлекаем реферальный код из данных пользователя
@@ -101,21 +117,66 @@ const UniFarmReferralLink: React.FC = () => {
     );
   }
 
-  // Ошибка при загрузке
+  // Обработка ошибок: показываем интерфейс с кнопкой для повторного запроса
+  const [isRetrying, setIsRetrying] = useState(false);
+  
+  // Функция для повторной попытки получения данных
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('[UniFarmReferralLink] Ошибка при повторном запросе:', error);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+  
+  // Если произошла ошибка или данные отсутствуют
   if (isError || !data || !refCode) {
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex flex-col items-center justify-center py-4 text-center">
-          <div className="text-red-500 mb-2"><i className="fas fa-exclamation-triangle"></i></div>
-          <p className="text-sm text-muted-foreground mb-2">
+          <div className="text-amber-500 mb-2">
+            <i className="fas fa-exclamation-triangle text-xl"></i>
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
             Не удалось загрузить реферальную ссылку
           </p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-2 px-4 py-1 bg-primary rounded-md text-white text-xs hover:bg-primary/90"
-          >
-            Обновить страницу
-          </button>
+          
+          <div className="flex space-x-2">
+            {/* Кнопка для локального обновления данных без перезагрузки страницы */}
+            <button 
+              onClick={handleRetry}
+              disabled={isRetrying}
+              className={`
+                px-4 py-1.5 rounded-md text-white text-xs
+                ${isRetrying ? 'bg-primary/60 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}
+                transition-colors
+              `}
+            >
+              {isRetrying ? (
+                <div className="flex items-center">
+                  <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full mr-1.5"></div>
+                  <span>Загрузка...</span>
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <i className="fas fa-sync-alt mr-1.5"></i>
+                  <span>Обновить данные</span>
+                </div>
+              )}
+            </button>
+            
+            {/* Кнопка для полной перезагрузки страницы (запасной вариант) */}
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-3 py-1.5 bg-black/20 rounded-md text-white/80 text-xs hover:text-white hover:bg-black/30 transition-colors"
+            >
+              <i className="fas fa-redo-alt mr-1"></i>
+              <span>Перезагрузить</span>
+            </button>
+          </div>
         </div>
       </div>
     );
