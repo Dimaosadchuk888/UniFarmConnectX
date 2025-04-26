@@ -5,17 +5,16 @@ import { buildReferralLink, buildDirectBotReferralLink } from '@/utils/referralU
 
 /**
  * Компонент для отображения реферальной ссылки
- * Версия 5.0: Максимально оптимизированная версия, показывающая реферальную 
- * ссылку сразу после получения данных с сервера
+ * Версия 5.1: Исправлена ошибка с порядком React-хуков
  */
 const UniFarmReferralLink: React.FC = () => {
-  // Состояния UI
+  // Состояния UI (все useState должны быть вызваны в одном и том же порядке)
   const [isCopied, setIsCopied] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [linkType, setLinkType] = useState<'app' | 'bot'>('app');
+  const [isRetrying, setIsRetrying] = useState(false);
   
   // Запрос данных пользователя напрямую с сервера через React Query
-  // Обязательно используем queryKey ['/api/me'] для совместимости с остальным кодом
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['/api/me'],
     queryFn: async () => {
@@ -105,21 +104,6 @@ const UniFarmReferralLink: React.FC = () => {
     }
   };
   
-  // Загрузка данных
-  if (isLoading) {
-    return (
-      <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
-        <div className="flex justify-center items-center py-4">
-          <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-          <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Обработка ошибок: показываем интерфейс с кнопкой для повторного запроса
-  const [isRetrying, setIsRetrying] = useState(false);
-  
   // Функция для повторной попытки получения данных
   const handleRetry = async () => {
     setIsRetrying(true);
@@ -132,6 +116,18 @@ const UniFarmReferralLink: React.FC = () => {
     }
   };
   
+  // Загрузка данных
+  if (isLoading) {
+    return (
+      <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
+        <div className="flex justify-center items-center py-4">
+          <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+          <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
+        </div>
+      </div>
+    );
+  }
+
   // Если произошла ошибка или данные отсутствуют
   if (isError || !data || !refCode) {
     return (
