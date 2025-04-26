@@ -2,7 +2,7 @@
  * Сервис для обработки реферальных ссылок и кодов
  * 
  * Этот сервис отвечает за:
- * 1. Извлечение реферального кода из URL (параметр startapp)
+ * 1. Извлечение реферального кода из URL (параметр ref_code или устаревший startapp)
  * 2. Проверку валидности реферального кода
  * 3. Сохранение реферального кода в локальное хранилище
  * 4. Применение реферального кода при создании новых пользователей
@@ -24,7 +24,7 @@ interface StoredReferralCode {
 
 class ReferralService {
   /**
-   * Извлекает параметр startapp из URL, который содержит реферальный код
+   * Извлекает реферальный код из URL (параметр ref_code или устаревший startapp)
    * @returns Реферальный код из URL или null, если его нет
    */
   getRefCodeFromUrl(): string | null {
@@ -32,15 +32,24 @@ class ReferralService {
       // Получаем текущий URL
       const url = new URL(window.location.href);
       
-      // Проверяем наличие параметра startapp
+      // Сначала проверяем наличие параметра ref_code (новый формат)
+      const refCode = url.searchParams.get('ref_code');
+      if (refCode) {
+        console.log(`[ReferralService] Извлечение параметра ref_code из URL: ${refCode}`);
+        return refCode;
+      }
+      
+      // Для обратной совместимости проверяем наличие параметра startapp (старый формат)
       const startapp = url.searchParams.get('startapp');
+      if (startapp) {
+        console.log(`[ReferralService] Извлечение устаревшего параметра startapp из URL: ${startapp}`);
+        return startapp;
+      }
       
-      // Логируем для отладки
-      console.log(`[ReferralService] Извлечение параметра startapp из URL: ${startapp || 'не найден'}`);
-      
-      return startapp;
+      console.log('[ReferralService] Реферальный код в URL не найден');
+      return null;
     } catch (error) {
-      console.error('[ReferralService] Ошибка при извлечении параметра startapp из URL:', error);
+      console.error('[ReferralService] Ошибка при извлечении реферального кода из URL:', error);
       return null;
     }
   }

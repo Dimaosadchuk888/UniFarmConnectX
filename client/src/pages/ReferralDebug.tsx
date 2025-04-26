@@ -64,13 +64,13 @@ const ReferralDebug: React.FC = () => {
           
           <div className="bg-black/50 p-2 rounded overflow-x-auto mb-2">
             <pre className="text-green-400 whitespace-pre-wrap break-all text-xs font-mono">
-              https://t.me/UniFarming_Bot/UniFarm?startapp=ref_3988f632025e
+              https://t.me/UniFarming_Bot/UniFarm?ref_code=3988f632025e
             </pre>
           </div>
           
           <button 
             onClick={() => {
-              navigator.clipboard.writeText('https://t.me/UniFarming_Bot/UniFarm?startapp=ref_3988f632025e');
+              navigator.clipboard.writeText('https://t.me/UniFarming_Bot/UniFarm?ref_code=3988f632025e');
               alert('Тестовая ссылка скопирована в буфер обмена');
             }}
             className="bg-green-600 hover:bg-green-700 text-white text-xs py-1 px-3 rounded"

@@ -74,7 +74,7 @@ const DebugPage: React.FC = () => {
             Убедитесь, что пользователь имеет <code className="bg-muted px-1 py-0.5 rounded">ref_code</code> в данных с сервера
           </li>
           <li>
-            Правильный формат реферальной ссылки: <code className="bg-muted px-1 py-0.5 rounded">https://t.me/UniFarming_Bot/UniFarm?startapp=ref_КОД</code>
+            Правильный формат реферальной ссылки: <code className="bg-muted px-1 py-0.5 rounded">https://t.me/UniFarming_Bot/UniFarm?ref_code=КОД</code>
           </li>
           <li>
             Если ссылка не отображается, проверьте response от <code className="bg-muted px-1 py-0.5 rounded">/api/me</code> и наличие в нем поля <code className="bg-muted px-1 py-0.5 rounded">ref_code</code>

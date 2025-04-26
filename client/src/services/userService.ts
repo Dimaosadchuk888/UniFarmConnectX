@@ -89,7 +89,7 @@ class UserService {
         body: JSON.stringify({
           guest_id: guestId, // Передаем guest_id, который будет основным идентификатором
           username: username,
-          startapp: referralCode // Передаем реферальный код через параметр startapp согласно API
+          ref_code: referralCode // Передаем реферальный код через параметр ref_code
         })
       });
       
