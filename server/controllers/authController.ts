@@ -28,14 +28,14 @@ export class AuthController {
         guest_id,
         username,
         parent_ref_code,
-        startapp // Параметр для обработки реферальных ссылок в AirDrop режиме
+        ref_code // Параметр для обработки реферальных ссылок в AirDrop режиме (заменен с startapp)
       } = req.body;
       
       console.log(`[AirDrop] Запрос на создание гостевого пользователя:`, {
         guest_id: guest_id || 'не указан',
         username: username || 'не указан', 
         parent_ref_code: parent_ref_code || 'не указан',
-        startapp: startapp || 'не указан'
+        ref_code: ref_code || 'не указан'
       });
       
       // Проверяем наличие guest_id
@@ -55,15 +55,15 @@ export class AuthController {
         // Создаем нового пользователя
         isNewUser = true;
         
-        // Обрабатываем реферальный код из startapp параметра
-        let refCodeFromStartApp = null;
-        if (startapp && startapp.length > 0) {
-          console.log(`[AirDrop] Получен параметр startapp: ${startapp}`);
-          refCodeFromStartApp = startapp;
+        // Обрабатываем реферальный код из параметра ref_code
+        let refCodeFromParam = null;
+        if (ref_code && ref_code.length > 0) {
+          console.log(`[AirDrop] Получен параметр ref_code: ${ref_code}`);
+          refCodeFromParam = ref_code;
         }
         
         // Определяем родительский реферальный код
-        const effectiveParentRefCode = parent_ref_code || refCodeFromStartApp || null;
+        const effectiveParentRefCode = parent_ref_code || refCodeFromParam || null;
         
         if (effectiveParentRefCode) {
           console.log(`[AirDrop] Установлен родительский реферальный код: ${effectiveParentRefCode}`);
