@@ -107,76 +107,41 @@ const UniFarmReferralLink: React.FC = () => {
   
   // Ошибка или отсутствие ref_code
   if (isError || !hasRefCode) {
-    // Дополнительная проверка: если у нас нет данных пользователя вообще (не только ref_code)
-    // то мы пробуем запустить регистрацию в режиме AirDrop
-    if (!safeUser || !safeUser.id) {
-      return (
-        <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
-          <div className="flex justify-center items-center flex-col py-4">
-            <p className="text-amber-400/80 mb-3 text-center">
-              Загрузка партнерской программы...
-            </p>
-            <button 
-              className={`px-4 py-2 ${isRegistering ? 'bg-primary/60' : 'bg-primary'} rounded-md text-white text-sm shadow-md flex items-center justify-center min-w-[200px]`} 
-              disabled={isRegistering}
-              onClick={() => {
-                // Показываем пользователю, что идет процесс
-                setIsRegistering(true);
-                
-                // Запускаем регистрацию в режиме AirDrop
-                userService.registerInAirDropMode()
-                  .then((success) => {
-                    if (success) {
-                      console.log("Регистрация в режиме AirDrop успешна!");
-                      // Показываем сообщение об успехе
-                      alert("Регистрация успешна! Сейчас страница будет перезагружена.");
-                      
-                      // Делаем паузу перед перезагрузкой, чтобы пользователь увидел сообщение
-                      setTimeout(() => {
-                        // После успешной регистрации обновляем данные принудительно
-                        window.location.href = window.location.pathname + "?t=" + Date.now();
-                      }, 1500);
-                    } else {
-                      console.error("Регистрация в режиме AirDrop не удалась");
-                      alert("Не удалось выполнить регистрацию. Пожалуйста, попробуйте еще раз.");
-                      setIsRegistering(false);
-                    }
-                  })
-                  .catch((err: Error) => {
-                    console.error("Ошибка регистрации в режиме AirDrop:", err);
-                    alert("Произошла ошибка при регистрации. Пожалуйста, попробуйте еще раз.");
-                    setIsRegistering(false);
-                  });
-              }}
-            >
-              {isRegistering ? (
-                <>
-                  <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
-                  Регистрация...
-                </>
-              ) : 'Получить реферальный код'}
-            </button>
-            <div className="text-xs text-muted-foreground mt-3">
-              Нажмите кнопку выше, чтобы получить реферальный код для приглашения друзей
-            </div>
-          </div>
-        </div>
-      );
+    // Автоматически запускаем регистрацию в режиме AirDrop без ожидания клика
+    // Это устраняет заглушку и позволяет пользователю всегда получить реферальный код
+    if (!isRegistering) {
+      console.log("[AUDIT] Автоматическая регистрация в режиме AirDrop для получения ref_code");
+      setIsRegistering(true);
+      
+      // Запускаем регистрацию в режиме AirDrop автоматически
+      userService.registerInAirDropMode()
+        .then((success) => {
+          if (success) {
+            console.log("✅ Автоматическая регистрация в режиме AirDrop успешна!");
+            // После успешной регистрации обновляем данные принудительно
+            window.location.href = window.location.pathname + "?t=" + Date.now();
+          } else {
+            console.error("❌ Автоматическая регистрация в режиме AirDrop не удалась");
+            setIsRegistering(false);
+          }
+        })
+        .catch((err: Error) => {
+          console.error("❌ Ошибка автоматической регистрации в режиме AirDrop:", err);
+          setIsRegistering(false);
+        });
     }
-    
-    // Обычное сообщение об ошибке, когда пользователь есть, но нет ref_code
+  
+    // Показываем индикатор загрузки
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex justify-center items-center flex-col py-4">
-          <p className="text-amber-400/80 mb-3 text-center">
-            Реферальный код не получен. Попробуйте перезагрузить страницу.
-          </p>
-          <div className="text-xs text-muted-foreground">
-            {isError ? 
-              "Произошла ошибка при загрузке данных." : 
-              "Ваш реферальный код не найден в системе."
-            }
+          <div className="flex items-center mb-3">
+            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+            <span className="text-sm text-muted-foreground">Генерация реферального кода...</span>
           </div>
+          <p className="text-center text-xs text-muted-foreground">
+            Подождите, система создает для вас уникальный реферальный код
+          </p>
         </div>
       </div>
     );
