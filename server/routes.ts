@@ -1143,9 +1143,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Корневой URL всегда обрабатываем обычным образом
   app.get('/', (req: Request, res: Response, next: NextFunction) => {
-    // Проверяем, содержит ли URL параметр startapp, который используется Telegram
-    if (req.query.startapp !== undefined) {
-      console.log('[TelegramWebApp] Обнаружен запуск через ?startapp параметр:', req.url);
+    // Проверяем, содержит ли URL параметр ref_code, который используется для реферальных ссылок
+    if (req.query.ref_code !== undefined) {
+      console.log('[TelegramWebApp] Обнаружен запуск через ?ref_code параметр:', req.url);
       
       // Для продакшн-окружения возвращаем index.html
       if (process.env.NODE_ENV === 'production') {
@@ -1269,16 +1269,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   };
   
-  // Обработчик для маршрута с параметром startapp
+  // Обработчик для маршрута с параметром ref_code
   app.get('/', (req: Request, res: Response, next: NextFunction) => {
-    if (req.query.startapp !== undefined) {
-      console.log('[TelegramWebApp] Обнаружен запуск через ?startapp параметр:', req.url);
-      const refCode = req.query.startapp.toString();
+    if (req.query.ref_code !== undefined) {
+      console.log('[TelegramWebApp] Обнаружен запуск через ?ref_code параметр:', req.url);
+      const refCode = req.query.ref_code.toString();
       
-      // Если параметр startapp содержит реферальный код, логируем его
-      if (refCode.startsWith('ref_')) {
-        console.log('[TelegramWebApp] 🔍 Обнаружен реферальный код в startapp:', refCode);
-      }
+      // Логируем реферальный код
+      console.log('[TelegramWebApp] 🔍 Обнаружен реферальный код:', refCode);
     }
     next();
   });

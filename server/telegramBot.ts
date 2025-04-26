@@ -144,7 +144,7 @@ async function handleRefCodeCommand(chatId: number, userId: number): Promise<any
 <b>🔗 Ваш реферальный код</b>
 
 Код: <code>${user.ref_code}</code>
-Ссылка: <code>https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${user.ref_code}</code>
+Ссылка: <code>https://t.me/UniFarming_Bot/UniFarm?ref_code=${user.ref_code}</code>
 
 Telegram ID: <code>${userId}</code>
 User ID в системе: <code>${user.id}</code>
@@ -204,7 +204,7 @@ async function handleAppCommand(chatId: number): Promise<any> {
  * Приветствует пользователя и отображает клавиатуру с командами
  */
 async function handleStartCommand(chatId: number, { userId, username, firstName }: { userId: number, username?: string, firstName?: string }): Promise<any> {
-  // Проверяем, есть ли параметр startapp в команде (для обработки реферальных ссылок)
+  // Проверяем, есть ли параметр ref_code в команде (для обработки реферальных ссылок)
   const welcomeMessage = `
 👋 <b>Добро пожаловать${firstName ? ', ' + firstName : ''}!</b>
 
@@ -455,7 +455,7 @@ UniFarm - это инновационная платформа для крипт
 
 Код: <code>${user.ref_code}</code>
 Ссылка для приглашения друзей:
-<code>https://t.me/UniFarming_Bot/UniFarm?startapp=ref_${user.ref_code}</code>
+<code>https://t.me/UniFarming_Bot/UniFarm?ref_code=${user.ref_code}</code>
 
 <i>Отправьте эту ссылку друзьям, чтобы они присоединились к UniFarm по вашему приглашению.</i>
           `, {

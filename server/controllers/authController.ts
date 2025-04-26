@@ -648,7 +648,7 @@ export class AuthController {
         }
       }
       
-      // Проверяем формат startapp=ref_{ref_code} только если еще не получили код из bodyRefCode
+      // Проверяем формат startParam=ref_{ref_code} только если еще не получили код из bodyRefCode
       if (!refCode && startParam.startsWith('ref_')) {
         refCode = startParam.substring(4);
         console.log(`[AUTH] [ReferralSystem] Обнаружен реферальный код из startParam: ${refCode}`);
