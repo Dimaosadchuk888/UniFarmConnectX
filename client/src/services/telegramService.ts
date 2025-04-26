@@ -38,21 +38,47 @@ export interface UserData {
 
 /**
  * Проверяет, запущено ли приложение в среде Telegram WebApp
- * Оставляем для совместимости, но теперь она всегда возвращает false
- * @returns false, так как мы больше не полагаемся на Telegram WebApp API
+ * Этап 11.1: Проверяем наличие Telegram WebApp, но не используем его данные
+ * @returns true, если приложение запущено внутри Telegram, false в противном случае
  */
 export function isTelegramWebApp(): boolean {
-  console.log('[telegramService] isTelegramWebApp check: Telegram object not available');
-  return false;
+  const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram;
+  const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
+  
+  console.log('[telegramService] isTelegramWebApp check:', { isTelegramAvailable, isWebAppAvailable });
+  return isWebAppAvailable;
 }
 
 /**
  * Инициализирует сервис идентификации пользователя
- * Заглушка для совместимости с существующим кодом
+ * Этап 11.1: Минимальная инициализация Telegram WebApp для работы в среде Telegram
+ * Вызывает только технические методы ready() и expand() без использования initData
  */
 export function initTelegramWebApp(): boolean {
-  console.warn('[telegramService] Telegram WebApp API not available');
-  return false;
+  if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
+    console.warn('[telegramService] Telegram WebApp API not available');
+    return false;
+  }
+  
+  try {
+    // Сообщаем Telegram, что приложение готово
+    window.Telegram.WebApp.ready();
+    console.log('[telegramService] WebApp.ready() called successfully');
+    
+    // Расширяем окно до максимальной высоты
+    window.Telegram.WebApp.expand();
+    console.log('[telegramService] WebApp.expand() called successfully');
+    
+    // Настраиваем базовый UI для лучшей интеграции
+    if (window.Telegram.WebApp.MainButton) {
+      window.Telegram.WebApp.MainButton.hide();
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[telegramService] Error initializing Telegram WebApp:', error);
+    return false;
+  }
 }
 
 /**

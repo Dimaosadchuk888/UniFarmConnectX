@@ -1,6 +1,24 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 
+// Добавляем типы для Telegram WebApp API
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        ready: () => void;
+        expand: () => void;
+        initData?: string;
+        initDataUnsafe?: any;
+        version?: string;
+        platform?: string;
+        colorScheme?: string;
+        MainButton?: any;
+      }
+    }
+  }
+}
+
 /**
  * Компонент для обработки URL с завершающим слэшем в Telegram Mini App
  * Когда BotFather автоматически добавляет слэш в конце URL, этот компонент
@@ -21,7 +39,7 @@ export default function TelegramSlashHandler() {
     // Устанавливаем отладочную информацию
     setDetails(`URL: ${currentUrl}, refCodeParam: ${hasRefCodeParam ? 'есть' : 'нет'}, user-agent: ${userAgent.substr(0, 50)}...`);
 
-    // Функция для обработки параметров URL (без зависимости от Telegram WebApp)
+    // Функция для обработки параметров URL и минимальной инициализации Telegram 
     const handleUrlParameters = () => {
       console.log('[TelegramSlashHandler] 🔄 Обработка URL параметров', {
         url: currentUrl,
@@ -31,9 +49,34 @@ export default function TelegramSlashHandler() {
       });
       
       try {
-        // Этап 11.1: Больше не проверяем и не используем Telegram WebApp
-        setTelegramAvailable(false);
-        console.log('[TelegramSlashHandler] 📝 Этап 11.1: Работа без зависимости от Telegram WebApp');
+        // Этап 11.1 с обновлением: Минимальная интеграция с Telegram WebApp
+        // Проверяем наличие Telegram WebApp, но используем только технические методы
+        const isWebAppAvailable = typeof window !== 'undefined' && 
+                                 !!window.Telegram && 
+                                 !!window.Telegram.WebApp;
+        
+        setTelegramAvailable(isWebAppAvailable);
+        
+        if (isWebAppAvailable) {
+          console.log('[TelegramSlashHandler] 📱 Обнаружен Telegram WebApp, выполняем минимальную инициализацию...');
+          
+          // Выполняем минимальную инициализацию для работы в Telegram
+          try {
+            // Сигнализируем Telegram о готовности приложения
+            if (window.Telegram && window.Telegram.WebApp) {
+              window.Telegram.WebApp.ready();
+              console.log('[TelegramSlashHandler] ✅ Метод ready() вызван успешно');
+              
+              // Расширяем окно до максимальной высоты
+              window.Telegram.WebApp.expand();
+              console.log('[TelegramSlashHandler] ✅ Метод expand() вызван успешно');
+            }
+          } catch (telegramError) {
+            console.error('[TelegramSlashHandler] ⚠️ Ошибка при инициализации Telegram WebApp:', telegramError);
+          }
+        } else {
+          console.log('[TelegramSlashHandler] 📝 Telegram WebApp не обнаружен, работаем в стандартном режиме');
+        }
         
         // Проверяем наличие параметров реферальной ссылки в URL
         const urlParams = new URLSearchParams(window.location.search);

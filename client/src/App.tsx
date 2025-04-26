@@ -8,7 +8,9 @@ import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { 
   registerUserWithTelegram, // Функция регистрации пользователя
   logAppLaunch, // Функция логирования запуска Mini App
-  clearTelegramCache // Функция очистки кэша (для совместимости)
+  clearTelegramCache, // Функция очистки кэша (для совместимости)
+  initTelegramWebApp, // Функция инициализации Telegram WebApp (Этап 11.1)
+  isTelegramWebApp // Функция проверки наличия Telegram WebApp
 } from "./services/telegramService";
 import { getReferrerIdFromURL } from './lib/utils';
 import userService from '@/services/userService';
@@ -83,6 +85,32 @@ function App() {
     console.log('[App] ✅ Кэш Telegram очищен, обновляем локальные данные...');
   }, []);
 
+  // Этап 11.1: Инициализация Telegram WebApp
+  useEffect(() => {
+    console.log('[App] 📱 Этап 11.1: Проверка и инициализация Telegram WebApp...');
+    
+    try {
+      const isTelegramAvailable = isTelegramWebApp();
+      
+      if (isTelegramAvailable) {
+        console.log('[App] ✅ Telegram WebApp обнаружен, выполняем минимальную инициализацию...');
+        
+        // Выполняем минимальную инициализацию Telegram WebApp
+        const initResult = initTelegramWebApp();
+        
+        if (initResult) {
+          console.log('[App] ✅ Telegram WebApp успешно инициализирован');
+        } else {
+          console.warn('[App] ⚠️ Не удалось инициализировать Telegram WebApp');
+        }
+      } else {
+        console.log('[App] 📝 Telegram WebApp не обнаружен, работаем в стандартном режиме');
+      }
+    } catch (error) {
+      console.error('[App] ❌ Ошибка при инициализации Telegram WebApp:', error);
+    }
+  }, []); // Пустой массив зависимостей означает, что эффект выполнится только при монтировании компонента
+  
   // Логирование запуска Mini App (Этап 5.1 ТЗ)
   useEffect(() => {
     // Асинхронная функция для логирования запуска
