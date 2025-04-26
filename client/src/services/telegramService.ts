@@ -3,12 +3,39 @@
  * Использует только guest_id и ref_code для идентификации пользователей (Этап 10.3)
  */
 
-// Упрощенные типы для работы без Telegram WebApp
+// Улучшенные типы для работы с Telegram WebApp API
 declare global {
   interface Window {
     // Базовая поддержка хранилища
     localStorage?: Storage;
     sessionStorage?: Storage;
+    
+    // Поддержка Telegram WebApp API
+    Telegram?: {
+      WebApp?: {
+        ready: () => void;
+        expand: () => void;
+        close: () => void;
+        initData: string;
+        initDataUnsafe: {
+          user?: {
+            id: number;
+            first_name: string;
+            last_name?: string;
+            username?: string;
+          };
+          start_param?: string;
+        };
+        version: string;
+        platform: string;
+        MainButton?: {
+          show: () => void;
+          hide: () => void;
+          setText: (text: string) => void;
+          onClick: (callback: () => void) => void;
+        };
+      };
+    };
   }
 }
 
@@ -18,6 +45,8 @@ const GUEST_ID_KEY = 'unifarm_guest_id';
 const REF_CODE_KEY = 'unifarm_ref_code';
 // Ключ для хранения времени последнего сохранения данных пользователя
 const LAST_UPDATE_KEY = 'unifarm_last_update';
+// Ключ для хранения данных инициализации Telegram в sessionStorage
+const TELEGRAM_INIT_DATA_KEY = 'telegram_init_data';
 
 // Типы ошибок при идентификации пользователя 
 export enum IdentificationError {
@@ -38,15 +67,27 @@ export interface UserData {
 
 /**
  * Проверяет, запущено ли приложение в среде Telegram WebApp
- * Этап 11.1: Проверяем наличие Telegram WebApp, но не используем его данные
+ * Этап 11.1: Проверяем наличие Telegram WebApp или данных в sessionStorage
  * @returns true, если приложение запущено внутри Telegram, false в противном случае
  */
 export function isTelegramWebApp(): boolean {
+  // 1. Проверяем наличие Telegram WebApp API через глобальный объект
   const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram;
   const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
   
-  console.log('[telegramService] isTelegramWebApp check:', { isTelegramAvailable, isWebAppAvailable });
-  return isWebAppAvailable;
+  // 2. Проверяем наличие сохраненных данных в sessionStorage (от bridge-страницы)
+  const hasTelegramInitData = typeof window !== 'undefined' && 
+                            !!window.sessionStorage && 
+                            !!window.sessionStorage.getItem(TELEGRAM_INIT_DATA_KEY);
+  
+  console.log('[telegramService] isTelegramWebApp check:', { 
+    isTelegramAvailable, 
+    isWebAppAvailable,
+    hasTelegramInitData
+  });
+  
+  // Возвращаем true, если доступен API или есть данные в sessionStorage
+  return isWebAppAvailable || hasTelegramInitData;
 }
 
 /**
@@ -55,46 +96,107 @@ export function isTelegramWebApp(): boolean {
  * Вызывает только технические методы ready() и expand() без использования initData
  */
 export function initTelegramWebApp(): boolean {
-  if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
-    console.warn('[telegramService] Telegram WebApp API not available');
-    return false;
+  // Проверяем наличие Telegram WebApp API
+  const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram;
+  const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
+  
+  // Проверяем наличие сохраненных данных в sessionStorage (от bridge-страницы)
+  const hasTelegramInitData = typeof window !== 'undefined' && 
+    !!window.sessionStorage && 
+    !!window.sessionStorage.getItem(TELEGRAM_INIT_DATA_KEY);
+  
+  console.log('[telegramService] Init check:', { 
+    isTelegramAvailable, 
+    isWebAppAvailable,
+    hasTelegramInitData
+  });
+  
+  // Если есть прямой доступ к Telegram WebApp API
+  if (isWebAppAvailable && window.Telegram && window.Telegram.WebApp) {
+    try {
+      // Сообщаем Telegram, что приложение готово
+      // @ts-ignore: мы уже проверили наличие объекта выше
+      window.Telegram?.WebApp?.ready();
+      console.log('[telegramService] WebApp.ready() called successfully');
+      
+      // Расширяем окно до максимальной высоты
+      // @ts-ignore: мы уже проверили наличие объекта выше
+      window.Telegram?.WebApp?.expand();
+      console.log('[telegramService] WebApp.expand() called successfully');
+      
+      // Настраиваем базовый UI для лучшей интеграции
+      // @ts-ignore: мы уже проверили наличие объекта выше
+      if (window.Telegram?.WebApp?.MainButton) {
+        // @ts-ignore: мы уже проверили наличие объекта выше
+        window.Telegram?.WebApp?.MainButton?.hide();
+      }
+      
+      // Возможно, у нас уже есть сохраненные initData из bridge - используем их
+      // @ts-ignore: мы уже проверили наличие объекта выше
+      if (window.sessionStorage && !window.Telegram?.WebApp?.initData && hasTelegramInitData) {
+        const savedInitData = window.sessionStorage.getItem(TELEGRAM_INIT_DATA_KEY);
+        console.log('[telegramService] Loaded initData from sessionStorage');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('[telegramService] Error initializing Telegram WebApp:', error);
+    }
   }
   
-  try {
-    // Сообщаем Telegram, что приложение готово
-    window.Telegram.WebApp.ready();
-    console.log('[telegramService] WebApp.ready() called successfully');
-    
-    // Расширяем окно до максимальной высоты
-    window.Telegram.WebApp.expand();
-    console.log('[telegramService] WebApp.expand() called successfully');
-    
-    // Настраиваем базовый UI для лучшей интеграции
-    if (window.Telegram.WebApp.MainButton) {
-      window.Telegram.WebApp.MainButton.hide();
+  // Если есть данные в sessionStorage, но нет доступа к Telegram WebApp API
+  if (hasTelegramInitData) {
+    console.log('[telegramService] Telegram WebApp API not available, but initData found in sessionStorage');
+    try {
+      const initData = window.sessionStorage.getItem(TELEGRAM_INIT_DATA_KEY);
+      console.log('[telegramService] Using initData from sessionStorage:', 
+        initData ? `${initData.substring(0, 50)}...` : 'null');
+      return true;
+    } catch (error) {
+      console.error('[telegramService] Error loading initData from sessionStorage:', error);
     }
-    
-    return true;
-  } catch (error) {
-    console.error('[telegramService] Error initializing Telegram WebApp:', error);
-    return false;
   }
+  
+  console.warn('[telegramService] Telegram WebApp API and initData not available');
+  return false;
 }
 
 /**
  * Предоставляет диагностическую информацию о состоянии гостевой идентификации
  */
 export function diagnosticTelegramWebApp(): Record<string, any> {
+  // Проверяем наличие Telegram WebApp API
+  const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram;
+  const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
+  
+  // Проверяем наличие initData из Telegram или в sessionStorage
+  let initData = '';
+  let initDataSource = 'none';
+  let initDataLength = 0;
+  
+  if (isWebAppAvailable && window.Telegram?.WebApp?.initData) {
+    initData = window.Telegram.WebApp.initData;
+    initDataSource = 'telegram_webapp';
+    initDataLength = initData.length;
+  } else if (typeof window !== 'undefined' && window.sessionStorage) {
+    const sessionInitData = window.sessionStorage.getItem(TELEGRAM_INIT_DATA_KEY);
+    if (sessionInitData) {
+      initData = sessionInitData;
+      initDataSource = 'session_storage';
+      initDataLength = initData.length;
+    }
+  }
+
   return {
     windowDefined: typeof window !== 'undefined',
-    telegramExists: false,
-    webAppExists: false,
-    initDataExists: false,
-    initDataLength: 0,
-    initDataUnsafeExists: false,
-    userExists: false,
-    userIdExists: false,
-    startParam: null,
+    telegramExists: isTelegramAvailable,
+    webAppExists: isWebAppAvailable,
+    initDataExists: !!initData,
+    initDataSource,
+    initDataLength,
+    initDataSample: initData ? `${initData.substring(0, 50)}...` : 'none',
+    userExists: isWebAppAvailable && !!window.Telegram?.WebApp?.initDataUnsafe?.user,
+    startParam: isWebAppAvailable ? window.Telegram?.WebApp?.initDataUnsafe?.start_param || null : null,
     developmentMode: process.env.NODE_ENV === 'development',
     isInIframe: window !== window.parent,
     userAgent: window?.navigator?.userAgent,
@@ -172,7 +274,26 @@ export function getTelegramAuthHeaders(): Record<string, string> {
       };
     }
     
-    // В production возвращаем пустой объект, так как мы не используем Telegram API
+    // Проверяем наличие Telegram WebApp API
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      if (window.Telegram.WebApp.initData) {
+        return {
+          'Telegram-Init-Data': window.Telegram.WebApp.initData
+        };
+      }
+    }
+    
+    // Проверяем наличие сохраненных данных в sessionStorage (от bridge-страницы)
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const initData = window.sessionStorage.getItem(TELEGRAM_INIT_DATA_KEY);
+      if (initData) {
+        return {
+          'Telegram-Init-Data': initData
+        };
+      }
+    }
+    
+    // В случае отсутствия данных возвращаем пустой объект
     console.warn('[telegramService] ⚠️ No Telegram initData available to add to headers');
     return {};
   } catch (error) {
@@ -266,6 +387,15 @@ export async function registerUserWithTelegram(guestId: string, referrerCode?: s
  */
 export async function logAppLaunch(): Promise<boolean> {
   try {
+    // Проверяем наличие Telegram WebApp API
+    const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram;
+    const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
+    
+    // Проверяем наличие initData в sessionStorage
+    const hasTelegramInitData = typeof window !== 'undefined' && 
+      !!window.sessionStorage && 
+      !!window.sessionStorage.getItem(TELEGRAM_INIT_DATA_KEY);
+    
     // Создаем объект с метаданными запуска
     const launchData: Record<string, any> = {
       timestamp: new Date().toISOString(),
@@ -273,7 +403,12 @@ export async function logAppLaunch(): Promise<boolean> {
       referrer: document.referrer || 'direct',
       userAgent: navigator.userAgent,
       isInIframe: window !== window.parent,
-      isWebAppAvailable: false
+      telegramAvailable: isTelegramAvailable,
+      webAppAvailable: isWebAppAvailable,
+      hasInitData: isWebAppAvailable && !!window.Telegram?.WebApp?.initData,
+      hasSessionInitData: hasTelegramInitData,
+      platform: isWebAppAvailable ? window.Telegram?.WebApp?.platform || 'unknown' : 'unknown',
+      webAppVersion: isWebAppAvailable ? window.Telegram?.WebApp?.version || 'unknown' : 'unknown'
     };
     
     // Получаем guest_id если он есть
