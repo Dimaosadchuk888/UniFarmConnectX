@@ -43,15 +43,15 @@ class ReferralServiceSimulator {
     this.localStorage = localStorage;
   }
 
-  // Извлекает параметр startapp из URL
+  // Извлекает параметр ref_code из URL
   getRefCodeFromUrl(url) {
     try {
       const urlObject = new URL(url);
-      const startapp = urlObject.searchParams.get('startapp');
-      console.log(`[ReferralService] Извлечение параметра startapp из URL: ${startapp || 'не найден'}`);
-      return startapp;
+      const ref_code = urlObject.searchParams.get('ref_code');
+      console.log(`[ReferralService] Извлечение параметра ref_code из URL: ${ref_code || 'не найден'}`);
+      return ref_code;
     } catch (error) {
-      console.error('[ReferralService] Ошибка при извлечении параметра startapp из URL:', error);
+      console.error('[ReferralService] Ошибка при извлечении параметра ref_code из URL:', error);
       return null;
     }
   }
@@ -122,7 +122,7 @@ class ReferralServiceSimulator {
   initialize(url) {
     console.log('[ReferralService] Инициализация...');
     
-    // Проверяем, есть ли в URL параметр startapp
+    // Проверяем, есть ли в URL параметр ref_code
     const refCodeFromUrl = this.getRefCodeFromUrl(url);
     
     if (refCodeFromUrl && this.isValidRefCode(refCodeFromUrl)) {
@@ -165,7 +165,7 @@ class ReferralServiceSimulator {
 const testScenarios = [
   {
     name: 'Сценарий 1: Валидный код в URL',
-    url: 'https://example.com/?startapp=QltFGzKh',
+    url: 'https://example.com/?ref_code=QltFGzKh',
     expectedCode: 'QltFGzKh'
   },
   {
@@ -178,7 +178,7 @@ const testScenarios = [
   },
   {
     name: 'Сценарий 3: Невалидный код в URL',
-    url: 'https://example.com/?startapp=ABC',
+    url: 'https://example.com/?ref_code=ABC',
     expectedCode: null
   },
   {

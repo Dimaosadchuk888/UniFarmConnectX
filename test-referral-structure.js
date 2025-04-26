@@ -36,7 +36,7 @@ async function createUser(guestId, username, parentRefCode = null) {
   };
   
   if (parentRefCode) {
-    userData.startapp = parentRefCode;
+    userData.ref_code = parentRefCode;
   }
   
   const response = await fetch(`${API_URL}/api/airdrop/register`, {

@@ -110,7 +110,7 @@ async function testAirdropRegistration() {
       body: JSON.stringify({
         guest_id: secondGuestId,
         username: `referred_user_${Date.now()}`,
-        startapp: refCode, // Используем реферальный код первого пользователя
+        ref_code: refCode, // Используем реферальный код первого пользователя
       })
     });
     
