@@ -37,6 +37,8 @@ import TelegramSetupGuide from "./pages/TelegramSetupGuide";
 import TelegramValidationTool from "./pages/TelegramValidationTool";
 import TelegramRedirect from "./pages/TelegramRedirect";
 import TelegramSlashHandler from "./pages/TelegramSlashHandler";
+import TelegramMiniApp from "./pages/TelegramMiniApp";
+import TelegramInitializer from "@/components/telegram/TelegramInitializer";
 
 // Дополнительные определения для глобальных объектов
 declare global {
@@ -45,6 +47,18 @@ declare global {
       env: Record<string, string | undefined>;
     };
     TextEncoder: typeof TextEncoder;
+    Telegram?: {
+      WebApp?: {
+        ready: () => void;
+        expand: () => void;
+        initData?: string;
+        initDataUnsafe?: any;
+        version?: string;
+        platform?: string;
+        colorScheme?: string;
+        MainButton?: any;
+      }
+    }
   }
 }
 
@@ -346,23 +360,36 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TonConnectUIProvider manifestUrl="https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json">
+        {/* Компонент для автоматической инициализации Telegram WebApp */}
+        <TelegramInitializer />
+        
         {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
         <TelegramWebAppCheck>
           <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
             <Switch>
-              {/* Специальный обработчик для URL с завершающим слешем (BotFather добавляет автоматически) */}
+              {/* Новый унифицированный обработчик для всех вариантов Telegram Mini App */}
               <Route path="/UniFarm/">
-                <TelegramSlashHandler />
+                <TelegramMiniApp />
               </Route>
               
               {/* Для совместимости, маршрут для Mini App не зависимо от регистра */}
               <Route path="/unifarm/">
-                <TelegramSlashHandler />
+                <TelegramMiniApp />
               </Route>
               
               {/* Специальный обработчик для маршрута /app/ */}
               <Route path="/app/">
-                <TelegramSlashHandler />
+                <TelegramMiniApp />
+              </Route>
+              
+              {/* Универсальный обработчик для альтернативных и произвольных путей */}
+              <Route path="/app">
+                <TelegramMiniApp />
+              </Route>
+              
+              {/* Универсальный обработчик для простого тестирования */}
+              <Route path="/test-telegram">
+                <TelegramMiniApp />
               </Route>
               
               {/* Специальная страница для перенаправления на Telegram Mini App */}
