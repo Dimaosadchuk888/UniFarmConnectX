@@ -3,7 +3,7 @@ import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink'; // �
 import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
-import { User } from '@/services/userService';
+import type { User } from '@/services/userService';
 
 /**
  * Страница партнерской программы

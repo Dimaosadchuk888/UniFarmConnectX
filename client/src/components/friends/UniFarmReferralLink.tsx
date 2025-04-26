@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { User } from '@/services/userService';
+import type { User } from '@/services/userService';
 import userService from '@/services/userService';
 import { buildReferralLink, buildDirectBotReferralLink } from '@/utils/referralUtils';
 import { apiRequest } from '@/lib/queryClient';
