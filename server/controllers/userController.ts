@@ -342,9 +342,9 @@ export class UserController {
               req.session.userId = userId;
               req.session.user = {
                 id: existingUser.id,
-                username: existingUser.username,
-                ref_code: existingUser.ref_code,
-                guest_id: existingUser.guest_id
+                username: existingUser.username || '',
+                ref_code: existingUser.ref_code || undefined,
+                guest_id: existingUser.guest_id || undefined
               };
               console.log(`[UserController] User data saved to session from guest_id lookup: ID=${userId}`);
             }
@@ -368,17 +368,28 @@ export class UserController {
             userId = existingUser.id;
             console.log(`[UserController] User found with ID ${userId} for Telegram ID ${telegramId}`);
             
-            // ПРОВЕРКА И ОБНОВЛЕНИЕ ref_code: если у существующего пользователя нет ref_code, генерируем его
+            // ПРОВЕРКА И ОБНОВЛЕНИЕ ref_code: если у существующего пользователя нет ref_code, генерируем уникальный код
             if (!existingUser.ref_code) {
-              const refCode = UserService.generateRefCode();
-              console.log(`[UserController] Existing user ${userId} has no ref_code. Generating new ref_code: ${refCode}`);
+              console.log(`[UserController] Existing user ${userId} has no ref_code. Generating new unique ref_code...`);
               
               try {
-                await UserService.updateUser(userId, { ref_code: refCode });
-                console.log(`[UserController] Updated existing user ${userId} with new ref_code: ${refCode}`);
+                // Используем generateUniqueRefCode вместо простого generateRefCode
+                const refCode = await UserService.generateUniqueRefCode();
+                console.log(`[UserController] Generated unique ref_code: ${refCode} for user ${userId}`);
                 
-                // Обновляем объект пользователя
-                existingUser = await UserService.getUserById(userId);
+                // Используем специализированный метод для обновления реферального кода
+                const updatedUser = await UserService.updateUserRefCode(userId, refCode);
+                
+                if (updatedUser) {
+                  existingUser = updatedUser;
+                  console.log(`[UserController] ✅ Successfully updated existing user ${userId} with new ref_code: ${refCode}`);
+                } else {
+                  console.error(`[UserController] ❌ Failed to update existing user ${userId} with ref_code`);
+                  
+                  // Обновляем объект пользователя, на случай если обновление прошло успешно
+                  existingUser = await UserService.getUserById(userId);
+                }
+                
                 console.log(`[UserController] Refreshed user data for ID ${userId}:`, { 
                   id: existingUser?.id, 
                   hasRefCode: !!existingUser?.ref_code,
@@ -531,17 +542,31 @@ export class UserController {
       
       // ПРОВЕРКА НАЛИЧИЯ ref_code У ПОЛЬЗОВАТЕЛЯ
       // ========================================
-      // Если у пользователя все еще нет ref_code, генерируем его
+      // Если у пользователя все еще нет ref_code, генерируем уникальный код
       if (!user.ref_code) {
-        const refCode = UserService.generateRefCode();
-        console.log(`[UserController] User ${userId} missing ref_code. Generating new one: ${refCode}`);
+        console.log(`[UserController] User ${userId} missing ref_code. Generating new unique ref_code...`);
         
         try {
-          await UserService.updateUser(userId, { ref_code: refCode });
-          console.log(`[UserController] Successfully updated user ${userId} with new ref_code: ${refCode}`);
+          // Используем generateUniqueRefCode вместо простого generateRefCode
+          // для гарантии уникальности кода
+          const refCode = await UserService.generateUniqueRefCode();
+          console.log(`[UserController] Generated unique ref_code: ${refCode} for user ${userId}`);
           
-          // Обновляем объект пользователя с новым ref_code
-          user = await UserService.getUserById(userId);
+          // Обновляем пользователя с новым кодом через UserService.updateUserRefCode
+          // который специально оптимизирован для обновления реферальных кодов
+          const updatedUser = await UserService.updateUserRefCode(userId, refCode);
+          
+          if (updatedUser) {
+            user = updatedUser;
+            console.log(`[UserController] ✅ Successfully updated user ${userId} with new ref_code: ${refCode}`);
+          } else {
+            console.error(`[UserController] ❌ Failed to update user ${userId} with new ref_code`);
+            
+            // Пробуем получить пользователя повторно, на случай если обновление прошло успешно,
+            // но метод вернул undefined из-за ошибки
+            user = await UserService.getUserById(userId);
+          }
+          
           console.log(`[UserController] Updated user data:`, { 
             id: user?.id, 
             refCodePresent: !!user?.ref_code,
