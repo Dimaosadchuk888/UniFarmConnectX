@@ -40,7 +40,7 @@ async function testAirdropRegistration() {
       body: JSON.stringify({
         guest_id: guestId,
         username: `airdrop_user_${Date.now()}`,
-        startapp: null, // Имитируем отсутствие реферального параметра
+        ref_code: null, // Имитируем отсутствие реферального параметра
       })
     });
     
