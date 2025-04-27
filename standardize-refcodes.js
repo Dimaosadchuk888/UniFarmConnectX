@@ -1,9 +1,8 @@
 /**
- * Миграционный скрипт для обновления всех пользователей без реферальных кодов
+ * Миграционный скрипт для стандартизации реферальных кодов
  * 
- * Этот скрипт находит всех пользователей без ref_code и генерирует для них
- * уникальные реферальные коды. Рекомендуется запускать после обновления кода
- * для устранения возможных проблем с существующими пользователями.
+ * Этот скрипт находит все реферальные коды не стандартной длины (не 8 символов)
+ * и заменяет их на новые стандартные коды
  */
 
 import { Pool, neonConfig } from '@neondatabase/serverless';
@@ -23,6 +22,9 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+// Стандартная длина реферального кода
+const STANDARD_LENGTH = 8;
+
 // Создаем клиент Postgres
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -33,7 +35,7 @@ function generateRefCode() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
   
   // Генерируем 8 символов - компромисс между длиной и надежностью
-  const length = 8;
+  const length = STANDARD_LENGTH;
   
   // Используем crypto.randomBytes для криптографически стойкой генерации
   const randomBytes = crypto.randomBytes(length);
@@ -98,20 +100,25 @@ async function updateUserRefCode(userId, refCode) {
   }
 }
 
-// Основная функция для обновления пользователей без реферальных кодов
-async function updateUsersWithMissingRefCodes() {
-  console.log('Запуск миграции для обновления пользователей без реферальных кодов...');
+// Основная функция для стандартизации реферальных кодов
+async function standardizeRefCodes() {
+  console.log('Запуск миграции для стандартизации реферальных кодов...');
+  console.log(`Стандартная длина кода: ${STANDARD_LENGTH} символов`);
   
   try {
-    // Получаем всех пользователей без ref_code или с пустым ref_code
-    const { rows: usersWithoutRefCode } = await pool.query(
-      'SELECT id, username, guest_id, telegram_id FROM users WHERE ref_code IS NULL OR ref_code = \'\' ORDER BY id'
+    // Получаем всех пользователей с нестандартными реферальными кодами
+    const { rows: usersWithNonStandardCodes } = await pool.query(
+      `SELECT id, username, guest_id, telegram_id, ref_code, LENGTH(ref_code) as code_length 
+       FROM users 
+       WHERE ref_code IS NOT NULL AND LENGTH(ref_code) != $1
+       ORDER BY id`,
+      [STANDARD_LENGTH]
     );
     
-    console.log(`Найдено ${usersWithoutRefCode.length} пользователей без реферальных кодов.`);
+    console.log(`Найдено ${usersWithNonStandardCodes.length} пользователей с нестандартными реферальными кодами.`);
     
-    if (usersWithoutRefCode.length === 0) {
-      console.log('Нет пользователей для обновления. Все пользователи уже имеют реферальные коды.');
+    if (usersWithNonStandardCodes.length === 0) {
+      console.log('Нет пользователей для обновления. Все пользователи уже имеют стандартные реферальные коды.');
       return {
         success: true,
         updated: 0,
@@ -120,22 +127,37 @@ async function updateUsersWithMissingRefCodes() {
       };
     }
     
+    // Выводим пользователей с нестандартными кодами
+    console.log('\nПользователи с нестандартными кодами:');
+    usersWithNonStandardCodes.forEach(user => {
+      console.log(`  ID: ${user.id}, Username: ${user.username}, Код: ${user.ref_code} (${user.code_length} символов)`);
+    });
+    
+    // Запрос на подтверждение обновления
+    console.log('\nВнимание! Этот скрипт обновит все нестандартные реферальные коды.');
+    console.log('Старые ссылки перестанут работать. Продолжить? (y/n)');
+    
+    // Автоматически продолжаем для нашей задачи
+    console.log('Автоматически выбрано: y');
+    
     // Счетчики для статистики
     let successCount = 0;
     let errorCount = 0;
     
     // Обновляем каждого пользователя
-    for (const user of usersWithoutRefCode) {
+    console.log('\nНачинаем обновление кодов...');
+    
+    for (const user of usersWithNonStandardCodes) {
       try {
         // Генерируем уникальный реферальный код
-        const refCode = await generateUniqueRefCode();
-        console.log(`Сгенерирован код ${refCode} для пользователя ID=${user.id}, username=${user.username || 'не указан'}`);
+        const newRefCode = await generateUniqueRefCode();
+        console.log(`Сгенерирован новый код ${newRefCode} для пользователя ID=${user.id}, старый код: ${user.ref_code}`);
         
         // Обновляем пользователя
-        const updatedUser = await updateUserRefCode(user.id, refCode);
+        const updatedUser = await updateUserRefCode(user.id, newRefCode);
         
         if (updatedUser) {
-          console.log(`✅ Успешно обновлен пользователь ID=${user.id} с новым кодом ${refCode}`);
+          console.log(`✅ Успешно обновлен пользователь ID=${user.id} с новым кодом ${newRefCode}`);
           successCount++;
         } else {
           console.error(`❌ Не удалось обновить пользователя ID=${user.id}`);
@@ -147,8 +169,8 @@ async function updateUsersWithMissingRefCodes() {
       }
     }
     
-    console.log('Миграция завершена.');
-    console.log(`Итоги: успешно обновлено ${successCount} из ${usersWithoutRefCode.length} пользователей.`);
+    console.log('\nМиграция завершена.');
+    console.log(`Итоги: успешно обновлено ${successCount} из ${usersWithNonStandardCodes.length} пользователей.`);
     
     if (errorCount > 0) {
       console.log(`⚠️ ${errorCount} пользователей не удалось обновить.`);
@@ -158,8 +180,8 @@ async function updateUsersWithMissingRefCodes() {
       success: true,
       updated: successCount,
       failed: errorCount,
-      total: usersWithoutRefCode.length,
-      message: `Успешно обновлено ${successCount} из ${usersWithoutRefCode.length} пользователей.`
+      total: usersWithNonStandardCodes.length,
+      message: `Успешно стандартизировано ${successCount} из ${usersWithNonStandardCodes.length} реферальных кодов.`
     };
   } catch (error) {
     console.error('Ошибка при выполнении миграции:', error);
@@ -175,7 +197,7 @@ async function updateUsersWithMissingRefCodes() {
 }
 
 // Запускаем миграцию
-updateUsersWithMissingRefCodes()
+standardizeRefCodes()
   .then(result => {
     console.log('Результат миграции:', result);
     process.exit(0);

@@ -3,8 +3,12 @@
  * Анализирует длину, используемые символы и уникальность кодов
  */
 
-const { Pool, neonConfig } = require('@neondatabase/serverless');
-const ws = require('ws');
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+import * as dotenv from 'dotenv';
+
+// Загружаем переменные окружения
+dotenv.config();
 
 // Настройка WebSocket для Neon DB
 neonConfig.webSocketConstructor = ws;
