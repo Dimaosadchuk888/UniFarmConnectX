@@ -46,7 +46,7 @@ const FriendsMinimal: React.FC = () => {
   return (
     <div className="p-4">
       <h1 className="text-xl font-semibold text-primary mb-6">
-        Минимальная партнёрская программа
+        Минимальная партнёрская программа (FRIENDSMINIMAL.TSX)
       </h1>
       
       {/* Новый основной компонент для отображения реферальной ссылки */}
@@ -59,36 +59,7 @@ const FriendsMinimal: React.FC = () => {
         <SimpleReferralLink refLink={referralLink} />
       </div>
       
-      {/* Минимальный блок с данными для диагностики */}
-      <div className="bg-black/30 rounded-lg p-3 mb-4 text-sm overflow-hidden">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-primary font-bold">
-            Базовая проверка данных
-          </h3>
-          <div className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-300">
-            {apiStatus}
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 gap-2 font-mono text-xs">
-          <div>
-            <span className="text-gray-500">API статус:</span>
-            <span className="ml-2 text-white">{isLoading ? 'загрузка' : (userData ? 'успех' : 'ошибка')}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">ID пользователя:</span>
-            <span className="ml-2 text-white">{userData?.id || 'не загружен'}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Telegram ID:</span>
-            <span className="ml-2 text-white">{userData?.telegram_id || 'не загружен'}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">ref_code:</span>
-            <span className="ml-2 text-accent">{userData?.ref_code || 'НЕ НАЗНАЧЕН'}</span>
-          </div>
-        </div>
-      </div>
+      {/* Удалено: Здесь был блок "Статистика вашего реферального кода", он удален в соответствии с требованиями */}
       
       {/* Блок с прямым отображением реферальной ссылки */}
       <div className="bg-amber-900/30 rounded-lg p-3 mb-4 text-sm overflow-hidden">

@@ -268,7 +268,7 @@ const Friends: React.FC = () => {
             transition: 'opacity 0.6s ease, transform 0.6s ease'
           }}
         >
-          Партнёрская программа
+          Партнёрская программа (FRIENDS.TSX)
         </h1>
         
         {/* Кнопка для принудительного обновления данных */}
