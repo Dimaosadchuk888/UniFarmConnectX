@@ -6,7 +6,7 @@
 - **Main URL**: https://uni-farm-connect-2-misterxuniverse.replit.app
 - **Mini App URL**: https://uni-farm-connect-2-misterxuniverse.replit.app/UniFarm
 
-В текущий момент используется URL с автоматически назначенным поддоменом, который не соответствует настройкам в BotFather.
+Мы обновили обработку статических файлов для корректной работы в production-режиме. Теперь маршруты `/UniFarm`, `/app`, `/telegram` и `/telegram-app` должны работать корректно.
 
 ## Пошаговая инструкция по деплою в Production
 
@@ -24,10 +24,12 @@ npm run build
 
 1. Нажмите кнопку **Deploy** в правом верхнем углу интерфейса Replit
 2. Выберите **"Configure"** и убедитесь, что настройки соответствуют:
-   - **Run Command**: `npm run start` 
+   - **Run Command**: `NODE_ENV=production node production-deploy.cjs` 
    - **Always On**: Включено
    - **Autoscale**: Включено
    - **Domain**: uni-farm-connect-2-misterxuniverse.replit.app
+
+**Важно**: Используйте именно `NODE_ENV=production node production-deploy.cjs` в качестве Run Command, а не стандартный `npm run start`, чтобы гарантировать правильный запуск в production режиме.
 
 ### Шаг 3: Запустите деплой
 Нажмите кнопку **Deploy** для запуска процесса деплоя.
@@ -36,7 +38,41 @@ npm run build
 После успешного деплоя:
 1. Проверьте доступность основного сайта: https://uni-farm-connect-2-misterxuniverse.replit.app
 2. Проверьте доступность Mini App: https://uni-farm-connect-2-misterxuniverse.replit.app/UniFarm
-3. Выполните тестовые API-запросы, убедившись, что они работают через основной домен без указания порта
+3. Проверьте другие маршруты Mini App: `/app`, `/telegram`, `/telegram-app`
+4. Выполните тестовые API-запросы с помощью скрипта:
+   ```bash
+   node test-production-api.mjs
+   ```
+
+## Проверка настроек URL
+
+Вы можете использовать специальный скрипт для проверки соответствия URL в Telegram-боте:
+
+```bash
+node check-production-url.mjs
+```
+
+## Устранение проблем 500 ошибок
+
+Если после деплоя вы всё ещё видите 500 ошибки на маршрутах `/UniFarm`, `/app`, `/telegram`, попробуйте:
+
+1. Убедитесь, что используется правильная команда запуска в Replit Deploy:
+   ```
+   NODE_ENV=production node production-deploy.cjs
+   ```
+   
+2. Убедитесь, что проект успешно собран:
+   ```bash
+   npm run build
+   ```
+   
+3. Проверьте наличие всех необходимых файлов:
+   ```bash
+   ls -la dist/
+   ls -la dist/public/
+   ```
+   
+4. Перезапустите деплой через интерфейс Replit
 
 ## Перезапуск production-деплоя
 
@@ -71,10 +107,14 @@ pkill -f "tsx " || true
 npm run build
 
 # Выполните deploy через интерфейс Replit
+# Используйте настройки из Шага 2
 
 # После деплоя обновите настройки бота
 node setup-telegram-webhook.js
 node setup-telegram-mini-app.js
+
+# Проверьте работу API
+node test-production-api.mjs
 ```
 
 ## Проверка статуса бота и Mini App
