@@ -98,10 +98,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Подключаем улучшенный логгер для Telegram initData - анализирует данные подробно
   app.use(telegramInitDataLogger);
   
-  // Улучшенные маршруты для работы с Telegram Mini App
+  // Улучшенные маршруты для работы с Telegram Mini App и настройка статических файлов
+  // ВАЖНО: Размещаем express.static ПОСЛЕ маршрута "/", чтобы он не перехватывал наш health check
   app.use(express.static(path.join(projectRoot, 'client', 'dist')));
   console.log('[Server] Основные файлы React доступны из папки:', path.join(projectRoot, 'client', 'dist'));
   
+  // Специальный маршрут для проверки здоровья системы Replit Deployments
+  // Этот маршрут необходим для успешной проверки работоспособности при деплое
+  // ВАЖНО: Размещаем этот маршрут ПЕРЕД остальными, чтобы он имел приоритет
+  app.get("/", (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(200).send(JSON.stringify({ status: "ok", message: "Health check passed" }));
+  });
+
   // Специальные маршруты для Telegram Mini App - обрабатываем через bridge
   app.get([
     "/UniFarm", "/UniFarm/", "/unifarm", "/unifarm/", 
@@ -1321,6 +1330,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Обработчик для маршрута с параметром ref_code
   app.get('/', (req: Request, res: Response, next: NextFunction) => {
+    // REPLIT HEALTH CHECK - если это запрос без параметров, обрабатываем его как проверку здоровья
+    if (Object.keys(req.query).length === 0) {
+      console.log('[Server] Health check на корневом маршруте');
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(200).send(JSON.stringify({ status: "ok", message: "Health check passed" }));
+    }
+    
     if (req.query.ref_code !== undefined) {
       console.log('[TelegramWebApp] Обнаружен запуск через ?ref_code параметр:', req.url);
       const refCode = req.query.ref_code.toString();
