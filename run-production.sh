@@ -1,25 +1,25 @@
 #!/bin/bash
 
-# Скрипт для прямого запуска приложения в Production режиме
-# Запускает сервер с настроенными переменными, но без пересборки фронтенда
+# Скрипт для быстрого запуска приложения в production режиме (для тестирования)
+# Отличается от start-production.sh тем, что не выполняет полную сборку
+# Copyright © 2025 UniFarm
 
-# Проверяем наличие токена бота
+echo "🚀 Testing UniFarm Telegram Mini App in PRODUCTION mode..."
+
+# Устанавливаем переменные окружения для production
+export NODE_ENV=production
+
+# Проверяем доступность TELEGRAM_BOT_TOKEN
 if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
-  echo "⚠️ Предупреждение: TELEGRAM_BOT_TOKEN не найден в переменных окружения"
-  echo "Валидация Telegram initData может не работать корректно"
+  echo "⚠️ TELEGRAM_BOT_TOKEN is not set in environment. Please set it for proper Telegram functionality."
+  echo "You can set it with: export TELEGRAM_BOT_TOKEN=your_bot_token"
 fi
 
-# Устанавливаем переменные окружения
-export NODE_ENV=production
-export PRODUCTION_DOMAIN="https://uni-farm-connect-2-misterxuniverse.replit.app"
-export TELEGRAM_MINI_APP_URL="https://t.me/UniFarming_Bot/UniFarm"
+# Проверяем наличие собранных файлов
+if [ ! -f "dist/index.js" ]; then
+  echo "❌ Server build not found. Running build..."
+  npm run build
+fi
 
-echo "===== UniFarm Production Mode ====="
-echo "Environment: $NODE_ENV"
-echo "Production Domain: $PRODUCTION_DOMAIN"
-echo "Telegram Mini App URL: $TELEGRAM_MINI_APP_URL"
-echo "Bot Token Status: ${TELEGRAM_BOT_TOKEN:+OK (найден)}"
-echo "=================================="
-
-# Запускаем приложение в production режиме
-NODE_ENV=production tsx server/index.ts
+echo "🌐 Starting server in PRODUCTION mode (NODE_ENV=$NODE_ENV)..."
+NODE_ENV=production node dist/index.js
