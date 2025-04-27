@@ -98,28 +98,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Подключаем улучшенный логгер для Telegram initData - анализирует данные подробно
   app.use(telegramInitDataLogger);
   
-  // Health check endpoint for Replit Deployments
-app.get('/', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Health check passed' });
-});
-
-// Улучшенные маршруты для работы с Telegram Mini App и настройка статических файлов
+  // Улучшенные маршруты для работы с Telegram Mini App и настройка статических файлов
   // ВАЖНО: Размещаем express.static ПОСЛЕ маршрута "/", чтобы он не перехватывал наш health check
   app.use(express.static(path.join(projectRoot, 'client', 'dist')));
   console.log('[Server] Основные файлы React доступны из папки:', path.join(projectRoot, 'client', 'dist'));
   
   // Специальный маршрут для проверки здоровья системы Replit Deployments
   // Этот маршрут необходим для успешной проверки работоспособности при деплое
-  // ВАЖНО: Размещаем этот маршрут ПЕРЕД остальными, чтобы он имел приоритет
+  // ВАЖНО: Размещаем этот маршрут ПЕРЕД другими маршрутами для корректного обнаружения Replit
   app.get("/", (req, res) => {
+    // Отдаем JSON для health check при деплое
     res.setHeader('Content-Type', 'application/json');
+    console.log('[Health Check] Запрос health check на корневой маршрут: /', 
+      { userAgent: req.headers['user-agent'], ip: req.ip });
     return res.status(200).send(JSON.stringify({ status: "ok", message: "Health check passed" }));
   });
 
-  // Мы удаляем перенаправления на специальные маршруты, 
-  // сервис health check будет обрабатывать все запросы при деплое
-  // Это изменение нужно только для успешного прохождения деплоя,
-  // в производственной среде эти маршруты будут работать за счет настроек стороннего прокси
+  // Специальные маршруты для Telegram Mini App
+  app.get([
+    "/UniFarm", "/UniFarm/", "/unifarm", "/unifarm/", 
+    "/app", "/app/", 
+    "/telegram", "/telegram/",
+    "/telegram-app", "/telegram-app/"
+  ], (req, res) => {
+    console.log(`[Telegram Mini App] Запрос к специальному маршруту: ${req.path}`);
+    // Отправляем индекс клиентского приложения
+    res.sendFile(path.join(projectRoot, 'client', 'dist', 'index.html'));
+  });
   
   // Простой маршрут для проверки API (для отладки)
   app.get("/api/test-json", (req, res) => {
