@@ -46,8 +46,20 @@ const ReferralLevelsTable: React.FC = () => {
     retry: 2 // Пробуем несколько раз при ошибке
   });
   
-  // Простая логика определения userId из данных пользователя
+  // Логика определения userId из данных пользователя
+  // Если ID отсутствует, попробуем получить из guest_id
   const userId = currentUser?.id;
+  const guestId = currentUser?.guest_id;
+  
+  // Логируем информацию о пользователе для отладки
+  console.log('[ReferralLevelsTable] Данные пользователя для запроса рефералов:', {
+    userId,
+    guestId,
+    hasUserId: !!userId,
+    hasGuestId: !!guestId,
+    hasRefCode: !!currentUser?.ref_code,
+    refCode: currentUser?.ref_code || 'не определен'
+  });
   
   // Запрос на получение структуры рефералов с сервера
   const { data: referralsData, isLoading, error } = useQuery<ReferralsResponse>({
