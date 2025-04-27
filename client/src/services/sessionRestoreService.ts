@@ -16,6 +16,7 @@
 import { apiRequest } from "@/lib/queryClient";
 import { v4 as uuidv4 } from 'uuid';
 import { isTelegramWebApp } from './telegramService';
+import apiConfig from "@/config/apiConfig";
 
 /**
  * Константы для хранения ключей в localStorage/sessionStorage

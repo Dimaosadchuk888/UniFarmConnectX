@@ -3,6 +3,8 @@
  * Использует только guest_id и ref_code для идентификации пользователей (Этап 10.3)
  */
 
+import apiConfig from "@/config/apiConfig";
+
 // Типы для работы с Telegram WebApp API
 declare global {
   interface Window {
@@ -324,8 +326,12 @@ export async function registerUserWithTelegram(guestId: string, referrerCode?: s
     
     console.log('[telegramService] Данные регистрации:', registrationData);
     
+    // Формируем полный URL для запроса
+    const url = apiConfig.getFullUrl('/api/airdrop/register');
+    console.log('[telegramService] Отправка запроса на регистрацию по URL:', url);
+    
     // Отправляем запрос на регистрацию через AirDrop API
-    const response = await fetch('/api/airdrop/register', {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -390,7 +396,11 @@ export async function logAppLaunch(): Promise<boolean> {
     
     // Отправляем запрос на логирование запуска
     try {
-      const response = await fetch('/api/analytics/app-launch', {
+      // Формируем полный URL для запроса
+      const url = apiConfig.getFullUrl('/api/analytics/app-launch');
+      console.log('[telegramService] Отправка запроса на логирование по URL:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

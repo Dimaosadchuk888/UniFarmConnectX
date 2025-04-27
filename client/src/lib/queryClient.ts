@@ -1,5 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getTelegramAuthHeaders } from "@/services/telegramService";
+import apiConfig from "@/config/apiConfig";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -43,15 +44,19 @@ export async function apiRequest(
   options?: RequestInit
 ): Promise<any> {
   try {
+    // Преобразуем относительный URL в полный с использованием apiConfig
+    const fullUrl = apiConfig.getFullUrl(url);
+    
     console.log(`[queryClient] apiRequest to ${url}`);
+    console.log(`[queryClient] Full URL: ${fullUrl}`);
     
     // Добавляем заголовки Telegram к стандартным заголовкам
     const headers = getApiHeaders(options?.headers as Record<string, string> || {});
     
     // Логируем запрос перед отправкой
-    console.log(`[queryClient] Making ${options?.method || 'GET'} request to: ${url}`);
+    console.log(`[queryClient] Making ${options?.method || 'GET'} request to: ${fullUrl}`);
     
-    const res = await fetch(url, {
+    const res = await fetch(fullUrl, {
       ...options,
       headers,
       credentials: "include",
@@ -96,7 +101,12 @@ export const getQueryFn: <T>(options: {
       // Добавляем заголовки, чтобы избежать кэширования
       const timestamp = new Date().getTime();
       const queryKeyStr = queryKey[0] as string;
-      const url = `${queryKeyStr}${queryKeyStr.includes('?') ? '&' : '?'}nocache=${timestamp}`;
+      
+      // Преобразуем относительный URL в полный с использованием apiConfig
+      const baseUrl = apiConfig.getFullUrl(queryKeyStr);
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}nocache=${timestamp}`;
+      
+      console.log("[DEBUG] QueryClient - Full URL:", url);
       
       // Получаем заголовки с данными Telegram
       const headers = getApiHeaders();
