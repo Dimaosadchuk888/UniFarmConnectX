@@ -1,58 +1,37 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
-run = "npm run dev"
-hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+run = "NODE_ENV=development tsx server/index.ts"
+hidden = [".config", "package-lock.json"]
+modules = ["nodejs-20:v8-20230920-bd784b9"]
 
 [nix]
-channel = "stable-24_05"
-packages = ["jq"]
+channel = "stable-23_05"
+
+[unitTest]
+language = "nodejs"
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix", "package.json", "package-lock.json"]
 
 [deployment]
-deploymentTarget = "autoscale"
-build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+run = ["sh", "-c", "npm start"]
+deploymentTarget = "cloudrun"
+ignorePorts = false
 
 [[ports]]
 localPort = 5000
 externalPort = 80
 
-[workflows]
-runButton = "Project"
+[auth]
+pageEnabled = false
+buttonEnabled = false
 
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
+[[hints]]
+regex = 'Error: Unknown method: .*\n.*at createMethodNotFoundError'
+message = "You might be trying to access a method that doesn't exist on this object."
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
-
-[[workflows.workflow]]
+[[workflows]]
 name = "Start application"
-author = "agent"
+command = "npm run dev"
 
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Start application (Production)"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "./run-production.sh"
-waitForPort = 5000
+[[workflows]]
+name = "Start production"
+command = "NODE_ENV=production node run-in-production.cjs"
