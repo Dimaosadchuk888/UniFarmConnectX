@@ -61,13 +61,21 @@ const ReferralLevelsTable: React.FC = () => {
     refCode: currentUser?.ref_code || 'не определен'
   });
   
+  // Формируем ключ запроса, учитывая оба возможных идентификатора
+  const queryKey = userId ? ['/api/referrals', 'userId', userId] : ['/api/referrals', 'guestId', guestId];
+  
   // Запрос на получение структуры рефералов с сервера
   const { data: referralsData, isLoading, error } = useQuery<ReferralsResponse>({
-    queryKey: ['/api/referrals', userId],
+    queryKey,
     queryFn: async () => {
       try {
-        // Проверка: если userId отсутствует, возвращаем пустые данные
-        if (!userId) {
+        // Проверяем наличие идентификаторов
+        const hasUserId = !!userId;
+        const hasGuestId = !!guestId;
+        
+        // Если нет ни userId, ни guestId, возвращаем пустые данные
+        if (!hasUserId && !hasGuestId) {
+          console.log('[ReferralLevelsTable] Нет идентификаторов пользователя для запроса');
           return {
             success: true,
             data: {
@@ -80,9 +88,16 @@ const ReferralLevelsTable: React.FC = () => {
             }
           };
         }
+        
+        // Определяем параметр для запроса: предпочитаем userId, но используем guestId если userId отсутствует
+        const queryParam = hasUserId 
+          ? `user_id=${userId}` 
+          : `guest_id=${guestId}`;
+        
+        console.log(`[ReferralLevelsTable] Используем ${hasUserId ? 'user_id' : 'guest_id'} для запроса рефералов`);
 
-        // Формируем полный URL для запроса
-        const url = apiConfig.getFullUrl(`/api/referrals?user_id=${userId}`);
+        // Формируем полный URL для запроса с нужным параметром (user_id или guest_id)
+        const url = apiConfig.getFullUrl(`/api/referrals?${queryParam}`);
         console.log('[ReferralLevelsTable] Запрос данных о рефералах по URL:', url);
         
         // Запрос данных с сервера
@@ -116,8 +131,8 @@ const ReferralLevelsTable: React.FC = () => {
         };
       }
     },
-    // Запрос выполняется только если есть userId
-    enabled: !!userId && !isUserLoading,
+    // Запрос выполняется если есть userId или guestId
+    enabled: (!!userId || !!guestId) && !isUserLoading,
     staleTime: 1000 * 5, // Кэшируем на 5 секунд
     refetchOnWindowFocus: true, // Обновляем при возврате фокуса
     refetchOnMount: true // Обновляем при монтировании компонента
