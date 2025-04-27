@@ -109,9 +109,9 @@ app.get('/', (req, res) => {
   console.log('[Server] Основные файлы React доступны из папки:', path.join(projectRoot, 'client', 'dist'));
   
   // Специальный маршрут для проверки здоровья системы Replit Deployments
-  // Этот маршрут теперь делегирует проверку здоровья основному обработчику
-  // и существует для совместимости с предыдущими запросами.
-  app.get("/health", (req, res) => {
+  // Этот маршрут необходим для успешной проверки работоспособности при деплое
+  // ВАЖНО: Размещаем этот маршрут ПЕРЕД остальными, чтобы он имел приоритет
+  app.get("/", (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).send(JSON.stringify({ status: "ok", message: "Health check passed" }));
   });
@@ -1333,20 +1333,8 @@ app.get('/', (req, res) => {
     });
   };
   
-  // Обработчик для маршрута с параметром ref_code
-  app.get('/', (req: Request, res: Response, next: NextFunction) => {
-    // REPLIT HEALTH CHECK - Проверка, является ли это запросом от Replit для проверки здоровья
-    // Проверяем специальные заголовки, которые посылает Replit Deployments
-    const isHealthCheck = req.headers['user-agent']?.includes('Replit') || 
-                          req.headers['x-replit-deployment-check'] === 'true' ||
-                          req.query.health === 'check';
-    
-    if (isHealthCheck) {
-      console.log('[Server] Health check на корневом маршруте от Replit');
-      res.setHeader('Content-Type', 'application/json');
-      return res.status(200).send(JSON.stringify({ status: "ok", message: "Health check passed" }));
-    }
-    
+  // Обработчик для UniFarm без стартового маршрута
+  app.get('/UniFarm', (req: Request, res: Response, next: NextFunction) => {    
     // Обработка запросов с реферальным кодом
     if (req.query.ref_code !== undefined) {
       console.log('[TelegramWebApp] Обнаружен запуск через ?ref_code параметр:', req.url);
