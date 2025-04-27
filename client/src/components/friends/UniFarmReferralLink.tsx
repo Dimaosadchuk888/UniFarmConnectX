@@ -66,6 +66,7 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
   const data = userData || queryData;
   
   // Объединяем состояния загрузки и ошибки
+  const isInitialLoading = !data && (parentIsLoading || queryIsLoading);
   const isLoading = parentIsLoading || (queryIsLoading && !userData);
   const isError = parentIsError || (queryIsError && !userData);
   
@@ -139,7 +140,7 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
       console.log('[UniFarmReferralLink] Реферальный код успешно сгенерирован:', newRefCode);
       
       // Дополнительно инвалидируем кэш React Query для гарантированного обновления UI
-      queryClient.invalidateQueries(['/api/me']);
+      queryClient.invalidateQueries({ queryKey: ['/api/me'] });
       
       return newRefCode;
     } catch (error) {
@@ -219,13 +220,25 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     }
   }, [refetch, generateRefCode]);
   
-  // Загрузка данных
+  // Загрузка данных - стандартный случай
   if (isLoading) {
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex justify-center items-center py-4">
           <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
           <span className="text-sm text-muted-foreground">Загрузка партнерской программы...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Начальная загрузка - особое состояние, когда данных ещё нет, но загрузка идёт
+  if (isInitialLoading) {
+    return (
+      <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
+        <div className="flex justify-center items-center py-4">
+          <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+          <span className="text-sm text-muted-foreground">Инициализация партнерской программы...</span>
         </div>
       </div>
     );
@@ -243,8 +256,8 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     );
   }
 
-  // Если произошла ошибка или данные отсутствуют
-  if (isError || !data) {
+  // Если произошла ошибка или данные отсутствуют (только если не в процессе загрузки)
+  if ((isError || !data) && !isLoading) {
     return (
       <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
         <div className="flex flex-col items-center justify-center py-4 text-center">
