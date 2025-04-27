@@ -410,6 +410,57 @@ class UserService {
   }
   
   /**
+   * Генерирует уникальный реферальный код для пользователя
+   * @returns {Promise<string>} Сгенерированный реферальный код
+   * @throws {Error} Если не удалось сгенерировать код
+   */
+  async generateRefCode(): Promise<string> {
+    try {
+      console.log('[UserService] Запрос на генерацию реферального кода');
+      
+      // Получаем текущие данные пользователя
+      const currentUser = await this.getCurrentUser();
+      
+      // Проверяем, есть ли уже реферальный код
+      if (currentUser.ref_code) {
+        console.log(`[UserService] У пользователя уже есть реферальный код: ${currentUser.ref_code}`);
+        return currentUser.ref_code;
+      }
+      
+      // Подготавливаем параметры запроса
+      const requestData = {
+        user_id: currentUser.id
+      };
+      
+      // Делаем запрос к серверу для генерации кода
+      const response = await apiRequest('/api/users/generate-refcode', {
+        method: 'POST',
+        body: JSON.stringify(requestData),
+      });
+      
+      if (response.success && response.data) {
+        console.log('[UserService] Успешно получен реферальный код:', response.data);
+        
+        // Теперь response.data содержит полные данные пользователя с новым ref_code
+        // Обновляем кэш пользователя
+        this.cacheUserData(response.data);
+        
+        // Оповещаем UI о изменении данных пользователя
+        window.dispatchEvent(new CustomEvent('user:updated', { detail: response.data }));
+        
+        // Возвращаем только реферальный код
+        return response.data.ref_code;
+      } else {
+        console.error('[UserService] Ошибка при получении реферального кода:', response);
+        throw new Error('Не удалось получить реферальный код');
+      }
+    } catch (error) {
+      console.error('[UserService] Ошибка при генерации реферального кода:', error);
+      throw error;
+    }
+  }
+  
+  /**
    * Получает пользователя по guest_id
    * @param {string} guestId Уникальный идентификатор гостя
    * @returns {Promise<User | null>} Данные пользователя или null, если пользователь не найден

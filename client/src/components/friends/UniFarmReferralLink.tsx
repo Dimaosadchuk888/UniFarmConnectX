@@ -130,41 +130,18 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     
     setIsGeneratingCode(true);
     try {
-      console.log('[UniFarmReferralLink] Запрос на генерацию реферального кода');
+      console.log('[UniFarmReferralLink] Запрос на генерацию реферального кода через userService');
       
-      // Подготавливаем payload в зависимости от доступных данных
-      const payload = data.id 
-        ? { user_id: data.id } 
-        : { guest_id: data.guest_id };
+      // Используем централизованный метод из userService
+      // Этот метод сам обновит кэш и сгенерирует событие user:updated
+      const newRefCode = await userService.generateRefCode();
       
-      console.log('[UniFarmReferralLink] Используем для генерации:', payload);
+      console.log('[UniFarmReferralLink] Реферальный код успешно сгенерирован:', newRefCode);
       
-      // Генерируем реферальный код через специальный API endpoint
-      const result = await apiRequest('/api/users/generate-refcode', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
+      // Дополнительно инвалидируем кэш React Query для гарантированного обновления UI
+      queryClient.invalidateQueries(['/api/me']);
       
-      if (result.success && result.data && result.data.ref_code) {
-        console.log('[UniFarmReferralLink] Реферальный код успешно сгенерирован:', result.data.ref_code);
-        
-        // Создаем обновленный объект пользователя со всеми существующими полями
-        const updatedUser = { ...data, ref_code: result.data.ref_code };
-        
-        // Обновляем кэш React Query
-        queryClient.setQueryData(['/api/me'], updatedUser);
-        
-        // Генерируем событие обновления пользователя
-        window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
-        
-        // Обновляем кэш в userService
-        userService.cacheUserData(updatedUser);
-        
-        return result.data.ref_code;
-      } else {
-        console.error('[UniFarmReferralLink] Ошибка при генерации кода:', result);
-        throw new Error('Не удалось сгенерировать реферальный код');
-      }
+      return newRefCode;
     } catch (error) {
       console.error('[UniFarmReferralLink] Ошибка при генерации реферального кода:', error);
       throw error;
