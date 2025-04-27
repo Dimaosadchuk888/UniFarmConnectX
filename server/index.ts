@@ -3,6 +3,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startBackgroundTasks } from "./background-tasks";
 import { migrateRefCodes } from "./migrations/refCodeMigration";
+// Импортируем наш новый модуль для обслуживания статических файлов в production
+import { setupProductionStatic } from "./productionStatic";
 
 const app = express();
 app.use(express.json());
@@ -75,9 +77,15 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
+    console.log('[Server] Запуск в режиме разработки (development), используем Vite middleware');
     await setupVite(app, server);
   } else {
-    serveStatic(app);
+    console.log('[Server] Запуск в production режиме, используем оптимизированную обработку статических файлов');
+    // Используем улучшенную версию обработки статических файлов для production
+    setupProductionStatic(app);
+    
+    // Оригинальный метод остается закомментированным на случай проблем
+    // serveStatic(app);
   }
 
   // ALWAYS serve the app on port 5000
