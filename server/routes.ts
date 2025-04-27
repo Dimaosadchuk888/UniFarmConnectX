@@ -116,7 +116,7 @@ app.get('/', (req, res) => {
     return res.status(200).send(JSON.stringify({ status: "ok", message: "Health check passed" }));
   });
 
-  // Специальные маршруты для Telegram Mini App - обрабатываем через bridge
+  // Специальные маршруты для Telegram Mini App - редирект на клиентское приложение
   app.get([
     "/UniFarm", "/UniFarm/", "/unifarm", "/unifarm/", 
     "/app", "/app/", 
@@ -124,7 +124,8 @@ app.get('/', (req, res) => {
     "/telegram-app", "/telegram-app/"
   ], (req, res) => {
     console.log(`[Telegram Mini App] Запрос к специальному маршруту: ${req.path}`);
-    res.sendFile(path.join(projectRoot, 'client', 'public', 'telegram-bridge.html'));
+    // Вместо поиска отсутствующего файла, отправляем индекс клиентского приложения
+    res.sendFile(path.join(projectRoot, 'client', 'dist', 'index.html'));
   });
   
   // Простой маршрут для проверки API (для отладки)
