@@ -50,10 +50,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Обслуживание статических файлов из папки public
   // Это важно для тестовых HTML-файлов  
   const projectRoot = process.cwd(); 
-  const publicPath = path.join(projectRoot, 'server', 'public');
+  const staticFilesPath = path.join(projectRoot, 'server', 'public');
   
-  app.use('/static', express.static(publicPath));
-  console.log('[Server] Статические файлы доступны по URL /static из папки:', publicPath);
+  app.use('/static', express.static(staticFilesPath));
+  console.log('[Server] Статические файлы доступны по URL /static из папки:', staticFilesPath);
   
   // Добавляем CORS заголовки для работы с Telegram WebApp
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -100,8 +100,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Улучшенные маршруты для работы с Telegram Mini App и настройка статических файлов
   // ВАЖНО: Размещаем express.static ПОСЛЕ маршрута "/", чтобы он не перехватывал наш health check
-  app.use(express.static(path.join(projectRoot, 'client', 'dist')));
-  console.log('[Server] Основные файлы React доступны из папки:', path.join(projectRoot, 'client', 'dist'));
+  
+  // Настраиваем обработку статических файлов для разных режимов
+  const staticPaths = [
+    path.join(projectRoot, 'client', 'dist'), // Режим разработки
+    path.join(projectRoot, 'dist', 'public'), // Режим production после сборки
+  ];
+  
+  // Проверяем наличие каждой папки и подключаем только существующие
+  staticPaths.forEach(staticPath => {
+    if (fs.existsSync(staticPath)) {
+      app.use(express.static(staticPath));
+      console.log(`[Server] Статические файлы доступны из: ${staticPath}`);
+    }
+  });
+  
+  // Примечание: поддержка статических файлов из папки server/public
+  // уже настроена выше, поэтому здесь мы ничего не делаем
+  // (ранее здесь был дублирующий код)
   
   // Специальный маршрут для проверки здоровья системы Replit Deployments
   // Этот маршрут необходим для успешной проверки работоспособности при деплое
@@ -124,15 +140,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log(`[Telegram Mini App] Запрос к специальному маршруту: ${req.path}`);
       
-      // Проверяем наличие index.html перед отправкой
-      const indexPath = path.join(projectRoot, 'client', 'dist', 'index.html');
+      // В режиме разработки файлы находятся в client/dist
+      // В режиме production (после сборки) файлы находятся в dist/public
       
-      if (fs.existsSync(indexPath)) {
-        // Отправляем индекс клиентского приложения
-        res.sendFile(indexPath);
+      // Определяем возможные пути к index.html в разных режимах работы
+      const possiblePaths = [
+        path.join(projectRoot, 'client', 'dist', 'index.html'), // режим разработки
+        path.join(projectRoot, 'dist', 'public', 'index.html'), // режим production (после сборки)
+        path.join(projectRoot, 'dist', 'index.html'),  // альтернативный вариант
+      ];
+      
+      // Ищем существующий файл среди возможных путей
+      const existingPath = possiblePaths.find(p => fs.existsSync(p));
+      
+      if (existingPath) {
+        // Отправляем найденный index.html
+        console.log(`[Telegram Mini App] Используем файл: ${existingPath}`);
+        res.sendFile(existingPath);
       } else {
-        // Если файла нет, отправляем перенаправление на корневой URL
-        console.log(`[Telegram Mini App] Файл index.html не найден в ${indexPath}`);
+        // Если файла нигде нет, отправляем перенаправление на корневой URL
+        console.log(`[Telegram Mini App] Файл index.html не найден! Проверенные пути:`, possiblePaths);
         console.log(`[Telegram Mini App] Перенаправление на основной маршрут...`);
         res.redirect('/');
       }

@@ -1,38 +1,77 @@
 #!/bin/bash
 
-# Скрипт для деплоя приложения в Production режиме
-# Этот скрипт подготавливает проект к деплою и настраивает необходимые переменные окружения
+# Полный скрипт деплоя для UniFarm Telegram Mini App
+# Copyright © 2025 UniFarm
 
-# Проверяем наличие токена бота
-if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
-  echo "❌ Ошибка: TELEGRAM_BOT_TOKEN не найден в переменных окружения"
-  echo "Необходимо добавить TELEGRAM_BOT_TOKEN в секреты проекта"
-  exit 1
-fi
+echo "🚀 Starting FULL PRODUCTION DEPLOYMENT process for UniFarm Telegram Mini App..."
 
-# Устанавливаем переменные окружения
+# Устанавливаем переменные окружения для production
 export NODE_ENV=production
-export PRODUCTION_DOMAIN="https://uni-farm-connect-2-misterxuniverse.replit.app"
-export TELEGRAM_MINI_APP_URL="https://t.me/UniFarming_Bot/UniFarm"
 
-echo "===== UniFarm Production Deployment ====="
-echo "Environment: $NODE_ENV"
-echo "Production Domain: $PRODUCTION_DOMAIN"
-echo "Telegram Mini App URL: $TELEGRAM_MINI_APP_URL"
-echo "========================================"
+# Сохраняем текущую директорию
+CURRENT_DIR=$(pwd)
 
-# Компилируем клиентскую часть приложения
-echo "🔨 Сборка клиентской части..."
-NODE_ENV=production npm run build
+echo "📦 Step 1: Installing dependencies..."
+npm ci || npm install
 
-# Проверка успешности сборки
-if [ $? -ne 0 ]; then
-  echo "❌ Ошибка при сборке клиентской части"
+echo "🧹 Step 2: Cleaning previous build..."
+rm -rf dist
+mkdir -p dist/public
+
+echo "🔨 Step 3: Building client and server..."
+# Сборка клиента и сервера
+npm run build
+
+echo "🔍 Step 4: Verifying build artifacts..."
+# Проверка наличия необходимых файлов
+if [ ! -f "dist/index.js" ]; then
+  echo "❌ ERROR: Server build failed. dist/index.js not found!"
   exit 1
 fi
 
-echo "✅ Клиентская часть успешно собрана"
+if [ ! -f "dist/public/index.html" ]; then
+  echo "❌ ERROR: Client build failed. dist/public/index.html not found!"
+  exit 1
+fi
 
-# Запускаем приложение в фоновом режиме
-echo "🚀 Запуск приложения в production режиме..."
-NODE_ENV=production tsx server/index.ts
+echo "✅ Build verification passed."
+
+echo "🌐 Step 5: Setting up Telegram Mini App..."
+# Делаем скрипт исполняемым, если он не был таковым
+chmod +x setup-telegram-mini-app.js
+# Запускаем настройку Telegram Mini App
+node setup-telegram-mini-app.js
+
+echo "🤖 Step 6: Setting up Telegram Bot commands..."
+# Делаем скрипт исполняемым, если он не был таковым
+chmod +x setup-telegram-bot-commands.js
+# Запускаем настройку команд бота
+node setup-telegram-bot-commands.js
+
+echo "📡 Step 7: Setting up Telegram Webhook..."
+# Делаем скрипт исполняемым, если он не был таковым
+chmod +x setup-telegram-webhook.js
+# Запускаем настройку webhook
+node setup-telegram-webhook.js
+
+echo "🔐 Step 8: Checking secrets and environment variables..."
+# Проверяем наличие необходимых переменных окружения
+if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+  echo "⚠️ WARNING: TELEGRAM_BOT_TOKEN is not set. Telegram Bot functionality will be limited."
+  echo "Set it with: export TELEGRAM_BOT_TOKEN=your_bot_token"
+fi
+
+if [ -z "$DATABASE_URL" ]; then
+  echo "⚠️ WARNING: DATABASE_URL is not set. Database functionality will be limited."
+fi
+
+echo "🚀 Step 9: Making production start script executable..."
+chmod +x start-production.sh
+
+echo "✅ DEPLOYMENT COMPLETE! You can now run the application with:"
+echo "./start-production.sh"
+echo ""
+echo "Or use the Replit 'Run' button to start the application."
+echo ""
+echo "📱 Your Telegram Mini App is available at:"
+echo "https://t.me/UniFarming_Bot/UniFarm"
