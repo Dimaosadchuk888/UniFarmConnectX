@@ -1,5 +1,6 @@
 import { apiRequest } from "@/lib/queryClient";
 import { getCachedTelegramUserId } from "@/services/telegramService";
+import apiConfig from "@/config/apiConfig";
 
 /**
  * Интерфейс пользователя, возвращаемый API
@@ -83,8 +84,12 @@ class UserService {
         console.log('[UserService] AirDrop: Реферальный код не найден');
       }
       
+      // Формируем полный URL для запроса
+      const url = apiConfig.getFullUrl('/api/airdrop/register');
+      console.log(`[UserService] AirDrop: Отправка запроса по URL: ${url}`);
+      
       // Отправляем запрос на регистрацию в режиме AirDrop
-      const response = await fetch('/api/airdrop/register', {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
