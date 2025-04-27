@@ -34,7 +34,11 @@ const DailyBonusCard: React.FC = () => {
     queryKey: ['dailyBonusStatus'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/daily-bonus/status?user_id=1');
+        // Формируем полный URL с использованием apiConfig
+        const url = apiConfig.getFullUrl('/api/daily-bonus/status?user_id=1');
+        console.log('[DailyBonusCard] Запрос статуса бонуса по URL:', url);
+        
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error('Ошибка при получении статуса бонуса');
         }
@@ -55,7 +59,11 @@ const DailyBonusCard: React.FC = () => {
   // Мутация для получения ежедневного бонуса
   const claimBonusMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/daily-bonus/claim', {
+      // Формируем полный URL для запроса
+      const url = apiConfig.getFullUrl('/api/daily-bonus/claim');
+      console.log('[DailyBonusCard] Отправка запроса на получение бонуса по URL:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

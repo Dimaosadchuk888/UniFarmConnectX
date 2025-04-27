@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Coins } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import apiConfig from '@/config/apiConfig';
 
 /**
  * Таблица уровней реферальной программы
@@ -68,8 +69,12 @@ const ReferralLevelsTable: React.FC = () => {
           };
         }
 
+        // Формируем полный URL для запроса
+        const url = apiConfig.getFullUrl(`/api/referrals?user_id=${userId}`);
+        console.log('[ReferralLevelsTable] Запрос данных о рефералах по URL:', url);
+        
         // Запрос данных с сервера
-        const response = await fetch(`/api/referrals?user_id=${userId}`);
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Ошибка получения данных о рефералах: ${response.status}`);
         }
