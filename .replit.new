@@ -1,108 +1,58 @@
-entrypoint = "index.ts"
-modules = ["nodejs-20:v4-20240517-a73e384"]
+modules = ["nodejs-20", "web", "postgresql-16"]
+run = "npm run dev"
+hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
-channel = "stable-23_11"
+channel = "stable-24_05"
+packages = ["jq"]
 
 [deployment]
-run = ["sh", "-c", "npm run start"]
-deploymentTarget = "cloudrun"
-ignorePorts = false
-
-[env]
-NODE_ENV = "production"
-PATH = "/home/runner/$REPL_SLUG/.config/npm/node_global/bin:/home/runner/$REPL_SLUG/node_modules/.bin"
-npm_config_prefix = "/home/runner/$REPL_SLUG/.config/npm/node_global"
-
-[github]
-pattern = "**"
-
-[languages]
-
-[languages.typescript]
-pattern = "**/{*.ts,*.js,*.tsx,*.jsx}"
-
-[languages.typescript.languageServer]
-start = "typescript-language-server --stdio"
-
-[unitTest]
-language = "nodejs"
-
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix", ".config", "package.json", "package-lock.json"]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
+run = ["npm", "run", "start"]
 
 [[ports]]
 localPort = 5000
 externalPort = 80
 
-[[ports.rules]]
-path = "/"
-type = "redirect"
-protocol = "http"
-targetProtocol = "http"
+[workflows]
+runButton = "Project"
 
-[[ports]]
-localPort = 3000
-externalPort = 80
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
 
-[[ports.rules]]
-path = "/"
-type = "proxy"
-protocol = "http"
-targetProtocol = "http"
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
 
-[packager]
-language = "nodejs"
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
 
-[packager.features]
-enabledForHosting = false
-packageSearch = true
-guessImports = true
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
 
-[packager.manager]
-managerPackage = "nodejs"
-vendoredDep = ["nodejs20"]
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
 
-[packager.manager.nodejs]
-packageName = "npm"
-npmPackage = true
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
 
-[hostingService]
-supportedLanguages = []
-deploymentTarget = "cloudrun"
-deploymentTargets = ["cloudrun"]
-region = "singapore-1"
-port = 5000
+[[workflows.workflow]]
+name = "Start application (Production)"
+author = "agent"
 
-[nodeJsGuessImports]
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
 
-[[commands]]
-remote = "Install all dependencies"
-command = "npm i"
-description = "Install all dependencies"
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
 
-[[commands]]
-remote = "Start application"
-command = "npm run dev"
-description = "Run the application in development mode"
-
-[[commands]]
-remote = "Start production app"
-command = "npm run build && npm run start"
-description = "Build and run the application in production mode"
-
-[[commands]]
-remote = "Run tests"
-command = "npm run test"
-description = "Run tests"
-
-[[commands]]
-remote = "Build"
-command = "npm run build"
-description = "Build the application"
-
-[[interpreters]]
-displayName = "node"
-name = "node"
-entrypoint = "node"
-args = []
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./run-production.sh"
+waitForPort = 5000

@@ -121,9 +121,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     "/telegram", "/telegram/",
     "/telegram-app", "/telegram-app/"
   ], (req, res) => {
-    console.log(`[Telegram Mini App] Запрос к специальному маршруту: ${req.path}`);
-    // Отправляем индекс клиентского приложения
-    res.sendFile(path.join(projectRoot, 'client', 'dist', 'index.html'));
+    try {
+      console.log(`[Telegram Mini App] Запрос к специальному маршруту: ${req.path}`);
+      
+      // Проверяем наличие index.html перед отправкой
+      const indexPath = path.join(projectRoot, 'client', 'dist', 'index.html');
+      
+      if (fs.existsSync(indexPath)) {
+        // Отправляем индекс клиентского приложения
+        res.sendFile(indexPath);
+      } else {
+        // Если файла нет, отправляем перенаправление на корневой URL
+        console.log(`[Telegram Mini App] Файл index.html не найден в ${indexPath}`);
+        console.log(`[Telegram Mini App] Перенаправление на основной маршрут...`);
+        res.redirect('/');
+      }
+    } catch (error) {
+      console.error('Unhandled error in Telegram Mini App route:', error);
+      res.status(500).send('Internal Server Error');
+    }
   });
   
   // Простой маршрут для проверки API (для отладки)
