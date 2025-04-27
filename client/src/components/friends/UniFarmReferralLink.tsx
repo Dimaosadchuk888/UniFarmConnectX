@@ -42,7 +42,8 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     queryFn: async () => {
       console.log('[UniFarmReferralLink] Резервный запрос данных пользователя');
       try {
-        const result = await userService.getCurrentUser(false);
+        // Принудительно обновляем данные (true) для убедительного получения свежих данных
+        const result = await userService.getCurrentUser(true);
         console.log('[UniFarmReferralLink] Результат запроса данных:', {
           success: !!result,
           hasRefCode: !!result?.ref_code,
@@ -54,12 +55,12 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
         throw error;
       }
     },
-    retry: 2,
+    retry: 3, // Увеличиваем количество повторных попыток
     retryDelay: 1000,
-    staleTime: 10000,
-    refetchOnWindowFocus: false,
-    // Если есть данные от родителя, отключаем запрос
-    enabled: !userData
+    staleTime: 0, // Отключаем кэширование для этого компонента
+    refetchOnWindowFocus: true, // Включаем обновление при фокусе окна
+    // Всегда запрашиваем данные, даже если есть данные от родителя
+    enabled: true
   });
   
   // Используем данные от родителя или из запроса
@@ -168,21 +169,39 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
   
   // Проверяем наличие ref_code и пытаемся получить его при необходимости
   useEffect(() => {
-    if (data && !data.ref_code && !isLoading && !isGeneratingCode) {
-      console.log('[UniFarmReferralLink] Отсутствует ref_code, запрашиваем обновленные данные');
-      
-      // Немедленно делаем запрос на обновление данных (без setTimeout)
-      refetch()
-        .then((result) => {
-          // Если и в обновленных данных нет кода - генерируем его без задержки
-          if (result.isSuccess && result.data && !result.data.ref_code) {
-            console.log('[UniFarmReferralLink] После обновления ref_code всё ещё отсутствует, генерируем новый');
-            return generateRefCode();
-          }
-        })
-        .catch(error => console.error('[UniFarmReferralLink] Ошибка при обновлении данных:', error));
-    }
-  }, [data, isLoading, refetch, generateRefCode, isGeneratingCode, isError]);
+    console.log('[UniFarmReferralLink] Проверяем наличие реферального кода:', { 
+      hasData: !!data, 
+      hasRefCode: data?.ref_code ? true : false,
+      isLoading,
+      isGeneratingCode
+    });
+    
+    // Всегда запрашиваем обновленные данные при монтировании компонента
+    refetch()
+      .then((result) => {
+        console.log('[UniFarmReferralLink] Обновлены данные:', { 
+          hasData: !!result.data,
+          hasRefCode: result.data?.ref_code ? true : false
+        });
+        
+        // Если данные получены, но ref_code отсутствует
+        if (result.isSuccess && result.data && !result.data.ref_code) {
+          console.log('[UniFarmReferralLink] После обновления ref_code всё ещё отсутствует, генерируем новый');
+          
+          // Ставим небольшую паузу для стабильной работы
+          setTimeout(() => {
+            generateRefCode()
+              .then(code => {
+                console.log('[UniFarmReferralLink] Успешно сгенерирован новый код:', code);
+                // Принудительно запрашиваем обновление данных после генерации кода
+                refetch();
+              })
+              .catch(genError => console.error('[UniFarmReferralLink] Ошибка генерации кода:', genError));
+          }, 500);
+        }
+      })
+      .catch(error => console.error('[UniFarmReferralLink] Ошибка при обновлении данных:', error));
+  }, []);
   
   // Копирование ссылки в буфер обмена
   const copyToClipboard = useCallback((type: 'app' | 'bot' = linkType) => {
@@ -324,27 +343,44 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
             Необходимо создать вашу реферальную ссылку
           </p>
           
-          <button 
-            onClick={() => generateRefCode()}
-            disabled={isGeneratingCode}
-            className={`
-              px-4 py-1.5 rounded-md text-white text-xs
-              ${isGeneratingCode ? 'bg-primary/60 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}
-              transition-colors
-            `}
-          >
-            {isGeneratingCode ? (
+          <div className="flex flex-col gap-3">
+            <button 
+              onClick={() => generateRefCode()}
+              disabled={isGeneratingCode}
+              className={`
+                px-4 py-1.5 rounded-md text-white text-xs
+                ${isGeneratingCode ? 'bg-primary/60 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}
+                transition-colors
+              `}
+            >
+              {isGeneratingCode ? (
+                <div className="flex items-center">
+                  <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full mr-1.5"></div>
+                  <span>Создание ссылки...</span>
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <i className="fas fa-magic mr-1.5"></i>
+                  <span>Создать реферальную ссылку</span>
+                </div>
+              )}
+            </button>
+            
+            <button
+              onClick={() => refetch()}
+              disabled={isRetrying}
+              className="px-4 py-1.5 rounded-md text-xs text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors"
+            >
               <div className="flex items-center">
-                <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full mr-1.5"></div>
-                <span>Создание ссылки...</span>
+                <i className="fas fa-sync-alt mr-1.5"></i>
+                <span>Обновить данные</span>
               </div>
-            ) : (
-              <div className="flex items-center">
-                <i className="fas fa-magic mr-1.5"></i>
-                <span>Создать реферальную ссылку</span>
-              </div>
-            )}
-          </button>
+            </button>
+            
+            <p className="text-xs text-gray-400 mt-2">
+              Если ссылка не появляется, попробуйте обновить страницу или проверьте соединение с интернетом.
+            </p>
+          </div>
         </div>
       </div>
     );

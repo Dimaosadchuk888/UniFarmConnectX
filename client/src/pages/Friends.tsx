@@ -19,14 +19,15 @@ const Friends: React.FC = () => {
   // Состояние для отслеживания видимости элементов
   const [isLoaded, setIsLoaded] = useState(true); // Сразу показываем компоненты
   
-  // Получаем информацию о пользователе без принудительного обновления
-  // чтобы избежать мерцания и черного экрана в Telegram
-  const { data: userData, isLoading, isError } = useQuery({
+  // Получаем информацию о пользователе с принудительным обновлением
+  // для обеспечения актуальности данных
+  const { data: userData, isLoading, isError, refetch } = useQuery({
     queryKey: ['/api/me'], 
-    queryFn: () => userService.getCurrentUser(false), // Используем кэшированные данные если есть
-    staleTime: 30000, // Увеличиваем время кэширования для стабильности
-    refetchOnWindowFocus: false, // Отключаем автообновление при фокусе для стабильности в Telegram
-    retry: 1, // Ограничиваем количество повторных запросов
+    queryFn: () => userService.getCurrentUser(true), // Принудительно обновляем данные
+    staleTime: 0, // Отключаем кэширование для получения свежих данных
+    refetchOnWindowFocus: true, // Включаем обновление при фокусе окна
+    retry: 3, // Увеличиваем количество повторных запросов
+    refetchInterval: 5000 // Автоматически обновляем данные каждые 5 секунд
   });
   
   // Эффект для логирования данных пользователя
@@ -47,23 +48,36 @@ const Friends: React.FC = () => {
   useEffect(() => {
     // Если данные пользователя загружены, но ref_code отсутствует
     if (userData && !userData.ref_code && !isLoading) {
-      console.log('[Friends] Запрос обновления данных пользователя из-за отсутствия ref_code');
-      // Пробуем получить обновленные данные через 1 секунду
-      const timer = setTimeout(() => {
-        userService.getCurrentUser(true)
-          .then(updatedUser => {
-            if (updatedUser && updatedUser.ref_code) {
-              console.log('[Friends] Успешно получен ref_code после обновления:', updatedUser.ref_code);
+      console.log('[Friends] Обнаружено отсутствие ref_code, запускаем генерацию');
+      
+      // Немедленно пытаемся сгенерировать реферальный код без задержки
+      userService.generateRefCode()
+        .then(refCode => {
+          console.log('[Friends] Успешно сгенерирован реферальный код:', refCode);
+          
+          // Принудительно обновляем данные в интерфейсе
+          refetch().then(() => {
+            console.log('[Friends] UI обновлен после генерации кода');
+          });
+        })
+        .catch(err => {
+          console.error('[Friends] Ошибка генерации реферального кода:', err);
+          
+          // Переходим к запасному варианту - запрашиваем просто обновление данных
+          userService.getCurrentUser(true)
+            .then(updatedUser => {
+              console.log('[Friends] Получены обновленные данные:', { 
+                hasRefCode: !!updatedUser?.ref_code,
+                refCode: updatedUser?.ref_code
+              });
+              
               // Принудительно обновляем данные
               window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
-            }
-          })
-          .catch(err => console.error('[Friends] Ошибка при обновлении данных пользователя:', err));
-      }, 1000);
-      
-      return () => clearTimeout(timer);
+              refetch();
+            });
+        });
     }
-  }, [userData, isLoading]);
+  }, [userData, isLoading, refetch]);
   
   // Безопасное приведение типов
   const safeUser = userData as User | undefined;
