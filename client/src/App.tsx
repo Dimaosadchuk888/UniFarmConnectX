@@ -25,10 +25,8 @@ import NavigationBar from "@/components/layout/NavigationBar";
 import Dashboard from "@/pages/Dashboard";
 import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
-// Импортируем все версии Friends
-import Friends from "@/pages/Friends";
-import FriendsMinimal from "@/pages/FriendsMinimal";
-import FriendsTest from "@/pages/FriendsTest"; // Новый тестовый компонент
+// Импортируем только актуальную версию Friends
+import Friends from "@/pages/Friends"; // Обновленная версия компонента, содержит код из FriendsTest
 import Wallet from "@/pages/Wallet";
 import TelegramTest from "./pages/TelegramTest";
 import WebhookSetup from "./pages/WebhookSetup";
@@ -349,9 +347,9 @@ function App() {
       case "missions":
         return <Missions />;
       case "friends":
-        // Используем новую версию компонента Friends, которая решает проблему кэширования
-        console.log('[App] Использование нового компонента FriendsTest.tsx вместо Friends.tsx');
-        return <FriendsTest />; // ПОСТОЯННОЕ РЕШЕНИЕ - полная замена старого компонента
+        // Используем обновленную версию компонента Friends
+        console.log('[App] Рендеринг компонента Friends (версия с исправлением кэширования)');
+        return <Friends />;
       case "wallet":
         return <Wallet />;
       default:

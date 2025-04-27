@@ -1,31 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink'; // Основной компонент для отображения ссылки
+import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink';
 import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
 import type { User } from '@/services/userService';
+import { queryClient } from '@/lib/queryClient';
 
 /**
- * ВНИМАНИЕ: ЭТОТ КОМПОНЕНТ УСТАРЕЛ И БОЛЬШЕ НЕ ИСПОЛЬЗУЕТСЯ
- * 
- * ⚠️ Эта версия компонента не используется в приложении из-за проблем с кешированием.
- * ⚠️ Вместо него используется FriendsTest.tsx (27.04.2025)
- * 
- * Причина: при обновлении этого файла изменения не попадали в пользовательский интерфейс
- * из-за проблем с кешированием компонентов. Новый компонент FriendsTest.tsx содержит
- * актуальную версию кода.
- * 
- * Исходное описание:
- * Страница партнерской программы
+ * Страница партнерской программы (Новая версия)
  * Показывает реферальную ссылку и таблицу с уровнями партнерской программы
+ * 
+ * НОВАЯ ВЕРСИЯ: Создана для устранения проблем с кешированием, 
+ * заменяет оригинальный Friends.tsx
  */
-const Friends: React.FC = () => {
+const FriendsTest: React.FC = () => {
   // Состояние для отслеживания видимости элементов
-  const [isLoaded, setIsLoaded] = useState(true); // Сразу показываем компоненты
+  const [isLoaded, setIsLoaded] = useState(true);
+  
+  // Отладочная отметка в консоли
+  console.log('[FRIENDSTEST.TSX]: Этот файл заменяет оригинальный Friends.tsx');
   
   // Получаем информацию о пользователе с принудительным обновлением
-  // для обеспечения актуальности данных
-  const { data: userData, isLoading, isError, refetch } = useQuery({
+  const { data: userData, isLoading, isError, refetch } = useQuery<any>({
     queryKey: ['/api/me'], 
     queryFn: () => userService.getCurrentUser(true), // Принудительно обновляем данные
     staleTime: 0, // Отключаем кэширование для получения свежих данных
@@ -33,11 +29,11 @@ const Friends: React.FC = () => {
     retry: 3, // Увеличиваем количество повторных запросов
     refetchInterval: 5000 // Автоматически обновляем данные каждые 5 секунд
   });
-  
+
   // Эффект для логирования данных пользователя
   useEffect(() => {
     // Подробное логирование для отладки
-    console.log('[Friends] Состояние компонента Friends:', {
+    console.log('[FriendsTest] Состояние компонента:', {
       hasUserData: !!userData,
       isLoading,
       isError,
@@ -51,9 +47,9 @@ const Friends: React.FC = () => {
     
     // Специальное логирование для реферального кода
     if (userData?.ref_code) {
-      console.log('[Friends] АУДИТ: получен ref_code:', userData.ref_code);
+      console.log('[FriendsTest] АУДИТ: получен ref_code:', userData.ref_code);
     } else if (!isLoading && userData) {
-      console.warn('[Friends] АУДИТ: ref_code отсутствует в данных пользователя:', {
+      console.warn('[FriendsTest] АУДИТ: ref_code отсутствует в данных пользователя:', {
         hasUserData: !!userData,
         userId: userData?.id,
         telegramId: userData?.telegram_id,
@@ -64,37 +60,37 @@ const Friends: React.FC = () => {
     // Проверяем localStorage для диагностики
     try {
       const localStorageKeys = Object.keys(localStorage);
-      console.log('[Friends] Данные localStorage:', localStorageKeys.map(key => 
+      console.log('[FriendsTest] Данные localStorage:', localStorageKeys.map(key => 
         `${key}: ${localStorage.getItem(key)?.substring(0, 30)}...`
       ));
-    } catch (e) {
-      console.error('[Friends] Ошибка при доступе к localStorage:', e);
+    } catch (error) {
+      console.error('[FriendsTest] Ошибка доступа к localStorage:', error);
     }
   }, [userData, isLoading, isError]);
-  
-  // Фиксируем возможную проблему с ref_code
+
+  // Эффект для автоматической генерации реферального кода, если он отсутствует
   useEffect(() => {
-    // Если данные пользователя загружены, но ref_code отсутствует
-    if (userData && !userData.ref_code && !isLoading) {
-      console.log('[Friends] Обнаружено отсутствие ref_code, запускаем генерацию');
+    // Только если данные загружены и ref_code отсутствует
+    if (!isLoading && userData && !userData.ref_code) {
+      console.log('[FriendsTest] Обнаружено отсутствие ref_code, запускаем генерацию');
       
       // Немедленно пытаемся сгенерировать реферальный код без задержки
       userService.generateRefCode()
         .then(refCode => {
-          console.log('[Friends] Успешно сгенерирован реферальный код:', refCode);
+          console.log('[FriendsTest] Успешно сгенерирован реферальный код:', refCode);
           
           // Принудительно обновляем данные в интерфейсе
           refetch().then(() => {
-            console.log('[Friends] UI обновлен после генерации кода');
+            console.log('[FriendsTest] UI обновлен после генерации кода');
           });
         })
         .catch(err => {
-          console.error('[Friends] Ошибка генерации реферального кода:', err);
+          console.error('[FriendsTest] Ошибка генерации реферального кода:', err);
           
           // Переходим к запасному варианту - запрашиваем просто обновление данных
           userService.getCurrentUser(true)
             .then(updatedUser => {
-              console.log('[Friends] Получены обновленные данные:', { 
+              console.log('[FriendsTest] Получены обновленные данные:', { 
                 hasRefCode: !!updatedUser?.ref_code,
                 refCode: updatedUser?.ref_code
               });
@@ -109,12 +105,12 @@ const Friends: React.FC = () => {
   
   // Добавляем функцию для принудительного обновления данных
   const forceDataRefresh = async () => {
-    console.log('[Friends] Принудительное обновление данных');
+    console.log('[FriendsTest] Принудительное обновление данных');
     
     try {
       // Принудительно запрашиваем свежие данные
       const updatedUser = await userService.getCurrentUser(true);
-      console.log('[Friends] Данные обновлены:', {
+      console.log('[FriendsTest] Данные обновлены:', {
         hasData: !!updatedUser, 
         refCode: updatedUser?.ref_code || 'НЕ ПОЛУЧЕН'
       });
@@ -127,18 +123,18 @@ const Friends: React.FC = () => {
       
       // Если кода все равно нет - пробуем генерировать
       if (updatedUser && !updatedUser.ref_code) {
-        console.log('[Friends] После обновления реферальный код все еще отсутствует, запускаем генерацию');
+        console.log('[FriendsTest] После обновления реферальный код все еще отсутствует, запускаем генерацию');
         
         try {
           const code = await userService.generateRefCode();
-          console.log('[Friends] Код успешно сгенерирован:', code);
+          console.log('[FriendsTest] Код успешно сгенерирован:', code);
           refetch();
         } catch (genError) {
-          console.error('[Friends] Ошибка генерации кода:', genError);
+          console.error('[FriendsTest] Ошибка генерации кода:', genError);
         }
       }
     } catch (error) {
-      console.error('[Friends] Ошибка при принудительном обновлении:', error);
+      console.error('[FriendsTest] Ошибка при принудительном обновлении:', error);
     }
   };
   
@@ -154,22 +150,15 @@ const Friends: React.FC = () => {
     setDirectLinkData({ isLoading: true, refCode: '', error: '' });
     
     try {
-      // Получаем guest_id из localStorage
-      let guestId = '';
-      try {
-        // Импортируем способ получения guest_id прямо в функции
-        const { getGuestId } = await import('@/services/guestIdService');
-        guestId = getGuestId();
-        console.log('[Friends] Получен guest_id:', guestId);
-      } catch (e) {
-        console.error('[Friends] Ошибка при получении guest_id:', e);
-      }
+      // Получаем guest_id пользователя
+      const guestId = localStorage.getItem('unifarm_guest_id');
       
       if (!guestId) {
+        console.error('[FriendsTest] Не удалось получить guest_id из localStorage');
         setDirectLinkData({ 
           isLoading: false, 
           refCode: '', 
-          error: 'Не удалось получить guest_id' 
+          error: 'Не удалось получить идентификатор гостя' 
         });
         return;
       }
@@ -178,7 +167,7 @@ const Friends: React.FC = () => {
       const response = await fetch(`/api/users/guest/${guestId}`);
       const data = await response.json();
       
-      console.log('[Friends] Прямой запрос к API:', data);
+      console.log('[FriendsTest] Прямой запрос к API:', data);
       
       if (data.success && data.data && data.data.ref_code) {
         setDirectLinkData({ 
@@ -217,39 +206,12 @@ const Friends: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('[Friends] Ошибка при прямом запросе реферального кода:', error);
+      console.error('[FriendsTest] Ошибка при прямом запросе реферального кода:', error);
       setDirectLinkData({ 
         isLoading: false, 
         refCode: '', 
         error: (error as Error).message || 'Произошла ошибка при запросе данных' 
       });
-    }
-  };
-  
-  // Функция для копирования ссылки в буфер обмена
-  const copyDirectLinkToClipboard = () => {
-    if (!directLinkData.refCode) return;
-    
-    try {
-      const linkToCopy = `https://t.me/UniFarming_Bot/UniFarm?ref_code=${directLinkData.refCode}`;
-      navigator.clipboard.writeText(linkToCopy);
-      alert('Реферальная ссылка скопирована в буфер обмена');
-    } catch (e) {
-      console.error('[Friends] Ошибка при копировании:', e);
-      
-      // Fallback для браузеров без поддержки clipboard API
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = `https://t.me/UniFarming_Bot/UniFarm?ref_code=${directLinkData.refCode}`;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        alert('Реферальная ссылка скопирована в буфер обмена');
-      } catch (err) {
-        alert('Не удалось скопировать ссылку. Скопируйте её вручную:' + 
-              `https://t.me/UniFarming_Bot/UniFarm?ref_code=${directLinkData.refCode}`);
-      }
     }
   };
   
@@ -260,143 +222,71 @@ const Friends: React.FC = () => {
   
   // Безопасное приведение типов
   const safeUser = userData as User | undefined;
-  
-  // Добавляем отладочное сообщение сразу перед рендером
-  console.log('[МАРКЕР FRIENDS.TSX]: Этот файл был обновлен с большой красной кнопкой');
 
   return (
     <div className="w-full">
       <div className="flex flex-col justify-center items-center mb-6">
-        <h1 
-          className="text-2xl font-bold text-green-500 mb-4"
-          style={{
-            opacity: isLoaded ? 1 : 0,
-            transform: `translateY(${isLoaded ? 0 : 5}px)`,
-            transition: 'opacity 0.6s ease, transform 0.6s ease',
-            border: '2px solid green',
-            padding: '10px 20px',
-            borderRadius: '10px',
-            backgroundColor: 'rgba(0,255,0,0.1)'
-          }}
-        >
-          ОБНОВЛЕННЫЙ ФАЙЛ — FRIENDS.TSX — V27.04.2025
-        </h1>
-        
-        <button 
-          onClick={() => alert('Этот компонент рендерится из файла Friends.tsx!')} 
-          className="animate-pulse bg-red-600 text-white py-3 px-6 rounded-lg text-lg font-bold shadow-lg mb-4"
-        >
-          ТЕСТОВАЯ КНОПКА ИЗ FRIENDS.TSX
-        </button>
-        
-        {/* Кнопка для принудительного обновления данных */}
-        <button 
-          onClick={forceDataRefresh}
-          className="bg-primary/80 hover:bg-primary text-white text-xs px-3 py-1.5 rounded-md flex items-center"
-        >
-          <i className="fas fa-sync-alt mr-1.5"></i>
-          Обновить
-        </button>
-      </div>
-      
-      {/* Скрытый компонент для совместимости */}
-      <div style={{ display: 'none' }}>
-        <UniFarmReferralLink userData={userData} parentIsLoading={isLoading} parentIsError={isError} />
-      </div>
-      
-      {/* Компонент реферальной ссылки */}
-      <div className="bg-black/30 p-4 rounded-lg mb-5 mt-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-primary font-semibold text-sm flex items-center">
-            <i className="fas fa-link text-primary mr-2"></i>
-            Ваша реферальная ссылка
-          </h3>
-          <button
-            onClick={fetchDirectRefCode}
-            className="text-xs bg-primary/20 hover:bg-primary/30 text-primary px-2 py-1 rounded flex items-center"
-          >
-            <i className="fas fa-sync-alt mr-1.5"></i>
-            Обновить
-          </button>
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-purple-500 mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Партнёрская программа UniFarm
+          </h1>
+          <p className="text-gray-400 text-sm">
+            Приглашайте друзей и получайте бонусы
+          </p>
         </div>
         
-        {directLinkData.isLoading ? (
-          <div className="flex justify-center items-center py-4">
-            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-            <span className="text-sm text-gray-300">Загрузка реферальной ссылки...</span>
-          </div>
-        ) : directLinkData.error ? (
-          <div className="text-center py-3">
-            <div className="text-amber-400 mb-2">
-              <i className="fas fa-exclamation-triangle text-lg"></i>
-            </div>
-            <p className="text-sm text-gray-300 mb-2">{directLinkData.error}</p>
-            <button
-              onClick={fetchDirectRefCode}
-              className="text-xs bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded"
-            >
-              Попробовать снова
-            </button>
-          </div>
-        ) : directLinkData.refCode ? (
-          <div>
-            <div className="bg-black/40 p-3 rounded mb-3">
-              <p className="text-xs text-gray-400 mb-1.5">Ваш реферальный код:</p>
-              <div className="flex items-center justify-between">
-                <span className="bg-primary/20 text-primary px-2 py-1 rounded font-mono text-sm">
-                  {directLinkData.refCode}
-                </span>
-                <span className="text-xs text-gray-400">Фиксированное значение</span>
-              </div>
-            </div>
-            
-            <div className="bg-black/40 p-3 rounded mb-2">
-              <p className="text-xs text-gray-400 mb-1.5">Реферальная ссылка для Telegram:</p>
-              <div className="relative">
-                <input
-                  type="text"
-                  readOnly
-                  value={`https://t.me/UniFarming_Bot/UniFarm?ref_code=${directLinkData.refCode}`}
-                  className="w-full bg-gray-800 text-sm p-2 pr-10 rounded text-gray-200 font-mono"
-                />
-                <button
-                  onClick={copyDirectLinkToClipboard}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                >
-                  <i className="fas fa-copy"></i>
-                </button>
-              </div>
-            </div>
-            
-            <p className="text-xs text-gray-500 text-center mt-2 px-1">
-              Отправьте эту ссылку друзьям, чтобы получать бонусы от их активности
+        <div className="w-full p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg mb-6">
+          <h2 className="text-xl text-white font-bold mb-2">Ваш реферальный код</h2>
+          <div className="bg-white/20 p-3 rounded">
+            <p className="text-white mb-2">
+              <strong>Код:</strong> {(userData as any)?.ref_code || 'создается...'}
+            </p>
+            <p className="text-white">
+              <strong>ID:</strong> {(userData as any)?.id || 'загрузка...'}
             </p>
           </div>
-        ) : (
-          <div className="text-center py-3">
-            <p className="text-sm text-gray-300 mb-2">Реферальный код не найден</p>
-            <button
-              onClick={fetchDirectRefCode}
-              className="text-xs bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded"
-            >
-              Получить код
-            </button>
-          </div>
-        )}
+        </div>
+        
+        {/* Кнопка обновления данных */}
+        <button 
+          onClick={forceDataRefresh}
+          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg shadow mb-4 flex items-center space-x-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Обновить данные</span>
+        </button>
       </div>
       
-      {/* Таблица с уровнями партнерской программы */}
-      <div 
-        style={{
-          opacity: isLoaded ? 1 : 0,
-          transform: `translateY(${isLoaded ? 0 : 15}px)`,
-          transition: 'opacity 0.6s ease 0.2s, transform 0.6s ease 0.2s'
-        }}
-      >
+      {/* Основной компонент реферальной ссылки */}
+      <div className="mb-8">
+        <UniFarmReferralLink />
+      </div>
+      
+      {/* Таблица уровней партнёрской программы */}
+      <div className="mb-6">
+        <h3 className="text-xl font-semibold mb-4 text-center">
+          Уровни партнёрской программы
+        </h3>
         <ReferralLevelsTable />
+      </div>
+      
+      {/* Бонусный блок с анимацией */}
+      <div className="w-full p-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg shadow-lg mb-6 relative overflow-hidden">
+        <div className="relative z-10">
+          <h3 className="text-xl text-white font-bold mb-2">Приглашайте друзей и зарабатывайте!</h3>
+          <p className="text-white text-sm mb-3">
+            С каждого заработка ваших рефералов вы получаете бонус.
+            Строите сеть до 20 уровней в глубину!
+          </p>
+        </div>
+        {/* Декоративный элемент (пузырьки) */}
+        <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-yellow-300 opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full bg-orange-300 opacity-20 animate-pulse" style={{animationDelay: '1s'}}></div>
       </div>
     </div>
   );
 };
 
-export default Friends;
+export default FriendsTest;
