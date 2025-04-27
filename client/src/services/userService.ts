@@ -235,6 +235,16 @@ class UserService {
     const guestId = getGuestId();
     
     console.log('[UserService] Запрос к API с guest_id:', guestId);
+    console.log('[UserService] Запрос данных профиля с guest_id:', guestId);
+    console.log('[UserService] Объект localStorage в момент запроса к /api/me:', 
+      Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)?.substring(0, 20)}...`));
+    
+    // Проверяем состояние сессии в момент запроса
+    if (sessionStorage.getItem('unifarm_telegram_ready') === 'true') {
+      console.log('[UserService] Telegram WebApp отмечен как инициализированный при запросе /api/me');
+    } else {
+      console.warn('[UserService] Telegram WebApp НЕ отмечен как инициализированный при запросе /api/me!');
+    }
     
     // Делаем запрос к API
     const data = await apiRequest('/api/me');
@@ -244,7 +254,10 @@ class UserService {
       success: data?.success,
       userId: data?.data?.id,
       username: data?.data?.username,
-      guestId: data?.data?.guest_id
+      guestId: data?.data?.guest_id,
+      refCode: data?.data?.ref_code || 'НЕ ОПРЕДЕЛЕН',
+      hasRefCode: !!data?.data?.ref_code,
+      responseJson: JSON.stringify(data).substring(0, 200) + '...'
     });
     
     // Если API не вернул данные, выдаем ошибку (Этап 10.4 - удаление поддержки telegram_id в URL)

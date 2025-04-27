@@ -37,6 +37,19 @@ export class SessionController {
       // Получаем telegram_id из тела запроса (если есть)
       const { telegram_id } = req.body;
       
+      // Логирование всех заголовков запроса для диагностики
+      console.log('[SessionController] Входящий запрос восстановления сессии. guest_id:', guest_id || 'отсутствует');
+      console.log('[SessionController] Headers:', 
+        Object.keys(req.headers)
+          .filter(key => !key.includes('sec-') && !key.includes('accept'))  // Фильтруем технические заголовки
+          .reduce((obj, key) => ({...obj, [key]: req.headers[key]}), {})
+      );
+      console.log('[SessionController] Session:', req.session ? 'доступна' : 'недоступна');
+      if (req.session) {
+        console.log('[SessionController] Session user:', req.session.user ? 'установлен' : 'не установлен');
+        console.log('[SessionController] Session userId:', req.session.userId);
+      }
+      
       // Проверяем наличие guest_id
       if (!guest_id) {
         console.error('[SessionController] Отсутствует guest_id в запросе');

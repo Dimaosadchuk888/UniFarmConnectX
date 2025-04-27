@@ -115,9 +115,14 @@ const saveGuestId = (guestId: string): void => {
  */
 const restoreSession = async (guestId: string) => {
   try {
-    console.log('[sessionRestoreService] Отправка запроса на восстановление сессии с guest_id:', guestId);
+    console.log('[sessionRestoreService] Текущий guest_id:', guestId);
+    console.log('[sessionRestoreService] Попытка восстановить сессию через /api/session/restore с guest_id:', guestId);
+    console.log('[SessionRestoreService] Объект localStorage доступен:', typeof localStorage !== 'undefined');
+    console.log('[SessionRestoreService] Все ключи в localStorage:', 
+      Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)?.substring(0, 20)}...`));
     
     // Отправляем запрос на восстановление сессии
+    console.log('[SessionRestoreService] Формирование запроса к серверу с телом:', JSON.stringify({ guest_id: guestId }));
     const result = await apiRequest('/api/session/restore', {
       method: 'POST',
       body: JSON.stringify({ guest_id: guestId })
