@@ -151,6 +151,21 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     }
   }, [data, isGeneratingCode, queryClient]);
   
+  // Принудительная загрузка данных после монтирования компонента
+  useEffect(() => {
+    // Запускаем загрузку данных сразу после монтирования компонента
+    console.log('[UniFarmReferralLink] Компонент смонтирован, проверяем необходимость загрузки данных');
+    
+    // Если данных нет, но загрузка ещё не началась - запускаем её
+    if (!data && !isLoading && !isError) {
+      console.log('[UniFarmReferralLink] Принудительная загрузка начальных данных');
+      refetch().catch(error => 
+        console.error('[UniFarmReferralLink] Ошибка при начальной загрузке данных:', error)
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, isLoading, isError, refetch]); // Указываем все используемые в эффекте зависимости
+  
   // Проверяем наличие ref_code и пытаемся получить его при необходимости
   useEffect(() => {
     if (data && !data.ref_code && !isLoading && !isGeneratingCode) {
@@ -167,7 +182,7 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
         })
         .catch(error => console.error('[UniFarmReferralLink] Ошибка при обновлении данных:', error));
     }
-  }, [data, isLoading, refetch, generateRefCode, isGeneratingCode]);
+  }, [data, isLoading, refetch, generateRefCode, isGeneratingCode, isError]);
   
   // Копирование ссылки в буфер обмена
   const copyToClipboard = useCallback((type: 'app' | 'bot' = linkType) => {
