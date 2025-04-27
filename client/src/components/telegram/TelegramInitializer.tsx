@@ -17,6 +17,21 @@ const TelegramInitializer = () => {
   useEffect(() => {
     console.log('[TelegramInitializer] 🔄 Инициализация...');
     
+    // Первичная проверка на явные признаки запуска в Telegram
+    const isUserAgentTelegram = navigator.userAgent.includes('Telegram') || 
+                              navigator.userAgent.includes('TelegramBot') ||
+                              document.referrer.includes('telegram');
+    
+    const isInIframe = window.self !== window.top;
+    
+    console.log('[TelegramInitializer] Первичная проверка среды:', {
+      isUserAgentTelegram,
+      isInIframe,
+      userAgent: navigator.userAgent,
+      documentURL: window.location.href,
+      referrer: document.referrer
+    });
+    
     try {
       // Проверяем доступность официального Telegram WebApp API
       const isTelegram = isTelegramWebApp();
@@ -28,7 +43,7 @@ const TelegramInitializer = () => {
         const initResult = initTelegramWebApp();
         console.log(`[TelegramInitializer] Инициализация Telegram WebApp API: ${initResult ? 'успешно' : 'не удалась'}`);
         
-        // Вызываем WebApp.ready() еще раз для гарантии инициализации
+        // Повторный более надежный вызов WebApp.ready() 
         try {
           if (window.Telegram?.WebApp?.ready) {
             console.log('[TelegramInitializer] Вызываем WebApp.ready() для подтверждения инициализации');
@@ -36,6 +51,16 @@ const TelegramInitializer = () => {
             
             // Отмечаем Telegram WebApp как готовый для других компонентов
             sessionRestoreService.markTelegramWebAppAsReady();
+            
+            // Явно расширяем окно до максимальной высоты
+            try {
+              if (window.Telegram?.WebApp?.expand) {
+                window.Telegram.WebApp.expand();
+                console.log('[TelegramInitializer] WebApp.expand() вызван успешно');
+              }
+            } catch (expandError) {
+              console.error('[TelegramInitializer] Ошибка при вызове WebApp.expand():', expandError);
+            }
           }
         } catch (readyError) {
           console.error('[TelegramInitializer] Ошибка при вызове WebApp.ready():', readyError);
@@ -53,6 +78,11 @@ const TelegramInitializer = () => {
         });
       } else {
         console.log('[TelegramInitializer] ℹ️ Telegram WebApp API не обнаружен, работаем в гостевом режиме');
+        
+        // В случае, если это похоже на Telegram, но API не обнаружен - это может быть баг
+        if (isUserAgentTelegram || isInIframe) {
+          console.warn('[TelegramInitializer] ⚠️ Похоже, что мы в Telegram, но API недоступен. Это может быть ошибкой.');
+        }
         
         // Отмечаем отсутствие необходимости ожидания инициализации
         sessionRestoreService.markTelegramWebAppAsReady();

@@ -67,17 +67,28 @@ export interface UserData {
  * @returns true, если приложение запущено внутри Telegram, false в противном случае
  */
 export function isTelegramWebApp(): boolean {
-  // Проверяем наличие Telegram WebApp API через глобальный объект
-  const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram;
-  const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
-  
-  console.log('[telegramService] isTelegramWebApp check:', { 
-    isTelegramAvailable, 
-    isWebAppAvailable
-  });
-  
-  // Возвращаем true только если доступен официальный Telegram WebApp API
-  return isWebAppAvailable;
+  try {
+    // Проверяем наличие Telegram WebApp API через глобальный объект
+    const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram;
+    const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
+    
+    // Детальное логирование
+    console.log('[telegramService] isTelegramWebApp check:', { 
+      isTelegramAvailable, 
+      isWebAppAvailable,
+      // Более подробная информация, если API доступен
+      version: isWebAppAvailable ? window.Telegram?.WebApp?.version : 'недоступно',
+      platform: isWebAppAvailable ? window.Telegram?.WebApp?.platform : 'недоступно',
+      userAgent: navigator.userAgent,
+      isInIframe: window.self !== window.top
+    });
+    
+    // Возвращаем true только если доступен официальный Telegram WebApp API
+    return isWebAppAvailable;
+  } catch (error) {
+    console.error('[telegramService] Ошибка при проверке Telegram WebApp:', error);
+    return false;
+  }
 }
 
 /**
