@@ -32,17 +32,41 @@ const Friends: React.FC = () => {
   
   // Эффект для логирования данных пользователя
   useEffect(() => {
-    // Для аудита логируем полученный ref_code
+    // Подробное логирование для отладки
+    console.log('[Friends] Состояние компонента Friends:', {
+      hasUserData: !!userData,
+      isLoading,
+      isError,
+      userData: userData ? {
+        id: userData.id,
+        guest_id: userData.guest_id,
+        ref_code: userData.ref_code || 'ОТСУТСТВУЕТ',
+        username: userData.username
+      } : 'НЕТ ДАННЫХ'
+    });
+    
+    // Специальное логирование для реферального кода
     if (userData?.ref_code) {
       console.log('[Friends] АУДИТ: получен ref_code:', userData.ref_code);
     } else if (!isLoading && userData) {
       console.warn('[Friends] АУДИТ: ref_code отсутствует в данных пользователя:', {
         hasUserData: !!userData,
         userId: userData?.id,
-        telegramId: userData?.telegram_id
+        telegramId: userData?.telegram_id,
+        guest_id: userData?.guest_id
       });
     }
-  }, [userData, isLoading]);
+    
+    // Проверяем localStorage для диагностики
+    try {
+      const localStorageKeys = Object.keys(localStorage);
+      console.log('[Friends] Данные localStorage:', localStorageKeys.map(key => 
+        `${key}: ${localStorage.getItem(key)?.substring(0, 30)}...`
+      ));
+    } catch (e) {
+      console.error('[Friends] Ошибка при доступе к localStorage:', e);
+    }
+  }, [userData, isLoading, isError]);
   
   // Фиксируем возможную проблему с ref_code
   useEffect(() => {
@@ -79,21 +103,67 @@ const Friends: React.FC = () => {
     }
   }, [userData, isLoading, refetch]);
   
+  // Добавляем функцию для принудительного обновления данных
+  const forceDataRefresh = async () => {
+    console.log('[Friends] Принудительное обновление данных');
+    
+    try {
+      // Принудительно запрашиваем свежие данные
+      const updatedUser = await userService.getCurrentUser(true);
+      console.log('[Friends] Данные обновлены:', {
+        hasData: !!updatedUser, 
+        refCode: updatedUser?.ref_code || 'НЕ ПОЛУЧЕН'
+      });
+      
+      // Обновляем UI через событие
+      window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
+      
+      // Затем обновляем React Query кэш
+      refetch();
+      
+      // Если кода все равно нет - пробуем генерировать
+      if (updatedUser && !updatedUser.ref_code) {
+        console.log('[Friends] После обновления реферальный код все еще отсутствует, запускаем генерацию');
+        
+        try {
+          const code = await userService.generateRefCode();
+          console.log('[Friends] Код успешно сгенерирован:', code);
+          refetch();
+        } catch (genError) {
+          console.error('[Friends] Ошибка генерации кода:', genError);
+        }
+      }
+    } catch (error) {
+      console.error('[Friends] Ошибка при принудительном обновлении:', error);
+    }
+  };
+  
   // Безопасное приведение типов
   const safeUser = userData as User | undefined;
   
   return (
     <div className="w-full">
-      <h1 
-        className="text-xl font-semibold text-primary mb-6"
-        style={{
-          opacity: isLoaded ? 1 : 0,
-          transform: `translateY(${isLoaded ? 0 : 5}px)`,
-          transition: 'opacity 0.6s ease, transform 0.6s ease'
-        }}
-      >
-        Партнёрская программа
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 
+          className="text-xl font-semibold text-primary"
+          style={{
+            opacity: isLoaded ? 1 : 0,
+            transform: `translateY(${isLoaded ? 0 : 5}px)`,
+            transition: 'opacity 0.6s ease, transform 0.6s ease'
+          }}
+        >
+          Партнёрская программа
+        </h1>
+        
+        {/* Кнопка для принудительного обновления данных */}
+        <button 
+          onClick={forceDataRefresh}
+          className="bg-primary/80 hover:bg-primary text-white text-xs px-3 py-1.5 rounded-md flex items-center"
+        >
+          <i className="fas fa-sync-alt mr-1.5"></i>
+          Обновить
+        </button>
+      </div>
       
       {/* Карточка с реферальной ссылкой - передаем данные пользователя напрямую */}
       <div 
