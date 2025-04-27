@@ -45,8 +45,8 @@ const FriendsMinimal: React.FC = () => {
   
   return (
     <div className="p-4">
-      <h1 className="text-xl font-semibold text-primary mb-6">
-        Минимальная партнёрская программа (FRIENDSMINIMAL.TSX)
+      <h1 className="text-xl font-bold text-red-500 mb-6 animate-pulse">
+        МИНИМАЛЬНАЯ ВЕРСИЯ (FRIENDSMINIMAL.TSX) -- 27.04.2025
       </h1>
       
       {/* Новый основной компонент для отображения реферальной ссылки */}

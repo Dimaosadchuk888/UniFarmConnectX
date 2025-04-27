@@ -261,14 +261,14 @@ const Friends: React.FC = () => {
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 
-          className="text-xl font-semibold text-primary"
+          className="text-2xl font-bold text-green-500"
           style={{
             opacity: isLoaded ? 1 : 0,
             transform: `translateY(${isLoaded ? 0 : 5}px)`,
             transition: 'opacity 0.6s ease, transform 0.6s ease'
           }}
         >
-          Партнёрская программа (FRIENDS.TSX)
+          ОСНОВНОЙ ФАЙЛ (FRIENDS.TSX) -- ВЕРСИЯ ОТ 27.04.2025
         </h1>
         
         {/* Кнопка для принудительного обновления данных */}
