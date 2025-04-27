@@ -912,11 +912,8 @@ export class UserController {
       // Проверяем, есть ли уже реферальный код
       if (user.ref_code) {
         console.log(`[UserController] У пользователя с ID ${user.id} уже есть реферальный код: ${user.ref_code}`);
-        return sendSuccess(res, { 
-          ref_code: user.ref_code,
-          user_id: user.id,
-          guest_id: user.guest_id
-        });
+        // Возвращаем полные данные пользователя (улучшение для инвалидации кэша)
+        return sendSuccess(res, user);
       }
       
       // Генерируем новый уникальный реферальный код
@@ -929,12 +926,25 @@ export class UserController {
         return sendServerError(res, 'Не удалось обновить реферальный код пользователя');
       }
       
-      // Возвращаем успешный результат с новым кодом
-      return sendSuccess(res, { 
-        ref_code: refCode,
-        user_id: user.id,
-        guest_id: user.guest_id
-      });
+      // Получаем полные данные пользователя после обновления
+      const fullUserData = userId 
+        ? await storage.getUserById(user.id)
+        : await storage.getUserByGuestId(guestId as string);
+      
+      if (!fullUserData) {
+        console.warn(`[UserController] Не удалось получить полные данные пользователя после обновления ref_code`);
+        // Если по какой-то причине не удалось получить данные, возвращаем хотя бы базовую информацию
+        return sendSuccess(res, { 
+          ...user,
+          ref_code: refCode
+        });
+      }
+      
+      console.log(`[UserController] Инвалидация кэша /api/me для пользователя ID=${fullUserData.id}`);
+      
+      // Возвращаем полные данные пользователя с новым кодом
+      // Это позволит клиенту обновить кэш и UI без дополнительных запросов
+      return sendSuccess(res, fullUserData);
       
     } catch (error) {
       console.error('[UserController] Ошибка при генерации реферального кода:', error);
