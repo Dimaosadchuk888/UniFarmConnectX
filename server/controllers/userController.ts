@@ -865,37 +865,66 @@ export class UserController {
    * Генерирует реферальный код для пользователя
    * Создает новый уникальный код и назначает его пользователю
    * 
-   * @param req Запрос, который должен содержать user_id в теле
+   * @param req Запрос, который должен содержать user_id или guest_id в теле
    * @param res Ответ
    */
   static async generateRefCode(req: Request, res: Response): Promise<void> {
     try {
       console.log('[UserController] Запрос на генерацию реферального кода:', req.body);
       
-      // Проверяем наличие user_id в запросе
+      // Проверяем наличие user_id или guest_id в запросе
       const userId = req.body.user_id;
-      if (!userId) {
-        return sendError(res, 'Отсутствует ID пользователя', 400);
+      const guestId = req.body.guest_id;
+      
+      if (!userId && !guestId) {
+        console.error('[UserController] Ошибка генерации реферального кода: отсутствует user_id или guest_id в запросе');
+        return sendError(res, 'Отсутствует ID пользователя или guest_id', 400);
       }
       
-      // Получаем пользователя по ID
-      const user = await storage.getUserById(userId);
+      // Переменная для хранения найденного пользователя
+      let user: any = null;
+      
+      // Если есть user_id, ищем пользователя по нему
+      if (userId) {
+        user = await storage.getUserById(userId);
+        if (!user) {
+          console.error(`[UserController] Пользователь с ID ${userId} не найден при генерации реферального кода`);
+          return sendError(res, `Пользователь с ID ${userId} не найден`, 404);
+        }
+        console.log(`[UserController] Пользователь найден по ID ${userId} для генерации реферального кода`);
+      } 
+      // Иначе если есть guest_id, ищем пользователя по нему
+      else if (guestId) {
+        user = await storage.getUserByGuestId(guestId);
+        if (!user) {
+          console.error(`[UserController] Пользователь с guest_id ${guestId} не найден при генерации реферального кода`);
+          return sendError(res, `Пользователь с guest_id ${guestId} не найден`, 404);
+        }
+        console.log(`[UserController] Пользователь найден по guest_id ${guestId} для генерации реферального кода, ID=${user.id}`);
+      }
+      
+      // Дополнительная проверка для TypeScript, хотя логически мы уже проверили наличие пользователя выше
       if (!user) {
-        return sendError(res, `Пользователь с ID ${userId} не найден`, 404);
+        console.error('[UserController] Критическая ошибка: пользователь не найден, но проверки не сработали');
+        return sendServerError(res, 'Внутренняя ошибка сервера: пользователь не найден');
       }
       
       // Проверяем, есть ли уже реферальный код
       if (user.ref_code) {
-        console.log(`[UserController] У пользователя с ID ${userId} уже есть реферальный код: ${user.ref_code}`);
-        return sendSuccess(res, { ref_code: user.ref_code });
+        console.log(`[UserController] У пользователя с ID ${user.id} уже есть реферальный код: ${user.ref_code}`);
+        return sendSuccess(res, { 
+          ref_code: user.ref_code,
+          user_id: user.id,
+          guest_id: user.guest_id
+        });
       }
       
       // Генерируем новый уникальный реферальный код
       const refCode = await storage.generateUniqueRefCode();
-      console.log(`[UserController] Сгенерирован новый реферальный код для пользователя ${userId}: ${refCode}`);
+      console.log(`[UserController] Сгенерирован новый реферальный код для пользователя ${user.id}: ${refCode}`);
       
       // Обновляем пользователя, добавляя реферальный код
-      const updatedUser = await storage.updateUserRefCode(userId, refCode);
+      const updatedUser = await storage.updateUserRefCode(user.id, refCode);
       if (!updatedUser) {
         return sendServerError(res, 'Не удалось обновить реферальный код пользователя');
       }
@@ -903,7 +932,8 @@ export class UserController {
       // Возвращаем успешный результат с новым кодом
       return sendSuccess(res, { 
         ref_code: refCode,
-        user_id: userId
+        user_id: user.id,
+        guest_id: user.guest_id
       });
       
     } catch (error) {
