@@ -281,66 +281,21 @@ const Friends: React.FC = () => {
         </button>
       </div>
       
-      {/* Карточка с реферальной ссылкой - передаем данные пользователя напрямую */}
-      <div 
-        style={{
-          opacity: isLoaded ? 1 : 0,
-          transform: `translateY(${isLoaded ? 0 : 10}px)`,
-          transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
-        }}
-      >
-        {/* Передаем userData напрямую для синхронизации */}
+      {/* Скрытый компонент для совместимости */}
+      <div style={{ display: 'none' }}>
         <UniFarmReferralLink userData={userData} parentIsLoading={isLoading} parentIsError={isError} />
       </div>
       
-      {/* Статистика реферального кода */}
-      <div
-        className="bg-black/30 rounded-lg p-3 mb-4 mt-4"
-        style={{
-          opacity: isLoaded ? 1 : 0,
-          transform: `translateY(${isLoaded ? 0 : 12}px)`,
-          transition: 'opacity 0.6s ease 0.15s, transform 0.6s ease 0.15s'
-        }}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-primary font-bold text-sm">
-            Статистика вашего реферального кода
-          </h3>
-          <div className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-300">
-            {isLoading ? 'загрузка' : (isError ? 'ошибка' : 'готово')}
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 gap-2 text-xs">
-          <div className="flex justify-between bg-black/20 p-2 rounded">
-            <span className="text-gray-400">ID пользователя:</span>
-            <span className="text-white font-mono">{safeUser?.id || '—'}</span>
-          </div>
-          <div className="flex justify-between bg-black/20 p-2 rounded">
-            <span className="text-gray-400">Telegram ID:</span>
-            <span className="text-white font-mono">{safeUser?.telegram_id || '—'}</span>
-          </div>
-          <div className="flex justify-between bg-black/20 p-2 rounded">
-            <span className="text-gray-400">Реферальный код:</span>
-            <span className="text-accent font-mono font-bold">{safeUser?.ref_code || 'НЕ НАЗНАЧЕН'}</span>
-          </div>
-          <div className="flex justify-between bg-black/20 p-2 rounded">
-            <span className="text-gray-400">Приглашенных друзей:</span>
-            <span className="text-white font-mono">0</span>
-          </div>
-        </div>
-      </div>
-      
-      {/* Компонент прямого доступа к реферальной ссылке */}
+      {/* Компонент реферальной ссылки */}
       <div className="bg-black/30 p-4 rounded-lg mb-5 mt-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-white font-semibold text-sm flex items-center">
-            <i className="fas fa-magic text-primary mr-2"></i>
-            Прямой доступ к реферальной ссылке
+          <h3 className="text-primary font-semibold text-sm flex items-center">
+            <i className="fas fa-link text-primary mr-2"></i>
+            Ваша реферальная ссылка
           </h3>
           <button
             onClick={fetchDirectRefCode}
-            className="text-xs bg-gray-800 hover:bg-gray-700 text-white px-2 py-1 rounded flex items-center"
+            className="text-xs bg-primary/20 hover:bg-primary/30 text-primary px-2 py-1 rounded flex items-center"
           >
             <i className="fas fa-sync-alt mr-1.5"></i>
             Обновить
@@ -395,8 +350,8 @@ const Friends: React.FC = () => {
               </div>
             </div>
             
-            <p className="text-xs text-gray-500 text-center">
-              Эта ссылка генерируется напрямую из базы данных и всегда доступна
+            <p className="text-xs text-gray-500 text-center mt-2 px-1">
+              Отправьте эту ссылку друзьям, чтобы получать бонусы от их активности
             </p>
           </div>
         ) : (
