@@ -98,7 +98,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Подключаем улучшенный логгер для Telegram initData - анализирует данные подробно
   app.use(telegramInitDataLogger);
   
-  // Улучшенные маршруты для работы с Telegram Mini App и настройка статических файлов
+  // Health check endpoint for Replit Deployments
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Health check passed' });
+});
+
+// Улучшенные маршруты для работы с Telegram Mini App и настройка статических файлов
   // ВАЖНО: Размещаем express.static ПОСЛЕ маршрута "/", чтобы он не перехватывал наш health check
   app.use(express.static(path.join(projectRoot, 'client', 'dist')));
   console.log('[Server] Основные файлы React доступны из папки:', path.join(projectRoot, 'client', 'dist'));
