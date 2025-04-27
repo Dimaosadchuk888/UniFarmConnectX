@@ -1,89 +1,85 @@
-# UniFarm: Запуск в Production
+# Руководство по деплою UniFarm в Production через Replit
 
-Этот документ описывает процесс запуска и деплоя приложения UniFarm в production-режиме.
+## Важно: Production URL и Telegram Mini App
 
-## Запуск приложения в production-режиме
+Приложение UniFarm должно быть доступно по основному URL:
+- **Main URL**: https://uni-farm-connect-2-misterxuniverse.replit.app
+- **Mini App URL**: https://uni-farm-connect-2-misterxuniverse.replit.app/UniFarm
 
-### Требования
-- Node.js v20+
-- PostgreSQL база данных (URL в переменной окружения DATABASE_URL)
-- Telegram Bot Token в переменной окружения TELEGRAM_BOT_TOKEN
+В текущий момент используется URL с автоматически назначенным поддоменом, который не соответствует настройкам в BotFather.
 
-### Подготовка к запуску
-1. Убедитесь, что приложение собрано (`npm run build`)
-2. Убедитесь, что переменные окружения настроены правильно
-3. Остановите все запущенные процессы на порту 5000 (если они есть)
+## Пошаговая инструкция по деплою в Production
 
-### Запуск через командную строку
+### Шаг 1: Подготовка production-билда
 ```bash
-# Запускаем скрипт, который подготавливает среду и запускает приложение
-NODE_ENV=production node run-in-production.cjs
+# Остановите все текущие процессы
+pkill -f "node " || true
+pkill -f "tsx " || true
+
+# Создайте production-билд
+npm run build
 ```
 
-Или используйте готовый bash-скрипт:
-```bash
-# Запуск через bash-скрипт
-./start-production.sh
-```
+### Шаг 2: Настройка деплоя через Replit интерфейс
 
-### Проверка работоспособности
-1. Приложение должно запуститься на порту 5000
-2. Перейдите в браузере на URL: https://<your-domain>/
-3. Должен отобразиться корректный ответ: `{"status":"ok","message":"Health check passed"}`
+1. Нажмите кнопку **Deploy** в правом верхнем углу интерфейса Replit
+2. Выберите **"Configure"** и убедитесь, что настройки соответствуют:
+   - **Run Command**: `npm run start` 
+   - **Always On**: Включено
+   - **Autoscale**: Включено
+   - **Domain**: uni-farm-connect-2-misterxuniverse.replit.app
 
-## Особенности работы в Replit
+### Шаг 3: Запустите деплой
+Нажмите кнопку **Deploy** для запуска процесса деплоя.
 
-### Запуск в Replit
-В среде Replit рекомендуется использовать специальный скрипт для запуска:
+### Шаг 4: Проверка деплоя
+После успешного деплоя:
+1. Проверьте доступность основного сайта: https://uni-farm-connect-2-misterxuniverse.replit.app
+2. Проверьте доступность Mini App: https://uni-farm-connect-2-misterxuniverse.replit.app/UniFarm
+3. Выполните тестовые API-запросы, убедившись, что они работают через основной домен без указания порта
 
-```bash
-# Запуск в Replit
-NODE_ENV=production node run-in-production.cjs
-```
+## Перезапуск production-деплоя
 
-Скрипт автоматически:
-1. Остановит все текущие процессы Node.js
-2. Проверит доступность порта 5000
-3. Запустит приложение в режиме production
+Если необходимо перезапустить деплой:
+1. Зайдите в раздел **Deployments** в Replit
+2. Найдите текущий активный деплой
+3. Нажмите на три точки справа и выберите **Restart**
 
-### Настройка Telegram Mini App в Replit
-1. После запуска приложения в режиме production, установите корректный webhook для бота:
+## Проверка webhook для Telegram бота
+
+После деплоя убедитесь, что webhook Telegram бота указывает на правильный URL:
 ```bash
 node setup-telegram-webhook.js
 ```
 
-2. Настройте команды и меню бота:
+## Обновление настроек Mini App
+
+После успешного деплоя обновите кнопки и команды Telegram бота:
 ```bash
-node setup-telegram-bot-commands.js
+node setup-telegram-mini-app.js
 ```
 
-3. Проверьте корректность настроек:
+## Полный цикл обновления и деплоя
+
+Для полного обновления приложения и деплоя в production:
+```bash
+# Остановите все процессы
+pkill -f "node " || true
+pkill -f "tsx " || true
+
+# Соберите приложение
+npm run build
+
+# Выполните deploy через интерфейс Replit
+
+# После деплоя обновите настройки бота
+node setup-telegram-webhook.js
+node setup-telegram-mini-app.js
+```
+
+## Проверка статуса бота и Mini App
+
+После деплоя проверьте корректность настроек:
 ```bash
 node check-bot-settings.js
-```
-
-## Важно!
-- В режиме production работает полная версия приложения с поддержкой всех функций
-- Для корректной работы Telegram Mini App требуется запуск в режиме production
-- Файлы фронтенда должны быть собраны (`npm run build`) перед запуском
-
-## Проверка API
-После запуска вы можете проверить API:
-
-```bash
-# Проверка health check
-curl -v https://<your-domain>/
-
-# Проверка API для восстановления сессии
-curl -X POST https://<your-domain>/api/session/restore \
-  -H "Content-Type: application/json" \
-  -d '{"guest_id":"test-guest-id-123"}'
-```
-
-## Деплой
-Для полного деплоя приложения используйте скрипты:
-
-```bash
-# Полный деплой (сборка + настройка + запуск)
-./deploy-production.sh
 ```
