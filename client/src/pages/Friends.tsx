@@ -138,6 +138,122 @@ const Friends: React.FC = () => {
     }
   };
   
+  // Добавляем состояние для прямого доступа к ссылке
+  const [directLinkData, setDirectLinkData] = useState({
+    isLoading: false,
+    refCode: '',
+    error: ''
+  });
+
+  // Функция для прямого получения реферального кода
+  const fetchDirectRefCode = async () => {
+    setDirectLinkData({ isLoading: true, refCode: '', error: '' });
+    
+    try {
+      // Получаем guest_id из localStorage
+      let guestId = '';
+      try {
+        // Импортируем способ получения guest_id прямо в функции
+        const { getGuestId } = await import('@/services/guestIdService');
+        guestId = getGuestId();
+        console.log('[Friends] Получен guest_id:', guestId);
+      } catch (e) {
+        console.error('[Friends] Ошибка при получении guest_id:', e);
+      }
+      
+      if (!guestId) {
+        setDirectLinkData({ 
+          isLoading: false, 
+          refCode: '', 
+          error: 'Не удалось получить guest_id' 
+        });
+        return;
+      }
+      
+      // Делаем прямой запрос к API для получения пользователя по guest_id
+      const response = await fetch(`/api/users/guest/${guestId}`);
+      const data = await response.json();
+      
+      console.log('[Friends] Прямой запрос к API:', data);
+      
+      if (data.success && data.data && data.data.ref_code) {
+        setDirectLinkData({ 
+          isLoading: false, 
+          refCode: data.data.ref_code, 
+          error: '' 
+        });
+      } else if (data.success && data.data && !data.data.ref_code) {
+        // Если нет ref_code, пробуем генерировать
+        const genResponse = await fetch('/api/users/generate-refcode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: data.data.id })
+        });
+        
+        const genData = await genResponse.json();
+        
+        if (genData.success && genData.data && genData.data.ref_code) {
+          setDirectLinkData({ 
+            isLoading: false, 
+            refCode: genData.data.ref_code, 
+            error: '' 
+          });
+        } else {
+          setDirectLinkData({ 
+            isLoading: false, 
+            refCode: '', 
+            error: 'Не удалось сгенерировать реферальный код' 
+          });
+        }
+      } else {
+        setDirectLinkData({ 
+          isLoading: false, 
+          refCode: '', 
+          error: data.message || 'Не удалось получить данные пользователя' 
+        });
+      }
+    } catch (error) {
+      console.error('[Friends] Ошибка при прямом запросе реферального кода:', error);
+      setDirectLinkData({ 
+        isLoading: false, 
+        refCode: '', 
+        error: (error as Error).message || 'Произошла ошибка при запросе данных' 
+      });
+    }
+  };
+  
+  // Функция для копирования ссылки в буфер обмена
+  const copyDirectLinkToClipboard = () => {
+    if (!directLinkData.refCode) return;
+    
+    try {
+      const linkToCopy = `https://t.me/UniFarming_Bot/UniFarm?ref_code=${directLinkData.refCode}`;
+      navigator.clipboard.writeText(linkToCopy);
+      alert('Реферальная ссылка скопирована в буфер обмена');
+    } catch (e) {
+      console.error('[Friends] Ошибка при копировании:', e);
+      
+      // Fallback для браузеров без поддержки clipboard API
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = `https://t.me/UniFarming_Bot/UniFarm?ref_code=${directLinkData.refCode}`;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Реферальная ссылка скопирована в буфер обмена');
+      } catch (err) {
+        alert('Не удалось скопировать ссылку. Скопируйте её вручную:' + 
+              `https://t.me/UniFarming_Bot/UniFarm?ref_code=${directLinkData.refCode}`);
+      }
+    }
+  };
+  
+  // Загружаем данные при первом рендере
+  useEffect(() => {
+    fetchDirectRefCode();
+  }, []);
+  
   // Безопасное приведение типов
   const safeUser = userData as User | undefined;
   
@@ -213,6 +329,87 @@ const Friends: React.FC = () => {
             <span className="text-white font-mono">0</span>
           </div>
         </div>
+      </div>
+      
+      {/* Компонент прямого доступа к реферальной ссылке */}
+      <div className="bg-black/30 p-4 rounded-lg mb-5 mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-white font-semibold text-sm flex items-center">
+            <i className="fas fa-magic text-primary mr-2"></i>
+            Прямой доступ к реферальной ссылке
+          </h3>
+          <button
+            onClick={fetchDirectRefCode}
+            className="text-xs bg-gray-800 hover:bg-gray-700 text-white px-2 py-1 rounded flex items-center"
+          >
+            <i className="fas fa-sync-alt mr-1.5"></i>
+            Обновить
+          </button>
+        </div>
+        
+        {directLinkData.isLoading ? (
+          <div className="flex justify-center items-center py-4">
+            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
+            <span className="text-sm text-gray-300">Загрузка реферальной ссылки...</span>
+          </div>
+        ) : directLinkData.error ? (
+          <div className="text-center py-3">
+            <div className="text-amber-400 mb-2">
+              <i className="fas fa-exclamation-triangle text-lg"></i>
+            </div>
+            <p className="text-sm text-gray-300 mb-2">{directLinkData.error}</p>
+            <button
+              onClick={fetchDirectRefCode}
+              className="text-xs bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded"
+            >
+              Попробовать снова
+            </button>
+          </div>
+        ) : directLinkData.refCode ? (
+          <div>
+            <div className="bg-black/40 p-3 rounded mb-3">
+              <p className="text-xs text-gray-400 mb-1.5">Ваш реферальный код:</p>
+              <div className="flex items-center justify-between">
+                <span className="bg-primary/20 text-primary px-2 py-1 rounded font-mono text-sm">
+                  {directLinkData.refCode}
+                </span>
+                <span className="text-xs text-gray-400">Фиксированное значение</span>
+              </div>
+            </div>
+            
+            <div className="bg-black/40 p-3 rounded mb-2">
+              <p className="text-xs text-gray-400 mb-1.5">Реферальная ссылка для Telegram:</p>
+              <div className="relative">
+                <input
+                  type="text"
+                  readOnly
+                  value={`https://t.me/UniFarming_Bot/UniFarm?ref_code=${directLinkData.refCode}`}
+                  className="w-full bg-gray-800 text-sm p-2 pr-10 rounded text-gray-200 font-mono"
+                />
+                <button
+                  onClick={copyDirectLinkToClipboard}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  <i className="fas fa-copy"></i>
+                </button>
+              </div>
+            </div>
+            
+            <p className="text-xs text-gray-500 text-center">
+              Эта ссылка генерируется напрямую из базы данных и всегда доступна
+            </p>
+          </div>
+        ) : (
+          <div className="text-center py-3">
+            <p className="text-sm text-gray-300 mb-2">Реферальный код не найден</p>
+            <button
+              onClick={fetchDirectRefCode}
+              className="text-xs bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded"
+            >
+              Получить код
+            </button>
+          </div>
+        )}
       </div>
       
       {/* Таблица с уровнями партнерской программы */}
