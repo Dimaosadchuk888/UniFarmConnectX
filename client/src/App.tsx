@@ -25,7 +25,10 @@ import NavigationBar from "@/components/layout/NavigationBar";
 import Dashboard from "@/pages/Dashboard";
 import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
+// Импортируем все версии Friends
 import Friends from "@/pages/Friends";
+import FriendsMinimal from "@/pages/FriendsMinimal";
+import FriendsTest from "@/pages/FriendsTest"; // Новый тестовый компонент
 import Wallet from "@/pages/Wallet";
 import TelegramTest from "./pages/TelegramTest";
 import WebhookSetup from "./pages/WebhookSetup";
@@ -346,8 +349,9 @@ function App() {
       case "missions":
         return <Missions />;
       case "friends":
-        // ЭТАП 4.1: Всегда используем единый компонент Friends
-        return <Friends />;
+        // ДИАГНОСТИКА: Принудительно используем новый тестовый компонент
+        console.log('[App] Отображение тестовой версии Friends - FriendsTest.tsx');
+        return <FriendsTest />;
       case "wallet":
         return <Wallet />;
       default:

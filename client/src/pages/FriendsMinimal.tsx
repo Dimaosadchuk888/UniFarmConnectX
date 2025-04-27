@@ -43,11 +43,23 @@ const FriendsMinimal: React.FC = () => {
     ? `https://t.me/UniFarming_Bot/UniFarm?ref_code=${userData.ref_code}`
     : "";
   
+  // Добавляем отладочное сообщение сразу перед рендером
+  console.log('[МАРКЕР FRIENDSMINIMAL.TSX]: Этот файл был обновлен с синей кнопкой');
+
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold text-red-500 mb-6 animate-pulse">
-        МИНИМАЛЬНАЯ ВЕРСИЯ (FRIENDSMINIMAL.TSX) -- 27.04.2025
+    <div className="p-4" style={{border: '3px dashed blue', borderRadius: '15px'}}>
+      <h1 className="text-2xl font-black text-blue-500 mb-6 animate-pulse text-center">
+        *** МИНИМАЛЬНАЯ ВЕРСИЯ (FRIENDSMINIMAL.TSX) — V27.04.2025 ***
       </h1>
+      
+      <div className="flex justify-center mb-6">
+        <button 
+          onClick={() => alert('Этот компонент рендерится из файла FriendsMinimal.tsx!')} 
+          className="animate-bounce bg-blue-600 text-white py-3 px-6 rounded-lg text-lg font-bold shadow-lg"
+        >
+          СИНЯЯ КНОПКА ИЗ FRIENDSMINIMAL.TSX
+        </button>
+      </div>
       
       {/* Новый основной компонент для отображения реферальной ссылки */}
       <div className="mb-6">

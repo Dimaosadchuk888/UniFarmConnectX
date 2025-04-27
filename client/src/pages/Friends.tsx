@@ -257,19 +257,33 @@ const Friends: React.FC = () => {
   // Безопасное приведение типов
   const safeUser = userData as User | undefined;
   
+  // Добавляем отладочное сообщение сразу перед рендером
+  console.log('[МАРКЕР FRIENDS.TSX]: Этот файл был обновлен с большой красной кнопкой');
+
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col justify-center items-center mb-6">
         <h1 
-          className="text-2xl font-bold text-green-500"
+          className="text-2xl font-bold text-green-500 mb-4"
           style={{
             opacity: isLoaded ? 1 : 0,
             transform: `translateY(${isLoaded ? 0 : 5}px)`,
-            transition: 'opacity 0.6s ease, transform 0.6s ease'
+            transition: 'opacity 0.6s ease, transform 0.6s ease',
+            border: '2px solid green',
+            padding: '10px 20px',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(0,255,0,0.1)'
           }}
         >
-          ОСНОВНОЙ ФАЙЛ (FRIENDS.TSX) -- ВЕРСИЯ ОТ 27.04.2025
+          ОБНОВЛЕННЫЙ ФАЙЛ — FRIENDS.TSX — V27.04.2025
         </h1>
+        
+        <button 
+          onClick={() => alert('Этот компонент рендерится из файла Friends.tsx!')} 
+          className="animate-pulse bg-red-600 text-white py-3 px-6 rounded-lg text-lg font-bold shadow-lg mb-4"
+        >
+          ТЕСТОВАЯ КНОПКА ИЗ FRIENDS.TSX
+        </button>
         
         {/* Кнопка для принудительного обновления данных */}
         <button 
