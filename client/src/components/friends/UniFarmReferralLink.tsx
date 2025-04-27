@@ -178,20 +178,16 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     if (data && !data.ref_code && !isLoading && !isGeneratingCode) {
       console.log('[UniFarmReferralLink] Отсутствует ref_code, запрашиваем обновленные данные');
       
-      // Сначала пробуем просто получить свежие данные (возможно, код уже создан)
-      const timer = setTimeout(() => {
-        refetch()
-          .then((result) => {
-            // Если и в обновленных данных нет кода - генерируем его
-            if (result.isSuccess && result.data && !result.data.ref_code) {
-              console.log('[UniFarmReferralLink] После обновления ref_code всё ещё отсутствует, генерируем новый');
-              return generateRefCode();
-            }
-          })
-          .catch(error => console.error('[UniFarmReferralLink] Ошибка при обновлении данных:', error));
-      }, 1000);
-      
-      return () => clearTimeout(timer);
+      // Немедленно делаем запрос на обновление данных (без setTimeout)
+      refetch()
+        .then((result) => {
+          // Если и в обновленных данных нет кода - генерируем его без задержки
+          if (result.isSuccess && result.data && !result.data.ref_code) {
+            console.log('[UniFarmReferralLink] После обновления ref_code всё ещё отсутствует, генерируем новый');
+            return generateRefCode();
+          }
+        })
+        .catch(error => console.error('[UniFarmReferralLink] Ошибка при обновлении данных:', error));
     }
   }, [data, isLoading, refetch, generateRefCode, isGeneratingCode]);
   

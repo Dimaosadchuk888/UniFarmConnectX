@@ -86,9 +86,20 @@ export class UserService {
         userData.username = `user_${userData.telegram_id}`;
       }
       
+      // ОБЯЗАТЕЛЬНО генерируем ref_code для всех новых пользователей
+      // Используем асинхронный метод для гарантированно уникального кода
       if (!userData.ref_code) {
-        userData.ref_code = storage.generateRefCode();
-        console.log(`[UserService] Generated new ref_code: ${userData.ref_code}`);
+        // Генерируем уникальный реферальный код
+        userData.ref_code = await storage.generateUniqueRefCode();
+        console.log(`[UserService] Generated new unique ref_code: ${userData.ref_code}`);
+      } else {
+        // Проверяем уникальность предоставленного кода
+        const isUnique = await storage.isRefCodeUnique(userData.ref_code);
+        if (!isUnique) {
+          console.log(`[UserService] Provided ref_code "${userData.ref_code}" is already in use. Generating new one.`);
+          userData.ref_code = await storage.generateUniqueRefCode();
+          console.log(`[UserService] Generated new unique ref_code: ${userData.ref_code}`);
+        }
       }
       
       // Генерируем guest_id, если он не предоставлен
