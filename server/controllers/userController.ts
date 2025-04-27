@@ -37,6 +37,16 @@ export class UserController {
    */
   static async getCurrentUser(req: RequestWithSession, res: Response): Promise<void> {
     try {
+      console.log("[UserController] Входящий запрос к /api/me. Сессия:", req.session ? "доступна" : "отсутствует");
+      if (req.session) {
+        console.log("[UserController] Данные сессии:", {
+          userId: req.session.userId,
+          userObj: req.session.user ? "установлен" : "отсутствует",
+          userObjId: req.session.user?.id,
+          userObjRefCode: req.session.user?.ref_code || "отсутствует"
+        });
+      }
+      
       // Тщательно проверяем все возможные заголовки, содержащие данные Telegram
       // ВАЖНО: Используем только верифицированные данные Telegram для авторизации (п.1.2 ТЗ)
       

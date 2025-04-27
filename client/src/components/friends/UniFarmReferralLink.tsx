@@ -72,6 +72,24 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
   // Извлекаем реферальный код из данных пользователя
   const refCode = data?.ref_code;
   
+  // Детальная диагностика состояния реферального кода
+  useEffect(() => {
+    console.log('[UniFarmReferralLink] Состояние компонента:', { 
+      isComponentMounted: true,
+      hasData: !!data, 
+      userData: data ? {
+        id: data.id,
+        guest_id: data.guest_id,
+        refCode: data.ref_code || 'Отсутствует',
+        hasRefCode: !!data.ref_code,
+        parentRefCode: data.parent_ref_code || 'Отсутствует'
+      } : 'Данные отсутствуют',
+      linkType,
+      referralLink: refCode ? buildReferralLink(refCode) : 'Не удалось создать (нет ref_code)',
+      directBotLink: refCode ? buildDirectBotReferralLink(refCode) : 'Не удалось создать (нет ref_code)'
+    });
+  }, [data, refCode, linkType]);
+  
   // Формируем ссылки с помощью утилит
   const referralLink = refCode ? buildReferralLink(refCode) : "";
   const directBotLink = refCode ? buildDirectBotReferralLink(refCode) : "";
