@@ -1,13 +1,16 @@
 # Инструкция по деплою UniFarm через Replit Deployments
 
-## Шаг 1: Остановите текущий workflow
-1. Перейдите в раздел "Shell and Output"
-2. Найдите и остановите текущий workflow "Start application"
+## Шаг 1: Подготовка проекта
+1. Соберите production-версию приложения:
+   ```bash
+   npm run build
+   ```
+2. Остановите текущий workflow "Start application" (если он запущен)
 
 ## Шаг 2: Настройка деплоя
 1. Нажмите кнопку **Deploy** в правом верхнем углу интерфейса Replit
 2. Выберите **"Configure"** и настройте следующие параметры:
-   - **Run Command**: `NODE_ENV=production node production-deploy.cjs` 
+   - **Run Command**: `NODE_ENV=production node dist/index.js` 
    - **Always On**: ✅ Включено
    - **Autoscale**: ✅ Включено
    - **Domain**: uni-farm-connect-2-misterxuniverse.replit.app

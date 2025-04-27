@@ -24,12 +24,12 @@ npm run build
 
 1. Нажмите кнопку **Deploy** в правом верхнем углу интерфейса Replit
 2. Выберите **"Configure"** и убедитесь, что настройки соответствуют:
-   - **Run Command**: `NODE_ENV=production node production-deploy.cjs` 
+   - **Run Command**: `NODE_ENV=production node dist/index.js` 
    - **Always On**: Включено
    - **Autoscale**: Включено
    - **Domain**: uni-farm-connect-2-misterxuniverse.replit.app
 
-**Важно**: Используйте именно `NODE_ENV=production node production-deploy.cjs` в качестве Run Command, а не стандартный `npm run start`, чтобы гарантировать правильный запуск в production режиме.
+**Важно**: Используйте именно `NODE_ENV=production node dist/index.js` в качестве Run Command. Это запустит приложение напрямую из скомпилированного production-кода, обеспечивая стабильность и высокую производительность.
 
 ### Шаг 3: Запустите деплой
 Нажмите кнопку **Deploy** для запуска процесса деплоя.
@@ -58,7 +58,7 @@ node check-production-url.mjs
 
 1. Убедитесь, что используется правильная команда запуска в Replit Deploy:
    ```
-   NODE_ENV=production node production-deploy.cjs
+   NODE_ENV=production node dist/index.js
    ```
    
 2. Убедитесь, что проект успешно собран:
@@ -107,7 +107,7 @@ pkill -f "tsx " || true
 npm run build
 
 # Выполните deploy через интерфейс Replit
-# Используйте настройки из Шага 2
+# Используйте настройки из Шага 2 (NODE_ENV=production node dist/index.js)
 
 # После деплоя обновите настройки бота
 node setup-telegram-webhook.js
