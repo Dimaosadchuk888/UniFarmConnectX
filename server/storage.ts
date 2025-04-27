@@ -447,7 +447,12 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db.select().from(users).where(eq(users.guest_id, guestId));
       
       if (user) {
-        console.log(`[Storage AUDIT] Найден пользователь по guest_id: ID=${user.id}, guest_id=${user.guest_id}`);
+        console.log(`[Storage AUDIT] Найден пользователь по guest_id: ID=${user.id}, guest_id=${user.guest_id}, username=${user.username || 'нет'}, telegram_id=${user.telegram_id || 'нет'}, ref_code=${user.ref_code || 'нет'}`);
+        
+        // Проверка наличия реферального кода
+        if (!user.ref_code) {
+          console.log(`[Storage WARNING] ⚠️ У пользователя ID=${user.id} с guest_id=${user.guest_id} отсутствует реферальный код!`);
+        }
       } else {
         console.log(`[Storage AUDIT] Пользователь с guest_id ${guestId} не найден в базе`);
       }
@@ -528,7 +533,18 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db.select().from(users).where(eq(users.ref_code, refCode));
       
       if (user) {
-        console.log(`[Storage AUDIT] Найден пользователь по реферальному коду: ID=${user.id}, ref_code=${user.ref_code}`);
+        console.log(`[Storage AUDIT] Найден пользователь по реферальному коду: ID=${user.id}, ref_code=${user.ref_code}, guest_id=${user.guest_id || 'нет'}, telegram_id=${user.telegram_id || 'нет'}`);
+        
+        // Добавляем детальный лог пользователя для диагностики проблем с реферралами
+        console.log(`[Storage REFCODE] Детальная информация о пользователе с ref_code=${refCode}:`, {
+          id: user.id,
+          ref_code: user.ref_code,
+          guest_id: user.guest_id,
+          telegram_id: user.telegram_id,
+          username: user.username,
+          parent_ref_code: user.parent_ref_code || 'отсутствует',
+          created_at: user.created_at || 'неизвестно'
+        });
       } else {
         console.log(`[Storage AUDIT] Пользователь с реферальным кодом ${refCode} не найден в базе`);
       }
