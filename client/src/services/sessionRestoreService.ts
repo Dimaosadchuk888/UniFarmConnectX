@@ -6,17 +6,24 @@
  * всегда получает доступ к своему кабинету, даже при повторных заходах.
  * Новый кабинет создаётся только в случае, если пользователь вручную удалил Telegram-бот
  * или это первый запуск приложения.
+ * 
+ * Поддерживает корректную последовательность инициализации в среде Telegram WebApp:
+ * 1. Восстановление или создание guest_id
+ * 2. Ожидание инициализации Telegram WebApp (WebApp.ready())
+ * 3. Затем выполнение запросов к API
  */
 
 import { apiRequest } from "@/lib/queryClient";
 import { v4 as uuidv4 } from 'uuid';
+import { isTelegramWebApp } from './telegramService';
 
 /**
  * Константы для хранения ключей в localStorage/sessionStorage
  */
 const STORAGE_KEYS = {
   GUEST_ID: 'unifarm_guest_id',
-  LAST_SESSION: 'unifarm_last_session'
+  LAST_SESSION: 'unifarm_last_session',
+  TELEGRAM_READY: 'unifarm_telegram_ready'
 };
 
 /**
@@ -217,6 +224,95 @@ const getOrCreateGuestId = (): string => {
   }
 };
 
+/**
+ * Проверяет, инициализирован ли Telegram WebApp
+ * @returns true если Telegram WebApp уже инициализирован или недоступен
+ */
+const isTelegramWebAppReady = (): boolean => {
+  try {
+    // Если Telegram WebApp не доступен, считаем что "готов" (не нужно ждать)
+    if (!isTelegramWebApp()) {
+      console.log('[sessionRestoreService] Telegram WebApp не обнаружен, считаем "готовым"');
+      return true;
+    }
+    
+    // Проверяем признак готовности из хранилища
+    const isReady = localStorage.getItem(STORAGE_KEYS.TELEGRAM_READY) === 'true';
+    
+    if (isReady) {
+      console.log('[sessionRestoreService] Telegram WebApp уже инициализирован');
+      return true;
+    }
+    
+    console.log('[sessionRestoreService] Telegram WebApp еще не инициализирован');
+    return false;
+  } catch (error) {
+    console.error('[sessionRestoreService] Ошибка при проверке готовности Telegram WebApp:', error);
+    // В случае ошибки считаем, что готов (защита от зависаний)
+    return true;
+  }
+};
+
+/**
+ * Отмечает Telegram WebApp как инициализированный
+ */
+const markTelegramWebAppAsReady = (): void => {
+  try {
+    console.log('[sessionRestoreService] Отмечаем Telegram WebApp как инициализированный');
+    localStorage.setItem(STORAGE_KEYS.TELEGRAM_READY, 'true');
+    sessionStorage.setItem(STORAGE_KEYS.TELEGRAM_READY, 'true');
+  } catch (error) {
+    console.error('[sessionRestoreService] Ошибка при отметке Telegram WebApp как готового:', error);
+  }
+};
+
+/**
+ * Асинхронно ожидает инициализации Telegram WebApp
+ * Возвращает Promise, который разрешается, когда WebApp готов или недоступен
+ * @param timeoutMs максимальное время ожидания в миллисекундах
+ * @returns Promise<boolean> - true если WebApp готов, false если произошел таймаут
+ */
+const waitForTelegramWebApp = (timeoutMs = 5000): Promise<boolean> => {
+  // Если Telegram WebApp не используется или уже готов, сразу возвращаем true
+  if (!isTelegramWebApp() || isTelegramWebAppReady()) {
+    console.log('[sessionRestoreService] Не требуется ожидание Telegram WebApp');
+    return Promise.resolve(true);
+  }
+  
+  console.log('[sessionRestoreService] Ожидаем инициализации Telegram WebApp...');
+  
+  return new Promise((resolve) => {
+    // Устанавливаем таймаут для защиты от зависания
+    const timeoutId = setTimeout(() => {
+      console.warn('[sessionRestoreService] Таймаут ожидания инициализации Telegram WebApp');
+      resolve(false);
+    }, timeoutMs);
+    
+    // Функция проверки готовности с интервалом
+    const checkReady = () => {
+      if (isTelegramWebAppReady()) {
+        clearTimeout(timeoutId);
+        console.log('[sessionRestoreService] Telegram WebApp успешно инициализирован');
+        resolve(true);
+      } else {
+        // Если не готов, пробуем вызвать ready() еще раз и проверяем снова через 100мс
+        try {
+          if (window.Telegram?.WebApp?.ready) {
+            window.Telegram.WebApp.ready();
+          }
+        } catch (e) {
+          console.error('[sessionRestoreService] Ошибка при вызове WebApp.ready():', e);
+        }
+        
+        setTimeout(checkReady, 100);
+      }
+    };
+    
+    // Начинаем проверять готовность
+    checkReady();
+  });
+};
+
 // Экспортируем методы сервиса
 const sessionRestoreService = {
   shouldAttemptRestore,
@@ -226,7 +322,10 @@ const sessionRestoreService = {
   clearGuestIdAndSession,
   hasTelegramUserChanged,
   updateSessionWithTelegramData,
-  getOrCreateGuestId
+  getOrCreateGuestId,
+  isTelegramWebAppReady,
+  markTelegramWebAppAsReady,
+  waitForTelegramWebApp
 };
 
 export default sessionRestoreService;

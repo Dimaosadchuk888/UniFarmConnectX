@@ -51,12 +51,28 @@ declare global {
       WebApp?: {
         ready: () => void;
         expand: () => void;
-        initData?: string;
-        initDataUnsafe?: any;
-        version?: string;
-        platform?: string;
+        close: () => void;
+        initData: string;
+        initDataUnsafe: {
+          user?: {
+            id: number;
+            first_name: string;
+            last_name?: string;
+            username?: string;
+          };
+          start_param?: string;
+        };
+        version: string;
+        platform: string;
         colorScheme?: string;
         MainButton?: any;
+        CloudStorage?: {
+          getItem: (key: string) => Promise<string | null>;
+          setItem: (key: string, value: string) => Promise<void>;
+          removeItem: (key: string) => Promise<void>;
+          getItems: (keys: string[]) => Promise<Record<string, string | null>>;
+          removeItems: (keys: string[]) => Promise<void>;
+        };
       }
     }
   }
@@ -99,55 +115,18 @@ function App() {
     console.log('[App] ✅ Кэш Telegram очищен, обновляем локальные данные...');
   }, []);
 
-  // Этап 11.1: Инициализация Telegram WebApp
-  useEffect(() => {
-    console.log('[App] 📱 Этап 11.1: Проверка и инициализация Telegram WebApp...');
-    
-    try {
-      const isTelegramAvailable = isTelegramWebApp();
-      
-      if (isTelegramAvailable) {
-        console.log('[App] ✅ Telegram WebApp обнаружен, выполняем минимальную инициализацию...');
-        
-        // Выполняем минимальную инициализацию Telegram WebApp
-        const initResult = initTelegramWebApp();
-        
-        if (initResult) {
-          console.log('[App] ✅ Telegram WebApp успешно инициализирован');
-        } else {
-          console.warn('[App] ⚠️ Не удалось инициализировать Telegram WebApp');
-        }
-      } else {
-        console.log('[App] 📝 Telegram WebApp не обнаружен, работаем в стандартном режиме');
-      }
-    } catch (error) {
-      console.error('[App] ❌ Ошибка при инициализации Telegram WebApp:', error);
-    }
-  }, []); // Пустой массив зависимостей означает, что эффект выполнится только при монтировании компонента
+  // Этап 11.1: Делегируем инициализацию Telegram WebApp компоненту TelegramInitializer
+  // Это освобождает нас от необходимости дублировать код инициализации и гарантирует
+  // корректную последовательность действий для корректной работы в среде Telegram
+  // 
+  // Все используемые ранее вызовы теперь выполняются в TelegramInitializer:
+  // - Проверка доступности Telegram WebApp API
+  // - Вызов initTelegramWebApp()
+  // - Вызов WebApp.ready()
+  // - Логирование запуска Mini App
   
-  // Логирование запуска Mini App (Этап 5.1 ТЗ)
-  useEffect(() => {
-    // Асинхронная функция для логирования запуска
-    const logLaunch = async () => {
-      console.log('[App] 📊 Логирование запуска Mini App...');
-      
-      try {
-        // Отправляем данные о запуске на сервер
-        const result = await logAppLaunch();
-        
-        if (result) {
-          console.log('[App] ✅ Запуск Mini App успешно зарегистрирован');
-        } else {
-          console.warn('[App] ⚠️ Не удалось зарегистрировать запуск Mini App');
-        }
-      } catch (error) {
-        console.error('[App] ❌ Ошибка при логировании запуска:', error);
-      }
-    };
-    
-    // Вызываем логирование с небольшой задержкой, чтобы все данные успели инициализироваться
-    setTimeout(logLaunch, 1000);
-  }, []); // Пустой массив зависимостей означает, что эффект выполнится только при монтировании компонента
+  // Примечание: логирование запуска перемещено в TelegramInitializer для соблюдения
+  // правильной последовательности инициализации
 
   // Обновленная инициализация приложения без зависимости от Telegram WebApp
   // (Этап 10.3 - удалены все обращения к window.Telegram.WebApp)
@@ -175,7 +154,7 @@ function App() {
   // Отладочный баннер с отображением домена удален для улучшения UX
 
   // Метод для безопасного восстановления сессии из локального хранилища (Этап 5)
-  // Обновлен для Этапа 10.3: удалены зависимости от Telegram WebApp
+  // Обновлен для обеспечения корректной инициализации Telegram WebApp перед отправкой запросов
   const restoreSessionFromStorage = async () => {
     try {
       setIsLoading(true);
@@ -200,8 +179,17 @@ function App() {
       
       console.log('[App] ✓ Найден guest_id в локальном хранилище:', guestId);
       
+      // Шаг 1.5 (НОВЫЙ): Дожидаемся инициализации Telegram WebApp перед отправкой запросов
+      console.log('[App] 🕒 Ожидаем инициализации Telegram WebApp перед восстановлением сессии...');
+      
+      // Ожидаем инициализации Telegram WebApp (или таймаута)
+      const telegramReady = await sessionRestoreService.waitForTelegramWebApp();
+      
+      console.log(`[App] ${telegramReady ? '✅ Telegram WebApp готов' : '⚠️ Таймаут ожидания Telegram WebApp'}, продолжаем восстановление сессии...`);
+      
       // Шаг 2: Восстановление кабинета по guest_id
       // Пытаемся восстановить сессию через API
+      console.log('[App] Отправляем запрос на восстановление сессии с guest_id:', guestId);
       const result = await sessionRestoreService.restoreSession(guestId);
       
       if (result.success && result.data) {
@@ -236,7 +224,7 @@ function App() {
   };
 
   // Метод для аутентификации только через guest_id и ref_code
-  // (Этап 10.3 - полностью убрана зависимость от Telegram WebApp initData)
+  // Обновлен для обеспечения корректной инициализации Telegram WebApp перед отправкой запросов
   const authenticateWithTelegram = async () => {
     try {
       setIsLoading(true);
@@ -278,8 +266,17 @@ function App() {
       const guestId = sessionRestoreService.getOrCreateGuestId();
       console.log('[App] Используем guest_id:', guestId);
       
+      // Шаг 5.1.5 (НОВЫЙ): Дожидаемся инициализации Telegram WebApp перед отправкой запросов
+      console.log('[App] 🕒 Ожидаем инициализации Telegram WebApp перед авторизацией...');
+      
+      // Ожидаем инициализации Telegram WebApp (или таймаута)
+      const telegramReady = await sessionRestoreService.waitForTelegramWebApp();
+      
+      console.log(`[App] ${telegramReady ? '✅ Telegram WebApp готов' : '⚠️ Таймаут ожидания Telegram WebApp'}, продолжаем авторизацию...`);
+      
       // Этап 5.2: Проверка существующего пользователя и создание нового при необходимости
       try {
+        console.log('[App] Проверяем существование пользователя с guest_id:', guestId);
         const existingUser = await userService.getUserByGuestId(guestId)
           .catch(() => null);
         
@@ -299,6 +296,7 @@ function App() {
           // Регистрируем пользователя с guest_id и реферальным кодом (если есть)
           // Если referrerCode пустой или null, передаем undefined
           const refCodeToSend = referrerCode && referrerCode.length > 0 ? referrerCode : undefined;
+          console.log('[App] Отправляем запрос на регистрацию с guest_id:', guestId, 'и ref_code:', refCodeToSend || 'не указан');
           const registrationResult = await registerUserWithTelegram(guestId, refCodeToSend);
           
           if (registrationResult && registrationResult.success) {
