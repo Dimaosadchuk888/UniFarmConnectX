@@ -51,13 +51,13 @@ export default function TelegramWebAppCheck({ children }: TelegramWebAppCheckPro
         console.log('[TelegramWebAppCheck] ⚠️ Обнаружен завершающий слэш в URL - это может вызвать проблемы с Telegram WebApp:', window.location.pathname);
       }
       
-      // Этап 10.3: Больше не проверяем наличие Telegram.WebApp
-      const isTelegramAvailable = false; // В Этапе 10.3 - независимость от window.Telegram
-      const isWebAppAvailable = false; // В Этапе 10.3 - независимость от window.Telegram.WebApp
+      // Адаптивная проверка наличия Telegram.WebApp
+      const isTelegramAvailable = typeof window.Telegram !== 'undefined';
+      const isWebAppAvailable = isTelegramAvailable && typeof window.Telegram?.WebApp !== 'undefined';
       
-      console.log('[TelegramWebAppCheck] Этап 10.3: Независимая работа от Telegram Mini App:', {
-        isTelegramAvailable, // Всегда false (для совместимости)
-        isWebAppAvailable, // Всегда false (для совместимости)
+      console.log('[TelegramWebAppCheck] Проверка среды Telegram Mini App:', {
+        isTelegramAvailable,
+        isWebAppAvailable,
         hasTrailingSlash,
         currentLocation: location,
         userAgent: navigator.userAgent
