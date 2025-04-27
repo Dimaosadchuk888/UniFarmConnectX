@@ -349,9 +349,9 @@ function App() {
       case "missions":
         return <Missions />;
       case "friends":
-        // ДИАГНОСТИКА: Принудительно используем новый тестовый компонент
-        console.log('[App] Отображение тестовой версии Friends - FriendsTest.tsx');
-        return <FriendsTest />;
+        // Используем новую версию компонента Friends, которая решает проблему кэширования
+        console.log('[App] Использование нового компонента FriendsTest.tsx вместо Friends.tsx');
+        return <FriendsTest />; // ПОСТОЯННОЕ РЕШЕНИЕ - полная замена старого компонента
       case "wallet":
         return <Wallet />;
       default:
