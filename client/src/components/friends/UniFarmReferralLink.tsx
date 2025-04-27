@@ -120,16 +120,29 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
   
   // Функция генерации реферального кода (если он отсутствует)
   const generateRefCode = useCallback(async () => {
-    if (isGeneratingCode || !data || !data.id) return;
+    if (isGeneratingCode || !data) return;
+    
+    // Проверяем наличие ID или guest_id
+    if (!data.id && !data.guest_id) {
+      console.error('[UniFarmReferralLink] Нет идентификаторов для генерации реферального кода');
+      return;
+    }
     
     setIsGeneratingCode(true);
     try {
       console.log('[UniFarmReferralLink] Запрос на генерацию реферального кода');
       
+      // Подготавливаем payload в зависимости от доступных данных
+      const payload = data.id 
+        ? { user_id: data.id } 
+        : { guest_id: data.guest_id };
+      
+      console.log('[UniFarmReferralLink] Используем для генерации:', payload);
+      
       // Генерируем реферальный код через специальный API endpoint
       const result = await apiRequest('/api/users/generate-refcode', {
         method: 'POST',
-        body: JSON.stringify({ user_id: data.id })
+        body: JSON.stringify(payload)
       });
       
       if (result.success && result.data && result.data.ref_code) {
