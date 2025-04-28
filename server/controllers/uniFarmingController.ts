@@ -27,6 +27,7 @@ export class UniFarmingController {
 
   /**
    * Создает новый UNI фарминг-депозит
+   * Принимает как числовые значения user_id, так и null значения
    */
   static async createUniFarmingDeposit(req: Request, res: Response): Promise<void> {
     try {
@@ -41,39 +42,40 @@ export class UniFarmingController {
         return;
       }
       
-      // Валидация входных данных - amount обязательное, user_id опциональное или null
-      const schema = z.object({
-        amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-          message: 'Сумма должна быть положительным числом'
-        }),
-        user_id: z.union([
-          z.number().int().positive(),
-          z.null()
-        ])
-      });
-
-      const result = schema.safeParse(req.body);
-      if (!result.success) {
-        console.log('Ошибка валидации:', result.error.errors);
-        console.log('Тело запроса, которое не прошло валидацию:', JSON.stringify(req.body));
-        res.status(400).json({ 
-          success: false, 
-          message: 'Некорректные данные запроса', 
-          errors: result.error.errors 
-        });
+      // Получение amount и user_id из тела запроса (с проверкой)
+      const { amount, user_id } = req.body;
+      
+      if (amount === undefined || amount === null || amount === '') {
+        console.log('Ошибка: отсутствует обязательное поле amount');
+        res.status(400).json({ success: false, message: 'Отсутствует обязательное поле amount' });
         return;
       }
-
-      // Используем user_id из запроса или default=1
-      // Если null или undefined - используем 1
-      const user_id = (result.data.user_id !== null && result.data.user_id !== undefined) 
-        ? result.data.user_id 
-        : 1;
-      const { amount } = result.data;
       
-      console.log(`Создаем депозит для user_id=${user_id}, amount=${amount}`);
+      // Проверка, что amount является числом и положительным
+      const amountValue = parseFloat(amount);
+      if (isNaN(amountValue) || amountValue <= 0) {
+        console.log('Ошибка: amount должно быть положительным числом');
+        res.status(400).json({ success: false, message: 'Amount должно быть положительным числом' });
+        return;
+      }
       
-      const depositResult = await NewUniFarmingService.createUniFarmingDeposit(user_id, amount);
+      // Если user_id отсутствует или равен null, используем значение по умолчанию = 1
+      // Иначе, если user_id присутствует и не null, проверяем, что это положительное целое число
+      let userId = 1; // значение по умолчанию
+      
+      if (user_id !== undefined && user_id !== null) {
+        const userIdValue = parseInt(user_id);
+        if (isNaN(userIdValue) || userIdValue <= 0 || userIdValue !== Number(user_id)) {
+          console.log('Ошибка: user_id должен быть положительным целым числом');
+          res.status(400).json({ success: false, message: 'user_id должен быть положительным целым числом' });
+          return;
+        }
+        userId = userIdValue;
+      }
+      
+      console.log(`Создаем депозит для user_id=${userId}, amount=${amount}`);
+      
+      const depositResult = await NewUniFarmingService.createUniFarmingDeposit(userId, amount);
       
       console.log('Результат создания депозита:', depositResult);
       
@@ -129,6 +131,7 @@ export class UniFarmingController {
   /**
    * Обрабатывает информационный запрос о сборе урожая
    * В новой системе сбор не требуется, так как всё начисляется автоматически
+   * Принимает как числовые значения user_id, так и null значения
    */
   static async harvestFarmingInfo(req: Request, res: Response): Promise<void> {
     try {
@@ -136,32 +139,31 @@ export class UniFarmingController {
       console.log('Content-Type:', req.headers['content-type']);
       console.log('Тело запроса:', JSON.stringify(req.body));
       
-      // Измененная схема - делаем user_id опциональным или null для совместимости
-      const schema = z.object({
-        user_id: z.union([
-          z.number().int().positive(),
-          z.null()
-        ])
-      });
-
-      const result = schema.safeParse(req.body);
-      if (!result.success) {
-        console.log('Ошибка валидации:', result.error.errors);
-        console.log('Тело запроса, которое не прошло валидацию:', JSON.stringify(req.body));
-        res.status(400).json({ 
-          success: false, 
-          message: 'Некорректные данные запроса', 
-          errors: result.error.errors 
-        });
+      // Проверка содержимого запроса
+      if (!req.body) {
+        console.log('Ошибка: пустое тело запроса');
+        res.status(400).json({ success: false, message: 'Тело запроса пустое' });
         return;
       }
-
-      // Используем user_id из запроса или default=1
-      // Если null или undefined - используем 1
-      const user_id = (result.data.user_id !== null && result.data.user_id !== undefined) 
-        ? result.data.user_id 
-        : 1;
-      console.log(`Информационный запрос для user_id=${user_id}`);
+      
+      // Получение user_id из тела запроса
+      const { user_id } = req.body;
+      
+      // Если user_id отсутствует или равен null, используем значение по умолчанию = 1
+      // Иначе, если user_id присутствует и не null, проверяем, что это положительное целое число
+      let userId = 1; // значение по умолчанию
+      
+      if (user_id !== undefined && user_id !== null) {
+        const userIdValue = parseInt(user_id);
+        if (isNaN(userIdValue) || userIdValue <= 0 || userIdValue !== Number(user_id)) {
+          console.log('Ошибка: user_id должен быть положительным целым числом');
+          res.status(400).json({ success: false, message: 'user_id должен быть положительным целым числом' });
+          return;
+        }
+        userId = userIdValue;
+      }
+      
+      console.log(`Информационный запрос для user_id=${userId}`);
       
       // Просто возвращаем информационное сообщение, так как автоматическое начисление
       res.json({ 
