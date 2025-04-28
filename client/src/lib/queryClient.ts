@@ -42,7 +42,34 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
 export async function apiRequest(
   url: string,
   options?: RequestInit
+): Promise<any>;
+export async function apiRequest(
+  method: string,
+  url: string,
+  data?: any
+): Promise<any>;
+export async function apiRequest(
+  methodOrUrl: string,
+  optionsOrUrl?: RequestInit | string,
+  data?: any
 ): Promise<any> {
+  // Определяем, какой вариант вызова используется
+  let url: string;
+  let options: RequestInit = {};
+  
+  if (typeof optionsOrUrl === 'string') {
+    // Вариант (method, url, data)
+    url = optionsOrUrl;
+    options = {
+      method: methodOrUrl,
+      ...(data && { body: JSON.stringify(data) }),
+      headers: { 'Content-Type': 'application/json' }
+    };
+  } else {
+    // Вариант (url, options)
+    url = methodOrUrl;
+    options = optionsOrUrl || {};
+  }
   try {
     // Преобразуем относительный URL в полный с использованием apiConfig
     const fullUrl = apiConfig.getFullUrl(url);
@@ -54,7 +81,7 @@ export async function apiRequest(
     const headers = getApiHeaders(options?.headers as Record<string, string> || {});
     
     // Логируем запрос перед отправкой
-    console.log(`[queryClient] Making ${options?.method || 'GET'} request to: ${fullUrl}`);
+    console.log(`[queryClient] Making ${options?.method || 'GET'} request to: ${url} (${fullUrl})`);
     
     const res = await fetch(fullUrl, {
       ...options,
