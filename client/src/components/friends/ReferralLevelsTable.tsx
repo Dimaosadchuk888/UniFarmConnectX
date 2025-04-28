@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Coins } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import apiConfig from '@/config/apiConfig';
+import logger from '@/utils/logger';
 
 /**
  * Таблица уровней реферальной программы
@@ -52,7 +53,7 @@ const ReferralLevelsTable: React.FC = () => {
   const guestId = currentUser?.guest_id;
   
   // Логируем информацию о пользователе для отладки
-  console.log('[ReferralLevelsTable] Данные пользователя для запроса рефералов:', {
+  logger.debug('[ReferralLevelsTable] Данные пользователя для запроса рефералов:', {
     userId,
     guestId,
     hasUserId: !!userId,
@@ -88,7 +89,7 @@ const ReferralLevelsTable: React.FC = () => {
         
         // Если нет ни userId, ни guestId, возвращаем пустые данные
         if (!hasUserId && !hasGuestId) {
-          console.log('[ReferralLevelsTable] Нет идентификаторов пользователя для запроса');
+          logger.debug('[ReferralLevelsTable] Нет идентификаторов пользователя для запроса');
           return safeResponse;
         }
         
@@ -97,11 +98,11 @@ const ReferralLevelsTable: React.FC = () => {
           ? `user_id=${userId}` 
           : `guest_id=${guestId}`;
         
-        console.log(`[ReferralLevelsTable] Используем ${hasUserId ? 'user_id' : 'guest_id'} для запроса рефералов`);
+        logger.debug(`[ReferralLevelsTable] Используем ${hasUserId ? 'user_id' : 'guest_id'} для запроса рефералов`);
 
         // Формируем полный URL для запроса с нужным параметром (user_id или guest_id)
         const url = apiConfig.getFullUrl(`/api/referrals?${queryParam}`);
-        console.log('[ReferralLevelsTable] Запрос данных о рефералах по URL:', url);
+        logger.debug('[ReferralLevelsTable] Запрос данных о рефералах по URL:', url);
         
         try {
           // Запрос данных с сервера с явной обработкой ошибок и таймаутом
@@ -127,13 +128,13 @@ const ReferralLevelsTable: React.FC = () => {
           
           // Проверяем базовую структуру ответа
           if (!responseData || typeof responseData !== 'object') {
-            console.warn('[ReferralLevelsTable] Неверный формат данных в ответе:', responseData);
+            logger.warn('[ReferralLevelsTable] Неверный формат данных в ответе:', responseData);
             return safeResponse;
           }
           
           // Проверяем наличие данных в ответе
           if (!responseData.data || typeof responseData.data !== 'object') {
-            console.warn('[ReferralLevelsTable] Отсутствуют данные в ответе:', responseData);
+            logger.warn('[ReferralLevelsTable] Отсутствуют данные в ответе:', responseData);
             return safeResponse;
           }
           
@@ -148,12 +149,12 @@ const ReferralLevelsTable: React.FC = () => {
           const errorMessage = fetchError instanceof Error ? fetchError.message : 'Неизвестная ошибка';
           const isAborted = fetchError instanceof Error && fetchError.name === 'AbortError';
           
-          console.error(`[ReferralLevelsTable] Ошибка запроса: ${errorMessage} (${isAborted ? 'превышен таймаут' : 'сетевая ошибка'})`);
+          logger.error(`[ReferralLevelsTable] Ошибка запроса: ${errorMessage} (${isAborted ? 'превышен таймаут' : 'сетевая ошибка'})`);
           return safeResponse;
         }
       } catch (error) {
         // Общая обработка всех остальных ошибок
-        console.error('[ReferralLevelsTable] Критическая ошибка запроса данных:', error);
+        logger.error('[ReferralLevelsTable] Критическая ошибка запроса данных:', error);
         return {
           success: true,
           data: {
