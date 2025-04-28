@@ -73,20 +73,23 @@ const ReferralLevelsTable: React.FC = () => {
         const hasUserId = !!userId;
         const hasGuestId = !!guestId;
         
+        // Создаем безопасную структуру данных для возврата
+        const safeResponse = {
+          success: true,
+          data: {
+            user_id: userId || 0,
+            username: "",
+            total_referrals: 0,
+            referral_counts: {},
+            level_income: {},
+            referrals: []
+          }
+        };
+        
         // Если нет ни userId, ни guestId, возвращаем пустые данные
         if (!hasUserId && !hasGuestId) {
           console.log('[ReferralLevelsTable] Нет идентификаторов пользователя для запроса');
-          return {
-            success: true,
-            data: {
-              user_id: 0,
-              username: "",
-              total_referrals: 0,
-              referral_counts: {},
-              level_income: {},
-              referrals: []
-            }
-          };
+          return safeResponse;
         }
         
         // Определяем параметр для запроса: предпочитаем userId, но используем guestId если userId отсутствует
@@ -100,24 +103,57 @@ const ReferralLevelsTable: React.FC = () => {
         const url = apiConfig.getFullUrl(`/api/referrals?${queryParam}`);
         console.log('[ReferralLevelsTable] Запрос данных о рефералах по URL:', url);
         
-        // Запрос данных с сервера
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Ошибка получения данных о рефералах: ${response.status}`);
+        try {
+          // Запрос данных с сервера с явной обработкой ошибок и таймаутом
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+          
+          const response = await fetch(url, { 
+            signal: controller.signal,
+            headers: {
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache'
+            }
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            throw new Error(`Ошибка сервера: ${response.status}`);
+          }
+          
+          // Получаем данные из ответа
+          const responseData = await response.json();
+          
+          // Проверяем базовую структуру ответа
+          if (!responseData || typeof responseData !== 'object') {
+            console.warn('[ReferralLevelsTable] Неверный формат данных в ответе:', responseData);
+            return safeResponse;
+          }
+          
+          // Проверяем наличие данных в ответе
+          if (!responseData.data || typeof responseData.data !== 'object') {
+            console.warn('[ReferralLevelsTable] Отсутствуют данные в ответе:', responseData);
+            return safeResponse;
+          }
+          
+          // Гарантируем, что все необходимые поля существуют
+          if (!responseData.data.referrals) responseData.data.referrals = [];
+          if (!responseData.data.level_income) responseData.data.level_income = {};
+          if (!responseData.data.referral_counts) responseData.data.referral_counts = {};
+          
+          return responseData;
+        } catch (fetchError) {
+          // Обработка ошибок сетевого запроса
+          const errorMessage = fetchError instanceof Error ? fetchError.message : 'Неизвестная ошибка';
+          const isAborted = fetchError instanceof Error && fetchError.name === 'AbortError';
+          
+          console.error(`[ReferralLevelsTable] Ошибка запроса: ${errorMessage} (${isAborted ? 'превышен таймаут' : 'сетевая ошибка'})`);
+          return safeResponse;
         }
-        
-        // Получаем данные из ответа
-        const responseData = await response.json();
-        
-        // Гарантируем, что все необходимые поля существуют
-        if (!responseData.data.referrals) responseData.data.referrals = [];
-        if (!responseData.data.level_income) responseData.data.level_income = {};
-        if (!responseData.data.referral_counts) responseData.data.referral_counts = {};
-        
-        return responseData;
       } catch (error) {
-        console.error('[ReferralLevelsTable] Ошибка запроса:', error);
-        // Возвращаем безопасную структуру данных при ошибке
+        // Общая обработка всех остальных ошибок
+        console.error('[ReferralLevelsTable] Критическая ошибка запроса данных:', error);
         return {
           success: true,
           data: {
@@ -135,47 +171,86 @@ const ReferralLevelsTable: React.FC = () => {
     enabled: (!!userId || !!guestId) && !isUserLoading,
     staleTime: 1000 * 5, // Кэшируем на 5 секунд
     refetchOnWindowFocus: true, // Обновляем при возврате фокуса
-    refetchOnMount: true // Обновляем при монтировании компонента
+    refetchOnMount: true, // Обновляем при монтировании компонента
+    retry: (failureCount, error) => {
+      // Повторяем запрос не более 2 раз
+      if (failureCount >= 2) return false;
+      
+      // Логируем причину повторного запроса
+      console.log(`[ReferralLevelsTable] Повторный запрос #${failureCount + 1} из-за ошибки:`, error);
+      return true;
+    }
   });
   
   // Преобразуем данные с сервера в нужный формат для отображения
   const levels: ReferralLevel[] = React.useMemo(() => {
+    // Создаем базовую структуру уровней для отображения
+    const defaultLevels = Array.from({ length: 20 }, (_, i) => ({
+      level: `Уровень ${i + 1}`,
+      friends: 0,
+      income: { uni: "0 UNI", ton: "0 TON" },
+      percent: `${LEVEL_PERCENTAGES[i]}%`
+    }));
+    
     // Если данные еще не загружены, возвращаем пустые уровни
     if (!referralsData) {
-      return Array.from({ length: 20 }, (_, i) => ({
-        level: `Уровень ${i + 1}`,
-        friends: 0,
-        income: { uni: "0 UNI", ton: "0 TON" },
-        percent: `${LEVEL_PERCENTAGES[i]}%`
-      }));
+      return defaultLevels;
     }
     
     try {
-      // Получаем количество рефералов по уровням и доходы
-      const referralCounts = referralsData.data.referral_counts || {};
-      const levelIncome = referralsData.data.level_income || {};
+      // Проверяем структуру данных
+      if (!referralsData.data || typeof referralsData.data !== 'object') {
+        console.warn('[ReferralLevelsTable] Неожиданная структура данных:', referralsData);
+        return defaultLevels;
+      }
+      
+      // Получаем количество рефералов по уровням и доходы с безопасными проверками
+      const referralCounts = (referralsData.data.referral_counts && typeof referralsData.data.referral_counts === 'object') 
+        ? referralsData.data.referral_counts 
+        : {};
+      
+      const levelIncome = (referralsData.data.level_income && typeof referralsData.data.level_income === 'object') 
+        ? referralsData.data.level_income 
+        : {};
+      
+      const totalReferrals = typeof referralsData.data.total_referrals === 'number' 
+        ? referralsData.data.total_referrals 
+        : 0;
       
       console.log('[ReferralLevelsTable] API данные:', { 
         referralCounts, 
         levelIncome,
-        totalReferrals: referralsData.data.total_referrals
+        totalReferrals
       });
       
       // Формируем массив уровней с данными из API
       return Array.from({ length: 20 }, (_, i) => {
         const levelNumber = i + 1;
-        const count = referralCounts[levelNumber] || 0;
         
-        // Получаем доходы от рефералов по уровням или устанавливаем нулевые значения
-        const uniIncome = levelIncome[levelNumber]?.uni || 0;
-        const tonIncome = levelIncome[levelNumber]?.ton || 0;
+        // Безопасно получаем значения с проверками типов
+        const count = (referralCounts && typeof referralCounts === 'object' && referralCounts[levelNumber]) 
+          ? Number(referralCounts[levelNumber]) || 0 
+          : 0;
         
-        // Форматируем числа до 8 знаков для UNI и до 6 знаков для TON
-        const formattedUniIncome = typeof uniIncome === 'number' 
+        // Безопасно получаем доходы от рефералов по уровням
+        const safeIncome = (levelIncome && typeof levelIncome === 'object' && levelIncome[levelNumber]) 
+          ? levelIncome[levelNumber]
+          : { uni: 0, ton: 0 };
+        
+        const uniIncome = (safeIncome && typeof safeIncome === 'object' && 'uni' in safeIncome) 
+          ? safeIncome.uni || 0 
+          : 0;
+          
+        const tonIncome = (safeIncome && typeof safeIncome === 'object' && 'ton' in safeIncome) 
+          ? safeIncome.ton || 0 
+          : 0;
+        
+        // Форматируем числа безопасно
+        const formattedUniIncome = typeof uniIncome === 'number' && !isNaN(uniIncome)
           ? parseFloat(uniIncome.toFixed(8)) 
           : 0;
         
-        const formattedTonIncome = typeof tonIncome === 'number' 
+        const formattedTonIncome = typeof tonIncome === 'number' && !isNaN(tonIncome)
           ? parseFloat(tonIncome.toFixed(6)) 
           : 0;
         
@@ -192,12 +267,7 @@ const ReferralLevelsTable: React.FC = () => {
     } catch (error) {
       console.error('[ReferralLevelsTable] Ошибка обработки данных:', error);
       // В случае ошибки возвращаем пустые уровни
-      return Array.from({ length: 20 }, (_, i) => ({
-        level: `Уровень ${i + 1}`,
-        friends: 0,
-        income: { uni: "0 UNI", ton: "0 TON" },
-        percent: `${LEVEL_PERCENTAGES[i]}%`
-      }));
+      return defaultLevels;
     }
   }, [referralsData]);
   
