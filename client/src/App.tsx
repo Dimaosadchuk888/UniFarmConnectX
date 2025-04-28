@@ -26,7 +26,7 @@ import Dashboard from "@/pages/Dashboard";
 import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
 // Импортируем только актуальную версию Friends
-import Friends from "@/pages/Friends"; // Обновленная версия компонента, содержит код из FriendsTest
+import Friends from "@/pages/Friends"; // Компонент страницы друзей и реферальной системы
 import Wallet from "@/pages/Wallet";
 import AdminPage from "./pages/AdminPage";
 import TelegramSetupGuide from "./pages/TelegramSetupGuide";
@@ -340,8 +340,7 @@ function App() {
       case "missions":
         return <Missions />;
       case "friends":
-        // Используем обновленную версию компонента Friends
-        console.log('[App] Рендеринг компонента Friends (версия с исправлением кэширования)');
+        // Используем основной компонент Friends
         return <Friends />;
       case "wallet":
         return <Wallet />;
