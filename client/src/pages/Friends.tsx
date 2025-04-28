@@ -222,10 +222,10 @@ const Friends: React.FC = () => {
 
   return (
     <div className="w-full">
-      {/* Тестовая плашка для проверки обновления страницы */}
+      {/* Тестовая плашка для верификации компонента Friends.tsx */}
       <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md">
-        <p className="font-bold">Тестовая плашка</p>
-        <p>Плашка добавлена 28 апреля 2025 для проверки обновления кода</p>
+        <p className="font-bold">✅ Верификация подключения страницы (28 апреля 2025, 11:15)</p>
+        <p>Плашка подтверждает, что подключен правильный файл страницы "Партнёрка"</p>
       </div>
       
       <div className="flex flex-col justify-center items-center mb-6">
