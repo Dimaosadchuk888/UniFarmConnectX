@@ -65,23 +65,29 @@ export async function apiRequest(
       ...(data && { body: JSON.stringify(data) }),
       headers: { 'Content-Type': 'application/json' }
     };
+    console.log(`[queryClient] Using format (method, url, data) with method=${methodOrUrl}, data=`, data);
   } else {
     // Вариант (url, options)
     url = methodOrUrl;
     options = optionsOrUrl || {};
+    console.log(`[queryClient] Using format (url, options) with url=${url}`);
   }
   try {
     // Преобразуем относительный URL в полный с использованием apiConfig
     const fullUrl = apiConfig.getFullUrl(url);
     
-    console.log(`[queryClient] apiRequest to ${url}`);
-    console.log(`[queryClient] Full URL: ${fullUrl}`);
+    // Более подробное логирование для отладки
+    if (typeof optionsOrUrl === 'string') {
+      console.log(`[queryClient] apiRequest with method=${methodOrUrl}, url=${url}`);
+    } else {
+      console.log(`[queryClient] apiRequest to url=${url}, method=${options?.method || 'GET'}`);
+    }
     
     // Добавляем заголовки Telegram к стандартным заголовкам
     const headers = getApiHeaders(options?.headers as Record<string, string> || {});
     
     // Логируем запрос перед отправкой
-    console.log(`[queryClient] Making ${options?.method || 'GET'} request to: ${url} (${fullUrl})`);
+    console.log(`[queryClient] Making ${options?.method || 'GET'} request to: ${url}`);
     
     const res = await fetch(fullUrl, {
       ...options,
