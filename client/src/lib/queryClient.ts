@@ -38,74 +38,52 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
   return headers;
 }
 
-// Обновляем тип apiRequest, чтобы он возвращал ответ с данными, а не Response
-export async function apiRequest(
-  url: string,
-  options?: RequestInit
-): Promise<any>;
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: any
-): Promise<any>;
-export async function apiRequest(
-  methodOrUrl: string,
-  optionsOrUrl?: RequestInit | string,
-  data?: any
-): Promise<any> {
-  // Определяем, какой вариант вызова используется
-  let url: string;
-  let options: RequestInit = {};
-  
-  if (typeof optionsOrUrl === 'string') {
-    // Вариант (method='POST', url='/api/example', data={foo: 'bar'})
-    url = optionsOrUrl; // Второй параметр - это URL
-    options = {
-      method: methodOrUrl, // Первый параметр - это HTTP метод
-      headers: { 'Content-Type': 'application/json' }
-    };
-    
-    // Добавляем тело запроса, если есть данные
-    if (data) {
-      options.body = JSON.stringify(data);
-    }
-    
-    console.log(`[queryClient] FORMAT 1: method=${methodOrUrl}, url=${url}, hasData=${!!data}`);
-  } else {
-    // Вариант (url='/api/example', options={method: 'POST', body: '{"foo":"bar"}'})
-    url = methodOrUrl; // Первый параметр - это URL
-    options = optionsOrUrl || {}; // Второй параметр - это объект options
-    console.log(`[queryClient] FORMAT 2: url=${url}, method=${options.method || 'GET'}`);
-  }
-  
+/**
+ * НОВАЯ РЕАЛИЗАЦИЯ apiRequest С ПОДДЕРЖКОЙ ТОЛЬКО ОДНОГО ФОРМАТА:
+ * apiRequest('/api/route', { method: 'POST', body: JSON.stringify(data) })
+ * 
+ * БОЛЬШЕ НЕ ПОДДЕРЖИВАЕТСЯ:
+ * apiRequest('POST', '/api/route', data)
+ * 
+ * @param url API URL для запроса
+ * @param options Опции fetch (метод, тело, заголовки и т.д.)
+ * @returns Результат запроса в формате JSON
+ */
+export async function apiRequest(url: string, options?: RequestInit): Promise<any> {
+  console.log('[queryClient] apiRequest to', url);
+
   try {
-    // Преобразуем относительный URL в полный с использованием apiConfig
     const fullUrl = apiConfig.getFullUrl(url);
     
-    // Добавляем заголовки Telegram к стандартным заголовкам
-    const headers = getApiHeaders(options.headers as Record<string, string> || {});
-    options.headers = headers;
+    // Базовые опции
+    const fetchOptions: RequestInit = {
+      method: 'GET',
+      credentials: 'include',
+      headers: getApiHeaders(),
+      ...options
+    };
     
-    // Логируем запрос перед отправкой (с улучшенным форматированием)
-    console.log(`[queryClient] Sending ${options.method || 'GET'} request to: ${url}`);
-    if (options.body) {
-      console.log(`[queryClient] Request body: ${options.body}`);
+    // Подробное логирование
+    console.log(`[queryClient] Sending request to: ${fullUrl}`);
+    console.log(`[queryClient] Method: ${fetchOptions.method}`);
+    if (fetchOptions.body) {
+      console.log(`[queryClient] Request has body: true`);
     }
     
-    const res = await fetch(fullUrl, {
-      ...options,
-      headers,
-      credentials: "include",
-    });
-
-    // Логируем статус ответа
-    console.log(`[queryClient] Response status: ${res.status} ${res.statusText}`);
+    // Выполняем запрос
+    const response = await fetch(fullUrl, fetchOptions);
     
-    await throwIfResNotOk(res);
+    console.log(`[queryClient] Response status: ${response.status} ${response.statusText}`);
     
-    // Пробуем распарсить JSON
+    // Проверяем статус ответа
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error (${response.status}): ${errorText}`);
+    }
+    
     try {
-      const data = await res.json();
+      // Возвращаем данные в формате JSON
+      const data = await response.json();
       
       // Логируем общую структуру ответа (без раскрытия всех данных)
       console.log(`[queryClient] Response received:`, {
