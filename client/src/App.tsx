@@ -395,6 +395,50 @@ function App() {
                   <NavigationBar activeTab="farming" setActiveTab={setActiveTab} />
                 </div>
               </Route>
+
+              {/* Прямой маршрут на страницу кошелька */}
+              <Route path="/wallet">
+                <div className="max-w-md mx-auto bg-background">
+                  <Header />
+                  <main className="px-4 pt-2 pb-20">
+                    <Wallet />
+                  </main>
+                  <NavigationBar activeTab="wallet" setActiveTab={setActiveTab} />
+                </div>
+              </Route>
+
+              {/* Прямой маршрут на страницу друзей/партнёрки */}
+              <Route path="/friends">
+                <div className="max-w-md mx-auto bg-background">
+                  <Header />
+                  <main className="px-4 pt-2 pb-20">
+                    <Friends />
+                  </main>
+                  <NavigationBar activeTab="friends" setActiveTab={setActiveTab} />
+                </div>
+              </Route>
+
+              {/* Прямой маршрут на страницу миссий */}
+              <Route path="/missions">
+                <div className="max-w-md mx-auto bg-background">
+                  <Header />
+                  <main className="px-4 pt-2 pb-20">
+                    <Missions />
+                  </main>
+                  <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
+                </div>
+              </Route>
+
+              {/* Прямой маршрут на страницу дашборда */}
+              <Route path="/dashboard">
+                <div className="max-w-md mx-auto bg-background">
+                  <Header />
+                  <main className="px-4 pt-2 pb-20">
+                    <Dashboard />
+                  </main>
+                  <NavigationBar activeTab="dashboard" setActiveTab={setActiveTab} />
+                </div>
+              </Route>
               
               {/* Основной интерфейс приложения */}
               <Route path="*">
