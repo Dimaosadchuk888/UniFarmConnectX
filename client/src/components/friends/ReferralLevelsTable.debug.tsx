@@ -48,9 +48,8 @@ const ReferralLevelsTable: React.FC = () => {
     retry: 2 // Пробуем несколько раз при ошибке
   });
   
-  // Простая логика определения userId из данных пользователя
+  // Получаем ID пользователя из данных
   const userId = currentUser?.id;
-  console.log('[ReferralLevelsTableDebug] ID пользователя:', userId);
   
   // Запрос на получение структуры рефералов с сервера
   const { data: referralsData, isLoading, error } = useQuery<ReferralsResponse>({
