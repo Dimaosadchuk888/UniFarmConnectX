@@ -44,9 +44,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Мутация для создания фарминг-депозита
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
-      return await apiRequest('/api/uni-farming/deposit', {
-        method: 'POST',
-        body: JSON.stringify({ user_id: 1, amount })
+      return await apiRequest('POST', '/api/uni-farming/deposit', { 
+        user_id: 1, 
+        amount 
       });
     },
     onSuccess: () => {
@@ -67,9 +67,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Информационная мутация (просто для показа информации о новом механизме)
   const infoMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/uni-farming/harvest', {
-        method: 'POST',
-        body: JSON.stringify({ user_id: 1 })
+      return await apiRequest('POST', '/api/uni-farming/harvest', { 
+        user_id: 1 
       });
     },
     onSuccess: (data) => {
