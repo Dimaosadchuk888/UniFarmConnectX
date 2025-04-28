@@ -41,11 +41,12 @@ export class UniFarmingController {
         return;
       }
       
-      // Валидация входных данных - теперь требуем только amount
+      // Валидация входных данных - amount обязательное, user_id опциональное
       const schema = z.object({
         amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
           message: 'Сумма должна быть положительным числом'
-        })
+        }),
+        user_id: z.number().int().positive().optional()
       });
 
       const result = schema.safeParse(req.body);
@@ -59,8 +60,8 @@ export class UniFarmingController {
         return;
       }
 
-      // Используем user_id=1 (тестовый) для примера
-      const user_id = 1;
+      // Используем user_id из запроса или default=1
+      const user_id = result.data.user_id || 1; 
       const { amount } = result.data;
       
       console.log(`Создаем депозит для user_id=${user_id}, amount=${amount}`);

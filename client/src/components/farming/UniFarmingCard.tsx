@@ -44,9 +44,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Мутация для создания фарминг-депозита
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
-      // Создаем тело запроса строго в формате { amount: число }
+      // Создаем тело запроса в формате { amount: число, user_id: 1 }
       const requestBody = { 
-        amount 
+        amount,
+        user_id: 1 
       };
       
       console.log('Отправляем запрос фарминга с телом:', JSON.stringify(requestBody));
