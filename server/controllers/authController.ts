@@ -346,7 +346,23 @@ export class AuthController {
         referrer_registered: referrerRegistered
       });
     } catch (error) {
-      console.error('[REGISTER] Ошибка при регистрации пользователя:', error);
+      // Структурированное логирование ошибки
+      console.error('[AuthController] [Ошибка регистрации пользователя]', {
+        method: 'registerGuestUser',
+        guestId: req.body?.guest_id,
+        username: req.body?.username,
+        hasParentRefCode: !!req.body?.parent_ref_code,
+        hasRefCode: !!req.body?.ref_code,
+        airdropMode: !!req.body?.airdrop_mode,
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        timestamp: new Date().toISOString()
+      });
+      
+      // В режиме разработки выводим полный стек ошибки
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[AuthController] [Стек ошибки]:', error);
+      }
+      
       sendServerError(res, error);
     }
   }
@@ -785,31 +801,36 @@ export class AuthController {
         auth_status: 'verified'
       });
     } catch (error) {
-      console.error('[АУДИТ] Ошибка аутентификации через Telegram:', error);
-      
-      // Добавим подробную диагностику ошибки
+      // Добавим подробную структурированную диагностику ошибки
       let errorMessage = 'Внутренняя ошибка сервера';
-      let errorDetails = {};
+      let errorStack = '';
       
       if (error instanceof Error) {
         errorMessage = error.message;
-        errorDetails = {
-          name: error.name,
-          stack: error.stack?.substring(0, 200) // Первые 200 символов стека вызовов
-        };
+        errorStack = error.stack || '';
       }
       
-      console.error('[АУДИТ] Детали ошибки:', {
-        message: errorMessage,
-        details: errorDetails,
-        requestBody: {
+      // Структурированное логирование ошибки
+      console.error('[AuthController] [Ошибка аутентификации Telegram]', {
+        method: 'authenticateTelegram',
+        error: errorMessage,
+        timestamp: new Date().toISOString(),
+        requestInfo: {
           hasAuthData: !!req.body.authData,
           authDataLength: req.body.authData ? req.body.authData.length : 0,
+          hasHeaderInitData: !!(req.headers['telegram-init-data'] || req.headers['x-telegram-init-data']),
           referrerId: req.body.referrerId,
           refCode: req.body.refCode,
-          startParam: req.body.startParam
+          startParam: req.body.startParam,
+          hasTelegramBotToken: !!AuthController.BOT_TOKEN,
+          nodeEnv: process.env.NODE_ENV || 'не указан'
         }
       });
+      
+      // В режиме разработки выводим полный стек ошибки
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[AuthController] [Стек ошибки]:', errorStack);
+      }
       
       sendServerError(res, error);
     }
