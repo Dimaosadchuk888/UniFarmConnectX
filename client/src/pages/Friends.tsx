@@ -222,6 +222,12 @@ const Friends: React.FC = () => {
 
   return (
     <div className="w-full">
+      {/* Тестовая плашка для проверки обновления страницы */}
+      <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md">
+        <p className="font-bold">Тестовая плашка</p>
+        <p>Плашка добавлена 28 апреля 2025 для проверки обновления кода</p>
+      </div>
+      
       <div className="flex flex-col justify-center items-center mb-6">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-purple-500 mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
