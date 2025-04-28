@@ -11,9 +11,9 @@ async function testFarmingDeposit() {
     
     console.log(`Отправка POST запроса на ${url}`);
     
-    // Тело запроса с обязательным user_id
+    // Тело запроса с обязательным amount и user_id
     const requestBody = {
-      amount: "10",
+      amount: "5",
       user_id: 1
     };
     
