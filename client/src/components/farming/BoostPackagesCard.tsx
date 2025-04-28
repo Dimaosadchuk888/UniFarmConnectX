@@ -116,10 +116,16 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
   // Мутация для покупки TON буста
   const buyTonBoostMutation = useMutation({
     mutationFn: async ({ boostId, paymentMethod }: { boostId: number, paymentMethod: 'internal_balance' | 'external_wallet' }) => {
-      return await apiRequest('POST', '/api/ton-boosts/purchase', {
-        user_id: userId,
-        boost_id: boostId,
-        payment_method: paymentMethod
+      return await apiRequest('/api/ton-boosts/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          boost_id: boostId,
+          payment_method: paymentMethod
+        })
       });
     },
     onMutate: ({ boostId }) => {

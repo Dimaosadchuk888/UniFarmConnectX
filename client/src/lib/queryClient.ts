@@ -55,11 +55,27 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
   try {
     const fullUrl = apiConfig.getFullUrl(url);
     
+    // Добавляем нужные заголовки, если они не были предоставлены
+    const headersToAdd: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    
+    // Объединяем наши заголовки с теми, что есть в options
+    const customHeaders = options?.headers || {};
+    const mergedHeaders = {
+      ...headersToAdd,
+      ...(customHeaders as Record<string, string>)
+    };
+    
+    // Добавляем Telegram заголовки
+    const apiHeaders = getApiHeaders(mergedHeaders);
+    
     // Базовые опции
     const fetchOptions: RequestInit = {
       method: 'GET',
       credentials: 'include',
-      headers: getApiHeaders(),
+      headers: apiHeaders,
       ...options
     };
     
@@ -67,7 +83,7 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
     console.log(`[queryClient] Sending request to: ${fullUrl}`);
     console.log(`[queryClient] Method: ${fetchOptions.method}`);
     if (fetchOptions.body) {
-      console.log(`[queryClient] Request has body: true`);
+      console.log(`[queryClient] Request has body: ${fetchOptions.body}`);
     }
     
     // Выполняем запрос
