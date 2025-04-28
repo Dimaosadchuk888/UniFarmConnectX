@@ -355,37 +355,27 @@ function App() {
         <TelegramWebAppCheck>
           <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
             <Switch>
-              {/* Новый унифицированный обработчик для всех вариантов Telegram Mini App */}
+              {/* Маршруты для Telegram Mini App */}
               <Route path="/UniFarm/">
                 <TelegramMiniApp />
               </Route>
               
-              {/* Для совместимости, маршрут для Mini App не зависимо от регистра */}
+              {/* Для совместимости, маршрут для Mini App независимо от регистра */}
               <Route path="/unifarm/">
                 <TelegramMiniApp />
               </Route>
               
-              {/* Специальный обработчик для маршрута /app/ */}
+              {/* Специальный обработчик для маршрута /app/ со слешем */}
               <Route path="/app/">
-                <TelegramMiniApp />
+                <TelegramSlashHandler />
               </Route>
               
-              {/* Универсальный обработчик для альтернативных и произвольных путей */}
+              {/* Основной маршрут /app без слеша */}
               <Route path="/app">
                 <TelegramMiniApp />
               </Route>
               
-              {/* Универсальный обработчик для простого тестирования */}
-              <Route path="/test-telegram">
-                <TelegramMiniApp />
-              </Route>
-              
-              {/* Специальная страница для перенаправления на Telegram Mini App */}
-              <Route path="/telegram-redirect">
-                <TelegramRedirect />
-              </Route>
-              
-              {/* Административная страница для настройки бота - только необходимые маршруты */}
+              {/* Административная страница для настройки бота */}
               <Route path="/admin">
                 <AdminPage />
               </Route>
