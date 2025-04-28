@@ -431,29 +431,7 @@ const ReferralLinkCard: React.FC = () => {
         )}
       </div>
       
-      {/* Секция с кнопками проверки связи */}
-      <div className="mt-6 mb-3">
-        <h3 className="text-md font-medium text-white/80 mb-3 flex items-center">
-          <i className="fas fa-signal text-blue-400 mr-2 text-sm"></i>
-          Проверка соединения
-        </h3>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <button 
-            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg flex items-center justify-center"
-          >
-            <i className="fas fa-wifi mr-2"></i>
-            Проверка связи 1
-          </button>
-          
-          <button 
-            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-2 px-4 rounded-lg transition-colors duration-300 shadow-md hover:shadow-lg flex items-center justify-center"
-          >
-            <i className="fas fa-broadcast-tower mr-2"></i>
-            Проверка связи 2
-          </button>
-        </div>
-      </div>
+      {/* Секция с проверкой была удалена согласно ТЗ от 28 апреля 2025 */}
       
       {/* Подсказка о принципе работы - обновленный текст */}
       <div className="text-xs text-foreground opacity-70 mt-4 bg-primary/5 p-3 rounded-lg">
