@@ -367,7 +367,7 @@ function App() {
               
               {/* Специальный обработчик для маршрута /app/ со слешем */}
               <Route path="/app/">
-                <TelegramSlashHandler />
+                <TelegramMiniApp />
               </Route>
               
               {/* Основной маршрут /app без слеша */}
@@ -383,6 +383,17 @@ function App() {
               {/* Руководство по настройке Telegram Mini App */}
               <Route path="/telegram-setup">
                 <TelegramSetupGuide />
+              </Route>
+              
+              {/* Прямой маршрут на страницу фарминга */}
+              <Route path="/farming">
+                <div className="max-w-md mx-auto bg-background">
+                  <Header />
+                  <main className="px-4 pt-2 pb-20">
+                    <Farming />
+                  </main>
+                  <NavigationBar activeTab="farming" setActiveTab={setActiveTab} />
+                </div>
               </Route>
               
               {/* Основной интерфейс приложения */}
