@@ -30,14 +30,9 @@ export class UniFarmingController {
    */
   static async createUniFarmingDeposit(req: Request, res: Response): Promise<void> {
     try {
-      console.log('[DEBUG] UniFarmingController.createUniFarmingDeposit - Получен запрос');
-      console.log('[DEBUG] Заголовки запроса:', req.headers);
-      console.log('[DEBUG] Тело запроса:', req.body);
-      
       // Проверка содержимого запроса
       if (!req.body) {
-        console.log('[DEBUG] Тело запроса отсутствует');
-        res.status(400).json({ success: false, message: 'Request body is empty' });
+        res.status(400).json({ success: false, message: 'Тело запроса пустое' });
         return;
       }
       
@@ -45,35 +40,32 @@ export class UniFarmingController {
       const schema = z.object({
         user_id: z.number().int().positive(),
         amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-          message: 'Amount must be a positive number'
+          message: 'Сумма должна быть положительным числом'
         })
       });
 
-      console.log('[DEBUG] Выполняем парсинг запроса...');
       const result = schema.safeParse(req.body);
       if (!result.success) {
-        console.log('[DEBUG] Ошибка валидации:', result.error.errors);
-        res.status(400).json({ success: false, message: 'Invalid request data', errors: result.error.errors });
+        res.status(400).json({ 
+          success: false, 
+          message: 'Некорректные данные запроса', 
+          errors: result.error.errors 
+        });
         return;
       }
 
-      console.log('[DEBUG] Запрос успешно валидирован');
       const { user_id, amount } = result.data;
-      console.log('[DEBUG] Параметры: user_id =', user_id, 'amount =', amount);
       
       const depositResult = await NewUniFarmingService.createUniFarmingDeposit(user_id, amount);
-      console.log('[DEBUG] Результат создания депозита:', depositResult);
       
       if (depositResult.success) {
-        console.log('[DEBUG] Депозит успешно создан, отправляем ответ');
         res.json({ success: true, data: depositResult });
       } else {
-        console.log('[DEBUG] Ошибка создания депозита:', depositResult.message);
         res.status(400).json({ success: false, message: depositResult.message });
       }
     } catch (error) {
-      console.error('[DEBUG] Критическая ошибка в createUniFarmingDeposit:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
+      console.error('Ошибка в createUniFarmingDeposit:', error);
+      res.status(500).json({ success: false, message: 'Внутренняя ошибка сервера' });
     }
   }
 

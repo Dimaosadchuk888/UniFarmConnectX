@@ -55,35 +55,45 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
   try {
     const fullUrl = apiConfig.getFullUrl(url);
     
-    // Добавляем нужные заголовки, если они не были предоставлены
-    const headersToAdd: Record<string, string> = {
+    // Определяем метод из options или по умолчанию GET
+    const method = options?.method || 'GET';
+    console.log(`[queryClient] Making ${method} request to: ${fullUrl}`);
+    
+    // Необходимые базовые заголовки
+    const baseHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     };
     
-    // Объединяем наши заголовки с теми, что есть в options
+    // Объединяем базовые заголовки с переданными в options
     const customHeaders = options?.headers || {};
     const mergedHeaders = {
-      ...headersToAdd,
+      ...baseHeaders,
       ...(customHeaders as Record<string, string>)
     };
     
     // Добавляем Telegram заголовки
     const apiHeaders = getApiHeaders(mergedHeaders);
     
-    // Базовые опции
+    // Создаем чистые опции для fetch
     const fetchOptions: RequestInit = {
-      method: 'GET',
+      method,
       credentials: 'include',
-      headers: apiHeaders,
-      ...options
+      headers: apiHeaders
     };
     
-    // Подробное логирование
-    console.log(`[queryClient] Sending request to: ${fullUrl}`);
-    console.log(`[queryClient] Method: ${fetchOptions.method}`);
+    // Копируем остальные опции (кроме headers, так как мы их уже объединили)
+    if (options) {
+      if (options.body) fetchOptions.body = options.body;
+      if (options.cache) fetchOptions.cache = options.cache;
+      if (options.mode) fetchOptions.mode = options.mode;
+      if (options.redirect) fetchOptions.redirect = options.redirect;
+      if (options.signal) fetchOptions.signal = options.signal;
+    }
+    
+    // Логирование запроса
     if (fetchOptions.body) {
-      console.log(`[queryClient] Request has body: ${fetchOptions.body}`);
+      console.log(`[queryClient] Request body: ${fetchOptions.body}`);
     }
     
     // Выполняем запрос
@@ -98,10 +108,19 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
     }
     
     try {
-      // Возвращаем данные в формате JSON
-      const data = await response.json();
+      // Получаем текст ответа для проверки
+      const responseText = await response.text();
       
-      // Логируем общую структуру ответа (без раскрытия всех данных)
+      // Проверяем, что ответ не пустой
+      if (!responseText.trim()) {
+        console.log('[queryClient] Получен пустой ответ');
+        return { success: true }; // Возвращаем базовый успешный ответ
+      }
+      
+      // Преобразуем ответ в JSON
+      const data = JSON.parse(responseText);
+      
+      // Логируем общую структуру ответа
       console.log(`[queryClient] Response received:`, {
         success: data?.success,
         hasData: data?.data !== undefined,
