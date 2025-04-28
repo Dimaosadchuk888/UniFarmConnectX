@@ -235,17 +235,7 @@ const FriendsTest: React.FC = () => {
           </p>
         </div>
         
-        <div className="w-full p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg mb-6">
-          <h2 className="text-xl text-white font-bold mb-2">Ваш реферальный код</h2>
-          <div className="bg-white/20 p-3 rounded">
-            <p className="text-white mb-2">
-              <strong>Код:</strong> {(userData as any)?.ref_code || 'создается...'}
-            </p>
-            <p className="text-white">
-              <strong>ID:</strong> {(userData as any)?.id || 'загрузка...'}
-            </p>
-          </div>
-        </div>
+        {/* Блок со статистикой "Ваш реферальный код" удален согласно ТЗ от 28 апреля 2025 */}
         
         {/* Кнопка обновления данных */}
         <button 
