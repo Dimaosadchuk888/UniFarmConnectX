@@ -125,17 +125,29 @@ export class UniFarmingController {
    */
   static async harvestFarmingInfo(req: Request, res: Response): Promise<void> {
     try {
+      console.log('Получен запрос POST /api/uni-farming/harvest');
+      console.log('Content-Type:', req.headers['content-type']);
+      console.log('Тело запроса:', JSON.stringify(req.body));
+      
+      // Измененная схема - делаем user_id опциональным для совместимости
       const schema = z.object({
-        user_id: z.number().int().positive()
+        user_id: z.number().int().positive().optional()
       });
 
       const result = schema.safeParse(req.body);
       if (!result.success) {
-        res.status(400).json({ success: false, message: 'Invalid request data', errors: result.error.errors });
+        console.log('Ошибка валидации:', result.error.errors);
+        res.status(400).json({ 
+          success: false, 
+          message: 'Некорректные данные запроса', 
+          errors: result.error.errors 
+        });
         return;
       }
 
-      const { user_id } = result.data;
+      // Используем user_id из запроса или default=1
+      const user_id = result.data.user_id || 1;
+      console.log(`Информационный запрос для user_id=${user_id}`);
       
       // Просто возвращаем информационное сообщение, так как автоматическое начисление
       res.json({ 
