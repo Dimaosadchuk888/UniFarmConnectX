@@ -7,6 +7,9 @@ import fs from "fs";
 // Расширяем тип WebSocket для поддержки пользовательских свойств
 interface ExtendedWebSocket extends WebSocket {
   userId?: number;
+  _socket?: {
+    remoteAddress?: string;
+  };
 }
 import { storage } from "./storage";
 
@@ -1297,8 +1300,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Централизованная обработка ошибок
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('Unhandled error in API route:', err);
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+    // Структурированное логирование необработанных ошибок
+    console.error('[API] [Необработанная ошибка]', {
+      route: req.originalUrl,
+      method: req.method,
+      error: err instanceof Error ? err.message : 'Неизвестная ошибка',
+      timestamp: new Date().toISOString(),
+      statusCode: 500,
+      ip: req.ip || req.headers['x-forwarded-for'] || 'неизвестно'
+    });
+    
+    // В режиме разработки выводим полный стек ошибки
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[API] [Стек ошибки]:', err);
+    }
+    
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -1357,7 +1374,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Обработка ошибок
     ws.on('error', (error) => {
-      console.error('[WebSocket] Ошибка соединения:', error);
+      // Структурированное логирование ошибки соединения
+      console.error('[WebSocket] [Ошибка соединения]', {
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        userId: (ws as ExtendedWebSocket).userId || 'не определён',
+        timestamp: new Date().toISOString()
+      });
+      
+      // В режиме разработки выводим полный стек ошибки
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[WebSocket] [Стек ошибки]:', error);
+      }
     });
   });
   
@@ -1365,12 +1392,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Можно использовать из других модулей, например из сервисов
   (global as any).broadcastUserUpdate = (userId: number, data: any) => {
     wss.clients.forEach((client: WebSocket) => {
-      const extClient = client as ExtendedWebSocket;
-      if (extClient.readyState === WebSocket.OPEN && extClient.userId === userId) {
-        extClient.send(JSON.stringify({
-          type: 'update',
-          ...data
-        }));
+      try {
+        const extClient = client as ExtendedWebSocket;
+        if (extClient.readyState === WebSocket.OPEN && extClient.userId === userId) {
+          extClient.send(JSON.stringify({
+            type: 'update',
+            ...data
+          }));
+        }
+      } catch (error) {
+        // Структурированное логирование ошибки
+        console.error('[WebSocket] [Ошибка отправки] Не удалось отправить обновление пользователю:', {
+          userId,
+          error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+          timestamp: new Date().toISOString()
+        });
+        
+        // В производственной среде не выводим полный стек ошибки
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[WebSocket] [Стек ошибки]:', error);
+        }
       }
     });
   };
