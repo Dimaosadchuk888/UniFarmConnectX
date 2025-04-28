@@ -151,7 +151,7 @@ const Friends: React.FC = () => {
       const guestId = localStorage.getItem('unifarm_guest_id');
       
       if (!guestId) {
-        console.error('[FriendsTest] Не удалось получить guest_id из localStorage');
+        console.error('[Friends] Не удалось получить guest_id из localStorage');
         setDirectLinkData({ 
           isLoading: false, 
           refCode: '', 
@@ -164,7 +164,7 @@ const Friends: React.FC = () => {
       const response = await fetch(`/api/users/guest/${guestId}`);
       const data = await response.json();
       
-      console.log('[FriendsTest] Прямой запрос к API:', data);
+      console.log('[Friends] Прямой запрос к API:', data);
       
       if (data.success && data.data && data.data.ref_code) {
         setDirectLinkData({ 
@@ -203,7 +203,7 @@ const Friends: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('[FriendsTest] Ошибка при прямом запросе реферального кода:', error);
+      console.error('[Friends] Ошибка при прямом запросе реферального кода:', error);
       setDirectLinkData({ 
         isLoading: false, 
         refCode: '', 
