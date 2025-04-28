@@ -7,18 +7,15 @@ import type { User } from '@/services/userService';
 import { queryClient } from '@/lib/queryClient';
 
 /**
- * Страница партнерской программы (Новая версия)
+ * Страница партнерской программы
  * Показывает реферальную ссылку и таблицу с уровнями партнерской программы
- * 
- * НОВАЯ ВЕРСИЯ: Создана для устранения проблем с кешированием, 
- * заменяет оригинальный Friends.tsx
  */
-const FriendsTest: React.FC = () => {
+const Friends: React.FC = () => {
   // Состояние для отслеживания видимости элементов
   const [isLoaded, setIsLoaded] = useState(true);
   
   // Отладочная отметка в консоли
-  console.log('[FRIENDSTEST.TSX]: Этот файл заменяет оригинальный Friends.tsx');
+  console.log('[Friends] Компонент страницы партнерской программы');
   
   // Получаем информацию о пользователе с принудительным обновлением
   const { data: userData, isLoading, isError, refetch } = useQuery<any>({
@@ -33,7 +30,7 @@ const FriendsTest: React.FC = () => {
   // Эффект для логирования данных пользователя
   useEffect(() => {
     // Подробное логирование для отладки
-    console.log('[FriendsTest] Состояние компонента:', {
+    console.log('[Friends] Состояние компонента:', {
       hasUserData: !!userData,
       isLoading,
       isError,
@@ -47,9 +44,9 @@ const FriendsTest: React.FC = () => {
     
     // Специальное логирование для реферального кода
     if (userData?.ref_code) {
-      console.log('[FriendsTest] АУДИТ: получен ref_code:', userData.ref_code);
+      console.log('[Friends] АУДИТ: получен ref_code:', userData.ref_code);
     } else if (!isLoading && userData) {
-      console.warn('[FriendsTest] АУДИТ: ref_code отсутствует в данных пользователя:', {
+      console.warn('[Friends] АУДИТ: ref_code отсутствует в данных пользователя:', {
         hasUserData: !!userData,
         userId: userData?.id,
         telegramId: userData?.telegram_id,
@@ -60,11 +57,11 @@ const FriendsTest: React.FC = () => {
     // Проверяем localStorage для диагностики
     try {
       const localStorageKeys = Object.keys(localStorage);
-      console.log('[FriendsTest] Данные localStorage:', localStorageKeys.map(key => 
+      console.log('[Friends] Данные localStorage:', localStorageKeys.map(key => 
         `${key}: ${localStorage.getItem(key)?.substring(0, 30)}...`
       ));
     } catch (error) {
-      console.error('[FriendsTest] Ошибка доступа к localStorage:', error);
+      console.error('[Friends] Ошибка доступа к localStorage:', error);
     }
   }, [userData, isLoading, isError]);
 
@@ -72,25 +69,25 @@ const FriendsTest: React.FC = () => {
   useEffect(() => {
     // Только если данные загружены и ref_code отсутствует
     if (!isLoading && userData && !userData.ref_code) {
-      console.log('[FriendsTest] Обнаружено отсутствие ref_code, запускаем генерацию');
+      console.log('[Friends] Обнаружено отсутствие ref_code, запускаем генерацию');
       
       // Немедленно пытаемся сгенерировать реферальный код без задержки
       userService.generateRefCode()
         .then(refCode => {
-          console.log('[FriendsTest] Успешно сгенерирован реферальный код:', refCode);
+          console.log('[Friends] Успешно сгенерирован реферальный код:', refCode);
           
           // Принудительно обновляем данные в интерфейсе
           refetch().then(() => {
-            console.log('[FriendsTest] UI обновлен после генерации кода');
+            console.log('[Friends] UI обновлен после генерации кода');
           });
         })
         .catch(err => {
-          console.error('[FriendsTest] Ошибка генерации реферального кода:', err);
+          console.error('[Friends] Ошибка генерации реферального кода:', err);
           
           // Переходим к запасному варианту - запрашиваем просто обновление данных
           userService.getCurrentUser(true)
             .then(updatedUser => {
-              console.log('[FriendsTest] Получены обновленные данные:', { 
+              console.log('[Friends] Получены обновленные данные:', { 
                 hasRefCode: !!updatedUser?.ref_code,
                 refCode: updatedUser?.ref_code
               });
@@ -105,12 +102,12 @@ const FriendsTest: React.FC = () => {
   
   // Добавляем функцию для принудительного обновления данных
   const forceDataRefresh = async () => {
-    console.log('[FriendsTest] Принудительное обновление данных');
+    console.log('[Friends] Принудительное обновление данных');
     
     try {
       // Принудительно запрашиваем свежие данные
       const updatedUser = await userService.getCurrentUser(true);
-      console.log('[FriendsTest] Данные обновлены:', {
+      console.log('[Friends] Данные обновлены:', {
         hasData: !!updatedUser, 
         refCode: updatedUser?.ref_code || 'НЕ ПОЛУЧЕН'
       });
@@ -123,18 +120,18 @@ const FriendsTest: React.FC = () => {
       
       // Если кода все равно нет - пробуем генерировать
       if (updatedUser && !updatedUser.ref_code) {
-        console.log('[FriendsTest] После обновления реферальный код все еще отсутствует, запускаем генерацию');
+        console.log('[Friends] После обновления реферальный код все еще отсутствует, запускаем генерацию');
         
         try {
           const code = await userService.generateRefCode();
-          console.log('[FriendsTest] Код успешно сгенерирован:', code);
+          console.log('[Friends] Код успешно сгенерирован:', code);
           refetch();
         } catch (genError) {
-          console.error('[FriendsTest] Ошибка генерации кода:', genError);
+          console.error('[Friends] Ошибка генерации кода:', genError);
         }
       }
     } catch (error) {
-      console.error('[FriendsTest] Ошибка при принудительном обновлении:', error);
+      console.error('[Friends] Ошибка при принудительном обновлении:', error);
     }
   };
   
@@ -279,4 +276,4 @@ const FriendsTest: React.FC = () => {
   );
 };
 
-export default FriendsTest;
+export default Friends;
