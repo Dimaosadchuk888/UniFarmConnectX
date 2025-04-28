@@ -44,13 +44,31 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Мутация для создания фарминг-депозита
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
-      return await apiRequest('/api/uni-farming/deposit', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          user_id: 1, 
-          amount 
-        })
-      });
+      console.log('[DEBUG] Отправка запроса активации фарминга:');
+      console.log('[DEBUG] Сумма:', amount);
+      
+      const requestBody = { 
+        user_id: 1, 
+        amount 
+      };
+      
+      console.log('[DEBUG] Тело запроса:', JSON.stringify(requestBody));
+      
+      try {
+        const response = await apiRequest('/api/uni-farming/deposit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+        
+        console.log('[DEBUG] Успешный ответ:', response);
+        return response;
+      } catch (error) {
+        console.error('[DEBUG] Ошибка запроса:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       // Сбрасываем форму и обновляем данные
