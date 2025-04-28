@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, useRoute } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,7 +15,6 @@ import {
 import { getReferrerIdFromURL } from './lib/utils';
 import userService from '@/services/userService';
 import sessionRestoreService from '@/services/sessionRestoreService'; // Сервис восстановления сессии
-// Импорт guestIdService удален, так как не используется в этом файле
 
 // Импортируем компоненты UI
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
@@ -25,13 +24,10 @@ import NavigationBar from "@/components/layout/NavigationBar";
 import Dashboard from "@/pages/Dashboard";
 import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
-// Импортируем только актуальную версию Friends
 import Friends from "@/pages/Friends"; // Компонент страницы друзей и реферальной системы
 import Wallet from "@/pages/Wallet";
 import AdminPage from "./pages/AdminPage";
 import TelegramSetupGuide from "./pages/TelegramSetupGuide";
-import TelegramRedirect from "./pages/TelegramRedirect";
-import TelegramSlashHandler from "./pages/TelegramSlashHandler";
 import TelegramMiniApp from "./pages/TelegramMiniApp";
 import TelegramInitializer from "@/components/telegram/TelegramInitializer";
 
