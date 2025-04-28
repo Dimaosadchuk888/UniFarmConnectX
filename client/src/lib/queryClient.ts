@@ -58,36 +58,39 @@ export async function apiRequest(
   let options: RequestInit = {};
   
   if (typeof optionsOrUrl === 'string') {
-    // Вариант (method, url, data)
-    url = optionsOrUrl;
+    // Вариант (method='POST', url='/api/example', data={foo: 'bar'})
+    url = optionsOrUrl; // Второй параметр - это URL
     options = {
-      method: methodOrUrl,
-      ...(data && { body: JSON.stringify(data) }),
+      method: methodOrUrl, // Первый параметр - это HTTP метод
       headers: { 'Content-Type': 'application/json' }
     };
-    console.log(`[queryClient] Using format (method, url, data) with method=${methodOrUrl}, data=`, data);
+    
+    // Добавляем тело запроса, если есть данные
+    if (data) {
+      options.body = JSON.stringify(data);
+    }
+    
+    console.log(`[queryClient] FORMAT 1: method=${methodOrUrl}, url=${url}, hasData=${!!data}`);
   } else {
-    // Вариант (url, options)
-    url = methodOrUrl;
-    options = optionsOrUrl || {};
-    console.log(`[queryClient] Using format (url, options) with url=${url}`);
+    // Вариант (url='/api/example', options={method: 'POST', body: '{"foo":"bar"}'})
+    url = methodOrUrl; // Первый параметр - это URL
+    options = optionsOrUrl || {}; // Второй параметр - это объект options
+    console.log(`[queryClient] FORMAT 2: url=${url}, method=${options.method || 'GET'}`);
   }
+  
   try {
     // Преобразуем относительный URL в полный с использованием apiConfig
     const fullUrl = apiConfig.getFullUrl(url);
     
-    // Более подробное логирование для отладки
-    if (typeof optionsOrUrl === 'string') {
-      console.log(`[queryClient] apiRequest with method=${methodOrUrl}, url=${url}`);
-    } else {
-      console.log(`[queryClient] apiRequest to url=${url}, method=${options?.method || 'GET'}`);
-    }
-    
     // Добавляем заголовки Telegram к стандартным заголовкам
-    const headers = getApiHeaders(options?.headers as Record<string, string> || {});
+    const headers = getApiHeaders(options.headers as Record<string, string> || {});
+    options.headers = headers;
     
-    // Логируем запрос перед отправкой
-    console.log(`[queryClient] Making ${options?.method || 'GET'} request to: ${url}`);
+    // Логируем запрос перед отправкой (с улучшенным форматированием)
+    console.log(`[queryClient] Sending ${options.method || 'GET'} request to: ${url}`);
+    if (options.body) {
+      console.log(`[queryClient] Request body: ${options.body}`);
+    }
     
     const res = await fetch(fullUrl, {
       ...options,
