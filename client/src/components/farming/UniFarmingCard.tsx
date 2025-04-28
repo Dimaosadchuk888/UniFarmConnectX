@@ -44,22 +44,46 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Мутация для создания фарминг-депозита
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
-      // Создаем тело запроса
+      // Создаем тело запроса строго в формате { amount: число }
       const requestBody = { 
-        user_id: 1, 
         amount 
       };
       
+      console.log('Отправляем запрос фарминга с телом:', JSON.stringify(requestBody));
+      
       try {
-        const response = await apiRequest('/api/uni-farming/deposit', {
+        const response = await fetch('/api/uni-farming/deposit', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
           body: JSON.stringify(requestBody)
         });
         
-        return response;
+        // Проверяем статус ответа
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Ошибка запроса: ${response.status} ${errorText}`);
+        }
+        
+        // Получаем текст ответа
+        const responseText = await response.text();
+        
+        // Если ответ пустой, возвращаем базовый объект
+        if (!responseText.trim()) {
+          console.log('Получен пустой ответ от сервера');
+          return { success: true };
+        }
+        
+        // Парсим JSON-ответ
+        try {
+          const data = JSON.parse(responseText);
+          return data;
+        } catch (parseError) {
+          console.error('Ошибка парсинга JSON:', parseError);
+          throw new Error('Неверный формат ответа от сервера');
+        }
       } catch (error) {
         console.error('Ошибка активации фарминга:', error);
         throw error;

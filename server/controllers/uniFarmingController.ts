@@ -30,15 +30,19 @@ export class UniFarmingController {
    */
   static async createUniFarmingDeposit(req: Request, res: Response): Promise<void> {
     try {
+      console.log('Получен запрос POST /api/uni-farming/deposit');
+      console.log('Content-Type:', req.headers['content-type']);
+      console.log('Тело запроса:', JSON.stringify(req.body));
+      
       // Проверка содержимого запроса
       if (!req.body) {
+        console.log('Ошибка: пустое тело запроса');
         res.status(400).json({ success: false, message: 'Тело запроса пустое' });
         return;
       }
       
-      // Валидация входных данных
+      // Валидация входных данных - теперь требуем только amount
       const schema = z.object({
-        user_id: z.number().int().positive(),
         amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
           message: 'Сумма должна быть положительным числом'
         })
@@ -46,6 +50,7 @@ export class UniFarmingController {
 
       const result = schema.safeParse(req.body);
       if (!result.success) {
+        console.log('Ошибка валидации:', result.error.errors);
         res.status(400).json({ 
           success: false, 
           message: 'Некорректные данные запроса', 
@@ -54,9 +59,15 @@ export class UniFarmingController {
         return;
       }
 
-      const { user_id, amount } = result.data;
+      // Используем user_id=1 (тестовый) для примера
+      const user_id = 1;
+      const { amount } = result.data;
+      
+      console.log(`Создаем депозит для user_id=${user_id}, amount=${amount}`);
       
       const depositResult = await NewUniFarmingService.createUniFarmingDeposit(user_id, amount);
+      
+      console.log('Результат создания депозита:', depositResult);
       
       if (depositResult.success) {
         res.json({ success: true, data: depositResult });
