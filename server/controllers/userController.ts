@@ -653,7 +653,19 @@ export class UserController {
 
       sendSuccess(res, user);
     } catch (error) {
-      console.error('Error in getUserById:', error);
+      // Структурированное логирование ошибки
+      console.error('[UserController] [Ошибка получения пользователя]', {
+        method: 'getUserById',
+        userId: req.params?.id,
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        timestamp: new Date().toISOString()
+      });
+      
+      // В режиме разработки выводим полный стек ошибки
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserController] [Стек ошибки]:', error);
+      }
+      
       sendServerError(res, error);
     }
   }
@@ -690,7 +702,19 @@ export class UserController {
       console.log(`[UserController] Найден пользователь с ID=${user.id} для guest_id=${guestId}`);
       sendSuccess(res, user);
     } catch (error) {
-      console.error(`[UserController] Ошибка при получении пользователя по guest_id:`, error);
+      // Структурированное логирование ошибки
+      console.error('[UserController] [Ошибка получения пользователя]', {
+        method: 'getUserByGuestId',
+        guestId: req.params?.guestId,
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        timestamp: new Date().toISOString()
+      });
+      
+      // В режиме разработки выводим полный стек ошибки
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserController] [Стек ошибки]:', error);
+      }
+      
       sendServerError(res, error);
     }
   }
@@ -739,9 +763,32 @@ export class UserController {
       console.log(`[UserController] [AUDIT] Пользователь создан: telegram_id=${userData.telegram_id || 'N/A'}, wasNewUser=${wasNewUser}, ref_code="${newUser.ref_code}", userId=${newUser.id}`);
       sendSuccess(res, newUser);
     } catch (error) {
+      // Обработка ошибок валидации данных
       if (error instanceof ZodError) {
+        console.error('[UserController] [Ошибка валидации данных пользователя]', {
+          error: 'Zod validation error',
+          details: error.format(),
+          timestamp: new Date().toISOString()
+        });
         return sendError(res, 'Invalid user data', 400, error.format());
       }
+      
+      // Структурированное логирование других ошибок
+      console.error('[UserController] [Ошибка создания пользователя]', {
+        method: 'createUser',
+        requestBody: req.body ? { 
+          telegram_id: req.body.telegram_id,
+          has_guest_id: !!req.body.guest_id,
+        } : 'Нет данных',
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        timestamp: new Date().toISOString()
+      });
+      
+      // В режиме разработки выводим полный стек ошибки
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserController] [Стек ошибки]:', error);
+      }
+      
       sendServerError(res, error);
     }
   }
@@ -947,7 +994,20 @@ export class UserController {
       return sendSuccess(res, fullUserData);
       
     } catch (error) {
-      console.error('[UserController] Ошибка при генерации реферального кода:', error);
+      // Структурированное логирование ошибки
+      console.error('[UserController] [Ошибка генерации реферального кода]', {
+        method: 'generateRefCode',
+        userId: req.body?.user_id,
+        guestId: req.body?.guest_id,
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        timestamp: new Date().toISOString()
+      });
+      
+      // В режиме разработки выводим полный стек ошибки
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[UserController] [Стек ошибки]:', error);
+      }
+      
       return sendServerError(res, 'Ошибка при генерации реферального кода');
     }
   }
