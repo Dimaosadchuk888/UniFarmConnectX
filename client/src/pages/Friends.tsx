@@ -18,7 +18,7 @@ const Friends: React.FC = () => {
   console.log('[Friends] Компонент страницы партнерской программы');
   
   // Получаем информацию о пользователе с принудительным обновлением
-  const { data: userData, isLoading, isError, refetch } = useQuery<any>({
+  const { data: userData, isLoading, isError, refetch } = useQuery<User>({
     queryKey: ['/api/me'], 
     queryFn: () => userService.getCurrentUser(true), // Принудительно обновляем данные
     staleTime: 0, // Отключаем кэширование для получения свежих данных

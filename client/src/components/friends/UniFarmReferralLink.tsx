@@ -47,9 +47,28 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
         console.log('[UniFarmReferralLink] Результат запроса данных:', {
           success: !!result,
           hasRefCode: !!result?.ref_code,
-          refCode: result?.ref_code
+          refCode: result?.ref_code,
+          telegramId: result?.telegram_id,
+          guestId: result?.guest_id
         });
-        return result;
+        
+        // Проверка корректности данных пользователя
+        if (!result) {
+          throw new Error('Пустые данные пользователя');
+        }
+        
+        // Дополнительная проверка и коррекция типов данных
+        const safeResult = {
+          ...result,
+          id: Number(result.id),
+          telegram_id: result.telegram_id !== undefined ? 
+            (result.telegram_id === null ? null : Number(result.telegram_id)) : null,
+          balance_uni: String(result.balance_uni || "0"),
+          balance_ton: String(result.balance_ton || "0"),
+          ref_code: String(result.ref_code || "")
+        };
+        
+        return safeResult;
       } catch (error) {
         console.error('[UniFarmReferralLink] Ошибка при запросе данных пользователя:', error);
         throw error;

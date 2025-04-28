@@ -240,7 +240,6 @@ class UserService {
     const guestId = getGuestId();
     
     console.log('[UserService] Запрос к API с guest_id:', guestId);
-    console.log('[UserService] Запрос данных профиля с guest_id:', guestId);
     console.log('[UserService] Объект localStorage в момент запроса к /api/me:', 
       Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)?.substring(0, 20)}...`));
     
@@ -251,32 +250,51 @@ class UserService {
       console.warn('[UserService] Telegram WebApp НЕ отмечен как инициализированный при запросе /api/me!');
     }
     
-    // Делаем запрос к API
-    const data = await apiRequest('/api/me');
-    
-    // Подробный лог для отладки
-    console.log('[UserService] API /me result:', {
-      success: data?.success,
-      userId: data?.data?.id,
-      username: data?.data?.username,
-      guestId: data?.data?.guest_id,
-      refCode: data?.data?.ref_code || 'НЕ ОПРЕДЕЛЕН',
-      hasRefCode: !!data?.data?.ref_code,
-      responseJson: JSON.stringify(data).substring(0, 200) + '...'
-    });
-    
-    // Если API не вернул данные, выдаем ошибку (Этап 10.4 - удаление поддержки telegram_id в URL)
-    if (!data.success || !data.data) {
-      console.error('[UserService] Invalid API response from server:', data);
-      throw new Error('Invalid response from server');
-    }
-    
-    // Валидируем и кэшируем полученные данные
-    if (this.isValidUserData(data.data)) {
-      this.cacheUserData(data.data);
-      return data.data;
-    } else {
-      throw new Error('Invalid user data structure received from API');
+    try {
+      // Делаем запрос к API
+      const data = await apiRequest('/api/me');
+      
+      // Подробный лог для отладки
+      console.log('[UserService] API /me result:', {
+        success: data?.success,
+        userId: data?.data?.id,
+        username: data?.data?.username,
+        guestId: data?.data?.guest_id,
+        refCode: data?.data?.ref_code || 'НЕ ОПРЕДЕЛЕН',
+        hasRefCode: !!data?.data?.ref_code,
+        telegramId: data?.data?.telegram_id,
+        responseJson: JSON.stringify(data).substring(0, 200) + '...'
+      });
+      
+      // Если API не вернул данные, выдаем ошибку 
+      if (!data || !data.success || !data.data) {
+        console.error('[UserService] Invalid API response from server:', data);
+        throw new Error('Invalid response from server');
+      }
+      
+      // Проверяем и фиксируем поля с типами данных, если это необходимо
+      const userData = {
+        ...data.data,
+        id: Number(data.data.id),
+        telegram_id: data.data.telegram_id !== undefined ? 
+          (data.data.telegram_id === null ? null : Number(data.data.telegram_id)) : null,
+        balance_uni: String(data.data.balance_uni || "0"),
+        balance_ton: String(data.data.balance_ton || "0"),
+        ref_code: String(data.data.ref_code || ""),
+        guest_id: String(data.data.guest_id || "")
+      };
+      
+      // Валидируем и кэшируем полученные данные
+      if (this.isValidUserData(userData)) {
+        this.cacheUserData(userData);
+        return userData;
+      } else {
+        console.error('[UserService] Data validation failed after type correction:', userData);
+        throw new Error('Invalid user data structure received from API');
+      }
+    } catch (error) {
+      console.error('[UserService] Error in fetchUserFromApi:', error);
+      throw error;
     }
   }
   
@@ -307,7 +325,7 @@ class UserService {
       data &&
       typeof data.id === 'number' &&
       data.id > 0 &&
-      (typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string') &&
+      (typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string' || data.telegram_id === null) &&
       typeof data.username === 'string' &&
       typeof data.balance_uni === 'string' &&
       typeof data.balance_ton === 'string' &&
@@ -319,12 +337,14 @@ class UserService {
       console.warn('[UserService] Invalid user data structure:', {
         hasId: typeof data.id === 'number',
         idIsPositive: data.id > 0,
-        hasTelegramId: typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string',
+        hasTelegramId: typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string' || data.telegram_id === null,
+        telegramIdValue: data.telegram_id,
         hasUsername: typeof data.username === 'string',
         hasBalanceUni: typeof data.balance_uni === 'string',
         hasBalanceTon: typeof data.balance_ton === 'string',
         hasRefCode: typeof data.ref_code === 'string',
-        refCodeValue: data.ref_code || 'missing'
+        refCodeValue: data.ref_code || 'missing',
+        rawData: data
       });
     }
     
