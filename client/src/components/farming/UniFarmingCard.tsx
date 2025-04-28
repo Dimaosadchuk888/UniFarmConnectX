@@ -44,8 +44,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Мутация для создания фарминг-депозита
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
-      const res = await apiRequest('POST', '/api/uni-farming/deposit', { user_id: 1, amount });
-      return res.json();
+      return await apiRequest('/api/uni-farming/deposit', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: 1, amount })
+      });
     },
     onSuccess: () => {
       // Сбрасываем форму и обновляем данные
@@ -65,8 +67,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Информационная мутация (просто для показа информации о новом механизме)
   const infoMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/uni-farming/harvest', { user_id: 1 });
-      return res.json();
+      return await apiRequest('/api/uni-farming/harvest', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: 1 })
+      });
     },
     onSuccess: (data) => {
       // Показываем информацию о новом механизме
@@ -119,7 +123,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   };
   
   // Форматирование числа с учетом малых значений
-  const formatNumber = (value: string, decimals: number = 3): string => {
+  const formatNumber = (value: string | undefined, decimals: number = 3): string => {
     try {
       const num = new BigNumber(value || '0');
       
@@ -187,7 +191,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-foreground opacity-70">Текущий депозит</p>
-              <p className="text-lg font-medium">{formatNumber(farmingInfo.totalDepositAmount)} UNI</p>
+              <p className="text-lg font-medium">{formatNumber(farmingInfo.totalDepositAmount || '0')} UNI</p>
             </div>
             <div>
               <p className="text-sm text-foreground opacity-70">Дата активации</p>
