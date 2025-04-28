@@ -14,9 +14,6 @@ const Friends: React.FC = () => {
   // Состояние для отслеживания видимости элементов
   const [isLoaded, setIsLoaded] = useState(true);
   
-  // Отладочная отметка в консоли
-  console.log('[Friends] Компонент страницы партнерской программы');
-  
   // Получаем информацию о пользователе с принудительным обновлением
   const { data: userData, isLoading, isError, refetch } = useQuery<User>({
     queryKey: ['/api/me'], 
@@ -27,71 +24,25 @@ const Friends: React.FC = () => {
     refetchInterval: 5000 // Автоматически обновляем данные каждые 5 секунд
   });
 
-  // Эффект для логирования данных пользователя
+  // Эффект для отслеживания изменений данных пользователя
   useEffect(() => {
-    // Подробное логирование для отладки
-    console.log('[Friends] Состояние компонента:', {
-      hasUserData: !!userData,
-      isLoading,
-      isError,
-      userData: userData ? {
-        id: userData.id,
-        guest_id: userData.guest_id,
-        ref_code: userData.ref_code || 'ОТСУТСТВУЕТ',
-        username: userData.username
-      } : 'НЕТ ДАННЫХ'
-    });
-    
-    // Специальное логирование для реферального кода
-    if (userData?.ref_code) {
-      console.log('[Friends] АУДИТ: получен ref_code:', userData.ref_code);
-    } else if (!isLoading && userData) {
-      console.warn('[Friends] АУДИТ: ref_code отсутствует в данных пользователя:', {
-        hasUserData: !!userData,
-        userId: userData?.id,
-        telegramId: userData?.telegram_id,
-        guest_id: userData?.guest_id
-      });
-    }
-    
-    // Проверяем localStorage для диагностики
-    try {
-      const localStorageKeys = Object.keys(localStorage);
-      console.log('[Friends] Данные localStorage:', localStorageKeys.map(key => 
-        `${key}: ${localStorage.getItem(key)?.substring(0, 30)}...`
-      ));
-    } catch (error) {
-      console.error('[Friends] Ошибка доступа к localStorage:', error);
-    }
+    // Этот эффект пустой, но готов к добавлению функциональности при необходимости
   }, [userData, isLoading, isError]);
 
   // Эффект для автоматической генерации реферального кода, если он отсутствует
   useEffect(() => {
     // Только если данные загружены и ref_code отсутствует
     if (!isLoading && userData && !userData.ref_code) {
-      console.log('[Friends] Обнаружено отсутствие ref_code, запускаем генерацию');
-      
       // Немедленно пытаемся сгенерировать реферальный код без задержки
       userService.generateRefCode()
-        .then(refCode => {
-          console.log('[Friends] Успешно сгенерирован реферальный код:', refCode);
-          
+        .then(() => {
           // Принудительно обновляем данные в интерфейсе
-          refetch().then(() => {
-            console.log('[Friends] UI обновлен после генерации кода');
-          });
+          refetch();
         })
-        .catch(err => {
-          console.error('[Friends] Ошибка генерации реферального кода:', err);
-          
+        .catch(() => {
           // Переходим к запасному варианту - запрашиваем просто обновление данных
           userService.getCurrentUser(true)
             .then(updatedUser => {
-              console.log('[Friends] Получены обновленные данные:', { 
-                hasRefCode: !!updatedUser?.ref_code,
-                refCode: updatedUser?.ref_code
-              });
-              
               // Принудительно обновляем данные
               window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
               refetch();
@@ -100,17 +51,11 @@ const Friends: React.FC = () => {
     }
   }, [userData, isLoading, refetch]);
   
-  // Добавляем функцию для принудительного обновления данных
+  // Функция для принудительного обновления данных
   const forceDataRefresh = async () => {
-    console.log('[Friends] Принудительное обновление данных');
-    
     try {
       // Принудительно запрашиваем свежие данные
       const updatedUser = await userService.getCurrentUser(true);
-      console.log('[Friends] Данные обновлены:', {
-        hasData: !!updatedUser, 
-        refCode: updatedUser?.ref_code || 'НЕ ПОЛУЧЕН'
-      });
       
       // Обновляем UI через событие
       window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
@@ -120,18 +65,15 @@ const Friends: React.FC = () => {
       
       // Если кода все равно нет - пробуем генерировать
       if (updatedUser && !updatedUser.ref_code) {
-        console.log('[Friends] После обновления реферальный код все еще отсутствует, запускаем генерацию');
-        
         try {
-          const code = await userService.generateRefCode();
-          console.log('[Friends] Код успешно сгенерирован:', code);
+          await userService.generateRefCode();
           refetch();
-        } catch (genError) {
-          console.error('[Friends] Ошибка генерации кода:', genError);
+        } catch (error) {
+          // Тихая обработка ошибки
         }
       }
     } catch (error) {
-      console.error('[Friends] Ошибка при принудительном обновлении:', error);
+      // Тихая обработка ошибки
     }
   };
   
@@ -151,7 +93,6 @@ const Friends: React.FC = () => {
       const guestId = localStorage.getItem('unifarm_guest_id');
       
       if (!guestId) {
-        console.error('[Friends] Не удалось получить guest_id из localStorage');
         setDirectLinkData({ 
           isLoading: false, 
           refCode: '', 
@@ -163,8 +104,6 @@ const Friends: React.FC = () => {
       // Делаем прямой запрос к API для получения пользователя по guest_id
       const response = await fetch(`/api/users/guest/${guestId}`);
       const data = await response.json();
-      
-      console.log('[Friends] Прямой запрос к API:', data);
       
       if (data.success && data.data && data.data.ref_code) {
         setDirectLinkData({ 
@@ -203,7 +142,6 @@ const Friends: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('[Friends] Ошибка при прямом запросе реферального кода:', error);
       setDirectLinkData({ 
         isLoading: false, 
         refCode: '', 
@@ -222,12 +160,6 @@ const Friends: React.FC = () => {
 
   return (
     <div className="w-full">
-      {/* Тестовая плашка для верификации компонента Friends.tsx */}
-      <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md">
-        <p className="font-bold">✅ Верификация подключения страницы (28 апреля 2025, 11:15)</p>
-        <p>Плашка подтверждает, что подключен правильный файл страницы "Партнёрка"</p>
-      </div>
-      
       <div className="flex flex-col justify-center items-center mb-6">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-purple-500 mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
