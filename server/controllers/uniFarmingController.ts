@@ -95,4 +95,33 @@ export class UniFarmingController {
       res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
+
+  /**
+   * Обрабатывает информационный запрос о сборе урожая
+   * В новой системе сбор не требуется, так как всё начисляется автоматически
+   */
+  static async harvestFarmingInfo(req: Request, res: Response): Promise<void> {
+    try {
+      const schema = z.object({
+        user_id: z.number().int().positive()
+      });
+
+      const result = schema.safeParse(req.body);
+      if (!result.success) {
+        res.status(400).json({ success: false, message: 'Invalid request data', errors: result.error.errors });
+        return;
+      }
+
+      const { user_id } = result.data;
+      
+      // Просто возвращаем информационное сообщение, так как автоматическое начисление
+      res.json({ 
+        success: true, 
+        message: 'Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!'
+      });
+    } catch (error) {
+      console.error('Error in harvestFarmingInfo:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  }
 }

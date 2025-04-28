@@ -1154,6 +1154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/uni-farming/update-balance", UniFarmingController.calculateAndUpdateFarming);
   app.post("/api/uni-farming/deposit", UniFarmingController.createUniFarmingDeposit);
   app.get("/api/uni-farming/deposits", UniFarmingController.getUserFarmingDeposits);
+  app.post("/api/uni-farming/harvest", UniFarmingController.harvestFarmingInfo);
   
   // Маршруты для буст-пакетов
   app.get("/api/boosts", BoostController.getBoostPackages);
