@@ -178,7 +178,7 @@ const ReferralLevelsTable: React.FC = () => {
       if (failureCount >= 2) return false;
       
       // Логируем причину повторного запроса
-      console.log(`[ReferralLevelsTable] Повторный запрос #${failureCount + 1} из-за ошибки:`, error);
+      logger.debug(`[ReferralLevelsTable] Повторный запрос #${failureCount + 1} из-за ошибки:`, error);
       return true;
     }
   });
@@ -201,7 +201,7 @@ const ReferralLevelsTable: React.FC = () => {
     try {
       // Проверяем структуру данных
       if (!referralsData.data || typeof referralsData.data !== 'object') {
-        console.warn('[ReferralLevelsTable] Неожиданная структура данных:', referralsData);
+        logger.warn('[ReferralLevelsTable] Неожиданная структура данных:', referralsData);
         return defaultLevels;
       }
       
@@ -218,7 +218,7 @@ const ReferralLevelsTable: React.FC = () => {
         ? referralsData.data.total_referrals 
         : 0;
       
-      console.log('[ReferralLevelsTable] API данные:', { 
+      logger.debug('[ReferralLevelsTable] API данные:', { 
         referralCounts, 
         levelIncome,
         totalReferrals
@@ -266,7 +266,7 @@ const ReferralLevelsTable: React.FC = () => {
         };
       });
     } catch (error) {
-      console.error('[ReferralLevelsTable] Ошибка обработки данных:', error);
+      logger.error('[ReferralLevelsTable] Ошибка обработки данных:', error);
       // В случае ошибки возвращаем пустые уровни
       return defaultLevels;
     }
