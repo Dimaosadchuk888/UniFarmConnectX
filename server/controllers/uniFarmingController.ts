@@ -41,17 +41,21 @@ export class UniFarmingController {
         return;
       }
       
-      // Валидация входных данных - amount обязательное, user_id опциональное
+      // Валидация входных данных - amount обязательное, user_id опциональное или null
       const schema = z.object({
         amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
           message: 'Сумма должна быть положительным числом'
         }),
-        user_id: z.number().int().positive().optional()
+        user_id: z.union([
+          z.number().int().positive(),
+          z.null()
+        ])
       });
 
       const result = schema.safeParse(req.body);
       if (!result.success) {
         console.log('Ошибка валидации:', result.error.errors);
+        console.log('Тело запроса, которое не прошло валидацию:', JSON.stringify(req.body));
         res.status(400).json({ 
           success: false, 
           message: 'Некорректные данные запроса', 
@@ -61,7 +65,10 @@ export class UniFarmingController {
       }
 
       // Используем user_id из запроса или default=1
-      const user_id = result.data.user_id || 1; 
+      // Если null или undefined - используем 1
+      const user_id = (result.data.user_id !== null && result.data.user_id !== undefined) 
+        ? result.data.user_id 
+        : 1;
       const { amount } = result.data;
       
       console.log(`Создаем депозит для user_id=${user_id}, amount=${amount}`);
@@ -129,14 +136,18 @@ export class UniFarmingController {
       console.log('Content-Type:', req.headers['content-type']);
       console.log('Тело запроса:', JSON.stringify(req.body));
       
-      // Измененная схема - делаем user_id опциональным для совместимости
+      // Измененная схема - делаем user_id опциональным или null для совместимости
       const schema = z.object({
-        user_id: z.number().int().positive().optional()
+        user_id: z.union([
+          z.number().int().positive(),
+          z.null()
+        ])
       });
 
       const result = schema.safeParse(req.body);
       if (!result.success) {
         console.log('Ошибка валидации:', result.error.errors);
+        console.log('Тело запроса, которое не прошло валидацию:', JSON.stringify(req.body));
         res.status(400).json({ 
           success: false, 
           message: 'Некорректные данные запроса', 
@@ -146,7 +157,10 @@ export class UniFarmingController {
       }
 
       // Используем user_id из запроса или default=1
-      const user_id = result.data.user_id || 1;
+      // Если null или undefined - используем 1
+      const user_id = (result.data.user_id !== null && result.data.user_id !== undefined) 
+        ? result.data.user_id 
+        : 1;
       console.log(`Информационный запрос для user_id=${user_id}`);
       
       // Просто возвращаем информационное сообщение, так как автоматическое начисление
