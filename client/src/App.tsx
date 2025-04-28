@@ -78,7 +78,6 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
-  const [showDiagnostics] = useState(true); // Всегда показываем диагностику
 
   // Проверка инициализации приложения (без Telegram WebApp по требованиям фазы 10.3)
   useEffect(() => {
