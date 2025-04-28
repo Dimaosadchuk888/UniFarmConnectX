@@ -5,6 +5,9 @@
 ### Стандартный режим разработки
 ```bash
 npm run dev
+
+# ИЛИ с помощью скрипта
+bash restart.sh
 ```
 Запускает приложение в режиме разработки с `NODE_ENV=development`. В этом режиме:
 - Активны все отладочные сообщения
@@ -18,6 +21,9 @@ node dev-production.js
 
 # ИЛИ использование CommonJS версии (альтернатива)
 node dev-production.cjs
+
+# ИЛИ с помощью скрипта оболочки
+bash restart-prod.sh
 ```
 Запускает приложение в режиме разработки, но с `NODE_ENV=production`. Это полезно для:
 - Тестирования Telegram WebApp API (которое работает только в production)
@@ -57,3 +63,23 @@ npm run start
 2. Заполните все необходимые переменные
 
 **Примечание**: В production на Replit чувствительные переменные (токены, ключи) должны храниться в Secrets, а не в файле `.env`.
+
+## Скрипты
+
+Проект включает набор вспомогательных скриптов для упрощения разработки и деплоя:
+
+### Скрипты запуска
+- `restart.sh` - Перезапуск в режиме разработки
+- `restart-prod.sh` - Перезапуск в режиме разработки с переменными production
+- `dev-production.js` / `dev-production.cjs` - Запуск в режиме production (ESM/CommonJS)
+
+### Скрипты деплоя
+- `deploy-production.sh` - Сборка и деплой на Replit
+- `start-production.sh` - Запуск в production режиме
+- `production-start.js` - Production запуск для Replit Deployment
+
+### Скрипты настройки Telegram бота
+- `setup-telegram-webhook.js` - Настройка webhook для Telegram бота
+- `setup-telegram-mini-app.js` - Полная настройка Mini App в BotFather
+- `check-bot-settings.js` - Проверка настроек бота
+- `check-production-url.js` - Проверка URL приложения
