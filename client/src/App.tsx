@@ -28,14 +28,8 @@ import Missions from "@/pages/Missions";
 // Импортируем только актуальную версию Friends
 import Friends from "@/pages/Friends"; // Обновленная версия компонента, содержит код из FriendsTest
 import Wallet from "@/pages/Wallet";
-import TelegramTest from "./pages/TelegramTest";
-import WebhookSetup from "./pages/WebhookSetup";
-import DebugPage from "./pages/DebugPage";
 import AdminPage from "./pages/AdminPage";
-import ReferralDebug from "./pages/ReferralDebug";
-import AuditPage from "./pages/AuditPage";
 import TelegramSetupGuide from "./pages/TelegramSetupGuide";
-import TelegramValidationTool from "./pages/TelegramValidationTool";
 import TelegramRedirect from "./pages/TelegramRedirect";
 import TelegramSlashHandler from "./pages/TelegramSlashHandler";
 import TelegramMiniApp from "./pages/TelegramMiniApp";
@@ -397,39 +391,9 @@ function App() {
                 <TelegramRedirect />
               </Route>
               
-              {/* Специальная страница для тестирования Telegram */}
-              <Route path="/telegram-test">
-                <TelegramTest />
-              </Route>
-              
-              {/* Страница отладки Telegram Mini App */}
-              <Route path="/debug">
-                <DebugPage />
-              </Route>
-              
-              {/* Страница настройки Telegram Webhook */}
-              <Route path="/webhook-setup">
-                <WebhookSetup />
-              </Route>
-              
-              {/* Административная страница для настройки бота */}
+              {/* Административная страница для настройки бота - только необходимые маршруты */}
               <Route path="/admin">
                 <AdminPage />
-              </Route>
-              
-              {/* Диагностика реферальной системы */}
-              <Route path="/referral-debug">
-                <ReferralDebug />
-              </Route>
-              
-              {/* Полный аудит приложения */}
-              <Route path="/audit">
-                <AuditPage />
-              </Route>
-              
-              {/* Инструмент валидации Telegram initData */}
-              <Route path="/telegram-validation">
-                <TelegramValidationTool />
               </Route>
               
               {/* Руководство по настройке Telegram Mini App */}
