@@ -57,7 +57,26 @@ export class UniFarmingController {
       }
       
       // Проверка, что amount является числом и положительным
-      const amountValue = parseFloat(amount);
+      // Поддерживаем как строковый, так и числовой формат amount
+      let stringAmount = '';
+      
+      if (typeof amount === 'number') {
+        // Если amount передан как число, преобразуем его в строку
+        console.log('Получен amount как число:', amount);
+        stringAmount = amount.toString();
+      } else if (typeof amount === 'string') {
+        // Если amount уже строка, используем как есть
+        console.log('Получен amount как строка:', amount);
+        stringAmount = amount;
+      } else {
+        console.log('Ошибка: amount имеет неподдерживаемый тип:', typeof amount);
+        res.setHeader('Content-Type', 'application/json');
+        res.status(400).json({ success: false, message: 'Amount должно быть числом или строкой' });
+        return;
+      }
+      
+      // Проверяем, что amount можно преобразовать в число и оно положительное
+      const amountValue = parseFloat(stringAmount);
       if (isNaN(amountValue) || amountValue <= 0) {
         console.log('Ошибка: amount должно быть положительным числом');
         res.setHeader('Content-Type', 'application/json');
@@ -80,9 +99,10 @@ export class UniFarmingController {
         userId = userIdValue;
       }
       
-      console.log(`Создаем депозит для user_id=${userId}, amount=${amount}`);
+      console.log(`Создаем депозит для user_id=${userId}, amount=${stringAmount}`);
       
-      const depositResult = await NewUniFarmingService.createUniFarmingDeposit(userId, amount);
+      // Передаем строковое значение amount в сервис
+      const depositResult = await NewUniFarmingService.createUniFarmingDeposit(userId, stringAmount);
       
       console.log('Результат создания депозита:', depositResult);
       
