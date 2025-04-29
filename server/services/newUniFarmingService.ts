@@ -113,8 +113,16 @@ export class NewUniFarmingService {
         const lastUpdate = deposit.last_updated_at;
         const secondsSinceLastUpdate = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
         
-        // Минимальное начисление за 0.1 секунды
-        const effectiveSeconds = Math.max(0.1, secondsSinceLastUpdate);
+        // Защита от чрезмерного начисления при перезагрузке сервера или длительных перерывах
+        // Ограничиваем максимальное время с последнего обновления 10 секундами
+        // Это предотвращает накопление огромных сумм при перезапусках
+        const MAX_SECONDS_BETWEEN_UPDATES = 10;
+        
+        // Минимальное начисление за 0.1 секунды, но не более MAX_SECONDS_BETWEEN_UPDATES
+        const effectiveSeconds = Math.min(
+          MAX_SECONDS_BETWEEN_UPDATES,
+          Math.max(0.1, secondsSinceLastUpdate)
+        );
 
         // Рассчитываем доход за прошедшие секунды
         const ratePerSecond = new BigNumber(deposit.rate_per_second.toString());

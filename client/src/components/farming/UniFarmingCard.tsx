@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 import BigNumber from 'bignumber.js';
 
 interface UniFarmingCardProps {
@@ -23,13 +23,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const [error, setError] = useState<string | null>(null);
   
   // Получаем информацию о фарминге
-  const { data: farmingResponse, isLoading } = useQuery({
+  const { data: farmingResponse, isLoading } = useQuery<{ success: boolean; data: FarmingInfo }>({
     queryKey: ['/api/uni-farming/info?user_id=1'], // Добавляем user_id в запрос
     refetchInterval: 10000, // Обновляем данные каждые 10 секунд чтобы видеть текущий баланс
   });
   
   // Информация о фарминге из ответа API
-  const farmingInfo: FarmingInfo = farmingResponse?.data || {
+  const farmingInfo: FarmingInfo = (farmingResponse && farmingResponse.data) ? farmingResponse.data : {
     isActive: false,
     depositAmount: '0',
     ratePerSecond: '0',
@@ -171,51 +171,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Длина JSON: ${requestBodyJSON.length} символов`);
         
         try {
-          // Создаем заголовки с явным указанием типа контента
-          const headers = new Headers();
-          headers.append('Content-Type', 'application/json');
-          headers.append('Accept', 'application/json');
+          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Используем новую утилиту correctApiRequest`);
           
-          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Заголовки запроса:`, 
-                      Object.fromEntries([...headers.entries()]));
-          
-          const fetchResponse = await fetch(fullUrl, {
-            method: 'POST',
-            headers: headers,
-            body: requestBodyJSON
-          });
-          
-          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Статус ответа: ${fetchResponse.status} ${fetchResponse.statusText}`);
-          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Заголовки ответа:`, 
-                      Object.fromEntries([...fetchResponse.headers.entries()]));
-          
-          if (!fetchResponse.ok) {
-            console.error(`❌ [ОТЛАДКА ДЕПОЗИТА] Ошибка HTTP: ${fetchResponse.status} ${fetchResponse.statusText}`);
-            throw new Error(`Ошибка HTTP: ${fetchResponse.status} ${fetchResponse.statusText}`);
-          }
-          
-          // Сначала получаем ответ как текст для отладки
-          const responseText = await fetchResponse.text();
-          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Текст ответа: ${responseText}`);
-          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Длина ответа: ${responseText.length} символов`);
-          
-          // Проверка на пустой ответ
-          if (!responseText || responseText.trim() === '') {
-            console.error(`❌ [ОТЛАДКА ДЕПОЗИТА] Получен пустой ответ от сервера`);
-            throw new Error('Сервер вернул пустой ответ');
-          }
-          
-          // Безопасная попытка преобразования ответа в JSON
-          let response;
-          try {
-            console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Парсинг JSON ответа...`);
-            response = JSON.parse(responseText);
-            console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Ответ успешно преобразован в JSON:`, response);
-          } catch (jsonError) {
-            console.error('❌ [ОТЛАДКА ДЕПОЗИТА] Ошибка при разборе JSON:', jsonError);
-            console.error('❌ [ОТЛАДКА ДЕПОЗИТА] Первые 100 символов ответа:', responseText.substring(0, 100));
-            throw new Error(`Ошибка формата ответа: ${responseText.substring(0, 100)}`);
-          }
+          // Используем нашу новую утилиту для отправки запроса
+          const response = await correctApiRequest(
+            endpoint,   // URL-путь
+            'POST',     // метод
+            requestBody // данные
+          );
           
           console.log(`📥 Ответ получен:`, response);
         
