@@ -1211,13 +1211,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
-  // Обработчик для редиректа URL с слешем в конце (согласно ТЗ)
+  // Обработчик для URL с завершающим слешем (переработан для исправления проблем с JSON-парсингом)
   app.get('*/', (req: Request, res: Response, next: NextFunction) => {
-    // Для отладки
+    // Никогда не делаем редиректы для API-запросов, чтобы избежать проблем с JSON-парсингом
+    if (req.path.startsWith('/api/')) {
+      console.log('[Route] API-запрос со слэшем в конце - не редиректим:', req.path);
+      return next();
+    }
+    
+    // Для отладки (только если это не API-запрос)
     console.log('[Route] Обнаружен путь со слэшем на конце:', req.path, {
-      userAgent: req.headers['user-agent'],
-      hasTelegramData: !!(req.headers['telegram-data'] || req.headers['x-telegram-data'] || 
-                         req.headers['telegram-init-data'] || req.headers['x-telegram-init-data']),
+      userAgent: req.headers['user-agent']?.substring(0, 30) + '...',
+      isAPI: req.path.startsWith('/api/'),
       referrer: req.headers['referer'],
     });
     
@@ -1240,6 +1245,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[Route] Запрос от Telegram к мини-приложению - не редиректим');
         return next();
       }
+    }
+    
+    // Проверяем Content-Type запроса и Accept заголовок
+    const contentType = req.headers['content-type'] || '';
+    const acceptHeader = req.headers['accept'] || '';
+    
+    // Не делаем редирект для запросов, ожидающих JSON или отправляющих JSON
+    if (contentType.includes('application/json') || acceptHeader.includes('application/json')) {
+      console.log('[Route] Запрос JSON с завершающим слэшем - не редиректим:', req.path);
+      return next();
     }
     
     // Обычная обработка - удаляем слеш в конце URL для всех остальных случаев

@@ -2,10 +2,61 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getTelegramAuthHeaders } from "@/services/telegramService";
 import apiConfig from "@/config/apiConfig";
 
+/**
+ * Вспомогательная функция для проверки статуса HTTP-ответа
+ * Если ответ не OK (не 2xx), бросает исключение с текстом ответа
+ * Добавлена продвинутая диагностика для обнаружения редиректов и HTML-ответов
+ */
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const text = await res.text();
+    
+    // Проверяем на HTML-ответ (серверные ошибки часто возвращают HTML)
+    const isHtmlResponse = text.trim().startsWith('<!DOCTYPE html>') || 
+                          text.trim().startsWith('<html') || 
+                          text.trim().match(/^<[!a-z]/i);
+    
+    // Проверяем на редирект в тексте
+    const isRedirect = text.includes('Redirecting to') || 
+                      text.includes('301 Moved Permanently') ||
+                      text.includes('302 Found');
+    
+    // Для отладки логируем первые байты ответа
+    console.log(`[QueryClient] Проблемный ответ (${res.status}): ${text.substring(0, 100)}...`);
+    
+    // Анализируем данные ошибки, если это JSON
+    let errorData;
+    try {
+      errorData = JSON.parse(text);
+    } catch (e) {
+      if (isHtmlResponse) {
+        errorData = { 
+          error: 'Получен HTML-ответ вместо JSON', 
+          isHtmlResponse: true,
+          type: 'html_response'
+        };
+      } else if (isRedirect) {
+        errorData = { 
+          error: 'Сервер вернул редирект', 
+          isRedirect: true,
+          type: 'redirect_response'
+        };
+      } else {
+        errorData = { 
+          error: text || res.statusText || 'Неопределенная ошибка',
+          type: 'unknown'
+        };
+      }
+    }
+    
+    const error = new Error(`${res.status}: ${errorData.message || errorData.error || "Неизвестная ошибка"}`);
+    (error as any).status = res.status;
+    (error as any).statusText = res.statusText;
+    (error as any).errorData = errorData;
+    (error as any).isHtmlResponse = isHtmlResponse;
+    (error as any).isRedirect = isRedirect;
+    
+    throw error;
   }
 }
 
@@ -185,6 +236,19 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
         };
       }
       
+      // Проверяем, начинается ли текст с HTML тега
+      if (responseText.trim().startsWith('<!DOCTYPE html>') || 
+          responseText.trim().startsWith('<html') || 
+          responseText.trim().match(/^<[!a-z]/i)) {
+        console.error('[queryClient] Получен HTML-ответ вместо JSON:', responseText.substring(0, 100) + '...');
+        return {
+          success: false,
+          error: 'Получен HTML-ответ вместо JSON. Возможно, сервер перенаправил на другую страницу.',
+          type: 'html_response',
+          isHtmlResponse: true
+        };
+      }
+      
       try {
         // Преобразуем ответ в JSON
         const data = JSON.parse(responseText);
@@ -201,17 +265,34 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
         console.error(`[queryClient] JSON parse error:`, parseError);
         console.log(`[queryClient] Raw response text:`, responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
         
+        // Проверка на наличие признаков редиректа в тексте ответа
+        if (responseText.includes('Redirecting to') || responseText.includes('301 Moved Permanently')) {
+          console.warn('[queryClient] Обнаружен редирект в ответе. Это может вызывать проблемы с JSON-парсингом.');
+          return { 
+            success: false, 
+            error: 'Сервер вернул редирект вместо JSON-ответа',
+            type: 'redirect_response',
+            isRedirect: true,
+            rawResponse: responseText.substring(0, 300)
+          };
+        }
+        
         // Для удобства отладки, возвращаем объект с сырым текстом ответа и сообщением об ошибке
         return { 
           success: false, 
           error: 'Недопустимый формат JSON в ответе',
+          type: 'parse_error',
           rawResponse: responseText.substring(0, 1000),
           errorDetails: parseError?.message || 'Неизвестная ошибка'
         };
       }
     } catch (error: any) {
       console.error(`[queryClient] Response handling error:`, error);
-      throw new Error(`Ошибка при обработке ответа: ${error?.message || 'Неизвестная ошибка'}`);
+      return {
+        success: false,
+        error: `Ошибка при обработке ответа: ${error?.message || 'Неизвестная ошибка'}`,
+        type: 'response_handling_error'
+      };
     }
   } catch (error) {
     console.error(`[queryClient] API request error to ${url}:`, error);
