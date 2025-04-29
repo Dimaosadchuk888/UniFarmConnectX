@@ -46,9 +46,20 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    
+    console.error('[SERVER] Неперехваченная ошибка:', {
+      status,
+      message,
+      stack: err.stack
+    });
 
-    res.status(status).json({ message });
-    throw err;
+    // Отправляем JSON-ответ с ошибкой, но НЕ выбрасываем исключение после
+    res.status(status).json({ 
+      success: false,
+      message,
+      error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+    // Удален оператор "throw err;" - это критическая ошибка, которая вызывала нестабильность
   });
 
   // Добавление обработчика для Telegram WebApp параметров
