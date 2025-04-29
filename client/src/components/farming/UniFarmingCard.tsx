@@ -143,7 +143,16 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // Используем относительный URL вместо абсолютного для предотвращения ошибок в разных окружениях
         const endpoint = '/api/uni-farming/deposit';
         
-        console.log(`📤 POST запрос на относительный URL: ${endpoint}`);
+        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] POST запрос на относительный URL: ${endpoint}`);
+        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Тело запроса (объект):`, requestBody);
+        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] amount тип:`, typeof requestBody.amount);
+        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] user_id тип:`, typeof requestBody.user_id);
+        
+        // Преобразуем number в string если amount число
+        if (typeof requestBody.amount === 'number') {
+          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] amount конвертирован из числа в строку`);
+          requestBody.amount = String(requestBody.amount);
+        }
         
         // Устанавливаем статус загрузки вручную
         setError('Обработка запроса...');
@@ -153,37 +162,58 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         const host = window.location.host;
         const fullUrl = `${protocol}//${host}${endpoint}`;
         
+        // JSON.stringify для тела запроса
+        const requestBodyJSON = JSON.stringify(requestBody);
+        
         // Выполняем прямой fetch запрос с правильными заголовками
-        console.log(`📤 Выполняем fetch к ${fullUrl} с данными:`, requestBody);
-        console.log(`📤 Тело запроса в формате JSON: ${JSON.stringify(requestBody)}`);
+        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Выполняем fetch к ${fullUrl}`);
+        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Тело запроса в формате JSON: ${requestBodyJSON}`);
+        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Длина JSON: ${requestBodyJSON.length} символов`);
         
         try {
+          // Создаем заголовки с явным указанием типа контента
+          const headers = new Headers();
+          headers.append('Content-Type', 'application/json');
+          headers.append('Accept', 'application/json');
+          
+          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Заголовки запроса:`, 
+                      Object.fromEntries([...headers.entries()]));
+          
           const fetchResponse = await fetch(fullUrl, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
+            headers: headers,
+            body: requestBodyJSON
           });
           
-          console.log(`📥 Статус ответа: ${fetchResponse.status} ${fetchResponse.statusText}`);
+          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Статус ответа: ${fetchResponse.status} ${fetchResponse.statusText}`);
+          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Заголовки ответа:`, 
+                      Object.fromEntries([...fetchResponse.headers.entries()]));
           
           if (!fetchResponse.ok) {
+            console.error(`❌ [ОТЛАДКА ДЕПОЗИТА] Ошибка HTTP: ${fetchResponse.status} ${fetchResponse.statusText}`);
             throw new Error(`Ошибка HTTP: ${fetchResponse.status} ${fetchResponse.statusText}`);
           }
           
           // Сначала получаем ответ как текст для отладки
           const responseText = await fetchResponse.text();
-          console.log(`📥 Текст ответа: ${responseText}`);
+          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Текст ответа: ${responseText}`);
+          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Длина ответа: ${responseText.length} символов`);
+          
+          // Проверка на пустой ответ
+          if (!responseText || responseText.trim() === '') {
+            console.error(`❌ [ОТЛАДКА ДЕПОЗИТА] Получен пустой ответ от сервера`);
+            throw new Error('Сервер вернул пустой ответ');
+          }
           
           // Безопасная попытка преобразования ответа в JSON
           let response;
           try {
+            console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Парсинг JSON ответа...`);
             response = JSON.parse(responseText);
-            console.log(`📥 Ответ успешно преобразован в JSON:`, response);
+            console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Ответ успешно преобразован в JSON:`, response);
           } catch (jsonError) {
-            console.error('📥 Ошибка при разборе JSON:', jsonError);
+            console.error('❌ [ОТЛАДКА ДЕПОЗИТА] Ошибка при разборе JSON:', jsonError);
+            console.error('❌ [ОТЛАДКА ДЕПОЗИТА] Первые 100 символов ответа:', responseText.substring(0, 100));
             throw new Error(`Ошибка формата ответа: ${responseText.substring(0, 100)}`);
           }
           
