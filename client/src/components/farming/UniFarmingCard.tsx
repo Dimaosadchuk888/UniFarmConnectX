@@ -198,30 +198,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           throw new Error(`Ошибка сервера: ${response.status} ${errorText}`);
         }
         
-        // Получаем текст ответа
-        const responseText = await response.text();
-        console.log(`📥 Текст ответа: ${responseText.substring(0, 100)}`);
-        
-        // Проверяем, что ответ не пустой
-        if (!responseText || !responseText.trim()) {
-          console.log('📥 Получен пустой ответ, считаем операцию успешной');
-          // Сбрасываем форму и обновляем данные
-          setDepositAmount('');
-          setError(null);
-          
-          // Инвалидируем запросы для обновления данных
-          queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-          
-          return;
-        }
-        
-        // Пытаемся разобрать JSON ответ
+        // Напрямую получаем JSON ответ
         try {
-          const data = JSON.parse(responseText);
-          console.log('📥 Ответ успешно преобразован в JSON:', data);
+          const data = await response.json();
+          console.log('📥 Ответ успешно получен в формате JSON:', data);
           
           // Обрабатываем успешный ответ
           setDepositAmount('');
@@ -234,8 +214,17 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
           
         } catch (jsonError) {
-          console.error('⚠️ Ошибка разбора JSON:', jsonError);
-          // Даже если не смогли разобрать JSON, считаем операцию успешной
+          console.error('⚠️ Ошибка получения JSON:', jsonError);
+          
+          // Пытаемся получить текст ошибки в случае проблем с парсингом JSON
+          try {
+            const errorText = await response.text();
+            console.log('📥 Текст ответа при ошибке JSON:', errorText.substring(0, 100));
+          } catch (textError) {
+            console.error('⚠️ Не удалось получить текст ответа:', textError);
+          }
+          
+          // Даже если не смогли получить JSON, считаем операцию успешной
           setDepositAmount('');
           setError('Операция выполнена успешно. Обновите страницу для просмотра изменений.');
           
