@@ -24,7 +24,10 @@ export function sendSuccess(res: Response, data: any): void {
  */
 export function sendSuccessArray(res: Response, data: any[]): void {
   res.setHeader('Content-Type', 'application/json');
-  res.status(200).json(data);
+  res.status(200).json({
+    success: true,
+    data: data
+  });
 }
 
 /**
