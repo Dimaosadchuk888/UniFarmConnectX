@@ -76,20 +76,107 @@ export const MissionsList: React.FC = () => {
   // ID текущего пользователя (в реальном приложении должен быть получен из контекста аутентификации)
   const currentUserId = 1; // Для примера используем ID = 1
   
-  // Загружаем активные миссии через API
-  const { data: dbMissions, isLoading: missionsLoading } = useQuery<DbMission[]>({
+  // Загружаем активные миссии через API с явным указанием queryFn
+  const { data: dbMissions, isLoading: missionsLoading, error: missionsError } = useQuery<DbMission[]>({
     queryKey: ['/api/missions/active'],
+    queryFn: async () => {
+      console.log('🚀 Запрос активных миссий');
+      
+      // Формируем абсолютный URL с протоколом
+      const protocol = window.location.protocol;
+      const host = window.location.host;
+      const endpoint = '/api/missions/active';
+      const url = `${protocol}//${host}${endpoint}`;
+      
+      console.log(`📤 GET запрос активных миссий на URL: ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      
+      console.log(`📥 Ответ получен (статус: ${response.status} ${response.statusText})`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ошибка при получении активных миссий: ${response.status} ${errorText}`);
+      }
+      
+      // Получаем текст ответа
+      const responseText = await response.text();
+      console.log(`📥 Текст ответа: ${responseText.substring(0, 100)}...`);
+      
+      try {
+        const data = JSON.parse(responseText);
+        // Проверяем что у нас есть массив с данными
+        if (data && data.success && Array.isArray(data.data)) {
+          console.log(`✅ Получены активные миссии (${data.data.length} шт.)`);
+          return data.data;
+        } else {
+          console.log('⚠️ Неожиданный формат данных:', data);
+          // Если не получаем ожидаемый формат, возвращаем пустой массив
+          return [];
+        }
+      } catch (jsonError) {
+        console.error('⚠️ Ошибка разбора JSON:', jsonError);
+        return [];
+      }
+    }
   });
   
-  // Загружаем выполненные миссии пользователя
-  const { data: userCompletedMissions, isLoading: userMissionsLoading } = useQuery<UserMission[]>({
+  // Загружаем выполненные миссии пользователя c явным указанием queryFn
+  const { data: userCompletedMissions, isLoading: userMissionsLoading, error: userMissionsError } = useQuery<UserMission[]>({
     queryKey: ['/api/user_missions', currentUserId],
     queryFn: async () => {
-      const response = await fetch(`/api/user_missions?user_id=${currentUserId}`);
+      console.log('🚀 Запрос выполненных миссий пользователя ID:', currentUserId);
+      
+      // Формируем абсолютный URL с протоколом
+      const protocol = window.location.protocol;
+      const host = window.location.host;
+      const endpoint = `/api/user_missions?user_id=${currentUserId}`;
+      const url = `${protocol}//${host}${endpoint}`;
+      
+      console.log(`📤 GET запрос выполненных миссий на URL: ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      
+      console.log(`📥 Ответ получен (статус: ${response.status} ${response.statusText})`);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch user missions');
+        const errorText = await response.text();
+        throw new Error(`Ошибка при получении выполненных миссий: ${response.status} ${errorText}`);
       }
-      return response.json();
+      
+      // Получаем текст ответа
+      const responseText = await response.text();
+      console.log(`📥 Текст ответа: ${responseText.substring(0, 100)}...`);
+      
+      try {
+        const data = JSON.parse(responseText);
+        // Проверяем что у нас есть массив с данными
+        if (data && data.success && Array.isArray(data.data)) {
+          console.log(`✅ Получены выполненные миссии (${data.data.length} шт.)`);
+          return data.data;
+        } else {
+          console.log('⚠️ Неожиданный формат данных:', data);
+          // Если не получаем ожидаемый формат, возвращаем пустой массив
+          return [];
+        }
+      } catch (jsonError) {
+        console.error('⚠️ Ошибка разбора JSON:', jsonError);
+        return [];
+      }
     }
   });
   
@@ -420,16 +507,84 @@ export const MissionsList: React.FC = () => {
   
   const isLoading = missionsLoading || userMissionsLoading;
   
+  // Если идет загрузка, показываем плейсхолдеры карточек
   if (isLoading) {
     return (
       <div className="space-y-4 p-4">
-        {[1, 2, 3].map(i => (
-          <Card key={i} className="bg-card/50 animate-pulse">
-            <CardHeader className="h-16"></CardHeader>
+        <div className="text-center mb-4 text-muted-foreground text-sm">
+          Загрузка заданий...
+        </div>
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="w-full opacity-70 animate-pulse">
+            <CardHeader className="pb-2 h-16"></CardHeader>
             <CardContent className="h-20"></CardContent>
             <CardFooter className="h-12"></CardFooter>
           </Card>
         ))}
+      </div>
+    );
+  }
+
+  // Обработка ошибок запросов
+  if (missionsError || userMissionsError) {
+    return (
+      <div className="space-y-4 p-4">
+        <Card className="w-full bg-red-900/20 border border-red-800">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5 text-red-400" />
+              Ошибка загрузки заданий
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {missionsError 
+                ? `Ошибка при загрузке активных заданий: ${(missionsError as Error).message}` 
+                : `Ошибка при загрузке выполненных заданий: ${(userMissionsError as Error).message}`}
+            </p>
+            <Button 
+              className="mt-4 w-full"
+              onClick={() => {
+                // Инвалидируем запросы для перезагрузки данных
+                queryClient.invalidateQueries({ queryKey: ['/api/missions/active'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/user_missions', currentUserId] });
+              }}
+            >
+              Попробовать снова
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Если нет миссий для отображения
+  if (!missions || missions.length === 0) {
+    return (
+      <div className="space-y-4 p-4">
+        <Card className="w-full bg-slate-800/70 border border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5 text-amber-400" />
+              Задания не найдены
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              На данный момент доступных заданий нет. Проверьте позже или обновите страницу.
+            </p>
+            <Button 
+              className="mt-4 w-full"
+              onClick={() => {
+                // Инвалидируем запросы для перезагрузки данных
+                queryClient.invalidateQueries({ queryKey: ['/api/missions/active'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/user_missions', currentUserId] });
+              }}
+            >
+              Обновить
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
