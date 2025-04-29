@@ -50,28 +50,29 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
  * @returns Результат запроса в формате JSON
  */
 export async function apiRequest(url: string, options?: RequestInit): Promise<any> {
+  // Проверка наличия URL
+  if (!url) {
+    console.error('[queryClient] Ошибка: отсутствует URL для запроса');
+    throw new Error('Отсутствует URL для запроса API');
+  }
+  
   console.log('[queryClient] apiRequest to', url);
 
   try {
-    // Формируем полный URL с учетом протокола
-    let fullUrl = apiConfig.getFullUrl(url);
+    // Нормализуем путь, если он не начинается со слеша
+    const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
     
-    // Гарантируем, что для запросов используется абсолютный URL с протоколом
-    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-      // Если мы в окружении браузера, используем текущий протокол и хост
-      if (typeof window !== 'undefined') {
-        const protocol = window.location.protocol;
-        const host = window.location.host;
-        fullUrl = `${protocol}//${host}${fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`}`;
-      } 
-      // Если URL всё ещё не содержит протокол, используем HTTPS (для особых случаев)
-      if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-        const baseURL = process.env.NODE_ENV === 'production' 
-          ? 'https://uni-farm-connect-2-misterxuniverse.replit.app'
-          : `https://${window.location.host}`;
-        fullUrl = `${baseURL}${fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`}`;
-      }
-    }
+    // Формируем полный URL с учетом протокола и хоста
+    let fullUrl = '';
+    
+    // Определяем текущий протокол и хост
+    const protocol = window.location.protocol;
+    const host = window.location.host;
+    
+    // Создаем абсолютный URL с учетом протокола
+    fullUrl = `${protocol}//${host}${normalizedUrl}`;
+    
+    console.log('[queryClient] Сформирован абсолютный URL:', fullUrl);
     
     // Определяем метод из options или по умолчанию GET
     const method = options?.method || 'GET';
@@ -156,25 +157,42 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
       const responseText = await response.text();
       
       // Проверяем, что ответ не пустой
-      if (!responseText.trim()) {
+      if (!responseText || !responseText.trim()) {
         console.log('[queryClient] Получен пустой ответ');
-        return { success: true }; // Возвращаем базовый успешный ответ
+        // Возвращаем базовый успешный ответ для пустого ответа
+        return { 
+          success: true,
+          message: 'Операция успешно выполнена (пустой ответ)'
+        };
       }
       
-      // Преобразуем ответ в JSON
-      const data = JSON.parse(responseText);
-      
-      // Логируем общую структуру ответа
-      console.log(`[queryClient] Response received:`, {
-        success: data?.success,
-        hasData: data?.data !== undefined,
-        dataType: data?.data ? (Array.isArray(data.data) ? 'array' : typeof data.data) : 'undefined'
-      });
-      
-      return data;
+      try {
+        // Преобразуем ответ в JSON
+        const data = JSON.parse(responseText);
+        
+        // Логируем общую структуру ответа
+        console.log(`[queryClient] Response received:`, {
+          success: data?.success,
+          hasData: data?.data !== undefined,
+          dataType: data?.data ? (Array.isArray(data.data) ? 'array' : typeof data.data) : 'undefined'
+        });
+        
+        return data;
+      } catch (parseError: any) {
+        console.error(`[queryClient] JSON parse error:`, parseError);
+        console.log(`[queryClient] Raw response text:`, responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
+        
+        // Для удобства отладки, возвращаем объект с сырым текстом ответа и сообщением об ошибке
+        return { 
+          success: false, 
+          error: 'Недопустимый формат JSON в ответе',
+          rawResponse: responseText.substring(0, 1000),
+          errorDetails: parseError?.message || 'Неизвестная ошибка'
+        };
+      }
     } catch (error: any) {
-      console.error(`[queryClient] JSON parse error:`, error);
-      throw new Error(`Invalid JSON in response: ${error?.message || 'Unknown error'}`);
+      console.error(`[queryClient] Response handling error:`, error);
+      throw new Error(`Ошибка при обработке ответа: ${error?.message || 'Неизвестная ошибка'}`);
     }
   } catch (error) {
     console.error(`[queryClient] API request error to ${url}:`, error);
