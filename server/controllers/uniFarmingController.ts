@@ -13,14 +13,17 @@ export class UniFarmingController {
     try {
       const userId = Number(req.query.user_id);
       if (isNaN(userId)) {
+        res.setHeader('Content-Type', 'application/json');
         res.status(400).json({ success: false, message: 'Invalid user ID' });
         return;
       }
 
       const farmingInfo = await NewUniFarmingService.getUserFarmingInfo(userId);
-      res.json({ success: true, data: farmingInfo });
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).json({ success: true, data: farmingInfo });
     } catch (error) {
       console.error('Error in getUserFarmingInfo:', error);
+      res.setHeader('Content-Type', 'application/json');
       res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
@@ -38,6 +41,7 @@ export class UniFarmingController {
       // Проверка содержимого запроса
       if (!req.body) {
         console.log('Ошибка: пустое тело запроса');
+        res.setHeader('Content-Type', 'application/json');
         res.status(400).json({ success: false, message: 'Тело запроса пустое' });
         return;
       }
@@ -47,6 +51,7 @@ export class UniFarmingController {
       
       if (amount === undefined || amount === null || amount === '') {
         console.log('Ошибка: отсутствует обязательное поле amount');
+        res.setHeader('Content-Type', 'application/json');
         res.status(400).json({ success: false, message: 'Отсутствует обязательное поле amount' });
         return;
       }
@@ -55,6 +60,7 @@ export class UniFarmingController {
       const amountValue = parseFloat(amount);
       if (isNaN(amountValue) || amountValue <= 0) {
         console.log('Ошибка: amount должно быть положительным числом');
+        res.setHeader('Content-Type', 'application/json');
         res.status(400).json({ success: false, message: 'Amount должно быть положительным числом' });
         return;
       }
@@ -67,6 +73,7 @@ export class UniFarmingController {
         const userIdValue = parseInt(user_id);
         if (isNaN(userIdValue) || userIdValue <= 0 || userIdValue !== Number(user_id)) {
           console.log('Ошибка: user_id должен быть положительным целым числом');
+          res.setHeader('Content-Type', 'application/json');
           res.status(400).json({ success: false, message: 'user_id должен быть положительным целым числом' });
           return;
         }
@@ -79,13 +86,28 @@ export class UniFarmingController {
       
       console.log('Результат создания депозита:', depositResult);
       
+      // Явно устанавливаем заголовок Content-Type для JSON
+      res.setHeader('Content-Type', 'application/json');
+      
       if (depositResult.success) {
-        res.json({ success: true, data: depositResult });
+        // Создаем правильный формат ответа
+        const responseData = { 
+          success: true, 
+          data: depositResult 
+        };
+        console.log('Отправляем успешный ответ:', JSON.stringify(responseData));
+        res.status(200).json(responseData);
       } else {
-        res.status(400).json({ success: false, message: depositResult.message });
+        const errorResponse = { 
+          success: false, 
+          message: depositResult.message 
+        };
+        console.log('Отправляем ответ с ошибкой:', JSON.stringify(errorResponse));
+        res.status(400).json(errorResponse);
       }
     } catch (error) {
       console.error('Ошибка в createUniFarmingDeposit:', error);
+      res.setHeader('Content-Type', 'application/json');
       res.status(500).json({ success: false, message: 'Внутренняя ошибка сервера' });
     }
   }
@@ -97,14 +119,17 @@ export class UniFarmingController {
     try {
       const userId = Number(req.query.user_id);
       if (isNaN(userId)) {
+        res.setHeader('Content-Type', 'application/json');
         res.status(400).json({ success: false, message: 'Invalid user ID' });
         return;
       }
 
       const updateResult = await NewUniFarmingService.calculateAndUpdateUserFarming(userId);
-      res.json({ success: true, data: updateResult });
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).json({ success: true, data: updateResult });
     } catch (error) {
       console.error('Error in calculateAndUpdateFarming:', error);
+      res.setHeader('Content-Type', 'application/json');
       res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
@@ -116,14 +141,17 @@ export class UniFarmingController {
     try {
       const userId = Number(req.query.user_id);
       if (isNaN(userId)) {
+        res.setHeader('Content-Type', 'application/json');
         res.status(400).json({ success: false, message: 'Invalid user ID' });
         return;
       }
 
       const deposits = await NewUniFarmingService.getUserFarmingDeposits(userId);
-      res.json({ success: true, data: { deposits } });
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).json({ success: true, data: { deposits } });
     } catch (error) {
       console.error('Error in getUserFarmingDeposits:', error);
+      res.setHeader('Content-Type', 'application/json');
       res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
@@ -142,6 +170,7 @@ export class UniFarmingController {
       // Проверка содержимого запроса
       if (!req.body) {
         console.log('Ошибка: пустое тело запроса');
+        res.setHeader('Content-Type', 'application/json');
         res.status(400).json({ success: false, message: 'Тело запроса пустое' });
         return;
       }
@@ -157,6 +186,7 @@ export class UniFarmingController {
         const userIdValue = parseInt(user_id);
         if (isNaN(userIdValue) || userIdValue <= 0 || userIdValue !== Number(user_id)) {
           console.log('Ошибка: user_id должен быть положительным целым числом');
+          res.setHeader('Content-Type', 'application/json');
           res.status(400).json({ success: false, message: 'user_id должен быть положительным целым числом' });
           return;
         }
@@ -166,12 +196,14 @@ export class UniFarmingController {
       console.log(`Информационный запрос для user_id=${userId}`);
       
       // Просто возвращаем информационное сообщение, так как автоматическое начисление
-      res.json({ 
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).json({ 
         success: true, 
         message: 'Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!'
       });
     } catch (error) {
       console.error('Error in harvestFarmingInfo:', error);
+      res.setHeader('Content-Type', 'application/json');
       res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
