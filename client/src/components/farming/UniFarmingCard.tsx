@@ -44,25 +44,35 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Мутация для создания фарминг-депозита
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
-      // Преобразуем строку в число для корректного формата JSON
-      const numericAmount = parseFloat(amount);
-      
-      // Создаем тело запроса в формате { amount: число, user_id: 1 }
-      const requestBody = { 
-        amount: numericAmount,  // Строго числовое значение, не строка
-        user_id: 1 
-      };
-      
-      console.log('Отправляем запрос фарминга с телом:', JSON.stringify(requestBody));
-      
       try {
+        // Преобразуем строку в число для корректного формата JSON
+        const numericAmount = parseFloat(amount);
+        
         // Проверяем корректный формат перед отправкой
         if (isNaN(numericAmount)) {
           throw new Error('Некорректное числовое значение для amount');
         }
         
+        // Создаем тело запроса в формате { amount: число, user_id: 1 }
+        const requestBody = { 
+          amount: numericAmount,  // Строго числовое значение, не строка
+          user_id: 1 
+        };
+        
+        console.log('Отправляем запрос фарминга с телом:', JSON.stringify(requestBody));
+        
+        // Используем полный URL с прямым указанием протокола и хоста
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        const endpoint = `/api/uni-farming/deposit`;
+        
+        // Полный URL для запроса
+        const fullUrl = `${protocol}//${host}${endpoint}`;
+        
+        console.log(`Отправляем POST запрос фарминга на полный URL: ${fullUrl}`);
+        
         // Используем apiRequest из queryClient для унифицированного подхода к запросам
-        return await apiRequest('/api/uni-farming/deposit', {
+        return await apiRequest(endpoint, {
           method: 'POST',
           body: JSON.stringify(requestBody)
         });
@@ -97,8 +107,18 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         console.log('Отправляем инфо-запрос с телом:', JSON.stringify(requestBody));
         
+        // Используем полный URL с прямым указанием протокола и хоста
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        const endpoint = `/api/uni-farming/harvest`;
+        
+        // Полный URL для запроса
+        const fullUrl = `${protocol}//${host}${endpoint}`;
+        
+        console.log(`Отправляем POST запрос на полный URL: ${fullUrl}`);
+        
         // Используем apiRequest из queryClient для унифицированного подхода к запросам
-        return await apiRequest('/api/uni-farming/harvest', {
+        return await apiRequest(endpoint, {
           method: 'POST',
           body: JSON.stringify(requestBody)
         });

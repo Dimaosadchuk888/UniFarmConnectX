@@ -53,7 +53,25 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
   console.log('[queryClient] apiRequest to', url);
 
   try {
-    const fullUrl = apiConfig.getFullUrl(url);
+    // Формируем полный URL с учетом протокола
+    let fullUrl = apiConfig.getFullUrl(url);
+    
+    // Гарантируем, что для запросов используется абсолютный URL с протоколом
+    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+      // Если мы в окружении браузера, используем текущий протокол и хост
+      if (typeof window !== 'undefined') {
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        fullUrl = `${protocol}//${host}${fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`}`;
+      } 
+      // Если URL всё ещё не содержит протокол, используем HTTPS (для особых случаев)
+      if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        const baseURL = process.env.NODE_ENV === 'production' 
+          ? 'https://uni-farm-connect-2-misterxuniverse.replit.app'
+          : `https://${window.location.host}`;
+        fullUrl = `${baseURL}${fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`}`;
+      }
+    }
     
     // Определяем метод из options или по умолчанию GET
     const method = options?.method || 'GET';
@@ -95,12 +113,12 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
     if (fetchOptions.body) {
       console.log(`[queryClient] Request body: ${fetchOptions.body}`);
       
-      // Детальная проверка формата body
+      // Детальная проверка формата body для POST/PUT запросов
       if (method === 'POST' || method === 'PUT') {
         try {
           // Проверяем, что тело - это строка в формате JSON
           const parsedBody = JSON.parse(fetchOptions.body as string);
-          console.log(`[queryClient] Тело запроса валидный JSON:`, parsedBody);
+          console.log(`[queryClient] Тело запроса (валидный JSON):`, parsedBody);
           
           // Если делаем запрос к фармингу, проверим структуру данных
           if (url.includes('/uni-farming/')) {
@@ -111,13 +129,16 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
               userIdType: typeof parsedBody.user_id
             });
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error(`[queryClient] ОШИБКА! Тело запроса не является валидным JSON:`, e);
+          throw new Error(`Недопустимый формат JSON в запросе: ${e?.message || 'Неизвестная ошибка'}`);
         }
       }
     } else if (method === 'POST' || method === 'PUT') {
-      console.warn(`[queryClient] ВНИМАНИЕ! ${method}-запрос без тела!`);
+      console.warn(`[queryClient] ВНИМАНИЕ! ${method}-запрос без тела! URL: ${fullUrl}`);
     }
+    
+    console.log(`[queryClient] Отправляем запрос на ${method} ${fullUrl}`);
     
     // Выполняем запрос
     const response = await fetch(fullUrl, fetchOptions);
