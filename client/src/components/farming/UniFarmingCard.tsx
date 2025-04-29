@@ -74,16 +74,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         console.log('➡️ Отправляем инфо-запрос с телом:', JSON.stringify(requestBody));
         
-        // Формируем абсолютный URL с протоколом
-        const protocol = window.location.protocol;
-        const host = window.location.host;
+        // Используем относительный URL вместо абсолютного для предотвращения ошибок в разных окружениях
         const endpoint = '/api/uni-farming/harvest';
-        const fullUrl = `${protocol}//${host}${endpoint}`;
         
-        console.log(`➡️ Полный URL для POST инфо-запроса: ${fullUrl}`);
+        console.log(`➡️ Относительный URL для POST инфо-запроса: ${endpoint}`);
         
         // Выполняем запрос напрямую через fetch для отладки
-        const response = await fetch(fullUrl, {
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -169,19 +166,16 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         console.log('📤 Отправка запроса на создание депозита:', JSON.stringify(requestBody));
         
-        // Формируем абсолютный URL
-        const protocol = window.location.protocol;
-        const host = window.location.host;
+        // Используем относительный URL вместо абсолютного для предотвращения ошибок в разных окружениях
         const endpoint = '/api/uni-farming/deposit';
-        const url = `${protocol}//${host}${endpoint}`;
         
-        console.log(`📤 POST запрос на URL: ${url}`);
+        console.log(`📤 POST запрос на относительный URL: ${endpoint}`);
         
         // Устанавливаем статус загрузки вручную
         setError('Обработка запроса...');
         
         // Отправляем запрос напрямую через fetch
-        const response = await fetch(url, {
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
