@@ -44,15 +44,23 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Мутация для создания фарминг-депозита
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
+      // Преобразуем строку в число для корректного формата JSON
+      const numericAmount = parseFloat(amount);
+      
       // Создаем тело запроса в формате { amount: число, user_id: 1 }
       const requestBody = { 
-        amount: amount,
+        amount: numericAmount,  // Строго числовое значение, не строка
         user_id: 1 
       };
       
       console.log('Отправляем запрос фарминга с телом:', JSON.stringify(requestBody));
       
       try {
+        // Проверяем корректный формат перед отправкой
+        if (isNaN(numericAmount)) {
+          throw new Error('Некорректное числовое значение для amount');
+        }
+        
         // Используем apiRequest из queryClient для унифицированного подхода к запросам
         return await apiRequest('/api/uni-farming/deposit', {
           method: 'POST',
@@ -82,6 +90,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const infoMutation = useMutation({
     mutationFn: async () => {
       try {
+        // Строго числовой user_id - 1 как число, не строка
         const requestBody = { 
           user_id: 1 
         };

@@ -91,9 +91,32 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
       if (options.signal) fetchOptions.signal = options.signal;
     }
     
-    // Логирование запроса
+    // Проверка и логирование тела запроса
     if (fetchOptions.body) {
       console.log(`[queryClient] Request body: ${fetchOptions.body}`);
+      
+      // Детальная проверка формата body
+      if (method === 'POST' || method === 'PUT') {
+        try {
+          // Проверяем, что тело - это строка в формате JSON
+          const parsedBody = JSON.parse(fetchOptions.body as string);
+          console.log(`[queryClient] Тело запроса валидный JSON:`, parsedBody);
+          
+          // Если делаем запрос к фармингу, проверим структуру данных
+          if (url.includes('/uni-farming/')) {
+            console.log(`[queryClient] Проверка тела запроса фарминга:`, {
+              hasAmount: 'amount' in parsedBody,
+              amountType: typeof parsedBody.amount,
+              hasUserId: 'user_id' in parsedBody,
+              userIdType: typeof parsedBody.user_id
+            });
+          }
+        } catch (e) {
+          console.error(`[queryClient] ОШИБКА! Тело запроса не является валидным JSON:`, e);
+        }
+      }
+    } else if (method === 'POST' || method === 'PUT') {
+      console.warn(`[queryClient] ВНИМАНИЕ! ${method}-запрос без тела!`);
     }
     
     // Выполняем запрос
