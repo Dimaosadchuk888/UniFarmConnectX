@@ -39,6 +39,23 @@ const MAX_RESTART_OFFSET = 10;
  */
 async function updateAllUsersFarming(): Promise<void> {
   try {
+    // Защита от слишком больших начислений при первом запуске сервера
+    const now = new Date();
+    const secondsSinceServerStart = Math.floor((now.getTime() - SERVER_START_TIME.getTime()) / 1000);
+    
+    // При первом запуске помечаем систему как инициализированную без фактических начислений
+    if (!systemInitialized) {
+      console.log(`[Background Tasks] Initializing farming system. Skipping first update to prevent excessive rewards.`);
+      systemInitialized = true;
+      return;
+    }
+    
+    // Если после запуска сервера прошло слишком мало времени, пропускаем обновление
+    if (secondsSinceServerStart < 2) {
+      console.log(`[Background Tasks] Server just started (${secondsSinceServerStart}s ago). Waiting for system stabilization.`);
+      return;
+    }
+    
     // Получаем всех пользователей с активными депозитами UNI в новой таблице
     const usersWithUniDeposits = await db
       .select({
