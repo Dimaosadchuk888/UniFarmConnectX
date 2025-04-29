@@ -6,7 +6,7 @@
  * типов данных перед отправкой
  */
 
-const { default: fetch } = require('node-fetch');
+import fetch from 'node-fetch';
 
 // Копия функции fixRequestBody из client/src/lib/apiFix.ts
 function fixRequestBody(body) {

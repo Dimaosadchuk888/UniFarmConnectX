@@ -12,19 +12,31 @@
  * @returns Модифицированное тело запроса
  */
 export function fixRequestBody(body: any): any {
-  // Если body отсутствует или не является объектом, возвращаем как есть
-  if (!body || typeof body !== 'object') {
-    return body;
+  if (body && typeof body === 'object') {
+    // Если тело запроса содержит поле 'amount' и оно числовое, преобразуем его в строку
+    if ('amount' in body && typeof body.amount === 'number') {
+      console.log(`[apiFix] Преобразуем числовое amount=${body.amount} в строку`);
+      return {
+        ...body,
+        amount: String(body.amount)
+      };
+    }
+
+    // Рекурсивно обрабатываем вложенные объекты
+    const result: any = {};
+    for (const key in body) {
+      if (Object.prototype.hasOwnProperty.call(body, key)) {
+        const value = body[key];
+        if (typeof value === 'object' && value !== null) {
+          result[key] = fixRequestBody(value);
+        } else {
+          result[key] = value;
+        }
+      }
+    }
+    
+    return result;
   }
-
-  // Создаем копию объекта для безопасного изменения
-  const fixedBody = { ...body };
-
-  // Если в теле запроса есть поле amount и оно является числом
-  if ('amount' in fixedBody && typeof fixedBody.amount === 'number') {
-    console.log('[apiFix] Преобразование amount из числа в строку:', fixedBody.amount);
-    fixedBody.amount = fixedBody.amount.toString();
-  }
-
-  return fixedBody;
+  
+  return body;
 }
