@@ -224,7 +224,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   
   // Обработчик для показа информации о новом механизме автоматического начисления
   const handleShowInfo = () => {
-    infoMutation.mutate();
+    try {
+      console.log('Запускаем infoMutation...');
+      infoMutation.mutate();
+    } catch (error) {
+      console.error('Ошибка при запуске infoMutation:', error);
+      // Установим сообщение даже в случае ошибки
+      setError('Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!');
+    }
   };
   
   // Форматирование числа с учетом малых значений

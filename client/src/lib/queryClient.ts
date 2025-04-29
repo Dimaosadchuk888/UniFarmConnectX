@@ -50,10 +50,23 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
  * @returns Результат запроса в формате JSON
  */
 export async function apiRequest(url: string, options?: RequestInit): Promise<any> {
-  // Проверка наличия URL
-  if (!url) {
-    console.error('[queryClient] Ошибка: отсутствует URL для запроса');
-    throw new Error('Отсутствует URL для запроса API');
+  // Проверка наличия URL и валидация
+  if (!url || typeof url !== 'string') {
+    console.error('[queryClient] Ошибка: отсутствует или некорректный URL для запроса', { url });
+    // Возвращаем объект с ошибкой вместо исключения
+    return {
+      success: false,
+      error: 'Отсутствует или некорректный URL для запроса API'
+    };
+  }
+  
+  // Проверка, если URL передан как HTTP метод (возможная ошибка)
+  if (url === 'POST' || url === 'GET' || url === 'PUT' || url === 'DELETE') {
+    console.error('[queryClient] Ошибка: в качестве URL передан HTTP метод:', url);
+    return {
+      success: false,
+      error: `Некорректный URL: получен HTTP метод ${url} вместо адреса`
+    };
   }
   
   console.log('[queryClient] apiRequest to', url);
@@ -65,14 +78,20 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
     // Формируем полный URL с учетом протокола и хоста
     let fullUrl = '';
     
-    // Определяем текущий протокол и хост
-    const protocol = window.location.protocol;
-    const host = window.location.host;
-    
-    // Создаем абсолютный URL с учетом протокола
-    fullUrl = `${protocol}//${host}${normalizedUrl}`;
-    
-    console.log('[queryClient] Сформирован абсолютный URL:', fullUrl);
+    // Определяем текущий протокол и хост из window.location
+    if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol;
+      const host = window.location.host;
+      
+      // Создаем абсолютный URL с учетом протокола
+      fullUrl = `${protocol}//${host}${normalizedUrl}`;
+      
+      console.log('[queryClient] Сформирован абсолютный URL:', fullUrl);
+    } else {
+      // Запасной вариант, если window недоступен
+      fullUrl = `https://uni-farm-connect-2-misterxuniverse.replit.app${normalizedUrl}`;
+      console.log('[queryClient] Сформирован резервный URL:', fullUrl);
+    }
     
     // Определяем метод из options или по умолчанию GET
     const method = options?.method || 'GET';
