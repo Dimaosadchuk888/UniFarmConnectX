@@ -28,40 +28,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     refetchInterval: 10000, // Обновляем данные каждые 10 секунд чтобы видеть текущий баланс
   });
   
-  // Извлекаем данные фарминга из ответа API
-  const farmingData = (farmingResponse as any)?.data || { 
-    isActive: false, 
-    depositAmount: '0', 
+  // Информация о фарминге из ответа API
+  const farmingInfo: FarmingInfo = farmingResponse?.data || {
+    isActive: false,
+    depositAmount: '0',
     ratePerSecond: '0',
     depositCount: 0,
     totalDepositAmount: '0',
-    startDate: null,
-    uni_farming_start_timestamp: null 
   };
-  
-  const farmingInfo: FarmingInfo = farmingData;
-  
-  // Мутация больше не используется для отправки депозита
-  // Но сохраняем её для совместимости с остальным кодом
-  const depositMutation = useMutation({
-    mutationFn: async (amount: string) => {
-      console.log('⚠️ Мутация depositMutation вызвана, но не используется. Вместо нее используется прямой fetch в handleSubmit.');
-      return { success: true };
-    },
-    onSuccess: () => {
-      // Сбрасываем форму и обновляем данные
-      setDepositAmount('');
-      setError(null);
-      // Инвалидируем запросы для обновления данных
-      queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-    },
-    onError: (error: Error) => {
-      setError(error.message || 'Произошла ошибка при создании депозита');
-    },
-  });
   
   // Информационная мутация (просто для показа информации о новом механизме)
   const infoMutation = useMutation({
@@ -232,11 +206,16 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
           queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
           queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-      } catch (fetchError: any) {
-        console.error('⚠️ Ошибка при выполнении запроса:', fetchError);
-        setError(`Не удалось выполнить депозит: ${fetchError.message}`);
+        } catch (fetchError: any) {
+          console.error('⚠️ Ошибка при выполнении запроса:', fetchError);
+          setError(`Не удалось выполнить депозит: ${fetchError.message}`);
+        }
+      } catch (err) {
+        console.error('⚠️ Ошибка при подготовке запроса:', err);
+        setError(`Ошибка при подготовке запроса: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
       }
     } catch (err) {
+      console.error('⚠️ Ошибка валидации формы:', err);
       setError('Некорректный формат суммы');
     }
   };
