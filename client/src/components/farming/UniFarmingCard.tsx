@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import BigNumber from 'bignumber.js';
@@ -21,6 +21,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const queryClient = useQueryClient();
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  // Защита от повторных вызовов
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  // Флаг для предотвращения автоматических вызовов
+  const depositRequestSent = useRef<boolean>(false);
   
   // Получаем информацию о фарминге
   const { data: farmingResponse, isLoading } = useQuery<{ success: boolean; data: FarmingInfo }>({
@@ -105,14 +109,28 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     },
   });
   
-  // Обработчик отправки формы
+  // Обработчик отправки формы (ВЫЗЫВАЕТСЯ ТОЛЬКО ПРИ КЛИКЕ НА КНОПКУ)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Предотвращаем множественные вызовы
+    if (isSubmitting) {
+      console.log('⛔ Запрос уже выполняется, повторный вызов отклонен');
+      return;
+    }
+    
+    setIsSubmitting(true);
     setError(null);
+    
+    // Отмечаем, что депозит был запрошен пользователем
+    depositRequestSent.current = true;
+    
+    console.log('🖱️ [ОТЛАДКА ДЕПОЗИТА] Вызов handleSubmit по клику пользователя');
     
     // Валидация
     if (!depositAmount || depositAmount === '0') {
       setError('Пожалуйста, введите сумму депозита');
+      setIsSubmitting(false);
       return;
     }
     
@@ -120,6 +138,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       const amount = new BigNumber(depositAmount);
       if (amount.isNaN() || amount.isLessThanOrEqualTo(0)) {
         setError('Сумма должна быть положительным числом');
+        setIsSubmitting(false);
         return;
       }
       
@@ -127,6 +146,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       const balance = new BigNumber(userData?.balance_uni || '0');
       if (amount.isGreaterThan(balance)) {
         setError('Недостаточно средств на балансе');
+        setIsSubmitting(false);
         return;
       }
       
@@ -252,14 +272,19 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         } catch (fetchError: any) {
           console.error('⚠️ Ошибка при выполнении запроса:', fetchError);
           setError(`Не удалось выполнить депозит: ${fetchError.message}`);
+        } finally {
+          // Разрешаем повторный вызов
+          setIsSubmitting(false);
         }
       } catch (err) {
         console.error('⚠️ Ошибка при подготовке запроса:', err);
         setError(`Ошибка при подготовке запроса: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
+        setIsSubmitting(false);
       }
     } catch (err) {
       console.error('⚠️ Ошибка валидации формы:', err);
       setError('Некорректный формат суммы');
+      setIsSubmitting(false);
     }
   };
   
