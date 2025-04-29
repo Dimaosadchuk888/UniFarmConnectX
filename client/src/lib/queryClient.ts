@@ -1,6 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getTelegramAuthHeaders } from "@/services/telegramService";
 import apiConfig from "@/config/apiConfig";
+import { fixRequestBody } from "./apiFix";
 
 /**
  * Вспомогательная функция для проверки статуса HTTP-ответа
