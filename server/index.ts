@@ -41,6 +41,40 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  /**
+   * Глобальный обработчик необработанных исключений и отказов промисов
+   * Это важно для предотвращения аварийного завершения приложения
+   * при возникновении непредвиденных ошибок, что может привести к 502 ошибкам
+   */
+  process.on('uncaughtException', (error) => {
+    console.error('[SERVER] ⚠️ Непойманное исключение:', {
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+    // Не завершаем процесс, чтобы сервер продолжил работу
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('[SERVER] ⚠️ Необработанный отказ промиса:', {
+      reason: reason instanceof Error ? reason.message : String(reason),
+      stack: reason instanceof Error ? reason.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+    // Не завершаем процесс, чтобы сервер продолжил работу
+  });
+  
+  /**
+   * Дополнительные логи отладки запросов для изучения причин проблем 502
+   */
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    if (req.path.startsWith('/api/')) {
+      console.log('[АУДИТ] [' + new Date().toISOString() + '] Request to ' + req.method + ' ' + req.url);
+      console.log('[АУДИТ] Headers:', JSON.stringify(req.headers, null, 2));
+    }
+    next();
+  });
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
