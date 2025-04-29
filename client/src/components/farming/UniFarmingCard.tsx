@@ -163,7 +163,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       try {
         // Создаем тело запроса с правильными типами данных
         const requestBody = {
-          amount: parseFloat(amount.toString()),  // Преобразуем в число
+          amount: amount.toString(),  // Передаем amount как строку, как в тестовом скрипте
           user_id: 1  // ID пользователя как число
         };
         
