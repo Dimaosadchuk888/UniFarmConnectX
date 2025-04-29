@@ -158,6 +158,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           user_id: 1  // ID пользователя как число
         };
         
+        // Явная проверка типа amount для отладки
+        console.log('Тип:', typeof requestBody.amount, requestBody.amount);
+        
         console.log('📤 Отправка запроса на создание депозита:', JSON.stringify(requestBody));
         
         // Используем относительный URL вместо абсолютного для предотвращения ошибок в разных окружениях
@@ -168,7 +171,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] amount тип:`, typeof requestBody.amount);
         console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] user_id тип:`, typeof requestBody.user_id);
         
-        // Преобразуем number в string если amount число
+        // Гарантированное преобразуем number в string если amount число
         if (typeof requestBody.amount === 'number') {
           console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] amount конвертирован из числа в строку`);
           requestBody.amount = String(requestBody.amount);
@@ -207,6 +210,17 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           }
           
           // Выполняем прямой fetch запрос
+          // Последняя проверка и преобразование перед запросом
+          const safeRequestBody = {
+            amount: String(requestBody.amount), // Гарантированно строка
+            user_id: requestBody.user_id
+          };
+          
+          // Логирование перед отправкой
+          console.log('Итоговая проверка перед отправкой:');
+          console.log('Тип amount:', typeof safeRequestBody.amount);
+          console.log('Значение amount:', safeRequestBody.amount);
+          
           const fetchOptions = {
             method: 'POST',
             headers: {
@@ -216,7 +230,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               'Pragma': 'no-cache',
               'Expires': '0'
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(safeRequestBody)
           };
           
           console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Опции fetch:`, fetchOptions);

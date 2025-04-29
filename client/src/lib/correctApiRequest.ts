@@ -56,6 +56,12 @@ export async function correctApiRequest<T = any>(
       // Применяем исправление типов данных (number → string для amount)
       const fixedData = fixRequestBody(data);
       
+      // Принудительно конвертируем amount в строку, если он существует
+      if (fixedData && 'amount' in fixedData) {
+        fixedData.amount = String(fixedData.amount);
+        console.log('Тип:', typeof fixedData.amount, fixedData.amount);
+      }
+      
       // Детальное логирование
       console.log(`[correctApiRequest] Тело запроса до фиксации:`, JSON.stringify(data));
       console.log(`[correctApiRequest] Тело запроса после фиксации:`, JSON.stringify(fixedData));
