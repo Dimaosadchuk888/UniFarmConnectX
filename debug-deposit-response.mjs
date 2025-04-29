@@ -2,84 +2,87 @@
  * Отладочный скрипт для проверки ответа API на запрос депозита
  * Выполняет запрос и детально анализирует ответ сервера
  */
-
 import fetch from 'node-fetch';
 
 async function testDeposit() {
-  const url = 'https://8ac7b219-438d-4a0b-ab0e-d8b58de37c6d-00-8ncue1micrhz.sisko.replit.dev/api/uni-farming/deposit';
-  const requestBody = {
-    amount: '5',
-    user_id: 1
-  };
-  
-  console.log('Отправка POST запроса на', url);
-  console.log('Тело запроса:', JSON.stringify(requestBody));
-  
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
+  // URL для тестирования - локальный и production
+  const urls = [
+    'https://8ac7b219-438d-4a0b-ab0e-d8b58de37c6d-00-8ncue1micrhz.sisko.replit.dev',  // локальный
+    'https://uni-farm-connect-2-misterxuniverse.replit.app'  // production
+  ];
+
+  for (const baseUrl of urls) {
+    console.log(`\n----- Тестирование ${baseUrl} -----`);
+    const endpoint = '/api/uni-farming/deposit';
     
-    console.log('Статус ответа:', response.status, response.statusText);
-    console.log('Заголовки ответа:');
-    const headers = {};
-    response.headers.forEach((value, name) => {
-      headers[name] = value;
-    });
-    console.log(JSON.stringify(headers, null, 2));
+    // Данные для тестирования с правильным форматом amount как строки
+    const testData = {
+      user_id: 1,
+      amount: "5" // Обратите внимание: amount теперь строка, а не число
+    };
     
-    // Получаем ответ в виде текста
-    const responseText = await response.text();
-    console.log('\nТекст ответа:');
-    console.log(responseText);
-    console.log('\nДлина текста ответа:', responseText.length, 'символов');
+    console.log(`Отправка POST запроса на ${baseUrl}${endpoint}`);
+    console.log('Данные запроса:', testData);
     
-    // Проверяем, является ли ответ валидным JSON
     try {
-      const responseJson = JSON.parse(responseText);
-      console.log('\nJSON ответ:');
-      console.log(JSON.stringify(responseJson, null, 2));
-      console.log('\n✅ Ответ является валидным JSON');
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(testData)
+      });
       
-      // Проверяем структуру ответа
-      if (responseJson.success !== undefined) {
-        console.log('✅ Ответ содержит поле success:', responseJson.success);
-      } else {
-        console.log('❌ Ответ НЕ содержит поле success');
+      // Информация о статусе и заголовках
+      console.log(`Статус ответа: ${response.status} ${response.statusText}`);
+      console.log('Заголовки ответа:');
+      for (const [key, value] of response.headers.entries()) {
+        console.log(`  ${key}: ${value}`);
       }
       
-      if (responseJson.data !== undefined) {
-        console.log('✅ Ответ содержит поле data');
-        console.log('Структура data:', Object.keys(responseJson.data).join(', '));
-      } else {
-        console.log('❌ Ответ НЕ содержит поле data');
-      }
-    } catch (jsonError) {
-      console.log('\n❌ Ответ НЕ является валидным JSON');
-      console.log('Ошибка парсинга JSON:', jsonError.message);
+      // Получаем ответ как текст
+      const textResponse = await response.text();
+      console.log('\nТело ответа (текст):', textResponse);
       
-      // Вывод частей ответа для анализа
-      console.log('\nАнализ текста ответа:');
-      console.log('Первые 50 символов:', responseText.substring(0, 50));
-      console.log('Последние 50 символов:', responseText.substring(responseText.length - 50));
-      
-      // Проверка на HTML
-      if (responseText.includes('<!DOCTYPE html>') || responseText.includes('<html')) {
-        console.log('⚠️ Ответ содержит HTML разметку');
+      // Пытаемся распарсить как JSON
+      try {
+        const jsonResponse = JSON.parse(textResponse);
+        console.log('Тело ответа (JSON):', JSON.stringify(jsonResponse, null, 2));
+        console.log('✅ JSON валидный!');
+      } catch (parseError) {
+        console.error('❌ Ошибка парсинга JSON:', parseError.message);
+        
+        // Детальный анализ ответа для выявления проблем
+        console.log('\n🔍 Анализ ответа:');
+        console.log('Длина ответа:', textResponse.length, 'символов');
+        
+        if (textResponse.length === 0) {
+          console.error('  - Пустой ответ');
+        } else {
+          console.log('  - Первые 100 символов:', JSON.stringify(textResponse.substring(0, 100)));
+          console.log('  - Последние 100 символов:', JSON.stringify(textResponse.substring(textResponse.length - 100)));
+          
+          // Проверка на наличие HTML в ответе
+          if (textResponse.includes('<html') || textResponse.includes('<!DOCTYPE')) {
+            console.error('  - Ответ содержит HTML вместо JSON');
+          }
+          
+          // Проверка на невидимые символы или BOM
+          const hasInvisibleChars = /[\u0000-\u001F\u007F-\u009F\uFEFF]/.test(textResponse);
+          if (hasInvisibleChars) {
+            console.error('  - Ответ содержит невидимые символы или BOM');
+          }
+          
+          // Проверка на множество ответов
+          if (textResponse.includes('}{')) {
+            console.error('  - Обнаружено несколько объектов JSON в одном ответе');
+          }
+        }
       }
-      
-      // Проверка на простой текст
-      if (!responseText.includes('{') && !responseText.includes('<')) {
-        console.log('⚠️ Ответ является простым текстом без JSON или HTML структуры');
-      }
+    } catch (fetchError) {
+      console.error('❌ Ошибка выполнения запроса:', fetchError.message);
     }
-  } catch (error) {
-    console.error('Ошибка запроса:', error);
   }
 }
 
