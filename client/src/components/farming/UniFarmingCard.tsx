@@ -79,30 +79,19 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         console.log(`➡️ Относительный URL для POST инфо-запроса: ${endpoint}`);
         
-        // Выполняем запрос напрямую через fetch для отладки
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          credentials: 'include',
+        // Используем новый формат apiRequest
+        const response = await apiRequest(endpoint, {
+          method: 'POST', 
           body: JSON.stringify(requestBody)
         });
         
-        console.log(`⬅️ Получен ответ инфо-запроса со статусом: ${response.status} ${response.statusText}`);
+        console.log(`⬅️ Получен ответ инфо-запроса:`, response);
         
-        // Получаем текст ответа
-        const responseText = await response.text();
-        console.log(`⬅️ Текст ответа инфо-запроса (первые 100 символов): ${responseText.substring(0, 100)}`);
-        
-        try {
-          // Пытаемся распарсить JSON
-          const data = JSON.parse(responseText);
-          console.log(`✅ Ответ инфо-запроса успешно преобразован в JSON:`, data);
-          return data;
-        } catch (jsonError) {
-          console.error(`❌ Ошибка преобразования ответа инфо-запроса в JSON:`, jsonError);
+        if (response?.success) {
+          console.log(`✅ Ответ инфо-запроса успешен:`, response);
+          return response;
+        } else {
+          console.log(`⚠️ Ответ инфо-запроса не содержит success:true`, response);
           // Возвращаем простой объект с сообщением
           return {
             success: true,
@@ -174,27 +163,22 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // Устанавливаем статус загрузки вручную
         setError('Обработка запроса...');
         
-        // Отправляем запрос напрямую через fetch
-        const response = await fetch(endpoint, {
+        // Используем обновленный формат apiRequest
+        const response = await apiRequest(endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          credentials: 'include',
           body: JSON.stringify(requestBody)
         });
         
-        console.log(`📥 Ответ получен (статус: ${response.status} ${response.statusText})`);
+        console.log(`📥 Ответ получен:`, response);
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Ошибка сервера: ${response.status} ${errorText}`);
+        if (!response.success) {
+          console.error('❌ Ошибка в ответе API:', response);
+          throw new Error(`Ошибка сервера: ${response.error || 'Неизвестная ошибка'}`);
         }
         
-        // Напрямую получаем JSON ответ
         try {
-          const data = await response.json();
+          // Используем данные из response
+          const data = response;
           console.log('📥 Ответ успешно получен в формате JSON:', data);
           
           // Обрабатываем успешный ответ
