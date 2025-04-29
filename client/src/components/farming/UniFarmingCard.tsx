@@ -181,42 +181,57 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         // Выполняем прямой fetch запрос с правильными заголовками
         console.log(`📤 Выполняем fetch к ${fullUrl} с данными:`, requestBody);
+        console.log(`📤 Тело запроса в формате JSON: ${JSON.stringify(requestBody)}`);
         
-        const fetchResponse = await fetch(fullUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(requestBody)
-        });
+        try {
+          const fetchResponse = await fetch(fullUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+          });
+          
+          console.log(`📥 Статус ответа: ${fetchResponse.status} ${fetchResponse.statusText}`);
+          
+          if (!fetchResponse.ok) {
+            throw new Error(`Ошибка HTTP: ${fetchResponse.status} ${fetchResponse.statusText}`);
+          }
+          
+          // Сначала получаем ответ как текст для отладки
+          const responseText = await fetchResponse.text();
+          console.log(`📥 Текст ответа: ${responseText}`);
+          
+          // Безопасная попытка преобразования ответа в JSON
+          let response;
+          try {
+            response = JSON.parse(responseText);
+            console.log(`📥 Ответ успешно преобразован в JSON:`, response);
+          } catch (jsonError) {
+            console.error('📥 Ошибка при разборе JSON:', jsonError);
+            throw new Error(`Ошибка формата ответа: ${responseText.substring(0, 100)}`);
+          }
+          
+          console.log(`📥 Ответ получен:`, response);
         
-        console.log(`📥 Статус ответа: ${fetchResponse.status} ${fetchResponse.statusText}`);
-        
-        // Преобразуем ответ в JSON
-        const responseText = await fetchResponse.text();
-        console.log(`📥 Текст ответа: ${responseText.substring(0, 100)}`);
-        
-        const response = JSON.parse(responseText);
-        console.log(`📥 Ответ получен:`, response);
-        
-        if (!response.success) {
-          console.error('❌ Ошибка в ответе API:', response);
-          throw new Error(`Ошибка сервера: ${response.error || 'Неизвестная ошибка'}`);
-        }
-        
-        // Обрабатываем успешный ответ
-        console.log('📥 Ответ успешно получен в формате JSON:', response);
-        
-        // Обрабатываем успешный ответ
-        setDepositAmount('');
-        setError(null);
-        
-        // Инвалидируем запросы для обновления данных
-        queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+          if (!response.success) {
+            console.error('❌ Ошибка в ответе API:', response);
+            throw new Error(`Ошибка сервера: ${response.error || 'Неизвестная ошибка'}`);
+          }
+          
+          // Обрабатываем успешный ответ
+          console.log('📥 Ответ успешно получен в формате JSON:', response);
+          
+          // Обрабатываем успешный ответ
+          setDepositAmount('');
+          setError(null);
+          
+          // Инвалидируем запросы для обновления данных
+          queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       } catch (fetchError: any) {
         console.error('⚠️ Ошибка при выполнении запроса:', fetchError);
         setError(`Не удалось выполнить депозит: ${fetchError.message}`);
