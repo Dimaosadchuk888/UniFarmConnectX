@@ -121,6 +121,11 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
     };
   }
   
+  // Дополнительная проверка для отладки - нужна ли?
+  if (options?.method === url) {
+    console.error('[queryClient] Предупреждение: метод совпадает с URL, что может указывать на путаницу:', { url, method: options.method });
+  }
+  
   console.log('[queryClient] apiRequest to', url);
 
   try {
@@ -147,7 +152,7 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
     
     // Определяем метод из options или по умолчанию GET
     const method = options?.method || 'GET';
-    console.log(`[queryClient] Making ${method} request to: ${fullUrl}`);
+    console.log(`[queryClient] Выполняем ${method} запрос к: ${fullUrl}`);
     
     // Необходимые базовые заголовки
     const baseHeaders = {
