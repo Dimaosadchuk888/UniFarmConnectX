@@ -171,14 +171,64 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Длина JSON: ${requestBodyJSON.length} символов`);
         
         try {
-          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Используем новую утилиту correctApiRequest`);
+          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Используем нативный fetch для максимальной надежности`);
           
-          // Используем нашу новую утилиту для отправки запроса
-          const response = await correctApiRequest(
-            endpoint,   // URL-путь
-            'POST',     // метод
-            requestBody // данные
-          );
+          // Прямое использование fetch без промежуточных слоев
+          const protocol = window.location.protocol;
+          const host = window.location.host;
+          const url = `${protocol}//${host}${endpoint}`;
+          
+          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] URL запроса: ${url}`);
+          
+          // Конвертируем amount в строку если это число
+          if (typeof requestBody.amount === 'number') {
+            requestBody.amount = String(requestBody.amount);
+            console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Конвертирован amount в строку: ${requestBody.amount}`);
+          }
+          
+          // Выполняем прямой fetch запрос
+          const fetchOptions = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            },
+            body: JSON.stringify(requestBody)
+          };
+          
+          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Опции fetch:`, fetchOptions);
+          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Тело запроса:`, fetchOptions.body);
+          
+          // Выполняем запрос
+          const fetchResponse = await fetch(url, fetchOptions);
+          
+          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Статус ответа: ${fetchResponse.status} ${fetchResponse.statusText}`);
+          
+          // Получаем текст ответа
+          const responseText = await fetchResponse.text();
+          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Текст ответа: ${responseText}`);
+          
+          let response;
+          try {
+            // Преобразуем в JSON если возможно
+            response = JSON.parse(responseText);
+            console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Ответ успешно обработан как JSON`);
+          } catch (parseError) {
+            console.error(`📥 [ОТЛАДКА ДЕПОЗИТА] Ошибка парсинга JSON:`, parseError);
+            throw new Error(`Неверный формат JSON в ответе: ${parseError.message}`);
+          }
+          
+          // Проверка ответа на правильность структуры
+          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Проверка структуры ответа:`, {
+            isObject: typeof response === 'object',
+            hasSuccessField: response && 'success' in response,
+            successValue: response?.success,
+            hasDataField: response && 'data' in response,
+            dataType: response?.data ? typeof response.data : 'undefined'
+          });
           
           console.log(`📥 Ответ получен:`, response);
         

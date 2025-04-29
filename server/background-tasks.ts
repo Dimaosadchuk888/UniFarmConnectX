@@ -40,8 +40,8 @@ const MAX_RESTART_OFFSET = 10;
 async function updateAllUsersFarming(): Promise<void> {
   try {
     // Защита от слишком больших начислений при первом запуске сервера
-    const now = new Date();
-    const secondsSinceServerStart = Math.floor((now.getTime() - SERVER_START_TIME.getTime()) / 1000);
+    const startTime = new Date();
+    const secondsSinceServerStart = Math.floor((startTime.getTime() - SERVER_START_TIME.getTime()) / 1000);
     
     // При первом запуске помечаем систему как инициализированную без фактических начислений
     if (!systemInitialized) {
@@ -106,9 +106,9 @@ async function updateAllUsersFarming(): Promise<void> {
     }
     
     // Выводим лог раз в 10 секунд для снижения нагрузки
-    const now = Date.now();
-    if (now - lastLogTime > 10000) {
-      lastLogTime = now;
+    const currentTime = Date.now();
+    if (currentTime - lastLogTime > 10000) {
+      lastLogTime = currentTime;
       console.log(`[Background Tasks] Updating farming for ${activeUsers.length} users`);
     }
     
@@ -148,7 +148,7 @@ async function updateAllUsersFarming(): Promise<void> {
     }
     
     // Выводим лог об успехе также только раз в 10 секунд
-    if (now - lastLogTime < 100) { // Если это то же "окно", в котором мы вывели первый лог
+    if (currentTime - lastLogTime < 100) { // Если это то же "окно", в котором мы вывели первый лог
       console.log('[Background Tasks] Farming updated successfully');
     }
   } catch (error) {

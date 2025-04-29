@@ -25,6 +25,12 @@ export async function correctApiRequest<T = any>(
       endpoint = '/' + endpoint;
     }
     
+    // Проверяем на наличие слеша в конце URL и удаляем его
+    if (endpoint.endsWith('/') && endpoint.length > 1) {
+      endpoint = endpoint.slice(0, -1);
+      console.log(`[correctApiRequest] Удален завершающий слеш из URL:`, endpoint);
+    }
+    
     // Строим полный URL с учетом текущего хоста
     const protocol = window.location.protocol;
     const host = window.location.host;
@@ -34,7 +40,7 @@ export async function correctApiRequest<T = any>(
     
     // Создаем опции для fetch
     const options: RequestInit = {
-      method,
+      method: method, // Явно указываем метод
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -50,10 +56,14 @@ export async function correctApiRequest<T = any>(
       // Применяем исправление типов данных (number → string для amount)
       const fixedData = fixRequestBody(data);
       
+      // Детальное логирование
+      console.log(`[correctApiRequest] Тело запроса до фиксации:`, JSON.stringify(data));
+      console.log(`[correctApiRequest] Тело запроса после фиксации:`, JSON.stringify(fixedData));
+      
       // Логирование для фарминга
-      if (endpoint.includes('/farming/')) {
+      if (endpoint.includes('farming')) {
         if (fixedData.amount !== data.amount) {
-          console.log(`[correctApiRequest] Автоматически преобразовано поле amount: ${data.amount} (${typeof data.amount}) → "${fixedData.amount}" (string)`);
+          console.log(`[correctApiRequest] Преобразовано поле amount: ${data.amount} (${typeof data.amount}) → "${fixedData.amount}" (string)`);
         }
         
         console.log(`[correctApiRequest] Данные запроса фарминга:`, {
@@ -61,8 +71,7 @@ export async function correctApiRequest<T = any>(
           amount: fixedData.amount,
           amountType: typeof fixedData.amount,
           user_id: fixedData.user_id,
-          userIdType: typeof fixedData.user_id,
-          rawBody: fixedData
+          userIdType: typeof fixedData.user_id
         });
       }
       
@@ -70,9 +79,22 @@ export async function correctApiRequest<T = any>(
       options.body = JSON.stringify(fixedData);
     }
     
+    // Детальное логирование для отладки
+    console.log(`[correctApiRequest] Детали запроса:`, {
+      url: fullUrl,
+      method: options.method,
+      headers: options.headers,
+      hasBody: !!options.body
+    });
+    
+    if (options.body) {
+      console.log(`[correctApiRequest] Тело запроса:`, options.body);
+    }
+    
     // Выполняем запрос
-    console.log(`[correctApiRequest] Опции запроса:`, options);
     const response = await fetch(fullUrl, options);
+    
+    console.log(`[correctApiRequest] Статус ответа: ${response.status} ${response.statusText}`);
     
     // Проверяем HTTP-статус
     if (!response.ok) {
@@ -85,6 +107,7 @@ export async function correctApiRequest<T = any>(
     
     // Получаем текст ответа
     const responseText = await response.text();
+    console.log(`[correctApiRequest] Получен ответ (длина ${responseText.length} байт)`);
     
     // Проверка на пустой ответ
     if (!responseText || responseText.trim() === '') {
@@ -99,7 +122,7 @@ export async function correctApiRequest<T = any>(
       return jsonData;
     } catch (parseError) {
       console.error(`[correctApiRequest] Ошибка парсинга JSON:`, parseError);
-      console.error(`[correctApiRequest] Исходный текст:`, responseText);
+      console.error(`[correctApiRequest] Исходный текст:`, responseText.substring(0, 100) + '...');
       throw new Error(`Некорректный JSON в ответе: ${(parseError as Error).message}`);
     }
   } catch (error) {
