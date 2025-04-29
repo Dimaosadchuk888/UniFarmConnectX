@@ -41,68 +41,12 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   
   const farmingInfo: FarmingInfo = farmingData;
   
-  // Мутация для создания фарминг-депозита
+  // Мутация больше не используется для отправки депозита
+  // Но сохраняем её для совместимости с остальным кодом
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
-      try {
-        // Преобразуем строку в число для корректного формата JSON
-        const numericAmount = parseFloat(amount);
-        
-        // Проверяем корректный формат перед отправкой
-        if (isNaN(numericAmount)) {
-          throw new Error('Некорректное числовое значение для amount');
-        }
-        
-        // Создаем тело запроса в формате { amount: число, user_id: 1 }
-        const requestBody = { 
-          amount: numericAmount,  // Строго числовое значение, не строка
-          user_id: 1 
-        };
-        
-        console.log('➡️ Отправляем запрос фарминга с телом:', JSON.stringify(requestBody));
-        
-        // Формируем абсолютный URL с протоколом
-        const protocol = window.location.protocol;
-        const host = window.location.host;
-        const endpoint = '/api/uni-farming/deposit';
-        const fullUrl = `${protocol}//${host}${endpoint}`;
-        
-        console.log(`➡️ Полный URL для POST запроса: ${fullUrl}`);
-        
-        // Выполняем запрос напрямую через fetch для отладки
-        const response = await fetch(fullUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify(requestBody)
-        });
-        
-        console.log(`⬅️ Получен ответ со статусом: ${response.status} ${response.statusText}`);
-        
-        // Получаем текст ответа
-        const responseText = await response.text();
-        console.log(`⬅️ Текст ответа (первые 100 символов): ${responseText.substring(0, 100)}`);
-        
-        try {
-          // Пытаемся распарсить JSON
-          const data = JSON.parse(responseText);
-          console.log(`✅ Ответ успешно преобразован в JSON:`, data);
-          return data;
-        } catch (jsonError) {
-          console.error(`❌ Ошибка преобразования ответа в JSON:`, jsonError);
-          // Возвращаем простой объект с ошибкой, чтобы не прерывать выполнение
-          return {
-            success: true,
-            message: 'Операция выполнена, но формат ответа сервера некорректен'
-          };
-        }
-      } catch (error) {
-        console.error('❌ Ошибка активации фарминга:', error);
-        throw error;
-      }
+      console.log('⚠️ Мутация depositMutation вызвана, но не используется. Вместо нее используется прямой fetch в handleSubmit.');
+      return { success: true };
     },
     onSuccess: () => {
       // Сбрасываем форму и обновляем данные
@@ -191,7 +135,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   });
   
   // Обработчик отправки формы
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
@@ -215,8 +159,96 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return;
       }
       
-      // Отправляем запрос
-      depositMutation.mutate(amount.toString());
+      // Напрямую выполняем запрос без использования mutation
+      try {
+        // Создаем тело запроса с правильными типами данных
+        const requestBody = {
+          amount: parseFloat(amount.toString()),  // Преобразуем в число
+          user_id: 1  // ID пользователя как число
+        };
+        
+        console.log('📤 Отправка запроса на создание депозита:', JSON.stringify(requestBody));
+        
+        // Формируем абсолютный URL
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        const endpoint = '/api/uni-farming/deposit';
+        const url = `${protocol}//${host}${endpoint}`;
+        
+        console.log(`📤 POST запрос на URL: ${url}`);
+        
+        // Устанавливаем статус загрузки вручную
+        setError('Обработка запроса...');
+        
+        // Отправляем запрос напрямую через fetch
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify(requestBody)
+        });
+        
+        console.log(`📥 Ответ получен (статус: ${response.status} ${response.statusText})`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Ошибка сервера: ${response.status} ${errorText}`);
+        }
+        
+        // Получаем текст ответа
+        const responseText = await response.text();
+        console.log(`📥 Текст ответа: ${responseText.substring(0, 100)}`);
+        
+        // Проверяем, что ответ не пустой
+        if (!responseText || !responseText.trim()) {
+          console.log('📥 Получен пустой ответ, считаем операцию успешной');
+          // Сбрасываем форму и обновляем данные
+          setDepositAmount('');
+          setError(null);
+          
+          // Инвалидируем запросы для обновления данных
+          queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+          
+          return;
+        }
+        
+        // Пытаемся разобрать JSON ответ
+        try {
+          const data = JSON.parse(responseText);
+          console.log('📥 Ответ успешно преобразован в JSON:', data);
+          
+          // Обрабатываем успешный ответ
+          setDepositAmount('');
+          setError(null);
+          
+          // Инвалидируем запросы для обновления данных
+          queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+          
+        } catch (jsonError) {
+          console.error('⚠️ Ошибка разбора JSON:', jsonError);
+          // Даже если не смогли разобрать JSON, считаем операцию успешной
+          setDepositAmount('');
+          setError('Операция выполнена успешно. Обновите страницу для просмотра изменений.');
+          
+          // Инвалидируем запросы для обновления данных
+          queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+        }
+      } catch (fetchError: any) {
+        console.error('⚠️ Ошибка при выполнении запроса:', fetchError);
+        setError(`Не удалось выполнить депозит: ${fetchError.message}`);
+      }
     } catch (err) {
       setError('Некорректный формат суммы');
     }
@@ -392,14 +424,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           
           <button 
             type="submit"
-            disabled={depositMutation.isPending || isLoading || infoMutation.isPending}
+            disabled={isLoading || error === 'Обработка запроса...'}
             className={`w-full py-2 px-4 rounded-lg font-medium ${
-              depositMutation.isPending || isLoading || infoMutation.isPending
+              isLoading || error === 'Обработка запроса...'
                 ? 'bg-muted text-foreground opacity-50'
                 : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700'
             } transition-all duration-300`}
           >
-            {depositMutation.isPending ? 'Обработка...' : isActive ? 'Пополнить' : 'Активировать фарминг'}
+            {error === 'Обработка запроса...' ? 'Обработка...' : isActive ? 'Пополнить' : 'Активировать фарминг'}
           </button>
         </form>
       </div>
