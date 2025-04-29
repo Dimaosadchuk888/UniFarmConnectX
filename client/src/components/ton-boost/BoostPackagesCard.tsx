@@ -219,11 +219,14 @@ const BoostPackagesCard: React.FC = () => {
           if (result) {
             console.log('[DEBUG] Транзакция успешно отправлена, регистрируем на сервере...');
             // Если пользователь подтвердил транзакцию в Tonkeeper, регистрируем её на сервере
-            const registerResponse = await apiRequest('POST', '/api/ton-boosts/purchase', {
-              user_id: userId,
-              boost_id: boostId,
-              payment_method: 'external_wallet',
-              tx_hash: result.txHash // Передаем хеш транзакции
+            const registerResponse = await apiRequest('/api/ton-boosts/purchase', {
+              method: 'POST',
+              body: JSON.stringify({
+                user_id: userId,
+                boost_id: boostId,
+                payment_method: 'external_wallet',
+                tx_hash: result.txHash // Передаем хеш транзакции
+              })
             });
             
             if (!registerResponse.ok) {
@@ -243,9 +246,12 @@ const BoostPackagesCard: React.FC = () => {
             
             // Теперь отправляем запрос на подтверждение платежа
             // Это нужно, чтобы система знала, что транзакция подтверждена пользователем
-            await apiRequest('POST', '/api/ton-boosts/confirm-payment', {
-              user_id: userIdInt,
-              transaction_id: transactionId
+            await apiRequest('/api/ton-boosts/confirm-payment', {
+              method: 'POST',
+              body: JSON.stringify({
+                user_id: userIdInt,
+                transaction_id: transactionId
+              })
             });
             
             // Теперь показываем диалог ожидания только ПОСЛЕ того, как пользователь подтвердил транзакцию
@@ -291,10 +297,13 @@ const BoostPackagesCard: React.FC = () => {
         }
       } else {
         // Для внутреннего баланса - стандартный процесс
-        const response = await apiRequest('POST', '/api/ton-boosts/purchase', {
-          user_id: userId,
-          boost_id: boostId,
-          payment_method: paymentMethod
+        const response = await apiRequest('/api/ton-boosts/purchase', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: userId,
+            boost_id: boostId,
+            payment_method: paymentMethod
+          })
         });
         
         if (!response.ok) {
