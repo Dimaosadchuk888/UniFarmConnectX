@@ -79,11 +79,22 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         console.log(`➡️ Относительный URL для POST инфо-запроса: ${endpoint}`);
         
-        // Используем новый формат apiRequest
-        const response = await apiRequest(endpoint, {
-          method: 'POST', 
+        // Получаем абсолютный URL с учетом текущего хоста
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        const fullUrl = `${protocol}//${host}${endpoint}`;
+        
+        // Выполняем прямой fetch запрос с правильными заголовками
+        console.log(`➡️ Выполняем fetch к ${fullUrl}`);
+        
+        const response = await fetch(fullUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
           body: JSON.stringify(requestBody)
-        });
+        }).then(res => res.json());
         
         console.log(`⬅️ Получен ответ инфо-запроса:`, response);
         
@@ -163,12 +174,30 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // Устанавливаем статус загрузки вручную
         setError('Обработка запроса...');
         
-        // Используем обновленный формат apiRequest
-        const response = await apiRequest(endpoint, {
+        // Получаем абсолютный URL с учетом текущего хоста
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        const fullUrl = `${protocol}//${host}${endpoint}`;
+        
+        // Выполняем прямой fetch запрос с правильными заголовками
+        console.log(`📤 Выполняем fetch к ${fullUrl} с данными:`, requestBody);
+        
+        const fetchResponse = await fetch(fullUrl, {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
           body: JSON.stringify(requestBody)
         });
         
+        console.log(`📥 Статус ответа: ${fetchResponse.status} ${fetchResponse.statusText}`);
+        
+        // Преобразуем ответ в JSON
+        const responseText = await fetchResponse.text();
+        console.log(`📥 Текст ответа: ${responseText.substring(0, 100)}`);
+        
+        const response = JSON.parse(responseText);
         console.log(`📥 Ответ получен:`, response);
         
         if (!response.success) {
@@ -176,42 +205,18 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           throw new Error(`Ошибка сервера: ${response.error || 'Неизвестная ошибка'}`);
         }
         
-        try {
-          // Используем данные из response
-          const data = response;
-          console.log('📥 Ответ успешно получен в формате JSON:', data);
-          
-          // Обрабатываем успешный ответ
-          setDepositAmount('');
-          setError(null);
-          
-          // Инвалидируем запросы для обновления данных
-          queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-          
-        } catch (jsonError) {
-          console.error('⚠️ Ошибка получения JSON:', jsonError);
-          
-          // Пытаемся получить текст ошибки в случае проблем с парсингом JSON
-          try {
-            const errorText = await response.text();
-            console.log('📥 Текст ответа при ошибке JSON:', errorText.substring(0, 100));
-          } catch (textError) {
-            console.error('⚠️ Не удалось получить текст ответа:', textError);
-          }
-          
-          // Даже если не смогли получить JSON, считаем операцию успешной
-          setDepositAmount('');
-          setError('Операция выполнена успешно. Обновите страницу для просмотра изменений.');
-          
-          // Инвалидируем запросы для обновления данных
-          queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-        }
+        // Обрабатываем успешный ответ
+        console.log('📥 Ответ успешно получен в формате JSON:', response);
+        
+        // Обрабатываем успешный ответ
+        setDepositAmount('');
+        setError(null);
+        
+        // Инвалидируем запросы для обновления данных
+        queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       } catch (fetchError: any) {
         console.error('⚠️ Ошибка при выполнении запроса:', fetchError);
         setError(`Не удалось выполнить депозит: ${fetchError.message}`);
