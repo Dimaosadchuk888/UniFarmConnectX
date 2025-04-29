@@ -189,7 +189,19 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
       if (method === 'POST' || method === 'PUT') {
         try {
           // Проверяем, что тело - это строка в формате JSON
-          const parsedBody = JSON.parse(fetchOptions.body as string);
+          let parsedBody = JSON.parse(fetchOptions.body as string);
+          
+          // Применяем исправление типов данных для запросов к API
+          // Преобразует числовые amount в строковые для совместимости с сервером
+          parsedBody = fixRequestBody(parsedBody);
+          
+          // Если тело запроса было изменено, обновляем его в fetchOptions
+          const fixedBody = JSON.stringify(parsedBody);
+          if (fixedBody !== fetchOptions.body) {
+            console.log(`[queryClient] Тело запроса было исправлено для совместимости с сервером`);
+            fetchOptions.body = fixedBody;
+          }
+          
           console.log(`[queryClient] Тело запроса (валидный JSON):`, parsedBody);
           
           // Если делаем запрос к фармингу, проверим структуру данных
