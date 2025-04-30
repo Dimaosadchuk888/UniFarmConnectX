@@ -164,44 +164,104 @@ export class TransactionController {
    */
   static async withdrawFunds(req: Request, res: Response): Promise<void> {
     try {
-      // Проверяем наличие и корректность обязательных параметров
-      const { user_id, amount, currency, address } = req.body;
+      // Валидация входных данных с помощью Zod
+      const schema = z.object({
+        user_id: z.number().int().positive("ID пользователя должен быть положительным целым числом"),
+        amount: z.string().or(z.number()).refine(val => {
+          const num = typeof val === "string" ? parseFloat(val) : val;
+          return !isNaN(num) && num > 0;
+        }, { message: "Сумма должна быть положительным числом" }),
+        currency: z.string().min(1, "Валюта должна быть указана").refine(val => 
+          ['UNI', 'TON'].includes(val.toUpperCase()), 
+          { message: "Валюта должна быть UNI или TON" }
+        ),
+        address: z.string().min(1, "Адрес кошелька должен быть указан")
+      });
       
-      // Проверка на наличие обязательных параметров
-      if (!user_id || !amount || !currency || !address) {
-        console.error("[TransactionController] Отсутствуют обязательные параметры");
-        return res.status(400).json({
+      const validation = schema.safeParse(req.body);
+      
+      if (!validation.success) {
+        console.error("[TransactionController] Ошибка валидации запроса:", validation.error.format());
+        res.status(400).json({
           success: false,
-          message: "Отсутствуют обязательные параметры для вывода средств"
+          message: "Некорректные параметры запроса",
+          errors: validation.error.format()
         });
+        return;
       }
       
-      // Добавлена проверка на отрицательные и нулевые значения
-      const numAmount = parseFloat(amount);
-      if (isNaN(numAmount) || numAmount <= 0) {
-        console.error(`[TransactionController] Некорректная сумма: ${amount}`);
-        return res.status(400).json({
-          success: false,
-          message: "Сумма для вывода должна быть положительным числом"
-        });
+      const { user_id, amount, currency, address } = validation.data;
+      
+      // Преобразование суммы к числу
+      const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+      
+      // Верхнеуровневый формат валюты для унификации
+      const formattedCurrency = currency.toUpperCase();
+      
+      console.log(`[TransactionController] Запрос на вывод: user_id=${user_id}, amount=${numAmount}, currency=${formattedCurrency}, address=${address}`);
+      
+      // Проверка формата адреса (для TON)
+      if (formattedCurrency === 'TON') {
+        const tonAddressRegex = /^(?:UQ|EQ)[A-Za-z0-9_-]{46,48}$/;
+        if (!tonAddressRegex.test(address)) {
+          console.error(`[TransactionController] Некорректный формат TON-адреса: ${address}`);
+          res.status(400).json({
+            success: false,
+            message: "Некорректный формат TON-адреса"
+          });
+          return;
+        }
       }
       
       // Проверяем существование пользователя
-      const user = await storage.getUser(parseInt(user_id));
+      const user = await storage.getUser(user_id);
       if (!user) {
         console.error(`[TransactionController] Пользователь не найден: ${user_id}`);
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: "Пользователь не найден"
         });
+        return;
       }
       
-      // В реальной реализации здесь должен быть код для обработки запроса на вывод средств
+      // Проверяем достаточность средств на балансе
+      const balance = formattedCurrency === 'UNI' 
+        ? parseFloat(user.balance_uni || '0')
+        : parseFloat(user.balance_ton || '0');
+        
+      if (balance < numAmount) {
+        console.error(`[TransactionController] Недостаточно средств для вывода: на балансе ${balance} ${formattedCurrency}, запрошено ${numAmount}`);
+        res.status(400).json({
+          success: false,
+          message: `Недостаточно средств для вывода. Доступный баланс: ${balance} ${formattedCurrency}`
+        });
+        return;
+      }
+      
+      // Создаем запись о транзакции через TransactionService
+      const transactionData = {
+        userId: user_id,
+        type: 'withdraw',
+        currency: formattedCurrency,
+        amount: numAmount.toString(),
+        status: 'pending',
+        source: 'user_request',
+        category: 'withdrawal'
+      };
+      
+      const transaction = await TransactionService.logTransaction(transactionData);
+      
+      // Здесь должен быть код для обработки запроса на вывод средств
+      // Обновление баланса пользователя будет выполняться после подтверждения вывода
+      
       res.status(200).json({
         success: true,
-        message: "Запрос на вывод средств принят",
         data: {
-          transaction_id: Math.floor(Math.random() * 1000) + 1
+          message: "Запрос на вывод средств принят",
+          transaction_id: transaction.id,
+          status: transaction.status,
+          amount: numAmount,
+          currency: formattedCurrency
         }
       });
     } catch (error) {

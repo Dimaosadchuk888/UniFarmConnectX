@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { NewUniFarmingService } from '../services/newUniFarmingService';
 import { z } from 'zod';
+import { db } from '../db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * Контроллер для работы с UNI фармингом
@@ -214,6 +217,19 @@ export class UniFarmingController {
       }
       
       console.log(`Информационный запрос для user_id=${userId}`);
+      
+      // Проверка существования пользователя в базе данных
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1).then(results => results[0]);
+      
+      if (!user) {
+        console.log(`Ошибка: пользователь с ID=${userId} не найден в базе данных`);
+        res.setHeader('Content-Type', 'application/json');
+        res.status(404).json({ 
+          success: false, 
+          message: 'Пользователь не найден' 
+        });
+        return;
+      }
       
       // Просто возвращаем информационное сообщение, так как автоматическое начисление
       res.setHeader('Content-Type', 'application/json');
