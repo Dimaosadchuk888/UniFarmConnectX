@@ -39,7 +39,8 @@ import { DailyBonusController } from './controllers/dailyBonusController';
 import { UniFarmingController } from './controllers/uniFarmingController';
 import { BoostController } from './controllers/boostController';
 import { TonBoostController } from './controllers/tonBoostController';
-import { AuthController } from './controllers/authController';
+import { AuthController } from './controllers/authController.new'; // Обновленный контроллер (SOLID)
+import { SecurityController } from './controllers/securityController'; // Новый контроллер безопасности (SOLID)
 import { WalletController } from './controllers/walletController';
 import { AdminController } from './controllers/adminController';
 
@@ -333,7 +334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Маршруты для аутентификации
+  // Маршруты для аутентификации (обновленный SOLID контроллер)
   app.post("/api/auth/telegram", AuthController.authenticateTelegram);
   
   // Маршрут для восстановления сессии по guest_id (Этап 3)
@@ -343,6 +344,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/register", AuthController.registerUser);
   
   // Маршрут для регистрации пользователя в режиме AirDrop (Этап 4)
+  
+  // Новые маршруты безопасности (SOLID)
+  app.post("/api/security/validate-telegram", SecurityController.validateTelegramInitData);
+  app.post("/api/security/check-permission", SecurityController.checkPermission);
+  app.post("/api/security/sanitize", SecurityController.sanitizeUserInput);
   app.post("/api/airdrop/register", AuthController.registerGuestUser);
   
   // Маршрут для логирования запусков Mini App (Этап 5.1)
