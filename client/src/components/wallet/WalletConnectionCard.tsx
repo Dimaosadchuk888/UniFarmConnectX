@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useUser } from '@/contexts/userContext';
+import { useNotification } from '@/contexts/notificationContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import {
   Tooltip,
   TooltipContent,
@@ -28,7 +28,8 @@ const WalletConnectionCard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   
-  const { toast } = useToast();
+  // Получение доступа к системе уведомлений
+  const { showNotification } = useNotification();
   
   /**
    * Обработчик подключения/отключения кошелька
@@ -38,40 +39,52 @@ const WalletConnectionCard: React.FC = () => {
     
     try {
       if (isWalletConnected) {
+        // Отображаем уведомление о процессе отключения
+        showNotification('loading', {
+          message: 'Отключение кошелька...',
+          duration: 2000
+        });
+        
         // Отключаем кошелек
         await disconnectWallet();
-        toast({
-          title: "Кошелек отключен",
-          description: "TON-кошелек успешно отключен",
-          duration: 2000,
+        
+        // Показываем уведомление об успешном отключении
+        showNotification('info', {
+          message: 'TON-кошелек успешно отключен',
+          duration: 3000
         });
       } else {
+        // Отображаем уведомление о процессе подключения
+        showNotification('loading', {
+          message: 'Ожидание подключения кошелька...',
+          duration: 2000
+        });
+        
         // Подключаем кошелек
         const success = await connectWallet();
         
         if (success) {
-          toast({
-            title: "Кошелек подключен",
-            description: "TON-кошелек успешно подключен",
-            duration: 2000,
+          // Уведомление об успешном подключении
+          showNotification('success', {
+            message: 'TON-кошелек успешно подключен',
+            duration: 3000
           });
         } else {
-          toast({
-            title: "Ошибка подключения",
-            description: "Не удалось подключить кошелек",
-            variant: "destructive",
-            duration: 2000,
+          // Уведомление об ошибке
+          showNotification('error', {
+            message: 'Не удалось подключить кошелек',
+            duration: 3000
           });
         }
       }
     } catch (error) {
       // Безопасное обращение к свойству message у error
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      toast({
-        title: "Ошибка",
-        description: errorMessage,
-        variant: "destructive",
-        duration: 2000,
+      
+      // Показываем уведомление об ошибке
+      showNotification('error', {
+        message: `Ошибка: ${errorMessage}`,
+        duration: 4000
       });
     } finally {
       setLoading(false);
@@ -86,21 +99,21 @@ const WalletConnectionCard: React.FC = () => {
       navigator.clipboard.writeText(walletAddress)
         .then(() => {
           setCopySuccess(true);
-          toast({
-            title: "Адрес скопирован",
-            description: "TON-адрес скопирован в буфер обмена",
-            duration: 2000,
+          
+          // Показываем уведомление об успешном копировании
+          showNotification('success', {
+            message: 'TON-адрес скопирован в буфер обмена',
+            duration: 2000
           });
           
           // Сбрасываем статус через 2 секунды
           setTimeout(() => setCopySuccess(false), 2000);
         })
         .catch(() => {
-          toast({
-            title: "Ошибка",
-            description: "Не удалось скопировать адрес",
-            variant: "destructive",
-            duration: 2000,
+          // Показываем уведомление об ошибке
+          showNotification('error', {
+            message: 'Не удалось скопировать адрес кошелька',
+            duration: 3000
           });
         });
     }
