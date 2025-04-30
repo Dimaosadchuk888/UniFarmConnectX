@@ -5,10 +5,15 @@ import { startBackgroundTasks } from "./background-tasks";
 import { migrateRefCodes } from "./migrations/refCodeMigration";
 // Импортируем наш новый модуль для обслуживания статических файлов в production
 import { setupProductionStatic } from "./productionStatic";
+// Импортируем middleware для стандартизации API ответов и обработки ошибок
+import { responseFormatter } from "./middleware/responseFormatter";
+import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+// Регистрируем middleware для стандартизации ответов API
+app.use(responseFormatter);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -77,24 +82,8 @@ app.use((req, res, next) => {
   
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    
-    console.error('[SERVER] Неперехваченная ошибка:', {
-      status,
-      message,
-      stack: err.stack
-    });
-
-    // Отправляем JSON-ответ с ошибкой, но НЕ выбрасываем исключение после
-    res.status(status).json({ 
-      success: false,
-      message,
-      error: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
-    // Удален оператор "throw err;" - это критическая ошибка, которая вызывала нестабильность
-  });
+  // Регистрируем централизованный обработчик ошибок
+  app.use(errorHandler);
 
   // Добавление обработчика для Telegram WebApp параметров
   app.use((req, res, next) => {
