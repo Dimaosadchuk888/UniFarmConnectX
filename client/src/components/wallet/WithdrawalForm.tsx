@@ -1,4 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useUser } from '@/contexts/userContext';
+import { useToast } from '@/hooks/use-toast';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { withdrawalSchema, createWithdrawalSchema, WithdrawalFormData } from '@/schemas/withdrawalSchema';
+import {
+  submitWithdrawal,
+  isWithdrawalError,
+  type WithdrawalError
+} from '@/services/withdrawalService';
 
 // Состояния отправки формы
 enum SubmitState {
@@ -8,54 +19,141 @@ enum SubmitState {
   ERROR = 'error'
 }
 
+/**
+ * Компонент формы для вывода средств
+ * Использует userContext для получения данных о пользователе
+ * и его балансе
+ */
 const WithdrawalForm: React.FC = () => {
-  // Базовые состояния формы
-  const [address, setAddress] = useState('');
-  const [amount, setAmount] = useState('');
-  const [submitState, setSubmitState] = useState<SubmitState>(SubmitState.IDLE);
+  // Получаем данные пользователя и баланса из контекста
+  const { 
+    userId, 
+    uniBalance, 
+    tonBalance, 
+    refreshBalance,
+    walletAddress 
+  } = useUser();
   
-  // Состояния для анимаций и эффектов
-  const [addressFocused, setAddressFocused] = useState(false);
-  const [amountFocused, setAmountFocused] = useState(false);
+  // Базовые состояния формы и UI
+  const [selectedCurrency, setSelectedCurrency] = useState<'UNI' | 'TON'>('TON');
+  const [submitState, setSubmitState] = useState<SubmitState>(SubmitState.IDLE);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
+  const [transactionId, setTransactionId] = useState<number | null>(null);
   
-  // Refs для фокуса полей
-  const addressInputRef = useRef<HTMLInputElement>(null);
-  const amountInputRef = useRef<HTMLInputElement>(null);
+  // Состояния для анимаций и эффектов фокуса
+  const [addressFocused, setAddressFocused] = useState(false);
+  const [amountFocused, setAmountFocused] = useState(false);
   
-  // Обработчик отправки формы с анимацией
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Хук для отображения уведомлений
+  const { toast } = useToast();
+  
+  // Получаем текущий баланс в зависимости от выбранной валюты
+  const currentBalance = selectedCurrency === 'UNI' ? uniBalance : tonBalance;
+  
+  // Формируем схему валидации с учетом текущего баланса
+  const formSchema = createWithdrawalSchema(currentBalance, selectedCurrency);
+  
+  // Инициализируем форму с react-hook-form и zod для валидации
+  const form = useForm<WithdrawalFormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      amount: '',
+      wallet_address: walletAddress || '',
+      currency: 'TON',
+    },
+  });
+  
+  // Обработчик изменения типа валюты
+  const handleCurrencyChange = (currency: 'UNI' | 'TON') => {
+    setSelectedCurrency(currency);
+    form.setValue('currency', currency);
     
-    // Валидация формы
-    if (!address || !amount) {
-      // Показываем ошибку в соответствующем поле
-      if (!address && addressInputRef.current) {
-        addressInputRef.current.focus();
-        setAddressFocused(true);
-      } else if (!amount && amountInputRef.current) {
-        amountInputRef.current.focus();
-        setAmountFocused(true);
-      }
+    // Очищаем ошибки поля currency
+    form.clearErrors('currency');
+  };
+  
+  // Эффект для установки значения кошелька по умолчанию, когда оно доступно
+  useEffect(() => {
+    if (walletAddress) {
+      form.setValue('wallet_address', walletAddress);
+    }
+  }, [walletAddress, form]);
+  
+  // Эффект для обновления схемы валидации при изменении баланса или валюты
+  useEffect(() => {
+    form.setValue('currency', selectedCurrency);
+  }, [selectedCurrency, form]);
+  
+  /**
+   * Обработчик отправки формы
+   */
+  const handleSubmit = async (data: WithdrawalFormData) => {
+    if (!userId) {
+      toast({
+        title: "Ошибка",
+        description: "Для вывода средств необходимо авторизоваться",
+        variant: "destructive",
+      });
       return;
     }
     
-    // Анимируем процесс отправки
     setSubmitState(SubmitState.SUBMITTING);
+    setErrorMessage(null);
     
-    // Имитация задержки ответа сервера
-    setTimeout(() => {
-      setSubmitState(SubmitState.SUCCESS);
-      setMessageSent(true);
+    try {
+      // Преобразуем amount в число, если это строка
+      const formattedData = {
+        ...data,
+        amount: typeof data.amount === 'string' ? parseFloat(data.amount) : data.amount,
+      };
       
-      // Через 3 секунды сбрасываем состояние отправки
-      setTimeout(() => {
-        setSubmitState(SubmitState.IDLE);
-        setAddress('');
-        setAmount('');
-      }, 3000);
-    }, 1500);
+      // Отправляем запрос на сервер с использованием сервиса
+      const result = await submitWithdrawal(userId, formattedData);
+      
+      // Проверяем результат на наличие ошибок
+      if (isWithdrawalError(result)) {
+        setSubmitState(SubmitState.ERROR);
+        setErrorMessage(result.message);
+        
+        toast({
+          title: "Ошибка вывода средств",
+          description: result.message,
+          variant: "destructive",
+        });
+      } else {
+        // При успехе устанавливаем статус и отображаем сообщение
+        setSubmitState(SubmitState.SUCCESS);
+        setMessageSent(true);
+        setTransactionId(result);
+        
+        // Обновляем баланс пользователя
+        refreshBalance();
+        
+        toast({
+          title: "Заявка отправлена",
+          description: `Заявка на вывод ${formattedData.amount} ${formattedData.currency} успешно создана`,
+        });
+        
+        // Сбрасываем данные формы
+        form.reset({
+          amount: '',
+          wallet_address: walletAddress || '',
+          currency: selectedCurrency,
+        });
+      }
+    } catch (error) {
+      setSubmitState(SubmitState.ERROR);
+      const errorMessage = error instanceof Error ? error.message : 'Произошла ошибка при отправке заявки';
+      setErrorMessage(errorMessage);
+      
+      toast({
+        title: "Ошибка соединения",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
   
   // Обработчик для подсказки
@@ -65,7 +163,7 @@ const WithdrawalForm: React.FC = () => {
   
   // Эффект для анимации "печатающейся" подсказки при успешной отправке
   const [typedMessage, setTypedMessage] = useState('');
-  const successMessage = 'Заявка успешно отправлена! Ожидайте обработки.';
+  const successMessage = `Заявка успешно отправлена! Номер заявки: ${transactionId || ''}.`;
   
   useEffect(() => {
     if (submitState === SubmitState.SUCCESS) {
@@ -81,7 +179,20 @@ const WithdrawalForm: React.FC = () => {
       
       typeMessage();
     }
-  }, [submitState]);
+  }, [submitState, successMessage]);
+  
+  // Создаем новую заявку (сбрасываем форму)
+  const handleNewRequest = () => {
+    setMessageSent(false);
+    setSubmitState(SubmitState.IDLE);
+    setErrorMessage(null);
+    
+    form.reset({
+      amount: '',
+      wallet_address: walletAddress || '',
+      currency: selectedCurrency,
+    });
+  };
   
   return (
     <div className="bg-card rounded-xl p-4 shadow-lg card-hover-effect relative overflow-hidden">
@@ -130,47 +241,95 @@ const WithdrawalForm: React.FC = () => {
           
           <button 
             className="mt-6 px-4 py-2 bg-muted rounded-lg text-sm hover:bg-primary/10 transition-colors"
-            onClick={() => setMessageSent(false)}
+            onClick={handleNewRequest}
           >
             Создать новую заявку
           </button>
         </div>
       ) : (
         // Форма вывода средств
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="block text-sm text-foreground opacity-70 mb-1">
-              TON-адрес получателя
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3">
+          {/* Выбор типа валюты */}
+          <div className="mb-4">
+            <label className="block text-sm text-foreground opacity-70 mb-2">
+              Валюта для вывода
             </label>
-            <div className="relative">
-              <input 
-                ref={addressInputRef}
-                type="text" 
-                placeholder="Введите TON-адрес" 
-                className={`
-                  w-full bg-muted text-foreground rounded-lg px-3 py-2 text-sm 
-                  transition-all duration-300
-                  ${addressFocused ? 'ring-2 ring-primary/30 bg-muted/80' : ''}
-                `}
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                onFocus={() => setAddressFocused(true)}
-                onBlur={() => setAddressFocused(false)}
-              />
-              
-              {/* Анимация фокуса */}
-              {addressFocused && (
-                <div 
-                  className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden opacity-20"
-                  style={{
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                    animation: 'shimmer 2s infinite'
-                  }}
-                ></div>
-              )}
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                className={`px-4 py-2 rounded-md text-sm transition-colors ${
+                  selectedCurrency === 'TON'
+                    ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-600/30'
+                    : 'bg-muted/40 text-foreground hover:bg-muted'
+                }`}
+                onClick={() => handleCurrencyChange('TON')}
+              >
+                TON
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 rounded-md text-sm transition-colors ${
+                  selectedCurrency === 'UNI'
+                    ? 'bg-green-600/20 text-green-400 border border-green-600/30'
+                    : 'bg-muted/40 text-foreground hover:bg-muted'
+                }`}
+                onClick={() => handleCurrencyChange('UNI')}
+              >
+                UNI
+              </button>
             </div>
+            {/* Отображаем доступный баланс */}
+            <p className="text-xs text-foreground opacity-70 mt-1">
+              Доступно: <span className="font-medium">{currentBalance} {selectedCurrency}</span>
+            </p>
           </div>
           
+          {/* Адрес кошелька (только для TON) */}
+          {selectedCurrency === 'TON' && (
+            <div>
+              <label className="block text-sm text-foreground opacity-70 mb-1">
+                TON-адрес получателя
+              </label>
+              <div className="relative">
+                <input 
+                  {...form.register('wallet_address')}
+                  ref={(e) => {
+                    if (e) {
+                      addressInputRef.current = e;
+                    }
+                  }}
+                  type="text" 
+                  placeholder="Введите TON-адрес (начинается с EQ или UQ)" 
+                  className={`
+                    w-full bg-muted text-foreground rounded-lg px-3 py-2 text-sm 
+                    transition-all duration-300
+                    ${addressFocused ? 'ring-2 ring-primary/30 bg-muted/80' : ''}
+                    ${form.formState.errors.wallet_address ? 'border-red-500 ring-2 ring-red-500/30' : ''}
+                  `}
+                  onFocus={() => setAddressFocused(true)}
+                  onBlur={() => setAddressFocused(false)}
+                />
+                
+                {/* Анимация фокуса */}
+                {addressFocused && !form.formState.errors.wallet_address && (
+                  <div 
+                    className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden opacity-20"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                      animation: 'shimmer 2s infinite'
+                    }}
+                  ></div>
+                )}
+                
+                {/* Отображение ошибки валидации */}
+                {form.formState.errors.wallet_address && (
+                  <p className="text-red-500 text-xs mt-1">{form.formState.errors.wallet_address.message}</p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Сумма для вывода */}
           <div>
             <label className="block text-sm text-foreground opacity-70 mb-1">
               Сумма для вывода
@@ -178,30 +337,38 @@ const WithdrawalForm: React.FC = () => {
             <div className="relative">
               <div className="flex">
                 <input 
-                  ref={amountInputRef}
+                  {...form.register('amount')}
+                  ref={(e) => {
+                    if (e) {
+                      amountInputRef.current = e;
+                    }
+                  }}
                   type="number" 
+                  step="0.01"
+                  min="0.01"
+                  max={currentBalance.toString()}
                   placeholder="0.00" 
                   className={`
                     flex-grow bg-muted text-foreground rounded-l-lg px-3 py-2 text-sm
                     transition-all duration-300
                     ${amountFocused ? 'ring-2 ring-primary/30 bg-muted/80' : ''}
+                    ${form.formState.errors.amount ? 'border-red-500 ring-2 ring-red-500/30' : ''}
                   `}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
                   onFocus={() => setAmountFocused(true)}
                   onBlur={() => setAmountFocused(false)}
                 />
                 <div className={`
                   bg-muted rounded-r-lg px-3 py-2 text-sm flex items-center
                   transition-all duration-300
-                  ${amountFocused ? 'bg-muted/80 border-r-2 border-t-2 border-b-2 border-primary/30' : ''}
+                  ${amountFocused && !form.formState.errors.amount ? 'bg-muted/80 border-r-2 border-t-2 border-b-2 border-primary/30' : ''}
+                  ${form.formState.errors.amount ? 'bg-red-500/10 border-r-2 border-t-2 border-b-2 border-red-500/30' : ''}
                 `}>
-                  TON
+                  {selectedCurrency}
                 </div>
               </div>
               
               {/* Анимация фокуса */}
-              {amountFocused && (
+              {amountFocused && !form.formState.errors.amount && (
                 <div 
                   className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden opacity-20"
                   style={{
@@ -210,9 +377,22 @@ const WithdrawalForm: React.FC = () => {
                   }}
                 ></div>
               )}
+              
+              {/* Отображение ошибки валидации */}
+              {form.formState.errors.amount && (
+                <p className="text-red-500 text-xs mt-1">{form.formState.errors.amount.message}</p>
+              )}
             </div>
           </div>
           
+          {/* Отображение общей ошибки формы */}
+          {errorMessage && (
+            <div className="p-2 bg-red-500/10 border border-red-500/30 rounded-md text-red-400 text-sm">
+              {errorMessage}
+            </div>
+          )}
+          
+          {/* Кнопка отправки */}
           <button 
             type="submit"
             className={`
@@ -222,7 +402,7 @@ const WithdrawalForm: React.FC = () => {
               ${submitState === SubmitState.SUBMITTING ? 'bg-primary/70' : 'gradient-button'}
               text-white
             `}
-            disabled={submitState === SubmitState.SUBMITTING}
+            disabled={submitState === SubmitState.SUBMITTING || !userId}
           >
             {/* Анимация загрузки при отправке */}
             {submitState === SubmitState.SUBMITTING ? (
