@@ -177,64 +177,26 @@ const BalanceCard: React.FC = () => {
     setUniRate(estimatedRate);
   }, [uniDepositAmount]);
 
-  // Форматирование чисел для отображения с расширенной точностью для UNI (8 знаков)
-  const formatNumber = (num: number, decimals: number = 8): string => {
-    return num.toLocaleString('en-US', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
-    });
-  };
-  
-  // Специальное форматирование для TON (до 5 знаков)
-  const formatTonNumber = (num: number): string => {
-    return num.toLocaleString('en-US', {
-      minimumFractionDigits: 5,
-      maximumFractionDigits: 5
-    });
-  };
-  
   // Форматирование скорости начисления доходов
   const formatRateNumber = (rate: number): JSX.Element => {
     if (rate > 0.001) {
       // Для ставок больше 0.001 показываем до 5 знаков
       return (
         <span>
-          +{rate.toLocaleString('en-US', {
-            minimumFractionDigits: 5,
-            maximumFractionDigits: 5
-          })}
+          +{formatTonNumber(rate)}
         </span>
       );
     } else if (rate > 0) {
       // Для очень маленьких ставок показываем до 7 знаков уменьшенным шрифтом
       return (
         <span className="text-[0.7em] text-opacity-80">
-          +{rate.toLocaleString('en-US', {
-            minimumFractionDigits: 7,
-            maximumFractionDigits: 7
-          })}
+          +{formatUniNumber(rate, 7)}
         </span>
       );
     } else {
       // Для нулевых ставок
       return <span>+0.00000</span>;
     }
-  };
-  
-  // Расчет долларового эквивалента с высокой точностью 
-  // Получает текущий курс динамически из API контекста, но имеет запасные значения
-  const getUSDEquivalent = (amount: number, tokenType: 'UNI' | 'TON'): string => {
-    // Динамические курсы обмена от API или централизованного сервиса
-    // Можно будет подключить к внешнему API с курсами в будущем
-    const exchangeRates = {
-      UNI: 0.01, // Примерный курс UNI к USD
-      TON: 3.15  // Примерный курс TON к USD на момент обновления
-    };
-    
-    const rate = exchangeRates[tokenType];
-    const usdValue = amount * rate;
-    // Всегда используем точность 2 знака для долларового эквивалента
-    return `≈ $${formatNumber(usdValue, 2)}`;
   };
 
   return (
@@ -325,7 +287,7 @@ const BalanceCard: React.FC = () => {
           <div className="mb-2">
             <div className="text-2xl font-bold text-white flex items-center">
               <span className={`transition-all duration-300 ${uniAnimating ? 'text-green-400 scale-105' : ''}`}>
-                {formatNumber(uniBalance)}
+                {formatUniNumber(uniBalance)}
               </span>
               <span className="text-sm ml-1 text-gray-400">UNI</span>
             </div>
@@ -351,7 +313,7 @@ const BalanceCard: React.FC = () => {
             </div>
             {uniDepositAmount > 0 && (
               <div className="text-gray-400">
-                Депозит в фарминге: {formatNumber(uniDepositAmount)} UNI
+                Депозит в фарминге: {formatUniNumber(uniDepositAmount)} UNI
               </div>
             )}
           </div>
