@@ -119,10 +119,44 @@ export class WalletController {
    */
   static async getWalletInfo(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Получение userId из различных источников
-      const userId = extractUserId(req);
+      // Получение userId из различных источников с более подробной диагностикой
+      console.log(`[WalletController] Запрос информации о кошельке | URL: ${req.url}`);
+      console.log(`[WalletController] Query params:`, req.query);
+      console.log(`[WalletController] Body:`, req.body);
       
-      if (!userId) {
+      let userId: number | undefined;
+      
+      // Явная проверка query параметра
+      if (req.query && req.query.userId) {
+        userId = parseInt(req.query.userId as string);
+        console.log(`[WalletController] Найден userId в query: ${userId}`);
+      } else if (req.query && req.query.user_id) {
+        userId = parseInt(req.query.user_id as string);
+        console.log(`[WalletController] Найден user_id в query: ${userId}`);
+      }
+      
+      // Проверка body параметра
+      if (!userId && req.body) {
+        if (req.body.userId) {
+          userId = parseInt(req.body.userId);
+          console.log(`[WalletController] Найден userId в body: ${userId}`);
+        } else if (req.body.user_id) {
+          userId = parseInt(req.body.user_id);
+          console.log(`[WalletController] Найден user_id в body: ${userId}`);
+        }
+      }
+      
+      // Проверка сессии
+      if (!userId && req.session && req.session.userId) {
+        userId = req.session.userId;
+        console.log(`[WalletController] Найден userId в сессии: ${userId}`);
+      }
+      
+      if (!userId || isNaN(userId)) {
+        // Для отладки, пытаемся использовать стандартную функцию
+        const extractedUserId = extractUserId(req);
+        console.log(`[WalletController] extractUserId вернул: ${extractedUserId}`);
+        
         throw new ValidationError('Отсутствует идентификатор пользователя');
       }
       
@@ -149,9 +183,17 @@ export class WalletController {
    */
   static async getUserTransactions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      // Диагностика для отладки
+      console.log(`[WalletController] Запрос истории транзакций | URL: ${req.url}`);
+      console.log(`[WalletController] Query params:`, req.query);
+      console.log(`[WalletController] Body:`, req.body);
+      
       // Валидация параметров запроса
       const schema = z.object({
         user_id: z.string().transform(val => parseInt(val)).refine(val => !isNaN(val) && val > 0, {
+          message: "ID пользователя должен быть положительным числом"
+        }).optional(),
+        userId: z.string().transform(val => parseInt(val)).refine(val => !isNaN(val) && val > 0, {
           message: "ID пользователя должен быть положительным числом"
         }).optional(),
         limit: z.string().transform(val => parseInt(val)).optional(),
@@ -166,8 +208,27 @@ export class WalletController {
         throw createValidationErrorFromZod('Некорректные параметры запроса', validation.error);
       }
       
-      // Получение userId из различных источников
-      const userId = extractUserId(req) || validation.data.user_id;
+      // Приоритетное использование userId/user_id из query параметров
+      let userId = validation.data.user_id || validation.data.userId;
+      
+      // Если не найдено в query параметрах, проверяем тело запроса для POST запросов
+      if (!userId && req.body) {
+        if (req.body.user_id) {
+          userId = parseInt(req.body.user_id);
+        } else if (req.body.userId) {
+          userId = parseInt(req.body.userId);
+        }
+      }
+      
+      // Если всё ещё не найдено, проверяем сессию
+      if (!userId && req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
+      
+      // Наконец, пробуем использовать общую функцию extractUserId, если никакие другие способы не сработали
+      if (!userId) {
+        userId = extractUserId(req);
+      }
       
       if (!userId) {
         throw new ValidationError('Отсутствует идентификатор пользователя');
@@ -218,6 +279,11 @@ export class WalletController {
    */
   static async withdrawFunds(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      // Диагностика для отладки
+      console.log(`[WalletController] Запрос на вывод средств | URL: ${req.url}`);
+      console.log(`[WalletController] Query params:`, req.query);
+      console.log(`[WalletController] Body:`, req.body);
+      
       // Валидация входных данных с помощью Zod
       const schema = z.object({
         amount: z.union([
@@ -228,6 +294,7 @@ export class WalletController {
           errorMap: () => ({ message: "Валюта должна быть UNI или TON" })
         }),
         wallet_address: z.string().optional(),
+        userId: z.number().positive("ID пользователя должен быть положительным числом").optional(),
         user_id: z.number().positive("ID пользователя должен быть положительным числом").optional()
       });
 
@@ -239,8 +306,31 @@ export class WalletController {
       
       const { amount, currency, wallet_address } = validation.data;
       
-      // Получение user_id из различных источников в запросе
-      const userId = extractUserId(req) || validation.data.user_id;
+      // Приоритетное использование userId/user_id из тела запроса
+      let userId = validation.data.user_id || validation.data.userId;
+      
+      // Если не найдено в теле, проверяем query параметры
+      if (!userId && req.query) {
+        if (req.query.user_id) {
+          userId = parseInt(req.query.user_id as string);
+          console.log(`[WalletController] Найден user_id в query: ${userId}`);
+        } else if (req.query.userId) {
+          userId = parseInt(req.query.userId as string);
+          console.log(`[WalletController] Найден userId в query: ${userId}`);
+        }
+      }
+      
+      // Если всё ещё не найдено, проверяем сессию
+      if (!userId && req.session && req.session.userId) {
+        userId = req.session.userId;
+        console.log(`[WalletController] Найден userId в сессии: ${userId}`);
+      }
+      
+      // Наконец, пробуем использовать общую функцию extractUserId, если никакие другие способы не сработали
+      if (!userId) {
+        userId = extractUserId(req);
+        console.log(`[WalletController] extractUserId вернул: ${userId}`);
+      }
       
       if (!userId) {
         throw new ValidationError('Отсутствует идентификатор пользователя');
