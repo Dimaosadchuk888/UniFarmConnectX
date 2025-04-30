@@ -63,8 +63,36 @@ export const getTransactionsQuerySchema = z.object({
 
 // Схема для валидации запроса на завершение миссии
 export const completeMissionSchema = z.object({
-  user_id: z.number().int().positive(),
-  mission_id: z.number().int().positive()
+  user_id: z.number().int().positive({
+    message: 'ID пользователя должен быть положительным числом'
+  }),
+  mission_id: z.number().int().positive({
+    message: 'ID миссии должен быть положительным числом'
+  })
+});
+
+// Схема для валидации запроса на получение выполненных миссий
+export const userMissionsQuerySchema = z.object({
+  user_id: z.union([
+    z.string().refine(val => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+      message: 'ID пользователя должен быть положительным числом'
+    }),
+    z.number().int().positive({
+      message: 'ID пользователя должен быть положительным числом'
+    })
+  ]).transform(val => typeof val === 'string' ? parseInt(val) : val)
+});
+
+// Схема для валидации запроса на получение миссий со статусом выполнения
+export const userMissionsWithCompletionSchema = z.object({
+  user_id: z.union([
+    z.string().refine(val => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+      message: 'ID пользователя должен быть положительным числом'
+    }),
+    z.number().int().positive({
+      message: 'ID пользователя должен быть положительным числом'
+    })
+  ]).transform(val => typeof val === 'string' ? parseInt(val) : val)
 });
 
 // Схема для валидации запроса на депозит

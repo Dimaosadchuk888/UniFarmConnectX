@@ -1,36 +1,132 @@
 import { db } from '../db';
 import { missions, userMissions, users, transactions, Mission, UserMission } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { NotFoundError, ValidationError, InsufficientFundsError } from '../middleware/errorHandler';
+
+/**
+ * Интерфейс для результата выполнения миссии 
+ */
+export interface MissionCompletionResult {
+  success: boolean;
+  message: string;
+  reward?: number;
+}
+
+/**
+ * Интерфейс для полных данных миссии с информацией о её выполнении
+ */
+export interface MissionWithCompletion {
+  id: number;
+  type: string | null;
+  title: string | null;
+  description: string | null;
+  reward_uni: string | null;
+  is_active: boolean | null;
+  is_completed: boolean;
+  completed_at?: Date | null;
+}
 
 /**
  * Сервис для работы с миссиями
+ * Содержит всю бизнес-логику для операций с миссиями
  */
 export class MissionService {
   /**
    * Получает все активные миссии
    * @returns Массив активных миссий
+   * @throws {Error} При ошибке запроса к БД
    */
   static async getActiveMissions(): Promise<Mission[]> {
-    const activeMissions = await db
-      .select()
-      .from(missions)
-      .where(eq(missions.is_active, true));
-    
-    return activeMissions;
+    try {
+      const activeMissions = await db
+        .select()
+        .from(missions)
+        .where(eq(missions.is_active, true));
+      
+      return activeMissions;
+    } catch (error) {
+      console.error('[MissionService] Ошибка при получении активных миссий:', error);
+      throw new Error('Не удалось загрузить активные миссии');
+    }
   }
 
   /**
    * Получает все выполненные миссии пользователя
    * @param userId ID пользователя
    * @returns Массив выполненных миссий
+   * @throws {NotFoundError} Если пользователь не найден
+   * @throws {Error} При ошибке запроса к БД
    */
   static async getUserCompletedMissions(userId: number): Promise<UserMission[]> {
-    const userCompletedMissions = await db
-      .select()
-      .from(userMissions)
-      .where(eq(userMissions.user_id, userId));
-    
-    return userCompletedMissions;
+    try {
+      // Проверяем существование пользователя
+      await this.validateUserExists(userId);
+      
+      const userCompletedMissions = await db
+        .select()
+        .from(userMissions)
+        .where(eq(userMissions.user_id, userId));
+      
+      return userCompletedMissions;
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      console.error('[MissionService] Ошибка при получении выполненных миссий:', error);
+      throw new Error('Не удалось загрузить выполненные миссии пользователя');
+    }
+  }
+
+  /**
+   * Получает все миссии с информацией о их выполнении для указанного пользователя
+   * @param userId ID пользователя
+   * @returns Массив миссий с информацией о статусе выполнения
+   * @throws {NotFoundError} Если пользователь не найден
+   * @throws {Error} При ошибке запроса к БД
+   */
+  static async getAllMissionsWithCompletion(userId: number): Promise<MissionWithCompletion[]> {
+    try {
+      // Проверяем существование пользователя
+      await this.validateUserExists(userId);
+      
+      // Получаем все активные миссии
+      const allMissions = await this.getActiveMissions();
+      
+      // Получаем все выполненные миссии пользователя
+      const completedMissions = await this.getUserCompletedMissions(userId);
+      
+      // Создаем Map для быстрого поиска
+      const completedMap = new Map<number, UserMission>();
+      completedMissions.forEach(mission => {
+        // Проверяем, что mission_id существует и является числом
+        if (mission.mission_id !== null && mission.mission_id !== undefined) {
+          completedMap.set(mission.mission_id, mission);
+        }
+      });
+      
+      // Объединяем информацию
+      const missionsWithCompletion: MissionWithCompletion[] = allMissions.map(mission => {
+        const completed = mission.id ? completedMap.get(mission.id) : undefined;
+        return {
+          id: mission.id,
+          type: mission.type,
+          title: mission.title,
+          description: mission.description,
+          reward_uni: mission.reward_uni,
+          is_active: mission.is_active,
+          is_completed: !!completed,
+          completed_at: completed?.completed_at || null
+        };
+      });
+      
+      return missionsWithCompletion;
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      console.error('[MissionService] Ошибка при получении миссий с информацией о выполнении:', error);
+      throw new Error('Не удалось загрузить миссии со статусом выполнения');
+    }
   }
 
   /**
@@ -38,29 +134,65 @@ export class MissionService {
    * @param userId ID пользователя
    * @param missionId ID миссии
    * @returns true если миссия выполнена, иначе false
+   * @throws {ValidationError} Если переданы некорректные параметры
+   * @throws {Error} При ошибке запроса к БД
    */
   static async isUserMissionCompleted(userId: number, missionId: number): Promise<boolean> {
-    const [existingMission] = await db
-      .select()
-      .from(userMissions)
-      .where(and(
-        eq(userMissions.user_id, userId),
-        eq(userMissions.mission_id, missionId)
-      ));
-    
-    return !!existingMission;
+    try {
+      if (!userId || !missionId || isNaN(userId) || isNaN(missionId) || userId <= 0 || missionId <= 0) {
+        throw new ValidationError('Некорректные ID пользователя или миссии');
+      }
+      
+      const [existingMission] = await db
+        .select()
+        .from(userMissions)
+        .where(and(
+          eq(userMissions.user_id, userId),
+          eq(userMissions.mission_id, missionId)
+        ));
+      
+      return !!existingMission;
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
+      console.error('[MissionService] Ошибка при проверке статуса выполнения миссии:', error);
+      throw new Error('Не удалось проверить статус выполнения миссии');
+    }
   }
 
   /**
-   * Завершает миссию для пользователя и начисляет награду
+   * Валидирует существование пользователя
    * @param userId ID пользователя
-   * @param missionId ID миссии
-   * @returns Объект с результатом операции
+   * @throws {NotFoundError} Если пользователь не найден
    */
-  static async completeMission(userId: number, missionId: number): Promise<{ success: boolean; message: string; reward?: number }> {
-    // Начинаем транзакцию БД
+  static async validateUserExists(userId: number): Promise<void> {
     try {
-      // Проверяем, что миссия существует и активна
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      if (!user) {
+        throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+      }
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      console.error('[MissionService] Ошибка при проверке пользователя:', error);
+      throw new Error('Не удалось проверить существование пользователя');
+    }
+  }
+
+  /**
+   * Валидирует существование миссии и её активность
+   * @param missionId ID миссии
+   * @returns Объект миссии, если она существует и активна
+   * @throws {NotFoundError} Если миссия не найдена или неактивна
+   */
+  static async validateMissionExists(missionId: number): Promise<Mission> {
+    try {
       const [mission] = await db
         .select()
         .from(missions)
@@ -70,36 +202,79 @@ export class MissionService {
         ));
       
       if (!mission) {
-        return { success: false, message: "Mission not found or inactive" };
+        throw new NotFoundError(`Миссия с ID ${missionId} не найдена или неактивна`);
       }
       
-      // Проверяем, что пользователь существует
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, userId));
-      
-      if (!user) {
-        return { success: false, message: "User not found" };
+      return mission;
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
       }
+      console.error('[MissionService] Ошибка при проверке миссии:', error);
+      throw new Error('Не удалось проверить существование миссии');
+    }
+  }
+
+  /**
+   * Записывает выполнение миссии и начисляет награду пользователю транзакционно
+   * @param userId ID пользователя
+   * @param missionId ID миссии
+   * @returns Объект с результатом выполнения
+   * @throws {NotFoundError} Если пользователь или миссия не найдены
+   * @throws {ValidationError} Если миссия уже выполнена пользователем
+   * @throws {Error} При ошибке взаимодействия с БД
+   */
+  static async completeMission(userId: number, missionId: number): Promise<MissionCompletionResult> {
+    try {
+      // Проверяем существование пользователя
+      await this.validateUserExists(userId);
+      
+      // Проверяем существование и активность миссии
+      const mission = await this.validateMissionExists(missionId);
       
       // Проверяем, что пользователь еще не выполнял эту миссию
       const isCompleted = await this.isUserMissionCompleted(userId, missionId);
       
       if (isCompleted) {
-        return { success: false, message: "Mission already completed by this user" };
+        throw new ValidationError('Эта миссия уже выполнена пользователем');
       }
       
+      // Получаем награду за миссию
+      const rewardUni = mission.reward_uni;
+      const reward = rewardUni ? parseFloat(rewardUni) : 0;
+      
+      // Создаем запись о выполнении миссии и начисляем награду транзакционно
+      await this.processCompletionTransaction(userId, missionId, reward);
+      
+      return {
+        success: true,
+        message: `Миссия выполнена. ${reward} UNI добавлено на баланс.`,
+        reward
+      };
+    } catch (error) {
+      if (error instanceof NotFoundError || error instanceof ValidationError) {
+        throw error;
+      }
+      console.error('[MissionService] Ошибка при выполнении миссии:', error);
+      throw new Error('Не удалось выполнить миссию');
+    }
+  }
+
+  /**
+   * Обрабатывает транзакцию завершения миссии
+   * @param userId ID пользователя
+   * @param missionId ID миссии
+   * @param reward Размер награды
+   * @private
+   */
+  private static async processCompletionTransaction(userId: number, missionId: number, reward: number): Promise<void> {
+    try {
       // Создаем запись о выполнении миссии
       await db.insert(userMissions).values({
         user_id: userId,
         mission_id: missionId,
         completed_at: new Date()
       });
-      
-      // Получаем награду за миссию
-      const rewardUni = mission.reward_uni;
-      const reward = rewardUni ? parseFloat(rewardUni) : 0;
       
       // Обновляем баланс пользователя
       await db
@@ -115,17 +290,14 @@ export class MissionService {
         type: "reward",
         currency: "UNI",
         amount: reward.toString(),
-        status: "confirmed"
+        status: "confirmed",
+        created_at: new Date()
       });
       
-      return {
-        success: true,
-        message: `Mission completed. ${reward} UNI added to balance.`,
-        reward
-      };
+      console.log(`[MissionService] Миссия ${missionId} успешно выполнена пользователем ${userId} с наградой ${reward} UNI`);
     } catch (error) {
-      console.error("Error completing mission:", error);
-      return { success: false, message: "Failed to complete mission" };
+      console.error('[MissionService] Ошибка при выполнении транзакции завершения миссии:', error);
+      throw new Error('Не удалось обработать транзакцию завершения миссии');
     }
   }
 }
