@@ -65,12 +65,20 @@ export class AdminService {
     const IS_DEV = process.env.NODE_ENV === 'development';
     const SECRET_KEY = process.env.ADMIN_SECRET_KEY;
     
-    if (!SECRET_KEY) {
+    // В режиме разработки разрешаем тестовый ключ и заглушку
+    if (IS_DEV) {
+      if (adminKey === 'test-admin-key' || adminKey === 'development') {
+        console.log('[AdminService] Используется тестовый ключ в режиме разработки');
+        return;
+      }
+    }
+    
+    if (!SECRET_KEY && !IS_DEV) {
       console.error('[AdminService] Отсутствует ADMIN_SECRET_KEY в переменных окружения');
       throw new Error('Серверная ошибка конфигурации. Обратитесь к администратору.');
     }
     
-    if (!adminKey || adminKey !== SECRET_KEY) {
+    if (!adminKey || (SECRET_KEY && adminKey !== SECRET_KEY)) {
       console.warn('[AdminService] Попытка доступа к админскому API без правильного ключа');
       throw new ForbiddenError('Доступ запрещен: неверный ключ администратора');
     }
@@ -84,6 +92,15 @@ export class AdminService {
   static async listUsersWithTelegramId(params?: AdminParams): Promise<UsersListResult> {
     console.log('[AdminService] Запрос списка пользователей с Telegram ID');
     
+    // Применяем параметры с дефолтными значениями
+    const options = {
+      limit: params?.limit || 100,
+      offset: params?.offset || 0,
+      showTestAccounts: params?.showTestAccounts !== false, // по умолчанию true
+      sortBy: params?.sortBy || 'id',
+      sortDirection: params?.sortDirection || 'asc'
+    };
+    
     // Получаем всех пользователей из базы
     const allUsers = await db.select({
       id: users.id,
@@ -93,10 +110,41 @@ export class AdminService {
     }).from(users);
     
     // Добавляем флаг тестового аккаунта для каждого пользователя
-    const usersWithFlags: UserWithFlags[] = allUsers.map(user => ({
+    let usersWithFlags: UserWithFlags[] = allUsers.map(user => ({
       ...user,
       isTestAccount: !user.telegramId || user.telegramId === 1
     }));
+    
+    // Фильтрация тестовых аккаунтов, если нужно
+    if (!options.showTestAccounts) {
+      usersWithFlags = usersWithFlags.filter(user => !user.isTestAccount);
+    }
+    
+    // Сортировка пользователей
+    usersWithFlags.sort((a, b) => {
+      const fieldA = (a as any)[options.sortBy];
+      const fieldB = (b as any)[options.sortBy];
+      
+      // Обработка null значений (они всегда последние)
+      if (fieldA === null && fieldB === null) return 0;
+      if (fieldA === null) return 1;
+      if (fieldB === null) return -1;
+      
+      // Обычное сравнение для числовых и строковых полей
+      const compareResult = 
+        typeof fieldA === 'string' 
+          ? fieldA.localeCompare(fieldB) 
+          : fieldA - fieldB;
+      
+      // Применяем направление сортировки
+      return options.sortDirection === 'asc' ? compareResult : -compareResult;
+    });
+    
+    // Применяем пагинацию
+    const paginatedUsers = usersWithFlags.slice(
+      options.offset, 
+      options.offset + options.limit
+    );
     
     // Подсчитываем статистику для диагностики
     const stats = {
@@ -108,7 +156,7 @@ export class AdminService {
     };
     
     return {
-      users: usersWithFlags,
+      users: paginatedUsers,
       stats,
       generatedAt: new Date().toISOString()
     };

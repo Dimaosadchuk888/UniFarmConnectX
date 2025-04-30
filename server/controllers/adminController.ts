@@ -1,10 +1,22 @@
 import { Request, Response } from 'express';
 import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
-import { db } from '../db';
-import { users } from '@shared/schema';
+import { 
+  AdminService, 
+  adminKeySchema, 
+  adminParamsSchema,
+  AdminParams
+} from '../services/adminService';
+import { ForbiddenError, ValidationError } from '../middleware/errorHandler';
+import { z } from 'zod';
 
 /**
  * Контроллер для административных функций
+ * Соответствует принципам SOLID:
+ * - Single Responsibility (SRP): обрабатывает только HTTP запросы, валидацию и делегирует логику сервису
+ * - Open/Closed (OCP): легко расширяется новыми методами без изменения существующих
+ * - Liskov Substitution (LSP): не нарушает контрактов интерфейсов
+ * - Interface Segregation (ISP): разделяет интерфейсы по назначению
+ * - Dependency Inversion (DIP): зависит от абстракций (сервисов), а не реализаций
  */
 export class AdminController {
   /**
@@ -14,72 +26,60 @@ export class AdminController {
    */
   static async listUsersWithTelegramId(req: Request, res: Response): Promise<void> {
     try {
-      // В реальном приложении здесь должна быть проверка на админские права
-      // Проверяем секретный ключ из заголовка
+      // Получаем админский ключ из заголовка
       const adminKey = req.headers['x-admin-key'] as string;
-      const IS_DEV = process.env.NODE_ENV === 'development';
       
-      // Для безопасности требуем указание ключа, даже в режиме разработки
-      if (!adminKey || adminKey !== process.env.ADMIN_SECRET_KEY) {
-        console.warn('[AdminController] Попытка доступа к админскому API без правильного ключа');
-        return sendError(res, 'Доступ запрещен', 403);
+      // Валидируем ключ через схему Zod
+      const validationResult = adminKeySchema.safeParse({ adminKey });
+      
+      if (!validationResult.success) {
+        const errorMessage = validationResult.error.errors.map(e => e.message).join(', ');
+        console.warn(`[AdminController] Ошибка валидации: ${errorMessage}`);
+        return sendError(res, errorMessage, 400);
       }
       
-      console.log('[AdminController] Запрос списка пользователей с Telegram ID');
+      try {
+        // Проверяем права администратора
+        AdminService.verifyAdminAccess(adminKey);
+      } catch (error) {
+        if (error instanceof ForbiddenError) {
+          return sendError(res, error.message, 403);
+        }
+        throw error;
+      }
       
-      // Получаем всех пользователей из базы
-      const allUsers = await db.select({
-        id: users.id,
-        telegramId: users.telegram_id,
-        username: users.username,
-        createdAt: users.created_at
-      }).from(users);
+      // Валидируем и получаем параметры запроса
+      const queryParams: AdminParams = {};
       
-      // Добавляем флаг тестового аккаунта для каждого пользователя
-      const usersWithFlags = allUsers.map(user => ({
-        ...user,
-        isTestAccount: !user.telegramId || user.telegramId === 1
-      }));
+      // Разбираем параметры из query строки, если они есть
+      if (req.query) {
+        // Парсим и конвертируем параметры в нужные типы
+        if (req.query.limit) queryParams.limit = parseInt(req.query.limit as string);
+        if (req.query.offset) queryParams.offset = parseInt(req.query.offset as string);
+        if (req.query.sortBy) queryParams.sortBy = req.query.sortBy as any;
+        if (req.query.sortDirection) queryParams.sortDirection = req.query.sortDirection as any;
+        if (req.query.showTestAccounts !== undefined) {
+          queryParams.showTestAccounts = (req.query.showTestAccounts === 'true');
+        }
+      }
       
-      // Подсчитываем статистику для диагностики
-      const stats = {
-        totalUsers: allUsers.length,
-        usersWithValidTelegramId: allUsers.filter(u => u.telegramId && u.telegramId > 1).length,
-        usersWithoutTelegramId: allUsers.filter(u => !u.telegramId).length,
-        usersWithTestTelegramId: allUsers.filter(u => u.telegramId === 1).length,
-        duplicateTelegramIds: findDuplicateTelegramIds(allUsers)
-      };
+      // Валидируем дополнительные параметры
+      const paramsResult = adminParamsSchema.safeParse(queryParams);
       
-      // Отправляем ответ с данными и статистикой
-      sendSuccess(res, {
-        users: usersWithFlags,
-        stats,
-        generatedAt: new Date().toISOString()
-      });
+      if (!paramsResult.success) {
+        const errorMessage = paramsResult.error.errors.map(e => e.message).join(', ');
+        console.warn(`[AdminController] Ошибка параметров: ${errorMessage}`);
+        return sendError(res, errorMessage, 400);
+      }
+      
+      // Получаем данные через сервис
+      const result = await AdminService.listUsersWithTelegramId(paramsResult.data);
+      
+      // Отправляем успешный ответ
+      sendSuccess(res, result);
     } catch (error) {
       console.error('[AdminController] Ошибка при получении списка пользователей:', error);
-      sendServerError(res, error);
+      sendServerError(res, error instanceof Error ? error.message : 'Неизвестная ошибка');
     }
   }
-}
-
-/**
- * Вспомогательная функция для поиска дубликатов Telegram ID
- */
-function findDuplicateTelegramIds(users: { telegramId: number | null }[]): Record<string, number> {
-  const idCounts: Record<string, number> = {};
-  const duplicates: Record<string, number> = {};
-  
-  users.forEach(user => {
-    if (user.telegramId) {
-      const idStr = user.telegramId.toString();
-      idCounts[idStr] = (idCounts[idStr] || 0) + 1;
-      
-      if (idCounts[idStr] > 1) {
-        duplicates[idStr] = idCounts[idStr];
-      }
-    }
-  });
-  
-  return duplicates;
 }
