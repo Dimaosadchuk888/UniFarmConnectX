@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Wallet, CreditCard } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { useTonConnectUI } from '@tonconnect/ui-react';
+import { useUser } from '@/contexts/userContext';
 // Обновлено: используем tonConnectService вместо simpleTonTransaction
 import { 
   isTonWalletConnected, 
@@ -38,6 +39,7 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const [tonConnectUI] = useTonConnectUI();
+  const { user } = useUser();
 
   const handleSelectMethod = async (method: 'internal_balance' | 'external_wallet') => {
     // ТЗ: Добавляем логирование значения boostPriceTon используя ✅
@@ -85,7 +87,7 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
         });
         
         // Получаем данные для транзакции
-        const userId = 1; // Тестовый ID пользователя
+        const userId = user?.id || 0; // Используем ID из контекста пользователя
         const comment = createTonTransactionComment(userId, boostId);
         
         // ТЗ: Вычисляем nanoAmount и логируем её
