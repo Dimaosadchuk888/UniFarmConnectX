@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
-import { useToast } from '@/hooks/use-toast';
+import { useNotification } from '@/contexts/notificationContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -47,7 +47,7 @@ const WithdrawalForm: React.FC = () => {
   const [amountFocused, setAmountFocused] = useState(false);
   
   // Хук для отображения уведомлений
-  const { toast } = useToast();
+  const { showNotification } = useNotification();
   
   // Получаем текущий баланс в зависимости от выбранной валюты
   const currentBalance = selectedCurrency === 'UNI' ? uniBalance : tonBalance;
@@ -91,16 +91,21 @@ const WithdrawalForm: React.FC = () => {
    */
   const handleSubmit = async (data: WithdrawalFormData) => {
     if (!userId) {
-      toast({
-        title: "Ошибка",
-        description: "Для вывода средств необходимо авторизоваться",
-        variant: "destructive",
+      showNotification('error', {
+        message: 'Для вывода средств необходимо авторизоваться',
+        duration: 5000
       });
       return;
     }
     
     setSubmitState(SubmitState.SUBMITTING);
     setErrorMessage(null);
+    
+    // Показываем уведомление о начале процесса
+    showNotification('loading', {
+      message: 'Отправка заявки на вывод...',
+      duration: 2000
+    });
     
     try {
       // Преобразуем amount в число, если это строка
@@ -117,10 +122,9 @@ const WithdrawalForm: React.FC = () => {
         setSubmitState(SubmitState.ERROR);
         setErrorMessage(result.message);
         
-        toast({
-          title: "Ошибка вывода средств",
-          description: result.message,
-          variant: "destructive",
+        showNotification('error', {
+          message: result.message,
+          duration: 5000
         });
       } else {
         // При успехе устанавливаем статус и отображаем сообщение
@@ -131,9 +135,9 @@ const WithdrawalForm: React.FC = () => {
         // Обновляем баланс пользователя
         refreshBalance();
         
-        toast({
-          title: "Заявка отправлена",
-          description: `Заявка на вывод ${formattedData.amount} ${formattedData.currency} успешно создана`,
+        showNotification('success', {
+          message: `Заявка на вывод ${formattedData.amount} ${formattedData.currency} успешно создана`,
+          duration: 5000
         });
         
         // Сбрасываем данные формы
@@ -148,10 +152,9 @@ const WithdrawalForm: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : 'Произошла ошибка при отправке заявки';
       setErrorMessage(errorMessage);
       
-      toast({
-        title: "Ошибка соединения",
-        description: errorMessage,
-        variant: "destructive",
+      showNotification('error', {
+        message: errorMessage,
+        duration: 5000
       });
     }
   };

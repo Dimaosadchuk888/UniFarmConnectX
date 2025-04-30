@@ -66,8 +66,33 @@ const TransactionHistory: React.FC = () => {
   });
   
   // Статусы для отображения в UI
-  const isEmpty = !isLoading && !error && filteredTransactions.length === 0;
+  const isEmpty = !isLoading && !error && filteredTransactions.length === 0 && transactions.length === 0;
+  const isEmptyFiltered = !isLoading && !error && filteredTransactions.length === 0 && transactions.length > 0;
   const hasTransactions = !isLoading && !error && filteredTransactions.length > 0;
+  
+  // Уведомления о пустом списке транзакций и успешной загрузке
+  useEffect(() => {
+    if (!isLoading && !isFetching && userId) {
+      if (isEmpty) {
+        // Показываем уведомление при полностью пустом списке
+        showNotification('info', {
+          message: 'У вас пока нет операций',
+          duration: 4000
+        });
+      } else if (hasTransactions && transactions.length > 0) {
+        // Показываем уведомление при успешной загрузке транзакций
+        // Используем setTimeout, чтобы не показывать уведомление при каждом рендере
+        const timer = setTimeout(() => {
+          showNotification('success', {
+            message: `Загружено ${transactions.length} транзакций`,
+            duration: 2000
+          });
+        }, 500);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isEmpty, hasTransactions, isLoading, isFetching, userId, transactions.length, showNotification]);
   
   return (
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
@@ -194,18 +219,24 @@ const TransactionHistory: React.FC = () => {
             <div className="py-8 text-center text-gray-500">
               <i className="fas fa-wallet mb-3 text-3xl"></i>
               <p className="text-lg">У вас пока нет транзакций</p>
-              {/* Отображаем уведомление при первой загрузке пустого списка только один раз */}
-              {(() => {
-                // Используем IIFE для создания локального эффекта
-                useEffect(() => {
-                  // Показываем уведомление при пустом списке
+            </div>
+          ) : isEmptyFiltered ? (
+            // Пустое состояние для выбранного фильтра
+            <div className="py-6 text-center text-gray-500">
+              <i className="fas fa-search mb-2 text-2xl"></i>
+              <p>Транзакции типа {activeFilter} не найдены</p>
+              <button 
+                className="mt-3 px-4 py-1.5 bg-primary/20 text-primary rounded-md text-sm hover:bg-primary/30 transition-colors"
+                onClick={() => {
+                  setActiveFilter('ALL');
                   showNotification('info', {
-                    message: 'У вас пока нет операций',
-                    duration: 4000
+                    message: 'Фильтры сброшены, показаны все транзакции',
+                    duration: 2000
                   });
-                }, []);
-                return null;
-              })()}
+                }}
+              >
+                Показать все транзакции
+              </button>
             </div>
           ) : hasTransactions ? (
             // Отображение транзакций
@@ -257,10 +288,16 @@ const TransactionHistory: React.FC = () => {
               </div>
             ))
           ) : (
-            // Пустое состояние для выбранного фильтра
+            // Этот блок не должен выполниться, но оставляем для безопасности
             <div className="py-6 text-center text-gray-500">
               <i className="fas fa-search mb-2 text-2xl"></i>
-              <p>Транзакции не найдены</p>
+              <p>Непредвиденная ошибка отображения</p>
+              <button 
+                className="mt-3 px-4 py-1.5 bg-red-500/20 text-red-400 rounded-md text-sm hover:bg-red-500/30 transition-colors"
+                onClick={() => refetch()}
+              >
+                Обновить
+              </button>
             </div>
           )}
           
