@@ -59,6 +59,7 @@ interface LogTransactionParams {
   source?: string;
   category?: string;
   txHash?: string; // Хеш транзакции для TON
+  walletAddress?: string; // Адрес кошелька (временно не используется)
 }
 
 /**

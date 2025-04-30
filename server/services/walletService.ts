@@ -210,7 +210,7 @@ export class WalletService {
         .set({ [balanceField]: newBalance })
         .where(eq(users.id, userId));
       
-      // Записываем транзакцию
+      // Записываем транзакцию (временно без wallet_address)
       const [transaction] = await tx
         .insert(transactions)
         .values({
@@ -219,7 +219,8 @@ export class WalletService {
           amount: amount.toString(),
           currency: currency.toUpperCase(),
           created_at: sql`CURRENT_TIMESTAMP`,
-          wallet_address: walletAddress || null
+          // Временно комментируем до проведения миграции БД
+          // wallet_address: walletAddress || null
         })
         .returning({ id: transactions.id });
       
@@ -347,13 +348,20 @@ export class WalletService {
       currency: transactions.currency,
       created_at: transactions.created_at,
       status: transactions.status,
-      wallet_address: transactions.wallet_address
+      // Временно закомментировано до миграции БД
+      // wallet_address: transactions.wallet_address
     })
     .from(transactions)
     .where(eq(transactions.user_id, userId))
     .orderBy(desc(transactions.created_at))
     .limit(limit);
     
-    return userTransactions;
+    // Добавляем временную заглушку для wallet_address
+    const transactionsWithWalletAddress = userTransactions.map(tx => ({
+      ...tx,
+      wallet_address: null
+    }));
+    
+    return transactionsWithWalletAddress as UserTransaction[];
   }
 }

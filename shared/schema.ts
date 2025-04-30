@@ -116,6 +116,7 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
   tx_hash: true,
   description: true,
   source_user_id: true,
+  wallet_address: true,
   data: true
 });
 
