@@ -250,10 +250,18 @@ export class BoostService {
    * @returns ID созданного депозита
    * @throws DatabaseError в случае ошибки при работе с БД
    */
+  /**
+   * Создает запись о буст-депозите в базе данных
+   * @param userId ID пользователя
+   * @param boostPackage Буст-пакет
+   * @param tx Транзакция базы данных
+   * @returns ID созданного депозита
+   * @throws DatabaseError в случае ошибки при работе с БД
+   */
   private static async createBoostDeposit(
     userId: number, 
     boostPackage: BoostPackage, 
-    tx: any
+    tx: ReturnType<typeof db.transaction>
   ): Promise<number> {
     // Срок действия буста - 365 дней
     const expiresAt = add(new Date(), { days: 365 });
@@ -292,10 +300,18 @@ export class BoostService {
    * @returns ID созданной транзакции
    * @throws DatabaseError в случае ошибки при работе с БД
    */
+  /**
+   * Создает запись о транзакции в базе данных
+   * @param userId ID пользователя
+   * @param boostPackage Буст-пакет
+   * @param tx Транзакция базы данных
+   * @returns ID созданной транзакции
+   * @throws DatabaseError в случае ошибки при работе с БД
+   */
   private static async createBoostTransaction(
     userId: number, 
     boostPackage: BoostPackage, 
-    tx: any
+    tx: ReturnType<typeof db.transaction>
   ): Promise<number> {
     try {
       // Создаем запись о транзакции для бонуса
@@ -327,11 +343,19 @@ export class BoostService {
    * @param tx Транзакция базы данных
    * @throws DatabaseError в случае ошибки при работе с БД
    */
+  /**
+   * Обновляет баланс пользователя после покупки буста
+   * @param userId ID пользователя
+   * @param priceUni Стоимость буста в UNI
+   * @param bonusUni Бонус UNI
+   * @param tx Транзакция базы данных
+   * @throws DatabaseError в случае ошибки при работе с БД
+   */
   private static async updateUserBalance(
     userId: number, 
     priceUni: string, 
     bonusUni: string, 
-    tx: any
+    tx: ReturnType<typeof db.transaction>
   ): Promise<void> {
     try {
       // 1. Списываем средства с баланса пользователя

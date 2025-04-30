@@ -1349,13 +1349,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Отправляем периодические пинги для поддержания соединения
     const pingInterval = setInterval(() => {
-      if (ws.readyState === ws.OPEN) {
+      if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() }));
       }
     }, 30000); // каждые 30 секунд
     
     // Обработка сообщений от клиента
-    ws.on('message', (message) => {
+    ws.on('message', (message: Buffer | string) => {
       try {
         const data = JSON.parse(message.toString());
         console.log('[WebSocket] Получено сообщение:', data);
@@ -1385,11 +1385,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Обработка ошибок
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
       // Структурированное логирование ошибки соединения
       console.error('[WebSocket] [Ошибка соединения]', {
         error: error instanceof Error ? error.message : 'Неизвестная ошибка',
-        userId: (ws as ExtendedWebSocket).userId || 'не определён',
+        userId: ws.userId || 'не определён',
         timestamp: new Date().toISOString()
       });
       
@@ -1400,9 +1400,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // Функция для отправки обновлений всем подключенным пользователям
-  // Можно использовать из других модулей, например из сервисов
-  (global as any).broadcastUserUpdate = (userId: number, data: any) => {
+  /**
+   * Функция для отправки обновлений всем подключенным пользователям
+   * Можно использовать из других модулей, например из сервисов
+   * @param userId Идентификатор пользователя
+   * @param data Данные для отправки
+   */
+  (global as any).broadcastUserUpdate = (userId: number, data: Record<string, unknown>): void => {
     wss.clients.forEach((client: WebSocket) => {
       try {
         const extClient = client as ExtendedWebSocket;
