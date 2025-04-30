@@ -1137,6 +1137,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для миссий
   app.get("/api/missions/active", MissionController.getActiveMissions);
   app.get("/api/user_missions", MissionController.getUserCompletedMissions);
+  app.get("/api/missions/with-completion", MissionController.getMissionsWithCompletion);
+  app.get("/api/missions/check/:userId/:missionId", MissionController.checkMissionCompletion);
   app.post("/api/missions/complete", MissionController.completeMission);
   
   // Маршруты для фарминг-депозитов

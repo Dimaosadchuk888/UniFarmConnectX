@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { MissionService } from '../services/missionService';
-import { sendSuccess, sendSuccessArray, sendError, sendServerError } from '../utils/responseUtils';
-import { extractUserId } from '../utils/validationUtils';
+import { sendSuccess, sendSuccessArray } from '../utils/responseUtils';
 import { completeMissionSchema, userMissionsQuerySchema, userMissionsWithCompletionSchema } from '../validators/schemas';
 import { NotFoundError, ValidationError } from '../middleware/errorHandler';
 
@@ -37,7 +36,18 @@ export class MissionController {
       // Валидация параметров
       const validationResult = userMissionsQuerySchema.safeParse(req.query);
       if (!validationResult.success) {
-        throw new ValidationError('Некорректные параметры запроса', validationResult.error.format());
+        // Преобразуем ошибки Zod в формат, понятный для ValidationError
+        const errorDetails: Record<string, string> = {};
+        const formattedErrors = validationResult.error.format();
+        
+        // Извлекаем сообщения ошибок и преобразуем их в строки
+        Object.entries(formattedErrors).forEach(([key, value]) => {
+          if (key !== '_errors' && value._errors && value._errors.length > 0) {
+            errorDetails[key] = value._errors.join(', ');
+          }
+        });
+        
+        throw new ValidationError('Некорректные параметры запроса', errorDetails);
       }
 
       const { user_id } = validationResult.data;
@@ -63,7 +73,18 @@ export class MissionController {
       // Валидация параметров
       const validationResult = userMissionsWithCompletionSchema.safeParse(req.query);
       if (!validationResult.success) {
-        throw new ValidationError('Некорректные параметры запроса', validationResult.error.format());
+        // Преобразуем ошибки Zod в формат, понятный для ValidationError
+        const errorDetails: Record<string, string> = {};
+        const formattedErrors = validationResult.error.format();
+        
+        // Извлекаем сообщения ошибок и преобразуем их в строки
+        Object.entries(formattedErrors).forEach(([key, value]) => {
+          if (key !== '_errors' && value._errors && value._errors.length > 0) {
+            errorDetails[key] = value._errors.join(', ');
+          }
+        });
+        
+        throw new ValidationError('Некорректные параметры запроса', errorDetails);
       }
 
       const { user_id } = validationResult.data;
@@ -114,7 +135,18 @@ export class MissionController {
       // Валидация тела запроса
       const validationResult = completeMissionSchema.safeParse(req.body);
       if (!validationResult.success) {
-        throw new ValidationError('Некорректные данные запроса', validationResult.error.format());
+        // Преобразуем ошибки Zod в формат, понятный для ValidationError
+        const errorDetails: Record<string, string> = {};
+        const formattedErrors = validationResult.error.format();
+        
+        // Извлекаем сообщения ошибок и преобразуем их в строки
+        Object.entries(formattedErrors).forEach(([key, value]) => {
+          if (key !== '_errors' && value._errors && value._errors.length > 0) {
+            errorDetails[key] = value._errors.join(', ');
+          }
+        });
+        
+        throw new ValidationError('Некорректные данные запроса', errorDetails);
       }
 
       const { user_id, mission_id } = validationResult.data;

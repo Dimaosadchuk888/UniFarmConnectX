@@ -37,6 +37,11 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
   } else if (err.name === 'ForbiddenError') {
     statusCode = 403;
     errorMessage = 'Доступ запрещен';
+  } else if (err.name === 'DatabaseError') {
+    statusCode = 500;
+    errorMessage = 'Ошибка базы данных: ' + err.message;
+    // Дополнительное логирование оригинальной ошибки
+    console.error('[DatabaseError] Подробности:', err.originalError);
   }
   
   // Отправляем стандартизированный ответ об ошибке
@@ -105,5 +110,18 @@ export class InsufficientFundsError extends Error {
     this.errors = {
       amount: `Недостаточно средств для операции. Доступный баланс: ${balance} ${currency}`
     };
+  }
+}
+
+/**
+ * Класс ошибки базы данных
+ */
+export class DatabaseError extends Error {
+  name = 'DatabaseError';
+  originalError: unknown;
+  
+  constructor(message: string, originalError?: unknown) {
+    super(message);
+    this.originalError = originalError || null;
   }
 }

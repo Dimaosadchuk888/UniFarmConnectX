@@ -153,3 +153,30 @@ export const createTransactionSchema = insertTransactionSchema.extend({
 export const createFarmingDepositSchema = insertFarmingDepositSchema.extend({
   // Можно добавить дополнительные поля или валидацию
 });
+
+// Схемы для валидации запросов к API буст-пакетов
+export const boostIdParamSchema = z.object({
+  boost_id: z.number().int().positive({
+    message: 'ID буст-пакета должен быть положительным числом'
+  })
+});
+
+export const boostRequestSchema = z.object({
+  user_id: z.number().int().positive({
+    message: 'ID пользователя должен быть положительным числом'
+  }),
+  boost_id: z.number().int().positive({
+    message: 'ID буст-пакета должен быть положительным числом'
+  })
+});
+
+export const boostUserQuerySchema = z.object({
+  user_id: z.union([
+    z.string().refine(val => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+      message: 'ID пользователя должен быть положительным числом'
+    }),
+    z.number().int().positive({
+      message: 'ID пользователя должен быть положительным числом'
+    })
+  ]).transform(val => typeof val === 'string' ? parseInt(val) : val)
+});

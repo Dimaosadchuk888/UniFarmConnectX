@@ -3,11 +3,12 @@ import { users, transactions, farmingDeposits } from '@shared/schema';
 import { eq, sql, desc } from 'drizzle-orm';
 import { BigNumber } from 'bignumber.js';
 import { add } from 'date-fns';
+import { DatabaseError, NotFoundError } from '../middleware/errorHandler';
 
 /**
  * Модель буст-пакета
  */
-interface BoostPackage {
+export interface BoostPackage {
   id: number;
   name: string;
   priceUni: string;    // Стоимость в UNI
@@ -20,11 +21,29 @@ interface BoostPackage {
 /**
  * Результат покупки буста
  */
-interface PurchaseBoostResult {
+export interface PurchaseBoostResult {
   success: boolean;
   message: string;
   boostPackage?: BoostPackage;
   transactionId?: number;
+}
+
+/**
+ * Расширенная модель депозита буста с информацией о пакете
+ */
+export interface BoostDepositWithPackage {
+  id: number;
+  user_id: number;
+  amount_uni: string;
+  rate_uni: string;
+  rate_ton: string;
+  created_at: Date;
+  last_claim: Date;
+  is_boosted: boolean;
+  deposit_type: string;
+  boost_id: number;
+  expires_at: Date;
+  boostPackage?: BoostPackage;
 }
 
 /**
@@ -83,18 +102,58 @@ export class BoostService {
    * Получает буст-пакет по ID
    * @param boostId ID буст-пакета
    * @returns Буст-пакет или undefined, если не найден
+   * @throws NotFoundError если буст-пакет не найден
    */
-  static getBoostPackageById(boostId: number): BoostPackage | undefined {
-    return this.boostPackages.find(boost => boost.id === boostId);
+  static getBoostPackageById(boostId: number): BoostPackage {
+    const boostPackage = this.boostPackages.find(boost => boost.id === boostId);
+    
+    if (!boostPackage) {
+      throw new NotFoundError(`Буст-пакет с ID ${boostId} не найден`);
+    }
+    
+    return boostPackage;
+  }
+
+  /**
+   * Проверяет существование пользователя и возвращает его баланс
+   * @param userId ID пользователя
+   * @returns Баланс пользователя в UNI
+   * @throws NotFoundError если пользователь не найден
+   */
+  static async getUserBalance(userId: number): Promise<string> {
+    try {
+      const [user] = await db
+        .select({
+          balance_uni: users.balance_uni
+        })
+        .from(users)
+        .where(eq(users.id, userId));
+
+      if (!user) {
+        throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+      }
+
+      return user.balance_uni?.toString() || '0';
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      
+      throw new DatabaseError('Ошибка при получении баланса пользователя', error);
+    }
   }
 
   /**
    * Получает все активные Boost-депозиты пользователя
    * @param userId ID пользователя
-   * @returns Список активных Boost-депозитов
+   * @returns Список активных Boost-депозитов с информацией о буст-пакетах
+   * @throws DatabaseError в случае ошибки при работе с БД
    */
-  static async getUserActiveBoosts(userId: number) {
+  static async getUserActiveBoosts(userId: number): Promise<BoostDepositWithPackage[]> {
     try {
+      // Проверяем существование пользователя
+      await this.getUserBalance(userId);
+      
       // Получаем все активные буст-депозиты пользователя
       // (где тип депозита начинается с 'boost_' и дата окончания в будущем)
       const boostDeposits = await db
@@ -110,16 +169,44 @@ export class BoostService {
       // Объединяем с информацией о буст-пакетах
       return boostDeposits.map(deposit => {
         const boostId = deposit.boost_id || 0;
-        const boostPackage = this.getBoostPackageById(boostId);
+        let boostPackage: BoostPackage | undefined;
+        
+        try {
+          boostPackage = this.getBoostPackageById(boostId);
+        } catch (error) {
+          // Если буст-пакет не найден, просто не добавляем его информацию
+        }
+        
         return {
           ...deposit,
           boostPackage
         };
       });
     } catch (error) {
-      console.error('Error getting user active boosts:', error);
-      return [];
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      
+      throw new DatabaseError('Ошибка при получении активных буст-депозитов', error);
     }
+  }
+
+  /**
+   * Проверяет, достаточно ли у пользователя средств для покупки буст-пакета
+   * @param balanceUni Баланс пользователя в UNI
+   * @param priceUni Стоимость буст-пакета в UNI
+   * @returns true, если средств достаточно
+   * @throws Error с сообщением о недостаточном балансе
+   */
+  static checkSufficientFunds(balanceUni: string, priceUni: string): boolean {
+    const balance = new BigNumber(balanceUni);
+    const price = new BigNumber(priceUni);
+    
+    if (balance.isLessThan(price)) {
+      throw new Error(`Недостаточно UNI на балансе. Необходимо: ${price.toFormat()}`);
+    }
+    
+    return true;
   }
 
   /**
@@ -127,42 +214,27 @@ export class BoostService {
    * @param userId ID пользователя
    * @param boostId ID буст-пакета
    * @returns Результат покупки
+   * @throws NotFoundError если пользователь или буст-пакет не найден
+   * @throws DatabaseError в случае ошибки при работе с БД
    */
   static async purchaseBoost(userId: number, boostId: number): Promise<PurchaseBoostResult> {
     try {
-      // Получаем буст-пакет
+      // Получаем буст-пакет (выбросит NotFoundError, если пакет не существует)
       const boostPackage = this.getBoostPackageById(boostId);
-      if (!boostPackage) {
-        return {
-          success: false,
-          message: 'Буст-пакет не найден'
-        };
-      }
-
-      // Получаем пользователя
-      const [user] = await db
-        .select({
-          balance_uni: users.balance_uni
-        })
-        .from(users)
-        .where(eq(users.id, userId));
-
-      if (!user) {
-        return {
-          success: false,
-          message: 'Пользователь не найден'
-        };
-      }
-
+      
+      // Получаем баланс пользователя (выбросит NotFoundError, если пользователь не существует)
+      const balanceUni = await this.getUserBalance(userId);
+      
       // Проверяем, хватает ли баланса
-      const balanceUni = new BigNumber(user.balance_uni?.toString() || '0');
-      const priceUni = new BigNumber(boostPackage.priceUni);
-      const bonusUni = new BigNumber(boostPackage.bonusUni);
-
-      if (balanceUni.isLessThan(priceUni)) {
+      const priceUni = boostPackage.priceUni;
+      const bonusUni = boostPackage.bonusUni;
+      
+      try {
+        this.checkSufficientFunds(balanceUni, priceUni);
+      } catch (error) {
         return {
           success: false,
-          message: `Недостаточно UNI на балансе. Необходимо: ${priceUni.toFormat()}`
+          message: error instanceof Error ? error.message : 'Недостаточно средств на балансе'
         };
       }
 
@@ -172,7 +244,7 @@ export class BoostService {
         await tx
           .update(users)
           .set({
-            balance_uni: sql`${users.balance_uni} - ${priceUni.toString()}`
+            balance_uni: sql`${users.balance_uni} - ${priceUni}`
           })
           .where(eq(users.id, userId));
 
@@ -180,7 +252,7 @@ export class BoostService {
         await tx
           .update(users)
           .set({
-            balance_uni: sql`${users.balance_uni} + ${bonusUni.toString()}`
+            balance_uni: sql`${users.balance_uni} + ${bonusUni}`
           })
           .where(eq(users.id, userId));
 
@@ -191,8 +263,11 @@ export class BoostService {
             user_id: userId,
             type: 'boost_bonus',
             currency: 'UNI',
-            amount: bonusUni.toString(),
-            status: 'confirmed'
+            amount: bonusUni,
+            status: 'confirmed',
+            description: `Бонус за покупку буст-пакета "${boostPackage.name}"`,
+            category: 'boost',
+            source: 'boost_purchase'
           })
           .returning();
 
@@ -218,19 +293,23 @@ export class BoostService {
             expires_at: expiresAt
           });
 
+        // Форматируем сумму бонуса для сообщения
+        const bonusDisplay = new BigNumber(bonusUni).toFormat();
+
         return {
           success: true,
-          message: `Буст-пакет "${boostPackage.name}" успешно куплен. Получено ${bonusUni.toFormat()} UNI`,
+          message: `Буст-пакет "${boostPackage.name}" успешно куплен. Получено ${bonusDisplay} UNI`,
           boostPackage,
           transactionId: transaction.id
         };
       });
     } catch (error) {
-      console.error('Error purchasing boost:', error);
-      return {
-        success: false,
-        message: 'Произошла ошибка при покупке буст-пакета'
-      };
+      // Специфические ошибки пробрасываем дальше
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      
+      throw new DatabaseError('Ошибка при покупке буст-пакета', error);
     }
   }
 }
