@@ -1,60 +1,101 @@
-import React, { useEffect, useState } from 'react';
-import ConnectWalletButton from './ConnectWalletButton';
-import { 
-  getWalletAddress, 
-  isWalletConnected, 
-  addConnectionListener, 
-  removeConnectionListener 
-} from '@/services/tonConnectService';
+import React, { useState } from 'react';
+import { useUser } from '@/contexts/userContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
+/**
+ * Компонент карточки подключения кошелька
+ * Отображает текущий статус подключения и адрес кошелька TON
+ * Использует userContext для получения и управления состоянием кошелька
+ */
 const WalletConnectionCard: React.FC = () => {
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
+  // Получаем данные и методы управления кошельком из контекста пользователя
+  const { 
+    isWalletConnected, 
+    walletAddress, 
+    connectWallet, 
+    disconnectWallet 
+  } = useUser();
+  
+  // Локальные состояния для UI
+  const [loading, setLoading] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  
   const { toast } = useToast();
   
-  // Функция для проверки статуса подключения
-  const checkWalletConnection = () => {
-    const isConnected = isWalletConnected();
-    setConnected(isConnected);
+  /**
+   * Обработчик подключения/отключения кошелька
+   */
+  const handleWalletConnection = async () => {
+    setLoading(true);
     
-    if (isConnected) {
-      const walletAddress = getWalletAddress();
-      setAddress(walletAddress);
-    } else {
-      setAddress(null);
+    try {
+      if (isWalletConnected) {
+        // Отключаем кошелек
+        await disconnectWallet();
+        toast({
+          title: "Кошелек отключен",
+          description: "TON-кошелек успешно отключен",
+          duration: 2000,
+        });
+      } else {
+        // Подключаем кошелек
+        const success = await connectWallet();
+        
+        if (success) {
+          toast({
+            title: "Кошелек подключен",
+            description: "TON-кошелек успешно подключен",
+            duration: 2000,
+          });
+        } else {
+          toast({
+            title: "Ошибка подключения",
+            description: "Не удалось подключить кошелек",
+            variant: "destructive",
+            duration: 2000,
+          });
+        }
+      }
+    } catch (error) {
+      // Безопасное обращение к свойству message у error
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      toast({
+        title: "Ошибка",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 2000,
+      });
+    } finally {
+      setLoading(false);
     }
   };
   
-  // Проверяем статус подключения при загрузке компонента
-  useEffect(() => {
-    // Проверяем изначальное состояние
-    checkWalletConnection();
-    
-    // Подписываемся на изменения статуса подключения
-    addConnectionListener(checkWalletConnection);
-    
-    // Отписываемся при размонтировании компонента
-    return () => {
-      removeConnectionListener(checkWalletConnection);
-    };
-  }, []);
-  
-  // Обработчик клика для копирования адреса
+  /**
+   * Копирует адрес кошелька в буфер обмена
+   */
   const copyAddressToClipboard = () => {
-    if (address) {
-      navigator.clipboard.writeText(address)
+    if (walletAddress) {
+      navigator.clipboard.writeText(walletAddress)
         .then(() => {
+          setCopySuccess(true);
           toast({
             title: "Адрес скопирован",
             description: "TON-адрес скопирован в буфер обмена",
             duration: 2000,
           });
+          
+          // Сбрасываем статус через 2 секунды
+          setTimeout(() => setCopySuccess(false), 2000);
         })
-        .catch((error) => {
-          console.error('Ошибка при копировании адреса:', error);
+        .catch(() => {
           toast({
             title: "Ошибка",
             description: "Не удалось скопировать адрес",
@@ -65,20 +106,37 @@ const WalletConnectionCard: React.FC = () => {
     }
   };
   
+  /**
+   * Форматирует адрес кошелька для отображения (сокращаем для компактности)
+   * @param address Полный адрес кошелька
+   * @returns Сокращенный адрес для отображения
+   */
+  const formatWalletAddress = (address: string): string => {
+    if (!address || address.length <= 10) return address;
+    return `${address.substring(0, 6)}...${address.substring(address.length - 6)}`;
+  };
+  
   return (
     <Card className="mb-6 bg-gray-800 border-gray-700 shadow-lg">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-white">Подключение кошелька</CardTitle>
-          {connected && (
+          
+          {/* Индикатор статуса подключения */}
+          {isWalletConnected ? (
             <div className="flex items-center space-x-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
               <span className="text-green-500 text-xs font-medium">Подключено</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+              <span className="text-gray-500 text-xs font-medium">Не подключено</span>
             </div>
           )}
         </div>
         <CardDescription>
-          {connected 
+          {isWalletConnected 
             ? 'Ваш TON-кошелек подключен и готов к использованию'
             : 'Подключите ваш TON-кошелек для отправки и получения TON'}
         </CardDescription>
@@ -86,30 +144,45 @@ const WalletConnectionCard: React.FC = () => {
       <CardContent>
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="w-full">
-            {connected && address ? (
+            {isWalletConnected && walletAddress ? (
               <div className="text-sm text-gray-300 w-full">
                 <p className="mb-1">Адрес вашего кошелька:</p>
-                <div 
-                  onClick={copyAddressToClipboard}
-                  className="flex items-center space-x-2 bg-gray-700 px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-600 transition-colors overflow-auto"
-                >
-                  <span className="text-sm font-mono text-blue-300 whitespace-nowrap overflow-x-auto">{address}</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-gray-400 flex-shrink-0"
-                  >
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div 
+                        onClick={copyAddressToClipboard}
+                        className={`flex items-center justify-between space-x-2 bg-gray-700 px-3 py-1.5 rounded-md cursor-pointer hover:bg-gray-600 transition-colors overflow-hidden ${copySuccess ? 'bg-green-900/30 border border-green-700' : ''}`}
+                      >
+                        <span className="text-sm font-mono text-blue-300 truncate">{walletAddress}</span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className={`flex-shrink-0 ${copySuccess ? 'text-green-400' : 'text-gray-400'}`}
+                        >
+                          {copySuccess ? (
+                            <path d="M20 6L9 17l-5-5" />
+                          ) : (
+                            <>
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </>
+                          )}
+                        </svg>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Нажмите, чтобы скопировать полный адрес</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             ) : (
               <p className="text-sm text-gray-400">
@@ -117,13 +190,40 @@ const WalletConnectionCard: React.FC = () => {
               </p>
             )}
           </div>
-          {/* Кнопка подключения перенесена в шапку и отключена здесь */}
+          
+          {/* Кнопка подключения/отключения кошелька */}
           <div className="flex-shrink-0">
-            <Button variant="outline" size="sm" disabled className="opacity-50 cursor-not-allowed">
-              Кнопка в шапке ↗
+            <Button
+              variant={isWalletConnected ? "destructive" : "default"}
+              size="sm"
+              onClick={handleWalletConnection}
+              disabled={loading}
+              className="min-w-[140px]"
+            >
+              {loading ? (
+                <span className="flex items-center space-x-1">
+                  <svg className="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {isWalletConnected ? 'Отключение...' : 'Подключение...'}
+                </span>
+              ) : isWalletConnected ? (
+                'Отключить'
+              ) : (
+                'Подключить'
+              )}
             </Button>
           </div>
         </div>
+        
+        {/* Дополнительная информация о подключении */}
+        {isWalletConnected && walletAddress && (
+          <div className="mt-4 text-xs text-gray-400 border-t border-gray-700 pt-3">
+            <p>Подключен кошелек: <span className="font-medium text-blue-300">{formatWalletAddress(walletAddress)}</span></p>
+            <p className="mt-1">Используйте этот кошелек для транзакций в TON и активации TON-фарминга</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
