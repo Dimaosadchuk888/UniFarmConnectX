@@ -6,8 +6,21 @@ import {
 } from '../services/dailyBonusService';
 import { sendSuccess } from '../utils/responseUtils';
 import { ValidationError } from '../middleware/errorHandler';
-import { userIdSchema } from '../validators/schemas';
+import { userIdSchema, userMissionsQuerySchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
+import { z } from 'zod';
+
+// Создаем схему для валидации query-параметров (поддерживает user_id как строку)
+const dailyBonusQuerySchema = z.object({
+  user_id: z.union([
+    z.string().refine(val => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+      message: 'ID пользователя должен быть положительным числом'
+    }),
+    z.number().int().positive({
+      message: 'ID пользователя должен быть положительным числом'
+    })
+  ]).transform(val => typeof val === 'string' ? parseInt(val) : val)
+});
 
 /**
  * Контроллер для работы с ежедневными бонусами
@@ -22,7 +35,7 @@ export class DailyBonusController {
   static async checkDailyBonusStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация параметров запроса с Zod-схемой
-      const validationResult = userIdSchema.safeParse(req.query);
+      const validationResult = dailyBonusQuerySchema.safeParse(req.query);
       
       // Если валидация не прошла, генерируем ошибку с форматированным сообщением
       if (!validationResult.success) {
