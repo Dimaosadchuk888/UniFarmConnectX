@@ -1,39 +1,89 @@
 import { db } from '../db';
 import { users, transactions } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
-import { TransactionService } from './transactionService';
+import { DatabaseError, NotFoundError } from '../middleware/errorHandler';
+
+/**
+ * Информация о streak-статусе пользователя
+ */
+export interface StreakInfo {
+  streak: number;
+  canClaim: boolean;
+  lastClaimDate: Date | null;
+}
+
+/**
+ * Ответ на запрос получения статуса бонуса
+ */
+export interface DailyBonusStatusResponse {
+  canClaim: boolean;
+  streak: number;
+  bonusAmount: number;
+}
+
+/**
+ * Результат получения ежедневного бонуса
+ */
+export interface DailyBonusClaimResponse {
+  success: boolean;
+  message: string;
+  amount?: number;
+  streak?: number;
+}
 
 /**
  * Сервис для работы с ежедневными бонусами (check-in)
+ * Отвечает за всю бизнес-логику, связанную с ежедневными бонусами
  */
 export class DailyBonusService {
   // Размер ежедневного бонуса 
   static readonly DAILY_BONUS_AMOUNT = 500;
   
   /**
-   * Проверяет, доступен ли пользователю ежедневный бонус
+   * Получает текущую информацию о streak-бонусе пользователя
    * @param userId ID пользователя
-   * @returns {Promise<{canClaim: boolean, streak: number}>} Может ли пользователь получить бонус и текущая серия
+   * @returns Информация о streak-статусе пользователя
+   * @throws NotFoundError если пользователь не найден
+   * @throws DatabaseError в случае ошибки БД
    */
-  static async canClaimDailyBonus(userId: number): Promise<{canClaim: boolean, streak: number}> {
-    const [user] = await db
-      .select({
-        checkin_last_date: users.checkin_last_date,
-        checkin_streak: users.checkin_streak
-      })
-      .from(users)
-      .where(eq(users.id, userId));
-    
-    if (!user) {
-      return { canClaim: false, streak: 0 };
+  static async getUserStreakInfo(userId: number): Promise<StreakInfo> {
+    try {
+      const [user] = await db
+        .select({
+          checkin_last_date: users.checkin_last_date,
+          checkin_streak: users.checkin_streak
+        })
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      if (!user) {
+        throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+      }
+      
+      return {
+        streak: user.checkin_streak || 0,
+        canClaim: this.canClaimToday(user.checkin_last_date),
+        lastClaimDate: user.checkin_last_date
+      };
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new DatabaseError('Ошибка при получении информации о streak-бонусе', error);
     }
-    
+  }
+  
+  /**
+   * Проверяет, может ли пользователь получить бонус сегодня
+   * @param lastClaimDate Дата последнего получения бонуса
+   * @returns true, если бонус можно получить сегодня
+   */
+  private static canClaimToday(lastClaimDate: Date | null): boolean {
     // Если пользователь никогда не получал бонус
-    if (!user.checkin_last_date) {
-      return { canClaim: true, streak: 0 };
+    if (!lastClaimDate) {
+      return true;
     }
     
-    const lastClaimDate = new Date(user.checkin_last_date);
     const now = new Date();
     
     // Проверяем, был ли чекин уже сегодня
@@ -42,68 +92,126 @@ export class DailyBonusService {
       lastClaimDate.getMonth() === now.getMonth() &&
       lastClaimDate.getFullYear() === now.getFullYear();
     
-    const streak = user.checkin_streak || 0;
+    return !isSameDay;
+  }
+  
+  /**
+   * Проверяет, доступен ли пользователю ежедневный бонус
+   * @param userId ID пользователя
+   * @returns Статус получения бонуса и текущая серия
+   * @throws NotFoundError если пользователь не найден
+   * @throws DatabaseError в случае ошибки БД
+   */
+  static async getDailyBonusStatus(userId: number): Promise<DailyBonusStatusResponse> {
+    const streakInfo = await this.getUserStreakInfo(userId);
     
-    if (isSameDay) {
-      return { canClaim: false, streak };
+    return {
+      canClaim: streakInfo.canClaim,
+      streak: streakInfo.streak,
+      bonusAmount: this.DAILY_BONUS_AMOUNT
+    };
+  }
+  
+  /**
+   * Обновляет streak-статус пользователя и записывает транзакцию в рамках БД-транзакции
+   * @param userId ID пользователя
+   * @param currentStreak Текущее значение streak
+   * @param tx Транзакция БД
+   * @throws DatabaseError в случае ошибки БД
+   */
+  private static async updateUserStreakAndBalance(
+    userId: number, 
+    currentStreak: number, 
+    tx: any
+  ): Promise<void> {
+    try {
+      // Обновляем баланс и streak-статус пользователя
+      await tx
+        .update(users)
+        .set({ 
+          balance_uni: sql`${users.balance_uni} + ${this.DAILY_BONUS_AMOUNT}`,
+          checkin_last_date: new Date(),
+          checkin_streak: currentStreak + 1
+        })
+        .where(eq(users.id, userId));
+    } catch (error) {
+      throw new DatabaseError('Ошибка при обновлении баланса пользователя', error);
     }
-    
-    return { canClaim: true, streak };
+  }
+  
+  /**
+   * Создает запись о транзакции получения бонуса
+   * @param userId ID пользователя
+   * @param tx Транзакция БД
+   * @throws DatabaseError в случае ошибки БД
+   */
+  private static async createBonusTransaction(
+    userId: number, 
+    tx: any
+  ): Promise<void> {
+    try {
+      await tx
+        .insert(transactions)
+        .values({
+          user_id: userId,
+          type: 'check-in',
+          currency: 'UNI',
+          amount: this.DAILY_BONUS_AMOUNT.toString(),
+          status: 'confirmed',
+          description: 'Ежедневный бонус за check-in',
+          category: 'bonus',
+          source: 'daily-bonus'
+        });
+    } catch (error) {
+      throw new DatabaseError('Ошибка при создании записи о бонусной транзакции', error);
+    }
   }
   
   /**
    * Выдает пользователю ежедневный бонус
    * @param userId ID пользователя
-   * @returns {Promise<{success: boolean, message: string, amount?: number, streak?: number}>} Результат операции
+   * @returns Результат операции получения бонуса
+   * @throws NotFoundError если пользователь не найден
+   * @throws DatabaseError в случае ошибки БД
    */
-  static async claimDailyBonus(userId: number): Promise<{success: boolean, message: string, amount?: number, streak?: number}> {
+  static async claimDailyBonus(userId: number): Promise<DailyBonusClaimResponse> {
     try {
-      // Проверяем, доступен ли бонус
-      const { canClaim, streak } = await this.canClaimDailyBonus(userId);
+      // Получаем информацию о streak-статусе
+      const streakInfo = await this.getUserStreakInfo(userId);
       
-      if (!canClaim) {
+      // Проверяем, можно ли получить бонус сегодня
+      if (!streakInfo.canClaim) {
         return { 
           success: false, 
           message: 'Вы уже получили бонус сегодня. Возвращайтесь завтра!' 
         };
       }
       
-      // Начинаем транзакцию
+      // Выполняем все действия в рамках транзакции
       return await db.transaction(async (tx) => {
-        // 1. Обновляем баланс пользователя
-        await tx
-          .update(users)
-          .set({ 
-            balance_uni: sql`${users.balance_uni} + ${this.DAILY_BONUS_AMOUNT}`,
-            checkin_last_date: new Date(),
-            checkin_streak: streak + 1
-          })
-          .where(eq(users.id, userId));
+        // 1. Обновляем баланс и streak-статус пользователя
+        await this.updateUserStreakAndBalance(userId, streakInfo.streak, tx);
         
-        // 2. Создаем запись о транзакции
-        await tx
-          .insert(transactions)
-          .values({
-            user_id: userId,
-            type: 'check-in',
-            currency: 'UNI',
-            amount: this.DAILY_BONUS_AMOUNT.toString(),
-            status: 'confirmed'
-          });
+        // 2. Создаем запись о транзакции бонуса
+        await this.createBonusTransaction(userId, tx);
         
+        // 3. Возвращаем успешный результат
         return { 
           success: true, 
           message: 'Ежедневный бонус успешно получен!',
           amount: this.DAILY_BONUS_AMOUNT,
-          streak: streak + 1
+          streak: streakInfo.streak + 1
         };
       });
     } catch (error) {
-      console.error('Error claiming daily bonus:', error);
-      return { 
-        success: false, 
-        message: 'Произошла ошибка при получении бонуса. Попробуйте позже.' 
-      };
+      // Пробрасываем специфические ошибки для обработки в контроллере
+      if (error instanceof NotFoundError || error instanceof DatabaseError) {
+        throw error;
+      }
+      
+      // Логируем неожиданные ошибки и преобразуем в DatabaseError
+      console.error('Неизвестная ошибка при получении бонуса:', error);
+      throw new DatabaseError('Произошла ошибка при получении бонуса', error);
     }
   }
 }

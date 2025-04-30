@@ -1,60 +1,82 @@
-import { Request, Response } from 'express';
-import { DailyBonusService } from '../services/dailyBonusService';
-import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
-import { extractUserId } from '../utils/validationUtils';
+import { Request, Response, NextFunction } from 'express';
+import { 
+  DailyBonusService, 
+  DailyBonusStatusResponse, 
+  DailyBonusClaimResponse 
+} from '../services/dailyBonusService';
+import { sendSuccess } from '../utils/responseUtils';
+import { ValidationError } from '../middleware/errorHandler';
+import { userIdSchema } from '../validators/schemas';
+import { formatZodErrors } from '../utils/validationUtils';
 
 /**
  * Контроллер для работы с ежедневными бонусами
+ * Отвечает за обработку HTTP-запросов, валидацию входных данных,
+ * вызов соответствующих методов сервиса и формирование ответов
  */
 export class DailyBonusController {
   /**
    * Проверяет доступность бонуса для пользователя
+   * @route GET /api/daily-bonus/status
    */
-  static async checkDailyBonusStatus(req: Request, res: Response): Promise<void> {
+  static async checkDailyBonusStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = extractUserId(req, 'query');
+      // Валидация параметров запроса с Zod-схемой
+      const validationResult = userIdSchema.safeParse(req.query);
       
-      if (!userId) {
-        sendError(res, 'Invalid user ID', 400);
-        return;
+      // Если валидация не прошла, генерируем ошибку с форматированным сообщением
+      if (!validationResult.success) {
+        throw new ValidationError(
+          'Ошибка валидации ID пользователя', 
+          formatZodErrors(validationResult.error)
+        );
       }
       
-      const { canClaim, streak } = await DailyBonusService.canClaimDailyBonus(userId);
+      // Получаем ID пользователя из валидированных данных
+      const { user_id } = validationResult.data;
       
-      sendSuccess(res, {
-        canClaim,
-        streak,
-        bonusAmount: DailyBonusService.DAILY_BONUS_AMOUNT
-      });
+      // Вызываем метод сервиса для получения статуса бонуса
+      const bonusStatus: DailyBonusStatusResponse = 
+        await DailyBonusService.getDailyBonusStatus(user_id);
+      
+      // Отправляем успешный ответ
+      sendSuccess(res, bonusStatus);
     } catch (error) {
-      console.error('Error checking daily bonus status:', error);
-      sendServerError(res, error);
+      // Передаем ошибку централизованному обработчику
+      next(error);
     }
   }
   
   /**
    * Выдает пользователю ежедневный бонус
+   * @route POST /api/daily-bonus/claim
    */
-  static async claimDailyBonus(req: Request, res: Response): Promise<void> {
+  static async claimDailyBonus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = extractUserId(req, 'body');
+      // Валидация тела запроса с Zod-схемой
+      const validationResult = userIdSchema.safeParse(req.body);
       
-      if (!userId) {
-        sendError(res, 'Invalid user ID', 400);
-        return;
+      // Если валидация не прошла, генерируем ошибку с форматированным сообщением
+      if (!validationResult.success) {
+        throw new ValidationError(
+          'Ошибка валидации ID пользователя', 
+          formatZodErrors(validationResult.error)
+        );
       }
       
-      const result = await DailyBonusService.claimDailyBonus(userId);
+      // Получаем ID пользователя из валидированных данных
+      const { user_id } = validationResult.data;
       
-      if (!result.success) {
-        sendError(res, result.message, 400);
-        return;
-      }
+      // Вызываем метод сервиса для получения бонуса
+      const result: DailyBonusClaimResponse = 
+        await DailyBonusService.claimDailyBonus(user_id);
       
+      // Даже если бонус не получен (уже забран сегодня), 
+      // используем стандартный формат ответа с полем success
       sendSuccess(res, result);
     } catch (error) {
-      console.error('Error claiming daily bonus:', error);
-      sendServerError(res, error);
+      // Передаем ошибку централизованному обработчику
+      next(error);
     }
   }
 }
