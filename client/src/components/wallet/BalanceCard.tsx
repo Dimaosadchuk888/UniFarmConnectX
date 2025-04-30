@@ -140,14 +140,30 @@ const BalanceCard: React.FC = () => {
   // поэтому интервал может быть больше
   useEffect(() => {
     // Начальное обновление при монтировании
-    refreshBalance();
+    try {
+      refreshBalance();
+    } catch (error) {
+      // Обработка ошибки при начальной загрузке баланса
+      showNotification('error', {
+        message: 'Не удалось загрузить данные кошелька',
+        duration: 4000
+      });
+    }
     
     const interval = setInterval(() => {
-      refreshBalance();
+      try {
+        refreshBalance();
+      } catch (error) {
+        // Обработка ошибки при автоматическом обновлении баланса
+        showNotification('error', {
+          message: 'Ошибка обновления баланса',
+          duration: 3000
+        });
+      }
     }, 10000);
     
     return () => clearInterval(interval);
-  }, [refreshBalance]);
+  }, [refreshBalance, showNotification]);
   
   // Устанавливаем значение скорости фарминга на основе суммы депозита и общей ставки
   useEffect(() => {
@@ -227,14 +243,32 @@ const BalanceCard: React.FC = () => {
         </div>
         <button 
           onClick={() => {
-            // Обновляем баланс через контекст
-            refreshBalance();
-            
             // Показываем уведомление о процессе обновления баланса
             showNotification('loading', {
               message: 'Обновление баланса...',
               duration: 1500
             });
+            
+            try {
+              // Обновляем баланс через контекст
+              refreshBalance();
+              
+              // Устанавливаем таймер на показ уведомления об успешном обновлении
+              // (таймаут нужен чтобы дать время на запрос)
+              setTimeout(() => {
+                showNotification('success', {
+                  message: 'Баланс успешно обновлён',
+                  duration: 2000
+                });
+              }, 1000);
+            } catch (err) {
+              // Уведомление об ошибке
+              const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
+              showNotification('error', {
+                message: `Не удалось обновить баланс: ${errorMessage}`,
+                duration: 3000
+              });
+            }
             
             // Анимируем обновление UNI и TON
             setUniAnimating(true);

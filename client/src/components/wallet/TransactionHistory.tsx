@@ -48,9 +48,16 @@ const TransactionHistory: React.FC = () => {
   // Обновляем данные при изменении userId или страницы
   useEffect(() => {
     if (userId) {
-      refetch();
+      refetch()
+        .catch(err => {
+          // Показываем уведомление об ошибке загрузки
+          showNotification('error', {
+            message: 'Не удалось загрузить историю транзакций',
+            duration: 3000
+          });
+        });
     }
-  }, [userId, page, refetch]);
+  }, [userId, page, refetch, showNotification]);
   
   // Фильтрация транзакций по выбранному токену
   const filteredTransactions = transactions.filter(transaction => {
@@ -187,6 +194,18 @@ const TransactionHistory: React.FC = () => {
             <div className="py-8 text-center text-gray-500">
               <i className="fas fa-wallet mb-3 text-3xl"></i>
               <p className="text-lg">У вас пока нет транзакций</p>
+              {/* Отображаем уведомление при первой загрузке пустого списка только один раз */}
+              {(() => {
+                // Используем IIFE для создания локального эффекта
+                useEffect(() => {
+                  // Показываем уведомление при пустом списке
+                  showNotification('info', {
+                    message: 'У вас пока нет операций',
+                    duration: 4000
+                  });
+                }, []);
+                return null;
+              })()}
             </div>
           ) : hasTransactions ? (
             // Отображение транзакций
