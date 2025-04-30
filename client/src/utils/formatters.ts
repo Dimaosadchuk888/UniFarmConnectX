@@ -1,0 +1,152 @@
+/**
+ * Утилиты форматирования для UniFarm
+ */
+
+/**
+ * Форматирует число UNI в строковое представление с нужной точностью
+ * @param value Числовое значение UNI
+ * @param maximumFractionDigits Максимальное количество знаков после запятой (по умолчанию 8)
+ * @returns Отформатированное значение в виде строки
+ */
+export function formatUniNumber(value: number, maximumFractionDigits: number = 8): string {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return '0';
+  }
+
+  // Если число целое, убираем десятичную часть
+  if (Number.isInteger(value)) {
+    return value.toString();
+  }
+
+  // Для очень маленьких сумм обеспечиваем отображение до 8 знаков
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits
+  }).replace(/,/g, '').replace(/\.?0+$/, '');
+}
+
+/**
+ * Форматирует число TON в строковое представление с нужной точностью
+ * @param value Числовое значение TON
+ * @param maximumFractionDigits Максимальное количество знаков после запятой (по умолчанию 6)
+ * @returns Отформатированное значение в виде строки
+ */
+export function formatTonNumber(value: number, maximumFractionDigits: number = 6): string {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return '0';
+  }
+
+  // Если число целое, убираем десятичную часть
+  if (Number.isInteger(value)) {
+    return value.toString();
+  }
+
+  // Для TON обеспечиваем отображение до 6 знаков
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits
+  }).replace(/,/g, '').replace(/\.?0+$/, '');
+}
+
+/**
+ * Форматирует сумму транзакции с знаком и символом валюты
+ * @param amount Сумма
+ * @param tokenType Тип токена (UNI/TON)
+ * @param type Тип транзакции (для определения знака)
+ * @returns Отформатированная строка суммы
+ */
+export function formatTransactionAmount(amount: number, tokenType: string, type?: string): string {
+  if (typeof amount !== 'number' || isNaN(amount)) {
+    return `+0 ${tokenType || 'UNI'}`;
+  }
+
+  // Знак для суммы (withdrawals показываем как отрицательные)
+  const isNegative = type === 'withdrawal' || type === 'purchase';
+  const sign = isNegative ? '-' : '+';
+  const absoluteAmount = Math.abs(amount);
+  
+  // Форматируем в зависимости от типа токена
+  const formattedAmount = tokenType === 'TON' 
+    ? formatTonNumber(absoluteAmount) 
+    : formatUniNumber(absoluteAmount);
+  
+  return `${sign}${formattedAmount} ${tokenType}`;
+}
+
+/**
+ * Форматирует дату в формат "день месяц • часы:минуты"
+ * @param date Объект даты или строка с датой
+ * @returns Отформатированная строка даты
+ */
+export function formatDateTime(date: Date | string): string {
+  // Преобразуем строку в объект даты, если это необходимо
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+  // Проверяем валидность даты
+  if (isNaN(dateObj.getTime())) {
+    return 'Только что';
+  }
+  
+  try {
+    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const day = dateObj.getDate();
+    const month = months[dateObj.getMonth()];
+    const hours = dateObj.getHours().toString().padStart(2, '0');
+    const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+    
+    return `${day} ${month} • ${hours}:${minutes}`;
+  } catch (error) {
+    console.error('Ошибка форматирования даты:', error);
+    return 'Только что';
+  }
+}
+
+/**
+ * Возвращает класс для стилизации транзакции в зависимости от типа и токена
+ * @param tokenType Тип токена (UNI/TON)
+ * @param type Тип транзакции
+ * @returns CSS-класс для оформления
+ */
+export function getTransactionColorClass(tokenType: string, type?: string): string {
+  if (tokenType === 'TON') {
+    if (type === 'ton_boost' || type === 'boost') {
+      return 'bg-indigo-500/10 text-indigo-400';
+    }
+    return 'bg-cyan-500/10 text-cyan-400';
+  }
+  
+  return 'bg-green-500/10 text-green-400';
+}
+
+/**
+ * Возвращает иконку для транзакции в зависимости от типа
+ * @param type Тип транзакции
+ * @param tokenType Тип токена
+ * @returns Название иконки из FontAwesome
+ */
+export function getTransactionIcon(type: string, tokenType: string): string {
+  if (type === 'farming' || type === 'farming_reward' || type === 'farming_harvest') {
+    return 'fa-seedling';
+  }
+  if (type === 'boost_farming') {
+    return 'fa-bolt';
+  }
+  if (type === 'ton_boost' || type === 'boost') {
+    return 'fa-rocket';
+  }
+  if (type === 'check-in' || type === 'daily_bonus' || type === 'signup_bonus') {
+    return 'fa-gift';
+  }
+  if (type === 'reward' || type === 'mission' || type === 'referral_reward') {
+    return 'fa-award';
+  }
+  if (type === 'withdrawal') {
+    return 'fa-arrow-up';
+  }
+  if (type === 'deposit') {
+    return 'fa-arrow-down';
+  }
+  
+  // Возвращаем иконку по умолчанию
+  return tokenType === 'UNI' ? 'fa-leaf' : 'fa-tenge';
+}
