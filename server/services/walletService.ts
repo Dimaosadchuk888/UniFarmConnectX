@@ -511,10 +511,14 @@ export class WalletService {
         .update(transactions)
         .set({ 
           status: TransactionStatusType.CONFIRMED,
-          tx_hash: txHash || null
+          tx_hash: txHash ?? null
         })
         .where(eq(transactions.id, transactionId))
         .returning();
+      
+      if (!updatedTransaction) {
+        throw new NotFoundError(`Не удалось обновить транзакцию с ID ${transactionId}`);
+      }
       
       return this.mapTransactionToUserTransaction(updatedTransaction);
     } catch (error) {
@@ -558,9 +562,14 @@ export class WalletService {
           .where(eq(transactions.id, transactionId))
           .returning();
         
+        if (!updatedTransaction) {
+          throw new NotFoundError(`Не удалось обновить транзакцию с ID ${transactionId}`);
+        }
+        
         // Возвращаем средства на баланс пользователя
-        const amount = Math.abs(parseFloat(updatedTransaction.amount));
-        const currency = updatedTransaction.currency.toLowerCase() as 'uni' | 'ton';
+        const amount = Math.abs(parseFloat(updatedTransaction.amount || '0'));
+        const txCurrency = updatedTransaction.currency || 'UNI';
+        const currency = txCurrency.toLowerCase() as 'uni' | 'ton';
         const balanceField = currency === 'uni' ? 'balance_uni' : 'balance_ton';
         
         // Получаем текущий баланс
@@ -569,6 +578,10 @@ export class WalletService {
           .from(users)
           .where(eq(users.id, updatedTransaction.user_id))
           .limit(1);
+        
+        if (!user) {
+          throw new NotFoundError(`Пользователь с ID ${updatedTransaction.user_id} не найден`);
+        }
         
         const currentBalance = parseFloat(user[balanceField as keyof User] as string || '0');
         const newBalance = (currentBalance + amount).toFixed(6);
@@ -586,7 +599,7 @@ export class WalletService {
             user_id: updatedTransaction.user_id,
             type: 'refund',
             amount: amount.toString(),
-            currency: updatedTransaction.currency,
+            currency: txCurrency,
             created_at: sql`CURRENT_TIMESTAMP`,
             status: TransactionStatusType.CONFIRMED,
             wallet_address: updatedTransaction.wallet_address,
@@ -595,6 +608,10 @@ export class WalletService {
             description: `Возврат средств за отклоненный вывод #${transactionId}: ${reason}`
           })
           .returning();
+        
+        if (!refundTransaction) {
+          throw new Error(`Не удалось создать транзакцию возврата`);
+        }
         
         return {
           transaction: this.mapTransactionToUserTransaction(updatedTransaction),
@@ -752,6 +769,10 @@ export class WalletService {
    * @returns Объект в формате UserTransaction
    */
   private mapTransactionToUserTransaction(tx: Transaction): UserTransaction {
+    if (!tx || typeof tx.id !== 'number') {
+      throw new Error('Невозможно преобразовать недействительную транзакцию');
+    }
+    
     return {
       id: tx.id,
       userId: tx.user_id,
