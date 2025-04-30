@@ -41,7 +41,7 @@ async function getUserTotalEarnings(userId: number): Promise<number> {
     `, [userId]);
     
     return parseFloat(rows[0].total_earned);
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`ОШИБКА при получении общих заработков пользователя ${userId}: ${error.message}`);
     return 0;
   }
@@ -64,7 +64,7 @@ async function createUserFarmingSnapshot(userId: number): Promise<boolean> {
     
     logToFile(`Успешно создан снимок для пользователя ${userId}: ${totalEarned} UNI`);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`ОШИБКА при создании снимка для пользователя ${userId}: ${error.message}`);
     return false;
   }
@@ -82,7 +82,7 @@ async function getActiveUsers(): Promise<number[]> {
     `);
     
     return rows.map(row => row.user_id);
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`ОШИБКА при получении активных пользователей: ${error.message}`);
     return [];
   }
@@ -139,7 +139,7 @@ async function createFarmingSnapshots(): Promise<any> {
       failedUsers,
       totalSystemEarned,
     };
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`КРИТИЧЕСКАЯ ОШИБКА при создании снимков фарминга: ${error.message}`);
     return {
       success: false,
@@ -162,7 +162,7 @@ if (require.main === module) {
       }
       process.exit(0);
     })
-    .catch((error) => {
+    .catch((error: any) => {
       console.error('Необработанная ошибка:', error);
       process.exit(1);
     });

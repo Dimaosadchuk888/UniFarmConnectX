@@ -94,7 +94,7 @@ async function backupPartitionBeforeDelete(partitionName: string, date: Date): P
     */
     
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`ОШИБКА при создании бэкапа партиции ${partitionName}: ${error.message}`);
     return false;
   }
@@ -107,7 +107,7 @@ async function getPartitionRecordCount(partitionName: string): Promise<number> {
   try {
     const { rows } = await pool.query(`SELECT COUNT(*) as count FROM ${partitionName}`);
     return parseInt(rows[0].count, 10);
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`ОШИБКА при подсчете записей в партиции ${partitionName}: ${error.message}`);
     return -1;
   }
@@ -139,7 +139,7 @@ async function dropPartition(partitionName: string, date: Date): Promise<boolean
     
     logToFile(`УСПЕШНО удалена партиция ${partitionName} (${recordCount} записей)`);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`ОШИБКА при удалении партиции ${partitionName}: ${error.message}`);
     return false;
   }
@@ -158,7 +158,7 @@ async function checkPartitionExists(partitionName: string): Promise<boolean> {
     `, [partitionName]);
     
     return rows.length > 0;
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`ОШИБКА при проверке существования партиции ${partitionName}: ${error.message}`);
     return false;
   }
@@ -231,7 +231,7 @@ async function clearOldPartitions() {
       deletedPartitions,
       skippedPartitions,
     };
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`КРИТИЧЕСКАЯ ОШИБКА при удалении старых партиций: ${error.message}`);
     return {
       success: false,
@@ -254,7 +254,7 @@ if (require.main === module) {
       }
       process.exit(0);
     })
-    .catch((error) => {
+    .catch((error: any) => {
       console.error('Необработанная ошибка:', error);
       process.exit(1);
     });

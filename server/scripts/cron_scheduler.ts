@@ -50,7 +50,7 @@ function runFarmingSnapshotsJob() {
         logToFile(`ОШИБКА при создании снимков фарминга: ${result.error}`);
       }
     })
-    .catch((error) => {
+    .catch((error: any) => {
       logToFile(`Необработанная ошибка при создании снимков фарминга: ${error.message}`);
     });
 }
@@ -69,7 +69,7 @@ function runWalletSnapshotsJob() {
         logToFile(`ОШИБКА при создании снимков кошельков: ${result.error}`);
       }
     })
-    .catch((error) => {
+    .catch((error: any) => {
       logToFile(`Необработанная ошибка при создании снимков кошельков: ${error.message}`);
     });
 }
@@ -88,7 +88,7 @@ function runClearOldPartitionsJob() {
         logToFile(`ОШИБКА при удалении старых партиций: ${result.error}`);
       }
     })
-    .catch((error) => {
+    .catch((error: any) => {
       logToFile(`Необработанная ошибка при удалении старых партиций: ${error.message}`);
     });
 }

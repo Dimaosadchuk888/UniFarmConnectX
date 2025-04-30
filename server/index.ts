@@ -132,6 +132,21 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
     // Запуск фоновых задач
     startBackgroundTasks();
     
+    // Запуск cron-задач для обслуживания базы данных
+    try {
+      // Импортируем и инициализируем модуль cron-задач после старта сервера
+      import('./scripts/cron_scheduler.js')
+        .then(module => {
+          module.setupCronJobs();
+          console.log('[Server] Cron-задачи успешно инициализированы');
+        })
+        .catch(error => {
+          console.error('[Server] Ошибка при инициализации cron-задач:', error);
+        });
+    } catch (error) {
+      console.error('[Server] Ошибка при импорте модуля cron-задач:', error);
+    }
+    
     // Обновление реферальных кодов
     try {
       migrateRefCodes()

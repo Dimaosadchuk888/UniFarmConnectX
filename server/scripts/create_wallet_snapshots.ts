@@ -58,7 +58,7 @@ async function createUserWalletSnapshot(userId: number): Promise<boolean> {
     
     logToFile(`Успешно создан снимок баланса для пользователя ${userId}: ${balance_uni} UNI, ${balance_ton} TON`);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`ОШИБКА при создании снимка баланса для пользователя ${userId}: ${error.message}`);
     return false;
   }
@@ -76,7 +76,7 @@ async function getUsersWithBalance(): Promise<number[]> {
     `);
     
     return rows.map(row => row.id);
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`ОШИБКА при получении пользователей с балансом: ${error.message}`);
     return [];
   }
@@ -140,7 +140,7 @@ async function createWalletSnapshots(): Promise<any> {
       totalTonBalance: total_ton_balance,
       totalUsersWithBalance: total_users_with_balance,
     };
-  } catch (error) {
+  } catch (error: any) {
     logToFile(`КРИТИЧЕСКАЯ ОШИБКА при создании снимков балансов: ${error.message}`);
     return {
       success: false,
@@ -163,7 +163,7 @@ if (require.main === module) {
       }
       process.exit(0);
     })
-    .catch((error) => {
+    .catch((error: any) => {
       console.error('Необработанная ошибка:', error);
       process.exit(1);
     });
