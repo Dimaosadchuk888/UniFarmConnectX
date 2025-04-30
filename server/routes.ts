@@ -685,8 +685,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Маршрут для обработки вебхуков от Telegram через TypeScript контроллер
+  // Маршруты для работы с Telegram Mini App
   app.post("/api/telegram/webhook", TelegramController.handleWebhook);
+  app.post("/api/telegram/validate-init-data", TelegramController.validateInitData);
+  app.get("/api/telegram/mini-app-info", TelegramController.getMiniAppInfo);
+  app.post("/api/telegram/register", TelegramController.registerTelegramUser);
   
 
 

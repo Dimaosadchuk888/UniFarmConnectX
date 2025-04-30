@@ -1,0 +1,282 @@
+import { storage } from '../storage';
+import { verifyTelegramWebAppData, logTelegramData, extractReferralCode } from '../utils/telegramUtils';
+import { TelegramValidationResult } from '../utils/telegramUtils';
+import { NotFoundError, ValidationError } from '../middleware/errorHandler';
+
+/**
+ * Интерфейс для данных пользователя Telegram
+ */
+export interface TelegramUserData {
+  id: number;
+  telegramId: number | null;
+  username: string | null;
+  firstName: string | null;
+  lastName?: string | null;
+  walletAddress: string | null;
+  balance: string;
+  referralCode: string | null;
+}
+
+/**
+ * Интерфейс ответа на запрос валидации initData
+ */
+export interface ValidateInitDataResponse {
+  isValid: boolean;
+  user?: TelegramUserData;
+  telegramId?: number;
+  needRegistration?: boolean;
+  errors?: string[];
+}
+
+/**
+ * Интерфейс для Mini App информации
+ */
+export interface MiniAppInfo {
+  name: string;
+  botUsername: string;
+  appUrl: string;
+  version: string;
+  description: string;
+  features: string[];
+}
+
+/**
+ * Интерфейс для входных данных при регистрации пользователя
+ */
+export interface TelegramRegistrationInput {
+  initData: string;
+  referrer?: string | null;
+}
+
+/**
+ * Интерфейс для webhook данных от Telegram
+ */
+export interface TelegramWebhookData {
+  update_id?: number;
+  message?: {
+    message_id?: number;
+    from?: {
+      id: number;
+      first_name?: string;
+      last_name?: string;
+      username?: string;
+    };
+    text?: string;
+    chat?: {
+      id: number;
+      type: string;
+    };
+    entities?: Array<{
+      type: string;
+      offset: number;
+      length: number;
+    }>;
+  };
+  callback_query?: any;
+}
+
+/**
+ * Класс сервиса для работы с Telegram API
+ */
+export class TelegramService {
+  /**
+   * Обрабатывает webhook от Telegram
+   * @param webhookData - Данные webhook от Telegram
+   * @returns Результат обработки webhook
+   */
+  static async handleWebhook(webhookData: TelegramWebhookData): Promise<{ success: boolean; message: string }> {
+    try {
+      console.log('[TelegramService] Обработка webhook от Telegram');
+      
+      if (!webhookData) {
+        console.warn('[TelegramService] Получен пустой webhook без данных');
+        return { success: false, message: 'Пустые данные webhook' };
+      }
+      
+      // Логирование для диагностики
+      const logData = {
+        updateId: webhookData.update_id,
+        hasMessage: !!webhookData.message,
+        hasCallback: !!webhookData.callback_query,
+        messageId: webhookData.message?.message_id,
+        from: webhookData.message?.from ? 
+              `${webhookData.message.from.first_name || ''} ${webhookData.message.from.last_name || ''} (@${webhookData.message.from.username || 'нет_username'}) [ID: ${webhookData.message.from.id}]` : 
+              'нет_данных',
+        text: webhookData.message?.text || 'нет_текста',
+        chat: webhookData.message?.chat ? 
+              `${webhookData.message.chat.type} [ID: ${webhookData.message.chat.id}]` : 
+              'нет_данных_чата'
+      };
+      
+      console.log('[TelegramService] Детали webhook:', logData);
+      
+      // Проверка наличия команды
+      if (webhookData.message?.entities) {
+        const hasCommand = webhookData.message.entities.some(e => e.type === 'bot_command');
+        if (hasCommand) {
+          console.log('[TelegramService] Обнаружена команда в сообщении:', webhookData.message.text);
+        }
+      }
+      
+      // Дополнительная обработка webhook может быть реализована здесь
+      
+      return { success: true, message: 'Webhook обработан успешно' };
+    } catch (error) {
+      console.error('[TelegramService] Ошибка при обработке webhook:', error);
+      return { success: false, message: 'Ошибка при обработке webhook' };
+    }
+  }
+
+  /**
+   * Валидирует данные инициализации Telegram (initData)
+   * @param initData - Строка initData из Telegram WebApp
+   * @returns Ответ с результатом валидации
+   * @throws ValidationError если данные невалидны
+   */
+  static async validateInitData(initData: string): Promise<ValidateInitDataResponse> {
+    if (!initData) {
+      throw new ValidationError('Отсутствует поле initData');
+    }
+
+    // Проверяем данные от Telegram
+    const validationResult = await verifyTelegramWebAppData(initData);
+
+    // Логирование результата для диагностики
+    console.log('[TelegramService] Результат верификации initData:', {
+      isValid: validationResult.isValid,
+      hasUserId: !!validationResult.userId,
+      hasErrors: !!validationResult.errors && validationResult.errors.length > 0
+    });
+
+    // Если данные невалидны, выбрасываем ошибку
+    if (!validationResult.isValid) {
+      throw new ValidationError(
+        'Ошибка валидации данных Telegram', 
+        { initData: validationResult.errors?.join(', ') || 'Неизвестная ошибка валидации' }
+      );
+    }
+
+    // Если нет userId, выбрасываем ошибку
+    if (!validationResult.userId) {
+      throw new ValidationError('Отсутствует идентификатор пользователя Telegram');
+    }
+
+    // Пытаемся найти пользователя в БД
+    const user = await storage.getUserByTelegramId(validationResult.userId);
+
+    // Если пользователь существует, возвращаем его данные
+    if (user) {
+      return {
+        isValid: true,
+        user: {
+          id: user.id,
+          telegramId: user.telegram_id,
+          username: user.username,
+          firstName: user.username || validationResult.firstName || null,
+          walletAddress: user.ton_wallet_address,
+          balance: user.balance_uni || "0",
+          referralCode: user.ref_code
+        }
+      };
+    }
+
+    // Если пользователя нет, возвращаем только идентификатор Telegram
+    return {
+      isValid: true,
+      telegramId: validationResult.userId,
+      needRegistration: true
+    };
+  }
+
+  /**
+   * Получает информацию о мини-приложении
+   * @returns Информация о мини-приложении
+   */
+  static getMiniAppInfo(): MiniAppInfo {
+    return {
+      name: "UniFarm",
+      botUsername: "@UniFarming_Bot",
+      appUrl: "https://t.me/UniFarming_Bot/UniFarm",
+      version: "1.0.0",
+      description: "Telegram Mini App для крипто-фарминга и реферальной программы",
+      features: [
+        "Фарминг UNI токенов",
+        "Реферальная программа с 20 уровнями",
+        "Интеграция с TON Blockchain",
+        "Ежедневные бонусы"
+      ]
+    };
+  }
+
+  /**
+   * Регистрирует пользователя через Telegram
+   * @param registrationData - Данные для регистрации
+   * @returns Данные зарегистрированного пользователя
+   * @throws ValidationError если данные невалидны
+   */
+  static async registerUser(registrationData: TelegramRegistrationInput): Promise<TelegramUserData> {
+    const { initData, referrer } = registrationData;
+
+    if (!initData) {
+      throw new ValidationError('Отсутствуют данные для регистрации');
+    }
+
+    // Проверяем данные от Telegram
+    const validationResult = await verifyTelegramWebAppData(initData);
+
+    if (!validationResult.isValid || !validationResult.userId) {
+      throw new ValidationError(
+        'Ошибка валидации данных Telegram',
+        { initData: validationResult.errors?.join(', ') || 'Неизвестная ошибка валидации' }
+      );
+    }
+
+    // Получаем данные из initData
+    const { userId, username, firstName, lastName } = validationResult;
+
+    // Проверяем, существует ли пользователь
+    const existingUser = await storage.getUserByTelegramId(userId);
+
+    if (existingUser) {
+      return {
+        id: existingUser.id,
+        telegramId: existingUser.telegram_id,
+        username: existingUser.username,
+        firstName: username || firstName || null,
+        lastName: lastName || null,
+        walletAddress: existingUser.ton_wallet_address,
+        balance: existingUser.balance_uni || "0",
+        referralCode: existingUser.ref_code
+      };
+    }
+
+    // Генерируем уникальный реферальный код
+    const refCode = `ref_${Math.random().toString(36).substring(2, 10)}`;
+
+    // Создаем нового пользователя
+    const newUser = await storage.createUserWithTelegram({
+      telegram_id: userId,
+      username: username || null,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      balance: 0,
+      farming_rate: 1,
+      wallet_address: null,
+      ref_code: refCode,
+      referrer_id: referrer ? parseInt(referrer) : null,
+      created_at: new Date(),
+      updated_at: new Date()
+    });
+
+    return {
+      id: newUser.id,
+      telegramId: newUser.telegram_id,
+      username: newUser.username,
+      firstName: username || firstName || null,
+      lastName: lastName || null,
+      walletAddress: newUser.ton_wallet_address,
+      balance: newUser.balance_uni || "0",
+      referralCode: newUser.ref_code
+    };
+  }
+}
