@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useUser } from '@/contexts/userContext';
+import { useNotification } from '@/contexts/notificationContext';
 
 interface ConnectWalletButtonProps {
   className?: string;
@@ -25,6 +26,9 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     disconnectWallet 
   } = useUser();
   
+  // Получаем доступ к системе уведомлений
+  const { showNotification } = useNotification();
+  
   // Локальное состояние для отображения индикатора загрузки
   const [loading, setLoading] = useState(false);
   
@@ -34,16 +38,46 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     
     try {
       if (isWalletConnected) {
+        // Отображаем уведомление о процессе отключения
+        showNotification('loading', {
+          message: 'Отключение кошелька...',
+          duration: 2000
+        });
+        
         // Отключение кошелька
         await disconnectWallet();
+        
+        // Уведомление об успешном отключении
+        showNotification('info', {
+          message: 'Кошелёк успешно отключен',
+          duration: 3000
+        });
       } else {
+        // Отображаем уведомление о процессе подключения
+        showNotification('loading', {
+          message: 'Ожидание подключения кошелька...',
+          duration: 2000
+        });
+        
         // Подключение кошелька
         await connectWallet();
+        
+        // Уведомление об успешном подключении
+        showNotification('success', {
+          message: 'Кошелёк успешно подключен',
+          duration: 3000
+        });
       }
     } catch (error) {
       // Безопасное обращение к свойству message у error
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       console.error('Ошибка управления кошельком:', errorMessage);
+      
+      // Отображаем уведомление об ошибке
+      showNotification('error', {
+        message: `Ошибка: ${errorMessage}`,
+        duration: 5000
+      });
     } finally {
       setLoading(false);
     }
@@ -56,10 +90,20 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     if (walletAddress) {
       navigator.clipboard.writeText(walletAddress)
         .then(() => {
-          // Можно добавить уведомление о копировании через toast, если нужно
+          // Показываем уведомление об успешном копировании
+          showNotification('success', {
+            message: 'Адрес кошелька скопирован в буфер обмена',
+            duration: 2000
+          });
         })
         .catch((error) => {
           console.error('Ошибка копирования адреса:', error);
+          
+          // Показываем уведомление об ошибке копирования
+          showNotification('error', {
+            message: 'Не удалось скопировать адрес кошелька',
+            duration: 3000
+          });
         });
     }
   };

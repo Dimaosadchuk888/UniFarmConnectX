@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/contexts/userContext';
+import { useNotification } from '@/contexts/notificationContext';
 import {
   fetchTransactions,
   Transaction
@@ -26,6 +27,9 @@ const TransactionHistory: React.FC = () => {
   
   // Получаем данные пользователя из контекста
   const { userId } = useUser();
+  
+  // Получаем доступ к системе уведомлений
+  const { showNotification } = useNotification();
   
   // Запрос транзакций через React Query с использованием transactionService
   const {
@@ -82,19 +86,37 @@ const TransactionHistory: React.FC = () => {
         <div className="flex rounded-lg bg-black/30 p-0.5">
           <button 
             className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${activeFilter === 'ALL' ? 'bg-primary/80 text-white' : 'text-gray-400 hover:text-white'}`}
-            onClick={() => setActiveFilter('ALL')}
+            onClick={() => {
+              setActiveFilter('ALL');
+              showNotification('info', {
+                message: 'Показаны все транзакции',
+                duration: 1500
+              });
+            }}
           >
             Все
           </button>
           <button 
             className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${activeFilter === 'UNI' ? 'bg-green-600/80 text-white' : 'text-gray-400 hover:text-white'}`}
-            onClick={() => setActiveFilter('UNI')}
+            onClick={() => {
+              setActiveFilter('UNI');
+              showNotification('info', {
+                message: 'Отфильтрованы транзакции в UNI',
+                duration: 1500
+              });
+            }}
           >
             UNI
           </button>
           <button 
             className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${activeFilter === 'TON' ? 'bg-cyan-600/80 text-white' : 'text-gray-400 hover:text-white'}`}
-            onClick={() => setActiveFilter('TON')}
+            onClick={() => {
+              setActiveFilter('TON');
+              showNotification('info', {
+                message: 'Отфильтрованы транзакции в TON',
+                duration: 1500
+              });
+            }}
           >
             TON
           </button>
@@ -131,7 +153,30 @@ const TransactionHistory: React.FC = () => {
               <i className="fas fa-exclamation-triangle mb-2 text-2xl"></i>
               <p>Ошибка загрузки транзакций</p>
               <button 
-                onClick={() => refetch()} 
+                onClick={() => {
+                  // Показываем уведомление о попытке перезагрузки
+                  showNotification('loading', {
+                    message: 'Загрузка транзакций...',
+                    duration: 2000
+                  });
+                  
+                  // Перезагружаем транзакции
+                  refetch()
+                    .then(() => {
+                      // Показываем уведомление об успешной загрузке
+                      showNotification('success', {
+                        message: 'Транзакции успешно обновлены',
+                        duration: 3000
+                      });
+                    })
+                    .catch(err => {
+                      // Показываем уведомление об ошибке
+                      showNotification('error', {
+                        message: 'Не удалось загрузить транзакции',
+                        duration: 3000
+                      });
+                    });
+                }} 
                 className="mt-3 px-4 py-1.5 bg-red-500/20 text-red-400 rounded-md text-sm hover:bg-red-500/30 transition-colors"
               >
                 Повторить
