@@ -1,13 +1,53 @@
 import { db } from '../db';
-import { referrals, Referral, InsertReferral } from '@shared/schema';
+import { referrals, Referral, InsertReferral, users, User } from '@shared/schema';
 import { eq, sql, and } from 'drizzle-orm';
 import { UserService } from './userService';
+import { ValidationError } from '../middleware/errorHandler';
 
 // Максимальная глубина реферальной цепочки согласно ТЗ
 const MAX_REFERRAL_PATH_DEPTH = 20;
 
 /**
+ * Типы данных для реферальной системы
+ */
+export interface RefTreeNode {
+  id: number;
+  username: string | null;
+  ref_code: string | null;
+  level: number;
+}
+
+export interface ReferralRewardInfo {
+  level: number;
+  uni: number;
+  ton: number;
+}
+
+export interface ReferralData {
+  user_id: number;
+  username: string | null;
+  ref_code: string | null;
+  total_referrals: number;
+  referral_counts: Record<number, number>;
+  level_income: Record<number, { uni: number, ton: number }>;
+  referrals: Referral[];
+}
+
+export interface ReferralRelationshipResult {
+  referral: Referral | null;
+  success: boolean;
+  isNewConnection: boolean;
+  message: string;
+}
+
+export interface StartParamProcessResult {
+  inviterId: number | null;
+  refCode: string | null;
+}
+
+/**
  * Сервис для работы с реферальной системой
+ * Реализует бизнес-логику работы с рефералами согласно SOLID принципам
  */
 export class ReferralService {
   /**
@@ -346,12 +386,172 @@ export class ReferralService {
   }
   
   /**
+   * Получает данные о доходах с каждого уровня рефералов
+   * @param userId ID пользователя
+   * @returns Объект с доходами по уровням (пустой объект, если данных нет)
+   */
+  static async getLevelIncomeData(userId: number): Promise<Record<number, { uni: number, ton: number }>> {
+    try {
+      // Проверка валидности userId
+      if (!userId || typeof userId !== 'number' || userId <= 0) {
+        console.log('[ReferralService] Invalid userId in getLevelIncomeData:', userId);
+        return {}; // Возвращаем пустой объект при некорректном userId
+      }
+      
+      // Получаем транзакции с типом referral_bonus
+      const { transactions } = await import('@shared/schema');
+      
+      try {
+        // Запрос для получения суммы доходов от рефералов по уровням
+        // Проверяем наличие поля data перед использованием оператора ->
+        const hasDataColumnResult = await db
+          .execute(sql`SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'transactions' AND column_name = 'data'
+          ) AS exists`);
+        
+        const hasDataColumn = hasDataColumnResult && 
+                          hasDataColumnResult.length > 0 && 
+                          hasDataColumnResult[0] && 
+                          (hasDataColumnResult[0] as Record<string, unknown>).exists === true;
+        
+        if (hasDataColumn) {
+          const referralTransactions = await db
+            .select({
+              level: sql<number>`CAST(data->>'level' AS INTEGER)`,
+              uni_amount: sql<string>`SUM(CASE WHEN currency = 'UNI' THEN amount ELSE 0 END)`,
+              ton_amount: sql<string>`SUM(CASE WHEN currency = 'TON' THEN amount ELSE 0 END)`
+            })
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.user_id, userId),
+                eq(transactions.type, 'referral_bonus')
+              )
+            )
+            .groupBy(sql`data->>'level'`);
+          
+          // Преобразуем результат в объект { level: { uni: amount, ton: amount } }
+          const result: Record<number, { uni: number, ton: number }> = {};
+          
+          // Проверка, что результат не null и не undefined
+          if (!referralTransactions) {
+            console.log('[ReferralService] Пустой результат запроса транзакций');
+            return {};
+          }
+          
+          for (const row of referralTransactions) {
+            if (row.level !== null) {
+              // Безопасное преобразование строк в числа
+              const uniAmount = parseFloat(row.uni_amount || '0');
+              const tonAmount = parseFloat(row.ton_amount || '0');
+              
+              result[row.level] = {
+                // Проверка на NaN для гарантии числовых значений
+                uni: isNaN(uniAmount) ? 0 : uniAmount,
+                ton: isNaN(tonAmount) ? 0 : tonAmount
+              };
+            }
+          }
+          
+          return result;
+        } else {
+          console.log('[ReferralService] Поле data в таблице transactions отсутствует, возвращаем пустой результат');
+          return {};
+        }
+      } catch (error: any) {
+        // Расширенная обработка известных ошибок
+        if (error.message) {
+          // Если ошибка связана с отсутствием поля data, возвращаем пустой объект
+          if (error.message.includes("column \"data\" does not exist")) {
+            console.log('[ReferralService] Поле "data" не найдено в таблице transactions, возвращаем пустой результат');
+            return {};
+          }
+          
+          // Обрабатываем ошибку оператора
+          if (error.message.includes("operator does not exist") || error.message.includes("->>")) {
+            console.log('[ReferralService] Ошибка оператора при запросе данных о доходе:', error.message);
+            return {};
+          }
+        }
+        
+        // Логируем детали ошибки для отладки
+        console.error('[ReferralService] Ошибка при выполнении SQL-запроса:', {
+          message: error.message,
+          code: error.code,
+          stack: error.stack?.slice(0, 200) // Первые 200 символов стека для краткости
+        });
+        
+        // Всегда возвращаем пустой объект при любой ошибке
+        return {};
+      }
+    } catch (error) {
+      console.error('[ReferralService] Критическая ошибка при расчете дохода по уровням:', error);
+      return {}; // Безопасный ответ при любой ошибке
+    }
+  }
+  
+  /**
    * Обрабатывает параметр startParam из Telegram WebApp
    * Проверяет, что startParam соответствует ref_code существующего пользователя
    * 
    * @param startParam Параметр из Telegram WebApp.startParam
    * @returns ID пригласителя или null, если пригласитель не найден
    */
+  /**
+   * Получает полные реферальные данные пользователя
+   * @param userId ID пользователя
+   * @returns Объект, содержащий все реферальные данные пользователя
+   * @throws ValidationError если пользователь не найден
+   */
+  static async getUserReferralData(userId: number): Promise<ReferralData> {
+    // Проверка валидности userId
+    if (!userId || typeof userId !== 'number' || userId <= 0) {
+      throw new ValidationError('Некорректный идентификатор пользователя', {
+        userId: 'Идентификатор пользователя должен быть положительным числом'
+      });
+    }
+    
+    try {
+      // Получаем пользователя
+      const user = await UserService.getUserById(userId);
+      if (!user) {
+        throw new ValidationError('Пользователь не найден', {
+          userId: `Пользователь с ID ${userId} не существует`
+        });
+      }
+      
+      // Получаем список рефералов
+      let referrals = await this.getUserReferrals(userId);
+      
+      // Получаем статистику по уровням рефералов
+      const referralCounts = await this.getReferralCounts(userId);
+      
+      // Получаем данные по доходам по уровням
+      const levelIncome = await this.getLevelIncomeData(userId);
+      
+      // Формируем и возвращаем структурированные данные
+      const referralData: ReferralData = {
+        user_id: userId,
+        username: user.username || null,
+        ref_code: user.ref_code || null,
+        total_referrals: referrals ? referrals.length : 0,
+        referral_counts: referralCounts || {},
+        level_income: levelIncome || {},
+        referrals: referrals || []
+      };
+      
+      return referralData;
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error; // Пробрасываем ValidationError дальше
+      }
+      
+      console.error('[ReferralService] Ошибка при получении реферальных данных:', error);
+      throw new Error('Ошибка при получении реферальных данных');
+    }
+  }
+  
   static async processStartParam(startParam: string | null | undefined): Promise<{ inviterId: number | null, refCode: string | null }> {
     if (!startParam) {
       console.log('[ReferralService] No startParam provided');
