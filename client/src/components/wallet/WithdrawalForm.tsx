@@ -293,11 +293,6 @@ const WithdrawalForm: React.FC = () => {
               <div className="relative">
                 <input 
                   {...form.register('wallet_address')}
-                  ref={(e) => {
-                    if (e) {
-                      addressInputRef.current = e;
-                    }
-                  }}
                   type="text" 
                   placeholder="Введите TON-адрес (начинается с EQ или UQ)" 
                   className={`
@@ -338,11 +333,6 @@ const WithdrawalForm: React.FC = () => {
               <div className="flex">
                 <input 
                   {...form.register('amount')}
-                  ref={(e) => {
-                    if (e) {
-                      amountInputRef.current = e;
-                    }
-                  }}
                   type="number" 
                   step="0.01"
                   min="0.01"
