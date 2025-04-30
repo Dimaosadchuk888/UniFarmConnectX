@@ -1,5 +1,4 @@
-#!/usr/bin/env ts-node
-import addWalletAddress from './migrations/add_wallet_address';
+import addWalletAddress from './migrations/add_wallet_address.js';
 
 /**
  * Скрипт для запуска всех миграций в правильном порядке

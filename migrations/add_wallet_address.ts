@@ -1,4 +1,4 @@
-import { db } from '../server/db';
+import { db } from '../server/db.js';
 
 /**
  * Миграция для добавления колонки wallet_address в таблицу transactions
@@ -52,13 +52,3 @@ async function runMigration() {
 
 // Экспортируем функцию для использования в других файлах
 export default runMigration;
-
-// Если файл запущен напрямую, выполняем миграцию
-if (require.main === module) {
-  runMigration()
-    .then(() => process.exit(0))
-    .catch(error => {
-      console.error('Ошибка при выполнении миграции:', error);
-      process.exit(1);
-    });
-}
