@@ -1,6 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { X, CheckCircle, AlertCircle, Info, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useEffect } from 'react';
 import { Notification as NotificationType } from '@/types/notification';
 
 interface NotificationProps {
@@ -8,88 +6,78 @@ interface NotificationProps {
   onDismiss: (id: string) => void;
 }
 
-export const Notification: React.FC<NotificationProps> = ({ 
-  notification, 
-  onDismiss 
-}) => {
-  const [isExiting, setIsExiting] = useState(false);
-
-  // Настройка автоматического скрытия уведомления, если задана длительность
+const Notification: React.FC<NotificationProps> = ({ notification, onDismiss }) => {
+  const { id, type, message, duration, autoDismiss } = notification;
+  
+  // Автоматически скрываем уведомление через duration, если autoDismiss = true
   useEffect(() => {
-    if (notification.autoDismiss && notification.duration) {
+    if (autoDismiss && duration) {
       const timer = setTimeout(() => {
-        setIsExiting(true);
-        const animationTimer = setTimeout(() => {
-          onDismiss(notification.id);
-        }, 300); // длительность анимации исчезновения
-        
-        return () => clearTimeout(animationTimer);
-      }, notification.duration);
+        onDismiss(id);
+      }, duration);
       
       return () => clearTimeout(timer);
     }
-  }, [notification, onDismiss]);
-
-  // Обработчик закрытия уведомления
-  const handleDismiss = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      onDismiss(notification.id);
-    }, 300);
-  };
-
-  // Определение иконки в зависимости от типа уведомления
-  const getIcon = () => {
-    switch (notification.type) {
+  }, [id, duration, autoDismiss, onDismiss]);
+  
+  // Выбираем цвет фона и иконку в зависимости от типа уведомления
+  const getTypeStyles = () => {
+    switch (type) {
       case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return {
+          bgClass: 'bg-success/10 border border-success/30',
+          textClass: 'text-success',
+          icon: 'fas fa-check-circle'
+        };
       case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return {
+          bgClass: 'bg-destructive/10 border border-destructive/30',
+          textClass: 'text-destructive',
+          icon: 'fas fa-exclamation-circle'
+        };
       case 'info':
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return {
+          bgClass: 'bg-primary/10 border border-primary/30',
+          textClass: 'text-primary',
+          icon: 'fas fa-info-circle'
+        };
       case 'loading':
-        return <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />;
+        return {
+          bgClass: 'bg-muted/10 border border-muted/30',
+          textClass: 'text-muted-foreground',
+          icon: 'fas fa-spinner fa-spin'
+        };
       default:
-        return null;
+        return {
+          bgClass: 'bg-muted/10 border border-muted/30',
+          textClass: 'text-muted-foreground',
+          icon: 'fas fa-bell'
+        };
     }
   };
-
-  // Определение цвета фона в зависимости от типа уведомления
-  const getBackgroundColor = () => {
-    switch (notification.type) {
-      case 'success':
-        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
-      case 'error':
-        return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
-      case 'info':
-        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
-      case 'loading':
-        return 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800';
-      default:
-        return 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800';
-    }
-  };
-
+  
+  const styles = getTypeStyles();
+  
   return (
-    <div
-      className={cn(
-        'relative flex items-center justify-between p-4 rounded-lg border shadow-sm mb-3 max-w-md w-full transform transition-all duration-300 ease-in-out',
-        getBackgroundColor(),
-        isExiting ? 'opacity-0 translate-x-3' : 'opacity-100 translate-x-0'
-      )}
+    <div 
+      className={`rounded-lg shadow-lg backdrop-blur-sm px-4 py-3 ${styles.bgClass} min-w-[300px] max-w-sm mb-2 animate-slideInRight`}
+      role="alert"
     >
-      <div className="flex items-center space-x-3">
-        {getIcon()}
-        <p className="text-sm text-foreground">{notification.message}</p>
+      <div className="flex items-start">
+        <div className={`mr-3 ${styles.textClass}`}>
+          <i className={styles.icon}></i>
+        </div>
+        <div className="flex-1 text-sm">
+          <p className="text-foreground font-medium">{message}</p>
+        </div>
+        <button 
+          onClick={() => onDismiss(id)} 
+          className="ml-2 text-gray-400 hover:text-gray-500 transition-colors"
+          aria-label="Закрыть"
+        >
+          <i className="fas fa-times"></i>
+        </button>
       </div>
-      
-      <button
-        onClick={handleDismiss}
-        className="text-muted-foreground hover:text-foreground rounded-full p-1 transition-colors"
-        aria-label="Закрыть уведомление"
-      >
-        <X className="h-4 w-4" />
-      </button>
     </div>
   );
 };

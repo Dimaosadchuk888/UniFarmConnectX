@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
+import { useNotification } from '@/contexts/notificationContext';
 
 /**
  * Компонент для отображения баланса пользователя
@@ -18,6 +19,9 @@ const BalanceCard: React.FC = () => {
     refreshBalance,
     isBalanceFetching
   } = useUser();
+  
+  // Получаем доступ к системе уведомлений
+  const { showNotification } = useNotification();
   
   // Состояния для визуальных эффектов
   const [uniAnimating, setUniAnimating] = useState<boolean>(false);
@@ -38,6 +42,12 @@ const BalanceCard: React.FC = () => {
   const { isConnected, subscribeToUserUpdates } = useWebSocket({
     onOpen: () => {
       setWsStatus('Соединение установлено');
+      // Показываем уведомление о подключении
+      showNotification('success', {
+        message: 'WebSocket соединение установлено',
+        duration: 3000
+      });
+      
       // Подписываемся на обновления для пользователя, если userId доступен
       if (userId) {
         subscribeToUserUpdates(userId);
@@ -55,13 +65,29 @@ const BalanceCard: React.FC = () => {
         
         setTonAnimating(true);
         setTimeout(() => setTonAnimating(false), 800);
+        
+        // Показываем уведомление об обновлении баланса
+        showNotification('info', {
+          message: 'Баланс обновлен',
+          duration: 2000
+        });
       }
     },
     onClose: () => {
       setWsStatus('Соединение закрыто');
+      // Показываем уведомление о разрыве соединения
+      showNotification('error', {
+        message: 'WebSocket соединение закрыто',
+        duration: 3000
+      });
     },
     onError: () => {
       setWsStatus('Ошибка соединения');
+      // Показываем уведомление об ошибке
+      showNotification('error', {
+        message: 'Ошибка WebSocket соединения',
+        duration: 3000
+      });
     },
     autoReconnect: true,
     reconnectAttempts: 5
@@ -80,16 +106,34 @@ const BalanceCard: React.FC = () => {
     if (prevUniBalance !== uniBalance) {
       updateUniBalanceWithAnimation(uniBalance, prevUniBalance);
       setPrevUniBalance(uniBalance);
+      
+      // Если баланс увеличился, показываем уведомление
+      if (uniBalance > prevUniBalance && prevUniBalance !== 0) {
+        const increase = uniBalance - prevUniBalance;
+        showNotification('success', {
+          message: `Получено ${increase.toFixed(8)} UNI`,
+          duration: 3000
+        });
+      }
     }
-  }, [uniBalance, prevUniBalance, updateUniBalanceWithAnimation]);
+  }, [uniBalance, prevUniBalance, updateUniBalanceWithAnimation, showNotification]);
   
   useEffect(() => {
     if (prevTonBalance !== tonBalance) {
       setTonAnimating(true);
       setTimeout(() => setTonAnimating(false), 800);
       setPrevTonBalance(tonBalance);
+      
+      // Если баланс TON увеличился, показываем уведомление
+      if (tonBalance > prevTonBalance && prevTonBalance !== 0) {
+        const increase = tonBalance - prevTonBalance;
+        showNotification('success', {
+          message: `Получено ${increase.toFixed(5)} TON`,
+          duration: 3000
+        });
+      }
     }
-  }, [tonBalance, prevTonBalance]);
+  }, [tonBalance, prevTonBalance, showNotification]);
   
   // Автоматически запрашиваем обновление баланса каждые 10 секунд
   // Обратите внимание: в userContext уже есть автообновление, 
@@ -185,6 +229,12 @@ const BalanceCard: React.FC = () => {
           onClick={() => {
             // Обновляем баланс через контекст
             refreshBalance();
+            
+            // Показываем уведомление о процессе обновления баланса
+            showNotification('loading', {
+              message: 'Обновление баланса...',
+              duration: 1500
+            });
             
             // Анимируем обновление UNI и TON
             setUniAnimating(true);
