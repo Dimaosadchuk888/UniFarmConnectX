@@ -16,6 +16,8 @@ import { getReferrerIdFromURL } from './lib/utils';
 import userService from '@/services/userService';
 import sessionRestoreService from '@/services/sessionRestoreService'; // Сервис восстановления сессии
 import { UserProvider } from "@/contexts/userContext"; // Импортируем UserProvider
+import { NotificationProvider } from "@/contexts/notificationContext"; // Импортируем NotificationProvider
+import NotificationContainer from "@/components/ui/NotificationContainer"; // Импортируем контейнер уведомлений
 
 // Импортируем компоненты UI
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
@@ -352,10 +354,15 @@ function App() {
         {/* Компонент для автоматической инициализации Telegram WebApp */}
         <TelegramInitializer />
         
-        {/* Оборачиваем весь контент в Provider контекста пользователя */}
-        <UserProvider>
-          {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
-          <TelegramWebAppCheck>
+        {/* Оборачиваем весь контент в NotificationProvider и UserProvider */}
+        <NotificationProvider>
+          {/* Компонент для отображения уведомлений */}
+          <NotificationContainer />
+          
+          {/* Оборачиваем весь контент в Provider контекста пользователя */}
+          <UserProvider>
+            {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
+            <TelegramWebAppCheck>
           <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
             <Switch>
               {/* Маршруты для Telegram Mini App */}
@@ -464,6 +471,7 @@ function App() {
           <Toaster />
         </TelegramWebAppCheck>
         </UserProvider>
+        </NotificationProvider>
       </TonConnectUIProvider>
     </QueryClientProvider>
   );
