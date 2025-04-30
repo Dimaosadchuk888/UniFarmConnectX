@@ -20,7 +20,7 @@ export const adminParamsSchema = z.object({
   limit: z.number().min(1).max(1000).default(100).optional(),
   offset: z.number().min(0).default(0).optional(),
   showTestAccounts: z.boolean().default(true).optional(),
-  sortBy: z.enum(['created_at', 'id', 'username', 'balance_uni']).default('id').optional(),
+  sortBy: z.enum(['createdAt', 'id', 'username', 'telegramId']).default('id').optional(),
   sortDirection: z.enum(['asc', 'desc']).default('asc').optional(),
 });
 
