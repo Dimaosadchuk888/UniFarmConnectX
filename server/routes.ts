@@ -1124,6 +1124,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для работы с TON-кошельком
   app.post("/api/user/link-wallet", WalletController.linkWalletAddress);
   app.get("/api/user/wallet-address", WalletController.getUserWalletAddress);
+  app.get("/api/user/wallet-info", WalletController.getWalletInfo);
+  app.get("/api/user/transactions", WalletController.getUserTransactions);
+  app.post("/api/user/withdraw", WalletController.withdrawFunds);
   
   // Маршруты для транзакций
   app.get("/api/transactions", TransactionController.getUserTransactions);

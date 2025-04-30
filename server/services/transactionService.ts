@@ -3,6 +3,10 @@
  * Содержит константы и перечисления для работы с транзакциями
  */
 
+import { db } from '../db';
+import { transactions } from '@shared/schema';
+import { sql } from 'drizzle-orm';
+
 /**
  * Типы транзакций
  */
@@ -60,9 +64,62 @@ export enum TransactionCategory {
 }
 
 /**
+ * Интерфейс для создания транзакций
+ */
+export interface CreateTransactionParams {
+  userId: number;
+  type: string;
+  amount: string;
+  currency: string;
+  status: string;
+  walletAddress?: string | null;
+  source?: string;
+  description?: string;
+  category?: string;
+  txHash?: string;
+}
+
+/**
  * Класс TransactionService для работы с транзакциями
  * Этот класс будет развиваться с добавлением методов работы с транзакциями
  */
 export class TransactionService {
-  // Будущие методы для работы с транзакциями
+  /**
+   * Логирует транзакцию в базу данных
+   * @param transaction Данные транзакции для сохранения
+   * @returns Созданная транзакция
+   */
+  static async logTransaction(transaction: CreateTransactionParams): Promise<any> {
+    try {
+      // Проверяем наличие обязательных полей
+      if (!transaction.userId || !transaction.type || !transaction.amount || !transaction.currency || !transaction.status) {
+        throw new Error('Отсутствуют обязательные поля транзакции');
+      }
+
+      // Создаем запись транзакции
+      const [newTransaction] = await db
+        .insert(transactions)
+        .values({
+          user_id: transaction.userId,
+          type: transaction.type,
+          amount: transaction.amount,
+          currency: transaction.currency,
+          status: transaction.status,
+          wallet_address: transaction.walletAddress || null,
+          source: transaction.source || null,
+          description: transaction.description || null,
+          category: transaction.category || null,
+          tx_hash: transaction.txHash || null,
+          created_at: sql`CURRENT_TIMESTAMP`
+        })
+        .returning();
+
+      console.log(`[Transaction] ${transaction.type} | Amount: ${transaction.amount} ${transaction.currency} | User: ${transaction.userId} | Saved`);
+      
+      return newTransaction;
+    } catch (error) {
+      console.error(`[TransactionService] Ошибка при логировании транзакции:`, error);
+      throw error;
+    }
+  }
 }
