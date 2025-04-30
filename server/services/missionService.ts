@@ -4,12 +4,43 @@ import { eq, and, sql } from 'drizzle-orm';
 import { NotFoundError, ValidationError, InsufficientFundsError } from '../middleware/errorHandler';
 
 /**
+ * Статусы миссий
+ */
+export enum MissionStatus {
+  AVAILABLE = 'available',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed'
+}
+
+/**
  * Интерфейс для результата выполнения миссии 
  */
 export interface MissionCompletionResult {
   success: boolean;
   message: string;
   reward?: number;
+}
+
+/**
+ * Интерфейс для результата проверки миссии 
+ */
+export interface MissionSubmissionResult {
+  success: boolean;
+  message: string;
+  status: MissionStatus;
+  progress?: number;
+}
+
+/**
+ * Интерфейс для получения статуса миссии
+ */
+export interface MissionStatusResult {
+  id: number;
+  status: MissionStatus;
+  progress?: number;
+  isCompleted: boolean;
+  canClaim: boolean;
+  completedAt?: Date | null;
 }
 
 /**
@@ -24,6 +55,8 @@ export interface MissionWithCompletion {
   is_active: boolean | null;
   is_completed: boolean;
   completed_at?: Date | null;
+  status?: MissionStatus;
+  progress?: number;
 }
 
 /**
@@ -308,6 +341,8 @@ export class MissionService {
         currency: "UNI",
         amount: reward.toString(),
         status: "confirmed",
+        source: "mission",
+        description: `Награда за выполнение миссии #${missionId}`,
         created_at: new Date()
       });
       
@@ -315,6 +350,200 @@ export class MissionService {
     } catch (error) {
       console.error('[MissionService] Ошибка при выполнении транзакции завершения миссии:', error);
       throw new Error('Не удалось обработать транзакцию завершения миссии');
+    }
+  }
+
+  /**
+   * Получает подробный статус миссии с учетом прогресса и выполнения
+   * @param userId ID пользователя
+   * @param missionId ID миссии
+   * @returns Объект со статусом миссии
+   * @throws {NotFoundError} Если пользователь или миссия не найдены
+   * @throws {ValidationError} Если переданы некорректные параметры
+   * @throws {Error} При ошибке запроса к БД
+   */
+  static async getMissionStatus(userId: number, missionId: number): Promise<MissionStatusResult> {
+    try {
+      // Проверяем существование пользователя и миссии
+      await this.validateUserExists(userId);
+      const mission = await this.validateMissionExists(missionId);
+      
+      // Проверяем, выполнена ли миссия
+      const isCompleted = await this.isUserMissionCompleted(userId, missionId);
+      
+      // Получаем запись о выполнении миссии, если она есть
+      const [completedMission] = isCompleted 
+        ? await db
+            .select()
+            .from(userMissions)
+            .where(and(
+              eq(userMissions.user_id, userId),
+              eq(userMissions.mission_id, missionId)
+            ))
+        : [];
+        
+      // Получаем текущий прогресс миссии, если требуется (для будущей реализации)
+      // Сейчас миссии либо выполнены, либо нет, но в будущем могут иметь прогресс (0-100%)
+      let progress = isCompleted ? 100 : 0;
+      let status = MissionStatus.AVAILABLE;
+      
+      // В будущем можно добавить проверку состояния по типу миссии
+      if (isCompleted) {
+        status = MissionStatus.COMPLETED;
+      } else if (mission.type === 'social' || mission.type === 'check-in') {
+        // Для социальных миссий и ежедневного входа добавляем индикацию выполнения
+        // В реальности здесь может быть дополнительная логика проверки
+        status = MissionStatus.AVAILABLE;
+      }
+      
+      // Определяем, может ли пользователь получить награду
+      // В текущей реализации награда начисляется автоматически
+      const canClaim = false;
+      
+      return {
+        id: missionId,
+        status,
+        progress,
+        isCompleted,
+        canClaim,
+        completedAt: completedMission?.completed_at ?? null
+      };
+    } catch (error) {
+      if (error instanceof NotFoundError || error instanceof ValidationError) {
+        throw error;
+      }
+      console.error('[MissionService] Ошибка при получении статуса миссии:', error);
+      throw new Error('Не удалось получить статус миссии');
+    }
+  }
+  
+  /**
+   * Отправляет миссию на проверку/выполнение
+   * @param userId ID пользователя
+   * @param missionId ID миссии
+   * @returns Результат отправки миссии
+   * @throws {NotFoundError} Если пользователь или миссия не найдены
+   * @throws {ValidationError} Если миссия уже выполнена или имеет неподдерживаемый тип
+   * @throws {Error} При ошибке запроса к БД
+   */
+  static async submitMission(userId: number, missionId: number): Promise<MissionSubmissionResult> {
+    try {
+      // Проверка на валидность параметров
+      if (!userId || !missionId || isNaN(userId) || isNaN(missionId) || userId <= 0 || missionId <= 0) {
+        throw new ValidationError('Некорректные ID пользователя или миссии');
+      }
+      
+      // Проверяем существование пользователя и миссии
+      await this.validateUserExists(userId);
+      const mission = await this.validateMissionExists(missionId);
+      
+      // Проверяем, выполнена ли уже миссия
+      const isCompleted = await this.isUserMissionCompleted(userId, missionId);
+      
+      if (isCompleted) {
+        return {
+          success: false,
+          message: 'Эта миссия уже выполнена',
+          status: MissionStatus.COMPLETED,
+          progress: 100
+        };
+      }
+      
+      // Обработка в зависимости от типа миссии
+      switch(mission.type) {
+        case 'check-in':
+          // Миссии по ежедневному входу выполняются мгновенно
+          await this.completeMission(userId, missionId);
+          return {
+            success: true,
+            message: 'Миссия ежедневного входа выполнена успешно',
+            status: MissionStatus.COMPLETED,
+            progress: 100
+          };
+          
+        case 'social':
+          // Социальные миссии (подписки, etc) требуют проверки
+          return {
+            success: true,
+            message: 'Миссия отправлена на проверку',
+            status: MissionStatus.PROCESSING,
+            progress: 50
+          };
+          
+        case 'invite':
+          // Миссии по приглашению
+          return {
+            success: true,
+            message: 'Отслеживание приглашений активировано',
+            status: MissionStatus.PROCESSING,
+            progress: 0
+          };
+          
+        default:
+          // Для неизвестных типов возвращаем ошибку
+          throw new ValidationError(`Неподдерживаемый тип миссии: ${mission.type}`);
+      }
+    } catch (error) {
+      if (error instanceof NotFoundError || error instanceof ValidationError) {
+        throw error;
+      }
+      console.error('[MissionService] Ошибка при отправке миссии на проверку:', error);
+      throw new Error('Не удалось отправить миссию на проверку');
+    }
+  }
+  
+  /**
+   * Получает награду за выполненную миссию
+   * @param userId ID пользователя
+   * @param missionId ID миссии
+   * @returns Результат получения награды
+   * @throws {NotFoundError} Если пользователь или миссия не найдены
+   * @throws {ValidationError} Если миссия не выполнена или награда уже получена
+   * @throws {Error} При ошибке запроса к БД
+   */
+  static async claimMissionReward(userId: number, missionId: number): Promise<MissionCompletionResult> {
+    try {
+      // Проверка на валидность параметров
+      if (!userId || !missionId || isNaN(userId) || isNaN(missionId) || userId <= 0 || missionId <= 0) {
+        throw new ValidationError('Некорректные ID пользователя или миссии');
+      }
+      
+      // Проверяем существование пользователя и миссии
+      await this.validateUserExists(userId);
+      const mission = await this.validateMissionExists(missionId);
+      
+      // Проверяем, выполнена ли миссия
+      const isCompleted = await this.isUserMissionCompleted(userId, missionId);
+      
+      if (!isCompleted) {
+        throw new ValidationError('Невозможно получить награду: миссия не выполнена');
+      }
+      
+      // В текущей реализации награды начисляются автоматически при выполнении миссии,
+      // поэтому отдельный метод для получения наград не требуется
+      // В будущем здесь может быть дополнительная логика
+      
+      // Получаем информацию о награде
+      const rewardUni = mission.reward_uni;
+      let reward = 0;
+      if (rewardUni !== null && rewardUni !== undefined) {
+        const parsedReward = parseFloat(rewardUni);
+        if (!isNaN(parsedReward)) {
+          reward = parsedReward;
+        }
+      }
+      
+      return {
+        success: true,
+        message: `Награда за миссию ${reward} UNI уже начислена на ваш баланс.`,
+        reward
+      };
+    } catch (error) {
+      if (error instanceof NotFoundError || error instanceof ValidationError) {
+        throw error;
+      }
+      console.error('[MissionService] Ошибка при получении награды за миссию:', error);
+      throw new Error('Не удалось получить награду за миссию');
     }
   }
 }

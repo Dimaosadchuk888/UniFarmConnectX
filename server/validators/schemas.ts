@@ -180,3 +180,23 @@ export const boostUserQuerySchema = z.object({
     })
   ]).transform(val => typeof val === 'string' ? parseInt(val) : val)
 });
+
+// Схема для валидации запроса на получение статуса миссии
+export const missionStatusSchema = z.object({
+  userId: z.coerce.string().refine((val) => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+    message: 'ID пользователя должен быть положительным числом'
+  }),
+  missionId: z.coerce.string().refine((val) => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+    message: 'ID миссии должен быть положительным числом'
+  })
+});
+
+// Схема для валидации запроса на отправку миссии на проверку
+export const submitMissionSchema = z.object({
+  user_id: z.number().int().positive({
+    message: 'ID пользователя должен быть положительным числом'
+  }),
+  mission_id: z.number().int().positive({
+    message: 'ID миссии должен быть положительным числом'
+  })
+});

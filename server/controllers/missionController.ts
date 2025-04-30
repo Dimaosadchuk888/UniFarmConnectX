@@ -1,7 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { MissionService } from '../services/missionService';
+import { MissionService, MissionStatus } from '../services/missionService';
 import { sendSuccess, sendSuccessArray } from '../utils/responseUtils';
-import { completeMissionSchema, userMissionsQuerySchema, userMissionsWithCompletionSchema } from '../validators/schemas';
+import { 
+  completeMissionSchema, 
+  userMissionsQuerySchema, 
+  userMissionsWithCompletionSchema,
+  missionStatusSchema,
+  submitMissionSchema
+} from '../validators/schemas';
 import { NotFoundError, ValidationError } from '../middleware/errorHandler';
 
 /**
@@ -42,7 +48,7 @@ export class MissionController {
         
         // Извлекаем сообщения ошибок и преобразуем их в строки
         Object.entries(formattedErrors).forEach(([key, value]) => {
-          if (key !== '_errors' && value._errors && value._errors.length > 0) {
+          if (key !== '_errors' && typeof value === 'object' && '_errors' in value) {
             errorDetails[key] = value._errors.join(', ');
           }
         });
@@ -79,7 +85,7 @@ export class MissionController {
         
         // Извлекаем сообщения ошибок и преобразуем их в строки
         Object.entries(formattedErrors).forEach(([key, value]) => {
-          if (key !== '_errors' && value._errors && value._errors.length > 0) {
+          if (key !== '_errors' && typeof value === 'object' && '_errors' in value) {
             errorDetails[key] = value._errors.join(', ');
           }
         });
@@ -141,7 +147,7 @@ export class MissionController {
         
         // Извлекаем сообщения ошибок и преобразуем их в строки
         Object.entries(formattedErrors).forEach(([key, value]) => {
-          if (key !== '_errors' && value._errors && value._errors.length > 0) {
+          if (key !== '_errors' && typeof value === 'object' && '_errors' in value) {
             errorDetails[key] = value._errors.join(', ');
           }
         });
@@ -158,6 +164,114 @@ export class MissionController {
       sendSuccess(res, result);
     } catch (error) {
       // Пропускаем ошибку в централизованный обработчик
+      next(error);
+    }
+  }
+
+  /**
+   * Получает статус выполнения миссии
+   * @param req Express Request
+   * @param res Express Response
+   * @param next Express NextFunction
+   */
+  static async getMissionStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Валидация параметров
+      const validationResult = missionStatusSchema.safeParse(req.params);
+      if (!validationResult.success) {
+        const errorDetails: Record<string, string> = {};
+        const formattedErrors = validationResult.error.format();
+        
+        Object.entries(formattedErrors).forEach(([key, value]) => {
+          if (key !== '_errors' && typeof value === 'object' && '_errors' in value) {
+            errorDetails[key] = value._errors.join(', ');
+          }
+        });
+        
+        throw new ValidationError('Некорректные параметры запроса', errorDetails);
+      }
+
+      const { userId, missionId } = validationResult.data;
+      
+      // Получаем статус миссии через сервис
+      const status = await MissionService.getMissionStatus(
+        parseInt(userId),
+        parseInt(missionId)
+      );
+      
+      // Отправляем результат
+      sendSuccess(res, status);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Отправляет миссию на проверку/выполнение
+   * @param req Express Request
+   * @param res Express Response
+   * @param next Express NextFunction
+   */
+  static async submitMission(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Валидация тела запроса
+      const validationResult = submitMissionSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const errorDetails: Record<string, string> = {};
+        const formattedErrors = validationResult.error.format();
+        
+        Object.entries(formattedErrors).forEach(([key, value]) => {
+          if (key !== '_errors' && typeof value === 'object' && '_errors' in value) {
+            errorDetails[key] = value._errors.join(', ');
+          }
+        });
+        
+        throw new ValidationError('Некорректные данные запроса', errorDetails);
+      }
+
+      const { user_id, mission_id } = validationResult.data;
+      
+      // Отправляем миссию на проверку через сервис
+      const result = await MissionService.submitMission(user_id, mission_id);
+      
+      // Отправляем результат
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Получает награду за выполненную миссию
+   * @param req Express Request
+   * @param res Express Response
+   * @param next Express NextFunction
+   */
+  static async claimMissionReward(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Валидация тела запроса
+      const validationResult = submitMissionSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const errorDetails: Record<string, string> = {};
+        const formattedErrors = validationResult.error.format();
+        
+        Object.entries(formattedErrors).forEach(([key, value]) => {
+          if (key !== '_errors' && typeof value === 'object' && '_errors' in value) {
+            errorDetails[key] = value._errors.join(', ');
+          }
+        });
+        
+        throw new ValidationError('Некорректные данные запроса', errorDetails);
+      }
+
+      const { user_id, mission_id } = validationResult.data;
+      
+      // Получаем награду через сервис
+      const result = await MissionService.claimMissionReward(user_id, mission_id);
+      
+      // Отправляем результат
+      sendSuccess(res, result);
+    } catch (error) {
       next(error);
     }
   }
