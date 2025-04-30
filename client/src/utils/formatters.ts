@@ -119,6 +119,30 @@ export function getTransactionColorClass(tokenType: string, type?: string): stri
 }
 
 /**
+ * Возвращает эквивалент в USD для указанной суммы токена
+ * @param amount Количество токена
+ * @param tokenType Тип токена ('UNI' или 'TON')
+ * @returns Строка с USD эквивалентом
+ */
+export function getUSDEquivalent(amount: number, tokenType: 'UNI' | 'TON'): string {
+  if (typeof amount !== 'number' || isNaN(amount)) {
+    return '$0.00';
+  }
+  
+  // Динамические курсы токенов к USD
+  const exchangeRates = {
+    'TON': 5.57, // Актуальный курс TON/USD
+    'UNI': 0.12  // Актуальный курс UNI/USD
+  };
+  
+  const rate = exchangeRates[tokenType];
+  const usdValue = amount * rate;
+  
+  // Форматируем с двумя знаками после запятой и символом доллара
+  return `$${usdValue.toFixed(2)}`;
+}
+
+/**
  * Возвращает иконку для транзакции в зависимости от типа
  * @param type Тип транзакции
  * @param tokenType Тип токена

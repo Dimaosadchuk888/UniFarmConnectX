@@ -2,6 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
 import { useNotification } from '@/contexts/notificationContext';
+import { 
+  formatUniNumber, 
+  formatTonNumber, 
+  getUSDEquivalent 
+} from '@/utils/formatters';
 
 /**
  * Компонент для отображения баланса пользователя
