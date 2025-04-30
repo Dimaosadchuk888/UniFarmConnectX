@@ -247,13 +247,6 @@ export class BoostService {
    * Создает запись о буст-депозите в базе данных
    * @param userId ID пользователя
    * @param boostPackage Буст-пакет
-   * @returns ID созданного депозита
-   * @throws DatabaseError в случае ошибки при работе с БД
-   */
-  /**
-   * Создает запись о буст-депозите в базе данных
-   * @param userId ID пользователя
-   * @param boostPackage Буст-пакет
    * @param tx Транзакция базы данных
    * @returns ID созданного депозита
    * @throws DatabaseError в случае ошибки при работе с БД
@@ -300,14 +293,6 @@ export class BoostService {
    * @returns ID созданной транзакции
    * @throws DatabaseError в случае ошибки при работе с БД
    */
-  /**
-   * Создает запись о транзакции в базе данных
-   * @param userId ID пользователя
-   * @param boostPackage Буст-пакет
-   * @param tx Транзакция базы данных
-   * @returns ID созданной транзакции
-   * @throws DatabaseError в случае ошибки при работе с БД
-   */
   private static async createBoostTransaction(
     userId: number, 
     boostPackage: BoostPackage, 
@@ -335,14 +320,6 @@ export class BoostService {
     }
   }
 
-  /**
-   * Обновляет баланс пользователя после покупки буста
-   * @param userId ID пользователя
-   * @param priceUni Стоимость буста в UNI
-   * @param bonusUni Бонус UNI
-   * @param tx Транзакция базы данных
-   * @throws DatabaseError в случае ошибки при работе с БД
-   */
   /**
    * Обновляет баланс пользователя после покупки буста
    * @param userId ID пользователя
