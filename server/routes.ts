@@ -49,6 +49,9 @@ import { migrateRefCodes, checkAndUpdateUserRefCode, setRefCodeForUser } from '.
 // Импортируем middleware для логирования Telegram initData
 import { telegramInitDataLogger } from './middleware/telegramInitDataLogger';
 
+// Импортируем централизованный обработчик ошибок
+import { errorHandler } from './middleware/errorHandler';
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Обслуживание статических файлов из папки public
   // Это важно для тестовых HTML-файлов  
@@ -1320,29 +1323,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
-  // Централизованная обработка ошибок
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    // Структурированное логирование необработанных ошибок
-    console.error('[API] [Необработанная ошибка]', {
-      route: req.originalUrl,
-      method: req.method,
-      error: err instanceof Error ? err.message : 'Неизвестная ошибка',
-      timestamp: new Date().toISOString(),
-      statusCode: 500,
-      ip: req.ip || req.headers['x-forwarded-for'] || 'неизвестно'
-    });
-    
-    // В режиме разработки выводим полный стек ошибки
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[API] [Стек ошибки]:', err);
-    }
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-  });
+  // Использование централизованного обработчика ошибок из middleware/errorHandler
+  app.use(errorHandler);
 
   const httpServer = createServer(app);
   

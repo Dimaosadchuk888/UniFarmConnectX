@@ -26,6 +26,7 @@ export interface PurchaseBoostResult {
   message: string;
   boostPackage?: BoostPackage;
   transactionId?: number;
+  availableBalance?: string;  // Текущий доступный баланс пользователя
 }
 
 /**
