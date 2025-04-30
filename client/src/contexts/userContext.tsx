@@ -11,6 +11,14 @@ import {
   disconnectWallet as disconnectTonWallet
 } from '@/services/tonConnectService';
 
+// Интерфейс для API-ответов
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
 // Тип для контекста пользователя
 interface UserContextType {
   userId: number | null;
@@ -92,10 +100,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   
   // Запрос данных пользователя
   const { 
-    data: userData,
+    data: userData = { success: false },
     isFetching,
     refetch: refetchUserData
-  } = useQuery({
+  } = useQuery<ApiResponse>({
     queryKey: ['/api/me'],
     retry: 3,
     staleTime: 30000, // 30 секунд до устаревания данных
@@ -103,10 +111,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   
   // Запрос баланса
   const {
-    data: balanceData,
+    data: balanceData = { success: false },
     isFetching: isBalanceFetching,
     refetch: refetchBalance
-  } = useQuery({
+  } = useQuery<ApiResponse>({
     queryKey: ['/api/wallet/balance', userId],
     enabled: userId !== null, // Запрос активен только если есть userId
     refetchInterval: 10000, // Обновление каждые 10 секунд
