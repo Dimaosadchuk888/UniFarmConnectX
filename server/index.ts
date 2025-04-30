@@ -13,9 +13,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // Регистрируем middleware для стандартизации ответов API
-app.use((req: Request, res: Response, next: NextFunction) => responseFormatter(req, res, next));
+app.use(responseFormatter as any);
 
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use(((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -43,7 +43,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   });
 
   next();
-});
+}) as any);
 
 (async () => {
   /**
@@ -72,21 +72,21 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   /**
    * Дополнительные логи отладки запросов для изучения причин проблем 502
    */
-  app.use((req: Request, _res: Response, next: NextFunction) => {
+  app.use(((req: Request, _res: Response, next: NextFunction) => {
     if (req.path.startsWith('/api/')) {
       console.log('[АУДИТ] [' + new Date().toISOString() + '] Request to ' + req.method + ' ' + req.url);
       console.log('[АУДИТ] Headers:', JSON.stringify(req.headers, null, 2));
     }
     next();
-  });
+  }) as any);
   
   const server = await registerRoutes(app);
 
   // Регистрируем централизованный обработчик ошибок
-  app.use((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next));
+  app.use(((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next)) as any);
 
   // Добавление обработчика для Telegram WebApp параметров
-  app.use((req, res, next) => {
+  app.use(((req, res, next) => {
     // Добавляем специальные заголовки для корректной работы в Telegram Mini App
     res.header("Access-Control-Allow-Origin", "*");
     // Модифицированная политика безопасности для Telegram
@@ -105,7 +105,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     }
     
     next();
-  });
+  }) as any);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
