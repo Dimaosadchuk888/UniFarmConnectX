@@ -1,34 +1,23 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { queryClient } from '@/lib/queryClient';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
 
-interface WalletBalanceResponse {
-  success: boolean;
-  data: {
-    balance_uni: string;
-    balance_ton: string;
-    uni_farming_active: boolean;
-    uni_deposit_amount: string;
-    uni_farming_balance: string;
-  };
-}
-
-interface FarmingResponse {
-  success: boolean;
-  data: {
-    isActive: boolean;
-    depositAmount: string;
-    farmingBalance: string;
-    ratePerSecond: string;
-    startDate: string | null;
-  };
-}
-
+/**
+ * Компонент для отображения баланса пользователя
+ * Использует userContext для получения данных пользователя и баланса
+ */
 const BalanceCard: React.FC = () => {
-  // Состояния для текущих балансов
-  const [uniBalance, setUniBalance] = useState<number>(0);
-  const [tonBalance, setTonBalance] = useState<number>(0);
+  // Получаем данные пользователя и баланса из контекста
+  const { 
+    userId,
+    uniBalance, 
+    tonBalance, 
+    uniFarmingActive, 
+    uniDepositAmount, 
+    uniFarmingBalance,
+    refreshBalance,
+    isBalanceFetching
+  } = useUser();
   
   // Состояния для визуальных эффектов
   const [uniAnimating, setUniAnimating] = useState<boolean>(false);
@@ -38,45 +27,34 @@ const BalanceCard: React.FC = () => {
   const [uniRate, setUniRate] = useState<number>(0);
   const [tonRate, setTonRate] = useState<number>(0);
   
-  // Предыдущие значения для анимации
-  const [prevTonBalance, setPrevTonBalance] = useState<number>(tonBalance);
-  const [prevUniBalance, setPrevUniBalance] = useState<number>(uniBalance);
-  
-  // Для отладки - хранение сырых данных и времени запроса
-  const [lastFetchTime, setLastFetchTime] = useState<string>('');
-  const [rawUniBalance, setRawUniBalance] = useState<string>('');
-  
   // Статус WebSocket подключения
   const [wsStatus, setWsStatus] = useState<string>('Подключение...');
   
+  // Предыдущее значение баланса для отслеживания изменений
+  const [prevUniBalance, setPrevUniBalance] = useState<number>(0);
+  const [prevTonBalance, setPrevTonBalance] = useState<number>(0);
+  
   // Используем WebSocket хук для обновления в реальном времени
-  const { isConnected, lastMessage, send, subscribeToUserUpdates } = useWebSocket({
+  const { isConnected, subscribeToUserUpdates } = useWebSocket({
     onOpen: () => {
       setWsStatus('Соединение установлено');
-      // Подписываемся на обновления для пользователя с ID 1
-      subscribeToUserUpdates(1);
+      // Подписываемся на обновления для пользователя, если userId доступен
+      if (userId) {
+        subscribeToUserUpdates(userId);
+      }
     },
     onMessage: (data) => {
       // Обрабатываем сообщения от сервера
       if (data.type === 'update' && data.balanceData) {
-        console.log('[WebSocket] Получено обновление баланса:', data.balanceData);
+        // Обновляем баланс через контекст
+        refreshBalance();
         
-        // Обновляем баланс из WebSocket данных
-        if (data.balanceData.balance_uni) {
-          const newUniBalance = parseFloat(data.balanceData.balance_uni);
-          if (!isNaN(newUniBalance)) {
-            updateUniBalanceWithAnimation(newUniBalance);
-          }
-        }
+        // Устанавливаем анимации для визуального эффекта
+        setUniAnimating(true);
+        setTimeout(() => setUniAnimating(false), 800);
         
-        if (data.balanceData.balance_ton) {
-          const newTonBalance = parseFloat(data.balanceData.balance_ton);
-          if (!isNaN(newTonBalance)) {
-            setTonBalance(newTonBalance);
-            setTonAnimating(true);
-            setTimeout(() => setTonAnimating(false), 800);
-          }
-        }
+        setTonAnimating(true);
+        setTimeout(() => setTonAnimating(false), 800);
       }
     },
     onClose: () => {
@@ -89,143 +67,50 @@ const BalanceCard: React.FC = () => {
     reconnectAttempts: 5
   });
   
-  // Получаем баланс из API
-  const { data, isLoading, refetch } = useQuery<WalletBalanceResponse>({
-    queryKey: ['/api/wallet/balance?user_id=1'],
-    staleTime: 0, // Отключаем кеширование для получения свежих данных каждый раз
-    refetchInterval: 1000, // Автоматически обновляем каждую секунду
-    refetchIntervalInBackground: true, // Обновляем даже если вкладка не активна
-  });
-  
-  // Запрос для обновления TON фарминга
-  const { refetch: refetchTonFarming } = useQuery({
-    queryKey: ['/api/ton-farming/update-balance?user_id=1'],
-    staleTime: 0, // Отключаем кеширование
-    refetchInterval: 5000, // Обновляем каждые 5 секунд, чтобы не перегружать сервер
-    refetchIntervalInBackground: true, // Обновляем даже если вкладка не активна
-  });
-  
   // Функция для обновления баланса UNI с анимацией
-  const updateUniBalanceWithAnimation = useCallback((newValue: number) => {
-    // Сохраняем предыдущее значение для эффекта анимации
-    if (uniBalance > 0) {
-      setPrevUniBalance(uniBalance);
-    }
-    
-    // Устанавливаем анимацию, если значение изменилось
-    if (newValue !== uniBalance) {
+  const updateUniBalanceWithAnimation = useCallback((newValue: number, oldValue: number) => {
+    if (newValue !== oldValue) {
       setUniAnimating(true);
       setTimeout(() => setUniAnimating(false), 800);
     }
+  }, []);
+  
+  // Отслеживаем изменения балансов для анимаций
+  useEffect(() => {
+    if (prevUniBalance !== uniBalance) {
+      updateUniBalanceWithAnimation(uniBalance, prevUniBalance);
+      setPrevUniBalance(uniBalance);
+    }
+  }, [uniBalance, prevUniBalance, updateUniBalanceWithAnimation]);
+  
+  useEffect(() => {
+    if (prevTonBalance !== tonBalance) {
+      setTonAnimating(true);
+      setTimeout(() => setTonAnimating(false), 800);
+      setPrevTonBalance(tonBalance);
+    }
+  }, [tonBalance, prevTonBalance]);
+  
+  // Автоматически запрашиваем обновление баланса каждые 10 секунд
+  // Обратите внимание: в userContext уже есть автообновление, 
+  // поэтому интервал может быть больше
+  useEffect(() => {
+    // Начальное обновление при монтировании
+    refreshBalance();
     
-    // Обновляем значение
-    setUniBalance(newValue);
-  }, [uniBalance]);
-  
-  // Дополнительный запрос для получения данных о фарминге
-  const { data: farmingData, refetch: refetchFarming } = useQuery<FarmingResponse>({
-    queryKey: ['/api/uni-farming/info?user_id=1'],
-    staleTime: 60000, // 1 минута
-  });
-
-  // Отслеживаем предыдущее значение баланса для проверки изменений
-  const prevRawUniBalanceRef = useRef<string>('');
-  
-  // Обновляем баланс из API при загрузке данных
-  useEffect(() => {
-    if (data?.success && data.data) {
-      // Сохраняем время запроса для отладки
-      const now = new Date();
-      const formattedTime = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`;
-      setLastFetchTime(formattedTime);
-      
-      // Сохраняем сырое значение баланса для отладки
-      const newRawUniBalance = data.data.balance_uni;
-      setRawUniBalance(newRawUniBalance);
-      
-      // Логируем обновление баланса в консоль с точностью до 8 знаков и форматом для легкого отслеживания
-      // Используем точный формат, запрошенный в ТЗ
-      console.log(`[UNI Sync] Updated balance: ${prevRawUniBalanceRef.current || "0"} → ${newRawUniBalance} at ${formattedTime}`);
-      
-      // Проверяем, изменился ли баланс с последнего запроса
-      const apiUniBalance = parseFloat(newRawUniBalance);
-      if (!isNaN(apiUniBalance)) {
-        // Получаем предыдущее значение для высокоточного сравнения
-        const prevValue = prevRawUniBalanceRef.current;
-        
-        // Активируем анимацию только если значение изменилось (также проверяем на уровне строк)
-        if (newRawUniBalance !== prevValue) {
-          // Для более точного отображения сравниваем до 8 знаков после запятой
-          const prevValueParsed = prevValue ? parseFloat(prevValue) : 0;
-          const diff = apiUniBalance - prevValueParsed;
-          
-          // Выводим лог точно в запрошенном формате
-          console.log(`[UNI Sync] Updated balance: ${prevValue} → ${newRawUniBalance} at ${formattedTime}`);
-          setUniAnimating(true);
-          setTimeout(() => setUniAnimating(false), 800);
-          
-          // Сохраняем текущую метку времени с миллисекундами и полное значение
-          localStorage.setItem('last_balance_update_time', formattedTime);
-          localStorage.setItem('last_balance_value', newRawUniBalance);
-        }
-        
-        // Всегда обновляем отображаемое значение для точности
-        setUniBalance(apiUniBalance);
-        
-        // Сохраняем текущее значение как предыдущее для следующего сравнения
-        prevRawUniBalanceRef.current = newRawUniBalance;
-      }
-      
-      const apiTonBalance = parseFloat(data.data.balance_ton);
-      if (!isNaN(apiTonBalance)) {
-        setTonBalance(apiTonBalance);
-      }
-    }
-  }, [data]);
-
-  // Запрос для получения TON farming info
-  const { data: tonFarmingData } = useQuery({
-    queryKey: ['/api/ton-farming/info?user_id=1'],
-    staleTime: 60000, // 1 минута
-  });
-  
-  // Обновляем скорость фарминга при получении данных UNI
-  useEffect(() => {
-    if (farmingData?.success && farmingData.data) {
-      // Получаем скорость фарминга UNI из API
-      const ratePerSecond = parseFloat(farmingData.data.ratePerSecond || '0');
-      if (!isNaN(ratePerSecond)) {
-        setUniRate(ratePerSecond);
-      }
-    }
-  }, [farmingData]);
-  
-  // Обновляем скорость фарминга TON при получении данных
-  useEffect(() => {
-    if (tonFarmingData?.success && tonFarmingData.data) {
-      // Получаем скорость фарминга TON из API
-      const tonRatePerSecond = parseFloat(tonFarmingData.data.totalTonRatePerSecond || '0');
-      if (!isNaN(tonRatePerSecond)) {
-        setTonRate(tonRatePerSecond);
-      }
-    }
-  }, [tonFarmingData]);
-  
-  // Обновляем баланс каждую секунду, запрашивая данные из API
-  useEffect(() => {
     const interval = setInterval(() => {
-      // Принудительно запрашиваем свежий баланс из API
-      refetch();
-      
-      // Выводим в консоль запрос на обновление
-      console.log("Requesting balance update at:", new Date().toISOString());
-      
-      // Обновляем TON фарминг, вызывая API для расчета актуального баланса
-      refetchTonFarming();
-    }, 1000);
+      refreshBalance();
+    }, 10000);
     
     return () => clearInterval(interval);
-  }, [refetch, refetchTonFarming]);
+  }, [refreshBalance]);
+  
+  // Устанавливаем значение скорости фарминга на основе суммы депозита и общей ставки
+  useEffect(() => {
+    // Примерная скорость: 0.000000289351851800 per second (из общего описания проекта)
+    const estimatedRate = 0.000000289351851800 * uniDepositAmount;
+    setUniRate(estimatedRate);
+  }, [uniDepositAmount]);
 
   // Форматирование чисел для отображения с расширенной точностью для UNI (8 знаков)
   const formatNumber = (num: number, decimals: number = 8): string => {
@@ -298,24 +183,21 @@ const BalanceCard: React.FC = () => {
         </div>
         <button 
           onClick={() => {
-            // Обновляем все запросы
-            refetch();
-            refetchFarming();
-            refetchTonFarming();
+            // Обновляем баланс через контекст
+            refreshBalance();
             
-            // Анимируем обновление UNI
+            // Анимируем обновление UNI и TON
             setUniAnimating(true);
             setTimeout(() => setUniAnimating(false), 800);
             
-            // Анимируем обновление TON
             setTonAnimating(true);
             setTimeout(() => setTonAnimating(false), 800);
           }}
           className="text-sm text-gray-400 hover:text-primary transition-colors"
-          disabled={isLoading}
+          disabled={isBalanceFetching}
           title="Обновить баланс"
         >
-          <i className={`fas fa-sync-alt ${isLoading ? 'animate-spin' : ''}`}></i>
+          <i className={`fas fa-sync-alt ${isBalanceFetching ? 'animate-spin' : ''}`}></i>
         </button>
       </h2>
       
@@ -363,13 +245,17 @@ const BalanceCard: React.FC = () => {
             <span className="text-gray-400 ml-1">UNI / сек</span>
           </div>
           
-          {/* Отладочная информация с расширенными данными */}
+          {/* WebSocket статус */}
           <div className="mt-2 text-xs text-gray-500/50">
-            Last fetch: {lastFetchTime || 'не было'}<br/>
-            Raw balance: {rawUniBalance || 'не загружен'}<br/>
-            Last update: {localStorage.getItem('last_balance_update_time') || 'никогда'}<br/>
-            Last value: {localStorage.getItem('last_balance_value') || 'нет данных'}<br/>
-            WS status: <span className={`${isConnected ? 'text-green-400' : 'text-red-400'}`}>{wsStatus}</span>
+            <div>
+              WebSocket: <span className={`${isConnected ? 'text-green-400' : 'text-red-400'}`}>{wsStatus}</span>
+              {uniFarmingActive && <span className="text-green-400 ml-2">• Фарминг активен</span>}
+            </div>
+            {uniDepositAmount > 0 && (
+              <div className="text-gray-400">
+                Депозит в фарминге: {formatNumber(uniDepositAmount)} UNI
+              </div>
+            )}
           </div>
         </div>
         
