@@ -11,13 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Wallet, CreditCard } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-// ВАЖНО: Используем новую реализацию без Buffer
+// Обновлено: используем tonConnectService вместо simpleTonTransaction
 import { 
   isTonWalletConnected, 
   isTonPaymentReady, 
   sendTonTransaction,
   createTonTransactionComment 
-} from '../../services/simpleTonTransaction';
+} from '@/services/tonConnectService';
 
 interface PaymentMethodDialogProps {
   open: boolean;
