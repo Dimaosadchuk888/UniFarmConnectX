@@ -164,6 +164,38 @@ export class TransactionController {
    */
   static async withdrawFunds(req: Request, res: Response): Promise<void> {
     try {
+      // Проверяем наличие и корректность обязательных параметров
+      const { user_id, amount, currency, address } = req.body;
+      
+      // Проверка на наличие обязательных параметров
+      if (!user_id || !amount || !currency || !address) {
+        console.error("[TransactionController] Отсутствуют обязательные параметры");
+        return res.status(400).json({
+          success: false,
+          message: "Отсутствуют обязательные параметры для вывода средств"
+        });
+      }
+      
+      // Добавлена проверка на отрицательные и нулевые значения
+      const numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount <= 0) {
+        console.error(`[TransactionController] Некорректная сумма: ${amount}`);
+        return res.status(400).json({
+          success: false,
+          message: "Сумма для вывода должна быть положительным числом"
+        });
+      }
+      
+      // Проверяем существование пользователя
+      const user = await storage.getUser(parseInt(user_id));
+      if (!user) {
+        console.error(`[TransactionController] Пользователь не найден: ${user_id}`);
+        return res.status(404).json({
+          success: false,
+          message: "Пользователь не найден"
+        });
+      }
+      
       // В реальной реализации здесь должен быть код для обработки запроса на вывод средств
       res.status(200).json({
         success: true,
