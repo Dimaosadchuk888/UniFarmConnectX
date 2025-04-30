@@ -59,11 +59,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const projectRoot = process.cwd(); 
   const staticFilesPath = path.join(projectRoot, 'server', 'public');
   
-  app.use('/static', express.static(staticFilesPath));
+  // Используем тип-предохранитель, чтобы решить проблему с типами
+  const staticMiddleware = express.static(staticFilesPath);
+  app.use('/static', staticMiddleware);
   console.log('[Server] Статические файлы доступны по URL /static из папки:', staticFilesPath);
   
   // Добавляем CORS заголовки для работы с Telegram WebApp
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  // Определяем middleware как отдельную функцию для лучшей типизации
+  const corsMiddleware: express.RequestHandler = (req: Request, res: Response, next: NextFunction) => {
     // Добавляем CORS заголовки для поддержки Telegram Mini App
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
@@ -73,10 +76,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.header("Content-Security-Policy", "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'");
     
     next();
-  });
+  };
+  app.use(corsMiddleware);
   
   // АУДИТ: Логирование заголовков всех запросов к API
-  app.use((req: Request, _res: Response, next: NextFunction) => {
+  const logHeadersMiddleware: express.RequestHandler = (req: Request, _res: Response, next: NextFunction) => {
     // Логирование всех заголовков запросов для диагностики проблем с Telegram
     if (req.url.startsWith('/api/')) {
       console.log(`[АУДИТ] [${new Date().toISOString()}] Request to ${req.method} ${req.url}`);
@@ -100,7 +104,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
     next();
-  });
+  };
+  app.use(logHeadersMiddleware);
   
   // Подключаем улучшенный логгер для Telegram initData - анализирует данные подробно
   app.use(telegramInitDataLogger);
@@ -288,7 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { validateTelegramInitData } = await import('./utils/telegramUtils');
           
           // Получаем токен бота из переменных окружения
-          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
           
           // Проверяем данные с различными настройками
           const validationResult = validateTelegramInitData(

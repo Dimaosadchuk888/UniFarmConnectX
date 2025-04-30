@@ -106,16 +106,22 @@ export class MissionService {
       
       // Объединяем информацию
       const missionsWithCompletion: MissionWithCompletion[] = allMissions.map(mission => {
+        // Дополнительная проверка на существование id
+        if (!mission.id) {
+          console.warn('[MissionService] Обнаружена миссия без id:', mission);
+        }
+        
         const completed = mission.id ? completedMap.get(mission.id) : undefined;
+        
         return {
-          id: mission.id,
+          id: mission.id ?? 0, // Предоставляем значение по умолчанию на случай, если id отсутствует
           type: mission.type,
           title: mission.title,
           description: mission.description,
           reward_uni: mission.reward_uni,
-          is_active: mission.is_active,
+          is_active: mission.is_active, 
           is_completed: !!completed,
-          completed_at: completed?.completed_at || null
+          completed_at: completed?.completed_at ?? null
         };
       });
       
@@ -241,7 +247,18 @@ export class MissionService {
       
       // Получаем награду за миссию
       const rewardUni = mission.reward_uni;
-      const reward = rewardUni ? parseFloat(rewardUni) : 0;
+      
+      // Проверка на null и корректное преобразование, с обработкой невалидных значений
+      let reward = 0;
+      if (rewardUni !== null && rewardUni !== undefined) {
+        const parsedReward = parseFloat(rewardUni);
+        // Проверяем на корректность преобразования (не NaN)
+        if (!isNaN(parsedReward)) {
+          reward = parsedReward;
+        } else {
+          console.warn(`[MissionService] Невалидное значение reward_uni "${rewardUni}" для миссии ${missionId}`);
+        }
+      }
       
       // Создаем запись о выполнении миссии и начисляем награду транзакционно
       await this.processCompletionTransaction(userId, missionId, reward);
