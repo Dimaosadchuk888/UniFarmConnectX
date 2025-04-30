@@ -235,6 +235,7 @@ export class UserService {
    * Получает пользователя по guest_id
    * @param guestId Уникальный идентификатор гостя
    * @returns Данные пользователя или undefined
+   * @throws Error при ошибке базы данных
    */
   static async getUserByGuestId(guestId: string): Promise<User | undefined> {
     console.log(`[UserService] Searching for user with guestId ${guestId}`);
@@ -251,5 +252,110 @@ export class UserService {
       console.error(`[UserService] Error retrieving user by guestId ${guestId}:`, error);
       throw error;
     }
+  }
+  
+  /**
+   * Получает баланс пользователя
+   * @param userId ID пользователя
+   * @returns Объект с балансами пользователя
+   * @throws NotFoundError если пользователь не найден
+   */
+  static async getUserBalanceById(userId: number): Promise<{
+    balance_uni: string;
+    balance_ton: string;
+    username: string;
+    telegram_id: number | null;
+    ref_code: string | null;
+  }> {
+    const user = await this.getUserById(userId);
+    
+    if (!user) {
+      throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+    }
+    
+    return {
+      balance_uni: String(user.balance_uni || '0.000000'),
+      balance_ton: String(user.balance_ton || '0.000000'),
+      username: user.username,
+      telegram_id: user.telegram_id,
+      ref_code: user.ref_code
+    };
+  }
+  
+  /**
+   * Обрабатывает Telegram InitData, определяет пользователя или создает нового
+   * @param telegramInitData Данные инициализации от Telegram
+   * @param guestId Идентификатор гостя (опционально)
+   * @param refInviterId ID пригласившего пользователя (опционально)
+   * @param refCode Реферальный код (опционально)
+   * @returns Объект с информацией о пользователе и его статусе
+   */
+  static async processUserIdentification(
+    telegramInitData: string | undefined,
+    guestId: string | undefined,
+    refInviterId: number | null = null,
+    refCode: string | null = null
+  ): Promise<{
+    user: User;
+    isNewUser: boolean;
+    source: 'telegram' | 'guest_id' | 'session' | 'created';
+    telegramId: number | null;
+    username: string | null;
+  }> {
+    let user: User | undefined;
+    let isNewUser = false;
+    let source: 'telegram' | 'guest_id' | 'session' | 'created' = 'created';
+    let telegramId: number | null = null;
+    let username: string | null = null;
+    let firstName: string | null = null;
+    let lastName: string | null = null;
+    
+    // 1. Проверяем данные Telegram, если они есть
+    if (telegramInitData) {
+      try {
+        // Здесь должна быть проверка данных Telegram через validateTelegramInitData
+        // В этом рефакторинге мы не изменяем эту логику, она остается в контроллере
+        console.log('[UserService] processUserIdentification: telegramInitData provided, validation should be done in controller');
+      } catch (error) {
+        console.error('[UserService] Error processing Telegram data:', error);
+      }
+    }
+    
+    // 2. Ищем пользователя по guestId, если он предоставлен
+    if (!user && guestId) {
+      user = await this.getUserByGuestId(guestId);
+      if (user) {
+        source = 'guest_id';
+        console.log(`[UserService] Found user by guest_id: ${user.id}`);
+      }
+    }
+    
+    // 3. Если пользователь всё еще не найден, создаем нового
+    if (!user) {
+      // Создаем нового пользователя
+      const newUserData: any = {
+        telegram_id: telegramId,
+        username: username || `guest_${Date.now()}`,
+        first_name: firstName,
+        last_name: lastName,
+        guest_id: guestId || crypto.randomUUID(),
+        ref_code: null, // Будет сгенерирован в createUser
+        parent_ref_code: refCode,
+        parent_id: refInviterId
+      };
+      
+      user = await this.createUser(newUserData);
+      isNewUser = true;
+      source = 'created';
+      console.log(`[UserService] Created new user: ${user.id}`);
+    }
+    
+    return {
+      user,
+      isNewUser,
+      source,
+      telegramId,
+      username
+    };
   }
 }
