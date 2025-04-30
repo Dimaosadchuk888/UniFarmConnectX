@@ -45,8 +45,12 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
     
     // Убедимся, что boostPriceTon всегда имеет значение, используя дефолтную цену при null
     if (boostPriceTon === null || boostPriceTon === undefined) {
-      const defaultPrices = { 1: "1", 2: "5", 3: "15", 4: "25" };
-      const defaultPrice = defaultPrices[boostId] || "1";
+      const defaultPrices: Record<number, string> = { 1: "1", 2: "5", 3: "15", 4: "25" };
+      // Безопасный доступ с проверкой, чтобы избежать ошибки "null cannot be used as index type"
+      let defaultPrice = "1";
+      if (boostId !== null && typeof boostId === 'number') {
+        defaultPrice = defaultPrices[boostId] || "1";
+      }
       console.log("✅ boostPriceTon был null, используем дефолтную цену:", defaultPrice);
       boostPriceTon = defaultPrice;
     }

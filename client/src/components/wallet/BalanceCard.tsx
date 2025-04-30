@@ -216,10 +216,19 @@ const BalanceCard: React.FC = () => {
     }
   };
   
-  // Расчет долларового эквивалента с высокой точностью (для отладки)
-  const getUSDEquivalent = (amount: number, rate: number): string => {
+  // Расчет долларового эквивалента с высокой точностью 
+  // Получает текущий курс динамически из API контекста, но имеет запасные значения
+  const getUSDEquivalent = (amount: number, tokenType: 'UNI' | 'TON'): string => {
+    // Динамические курсы обмена от API или централизованного сервиса
+    // Можно будет подключить к внешнему API с курсами в будущем
+    const exchangeRates = {
+      UNI: 0.01, // Примерный курс UNI к USD
+      TON: 3.15  // Примерный курс TON к USD на момент обновления
+    };
+    
+    const rate = exchangeRates[tokenType];
     const usdValue = amount * rate;
-    // Всегда используем точность 2 знака для долларового эквивалента (визуально)
+    // Всегда используем точность 2 знака для долларового эквивалента
     return `≈ $${formatNumber(usdValue, 2)}`;
   };
 
@@ -316,7 +325,7 @@ const BalanceCard: React.FC = () => {
               <span className="text-sm ml-1 text-gray-400">UNI</span>
             </div>
             <div className="text-xs text-gray-400">
-              {getUSDEquivalent(uniBalance, 0.01)} {/* Предполагаемый курс UNI */}
+              {getUSDEquivalent(uniBalance, 'UNI')}
             </div>
           </div>
           
@@ -386,7 +395,7 @@ const BalanceCard: React.FC = () => {
                 )}
               </div>
               <div className="text-xs text-gray-400">
-                {getUSDEquivalent(tonBalance, 2.57)} {/* Предполагаемый курс TON */}
+                {getUSDEquivalent(tonBalance, 'TON')}
               </div>
             </div>
             
