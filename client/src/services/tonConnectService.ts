@@ -9,8 +9,8 @@ import {
 import { CHAIN } from '@tonconnect/protocol';
 // Удалено импорт из @ton/core из-за проблем с Buffer в браузере
 
-// Для отладки - используем прямой console.log вместо debugLog для большей видимости
-const DEBUG_ENABLED = true;
+// Для отладки - логирование операций TonConnect
+const DEBUG_ENABLED = false; // Отключаем debug логи в production
 function debugLog(...args: any[]) {
   if (DEBUG_ENABLED) {
     console.log('[TON_CONNECT_DEBUG]', ...args);
@@ -45,38 +45,30 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
  */
 function createBocWithComment(comment: string): string {
   try {
-    console.log('Создаем BOC с комментарием:', comment);
-    
     // Убираем проверку на Buffer, так как мы больше не используем его
     
     // ВНИМАНИЕ: Вместо использования @ton/core beginCell, используем простой base64
-    console.log('Используем альтернативный подход вместо beginCell()');
     
     // Прямое кодирование комментария в base64
     const bocBytes = new TextEncoder().encode(comment);
-    console.log('Bytes получены, длина:', bocBytes.length);
     
     // Притворяемся, что это BOC для совместимости с остальным кодом
     
     // АЛЬТЕРНАТИВНЫЙ ПОДХОД: Если с BOC возникают проблемы, просто кодируем сам комментарий
     // Это не соответствует стандарту TON, но для тестирования подойдет
     if (!bocBytes || bocBytes.length === 0) {
-      console.log('⚠️ BOC не создан, используем альтернативный подход - кодируем просто комментарий');
-      
       // Преобразуем комментарий в base64 напрямую
       return btoa(comment);
     }
     
     // Преобразуем в base64
     const base64Result = uint8ArrayToBase64(bocBytes);
-    console.log('BOC преобразован в base64, длина:', base64Result.length);
     
     return base64Result;
   } catch (error) {
     console.error('Ошибка при создании BOC:', error);
     
     // В случае ошибки с Buffer, используем альтернативный подход
-    console.log('⚠️ Используем альтернативу из-за ошибки: создаем простой base64 из комментария');
     
     // Просто закодируем комментарий в base64 - это не будет работать как BOC,
     // но для теста достаточно

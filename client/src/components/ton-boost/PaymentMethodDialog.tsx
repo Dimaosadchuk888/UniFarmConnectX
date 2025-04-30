@@ -39,12 +39,9 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const [tonConnectUI] = useTonConnectUI();
-  const { user } = useUser();
+  const { userId } = useUser();
 
   const handleSelectMethod = async (method: 'internal_balance' | 'external_wallet') => {
-    // ТЗ: Добавляем логирование значения boostPriceTon используя ✅
-    console.log("✅ boostPriceTon:", boostPriceTon);
-    
     // Убедимся, что boostPriceTon всегда имеет значение, используя дефолтную цену при null
     if (boostPriceTon === null || boostPriceTon === undefined) {
       const defaultPrices: Record<number, string> = { 1: "1", 2: "5", 3: "15", 4: "25" };
@@ -53,10 +50,8 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
       if (boostId !== null && typeof boostId === 'number') {
         defaultPrice = defaultPrices[boostId] || "1";
       }
-      console.log("✅ boostPriceTon был null, используем дефолтную цену:", defaultPrice);
       boostPriceTon = defaultPrice;
     }
-    console.log("[DIALOG DEBUG] handleSelectMethod вызван:", { method, boostId, boostPriceTon });
     
     // Отправка TON транзакции без использования Buffer или @ton/core
     if (method === 'external_wallet' && boostId !== null) {
@@ -64,11 +59,8 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
         // Закрываем диалог перед вызовом
         onOpenChange(false);
         
-        console.log("[TON] Запуск отправки транзакции...");
-        
         // Проверяем наличие tonConnectUI
         if (!tonConnectUI) {
-          console.error("[ERROR] tonConnectUI отсутствует");
           toast({
             title: "Ошибка подключения кошелька",
             description: "TonConnect не инициализирован. Перезагрузите приложение.",
@@ -77,18 +69,9 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
           return;
         }
         
-        // Логируем состояние подключения
-        console.log("[TON] Состояние подключения:", {
-          connected: tonConnectUI.connected,
-          hasWallet: !!tonConnectUI.wallet,
-          hasAccount: !!tonConnectUI.account,
-          hasAddress: tonConnectUI.account?.address ? true : false,
-          hasSendTransaction: typeof tonConnectUI.sendTransaction === 'function'
-        });
-        
-        // Получаем данные для транзакции
-        const userId = user?.id || 0; // Используем ID из контекста пользователя
-        const comment = createTonTransactionComment(userId, boostId);
+        // Получаем данные для транзакции из хука useUser
+        // userId уже получен из useUser() в начале компонента
+        const comment = createTonTransactionComment(userId || 0, boostId);
         
         // ТЗ: Вычисляем nanoAmount и логируем её
         const tonAmount = parseFloat(boostPriceTon);
