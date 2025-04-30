@@ -23,8 +23,16 @@ declare module 'express-session' {
  * Делегирует всю бизнес-логику WalletService
  */
 export class WalletController {
-  // Создаем одиночный экземпляр WalletService для использования во всех методах
-  private static walletService = new WalletService();
+  // Создаем одиночный экземпляр WalletService
+  private static _walletServiceInstance: WalletService | null = null;
+  
+  // Геттер для доступа к сервису из статического метода
+  private static get walletService(): WalletService {
+    if (!WalletController._walletServiceInstance) {
+      WalletController._walletServiceInstance = new WalletService();
+    }
+    return WalletController._walletServiceInstance;
+  }
   
   /**
    * Привязывает TON-адрес кошелька к пользователю
