@@ -4,6 +4,7 @@ import addFarmingSnapshots from './migrations/add_farming_snapshots.js';
 import addWalletSnapshots from './migrations/add_wallet_snapshots.js';
 import addAdminLogs from './migrations/add_admin_logs.js';
 import addTransactionsPartitioning from './migrations/add_transactions_partitioning.js';
+import createAutoPartitionedTransactions from './migrations/create_auto_partitioned_transactions.js';
 
 /**
  * Скрипт для запуска всех миграций в правильном порядке
@@ -25,13 +26,15 @@ async function runAllMigrations() {
     await addAdminLogs();
     
     // Партиционирование таблицы транзакций
-    // Внимание: эта миграция закомментирована, так как нужна только
-    // при большом количестве записей (рекомендуется от 1 млн транзакций)
-    // Раскомментируйте следующие строки, когда будет необходимо
-    console.log('\n--- ПОДГОТОВКА ПАРТИЦИОНИРОВАНИЯ ТРАНЗАКЦИЙ ---');
-    console.log('Внимание: создаются только шаблоны для партиционирования.');
-    console.log('Фактический перенос данных должен выполняться вручную в окно обслуживания.');
-    await addTransactionsPartitioning();
+    console.log('\n--- НАСТРОЙКА АВТОМАТИЧЕСКОГО ПАРТИЦИОНИРОВАНИЯ ТРАНЗАКЦИЙ ---');
+    console.log('Создание структуры для автоматического партиционирования по дате...');
+    await createAutoPartitionedTransactions();
+    
+    // Старая версия партиционирования (устаревшая)
+    // console.log('\n--- ПОДГОТОВКА ПАРТИЦИОНИРОВАНИЯ ТРАНЗАКЦИЙ (устаревшая версия) ---');
+    // console.log('Внимание: создаются только шаблоны для партиционирования.');
+    // console.log('Фактический перенос данных должен выполняться вручную в окно обслуживания.');
+    // await addTransactionsPartitioning();
     
     console.log('Все миграции успешно выполнены');
     process.exit(0);
