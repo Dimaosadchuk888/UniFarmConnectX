@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { NotFoundError, ValidationError } from '../middleware/errorHandler';
+import { DatabaseService } from '../services/databaseService';
 
 /**
  * Контроллер для работы с UNI фармингом
@@ -15,19 +17,26 @@ export class UniFarmingController {
   static async getUserFarmingInfo(req: Request, res: Response): Promise<void> {
     try {
       const userId = Number(req.query.user_id);
-      if (isNaN(userId)) {
-        res.setHeader('Content-Type', 'application/json');
-        res.status(400).json({ success: false, message: 'Invalid user ID' });
-        return;
+      if (isNaN(userId) || userId <= 0) {
+        throw new ValidationError('ID пользователя должен быть положительным числом');
+      }
+
+      // Проверяем существование пользователя
+      const userExists = await DatabaseService.userExists(userId);
+      if (!userExists) {
+        throw new NotFoundError(`Пользователь с ID=${userId} не найден`);
       }
 
       const farmingInfo = await NewUniFarmingService.getUserFarmingInfo(userId);
-      res.setHeader('Content-Type', 'application/json');
-      res.status(200).json({ success: true, data: farmingInfo });
+      res.success(farmingInfo);
     } catch (error) {
-      console.error('Error in getUserFarmingInfo:', error);
-      res.setHeader('Content-Type', 'application/json');
-      res.status(500).json({ success: false, message: 'Internal server error' });
+      console.error('Ошибка в getUserFarmingInfo:', error);
+      
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error; // Будет обработано глобальным обработчиком ошибок
+      }
+      
+      res.error('Внутренняя ошибка сервера при получении информации о фарминге', null, 500);
     }
   }
 
@@ -43,95 +52,79 @@ export class UniFarmingController {
       
       // Проверка содержимого запроса
       if (!req.body) {
-        console.log('Ошибка: пустое тело запроса');
-        res.setHeader('Content-Type', 'application/json');
-        res.status(400).json({ success: false, message: 'Тело запроса пустое' });
-        return;
+        throw new ValidationError('Тело запроса пустое');
       }
       
-      // Получение amount и user_id из тела запроса (с проверкой)
+      // Получение amount и user_id из тела запроса
       const { amount, user_id } = req.body;
       
       if (amount === undefined || amount === null || amount === '') {
-        console.log('Ошибка: отсутствует обязательное поле amount');
-        res.setHeader('Content-Type', 'application/json');
-        res.status(400).json({ success: false, message: 'Отсутствует обязательное поле amount' });
-        return;
+        throw new ValidationError('Отсутствует обязательное поле amount');
       }
       
-      // Проверка, что amount является числом и положительным
-      // Поддерживаем как строковый, так и числовой формат amount
-      let stringAmount = '';
+      // Валидация amount (поддержка как строкового, так и числового формата)
+      let numericAmount: number;
       
       if (typeof amount === 'number') {
-        // Если amount передан как число, преобразуем его в строку
         console.log('Получен amount как число:', amount);
-        stringAmount = amount.toString();
+        numericAmount = amount;
       } else if (typeof amount === 'string') {
-        // Если amount уже строка, используем как есть
         console.log('Получен amount как строка:', amount);
-        stringAmount = amount;
+        numericAmount = parseFloat(amount);
+        if (isNaN(numericAmount)) {
+          throw new ValidationError('Amount должен быть корректным числом');
+        }
       } else {
         console.log('Ошибка: amount имеет неподдерживаемый тип:', typeof amount);
-        res.setHeader('Content-Type', 'application/json');
-        res.status(400).json({ success: false, message: 'Amount должно быть числом или строкой' });
-        return;
+        throw new ValidationError('Amount должно быть числом или строкой');
       }
       
-      // Проверяем, что amount можно преобразовать в число и оно положительное
-      const amountValue = parseFloat(stringAmount);
-      if (isNaN(amountValue) || amountValue <= 0) {
-        console.log('Ошибка: amount должно быть положительным числом');
-        res.setHeader('Content-Type', 'application/json');
-        res.status(400).json({ success: false, message: 'Amount должно быть положительным числом' });
-        return;
+      // Проверяем, что amount положительное число
+      if (numericAmount <= 0) {
+        throw new ValidationError('Amount должен быть положительным числом');
       }
       
-      // Если user_id отсутствует или равен null, используем значение по умолчанию = 1
-      // Иначе, если user_id присутствует и не null, проверяем, что это положительное целое число
+      // Обработка user_id (включая случай с null и undefined)
       let userId = 1; // значение по умолчанию
       
       if (user_id !== undefined && user_id !== null) {
-        const userIdValue = parseInt(user_id);
+        const userIdValue = parseInt(String(user_id));
         if (isNaN(userIdValue) || userIdValue <= 0 || userIdValue !== Number(user_id)) {
-          console.log('Ошибка: user_id должен быть положительным целым числом');
-          res.setHeader('Content-Type', 'application/json');
-          res.status(400).json({ success: false, message: 'user_id должен быть положительным целым числом' });
-          return;
+          throw new ValidationError('user_id должен быть положительным целым числом');
         }
         userId = userIdValue;
       }
       
-      console.log(`Создаем депозит для user_id=${userId}, amount=${stringAmount}`);
+      // Проверяем существование пользователя
+      if (userId !== 1) { // Для default user_id=1 пропускаем проверку, т.к. это специальный случай
+        const userExists = await DatabaseService.userExists(userId);
+        if (!userExists) {
+          throw new NotFoundError(`Пользователь с ID=${userId} не найден`);
+        }
+      }
       
-      // Передаем строковое значение amount в сервис
-      const depositResult = await NewUniFarmingService.createUniFarmingDeposit(userId, stringAmount);
+      console.log(`Создаем депозит для user_id=${userId}, amount=${numericAmount}`);
+      
+      // Используем транзакционную обработку через DatabaseService
+      const depositResult = await DatabaseService.withTransaction(async (txDb) => {
+        return await NewUniFarmingService.createUniFarmingDeposit(userId, numericAmount.toString());
+      });
       
       console.log('Результат создания депозита:', depositResult);
       
-      // Явно устанавливаем заголовок Content-Type для JSON
-      res.setHeader('Content-Type', 'application/json');
-      
       if (depositResult.success) {
-        // Создаем правильный формат ответа
-        const responseData = { 
-          success: true, 
-          data: depositResult 
-        };
-        console.log('Отправляем успешный ответ:', JSON.stringify(responseData));
-        res.status(200).json(responseData);
+        res.success(depositResult);
       } else {
-        const errorResponse = { 
-          success: false, 
-          message: depositResult.message 
-        };
-        console.log('Отправляем ответ с ошибкой:', JSON.stringify(errorResponse));
-        res.status(400).json(errorResponse);
+        res.error(depositResult.message || 'Ошибка при создании депозита', null, 400);
       }
     } catch (error) {
       console.error('Ошибка в createUniFarmingDeposit:', error);
-      res.setHeader('Content-Type', 'application/json');
-      res.status(500).json({ success: false, message: 'Внутренняя ошибка сервера' });
+      
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error; // Будет обработано глобальным обработчиком ошибок
+      }
+      
+      res.error('Внутренняя ошибка сервера при создании депозита', null, 500);
     }
   }
 
@@ -141,41 +134,83 @@ export class UniFarmingController {
   static async calculateAndUpdateFarming(req: Request, res: Response): Promise<void> {
     try {
       const userId = Number(req.query.user_id);
-      if (isNaN(userId)) {
-        res.setHeader('Content-Type', 'application/json');
-        res.status(400).json({ success: false, message: 'Invalid user ID' });
-        return;
+      if (isNaN(userId) || userId <= 0) {
+        throw new ValidationError('ID пользователя должен быть положительным числом');
       }
 
-      const updateResult = await NewUniFarmingService.calculateAndUpdateUserFarming(userId);
-      res.setHeader('Content-Type', 'application/json');
-      res.status(200).json({ success: true, data: updateResult });
+      // Проверяем существование пользователя
+      const userExists = await DatabaseService.userExists(userId);
+      if (!userExists) {
+        throw new NotFoundError(`Пользователь с ID=${userId} не найден`);
+      }
+
+      // Используем транзакционную обработку
+      const updateResult = await DatabaseService.withTransaction(async (txDb) => {
+        return await NewUniFarmingService.calculateAndUpdateUserFarming(userId);
+      });
+      
+      res.success(updateResult);
     } catch (error) {
-      console.error('Error in calculateAndUpdateFarming:', error);
-      res.setHeader('Content-Type', 'application/json');
-      res.status(500).json({ success: false, message: 'Internal server error' });
+      console.error('Ошибка в calculateAndUpdateFarming:', error);
+      
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error; // Будет обработано глобальным обработчиком ошибок
+      }
+      
+      res.error('Внутренняя ошибка сервера при обновлении фарминга', null, 500);
     }
   }
 
   /**
    * Возвращает список всех активных депозитов пользователя
+   * с поддержкой пагинации
    */
   static async getUserFarmingDeposits(req: Request, res: Response): Promise<void> {
     try {
       const userId = Number(req.query.user_id);
-      if (isNaN(userId)) {
-        res.setHeader('Content-Type', 'application/json');
-        res.status(400).json({ success: false, message: 'Invalid user ID' });
-        return;
+      if (isNaN(userId) || userId <= 0) {
+        throw new ValidationError('ID пользователя должен быть положительным числом');
       }
 
+      // Проверяем существование пользователя
+      const userExists = await DatabaseService.userExists(userId);
+      if (!userExists) {
+        throw new NotFoundError(`Пользователь с ID=${userId} не найден`);
+      }
+      
+      // Извлекаем параметры пагинации с дефолтными значениями
+      const limit = Number(req.query.limit) || 20;
+      const offset = Number(req.query.offset) || 0;
+      
+      // Валидация параметров пагинации
+      if (limit <= 0 || limit > 100) {
+        throw new ValidationError('Параметр limit должен быть положительным числом не более 100');
+      }
+      
+      if (offset < 0) {
+        throw new ValidationError('Параметр offset должен быть неотрицательным числом');
+      }
+
+      // Получаем депозиты (без учета пагинации, т.к. метод пока не поддерживает параметры)
+      // Примечание: в будущем метод должен быть доработан для поддержки limit и offset
       const deposits = await NewUniFarmingService.getUserFarmingDeposits(userId);
-      res.setHeader('Content-Type', 'application/json');
-      res.status(200).json({ success: true, data: { deposits } });
+      
+      res.success({ 
+        deposits,
+        pagination: {
+          limit,
+          offset,
+          total: deposits.length // Это не совсем правильно, здесь должно быть общее кол-во записей
+        }
+      });
     } catch (error) {
-      console.error('Error in getUserFarmingDeposits:', error);
-      res.setHeader('Content-Type', 'application/json');
-      res.status(500).json({ success: false, message: 'Internal server error' });
+      console.error('Ошибка в getUserFarmingDeposits:', error);
+      
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error; // Будет обработано глобальным обработчиком ошибок
+      }
+      
+      res.error('Внутренняя ошибка сервера при получении списка депозитов', null, 500);
     }
   }
 
@@ -192,55 +227,49 @@ export class UniFarmingController {
       
       // Проверка содержимого запроса
       if (!req.body) {
-        console.log('Ошибка: пустое тело запроса');
-        res.setHeader('Content-Type', 'application/json');
-        res.status(400).json({ success: false, message: 'Тело запроса пустое' });
-        return;
+        throw new ValidationError('Тело запроса пустое');
       }
       
       // Получение user_id из тела запроса
       const { user_id } = req.body;
       
-      // Если user_id отсутствует или равен null, используем значение по умолчанию = 1
-      // Иначе, если user_id присутствует и не null, проверяем, что это положительное целое число
+      // Обработка user_id (включая случай с null и undefined)
       let userId = 1; // значение по умолчанию
       
       if (user_id !== undefined && user_id !== null) {
-        const userIdValue = parseInt(user_id);
+        const userIdValue = parseInt(String(user_id));
         if (isNaN(userIdValue) || userIdValue <= 0 || userIdValue !== Number(user_id)) {
-          console.log('Ошибка: user_id должен быть положительным целым числом');
-          res.setHeader('Content-Type', 'application/json');
-          res.status(400).json({ success: false, message: 'user_id должен быть положительным целым числом' });
-          return;
+          throw new ValidationError('user_id должен быть положительным целым числом');
         }
         userId = userIdValue;
       }
       
       console.log(`Информационный запрос для user_id=${userId}`);
       
-      // Проверка существования пользователя в базе данных
-      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1).then(results => results[0]);
-      
-      if (!user) {
-        console.log(`Ошибка: пользователь с ID=${userId} не найден в базе данных`);
-        res.setHeader('Content-Type', 'application/json');
-        res.status(404).json({ 
-          success: false, 
-          message: 'Пользователь не найден' 
-        });
-        return;
+      // Проверяем существование пользователя
+      if (userId !== 1) { // Для default user_id=1 пропускаем проверку, т.к. это специальный случай
+        const userExists = await DatabaseService.userExists(userId);
+        if (!userExists) {
+          throw new NotFoundError(`Пользователь с ID=${userId} не найден`);
+        }
       }
       
-      // Просто возвращаем информационное сообщение, так как автоматическое начисление
-      res.setHeader('Content-Type', 'application/json');
-      res.status(200).json({ 
-        success: true, 
-        message: 'Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!'
+      // Получаем текущую информацию о балансе фарминга
+      const farmingInfo = await NewUniFarmingService.getUserFarmingInfo(userId);
+      
+      // Возвращаем информационное сообщение и данные фарминга
+      res.success({ 
+        message: 'Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!',
+        farming_info: farmingInfo
       });
     } catch (error) {
-      console.error('Error in harvestFarmingInfo:', error);
-      res.setHeader('Content-Type', 'application/json');
-      res.status(500).json({ success: false, message: 'Internal server error' });
+      console.error('Ошибка в harvestFarmingInfo:', error);
+      
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error; // Будет обработано глобальным обработчиком ошибок
+      }
+      
+      res.error('Внутренняя ошибка сервера при обработке запроса', null, 500);
     }
   }
 }

@@ -13,9 +13,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // Регистрируем middleware для стандартизации ответов API
-app.use(responseFormatter);
+app.use((req: Request, res: Response, next: NextFunction) => responseFormatter(req, res, next));
 
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -83,7 +83,7 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   // Регистрируем централизованный обработчик ошибок
-  app.use(errorHandler);
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next));
 
   // Добавление обработчика для Telegram WebApp параметров
   app.use((req, res, next) => {
