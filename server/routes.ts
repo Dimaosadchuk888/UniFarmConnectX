@@ -39,7 +39,7 @@ import { DailyBonusController } from './controllers/dailyBonusController';
 import { UniFarmingController } from './controllers/uniFarmingController';
 import { BoostController } from './controllers/boostController';
 import { TonBoostController } from './controllers/tonBoostController';
-import { AuthController } from './controllers/authController.new'; // Обновленный контроллер (SOLID)
+import { AuthController } from './controllers/authController'; // Обновленный контроллер (SOLID)
 import { SecurityController } from './controllers/securityController'; // Новый контроллер безопасности (SOLID)
 import { WalletController } from './controllers/walletController';
 import { AdminController } from './controllers/adminController';

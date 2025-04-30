@@ -1,67 +1,76 @@
 import { Response } from 'express';
 
 /**
- * Утилиты для стандартизации ответов API
+ * Отправляет успешный ответ API
  */
-
-/**
- * Отправляет успешный ответ с кодом 200
- * @param res Express Response object
- * @param data Данные для отправки
- */
-export function sendSuccess(res: Response, data: any): void {
-  res.setHeader('Content-Type', 'application/json');
-  res.status(200).json({
+export function sendSuccess(res: Response, data: any, status: number = 200): void {
+  res.status(status).json({
     success: true,
     data
   });
 }
 
 /**
- * Отправляет успешный ответ в виде массива с кодом 200
- * @param res Express Response object
- * @param data Массив данных
+ * Отправляет успешный ответ API с массивом данных
  */
-export function sendSuccessArray(res: Response, data: any[]): void {
-  res.setHeader('Content-Type', 'application/json');
-  res.status(200).json({
+export function sendSuccessArray(res: Response, data: any[], status: number = 200): void {
+  res.status(status).json({
     success: true,
-    data: data
+    data
   });
 }
 
 /**
- * Отправляет ошибку с указанным кодом статуса
- * @param res Express Response object
- * @param message Сообщение об ошибке
- * @param statusCode HTTP код статуса (по умолчанию 400)
- * @param errors Дополнительные детали ошибки
+ * Отправляет ответ об ошибке API
  */
-export function sendError(res: Response, message: string, statusCode: number = 400, errors?: any): void {
-  res.setHeader('Content-Type', 'application/json');
-  const response: any = {
+export function sendError(res: Response, message: string, status: number = 400, error?: any): void {
+  const errorResponse: { success: boolean; error: any } = {
     success: false,
-    message
+    error: {
+      message,
+      details: error
+    }
   };
 
-  if (errors) {
-    response.errors = errors;
-  }
-
-  res.status(statusCode).json(response);
+  res.status(status).json(errorResponse);
 }
 
 /**
- * Отправляет ошибку сервера (500)
- * @param res Express Response object
- * @param error Объект ошибки или сообщение
+ * Отправляет ответ о серверной ошибке API
  */
-export function sendServerError(res: Response, error: any): void {
-  console.error('Server error:', error);
-  sendError(
-    res, 
-    typeof error === 'string' ? error : 'Internal server error', 
-    500,
-    process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : error) : undefined
-  );
+export function sendServerError(res: Response, message: string = 'Internal Server Error', error?: any): void {
+  const errorResponse: { success: boolean; error: any } = {
+    success: false,
+    error: {
+      message,
+      details: error
+    }
+  };
+
+  res.status(500).json(errorResponse);
+}
+
+/**
+ * Преобразует ошибку в стандартный объект ошибки API
+ */
+export function formatError(message: string, error?: any): any {
+  return {
+    success: false,
+    error: {
+      message,
+      details: error
+    }
+  };
+}
+
+/**
+ * Проверяет, является ли строка валидным JSON
+ */
+export function isValidJson(str: string): boolean {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }

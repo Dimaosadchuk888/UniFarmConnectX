@@ -1,17 +1,10 @@
-import { createHmac, createHash } from 'crypto';
-import { db } from '../db';
-import { users, type InsertUser, type User } from '@shared/schema';
-import { eq } from 'drizzle-orm';
-import { validateTelegramInitData, TelegramValidationResult, isForbiddenUserId } from '../utils/telegramUtils';
+import crypto from 'crypto';
 import { storage } from '../storage';
-import { UserService } from './userService';
-import { ReferralService } from './referralService';
+import { User, InsertUser } from '@shared/schema';
+import { validateTelegramInitData, TelegramValidationResult } from '../utils/telegramUtils';
+import { generateUniqueRefCode } from '../utils/refCodeUtils';
 import { ReferralBonusService } from './referralBonusService';
-import { 
-  UnauthorizedError, 
-  ValidationError, 
-  NotFoundError 
-} from '../middleware/errorHandler';
+import { UserService } from './userService';
 
 /**
  * Интерфейс для аутентификации через Telegram
@@ -63,337 +56,183 @@ export class AuthService {
    * Проверяет Telegram initData и аутентифицирует пользователя
    */
   static async authenticateTelegram(authData: TelegramAuthData, isDevelopment: boolean = false): Promise<User> {
-    // Проверяем наличие данных аутентификации
-    if (!authData.authData) {
-      throw new ValidationError('Отсутствуют данные аутентификации');
-    }
+    try {
+      // 1. Валидация данных Telegram
+      const validationResult: TelegramValidationResult = validateTelegramInitData(
+        authData.authData || '',
+        this.BOT_TOKEN,
+        isDevelopment || authData.testMode || false
+      );
 
-    // Проверяем наличие токена бота
-    if (!this.BOT_TOKEN && !isDevelopment) {
-      console.error('[АУДИТ] КРИТИЧЕСКАЯ ОШИБКА: TELEGRAM_BOT_TOKEN не установлен');
-      // Проверяем секрет в окружении
-      console.log('[АУДИТ] Проверка переменных окружения:', {
-        hasTelegramBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
-        envKeys: Object.keys(process.env).filter(key => key.includes('TELEGRAM') || key.includes('BOT')),
-        nodeEnv: process.env.NODE_ENV
-      });
+      if (!validationResult.isValid && !isDevelopment && !authData.testMode) {
+        throw new Error(`Ошибка валидации данных Telegram: ${validationResult.errors?.join(', ')}`);
+      }
 
-      throw new Error('Ошибка конфигурации сервера. Пожалуйста, свяжитесь с поддержкой.');
-    }
+      // 2. Получение идентификатора пользователя
+      let telegramUserId = validationResult.userId;
+      
+      // Если в режиме разработки или тестирования
+      if ((isDevelopment || authData.testMode) && authData.userId && !telegramUserId) {
+        telegramUserId = authData.userId;
+      }
 
-    // Парсим данные из строки query-параметров
-    const authParams = new URLSearchParams(authData.authData);
-    
-    // Извлекаем необходимые параметры
-    const hashFromTelegram = authParams.get('hash');
-    const authDate = authParams.get('auth_date');
-    
-    if (!hashFromTelegram) {
-      throw new ValidationError('Отсутствует хеш подписи в данных аутентификации');
-    }
-    
-    if (!authDate) {
-      throw new ValidationError('Отсутствует дата аутентификации');
-    }
+      if (!telegramUserId && !authData.guest_id) {
+        throw new Error('Не удалось определить пользователя Telegram');
+      }
 
-    // Корректно обрабатываем параметр user (который может быть JSON)
-    let userObj = null;
-    if (authParams.has('user')) {
-      try {
-        const userJson = authParams.get('user');
-        if (userJson) {
-          userObj = JSON.parse(userJson);
+      // 3. Поиск пользователя по id Telegram или guest_id
+      let user: User | undefined;
+      
+      // Приоритет поиска: guest_id > telegram_id
+      if (authData.guest_id) {
+        user = await UserService.getUserByGuestId(authData.guest_id);
+      }
+      
+      if (!user && telegramUserId) {
+        user = await UserService.getUserByTelegramId(telegramUserId);
+      }
+
+      // 4. Если пользователь найден, обновим его данные
+      if (user) {
+        // Обновляем имя пользователя, если оно предоставлено
+        if (authData.username && user.username !== authData.username) {
+          user = await UserService.updateUser(user.id, {
+            username: authData.username
+          });
         }
-      } catch (e) {
-        console.error("[АУДИТ] Ошибка при разборе JSON в параметре user:", e);
-      }
-    }
-
-    const parsedUserId = authParams.get('id') ? parseInt(authParams.get('id')!) : 
-                  userObj ? userObj.id : null;
-    const parsedFirstName = authParams.get('first_name') || 
-                      (userObj ? userObj.first_name : null);
-    const parsedUsername = authParams.get('username') || 
-                    (userObj ? userObj.username : null);
-    
-    if (!parsedUserId && !authData.userId) {
-      throw new ValidationError('Отсутствует ID пользователя Telegram');
-    }
-
-    // Проверка на тестовый режим
-    const testModeParam = authData.testMode === true || authParams.get('test_mode') === 'true';
-    const isTestMode = isDevelopment && testModeParam;
-    
-    // Проверяем подпись и валидность данных Telegram
-    const validationResult: TelegramValidationResult = validateTelegramInitData(
-      authData.authData,
-      this.BOT_TOKEN,
-      {
-        maxAgeSeconds: 86400, // 24 часа по умолчанию
-        isDevelopment: isTestMode || process.env.NODE_ENV !== 'production',
-        requireUserId: !isTestMode, // В тестовом режиме не требуем userId
-        allowFallbackId: isTestMode // В продакшене запрещаем ID=1
-      }
-    );
-    
-    // Проверяем результаты валидации
-    if (!validationResult.isValid && !isTestMode) {
-      console.error("[АУДИТ] ОШИБКА: Данные инициализации Telegram недействительны");
-      console.error("[АУДИТ] Причины:", validationResult.validationErrors);
-      throw new UnauthorizedError('Данные аутентификации Telegram недействительны');
-    }
-    
-    // Дополнительная проверка на запрещенные ID (например, ID=1 в продакшене)
-    if (isForbiddenUserId(validationResult.userId) && !isTestMode) {
-      console.error("[АУДИТ] КРИТИЧЕСКАЯ ОШИБКА: Использование запрещенного userId:", validationResult.userId);
-      throw new ValidationError('Недопустимый ID пользователя');
-    }
-    
-    // Используем userId из валидационного результата, если он доступен
-    let telegramUserId = validationResult.userId || parsedUserId || authData.userId;
-    
-    // Пытаемся найти пользователя по Telegram ID или guest_id
-    let user = null;
-    let isNewUser = false;
-    let referrerRegistered = false;
-    
-    // Сначала ищем по Telegram ID, если он есть
-    if (telegramUserId) {
-      user = await storage.getUserByTelegramId(telegramUserId);
-    }
-    
-    // Если не нашли пользователя по Telegram ID, ищем по guest_id (если он предоставлен)
-    if (!user && authData.guest_id) {
-      console.log(`[AUTH] Ищем пользователя по guest_id: ${authData.guest_id}`);
-      user = await storage.getUserByGuestId(authData.guest_id);
-      
-      // Если нашли пользователя по guest_id и есть Telegram ID, обновляем его
-      if (user && telegramUserId) {
-        console.log(`[AUTH] Найден пользователь по guest_id, привязываем Telegram ID: ${telegramUserId}`);
-        user = await storage.updateUser(user.id, { telegram_id: telegramUserId });
-      }
-    }
-    
-    // Если пользователь не найден, создаем его
-    if (!user) {
-      isNewUser = true;
-      
-      // Генерируем уникальный реферальный код
-      const refCode = await this.generateUniqueRefCode();
-      console.log(`[AUTH] Сгенерирован новый реферальный код: ${refCode}`);
-      
-      // Проверяем, есть ли реферальный код в запросе
-      const useRefCode = authData.refCode || validationResult.startParam;
-      
-      // Определяем родительский ID для реферальной системы
-      let parentId: number | null = null;
-      
-      if (useRefCode) {
-        // Проверяем реферальный код
-        const parentUser = await storage.getUserByRefCode(useRefCode);
-        if (parentUser) {
-          parentId = parentUser.id;
-          referrerRegistered = true;
-          console.log(`[AUTH] Найден реферер с ID ${parentId} по коду ${useRefCode}`);
-        } else {
-          console.log(`[AUTH] Реферер с кодом ${useRefCode} не найден`);
+        
+        // Привязываем guest_id к Telegram аккаунту, если его еще нет
+        if (authData.guest_id && !user.guest_id) {
+          user = await UserService.updateUser(user.id, {
+            guest_id: authData.guest_id
+          });
         }
+        
+        return user;
       }
+
+      // 5. Если пользователь не найден, создаем нового
+      const username = authData.username || 
+                      `user_${telegramUserId || crypto.randomBytes(4).toString('hex')}`;
       
-      // Имя пользователя - из параметров или из Telegram
-      const username = authData.username || validationResult.username || parsedUsername || (validationResult.firstName ? `user_${telegramUserId}` : `user_${Date.now()}`);
+      // Создаем уникальный реферальный код
+      const ref_code = await generateUniqueRefCode();
       
-      // Создаем нового пользователя
-      user = await storage.createUser({
-        username,
-        ref_code: refCode,
+      // Определяем родительский реферальный код
+      const parent_ref_code = authData.startParam || authData.refCode || null;
+      
+      // Создаем пользователя
+      const newUser: InsertUser = {
         telegram_id: telegramUserId || null,
-        parent_id: parentId,
-        parent_ref_code: useRefCode || null,
         guest_id: authData.guest_id || null,
-        first_name: authData.firstName || validationResult.firstName || parsedFirstName || null,
-        last_name: authData.lastName || validationResult.lastName || null,
-        balance: 0,
-        created_at: new Date(),
-        updated_at: new Date(),
-      });
+        username,
+        wallet: null,
+        ton_wallet_address: null,
+        ref_code,
+        parent_ref_code,
+      };
       
-      console.log(`[AUTH] Создан новый пользователь: ${JSON.stringify(user)}`);
+      const createdUser = await storage.createUser(newUser);
       
-      // Если был указан реферальный код, начисляем бонусы
-      if (parentId && referrerRegistered) {
-        await ReferralBonusService.processRegistrationBonus(user.id, parentId);
-        console.log(`[AUTH] Начислены реферальные бонусы для реферера ${parentId}`);
+      // Обрабатываем реферальный бонус, если указан родительский код
+      if (parent_ref_code) {
+        await ReferralBonusService.processRegistrationBonus(createdUser.id, parent_ref_code);
       }
-    } else {
-      console.log(`[AUTH] Пользователь найден: ${JSON.stringify(user)}`);
+      
+      return createdUser;
+    } catch (error) {
+      console.error('[AuthService] Ошибка аутентификации Telegram:', error);
+      throw error;
     }
-    
-    // Создаем или обновляем сессию пользователя
-    const sessionId = await this.createOrUpdateSession(user.id);
-    
-    return user;
   }
 
   /**
    * Регистрирует гостевого пользователя по guest_id
    */
   static async registerGuestUser(data: GuestRegistrationData): Promise<User> {
-    // Проверяем наличие guest_id
-    if (!data.guest_id) {
-      throw new ValidationError('Отсутствует идентификатор гостя');
-    }
-    
-    // Проверяем, существует ли пользователь с таким guest_id
-    const existingUser = await storage.getUserByGuestId(data.guest_id);
-    if (existingUser) {
-      console.log(`[AirDrop] Пользователь с guest_id ${data.guest_id} уже существует:`, existingUser);
-      return existingUser;
-    }
-    
-    // Генерируем уникальный реферальный код
-    const refCode = await this.generateUniqueRefCode();
-    
-    // Определяем родительский ID для реферальной системы
-    let parentId: number | null = null;
-    const parentRefCode = data.parent_ref_code || data.ref_code;
-    
-    if (parentRefCode) {
-      // Проверяем реферальный код
-      const parentUser = await storage.getUserByRefCode(parentRefCode);
-      if (parentUser) {
-        parentId = parentUser.id;
-        console.log(`[AirDrop] Найден реферер с ID ${parentId} по коду ${parentRefCode}`);
-      } else {
-        console.log(`[AirDrop] Реферер с кодом ${parentRefCode} не найден`);
+    try {
+      // Проверяем, существует ли пользователь с таким guest_id
+      const existingUser = await UserService.getUserByGuestId(data.guest_id);
+      if (existingUser) {
+        return existingUser;
       }
+
+      // Создаем уникальный реферальный код
+      const ref_code = data.ref_code || await generateUniqueRefCode();
+      
+      // Создаем пользователя в режиме AirDrop
+      const newUser: InsertUser = {
+        telegram_id: data.telegram_id || null,
+        guest_id: data.guest_id,
+        username: data.username || `guest_${data.guest_id.substring(0, 8)}`,
+        wallet: null,
+        ton_wallet_address: null,
+        ref_code,
+        parent_ref_code: data.parent_ref_code || null,
+      };
+      
+      const createdUser = await storage.createUser(newUser);
+      
+      // Если указан родительский реферальный код, начисляем бонус
+      if (data.parent_ref_code) {
+        await ReferralBonusService.processRegistrationBonus(createdUser.id, data.parent_ref_code);
+      }
+      
+      return createdUser;
+    } catch (error) {
+      console.error('[AuthService] Ошибка регистрации гостевого пользователя:', error);
+      throw error;
     }
-    
-    // Имя пользователя - из параметров или генерируем
-    const username = data.username || `guest_${Date.now().toString().substring(7)}`;
-    
-    // Создаем нового пользователя
-    const newUser = await storage.createUser({
-      username,
-      ref_code: refCode,
-      telegram_id: data.telegram_id || null,
-      parent_id: parentId,
-      parent_ref_code: parentRefCode || null,
-      guest_id: data.guest_id,
-      first_name: null,
-      last_name: null,
-      balance: data.airdrop_mode ? 0 : 10, // В режиме AirDrop начальный баланс 0, иначе 10
-      created_at: new Date(),
-      updated_at: new Date(),
-    });
-    
-    console.log(`[AirDrop] Пользователь успешно создан в режиме ${data.airdrop_mode ? 'AirDrop' : 'стандартный'}: ID=${newUser.id}, guest_id=${newUser.guest_id}, ref_code=${newUser.ref_code}`);
-    
-    // Если был указан реферальный код, начисляем бонусы
-    if (parentId) {
-      await ReferralBonusService.processRegistrationBonus(newUser.id, parentId);
-      console.log(`[AirDrop] Начислены реферальные бонусы для реферера ${parentId}`);
-    }
-    
-    return newUser;
   }
 
   /**
    * Регистрирует обычного пользователя
    */
   static async registerUser(data: UserRegistrationData): Promise<User> {
-    // Проверяем обязательные поля
-    if (!data.username) {
-      throw new ValidationError('Имя пользователя обязательно');
-    }
-    
-    // Проверяем, существует ли пользователь с таким именем
-    const existingUserByName = await storage.getUserByUsername(data.username);
-    if (existingUserByName) {
-      throw new ValidationError('Пользователь с таким именем уже существует');
-    }
-    
-    // Если указан telegram_id, проверяем его тоже
-    if (data.telegram_id) {
-      const existingUserByTelegram = await storage.getUserByTelegramId(data.telegram_id);
-      if (existingUserByTelegram) {
-        throw new ValidationError('Пользователь с таким Telegram ID уже существует');
-      }
-    }
-    
-    // Если указан guest_id, проверяем его тоже
-    if (data.guest_id) {
-      const existingUserByGuest = await storage.getUserByGuestId(data.guest_id);
-      if (existingUserByGuest) {
-        throw new ValidationError('Пользователь с таким Guest ID уже существует');
-      }
-    }
-    
-    // Генерируем уникальный реферальный код
-    const refCode = await this.generateUniqueRefCode();
-    
-    // Определяем родительский ID для реферальной системы
-    let parentId: number | null = null;
-    const parentRefCode = data.parentRefCode || data.refCode || data.startParam;
-    
-    if (parentRefCode) {
-      // Проверяем реферальный код
-      const parentUser = await storage.getUserByRefCode(parentRefCode);
-      if (parentUser) {
-        parentId = parentUser.id;
-        console.log(`[Register] Найден реферер с ID ${parentId} по коду ${parentRefCode}`);
-      }
-    }
-    
-    // Создаем нового пользователя
-    const newUser = await storage.createUser({
-      username: data.username,
-      ref_code: refCode,
-      telegram_id: data.telegram_id || null,
-      parent_id: parentId,
-      parent_ref_code: parentRefCode || null,
-      guest_id: data.guest_id || null,
-      first_name: null,
-      last_name: null,
-      balance: 10, // Начальный баланс 10
-      created_at: new Date(),
-      updated_at: new Date(),
-    });
-    
-    console.log(`[Register] Пользователь успешно создан: ID=${newUser.id}, username=${newUser.username}, ref_code=${newUser.ref_code}`);
-    
-    // Если был указан реферальный код, начисляем бонусы
-    if (parentId) {
-      await ReferralBonusService.processRegistrationBonus(newUser.id, parentId);
-      console.log(`[Register] Начислены реферальные бонусы для реферера ${parentId}`);
-    }
-    
-    return newUser;
-  }
-
-  /**
-   * Генерирует уникальный реферальный код
-   */
-  private static async generateUniqueRefCode(): Promise<string> {
-    const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    const length = 8;
-    
-    let refCode: string;
-    let isUnique = false;
-    
-    do {
-      refCode = '';
-      for (let i = 0; i < length; i++) {
-        refCode += characters.charAt(Math.floor(Math.random() * characters.length));
+    try {
+      // Проверяем, существует ли пользователь с таким именем
+      const existingUserByUsername = await UserService.getUserByUsername(data.username);
+      if (existingUserByUsername) {
+        throw new Error(`Пользователь с именем ${data.username} уже существует`);
       }
       
-      // Проверяем уникальность кода
-      const existingUser = await storage.getUserByRefCode(refCode);
-      isUnique = !existingUser;
+      // Если указан telegram_id, проверяем, есть ли уже такой пользователь
+      if (data.telegram_id) {
+        const existingUserByTelegramId = await UserService.getUserByTelegramId(data.telegram_id);
+        if (existingUserByTelegramId) {
+          return existingUserByTelegramId;
+        }
+      }
       
-    } while (!isUnique);
-    
-    return refCode;
+      // Создаем уникальный реферальный код
+      const ref_code = data.refCode || await generateUniqueRefCode();
+      
+      // Определяем родительский реферальный код
+      const parent_ref_code = data.parentRefCode || data.startParam || null;
+      
+      // Создаем пользователя
+      const newUser: InsertUser = {
+        telegram_id: data.telegram_id || null,
+        guest_id: data.guest_id || null,
+        username: data.username,
+        wallet: null,
+        ton_wallet_address: null,
+        ref_code,
+        parent_ref_code,
+      };
+      
+      const createdUser = await storage.createUser(newUser);
+      
+      // Обрабатываем реферальный бонус, если указан родительский код
+      if (parent_ref_code) {
+        await ReferralBonusService.processRegistrationBonus(createdUser.id, parent_ref_code);
+      }
+      
+      return createdUser;
+    } catch (error) {
+      console.error('[AuthService] Ошибка регистрации пользователя:', error);
+      throw error;
+    }
   }
 
   /**
@@ -401,12 +240,15 @@ export class AuthService {
    */
   private static async createOrUpdateSession(userId: number): Promise<string> {
     try {
-      const sessionId = crypto.randomBytes(32).toString('hex');
-      // Здесь нужно будет использовать SessionService, когда он будет создан
-      // ... (добавить логику работы с сессиями)
+      // Создаем уникальный идентификатор сессии
+      const sessionId = crypto.randomUUID();
+      
+      // В реальной реализации здесь должно быть сохранение в базу данных или
+      // другое хранилище сессий. В данном примере просто возвращаем идентификатор.
+      
       return sessionId;
     } catch (error) {
-      console.error('[AUTH] Ошибка при создании сессии:', error);
+      console.error('[AuthService] Ошибка создания сессии:', error);
       throw error;
     }
   }
