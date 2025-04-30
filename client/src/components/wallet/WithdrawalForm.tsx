@@ -72,6 +72,12 @@ const WithdrawalForm: React.FC = () => {
     
     // Очищаем ошибки поля currency
     form.clearErrors('currency');
+    
+    // Показываем уведомление о смене валюты
+    showNotification('info', {
+      message: `Выбрана валюта ${currency} для вывода`,
+      duration: 2000
+    });
   };
   
   // Эффект для установки значения кошелька по умолчанию, когда оно доступно
@@ -194,6 +200,12 @@ const WithdrawalForm: React.FC = () => {
       amount: '',
       wallet_address: walletAddress || '',
       currency: selectedCurrency,
+    });
+    
+    // Показываем уведомление о создании новой заявки
+    showNotification('info', {
+      message: 'Форма очищена. Вы можете создать новую заявку на вывод',
+      duration: 3000
     });
   };
   
