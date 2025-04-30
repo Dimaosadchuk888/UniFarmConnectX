@@ -234,7 +234,8 @@ export class BoostService {
       } catch (error) {
         return {
           success: false,
-          message: error instanceof Error ? error.message : 'Недостаточно средств на балансе'
+          message: error instanceof Error ? error.message : 'Недостаточно средств на балансе',
+          availableBalance: balanceUni  // Добавляем информацию о текущем балансе
         };
       }
 

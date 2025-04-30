@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { BoostService } from '../services/boostService';
 import { sendSuccess } from '../utils/responseUtils';
-import { ValidationError, NotFoundError, DatabaseError } from '../middleware/errorHandler';
+import { ValidationError, NotFoundError, DatabaseError, InsufficientFundsError } from '../middleware/errorHandler';
 import { boostUserQuerySchema, boostRequestSchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
 
@@ -65,8 +65,21 @@ export class BoostController {
         sendSuccess(res, purchaseResult);
       } else {
         // Если сервис вернул ошибку в формате объекта с success: false,
-        // преобразуем её в исключение ValidationError
-        throw new ValidationError(purchaseResult.message);
+        // преобразуем её в исключение InsufficientFundsError для ошибок, связанных с недостаточным балансом
+        if (purchaseResult.message.includes('Недостаточно') || 
+            purchaseResult.message.includes('баланс') || 
+            purchaseResult.message.includes('недостаточно')) {
+          // Извлекаем данные о текущем балансе и требуемой сумме
+          const availableBalance = parseFloat(purchaseResult.availableBalance || '0');
+          throw new InsufficientFundsError(
+            purchaseResult.message, 
+            availableBalance, 
+            'UNI'
+          );
+        } else {
+          // Для других ошибок используем ValidationError
+          throw new ValidationError(purchaseResult.message);
+        }
       }
     } catch (error) {
       // Передаем ошибку централизованному обработчику

@@ -1162,9 +1162,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/uni-farming/harvest", UniFarmingController.harvestFarmingInfo);
   
   // Маршруты для буст-пакетов
-  app.get("/api/boosts", BoostController.getBoostPackages);
-  app.get("/api/boosts/active", BoostController.getUserActiveBoosts);
-  app.post("/api/boosts/purchase", BoostController.purchaseBoost);
+  app.get("/api/boosts", (req, res, next) => BoostController.getBoostPackages(req, res, next));
+  app.get("/api/boosts/active", (req, res, next) => BoostController.getUserActiveBoosts(req, res, next));
+  app.post("/api/boosts/purchase", (req, res, next) => BoostController.purchaseBoost(req, res, next));
   
   // Маршруты для TON Boost-пакетов
   app.get("/api/ton-boosts", TonBoostController.getTonBoostPackages);
