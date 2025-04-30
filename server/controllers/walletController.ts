@@ -1,7 +1,11 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { storage } from '../storage';
 import { z } from 'zod';
 import 'express-session';
+import { getUserOrThrow } from '../utils/userUtils';
+import { WalletService } from '../services/walletService';
+import { ValidationError, NotFoundError } from '../middleware/errorHandler';
+import { createValidationErrorFromZod, extractUserId } from '../utils/validationUtils';
 
 // Типизация для доступа к свойствам сессии
 declare module 'express-session' {
@@ -34,7 +38,7 @@ export class WalletController {
   /**
    * Привязывает TON-адрес кошелька к пользователю
    */
-  static async linkWalletAddress(req: Request, res: Response): Promise<void> {
+  static async linkWalletAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация входных данных с помощью Zod
       const schema = z.object({
@@ -45,108 +49,51 @@ export class WalletController {
       const validation = schema.safeParse(req.body);
       
       if (!validation.success) {
-        console.error('[WalletController] Ошибка валидации входных данных:', validation.error.format());
-        res.status(400).json({
-          success: false,
-          message: 'Некорректные параметры запроса',
-          errors: validation.error.format()
-        });
-        return;
+        throw createValidationErrorFromZod('Некорректные параметры запроса', validation.error);
       }
       
       const { wallet_address } = validation.data;
       
       // Валидация формата TON-адреса
       if (!WalletController.validateTonAddress(wallet_address)) {
-        console.error(`[WalletController] Некорректный формат TON-адреса: ${wallet_address}`);
-        res.status(400).json({
-          success: false,
-          message: 'Некорректный формат TON-адреса'
-        });
-        return;
+        throw new ValidationError('Некорректный формат TON-адреса');
       }
       
-      // Получение user_id из сессии или из тела запроса
-      // При необходимости можно добавить извлечение из сессии
-      let userId = validation.data.user_id;
-      
-      if (!userId && req.session && req.session.userId) {
-        userId = req.session.userId;
-      }
+      // Получение user_id из различных источников в запросе
+      const userId = extractUserId(req) || validation.data.user_id;
       
       if (!userId) {
-        console.error('[WalletController] Отсутствует идентификатор пользователя (user_id)');
-        res.status(400).json({
-          success: false,
-          message: 'Отсутствует идентификатор пользователя'
-        });
-        return;
+        throw new ValidationError('Отсутствует идентификатор пользователя');
       }
       
       console.log(`[WalletController] Привязка адреса ${wallet_address} к пользователю ${userId}`);
       
-      // Проверяем существование пользователя
-      const userExists = await storage.getUserById(userId);
-      if (!userExists) {
-        console.error(`[WalletController] Пользователь с ID=${userId} не найден`);
-        res.status(404).json({
-          success: false,
-          message: 'Пользователь не найден'
-        });
-        return;
-      }
+      // Используем WalletService для проверки и обновления адреса кошелька
+      const walletService = new WalletService();
       
-      // Проверяем, не привязан ли уже этот адрес к другому пользователю
-      const existingUser = await storage.getUserByWalletAddress(wallet_address);
-      if (existingUser && existingUser.id !== userId) {
-        console.error(`[WalletController] Адрес ${wallet_address} уже привязан к пользователю ${existingUser.id}`);
-        res.status(400).json({
-          success: false,
-          message: 'Этот адрес кошелька уже привязан к другому пользователю'
-        });
-        return;
-      }
+      // Обновляем адрес кошелька (метод внутри проверит доступность адреса)
+      const updatedWallet = await walletService.updateWalletAddress(userId, wallet_address);
       
-      // Привязываем адрес кошелька к пользователю
-      // Выполняем обновление адреса и получаем обновленного пользователя
-      const updatedUser = await storage.updateUserWalletAddress(userId, wallet_address);
-      
-      if (!updatedUser) {
-        console.error(`[WalletController] Не удалось обновить адрес для пользователя ${userId}, пользователь не найден`);
-        res.status(404).json({
-          success: false,
-          message: 'Пользователь не найден'
-        });
-        return;
-      }
-      
-      // Для аудита проверяем, что адрес был успешно сохранен
+      // Для аудита логируем результат
       console.log(`[WalletController] Успешно обновлен адрес кошелька для пользователя ${userId}`);
-      console.log(`[WalletController] Предыдущее значение в БД: ${updatedUser.ton_wallet_address === wallet_address ? 'null или другое' : updatedUser.ton_wallet_address}`);
-      console.log(`[WalletController] Новое значение в БД: ${updatedUser.ton_wallet_address}`);
+      console.log(`[WalletController] Новое значение в БД: ${updatedWallet.wallet_address}`);
       
-      // Возвращаем успешный ответ в стандартизированном формате
-      res.status(200).json({
-        success: true,
-        data: {
-          user_id: updatedUser.id,
-          wallet_address: updatedUser.ton_wallet_address,
-          message: 'Адрес кошелька успешно привязан к аккаунту'
-        }
+      // Возвращаем успешный ответ через responseFormatter
+      res.success({
+        user_id: updatedWallet.user_id,
+        wallet_address: updatedWallet.wallet_address,
+        message: 'Адрес кошелька успешно привязан к аккаунту'
       });
     } catch (error) {
       console.error('[WalletController] Ошибка при привязке адреса кошелька:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Произошла ошибка при привязке адреса кошелька'
-      });
+      next(error); // Передаем ошибку централизованному обработчику
     }
   }
   
   /**
    * Получает адрес кошелька пользователя
    */
-  static async getUserWalletAddress(req: Request, res: Response): Promise<void> {
+  static async getUserWalletAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация ID пользователя из запроса
       const schema = z.object({
@@ -158,57 +105,30 @@ export class WalletController {
       const validation = schema.safeParse(req.query);
       
       if (!validation.success) {
-        console.error('[WalletController] Ошибка валидации параметров запроса:', validation.error.format());
-        res.status(400).json({
-          success: false,
-          message: 'Некорректные параметры запроса',
-          errors: validation.error.format()
-        });
-        return;
+        throw createValidationErrorFromZod('Некорректные параметры запроса', validation.error);
       }
       
-      // Получение userId из параметров запроса или из сессии
-      let userId = validation.data.user_id;
-      
-      if (!userId && req.session && req.session.userId) {
-        userId = req.session.userId;
-      }
+      // Получение userId из различных источников
+      const userId = extractUserId(req);
       
       if (!userId) {
-        console.error('[WalletController] Отсутствует идентификатор пользователя (user_id)');
-        res.status(400).json({
-          success: false,
-          message: 'Отсутствует идентификатор пользователя'
-        });
-        return;
+        throw new ValidationError('Отсутствует идентификатор пользователя');
       }
       
-      // Получаем пользователя из базы данных
-      const user = await storage.getUserById(userId);
+      console.log(`[WalletController] Получение адреса кошелька для пользователя ${userId}`);
       
-      if (!user) {
-        console.error(`[WalletController] Пользователь с ID=${userId} не найден`);
-        res.status(404).json({
-          success: false,
-          message: 'Пользователь не найден'
-        });
-        return;
-      }
+      // Используем WalletService для получения адреса кошелька
+      const walletService = new WalletService();
+      const walletData = await walletService.getWalletAddress(userId);
       
-      // Возвращаем успешный ответ в стандартизированном формате
-      res.status(200).json({
-        success: true,
-        data: {
-          user_id: user.id,
-          wallet_address: user.ton_wallet_address || null
-        }
+      // Возвращаем успешный ответ через responseFormatter
+      res.success({
+        user_id: walletData.user_id,
+        wallet_address: walletData.wallet_address || null
       });
     } catch (error) {
       console.error('[WalletController] Ошибка при получении адреса кошелька:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Произошла ошибка при получении адреса кошелька'
-      });
+      next(error); // Передаем ошибку централизованному обработчику
     }
   }
 }

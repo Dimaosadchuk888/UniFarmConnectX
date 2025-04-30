@@ -1,57 +1,71 @@
+import { ZodError } from 'zod';
+import { ValidationError } from '../middleware/errorHandler';
 import { Request } from 'express';
 
 /**
- * Утилиты для валидации запросов
+ * Преобразует ошибки Zod в формат, понятный для ValidationError
+ * @param zodError Ошибка валидации от Zod
+ * @returns Объект с ошибками в формате Record<string, string>
  */
-
-/**
- * Извлекает и валидирует ID пользователя из запроса
- * @param req Express Request object
- * @param source Источник ID пользователя ('params', 'query', или 'body')
- * @param paramName Имя параметра (по умолчанию 'user_id')
- * @returns Возвращает id пользователя или null в случае ошибки
- */
-export function extractUserId(
-  req: Request,
-  source: 'params' | 'query' | 'body' = 'params',
-  paramName: string = 'user_id'
-): number | null {
-  let userIdParam: string | undefined;
-
-  // Получаем значение из указанного источника
-  switch (source) {
-    case 'params':
-      userIdParam = req.params[paramName];
-      break;
-    case 'query':
-      userIdParam = req.query[paramName] as string;
-      break;
-    case 'body':
-      userIdParam = req.body[paramName];
-      break;
+export function formatZodErrors(zodError: ZodError): Record<string, string> {
+  const formatted: Record<string, string> = {};
+  
+  const formattedErrors = zodError.format();
+  Object.keys(formattedErrors).forEach(key => {
+    if (key !== '_errors' && typeof formattedErrors[key] === 'object' && formattedErrors[key]._errors?.length) {
+      formatted[key] = formattedErrors[key]._errors.join(', ');
+    }
+  });
+  
+  // Если нет специфичных ошибок полей, используем общие ошибки
+  if (Object.keys(formatted).length === 0 && formattedErrors._errors?.length) {
+    formatted.general = formattedErrors._errors.join(', ');
   }
-
-  // Проверяем на наличие и тип
-  if (!userIdParam || (typeof userIdParam !== 'string' && typeof userIdParam !== 'number')) {
-    return null;
-  }
-
-  // Преобразуем в число
-  const userId = typeof userIdParam === 'number' ? userIdParam : parseInt(userIdParam);
-
-  // Проверяем на валидность числа
-  if (isNaN(userId) || userId <= 0) {
-    return null;
-  }
-
-  return userId;
+  
+  return formatted;
 }
 
 /**
- * Проверяет, является ли значение числом
+ * Создает ValidationError на основе ошибки Zod
+ * @param message Общее сообщение об ошибке
+ * @param zodError Ошибка валидации от Zod
+ * @returns ValidationError с отформатированными ошибками
  */
-export function isNumeric(value: any): boolean {
-  if (typeof value === 'number') return true;
-  if (typeof value !== 'string') return false;
-  return !isNaN(parseFloat(value)) && isFinite(Number(value));
+export function createValidationErrorFromZod(message: string, zodError: ZodError): ValidationError {
+  return new ValidationError(message, formatZodErrors(zodError));
+}
+
+/**
+ * Извлекает ID пользователя из различных источников запроса
+ * Порядок приоритета: параметр user_id в теле запроса или query -> сессия -> параметр из URL
+ * 
+ * @param req Объект запроса Express
+ * @returns ID пользователя или undefined, если не найден
+ */
+export function extractUserId(req: Request): number | undefined {
+  let userId: number | undefined;
+  
+  // Проверяем наличие user_id в теле запроса или query параметрах
+  if (req.body && typeof req.body.user_id === 'number') {
+    userId = req.body.user_id;
+  } else if (req.body && typeof req.body.user_id === 'string') {
+    userId = parseInt(req.body.user_id);
+    if (isNaN(userId)) userId = undefined;
+  } else if (req.query && typeof req.query.user_id === 'string') {
+    userId = parseInt(req.query.user_id);
+    if (isNaN(userId)) userId = undefined;
+  }
+  
+  // Если не нашли в теле/параметрах, проверяем сессию
+  if (!userId && req.session && req.session.userId) {
+    userId = req.session.userId;
+  }
+  
+  // В последнюю очередь проверяем параметры маршрута
+  if (!userId && req.params && req.params.userId) {
+    userId = parseInt(req.params.userId);
+    if (isNaN(userId)) userId = undefined;
+  }
+  
+  return userId;
 }
