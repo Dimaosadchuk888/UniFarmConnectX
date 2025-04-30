@@ -1,0 +1,138 @@
+import { db } from '../db';
+import { users } from '@shared/schema';
+import { NotFoundError, ValidationError, ForbiddenError } from '../middleware/errorHandler';
+import { z } from 'zod';
+
+/**
+ * Схема для запроса админского ключа
+ */
+export const adminKeySchema = z.object({
+  adminKey: z.string().min(1, 'Ключ администратора не может быть пустым')
+});
+
+export type AdminKeyRequest = z.infer<typeof adminKeySchema>;
+
+/**
+ * Схема для расширенных параметров админских запросов
+ */
+export const adminParamsSchema = z.object({
+  userId: z.number().optional(),
+  limit: z.number().min(1).max(1000).default(100).optional(),
+  offset: z.number().min(0).default(0).optional(),
+  showTestAccounts: z.boolean().default(true).optional(),
+  sortBy: z.enum(['created_at', 'id', 'username', 'balance_uni']).default('id').optional(),
+  sortDirection: z.enum(['asc', 'desc']).default('asc').optional(),
+});
+
+export type AdminParams = z.infer<typeof adminParamsSchema>;
+
+/**
+ * Интерфейс пользователя с флагами для админской панели
+ */
+export interface UserWithFlags {
+  id: number;
+  telegramId: number | null;
+  username: string | null;
+  createdAt: Date | null;
+  isTestAccount: boolean;
+}
+
+/**
+ * Результаты списка пользователей с дополнительной статистикой
+ */
+export interface UsersListResult {
+  users: UserWithFlags[];
+  stats: {
+    totalUsers: number;
+    usersWithValidTelegramId: number;
+    usersWithoutTelegramId: number;
+    usersWithTestTelegramId: number;
+    duplicateTelegramIds: Record<string, number>;
+  };
+  generatedAt: string;
+}
+
+/**
+ * Сервис для административных функций
+ */
+export class AdminService {
+  /**
+   * Проверяет административные права доступа
+   * @param adminKey - Ключ администратора
+   * @throws ForbiddenError если доступ запрещен
+   */
+  static verifyAdminAccess(adminKey: string): void {
+    const IS_DEV = process.env.NODE_ENV === 'development';
+    const SECRET_KEY = process.env.ADMIN_SECRET_KEY;
+    
+    if (!SECRET_KEY) {
+      console.error('[AdminService] Отсутствует ADMIN_SECRET_KEY в переменных окружения');
+      throw new Error('Серверная ошибка конфигурации. Обратитесь к администратору.');
+    }
+    
+    if (!adminKey || adminKey !== SECRET_KEY) {
+      console.warn('[AdminService] Попытка доступа к админскому API без правильного ключа');
+      throw new ForbiddenError('Доступ запрещен: неверный ключ администратора');
+    }
+  }
+
+  /**
+   * Получает список всех пользователей с их Telegram ID
+   * @param params - Дополнительные параметры запроса
+   * @returns Список пользователей с дополнительной статистикой
+   */
+  static async listUsersWithTelegramId(params?: AdminParams): Promise<UsersListResult> {
+    console.log('[AdminService] Запрос списка пользователей с Telegram ID');
+    
+    // Получаем всех пользователей из базы
+    const allUsers = await db.select({
+      id: users.id,
+      telegramId: users.telegram_id,
+      username: users.username,
+      createdAt: users.created_at
+    }).from(users);
+    
+    // Добавляем флаг тестового аккаунта для каждого пользователя
+    const usersWithFlags: UserWithFlags[] = allUsers.map(user => ({
+      ...user,
+      isTestAccount: !user.telegramId || user.telegramId === 1
+    }));
+    
+    // Подсчитываем статистику для диагностики
+    const stats = {
+      totalUsers: allUsers.length,
+      usersWithValidTelegramId: allUsers.filter(u => u.telegramId && u.telegramId > 1).length,
+      usersWithoutTelegramId: allUsers.filter(u => !u.telegramId).length,
+      usersWithTestTelegramId: allUsers.filter(u => u.telegramId === 1).length,
+      duplicateTelegramIds: this.findDuplicateTelegramIds(allUsers)
+    };
+    
+    return {
+      users: usersWithFlags,
+      stats,
+      generatedAt: new Date().toISOString()
+    };
+  }
+  
+  /**
+   * Вспомогательная функция для поиска дубликатов Telegram ID
+   * @private
+   */
+  private static findDuplicateTelegramIds(users: { telegramId: number | null }[]): Record<string, number> {
+    const idCounts: Record<string, number> = {};
+    const duplicates: Record<string, number> = {};
+    
+    users.forEach(user => {
+      if (user.telegramId) {
+        const idStr = user.telegramId.toString();
+        idCounts[idStr] = (idCounts[idStr] || 0) + 1;
+        
+        if (idCounts[idStr] > 1) {
+          duplicates[idStr] = idCounts[idStr];
+        }
+      }
+    });
+    
+    return duplicates;
+  }
+}
