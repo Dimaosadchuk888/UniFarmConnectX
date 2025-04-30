@@ -3,7 +3,12 @@ import { users, transactions, farmingDeposits } from '@shared/schema';
 import { eq, sql, desc } from 'drizzle-orm';
 import { BigNumber } from 'bignumber.js';
 import { add } from 'date-fns';
-import { DatabaseError, NotFoundError } from '../middleware/errorHandler';
+import { 
+  DatabaseError, 
+  NotFoundError, 
+  InsufficientFundsError, 
+  ValidationError 
+} from '../middleware/errorHandler';
 
 /**
  * Модель буст-пакета
@@ -26,7 +31,7 @@ export interface PurchaseBoostResult {
   message: string;
   boostPackage?: BoostPackage;
   transactionId?: number;
-  availableBalance?: string;  // Текущий доступный баланс пользователя
+  deposit_id?: number;
 }
 
 /**
@@ -48,7 +53,16 @@ export interface BoostDepositWithPackage {
 }
 
 /**
+ * Данные о балансе пользователя
+ */
+export interface UserBalance {
+  balance_uni: string;
+  balance_ton: string;
+}
+
+/**
  * Сервис для работы с буст-пакетами
+ * Реализует бизнес-логику для операций с бустами
  */
 export class BoostService {
   // Список доступных буст-пакетов
@@ -116,16 +130,18 @@ export class BoostService {
   }
 
   /**
-   * Проверяет существование пользователя и возвращает его баланс
+   * Проверяет существование пользователя и возвращает его полный баланс
    * @param userId ID пользователя
-   * @returns Баланс пользователя в UNI
+   * @returns Объект с балансами пользователя
    * @throws NotFoundError если пользователь не найден
+   * @throws DatabaseError в случае ошибки при работе с БД
    */
-  static async getUserBalance(userId: number): Promise<string> {
+  static async getUserBalances(userId: number): Promise<UserBalance> {
     try {
       const [user] = await db
         .select({
-          balance_uni: users.balance_uni
+          balance_uni: users.balance_uni,
+          balance_ton: users.balance_ton
         })
         .from(users)
         .where(eq(users.id, userId));
@@ -134,7 +150,10 @@ export class BoostService {
         throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
       }
 
-      return user.balance_uni?.toString() || '0';
+      return {
+        balance_uni: user.balance_uni?.toString() || '0',
+        balance_ton: user.balance_ton?.toString() || '0'
+      };
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw error;
@@ -145,15 +164,27 @@ export class BoostService {
   }
 
   /**
+   * Получает UNI баланс пользователя
+   * @param userId ID пользователя
+   * @returns Баланс пользователя в UNI
+   * @throws NotFoundError если пользователь не найден
+   */
+  static async getUserUniBalance(userId: number): Promise<string> {
+    const balances = await this.getUserBalances(userId);
+    return balances.balance_uni;
+  }
+
+  /**
    * Получает все активные Boost-депозиты пользователя
    * @param userId ID пользователя
    * @returns Список активных Boost-депозитов с информацией о буст-пакетах
+   * @throws NotFoundError если пользователь не найден
    * @throws DatabaseError в случае ошибки при работе с БД
    */
   static async getUserActiveBoosts(userId: number): Promise<BoostDepositWithPackage[]> {
     try {
       // Проверяем существование пользователя
-      await this.getUserBalance(userId);
+      await this.getUserBalances(userId);
       
       // Получаем все активные буст-депозиты пользователя
       // (где тип депозита начинается с 'boost_' и дата окончания в будущем)
@@ -176,6 +207,7 @@ export class BoostService {
           boostPackage = this.getBoostPackageById(boostId);
         } catch (error) {
           // Если буст-пакет не найден, просто не добавляем его информацию
+          console.warn(`[BoostService] Буст-пакет с ID ${boostId} не найден для депозита #${deposit.id}`);
         }
         
         return {
@@ -196,18 +228,130 @@ export class BoostService {
    * Проверяет, достаточно ли у пользователя средств для покупки буст-пакета
    * @param balanceUni Баланс пользователя в UNI
    * @param priceUni Стоимость буст-пакета в UNI
-   * @returns true, если средств достаточно
-   * @throws Error с сообщением о недостаточном балансе
+   * @throws InsufficientFundsError если средств недостаточно
    */
-  static checkSufficientFunds(balanceUni: string, priceUni: string): boolean {
+  static validateSufficientFunds(balanceUni: string, priceUni: string): void {
     const balance = new BigNumber(balanceUni);
     const price = new BigNumber(priceUni);
     
     if (balance.isLessThan(price)) {
-      throw new Error(`Недостаточно UNI на балансе. Необходимо: ${price.toFormat()}`);
+      throw new InsufficientFundsError(
+        `Недостаточно UNI на балансе. Необходимо: ${price.toFormat()}`, 
+        Number(balance.toFixed(6)), 
+        'UNI'
+      );
     }
+  }
+
+  /**
+   * Создает запись о буст-депозите в базе данных
+   * @param userId ID пользователя
+   * @param boostPackage Буст-пакет
+   * @returns ID созданного депозита
+   * @throws DatabaseError в случае ошибки при работе с БД
+   */
+  private static async createBoostDeposit(
+    userId: number, 
+    boostPackage: BoostPackage, 
+    tx: any
+  ): Promise<number> {
+    // Срок действия буста - 365 дней
+    const expiresAt = add(new Date(), { days: 365 });
     
-    return true;
+    // Тип депозита в формате 'boost_X', где X - ID буста
+    const depositType = `boost_${boostPackage.id}`;
+    
+    try {
+      // Создаем запись о депозите
+      const [deposit] = await tx
+        .insert(farmingDeposits)
+        .values({
+          user_id: userId,
+          amount_uni: '0', // UNI не фармится, только TON
+          rate_uni: '0',
+          rate_ton: boostPackage.rateTon,
+          last_claim: new Date(),
+          is_boosted: true,
+          deposit_type: depositType,
+          boost_id: boostPackage.id,
+          expires_at: expiresAt
+        })
+        .returning({ id: farmingDeposits.id });
+        
+      return deposit.id;
+    } catch (error) {
+      throw new DatabaseError('Ошибка при создании буст-депозита', error);
+    }
+  }
+
+  /**
+   * Создает запись о транзакции в базе данных
+   * @param userId ID пользователя
+   * @param boostPackage Буст-пакет
+   * @param tx Транзакция базы данных
+   * @returns ID созданной транзакции
+   * @throws DatabaseError в случае ошибки при работе с БД
+   */
+  private static async createBoostTransaction(
+    userId: number, 
+    boostPackage: BoostPackage, 
+    tx: any
+  ): Promise<number> {
+    try {
+      // Создаем запись о транзакции для бонуса
+      const [transaction] = await tx
+        .insert(transactions)
+        .values({
+          user_id: userId,
+          type: 'boost_bonus',
+          currency: 'UNI',
+          amount: boostPackage.bonusUni,
+          status: 'confirmed',
+          description: `Бонус за покупку буст-пакета "${boostPackage.name}"`,
+          category: 'boost',
+          source: 'boost_purchase'
+        })
+        .returning({ id: transactions.id });
+        
+      return transaction.id;
+    } catch (error) {
+      throw new DatabaseError('Ошибка при создании записи о транзакции', error);
+    }
+  }
+
+  /**
+   * Обновляет баланс пользователя после покупки буста
+   * @param userId ID пользователя
+   * @param priceUni Стоимость буста в UNI
+   * @param bonusUni Бонус UNI
+   * @param tx Транзакция базы данных
+   * @throws DatabaseError в случае ошибки при работе с БД
+   */
+  private static async updateUserBalance(
+    userId: number, 
+    priceUni: string, 
+    bonusUni: string, 
+    tx: any
+  ): Promise<void> {
+    try {
+      // 1. Списываем средства с баланса пользователя
+      await tx
+        .update(users)
+        .set({
+          balance_uni: sql`${users.balance_uni} - ${priceUni}`
+        })
+        .where(eq(users.id, userId));
+
+      // 2. Начисляем бонус
+      await tx
+        .update(users)
+        .set({
+          balance_uni: sql`${users.balance_uni} + ${bonusUni}`
+        })
+        .where(eq(users.id, userId));
+    } catch (error) {
+      throw new DatabaseError('Ошибка при обновлении баланса пользователя', error);
+    }
   }
 
   /**
@@ -216,6 +360,7 @@ export class BoostService {
    * @param boostId ID буст-пакета
    * @returns Результат покупки
    * @throws NotFoundError если пользователь или буст-пакет не найден
+   * @throws InsufficientFundsError если у пользователя недостаточно средств
    * @throws DatabaseError в случае ошибки при работе с БД
    */
   static async purchaseBoost(userId: number, boostId: number): Promise<PurchaseBoostResult> {
@@ -224,76 +369,25 @@ export class BoostService {
       const boostPackage = this.getBoostPackageById(boostId);
       
       // Получаем баланс пользователя (выбросит NotFoundError, если пользователь не существует)
-      const balanceUni = await this.getUserBalance(userId);
+      const balanceUni = await this.getUserUniBalance(userId);
       
       // Проверяем, хватает ли баланса
       const priceUni = boostPackage.priceUni;
       const bonusUni = boostPackage.bonusUni;
       
-      try {
-        this.checkSufficientFunds(balanceUni, priceUni);
-      } catch (error) {
-        return {
-          success: false,
-          message: error instanceof Error ? error.message : 'Недостаточно средств на балансе',
-          availableBalance: balanceUni  // Добавляем информацию о текущем балансе
-        };
-      }
+      // Проверяем достаточность средств (выбросит InsufficientFundsError, если недостаточно)
+      this.validateSufficientFunds(balanceUni, priceUni);
 
       // Выполняем транзакцию
       return await db.transaction(async (tx) => {
-        // 1. Списываем средства с баланса пользователя
-        await tx
-          .update(users)
-          .set({
-            balance_uni: sql`${users.balance_uni} - ${priceUni}`
-          })
-          .where(eq(users.id, userId));
+        // 1. Обновляем баланс пользователя (списываем стоимость и начисляем бонус)
+        await this.updateUserBalance(userId, priceUni, bonusUni, tx);
 
-        // 2. Начисляем бонус
-        await tx
-          .update(users)
-          .set({
-            balance_uni: sql`${users.balance_uni} + ${bonusUni}`
-          })
-          .where(eq(users.id, userId));
+        // 2. Создаем запись о транзакции
+        const transactionId = await this.createBoostTransaction(userId, boostPackage, tx);
 
-        // 3. Создаем запись о транзакции для бонуса
-        const [transaction] = await tx
-          .insert(transactions)
-          .values({
-            user_id: userId,
-            type: 'boost_bonus',
-            currency: 'UNI',
-            amount: bonusUni,
-            status: 'confirmed',
-            description: `Бонус за покупку буст-пакета "${boostPackage.name}"`,
-            category: 'boost',
-            source: 'boost_purchase'
-          })
-          .returning();
-
-        // 4. Создаем запись в farming_deposits для буста
-        // Срок действия буста - 365 дней
-        const expiresAt = add(new Date(), { days: 365 });
-        
-        // Тип депозита в формате 'boost_X', где X - ID буста
-        const depositType = `boost_${boostId}`;
-        
-        // Создаем запись о депозите
-        await tx
-          .insert(farmingDeposits)
-          .values({
-            user_id: userId,
-            amount_uni: '0', // UNI не фармится, только TON
-            rate_uni: '0',
-            rate_ton: boostPackage.rateTon,
-            last_claim: new Date(),
-            is_boosted: true,
-            deposit_type: depositType,
-            boost_id: boostId,
-            expires_at: expiresAt
-          });
+        // 3. Создаем запись о буст-депозите
+        const depositId = await this.createBoostDeposit(userId, boostPackage, tx);
 
         // Форматируем сумму бонуса для сообщения
         const bonusDisplay = new BigNumber(bonusUni).toFormat();
@@ -302,12 +396,16 @@ export class BoostService {
           success: true,
           message: `Буст-пакет "${boostPackage.name}" успешно куплен. Получено ${bonusDisplay} UNI`,
           boostPackage,
-          transactionId: transaction.id
+          transactionId,
+          deposit_id: depositId
         };
       });
     } catch (error) {
-      // Специфические ошибки пробрасываем дальше
-      if (error instanceof NotFoundError) {
+      // Все ошибки (InsufficientFundsError, NotFoundError, DatabaseError) пробрасываем дальше
+      // для централизованной обработки в errorHandler
+      if (error instanceof NotFoundError ||
+          error instanceof InsufficientFundsError ||
+          error instanceof DatabaseError) {
         throw error;
       }
       

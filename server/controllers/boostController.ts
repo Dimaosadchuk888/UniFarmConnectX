@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { BoostService } from '../services/boostService';
 import { sendSuccess } from '../utils/responseUtils';
-import { ValidationError, NotFoundError, DatabaseError, InsufficientFundsError } from '../middleware/errorHandler';
+import { ValidationError } from '../middleware/errorHandler';
 import { boostUserQuerySchema, boostRequestSchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
 
 /**
  * Контроллер для работы с буст-пакетами
+ * Отвечает за обработку HTTP-запросов, валидацию входных данных,
+ * вызов соответствующих методов сервиса и формирование ответов.
  */
 export class BoostController {
   /**
@@ -15,9 +17,13 @@ export class BoostController {
    */
   static async getBoostPackages(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      // Вызов метода сервиса
       const boostPackages = BoostService.getBoostPackages();
+      
+      // Отправка успешного ответа с данными
       sendSuccess(res, boostPackages);
     } catch (error) {
+      // Передача ошибки централизованному обработчику
       next(error);
     }
   }
@@ -28,7 +34,7 @@ export class BoostController {
    */
   static async getUserActiveBoosts(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Валидация user_id с помощью созданной схемы
+      // Валидация параметров запроса с помощью Zod схемы
       const validationResult = boostUserQuerySchema.safeParse(req.query);
       
       if (!validationResult.success) {
@@ -37,9 +43,13 @@ export class BoostController {
       
       const { user_id } = validationResult.data;
       
+      // Вызов метода сервиса для получения активных бустов пользователя
       const activeBoosts = await BoostService.getUserActiveBoosts(user_id);
+      
+      // Отправка успешного ответа с данными
       sendSuccess(res, activeBoosts);
     } catch (error) {
+      // Передача ошибки централизованному обработчику
       next(error);
     }
   }
@@ -50,7 +60,7 @@ export class BoostController {
    */
   static async purchaseBoost(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Валидация входных данных с помощью созданной схемы
+      // Валидация входных данных с помощью Zod схемы
       const validationResult = boostRequestSchema.safeParse(req.body);
 
       if (!validationResult.success) {
@@ -59,30 +69,15 @@ export class BoostController {
 
       const { user_id, boost_id } = validationResult.data;
 
+      // Вызов метода сервиса для покупки буста
+      // Если в сервисе возникнет ошибка (InsufficientFundsError, NotFoundError и пр.), 
+      // она будет обработана централизованным обработчиком через next(error)
       const purchaseResult = await BoostService.purchaseBoost(user_id, boost_id);
       
-      if (purchaseResult.success) {
-        sendSuccess(res, purchaseResult);
-      } else {
-        // Если сервис вернул ошибку в формате объекта с success: false,
-        // преобразуем её в исключение InsufficientFundsError для ошибок, связанных с недостаточным балансом
-        if (purchaseResult.message.includes('Недостаточно') || 
-            purchaseResult.message.includes('баланс') || 
-            purchaseResult.message.includes('недостаточно')) {
-          // Извлекаем данные о текущем балансе и требуемой сумме
-          const availableBalance = parseFloat(purchaseResult.availableBalance || '0');
-          throw new InsufficientFundsError(
-            purchaseResult.message, 
-            availableBalance, 
-            'UNI'
-          );
-        } else {
-          // Для других ошибок используем ValidationError
-          throw new ValidationError(purchaseResult.message);
-        }
-      }
+      // Отправка успешного ответа с результатом покупки
+      sendSuccess(res, purchaseResult);
     } catch (error) {
-      // Передаем ошибку централизованному обработчику
+      // Передача ошибки централизованному обработчику
       next(error);
     }
   }
