@@ -5,8 +5,8 @@ import { Request, Response, NextFunction } from 'express';
  */
 declare module 'express' {
   interface Response {
-    success: (data: any) => Response;
-    error: (message: string, errors?: any, statusCode?: number) => Response;
+    success: <T>(data: T) => Response;
+    error: (message: string, errors?: Record<string, string> | null, statusCode?: number) => Response;
   }
 }
 
@@ -16,7 +16,7 @@ declare module 'express' {
  */
 export function responseFormatter(req: Request, res: Response, next: NextFunction): void {
   // Успешный ответ
-  res.success = function(data: any): Response {
+  res.success = function<T>(data: T): Response {
     return this.status(200).json({
       success: true,
       data
@@ -24,8 +24,12 @@ export function responseFormatter(req: Request, res: Response, next: NextFunctio
   };
 
   // Ответ с ошибкой
-  res.error = function(message: string, errors = null, statusCode = 400): Response {
-    const response: any = {
+  res.error = function(message: string, errors: Record<string, string> | null = null, statusCode = 400): Response {
+    const response: {
+      success: false;
+      message: string;
+      errors?: Record<string, string> | null;
+    } = {
       success: false,
       message
     };

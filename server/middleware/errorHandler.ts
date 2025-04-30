@@ -25,6 +25,9 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
   if (err.name === 'ValidationError') {
     statusCode = 400;
     errorMessage = err.message;
+  } else if (err.name === 'InsufficientFundsError') {
+    statusCode = 400;
+    errorMessage = err.message;
   } else if (err.name === 'NotFoundError') {
     statusCode = 404;
     errorMessage = err.message;
@@ -49,11 +52,11 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
  */
 export class ValidationError extends Error {
   name = 'ValidationError';
-  errors: any;
+  errors: Record<string, string> | null;
   
-  constructor(message: string, errors?: any) {
+  constructor(message: string, errors?: Record<string, string>) {
     super(message);
-    this.errors = errors;
+    this.errors = errors || null;
   }
 }
 
@@ -94,8 +97,8 @@ export class ForbiddenError extends Error {
  * Класс ошибки недостаточного баланса
  */
 export class InsufficientFundsError extends Error {
-  name = 'ValidationError';
-  errors: any;
+  name = 'InsufficientFundsError';
+  errors: Record<string, string>;
   
   constructor(message: string, balance: number, currency: string) {
     super(message);
