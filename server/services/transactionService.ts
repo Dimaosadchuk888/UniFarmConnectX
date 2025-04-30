@@ -59,8 +59,7 @@ interface LogTransactionParams {
   source?: string;
   category?: string;
   txHash?: string; // Хеш транзакции для TON
-  // Временно заблокировано, пока не будет выполнена миграция БД
-  // walletAddress?: string; // Адрес кошелька (временно не используется)
+  walletAddress?: string; // Адрес кошелька для вывода средств
 }
 
 /**
@@ -79,23 +78,35 @@ export class TransactionService {
         ? params.amount.toString() 
         : params.amount;
 
-      // Используем прямой SQL-запрос для обхода проблемы с отсутствующим полем wallet_address
-      const result = await db.execute(`
-        INSERT INTO transactions 
-        (user_id, type, currency, amount, status, source, category, tx_hash)
-        VALUES 
-        ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING *
-      `, [
-        params.userId,
-        params.type,
-        params.currency,
-        amount,
-        params.status || TransactionStatus.CONFIRMED,
-        params.source || 'app',
-        params.category || this.getCategoryFromType(params.type),
-        params.txHash || null
-      ]);
+      // Базовые данные транзакции
+      const transactionData: InsertTransaction = {
+        user_id: params.userId,
+        type: params.type,
+        currency: params.currency,
+        amount: amount,
+        status: params.status || TransactionStatus.CONFIRMED,
+        source: params.source || 'app',
+        category: params.category || this.getCategoryFromType(params.type)
+      };
+
+      // Если передан хеш транзакции TON, добавляем его в метаданные
+      if (params.txHash) {
+        transactionData.tx_hash = params.txHash;
+      }
+      
+      // Если передан адрес кошелька, добавляем его
+      if (params.walletAddress) {
+        transactionData.wallet_address = params.walletAddress;
+      }
+
+      // Валидируем данные через Zod-схему
+      const validatedData = insertTransactionSchema.parse(transactionData);
+
+      // Сохраняем транзакцию в базу данных
+      const [result] = await db
+        .insert(transactions)
+        .values(validatedData)
+        .returning();
 
       console.log(
         `[Transaction] ${params.type} | Amount: ${amount} ${params.currency} | User: ${params.userId}${
@@ -103,12 +114,10 @@ export class TransactionService {
         } | Saved`
       );
 
-      return result.rows[0];
+      return result;
     } catch (error) {
       console.error('[TransactionService] Ошибка при логировании транзакции:', error);
-      // Пишем в лог, но не выбрасываем ошибку дальше, чтобы не блокировать бэкграунд-процессы
-      console.warn('[TransactionService] Транзакция не сохранена, продолжаем работу');
-      return null;
+      throw error;
     }
   }
 

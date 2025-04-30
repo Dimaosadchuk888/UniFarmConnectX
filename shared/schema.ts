@@ -87,7 +87,6 @@ export type InsertFarmingDeposit = z.infer<typeof insertFarmingDepositSchema>;
 export type FarmingDeposit = typeof farmingDeposits.$inferSelect;
 
 // Таблица transactions по требованиям задачи
-// Note: wallet_address is commented out because it doesn't exist in the database yet
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id").references(() => users.id),
@@ -100,7 +99,7 @@ export const transactions = pgTable("transactions", {
   tx_hash: text("tx_hash"), // хеш транзакции для блокчейн-операций
   description: text("description"), // описание транзакции
   source_user_id: integer("source_user_id"), // ID пользователя-источника (например, реферала)
-  // wallet_address: text("wallet_address"), // адрес кошелька для вывода средств - будет добавлено после миграции
+  wallet_address: text("wallet_address"), // адрес кошелька для вывода средств
   data: text("data"), // JSON-строка с дополнительными данными транзакции
   created_at: timestamp("created_at").defaultNow()
 });
@@ -117,8 +116,7 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
   tx_hash: true,
   description: true,
   source_user_id: true,
-  // Временно отключаем поле wallet_address, пока не будет выполнена миграция БД
-  // wallet_address: true, 
+  wallet_address: true,
   data: true
 });
 
