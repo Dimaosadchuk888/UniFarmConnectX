@@ -76,14 +76,41 @@ export const depositSchema = z.object({
   package_id: z.number().int().nonnegative().optional(),
 });
 
+// Валидация TON-адреса с помощью регулярного выражения
+const tonAddressPattern = /^(?:UQ|EQ)[A-Za-z0-9_-]{46,48}$/;
+
 // Схема для валидации запроса на вывод средств
 export const withdrawSchema = z.object({
-  user_id: z.number().int().positive(),
+  user_id: z.number().int().positive({
+    message: 'ID пользователя должен быть положительным числом'
+  }),
   amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Сумма должна быть положительным числом'
   }),
-  currency: z.enum(['UNI', 'TON']),
-  wallet: z.string().min(5),
+  currency: z.enum(['UNI', 'TON'], {
+    errorMap: () => ({ message: 'Валюта должна быть UNI или TON' })
+  }),
+  wallet_address: z.string().regex(tonAddressPattern, {
+    message: 'Адрес TON-кошелька должен начинаться с UQ или EQ и содержать 48-50 символов'
+  }).optional(),
+});
+
+// Схема для валидации привязки кошелька
+export const walletBindSchema = z.object({
+  user_id: z.number().int().positive({
+    message: 'ID пользователя должен быть положительным числом'
+  }),
+  wallet_address: z.string().regex(tonAddressPattern, {
+    message: 'Адрес TON-кошелька должен начинаться с UQ или EQ и содержать 48-50 символов'
+  }),
+});
+
+// Схема для валидации запроса на получение истории кошелька
+export const walletHistorySchema = z.object({
+  user_id: z.number().int().positive({
+    message: 'ID пользователя должен быть положительным числом'
+  }),
+  limit: z.number().int().min(1).max(100).optional(),
 });
 
 // Расширяем схемы из shared/schema.ts для конкретных запросов API

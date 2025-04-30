@@ -93,12 +93,13 @@ export const transactions = pgTable("transactions", {
   type: text("type"), // deposit / withdraw / reward / boost_bonus
   currency: text("currency"), // UNI / TON
   amount: numeric("amount", { precision: 18, scale: 6 }),
-  status: text("status"), // pending / confirmed / rejected
+  status: text("status").default("confirmed"), // pending / confirmed / rejected
   source: text("source"), // источник транзакции (например, "TON Boost")
   category: text("category"), // категория транзакции (например, "bonus")
   tx_hash: text("tx_hash"), // хеш транзакции для блокчейн-операций
   description: text("description"), // описание транзакции
   source_user_id: integer("source_user_id"), // ID пользователя-источника (например, реферала)
+  wallet_address: text("wallet_address"), // адрес кошелька для вывода средств
   data: text("data"), // JSON-строка с дополнительными данными транзакции
   created_at: timestamp("created_at").defaultNow()
 });

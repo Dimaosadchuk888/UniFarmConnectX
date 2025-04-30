@@ -1,8 +1,60 @@
 import { db } from '../db';
 import { users, transactions } from '@shared/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, desc } from 'drizzle-orm';
 import { InsufficientFundsError, NotFoundError, ValidationError } from '../middleware/errorHandler';
 import type { User } from '@shared/schema';
+
+/**
+ * Интерфейс для запроса вывода средств
+ */
+export interface WithdrawRequest {
+  user_id: number;
+  amount: string;
+  currency: 'UNI' | 'TON';
+  wallet_address?: string;
+}
+
+/**
+ * Интерфейс для запроса привязки кошелька
+ */
+export interface WalletBindRequest {
+  user_id: number;
+  wallet_address: string;
+}
+
+/**
+ * Результат операции с кошельком
+ */
+export interface WalletOperationResult {
+  success: boolean;
+  message?: string;
+  transaction_id?: number;
+  new_balance?: string;
+  wallet_address?: string | null;
+  user_id: number;
+}
+
+/**
+ * Транзакция пользователя
+ */
+export interface UserTransaction {
+  id: number;
+  user_id: number;
+  type: string;
+  amount: string;
+  currency: string;
+  created_at: Date;
+  status?: string;
+  wallet_address?: string | null;
+}
+
+/**
+ * Результат валидации TON-адреса
+ */
+export interface AddressValidationResult {
+  isValid: boolean;
+  message?: string;
+}
 
 /**
  * Сервис для работы с кошельком пользователя
@@ -124,7 +176,8 @@ export class WalletService {
     userId: number,
     amount: number, 
     currency: 'uni' | 'ton',
-    transactionType: string
+    transactionType: string,
+    walletAddress?: string | null
   ): Promise<{ newBalance: string; transactionId: number }> {
     // Получаем пользователя с текущим балансом
     const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -165,7 +218,8 @@ export class WalletService {
           type: transactionType,
           amount: amount.toString(),
           currency: currency.toUpperCase(),
-          created_at: sql`CURRENT_TIMESTAMP`
+          created_at: sql`CURRENT_TIMESTAMP`,
+          wallet_address: walletAddress || null
         })
         .returning({ id: transactions.id });
       
@@ -174,5 +228,132 @@ export class WalletService {
         transactionId: transaction.id
       };
     });
+  }
+
+  /**
+   * Проверяет формат TON-адреса
+   * @param address Адрес TON-кошелька
+   * @returns Результат проверки с флагом и сообщением
+   */
+  validateTonAddress(address: string): AddressValidationResult {
+    // Базовая валидация TON-адреса (UQ... или EQ... форматы)
+    const tonAddressRegex = /^(?:UQ|EQ)[A-Za-z0-9_-]{46,48}$/;
+    const isValid = tonAddressRegex.test(address);
+    
+    return {
+      isValid,
+      message: isValid ? undefined : 'Некорректный формат TON-адреса'
+    };
+  }
+
+  /**
+   * Выводит средства с кошелька пользователя
+   * @param request Параметры вывода средств
+   * @returns Результат операции вывода
+   */
+  async withdrawFunds(request: WithdrawRequest): Promise<WalletOperationResult> {
+    const { user_id, amount, currency, wallet_address } = request;
+    
+    // Проверяем, что пользователь существует
+    const user = await db.select()
+      .from(users)
+      .where(eq(users.id, user_id))
+      .limit(1);
+      
+    if (!user[0]) {
+      throw new NotFoundError(`Пользователь с ID ${user_id} не найден`);
+    }
+    
+    // Преобразуем строковую сумму в число для сравнений и расчетов
+    const numericAmount = parseFloat(amount);
+    
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      throw new ValidationError(`Некорректная сумма для вывода: ${amount}`);
+    }
+    
+    // Если это вывод TON, обязательно нужен адрес кошелька
+    if (currency === 'TON' && !wallet_address) {
+      throw new ValidationError('Для вывода TON необходимо указать адрес кошелька');
+    }
+    
+    // Если передан адрес кошелька, проверяем его формат
+    if (wallet_address) {
+      const addressValidation = this.validateTonAddress(wallet_address);
+      if (!addressValidation.isValid) {
+        throw new ValidationError(addressValidation.message || 'Некорректный формат адреса TON-кошелька');
+      }
+    }
+    
+    // Для вывода TON используем сохраненный адрес кошелька, если не указан другой
+    let withdrawAddress = wallet_address;
+    if (currency === 'TON' && !withdrawAddress) {
+      // Используем привязанный адрес
+      if (!user[0].ton_wallet_address) {
+        throw new ValidationError('У пользователя не привязан TON-кошелек для вывода');
+      }
+      withdrawAddress = user[0].ton_wallet_address;
+    }
+    
+    try {
+      // Обновляем баланс (уменьшаем на сумму вывода)
+      // Отрицательное значение, так как это снятие средств
+      const result = await this.updateBalance(
+        user_id,
+        -numericAmount,
+        currency.toLowerCase() as 'uni' | 'ton',
+        'withdraw',
+        withdrawAddress
+      );
+      
+      return {
+        success: true,
+        user_id,
+        transaction_id: result.transactionId,
+        new_balance: result.newBalance,
+        message: `Вывод ${amount} ${currency} успешно инициирован`,
+        wallet_address: withdrawAddress
+      };
+    } catch (error) {
+      if (error instanceof InsufficientFundsError) {
+        throw error; // Просто передаем ошибку дальше
+      }
+      throw new Error(`Ошибка при выводе средств: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Получает историю транзакций пользователя
+   * @param userId ID пользователя
+   * @param limit Максимальное количество записей (по умолчанию 20)
+   * @returns Массив транзакций пользователя
+   */
+  async getUserTransactions(userId: number, limit: number = 20): Promise<UserTransaction[]> {
+    // Проверяем, что пользователь существует
+    const user = await db.select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+      
+    if (!user[0]) {
+      throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+    }
+    
+    // Получаем историю транзакций пользователя
+    const userTransactions = await db.select({
+      id: transactions.id,
+      user_id: transactions.user_id,
+      type: transactions.type,
+      amount: transactions.amount,
+      currency: transactions.currency,
+      created_at: transactions.created_at,
+      status: transactions.status,
+      wallet_address: transactions.wallet_address
+    })
+    .from(transactions)
+    .where(eq(transactions.user_id, userId))
+    .orderBy(desc(transactions.created_at))
+    .limit(limit);
+    
+    return userTransactions;
   }
 }
