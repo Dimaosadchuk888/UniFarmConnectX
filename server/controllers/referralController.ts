@@ -72,24 +72,20 @@ export class ReferralController {
   /**
    * Получает данные по партнерке для пользователя
    * Обновлено: гарантирует возврат валидных данных даже при отсутствии рефералов
+   * и обеспечивает строгую валидацию входных параметров
    */
   static async getUserReferrals(req: Request, res: Response): Promise<void> {
     try {
-      const userId = extractUserId(req, 'query');
+      // Валидация userId с использованием безопасной обертки
+      const userIdRaw = extractUserId(req, 'query');
       
-      if (!userId) {
-        console.log('[ReferralController] Отсутствует userId в запросе');
-        // Возвращаем пустые данные вместо ошибки
-        return sendSuccess(res, {
-          user_id: 0,
-          username: "",
-          total_referrals: 0,
-          referral_counts: {},
-          level_income: {},
-          referrals: [] // Гарантируем пустой массив вместо undefined
-        });
+      // Проверяем, что userId - это положительное целое число
+      if (!userIdRaw || isNaN(userIdRaw) || userIdRaw <= 0) {
+        console.log('[ReferralController] Некорректный userId в запросе:', userIdRaw);
+        return sendError(res, 'Некорректный идентификатор пользователя', 400);
       }
-
+      
+      const userId = Number(userIdRaw);
       console.log(`[ReferralController] Запрос данных для пользователя: ${userId}`);
 
       try {
@@ -97,66 +93,77 @@ export class ReferralController {
         const user = await UserService.getUserById(userId);
         if (!user) {
           console.log(`[ReferralController] Пользователь с ID ${userId} не найден`);
-          // Возвращаем пустые данные вместо ошибки
-          return sendSuccess(res, {
-            user_id: userId,
-            username: "",
-            total_referrals: 0,
-            referral_counts: {},
-            level_income: {},
-            referrals: [] // Гарантируем пустой массив вместо undefined
-          });
+          return sendError(res, 'Пользователь не найден', 404);
         }
 
-        // Получаем список приглашенных пользователей с защитой от ошибок
-        const referrals = await ReferralService.getUserReferrals(userId);
+        // Получаем список приглашенных пользователей
+        let referrals;
+        try {
+          referrals = await ReferralService.getUserReferrals(userId);
+          console.log(`[ReferralController] Получено ${referrals?.length || 0} рефералов для пользователя ${userId}`);
+        } catch (referralsError) {
+          console.error('[ReferralController] Ошибка при получении списка рефералов:', referralsError);
+          referrals = []; // Fallback к пустому массиву при ошибке
+        }
         
-        // Получаем статистику по уровням рефералов с защитой от ошибок
-        const referralCounts = await ReferralService.getReferralCounts(userId);
+        // Получаем статистику по уровням рефералов
+        let referralCounts = {};
+        try {
+          referralCounts = await ReferralService.getReferralCounts(userId);
+        } catch (countsError) {
+          console.error('[ReferralController] Ошибка при получении статистики рефералов:', countsError);
+        }
         
-        // Получаем данные по доходам с каждого уровня рефералов с защитой от ошибок
+        // Получаем данные по доходам с каждого уровня рефералов
         let levelIncome = {};
         try {
           levelIncome = await ReferralController.getLevelIncomeData(userId);
         } catch (incomeError) {
           console.error('[ReferralController] Ошибка при получении данных о доходах:', incomeError);
-          // Логируем ошибку, но продолжаем работу с пустым объектом
         }
         
         // Формируем ответ, гарантируя, что все поля определены
         const response = {
           user_id: userId,
           username: user.username || "",
+          ref_code: user.ref_code || "",
           total_referrals: referrals ? referrals.length : 0,
           referral_counts: referralCounts || {},
           level_income: levelIncome || {},
           referrals: referrals || [] // Гарантируем, что всегда есть массив
         };
+        
+        // Добавляем дополнительную проверку целостности данных перед отправкой
+        // Проверяем, что все числовые поля действительно числа
+        if (typeof response.total_referrals !== 'number') {
+          response.total_referrals = 0;
+        }
+        
+        // Проверяем, что все массивы действительно массивы
+        if (!Array.isArray(response.referrals)) {
+          response.referrals = [];
+        }
+        
+        // Проверяем, что все объекты действительно объекты
+        if (typeof response.referral_counts !== 'object' || response.referral_counts === null) {
+          response.referral_counts = {};
+        }
+        
+        if (typeof response.level_income !== 'object' || response.level_income === null) {
+          response.level_income = {};
+        }
 
+        // Отправляем успешный ответ
         sendSuccess(res, response);
       } catch (innerError) {
         console.error('[ReferralController] Внутренняя ошибка при обработке запроса:', innerError);
-        // Даже при внутренней ошибке возвращаем валидные данные
-        sendSuccess(res, {
-          user_id: userId,
-          username: "",
-          total_referrals: 0,
-          referral_counts: {},
-          level_income: {},
-          referrals: []
-        });
+        // При ошибке сообщаем о ней клиенту, а не сохраняем "тихое поведение"
+        sendServerError(res, 'Ошибка при обработке запроса реферальных данных');
       }
     } catch (error) {
       console.error('[ReferralController] Критическая ошибка:', error);
-      // Даже при полном отказе возвращаем пустые данные вместо ошибки
-      sendSuccess(res, {
-        user_id: 0,
-        username: "",
-        total_referrals: 0,
-        referral_counts: {},
-        level_income: {},
-        referrals: []
-      });
+      // Возвращаем ошибку сервера, а не скрываем ее за успешным ответом
+      sendServerError(res, 'Критическая ошибка при обработке запроса реферальных данных');
     }
   }
   

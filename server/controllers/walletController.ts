@@ -1,6 +1,20 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { z } from 'zod';
+import 'express-session';
+
+// Типизация для доступа к свойствам сессии
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+    user?: {
+      id: number;
+      username: string;
+      ref_code?: string;
+      guest_id?: string;
+    };
+  }
+}
 
 /**
  * Контроллер для работы с TON-кошельками пользователей

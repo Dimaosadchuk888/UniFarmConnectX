@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
-import { transactions } from '@shared/schema';
+import { transactions, User } from '@shared/schema';
 import { db } from '../db';
 import { eq, desc } from 'drizzle-orm';
 import { TransactionService, TransactionType, Currency, TransactionStatus, TransactionCategory } from '../services/transactionService';
@@ -214,7 +214,7 @@ export class TransactionController {
       }
       
       // Проверяем существование пользователя
-      const user = await storage.getUser(user_id);
+      const user = await storage.getUserById(user_id);
       if (!user) {
         console.error(`[TransactionController] Пользователь не найден: ${user_id}`);
         res.status(404).json({
@@ -225,9 +225,13 @@ export class TransactionController {
       }
       
       // Проверяем достаточность средств на балансе
+      // Используем безопасное получение значений баланса с учетом возможных отличий в типе пользователя
+      const balanceUni = typeof user.balance_uni === 'string' ? user.balance_uni : '0';
+      const balanceTon = typeof user.balance_ton === 'string' ? user.balance_ton : '0';
+      
       const balance = formattedCurrency === 'UNI' 
-        ? parseFloat(user.balance_uni || '0')
-        : parseFloat(user.balance_ton || '0');
+        ? parseFloat(balanceUni || '0')
+        : parseFloat(balanceTon || '0');
         
       if (balance < numAmount) {
         console.error(`[TransactionController] Недостаточно средств для вывода: на балансе ${balance} ${formattedCurrency}, запрошено ${numAmount}`);
