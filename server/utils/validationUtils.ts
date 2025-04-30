@@ -11,14 +11,20 @@ export function formatZodErrors(zodError: ZodError): Record<string, string> {
   const formatted: Record<string, string> = {};
   
   const formattedErrors = zodError.format();
+  
+  // Более типобезопасная версия с явной проверкой типов и свойств
   Object.keys(formattedErrors).forEach(key => {
-    if (key !== '_errors' && typeof formattedErrors[key] === 'object' && formattedErrors[key]._errors?.length) {
-      formatted[key] = formattedErrors[key]._errors.join(', ');
+    const error = formattedErrors[key as keyof typeof formattedErrors];
+    if (key !== '_errors' && error && typeof error === 'object' && '_errors' in error && Array.isArray(error._errors) && error._errors.length > 0) {
+      formatted[key] = error._errors.join(', ');
     }
   });
   
   // Если нет специфичных ошибок полей, используем общие ошибки
-  if (Object.keys(formatted).length === 0 && formattedErrors._errors?.length) {
+  if (Object.keys(formatted).length === 0 && 
+      '_errors' in formattedErrors && 
+      Array.isArray(formattedErrors._errors) && 
+      formattedErrors._errors.length > 0) {
     formatted.general = formattedErrors._errors.join(', ');
   }
   

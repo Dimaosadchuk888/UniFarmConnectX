@@ -9,6 +9,44 @@ import {
  * Схемы валидации запросов API
  */
 
+// Схема для получения пользователя по ID
+export const userIdSchema = z.object({
+  user_id: z.number().int().positive({
+    message: 'ID пользователя должен быть положительным числом'
+  })
+});
+
+// Схема для получения пользователя по guest_id
+export const guestIdSchema = z.object({
+  guest_id: z.string().min(1, {
+    message: 'guest_id должен быть непустой строкой'
+  })
+});
+
+// Схема для валидации данных баланса
+export const userBalanceSchema = z.object({
+  balance_uni: z.string().optional(),
+  balance_ton: z.string().optional()
+});
+
+// Схема для валидации данных при обновлении пользователя
+export const updateUserSchema = z.object({
+  user_id: z.number().int().positive({
+    message: 'ID пользователя должен быть положительным числом'
+  }),
+  data: z.object({
+    username: z.string().min(3).optional(),
+    ref_code: z.string().min(6).optional(),
+    wallet_address: z.string().optional(),
+    telegram_id: z.number().int().nullable().optional(),
+    balance_uni: z.string().optional(),
+    balance_ton: z.string().optional(),
+    guest_id: z.string().optional(),
+    parent_id: z.number().int().nullable().optional(),
+    parent_ref_code: z.string().nullable().optional()
+  })
+});
+
 // Схема для валидации запроса на получение пользователя по ID
 export const getUserParamsSchema = z.object({
   id: z.string().refine(val => !isNaN(parseInt(val)) && parseInt(val) > 0, {

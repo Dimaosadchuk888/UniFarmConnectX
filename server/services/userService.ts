@@ -3,6 +3,16 @@ import { users, User } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { storage } from '../storage';
 import * as crypto from 'crypto';
+import { NotFoundError } from '../middleware/errorHandler';
+
+// Определяем интерфейс для данных баланса пользователя
+export interface UserBalanceInfo {
+  balance_uni: string;
+  balance_ton: string;
+  username: string;
+  telegram_id: number | null;
+  ref_code: string;
+}
 
 /**
  * Сервис для работы с пользователями
@@ -260,13 +270,7 @@ export class UserService {
    * @returns Объект с балансами пользователя
    * @throws NotFoundError если пользователь не найден
    */
-  static async getUserBalanceById(userId: number): Promise<{
-    balance_uni: string;
-    balance_ton: string;
-    username: string;
-    telegram_id: number | null;
-    ref_code: string | null;
-  }> {
+  static async getUserBalanceById(userId: number): Promise<UserBalanceInfo> {
     const user = await this.getUserById(userId);
     
     if (!user) {
@@ -278,7 +282,7 @@ export class UserService {
       balance_ton: String(user.balance_ton || '0.000000'),
       username: user.username,
       telegram_id: user.telegram_id,
-      ref_code: user.ref_code
+      ref_code: typeof user.ref_code === 'string' ? user.ref_code : ''
     };
   }
   
