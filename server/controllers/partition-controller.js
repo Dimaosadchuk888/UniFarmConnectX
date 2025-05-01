@@ -8,26 +8,34 @@
  * - Получение логов партиционирования
  */
 
-import * as partitionService from '../services/partition-service';
+import * as partitionService from '../services/partition-service.js';
 
 /**
  * Получение статуса партиционирования таблицы
  */
 export async function getPartitioningStatus(req, res) {
   try {
-    const tableName = req.query.table || 'transactions';
-    const stats = await partitionService.getPartitionStats(tableName);
+    // Проверяем статус партиционирования
+    const isPartitioned = await partitionService.isTablePartitioned();
     
-    return res.json({
+    // Получаем статистику по партициям
+    const stats = await partitionService.getPartitionStats();
+    
+    // Формируем ответ
+    return res.status(200).json({
       success: true,
-      data: stats
+      data: {
+        isPartitioned,
+        stats
+      }
     });
   } catch (error) {
-    console.error('Error in getPartitioningStatus:', error);
+    console.error('[PartitionController] Ошибка при получении статуса партиционирования:', error);
     return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
-      message: error.message
+      message: 'Произошла ошибка при получении статуса партиционирования',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -37,19 +45,24 @@ export async function getPartitioningStatus(req, res) {
  */
 export async function listPartitions(req, res) {
   try {
-    const tableName = req.query.table || 'transactions';
-    const partitions = await partitionService.getPartitionsList(tableName);
+    // Получаем список всех партиций
+    const partitions = await partitionService.getPartitionsList();
     
-    return res.json({
+    // Формируем ответ
+    return res.status(200).json({
       success: true,
-      data: partitions
+      data: {
+        partitions,
+        total: partitions.length
+      }
     });
   } catch (error) {
-    console.error('Error in listPartitions:', error);
+    console.error('[PartitionController] Ошибка при получении списка партиций:', error);
     return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
-      message: error.message
+      message: 'Произошла ошибка при получении списка партиций',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -59,19 +72,27 @@ export async function listPartitions(req, res) {
  */
 export async function getPartitionLogs(req, res) {
   try {
-    const limit = parseInt(req.query.limit || '50', 10);
+    // Получаем лимит из параметров запроса или используем значение по умолчанию
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : 50;
+    
+    // Получаем логи партиционирования
     const logs = await partitionService.getPartitionLogs(limit);
     
-    return res.json({
+    // Формируем ответ
+    return res.status(200).json({
       success: true,
-      data: logs
+      data: {
+        logs,
+        total: logs.length
+      }
     });
   } catch (error) {
-    console.error('Error in getPartitionLogs:', error);
+    console.error('[PartitionController] Ошибка при получении логов партиционирования:', error);
     return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
-      message: error.message
+      message: 'Произошла ошибка при получении логов партиционирования',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -81,37 +102,38 @@ export async function getPartitionLogs(req, res) {
  */
 export async function createPartitions(req, res) {
   try {
-    const days = parseInt(req.body.days || '7', 10);
+    // Получаем количество дней из тела запроса или используем значение по умолчанию
+    const days = req.body.days ? parseInt(req.body.days, 10) : 7;
     
-    if (isNaN(days) || days < 1 || days > 30) {
+    // Проверяем валидность значения
+    if (days <= 0 || days > 365) {
       return res.status(400).json({
         success: false,
         error: 'Bad Request',
-        message: 'Parameter "days" must be a number between 1 and 30'
+        message: 'Количество дней должно быть положительным числом и не превышать 365'
       });
     }
     
-    const tableName = req.body.table || 'transactions';
-    const result = await partitionService.createFuturePartitions(days, tableName);
+    // Создаем партиции на указанное количество дней вперед
+    const result = await partitionService.createFuturePartitions(days);
     
-    if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        error: 'Bad Request',
-        message: result.error
-      });
-    }
-    
-    return res.json({
+    // Формируем ответ
+    return res.status(200).json({
       success: true,
-      data: result
+      data: {
+        days,
+        created: result.created,
+        skipped: result.skipped,
+        partitions: result.partitions
+      }
     });
   } catch (error) {
-    console.error('Error in createPartitions:', error);
+    console.error('[PartitionController] Ошибка при создании партиций:', error);
     return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
-      message: error.message
+      message: 'Произошла ошибка при создании партиций',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -121,46 +143,55 @@ export async function createPartitions(req, res) {
  */
 export async function dropPartition(req, res) {
   try {
-    const { partitionName, tableName = 'transactions' } = req.body;
+    // Получаем имя партиции из тела запроса
+    const { partitionName } = req.body;
     
+    // Проверяем наличие имени партиции
     if (!partitionName) {
       return res.status(400).json({
         success: false,
         error: 'Bad Request',
-        message: 'Parameter "partitionName" is required'
+        message: 'Не указано имя партиции для удаления'
       });
     }
     
     // Проверяем формат имени партиции для безопасности
-    const partitionNameRegex = new RegExp(`^${tableName}_\\d{4}_\\d{2}_\\d{2}$`);
-    if (!partitionNameRegex.test(partitionName)) {
+    if (!partitionName.match(/^transactions_\d{4}_\d{2}_\d{2}$/)) {
       return res.status(400).json({
         success: false,
         error: 'Bad Request',
-        message: `Invalid partition name format. Expected format: ${tableName}_YYYY_MM_DD`
+        message: 'Неверный формат имени партиции. Ожидается формат: transactions_YYYY_MM_DD'
       });
     }
     
-    const result = await partitionService.dropPartition(partitionName, tableName);
-    
-    if (!result.dropped) {
-      return res.status(400).json({
+    // Проверяем существование партиции
+    const exists = await partitionService.partitionExists(partitionName);
+    if (!exists) {
+      return res.status(404).json({
         success: false,
-        error: 'Bad Request',
-        message: result.error
+        error: 'Not Found',
+        message: `Партиция с именем ${partitionName} не найдена`
       });
     }
     
-    return res.json({
+    // Удаляем партицию
+    await partitionService.dropPartition(partitionName);
+    
+    // Формируем ответ
+    return res.status(200).json({
       success: true,
-      data: result
+      data: {
+        message: `Партиция ${partitionName} успешно удалена`,
+        partitionName
+      }
     });
   } catch (error) {
-    console.error('Error in dropPartition:', error);
+    console.error('[PartitionController] Ошибка при удалении партиции:', error);
     return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
-      message: error.message
+      message: 'Произошла ошибка при удалении партиции',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }

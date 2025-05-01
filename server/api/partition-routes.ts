@@ -9,11 +9,11 @@
  * - POST /api/admin/partitions/drop - Удаление партиции
  */
 
-import { Express, Request, Response } from 'express';
+import { Express, Request, Response, NextFunction } from 'express';
 import * as partitionController from '../controllers/partition-controller';
 import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware';
 
-// Используем интерфейс RequestWithUser из adminAuthMiddleware.ts
+// Определяем интерфейс для типизации расширенного объекта запроса
 interface RequestWithUser extends Request {
   user?: {
     id: number;
@@ -21,31 +21,38 @@ interface RequestWithUser extends Request {
   };
 }
 
+/**
+ * Регистрирует все маршруты для управления партиционированием
+ */
 export function registerPartitionRoutes(app: Express): void {
-  // Маршрут для получения статуса партиционирования
-  app.get('/api/admin/partitions/status', adminAuthMiddleware, (req: RequestWithUser, res: Response) => {
+  // Префикс для всех API маршрутов партиционирования
+  const baseUrl = '/api/admin/partitions';
+  
+  // GET /api/admin/partitions/status - Получение статуса партиционирования
+  app.get(`${baseUrl}/status`, adminAuthMiddleware, (req: RequestWithUser, res: Response) => {
     partitionController.getPartitioningStatus(req, res);
   });
   
-  // Маршрут для получения списка партиций
-  app.get('/api/admin/partitions/list', adminAuthMiddleware, (req: RequestWithUser, res: Response) => {
+  // GET /api/admin/partitions/list - Получение списка партиций
+  app.get(`${baseUrl}/list`, adminAuthMiddleware, (req: RequestWithUser, res: Response) => {
     partitionController.listPartitions(req, res);
   });
   
-  // Маршрут для получения логов партиционирования
-  app.get('/api/admin/partitions/logs', adminAuthMiddleware, (req: RequestWithUser, res: Response) => {
+  // GET /api/admin/partitions/logs - Получение логов партиционирования
+  app.get(`${baseUrl}/logs`, adminAuthMiddleware, (req: RequestWithUser, res: Response) => {
     partitionController.getPartitionLogs(req, res);
   });
   
-  // Маршрут для создания новых партиций
-  app.post('/api/admin/partitions/create', adminAuthMiddleware, (req: RequestWithUser, res: Response) => {
+  // POST /api/admin/partitions/create - Создание новых партиций
+  app.post(`${baseUrl}/create`, adminAuthMiddleware, (req: RequestWithUser, res: Response) => {
     partitionController.createPartitions(req, res);
   });
   
-  // Маршрут для удаления партиции
-  app.post('/api/admin/partitions/drop', adminAuthMiddleware, (req: RequestWithUser, res: Response) => {
+  // POST /api/admin/partitions/drop - Удаление партиции
+  app.post(`${baseUrl}/drop`, adminAuthMiddleware, (req: RequestWithUser, res: Response) => {
     partitionController.dropPartition(req, res);
   });
   
-  console.log('[Routes] Партиционные API маршруты зарегистрированы');
+  // Логируем информацию об активации маршрутов
+  console.log(`[PartitionRoutes] Зарегистрированы маршруты для управления партиционированием: ${baseUrl}/*`);
 }

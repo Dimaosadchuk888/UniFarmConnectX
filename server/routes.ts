@@ -45,7 +45,7 @@ import { WalletController } from './controllers/walletController';
 import { AdminController } from './controllers/adminController';
 import * as PartitionController from './controllers/partition-controller'; // Контроллер для управления партициями
 
-// Импортируем маршруты партиций
+// Импортируем маршруты для партиционирования
 import { registerPartitionRoutes } from './api/partition-routes';
 
 // Импортируем миграцию для реферальных кодов

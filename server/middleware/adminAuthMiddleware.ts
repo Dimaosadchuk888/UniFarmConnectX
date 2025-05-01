@@ -11,7 +11,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 
-// Расширяем интерфейс Request для поддержки пользовательских данных
+// Интерфейс для типизации расширенного объекта запроса с пользователем
 interface RequestWithUser extends Request {
   user?: {
     id: number;
@@ -24,40 +24,30 @@ interface RequestWithUser extends Request {
  * В текущей реализации считаем администратором пользователя с ID=1
  */
 export function adminAuthMiddleware(req: RequestWithUser, res: Response, next: NextFunction) {
-  try {
-    // Проверяем, авторизован ли пользователь
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Необходима авторизация'
-      });
-    }
-    
-    // Получаем ID пользователя
-    const userId = req.user.id;
-    
-    // Проверяем, является ли пользователь администратором
-    // В простой реализации администратором считаем пользователя с ID=1
-    // В реальном приложении здесь должна быть проверка роли в базе данных
-    const isAdmin = userId === 1;
-    
-    if (!isAdmin) {
-      return res.status(403).json({
-        success: false,
-        error: 'Forbidden',
-        message: 'Недостаточно прав для выполнения операции'
-      });
-    }
-    
-    // Если пользователь администратор, продолжаем выполнение запроса
-    next();
-  } catch (error: any) {
-    console.error('Ошибка в adminAuthMiddleware:', error);
-    return res.status(500).json({
+  // Проверка аутентификации: пользователь должен быть авторизован
+  if (!req.user) {
+    console.log('[AdminAuth] Доступ запрещен: пользователь не авторизован');
+    return res.status(401).json({
       success: false,
-      error: 'Internal Server Error',
-      message: 'Внутренняя ошибка сервера'
+      error: 'Unauthorized',
+      message: 'Для доступа к этому ресурсу требуется авторизация'
     });
   }
+  
+  // ID администратора (в продакшне лучше хранить в базе или переменных окружения)
+  const adminUserId = 1;
+  
+  // Проверка прав: пользователь должен быть администратором
+  if (req.user.id !== adminUserId) {
+    console.log(`[AdminAuth] Доступ запрещен: пользователь #${req.user.id} не является администратором`);
+    return res.status(403).json({
+      success: false,
+      error: 'Forbidden',
+      message: 'Недостаточно прав для доступа к этому ресурсу'
+    });
+  }
+  
+  // Если все проверки пройдены, пропускаем запрос дальше
+  console.log(`[AdminAuth] Доступ разрешен: пользователь #${req.user.id} аутентифицирован как администратор`);
+  next();
 }

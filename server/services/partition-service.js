@@ -8,334 +8,395 @@
  * 4. Очистки старых партиций
  */
 
-import { pool } from '../db';
-import { format, addDays } from 'date-fns';
+import { db, pool } from '../db.js';
+import { partition_logs, type InsertPartitionLog } from '@shared/schema';
 
-// Логирование
+/**
+ * Логирует операцию с партицией в таблицу partition_logs
+ */
 export function log(message) {
   console.log(`[PartitionService] ${message}`);
-}
-
-// Выполнение SQL запроса
-export async function executeQuery(query, params = []) {
+  
   try {
-    const result = await pool.query(query, params);
-    return result;
+    const logEntry = {
+      operation: 'INFO',
+      message,
+      timestamp: new Date(),
+      status: 'success'
+    };
+    
+    // Асинхронно сохраняем в базу данных, не дожидаясь результата
+    db.insert(partition_logs).values(logEntry).execute();
   } catch (error) {
-    console.error(`SQL Error: ${error.message}`);
-    console.error(`Query: ${query}`);
-    console.error(`Params: ${JSON.stringify(params)}`);
-    throw error;
+    console.error('[PartitionService] Ошибка при логировании:', error);
   }
 }
 
-// Проверка, является ли таблица партиционированной
+/**
+ * Выполняет SQL-запрос напрямую через пул соединений
+ */
+export async function executeQuery(query, params = []) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(query, params);
+    return result.rows;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Проверяет, является ли таблица партиционированной
+ */
 export async function isTablePartitioned(tableName = 'transactions') {
   try {
     const query = `
       SELECT EXISTS (
-        SELECT FROM pg_partitioned_table pt
-        JOIN pg_class pc ON pt.partrelid = pc.oid
-        JOIN pg_namespace pn ON pc.relnamespace = pn.oid
-        WHERE pc.relname = $1
-        AND pn.nspname = 'public'
-      );
+        SELECT 1 FROM pg_catalog.pg_class c
+        JOIN pg_catalog.pg_inherits i ON i.inhparent = c.oid
+        WHERE c.relname = $1
+      ) as is_partitioned;
     `;
     
     const result = await executeQuery(query, [tableName]);
-    return result.rows[0].exists;
+    return result[0]?.is_partitioned || false;
   } catch (error) {
-    console.error(`Error checking if table is partitioned: ${error.message}`);
-    return false;
+    console.error('[PartitionService] Ошибка при проверке партиционирования:', error);
+    throw error;
   }
 }
 
-// Получение списка всех партиций
+/**
+ * Получает список всех партиций для указанной таблицы
+ */
 export async function getPartitionsList(tableName = 'transactions') {
   try {
     const query = `
       SELECT c.relname as partition_name, 
-             pg_get_expr(c.relpartbound, c.oid) as partition_expression,
              pg_size_pretty(pg_total_relation_size(c.oid)) as size,
-             pg_relation_size(c.oid) as raw_size,
-             (SELECT COUNT(*) FROM ${tableName} WHERE created_at::date = TO_DATE(SUBSTRING(c.relname FROM '${tableName}_([0-9_]+)'), 'YYYY_MM_DD')) as row_count
-      FROM pg_inherits i
-      JOIN pg_class p ON p.oid = i.inhparent
-      JOIN pg_class c ON c.oid = i.inhrelid
-      WHERE p.relname = $1
-      AND c.relname LIKE '${tableName}_%'
+             pg_total_relation_size(c.oid) as size_bytes,
+             (SELECT COUNT(*) FROM ${tableName} WHERE tableoid = c.oid) as rows_count,
+             obj_description(c.oid, 'pg_class') as comment
+      FROM pg_catalog.pg_class c
+      JOIN pg_catalog.pg_inherits i ON i.inhrelid = c.oid
+      JOIN pg_catalog.pg_class parent ON parent.oid = i.inhparent
+      WHERE parent.relname = $1
       ORDER BY c.relname;
     `;
     
-    const result = await executeQuery(query, [tableName]);
-    return result.rows;
+    const partitions = await executeQuery(query, [tableName]);
+    
+    // Добавляем дополнительную информацию к каждой партиции
+    for (const partition of partitions) {
+      // Извлекаем дату из имени партиции (например, из transactions_2023_01_01)
+      const dateParts = partition.partition_name.replace(`${tableName}_`, '').split('_');
+      if (dateParts.length === 3) {
+        const year = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]) - 1; // Месяцы в JS начинаются с 0
+        const day = parseInt(dateParts[2]);
+        
+        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+          const partitionDate = new Date(year, month, day);
+          partition.date = partitionDate.toISOString().split('T')[0];
+          
+          const now = new Date();
+          const diffTime = Math.abs(now - partitionDate);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+          
+          partition.days_ago = diffDays;
+          partition.is_future = partitionDate > now;
+        }
+      }
+    }
+    
+    return partitions;
   } catch (error) {
-    console.error(`Error getting partitions list: ${error.message}`);
-    return [];
+    console.error('[PartitionService] Ошибка при получении списка партиций:', error);
+    throw error;
   }
 }
 
-// Получение истории операций над партициями
+/**
+ * Получает логи операций с партициями
+ */
 export async function getPartitionLogs(limit = 50) {
   try {
     const query = `
       SELECT * FROM partition_logs
-      ORDER BY created_at DESC
+      ORDER BY timestamp DESC
       LIMIT $1;
     `;
     
-    const result = await executeQuery(query, [limit]);
-    return result.rows;
+    return await executeQuery(query, [limit]);
   } catch (error) {
-    console.error(`Error getting partition logs: ${error.message}`);
-    return [];
+    console.error('[PartitionService] Ошибка при получении логов партиционирования:', error);
+    throw error;
   }
 }
 
-// Проверка существования партиции
+/**
+ * Проверяет существование партиции по имени
+ */
 export async function partitionExists(partitionName) {
   try {
     const query = `
       SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = $1
-      );
+        SELECT 1 FROM pg_catalog.pg_class
+        WHERE relname = $1
+      ) as exists;
     `;
+    
     const result = await executeQuery(query, [partitionName]);
-    return result.rows[0].exists;
+    return result[0]?.exists || false;
   } catch (error) {
-    console.error(`Error checking if partition exists: ${error.message}`);
-    return false;
+    console.error(`[PartitionService] Ошибка при проверке существования партиции ${partitionName}:`, error);
+    throw error;
   }
 }
 
-// Создание партиции для указанной даты
+/**
+ * Создает партицию для конкретной даты
+ */
 export async function createPartitionForDate(date, tableName = 'transactions') {
-  const dateStr = format(date, 'yyyy_MM_dd');
-  const partitionName = `${tableName}_${dateStr}`;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   
-  // Проверяем, существует ли уже партиция
-  const exists = await partitionExists(partitionName);
-  if (exists) {
-    log(`Partition ${partitionName} already exists. Skipping.`);
-    return {
-      created: false,
-      partitionName,
-      alreadyExists: true
-    };
-  }
-  
-  const startDate = format(date, 'yyyy-MM-dd');
-  const endDate = format(addDays(date, 1), 'yyyy-MM-dd');
-  
-  log(`Creating partition ${partitionName} for date ${startDate}`);
+  const partitionName = `${tableName}_${year}_${month}_${day}`;
   
   try {
-    // Начинаем транзакцию
-    await executeQuery('BEGIN');
+    // Проверяем, существует ли уже такая партиция
+    const exists = await partitionExists(partitionName);
+    if (exists) {
+      log(`Партиция ${partitionName} уже существует, пропускаем создание`);
+      return { created: false, partitionName };
+    }
+    
+    // Формируем диапазон дат для партиции
+    const startDate = `${year}-${month}-${day}`;
+    
+    // Устанавливаем конечную дату как следующий день
+    const nextDate = new Date(date);
+    nextDate.setDate(date.getDate() + 1);
+    const nextYear = nextDate.getFullYear();
+    const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const nextDay = String(nextDate.getDate()).padStart(2, '0');
+    const endDate = `${nextYear}-${nextMonth}-${nextDay}`;
     
     // Создаем партицию
-    const query = `
+    const createQuery = `
       CREATE TABLE IF NOT EXISTS ${partitionName} PARTITION OF ${tableName}
       FOR VALUES FROM ('${startDate}') TO ('${endDate}');
     `;
     
-    await executeQuery(query);
+    await executeQuery(createQuery);
     
-    // Создаем индексы для партиции
-    log(`Creating indexes for partition ${partitionName}`);
-    await executeQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_user_id_idx ON ${partitionName} (user_id)`);
-    await executeQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_type_idx ON ${partitionName} (type)`);
-    await executeQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_created_at_idx ON ${partitionName} (created_at)`);
+    // Добавляем комментарий к партиции для лучшей идентификации
+    const commentQuery = `
+      COMMENT ON TABLE ${partitionName} IS 'Partition for ${startDate}';
+    `;
+    await executeQuery(commentQuery);
     
-    // Записываем информацию о созданной партиции в таблицу логов
-    await executeQuery(`
-      INSERT INTO partition_logs 
-      (operation_type, partition_name, status, notes) 
-      VALUES 
-      ('create', $1, 'success', $2)
-    `, [partitionName, `Partition created for date ${startDate}`]);
+    log(`Успешно создана партиция ${partitionName} для даты ${startDate}`);
     
-    // Подтверждаем транзакцию
-    await executeQuery('COMMIT');
-    
-    log(`Partition ${partitionName} created successfully`);
-    return {
-      created: true,
-      partitionName
+    // Логируем операцию создания партиции
+    const logEntry = {
+      operation: 'CREATE',
+      partition_name: partitionName,
+      message: `Создана партиция для даты ${startDate}`,
+      timestamp: new Date(),
+      status: 'success'
     };
+    
+    await db.insert(partition_logs).values(logEntry).execute();
+    
+    return { created: true, partitionName };
   } catch (error) {
-    // Откатываем транзакцию в случае ошибки
-    await executeQuery('ROLLBACK');
+    console.error(`[PartitionService] Ошибка при создании партиции ${partitionName}:`, error);
     
     // Логируем ошибку в таблицу логов
     try {
-      await executeQuery(`
-        INSERT INTO partition_logs 
-        (operation_type, partition_name, status, notes, error_message) 
-        VALUES 
-        ('create', $1, 'error', $2, $3)
-      `, [partitionName, `Failed to create partition for date ${startDate}`, error.message]);
+      const logEntry = {
+        operation: 'CREATE',
+        partition_name: partitionName,
+        message: `Ошибка при создании партиции: ${error.message}`,
+        timestamp: new Date(),
+        status: 'error',
+        error_details: error.stack
+      };
+      
+      await db.insert(partition_logs).values(logEntry).execute();
     } catch (logError) {
-      console.error(`Failed to log error to partition_logs: ${logError.message}`);
+      console.error('[PartitionService] Ошибка при логировании ошибки:', logError);
     }
     
-    log(`Error creating partition ${partitionName}: ${error.message}`);
-    return {
-      created: false,
-      error: error.message,
-      partitionName
-    };
+    throw error;
   }
 }
 
-// Создание партиций на будущие дни
+/**
+ * Создает партиции на несколько дней вперед
+ */
 export async function createFuturePartitions(days = 7, tableName = 'transactions') {
-  const today = new Date();
-  const results = [];
-  
-  // Проверяем, является ли таблица партиционированной
-  const isPartitioned = await isTablePartitioned(tableName);
-  if (!isPartitioned) {
-    log(`Table ${tableName} is not partitioned. Cannot create partitions.`);
-    return {
-      success: false,
-      error: `Table ${tableName} is not partitioned`
-    };
-  }
-  
-  // Создаем партиции на будущие дни
-  for (let i = 0; i < days; i++) {
-    const date = addDays(today, i);
-    const result = await createPartitionForDate(date, tableName);
-    results.push(result);
-  }
-  
-  return {
-    success: true,
-    results
+  const result = {
+    created: 0,
+    skipped: 0,
+    partitions: []
   };
+  
+  try {
+    const now = new Date();
+    
+    for (let i = 0; i < days; i++) {
+      const date = new Date(now);
+      date.setDate(now.getDate() + i);
+      
+      const { created, partitionName } = await createPartitionForDate(date, tableName);
+      
+      if (created) {
+        result.created++;
+      } else {
+        result.skipped++;
+      }
+      
+      result.partitions.push(partitionName);
+    }
+    
+    log(`Создание будущих партиций завершено: создано ${result.created}, пропущено ${result.skipped}`);
+    return result;
+  } catch (error) {
+    console.error('[PartitionService] Ошибка при создании будущих партиций:', error);
+    throw error;
+  }
 }
 
-// Удаление партиции
+/**
+ * Удаляет партицию по имени
+ */
 export async function dropPartition(partitionName, tableName = 'transactions') {
   try {
     // Проверяем, существует ли партиция
     const exists = await partitionExists(partitionName);
     if (!exists) {
-      log(`Partition ${partitionName} does not exist. Cannot drop.`);
-      return {
-        dropped: false,
-        partitionName,
-        error: 'Partition does not exist'
-      };
+      log(`Партиция ${partitionName} не существует, пропускаем удаление`);
+      return false;
     }
     
-    log(`Dropping partition ${partitionName}`);
-    
-    // Начинаем транзакцию
-    await executeQuery('BEGIN');
-    
-    try {
-      // Удаляем партицию
-      await executeQuery(`DROP TABLE IF EXISTS ${partitionName}`);
-      
-      // Записываем информацию об удалении в таблицу логов
-      await executeQuery(`
-        INSERT INTO partition_logs 
-        (operation_type, partition_name, status, notes) 
-        VALUES 
-        ('drop', $1, 'success', $2)
-      `, [partitionName, `Partition ${partitionName} dropped successfully`]);
-      
-      // Подтверждаем транзакцию
-      await executeQuery('COMMIT');
-      
-      log(`Partition ${partitionName} dropped successfully`);
-      return {
-        dropped: true,
-        partitionName
-      };
-    } catch (error) {
-      // Откатываем транзакцию в случае ошибки
-      await executeQuery('ROLLBACK');
-      
-      // Логируем ошибку в таблицу логов
-      await executeQuery(`
-        INSERT INTO partition_logs 
-        (operation_type, partition_name, status, notes, error_message) 
-        VALUES 
-        ('drop', $1, 'error', $2, $3)
-      `, [partitionName, `Failed to drop partition ${partitionName}`, error.message]);
-      
-      log(`Error dropping partition ${partitionName}: ${error.message}`);
-      return {
-        dropped: false,
-        partitionName,
-        error: error.message
-      };
+    // Дополнительная проверка формата имени для безопасности
+    if (!partitionName.match(new RegExp(`^${tableName}_\\d{4}_\\d{2}_\\d{2}$`))) {
+      throw new Error(`Некорректное имя партиции: ${partitionName}`);
     }
-  } catch (error) {
-    console.error(`Error in dropPartition: ${error.message}`);
-    return {
-      dropped: false,
-      partitionName,
-      error: error.message
+    
+    // Удаляем партицию
+    const dropQuery = `DROP TABLE IF EXISTS ${partitionName};`;
+    await executeQuery(dropQuery);
+    
+    log(`Успешно удалена партиция ${partitionName}`);
+    
+    // Логируем операцию удаления партиции
+    const logEntry = {
+      operation: 'DROP',
+      partition_name: partitionName,
+      message: `Удалена партиция ${partitionName}`,
+      timestamp: new Date(),
+      status: 'success'
     };
+    
+    await db.insert(partition_logs).values(logEntry).execute();
+    
+    return true;
+  } catch (error) {
+    console.error(`[PartitionService] Ошибка при удалении партиции ${partitionName}:`, error);
+    
+    // Логируем ошибку в таблицу логов
+    try {
+      const logEntry = {
+        operation: 'DROP',
+        partition_name: partitionName,
+        message: `Ошибка при удалении партиции: ${error.message}`,
+        timestamp: new Date(),
+        status: 'error',
+        error_details: error.stack
+      };
+      
+      await db.insert(partition_logs).values(logEntry).execute();
+    } catch (logError) {
+      console.error('[PartitionService] Ошибка при логировании ошибки:', logError);
+    }
+    
+    throw error;
   }
 }
 
-// Получение статистики о партициях
+/**
+ * Получает статистику о партициях
+ */
 export async function getPartitionStats(tableName = 'transactions') {
   try {
-    // Проверяем, является ли таблица партиционированной
-    const isPartitioned = await isTablePartitioned(tableName);
-    if (!isPartitioned) {
-      return {
-        isPartitioned: false,
-        totalPartitions: 0,
-        totalSize: '0 bytes',
-        partitions: []
-      };
-    }
-    
-    // Получаем список партиций
     const partitions = await getPartitionsList(tableName);
     
-    // Получаем общий размер всех партиций
-    const totalSizeQuery = `
-      SELECT pg_size_pretty(sum(pg_total_relation_size(c.oid))) as total_size
-      FROM pg_inherits i
-      JOIN pg_class p ON p.oid = i.inhparent
-      JOIN pg_class c ON c.oid = i.inhrelid
-      WHERE p.relname = $1;
+    // Считаем статистику
+    const totalPartitions = partitions.length;
+    const totalSize = partitions.reduce((sum, p) => sum + parseInt(p.size_bytes || 0), 0);
+    const pastPartitions = partitions.filter(p => !p.is_future && p.days_ago !== undefined).length;
+    const futurePartitions = partitions.filter(p => p.is_future).length;
+    const todayPartition = partitions.find(p => p.days_ago === 0);
+    const oldestPartition = [...partitions].sort((a, b) => b.days_ago - a.days_ago)[0];
+    const newestPartition = [...partitions].filter(p => p.is_future).sort((a, b) => a.days_ago - b.days_ago)[0];
+    
+    // Получаем таблицу transaction
+    const mainTableQuery = `
+      SELECT pg_size_pretty(pg_total_relation_size($1)) as size,
+             pg_total_relation_size($1) as size_bytes,
+             (SELECT COUNT(*) FROM ${tableName}) as rows_count
+      FROM pg_catalog.pg_class
+      WHERE relname = $1;
     `;
     
-    const totalSizeResult = await executeQuery(totalSizeQuery, [tableName]);
-    const totalSize = totalSizeResult.rows[0]?.total_size || '0 bytes';
-    
-    // Получаем количество записей в таблице
-    const countQuery = `SELECT COUNT(*) as total_rows FROM ${tableName};`;
-    const countResult = await executeQuery(countQuery);
-    const totalRows = parseInt(countResult.rows[0]?.total_rows || '0', 10);
+    const mainTableResult = await executeQuery(mainTableQuery, [tableName]);
+    const mainTable = mainTableResult[0] || { size: '0 bytes', size_bytes: 0, rows_count: 0 };
     
     return {
-      isPartitioned,
-      totalPartitions: partitions.length,
-      totalSize,
-      totalRows,
-      partitions
+      tableName,
+      totalPartitions,
+      mainTableSize: mainTable.size,
+      totalPartitionsSize: formatBytes(totalSize),
+      totalRows: parseInt(mainTable.rows_count || 0),
+      pastPartitions,
+      futurePartitions,
+      todayPartition: todayPartition ? {
+        name: todayPartition.partition_name,
+        size: todayPartition.size,
+        rows: parseInt(todayPartition.rows_count || 0)
+      } : null,
+      oldestPartition: oldestPartition ? {
+        name: oldestPartition.partition_name,
+        daysAgo: oldestPartition.days_ago,
+        date: oldestPartition.date
+      } : null,
+      newestPartition: newestPartition ? {
+        name: newestPartition.partition_name,
+        daysAhead: newestPartition.days_ago,
+        date: newestPartition.date
+      } : null
     };
   } catch (error) {
-    console.error(`Error getting partition stats: ${error.message}`);
-    return {
-      isPartitioned: false,
-      totalPartitions: 0,
-      totalSize: '0 bytes',
-      totalRows: 0,
-      partitions: [],
-      error: error.message
-    };
+    console.error('[PartitionService] Ошибка при получении статистики партиций:', error);
+    throw error;
   }
+}
+
+/**
+ * Вспомогательная функция для форматирования размера в байтах
+ */
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
