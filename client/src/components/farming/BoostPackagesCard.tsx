@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '../../lib/queryClient';
+import { apiRequest, invalidateQueryWithUserId } from '@/lib/queryClient';
 import { format } from 'date-fns';
 import PaymentMethodDialog from '../ton-boost/PaymentMethodDialog';
 import ExternalPaymentStatus from '../ton-boost/ExternalPaymentStatus';
+import { useUser } from '@/contexts/userContext';
 
 // Определяем структуру буст-пакета
 interface BoostPackage {
@@ -89,8 +90,8 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
   
   const queryClient = useQueryClient();
   
-  // Пользовательский ID (хардкод для демонстрации)
-  const userId = 1;
+  // Получаем ID пользователя из контекста
+  const { userId } = useUser();
 
   // Функция для обработки сообщений об ошибках
   const handleErrorMessage = (message?: string) => {
@@ -142,10 +143,10 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
           setSuccessMessage(data.message || 'Буст успешно приобретен!');
           
           // Инвалидируем кэш для обновления баланса и транзакций
-          queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
-          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-          queryClient.invalidateQueries({ queryKey: [`/api/ton-boosts/active`] });
+          invalidateQueryWithUserId(`/api/users`);
+          invalidateQueryWithUserId('/api/wallet/balance');
+          invalidateQueryWithUserId('/api/transactions');
+          invalidateQueryWithUserId('/api/ton-boosts/active');
         }
         // Если оплата через внешний кошелек - показываем диалог статуса платежа
         else if (data.data.paymentMethod === 'external_wallet') {
@@ -225,10 +226,10 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
   // Обработчик завершения внешнего платежа
   const handlePaymentComplete = () => {
     // Инвалидируем кэш для обновления баланса и транзакций
-    queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
-    queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-    queryClient.invalidateQueries({ queryKey: [`/api/ton-boosts/active`] });
+    invalidateQueryWithUserId('/api/users');
+    invalidateQueryWithUserId('/api/wallet/balance');
+    invalidateQueryWithUserId('/api/transactions');
+    invalidateQueryWithUserId('/api/ton-boosts/active');
     
     // Закрываем диалог статуса платежа
     setPaymentStatusDialogOpen(false);

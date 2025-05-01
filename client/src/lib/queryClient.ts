@@ -351,10 +351,30 @@ export const getQueryFn: <T>(options: {
       // Преобразуем относительный URL в полный с использованием apiConfig
       let baseUrl = apiConfig.getFullUrl(queryKeyStr);
       
-      // Проверяем, есть ли второй элемент в queryKey (userId)
-      // и добавляем его в URL, если он есть и URL не содержит user_id
-      if (queryKey.length > 1 && queryKey[1] && !baseUrl.includes('user_id=')) {
-        const userId = queryKey[1];
+      // Проверяем, есть ли второй элемент в queryKey (userId) и добавляем его в URL
+      let userId = null;
+      
+      // Сначала пытаемся получить ID из queryKey (2й элемент)
+      if (queryKey.length > 1 && queryKey[1]) {
+        userId = queryKey[1];
+      } 
+      // Если ID не передан в queryKey, пытаемся получить из localStorage
+      else {
+        try {
+          const userData = localStorage.getItem('unifarm_user_data');
+          if (userData) {
+            const userInfo = JSON.parse(userData);
+            if (userInfo && userInfo.id) {
+              userId = userInfo.id;
+            }
+          }
+        } catch (err) {
+          console.warn('[queryClient] Не удалось получить ID пользователя из localStorage:', err);
+        }
+      }
+      
+      // Если у нас есть userId и URL еще не содержит user_id, добавляем его
+      if (userId && !baseUrl.includes('user_id=')) {
         const separator = baseUrl.includes('?') ? '&' : '?';
         baseUrl = `${baseUrl}${separator}user_id=${userId}`;
         console.log("[DEBUG] QueryClient - Added userId to URL:", userId);
