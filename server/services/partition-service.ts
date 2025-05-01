@@ -52,7 +52,7 @@ class PartitionService {
       `;
       
       const result = await dbQuery(query, [tableName]);
-      return result.rowCount > 0;
+      return result.rowCount ? result.rowCount > 0 : false;
     } catch (error) {
       console.error('Error checking if table is partitioned:', error);
       return false;
@@ -135,7 +135,7 @@ class PartitionService {
         )
       `;
       
-      const tableExistsResult = await query(tableExistsQuery, []);
+      const tableExistsResult = await dbQuery(tableExistsQuery, []);
       
       if (!tableExistsResult.rows[0].exists) {
         console.log('Table partition_logs does not exist');
@@ -180,7 +180,7 @@ class PartitionService {
         WHERE relname = $1
       `;
       
-      const checkResult = await query(checkPartitionQuery, [partitionName]);
+      const checkResult = await dbQuery(checkPartitionQuery, [partitionName]);
       
       if (checkResult.rowCount > 0) {
         console.log(`[PartitionService] Partition ${partitionName} already exists`);
@@ -206,14 +206,14 @@ class PartitionService {
         FOR VALUES FROM ('${startDate}') TO ('${endDate}');
       `;
       
-      await query(createPartitionQuery, []);
+      await dbQuery(createPartitionQuery, []);
       
       // Создаем индексы для партиции
       console.log(`[PartitionService] Creating indexes for partition ${partitionName}`);
       
-      await query(`CREATE INDEX IF NOT EXISTS ${partitionName}_user_id_idx ON ${partitionName} (user_id)`, []);
-      await query(`CREATE INDEX IF NOT EXISTS ${partitionName}_transaction_type_idx ON ${partitionName} (transaction_type)`, []);
-      await query(`CREATE INDEX IF NOT EXISTS ${partitionName}_created_at_idx ON ${partitionName} (created_at)`, []);
+      await dbQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_user_id_idx ON ${partitionName} (user_id)`, []);
+      await dbQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_transaction_type_idx ON ${partitionName} (transaction_type)`, []);
+      await dbQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_created_at_idx ON ${partitionName} (created_at)`, []);
       
       // Добавляем запись в логи
       await this.logPartitionOperation(
@@ -330,7 +330,7 @@ class PartitionService {
         )
       `;
       
-      const tableExistsResult = await query(tableExistsQuery, []);
+      const tableExistsResult = await dbQuery(tableExistsQuery, []);
       
       if (!tableExistsResult.rows[0].exists) {
         console.log('[PartitionService] Table partition_logs does not exist, creating it');
@@ -348,13 +348,13 @@ class PartitionService {
           )
         `;
         
-        await query(createTableQuery, []);
+        await dbQuery(createTableQuery, []);
         
         // Создаем индексы для таблицы
-        await query('CREATE INDEX partition_logs_operation_type_idx ON partition_logs (operation_type)', []);
-        await query('CREATE INDEX partition_logs_partition_name_idx ON partition_logs (partition_name)', []);
-        await query('CREATE INDEX partition_logs_status_idx ON partition_logs (status)', []);
-        await query('CREATE INDEX partition_logs_created_at_idx ON partition_logs (created_at)', []);
+        await dbQuery('CREATE INDEX partition_logs_operation_type_idx ON partition_logs (operation_type)', []);
+        await dbQuery('CREATE INDEX partition_logs_partition_name_idx ON partition_logs (partition_name)', []);
+        await dbQuery('CREATE INDEX partition_logs_status_idx ON partition_logs (status)', []);
+        await dbQuery('CREATE INDEX partition_logs_created_at_idx ON partition_logs (created_at)', []);
       }
       
       // Добавляем запись в лог
@@ -365,7 +365,7 @@ class PartitionService {
         ($1, $2, $3, $4, $5)
       `;
       
-      await query(sqlQuery, [operationType, partitionName, status, notes, errorMessage]);
+      await dbQuery(sqlQuery, [operationType, partitionName, status, notes, errorMessage]);
       
       return true;
     } catch (error) {
