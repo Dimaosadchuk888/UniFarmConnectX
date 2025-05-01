@@ -293,9 +293,9 @@ export class NewUniFarmingService {
         };
       }
       
-      // Проверяем, достаточно ли средств
+      // Проверяем, достаточно ли средств (с округлением для точного сравнения)
       const balanceUni = new BigNumber(user.balance_uni !== null ? user.balance_uni.toString() : '0');
-      if (balanceUni.isLessThan(depositAmount)) {
+      if (balanceUni.decimalPlaces(6).isLessThan(depositAmount)) {
         return {
           success: false,
           message: 'Недостаточно средств на балансе'
@@ -313,21 +313,27 @@ export class NewUniFarmingService {
       // Рассчитываем скорость начисления
       const ratePerSecond = this.calculateRatePerSecond(depositAmount.toString());
 
-      // Создаем новый депозит
-      const currentTime = new Date();
-      const [newDeposit] = await db
-        .insert(uniFarmingDeposits)
-        .values({
-          user_id: userId,
-          amount: depositAmount.toFixed(6),
-          rate_per_second: ratePerSecond,
-          created_at: currentTime,
-          last_updated_at: currentTime,
-          is_active: true
-        })
-        .returning();
-
-      if (!newDeposit) {
+      // Создаем новый депозит (в отдельном блоке try-catch)
+      let newDeposit;
+      try {
+        const currentTime = new Date();
+        [newDeposit] = await db
+          .insert(uniFarmingDeposits)
+          .values({
+            user_id: userId,
+            amount: depositAmount.toFixed(6),
+            rate_per_second: ratePerSecond,
+            created_at: currentTime,
+            last_updated_at: currentTime,
+            is_active: true
+          })
+          .returning();
+        
+        if (!newDeposit) {
+          throw new Error('Ошибка при создании депозита');
+        }
+      } catch (err) {
+        console.error('[createUniFarmingDeposit] Ошибка при вставке в БД:', err);
         return {
           success: false,
           message: 'Ошибка при создании депозита'
@@ -361,10 +367,10 @@ export class NewUniFarmingService {
         ratePerSecond
       };
     } catch (error) {
-      console.error('Error creating UNI farming deposit:', error);
+      console.error('[createUniFarmingDeposit] Неизвестная ошибка:', error);
       return {
         success: false,
-        message: 'Произошла ошибка при создании депозита'
+        message: 'Неожиданная ошибка при создании депозита'
       };
     }
   }
