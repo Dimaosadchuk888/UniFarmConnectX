@@ -3,14 +3,40 @@
  * 
  * Выполняет следующие шаги:
  * 1. Создает таблицу partition_logs для логирования операций с партициями
- * 2. Преобразует таблицу transactions в партиционированную по дате
- * 3. Создает партиции на ближайшие несколько дней
+ * 2. Создает партиционированную таблицу transactions_partitioned
+ * 3. Переносит данные из существующей таблицы transactions
+ * 4. Создает партиции на ближайшие несколько дней
  */
 
 import { runMigration as createPartitionLogs } from './server/migrations/create_partition_logs';
-import { runMigration as createAutoPartitionedTransactions } from './server/migrations/create_auto_partitioned_transactions';
-import { createPartitionsJob } from './server/scripts/create_partitions';
 import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
+
+// Функция для выполнения Node.js скриптов
+function runScript(scriptPath) {
+  return new Promise((resolve, reject) => {
+    console.log(`Запуск скрипта: ${scriptPath}`);
+    
+    const process = spawn('node', [scriptPath], {
+      stdio: 'inherit'
+    });
+    
+    process.on('close', (code) => {
+      if (code !== 0) {
+        console.error(`Скрипт ${scriptPath} завершился с кодом ${code}`);
+        reject(new Error(`Скрипт завершился с кодом ${code}`));
+      } else {
+        console.log(`Скрипт ${scriptPath} успешно выполнен`);
+        resolve(code);
+      }
+    });
+    
+    process.on('error', (err) => {
+      console.error(`Не удалось запустить скрипт ${scriptPath}:`, err);
+      reject(err);
+    });
+  });
+}
 
 async function setupPartitioning() {
   try {
@@ -20,14 +46,13 @@ async function setupPartitioning() {
     console.log('\n--- Шаг 1: Создание таблицы partition_logs ---');
     await createPartitionLogs();
     
-    // Шаг 2: Преобразование таблицы transactions в партиционированную
-    console.log('\n--- Шаг 2: Преобразование таблицы transactions в партиционированную ---');
-    await createAutoPartitionedTransactions();
+    // Шаг 2: Создание партиционированной таблицы и перенос данных
+    console.log('\n--- Шаг 2: Создание партиционированной таблицы и перенос данных ---');
+    await runScript('./server/scripts/setup_partitioned_table.js');
     
     // Шаг 3: Создание партиций на ближайшие дни
     console.log('\n--- Шаг 3: Создание партиций на ближайшие дни ---');
-    const result = await createPartitionsJob();
-    console.log('Результат создания партиций:', result);
+    await runScript('./server/scripts/create_partition_manually.js');
     
     console.log('\n=== НАСТРОЙКА ПАРТИЦИОНИРОВАНИЯ ЗАВЕРШЕНА ===');
     console.log('Таблица transactions успешно партиционирована по дате');
