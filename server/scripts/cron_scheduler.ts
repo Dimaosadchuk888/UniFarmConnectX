@@ -2,6 +2,7 @@
  * Скрипт планировщика для автоматического выполнения задач по расписанию
  * 
  * Этот скрипт запускает задачи по расписанию:
+ * - Создание будущих партиций (ежедневно в 00:01)
  * - Создание снимков фарминга (ежедневно в 00:05)
  * - Создание снимков кошельков (ежедневно в 00:10)
  * - Удаление старых партиций (ежедневно в 03:00)
@@ -16,6 +17,7 @@ import path from 'path';
 import createFarmingSnapshots from './create_farming_snapshots';
 import createWalletSnapshots from './create_wallet_snapshots';
 import clearOldPartitions from './clear_old_partitions';
+import createPartitionsJob from './create_partitions';
 
 const LOG_DIR = path.join(__dirname, '../../logs/cron');
 
@@ -94,9 +96,29 @@ function runClearOldPartitionsJob() {
 }
 
 /**
+ * Запуск создания партиций на будущие дни
+ */
+function runCreatePartitionsJob() {
+  logToFile('Запуск задачи создания партиций на будущие дни...');
+  
+  createPartitionsJob()
+    .then(() => {
+      logToFile('Задача создания партиций успешно выполнена');
+    })
+    .catch((error: any) => {
+      logToFile(`Необработанная ошибка при создании партиций: ${error.message}`);
+    });
+}
+
+/**
  * Настройка расписания для задач
  */
 function setupCronJobs() {
+  // Создание партиций на будущие даты в 00:01 каждый день
+  schedule('1 0 * * *', () => {
+    runCreatePartitionsJob();
+  });
+  
   // Создание снимков фарминга в 00:05 каждый день
   schedule('5 0 * * *', () => {
     runFarmingSnapshotsJob();
@@ -113,6 +135,7 @@ function setupCronJobs() {
   });
   
   logToFile('Cron-задачи успешно настроены:');
+  logToFile('- Создание партиций: ежедневно в 00:01');
   logToFile('- Создание снимков фарминга: ежедневно в 00:05');
   logToFile('- Создание снимков кошельков: ежедневно в 00:10');
   logToFile('- Удаление старых партиций: ежедневно в 03:00');
@@ -143,11 +166,16 @@ if (require.main === module) {
       runClearOldPartitionsJob();
     }
     
+    if (args.includes('--partitions') || args.includes('-p')) {
+      runCreatePartitionsJob();
+    }
+    
     // Если не указаны конкретные задачи, запускаем все
-    if (!args.some(arg => ['--farming', '-f', '--wallet', '-w', '--cleanup', '-c'].includes(arg))) {
-      runFarmingSnapshotsJob();
-      setTimeout(runWalletSnapshotsJob, 5000); // Запускаем с небольшой задержкой
-      setTimeout(runClearOldPartitionsJob, 10000);
+    if (!args.some(arg => ['--farming', '-f', '--wallet', '-w', '--cleanup', '-c', '--partitions', '-p'].includes(arg))) {
+      runCreatePartitionsJob();
+      setTimeout(runFarmingSnapshotsJob, 3000);
+      setTimeout(runWalletSnapshotsJob, 6000); // Запускаем с небольшой задержкой
+      setTimeout(runClearOldPartitionsJob, 9000);
     }
   } else {
     logToFile('Планировщик запущен. Задачи будут выполняться по расписанию.');
