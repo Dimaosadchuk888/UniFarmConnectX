@@ -105,75 +105,213 @@ const WithdrawalForm: React.FC = () => {
   }, [selectedCurrency, form]);
   
   /**
-   * Обработчик отправки формы
+   * Расширенный обработчик отправки формы вывода средств с улучшенной обработкой ошибок
    */
   const handleSubmit = async (data: WithdrawalFormData) => {
-    if (!userId) {
-      showNotification('error', {
-        message: 'Для вывода средств необходимо авторизоваться',
-        duration: 5000
-      });
-      return;
-    }
-    
-    setSubmitState(SubmitState.SUBMITTING);
-    setErrorMessage(null);
-    
-    // Показываем уведомление о начале процесса
-    showNotification('loading', {
-      message: 'Отправка заявки на вывод...',
-      duration: 2000
-    });
+    // Создаем уникальный идентификатор операции для логирования
+    const operationId = `withdraw-form-${Date.now().toString(36).substring(2, 7)}`;
     
     try {
-      // Преобразуем amount в число, если это строка
+      // Проверка авторизации пользователя
+      if (!userId) {
+        console.warn(`[WithdrawalForm] [${operationId}] Попытка вывода средств без авторизации`);
+        
+        try {
+          showNotification('error', {
+            message: 'Для вывода средств необходимо авторизоваться',
+            duration: 5000
+          });
+        } catch (notifyError) {
+          console.error(`[WithdrawalForm] [${operationId}] Ошибка при показе уведомления:`, notifyError);
+        }
+        
+        return;
+      }
+      
+      // Проверяем данные формы перед отправкой
+      if (!data) {
+        console.error(`[WithdrawalForm] [${operationId}] Отсутствуют данные формы`);
+        
+        try {
+          showNotification('error', {
+            message: 'Ошибка: отсутствуют данные формы',
+            duration: 5000
+          });
+        } catch (notifyError) {
+          console.error(`[WithdrawalForm] [${operationId}] Ошибка при показе уведомления:`, notifyError);
+        }
+        
+        return;
+      }
+      
+      // Устанавливаем состояние отправки с защитой от ошибок
+      try {
+        setSubmitState(SubmitState.SUBMITTING);
+        setErrorMessage(null);
+      } catch (stateError) {
+        console.error(`[WithdrawalForm] [${operationId}] Ошибка при установке состояния отправки:`, stateError);
+      }
+      
+      // Показываем уведомление о начале процесса
+      try {
+        showNotification('loading', {
+          message: 'Отправка заявки на вывод...',
+          duration: 2000
+        });
+      } catch (notifyError) {
+        console.error(`[WithdrawalForm] [${operationId}] Ошибка при показе загрузочного уведомления:`, notifyError);
+      }
+      
+      // Логируем данные формы (без конфиденциальной информации)
+      console.log(`[WithdrawalForm] [${operationId}] Начало вывода средств: ${data.amount} ${data.currency}`);
+      
+      // Преобразуем amount в число, если это строка, с проверкой на корректность значения
+      let formattedAmount: number;
+      try {
+        if (typeof data.amount === 'string') {
+          formattedAmount = parseFloat(data.amount);
+          
+          if (isNaN(formattedAmount)) {
+            throw new Error('Некорректная сумма вывода');
+          }
+        } else if (typeof data.amount === 'number') {
+          formattedAmount = data.amount;
+        } else {
+          throw new Error('Неверный тип данных для суммы');
+        }
+        
+        if (formattedAmount <= 0) {
+          throw new Error('Сумма вывода должна быть больше нуля');
+        }
+      } catch (amountError) {
+        console.error(`[WithdrawalForm] [${operationId}] Ошибка при обработке суммы:`, amountError);
+        
+        try {
+          setSubmitState(SubmitState.ERROR);
+          setErrorMessage(amountError instanceof Error ? amountError.message : 'Ошибка в сумме вывода');
+          
+          showNotification('error', {
+            message: amountError instanceof Error ? amountError.message : 'Ошибка в сумме вывода',
+            duration: 5000
+          });
+        } catch (stateError) {
+          console.error(`[WithdrawalForm] [${operationId}] Ошибка при установке состояния ошибки:`, stateError);
+        }
+        
+        return;
+      }
+      
+      // Формируем данные для отправки
       const formattedData = {
         ...data,
-        amount: typeof data.amount === 'string' ? parseFloat(data.amount) : data.amount,
+        amount: formattedAmount,
       };
       
-      // Отправляем запрос на сервер с использованием сервиса
-      const result = await submitWithdrawal(userId, formattedData);
+      let result;
+      try {
+        // Отправляем запрос на сервер с использованием сервиса
+        console.log(`[WithdrawalForm] [${operationId}] Отправка запроса на вывод средств...`);
+        result = await submitWithdrawal(userId, formattedData);
+        console.log(`[WithdrawalForm] [${operationId}] Получен результат запроса:`, result);
+      } catch (submitError) {
+        console.error(`[WithdrawalForm] [${operationId}] Критическая ошибка при вызове submitWithdrawal:`, submitError);
+        
+        // В случае непредвиденной ошибки в самой функции submitWithdrawal
+        try {
+          setSubmitState(SubmitState.ERROR);
+          const errorMsg = submitError instanceof Error 
+            ? submitError.message 
+            : 'Произошла непредвиденная ошибка при отправке заявки';
+          setErrorMessage(errorMsg);
+          
+          showNotification('error', {
+            message: errorMsg,
+            duration: 5000
+          });
+        } catch (stateError) {
+          console.error(`[WithdrawalForm] [${operationId}] Ошибка при установке состояния ошибки:`, stateError);
+        }
+        
+        return;
+      }
       
       // Проверяем результат на наличие ошибок
       if (isWithdrawalError(result)) {
-        setSubmitState(SubmitState.ERROR);
-        setErrorMessage(result.message);
+        console.warn(`[WithdrawalForm] [${operationId}] Ошибка при выводе средств: ${result.message}`);
         
-        showNotification('error', {
-          message: result.message,
-          duration: 5000
-        });
+        try {
+          setSubmitState(SubmitState.ERROR);
+          setErrorMessage(result.message);
+          
+          showNotification('error', {
+            message: result.message,
+            duration: 5000
+          });
+          
+          // Если ошибка связана с конкретным полем, устанавливаем ошибку в форме
+          if (result.field && result.field in form.formState.errors) {
+            form.setError(result.field as any, {
+              type: 'manual',
+              message: result.message
+            });
+          }
+        } catch (stateError) {
+          console.error(`[WithdrawalForm] [${operationId}] Ошибка при установке состояния ошибки:`, stateError);
+        }
       } else {
         // При успехе устанавливаем статус и отображаем сообщение
-        setSubmitState(SubmitState.SUCCESS);
-        setMessageSent(true);
-        setTransactionId(result);
+        console.log(`[WithdrawalForm] [${operationId}] Успешно создана заявка на вывод. ID транзакции: ${result}`);
         
-        // Обновляем баланс пользователя
-        refreshBalance();
-        
-        showNotification('success', {
-          message: `Заявка на вывод ${formattedData.amount} ${formattedData.currency} успешно создана`,
-          duration: 5000
-        });
-        
-        // Сбрасываем данные формы
-        form.reset({
-          amount: '',
-          wallet_address: walletAddress || '',
-          currency: selectedCurrency,
-        });
+        try {
+          setSubmitState(SubmitState.SUCCESS);
+          setMessageSent(true);
+          setTransactionId(result);
+          
+          // Обновляем баланс пользователя с защитой от ошибок
+          try {
+            refreshBalance();
+          } catch (refreshError) {
+            console.error(`[WithdrawalForm] [${operationId}] Ошибка при обновлении баланса:`, refreshError);
+            // Продолжаем выполнение, так как это некритическая ошибка
+          }
+          
+          showNotification('success', {
+            message: `Заявка на вывод ${formattedData.amount} ${formattedData.currency} успешно создана`,
+            duration: 5000
+          });
+          
+          // Сбрасываем данные формы
+          try {
+            form.reset({
+              amount: '',
+              wallet_address: walletAddress || '',
+              currency: selectedCurrency,
+            });
+          } catch (resetError) {
+            console.error(`[WithdrawalForm] [${operationId}] Ошибка при сбросе формы:`, resetError);
+          }
+        } catch (successStateError) {
+          console.error(`[WithdrawalForm] [${operationId}] Ошибка при установке состояния успеха:`, successStateError);
+        }
       }
     } catch (error) {
-      setSubmitState(SubmitState.ERROR);
-      const errorMessage = error instanceof Error ? error.message : 'Произошла ошибка при отправке заявки';
-      setErrorMessage(errorMessage);
+      // Обрабатываем непредвиденные ошибки в основном блоке try
+      console.error(`[WithdrawalForm] [${operationId}] Критическая ошибка:`, error);
       
-      showNotification('error', {
-        message: errorMessage,
-        duration: 5000
-      });
+      try {
+        setSubmitState(SubmitState.ERROR);
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : 'Произошла критическая ошибка при отправке заявки';
+        setErrorMessage(errorMessage);
+        
+        showNotification('error', {
+          message: errorMessage,
+          duration: 5000
+        });
+      } catch (stateError) {
+        console.error(`[WithdrawalForm] [${operationId}] Ошибка при установке состояния критической ошибки:`, stateError);
+      }
     }
   };
   
