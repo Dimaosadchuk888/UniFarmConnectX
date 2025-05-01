@@ -1314,12 +1314,15 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   };
   
   /**
-   * Безопасно форматирует число с заданной точностью
+   * Адаптер для форматирования чисел, использующий глобальные форматтеры
+   * Заменяет локальную функцию, чтобы исключить дублирование кода
+   * 
    * @param value Числовое значение для форматирования
    * @param decimals Количество десятичных знаков
+   * @param currency Валюта (используется для определения правильного форматтера)
    * @returns Отформатированная строка
    */
-  const safeFormatAmount = (value: number | string, decimals: number = 2): string => {
+  const safeFormatAmount = (value: number | string, decimals: number = 2, currency: string = 'UNI'): string => {
     try {
       // Валидация входных параметров
       if (value === undefined || value === null) {
@@ -1345,15 +1348,23 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         return "0".padEnd(decimals + 2, "0");
       }
       
-      // Форматирование числа с безопасной проверкой на очень маленькие значения
-      if (numValue > 0 && numValue < Math.pow(10, -decimals)) {
-        // Если значение положительное, но слишком маленькое для отображения - показываем минимальное отображаемое значение
-        const minDisplayValue = Math.pow(10, -decimals);
-        return minDisplayValue.toFixed(decimals);
+      // Используем глобальные форматтеры вместо собственной логики
+      try {
+        if (currency === 'TON') {
+          return formatTonNumber(numValue);
+        } else {
+          return formatUniNumber(numValue);
+        }
+      } catch (formatterError) {
+        console.error("[ERROR] FarmingHistory - Ошибка при использовании глобального форматтера:", formatterError);
+        
+        // Запасной вариант, если глобальный форматтер не сработал
+        if (numValue > 0 && numValue < Math.pow(10, -decimals)) {
+          const minDisplayValue = Math.pow(10, -decimals);
+          return minDisplayValue.toFixed(decimals);
+        }
+        return numValue.toFixed(decimals);
       }
-      
-      // Стандартное форматирование для обычных значений
-      return numValue.toFixed(decimals);
     } catch (error) {
       console.error("[ERROR] FarmingHistory - Ошибка в safeFormatAmount:", error);
       // Безопасное значение при ошибке
@@ -1479,7 +1490,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                                 const decimals = getOptimalDecimals(item.amount, item.currency);
                                 
                                 // Используем безопасное форматирование
-                                return safeFormatAmount(item.amount, decimals);
+                                return safeFormatAmount(item.amount, decimals, item.currency);
                               } catch (error) {
                                 console.error('[ERROR] FarmingHistory - Ошибка при форматировании суммы транзакции:', error);
                                 // Безопасное значение по умолчанию
@@ -1620,7 +1631,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                               const decimals = getOptimalDecimals(item.amount, 'TON');
                               
                               // Используем безопасное форматирование
-                              return safeFormatAmount(item.amount, decimals);
+                              return safeFormatAmount(item.amount, decimals, 'TON');
                             } catch (error) {
                               console.error('[ERROR] FarmingHistory - Ошибка при форматировании TON суммы:', error);
                               // Безопасное значение по умолчанию
