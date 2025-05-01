@@ -88,7 +88,12 @@ export function registerPartitionRoutes(app: Express): void {
   app.post(baseUrl, adminAuthMiddleware, (req: Request, res: Response, next: NextFunction) => {
     console.log('[PartitionRoutes] Обрабатываем POST запрос на создание партиций');
     try {
-      partitionController.createPartitions(req, res);
+      console.log('[PartitionRoutes] Доступные методы в контроллере:', 
+        Object.keys(partitionController).filter(key => typeof partitionController[key] === 'function'));
+      
+      // Правильное имя функции в контроллере - createFuturePartitions
+      console.log('[PartitionRoutes] Вызываем метод createFuturePartitions');
+      partitionController.createFuturePartitions(req, res);
     } catch (error: any) {
       console.error('[PartitionRoutes] Ошибка в POST /api/partitions:', error);
       res.status(500).json({
@@ -103,10 +108,16 @@ export function registerPartitionRoutes(app: Express): void {
   app.delete(`${baseUrl}/:id`, adminAuthMiddleware, (req: Request, res: Response, next: NextFunction) => {
     console.log(`[PartitionRoutes] Обрабатываем DELETE запрос на удаление партиции с ID: ${req.params.id}`);
     try {
+      console.log('[PartitionRoutes] Доступные методы в контроллере:', 
+        Object.keys(partitionController).filter(key => typeof partitionController[key] === 'function'));
+      
       // Получаем id из URL-параметра и преобразуем в имя партиции
       req.body = req.body || {}; // Создаем пустой объект для тела, если его нет
       req.body.partitionName = `transactions_${req.params.id}`;
-      partitionController.dropPartition(req, res);
+      
+      // Правильное имя функции в контроллере - deletePartition
+      console.log('[PartitionRoutes] Вызываем метод deletePartition');
+      partitionController.deletePartition(req, res);
     } catch (error: any) {
       console.error('[PartitionRoutes] Ошибка в DELETE /api/partitions/:id:', error);
       res.status(500).json({
