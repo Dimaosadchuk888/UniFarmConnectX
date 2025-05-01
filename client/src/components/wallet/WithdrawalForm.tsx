@@ -67,17 +67,29 @@ const WithdrawalForm: React.FC = () => {
   
   // Обработчик изменения типа валюты
   const handleCurrencyChange = (currency: 'UNI' | 'TON') => {
-    setSelectedCurrency(currency);
-    form.setValue('currency', currency);
-    
-    // Очищаем ошибки поля currency
-    form.clearErrors('currency');
-    
-    // Показываем уведомление о смене валюты
-    showNotification('info', {
-      message: `Выбрана валюта ${currency} для вывода`,
-      duration: 2000
-    });
+    try {
+      // Устанавливаем выбранную валюту
+      setSelectedCurrency(currency);
+      
+      // Обновляем значение в форме и очищаем ошибки
+      form.setValue('currency', currency);
+      form.clearErrors('currency');
+      
+      // Показываем уведомление о смене валюты
+      showNotification('info', {
+        message: `Выбрана валюта ${currency} для вывода`,
+        duration: 2000
+      });
+    } catch (error) {
+      // Обрабатываем возможную ошибку
+      console.error('Ошибка при изменении валюты:', error);
+      
+      // Показываем уведомление об ошибке
+      showNotification('error', {
+        message: 'Произошла ошибка при выборе валюты',
+        duration: 3000
+      });
+    }
   };
   
   // Эффект для установки значения кошелька по умолчанию, когда оно доступно
@@ -180,13 +192,24 @@ const WithdrawalForm: React.FC = () => {
       
       // Анимируем печатание текста по символам
       const typeMessage = async () => {
-        for (let i = 0; i < successMessage.length; i++) {
-          await new Promise(resolve => setTimeout(resolve, 30)); // Задержка между символами
-          setTypedMessage(successMessage.substring(0, i + 1));
+        try {
+          for (let i = 0; i < successMessage.length; i++) {
+            await new Promise(resolve => setTimeout(resolve, 30)); // Задержка между символами
+            setTypedMessage(successMessage.substring(0, i + 1));
+          }
+        } catch (error) {
+          // В случае ошибки отображаем весь текст сразу
+          console.error('Ошибка анимации текста:', error);
+          setTypedMessage(successMessage);
         }
       };
       
-      typeMessage();
+      // Запускаем анимацию
+      typeMessage().catch(error => {
+        console.error('Ошибка при анимации текста:', error);
+        // Показываем полное сообщение без анимации
+        setTypedMessage(successMessage);
+      });
     }
   }, [submitState, successMessage]);
   

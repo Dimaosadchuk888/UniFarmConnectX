@@ -94,28 +94,35 @@ const WalletConnectionCard: React.FC = () => {
   /**
    * Копирует адрес кошелька в буфер обмена
    */
-  const copyAddressToClipboard = () => {
-    if (walletAddress) {
-      navigator.clipboard.writeText(walletAddress)
-        .then(() => {
-          setCopySuccess(true);
-          
-          // Показываем уведомление об успешном копировании
-          showNotification('success', {
-            message: 'TON-адрес скопирован в буфер обмена',
-            duration: 2000
-          });
-          
-          // Сбрасываем статус через 2 секунды
-          setTimeout(() => setCopySuccess(false), 2000);
-        })
-        .catch(() => {
-          // Показываем уведомление об ошибке
-          showNotification('error', {
-            message: 'Не удалось скопировать адрес кошелька',
-            duration: 3000
-          });
-        });
+  const copyAddressToClipboard = async () => {
+    if (!walletAddress) return;
+    
+    try {
+      await navigator.clipboard.writeText(walletAddress);
+      
+      // Устанавливаем статус успешного копирования
+      setCopySuccess(true);
+      
+      // Показываем уведомление об успешном копировании
+      showNotification('success', {
+        message: 'TON-адрес скопирован в буфер обмена',
+        duration: 2000
+      });
+      
+      // Сбрасываем статус через 2 секунды
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (error) {
+      // Получаем текст ошибки
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      
+      // Показываем уведомление об ошибке
+      showNotification('error', {
+        message: `Не удалось скопировать адрес кошелька: ${errorMessage}`,
+        duration: 3000
+      });
+      
+      // Сбрасываем статус копирования
+      setCopySuccess(false);
     }
   };
   
