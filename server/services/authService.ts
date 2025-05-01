@@ -70,7 +70,7 @@ export class AuthService {
 
       // 2. Получение идентификатора пользователя
       let telegramUserId = validationResult.userId;
-      
+
       // Если в режиме разработки или тестирования
       if ((isDevelopment || authData.testMode) && authData.userId && !telegramUserId) {
         telegramUserId = authData.userId;
@@ -82,12 +82,12 @@ export class AuthService {
 
       // 3. Поиск пользователя по id Telegram или guest_id
       let user: User | undefined;
-      
+
       // Приоритет поиска: guest_id > telegram_id
       if (authData.guest_id) {
         user = await UserService.getUserByGuestId(authData.guest_id);
       }
-      
+
       if (!user && telegramUserId) {
         user = await UserService.getUserByTelegramId(telegramUserId);
       }
@@ -100,27 +100,27 @@ export class AuthService {
             username: authData.username
           });
         }
-        
+
         // Привязываем guest_id к Telegram аккаунту, если его еще нет
         if (authData.guest_id && !user.guest_id) {
           user = await UserService.updateUser(user.id, {
             guest_id: authData.guest_id
           });
         }
-        
+
         return user;
       }
 
       // 5. Если пользователь не найден, создаем нового
       const username = authData.username || 
                       `user_${telegramUserId || crypto.randomBytes(4).toString('hex')}`;
-      
+
       // Создаем уникальный реферальный код
       const ref_code = await generateUniqueRefCode();
-      
+
       // Определяем родительский реферальный код
       const parent_ref_code = authData.startParam || authData.refCode || null;
-      
+
       // Создаем пользователя
       const newUser: InsertUser = {
         telegram_id: telegramUserId || null,
@@ -130,15 +130,16 @@ export class AuthService {
         ton_wallet_address: null,
         ref_code,
         parent_ref_code,
+        password: null // Явно указываем null для password
       };
-      
+
       const createdUser = await storage.createUser(newUser);
-      
+
       // Обрабатываем реферальный бонус, если указан родительский код
       if (parent_ref_code) {
         await ReferralBonusService.processRegistrationBonus(createdUser.id, parent_ref_code);
       }
-      
+
       return createdUser;
     } catch (error) {
       console.error('[AuthService] Ошибка аутентификации Telegram:', error);
@@ -159,7 +160,7 @@ export class AuthService {
 
       // Создаем уникальный реферальный код
       const ref_code = data.ref_code || await generateUniqueRefCode();
-      
+
       // Создаем пользователя в режиме AirDrop
       const newUser: InsertUser = {
         telegram_id: data.telegram_id || null,
@@ -170,14 +171,14 @@ export class AuthService {
         ref_code,
         parent_ref_code: data.parent_ref_code || null,
       };
-      
+
       const createdUser = await storage.createUser(newUser);
-      
+
       // Если указан родительский реферальный код, начисляем бонус
       if (data.parent_ref_code) {
         await ReferralBonusService.processRegistrationBonus(createdUser.id, data.parent_ref_code);
       }
-      
+
       return createdUser;
     } catch (error) {
       console.error('[AuthService] Ошибка регистрации гостевого пользователя:', error);
@@ -195,7 +196,7 @@ export class AuthService {
       if (existingUserByUsername) {
         throw new Error(`Пользователь с именем ${data.username} уже существует`);
       }
-      
+
       // Если указан telegram_id, проверяем, есть ли уже такой пользователь
       if (data.telegram_id) {
         const existingUserByTelegramId = await UserService.getUserByTelegramId(data.telegram_id);
@@ -203,13 +204,13 @@ export class AuthService {
           return existingUserByTelegramId;
         }
       }
-      
+
       // Создаем уникальный реферальный код
       const ref_code = data.refCode || await generateUniqueRefCode();
-      
+
       // Определяем родительский реферальный код
       const parent_ref_code = data.parentRefCode || data.startParam || null;
-      
+
       // Создаем пользователя
       const newUser: InsertUser = {
         telegram_id: data.telegram_id || null,
@@ -220,14 +221,14 @@ export class AuthService {
         ref_code,
         parent_ref_code,
       };
-      
+
       const createdUser = await storage.createUser(newUser);
-      
+
       // Обрабатываем реферальный бонус, если указан родительский код
       if (parent_ref_code) {
         await ReferralBonusService.processRegistrationBonus(createdUser.id, parent_ref_code);
       }
-      
+
       return createdUser;
     } catch (error) {
       console.error('[AuthService] Ошибка регистрации пользователя:', error);
@@ -242,10 +243,10 @@ export class AuthService {
     try {
       // Создаем уникальный идентификатор сессии
       const sessionId = crypto.randomUUID();
-      
+
       // В реальной реализации здесь должно быть сохранение в базу данных или
       // другое хранилище сессий. В данном примере просто возвращаем идентификатор.
-      
+
       return sessionId;
     } catch (error) {
       console.error('[AuthService] Ошибка создания сессии:', error);
