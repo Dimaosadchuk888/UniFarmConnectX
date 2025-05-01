@@ -51,6 +51,11 @@ export function registerPartitionRoutes(app: Express): void {
   app.get(`${baseUrl}/status`, adminAuthMiddleware, (req: Request, res: Response, next: NextFunction) => {
     console.log('[PartitionRoutes] Обрабатываем GET запрос на получение статуса партиционирования');
     try {
+      // Получаем имя функции из контроллера
+      console.log('[PartitionRoutes] Доступные методы в контроллере:', 
+        Object.keys(partitionController).filter(key => typeof partitionController[key] === 'function'));
+      
+      // Корректное имя функции - getPartitioningStatus в контроллере
       partitionController.getPartitioningStatus(req, res);
     } catch (error: any) {
       console.error('[PartitionRoutes] Ошибка в GET /api/partitions/status:', error);

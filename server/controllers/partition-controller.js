@@ -14,14 +14,23 @@ import * as partitionService from '../services/partition-service.js';
  * Получение статуса партиционирования таблицы
  */
 export async function getPartitioningStatus(req, res) {
+  console.log('[PartitionController] Запрос статуса партиционирования от пользователя:', req.user?.id || 'неизвестно');
+  console.log('[PartitionController] Headers:', JSON.stringify(req.headers, null, 2));
+  
   try {
+    console.log('[PartitionController] Начинаем проверку статуса партиционирования...');
+    
     // Проверяем статус партиционирования
     const isPartitioned = await partitionService.isTablePartitioned();
+    console.log('[PartitionController] Статус партиционирования получен:', isPartitioned);
     
     // Получаем статистику по партициям
+    console.log('[PartitionController] Запрашиваем статистику партиций...');
     const stats = await partitionService.getPartitionStats();
+    console.log('[PartitionController] Статистика партиций получена');
     
     // Формируем ответ
+    console.log('[PartitionController] Формируем и отправляем успешный ответ');
     return res.status(200).json({
       success: true,
       data: {
@@ -31,6 +40,7 @@ export async function getPartitioningStatus(req, res) {
     });
   } catch (error) {
     console.error('[PartitionController] Ошибка при получении статуса партиционирования:', error);
+    console.error('[PartitionController] Stack trace:', error.stack);
     return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
@@ -44,11 +54,18 @@ export async function getPartitioningStatus(req, res) {
  * Получение списка партиций
  */
 export async function listPartitions(req, res) {
+  console.log('[PartitionController] Запрос списка партиций от пользователя:', req.user?.id || 'неизвестно');
+  console.log('[PartitionController] Headers:', JSON.stringify(req.headers, null, 2));
+  
   try {
+    console.log('[PartitionController] Начинаем запрос списка партиций...');
+    
     // Получаем список всех партиций
     const partitions = await partitionService.getPartitionsList();
+    console.log(`[PartitionController] Список партиций получен, количество: ${partitions.length}`);
     
     // Формируем ответ
+    console.log('[PartitionController] Формируем и отправляем успешный ответ');
     return res.status(200).json({
       success: true,
       data: {
@@ -58,6 +75,7 @@ export async function listPartitions(req, res) {
     });
   } catch (error) {
     console.error('[PartitionController] Ошибка при получении списка партиций:', error);
+    console.error('[PartitionController] Stack trace:', error.stack);
     return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
