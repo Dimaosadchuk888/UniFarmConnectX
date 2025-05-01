@@ -10,7 +10,7 @@
  */
 
 import { Express, Request, Response, NextFunction } from 'express';
-import * as partitionController from '../controllers/partition-controller';
+import * as partitionController from '../controllers/partition-controller.js';
 import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware';
 
 // Определяем интерфейс для типизации расширенного объекта запроса
@@ -68,6 +68,7 @@ export function registerPartitionRoutes(app: Express): void {
   app.delete(`${baseUrl}/:id`, adminAuthMiddleware, (req: RequestWithUser, res: Response, next: NextFunction) => {
     try {
       // Получаем id из URL-параметра и преобразуем в имя партиции
+      req.body = req.body || {}; // Создаем пустой объект для тела, если его нет
       req.body.partitionName = `transactions_${req.params.id}`;
       partitionController.dropPartition(req, res);
     } catch (error) {
