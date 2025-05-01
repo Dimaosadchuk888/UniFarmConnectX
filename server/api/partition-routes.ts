@@ -11,10 +11,23 @@
 
 import { Express, Request, Response, NextFunction } from 'express';
 import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
+import { db, pool } from '../db.js';
 
-// Импортируем контроллер партиционирования и сервис
+// Импортируем контроллер партиционирования
 import * as partitionController from '../controllers/partition-controller.js';
-import * as partitionService from '../services/partition-service.js';
+
+/**
+ * Вспомогательная функция для выполнения SQL запросов
+ */
+async function executeQuery(query: string, params: any[] = []) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(query, params);
+    return result.rows;
+  } finally {
+    client.release();
+  }
+}
 
 // Определяем интерфейс для типизации расширенного объекта запроса
 interface RequestWithUser extends Request {
@@ -133,7 +146,7 @@ export function registerPartitionRoutes(app: Express): void {
           ) as exists;
         `;
         
-        const result = await partitionService.executeQuery(query, [partitionName]);
+        const result = await executeQuery(query, [partitionName]);
         const exists = result[0]?.exists || false;
         
         if (!exists) {
@@ -146,7 +159,7 @@ export function registerPartitionRoutes(app: Express): void {
         
         // Удаляем партицию прямым SQL запросом
         const dropQuery = `DROP TABLE IF EXISTS ${partitionName};`;
-        await partitionService.executeQuery(dropQuery);
+        await executeQuery(dropQuery);
         
         // Логируем операцию удаления
         console.log(`[PartitionRoutes] Партиция ${partitionName} успешно удалена`);
