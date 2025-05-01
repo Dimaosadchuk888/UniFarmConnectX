@@ -16,11 +16,23 @@ export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 // Экспортируем инстанс drizzle для работы с схемой
 export const db = drizzle(pool, { schema });
 
+// Типизированный интерфейс для результатов SQL запросов
+export interface QueryResult<T = any> {
+  command: string;
+  rowCount: number;
+  oid: number;
+  rows: T[];
+  fields: any[];
+}
+
 // Обертка для выполнения SQL запросов напрямую (когда нужны системные запросы)
-export const query = async (text: string, params: any[] = []) => {
+export const query = async <T = any>(text: string, params: any[] = []): Promise<QueryResult<T>> => {
   try {
     const result = await pool.query(text, params);
-    return result;
+    return {
+      ...result,
+      rowCount: result.rowCount || 0  // Гарантируем, что rowCount всегда будет числом
+    };
   } catch (error) {
     console.error('Error executing query:', error);
     throw error;

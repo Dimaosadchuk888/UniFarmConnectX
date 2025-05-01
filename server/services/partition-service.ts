@@ -52,7 +52,7 @@ class PartitionService {
       `;
       
       const result = await dbQuery(query, [tableName]);
-      return result.rowCount ? result.rowCount > 0 : false;
+      return !!result.rowCount && result.rowCount > 0;
     } catch (error) {
       console.error('Error checking if table is partitioned:', error);
       return false;
@@ -182,7 +182,7 @@ class PartitionService {
       
       const checkResult = await dbQuery(checkPartitionQuery, [partitionName]);
       
-      if (checkResult.rowCount > 0) {
+      if (!!checkResult.rowCount && checkResult.rowCount > 0) {
         console.log(`[PartitionService] Partition ${partitionName} already exists`);
         
         // Добавляем запись в логи
