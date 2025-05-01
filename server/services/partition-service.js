@@ -9,7 +9,7 @@
  */
 
 import { db, pool } from '../db.js';
-import { partition_logs, type InsertPartitionLog } from '@shared/schema';
+import { partition_logs } from '@shared/schema';
 
 /**
  * Логирует операцию с партицией в таблицу partition_logs

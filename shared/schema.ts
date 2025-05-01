@@ -251,6 +251,30 @@ export const launchLogs = pgTable("launch_logs", {
   user_id: integer("user_id").references(() => users.id) // Связь с таблицей пользователей (если есть)
 });
 
+// Таблица для логирования операций с партициями
+export const partition_logs = pgTable("partition_logs", {
+  id: serial("id").primaryKey(),
+  operation: text("operation").notNull(), // CREATE, DROP, INFO, ERROR
+  partition_name: text("partition_name"),
+  message: text("message").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  status: text("status").notNull(), // success, error
+  error_details: text("error_details")
+});
+
+// Схемы для таблицы partition_logs
+export const insertPartitionLogSchema = createInsertSchema(partition_logs).pick({
+  operation: true,
+  partition_name: true,
+  message: true,
+  timestamp: true,
+  status: true,
+  error_details: true
+});
+
+export type InsertPartitionLog = z.infer<typeof insertPartitionLogSchema>;
+export type PartitionLog = typeof partition_logs.$inferSelect;
+
 // Схемы для таблицы launch_logs
 export const insertLaunchLogSchema = createInsertSchema(launchLogs).pick({
   telegram_user_id: true,
