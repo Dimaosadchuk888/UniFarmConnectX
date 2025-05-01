@@ -2,7 +2,7 @@
  * Сервис для управления партициями таблицы transactions
  */
 
-import { db, query } from '../db';
+import { db, query as dbQuery } from '../db';
 import { format, addDays } from 'date-fns';
 
 /**
@@ -51,7 +51,7 @@ class PartitionService {
         LIMIT 1;
       `;
       
-      const result = await query(query, [tableName]);
+      const result = await dbQuery(query, [tableName]);
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error checking if table is partitioned:', error);
@@ -90,7 +90,7 @@ class PartitionService {
           child.relname;
       `;
       
-      const result = await query(query, []);
+      const result = await dbQuery(query, []);
       
       // Если ошибка в запросе, пробуем более простой запрос
       if (!result.rows) {
@@ -109,7 +109,7 @@ class PartitionService {
             child.relname;
         `;
         
-        const simpleResult = await query(simpleQuery, []);
+        const simpleResult = await dbQuery(simpleQuery, []);
         return simpleResult.rows;
       }
       
@@ -148,7 +148,7 @@ class PartitionService {
         LIMIT $1
       `;
       
-      const result = await query(sqlQuery, [limit]);
+      const result = await dbQuery(sqlQuery, [limit]);
       return result.rows;
     } catch (error) {
       console.error('Error getting partition logs:', error);
@@ -348,24 +348,24 @@ class PartitionService {
           )
         `;
         
-        await db.query(createTableQuery, []);
+        await query(createTableQuery, []);
         
         // Создаем индексы для таблицы
-        await db.query('CREATE INDEX partition_logs_operation_type_idx ON partition_logs (operation_type)', []);
-        await db.query('CREATE INDEX partition_logs_partition_name_idx ON partition_logs (partition_name)', []);
-        await db.query('CREATE INDEX partition_logs_status_idx ON partition_logs (status)', []);
-        await db.query('CREATE INDEX partition_logs_created_at_idx ON partition_logs (created_at)', []);
+        await query('CREATE INDEX partition_logs_operation_type_idx ON partition_logs (operation_type)', []);
+        await query('CREATE INDEX partition_logs_partition_name_idx ON partition_logs (partition_name)', []);
+        await query('CREATE INDEX partition_logs_status_idx ON partition_logs (status)', []);
+        await query('CREATE INDEX partition_logs_created_at_idx ON partition_logs (created_at)', []);
       }
       
       // Добавляем запись в лог
-      const query = `
+      const sqlQuery = `
         INSERT INTO partition_logs 
         (operation_type, partition_name, status, notes, error_message) 
         VALUES 
         ($1, $2, $3, $4, $5)
       `;
       
-      await db.query(query, [operationType, partitionName, status, notes, errorMessage]);
+      await query(sqlQuery, [operationType, partitionName, status, notes, errorMessage]);
       
       return true;
     } catch (error) {
