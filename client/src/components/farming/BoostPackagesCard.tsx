@@ -95,23 +95,33 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
 
   // Функция для обработки сообщений об ошибках
   const handleErrorMessage = (message?: string) => {
-    // Проверяем наличие ключевых слов, чтобы определить тип ошибки
-    if (!message) {
-      setErrorMessage('Произошла ошибка при покупке буста');
-      return;
+    try {
+      // Проверяем наличие ключевых слов, чтобы определить тип ошибки
+      if (!message) {
+        setErrorMessage('Произошла ошибка при покупке буста');
+        return;
+      }
+      
+      // Если сообщение содержит информацию о недостаточном балансе
+      if (message.toLowerCase().includes('недостаточно') ||
+          message.toLowerCase().includes('баланс') ||
+          message.toLowerCase().includes('balance') ||
+          message.toLowerCase().includes('insufficient')) {
+        setErrorMessage('Недостаточно средств на балансе для покупки буста');
+        return;
+      }
+      
+      // Если это другая ошибка, показываем упрощенное сообщение
+      setErrorMessage(message);
+    } catch (error: any) {
+      console.error('[ERROR] BoostPackagesCard - Ошибка при обработке сообщения об ошибке:', error);
+      // В крайнем случае показываем стандартное сообщение
+      try {
+        setErrorMessage('Произошла ошибка. Пожалуйста, попробуйте позже.');
+      } catch (err) {
+        console.error('[ERROR] BoostPackagesCard - Критическая ошибка при попытке показать сообщение:', err);
+      }
     }
-    
-    // Если сообщение содержит информацию о недостаточном балансе
-    if (message.toLowerCase().includes('недостаточно') ||
-        message.toLowerCase().includes('баланс') ||
-        message.toLowerCase().includes('balance') ||
-        message.toLowerCase().includes('insufficient')) {
-      setErrorMessage('Недостаточно средств на балансе для покупки буста');
-      return;
-    }
-    
-    // Если это другая ошибка, показываем упрощенное сообщение
-    setErrorMessage(message);
   };
   
   // Мутация для покупки TON буста
@@ -130,112 +140,181 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
       }
     },
     onMutate: ({ boostId }) => {
-      // Сохраняем ID буста, который покупается
-      setPurchasingBoostId(boostId);
-      // Сбрасываем сообщения
-      setErrorMessage(null);
-      setSuccessMessage(null);
+      try {
+        // Сохраняем ID буста, который покупается
+        setPurchasingBoostId(boostId);
+        // Сбрасываем сообщения
+        setErrorMessage(null);
+        setSuccessMessage(null);
+      } catch (error: any) {
+        console.error('[ERROR] BoostPackagesCard - Ошибка в onMutate:', error);
+        // Не выбрасываем ошибку, чтобы не прерывать процесс
+      }
     },
     onSuccess: (data) => {
-      if (data.success) {
-        // Если оплата через внутренний баланс - показываем сообщение об успехе
-        if (data.data.paymentMethod === 'internal_balance') {
-          setSuccessMessage(data.message || 'Буст успешно приобретен!');
+      try {
+        if (data.success) {
+          // Если оплата через внутренний баланс - показываем сообщение об успехе
+          if (data.data.paymentMethod === 'internal_balance') {
+            setSuccessMessage(data.message || 'Буст успешно приобретен!');
+            
+            // Инвалидируем кэш для обновления баланса и транзакций
+            invalidateQueryWithUserId(`/api/users`);
+            invalidateQueryWithUserId('/api/wallet/balance');
+            invalidateQueryWithUserId('/api/transactions');
+            invalidateQueryWithUserId('/api/ton-boosts/active');
+          }
+          // Если оплата через внешний кошелек - показываем диалог статуса платежа
+          else if (data.data.paymentMethod === 'external_wallet') {
+            // Сохраняем данные о транзакции
+            setPaymentTransaction({
+              transactionId: data.data.transactionId,
+              paymentLink: data.data.paymentLink,
+              paymentMethod: 'external_wallet'
+            });
+            
+            // Открываем диалог статуса платежа
+            setPaymentStatusDialogOpen(true);
+            
+            // Закрываем диалог выбора способа оплаты
+            setPaymentDialogOpen(false);
+          }
+        } else {
+          // Показываем пользовательское сообщение об ошибке
+          handleErrorMessage(data.message);
+        }
+      } catch (error: any) {
+        console.error('[ERROR] BoostPackagesCard - Ошибка в onSuccess:', error);
+        
+        // Пытаемся восстановиться
+        try {
+          // Показываем общее сообщение об успехе (предполагаем, что покупка всё же прошла)
+          setSuccessMessage('Операция выполнена. Обновите страницу для проверки статуса.');
           
-          // Инвалидируем кэш для обновления баланса и транзакций
-          invalidateQueryWithUserId(`/api/users`);
+          // Пытаемся обновить кэш
           invalidateQueryWithUserId('/api/wallet/balance');
-          invalidateQueryWithUserId('/api/transactions');
           invalidateQueryWithUserId('/api/ton-boosts/active');
+        } catch (err) {
+          console.error('[ERROR] BoostPackagesCard - Критическая ошибка при восстановлении:', err);
         }
-        // Если оплата через внешний кошелек - показываем диалог статуса платежа
-        else if (data.data.paymentMethod === 'external_wallet') {
-          // Сохраняем данные о транзакции
-          setPaymentTransaction({
-            transactionId: data.data.transactionId,
-            paymentLink: data.data.paymentLink,
-            paymentMethod: 'external_wallet'
-          });
-          
-          // Открываем диалог статуса платежа
-          setPaymentStatusDialogOpen(true);
-          
-          // Закрываем диалог выбора способа оплаты
-          setPaymentDialogOpen(false);
-        }
-      } else {
-        // Показываем пользовательское сообщение об ошибке
-        handleErrorMessage(data.message);
       }
     },
     onError: (error: any) => {
       try {
+        console.error('[ERROR] BoostPackagesCard - Ошибка в buyTonBoostMutation:', error);
+        
         // Пробуем распарсить JSON из ошибки, если он там есть
         if (error.message && error.message.includes('{')) {
-          const errorJson = error.message.substring(error.message.indexOf('{'));
-          const parsedError = JSON.parse(errorJson);
-          if (parsedError && parsedError.message) {
-            handleErrorMessage(parsedError.message);
-            return;
+          try {
+            const errorJson = error.message.substring(error.message.indexOf('{'));
+            const parsedError = JSON.parse(errorJson);
+            if (parsedError && parsedError.message) {
+              handleErrorMessage(parsedError.message);
+              return;
+            }
+          } catch (parseError) {
+            console.error('[ERROR] BoostPackagesCard - Ошибка при парсинге JSON из сообщения об ошибке:', parseError);
+            // Продолжаем обработку
           }
         }
-      } catch (e) {
-        // Ошибка парсинга, продолжаем обработку
-      }
 
-      // Показываем общее сообщение об ошибке
-      handleErrorMessage(error.message);
+        // Показываем общее сообщение об ошибке
+        handleErrorMessage(error.message);
+      } catch (err: any) {
+        console.error('[ERROR] BoostPackagesCard - Критическая ошибка в onError:', err);
+        // Последняя попытка показать хоть какое-то сообщение
+        try {
+          setErrorMessage('Не удалось выполнить операцию. Пожалуйста, попробуйте позже.');
+        } catch {}
+      }
     },
     onSettled: () => {
-      // Сбрасываем ID буста после завершения операции
-      setPurchasingBoostId(null);
-      
-      // Закрываем модальное окно выбора способа оплаты, если оно открыто
-      // Но не закрываем диалог статуса платежа
-      if (!paymentStatusDialogOpen) {
-        setPaymentDialogOpen(false);
+      try {
+        // Сбрасываем ID буста после завершения операции
+        setPurchasingBoostId(null);
+        
+        // Закрываем модальное окно выбора способа оплаты, если оно открыто
+        // Но не закрываем диалог статуса платежа
+        if (!paymentStatusDialogOpen) {
+          setPaymentDialogOpen(false);
+        }
+      } catch (error: any) {
+        console.error('[ERROR] BoostPackagesCard - Ошибка в onSettled:', error);
+        // В крайнем случае сбрасываем флаг (попытка)
+        try {
+          setPurchasingBoostId(null);
+        } catch {}
       }
     }
   });
   
   // Проверяем, может ли пользователь купить буст
   const canBuyBoost = (boostId: number): boolean => {
-    if (!userData || !userData.balance_ton) return false;
-    
-    // Для упрощения, считаем, что пользователь всегда может купить буст
-    // В реальном приложении здесь будет проверка баланса TON
-    return true;
+    try {
+      if (!userData || !userData.balance_ton) return false;
+      
+      // Для упрощения, считаем, что пользователь всегда может купить буст
+      // В реальном приложении здесь будет проверка баланса TON
+      return true;
+    } catch (error: any) {
+      console.error('[ERROR] BoostPackagesCard - Ошибка при проверке возможности покупки буста:', error);
+      // В случае ошибки лучше вернуть false, чтобы пользователь не мог выполнить неправильную операцию
+      return false;
+    }
   };
   
   // Обработчик нажатия на кнопку "Buy Boost"
   const handleBuyBoost = (boostId: number) => {
-    // Находим имя выбранного буста
-    const selectedBoost = boostPackages.find(boost => boost.id === boostId);
-    if (selectedBoost) {
-      setSelectedBoostId(boostId);
-      setSelectedBoostName(selectedBoost.name);
-      setPaymentDialogOpen(true);
+    try {
+      // Находим имя выбранного буста
+      const selectedBoost = boostPackages.find(boost => boost.id === boostId);
+      if (selectedBoost) {
+        setSelectedBoostId(boostId);
+        setSelectedBoostName(selectedBoost.name);
+        setPaymentDialogOpen(true);
+      }
+    } catch (error: any) {
+      console.error('[ERROR] BoostPackagesCard - Ошибка при выборе буста:', error);
+      setErrorMessage('Не удалось открыть окно покупки. Пожалуйста, попробуйте еще раз.');
     }
   };
   
   // Обработчик выбора способа оплаты
   const handleSelectPaymentMethod = (boostId: number, paymentMethod: 'internal_balance' | 'external_wallet') => {
-    buyTonBoostMutation.mutate({ boostId, paymentMethod });
+    try {
+      buyTonBoostMutation.mutate({ boostId, paymentMethod });
+    } catch (error: any) {
+      console.error('[ERROR] BoostPackagesCard - Ошибка при выборе способа оплаты:', error);
+      setErrorMessage('Не удалось выполнить платеж. Пожалуйста, попробуйте еще раз.');
+      setPaymentDialogOpen(false);
+    }
   };
   
   // Обработчик завершения внешнего платежа
   const handlePaymentComplete = () => {
-    // Инвалидируем кэш для обновления баланса и транзакций
-    invalidateQueryWithUserId('/api/users');
-    invalidateQueryWithUserId('/api/wallet/balance');
-    invalidateQueryWithUserId('/api/transactions');
-    invalidateQueryWithUserId('/api/ton-boosts/active');
-    
-    // Закрываем диалог статуса платежа
-    setPaymentStatusDialogOpen(false);
-    
-    // Показываем сообщение об успехе
-    setSuccessMessage('TON Boost успешно активирован! Бонусные UNI зачислены на ваш баланс.');
+    try {
+      // Инвалидируем кэш для обновления баланса и транзакций
+      invalidateQueryWithUserId('/api/users');
+      invalidateQueryWithUserId('/api/wallet/balance');
+      invalidateQueryWithUserId('/api/transactions');
+      invalidateQueryWithUserId('/api/ton-boosts/active');
+      
+      // Закрываем диалог статуса платежа
+      setPaymentStatusDialogOpen(false);
+      
+      // Показываем сообщение об успехе
+      setSuccessMessage('TON Boost успешно активирован! Бонусные UNI зачислены на ваш баланс.');
+    } catch (error: any) {
+      console.error('[ERROR] BoostPackagesCard - Ошибка при завершении платежа:', error);
+      
+      // Пытаемся всё же закрыть диалог и показать сообщение об успехе
+      try {
+        setPaymentStatusDialogOpen(false);
+        setSuccessMessage('Платеж выполнен, но возникла ошибка при обновлении данных. Пожалуйста, обновите страницу.');
+      } catch (err) {
+        console.error('[ERROR] BoostPackagesCard - Критическая ошибка при попытке восстановления:', err);
+      }
+    }
   };
   
   return (
