@@ -150,7 +150,8 @@ function setupCronJobs() {
 export { setupCronJobs };
 
 // Если скрипт запущен напрямую, запускаем настройку задач
-if (require.main === module) {
+// Используем проверку для ES модулей
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   logToFile('Запуск планировщика задач...');
   setupCronJobs();
   

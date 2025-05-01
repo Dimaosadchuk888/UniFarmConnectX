@@ -158,7 +158,8 @@ async function createWalletSnapshots(): Promise<any> {
 export default createWalletSnapshots;
 
 // Если скрипт запущен напрямую, выполняем создание снимков
-if (require.main === module) {
+// Используем проверку для ES модулей
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   createWalletSnapshots()
     .then((result) => {
       if (result.success) {

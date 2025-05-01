@@ -249,7 +249,8 @@ async function clearOldPartitions() {
 export default clearOldPartitions;
 
 // Если скрипт запущен напрямую, выполняем удаление партиций
-if (require.main === module) {
+// Используем проверку для ES модулей
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   clearOldPartitions()
     .then((result) => {
       if (result.success) {

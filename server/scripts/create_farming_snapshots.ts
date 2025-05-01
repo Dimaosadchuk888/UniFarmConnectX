@@ -157,7 +157,8 @@ async function createFarmingSnapshots(): Promise<any> {
 export default createFarmingSnapshots;
 
 // Если скрипт запущен напрямую, выполняем создание снимков
-if (require.main === module) {
+// Используем проверку для ES модулей
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   createFarmingSnapshots()
     .then((result) => {
       if (result.success) {
