@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { correctApiRequest } from '@/lib/correctApiRequest';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, invalidateQueryWithUserId } from '@/lib/queryClient';
 import BigNumber from 'bignumber.js';
 import { useUser } from '@/contexts/userContext';
 
@@ -83,8 +83,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       setError(data.message || 'Доход автоматически начисляется на ваш баланс UNI');
       
       // Обновляем данные с учетом динамического ID пользователя
-      queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info', userId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance', userId] });
+      // Используем новую функцию вместо прямого вызова invalidateQueries
+      invalidateQueryWithUserId('/api/uni-farming/info');
+      invalidateQueryWithUserId('/api/wallet/balance');
     },
     onError: (error: Error) => {
       setError('Ошибка при обновлении данных: ' + error.message);
@@ -112,9 +113,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       setError(null);
       
       // Обновляем данные с учетом динамического ID пользователя
-      queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info', userId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance', userId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      // Используем новую функцию вместо прямого вызова invalidateQueries
+      invalidateQueryWithUserId('/api/uni-farming/info');
+      invalidateQueryWithUserId('/api/wallet/balance');
+      invalidateQueryWithUserId('/api/transactions');
     },
     onError: (error: Error) => {
       setError(`Не удалось выполнить депозит: ${error.message}`);

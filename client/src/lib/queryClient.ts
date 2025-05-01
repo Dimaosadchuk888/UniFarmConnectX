@@ -200,6 +200,23 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
           // Преобразует числовые amount в строковые для совместимости с сервером
           parsedBody = fixRequestBody(parsedBody);
           
+          // Дополнительно проверяем, есть ли user_id в теле запроса
+          // Если нет, и у нас есть информация о пользователе в localStorage, добавляем её
+          if (!('user_id' in parsedBody)) {
+            try {
+              const userData = localStorage.getItem('unifarm_user_data');
+              if (userData) {
+                const userInfo = JSON.parse(userData);
+                if (userInfo && userInfo.id) {
+                  console.log(`[queryClient] Автоматически добавляем user_id=${userInfo.id} в тело запроса`);
+                  parsedBody.user_id = userInfo.id;
+                }
+              }
+            } catch (err) {
+              console.warn('[queryClient] Не удалось получить ID пользователя из localStorage:', err);
+            }
+          }
+          
           // Если тело запроса было изменено, обновляем его в fetchOptions
           const fixedBody = JSON.stringify(parsedBody);
           if (fixedBody !== fetchOptions.body) {
@@ -332,7 +349,18 @@ export const getQueryFn: <T>(options: {
       const queryKeyStr = queryKey[0] as string;
       
       // Преобразуем относительный URL в полный с использованием apiConfig
-      const baseUrl = apiConfig.getFullUrl(queryKeyStr);
+      let baseUrl = apiConfig.getFullUrl(queryKeyStr);
+      
+      // Проверяем, есть ли второй элемент в queryKey (userId)
+      // и добавляем его в URL, если он есть и URL не содержит user_id
+      if (queryKey.length > 1 && queryKey[1] && !baseUrl.includes('user_id=')) {
+        const userId = queryKey[1];
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        baseUrl = `${baseUrl}${separator}user_id=${userId}`;
+        console.log("[DEBUG] QueryClient - Added userId to URL:", userId);
+      }
+      
+      // Добавляем nocache параметр
       const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}nocache=${timestamp}`;
       
       console.log("[DEBUG] QueryClient - Full URL:", url);
@@ -393,3 +421,29 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+/**
+ * Вспомогательная функция для правильного обновления запросов с учетом ID пользователя.
+ * Использование:
+ * invalidateQueryWithUserId('/api/uni-farming/info')
+ * вместо
+ * queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] })
+ */
+export function invalidateQueryWithUserId(endpoint: string): Promise<void> {
+  try {
+    // Пытаемся получить ID пользователя из localStorage
+    const userData = localStorage.getItem('unifarm_user_data');
+    if (userData) {
+      const userInfo = JSON.parse(userData);
+      if (userInfo && userInfo.id) {
+        console.log(`[queryClient] Обновляем кэш для ${endpoint} с user_id=${userInfo.id}`);
+        return queryClient.invalidateQueries({ queryKey: [endpoint, userInfo.id] });
+      }
+    }
+  } catch (err) {
+    console.warn('[queryClient] Не удалось получить ID пользователя из localStorage:', err);
+  }
+  
+  // Если не удалось получить user_id, используем стандартный подход
+  return queryClient.invalidateQueries({ queryKey: [endpoint] });
+}
