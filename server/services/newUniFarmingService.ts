@@ -401,7 +401,11 @@ export class NewUniFarmingService {
     deposits: any[];
   }> {
     // Обновляем баланс для получения актуальных данных
-    await this.calculateAndUpdateUserFarming(userId);
+    try {
+      await this.calculateAndUpdateUserFarming(userId);
+    } catch (err) {
+      console.error('[getUserFarmingInfo] Ошибка при обновлении фарминга:', err);
+    }
     
     // Получаем все депозиты пользователя
     const deposits = await this.getUserFarmingDeposits(userId);
