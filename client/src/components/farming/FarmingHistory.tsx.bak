@@ -232,255 +232,257 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         console.log('[DEBUG] TON Boost Response:', JSON.stringify(activeTonBoostsResponse).slice(0, 500));
       }
     
-      // Создаем основной депозит из данных фарминга
-      if (uniFarmingResponse?.success) {
-        // Проверка существующего активного депозита
-        const isActive = uniFarmingResponse.data.isActive;
-        const depositAmount = uniFarmingResponse.data.depositAmount || '0';
+    // Создаем основной депозит из данных фарминга
+    if (uniFarmingResponse?.success) {
+      // Проверка существующего активного депозита
+      const isActive = uniFarmingResponse.data.isActive;
+      const depositAmount = uniFarmingResponse.data.depositAmount || '0';
+      
+      // Добавляем активный депозит из API данных
+      farmingDeposits.push({
+        id: 1,
+        packageId: 0, // 0 значит основной UNI фарминг
+        createdAt: new Date(uniFarmingResponse.data.startDate || Date.now()),
+        isActive: isActive,
+        uniYield: "0.5%", 
+        tonYield: "0.0%",
+        bonus: "0 UNI",
+        amount: depositAmount,
+        daysLeft: 365
+      });
+    }
+    
+    // Добавляем активные TON Boost пакеты, если они есть
+    if (activeTonBoostsResponse?.success && Array.isArray(activeTonBoostsResponse.data)) {
+      activeTonBoostsResponse.data.forEach((tonBoost: TonBoostDeposit, index: number) => {
+        const packageId = tonBoost.boost_package_id || 1;
         
-        // Добавляем активный депозит из API данных
         farmingDeposits.push({
-          id: 1,
-          packageId: 0, // 0 значит основной UNI фарминг
-          createdAt: new Date(uniFarmingResponse.data.startDate || Date.now()),
-          isActive: isActive,
-          uniYield: "0.5%", 
-          tonYield: "0.0%",
-          bonus: "0 UNI",
-          amount: depositAmount,
-          daysLeft: 365
+          id: 4000000 + index, // Используем диапазон ID для TON Boost
+          packageId,
+          createdAt: new Date(tonBoost.created_at || Date.now()),
+          isActive: true,
+          uniYield: "0.0%",
+          tonYield: getYieldRateForBoost(packageId),
+          bonus: getBoostBonus(packageId),
+          amount: tonBoost.amount || "0",
+          daysLeft: tonBoost.days_left || 365
         });
-      }
+      });
+    }
+    
+    // Проверка и логирование структуры транзакций
+    console.log("[DEBUG] FarmingHistory - Обработка транзакций, структура:", {
+      transactionsResponse,
+      isObject: typeof transactionsResponse === 'object',
+      hasSuccess: transactionsResponse && 'success' in transactionsResponse,
+      hasTransactions: transactionsResponse?.success && 
+        transactionsResponse.data && 
+        Array.isArray(transactionsResponse.data.transactions)
+    });
+    
+    // Обработка транзакций - новая логика для поддержки API-формата
+    let transactionsArray: Transaction[] = [];
+    
+    if (transactionsResponse?.success && 
+        transactionsResponse.data && 
+        Array.isArray(transactionsResponse.data.transactions)) {
+      // Новый формат API: {success: true, data: {transactions: [...]}}
+      transactionsArray = transactionsResponse.data.transactions;
+    } else if (Array.isArray(transactionsResponse)) {
+      // Старый формат: прямой массив транзакций
+      transactionsArray = transactionsResponse;
+    }
+    
+    // Логирование для отладки массива транзакций
+    console.log("[DEBUG] FarmingHistory - Массив транзакций:", {
+      count: transactionsArray.length,
+      types: transactionsArray.length > 0 ? 
+        Array.from(new Set(transactionsArray.map(tx => tx.type))).join(', ') : 'N/A',
+      sample: transactionsArray.slice(0, 3)
+    });
+    
+    if (transactionsArray.length > 0) {
+      // Фильтрация всех транзакций (включая TON и UNI)
+      const farmingTransactions = transactionsArray.filter((tx: Transaction) => 
+        tx.type !== 'debug' && 
+        (tx.currency === 'UNI' || tx.currency === 'TON') && 
+        ['deposit', 'farming', 'check-in', 'reward', 'farming_reward', 'ton_boost', 'boost_farming'].includes(tx.type)
+      );
       
-      // Добавляем активные TON Boost пакеты, если они есть
-      if (activeTonBoostsResponse?.success && Array.isArray(activeTonBoostsResponse.data)) {
-        activeTonBoostsResponse.data.forEach((tonBoost: TonBoostDeposit, index: number) => {
-          const packageId = tonBoost.boost_package_id || 1;
-          
-          farmingDeposits.push({
-            id: 4000000 + index, // Используем диапазон ID для TON Boost
-            packageId,
-            createdAt: new Date(tonBoost.created_at || Date.now()),
-            isActive: true,
-            uniYield: "0.0%",
-            tonYield: getYieldRateForBoost(packageId),
-            bonus: getBoostBonus(packageId),
-            amount: tonBoost.amount || "0",
-            daysLeft: tonBoost.days_left || 365
-          });
-        });
-      }
-      
-      // Проверка и логирование структуры транзакций
-      console.log("[DEBUG] FarmingHistory - Обработка транзакций, структура:", {
-        transactionsResponse,
-        isObject: typeof transactionsResponse === 'object',
-        hasSuccess: transactionsResponse && 'success' in transactionsResponse,
-        hasTransactions: transactionsResponse?.success && 
-          transactionsResponse.data && 
-          Array.isArray(transactionsResponse.data.transactions)
+      // Логирование для отладки фильтрованных транзакций фарминга
+      console.log("[DEBUG] FarmingHistory - Фильтрованные транзакции фарминга:", {
+        count: farmingTransactions.length,
+        types: farmingTransactions.length > 0 ? 
+          Array.from(new Set(farmingTransactions.map(tx => tx.type))).join(', ') : 'N/A',
+        sample: farmingTransactions.slice(0, 3)
       });
       
-      // Обработка транзакций - новая логика для поддержки API-формата
-      let transactionsArray: Transaction[] = [];
+      // Находим все UNI депозиты для создания карточек фарминг-депозитов
+      const uniDeposits = transactionsArray.filter((tx: Transaction) => 
+        tx.type === 'deposit' && 
+        tx.currency === 'UNI' && 
+        tx.status === 'confirmed'
+      );
       
-      if (transactionsResponse?.success && 
-          transactionsResponse.data && 
-          Array.isArray(transactionsResponse.data.transactions)) {
-        // Новый формат API: {success: true, data: {transactions: [...]}}
-        transactionsArray = transactionsResponse.data.transactions;
-      } else if (Array.isArray(transactionsResponse)) {
-        // Старый формат: прямой массив транзакций
-        transactionsArray = transactionsResponse;
+      // Создаем фарминг-депозиты из депозитов UNI
+      if (uniDeposits.length > 0) {
+        // Сортируем по дате (сначала новые)
+        uniDeposits.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        
+        // Добавляем каждый депозит как отдельный фарминг-депозит
+        uniDeposits.forEach((deposit) => {
+          // Проверяем, нет ли уже такого депозита (по id)
+          const existingDepositIndex = farmingDeposits.findIndex(d => d.id === deposit.id);
+          
+          if (existingDepositIndex === -1) {
+            // Создаем новый фарминг-депозит
+            farmingDeposits.push({
+              id: 10000 + deposit.id, // Используем уникальный id
+              packageId: 0, // 0 значит основной UNI фарминг
+              createdAt: new Date(deposit.created_at),
+              isActive: true, // Все депозиты считаем активными
+              uniYield: "0.5%",
+              tonYield: "0.0%",
+              bonus: "0 UNI",
+              amount: deposit.amount,
+              daysLeft: 365
+            });
+          }
+        });
       }
       
-      // Логирование для отладки массива транзакций
-      console.log("[DEBUG] FarmingHistory - Массив транзакций:", {
-        count: transactionsArray.length,
-        types: transactionsArray.length > 0 ? 
-          Array.from(new Set(transactionsArray.map(tx => tx.type))).join(', ') : 'N/A',
-        sample: transactionsArray.slice(0, 3)
-      });
-      
-      if (transactionsArray.length > 0) {
-        // Фильтрация всех транзакций (включая TON и UNI)
-        const farmingTransactions = transactionsArray.filter((tx: Transaction) => 
-          tx.type !== 'debug' && 
-          (tx.currency === 'UNI' || tx.currency === 'TON') && 
-          ['deposit', 'farming', 'check-in', 'reward', 'farming_reward', 'ton_boost', 'boost_farming'].includes(tx.type)
-        );
-        
-        // Логирование для отладки фильтрованных транзакций фарминга
-        console.log("[DEBUG] FarmingHistory - Фильтрованные транзакции фарминга:", {
-          count: farmingTransactions.length,
-          types: farmingTransactions.length > 0 ? 
-            Array.from(new Set(farmingTransactions.map(tx => tx.type))).join(', ') : 'N/A',
-          sample: farmingTransactions.slice(0, 3)
-        });
-        
-        // Находим все UNI депозиты для создания карточек фарминг-депозитов
-        const uniDeposits = transactionsArray.filter((tx: Transaction) => 
-          tx.type === 'deposit' && 
-          tx.currency === 'UNI' && 
-          tx.status === 'confirmed'
-        );
-        
-        // Создаем фарминг-депозиты из депозитов UNI
-        if (uniDeposits.length > 0) {
-          // Сортируем по дате (сначала новые)
-          uniDeposits.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          
-          // Добавляем каждый депозит как отдельный фарминг-депозит
-          uniDeposits.forEach((deposit) => {
-            // Проверяем, нет ли уже такого депозита (по id)
-            const existingDepositIndex = farmingDeposits.findIndex(d => d.id === deposit.id);
-            
-            if (existingDepositIndex === -1) {
-              // Создаем новый фарминг-депозит
-              farmingDeposits.push({
-                id: 10000 + deposit.id, // Используем уникальный id
-                packageId: 0, // 0 значит основной UNI фарминг
-                createdAt: new Date(deposit.created_at),
-                isActive: true, // Все депозиты считаем активными
-                uniYield: "0.5%",
-                tonYield: "0.0%",
-                bonus: "0 UNI",
-                amount: deposit.amount,
-                daysLeft: 365
-              });
-            }
-          });
-        }
-        
-        if (farmingTransactions.length > 0) {
-          // Если у нас есть UNI фарминг, уточняем его дату активации из транзакции
-          if (farmingDeposits.length > 0) {
-            // Ищем первый депозит UNI для уточнения даты активации
-            const depositTx = farmingTransactions.find((tx: Transaction) => 
-              tx.type === 'deposit' && tx.currency === 'UNI'
-            );
-            
-            if (depositTx) {
-              // Обновляем дату создания для фарминг-депозита
-              farmingDeposits[0].createdAt = new Date(depositTx.created_at);
-            }
-          }
-          
-          // Определяем минимальные значимые суммы для каждой валюты
-          const MIN_SIGNIFICANT_AMOUNT = {
-            UNI: 0.00001, // Минимальная значимая сумма для UNI
-            TON: 0.000001 // Минимальная значимая сумма для TON
-          };
-          
-          // Преобразуем транзакции в историю с фильтрацией незначительных сумм
-          historyItems = farmingTransactions
-            .map((tx: Transaction) => {
-              // Определение типа операции на основе данных транзакции
-              let type = 'Операция';
-              
-              // Используем все доступные типы транзакций
-              if (tx.type === 'farming') type = 'Фарминг';
-              else if (tx.type === 'farming_reward') type = 'Награда за фарминг';
-              else if (tx.type === 'boost_farming') type = 'TON фарминг';
-              else if (tx.type === 'ton_boost') type = 'TON Boost';
-              else if (tx.type === 'deposit') type = 'Депозит';
-              else if (tx.type === 'boost') type = 'Boost';
-              else if (tx.type === 'check-in') type = 'Ежедневный бонус';
-              else if (tx.type === 'reward') type = 'Награда';
-              
-              const currency = tx.currency || 'UNI'; // По умолчанию UNI
-              const amount = parseFloat(tx.amount || '0');
-              
-              // Отладочное логирование для TON транзакций
-              if (currency === 'TON') {
-                console.log("[TON История] Обработка транзакции:", {
-                  id: tx.id,
-                  time: new Date(tx.created_at),
-                  type: tx.type,
-                  rawAmount: tx.amount,
-                  parsedAmount: amount,
-                  boost_id: tx.boost_id
-                });
-              }
-              
-              return {
-                id: tx.id,
-                time: new Date(tx.created_at),
-                type,
-                amount,
-                currency,
-                boost_id: tx.boost_id,
-                isNew: false
-              };
-            })
-            // Фильтруем транзакции с нулевыми или слишком малыми суммами
-            .filter(item => {
-              const minAmount = MIN_SIGNIFICANT_AMOUNT[item.currency as keyof typeof MIN_SIGNIFICANT_AMOUNT] || 0.00001;
-              const isSignificant = item.amount > minAmount;
-              
-              if (!isSignificant && item.currency === 'TON') {
-                console.log(`[TON История] Отфильтрована незначительная транзакция: ID=${item.id}, Сумма=${item.amount}`);
-              }
-              
-              return isSignificant;
-            });
-          
-          // Сортируем по дате (сначала новые)
-          historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
-          
-          // Добавляем активные бусты в депозиты, если они есть
-          if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data) && activeBoostsResponse.data.length > 0) {
-            activeBoostsResponse.data.forEach((boost: { boost_id: number; created_at: string; days_left: number }, index: number) => {
-              const packageId = boost.boost_id || 1;
-              
-              // Находим транзакцию покупки этого буста
-              const boostTx = farmingTransactions.find((tx: Transaction) => 
-                tx.type === 'boost' && tx.boost_id === packageId
-              );
-              
-              farmingDeposits.push({
-                id: 2000000 + index,
-                packageId,
-                createdAt: boostTx ? new Date(boostTx.created_at) : new Date(boost.created_at || Date.now()),
-                isActive: true,
-                uniYield: "0.0%",
-                tonYield: getYieldRateForBoost(packageId),
-                bonus: getBoostBonus(packageId),
-                amount: boostTx ? boostTx.amount : "0",
-                daysLeft: boost.days_left || 365
-              });
-            });
-          }
-          
-          // Добавляем исторические boost транзакции для TON Boost
-          const boostTransactions = farmingTransactions.filter((tx: Transaction) => 
-            tx.type === 'boost' && tx.currency === 'TON'
+      if (farmingTransactions.length > 0) {
+        // Если у нас есть UNI фарминг, уточняем его дату активации из транзакции
+        if (farmingDeposits.length > 0) {
+          // Ищем первый депозит UNI для уточнения даты активации
+          const depositTx = farmingTransactions.find((tx: Transaction) => 
+            tx.type === 'deposit' && tx.currency === 'UNI'
           );
           
-          boostTransactions.forEach((tx: Transaction, index: number) => {
-            // Проверяем, не добавлен ли уже этот буст как активный
-            const isAlreadyActive = farmingDeposits.some(d => 
-              d.packageId === tx.boost_id && 
-              d.id >= 2000000
-            );
+          if (depositTx) {
+            // Обновляем дату создания для фарминг-депозита
+            farmingDeposits[0].createdAt = new Date(depositTx.created_at);
+          }
+        }
+        
+        // Определяем минимальные значимые суммы для каждой валюты
+        const MIN_SIGNIFICANT_AMOUNT = {
+          UNI: 0.00001, // Минимальная значимая сумма для UNI
+          TON: 0.000001 // Минимальная значимая сумма для TON
+        };
+        
+        // Преобразуем транзакции в историю с фильтрацией незначительных сумм
+        historyItems = farmingTransactions
+          .map((tx: Transaction) => {
+            // Определение типа операции на основе данных транзакции
+            let type = 'Операция';
             
-            if (!isAlreadyActive && tx.boost_id) {
-              farmingDeposits.push({
-                id: 3000000 + index,
-                packageId: tx.boost_id,
-                createdAt: new Date(tx.created_at),
-                isActive: false, // Исторические бусты не активны
-                uniYield: "0.0%",
-                tonYield: getYieldRateForBoost(tx.boost_id),
-                bonus: getBoostBonus(tx.boost_id),
-                amount: tx.amount,
-                daysLeft: 0
+            // Используем все доступные типы транзакций
+            if (tx.type === 'farming') type = 'Фарминг';
+            else if (tx.type === 'farming_reward') type = 'Награда за фарминг';
+            else if (tx.type === 'boost_farming') type = 'TON фарминг';
+            else if (tx.type === 'ton_boost') type = 'TON Boost';
+            else if (tx.type === 'deposit') type = 'Депозит';
+            else if (tx.type === 'boost') type = 'Boost';
+            else if (tx.type === 'check-in') type = 'Ежедневный бонус';
+            else if (tx.type === 'reward') type = 'Награда';
+            
+            const currency = tx.currency || 'UNI'; // По умолчанию UNI
+            const amount = parseFloat(tx.amount || '0');
+            
+            // Отладочное логирование для TON транзакций
+            if (currency === 'TON') {
+              console.log("[TON История] Обработка транзакции:", {
+                id: tx.id,
+                time: new Date(tx.created_at),
+                type: tx.type,
+                rawAmount: tx.amount,
+                parsedAmount: amount,
+                boost_id: tx.boost_id
               });
             }
+            
+            return {
+              id: tx.id,
+              time: new Date(tx.created_at),
+              type,
+              amount,
+              currency,
+              boost_id: tx.boost_id,
+              isNew: false
+            };
+          })
+          // Фильтруем транзакции с нулевыми или слишком малыми суммами
+          .filter(item => {
+            const minAmount = MIN_SIGNIFICANT_AMOUNT[item.currency as keyof typeof MIN_SIGNIFICANT_AMOUNT] || 0.00001;
+            const isSignificant = item.amount > minAmount;
+            
+            if (!isSignificant && item.currency === 'TON') {
+              console.log(`[TON История] Отфильтрована незначительная транзакция: ID=${item.id}, Сумма=${item.amount}`);
+            }
+            
+            return isSignificant;
+          });
+        
+        // Сортируем по дате (сначала новые)
+        historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
+        
+        // Добавляем активные бусты в депозиты, если они есть
+        if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data) && activeBoostsResponse.data.length > 0) {
+          activeBoostsResponse.data.forEach((boost: { boost_id: number; created_at: string; days_left: number }, index: number) => {
+            const packageId = boost.boost_id || 1;
+            
+            // Находим транзакцию покупки этого буста
+            const boostTx = farmingTransactions.find((tx: Transaction) => 
+              tx.type === 'boost' && tx.boost_id === packageId
+            );
+            
+            farmingDeposits.push({
+              id: 2000000 + index,
+              packageId,
+              createdAt: boostTx ? new Date(boostTx.created_at) : new Date(boost.created_at || Date.now()),
+              isActive: true,
+              uniYield: "0.0%",
+              tonYield: getYieldRateForBoost(packageId),
+              bonus: getBoostBonus(packageId),
+              amount: boostTx ? boostTx.amount : "0",
+              daysLeft: boost.days_left || 365
+            });
           });
         }
+        
+        // Добавляем исторические boost транзакции для TON Boost
+        const boostTransactions = farmingTransactions.filter((tx: Transaction) => 
+          tx.type === 'boost' && tx.currency === 'TON'
+        );
+        
+        boostTransactions.forEach((tx: Transaction, index: number) => {
+          // Проверяем, не добавлен ли уже этот буст как активный
+          const isAlreadyActive = farmingDeposits.some(d => 
+            d.packageId === tx.boost_id && 
+            d.id >= 2000000
+          );
+          
+          if (!isAlreadyActive && tx.boost_id) {
+            farmingDeposits.push({
+              id: 3000000 + index,
+              packageId: tx.boost_id,
+              createdAt: new Date(tx.created_at),
+              isActive: false, // Неактивный буст
+              uniYield: "0.0%",
+              tonYield: getYieldRateForBoost(tx.boost_id),
+              bonus: getBoostBonus(tx.boost_id),
+              amount: tx.amount || "0",
+              daysLeft: 0
+            });
+          }
+        });
       }
-      
+    }
+    
+    // Устанавливаем данные в состояние
+    
       // Устанавливаем данные для отображения
       setFarmingHistory(historyItems);
       setDeposits(farmingDeposits);
@@ -751,145 +753,136 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           <h3 className="text-md font-medium mb-4">История TON транзакций</h3>
           
           <div className="overflow-hidden relative">
-            <table className="w-full">
-              <thead className="sticky top-0 bg-card z-10">
-                <tr className="border-b border-gray-800">
-                  <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
-                  <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
-                  <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
-                </tr>
-              </thead>
-              <tbody>
-                {farmingHistory
-                  .filter(item => item.currency === 'TON')
-                  .map((item) => (
-                    <tr 
-                      key={item.id} 
-                      className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
-                    >
-                      <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
-                      <td className="py-2 text-sm text-foreground">
-                        <div className="flex items-center">
-                          <span className={`
-                            inline-block w-2 h-2 rounded-full mr-2
-                            ${item.type === 'TON фарминг' ? 'bg-blue-500' : 
-                              item.type === 'TON Boost' ? 'bg-green-500' : 
-                              item.type === 'Boost' ? 'bg-indigo-500' : 
-                              'bg-blue-500'}
-                          `}></span>
-                          {item.type}
-                        </div>
-                      </td>
-                      <td className="py-2 text-sm text-right">
-                        <span className="text-blue-300">
-                          +{item.amount.toFixed(item.amount < 0.001 ? 6 : 3)}
-                        </span>
-                        <span className="text-gray-400 ml-1.5 text-xs">TON</span>
-                      </td>
-                    </tr>
+            {farmingHistory.filter(item => item.currency === 'TON' && item.amount >= 0.000001).length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-foreground opacity-70">
+                  У вас пока нет транзакций по TON
+                </p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b border-gray-800">
+                    <th className="py-2 text-left text-sm text-foreground opacity-70">Дата и время</th>
+                    <th className="py-2 text-left text-sm text-foreground opacity-70">Операция</th>
+                    <th className="py-2 text-right text-sm text-foreground opacity-70">Сумма</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {farmingHistory
+                    .filter(item => 
+                      // Фильтрация только TON транзакций со значимыми суммами
+                      item.currency === 'TON' && 
+                      item.amount >= 0.000001
+                    )
+                    .map((item) => (
+                      <tr 
+                        key={item.id} 
+                        className={`border-b border-gray-800/30 ${item.isNew ? 'animate-highlight' : ''}`}
+                      >
+                        <td className="py-2 text-sm text-foreground opacity-70">{formatDate(item.time)}</td>
+                        <td className="py-2 text-sm text-foreground">
+                          <div className="flex items-center">
+                            <span className={`
+                              inline-block w-2 h-2 rounded-full mr-2
+                              ${item.type === 'Фарминг' ? 'bg-green-500' : 
+                                item.type === 'Депозит' ? 'bg-blue-500' : 
+                                item.type === 'Награда за фарминг' ? 'bg-blue-300' : 
+                                item.type === 'TON фарминг' ? 'bg-blue-400' : 
+                                item.type === 'TON Boost' ? 'bg-indigo-500' : 
+                                item.type === 'Boost' ? 'bg-cyan-500' : 
+                                'bg-blue-500'}
+                            `}></span>
+                            {item.type}
+                          </div>
+                        </td>
+                        <td className="py-2 text-sm text-right">
+                          <span className="text-blue-300">
+                            +{(item.amount || 0).toFixed(
+                              // Настраиваем точность отображения TON в зависимости от суммы
+                              (item.amount || 0) < 0.0001 ? 6 : 
+                              (item.amount || 0) < 0.01 ? 5 : 
+                              (item.amount || 0) < 1 ? 4 : 3
+                            )}
+                          </span>
+                          <span className="text-gray-400 ml-1.5 text-xs">TON</span>
+                        </td>
+                      </tr>
                   ))}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
     );
   };
   
-  // Обработчик обновления данных
-  const handleRefresh = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Параллельно обновляем все данные
-      await Promise.all([
-        refetchTransactions(),
-        refetchBoosts(),
-        refetchTonBoosts(),
-        refetchFarming()
-      ]);
-      
-      // Данные будут автоматически обработаны через useEffect,
-      // когда обновятся transactionsResponse, activeBoostsResponse и uniFarmingResponse
-    } catch (err) {
-      console.error("Ошибка обновления данных:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   return (
-    <div className="bg-card rounded-md p-4 md:p-6 relative overflow-hidden">
-      {/* Декоративные частицы для фона пустого состояния */}
-      {!isLoading && (farmingHistory.length === 0 || deposits.length === 0) && (
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-          {particles.map(particle => (
-            <div 
-              key={particle.id}
-              className="absolute rounded-full bg-gradient-to-br from-primary/30 to-primary/10"
-              style={{
-                width: `${particle.size}px`,
-                height: `${particle.size}px`,
-                top: `${particle.top}%`,
-                left: `${particle.left}%`,
-                animation: `float ${particle.animationDuration}s infinite ease-in-out`,
-                filter: `blur(${particle.blurAmount}px)`,
-                opacity: '0.4'
-              }}
-            />
-          ))}
-        </div>
-      )}
-      
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-medium">История фарминга</h2>
-          <div>
-            <button 
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="text-foreground opacity-70 hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-foreground/10"
-            >
-              <i className={`fas fa-sync-alt ${isLoading ? 'animate-spin' : ''}`}></i>
-            </button>
-          </div>
-        </div>
-        
-        {/* Табы UNI/TON */}
-        <div className="border-b border-background/30 flex space-x-4 mb-6">
-          <button 
-            className={`py-2 px-1 text-md flex items-center space-x-1.5 relative ${activeTab === 'uni' ? 'text-primary' : 'text-foreground/50 hover:text-foreground/70'}`}
-            onClick={() => setActiveTab('uni')}
-          >
-            <i className="fas fa-coins"></i>
-            <span>UNI</span>
+    <div className="mb-6">
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-lg font-semibold text-white">История фарминга</h2>
+        <button 
+          className="text-sm text-primary hover:text-primary/80 transition-colors"
+          onClick={async () => {
+            // Обновление данных через react-query refetch
+            setIsLoading(true);
             
-            {activeTab === 'uni' && (
-              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-lg"></div>
-            )}
-          </button>
-          
-          <button 
-            className={`py-2 px-1 text-md flex items-center space-x-1.5 relative ${activeTab === 'ton' ? 'text-blue-400' : 'text-foreground/50 hover:text-foreground/70'}`}
-            onClick={() => setActiveTab('ton')}
-          >
-            <i className="fas fa-gem"></i>
-            <span>TON</span>
-            
-            {activeTab === 'ton' && (
-              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-400 rounded-t-lg"></div>
-            )}
-          </button>
-        </div>
-        
-        {/* Контент для активной вкладки */}
-        <div 
-          style={{ 
-            opacity: isLoading ? 0.5 : 1,
-            transition: 'opacity 0.3s ease'
+            try {
+              // Параллельно запускаем все refetch запросы
+              await Promise.all([
+                refetchTransactions(),
+                refetchBoosts(),
+                refetchTonBoosts(),
+                refetchFarming()
+              ]);
+              
+              // Данные будут автоматически обработаны через useEffect,
+              // когда обновятся transactionsResponse, activeBoostsResponse и uniFarmingResponse
+            } catch (err) {
+              console.error("Ошибка обновления данных:", err);
+            } finally {
+              setIsLoading(false);
+            }
           }}
         >
-          {activeTab === 'uni' ? renderDepositsTab() : renderTonBoostTab()}
+          <i className="fas fa-sync-alt mr-1"></i>
+          Обновить
+        </button>
+      </div>
+      
+      <div className="rounded-lg bg-card shadow-lg overflow-hidden">
+        <div className="flex border-b border-gray-800">
+          <button
+            className={`px-4 py-3 text-sm transition-colors ${
+              activeTab === 'uni' ? 'text-primary border-b-2 border-primary' : 'text-foreground opacity-70 hover:text-primary'
+            }`}
+            onClick={() => setActiveTab('uni')}
+          >
+            <i className="fas fa-seedling mr-2"></i>
+            UNI Фарминг
+          </button>
+          
+          <button
+            className={`px-4 py-3 text-sm transition-colors ${
+              activeTab === 'ton' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-foreground opacity-70 hover:text-blue-400'
+            }`}
+            onClick={() => setActiveTab('ton')}
+          >
+            <i className="fas fa-rocket mr-2"></i>
+            TON Boost
+          </button>
+        </div>
+        
+        {/* Содержимое вкладок */}
+        <div className="min-h-[200px] relative p-4">
+          {activeTab === 'uni' ? (
+            renderDepositsTab()
+          ) : (
+            renderTonBoostTab()
+          )}
+
+
         </div>
       </div>
     </div>
