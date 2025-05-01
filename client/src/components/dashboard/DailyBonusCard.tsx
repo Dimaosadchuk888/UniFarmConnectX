@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import apiConfig from '@/config/apiConfig';
+import { invalidateQueryWithUserId } from '@/lib/queryClient';
+import { useUser } from '@/contexts/userContext';
 
 // Типы для статуса бонуса
 type DailyBonusStatus = {
@@ -23,6 +25,7 @@ const DailyBonusCard: React.FC = () => {
   // Получаем доступ к toast для уведомлений
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { userId } = useUser(); // Получаем ID пользователя из контекста
   
   // Состояние для анимаций и эффектов
   const [isButtonHovered, setIsButtonHovered] = useState(false);
@@ -31,11 +34,11 @@ const DailyBonusCard: React.FC = () => {
   
   // Запрос на получение статуса ежедневного бонуса
   const { data: bonusStatus, isLoading, refetch } = useQuery({
-    queryKey: ['dailyBonusStatus'],
+    queryKey: ['dailyBonusStatus', userId], // Добавляем userId в ключ запроса
     queryFn: async () => {
       try {
-        // Формируем полный URL с использованием apiConfig
-        const url = apiConfig.getFullUrl('/api/daily-bonus/status?user_id=1');
+        // Формируем полный URL с использованием apiConfig и динамическим userId
+        const url = apiConfig.getFullUrl(`/api/daily-bonus/status?user_id=${userId || 1}`);
         console.log('[DailyBonusCard] Запрос статуса бонуса по URL:', url);
         
         const response = await fetch(url);
@@ -50,7 +53,8 @@ const DailyBonusCard: React.FC = () => {
       }
     },
     retry: 1,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    enabled: !!userId // Запрос активен только если есть userId
   });
   
   // Получаем значение стрика (серии дней) из данных API или показываем 0
@@ -68,7 +72,7 @@ const DailyBonusCard: React.FC = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ user_id: 1 })
+        body: JSON.stringify({ user_id: userId || 1 }) // Используем динамический userId
       });
       
       if (!response.ok) {
@@ -84,12 +88,12 @@ const DailyBonusCard: React.FC = () => {
         setShowConfetti(true);
         setReward(`${data.amount || bonusStatus?.bonusAmount || 500} UNI`);
         
-        // Обновляем данные о статусе бонуса
-        queryClient.invalidateQueries({ queryKey: ['dailyBonusStatus'] });
+        // Обновляем данные о статусе бонуса с учетом userId
+        invalidateQueryWithUserId('/api/daily-bonus/status');
         
         // Также обновляем данные баланса пользователя и транзакции
-        queryClient.invalidateQueries({ queryKey: ['userBalance'] });
-        queryClient.invalidateQueries({ queryKey: ['userTransactions'] });
+        invalidateQueryWithUserId('/api/wallet/balance');
+        invalidateQueryWithUserId('/api/transactions');
         
         // Скрываем конфетти через 4 секунды
         setTimeout(() => {

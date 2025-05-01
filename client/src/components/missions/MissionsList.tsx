@@ -18,6 +18,8 @@ import { motion } from 'framer-motion';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { useUser } from '@/contexts/userContext';
+import { invalidateQueryWithUserId } from '@/lib/queryClient';
 
 // Определение типов статусов миссий
 export enum MissionStatus {
