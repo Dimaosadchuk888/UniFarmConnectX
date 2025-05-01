@@ -169,7 +169,7 @@ export async function runMigration() {
       log('Creating new partitioned transactions table');
       await executeQuery(`
         CREATE TABLE transactions (
-          id SERIAL PRIMARY KEY,
+          id SERIAL,
           user_id INTEGER NOT NULL,
           amount DECIMAL(18, 9) NOT NULL,
           type TEXT NOT NULL,
@@ -182,7 +182,8 @@ export async function runMigration() {
           source_user_id INTEGER,
           data TEXT,
           wallet_address TEXT,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          PRIMARY KEY (id, created_at)
         ) PARTITION BY RANGE (created_at)
       `);
       
