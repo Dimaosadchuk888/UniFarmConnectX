@@ -4,57 +4,65 @@
  */
 
 import { partitionService } from '../services/partition-service';
-import { Pool } from '@neondatabase/serverless';
-import ws from 'ws';
-import { neonConfig } from '@neondatabase/serverless';
-
-neonConfig.webSocketConstructor = ws;
 
 /**
  * Функция для создания партиций на несколько дней вперед
  */
-export async function createPartitionsJob(): Promise<void> {
-  console.log('[Partition Job] Запуск задания по созданию партиций...');
+export async function createPartitionsJob(): Promise<any> {
+  console.log('[Create Partitions] Запуск задачи создания партиций на будущие даты');
   
   try {
-    // Проверяем, является ли таблица партиционированной
+    // Проверяем, что таблица партиционирована
     const isPartitioned = await partitionService.isTablePartitioned();
     
     if (!isPartitioned) {
-      console.error('[Partition Job] Таблица transactions не является партиционированной. Невозможно создать партиции.');
-      return;
+      console.error('[Create Partitions] Таблица transactions не партиционирована! Нельзя создать партиции.');
+      return {
+        success: false,
+        error: 'Таблица transactions не партиционирована',
+      };
     }
     
     // Создаем партиции на 5 дней вперед
-    const result = await partitionService.createFuturePartitions(5);
+    const daysAhead = 5;
+    console.log(`[Create Partitions] Создание партиций на ${daysAhead} дней вперед`);
+    
+    const result = await partitionService.createFuturePartitions(daysAhead);
     
     if (result.success) {
-      console.log(`[Partition Job] Создано/проверено ${result.createdCount} партиций`);
-      
-      if (result.errors.length > 0) {
-        console.warn('[Partition Job] При создании партиций возникли ошибки:', result.errors);
-      }
+      console.log(`[Create Partitions] Успешно создано ${result.createdCount} партиций`);
     } else {
-      console.error('[Partition Job] Ошибка при создании партиций:', result.errors);
+      console.error(`[Create Partitions] Ошибка при создании партиций: ${result.errors.join(', ')}`);
     }
-  } catch (error) {
-    console.error('[Partition Job] Необработанная ошибка при создании партиций:', error);
+    
+    return result;
+  } catch (error: any) {
+    console.error('[Create Partitions] Неожиданная ошибка при создании партиций:', error);
+    
+    return {
+      success: false,
+      error: error.message,
+      stack: error.stack,
+    };
   }
-  
-  console.log('[Partition Job] Завершение задания по созданию партиций');
 }
 
-// Если запущен напрямую, выполняем создание партиций
-if (require.main === module) {
+// Экспортируем функцию по умолчанию для использования в cron_scheduler
+export default createPartitionsJob;
+
+// Если скрипт запускается напрямую, выполняем создание партиций
+// Используем проверку для ES модулей
+import { fileURLToPath } from 'url';
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  console.log('[Create Partitions] Запуск скрипта напрямую');
+  
   createPartitionsJob()
-    .then(() => {
-      console.log('Задание по созданию партиций выполнено успешно');
+    .then((result) => {
+      console.log('[Create Partitions] Результат выполнения:', result);
       process.exit(0);
     })
     .catch((error) => {
-      console.error('Ошибка при выполнении задания по созданию партиций:', error);
+      console.error('[Create Partitions] Критическая ошибка:', error);
       process.exit(1);
     });
 }
-
-export default createPartitionsJob;

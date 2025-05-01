@@ -43,6 +43,7 @@ import { AuthController } from './controllers/authController'; // Обновле
 import { SecurityController } from './controllers/securityController'; // Новый контроллер безопасности (SOLID)
 import { WalletController } from './controllers/walletController';
 import { AdminController } from './controllers/adminController';
+import * as PartitionController from './controllers/partition-controller'; // Контроллер для управления партициями
 
 // Импортируем миграцию для реферальных кодов
 import { migrateRefCodes, checkAndUpdateUserRefCode, setRefCodeForUser } from './migrations/refCodeMigration';
@@ -575,6 +576,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Административные маршруты (защищены ключом)
   app.get("/api/admin/users/list-with-telegram-id", AdminController.listUsersWithTelegramId);
+  
+  // API для работы с партициями таблицы transactions
+  app.get("/api/system/partitions/list", PartitionController.getPartitionsList);
+  app.get("/api/system/partitions/logs", PartitionController.getPartitionLogs);
+  app.get("/api/system/partitions/status", PartitionController.checkPartitioningStatus);
+  app.post("/api/system/partitions/create-future", PartitionController.createFuturePartitions);
   
   // Новый маршрут для обработки вебхуков от Telegram через TypeScript контроллер
 
