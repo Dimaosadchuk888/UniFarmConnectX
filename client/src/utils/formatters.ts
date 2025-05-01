@@ -217,3 +217,65 @@ export function getTransactionIcon(type: string, tokenType: string): string {
   // Возвращаем иконку по умолчанию
   return tokenType === 'UNI' ? 'fa-leaf' : 'fa-tenge';
 }
+
+/**
+ * Безопасно форматирует число с учётом типа валюты
+ * Использует соответствующие форматтеры, с защитой от ошибок
+ * 
+ * @param value Числовое значение для форматирования
+ * @param decimals Количество десятичных знаков (по умолчанию определяется автоматически)
+ * @param currency Валюта (TON или UNI)
+ * @returns Отформатированная строка
+ */
+export function safeFormatAmount(value: number | string, decimals?: number, currency: string = 'UNI'): string {
+  try {
+    // Валидация входных параметров
+    if (value === undefined || value === null) {
+      return decimals !== undefined ? "0".padEnd(decimals + 2, "0") : "0";
+    }
+    
+    // Безопасное преобразование к числу
+    let numValue: number;
+    if (typeof value === 'string') {
+      // Очистка строки от нечисловых символов, кроме точки и минуса
+      const cleanStr = value.replace(/[^\d.-]/g, '');
+      numValue = parseFloat(cleanStr);
+    } else if (typeof value === 'number') {
+      numValue = value;
+    } else {
+      console.warn(`[WARNING] Форматтер - Неподдерживаемый тип значения: ${typeof value}`);
+      return decimals !== undefined ? "0".padEnd(decimals + 2, "0") : "0";
+    }
+    
+    // Проверка на валидное число
+    if (!isFinite(numValue)) {
+      console.warn(`[WARNING] Форматтер - Невалидное число для форматирования: ${value}`);
+      return decimals !== undefined ? "0".padEnd(decimals + 2, "0") : "0";
+    }
+    
+    // Определяем оптимальное количество десятичных знаков, если не указано явно
+    const optimalDecimals = decimals !== undefined ? decimals : getOptimalDecimals(numValue, currency);
+    
+    // Используем глобальные форматтеры
+    try {
+      if (currency === 'TON') {
+        return formatTonNumber(numValue);
+      } else {
+        return formatUniNumber(numValue);
+      }
+    } catch (formatterError) {
+      console.error("[ERROR] Форматтер - Ошибка при использовании форматтера:", formatterError);
+      
+      // Запасной вариант, если глобальный форматтер не сработал
+      if (numValue > 0 && numValue < Math.pow(10, -optimalDecimals)) {
+        const minDisplayValue = Math.pow(10, -optimalDecimals);
+        return minDisplayValue.toFixed(optimalDecimals);
+      }
+      return numValue.toFixed(optimalDecimals);
+    }
+  } catch (error) {
+    console.error("[ERROR] Форматтер - Критическая ошибка в safeFormatAmount:", error);
+    // Безопасное значение при ошибке
+    return decimals !== undefined ? "0".padEnd(decimals + 2, "0") : "0";
+  }
+}

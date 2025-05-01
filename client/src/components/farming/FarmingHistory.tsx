@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { correctApiRequest } from '@/lib/correctApiRequest';
-import { formatUniNumber, formatTonNumber, getOptimalDecimals } from '@/utils/formatters';
+import { formatUniNumber, formatTonNumber, getOptimalDecimals, safeFormatAmount } from '@/utils/formatters';
 
 // Интерфейс для фарминг-депозита
 interface FarmingDeposit {
@@ -1278,64 +1278,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   // Функция перенесена в utils/formatters.ts для унификации логики форматирования
   // по всему приложению
   
-  /**
-   * Адаптер для форматирования чисел, использующий глобальные форматтеры
-   * Заменяет локальную функцию, чтобы исключить дублирование кода
-   * 
-   * @param value Числовое значение для форматирования
-   * @param decimals Количество десятичных знаков
-   * @param currency Валюта (используется для определения правильного форматтера)
-   * @returns Отформатированная строка
-   */
-  const safeFormatAmount = (value: number | string, decimals: number = 2, currency: string = 'UNI'): string => {
-    try {
-      // Валидация входных параметров
-      if (value === undefined || value === null) {
-        return "0".padEnd(decimals + 2, "0");
-      }
-      
-      // Безопасное преобразование к числу
-      let numValue: number;
-      if (typeof value === 'string') {
-        // Очистка строки от нечисловых символов, кроме точки и минуса
-        const cleanStr = value.replace(/[^\d.-]/g, '');
-        numValue = parseFloat(cleanStr);
-      } else if (typeof value === 'number') {
-        numValue = value;
-      } else {
-        console.warn(`[WARNING] FarmingHistory - Неподдерживаемый тип значения: ${typeof value}`);
-        return "0".padEnd(decimals + 2, "0");
-      }
-      
-      // Проверка на валидное число
-      if (!isFinite(numValue)) {
-        console.warn(`[WARNING] FarmingHistory - Невалидное число для форматирования: ${value}`);
-        return "0".padEnd(decimals + 2, "0");
-      }
-      
-      // Используем глобальные форматтеры вместо собственной логики
-      try {
-        if (currency === 'TON') {
-          return formatTonNumber(numValue);
-        } else {
-          return formatUniNumber(numValue);
-        }
-      } catch (formatterError) {
-        console.error("[ERROR] FarmingHistory - Ошибка при использовании глобального форматтера:", formatterError);
-        
-        // Запасной вариант, если глобальный форматтер не сработал
-        if (numValue > 0 && numValue < Math.pow(10, -decimals)) {
-          const minDisplayValue = Math.pow(10, -decimals);
-          return minDisplayValue.toFixed(decimals);
-        }
-        return numValue.toFixed(decimals);
-      }
-    } catch (error) {
-      console.error("[ERROR] FarmingHistory - Ошибка в safeFormatAmount:", error);
-      // Безопасное значение при ошибке
-      return "0".padEnd(decimals + 2, "0");
-    }
-  };
+  // Используем глобальную функцию safeFormatAmount из utils/formatters.ts
+  // Это упрощает поддержку кода и уменьшает риск возникновения ошибок
   
   // Рендер вкладки с депозитами
   const renderDepositsTab = () => {
