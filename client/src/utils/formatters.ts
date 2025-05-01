@@ -3,6 +3,49 @@
  */
 
 /**
+ * Определяет оптимальное количество десятичных знаков для форматирования числа
+ * в зависимости от его величины и типа валюты
+ * 
+ * @param value Числовое значение для анализа
+ * @param currency Тип валюты ('UNI' или 'TON')
+ * @returns Рекомендуемое количество десятичных знаков
+ */
+export function getOptimalDecimals(value: number | string, currency: string = 'UNI'): number {
+  try {
+    // Преобразование к числу, если передана строка
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    
+    // Проверка на валидное число
+    if (numValue === undefined || numValue === null || !isFinite(numValue)) {
+      return currency === 'TON' ? 6 : 8;
+    }
+    
+    // Разные стратегии для разных валют
+    if (currency === 'TON') {
+      // Для TON: больше знаков для маленьких сумм
+      if (numValue < 0.0001) return 8;
+      if (numValue < 0.001) return 6;
+      if (numValue < 0.01) return 5;
+      if (numValue < 0.1) return 4;
+      if (numValue < 1) return 3;
+      return 2;
+    } else {
+      // Для UNI: стандартно 2 знака, но больше для маленьких сумм
+      if (numValue < 0.00001) return 8;
+      if (numValue < 0.0001) return 7;
+      if (numValue < 0.001) return 6;
+      if (numValue < 0.01) return 5;
+      if (numValue < 0.1) return 4;
+      if (numValue < 1) return 3;
+      return 2;
+    }
+  } catch (error) {
+    console.error("[ERROR] Ошибка в getOptimalDecimals:", error);
+    return currency === 'TON' ? 6 : 8; // Безопасные значения по умолчанию
+  }
+}
+
+/**
  * Форматирует число UNI в строковое представление с нужной точностью
  * @param value Числовое значение UNI
  * @param maximumFractionDigits Максимальное количество знаков после запятой (по умолчанию 8)
