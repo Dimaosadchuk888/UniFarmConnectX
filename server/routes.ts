@@ -45,6 +45,9 @@ import { WalletController } from './controllers/walletController';
 import { AdminController } from './controllers/adminController';
 import * as PartitionController from './controllers/partition-controller'; // Контроллер для управления партициями
 
+// Импортируем маршруты партиций
+import { registerPartitionRoutes } from './api/partition-routes';
+
 // Импортируем миграцию для реферальных кодов
 import { migrateRefCodes, checkAndUpdateUserRefCode, setRefCodeForUser } from './migrations/refCodeMigration';
 
@@ -53,9 +56,6 @@ import { telegramInitDataLogger } from './middleware/telegramInitDataLogger';
 
 // Импортируем централизованный обработчик ошибок
 import { errorHandler } from './middleware/errorHandler';
-
-// Импортируем API маршруты для партиционирования
-import { registerPartitionRoutes } from './api/partition-routes';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Обслуживание статических файлов из папки public

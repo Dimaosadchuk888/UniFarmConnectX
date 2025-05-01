@@ -8,7 +8,7 @@
  * 4. Очистки старых партиций
  */
 
-import { pool } from '../db.js';
+import { pool } from '../db';
 import { format, addDays } from 'date-fns';
 
 // Логирование
