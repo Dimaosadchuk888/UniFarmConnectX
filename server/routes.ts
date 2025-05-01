@@ -54,6 +54,9 @@ import { telegramInitDataLogger } from './middleware/telegramInitDataLogger';
 // Импортируем централизованный обработчик ошибок
 import { errorHandler } from './middleware/errorHandler';
 
+// Импортируем API маршруты для партиционирования
+import { registerPartitionRoutes } from './api/partition-routes';
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Обслуживание статических файлов из папки public
   // Это важно для тестовых HTML-файлов  
@@ -110,6 +113,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Подключаем улучшенный логгер для Telegram initData - анализирует данные подробно
   app.use(telegramInitDataLogger);
+  
+  // Регистрируем API маршруты для партиционирования
+  registerPartitionRoutes(app);
   
   // Улучшенные маршруты для работы с Telegram Mini App и настройка статических файлов
   // ВАЖНО: Размещаем express.static ПОСЛЕ маршрута "/", чтобы он не перехватывал наш health check
