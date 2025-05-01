@@ -100,173 +100,233 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
             return { success: true, data: { transactions: [] } };
           }
           
-          // Логирование для отладки с защитой от ошибок
-          try {
-            console.log("[DEBUG] FarmingHistory - API /api/transactions response:", {
-              isObject: typeof result === 'object',
-              hasSuccess: result && 'success' in result,
-              hasData: result && result.success && 'data' in result,
-              dataStructure: result && result.success && result.data ? 
-                Object.keys(result.data) : 'N/A',
-              sample: result && result.success && result.data && result.data.transactions ?
-                result.data.transactions.slice(0, 2) : 'N/A'
-            });
-          } catch (logError) {
-            console.error("[ERROR] FarmingHistory - Ошибка при логировании ответа транзакций:", logError);
+          if (typeof result !== 'object') {
+            console.error("[ERROR] FarmingHistory - Неверный формат ответа API транзакций:", typeof result);
+            return { success: true, data: { transactions: [] } };
           }
           
-          // Валидация структуры данных
-          if (result && typeof result === 'object') {
-            if (!('success' in result)) {
-              console.warn("[WARNING] FarmingHistory - Ответ API не содержит поле success");
-              // Корректируем структуру данных для совместимости
-              return { success: true, data: { transactions: Array.isArray(result) ? result : [] } };
-            }
-            
-            if (result.success && !('data' in result)) {
-              console.warn("[WARNING] FarmingHistory - Ответ API успешен, но не содержит поля data");
+          // Проверка на API-формат с success полем
+          if ('success' in result) {
+            if (!result.success) {
+              console.error("[ERROR] FarmingHistory - API вернул неуспешный ответ:", result);
               return { success: true, data: { transactions: [] } };
             }
             
-            // Проверка наличия транзакций
-            if (result.success && result.data) {
-              if (!('transactions' in result.data)) {
-                console.warn("[WARNING] FarmingHistory - Поле data не содержит transactions");
-                
-                // Пытаемся адаптировать данные к ожидаемой структуре
-                if (Array.isArray(result.data)) {
-                  return { success: true, data: { transactions: result.data } };
-                }
-              }
+            // Проверяем наличие данных в успешном ответе
+            if (!result.data) {
+              console.error("[ERROR] FarmingHistory - В успешном ответе отсутствуют данные");
+              return { success: true, data: { transactions: [] } };
+            }
+            
+            // Возвращаем ответ в новом формате API
+            return result;
+          } else if (Array.isArray(result)) {
+            // Старый формат без success поля - просто массив транзакций
+            // Адаптируем формат для совместимости
+            return { success: true, data: { transactions: result } };
+          } else {
+            console.error("[ERROR] FarmingHistory - Неизвестный формат ответа API:", result);
+            return { success: true, data: { transactions: [] } };
+          }
+        } catch (apiError) {
+          console.error("[ERROR] FarmingHistory - Ошибка запроса API транзакций:", apiError);
+          return { success: true, data: { transactions: [] } };
+        }
+      } catch (globalError) {
+        console.error("[ERROR] FarmingHistory - Критическая ошибка при получении транзакций:", globalError);
+        return { success: true, data: { transactions: [] } };
+      }
+    },
+    enabled: !!validUserId,
+    refetchInterval: 10000, // Обновляем каждые 10 секунд
+  });
+  
+  // Запрос на получение активных бустов
+  const { data: activeBoostsResponse, refetch: refetchBoosts } = useQuery({
+    queryKey: ['/api/farming/boosts/active', { user_id: validUserId }],
+    queryFn: async () => {
+      try {
+        // Проверка наличия userId перед запросом
+        if (!validUserId) {
+          console.warn("[WARNING] FarmingHistory - Попытка получить бусты без userId");
+          return { success: true, data: [] };
+        }
+        
+        // Используем correctApiRequest с расширенной обработкой ошибок
+        try {
+          const result = await correctApiRequest<any>(`/api/farming/boosts/active?user_id=${validUserId}`, 'GET');
+          
+          // Проверка структуры ответа на валидность
+          if (!result) {
+            console.error("[ERROR] FarmingHistory - Получен пустой ответ от API бустов");
+            return { success: true, data: [] };
+          }
+          
+          if (typeof result !== 'object') {
+            console.error("[ERROR] FarmingHistory - Неверный формат ответа API бустов:", typeof result);
+            return { success: true, data: [] };
+          }
+          
+          // Проверка на API-формат с success полем
+          if ('success' in result) {
+            if (!result.success) {
+              console.error("[ERROR] FarmingHistory - API бустов вернул неуспешный ответ:", result);
+              return { success: true, data: [] };
+            }
+            
+            // Проверяем наличие данных в успешном ответе
+            if (!result.data) {
+              console.error("[ERROR] FarmingHistory - В успешном ответе бустов отсутствуют данные");
+              return { success: true, data: [] };
+            }
+            
+            // Если data не массив, преобразуем
+            if (!Array.isArray(result.data)) {
+              console.warn("[WARNING] FarmingHistory - data бустов не является массивом:", result.data);
+              return { success: true, data: [] };
+            }
+            
+            return result;
+          } else if (Array.isArray(result)) {
+            // Старый формат без success поля - просто массив бустов
+            // Адаптируем формат для совместимости
+            return { success: true, data: result };
+          } else {
+            console.error("[ERROR] FarmingHistory - Неизвестный формат ответа API бустов:", result);
+            return { success: true, data: [] };
+          }
+        } catch (apiError) {
+          console.error("[ERROR] FarmingHistory - Ошибка запроса API бустов:", apiError);
+          return { success: true, data: [] };
+        }
+      } catch (globalError) {
+        console.error("[ERROR] FarmingHistory - Критическая ошибка при получении бустов:", globalError);
+        return { success: true, data: [] };
+      }
+    },
+    enabled: !!validUserId,
+    refetchInterval: 10000, // Обновляем каждые 10 секунд
+  });
+  
+  // Запрос на получение активных TON-бустов
+  const { data: activeTonBoostsResponse, refetch: refetchTonBoosts } = useQuery({
+    queryKey: ['/api/ton-farming/active', { user_id: validUserId }],
+    queryFn: async () => {
+      try {
+        // Проверка наличия userId перед запросом
+        if (!validUserId) {
+          console.warn("[WARNING] FarmingHistory - Попытка получить TON бусты без userId");
+          return { success: true, data: [] };
+        }
+        
+        // Используем correctApiRequest с расширенной обработкой ошибок
+        try {
+          const result = await correctApiRequest<any>(`/api/ton-farming/active?user_id=${validUserId}`, 'GET');
+          
+          // Проверка структуры ответа на валидность
+          if (!result) {
+            console.error("[ERROR] FarmingHistory - Получен пустой ответ от API TON бустов");
+            return { success: true, data: [] };
+          }
+          
+          if (typeof result !== 'object') {
+            console.error("[ERROR] FarmingHistory - Неверный формат ответа API TON бустов:", typeof result);
+            return { success: true, data: [] };
+          }
+          
+          // Проверка на API-формат с success полем
+          if ('success' in result) {
+            if (!result.success) {
+              console.error("[ERROR] FarmingHistory - API TON бустов вернул неуспешный ответ:", result);
+              return { success: true, data: [] };
+            }
+            
+            // Проверяем наличие данных в успешном ответе
+            if (!result.data) {
+              console.error("[ERROR] FarmingHistory - В успешном ответе TON бустов отсутствуют данные");
+              return { success: true, data: [] };
+            }
+            
+            // Если data не массив, преобразуем
+            if (!Array.isArray(result.data)) {
+              console.warn("[WARNING] FarmingHistory - data TON бустов не является массивом:", result.data);
+              return { success: true, data: [] };
+            }
+            
+            return result;
+          } else if (Array.isArray(result)) {
+            // Старый формат без success поля - просто массив бустов
+            // Адаптируем формат для совместимости
+            return { success: true, data: result };
+          } else {
+            console.error("[ERROR] FarmingHistory - Неизвестный формат ответа API TON бустов:", result);
+            return { success: true, data: [] };
+          }
+        } catch (apiError) {
+          console.error("[ERROR] FarmingHistory - Ошибка запроса API TON бустов:", apiError);
+          return { success: true, data: [] };
+        }
+      } catch (globalError) {
+        console.error("[ERROR] FarmingHistory - Критическая ошибка при получении TON бустов:", globalError);
+        return { success: true, data: [] };
+      }
+    },
+    enabled: !!validUserId,
+    refetchInterval: 10000, // Обновляем каждые 10 секунд
+  });
+  
+  // Запрос на получение состояния UNI фарминга
+  const { data: uniFarmingResponse, refetch: refetchFarming } = useQuery({
+    queryKey: ['/api/uni-farming/status', { user_id: validUserId }],
+    queryFn: async () => {
+      try {
+        // Проверка наличия userId перед запросом
+        if (!validUserId) {
+          console.warn("[WARNING] FarmingHistory - Попытка получить UNI фарминг без userId");
+          return { success: true, data: { isActive: false, depositAmount: "0" } };
+        }
+        
+        // Используем correctApiRequest с расширенной обработкой ошибок
+        try {
+          const result = await correctApiRequest<any>(`/api/uni-farming/status?user_id=${validUserId}`, 'GET');
+          
+          // Проверка структуры ответа на валидность
+          if (!result) {
+            console.error("[ERROR] FarmingHistory - Получен пустой ответ от API UNI фарминга");
+            return { success: true, data: { isActive: false, depositAmount: "0" } };
+          }
+          
+          if (typeof result !== 'object') {
+            console.error("[ERROR] FarmingHistory - Неверный формат ответа API UNI фарминга:", typeof result);
+            return { success: true, data: { isActive: false, depositAmount: "0" } };
+          }
+          
+          // Проверка на API-формат с success полем
+          if ('success' in result) {
+            if (!result.success) {
+              console.error("[ERROR] FarmingHistory - API UNI фарминга вернул неуспешный ответ:", result);
+              return { success: true, data: { isActive: false, depositAmount: "0" } };
+            }
+            
+            // Проверяем наличие данных в успешном ответе
+            if (!result.data) {
+              console.error("[ERROR] FarmingHistory - В успешном ответе UNI фарминга отсутствуют данные");
+              return { success: true, data: { isActive: false, depositAmount: "0" } };
             }
             
             return result;
           } else {
-            // Возвращаем безопасный объект при неверной структуре
-            console.error("[ERROR] FarmingHistory - Неверная структура ответа API транзакций:", result);
-            return { success: true, data: { transactions: [] } };
+            // Если формат ответа не стандартный, возвращаем безопасный формат
+            console.error("[ERROR] FarmingHistory - Неизвестный формат ответа API UNI фарминга:", result);
+            return { success: true, data: { isActive: false, depositAmount: "0" } };
           }
-        } catch (apiError: any) {
-          console.error("[ERROR] FarmingHistory - Ошибка запроса API транзакций:", apiError);
-          // При любой ошибке API возвращаем безопасную структуру
-          return { success: true, data: { transactions: [] } };
+        } catch (apiError) {
+          console.error("[ERROR] FarmingHistory - Ошибка запроса API UNI фарминга:", apiError);
+          return { success: true, data: { isActive: false, depositAmount: "0" } };
         }
-      } catch (generalError: any) {
-        console.error("[ERROR] FarmingHistory - Критическая ошибка получения транзакций:", generalError);
-        // Не выбрасываем исключение, чтобы не ломать UI
-        return { success: true, data: { transactions: [] } };
-      }
-    },
-    enabled: !!validUserId, // Выполняем запрос только если userId определен
-    retry: 2, // Увеличиваем количество повторных попыток при ошибке
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Экспоненциальное откладывание до 10 секунд
-  });
-  
-  // Запрос на получение активных буст-пакетов UNI
-  const { data: activeBoostsResponse, refetch: refetchBoosts } = useQuery<ApiResponse<{
-    boost_id: number;
-    created_at: string;
-    days_left: number;
-  }[]>>({
-    queryKey: ['/api/boosts/active', { user_id: validUserId }],
-    queryFn: async () => {
-      try {
-        // Используем correctApiRequest вместо прямого fetch
-        return await correctApiRequest<ApiResponse<{
-          boost_id: number;
-          created_at: string;
-          days_left: number;
-        }[]>>(`/api/boosts/active?user_id=${validUserId}`, 'GET');
-      } catch (error: any) {
-        console.error("[ERROR] FarmingHistory - Ошибка получения буст-пакетов:", error);
-        throw new Error(`Ошибка получения буст-пакетов: ${error.message || 'Неизвестная ошибка'}`);
-      }
-    },
-    enabled: !!validUserId,
-  });
-  
-  // Запрос на получение активных TON Boost пакетов
-  const { data: activeTonBoostsResponse, refetch: refetchTonBoosts } = useQuery<ApiResponse<TonBoostDeposit[]>>({
-    queryKey: ['/api/ton-boosts/active', { user_id: validUserId }],
-    queryFn: async () => {
-      try {
-        // Используем correctApiRequest вместо прямого fetch
-        return await correctApiRequest<ApiResponse<TonBoostDeposit[]>>(`/api/ton-boosts/active?user_id=${validUserId}`, 'GET');
-      } catch (error: any) {
-        console.error("[ERROR] FarmingHistory - Ошибка получения TON Boost пакетов:", error);
-        throw new Error(`Ошибка получения TON Boost пакетов: ${error.message || 'Неизвестная ошибка'}`);
-      }
-    },
-    enabled: !!validUserId,
-  });
-  
-  // Запрос информации о UNI фарминге
-  const { data: uniFarmingResponse, refetch: refetchFarming } = useQuery<ApiResponse<{
-    isActive: boolean;
-    depositAmount: string;
-    startDate: string;
-    totalRatePerSecond: string;
-    totalEarned: string;
-    depositCount: number;
-  }>>({
-    queryKey: ['/api/uni-farming/info', { user_id: validUserId }],
-    queryFn: async () => {
-      try {
-        // Используем correctApiRequest вместо прямого fetch
-        return await correctApiRequest<ApiResponse<{
-          isActive: boolean;
-          depositAmount: string;
-          startDate: string;
-          totalRatePerSecond: string;
-          totalEarned: string;
-          depositCount: number;
-        }>>(`/api/uni-farming/info?user_id=${validUserId}`, 'GET');
-      } catch (error: any) {
-        console.error("[ERROR] FarmingHistory - Ошибка получения информации о UNI фарминге:", error);
-        throw new Error(`Ошибка получения информации о UNI фарминге: ${error.message || 'Неизвестная ошибка'}`);
-      }
-    },
-    enabled: !!validUserId,
-  });
-  
-  // Запрос на получение информации о TON фарминге
-  const { data: tonFarmingInfo, isLoading: isLoadingTonFarming } = useQuery<ApiResponse<{
-    isActive: boolean;
-    totalDepositAmount: string;
-    totalTonRatePerSecond: string;
-    totalUniRatePerSecond: string;
-    dailyIncomeTon: string;
-    dailyIncomeUni: string;
-    depositCount: number;
-    deposits: Array<{
-      id: number;
-      boost_package_id: number;
-      rate_ton_per_second: string;
-      amount: string;
-    }>;
-  }>>({
-    queryKey: ['/api/ton-farming/info', { user_id: validUserId }],
-    queryFn: async () => {
-      try {
-        // Используем correctApiRequest вместо прямого fetch
-        return await correctApiRequest<ApiResponse<{
-          isActive: boolean;
-          totalDepositAmount: string;
-          totalTonRatePerSecond: string;
-          totalUniRatePerSecond: string;
-          dailyIncomeTon: string;
-          dailyIncomeUni: string;
-          depositCount: number;
-          deposits: Array<{
-            id: number;
-            boost_package_id: number;
-            rate_ton_per_second: string;
-            amount: string;
-          }>;
-        }>>(`/api/ton-farming/info?user_id=${validUserId}`, 'GET');
-      } catch (error: any) {
-        console.error("[ERROR] FarmingHistory - Ошибка получения информации о TON фарминге:", error);
-        throw new Error(`Ошибка получения информации о TON фарминге: ${error.message || 'Неизвестная ошибка'}`);
+      } catch (globalError) {
+        console.error("[ERROR] FarmingHistory - Критическая ошибка при получении UNI фарминга:", globalError);
+        return { success: true, data: { isActive: false, depositAmount: "0" } };
       }
     },
     enabled: !!validUserId,
@@ -456,23 +516,62 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         console.error('[ERROR] FarmingHistory - Ошибка при обработке UNI фарминга:', farmingError);
       }
       
-      // Добавляем активные TON Boost пакеты, если они есть
-      if (activeTonBoostsResponse?.success && Array.isArray(activeTonBoostsResponse.data)) {
-        activeTonBoostsResponse.data.forEach((tonBoost: TonBoostDeposit, index: number) => {
-          const packageId = tonBoost.boost_package_id || 1;
-          
-          farmingDeposits.push({
-            id: 4000000 + index, // Используем диапазон ID для TON Boost
-            packageId,
-            createdAt: new Date(tonBoost.created_at || Date.now()),
-            isActive: true,
-            uniYield: "0.0%",
-            tonYield: getYieldRateForBoost(packageId),
-            bonus: getBoostBonus(packageId),
-            amount: tonBoost.amount || "0",
-            daysLeft: tonBoost.days_left || 365
+      // Добавляем активные TON Boost пакеты с защитой от ошибок
+      try {
+        if (activeTonBoostsResponse?.success && Array.isArray(activeTonBoostsResponse.data)) {
+          activeTonBoostsResponse.data.forEach((tonBoost: TonBoostDeposit, index: number) => {
+            try {
+              // Проверка валидности буста
+              if (!tonBoost || typeof tonBoost !== 'object') {
+                console.error('[ERROR] FarmingHistory - Невалидный активный буст:', tonBoost);
+                return; // Пропускаем невалидные бусты
+              }
+              
+              // Безопасное получение ID пакета
+              const packageId = tonBoost.boost_package_id || 1;
+              
+              // Безопасное создание даты
+              let createdAt: Date;
+              try {
+                if (tonBoost.created_at) {
+                  createdAt = new Date(tonBoost.created_at);
+                  // Проверка валидности даты
+                  if (isNaN(createdAt.getTime())) {
+                    console.warn('[WARNING] FarmingHistory - Невалидная дата для TON буста:', tonBoost.created_at);
+                    createdAt = new Date();
+                  }
+                } else {
+                  createdAt = new Date();
+                }
+              } catch (dateError) {
+                console.error('[ERROR] FarmingHistory - Ошибка при создании даты TON буста:', dateError);
+                createdAt = new Date();
+              }
+              
+              // Безопасное получение оставшихся дней
+              const daysLeft = tonBoost.days_left !== undefined && 
+                typeof tonBoost.days_left === 'number' && 
+                isFinite(tonBoost.days_left) ? tonBoost.days_left : 365;
+              
+              // Безопасное добавление депозита
+              farmingDeposits.push({
+                id: 4000000 + index, // Используем диапазон ID для TON Boost
+                packageId,
+                createdAt,
+                isActive: true,
+                uniYield: "0.0%",
+                tonYield: getYieldRateForBoost(packageId),
+                bonus: getBoostBonus(packageId),
+                amount: tonBoost.amount || "0",
+                daysLeft
+              });
+            } catch (tonBoostError) {
+              console.error('[ERROR] FarmingHistory - Ошибка при обработке TON буста:', tonBoostError);
+            }
           });
-        });
+        }
+      } catch (tonBoostsError) {
+        console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке всех TON бустов:', tonBoostsError);
       }
       
       // Проверка и логирование структуры транзакций
@@ -508,460 +607,508 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
       
       if (transactionsArray.length > 0) {
         // Фильтрация всех транзакций (включая TON и UNI)
-        const farmingTransactions = transactionsArray.filter((tx: Transaction) => 
-          tx.type !== 'debug' && 
-          (tx.currency === 'UNI' || tx.currency === 'TON') && 
-          ['deposit', 'farming', 'check-in', 'reward', 'farming_reward', 'ton_boost', 'boost_farming'].includes(tx.type)
-        );
-        
-        // Логирование для отладки фильтрованных транзакций фарминга
-        console.log("[DEBUG] FarmingHistory - Фильтрованные транзакции фарминга:", {
-          count: farmingTransactions.length,
-          types: farmingTransactions.length > 0 ? 
-            Array.from(new Set(farmingTransactions.map(tx => tx.type))).join(', ') : 'N/A',
-          sample: farmingTransactions.slice(0, 3)
-        });
-        
-        // Находим все UNI депозиты для создания карточек фарминг-депозитов
-        const uniDeposits = transactionsArray.filter((tx: Transaction) => 
-          tx.type === 'deposit' && 
-          tx.currency === 'UNI' && 
-          tx.status === 'confirmed'
-        );
-        
-        // Создаем фарминг-депозиты из депозитов UNI
-        if (uniDeposits.length > 0) {
-          // Сортируем по дате (сначала новые)
-          uniDeposits.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          
-          // Добавляем каждый депозит как отдельный фарминг-депозит
-          uniDeposits.forEach((deposit) => {
-            // Проверяем, нет ли уже такого депозита (по id)
-            const existingDepositIndex = farmingDeposits.findIndex(d => d.id === deposit.id);
-            
-            if (existingDepositIndex === -1) {
-              // Создаем новый фарминг-депозит
-              farmingDeposits.push({
-                id: 10000 + deposit.id, // Используем уникальный id
-                packageId: 0, // 0 значит основной UNI фарминг
-                createdAt: new Date(deposit.created_at),
-                isActive: true, // Все депозиты считаем активными
-                uniYield: "0.5%",
-                tonYield: "0.0%",
-                bonus: "0 UNI",
-                amount: deposit.amount,
-                daysLeft: 365
-              });
+        try {
+          const farmingTransactions = transactionsArray.filter((tx: Transaction) => {
+            try {
+              return tx !== null && 
+                     typeof tx === 'object' && 
+                     tx.type !== 'debug' && 
+                     (tx.currency === 'UNI' || tx.currency === 'TON') && 
+                     ['deposit', 'farming', 'check-in', 'reward', 'farming_reward', 'ton_boost', 'boost_farming'].includes(tx.type);
+            } catch (filterItemError) {
+              console.error('[ERROR] FarmingHistory - Ошибка при фильтрации транзакции:', filterItemError);
+              return false;
             }
           });
-        }
-        
-        if (farmingTransactions.length > 0) {
-          // Если у нас есть UNI фарминг, уточняем его дату активации из транзакции
-          if (farmingDeposits.length > 0) {
-            // Ищем первый депозит UNI для уточнения даты активации
-            const depositTx = farmingTransactions.find((tx: Transaction) => 
-              tx.type === 'deposit' && tx.currency === 'UNI'
-            );
-            
-            if (depositTx) {
-              // Обновляем дату создания для фарминг-депозита
-              farmingDeposits[0].createdAt = new Date(depositTx.created_at);
+          
+          // Логирование для отладки фильтрованных транзакций фарминга
+          console.log("[DEBUG] FarmingHistory - Фильтрованные транзакции фарминга:", {
+            count: farmingTransactions.length,
+            types: farmingTransactions.length > 0 ? 
+              Array.from(new Set(farmingTransactions.map(tx => tx.type))).join(', ') : 'N/A',
+            sample: farmingTransactions.slice(0, 3)
+          });
+          
+          // Находим все UNI депозиты для создания карточек фарминг-депозитов
+          const uniDeposits = transactionsArray.filter((tx: Transaction) => {
+            try {
+              return tx && typeof tx === 'object' && 
+                     tx.type === 'deposit' && 
+                     tx.currency === 'UNI' && 
+                     tx.status === 'confirmed';
+            } catch (filterUniError) {
+              console.error('[ERROR] FarmingHistory - Ошибка при фильтрации UNI депозита:', filterUniError);
+              return false;
+            }
+          });
+          
+          // Создаем фарминг-депозиты из депозитов UNI
+          if (uniDeposits.length > 0) {
+            try {
+              // Сортируем по дате (сначала новые)
+              uniDeposits.sort((a, b) => {
+                try {
+                  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                } catch (sortError) {
+                  console.error('[ERROR] FarmingHistory - Ошибка при сортировке UNI депозитов:', sortError);
+                  return 0;
+                }
+              });
+              
+              // Добавляем каждый депозит как отдельный фарминг-депозит
+              uniDeposits.forEach((deposit) => {
+                try {
+                  // Проверяем, нет ли уже такого депозита (по id)
+                  const existingDepositIndex = farmingDeposits.findIndex(d => d.id === deposit.id);
+                  
+                  if (existingDepositIndex === -1) {
+                    // Создаем новый фарминг-депозит
+                    farmingDeposits.push({
+                      id: 10000 + deposit.id, // Используем уникальный id
+                      packageId: 0, // 0 значит основной UNI фарминг
+                      createdAt: new Date(deposit.created_at),
+                      isActive: true, // Все депозиты считаем активными
+                      uniYield: "0.5%",
+                      tonYield: "0.0%",
+                      bonus: "0 UNI",
+                      amount: deposit.amount,
+                      daysLeft: 365
+                    });
+                  }
+                } catch (depositError) {
+                  console.error('[ERROR] FarmingHistory - Ошибка при обработке UNI депозита:', depositError);
+                }
+              });
+            } catch (uniDepositsError) {
+              console.error('[ERROR] FarmingHistory - Ошибка при обработке UNI депозитов:', uniDepositsError);
             }
           }
           
-          // Определяем минимальные значимые суммы для каждой валюты
-          const MIN_SIGNIFICANT_AMOUNT = {
-            UNI: 0.00001, // Минимальная значимая сумма для UNI
-            TON: 0.000001 // Минимальная значимая сумма для TON
-          };
-          
-          // Преобразуем транзакции в историю с фильтрацией незначительных сумм и защитой от ошибок
-          try {
-            // Безопасное преобразование каждой транзакции в элемент истории
-            historyItems = farmingTransactions
-              .map((tx: Transaction) => {
-                try {
-                  // Проверка валидности объекта транзакции
-                  if (!tx || typeof tx !== 'object') {
-                    console.error('[ERROR] FarmingHistory - Невалидная транзакция:', tx);
-                    return null;
-                  }
-                  
-                  // Проверка наличия ключевых полей
-                  if (!('id' in tx) || !('created_at' in tx)) {
-                    console.warn('[WARNING] FarmingHistory - Транзакция без основных полей:', tx);
-                    return null;
-                  }
-                  
-                  // Определение типа операции на основе данных транзакции с защитой от undefined
-                  let type = 'Операция';
-                  
-                  // Проверка типа транзакции
-                  const txType = tx.type || '';
-                  
-                  // Используем все доступные типы транзакций с проверкой на существование
-                  if (txType === 'farming') type = 'Фарминг';
-                  else if (txType === 'farming_reward') type = 'Награда за фарминг';
-                  else if (txType === 'boost_farming') type = 'TON фарминг';
-                  else if (txType === 'ton_boost') type = 'TON Boost';
-                  else if (txType === 'deposit') type = 'Депозит';
-                  else if (txType === 'boost') type = 'Boost';
-                  else if (txType === 'check-in') type = 'Ежедневный бонус';
-                  else if (txType === 'reward') type = 'Награда';
-                  
-                  // Безопасное определение валюты и суммы
-                  const currency = tx.currency || 'UNI'; // По умолчанию UNI
-                  
-                  // Безопасный парсинг суммы
-                  let amount = 0;
+          if (farmingTransactions.length > 0) {
+            // Если у нас есть UNI фарминг, уточняем его дату активации из транзакции
+            if (farmingDeposits.length > 0) {
+              try {
+                // Ищем первый депозит UNI для уточнения даты активации
+                const depositTx = farmingTransactions.find((tx: Transaction) => 
+                  tx && typeof tx === 'object' && tx.type === 'deposit' && tx.currency === 'UNI'
+                );
+                
+                if (depositTx) {
+                  // Обновляем дату создания для фарминг-депозита
                   try {
-                    // Проверка, что amount существует
-                    if (tx.amount !== undefined && tx.amount !== null) {
-                      // Если строка, преобразуем в число
-                      if (typeof tx.amount === 'string') {
-                        // Удаляем все нечисловые символы кроме точки и минуса
-                        const cleanAmount = tx.amount.replace(/[^\d.-]/g, '');
-                        amount = parseFloat(cleanAmount);
-                        
-                        // Проверка на NaN
-                        if (isNaN(amount)) {
-                          console.warn('[WARNING] FarmingHistory - Невозможно преобразовать сумму в число:', tx.amount);
+                    farmingDeposits[0].createdAt = new Date(depositTx.created_at);
+                  } catch (dateUpdateError) {
+                    console.error('[ERROR] FarmingHistory - Ошибка при обновлении даты фарминг-депозита:', dateUpdateError);
+                  }
+                }
+              } catch (depositTxError) {
+                console.error('[ERROR] FarmingHistory - Ошибка при поиске депозитной транзакции:', depositTxError);
+              }
+            }
+            
+            // Определяем минимальные значимые суммы для каждой валюты
+            const MIN_SIGNIFICANT_AMOUNT = {
+              UNI: 0.00001, // Минимальная значимая сумма для UNI
+              TON: 0.000001 // Минимальная значимая сумма для TON
+            };
+            
+            // Преобразуем транзакции в историю с фильтрацией незначительных сумм и защитой от ошибок
+            try {
+              // Безопасное преобразование каждой транзакции в элемент истории
+              historyItems = farmingTransactions
+                .map((tx: Transaction) => {
+                  try {
+                    // Проверка валидности объекта транзакции
+                    if (!tx || typeof tx !== 'object') {
+                      console.error('[ERROR] FarmingHistory - Невалидная транзакция:', tx);
+                      return null;
+                    }
+                    
+                    // Проверка наличия ключевых полей
+                    if (!('id' in tx) || !('created_at' in tx)) {
+                      console.warn('[WARNING] FarmingHistory - Транзакция без основных полей:', tx);
+                      return null;
+                    }
+                    
+                    // Определение типа операции на основе данных транзакции с защитой от undefined
+                    let type = 'Операция';
+                    
+                    // Проверка типа транзакции
+                    const txType = tx.type || '';
+                    
+                    // Используем все доступные типы транзакций с проверкой на существование
+                    if (txType === 'farming') type = 'Фарминг';
+                    else if (txType === 'farming_reward') type = 'Награда за фарминг';
+                    else if (txType === 'boost_farming') type = 'TON фарминг';
+                    else if (txType === 'ton_boost') type = 'TON Boost';
+                    else if (txType === 'deposit') type = 'Депозит';
+                    else if (txType === 'boost') type = 'Boost';
+                    else if (txType === 'check-in') type = 'Ежедневный бонус';
+                    else if (txType === 'reward') type = 'Награда';
+                    
+                    // Безопасное определение валюты и суммы
+                    const currency = tx.currency || 'UNI'; // По умолчанию UNI
+                    
+                    // Безопасный парсинг суммы
+                    let amount = 0;
+                    try {
+                      // Проверка, что amount существует
+                      if (tx.amount !== undefined && tx.amount !== null) {
+                        // Если строка, преобразуем в число
+                        if (typeof tx.amount === 'string') {
+                          // Удаляем все нечисловые символы кроме точки и минуса
+                          const cleanAmount = tx.amount.replace(/[^\d.-]/g, '');
+                          amount = parseFloat(cleanAmount);
+                          
+                          // Проверка на NaN
+                          if (isNaN(amount)) {
+                            console.warn('[WARNING] FarmingHistory - Невозможно преобразовать сумму в число:', tx.amount);
+                            amount = 0;
+                          }
+                        } else if (typeof tx.amount === 'number') {
+                          // Если уже число, просто используем
+                          amount = tx.amount;
+                          
+                          // Проверка на Infinity или NaN
+                          if (!isFinite(amount)) {
+                            console.warn('[WARNING] FarmingHistory - Бесконечное или невалидное число:', amount);
+                            amount = 0;
+                          }
+                        } else {
+                          console.warn('[WARNING] FarmingHistory - Неподдерживаемый тип суммы:', typeof tx.amount);
                           amount = 0;
                         }
-                      } else if (typeof tx.amount === 'number') {
-                        // Если уже число, просто используем
-                        amount = tx.amount;
+                      }
+                    } catch (parseError) {
+                      console.error('[ERROR] FarmingHistory - Ошибка при парсинге суммы:', parseError);
+                      amount = 0;
+                    }
+                    
+                    // Безопасное создание даты
+                    let transactionTime: Date;
+                    try {
+                      if (tx.created_at) {
+                        transactionTime = new Date(tx.created_at);
                         
-                        // Проверка на Infinity или NaN
-                        if (!isFinite(amount)) {
-                          console.warn('[WARNING] FarmingHistory - Бесконечное или невалидное число:', amount);
-                          amount = 0;
+                        // Проверка валидности даты
+                        if (isNaN(transactionTime.getTime())) {
+                          console.warn('[WARNING] FarmingHistory - Невалидная дата транзакции:', tx.created_at);
+                          transactionTime = new Date(); // Используем текущую дату как запасной вариант
                         }
                       } else {
-                        console.warn('[WARNING] FarmingHistory - Неподдерживаемый тип суммы:', typeof tx.amount);
-                        amount = 0;
+                        console.warn('[WARNING] FarmingHistory - Транзакция без даты:', tx.id);
+                        transactionTime = new Date();
                       }
-                    }
-                  } catch (parseError) {
-                    console.error('[ERROR] FarmingHistory - Ошибка при парсинге суммы:', parseError);
-                    amount = 0;
-                  }
-                  
-                  // Безопасное создание даты
-                  let transactionTime: Date;
-                  try {
-                    if (tx.created_at) {
-                      transactionTime = new Date(tx.created_at);
-                      
-                      // Проверка валидности даты
-                      if (isNaN(transactionTime.getTime())) {
-                        console.warn('[WARNING] FarmingHistory - Невалидная дата транзакции:', tx.created_at);
-                        transactionTime = new Date(); // Используем текущую дату как запасной вариант
-                      }
-                    } else {
-                      console.warn('[WARNING] FarmingHistory - Транзакция без даты:', tx.id);
+                    } catch (dateError) {
+                      console.error('[ERROR] FarmingHistory - Ошибка при создании даты транзакции:', dateError);
                       transactionTime = new Date();
                     }
-                  } catch (dateError) {
-                    console.error('[ERROR] FarmingHistory - Ошибка при создании даты транзакции:', dateError);
-                    transactionTime = new Date();
-                  }
-                  
-                  // Отладочное логирование для TON транзакций с защитой от ошибок
-                  if (currency === 'TON') {
-                    try {
-                      console.log("[TON История] Обработка транзакции:", {
-                        id: tx.id,
-                        time: transactionTime,
-                        type: tx.type,
-                        rawAmount: tx.amount,
-                        parsedAmount: amount,
-                        boost_id: tx.boost_id
-                      });
-                    } catch (logError) {
-                      console.error('[ERROR] FarmingHistory - Ошибка при логировании TON транзакции:', logError);
-                    }
-                  }
-                  
-                  // Создаем объект истории
-                  return {
-                    id: tx.id,
-                    time: transactionTime,
-                    type,
-                    amount,
-                    currency,
-                    boost_id: tx.boost_id,
-                    isNew: false
-                  };
-                } catch (mapError) {
-                  console.error('[ERROR] FarmingHistory - Ошибка при преобразовании транзакции:', mapError);
-                  return null; // Пропускаем проблемные транзакции
-                }
-              })
-              // Фильтруем null-значения (ошибочные транзакции)
-              .filter(item => item !== null)
-              // Фильтруем транзакции с нулевыми или слишком малыми суммами
-              .filter(item => {
-                try {
-                  // Проверяем существование item и currency
-                  if (!item || !item.currency) return false;
-                  
-                  // Получаем минимальное значимое значение для данной валюты
-                  const minAmount = MIN_SIGNIFICANT_AMOUNT[item.currency as keyof typeof MIN_SIGNIFICANT_AMOUNT] || 0.00001;
-                  
-                  // Безопасная проверка значимой суммы
-                  let isSignificant = false;
-                  try {
-                    isSignificant = typeof item.amount === 'number' && isFinite(item.amount) && item.amount > minAmount;
-                  } catch (amountError) {
-                    console.error('[ERROR] FarmingHistory - Ошибка проверки значимости суммы:', amountError);
-                    isSignificant = false;
-                  }
-                  
-                  // Логирование отфильтрованных TON транзакций
-                  if (!isSignificant && item.currency === 'TON') {
-                    console.log(`[TON История] Отфильтрована незначительная транзакция: ID=${item.id}, Сумма=${item.amount}`);
-                  }
-                  
-                  return isSignificant;
-                } catch (filterError) {
-                  console.error('[ERROR] FarmingHistory - Ошибка при фильтрации транзакции:', filterError);
-                  return false; // В случае ошибки фильтрации пропускаем транзакцию
-                }
-              }) as FarmingHistory[]; // Приведение типа после фильтрации null-значений
-          } catch (processError) {
-            console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке всех транзакций:', processError);
-            historyItems = []; // Используем пустой массив в случае критической ошибки
-          }
-          
-          // Сортируем по дате (сначала новые)
-          historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
-          
-          // Добавляем активные бусты в депозиты с защитой от ошибок
-          try {
-            if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data) && activeBoostsResponse.data.length > 0) {
-              activeBoostsResponse.data.forEach((boost: { boost_id: number; created_at: string; days_left: number }, index: number) => {
-                try {
-                  // Проверка валидности буста
-                  if (!boost || typeof boost !== 'object') {
-                    console.error('[ERROR] FarmingHistory - Невалидный активный буст:', boost);
-                    return; // Пропускаем невалидные бусты
-                  }
-                  
-                  // Безопасное получение ID пакета
-                  const packageId = boost.boost_id || 1;
-                  
-                  // Безопасный поиск транзакции
-                  let boostTx: Transaction | undefined;
-                  try {
-                    boostTx = farmingTransactions.find((tx: Transaction) => 
-                      tx && typeof tx === 'object' && tx.type === 'boost' && tx.boost_id === packageId
-                    );
-                  } catch (findError) {
-                    console.error('[ERROR] FarmingHistory - Ошибка при поиске транзакции буста:', findError);
-                    boostTx = undefined;
-                  }
-                  
-                  // Безопасное создание даты
-                  let createdAt: Date;
-                  try {
-                    // Определяем приоритет источников даты
-                    const dateSource = boostTx?.created_at || boost.created_at;
                     
-                    if (dateSource) {
-                      createdAt = new Date(dateSource);
-                      // Проверка валидности даты
-                      if (isNaN(createdAt.getTime())) {
-                        console.warn('[WARNING] FarmingHistory - Невалидная дата для буста:', dateSource);
-                        createdAt = new Date(); // Используем текущую дату как запасной вариант
-                      }
-                    } else {
-                      createdAt = new Date();
-                    }
-                  } catch (dateError) {
-                    console.error('[ERROR] FarmingHistory - Ошибка при создании даты буста:', dateError);
-                    createdAt = new Date();
-                  }
-                  
-                  // Безопасное добавление депозита
-                  try {
-                    // Получаем информацию о доходности буста с защитой от ошибок
-                    let tonYield = "0.0%";
-                    let boostBonus = "0 UNI";
-                    try {
-                      tonYield = getYieldRateForBoost(packageId);
-                      boostBonus = getBoostBonus(packageId);
-                    } catch (yieldError) {
-                      console.error('[ERROR] FarmingHistory - Ошибка при получении доходности буста:', yieldError);
-                    }
-                    
-                    // Безопасное получение оставшихся дней
-                    const daysLeft = boost.days_left !== undefined && typeof boost.days_left === 'number' && isFinite(boost.days_left) 
-                      ? boost.days_left 
-                      : 365;
-                    
-                    // Безопасное получение суммы
-                    let amount = "0";
-                    if (boostTx && boostTx.amount !== undefined) {
-                      if (typeof boostTx.amount === 'string') {
-                        amount = boostTx.amount;
-                      } else if (typeof boostTx.amount === 'number') {
-                        amount = String(boostTx.amount);
+                    // Отладочное логирование для TON транзакций с защитой от ошибок
+                    if (currency === 'TON') {
+                      try {
+                        console.log("[TON История] Обработка транзакции:", {
+                          id: tx.id,
+                          time: transactionTime,
+                          type: tx.type,
+                          rawAmount: tx.amount,
+                          parsedAmount: amount,
+                          boost_id: tx.boost_id
+                        });
+                      } catch (logError) {
+                        console.error('[ERROR] FarmingHistory - Ошибка при логировании TON транзакции:', logError);
                       }
                     }
                     
-                    // Добавляем буст в депозиты
-                    farmingDeposits.push({
-                      id: 2000000 + index,
-                      packageId,
-                      createdAt,
-                      isActive: true,
-                      uniYield: "0.0%",
-                      tonYield,
-                      bonus: boostBonus,
+                    // Создаем объект истории
+                    return {
+                      id: tx.id,
+                      time: transactionTime,
+                      type,
                       amount,
-                      daysLeft
-                    });
-                  } catch (pushError) {
-                    console.error('[ERROR] FarmingHistory - Ошибка при добавлении буста в депозиты:', pushError);
+                      currency,
+                      boost_id: tx.boost_id,
+                      isNew: false
+                    };
+                  } catch (mapError) {
+                    console.error('[ERROR] FarmingHistory - Ошибка при преобразовании транзакции:', mapError);
+                    return null; // Пропускаем проблемные транзакции
                   }
-                } catch (boostError) {
-                  console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке буста:', boostError);
-                }
-              });
-            }
-          } catch (boostsError) {
-            console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке всех бустов:', boostsError);
-          }
-          
-          // Добавляем исторические boost транзакции для TON Boost с защитой от ошибок
-          try {
-            // Безопасная фильтрация транзакций буста
-            const boostTransactions = (() => {
-              try {
-                return farmingTransactions.filter((tx: Transaction) => {
+                })
+                // Фильтруем null-значения (ошибочные транзакции)
+                .filter(item => item !== null)
+                // Фильтруем транзакции с нулевыми или слишком малыми суммами
+                .filter(item => {
                   try {
-                    // Проверка валидности транзакции
-                    if (!tx || typeof tx !== 'object') return false;
+                    // Проверяем существование item и currency
+                    if (!item || !item.currency) return false;
                     
-                    // Проверка типа и валюты
-                    return tx.type === 'boost' && tx.currency === 'TON';
-                  } catch (txError) {
-                    console.error('[ERROR] FarmingHistory - Ошибка при фильтрации буст-транзакции:', txError);
-                    return false;
+                    // Получаем минимальное значимое значение для данной валюты
+                    const minAmount = MIN_SIGNIFICANT_AMOUNT[item.currency as keyof typeof MIN_SIGNIFICANT_AMOUNT] || 0.00001;
+                    
+                    // Безопасная проверка значимой суммы
+                    let isSignificant = false;
+                    try {
+                      isSignificant = typeof item.amount === 'number' && isFinite(item.amount) && item.amount > minAmount;
+                    } catch (amountError) {
+                      console.error('[ERROR] FarmingHistory - Ошибка проверки значимости суммы:', amountError);
+                      isSignificant = false;
+                    }
+                    
+                    // Логирование отфильтрованных TON транзакций
+                    if (!isSignificant && item.currency === 'TON') {
+                      console.log(`[TON История] Отфильтрована незначительная транзакция: ID=${item.id}, Сумма=${item.amount}`);
+                    }
+                    
+                    return isSignificant;
+                  } catch (filterError) {
+                    console.error('[ERROR] FarmingHistory - Ошибка при фильтрации транзакции:', filterError);
+                    return false; // В случае ошибки фильтрации пропускаем транзакцию
                   }
-                });
-              } catch (filterError) {
-                console.error('[ERROR] FarmingHistory - Ошибка при фильтрации всех буст-транзакций:', filterError);
-                return [];
-              }
-            })();
-            
-            // Логирование для отладки
-            try {
-              console.log("[DEBUG] FarmingHistory - Исторические буст-транзакции:", {
-                count: boostTransactions.length,
-                sample: boostTransactions.slice(0, 2)
-              });
-            } catch (logError) {
-              console.error('[ERROR] FarmingHistory - Ошибка при логировании буст-транзакций:', logError);
+                }) as FarmingHistory[]; // Приведение типа после фильтрации null-значений
+            } catch (processError) {
+              console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке всех транзакций:', processError);
+              historyItems = []; // Используем пустой массив в случае критической ошибки
             }
             
-            // Обработка каждой транзакции с защитой от ошибок
-            boostTransactions.forEach((tx: Transaction, index: number) => {
-              try {
-                // Проверка валидности буст-транзакции
-                if (!tx || typeof tx !== 'object' || !tx.boost_id) {
-                  console.warn('[WARNING] FarmingHistory - Пропуск невалидной буст-транзакции:', tx);
-                  return;
-                }
-                
-                // Безопасная проверка, не добавлен ли уже этот буст как активный
-                let isAlreadyActive = false;
-                try {
-                  isAlreadyActive = farmingDeposits.some(d => {
-                    try {
-                      return d && typeof d === 'object' && d.packageId === tx.boost_id && d.id >= 2000000;
-                    } catch (checkError) {
-                      console.error('[ERROR] FarmingHistory - Ошибка проверки существующего депозита:', checkError);
-                      return false;
-                    }
-                  });
-                } catch (someError) {
-                  console.error('[ERROR] FarmingHistory - Ошибка при проверке активности буста:', someError);
-                  isAlreadyActive = false;
-                }
-                
-                // Добавляем только если еще не активен и имеет ID буста
-                if (!isAlreadyActive && tx.boost_id) {
+            // Сортируем по дате (сначала новые)
+            try {
+              historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
+            } catch (sortError) {
+              console.error('[ERROR] FarmingHistory - Ошибка при сортировке транзакций:', sortError);
+            }
+            
+            // Добавляем активные бусты в депозиты с защитой от ошибок
+            try {
+              if (activeBoostsResponse?.success && Array.isArray(activeBoostsResponse.data) && activeBoostsResponse.data.length > 0) {
+                activeBoostsResponse.data.forEach((boost: { boost_id: number; created_at: string; days_left: number }, index: number) => {
                   try {
+                    // Проверка валидности буста
+                    if (!boost || typeof boost !== 'object') {
+                      console.error('[ERROR] FarmingHistory - Невалидный активный буст:', boost);
+                      return; // Пропускаем невалидные бусты
+                    }
+                    
+                    // Безопасное получение ID пакета
+                    const packageId = boost.boost_id || 1;
+                    
+                    // Безопасный поиск транзакции
+                    let boostTx: Transaction | undefined;
+                    try {
+                      boostTx = farmingTransactions.find((tx: Transaction) => 
+                        tx && typeof tx === 'object' && tx.type === 'boost' && tx.boost_id === packageId
+                      );
+                    } catch (findError) {
+                      console.error('[ERROR] FarmingHistory - Ошибка при поиске транзакции буста:', findError);
+                      boostTx = undefined;
+                    }
+                    
                     // Безопасное создание даты
                     let createdAt: Date;
                     try {
-                      if (tx.created_at) {
-                        createdAt = new Date(tx.created_at);
+                      // Определяем приоритет источников даты
+                      const dateSource = boostTx?.created_at || boost.created_at;
+                      
+                      if (dateSource) {
+                        createdAt = new Date(dateSource);
                         // Проверка валидности даты
                         if (isNaN(createdAt.getTime())) {
-                          console.warn('[WARNING] FarmingHistory - Невалидная дата для исторического буста:', tx.created_at);
+                          console.warn('[WARNING] FarmingHistory - Невалидная дата для буста:', dateSource);
                           createdAt = new Date(); // Используем текущую дату как запасной вариант
                         }
                       } else {
-                        console.warn('[WARNING] FarmingHistory - Исторический буст без даты:', tx.id);
                         createdAt = new Date();
                       }
                     } catch (dateError) {
-                      console.error('[ERROR] FarmingHistory - Ошибка при создании даты исторического буста:', dateError);
+                      console.error('[ERROR] FarmingHistory - Ошибка при создании даты буста:', dateError);
                       createdAt = new Date();
                     }
                     
-                    // Получаем информацию о доходности и бонусе с защитой от ошибок
-                    let tonYield = "0.0%";
-                    let boostBonus = "0 UNI";
+                    // Безопасное добавление депозита
                     try {
-                      tonYield = getYieldRateForBoost(tx.boost_id);
-                      boostBonus = getBoostBonus(tx.boost_id);
-                    } catch (rateError) {
-                      console.error('[ERROR] FarmingHistory - Ошибка при получении информации о ставке буста:', rateError);
-                    }
-                    
-                    // Безопасное получение суммы
-                    let amount = "0";
-                    try {
-                      if (tx.amount !== undefined) {
-                        if (typeof tx.amount === 'string') {
-                          amount = tx.amount;
-                        } else if (typeof tx.amount === 'number') {
-                          amount = String(tx.amount);
-                        }
+                      // Получаем информацию о доходности буста с защитой от ошибок
+                      let tonYield = "0.0%";
+                      let boostBonus = "0 UNI";
+                      try {
+                        tonYield = getYieldRateForBoost(packageId);
+                        boostBonus = getBoostBonus(packageId);
+                      } catch (yieldError) {
+                        console.error('[ERROR] FarmingHistory - Ошибка при получении доходности буста:', yieldError);
                       }
-                    } catch (amountError) {
-                      console.error('[ERROR] FarmingHistory - Ошибка при получении суммы буста:', amountError);
+                      
+                      // Безопасное получение оставшихся дней
+                      const daysLeft = boost.days_left !== undefined && typeof boost.days_left === 'number' && isFinite(boost.days_left) 
+                        ? boost.days_left 
+                        : 365;
+                      
+                      // Безопасное получение суммы
+                      let amount = "0";
+                      try {
+                        if (boostTx && boostTx.amount !== undefined) {
+                          if (typeof boostTx.amount === 'string') {
+                            amount = boostTx.amount;
+                          } else if (typeof boostTx.amount === 'number') {
+                            amount = String(boostTx.amount);
+                          }
+                        }
+                      } catch (amountError) {
+                        console.error('[ERROR] FarmingHistory - Ошибка при получении суммы буста:', amountError);
+                      }
+                      
+                      // Добавляем буст в депозиты
+                      farmingDeposits.push({
+                        id: 2000000 + index,
+                        packageId,
+                        createdAt,
+                        isActive: true,
+                        uniYield: "0.0%",
+                        tonYield,
+                        bonus: boostBonus,
+                        amount,
+                        daysLeft
+                      });
+                    } catch (pushError) {
+                      console.error('[ERROR] FarmingHistory - Ошибка при добавлении буста в депозиты:', pushError);
                     }
-                    
-                    // Добавляем исторический буст в депозиты
-                    farmingDeposits.push({
-                      id: 3000000 + index,
-                      packageId: tx.boost_id,
-                      createdAt,
-                      isActive: false, // Исторические бусты не активны
-                      uniYield: "0.0%",
-                      tonYield,
-                      bonus: boostBonus,
-                      amount,
-                      daysLeft: 0
-                    });
-                  } catch (pushError) {
-                    console.error('[ERROR] FarmingHistory - Ошибка при добавлении исторического буста в депозиты:', pushError);
+                  } catch (boostError) {
+                    console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке буста:', boostError);
                   }
-                }
-              } catch (txProcessError) {
-                console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке буст-транзакции:', txProcessError);
+                });
               }
-            });
-          } catch (boostTxsError) {
-            console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке всех исторических бустов:', boostTxsError);
+            } catch (boostsError) {
+              console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке всех бустов:', boostsError);
+            }
+            
+            // Добавляем исторические boost транзакции для TON Boost с защитой от ошибок
+            try {
+              // Безопасная фильтрация транзакций буста
+              const boostTransactions = (() => {
+                try {
+                  return farmingTransactions.filter((tx: Transaction) => {
+                    try {
+                      // Проверка валидности транзакции
+                      if (!tx || typeof tx !== 'object') return false;
+                      
+                      // Проверка типа и валюты
+                      return tx.type === 'boost' && tx.currency === 'TON';
+                    } catch (txError) {
+                      console.error('[ERROR] FarmingHistory - Ошибка при фильтрации буст-транзакции:', txError);
+                      return false;
+                    }
+                  });
+                } catch (filterError) {
+                  console.error('[ERROR] FarmingHistory - Ошибка при фильтрации всех буст-транзакций:', filterError);
+                  return [];
+                }
+              })();
+              
+              // Логирование для отладки
+              try {
+                console.log("[DEBUG] FarmingHistory - Исторические буст-транзакции:", {
+                  count: boostTransactions.length,
+                  sample: boostTransactions.slice(0, 2)
+                });
+              } catch (logError) {
+                console.error('[ERROR] FarmingHistory - Ошибка при логировании буст-транзакций:', logError);
+              }
+              
+              // Обработка каждой транзакции с защитой от ошибок
+              boostTransactions.forEach((tx: Transaction, index: number) => {
+                try {
+                  // Проверка валидности буст-транзакции
+                  if (!tx || typeof tx !== 'object' || !tx.boost_id) {
+                    console.warn('[WARNING] FarmingHistory - Пропуск невалидной буст-транзакции:', tx);
+                    return;
+                  }
+                  
+                  // Безопасная проверка, не добавлен ли уже этот буст как активный
+                  let isAlreadyActive = false;
+                  try {
+                    isAlreadyActive = farmingDeposits.some(d => {
+                      try {
+                        return d && typeof d === 'object' && d.packageId === tx.boost_id && d.id >= 2000000;
+                      } catch (checkError) {
+                        console.error('[ERROR] FarmingHistory - Ошибка проверки существующего депозита:', checkError);
+                        return false;
+                      }
+                    });
+                  } catch (someError) {
+                    console.error('[ERROR] FarmingHistory - Ошибка при проверке активности буста:', someError);
+                    isAlreadyActive = false;
+                  }
+                  
+                  // Добавляем только если еще не активен и имеет ID буста
+                  if (!isAlreadyActive && tx.boost_id) {
+                    try {
+                      // Безопасное создание даты
+                      let createdAt: Date;
+                      try {
+                        if (tx.created_at) {
+                          createdAt = new Date(tx.created_at);
+                          // Проверка валидности даты
+                          if (isNaN(createdAt.getTime())) {
+                            console.warn('[WARNING] FarmingHistory - Невалидная дата для исторического буста:', tx.created_at);
+                            createdAt = new Date(); // Используем текущую дату как запасной вариант
+                          }
+                        } else {
+                          console.warn('[WARNING] FarmingHistory - Исторический буст без даты:', tx.id);
+                          createdAt = new Date();
+                        }
+                      } catch (dateError) {
+                        console.error('[ERROR] FarmingHistory - Ошибка при создании даты исторического буста:', dateError);
+                        createdAt = new Date();
+                      }
+                      
+                      // Получаем информацию о доходности и бонусе с защитой от ошибок
+                      let tonYield = "0.0%";
+                      let boostBonus = "0 UNI";
+                      try {
+                        tonYield = getYieldRateForBoost(tx.boost_id);
+                        boostBonus = getBoostBonus(tx.boost_id);
+                      } catch (rateError) {
+                        console.error('[ERROR] FarmingHistory - Ошибка при получении информации о ставке буста:', rateError);
+                      }
+                      
+                      // Безопасное получение суммы
+                      let amount = "0";
+                      try {
+                        if (tx.amount !== undefined) {
+                          if (typeof tx.amount === 'string') {
+                            amount = tx.amount;
+                          } else if (typeof tx.amount === 'number') {
+                            amount = String(tx.amount);
+                          }
+                        }
+                      } catch (amountError) {
+                        console.error('[ERROR] FarmingHistory - Ошибка при получении суммы буста:', amountError);
+                      }
+                      
+                      // Добавляем исторический буст в депозиты
+                      farmingDeposits.push({
+                        id: 3000000 + index,
+                        packageId: tx.boost_id,
+                        createdAt,
+                        isActive: false, // Исторические бусты не активны
+                        uniYield: "0.0%",
+                        tonYield,
+                        bonus: boostBonus,
+                        amount,
+                        daysLeft: 0
+                      });
+                    } catch (pushError) {
+                      console.error('[ERROR] FarmingHistory - Ошибка при добавлении исторического буста в депозиты:', pushError);
+                    }
+                  }
+                } catch (txProcessError) {
+                  console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке буст-транзакции:', txProcessError);
+                }
+              });
+            } catch (boostTxsError) {
+              console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке всех исторических бустов:', boostTxsError);
+            }
           }
+        } catch (farmingTransactionsError) {
+          console.error('[ERROR] FarmingHistory - Ошибка при обработке транзакций фарминга:', farmingTransactionsError);
         }
       }
       
@@ -1100,17 +1247,22 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
             month: 'short',
             year: 'numeric',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
           });
-        } catch (fallbackError) {
-          console.error('[ERROR] FarmingHistory - Ошибка при запасном форматировании даты:', fallbackError);
+        } catch (localeError) {
+          console.error('[ERROR] FarmingHistory - Ошибка при использовании toLocaleString:', localeError);
           
-          // Последний резерв - просто преобразование в строку
+          // Самый базовый вариант, если все остальные не сработали
           try {
-            return date.toString();
-          } catch (stringError) {
-            console.error('[ERROR] FarmingHistory - Критическая ошибка при форматировании даты:', stringError);
-            return '-- --- ----, --:--';
+            return date.toLocaleDateString('ru-RU') + ', ' + 
+              date.toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              });
+          } catch (fallbackError) {
+            console.error('[ERROR] FarmingHistory - Критическая ошибка при форматировании даты:', fallbackError);
+            return date.toString(); // Самый низкоуровневый формат как последний вариант
           }
         }
       }
@@ -1120,200 +1272,95 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     }
   };
   
-  // Форматирование времени с использованием date-fns с защитой от ошибок
-  const formatTime = (date: Date | null | undefined): string => {
-    try {
-      // Проверка существования даты
-      if (!date) {
-        console.warn('[WARNING] FarmingHistory - Попытка форматирования null/undefined времени');
-        return '--:--:--';
-      }
-      
-      // Проверка, что дата является объектом Date
-      if (!(date instanceof Date)) {
-        console.warn('[WARNING] FarmingHistory - Переданный объект не является Date для времени:', date);
-        try {
-          // Попытка преобразовать в Date
-          const newDate = new Date(date as any);
-          if (isNaN(newDate.getTime())) {
-            throw new Error('Невалидная дата после преобразования для времени');
-          }
-          date = newDate;
-        } catch (conversionError) {
-          console.error('[ERROR] FarmingHistory - Ошибка преобразования в Date для времени:', conversionError);
-          return '--:--:--';
-        }
-      }
-      
-      // Проверка валидности даты
-      if (isNaN(date.getTime())) {
-        console.warn('[WARNING] FarmingHistory - Невалидная дата для форматирования времени:', date);
-        return '--:--:--';
-      }
-      
-      // Безопасное форматирование времени
-      try {
-        return format(date, 'HH:mm:ss', { locale: ru });
-      } catch (formatError) {
-        console.error('[ERROR] FarmingHistory - Ошибка при форматировании времени:', formatError);
-        
-        // Запасной вариант без locale
-        try {
-          return date.toLocaleTimeString('ru-RU', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-          });
-        } catch (fallbackError) {
-          console.error('[ERROR] FarmingHistory - Ошибка при запасном форматировании времени:', fallbackError);
-          
-          // Последний резерв - просто часы и минуты
-          try {
-            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
-          } catch (stringError) {
-            console.error('[ERROR] FarmingHistory - Критическая ошибка при форматировании времени:', stringError);
-            return '--:--:--';
-          }
-        }
-      }
-    } catch (error) {
-      console.error('[ERROR] FarmingHistory - Глобальная ошибка в formatTime:', error);
-      return '--:--:--';
-    }
-  };
+  // Вспомогательные функции для безопасного форматирования сумм
   
-  // Безопасное форматирование числовых значений с защитой от ошибок
-  const safeFormatAmount = (amount: string | number | null | undefined, decimals: number = 2): string => {
+  /**
+   * Определяет оптимальное количество десятичных знаков в зависимости от валюты и размера числа
+   * @param value Числовое значение для форматирования
+   * @param currency Валюта (TON или UNI)
+   * @returns Оптимальное количество десятичных знаков
+   */
+  const getOptimalDecimals = (value: number | string, currency: string = 'UNI'): number => {
     try {
-      // Проверка существования значения
-      if (amount === null || amount === undefined) {
-        console.warn('[WARNING] FarmingHistory - Попытка форматирования null/undefined суммы');
-        return '0.00';
+      // Преобразование к числу, если передана строка
+      const numValue = typeof value === 'string' ? parseFloat(value) : value;
+      
+      // Проверка на валидное число
+      if (numValue === undefined || numValue === null || !isFinite(numValue)) {
+        console.warn(`[WARNING] FarmingHistory - Некорректное значение для определения десятичных знаков: ${value}`);
+        return currency === 'TON' ? 6 : 2;
       }
       
-      // Преобразование в число, если строка
-      let numericAmount: number;
-      
-      if (typeof amount === 'string') {
-        try {
-          // Попытка удалить все нечисловые символы кроме точки
-          const cleanedString = amount.replace(/[^\d.-]/g, '');
-          numericAmount = parseFloat(cleanedString);
-          
-          if (isNaN(numericAmount)) {
-            console.warn('[WARNING] FarmingHistory - Невозможно преобразовать строку в число:', amount);
-            return '0.00';
-          }
-        } catch (parseError) {
-          console.error('[ERROR] FarmingHistory - Ошибка при парсинге строки в число:', parseError);
-          return '0.00';
-        }
-      } else if (typeof amount === 'number') {
-        numericAmount = amount;
-      } else {
-        console.warn('[WARNING] FarmingHistory - Неподдерживаемый тип для суммы:', typeof amount);
-        return '0.00';
-      }
-      
-      // Проверка на валидность числа
-      if (!isFinite(numericAmount)) {
-        console.warn('[WARNING] FarmingHistory - Бесконечное или невалидное число:', numericAmount);
-        return '0.00';
-      }
-      
-      // Безопасное форматирование с защитой от ошибок
-      try {
-        return numericAmount.toFixed(decimals);
-      } catch (formatError) {
-        console.error('[ERROR] FarmingHistory - Ошибка при форматировании числа:', formatError);
-        
-        // Запасной вариант через строковое представление
-        try {
-          return String(Math.round(numericAmount * Math.pow(10, decimals)) / Math.pow(10, decimals));
-        } catch (fallbackError) {
-          console.error('[ERROR] FarmingHistory - Критическая ошибка при форматировании числа:', fallbackError);
-          return '0.00';
-        }
-      }
-    } catch (error) {
-      console.error('[ERROR] FarmingHistory - Глобальная ошибка в safeFormatAmount:', error);
-      return '0.00';
-    }
-  };
-  
-  // Функция для определения оптимального количества десятичных знаков в зависимости от величины суммы
-  const getOptimalDecimals = (amount: number | string, currency: string = 'UNI'): number => {
-    try {
-      // Преобразуем в число, если это строка
-      let numericAmount: number;
-      if (typeof amount === 'string') {
-        try {
-          numericAmount = parseFloat(amount);
-          if (isNaN(numericAmount)) {
-            throw new Error('Невалидное число');
-          }
-        } catch (parseError) {
-          console.error('[ERROR] FarmingHistory - Ошибка преобразования строки в число:', parseError);
-          // Возвращаем значение по умолчанию
-          return currency === 'TON' ? 3 : 2;
-        }
-      } else if (typeof amount === 'number') {
-        numericAmount = amount;
-      } else {
-        console.warn('[WARNING] FarmingHistory - Неподдерживаемый тип данных для определения десятичных знаков:', typeof amount);
-        return currency === 'TON' ? 3 : 2;
-      }
-      
-      // Проверка валидности числа
-      if (!isFinite(numericAmount)) {
-        console.warn('[WARNING] FarmingHistory - Бесконечное или невалидное число при определении знаков:', numericAmount);
-        return currency === 'TON' ? 3 : 2;
-      }
-      
-      // Логика определения количества десятичных знаков в зависимости от валюты и величины
+      // Разные стратегии для разных валют
       if (currency === 'TON') {
-        // Для TON
-        if (numericAmount < 0.001) return 6;
-        if (numericAmount < 0.01) return 5;
-        if (numericAmount < 0.1) return 4;
-        return 3;
+        // Для TON: больше знаков для маленьких сумм
+        if (numValue < 0.0001) return 8;
+        if (numValue < 0.001) return 6;
+        if (numValue < 0.01) return 5;
+        if (numValue < 0.1) return 4;
+        if (numValue < 1) return 3;
+        return 2;
       } else {
-        // Для UNI и других валют
-        if (numericAmount < 0.0001) return 8;
-        if (numericAmount < 0.001) return 6;
-        if (numericAmount < 0.01) return 5;
-        if (numericAmount < 0.1) return 4;
-        if (numericAmount < 1) return 3;
-        if (numericAmount < 10) return 2;
+        // Для UNI: стандартно 2 знака, но больше для маленьких сумм
+        if (numValue < 0.01) return 4;
+        if (numValue < 0.1) return 3;
         return 2;
       }
     } catch (error) {
-      console.error('[ERROR] FarmingHistory - Ошибка определения количества десятичных знаков:', error);
-      // В случае ошибки возвращаем значение по умолчанию
-      return currency === 'TON' ? 3 : 2;
+      console.error("[ERROR] FarmingHistory - Ошибка в getOptimalDecimals:", error);
+      return currency === 'TON' ? 6 : 2; // Безопасные значения по умолчанию
     }
   };
   
-  // Получение информации о пакете по ID
-  const getPackageInfo = (packageId: number) => {
-    return BOOST_PACKAGES.find(pkg => pkg.id === packageId) || null;
-  };
-  
-  // Генерация строки типа пакета
-  const getPackageTypeString = (deposit: FarmingDeposit): string => {
-    // Для основного UNI пакета (packageId = 0)
-    if (deposit.packageId === 0) {
-      return `Основной UNI пакет (${deposit.uniYield})`;
+  /**
+   * Безопасно форматирует число с заданной точностью
+   * @param value Числовое значение для форматирования
+   * @param decimals Количество десятичных знаков
+   * @returns Отформатированная строка
+   */
+  const safeFormatAmount = (value: number | string, decimals: number = 2): string => {
+    try {
+      // Валидация входных параметров
+      if (value === undefined || value === null) {
+        return "0".padEnd(decimals + 2, "0");
+      }
+      
+      // Безопасное преобразование к числу
+      let numValue: number;
+      if (typeof value === 'string') {
+        // Очистка строки от нечисловых символов, кроме точки и минуса
+        const cleanStr = value.replace(/[^\d.-]/g, '');
+        numValue = parseFloat(cleanStr);
+      } else if (typeof value === 'number') {
+        numValue = value;
+      } else {
+        console.warn(`[WARNING] FarmingHistory - Неподдерживаемый тип значения: ${typeof value}`);
+        return "0".padEnd(decimals + 2, "0");
+      }
+      
+      // Проверка на валидное число
+      if (!isFinite(numValue)) {
+        console.warn(`[WARNING] FarmingHistory - Невалидное число для форматирования: ${value}`);
+        return "0".padEnd(decimals + 2, "0");
+      }
+      
+      // Форматирование числа с безопасной проверкой на очень маленькие значения
+      if (numValue > 0 && numValue < Math.pow(10, -decimals)) {
+        // Если значение положительное, но слишком маленькое для отображения - показываем минимальное отображаемое значение
+        const minDisplayValue = Math.pow(10, -decimals);
+        return minDisplayValue.toFixed(decimals);
+      }
+      
+      // Стандартное форматирование для обычных значений
+      return numValue.toFixed(decimals);
+    } catch (error) {
+      console.error("[ERROR] FarmingHistory - Ошибка в safeFormatAmount:", error);
+      // Безопасное значение при ошибке
+      return "0".padEnd(decimals + 2, "0");
     }
-    
-    const packageInfo = getPackageInfo(deposit.packageId);
-    if (!packageInfo) return 'Неизвестный пакет';
-    
-    return `${packageInfo.type} Boost ${packageInfo.price.includes('TON') ? 
-      packageInfo.price.split(' + ')[1] : packageInfo.price} (${deposit.uniYield}/${deposit.tonYield})`;
   };
   
-  // Рендер вкладки с UNI фармингом
+  // Рендер вкладки с депозитами
   const renderDepositsTab = () => {
     if (isLoading) {
       return (
@@ -1452,80 +1499,6 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     );
   };
   
-  // Вспомогательные функции для безопасного форматирования сумм
-  
-  /**
-   * Безопасно форматирует число с заданной точностью
-   * @param value Числовое значение для форматирования
-   * @param decimals Количество десятичных знаков
-   * @returns Отформатированная строка
-   */
-  const safeFormatAmount = (value: number | string, decimals: number = 2): string => {
-    try {
-      // Валидация входных параметров
-      if (value === undefined || value === null) {
-        return "0".padEnd(decimals + 2, "0");
-      }
-      
-      // Безопасное преобразование к числу
-      let numValue: number;
-      if (typeof value === 'string') {
-        // Очистка строки от нечисловых символов, кроме точки и минуса
-        const cleanStr = value.replace(/[^\d.-]/g, '');
-        numValue = parseFloat(cleanStr);
-      } else if (typeof value === 'number') {
-        numValue = value;
-      } else {
-        console.warn(`[WARNING] FarmingHistory - Неподдерживаемый тип значения: ${typeof value}`);
-        return "0".padEnd(decimals + 2, "0");
-      }
-      
-      // Проверка на валидное число
-      if (!isFinite(numValue)) {
-        console.warn(`[WARNING] FarmingHistory - Невалидное число для форматирования: ${value}`);
-        return "0".padEnd(decimals + 2, "0");
-      }
-      
-      // Форматирование числа с безопасной проверкой на очень маленькие значения
-      if (numValue > 0 && numValue < Math.pow(10, -decimals)) {
-        // Если значение положительное, но слишком маленькое для отображения - показываем минимальное отображаемое значение
-        const minDisplayValue = Math.pow(10, -decimals);
-        return minDisplayValue.toFixed(decimals);
-      }
-      
-      // Стандартное форматирование для обычных значений
-      return numValue.toFixed(decimals);
-    } catch (error) {
-      console.error("[ERROR] FarmingHistory - Ошибка в safeFormatAmount:", error);
-      // Безопасное значение при ошибке
-      return "0".padEnd(decimals + 2, "0");
-    }
-  };
-  
-  // Рендер вкладки с TON Boost пакетами
-  // Функция для форматирования числа с заданной точностью (устарела, используйте safeFormatAmount)
-  const formatNumberWithPrecision = (value: number, precision: number = 2) => {
-    try {
-      // Проверяем, что значение существует и является числом
-      if (value === undefined || value === null || !isFinite(value)) {
-        return "0".padEnd(precision + 2, "0");
-      }
-      
-      // Форматируем число с заданной точностью
-      const valueStr = value.toFixed(precision);
-      
-      // Если значение близко к нулю (меньше 0.00001), показываем "0.00000"
-      if (value > 0 && value < Math.pow(10, -precision)) {
-        return "0".padEnd(precision + 2, "0");
-      }
-      
-      return valueStr;
-    } catch (error) {
-      console.error("[ERROR] FarmingHistory - Ошибка в formatNumberWithPrecision:", error);
-      return "0".padEnd(precision + 2, "0");
-    }
-  };
-
   const renderTonBoostTab = () => {
     if (isLoading) {
       return (
