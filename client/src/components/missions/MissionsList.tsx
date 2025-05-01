@@ -68,15 +68,13 @@ interface Mission {
 
 export const MissionsList: React.FC = () => {
   const queryClient = useQueryClient();
+  const { userId } = useUser(); // Получаем ID пользователя из контекста
   const [missions, setMissions] = useState<Mission[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const [completedMissionId, setCompletedMissionId] = useState<number | null>(null);
   const [rewardAmount, setRewardAmount] = useState<number | null>(null);
   const [processingMissionId, setProcessingMissionId] = useState<number | null>(null);
   const [timerIntervalId, setTimerIntervalId] = useState<number | null>(null);
-  
-  // ID текущего пользователя (в реальном приложении должен быть получен из контекста аутентификации)
-  const currentUserId = 1; // Для примера используем ID = 1
   
   // Загружаем активные миссии через API с явным указанием queryFn
   const { data: dbMissions, isLoading: missionsLoading, error: missionsError } = useQuery<DbMission[]>({
@@ -132,14 +130,14 @@ export const MissionsList: React.FC = () => {
   
   // Загружаем выполненные миссии пользователя c явным указанием queryFn
   const { data: userCompletedMissions, isLoading: userMissionsLoading, error: userMissionsError } = useQuery<UserMission[]>({
-    queryKey: ['/api/user_missions', currentUserId],
+    queryKey: ['/api/user_missions', userId],
     queryFn: async () => {
-      console.log('🚀 Запрос выполненных миссий пользователя ID:', currentUserId);
+      console.log('🚀 Запрос выполненных миссий пользователя ID:', userId);
       
       // Формируем абсолютный URL с протоколом
       const protocol = window.location.protocol;
       const host = window.location.host;
-      const endpoint = `/api/user_missions?user_id=${currentUserId}`;
+      const endpoint = `/api/user_missions?user_id=${userId || 1}`;
       const url = `${protocol}//${host}${endpoint}`;
       
       console.log(`📤 GET запрос выполненных миссий на URL: ${url}`);
@@ -235,7 +233,7 @@ export const MissionsList: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          user_id: currentUserId,
+          user_id: userId || 1,
           mission_id: missionId
         })
       });
@@ -285,8 +283,8 @@ export const MissionsList: React.FC = () => {
             // Сбрасываем ID обрабатываемой миссии
             setProcessingMissionId(null);
             
-            // Инвалидируем кеш запросов, чтобы обновить данные
-            queryClient.invalidateQueries({ queryKey: ['/api/user_missions', currentUserId] });
+            // Используем invalidateQueryWithUserId вместо invalidateQueries
+            invalidateQueryWithUserId('/api/user_missions');
           }
         }, 200);
       } else {
