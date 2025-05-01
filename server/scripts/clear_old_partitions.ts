@@ -13,6 +13,11 @@ import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 import { exec } from 'child_process';
+import { fileURLToPath } from 'url';
+
+// Создаем аналог __dirname для ESM модулей
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const execAsync = promisify(exec);
 const LOG_DIR = path.join(__dirname, '../../logs/partitions');

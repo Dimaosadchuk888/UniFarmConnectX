@@ -12,6 +12,11 @@ import { schedule } from 'node-cron';
 import { format } from 'date-fns';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Создаем аналог __dirname для ESM модулей
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Импортируем наши задачи
 import createFarmingSnapshots from './create_farming_snapshots';

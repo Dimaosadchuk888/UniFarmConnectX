@@ -9,6 +9,11 @@ import { db, pool } from '../db';
 import { format } from 'date-fns';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Создаем аналог __dirname для ESM модулей
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const LOG_DIR = path.join(__dirname, '../../logs/snapshots');
 
