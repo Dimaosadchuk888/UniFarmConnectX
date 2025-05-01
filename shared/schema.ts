@@ -2,11 +2,11 @@ import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric, js
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Таблица с аутентификацией по имени пользователя и паролю
+// Таблица с аутентификацией по имени пользователя и паролю (пароль не обязателен для Telegram)
 export const authUsers = pgTable("auth_users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
-  password: text("password"),
+  password: text("password").default('telegram_auth'), // Устанавливаем значение по умолчанию
 });
 
 // Таблица users по требованиям задачи
