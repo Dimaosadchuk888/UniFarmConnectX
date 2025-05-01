@@ -54,11 +54,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           user_id: userId 
         };
         
-        // Используем централизованный apiRequest вместо прямого fetch
-        const response = await apiRequest('/api/uni-farming/harvest', {
-          method: 'POST',
-          body: JSON.stringify(requestBody)
-        });
+        // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
+        const response = await correctApiRequest('/api/uni-farming/harvest', 'POST', requestBody);
         
         if (response?.success) {
           return response;
