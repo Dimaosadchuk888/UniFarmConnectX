@@ -106,75 +106,71 @@ export function registerPartitionRoutes(app: Express): void {
   });
   
   // DELETE /api/partitions/:id - Удаление указанной партиции
-  app.delete(`${baseUrl}/:id`, adminAuthMiddleware, (req: Request, res: Response) => {
+  app.delete(`${baseUrl}/:id`, adminAuthMiddleware, async (req: Request, res: Response) => {
     console.log(`[PartitionRoutes] Обрабатываем DELETE запрос на удаление партиции с ID: ${req.params.id}`);
     try {
       // Получаем id из URL-параметра и преобразуем в имя партиции
-      req.body = req.body || {}; // Создаем пустой объект для тела, если его нет
-      req.body.partitionName = `transactions_${req.params.id}`;
+      const partitionName = `transactions_${req.params.id}`;
       
-      // Функция для удаления партиции, определенная прямо в маршруте
-      // для устранения проблемы с обновлением модуля
-      (async function dropPartitionHandler(req: Request, res: Response) {
-        try {
-          console.log('[PartitionControllerHandler] Вызов обработчика удаления для партиции', req.body.partitionName);
-          
-          // Проверяем наличие имени партиции
-          const { partitionName } = req.body;
-          if (!partitionName) {
-            return res.status(400).json({
-              success: false,
-              error: 'Bad Request',
-              message: 'Не указано имя партиции для удаления'
-            });
-          }
-          
-          // Проверяем формат имени партиции для безопасности
-          if (!partitionName.match(/^transactions_\d{4}_\d{2}_\d{2}$/)) {
-            return res.status(400).json({
-              success: false,
-              error: 'Bad Request',
-              message: 'Неверный формат имени партиции. Ожидается формат: transactions_YYYY_MM_DD'
-            });
-          }
-          
-          // Используем ранее импортированный сервис партиционирования
-          
-          // Проверяем существование партиции
-          const exists = await partitionService.partitionExists(partitionName);
-          if (!exists) {
-            return res.status(404).json({
-              success: false,
-              error: 'Not Found',
-              message: `Партиция с именем ${partitionName} не найдена`
-            });
-          }
-          
-          // Удаляем партицию
-          await partitionService.dropPartition(partitionName);
-          
-          // Формируем ответ
-          return res.status(200).json({
-            success: true,
-            data: {
-              message: `Партиция ${partitionName} успешно удалена`,
-              partitionName
-            }
-          });
-        } catch (error: any) {
-          console.error('[PartitionControllerHandler] Ошибка при удалении партиции:', error);
-          return res.status(500).json({
+      console.log('[PartitionRoutes] Удаление партиции', partitionName);
+      
+      // Проверяем формат имени партиции для безопасности
+      if (!partitionName.match(/^transactions_\d{4}_\d{2}_\d{2}$/)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bad Request',
+          message: 'Неверный формат имени партиции. Ожидается формат: transactions_YYYY_MM_DD'
+        });
+      }
+      
+      // Используем executeQuery из сервиса для проверки существования партиции
+      try {
+        // Проверяем существование партиции с использованием прямого SQL запроса
+        const query = `
+          SELECT EXISTS (
+            SELECT 1 FROM pg_catalog.pg_class
+            WHERE relname = $1
+          ) as exists;
+        `;
+        
+        const result = await partitionService.executeQuery(query, [partitionName]);
+        const exists = result[0]?.exists || false;
+        
+        if (!exists) {
+          return res.status(404).json({
             success: false,
-            error: 'Internal Server Error',
-            message: 'Произошла ошибка при удалении партиции',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: 'Not Found',
+            message: `Партиция с именем ${partitionName} не найдена`
           });
         }
-      })(req, res);
-      
+        
+        // Удаляем партицию прямым SQL запросом
+        const dropQuery = `DROP TABLE IF EXISTS ${partitionName};`;
+        await partitionService.executeQuery(dropQuery);
+        
+        // Логируем операцию удаления
+        console.log(`[PartitionRoutes] Партиция ${partitionName} успешно удалена`);
+        
+        // Формируем ответ
+        return res.status(200).json({
+          success: true,
+          data: {
+            message: `Партиция ${partitionName} успешно удалена`,
+            partitionName
+          }
+        });
+      } catch (queryError: any) {
+        console.error('[PartitionRoutes] Ошибка при выполнении SQL запроса:', queryError);
+        return res.status(500).json({
+          success: false,
+          error: 'Database Error',
+          message: 'Ошибка при работе с базой данных',
+          details: process.env.NODE_ENV === 'development' ? queryError.message : undefined
+        });
+      }
     } catch (error: any) {
       console.error('[PartitionRoutes] Ошибка в DELETE /api/partitions/:id:', error);
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'Внутренняя ошибка сервера',
         errors: error.message
