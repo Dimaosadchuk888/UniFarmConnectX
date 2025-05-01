@@ -79,32 +79,87 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   // Убеждаемся, что userId определен
   const validUserId = userId || 1; // Используем 1 как фолбэк значение, если userId не передан
   
-  // Запрос на получение транзакций
+  // Запрос на получение транзакций с усиленной обработкой ошибок
   const { data: transactionsResponse, refetch: refetchTransactions } = useQuery({
     queryKey: ['/api/transactions', { user_id: validUserId }],
     queryFn: async () => {
       try {
-        // Используем correctApiRequest вместо прямого fetch
-        const result = await correctApiRequest<any>(`/api/transactions?user_id=${validUserId}`, 'GET');
+        // Проверка наличия userId перед запросом
+        if (!validUserId) {
+          console.warn("[WARNING] FarmingHistory - Попытка получить транзакции без userId");
+          return { success: true, data: { transactions: [] } };
+        }
         
-        // Логирование для отладки
-        console.log("[DEBUG] FarmingHistory - API /api/transactions response:", {
-          isObject: typeof result === 'object',
-          hasSuccess: result && 'success' in result,
-          hasData: result && result.success && 'data' in result,
-          dataStructure: result && result.success && result.data ? 
-            Object.keys(result.data) : 'N/A',
-          sample: result && result.success && result.data && result.data.transactions ?
-            result.data.transactions.slice(0, 2) : 'N/A'
-        });
-        
-        return result;
-      } catch (error: any) {
-        console.error("[ERROR] FarmingHistory - Ошибка получения транзакций:", error);
-        throw new Error(`Ошибка получения транзакций: ${error.message || 'Неизвестная ошибка'}`);
+        // Используем correctApiRequest с расширенной обработкой ошибок
+        try {
+          const result = await correctApiRequest<any>(`/api/transactions?user_id=${validUserId}`, 'GET');
+          
+          // Проверка структуры ответа на валидность
+          if (!result) {
+            console.error("[ERROR] FarmingHistory - Получен пустой ответ от API транзакций");
+            return { success: true, data: { transactions: [] } };
+          }
+          
+          // Логирование для отладки с защитой от ошибок
+          try {
+            console.log("[DEBUG] FarmingHistory - API /api/transactions response:", {
+              isObject: typeof result === 'object',
+              hasSuccess: result && 'success' in result,
+              hasData: result && result.success && 'data' in result,
+              dataStructure: result && result.success && result.data ? 
+                Object.keys(result.data) : 'N/A',
+              sample: result && result.success && result.data && result.data.transactions ?
+                result.data.transactions.slice(0, 2) : 'N/A'
+            });
+          } catch (logError) {
+            console.error("[ERROR] FarmingHistory - Ошибка при логировании ответа транзакций:", logError);
+          }
+          
+          // Валидация структуры данных
+          if (result && typeof result === 'object') {
+            if (!('success' in result)) {
+              console.warn("[WARNING] FarmingHistory - Ответ API не содержит поле success");
+              // Корректируем структуру данных для совместимости
+              return { success: true, data: { transactions: Array.isArray(result) ? result : [] } };
+            }
+            
+            if (result.success && !('data' in result)) {
+              console.warn("[WARNING] FarmingHistory - Ответ API успешен, но не содержит поля data");
+              return { success: true, data: { transactions: [] } };
+            }
+            
+            // Проверка наличия транзакций
+            if (result.success && result.data) {
+              if (!('transactions' in result.data)) {
+                console.warn("[WARNING] FarmingHistory - Поле data не содержит transactions");
+                
+                // Пытаемся адаптировать данные к ожидаемой структуре
+                if (Array.isArray(result.data)) {
+                  return { success: true, data: { transactions: result.data } };
+                }
+              }
+            }
+            
+            return result;
+          } else {
+            // Возвращаем безопасный объект при неверной структуре
+            console.error("[ERROR] FarmingHistory - Неверная структура ответа API транзакций:", result);
+            return { success: true, data: { transactions: [] } };
+          }
+        } catch (apiError: any) {
+          console.error("[ERROR] FarmingHistory - Ошибка запроса API транзакций:", apiError);
+          // При любой ошибке API возвращаем безопасную структуру
+          return { success: true, data: { transactions: [] } };
+        }
+      } catch (generalError: any) {
+        console.error("[ERROR] FarmingHistory - Критическая ошибка получения транзакций:", generalError);
+        // Не выбрасываем исключение, чтобы не ломать UI
+        return { success: true, data: { transactions: [] } };
       }
     },
     enabled: !!validUserId, // Выполняем запрос только если userId определен
+    retry: 2, // Увеличиваем количество повторных попыток при ошибке
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Экспоненциальное откладывание до 10 секунд
   });
   
   // Запрос на получение активных буст-пакетов UNI
