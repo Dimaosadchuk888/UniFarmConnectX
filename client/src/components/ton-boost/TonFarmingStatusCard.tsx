@@ -40,63 +40,143 @@ const TonFarmingStatusCard: React.FC = () => {
   
   // Анимация статуса активности фарминга
   useEffect(() => {
-    const interval = setInterval(() => {
-      setDotOpacity(prev => (prev === 0.5 ? 1 : 0.5));
-    }, 1000);
+    let interval: NodeJS.Timeout;
     
-    return () => clearInterval(interval);
+    try {
+      interval = setInterval(() => {
+        try {
+          setDotOpacity(prev => (prev === 0.5 ? 1 : 0.5));
+        } catch (error) {
+          console.error('Ошибка при изменении прозрачности индикатора:', error);
+          // В случае ошибки пытаемся восстановить состояние
+          setDotOpacity(0.5);
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('Ошибка при создании интервала анимации статуса:', error);
+    }
+    
+    return () => {
+      try {
+        if (interval) clearInterval(interval);
+      } catch (error) {
+        console.error('Ошибка при очистке интервала анимации статуса:', error);
+      }
+    };
   }, []);
   
   // Анимация значений при обновлении данных
   useEffect(() => {
-    if (farmingInfo && farmingInfo.success && farmingInfo.data) {
-      const farmingData = farmingInfo.data;
-      
-      // Установка статуса активности
-      setIsActive(farmingData.isActive);
-      
-      // Преобразуем строковые значения непосредственно в числа
-      // Используем строгое приведение типов с обработкой научной нотации
-      const targetDaily = typeof farmingData.dailyIncomeTon === 'string' ? 
-        parseFloat(farmingData.dailyIncomeTon) : 
-        (farmingData.dailyIncomeTon || 0);
-        
-      const targetPerSecond = typeof farmingData.totalTonRatePerSecond === 'string' ? 
-        parseFloat(farmingData.totalTonRatePerSecond) : 
-        (farmingData.totalTonRatePerSecond || 0);
-      
-      // Запускаем импульс при обновлении значений
-      setIsPulsing(true);
-      setTimeout(() => setIsPulsing(false), 1000);
-      
-      // Анимируем нарастание значений
-      const animationDuration = 1000;
-      const startTime = Date.now();
-      
-      const animate = () => {
-        const currentTime = Date.now();
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / animationDuration, 1);
-        
-        // Эффект замедления к концу
-        const easeOutProgress = 1 - Math.pow(1 - progress, 3);
-        
-        // В последний шаг анимации (progress === 1) устанавливаем точные значения
-        // чтобы избежать ошибок округления при анимации
-        if (progress === 1) {
-          setDailyYield(targetDaily);
-          setPerSecond(targetPerSecond);
-        } else {
-          setDailyYield(targetDaily * easeOutProgress);
-          setPerSecond(targetPerSecond * easeOutProgress);
+    try {
+      if (farmingInfo && farmingInfo.success && farmingInfo.data) {
+        try {
+          const farmingData = farmingInfo.data;
+          
+          // Установка статуса активности
+          setIsActive(farmingData.isActive);
+          
+          // Преобразуем строковые значения непосредственно в числа
+          // Используем строгое приведение типов с обработкой научной нотации
+          let targetDaily = 0;
+          let targetPerSecond = 0;
+          
+          try {
+            targetDaily = typeof farmingData.dailyIncomeTon === 'string' ? 
+              parseFloat(farmingData.dailyIncomeTon) : 
+              (farmingData.dailyIncomeTon || 0);
+              
+            // Проверка на валидное число
+            if (isNaN(targetDaily)) targetDaily = 0;
+            
+            targetPerSecond = typeof farmingData.totalTonRatePerSecond === 'string' ? 
+              parseFloat(farmingData.totalTonRatePerSecond) : 
+              (farmingData.totalTonRatePerSecond || 0);
+              
+            // Проверка на валидное число
+            if (isNaN(targetPerSecond)) targetPerSecond = 0;
+          } catch (parseError) {
+            console.error('Ошибка при парсинге числовых значений:', parseError);
+            targetDaily = 0;
+            targetPerSecond = 0;
+          }
+          
+          try {
+            // Запускаем импульс при обновлении значений
+            setIsPulsing(true);
+            setTimeout(() => {
+              try {
+                setIsPulsing(false);
+              } catch (error) {
+                console.error('Ошибка при сбросе состояния пульсации:', error);
+              }
+            }, 1000);
+          } catch (pulseError) {
+            console.error('Ошибка при установке состояния пульсации:', pulseError);
+          }
+          
+          // Анимируем нарастание значений
+          const animationDuration = 1000;
+          const startTime = Date.now();
+          
+          const animate = () => {
+            try {
+              const currentTime = Date.now();
+              const elapsed = currentTime - startTime;
+              const progress = Math.min(elapsed / animationDuration, 1);
+              
+              // Эффект замедления к концу
+              const easeOutProgress = 1 - Math.pow(1 - progress, 3);
+              
+              try {
+                // В последний шаг анимации (progress === 1) устанавливаем точные значения
+                // чтобы избежать ошибок округления при анимации
+                if (progress === 1) {
+                  setDailyYield(targetDaily);
+                  setPerSecond(targetPerSecond);
+                } else {
+                  setDailyYield(targetDaily * easeOutProgress);
+                  setPerSecond(targetPerSecond * easeOutProgress);
+                }
+                
+                if (progress < 1) {
+                  requestAnimationFrame(animate);
+                }
+              } catch (stateError) {
+                console.error('Ошибка при обновлении состояния анимации:', stateError);
+                // При ошибке устанавливаем конечные значения напрямую
+                setDailyYield(targetDaily);
+                setPerSecond(targetPerSecond);
+              }
+            } catch (animateError) {
+              console.error('Ошибка в функции анимации:', animateError);
+              // При ошибке устанавливаем конечные значения напрямую
+              setDailyYield(targetDaily);
+              setPerSecond(targetPerSecond);
+            }
+          };
+          
+          try {
+            animate();
+          } catch (startAnimateError) {
+            console.error('Ошибка при запуске анимации:', startAnimateError);
+            // При ошибке устанавливаем конечные значения напрямую
+            setDailyYield(targetDaily);
+            setPerSecond(targetPerSecond);
+          }
+        } catch (dataProcessingError) {
+          console.error('Ошибка при обработке данных фарминга:', dataProcessingError);
+          // Устанавливаем безопасные значения по умолчанию
+          setIsActive(false);
+          setDailyYield(0);
+          setPerSecond(0);
         }
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        }
-      };
-      
-      animate();
+      }
+    } catch (mainError) {
+      console.error('Ошибка в эффекте обновления данных фарминга:', mainError);
+      // Устанавливаем безопасные значения по умолчанию
+      setIsActive(false);
+      setDailyYield(0);
+      setPerSecond(0);
     }
   }, [farmingInfo]);
 
@@ -117,9 +197,35 @@ const TonFarmingStatusCard: React.FC = () => {
               )}
             </CardTitle>
             <CardDescription className="text-blue-300/70">
-              {isActive 
-                ? `Активно ${farmingInfo?.data?.depositCount || 0} TON Boost депозитов` 
-                : 'Нет активных TON Boost депозитов'}
+              {(() => {
+                try {
+                  if (!isActive) {
+                    return 'Нет активных TON Boost депозитов';
+                  }
+                  
+                  // Безопасный доступ к depositCount с проверкой
+                  const depositCount = farmingInfo?.data?.depositCount;
+                  
+                  // Проверяем что depositCount число или может быть преобразовано в число
+                  let count = 0;
+                  
+                  if (depositCount !== undefined && depositCount !== null) {
+                    if (typeof depositCount === 'number') {
+                      count = isNaN(depositCount) ? 0 : depositCount;
+                    } else if (typeof depositCount === 'string') {
+                      const parsed = parseInt(depositCount, 10);
+                      count = isNaN(parsed) ? 0 : parsed;
+                    }
+                  }
+                  
+                  return `Активно ${count} TON Boost депозитов`;
+                } catch (error) {
+                  console.error('Ошибка при формировании описания:', error);
+                  return isActive 
+                    ? 'Активны TON Boost депозиты' 
+                    : 'Нет активных TON Boost депозитов';
+                }
+              })()}
             </CardDescription>
           </div>
         </div>
@@ -143,7 +249,15 @@ const TonFarmingStatusCard: React.FC = () => {
               <div className="text-blue-300/80 text-sm mb-1">Доход в сутки</div>
               <div className="flex items-baseline">
                 <span className="text-blue-400 text-xl font-medium">
-                  {formatNumberWithPrecision(dailyYield, 5)}
+                  {(() => {
+                    try {
+                      // Проверка на валидное число
+                      return formatNumberWithPrecision(isNaN(dailyYield) ? 0 : dailyYield, 5);
+                    } catch (error) {
+                      console.error('Ошибка при форматировании дневного дохода:', error);
+                      return '0.00000';
+                    }
+                  })()}
                 </span>
                 <span className="text-blue-400/70 ml-1.5">TON</span>
               </div>
@@ -153,7 +267,15 @@ const TonFarmingStatusCard: React.FC = () => {
               <div className="text-blue-300/80 text-sm mb-1">В секунду</div>
               <div className="flex items-baseline">
                 <span className="text-blue-400 text-xl font-medium">
-                  {formatNumberWithPrecision(perSecond, 8)}
+                  {(() => {
+                    try {
+                      // Проверка на валидное число
+                      return formatNumberWithPrecision(isNaN(perSecond) ? 0 : perSecond, 8);
+                    } catch (error) {
+                      console.error('Ошибка при форматировании значения в секунду:', error);
+                      return '0.00000000';
+                    }
+                  })()}
                 </span>
                 <span className="text-blue-400/70 ml-1.5">TON</span>
               </div>
@@ -163,7 +285,17 @@ const TonFarmingStatusCard: React.FC = () => {
               <div className="text-blue-300/80 text-sm mb-1">Общая сумма</div>
               <div className="flex items-baseline">
                 <span className="text-blue-400 text-xl font-medium">
-                  {formatNumberWithPrecision(parseFloat(farmingInfo?.data?.totalTonDepositAmount || "0"), 2)}
+                  {(() => {
+                    try {
+                      const rawAmount = farmingInfo?.data?.totalTonDepositAmount || "0";
+                      const amount = typeof rawAmount === 'string' ? parseFloat(rawAmount) : (rawAmount || 0);
+                      // Проверка на валидное число
+                      return formatNumberWithPrecision(isNaN(amount) ? 0 : amount, 2);
+                    } catch (error) {
+                      console.error('Ошибка при форматировании общей суммы:', error);
+                      return '0.00';
+                    }
+                  })()}
                 </span>
                 <span className="text-blue-400/70 ml-1.5">TON</span>
               </div>
@@ -173,7 +305,33 @@ const TonFarmingStatusCard: React.FC = () => {
               <div className="text-blue-300/80 text-sm mb-1">Активных депозитов</div>
               <div className="flex items-baseline">
                 <span className="text-blue-400 text-xl font-medium">
-                  {farmingInfo?.data?.depositCount || 0}
+                  {(() => {
+                    try {
+                      // Безопасный доступ к depositCount с проверкой
+                      const depositCount = farmingInfo?.data?.depositCount;
+                      
+                      // Проверяем что depositCount число или может быть преобразовано в число
+                      if (depositCount === undefined || depositCount === null) {
+                        return 0;
+                      }
+                      
+                      if (typeof depositCount === 'number') {
+                        return isNaN(depositCount) ? 0 : depositCount;
+                      }
+                      
+                      // Если это строка, пробуем преобразовать
+                      if (typeof depositCount === 'string') {
+                        const parsed = parseInt(depositCount, 10);
+                        return isNaN(parsed) ? 0 : parsed;
+                      }
+                      
+                      // Если другой тип данных, возвращаем 0
+                      return 0;
+                    } catch (error) {
+                      console.error('Ошибка при форматировании количества депозитов:', error);
+                      return 0;
+                    }
+                  })()}
                 </span>
                 <span className="text-blue-400/70 ml-1.5">шт.</span>
               </div>
