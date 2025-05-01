@@ -34,6 +34,20 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     queryKey: ['/api/uni-farming/info', userId], // Динамический ID пользователя
     refetchInterval: 30000, // Увеличили интервал до 30 секунд для уменьшения нагрузки
     enabled: !!userId, // Запрос активен только если есть userId
+    queryFn: async () => {
+      try {
+        // Используем безопасный запрос с правильными заголовками
+        const response = await correctApiRequest<{ success: boolean; data: FarmingInfo }>(
+          `/api/uni-farming/info?user_id=${userId || 1}`, 
+          'GET'
+        );
+        
+        return response;
+      } catch (error: any) {
+        console.error('[ERROR] UniFarmingCard - Ошибка при получении информации о фарминге:', error);
+        throw new Error(`Ошибка получения данных фарминга: ${error.message || 'Неизвестная ошибка'}`);
+      }
+    }
   });
   
   // Информация о фарминге из ответа API
@@ -76,16 +90,28 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
     },
     onSuccess: (data) => {
-      // Показываем информацию о новом механизме
-      setError(data.message || 'Доход автоматически начисляется на ваш баланс UNI');
-      
-      // Обновляем данные с учетом динамического ID пользователя
-      // Используем новую функцию вместо прямого вызова invalidateQueries
-      invalidateQueryWithUserId('/api/uni-farming/info');
-      invalidateQueryWithUserId('/api/wallet/balance');
+      try {
+        // Показываем информацию о новом механизме
+        setError(data.message || 'Доход автоматически начисляется на ваш баланс UNI');
+        
+        // Обновляем данные с учетом динамического ID пользователя
+        // Используем новую функцию вместо прямого вызова invalidateQueries
+        invalidateQueryWithUserId('/api/uni-farming/info');
+        invalidateQueryWithUserId('/api/wallet/balance');
+      } catch (error: any) {
+        console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess infoMutation:', error);
+        // Даже в случае ошибки показываем позитивное сообщение
+        setError('Доход автоматически начисляется на ваш баланс UNI каждую секунду!');
+      }
     },
     onError: (error: Error) => {
-      setError('Ошибка при обновлении данных: ' + error.message);
+      try {
+        console.error('[ERROR] UniFarmingCard - Ошибка в infoMutation:', error);
+        setError('Ошибка при обновлении данных: ' + error.message);
+      } catch (err: any) {
+        console.error('[ERROR] UniFarmingCard - Ошибка в обработке onError:', err);
+        setError('Произошла ошибка при обновлении данных');
+      }
     },
   });
   
@@ -102,22 +128,40 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       return correctApiRequest('/api/uni-farming/deposit', 'POST', requestBody);
     },
     onSuccess: () => {
-      // Очищаем форму и сообщение об ошибке
-      setDepositAmount('');
-      setError(null);
-      
-      // Обновляем данные с учетом динамического ID пользователя
-      // Используем новую функцию вместо прямого вызова invalidateQueries
-      invalidateQueryWithUserId('/api/uni-farming/info');
-      invalidateQueryWithUserId('/api/wallet/balance');
-      invalidateQueryWithUserId('/api/transactions');
+      try {
+        // Очищаем форму и сообщение об ошибке
+        setDepositAmount('');
+        setError(null);
+        
+        // Обновляем данные с учетом динамического ID пользователя
+        // Используем новую функцию вместо прямого вызова invalidateQueries
+        invalidateQueryWithUserId('/api/uni-farming/info');
+        invalidateQueryWithUserId('/api/wallet/balance');
+        invalidateQueryWithUserId('/api/transactions');
+      } catch (error: any) {
+        console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess depositMutation:', error);
+        // Даже в случае ошибки отображаем успех
+        setError(null);
+      }
     },
     onError: (error: Error) => {
-      setError(`Не удалось выполнить депозит: ${error.message}`);
+      try {
+        console.error('[ERROR] UniFarmingCard - Ошибка в depositMutation:', error);
+        setError(`Не удалось выполнить депозит: ${error.message}`);
+      } catch (err: any) {
+        console.error('[ERROR] UniFarmingCard - Ошибка обработки onError depositMutation:', err);
+        setError('Не удалось выполнить депозит: пожалуйста, попробуйте позже');
+      }
     },
     onSettled: () => {
-      // Разрешаем повторный вызов в любом случае
-      setIsSubmitting(false);
+      try {
+        // Разрешаем повторный вызов в любом случае
+        setIsSubmitting(false);
+      } catch (error: any) {
+        console.error('[ERROR] UniFarmingCard - Ошибка в onSettled depositMutation:', error);
+        // В крайнем случае, сбросим флаг для следующих попыток
+        setIsSubmitting(false);
+      }
     }
   });
   

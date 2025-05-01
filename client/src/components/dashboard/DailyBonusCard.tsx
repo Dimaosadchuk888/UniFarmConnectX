@@ -87,56 +87,106 @@ const DailyBonusCard: React.FC = () => {
       }
     },
     onSuccess: (data) => {
-      if (data.success) {
-        // Показываем анимацию с конфетти
-        setShowConfetti(true);
-        setReward(`${data.amount || bonusStatus?.bonusAmount || 500} UNI`);
-        
-        // Обновляем данные о статусе бонуса с учетом userId
-        invalidateQueryWithUserId('/api/daily-bonus/status');
-        
-        // Также обновляем данные баланса пользователя и транзакции
-        invalidateQueryWithUserId('/api/wallet/balance');
-        invalidateQueryWithUserId('/api/transactions');
-        
-        // Скрываем конфетти через 4 секунды
-        setTimeout(() => {
-          setShowConfetti(false);
-          setReward('');
-        }, 4000);
-        
-        // Показываем уведомление
-        toast({
-          title: "Бонус получен!",
-          description: data.message || "Ежедневный бонус успешно зачислен.",
-        });
-      } else {
-        // Показываем уведомление об ошибке
-        toast({
-          title: "Ошибка",
-          description: data.message || "Не удалось получить бонус.",
-          variant: "destructive",
-        });
+      try {
+        if (data.success) {
+          // Показываем анимацию с конфетти
+          setShowConfetti(true);
+          setReward(`${data.amount || bonusStatus?.bonusAmount || 500} UNI`);
+          
+          // Обновляем данные о статусе бонуса с учетом userId
+          invalidateQueryWithUserId('/api/daily-bonus/status');
+          
+          // Также обновляем данные баланса пользователя и транзакции
+          invalidateQueryWithUserId('/api/wallet/balance');
+          invalidateQueryWithUserId('/api/transactions');
+          
+          // Скрываем конфетти через 4 секунды
+          setTimeout(() => {
+            try {
+              setShowConfetti(false);
+              setReward('');
+            } catch (error) {
+              console.error('[ERROR] DailyBonusCard - Ошибка при удалении анимации:', error);
+            }
+          }, 4000);
+          
+          // Показываем уведомление
+          toast({
+            title: "Бонус получен!",
+            description: data.message || "Ежедневный бонус успешно зачислен.",
+          });
+        } else {
+          // Показываем уведомление об ошибке
+          toast({
+            title: "Ошибка",
+            description: data.message || "Не удалось получить бонус.",
+            variant: "destructive",
+          });
+        }
+      } catch (error: any) {
+        console.error('[ERROR] DailyBonusCard - Ошибка в onSuccess:', error);
+        // Даже при ошибке пытаемся обновить данные интерфейса
+        try {
+          invalidateQueryWithUserId('/api/daily-bonus/status');
+          invalidateQueryWithUserId('/api/wallet/balance');
+          
+          // Информируем пользователя
+          toast({
+            title: "Бонус зачислен, но произошла ошибка",
+            description: "Бонус был зачислен, но произошла ошибка отображения. Обновите страницу.",
+            variant: "default",
+          });
+        } catch (err) {
+          console.error('[ERROR] DailyBonusCard - Критическая ошибка при восстановлении:', err);
+        }
       }
     },
     onError: (error) => {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось получить бонус. Попробуйте позже.",
-        variant: "destructive",
-      });
+      try {
+        console.error('[ERROR] DailyBonusCard - Ошибка при получении бонуса:', error);
+        
+        toast({
+          title: "Ошибка",
+          description: "Не удалось получить бонус. Попробуйте позже.",
+          variant: "destructive",
+        });
+        
+        // В любом случае обновляем данные
+        invalidateQueryWithUserId('/api/daily-bonus/status');
+      } catch (err) {
+        console.error('[ERROR] DailyBonusCard - Ошибка в обработчике onError:', err);
+        // Последняя попытка показать уведомление
+        try {
+          toast({
+            title: "Произошла ошибка",
+            description: "Не удалось получить бонус. Проверьте соединение.",
+            variant: "destructive",
+          });
+        } catch {}
+      }
     },
   });
   
   // Обработка нажатия на кнопку получения бонуса
   const handleClaimBonus = () => {
-    if (bonusStatus?.canClaim) {
-      claimBonusMutation.mutate();
-    } else {
-      // Если бонус уже получен, показываем уведомление
+    try {
+      if (bonusStatus?.canClaim) {
+        claimBonusMutation.mutate();
+      } else {
+        // Если бонус уже получен, показываем уведомление
+        toast({
+          title: "Бонус уже получен",
+          description: "Вы уже получили бонус сегодня. Возвращайтесь завтра!",
+        });
+      }
+    } catch (error: any) {
+      console.error('[ERROR] DailyBonusCard - Ошибка при клике на кнопку получения бонуса:', error);
+      
+      // Информируем пользователя о проблеме
       toast({
-        title: "Бонус уже получен",
-        description: "Вы уже получили бонус сегодня. Возвращайтесь завтра!",
+        title: "Ошибка системы",
+        description: "Произошла ошибка при получении бонуса. Попробуйте обновить страницу.",
+        variant: "destructive",
       });
     }
   };
@@ -160,20 +210,32 @@ const DailyBonusCard: React.FC = () => {
   const [animateDayIndicator, setAnimateDayIndicator] = useState<number | null>(null);
   
   useEffect(() => {
-    if (showConfetti) {
-      // Поочередно анимируем индикаторы дней
-      for (let i = 0; i < 7; i++) {
-        setTimeout(() => {
-          setAnimateDayIndicator(i);
-          
-          // Убираем анимацию через короткое время
+    try {
+      if (showConfetti) {
+        // Поочередно анимируем индикаторы дней
+        for (let i = 0; i < 7; i++) {
           setTimeout(() => {
-            if (i === 6) {
-              setAnimateDayIndicator(null);
+            try {
+              setAnimateDayIndicator(i);
+              
+              // Убираем анимацию через короткое время
+              setTimeout(() => {
+                try {
+                  if (i === 6) {
+                    setAnimateDayIndicator(null);
+                  }
+                } catch (error) {
+                  console.error('[ERROR] DailyBonusCard - Ошибка при сбросе анимации индикатора:', error);
+                }
+              }, 300);
+            } catch (error) {
+              console.error('[ERROR] DailyBonusCard - Ошибка в таймере анимации индикатора:', error);
             }
-          }, 300);
-        }, i * 150);
+          }, i * 150);
+        }
       }
+    } catch (error) {
+      console.error('[ERROR] DailyBonusCard - Ошибка при настройке анимации:', error);
     }
   }, [showConfetti]);
   
