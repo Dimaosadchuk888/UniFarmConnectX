@@ -1350,6 +1350,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
+  // Регистрируем маршруты для управления партициями таблиц
+  // Важно: эти маршруты доступны только администраторам
+  if (process.env.NODE_ENV !== 'test') {
+    registerPartitionRoutes(app);
+    console.log('[Server] Маршруты для управления партициями базы данных зарегистрированы');
+  }
+
   // Использование централизованного обработчика ошибок из middleware/errorHandler
   app.use(errorHandler);
 
