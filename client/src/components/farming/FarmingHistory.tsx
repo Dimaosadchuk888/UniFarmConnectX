@@ -833,6 +833,118 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     }
   };
   
+  // Безопасное форматирование числовых значений с защитой от ошибок
+  const safeFormatAmount = (amount: string | number | null | undefined, decimals: number = 2): string => {
+    try {
+      // Проверка существования значения
+      if (amount === null || amount === undefined) {
+        console.warn('[WARNING] FarmingHistory - Попытка форматирования null/undefined суммы');
+        return '0.00';
+      }
+      
+      // Преобразование в число, если строка
+      let numericAmount: number;
+      
+      if (typeof amount === 'string') {
+        try {
+          // Попытка удалить все нечисловые символы кроме точки
+          const cleanedString = amount.replace(/[^\d.-]/g, '');
+          numericAmount = parseFloat(cleanedString);
+          
+          if (isNaN(numericAmount)) {
+            console.warn('[WARNING] FarmingHistory - Невозможно преобразовать строку в число:', amount);
+            return '0.00';
+          }
+        } catch (parseError) {
+          console.error('[ERROR] FarmingHistory - Ошибка при парсинге строки в число:', parseError);
+          return '0.00';
+        }
+      } else if (typeof amount === 'number') {
+        numericAmount = amount;
+      } else {
+        console.warn('[WARNING] FarmingHistory - Неподдерживаемый тип для суммы:', typeof amount);
+        return '0.00';
+      }
+      
+      // Проверка на валидность числа
+      if (!isFinite(numericAmount)) {
+        console.warn('[WARNING] FarmingHistory - Бесконечное или невалидное число:', numericAmount);
+        return '0.00';
+      }
+      
+      // Безопасное форматирование с защитой от ошибок
+      try {
+        return numericAmount.toFixed(decimals);
+      } catch (formatError) {
+        console.error('[ERROR] FarmingHistory - Ошибка при форматировании числа:', formatError);
+        
+        // Запасной вариант через строковое представление
+        try {
+          return String(Math.round(numericAmount * Math.pow(10, decimals)) / Math.pow(10, decimals));
+        } catch (fallbackError) {
+          console.error('[ERROR] FarmingHistory - Критическая ошибка при форматировании числа:', fallbackError);
+          return '0.00';
+        }
+      }
+    } catch (error) {
+      console.error('[ERROR] FarmingHistory - Глобальная ошибка в safeFormatAmount:', error);
+      return '0.00';
+    }
+  };
+  
+  // Функция для определения оптимального количества десятичных знаков в зависимости от величины суммы
+  const getOptimalDecimals = (amount: number | string, currency: string = 'UNI'): number => {
+    try {
+      // Преобразуем в число, если это строка
+      let numericAmount: number;
+      if (typeof amount === 'string') {
+        try {
+          numericAmount = parseFloat(amount);
+          if (isNaN(numericAmount)) {
+            throw new Error('Невалидное число');
+          }
+        } catch (parseError) {
+          console.error('[ERROR] FarmingHistory - Ошибка преобразования строки в число:', parseError);
+          // Возвращаем значение по умолчанию
+          return currency === 'TON' ? 3 : 2;
+        }
+      } else if (typeof amount === 'number') {
+        numericAmount = amount;
+      } else {
+        console.warn('[WARNING] FarmingHistory - Неподдерживаемый тип данных для определения десятичных знаков:', typeof amount);
+        return currency === 'TON' ? 3 : 2;
+      }
+      
+      // Проверка валидности числа
+      if (!isFinite(numericAmount)) {
+        console.warn('[WARNING] FarmingHistory - Бесконечное или невалидное число при определении знаков:', numericAmount);
+        return currency === 'TON' ? 3 : 2;
+      }
+      
+      // Логика определения количества десятичных знаков в зависимости от валюты и величины
+      if (currency === 'TON') {
+        // Для TON
+        if (numericAmount < 0.001) return 6;
+        if (numericAmount < 0.01) return 5;
+        if (numericAmount < 0.1) return 4;
+        return 3;
+      } else {
+        // Для UNI и других валют
+        if (numericAmount < 0.0001) return 8;
+        if (numericAmount < 0.001) return 6;
+        if (numericAmount < 0.01) return 5;
+        if (numericAmount < 0.1) return 4;
+        if (numericAmount < 1) return 3;
+        if (numericAmount < 10) return 2;
+        return 2;
+      }
+    } catch (error) {
+      console.error('[ERROR] FarmingHistory - Ошибка определения количества десятичных знаков:', error);
+      // В случае ошибки возвращаем значение по умолчанию
+      return currency === 'TON' ? 3 : 2;
+    }
+  };
+  
   // Получение информации о пакете по ID
   const getPackageInfo = (packageId: number) => {
     return BOOST_PACKAGES.find(pkg => pkg.id === packageId) || null;
@@ -862,10 +974,23 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
       );
     }
     
-    // Проверяем наличие UNI транзакций
-    const hasUniTransactions = farmingHistory.filter(item => 
-      item.currency === 'UNI'
-    ).length > 0;
+    // Проверяем наличие UNI транзакций с защитой от ошибок
+    const hasUniTransactions = (() => {
+      try {
+        return farmingHistory.filter(item => {
+          try {
+            // Безопасная проверка на UNI транзакцию
+            return item && typeof item === 'object' && item.currency === 'UNI';
+          } catch (itemError) {
+            console.error('[ERROR] FarmingHistory - Ошибка при фильтрации UNI транзакции:', itemError);
+            return false;
+          }
+        }).length > 0;
+      } catch (filterError) {
+        console.error('[ERROR] FarmingHistory - Критическая ошибка в фильтре UNI транзакций:', filterError);
+        return false;
+      }
+    })();
     
     if (!hasUniTransactions) {
       return (
@@ -951,16 +1076,19 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                         </td>
                         <td className="py-2 text-sm text-right">
                           <span className={item.currency === 'UNI' ? "text-purple-300" : "text-blue-300"}>
-                            +{item.currency === 'TON' ? 
-                              // TON показываем с разной точностью в зависимости от размера суммы
-                              item.amount.toFixed(item.amount < 0.001 ? 6 : 3) : 
-                              // UNI показываем с разной точностью в зависимости от размера суммы
-                              item.amount.toFixed(
-                                item.amount < 0.0001 ? 8 : 
-                                item.amount < 0.01 ? 6 : 
-                                item.amount < 1 ? 4 : 2
-                              )
-                            }
+                            +{(() => {
+                              try {
+                                // Определяем оптимальное количество десятичных знаков в зависимости от валюты и размера суммы
+                                const decimals = getOptimalDecimals(item.amount, item.currency);
+                                
+                                // Используем безопасное форматирование
+                                return safeFormatAmount(item.amount, decimals);
+                              } catch (error) {
+                                console.error('[ERROR] FarmingHistory - Ошибка при форматировании суммы транзакции:', error);
+                                // Безопасное значение по умолчанию
+                                return '0.00';
+                              }
+                            })()}
                           </span>
                           <span className="text-gray-400 ml-1.5 text-xs">{item.currency}</span>
                         </td>
@@ -1003,10 +1131,42 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
       );
     }
     
-    // Проверка наличия TON транзакций
-    const hasTonTransactions = farmingHistory.filter(item => 
-      item.currency === 'TON' && item.amount >= 0.000001
-    ).length > 0;
+    // Проверка наличия TON транзакций с защитой от ошибок
+    const hasTonTransactions = (() => {
+      try {
+        return farmingHistory.filter(item => {
+          try {
+            // Безопасная проверка на TON транзакцию
+            const isTonCurrency = item.currency === 'TON';
+            
+            // Защищенная проверка суммы
+            let hasSignificantAmount = false;
+            try {
+              // Преобразуем к числу для гарантии корректного сравнения
+              const numAmount = typeof item.amount === 'string' 
+                ? parseFloat(item.amount) 
+                : typeof item.amount === 'number' 
+                  ? item.amount 
+                  : 0;
+                
+              // Проверка на минимально значимую сумму
+              hasSignificantAmount = isFinite(numAmount) && numAmount >= 0.000001;
+            } catch (amountError) {
+              console.error('[ERROR] FarmingHistory - Ошибка проверки суммы транзакции TON:', amountError);
+              hasSignificantAmount = false;
+            }
+            
+            return isTonCurrency && hasSignificantAmount;
+          } catch (itemError) {
+            console.error('[ERROR] FarmingHistory - Ошибка при фильтрации TON транзакции:', itemError);
+            return false;
+          }
+        }).length > 0;
+      } catch (filterError) {
+        console.error('[ERROR] FarmingHistory - Критическая ошибка в фильтре TON транзакций:', filterError);
+        return false;
+      }
+    })();
     
     // Если нет TON транзакций, показываем информационное сообщение
     if (!hasTonTransactions) {
@@ -1076,7 +1236,19 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                       </td>
                       <td className="py-2 text-sm text-right">
                         <span className="text-blue-300">
-                          +{item.amount.toFixed(item.amount < 0.001 ? 6 : 3)}
+                          +{(() => {
+                            try {
+                              // Определяем оптимальное количество десятичных знаков для TON
+                              const decimals = getOptimalDecimals(item.amount, 'TON');
+                              
+                              // Используем безопасное форматирование
+                              return safeFormatAmount(item.amount, decimals);
+                            } catch (error) {
+                              console.error('[ERROR] FarmingHistory - Ошибка при форматировании TON суммы:', error);
+                              // Безопасное значение по умолчанию
+                              return '0.000';
+                            }
+                          })()}
                         </span>
                         <span className="text-gray-400 ml-1.5 text-xs">TON</span>
                       </td>
