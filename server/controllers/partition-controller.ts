@@ -11,21 +11,20 @@ import { partitionService } from '../services/partition-service';
  */
 export async function getPartitionsList(req: Request, res: Response) {
   try {
-    const partitions = await partitionService.getAllPartitions();
+    const partitions = await partitionService.getPartitionsList();
     
     return res.json({
       success: true,
       data: {
-        partitions,
-        total: partitions.length
+        partitions
       }
     });
   } catch (error: any) {
-    console.error('Ошибка при получении списка партиций:', error);
+    console.error('Error getting partitions list:', error);
     
     return res.status(500).json({
       success: false,
-      error: 'Ошибка при получении списка партиций',
+      error: 'Failed to get partitions list',
       details: error.message
     });
   }
@@ -42,16 +41,15 @@ export async function getPartitionLogs(req: Request, res: Response) {
     return res.json({
       success: true,
       data: {
-        logs,
-        total: logs.length
+        logs
       }
     });
   } catch (error: any) {
-    console.error('Ошибка при получении логов партиций:', error);
+    console.error('Error getting partition logs:', error);
     
     return res.status(500).json({
       success: false,
-      error: 'Ошибка при получении логов партиций',
+      error: 'Failed to get partition logs',
       details: error.message
     });
   }
@@ -67,16 +65,15 @@ export async function checkPartitioningStatus(req: Request, res: Response) {
     return res.json({
       success: true,
       data: {
-        is_partitioned: isPartitioned,
-        status: isPartitioned ? 'active' : 'not_active'
+        is_partitioned: isPartitioned
       }
     });
   } catch (error: any) {
-    console.error('Ошибка при проверке статуса партиционирования:', error);
+    console.error('Error checking partitioning status:', error);
     
     return res.status(500).json({
       success: false,
-      error: 'Ошибка при проверке статуса партиционирования',
+      error: 'Failed to check partitioning status',
       details: error.message
     });
   }
@@ -87,16 +84,20 @@ export async function checkPartitioningStatus(req: Request, res: Response) {
  */
 export async function createFuturePartitions(req: Request, res: Response) {
   try {
-    const daysAhead = req.body.days_ahead ? parseInt(req.body.days_ahead) : 5;
+    const daysAhead = req.body.days_ahead || 5;
     
-    // Проверяем значение дней
-    if (daysAhead < 1 || daysAhead > 30) {
+    // Проверяем, что таблица партиционирована
+    const isPartitioned = await partitionService.isTablePartitioned();
+    
+    if (!isPartitioned) {
       return res.status(400).json({
         success: false,
-        error: 'Количество дней должно быть от 1 до 30'
+        error: 'Cannot create partitions',
+        message: 'Table transactions is not partitioned'
       });
     }
     
+    // Создаем партиции
     const result = await partitionService.createFuturePartitions(daysAhead);
     
     return res.json({
@@ -104,11 +105,11 @@ export async function createFuturePartitions(req: Request, res: Response) {
       data: result
     });
   } catch (error: any) {
-    console.error('Ошибка при создании партиций:', error);
+    console.error('Error creating future partitions:', error);
     
     return res.status(500).json({
       success: false,
-      error: 'Ошибка при создании партиций',
+      error: 'Failed to create future partitions',
       details: error.message
     });
   }

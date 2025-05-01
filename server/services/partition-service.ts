@@ -1,287 +1,379 @@
 /**
  * Сервис для управления партициями таблицы transactions
- * Отвечает за создание новых партиций и логирование операций
  */
 
-import { Pool } from '@neondatabase/serverless';
+import { db, query } from '../db';
 import { format, addDays } from 'date-fns';
-import { db } from '../db';
-import { sql } from 'drizzle-orm';
 
 /**
- * Класс для управления партициями
+ * Интерфейс для информации о партиции
  */
-export class PartitionService {
-  private pool: Pool;
+interface PartitionInfo {
+  partition_name: string;
+  record_count?: number;
+  size?: string;
+  start_date?: string;
+  end_date?: string;
+}
 
-  constructor(pool: Pool) {
-    this.pool = pool;
-  }
+/**
+ * Интерфейс для лога операций с партицией
+ */
+interface PartitionLog {
+  id: number;
+  operation_type: string;
+  partition_name: string;
+  status: string;
+  notes?: string;
+  error_message?: string;
+  created_at: Date;
+}
 
+/**
+ * Сервис для работы с партициями таблицы transactions
+ */
+class PartitionService {
   /**
    * Проверяет, является ли таблица партиционированной
    */
   async isTablePartitioned(tableName: string = 'transactions'): Promise<boolean> {
     try {
-      const result = await this.pool.query(`
-        SELECT partrelid::regclass AS parent_table
-        FROM pg_partitioned_table pt
-        JOIN pg_class pc ON pt.partrelid = pc.oid
-        JOIN pg_namespace pn ON pc.relnamespace = pn.oid
-        WHERE pn.nspname = 'public' AND pc.relname = $1;
-      `, [tableName]);
-
-      return result.rows.length > 0;
+      const query = `
+        SELECT pt.relname as parent_table, 
+               c.relname as child_table,
+               pg_get_expr(c.relpartbound, c.oid) as partition_expression
+        FROM pg_inherits i
+        JOIN pg_class pt ON pt.oid = i.inhparent
+        JOIN pg_class c ON c.oid = i.inhrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE pt.relname = $1 
+        AND n.nspname = 'public'
+        LIMIT 1;
+      `;
+      
+      const result = await query(query, [tableName]);
+      return result.rowCount > 0;
     } catch (error) {
-      console.error('Ошибка при проверке партиционирования таблицы:', error);
+      console.error('Error checking if table is partitioned:', error);
       return false;
     }
   }
-
+  
   /**
-   * Создает партицию для указанной даты
+   * Получает список всех партиций с информацией о них
    */
-  async createPartitionForDate(date: Date): Promise<{ success: boolean, partitionName: string, error?: string }> {
-    const dateStr = format(date, 'yyyy_MM_dd');
-    const partitionName = `transactions_${dateStr}`;
-    const nextDate = addDays(date, 1);
-    
+  async getPartitionsList(): Promise<PartitionInfo[]> {
     try {
-      // Проверяем существование партиции
-      const partitionExists = await this.partitionExists(partitionName);
+      // Проверяем, что таблица партиционирована
+      const isPartitioned = await this.isTablePartitioned();
       
-      if (partitionExists) {
-        await this.logPartitionOperation(partitionName, date, 'skipped', 'Партиция уже существует');
-        return { success: true, partitionName, error: 'Партиция уже существует' };
+      if (!isPartitioned) {
+        console.log('Table transactions is not partitioned');
+        return [];
       }
       
-      // Создаем новую партицию
-      await this.pool.query(`
-        CREATE TABLE IF NOT EXISTS ${partitionName} PARTITION OF transactions
-        FOR VALUES FROM ('${format(date, 'yyyy-MM-dd')}') TO ('${format(nextDate, 'yyyy-MM-dd')}');
-      `);
-      
-      // Создаем индексы для партиции
-      await this.createPartitionIndexes(partitionName);
-      
-      // Логируем успешное создание
-      await this.logPartitionOperation(partitionName, date, 'success');
-      
-      console.log(`Создана партиция ${partitionName} для даты ${format(date, 'yyyy-MM-dd')}`);
-      return { success: true, partitionName };
-    } catch (error: any) {
-      console.error(`Ошибка при создании партиции для даты ${format(date, 'yyyy-MM-dd')}:`, error);
-      
-      // Логируем ошибку
-      await this.logPartitionOperation(partitionName, date, 'error', error.message);
-      
-      return { success: false, partitionName, error: error.message };
-    }
-  }
-
-  /**
-   * Создает индексы для партиции
-   */
-  private async createPartitionIndexes(partitionName: string): Promise<void> {
-    try {
-      // Индекс по user_id
-      await this.pool.query(`
-        CREATE INDEX IF NOT EXISTS ${partitionName}_user_id_idx ON ${partitionName} (user_id);
-      `);
-      
-      // Индекс по типу транзакции
-      await this.pool.query(`
-        CREATE INDEX IF NOT EXISTS ${partitionName}_type_idx ON ${partitionName} (type);
-      `);
-      
-      // Индекс по времени создания
-      await this.pool.query(`
-        CREATE INDEX IF NOT EXISTS ${partitionName}_created_at_idx ON ${partitionName} (created_at);
-      `);
-      
-      // Составной индекс по user_id и типу для частых запросов
-      await this.pool.query(`
-        CREATE INDEX IF NOT EXISTS ${partitionName}_user_id_type_idx ON ${partitionName} (user_id, type);
-      `);
-    } catch (error) {
-      console.error(`Ошибка при создании индексов для партиции ${partitionName}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Проверяет существование партиции
-   */
-  async partitionExists(partitionName: string): Promise<boolean> {
-    try {
-      const result = await this.pool.query(`
-        SELECT 1 
-        FROM pg_tables 
-        WHERE tablename = $1;
-      `, [partitionName]);
-      
-      return result.rows.length > 0;
-    } catch (error) {
-      console.error(`Ошибка при проверке существования партиции ${partitionName}:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * Создает партиции на несколько дней вперед
-   */
-  async createFuturePartitions(daysAhead: number = 5): Promise<{ success: boolean, createdCount: number, errors: any[] }> {
-    const errors: any[] = [];
-    let createdCount = 0;
-    
-    try {
-      // Создаем партиции от сегодня до указанного количества дней вперед
-      const today = new Date();
-      
-      for (let i = 0; i <= daysAhead; i++) {
-        const targetDate = addDays(today, i);
-        const result = await this.createPartitionForDate(targetDate);
-        
-        if (result.success && !result.error) {
-          createdCount++;
-        } else if (!result.success) {
-          errors.push({
-            date: format(targetDate, 'yyyy-MM-dd'),
-            error: result.error
-          });
-        }
-      }
-      
-      return { success: true, createdCount, errors };
-    } catch (error) {
-      console.error('Ошибка при создании будущих партиций:', error);
-      return { success: false, createdCount, errors: [...errors, error] };
-    }
-  }
-
-  /**
-   * Логирует операцию с партицией в таблицу partition_logs
-   */
-  private async logPartitionOperation(
-    partitionName: string, 
-    partitionDate: Date, 
-    status: 'success' | 'error' | 'skipped',
-    details: string = ''
-  ): Promise<void> {
-    try {
-      await this.pool.query(`
-        INSERT INTO partition_logs (
-          partition_name, 
-          partition_date, 
-          status, 
-          details
-        ) VALUES ($1, $2, $3, $4)
-      `, [
-        partitionName,
-        format(partitionDate, 'yyyy-MM-dd'),
-        status,
-        details
-      ]);
-    } catch (error) {
-      console.error('Ошибка при логировании операции с партицией:', error);
-    }
-  }
-
-  /**
-   * Получение статистики по партициям
-   */
-  async getPartitionsStats(): Promise<any[]> {
-    try {
-      const result = await this.pool.query(`
+      const query = `
         SELECT
           child.relname AS partition_name,
-          pg_size_pretty(pg_total_relation_size(child.oid)) AS partition_size,
-          pg_total_relation_size(child.oid) AS partition_size_bytes,
-          (SELECT COUNT(*) FROM ${sql.raw('child.relname')}) AS record_count
-        FROM pg_inherits
-        JOIN pg_class parent ON pg_inherits.inhparent = parent.oid
-        JOIN pg_class child ON pg_inherits.inhrelid = child.oid
-        JOIN pg_namespace nmsp_parent ON nmsp_parent.oid = parent.relnamespace
-        JOIN pg_namespace nmsp_child ON nmsp_child.oid = child.relnamespace
+          pg_size_pretty(pg_total_relation_size(child.oid)) AS size,
+          pg_catalog.obj_description(child.oid) AS description,
+          (SELECT count(*) FROM pg_stat_user_tables 
+           WHERE relname = child.relname) AS record_count,
+          pg_get_expr(child.relpartbound, child.oid) AS partition_expression
+        FROM pg_inherits i
+        JOIN pg_class parent ON parent.oid = i.inhparent
+        JOIN pg_class child ON child.oid = i.inhrelid
+        JOIN pg_namespace n ON n.oid = parent.relnamespace
         WHERE parent.relname = 'transactions'
-        ORDER BY partition_name;
-      `);
+        AND n.nspname = 'public'
+        ORDER BY
+          child.relname;
+      `;
+      
+      const result = await db.query(query, []);
+      
+      // Если ошибка в запросе, пробуем более простой запрос
+      if (!result.rows) {
+        // Упрощенный запрос, если предыдущий не сработал
+        const simpleQuery = `
+          SELECT
+            child.relname AS partition_name,
+            pg_size_pretty(pg_relation_size(child.oid)) AS size
+          FROM pg_inherits i
+          JOIN pg_class parent ON parent.oid = i.inhparent
+          JOIN pg_class child ON child.oid = i.inhrelid
+          JOIN pg_namespace n ON n.oid = parent.relnamespace
+          WHERE parent.relname = 'transactions'
+          AND n.nspname = 'public'
+          ORDER BY
+            child.relname;
+        `;
+        
+        const simpleResult = await db.query(simpleQuery, []);
+        return simpleResult.rows;
+      }
       
       return result.rows;
     } catch (error) {
-      console.error('Ошибка при получении статистики по партициям:', error);
+      console.error('Error getting partitions list:', error);
       return [];
     }
   }
-
-  /**
-   * Получает список всех партиций и количество записей в них
-   */
-  async getAllPartitions(): Promise<any[]> {
-    try {
-      // Сначала получаем список всех партиций
-      const partitionsResult = await this.pool.query(`
-        SELECT tablename AS partition_name
-        FROM pg_tables
-        WHERE tablename LIKE 'transactions_%'
-        ORDER BY tablename;
-      `);
-      
-      const partitions = partitionsResult.rows;
-      
-      // Для каждой партиции получаем количество записей
-      for (const partition of partitions) {
-        try {
-          const countResult = await this.pool.query(`
-            SELECT COUNT(*) FROM ${partition.partition_name}
-          `);
-          
-          partition.record_count = parseInt(countResult.rows[0].count);
-          
-          // Получаем размер партиции
-          const sizeResult = await this.pool.query(`
-            SELECT pg_size_pretty(pg_total_relation_size($1::regclass)) AS size
-          `, [`public.${partition.partition_name}`]);
-          
-          partition.size = sizeResult.rows[0].size;
-          
-          // Добавляем дату партиции
-          const dateMatch = partition.partition_name.match(/transactions_(\d{4})_(\d{2})_(\d{2})/);
-          if (dateMatch) {
-            partition.date = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
-          }
-        } catch (error) {
-          console.error(`Ошибка при получении информации о партиции ${partition.partition_name}:`, error);
-          partition.record_count = 'Ошибка';
-          partition.size = 'Недоступно';
-        }
-      }
-      
-      return partitions;
-    } catch (error) {
-      console.error('Ошибка при получении списка партиций:', error);
-      return [];
-    }
-  }
-
+  
   /**
    * Получает логи операций с партициями
+   * @param limit максимальное количество записей
    */
-  async getPartitionLogs(limit: number = 50): Promise<any[]> {
+  async getPartitionLogs(limit: number = 50): Promise<PartitionLog[]> {
     try {
-      const result = await this.pool.query(`
+      // Проверяем, существует ли таблица partition_logs
+      const tableExistsQuery = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'partition_logs'
+        )
+      `;
+      
+      const tableExistsResult = await db.query(tableExistsQuery, []);
+      
+      if (!tableExistsResult.rows[0].exists) {
+        console.log('Table partition_logs does not exist');
+        return [];
+      }
+      
+      const query = `
         SELECT * FROM partition_logs
         ORDER BY created_at DESC
         LIMIT $1
-      `, [limit]);
+      `;
       
+      const result = await db.query(query, [limit]);
       return result.rows;
     } catch (error) {
-      console.error('Ошибка при получении логов партиций:', error);
+      console.error('Error getting partition logs:', error);
       return [];
+    }
+  }
+  
+  /**
+   * Создаёт партицию для указанной даты
+   */
+  async createPartitionForDate(date: Date): Promise<{
+    success: boolean;
+    partition_name?: string;
+    error?: string;
+  }> {
+    try {
+      const dateStr = format(date, 'yyyy_MM_dd');
+      const partitionName = `transactions_${dateStr}`;
+      
+      const startDate = format(date, 'yyyy-MM-dd');
+      const endDate = format(addDays(date, 1), 'yyyy-MM-dd');
+      
+      console.log(`[PartitionService] Creating partition ${partitionName} for date ${startDate}`);
+      
+      // Проверяем, существует ли уже эта партиция
+      const checkPartitionQuery = `
+        SELECT relname 
+        FROM pg_class 
+        WHERE relname = $1
+      `;
+      
+      const checkResult = await db.query(checkPartitionQuery, [partitionName]);
+      
+      if (checkResult.rowCount > 0) {
+        console.log(`[PartitionService] Partition ${partitionName} already exists`);
+        
+        // Добавляем запись в логи
+        await this.logPartitionOperation(
+          'create',
+          partitionName,
+          'skipped',
+          `Partition ${partitionName} already exists`
+        );
+        
+        return {
+          success: true,
+          partition_name: partitionName
+        };
+      }
+      
+      // Создаем партицию
+      const createPartitionQuery = `
+        CREATE TABLE IF NOT EXISTS ${partitionName}
+        PARTITION OF transactions
+        FOR VALUES FROM ('${startDate}') TO ('${endDate}');
+      `;
+      
+      await db.query(createPartitionQuery, []);
+      
+      // Создаем индексы для партиции
+      console.log(`[PartitionService] Creating indexes for partition ${partitionName}`);
+      
+      await db.query(`CREATE INDEX IF NOT EXISTS ${partitionName}_user_id_idx ON ${partitionName} (user_id)`, []);
+      await db.query(`CREATE INDEX IF NOT EXISTS ${partitionName}_transaction_type_idx ON ${partitionName} (transaction_type)`, []);
+      await db.query(`CREATE INDEX IF NOT EXISTS ${partitionName}_created_at_idx ON ${partitionName} (created_at)`, []);
+      
+      // Добавляем запись в логи
+      await this.logPartitionOperation(
+        'create',
+        partitionName,
+        'success',
+        `Partition ${partitionName} created successfully for date range ${startDate} to ${endDate}`
+      );
+      
+      console.log(`[PartitionService] Partition ${partitionName} created successfully`);
+      
+      return {
+        success: true,
+        partition_name: partitionName
+      };
+    } catch (error: any) {
+      console.error('[PartitionService] Error creating partition for date:', error);
+      
+      // Добавляем запись в логи об ошибке
+      await this.logPartitionOperation(
+        'create',
+        `transactions_${format(date, 'yyyy_MM_dd')}`,
+        'error',
+        `Error creating partition: ${error.message}`,
+        error.message
+      );
+      
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+  
+  /**
+   * Создаёт партиции на будущие даты
+   * @param daysAhead на сколько дней вперед создавать партиции
+   */
+  async createFuturePartitions(daysAhead: number = 5): Promise<{
+    success: boolean;
+    createdCount: number;
+    partitions: string[];
+    errors: string[];
+  }> {
+    const partitions: string[] = [];
+    const errors: string[] = [];
+    let createdCount = 0;
+    
+    try {
+      // Проверяем, что таблица партиционирована
+      const isPartitioned = await this.isTablePartitioned();
+      
+      if (!isPartitioned) {
+        return {
+          success: false,
+          createdCount: 0,
+          partitions: [],
+          errors: ['Table transactions is not partitioned']
+        };
+      }
+      
+      // Создаем партиции на указанное количество дней вперед
+      const today = new Date();
+      
+      for (let i = 0; i <= daysAhead; i++) {
+        const date = addDays(today, i);
+        const result = await this.createPartitionForDate(date);
+        
+        if (result.success) {
+          if (result.partition_name) {
+            partitions.push(result.partition_name);
+            createdCount++;
+          }
+        } else if (result.error) {
+          errors.push(result.error);
+        }
+      }
+      
+      return {
+        success: true,
+        createdCount,
+        partitions,
+        errors
+      };
+    } catch (error: any) {
+      console.error('[PartitionService] Error creating future partitions:', error);
+      
+      return {
+        success: false,
+        createdCount,
+        partitions,
+        errors: [...errors, error.message]
+      };
+    }
+  }
+  
+  /**
+   * Добавляет запись в лог операций с партициями
+   */
+  async logPartitionOperation(
+    operationType: string,
+    partitionName: string,
+    status: string,
+    notes?: string,
+    errorMessage?: string
+  ): Promise<boolean> {
+    try {
+      // Проверяем, существует ли таблица partition_logs
+      const tableExistsQuery = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'partition_logs'
+        )
+      `;
+      
+      const tableExistsResult = await db.query(tableExistsQuery, []);
+      
+      if (!tableExistsResult.rows[0].exists) {
+        console.log('[PartitionService] Table partition_logs does not exist, creating it');
+        
+        // Создаем таблицу partition_logs, если она не существует
+        const createTableQuery = `
+          CREATE TABLE partition_logs (
+            id SERIAL PRIMARY KEY,
+            operation_type VARCHAR(50) NOT NULL,
+            partition_name VARCHAR(100) NOT NULL,
+            status VARCHAR(20) NOT NULL,
+            notes TEXT,
+            error_message TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          )
+        `;
+        
+        await db.query(createTableQuery, []);
+        
+        // Создаем индексы для таблицы
+        await db.query('CREATE INDEX partition_logs_operation_type_idx ON partition_logs (operation_type)', []);
+        await db.query('CREATE INDEX partition_logs_partition_name_idx ON partition_logs (partition_name)', []);
+        await db.query('CREATE INDEX partition_logs_status_idx ON partition_logs (status)', []);
+        await db.query('CREATE INDEX partition_logs_created_at_idx ON partition_logs (created_at)', []);
+      }
+      
+      // Добавляем запись в лог
+      const query = `
+        INSERT INTO partition_logs 
+        (operation_type, partition_name, status, notes, error_message) 
+        VALUES 
+        ($1, $2, $3, $4, $5)
+      `;
+      
+      await db.query(query, [operationType, partitionName, status, notes, errorMessage]);
+      
+      return true;
+    } catch (error) {
+      console.error('[PartitionService] Error logging partition operation:', error);
+      return false;
     }
   }
 }
 
-// Экспортируем singleton-инстанс сервиса партиционирования
-export const partitionService = new PartitionService(db.$client);
+// Создаем экземпляр сервиса
+export const partitionService = new PartitionService();
