@@ -220,15 +220,17 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   
   // Обработка полученных данных
   useEffect(() => {
-    setIsLoading(true);
-    
-    // Отладка запросов TON Boost
-    if (activeTonBoostsResponse) {
-      console.log('[DEBUG] TON Boost Response:', JSON.stringify(activeTonBoostsResponse).slice(0, 500));
-    }
-    
+    // Инициализация переменных
     const farmingDeposits: FarmingDeposit[] = [];
     let historyItems: FarmingHistory[] = [];
+    
+    try {
+      setIsLoading(true);
+      
+      // Отладка запросов TON Boost
+      if (activeTonBoostsResponse) {
+        console.log('[DEBUG] TON Boost Response:', JSON.stringify(activeTonBoostsResponse).slice(0, 500));
+      }
     
     // Создаем основной депозит из данных фарминга
     if (uniFarmingResponse?.success) {
