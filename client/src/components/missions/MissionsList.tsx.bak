@@ -1,21 +1,34 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Calendar, CheckCircle, Clock, Coins, MessageCircle, Tv, UserPlus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "@/hooks/use-toast";
-import { ConfettiEffect } from "@/components/ui/confetti-effect";
-import { useUser } from "@/contexts/userContext";
-import { invalidateQueryWithUserId } from "@/lib/queryClient";
+import { useEffect, useState, useRef } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { 
+  CheckCircle, 
+  Clock, 
+  AlertCircle, 
+  MessageCircle, 
+  Users, 
+  Calendar, 
+  Coins, 
+  Tv,
+  UserPlus
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import ConfettiEffect from '@/components/ui/ConfettiEffect';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
+import { useUser } from '@/contexts/userContext';
+import { invalidateQueryWithUserId } from '@/lib/queryClient';
 
+// Определение типов статусов миссий
 export enum MissionStatus {
   AVAILABLE = 'available',
   PROCESSING = 'processing',
   COMPLETED = 'completed'
 }
 
+// Тип миссии из БД
 interface DbMission {
   id: number;
   type: string;
@@ -25,6 +38,7 @@ interface DbMission {
   is_active: boolean;
 }
 
+// Тип для выполненной миссии пользователя
 interface UserMission {
   id: number;
   user_id: number;
@@ -32,12 +46,14 @@ interface UserMission {
   completed_at: string;
 }
 
+// Тип для ответа от API при выполнении миссии
 interface CompleteMissionResponse {
   success: boolean;
   message: string;
   reward?: number;
 }
 
+// Тип миссии для UI
 interface Mission {
   id: number;
   type: string;
@@ -531,7 +547,7 @@ export const MissionsList: React.FC = () => {
               onClick={() => {
                 // Инвалидируем запросы для перезагрузки данных
                 queryClient.invalidateQueries({ queryKey: ['/api/missions/active'] });
-                invalidateQueryWithUserId('/api/user_missions');
+                queryClient.invalidateQueries({ queryKey: ['/api/user_missions', currentUserId] });
               }}
             >
               Попробовать снова
@@ -562,7 +578,7 @@ export const MissionsList: React.FC = () => {
               onClick={() => {
                 // Инвалидируем запросы для перезагрузки данных
                 queryClient.invalidateQueries({ queryKey: ['/api/missions/active'] });
-                invalidateQueryWithUserId('/api/user_missions');
+                queryClient.invalidateQueries({ queryKey: ['/api/user_missions', currentUserId] });
               }}
             >
               Обновить
@@ -580,111 +596,160 @@ export const MissionsList: React.FC = () => {
         active={showConfetti} 
         onComplete={handleConfettiComplete} 
         duration={3500} 
+        colors={['#c4b5fd', '#8b5cf6', '#a855f7', '#7c3aed', '#6366f1', '#d946ef']}
+        particleCount={100}
+        spread={90}
+        gravity={0.65}
       />
       
-      {/* Показ награды при завершении миссии */}
-      {showConfetti && rewardAmount !== null && (
-        <RewardIndicator reward={rewardAmount} />
-      )}
-      
       <div className="space-y-4 p-4">
-        {missions.map(mission => {
+        {missions.map((mission) => {
           const statusInfo = getMissionStatusInfo(mission.status);
-          const isSocialMission = mission.type === 'social';
-          const canVerifySocial = isSocialMission && mission.status === MissionStatus.PROCESSING && mission.verificationAvailable;
-          const url = isSocialMission ? extractUrlFromDescription(mission.description) : null;
+          const isRecentlyCompleted = completedMissionId === mission.id;
+          const isProcessing = processingMissionId === mission.id;
           
           return (
-            <Card 
-              key={mission.id} 
-              className={`w-full ${mission.status === MissionStatus.COMPLETED ? 'opacity-70' : ''} 
-                ${mission.id === completedMissionId ? 'border-2 border-emerald-500 shadow-lg shadow-emerald-500/20' : ''}`}
+            <motion.div
+              key={mission.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="relative"
             >
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    {getMissionTypeIcon(mission.type)}
-                    <CardTitle className="text-base">{mission.title}</CardTitle>
-                  </div>
-                  <div>
-                    <Badge className={`${statusInfo.color}`}>
-                      <span className="flex items-center text-xs">
+              {/* Индикатор награды при завершении миссии */}
+              {isRecentlyCompleted && rewardAmount !== null && (
+                <RewardIndicator reward={rewardAmount} />
+              )}
+              
+              <Card 
+                className={`overflow-hidden transition-all duration-500 ${
+                  isRecentlyCompleted 
+                    ? 'shadow-[0_0_15px_rgba(139,92,246,0.8)] scale-[1.02]' 
+                    : ''
+                }`}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center">
+                        {getMissionTypeIcon(mission.type)}
+                      </div>
+                      <CardTitle className={`text-lg ${
+                        isRecentlyCompleted ? 'text-primary' : ''
+                      }`}>{mission.title}</CardTitle>
+                    </div>
+                    <Badge className={`${statusInfo.color} text-white opacity-80 ${
+                      isRecentlyCompleted ? 'animate-pulse' : ''
+                    }`}>
+                      <span className="flex items-center">
                         {statusInfo.icon}
                         {statusInfo.text}
                       </span>
                     </Badge>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {mission.description}
-                </p>
+                  <CardDescription className="mt-2">{mission.description}</CardDescription>
+                </CardHeader>
                 
-                {/* Прогресс выполнения миссии */}
-                {mission.status === MissionStatus.PROCESSING && mission.progress !== undefined && (
-                  <Progress 
-                    value={mission.progress} 
-                    className="h-2 mt-3" 
-                    indicatorClassName={`${mission.progress >= 100 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                  />
-                )}
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <div className="flex items-center">
-                  <Coins className="h-4 w-4 text-amber-300 mr-1" />
-                  <span className="text-amber-300 font-medium">{mission.rewardUni} UNI</span>
-                </div>
-                
-                {/* Кнопки действий в зависимости от статуса миссии */}
-                <div>
-                  {mission.status === MissionStatus.AVAILABLE && !isSocialMission && (
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleCompleteMission(mission.id)}
-                      disabled={processingMissionId !== null}
-                    >
-                      Выполнить
-                    </Button>
+                <CardContent>
+                  {mission.status === MissionStatus.PROCESSING && (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Прогресс</span>
+                        <span>{mission.progress || 0}%</span>
+                      </div>
+                      <Progress
+                        value={mission.progress}
+                        className="h-2"
+                      />
+                    </div>
                   )}
+                </CardContent>
+                
+                <CardFooter className="flex justify-between items-center border-t pt-4">
+                  <div className="flex items-center">
+                    <div className="text-purple-300/80 font-medium mr-2">Награда:</div>
+                    <div className="flex items-center px-2 py-1 bg-purple-900/30 rounded-md">
+                      <Coins className="h-4 w-4 text-purple-400 mr-1.5" />
+                      <span className="text-purple-300 font-semibold">{mission.rewardUni} UNI</span>
+                    </div>
+                  </div>
                   
-                  {/* Специальная кнопка для социальных миссий */}
-                  {mission.status === MissionStatus.AVAILABLE && isSocialMission && url && (
+                  {/* Социальные миссии с кнопкой Перейти и Проверить задание */}
+                  {mission.status === MissionStatus.AVAILABLE && mission.type === 'social' && (
                     <Button 
                       size="sm"
-                      onClick={() => handleStartSocialMission(mission.id, url)}
-                      disabled={processingMissionId !== null}
+                      onClick={() => {
+                        const url = extractUrlFromDescription(mission.description) || 'https://t.me/unifarm';
+                        handleStartSocialMission(mission.id, url);
+                      }}
+                      className="bg-primary hover:bg-primary/90"
+                      disabled={isProcessing}
                     >
                       Перейти
                     </Button>
                   )}
                   
-                  {/* Кнопка проверки для социальных миссий */}
-                  {canVerifySocial && (
+                  {/* Кнопка проверки для социальной миссии в процессе */}
+                  {mission.status === MissionStatus.PROCESSING && mission.type === 'social' && (
+                    <div className="flex flex-col gap-2">
+                      {!mission.verificationAvailable && (
+                        <div className="text-xs text-center text-muted-foreground mb-1">
+                          Кнопка будет доступна через {5 - Math.floor((Date.now() - (mission.visitStartTime || 0)) / 1000)} сек.
+                        </div>
+                      )}
+                      <Button 
+                        size="sm"
+                        onClick={() => handleVerifySocialMission(mission.id)}
+                        className="bg-primary hover:bg-primary/90"
+                        disabled={!mission.verificationAvailable || isProcessing}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-r-transparent"></span>
+                            Проверка...
+                          </>
+                        ) : (
+                          "Проверить задание"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Обычные миссии с кнопкой "Выполнить" */}
+                  {mission.status === MissionStatus.AVAILABLE && mission.type !== 'social' && (
                     <Button 
                       size="sm"
-                      onClick={() => handleVerifySocialMission(mission.id)}
+                      onClick={() => handleCompleteMission(mission.id)}
+                      className="bg-primary hover:bg-primary/90"
+                      disabled={isProcessing}
                     >
-                      Проверить
+                      {isProcessing ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-r-transparent"></span>
+                          Выполнение...
+                        </>
+                      ) : (
+                        "Выполнить"
+                      )}
                     </Button>
                   )}
                   
+                  {/* Индикатор выполненной миссии */}
                   {mission.status === MissionStatus.COMPLETED && (
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      disabled
-                    >
-                      <CheckCircle className="h-4 w-4 mr-1 text-emerald-400" />
-                      Выполнено
-                    </Button>
+                    <Badge variant="outline" className="border-purple-400/60 text-purple-300 px-3 py-1">
+                      <CheckCircle className="h-4 w-4 mr-1.5" />
+                      Получено
+                    </Badge>
                   )}
-                </div>
-              </CardFooter>
-            </Card>
+                </CardFooter>
+              </Card>
+            </motion.div>
           );
         })}
       </div>
     </div>
   );
 };
+
+export default MissionsList;
