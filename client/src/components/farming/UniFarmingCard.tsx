@@ -165,120 +165,436 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     }
   });
   
-  // Упрощенный обработчик отправки формы
+  // Улучшенный обработчик отправки формы с расширенной обработкой ошибок
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Предотвращаем множественные вызовы
-    if (isSubmitting) {
-      return;
-    }
-    
-    setIsSubmitting(true);
-    setError(null);
-    
-    // Валидация
-    if (!depositAmount || depositAmount === '0') {
-      setError('Пожалуйста, введите сумму депозита');
-      setIsSubmitting(false);
-      return;
-    }
-    
     try {
-      const amount = new BigNumber(depositAmount);
+      // Предотвращаем стандартное поведение формы
+      e.preventDefault();
       
-      // Проверка корректности суммы
-      if (amount.isNaN() || amount.isLessThanOrEqualTo(0)) {
-        setError('Сумма должна быть положительным числом');
-        setIsSubmitting(false);
+      // Предотвращаем множественные вызовы
+      if (isSubmitting) {
+        console.log('Предотвращен повторный вызов отправки формы (isSubmitting=true)');
         return;
       }
       
-      // Проверка достаточности средств
-      const balance = new BigNumber(userData?.balance_uni || '0');
-      if (amount.isGreaterThan(balance)) {
-        setError('Недостаточно средств на балансе');
-        setIsSubmitting(false);
+      try {
+        // Устанавливаем флаг отправки и очищаем ошибки
+        setIsSubmitting(true);
+        setError(null);
+      } catch (stateError) {
+        console.error('Ошибка при установке состояния отправки:', stateError);
+        // Даже в случае ошибки продолжаем выполнение
+      }
+      
+      // Валидация наличия суммы
+      if (!depositAmount || depositAmount.trim() === '' || depositAmount === '0') {
+        try {
+          setError('Пожалуйста, введите сумму депозита');
+          setIsSubmitting(false);
+        } catch (stateError) {
+          console.error('Ошибка при установке сообщения об ошибке:', stateError);
+        }
         return;
       }
       
-      // Вызываем мутацию с валидированной суммой
-      depositMutation.mutate(amount.toString());
+      // Минимальная сумма депозита
+      const MIN_DEPOSIT = 5;
       
-    } catch (err) {
-      console.error('Ошибка валидации формы:', err);
-      setError('Некорректный формат суммы');
-      setIsSubmitting(false);
+      try {
+        // Создаем BigNumber для безопасной работы с числами
+        let amount: BigNumber;
+        try {
+          amount = new BigNumber(depositAmount);
+          
+          // Проверка на валидное число
+          if (amount.isNaN() || !amount.isFinite()) {
+            setError('Введено некорректное числовое значение');
+            setIsSubmitting(false);
+            return;
+          }
+        } catch (bnError) {
+          console.error('Ошибка при создании BigNumber из введенной суммы:', bnError);
+          setError('Некорректный формат суммы');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // Проверка корректности суммы
+        if (amount.isLessThanOrEqualTo(0)) {
+          setError('Сумма должна быть положительным числом');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // Проверка минимальной суммы депозита
+        if (amount.isLessThan(MIN_DEPOSIT)) {
+          setError(`Минимальная сумма депозита: ${MIN_DEPOSIT} UNI`);
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // Получаем и проверяем баланс
+        let balance: BigNumber;
+        try {
+          // Безопасное получение баланса
+          const balanceStr = userData?.balance_uni;
+          if (balanceStr === undefined || balanceStr === null) {
+            console.error('Не удалось получить баланс пользователя');
+            setError('Не удалось получить информацию о балансе');
+            setIsSubmitting(false);
+            return;
+          }
+          
+          // Создаем BigNumber для баланса
+          balance = new BigNumber(balanceStr);
+          
+          // Проверка на валидный баланс
+          if (balance.isNaN() || !balance.isFinite()) {
+            console.error('Получен некорректный баланс:', balanceStr);
+            setError('Ошибка получения баланса');
+            setIsSubmitting(false);
+            return;
+          }
+        } catch (balanceError) {
+          console.error('Ошибка при получении или обработке баланса:', balanceError);
+          setError('Ошибка проверки баланса');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // Проверка достаточности средств
+        if (amount.isGreaterThan(balance)) {
+          setError('Недостаточно средств на балансе');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        try {
+          // Вызываем мутацию с валидированной суммой
+          console.log('Отправка депозита:', amount.toString());
+          depositMutation.mutate(amount.toString());
+        } catch (mutationError) {
+          console.error('Ошибка при вызове depositMutation:', mutationError);
+          setError('Не удалось отправить запрос на сервер');
+          setIsSubmitting(false);
+        }
+      } catch (validationError) {
+        console.error('Ошибка при валидации формы:', validationError);
+        setError('Произошла ошибка при проверке введенных данных');
+        setIsSubmitting(false);
+      }
+    } catch (globalError) {
+      console.error('Глобальная ошибка в handleSubmit:', globalError);
+      try {
+        setError('Произошла непредвиденная ошибка');
+        setIsSubmitting(false);
+      } catch (stateError) {
+        console.error('Дополнительная ошибка при обработке глобальной ошибки:', stateError);
+      }
     }
   };
   
-  // Обработчик для показа информации о новом механизме автоматического начисления
+  // Обработчик для показа информации о новом механизме автоматического начисления с улучшенной обработкой ошибок
   const handleShowInfo = () => {
     try {
-      console.log('Запускаем infoMutation...');
-      infoMutation.mutate();
-    } catch (error) {
-      console.error('Ошибка при запуске infoMutation:', error);
-      // Установим сообщение даже в случае ошибки
-      setError('Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!');
+      // Проверяем доступность infoMutation
+      if (!infoMutation) {
+        console.error('infoMutation недоступен');
+        try {
+          setError('Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!');
+        } catch (stateError) {
+          console.error('Ошибка при установке сообщения о доходе:', stateError);
+        }
+        return;
+      }
+      
+      // Проверяем, что у нас есть userId
+      if (!userId) {
+        console.warn('handleShowInfo вызван без userId');
+        try {
+          setError('Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!');
+        } catch (stateError) {
+          console.error('Ошибка при установке сообщения о доходе:', stateError);
+        }
+        return;
+      }
+      
+      // Проверка активности фарминга
+      if (!isActive) {
+        console.log('Показываем информацию для неактивного фарминга');
+        try {
+          setError('Активируйте фарминг, чтобы начать получать доход автоматически');
+        } catch (stateError) {
+          console.error('Ошибка при установке сообщения о неактивном фарминге:', stateError);
+        }
+        return;
+      }
+      
+      // Вызываем мутацию с обработкой ошибок
+      try {
+        console.log('Запускаем infoMutation...');
+        infoMutation.mutate();
+      } catch (mutationError) {
+        console.error('Ошибка при запуске infoMutation:', mutationError);
+        
+        // Показываем информационное сообщение в любом случае
+        try {
+          setError('Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!');
+        } catch (stateError) {
+          console.error('Ошибка при установке сообщения о доходе после ошибки мутации:', stateError);
+        }
+      }
+    } catch (globalError) {
+      console.error('Глобальная ошибка в handleShowInfo:', globalError);
+      
+      // Гарантируем, что пользователь получит информацию даже при ошибке
+      try {
+        setError('Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!');
+      } catch (finalError) {
+        console.error('Критическая ошибка при установке сообщения о доходе:', finalError);
+      }
     }
   };
   
-  // Форматирование числа с учетом малых значений
+  // Форматирование числа с учетом малых значений и расширенной обработкой ошибок
   const formatNumber = (value: string | undefined, decimals: number = 3): string => {
     try {
-      const num = new BigNumber(value || '0');
-      
-      // Для очень маленьких значений используем научную нотацию
-      if (num.isGreaterThan(0) && num.isLessThanOrEqualTo(0.001)) {
-        return num.toExponential(2);
+      // Проверка наличия значения
+      if (value === undefined || value === null) {
+        return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
       }
       
-      return num.toFixed(decimals);
+      // Нормализация значения
+      let normalizedValue = value;
+      
+      // Если это не строка, попробуем преобразовать
+      if (typeof value !== 'string') {
+        try {
+          normalizedValue = String(value);
+        } catch (conversionError) {
+          console.error('Ошибка преобразования значения в строку:', conversionError);
+          return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
+        }
+      }
+      
+      // Проверка на пустую строку
+      if (normalizedValue.trim() === '') {
+        return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
+      }
+      
+      // Создаем BigNumber с защитой от некорректных значений
+      let num: BigNumber;
+      try {
+        num = new BigNumber(normalizedValue);
+        
+        // Проверка на NaN или Infinity
+        if (num.isNaN() || !num.isFinite()) {
+          console.error('Получено нечисловое значение:', normalizedValue);
+          return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
+        }
+      } catch (bnError) {
+        console.error('Ошибка создания BigNumber:', bnError, 'для значения:', normalizedValue);
+        return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
+      }
+      
+      try {
+        // Для очень маленьких значений используем научную нотацию
+        if (num.isGreaterThan(0) && num.isLessThanOrEqualTo(0.001)) {
+          return num.toExponential(2);
+        }
+        
+        // Для нормальных значений используем фиксированное количество десятичных знаков
+        return num.toFixed(decimals);
+      } catch (formatError) {
+        console.error('Ошибка форматирования числа:', formatError);
+        
+        // Запасной вариант форматирования - просто преобразуем в строку и округлим
+        try {
+          const numValue = parseFloat(normalizedValue);
+          if (isNaN(numValue)) {
+            return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
+          }
+          
+          return numValue.toFixed(decimals);
+        } catch (fallbackError) {
+          console.error('Ошибка в запасном форматировании:', fallbackError);
+          return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
+        }
+      }
     } catch (err) {
-      return '0';
+      console.error('Глобальная ошибка в formatNumber:', err);
+      return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
     }
   };
   
   // Проверяем, активен ли фарминг
   const isActive = farmingInfo.isActive;
   
-  // Расчет дневного дохода (для отображения)
+  // Расчет дневного дохода (для отображения) с улучшенной обработкой ошибок
   const calculateDailyIncome = (): string => {
-    if (!isActive || !farmingInfo.totalDepositAmount) return '0';
     try {
-      // Доходность составляет 0.5% в день от общего депозита
-      const totalDepositAmount = new BigNumber(farmingInfo.totalDepositAmount);
-      return totalDepositAmount.multipliedBy(0.005).toFixed(3); // 3 знака после запятой для дневного дохода
+      // Проверяем активность фарминга и наличие данных
+      if (!isActive) {
+        return '0';
+      }
+      
+      // Безопасно получаем сумму депозита
+      const depositAmountStr = farmingInfo.totalDepositAmount;
+      if (!depositAmountStr) {
+        console.log('Отсутствует сумма депозита для расчета дневного дохода');
+        return '0';
+      }
+      
+      try {
+        // Создаем BigNumber с защитой от некорректных данных
+        let totalDepositAmount: BigNumber;
+        
+        // Проверка типа данных
+        if (typeof depositAmountStr !== 'string' && typeof depositAmountStr !== 'number') {
+          console.error('Некорректный тип данных для расчета дохода:', typeof depositAmountStr);
+          return '0';
+        }
+        
+        // Создаем BigNumber и проверяем валидность
+        totalDepositAmount = new BigNumber(depositAmountStr);
+        if (totalDepositAmount.isNaN() || !totalDepositAmount.isFinite()) {
+          console.error('Невалидное значение для расчета дохода:', depositAmountStr);
+          return '0';
+        }
+        
+        // Расчет дохода с защитой от ошибок
+        try {
+          // Доходность составляет 0.5% в день от общего депозита
+          const dailyInterestRate = new BigNumber(0.005);
+          const dailyIncome = totalDepositAmount.multipliedBy(dailyInterestRate);
+          
+          // Проверка результата на валидность
+          if (dailyIncome.isNaN() || !dailyIncome.isFinite()) {
+            console.error('Ошибка при расчете дневного дохода, получено:', dailyIncome.toString());
+            return '0';
+          }
+          
+          return dailyIncome.toFixed(3); // 3 знака после запятой для дневного дохода
+        } catch (calculationError) {
+          console.error('Ошибка при расчете дневного дохода:', calculationError);
+          return '0';
+        }
+      } catch (bnError) {
+        console.error('Ошибка при создании BigNumber для расчета дохода:', bnError);
+        return '0';
+      }
     } catch (err) {
+      console.error('Глобальная ошибка в calculateDailyIncome:', err);
       return '0';
     }
   };
   
-  // Расчет дохода в секунду (для отображения)
+  // Расчет дохода в секунду (для отображения) с улучшенной обработкой ошибок
   const calculateSecondRate = (): string => {
-    if (!isActive || !farmingInfo.totalDepositAmount) return '0';
     try {
-      // Доходность составляет 0.5% в день от общего депозита, делим на количество секунд в сутках
-      const totalDepositAmount = new BigNumber(farmingInfo.totalDepositAmount);
-      const dailyIncome = totalDepositAmount.multipliedBy(0.005);
-      const secondsInDay = 86400;
-      return dailyIncome.dividedBy(secondsInDay).toFixed(8); // 8 знаков для секундного дохода
+      // Проверяем активность фарминга и наличие данных
+      if (!isActive) {
+        return '0';
+      }
+      
+      // Безопасно получаем дневной доход
+      let dailyIncome: BigNumber;
+      try {
+        // Получаем сумму депозита
+        const depositAmountStr = farmingInfo.totalDepositAmount;
+        if (!depositAmountStr) {
+          console.log('Отсутствует сумма депозита для расчета секундного дохода');
+          return '0';
+        }
+        
+        // Проверка типа данных
+        if (typeof depositAmountStr !== 'string' && typeof depositAmountStr !== 'number') {
+          console.error('Некорректный тип данных для расчета секундного дохода:', typeof depositAmountStr);
+          return '0';
+        }
+        
+        // Создаем BigNumber и проверяем валидность
+        const totalDepositAmount = new BigNumber(depositAmountStr);
+        if (totalDepositAmount.isNaN() || !totalDepositAmount.isFinite()) {
+          console.error('Невалидное значение для расчета секундного дохода:', depositAmountStr);
+          return '0';
+        }
+        
+        // Расчет дневного дохода
+        dailyIncome = totalDepositAmount.multipliedBy(0.005);
+        
+        // Проверка результата на валидность
+        if (dailyIncome.isNaN() || !dailyIncome.isFinite()) {
+          console.error('Ошибка при расчете дневного дохода для секундного, получено:', dailyIncome.toString());
+          return '0';
+        }
+      } catch (bnError) {
+        console.error('Ошибка при создании BigNumber для секундного дохода:', bnError);
+        return '0';
+      }
+      
+      try {
+        // Получаем доход в секунду
+        const secondsInDay = new BigNumber(86400); // 24 * 60 * 60
+        const secondRate = dailyIncome.dividedBy(secondsInDay);
+        
+        // Проверка результата на валидность
+        if (secondRate.isNaN() || !secondRate.isFinite()) {
+          console.error('Ошибка при расчете секундного дохода, получено:', secondRate.toString());
+          return '0';
+        }
+        
+        return secondRate.toFixed(8); // 8 знаков для секундного дохода
+      } catch (divisionError) {
+        console.error('Ошибка при делении для расчета секундного дохода:', divisionError);
+        return '0';
+      }
     } catch (err) {
+      console.error('Глобальная ошибка в calculateSecondRate:', err);
       return '0';
     }
   };
   
-  // Форматирование даты начала фарминга
+  // Форматирование даты начала фарминга с улучшенной обработкой ошибок
   const formatStartDate = (): string => {
-    if (!isActive) return '-';
-    
-    const timestamp = farmingInfo.uni_farming_start_timestamp || farmingInfo.startDate;
-    if (!timestamp) return '-';
-    
     try {
-      return new Date(timestamp).toLocaleDateString('ru-RU');
+      // Проверка активности фарминга
+      if (!isActive) return '-';
+      
+      // Получаем timestamp из доступных полей
+      const timestamp = farmingInfo.uni_farming_start_timestamp || farmingInfo.startDate;
+      
+      // Проверка наличия метки времени
+      if (!timestamp) return '-';
+      
+      // Попытка преобразовать строку в объект Date
+      const date = new Date(timestamp);
+      
+      // Проверка валидности даты
+      if (isNaN(date.getTime())) {
+        console.error('Невалидная дата:', timestamp);
+        return '-';
+      }
+      
+      // Форматирование даты с обработкой ошибок
+      try {
+        return date.toLocaleDateString('ru-RU');
+      } catch (formatError) {
+        console.error('Ошибка форматирования даты:', formatError);
+        
+        // Запасной вариант форматирования
+        try {
+          const day = date.getDate().toString().padStart(2, '0');
+          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+          const year = date.getFullYear();
+          return `${day}.${month}.${year}`;
+        } catch (backupFormatError) {
+          console.error('Ошибка в запасном форматировании даты:', backupFormatError);
+          return '-';
+        }
+      }
     } catch (err) {
+      console.error('Глобальная ошибка в formatStartDate:', err);
       return '-';
     }
   };
@@ -358,7 +674,19 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             <input
               type="text"
               value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
+              onChange={(e) => {
+                try {
+                  // Дополнительная валидация: запрещаем ввод нечисловых символов кроме точки
+                  const value = e.target.value;
+                  // Разрешаем цифры, точку и пустую строку
+                  if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {
+                    setDepositAmount(value);
+                  }
+                } catch (error) {
+                  console.error('Ошибка при обработке ввода суммы:', error);
+                  // В случае ошибки сохраняем текущее значение
+                }
+              }}
               className="w-full p-2 border border-input rounded-lg bg-card"
               placeholder="0.00"
             />
