@@ -36,7 +36,12 @@ export function registerPartitionRoutes(app: Express): void {
   app.get(baseUrl, adminAuthMiddleware, (req: Request, res: Response, next: NextFunction) => {
     console.log('[PartitionRoutes] Обрабатываем GET запрос на получение списка партиций');
     try {
-      partitionController.listPartitions(req, res);
+      console.log('[PartitionRoutes] Доступные методы в контроллере:', 
+        Object.keys(partitionController).filter(key => typeof partitionController[key] === 'function'));
+      
+      // Правильное имя функции - listPartitions в маршрутах, getPartitionsList в контроллере
+      console.log('[PartitionRoutes] Вызываем метод getPartitionsList');
+      partitionController.getPartitionsList(req, res);
     } catch (error: any) {
       console.error('[PartitionRoutes] Ошибка в GET /api/partitions:', error);
       res.status(500).json({
@@ -51,12 +56,9 @@ export function registerPartitionRoutes(app: Express): void {
   app.get(`${baseUrl}/status`, adminAuthMiddleware, (req: Request, res: Response, next: NextFunction) => {
     console.log('[PartitionRoutes] Обрабатываем GET запрос на получение статуса партиционирования');
     try {
-      // Получаем имя функции из контроллера
-      console.log('[PartitionRoutes] Доступные методы в контроллере:', 
-        Object.keys(partitionController).filter(key => typeof partitionController[key] === 'function'));
-      
-      // Корректное имя функции - getPartitioningStatus в контроллере
-      partitionController.getPartitioningStatus(req, res);
+      // Используем правильное имя функции - checkPartitioningStatus
+      console.log('[PartitionRoutes] Вызываем метод checkPartitioningStatus');
+      partitionController.checkPartitioningStatus(req, res);
     } catch (error: any) {
       console.error('[PartitionRoutes] Ошибка в GET /api/partitions/status:', error);
       res.status(500).json({

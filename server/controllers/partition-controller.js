@@ -13,7 +13,7 @@ import * as partitionService from '../services/partition-service.js';
 /**
  * Получение статуса партиционирования таблицы
  */
-export async function getPartitioningStatus(req, res) {
+export async function checkPartitioningStatus(req, res) {
   console.log('[PartitionController] Запрос статуса партиционирования от пользователя:', req.user?.id || 'неизвестно');
   console.log('[PartitionController] Headers:', JSON.stringify(req.headers, null, 2));
   
@@ -84,6 +84,12 @@ export async function listPartitions(req, res) {
     });
   }
 }
+
+/**
+ * Экспортируем getPartitionsList как алиас для listPartitions
+ * для соответствия именам функций в маршрутах
+ */
+export const getPartitionsList = listPartitions;
 
 /**
  * Получение логов партиционирования
@@ -157,6 +163,12 @@ export async function createPartitions(req, res) {
 }
 
 /**
+ * Экспортируем createFuturePartitions как алиас для createPartitions
+ * для соответствия именам функций в маршрутах
+ */
+export const createFuturePartitions = createPartitions;
+
+/**
  * Удаление партиции по имени
  */
 export async function dropPartition(req, res) {
@@ -213,3 +225,10 @@ export async function dropPartition(req, res) {
     });
   }
 }
+
+/**
+ * Псевдонимы для обеспечения совместимости с клиентским кодом
+ * Это нужно для того, чтобы не требовалось переписывать клиентский код,
+ * который ожидает определенные имена функций
+ */
+export const deletePartition = dropPartition;
