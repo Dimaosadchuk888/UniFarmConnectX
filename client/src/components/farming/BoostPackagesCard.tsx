@@ -55,12 +55,7 @@ const boostPricesUni: Record<number, string> = {
   4: '2500000'  // 2,500,000 UNI за Boost 25
 };
 
-// Интерфейс для данных о транзакции платежа
-interface PaymentTransaction {
-  transactionId: number | null;
-  paymentLink: string | null;
-  paymentMethod: 'internal_balance' | 'external_wallet';
-}
+// Примечание: Интерфейс PaymentTransaction заменен на inline тип выше
 
 // Интерфейс свойств компонента
 interface BoostPackagesCardProps {
@@ -81,10 +76,14 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
   const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
   const [selectedBoostName, setSelectedBoostName] = useState<string>('');
   
-  // Состояние для данных о транзакции
-  const [paymentTransaction, setPaymentTransaction] = useState<PaymentTransaction>({
-    transactionId: null,
-    paymentLink: null,
+  // Состояние для данных о транзакции - обновленная версия с корректными типами для LSP
+  const [paymentTransaction, setPaymentTransaction] = useState<{
+    transactionId: number;
+    paymentLink: string;
+    paymentMethod: 'internal_balance' | 'external_wallet';
+  }>({
+    transactionId: 0,
+    paymentLink: '',
     paymentMethod: 'internal_balance'
   });
   
@@ -246,8 +245,9 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
       <PaymentMethodDialog
         open={paymentDialogOpen}
         onOpenChange={setPaymentDialogOpen}
-        boostId={selectedBoostId}
-        boostName={selectedBoostName}
+        boostId={selectedBoostId || 1}
+        boostName={selectedBoostName || ""}
+        boostPriceTon={selectedBoostId ? boostPackages.find(b => b.id === selectedBoostId)?.price.split(' ')[0] || "1" : "1"}
         onSelectPaymentMethod={handleSelectPaymentMethod}
       />
       
@@ -255,10 +255,10 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
       <ExternalPaymentStatus
         open={paymentStatusDialogOpen}
         onOpenChange={setPaymentStatusDialogOpen}
-        userId={userId}
-        transactionId={paymentTransaction.transactionId}
-        paymentLink={paymentTransaction.paymentLink}
-        boostName={selectedBoostName}
+        userId={userId || 0}
+        transactionId={paymentTransaction.transactionId || 0}
+        paymentLink={paymentTransaction.paymentLink || ""}
+        boostName={selectedBoostName || ""}
         onPaymentComplete={handlePaymentComplete}
       />
       
