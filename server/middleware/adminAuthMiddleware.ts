@@ -27,8 +27,12 @@ interface RequestWithUser extends Request {
  * который содержит ID пользователя, имеющего права администратора.
  */
 export function adminAuthMiddleware(req: RequestWithUser, res: Response, next: NextFunction) {
+  console.log(`[AdminAuth] Начало проверки доступа: ${req.method} ${req.originalUrl}`);
+  console.log(`[AdminAuth] Заголовки запроса:`, JSON.stringify(req.headers, null, 2));
+  
   // Проверяем заголовок X-Admin-User-ID для тестирования API
   const adminUserIdHeader = req.header('X-Admin-User-ID');
+  console.log(`[AdminAuth] Заголовок X-Admin-User-ID: ${adminUserIdHeader || 'отсутствует'}`);
   
   // Если заголовок X-Admin-User-ID есть и это числовой ID=1,
   // считаем пользователя администратором
