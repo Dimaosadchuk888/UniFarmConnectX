@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { correctApiRequest } from '@/lib/correctApiRequest';
+import { apiRequest } from '@/lib/queryClient';
 import BigNumber from 'bignumber.js';
+import { useUser } from '@/contexts/userContext';
 
 interface UniFarmingCardProps {
   userData: any;
@@ -19,6 +21,7 @@ interface FarmingInfo {
 
 const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const queryClient = useQueryClient();
+  const { userId } = useUser(); // Получаем ID пользователя из контекста
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   // Защита от повторных вызовов
@@ -26,10 +29,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Флаг для предотвращения автоматических вызовов
   const depositRequestSent = useRef<boolean>(false);
   
-  // Получаем информацию о фарминге
+  // Получаем информацию о фарминге с динамическим ID пользователя
   const { data: farmingResponse, isLoading } = useQuery<{ success: boolean; data: FarmingInfo }>({
-    queryKey: ['/api/uni-farming/info?user_id=1'], // Добавляем user_id в запрос
-    refetchInterval: 10000, // Обновляем данные каждые 10 секунд чтобы видеть текущий баланс
+    queryKey: ['/api/uni-farming/info', userId], // Динамический ID пользователя
+    refetchInterval: 30000, // Увеличили интервал до 30 секунд для уменьшения нагрузки
+    enabled: !!userId, // Запрос активен только если есть userId
   });
   
   // Информация о фарминге из ответа API
@@ -45,42 +49,20 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const infoMutation = useMutation({
     mutationFn: async () => {
       try {
-        // Строго числовой user_id - 1 как число, не строка
+        // Используем динамический ID пользователя из контекста
         const requestBody = { 
-          user_id: 1 
+          user_id: userId 
         };
         
-        console.log('➡️ Отправляем инфо-запрос с телом:', JSON.stringify(requestBody));
-        
-        // Используем относительный URL вместо абсолютного для предотвращения ошибок в разных окружениях
-        const endpoint = '/api/uni-farming/harvest';
-        
-        console.log(`➡️ Относительный URL для POST инфо-запроса: ${endpoint}`);
-        
-        // Получаем абсолютный URL с учетом текущего хоста
-        const protocol = window.location.protocol;
-        const host = window.location.host;
-        const fullUrl = `${protocol}//${host}${endpoint}`;
-        
-        // Выполняем прямой fetch запрос с правильными заголовками
-        console.log(`➡️ Выполняем fetch к ${fullUrl}`);
-        
-        const response = await fetch(fullUrl, {
+        // Используем централизованный apiRequest вместо прямого fetch
+        const response = await apiRequest('/api/uni-farming/harvest', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
           body: JSON.stringify(requestBody)
-        }).then(res => res.json());
-        
-        console.log(`⬅️ Получен ответ инфо-запроса:`, response);
+        });
         
         if (response?.success) {
-          console.log(`✅ Ответ инфо-запроса успешен:`, response);
           return response;
         } else {
-          console.log(`⚠️ Ответ инфо-запроса не содержит success:true`, response);
           // Возвращаем простой объект с сообщением
           return {
             success: true,
@@ -100,32 +82,60 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       // Показываем информацию о новом механизме
       setError(data.message || 'Доход автоматически начисляется на ваш баланс UNI');
       
-      // Обновляем данные
-      queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+      // Обновляем данные с учетом динамического ID пользователя
+      queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info', userId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance', userId] });
     },
     onError: (error: Error) => {
       setError('Ошибка при обновлении данных: ' + error.message);
     },
   });
   
-  // Обработчик отправки формы (ВЫЗЫВАЕТСЯ ТОЛЬКО ПРИ КЛИКЕ НА КНОПКУ)
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Мутация для выполнения депозита (заменяет прямое использование fetch)
+  const depositMutation = useMutation({
+    mutationFn: async (amount: string) => {
+      // Формируем тело запроса с правильными типами данных
+      const requestBody = {
+        amount: String(amount), // Гарантированно строка
+        user_id: userId // Динамический ID пользователя
+      };
+      
+      // Используем централизованный apiRequest
+      return apiRequest('/api/uni-farming/deposit', {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      });
+    },
+    onSuccess: () => {
+      // Очищаем форму и сообщение об ошибке
+      setDepositAmount('');
+      setError(null);
+      
+      // Обновляем данные с учетом динамического ID пользователя
+      queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info', userId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance', userId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+    },
+    onError: (error: Error) => {
+      setError(`Не удалось выполнить депозит: ${error.message}`);
+    },
+    onSettled: () => {
+      // Разрешаем повторный вызов в любом случае
+      setIsSubmitting(false);
+    }
+  });
+  
+  // Упрощенный обработчик отправки формы
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Предотвращаем множественные вызовы
     if (isSubmitting) {
-      console.log('⛔ Запрос уже выполняется, повторный вызов отклонен');
       return;
     }
     
     setIsSubmitting(true);
     setError(null);
-    
-    // Отмечаем, что депозит был запрошен пользователем
-    depositRequestSent.current = true;
-    
-    console.log('🖱️ [ОТЛАДКА ДЕПОЗИТА] Вызов handleSubmit по клику пользователя');
     
     // Валидация
     if (!depositAmount || depositAmount === '0') {
@@ -136,13 +146,15 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     
     try {
       const amount = new BigNumber(depositAmount);
+      
+      // Проверка корректности суммы
       if (amount.isNaN() || amount.isLessThanOrEqualTo(0)) {
         setError('Сумма должна быть положительным числом');
         setIsSubmitting(false);
         return;
       }
       
-      // Проверяем, достаточно ли средств
+      // Проверка достаточности средств
       const balance = new BigNumber(userData?.balance_uni || '0');
       if (amount.isGreaterThan(balance)) {
         setError('Недостаточно средств на балансе');
@@ -150,153 +162,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return;
       }
       
-      // Напрямую выполняем запрос без использования mutation
-      try {
-        // Создаем тело запроса с правильными типами данных
-        const requestBody = {
-          amount: amount.toString(),  // Передаем amount как строку, как в тестовом скрипте
-          user_id: 1  // ID пользователя как число
-        };
-        
-        // Явная проверка типа amount для отладки
-        console.log('Тип:', typeof requestBody.amount, requestBody.amount);
-        
-        console.log('📤 Отправка запроса на создание депозита:', JSON.stringify(requestBody));
-        
-        // Используем относительный URL вместо абсолютного для предотвращения ошибок в разных окружениях
-        const endpoint = '/api/uni-farming/deposit';
-        
-        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] POST запрос на относительный URL: ${endpoint}`);
-        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Тело запроса (объект):`, requestBody);
-        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] amount тип:`, typeof requestBody.amount);
-        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] user_id тип:`, typeof requestBody.user_id);
-        
-        // Гарантированное преобразуем number в string если amount число
-        if (typeof requestBody.amount === 'number') {
-          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] amount конвертирован из числа в строку`);
-          requestBody.amount = String(requestBody.amount);
-        }
-        
-        // Устанавливаем статус загрузки вручную
-        setError('Обработка запроса...');
-        
-        // Получаем абсолютный URL с учетом текущего хоста
-        const protocol = window.location.protocol;
-        const host = window.location.host;
-        const fullUrl = `${protocol}//${host}${endpoint}`;
-        
-        // JSON.stringify для тела запроса
-        const requestBodyJSON = JSON.stringify(requestBody);
-        
-        // Выполняем прямой fetch запрос с правильными заголовками
-        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Выполняем fetch к ${fullUrl}`);
-        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Тело запроса в формате JSON: ${requestBodyJSON}`);
-        console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Длина JSON: ${requestBodyJSON.length} символов`);
-        
-        try {
-          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Используем нативный fetch для максимальной надежности`);
-          
-          // Прямое использование fetch без промежуточных слоев
-          const protocol = window.location.protocol;
-          const host = window.location.host;
-          const url = `${protocol}//${host}${endpoint}`;
-          
-          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] URL запроса: ${url}`);
-          
-          // Конвертируем amount в строку если это число
-          if (typeof requestBody.amount === 'number') {
-            requestBody.amount = String(requestBody.amount);
-            console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Конвертирован amount в строку: ${requestBody.amount}`);
-          }
-          
-          // Выполняем прямой fetch запрос
-          // Последняя проверка и преобразование перед запросом
-          const safeRequestBody = {
-            amount: String(requestBody.amount), // Гарантированно строка
-            user_id: requestBody.user_id
-          };
-          
-          // Логирование перед отправкой
-          console.log('Итоговая проверка перед отправкой:');
-          console.log('Тип amount:', typeof safeRequestBody.amount);
-          console.log('Значение amount:', safeRequestBody.amount);
-          
-          const fetchOptions = {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache',
-              'Expires': '0'
-            },
-            body: JSON.stringify(safeRequestBody)
-          };
-          
-          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Опции fetch:`, fetchOptions);
-          console.log(`📤 [ОТЛАДКА ДЕПОЗИТА] Тело запроса:`, fetchOptions.body);
-          
-          // Выполняем запрос
-          const fetchResponse = await fetch(url, fetchOptions);
-          
-          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Статус ответа: ${fetchResponse.status} ${fetchResponse.statusText}`);
-          
-          // Получаем текст ответа
-          const responseText = await fetchResponse.text();
-          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Текст ответа: ${responseText}`);
-          
-          let response;
-          try {
-            // Преобразуем в JSON если возможно
-            response = JSON.parse(responseText);
-            console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Ответ успешно обработан как JSON`);
-          } catch (parseError) {
-            console.error(`📥 [ОТЛАДКА ДЕПОЗИТА] Ошибка парсинга JSON:`, parseError);
-            throw new Error(`Неверный формат JSON в ответе: ${parseError.message}`);
-          }
-          
-          // Проверка ответа на правильность структуры
-          console.log(`📥 [ОТЛАДКА ДЕПОЗИТА] Проверка структуры ответа:`, {
-            isObject: typeof response === 'object',
-            hasSuccessField: response && 'success' in response,
-            successValue: response?.success,
-            hasDataField: response && 'data' in response,
-            dataType: response?.data ? typeof response.data : 'undefined'
-          });
-          
-          console.log(`📥 Ответ получен:`, response);
-        
-          if (!response.success) {
-            console.error('❌ Ошибка в ответе API:', response);
-            throw new Error(`Ошибка сервера: ${response.error || 'Неизвестная ошибка'}`);
-          }
-          
-          // Обрабатываем успешный ответ
-          console.log('📥 Ответ успешно получен в формате JSON:', response);
-          
-          // Обрабатываем успешный ответ
-          setDepositAmount('');
-          setError(null);
-          
-          // Инвалидируем запросы для обновления данных
-          queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/users/1'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-        } catch (fetchError: any) {
-          console.error('⚠️ Ошибка при выполнении запроса:', fetchError);
-          setError(`Не удалось выполнить депозит: ${fetchError.message}`);
-        } finally {
-          // Разрешаем повторный вызов
-          setIsSubmitting(false);
-        }
-      } catch (err) {
-        console.error('⚠️ Ошибка при подготовке запроса:', err);
-        setError(`Ошибка при подготовке запроса: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`);
-        setIsSubmitting(false);
-      }
+      // Вызываем мутацию с валидированной суммой
+      depositMutation.mutate(amount.toString());
+      
     } catch (err) {
-      console.error('⚠️ Ошибка валидации формы:', err);
+      console.error('Ошибка валидации формы:', err);
       setError('Некорректный формат суммы');
       setIsSubmitting(false);
     }
