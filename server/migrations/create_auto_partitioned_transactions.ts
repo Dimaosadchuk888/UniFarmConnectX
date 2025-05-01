@@ -133,18 +133,27 @@ export async function runMigration() {
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL,
           amount DECIMAL(18, 9) NOT NULL,
-          transaction_type VARCHAR(50) NOT NULL,
+          type TEXT NOT NULL,
+          currency TEXT,
+          status TEXT,
+          source TEXT,
+          category TEXT,
+          tx_hash TEXT,
           description TEXT,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          details JSONB
+          source_user_id INTEGER,
+          data TEXT,
+          wallet_address TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )
       `);
       
       log('Copying data from transactions to temporary table');
       await executeQuery(`
         INSERT INTO transactions_temp 
-        (id, user_id, amount, transaction_type, description, created_at, details)
-        SELECT id, user_id, amount, transaction_type, description, created_at, details
+        (id, user_id, amount, type, currency, status, source, category, tx_hash, 
+         description, source_user_id, data, wallet_address, created_at)
+        SELECT id, user_id, amount, type, currency, status, source, category, tx_hash, 
+               description, source_user_id, data, wallet_address, created_at
         FROM transactions
       `);
       
@@ -163,10 +172,17 @@ export async function runMigration() {
           id SERIAL PRIMARY KEY,
           user_id INTEGER NOT NULL,
           amount DECIMAL(18, 9) NOT NULL,
-          transaction_type VARCHAR(50) NOT NULL,
+          type TEXT NOT NULL,
+          currency TEXT,
+          status TEXT,
+          source TEXT,
+          category TEXT,
+          tx_hash TEXT,
           description TEXT,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          details JSONB
+          source_user_id INTEGER,
+          data TEXT,
+          wallet_address TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         ) PARTITION BY RANGE (created_at)
       `);
       
@@ -180,8 +196,10 @@ export async function runMigration() {
       log('Copying data back from temporary table to partitioned table');
       await executeQuery(`
         INSERT INTO transactions 
-        (id, user_id, amount, transaction_type, description, created_at, details)
-        SELECT id, user_id, amount, transaction_type, description, created_at, details
+        (id, user_id, amount, type, currency, status, source, category, tx_hash, 
+         description, source_user_id, data, wallet_address, created_at)
+        SELECT id, user_id, amount, type, currency, status, source, category, tx_hash, 
+               description, source_user_id, data, wallet_address, created_at
         FROM transactions_temp
       `);
       
@@ -216,7 +234,7 @@ export async function runMigration() {
         // Создаем индексы для старой партиции
         log(`Creating indexes for partition ${oldPartitionName}`);
         await executeQuery(`CREATE INDEX IF NOT EXISTS ${oldPartitionName}_user_id_idx ON ${oldPartitionName} (user_id)`);
-        await executeQuery(`CREATE INDEX IF NOT EXISTS ${oldPartitionName}_transaction_type_idx ON ${oldPartitionName} (transaction_type)`);
+        await executeQuery(`CREATE INDEX IF NOT EXISTS ${oldPartitionName}_type_idx ON ${oldPartitionName} (type)`);
         await executeQuery(`CREATE INDEX IF NOT EXISTS ${oldPartitionName}_created_at_idx ON ${oldPartitionName} (created_at)`);
       }
       
@@ -232,7 +250,7 @@ export async function runMigration() {
       // Создаем индексы для будущей партиции
       log(`Creating indexes for future partition ${futurePartitionName}`);
       await executeQuery(`CREATE INDEX IF NOT EXISTS ${futurePartitionName}_user_id_idx ON ${futurePartitionName} (user_id)`);
-      await executeQuery(`CREATE INDEX IF NOT EXISTS ${futurePartitionName}_transaction_type_idx ON ${futurePartitionName} (transaction_type)`);
+      await executeQuery(`CREATE INDEX IF NOT EXISTS ${futurePartitionName}_type_idx ON ${futurePartitionName} (type)`);
       await executeQuery(`CREATE INDEX IF NOT EXISTS ${futurePartitionName}_created_at_idx ON ${futurePartitionName} (created_at)`);
       
       // Добавляем запись в таблицу partition_logs
