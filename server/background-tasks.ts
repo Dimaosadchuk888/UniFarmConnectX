@@ -13,8 +13,13 @@ import { and, ne, isNotNull, eq } from 'drizzle-orm';
 export function startBackgroundTasks(): void {
   console.log('[Background Tasks] Starting background tasks');
   
-  // Запуск задачи обновления фарминга (каждую секунду)
-  setInterval(updateAllUsersFarming, 1000);
+  // Запуск задачи обновления фарминга (каждый час)
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  setInterval(updateAllUsersFarming, ONE_HOUR_MS);
+  
+  // Запускаем первое начисление через 5 секунд после старта сервера
+  // для проверки работоспособности
+  setTimeout(updateAllUsersFarming, 5000);
 }
 
 // Переменная для отслеживания времени последнего вывода сообщения в лог
@@ -34,7 +39,7 @@ const MAX_RESTART_OFFSET = 10;
 
 /**
  * Обновляет фарминг для всех активных пользователей
- * Этот метод вызывается каждую секунду и начисляет доход
+ * Этот метод вызывается каждый час и начисляет доход
  * прямо на основной баланс пользователя
  */
 async function updateAllUsersFarming(): Promise<void> {
