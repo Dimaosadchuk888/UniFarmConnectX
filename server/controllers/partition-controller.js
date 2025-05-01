@@ -227,8 +227,60 @@ export async function dropPartition(req, res) {
 }
 
 /**
- * Псевдонимы для обеспечения совместимости с клиентским кодом
- * Это нужно для того, чтобы не требовалось переписывать клиентский код,
- * который ожидает определенные имена функций
+ * Удаление партиции по имени (alias function для совместимости)
  */
-export const deletePartition = dropPartition;
+export async function deletePartition(req, res) {
+  console.log('[PartitionController] Вызов deletePartition для удаления партиции');
+  try {
+    // Получаем имя партиции из тела запроса
+    const { partitionName } = req.body;
+    
+    // Проверяем наличие имени партиции
+    if (!partitionName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: 'Не указано имя партиции для удаления'
+      });
+    }
+    
+    // Проверяем формат имени партиции для безопасности
+    if (!partitionName.match(/^transactions_\d{4}_\d{2}_\d{2}$/)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: 'Неверный формат имени партиции. Ожидается формат: transactions_YYYY_MM_DD'
+      });
+    }
+    
+    // Проверяем существование партиции
+    const exists = await partitionService.partitionExists(partitionName);
+    if (!exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not Found',
+        message: `Партиция с именем ${partitionName} не найдена`
+      });
+    }
+    
+    // Удаляем партицию
+    await partitionService.dropPartition(partitionName);
+    
+    // Формируем ответ
+    return res.status(200).json({
+      success: true,
+      data: {
+        message: `Партиция ${partitionName} успешно удалена`,
+        partitionName
+      }
+    });
+  } catch (error) {
+    console.error('[PartitionController] Ошибка при удалении партиции (deletePartition):', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: 'Произошла ошибка при удалении партиции',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
