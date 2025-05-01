@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import apiConfig from '@/config/apiConfig';
 import { invalidateQueryWithUserId } from '@/lib/queryClient';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useUser } from '@/contexts/userContext';
 
 // Типы для статуса бонуса
@@ -37,19 +37,20 @@ const DailyBonusCard: React.FC = () => {
     queryKey: ['dailyBonusStatus', userId], // Добавляем userId в ключ запроса
     queryFn: async () => {
       try {
-        // Формируем полный URL с использованием apiConfig и динамическим userId
-        const url = apiConfig.getFullUrl(`/api/daily-bonus/status?user_id=${userId || 1}`);
-        console.log('[DailyBonusCard] Запрос статуса бонуса по URL:', url);
+        // Исправляем подход к запросу с использованием correctApiRequest
+        const endpoint = `/api/daily-bonus/status?user_id=${userId || 1}`;
+        console.log('[DailyBonusCard] Запрос статуса бонуса:', endpoint);
         
-        const response = await fetch(url);
-        if (!response.ok) {
+        const response = await correctApiRequest<{success: boolean, data: DailyBonusStatus}>(endpoint, 'GET');
+        
+        if (!response.success) {
           throw new Error('Ошибка при получении статуса бонуса');
         }
-        const data = await response.json();
-        return data.data as DailyBonusStatus;
-      } catch (error) {
-        console.error('Ошибка при получении статуса бонуса:', error);
-        throw error;
+        
+        return response.data as DailyBonusStatus;
+      } catch (error: any) {
+        console.error('[ERROR] DailyBonusCard - Ошибка при получении статуса бонуса:', error);
+        throw new Error(`Ошибка при получении статуса бонуса: ${error.message || 'Неизвестная ошибка'}`);
       }
     },
     retry: 1,
@@ -63,24 +64,27 @@ const DailyBonusCard: React.FC = () => {
   // Мутация для получения ежедневного бонуса
   const claimBonusMutation = useMutation({
     mutationFn: async () => {
-      // Формируем полный URL для запроса
-      const url = apiConfig.getFullUrl('/api/daily-bonus/claim');
-      console.log('[DailyBonusCard] Отправка запроса на получение бонуса по URL:', url);
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ user_id: userId || 1 }) // Используем динамический userId
-      });
-      
-      if (!response.ok) {
-        throw new Error('Ошибка при получении бонуса');
+      try {
+        // Используем correctApiRequest вместо прямого fetch
+        const endpoint = '/api/daily-bonus/claim';
+        console.log('[DailyBonusCard] Отправка запроса на получение бонуса:', endpoint);
+        
+        // Отправляем POST запрос с корректными заголовками
+        const response = await correctApiRequest<ClaimBonusResult>(
+          endpoint, 
+          'POST', 
+          { user_id: userId || 1 } // Используем динамический userId
+        );
+        
+        if (!response.success) {
+          throw new Error(response.message || 'Ошибка при получении бонуса');
+        }
+        
+        return response;
+      } catch (error: any) {
+        console.error('[ERROR] DailyBonusCard - Ошибка при получении бонуса:', error);
+        throw new Error(`Ошибка при получении бонуса: ${error.message || 'Неизвестная ошибка'}`);
       }
-      
-      const data = await response.json();
-      return data as ClaimBonusResult;
     },
     onSuccess: (data) => {
       if (data.success) {

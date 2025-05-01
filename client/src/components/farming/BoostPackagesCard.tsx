@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest, invalidateQueryWithUserId } from '@/lib/queryClient';
+import { invalidateQueryWithUserId } from '@/lib/queryClient';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 import { format } from 'date-fns';
 import PaymentMethodDialog from '../ton-boost/PaymentMethodDialog';
 import ExternalPaymentStatus from '../ton-boost/ExternalPaymentStatus';
@@ -116,17 +117,17 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
   // Мутация для покупки TON буста
   const buyTonBoostMutation = useMutation({
     mutationFn: async ({ boostId, paymentMethod }: { boostId: number, paymentMethod: 'internal_balance' | 'external_wallet' }) => {
-      return await apiRequest('/api/ton-boosts/purchase', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+      try {
+        // Используем correctApiRequest вместо apiRequest для корректной обработки заголовков
+        return await correctApiRequest('/api/ton-boosts/purchase', 'POST', {
           user_id: userId,
           boost_id: boostId,
           payment_method: paymentMethod
-        })
-      });
+        });
+      } catch (error: any) {
+        console.error("[ERROR] BoostPackagesCard - Ошибка при покупке TON буста:", error);
+        throw error;
+      }
     },
     onMutate: ({ boostId }) => {
       // Сохраняем ID буста, который покупается
