@@ -239,36 +239,117 @@ const DailyBonusCard: React.FC = () => {
     }
   }, [showConfetti]);
   
-  // Проверяем статус бонуса каждую полночь
+  // Проверяем статус бонуса каждую полночь с улучшенной обработкой ошибок
   useEffect(() => {
-    // Функция для получения миллисекунд до полуночи
-    const getMsUntilMidnight = () => {
-      const now = new Date();
-      const midnight = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() + 1,
-        0, 0, 0
-      );
-      return midnight.getTime() - now.getTime();
-    };
+    let timerId: number | NodeJS.Timeout;
     
-    // Функция для обновления бонуса после полуночи
-    const scheduleRefresh = () => {
-      const msUntilMidnight = getMsUntilMidnight();
+    try {
+      // Функция для безопасного получения миллисекунд до полуночи
+      const getMsUntilMidnight = (): number => {
+        try {
+          const now = new Date();
+          
+          // Проверка, что мы получили корректный объект Date
+          if (!(now instanceof Date) || isNaN(now.getTime())) {
+            console.error('[ERROR] DailyBonusCard - Некорректная дата:', now);
+            // Возвращаем резервное значение - обновление через 1 час (3600000 мс)
+            return 3600000;
+          }
+          
+          try {
+            const midnight = new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate() + 1,
+              0, 0, 0
+            );
+            
+            // Проверка, что мы создали корректную дату полуночи
+            if (!(midnight instanceof Date) || isNaN(midnight.getTime())) {
+              console.error('[ERROR] DailyBonusCard - Некорректная дата полуночи:', midnight);
+              // Резервное значение
+              return 3600000;
+            }
+            
+            const diff = midnight.getTime() - now.getTime();
+            
+            // Проверка, что разница имеет смысл
+            if (diff <= 0 || diff > 86400000) { // больше 24 часов быть не должно
+              console.error('[ERROR] DailyBonusCard - Некорректная разница времени:', diff);
+              // Резервное значение
+              return 3600000;
+            }
+            
+            return diff;
+          } catch (dateError) {
+            console.error('[ERROR] DailyBonusCard - Ошибка при создании даты полуночи:', dateError);
+            // Резервное значение
+            return 3600000;
+          }
+        } catch (error) {
+          console.error('[ERROR] DailyBonusCard - Глобальная ошибка в getMsUntilMidnight:', error);
+          // Резервное значение при любой ошибке
+          return 3600000;
+        }
+      };
       
-      const timerId = setTimeout(() => {
-        refetch();
-        scheduleRefresh(); // Запускаем снова для следующего дня
-      }, msUntilMidnight);
+      // Функция для обновления бонуса после полуночи с улучшенной обработкой ошибок
+      const scheduleRefresh = () => {
+        try {
+          const msUntilMidnight = getMsUntilMidnight();
+          console.log('[DailyBonusCard] Следующее обновление бонуса через:', msUntilMidnight, 'мс');
+          
+          // Устанавливаем безопасный таймаут
+          try {
+            timerId = setTimeout(() => {
+              try {
+                // Пытаемся обновить данные
+                refetch().catch(err => {
+                  console.error('[ERROR] DailyBonusCard - Ошибка при обновлении данных бонуса:', err);
+                });
+                
+                // Запускаем планирование снова
+                scheduleRefresh();
+              } catch (refreshError) {
+                console.error('[ERROR] DailyBonusCard - Ошибка в таймере обновления бонуса:', refreshError);
+                
+                // Пытаемся восстановиться даже при ошибке
+                try {
+                  scheduleRefresh();
+                } catch (recoveryError) {
+                  console.error('[ERROR] DailyBonusCard - Критическая ошибка при восстановлении расписания бонуса:', recoveryError);
+                }
+              }
+            }, msUntilMidnight);
+            
+            return timerId;
+          } catch (timeoutError) {
+            console.error('[ERROR] DailyBonusCard - Ошибка при установке таймера:', timeoutError);
+            return null;
+          }
+        } catch (scheduleError) {
+          console.error('[ERROR] DailyBonusCard - Ошибка в функции scheduleRefresh:', scheduleError);
+          return null;
+        }
+      };
       
-      return timerId;
-    };
+      // Запускаем планирование
+      timerId = scheduleRefresh() || setTimeout(() => {}, 0); // Фиктивный таймер если произошла ошибка
+    } catch (globalError) {
+      console.error('[ERROR] DailyBonusCard - Критическая ошибка в useEffect для обновления бонуса:', globalError);
+      // Создаем фиктивный таймер для корректной очистки
+      timerId = setTimeout(() => {}, 0);
+    }
     
-    const timerId = scheduleRefresh();
-    
+    // Функция очистки с защитой от ошибок
     return () => {
-      clearTimeout(timerId);
+      try {
+        if (timerId) {
+          clearTimeout(timerId);
+        }
+      } catch (cleanupError) {
+        console.error('[ERROR] DailyBonusCard - Ошибка при очистке таймера:', cleanupError);
+      }
     };
   }, [refetch]);
   
@@ -348,9 +429,34 @@ const DailyBonusCard: React.FC = () => {
                 : 'linear-gradient(45deg, #A259FF 0%, #B368F7 100%)')
             : 'linear-gradient(45deg, #666666, #888888)'
         }}
-        onMouseEnter={() => setIsButtonHovered(true)}
-        onMouseLeave={() => setIsButtonHovered(false)}
-        onClick={handleClaimBonus}
+        onMouseEnter={(e) => {
+          try {
+            setIsButtonHovered(true);
+          } catch (error) {
+            console.error('[ERROR] DailyBonusCard - Ошибка при обработке onMouseEnter:', error);
+          }
+        }}
+        onMouseLeave={(e) => {
+          try {
+            setIsButtonHovered(false);
+          } catch (error) {
+            console.error('[ERROR] DailyBonusCard - Ошибка при обработке onMouseLeave:', error);
+          }
+        }}
+        onClick={(e) => {
+          try {
+            e.preventDefault();
+            handleClaimBonus();
+          } catch (error) {
+            console.error('[ERROR] DailyBonusCard - Ошибка при обработке onClick:', error);
+            // Пытаемся обработать клик даже при ошибке
+            try {
+              handleClaimBonus();
+            } catch (secondError) {
+              console.error('[ERROR] DailyBonusCard - Повторная ошибка при обработке клика:', secondError);
+            }
+          }
+        }}
         disabled={claimBonusMutation.isPending || !bonusStatus?.canClaim}
       >
         {/* Эффект блеска на кнопке при наведении */}
@@ -375,42 +481,131 @@ const DailyBonusCard: React.FC = () => {
       </button>
       
       {/* Конфетти при получении бонуса */}
-      {showConfetti && (
-        <>
-          {/* Сообщение о награде */}
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div className="text-center animate-bounce">
-              <div className="text-2xl font-bold text-primary mb-2">
-                +{reward}
-              </div>
-              <div className="text-sm text-white">
-                Ежедневный бонус получен!
-              </div>
-            </div>
-          </div>
+      {(() => {
+        try {
+          // Проверка на активность конфетти
+          if (!showConfetti) {
+            return null;
+          }
           
-          {/* Конфетти-частицы */}
-          {confettiParticles.map((particle) => (
-            <div
-              key={particle.id}
-              className="absolute"
-              style={{
-                width: `${particle.size}px`,
-                height: `${particle.size}px`,
-                backgroundColor: particle.color,
-                left: `${particle.x}%`,
-                top: `${particle.y}%`,
-                transform: `rotate(${particle.rotation}deg)`,
-                borderRadius: '2px',
-                zIndex: 20,
-                animation: `fall 3s forwards`,
-                animationTimingFunction: 'ease-out',
-                animationDelay: `${particle.id * 0.05}s`,
-              }}
-            ></div>
-          ))}
-        </>
-      )}
+          return (
+            <>
+              {/* Сообщение о награде */}
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <div className="text-center animate-bounce">
+                  <div className="text-2xl font-bold text-primary mb-2">
+                    {(() => {
+                      try {
+                        // Безопасно отображаем награду
+                        if (!reward || reward.trim() === '') {
+                          return '+UNI';
+                        }
+                        
+                        // Проверка на формат награды, добавляем + если его нет
+                        if (!reward.startsWith('+')) {
+                          return `+${reward}`;
+                        }
+                        
+                        return reward;
+                      } catch (rewardError) {
+                        console.error('[ERROR] DailyBonusCard - Ошибка при форматировании награды:', rewardError);
+                        return '+UNI'; // Запасное значение при ошибке
+                      }
+                    })()}
+                  </div>
+                  <div className="text-sm text-white">
+                    Ежедневный бонус получен!
+                  </div>
+                </div>
+              </div>
+              
+              {/* Конфетти-частицы */}
+              {(() => {
+                try {
+                  if (!Array.isArray(confettiParticles)) {
+                    console.error('[ERROR] DailyBonusCard - confettiParticles не является массивом');
+                    return null;
+                  }
+                  
+                  // Только для проверки, не слишком ли много частиц
+                  if (confettiParticles.length > 100) {
+                    console.warn('[WARNING] DailyBonusCard - Слишком много частиц конфетти:', confettiParticles.length);
+                    // Ограничиваем количество частиц, чтобы избежать проблем с производительностью
+                    return confettiParticles.slice(0, 100).map((particle) => {
+                      try {
+                        if (!particle || typeof particle !== 'object') {
+                          return null; // Пропускаем некорректные частицы
+                        }
+                        
+                        return (
+                          <div
+                            key={particle.id || Math.random()}
+                            className="absolute"
+                            style={{
+                              width: `${particle.size || 5}px`,
+                              height: `${particle.size || 5}px`,
+                              backgroundColor: particle.color || '#A259FF',
+                              left: `${particle.x || 50}%`,
+                              top: `${particle.y || 0}%`,
+                              transform: `rotate(${particle.rotation || 0}deg)`,
+                              borderRadius: '2px',
+                              zIndex: 20,
+                              animation: `fall 3s forwards`,
+                              animationTimingFunction: 'ease-out',
+                              animationDelay: `${(particle.id || 0) * 0.05}s`,
+                            }}
+                          ></div>
+                        );
+                      } catch (particleError) {
+                        console.error('[ERROR] DailyBonusCard - Ошибка при рендеринге частицы:', particleError);
+                        return null; // Пропускаем частицу при ошибке
+                      }
+                    });
+                  }
+                  
+                  // Стандартный рендеринг частиц
+                  return confettiParticles.map((particle) => {
+                    try {
+                      if (!particle || typeof particle !== 'object') {
+                        return null; // Пропускаем некорректные частицы
+                      }
+                      
+                      return (
+                        <div
+                          key={particle.id || Math.random()}
+                          className="absolute"
+                          style={{
+                            width: `${particle.size || 5}px`,
+                            height: `${particle.size || 5}px`,
+                            backgroundColor: particle.color || '#A259FF',
+                            left: `${particle.x || 50}%`,
+                            top: `${particle.y || 0}%`,
+                            transform: `rotate(${particle.rotation || 0}deg)`,
+                            borderRadius: '2px',
+                            zIndex: 20,
+                            animation: `fall 3s forwards`,
+                            animationTimingFunction: 'ease-out',
+                            animationDelay: `${(particle.id || 0) * 0.05}s`,
+                          }}
+                        ></div>
+                      );
+                    } catch (particleError) {
+                      console.error('[ERROR] DailyBonusCard - Ошибка при рендеринге частицы:', particleError);
+                      return null; // Пропускаем частицу при ошибке
+                    }
+                  });
+                } catch (confettiError) {
+                  console.error('[ERROR] DailyBonusCard - Ошибка при рендеринге конфетти:', confettiError);
+                  return null; // Возвращаем пустой фрагмент при ошибке
+                }
+              })()}
+            </>
+          );
+        } catch (globalError) {
+          console.error('[ERROR] DailyBonusCard - Критическая ошибка в рендеринге конфетти:', globalError);
+          return null; // Возвращаем пустой фрагмент при ошибке
+        }
+      })()}
     </div>
   );
 };
