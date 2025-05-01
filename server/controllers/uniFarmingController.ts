@@ -120,10 +120,23 @@ export class UniFarmingController {
     } catch (error) {
       console.error('Ошибка в createUniFarmingDeposit:', error);
       
-      if (error instanceof ValidationError || error instanceof NotFoundError) {
-        throw error; // Будет обработано глобальным обработчиком ошибок
+      // Обрабатываем ошибки валидации и Not Found непосредственно здесь, вместо передачи их наверх
+      if (error instanceof ValidationError) {
+        res.status(400).json({
+          success: false,
+          message: error.message,
+          errors: error.errors || null
+        });
+        return;
+      } else if (error instanceof NotFoundError) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+        return;
       }
       
+      // Если это какая-то другая ошибка
       res.error('Внутренняя ошибка сервера при создании депозита', null, 500);
     }
   }
@@ -265,10 +278,23 @@ export class UniFarmingController {
     } catch (error) {
       console.error('Ошибка в harvestFarmingInfo:', error);
       
-      if (error instanceof ValidationError || error instanceof NotFoundError) {
-        throw error; // Будет обработано глобальным обработчиком ошибок
+      // Обрабатываем ошибки валидации и Not Found непосредственно здесь, вместо передачи их наверх
+      if (error instanceof ValidationError) {
+        res.status(400).json({
+          success: false,
+          message: error.message,
+          errors: error.errors || null
+        });
+        return;
+      } else if (error instanceof NotFoundError) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+        return;
       }
       
+      // Если это какая-то другая ошибка
       res.error('Внутренняя ошибка сервера при обработке запроса', null, 500);
     }
   }
