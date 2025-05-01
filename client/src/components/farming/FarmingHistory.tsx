@@ -1455,44 +1455,6 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   // Вспомогательные функции для безопасного форматирования сумм
   
   /**
-   * Определяет оптимальное количество десятичных знаков в зависимости от валюты и размера числа
-   * @param value Числовое значение для форматирования
-   * @param currency Валюта (TON или UNI)
-   * @returns Оптимальное количество десятичных знаков
-   */
-  const getOptimalDecimals = (value: number | string, currency: string = 'UNI'): number => {
-    try {
-      // Преобразование к числу, если передана строка
-      const numValue = typeof value === 'string' ? parseFloat(value) : value;
-      
-      // Проверка на валидное число
-      if (numValue === undefined || numValue === null || !isFinite(numValue)) {
-        console.warn(`[WARNING] FarmingHistory - Некорректное значение для определения десятичных знаков: ${value}`);
-        return currency === 'TON' ? 6 : 2;
-      }
-      
-      // Разные стратегии для разных валют
-      if (currency === 'TON') {
-        // Для TON: больше знаков для маленьких сумм
-        if (numValue < 0.0001) return 8;
-        if (numValue < 0.001) return 6;
-        if (numValue < 0.01) return 5;
-        if (numValue < 0.1) return 4;
-        if (numValue < 1) return 3;
-        return 2;
-      } else {
-        // Для UNI: стандартно 2 знака, но больше для маленьких сумм
-        if (numValue < 0.01) return 4;
-        if (numValue < 0.1) return 3;
-        return 2;
-      }
-    } catch (error) {
-      console.error("[ERROR] FarmingHistory - Ошибка в getOptimalDecimals:", error);
-      return currency === 'TON' ? 6 : 2; // Безопасные значения по умолчанию
-    }
-  };
-  
-  /**
    * Безопасно форматирует число с заданной точностью
    * @param value Числовое значение для форматирования
    * @param decimals Количество десятичных знаков
