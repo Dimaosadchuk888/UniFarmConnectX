@@ -29,6 +29,7 @@ export async function correctApiRequest<T = any>(
       method,
       headers,
       body,
+      credentials: 'include'
     });
 
     // Логируем статус
