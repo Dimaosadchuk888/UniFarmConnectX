@@ -234,9 +234,6 @@ export class NewUniFarmingService {
       console.log(`[MultiFarming] Balance No Change User ${userId} | Balance remains: ${formattedNewBalance} (Accumulating: ${newAccumulatedBalance.toFixed(8)})`);
     }
     
-    // Освобождаем блокировку после завершения всех операций
-    globalThis._processingUsers.set(userId, false);
-    
     return {
       totalDepositAmount: totalDepositAmount.toString(),
       totalRatePerSecond: totalRatePerSecond.toString(),
@@ -246,15 +243,15 @@ export class NewUniFarmingService {
   } catch (error) {
     console.error(`[MultiFarming] Error in calculateAndUpdateUserFarming for user ${userId}:`, error);
     
-    // Освобождаем блокировку в случае ошибки
-    globalThis._processingUsers.set(userId, false);
-    
     return {
       totalDepositAmount: '0',
       totalRatePerSecond: '0',
       earnedThisUpdate: '0',
       depositCount: 0
     };
+  } finally {
+    // Освобождаем блокировку гарантированно в любом случае
+    globalThis._processingUsers.set(userId, false);
   }
   }
 
