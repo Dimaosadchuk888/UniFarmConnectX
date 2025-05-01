@@ -179,7 +179,13 @@ const WithdrawalForm: React.FC = () => {
   
   // Обработчик для подсказки
   const toggleTooltip = () => {
-    setShowTooltip(!showTooltip);
+    try {
+      setShowTooltip(!showTooltip);
+    } catch (error) {
+      console.error('Ошибка при переключении подсказки:', error);
+      // В случае ошибки пытаемся вернуть состояние в безопасное положение
+      setShowTooltip(false);
+    }
   };
   
   // Эффект для анимации "печатающейся" подсказки при успешной отправке
@@ -215,21 +221,37 @@ const WithdrawalForm: React.FC = () => {
   
   // Создаем новую заявку (сбрасываем форму)
   const handleNewRequest = () => {
-    setMessageSent(false);
-    setSubmitState(SubmitState.IDLE);
-    setErrorMessage(null);
-    
-    form.reset({
-      amount: '',
-      wallet_address: walletAddress || '',
-      currency: selectedCurrency,
-    });
-    
-    // Показываем уведомление о создании новой заявки
-    showNotification('info', {
-      message: 'Форма очищена. Вы можете создать новую заявку на вывод',
-      duration: 3000
-    });
+    try {
+      // Сбрасываем состояния
+      setMessageSent(false);
+      setSubmitState(SubmitState.IDLE);
+      setErrorMessage(null);
+      
+      // Сбрасываем значения формы
+      form.reset({
+        amount: '',
+        wallet_address: walletAddress || '',
+        currency: selectedCurrency,
+      });
+      
+      // Показываем уведомление о создании новой заявки
+      showNotification('info', {
+        message: 'Форма очищена. Вы можете создать новую заявку на вывод',
+        duration: 3000
+      });
+    } catch (error) {
+      // Логируем ошибку
+      console.error('Ошибка при создании новой заявки:', error);
+      
+      // Показываем уведомление об ошибке
+      showNotification('error', {
+        message: 'Произошла ошибка при сбросе формы',
+        duration: 3000
+      });
+      
+      // Сбрасываем состояние на начальное
+      setSubmitState(SubmitState.IDLE);
+    }
   };
   
   return (
@@ -339,8 +361,20 @@ const WithdrawalForm: React.FC = () => {
                     ${addressFocused ? 'ring-2 ring-primary/30 bg-muted/80' : ''}
                     ${form.formState.errors.wallet_address ? 'border-red-500 ring-2 ring-red-500/30' : ''}
                   `}
-                  onFocus={() => setAddressFocused(true)}
-                  onBlur={() => setAddressFocused(false)}
+                  onFocus={() => {
+                    try {
+                      setAddressFocused(true);
+                    } catch (error) {
+                      console.error('Ошибка при установке фокуса на поле адреса:', error);
+                    }
+                  }}
+                  onBlur={() => {
+                    try {
+                      setAddressFocused(false);
+                    } catch (error) {
+                      console.error('Ошибка при снятии фокуса с поля адреса:', error);
+                    }
+                  }}
                 />
                 
                 {/* Анимация фокуса */}
@@ -382,8 +416,20 @@ const WithdrawalForm: React.FC = () => {
                     ${amountFocused ? 'ring-2 ring-primary/30 bg-muted/80' : ''}
                     ${form.formState.errors.amount ? 'border-red-500 ring-2 ring-red-500/30' : ''}
                   `}
-                  onFocus={() => setAmountFocused(true)}
-                  onBlur={() => setAmountFocused(false)}
+                  onFocus={() => {
+                    try {
+                      setAmountFocused(true);
+                    } catch (error) {
+                      console.error('Ошибка при установке фокуса на поле суммы:', error);
+                    }
+                  }}
+                  onBlur={() => {
+                    try {
+                      setAmountFocused(false);
+                    } catch (error) {
+                      console.error('Ошибка при снятии фокуса с поля суммы:', error);
+                    }
+                  }}
                 />
                 <div className={`
                   bg-muted rounded-r-lg px-3 py-2 text-sm flex items-center
