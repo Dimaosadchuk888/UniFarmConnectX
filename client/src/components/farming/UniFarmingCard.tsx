@@ -101,11 +101,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         user_id: userId // Динамический ID пользователя
       };
       
-      // Используем централизованный apiRequest
-      return apiRequest('/api/uni-farming/deposit', {
-        method: 'POST',
-        body: JSON.stringify(requestBody)
-      });
+      // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
+      return correctApiRequest('/api/uni-farming/deposit', 'POST', requestBody);
     },
     onSuccess: () => {
       // Очищаем форму и сообщение об ошибке
