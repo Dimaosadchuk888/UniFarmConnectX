@@ -66,7 +66,7 @@ async function createPartitionForDate(date: Date) {
   // Создаем индексы для партиции
   log(`Creating indexes for partition ${partitionName}`);
   await executeQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_user_id_idx ON ${partitionName} (user_id)`);
-  await executeQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_transaction_type_idx ON ${partitionName} (transaction_type)`);
+  await executeQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_type_idx ON ${partitionName} (type)`);
   await executeQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_created_at_idx ON ${partitionName} (created_at)`);
   
   log(`Partition ${partitionName} created successfully`);
@@ -91,7 +91,7 @@ async function isTablePartitioned(tableName: string = 'transactions'): Promise<b
     `;
     
     const result = await pool.query(query, [tableName]);
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   } catch (error) {
     console.error('Error checking if table is partitioned:', error);
     return false;
