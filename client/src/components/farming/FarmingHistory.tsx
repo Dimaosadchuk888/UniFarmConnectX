@@ -3,6 +3,7 @@ import { BOOST_PACKAGES } from '@/lib/constants';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 
 // Интерфейс для фарминг-депозита
 interface FarmingDeposit {
@@ -82,27 +83,26 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   const { data: transactionsResponse, refetch: refetchTransactions } = useQuery({
     queryKey: ['/api/transactions', { user_id: validUserId }],
     queryFn: async () => {
-      const response = await fetch(`/api/transactions?user_id=${validUserId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Ошибка получения транзакций: ${response.status}`);
+      try {
+        // Используем correctApiRequest вместо прямого fetch
+        const result = await correctApiRequest<any>(`/api/transactions?user_id=${validUserId}`, 'GET');
+        
+        // Логирование для отладки
+        console.log("[DEBUG] FarmingHistory - API /api/transactions response:", {
+          isObject: typeof result === 'object',
+          hasSuccess: result && 'success' in result,
+          hasData: result && result.success && 'data' in result,
+          dataStructure: result && result.success && result.data ? 
+            Object.keys(result.data) : 'N/A',
+          sample: result && result.success && result.data && result.data.transactions ?
+            result.data.transactions.slice(0, 2) : 'N/A'
+        });
+        
+        return result;
+      } catch (error: any) {
+        console.error("[ERROR] FarmingHistory - Ошибка получения транзакций:", error);
+        throw new Error(`Ошибка получения транзакций: ${error.message || 'Неизвестная ошибка'}`);
       }
-      
-      const result = await response.json();
-      
-      // Логирование для отладки
-      console.log("[DEBUG] FarmingHistory - API /api/transactions response:", {
-        status: response.status,
-        isObject: typeof result === 'object',
-        hasSuccess: result && 'success' in result,
-        hasData: result && result.success && 'data' in result,
-        dataStructure: result && result.success && result.data ? 
-          Object.keys(result.data) : 'N/A',
-        sample: result && result.success && result.data && result.data.transactions ?
-          result.data.transactions.slice(0, 2) : 'N/A'
-      });
-      
-      return result;
     },
     enabled: !!validUserId, // Выполняем запрос только если userId определен
   });
@@ -115,13 +115,17 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   }[]>>({
     queryKey: ['/api/boosts/active', { user_id: validUserId }],
     queryFn: async () => {
-      const response = await fetch(`/api/boosts/active?user_id=${validUserId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Ошибка получения буст-пакетов: ${response.status}`);
+      try {
+        // Используем correctApiRequest вместо прямого fetch
+        return await correctApiRequest<ApiResponse<{
+          boost_id: number;
+          created_at: string;
+          days_left: number;
+        }[]>>(`/api/boosts/active?user_id=${validUserId}`, 'GET');
+      } catch (error: any) {
+        console.error("[ERROR] FarmingHistory - Ошибка получения буст-пакетов:", error);
+        throw new Error(`Ошибка получения буст-пакетов: ${error.message || 'Неизвестная ошибка'}`);
       }
-      
-      return response.json();
     },
     enabled: !!validUserId,
   });
@@ -130,13 +134,13 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   const { data: activeTonBoostsResponse, refetch: refetchTonBoosts } = useQuery<ApiResponse<TonBoostDeposit[]>>({
     queryKey: ['/api/ton-boosts/active', { user_id: validUserId }],
     queryFn: async () => {
-      const response = await fetch(`/api/ton-boosts/active?user_id=${validUserId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Ошибка получения TON Boost пакетов: ${response.status}`);
+      try {
+        // Используем correctApiRequest вместо прямого fetch
+        return await correctApiRequest<ApiResponse<TonBoostDeposit[]>>(`/api/ton-boosts/active?user_id=${validUserId}`, 'GET');
+      } catch (error: any) {
+        console.error("[ERROR] FarmingHistory - Ошибка получения TON Boost пакетов:", error);
+        throw new Error(`Ошибка получения TON Boost пакетов: ${error.message || 'Неизвестная ошибка'}`);
       }
-      
-      return response.json();
     },
     enabled: !!validUserId,
   });
@@ -152,13 +156,20 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   }>>({
     queryKey: ['/api/uni-farming/info', { user_id: validUserId }],
     queryFn: async () => {
-      const response = await fetch(`/api/uni-farming/info?user_id=${validUserId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Ошибка получения информации о UNI фарминге: ${response.status}`);
+      try {
+        // Используем correctApiRequest вместо прямого fetch
+        return await correctApiRequest<ApiResponse<{
+          isActive: boolean;
+          depositAmount: string;
+          startDate: string;
+          totalRatePerSecond: string;
+          totalEarned: string;
+          depositCount: number;
+        }>>(`/api/uni-farming/info?user_id=${validUserId}`, 'GET');
+      } catch (error: any) {
+        console.error("[ERROR] FarmingHistory - Ошибка получения информации о UNI фарминге:", error);
+        throw new Error(`Ошибка получения информации о UNI фарминге: ${error.message || 'Неизвестная ошибка'}`);
       }
-      
-      return response.json();
     },
     enabled: !!validUserId,
   });
@@ -181,13 +192,27 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   }>>({
     queryKey: ['/api/ton-farming/info', { user_id: validUserId }],
     queryFn: async () => {
-      const response = await fetch(`/api/ton-farming/info?user_id=${validUserId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Ошибка получения информации о TON фарминге: ${response.status}`);
+      try {
+        // Используем correctApiRequest вместо прямого fetch
+        return await correctApiRequest<ApiResponse<{
+          isActive: boolean;
+          totalDepositAmount: string;
+          totalTonRatePerSecond: string;
+          totalUniRatePerSecond: string;
+          dailyIncomeTon: string;
+          dailyIncomeUni: string;
+          depositCount: number;
+          deposits: Array<{
+            id: number;
+            boost_package_id: number;
+            rate_ton_per_second: string;
+            amount: string;
+          }>;
+        }>>(`/api/ton-farming/info?user_id=${validUserId}`, 'GET');
+      } catch (error: any) {
+        console.error("[ERROR] FarmingHistory - Ошибка получения информации о TON фарминге:", error);
+        throw new Error(`Ошибка получения информации о TON фарминге: ${error.message || 'Неизвестная ошибка'}`);
       }
-      
-      return response.json();
     },
     enabled: !!validUserId,
     refetchInterval: 10000, // Обновляем каждые 10 секунд
