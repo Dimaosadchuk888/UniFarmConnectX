@@ -42,36 +42,31 @@ const WelcomeSection: React.FC = () => {
   }, []);
   
   return (
-    <div className="bg-gradient-to-r from-purple-900 to-indigo-900 rounded-xl p-5 mb-6 shadow-lg">
+    <div className="bg-gradient-to-br from-primary/80 to-primary/40 rounded-xl p-5 mb-6 shadow-md backdrop-blur-sm border border-white/5">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">
-            Привет, {userName}!
+            {userName}
           </h1>
-          <p className="text-purple-200 text-sm mb-3">
-            Добро пожаловать в UniFarm
+          <p className="text-white/80 text-sm mb-1 font-medium">
+            Добро пожаловать в систему UniFarm
           </p>
           
-          {walletConnected && walletAddress ? (
-            <div className="bg-white/10 rounded-md px-3 py-1.5 inline-flex items-center space-x-1.5">
-              <span className="text-xs text-purple-100 break-all">
-                Кошелек: {walletAddress}
-              </span>
-            </div>
-          ) : (
-            <div className="bg-white/10 rounded-md px-3 py-1.5 inline-flex items-center space-x-1.5">
-              <span className="text-xs text-purple-100">
-                Подключите TON-кошелек в разделе Кошелек
+          {walletConnected && walletAddress && (
+            <div className="mt-2 inline-flex items-center">
+              <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+              <span className="text-xs text-white/70">
+                Кошелек подключен
               </span>
             </div>
           )}
         </div>
         
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/10">
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
-            width="24" 
-            height="24" 
+            width="22" 
+            height="22" 
             viewBox="0 0 24 24" 
             fill="none" 
             stroke="white" 
