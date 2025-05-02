@@ -6,6 +6,7 @@ import { userIdSchema, createUserSchema, guestRegistrationSchema } from '../vali
 import { formatZodErrors } from '../utils/validationUtils';
 import { wrapServiceFunction } from '../db-service-wrapper';
 import { v4 as uuidv4 } from 'uuid';
+import { storage } from '../storage-adapter';
 
 /**
  * Контроллер для работы с пользователями с поддержкой fallback режима
@@ -114,20 +115,47 @@ export class UserControllerFallback {
         async (error, guestId, referrerCode, airdropMode) => {
           console.log(`[UserControllerFallback] Создаем временного пользователя с guest_id: ${guestId}`, error);
           
-          // Создаем временного пользователя с минимальными данными
-          const temporaryId = Math.floor(Math.random() * 1000000) + 1;
-          return {
-            id: temporaryId,
-            username: `guest_${temporaryId}`,
-            ref_code: `REF${temporaryId}`,
-            telegram_id: null,
-            telegram_username: null,
-            guest_id: guestId,
-            created_at: new Date().toISOString(),
-            referrer_id: null,
-            is_fallback: true,
-            message: 'Временный аккаунт создан'
-          };
+          try {
+            // Проверяем, существует ли пользователь в MemStorage
+            const memStorage = storage.memStorage;
+            const existingUser = await memStorage.getUserByGuestId(guestId);
+            
+            if (existingUser) {
+              console.log(`[UserControllerFallback] Пользователь с guest_id: ${guestId} уже существует в MemStorage`);
+              return existingUser;
+            }
+            
+            // Создаем временного пользователя в MemStorage
+            const newUser = await memStorage.createUser({
+              guest_id: guestId,
+              username: `guest_${Date.now()}`,
+              ref_code: null, // Будет сгенерирован автоматически
+              telegram_id: null
+            });
+            
+            return {
+              ...newUser,
+              is_fallback: true,
+              message: 'Временный аккаунт создан'
+            };
+          } catch (memError) {
+            console.error(`[UserControllerFallback] Ошибка создания пользователя в MemStorage:`, memError);
+            
+            // Если не удалось создать в MemStorage, возвращаем объект напрямую
+            const temporaryId = Math.floor(Math.random() * 1000000) + 1;
+            return {
+              id: temporaryId,
+              username: `guest_${temporaryId}`,
+              ref_code: `REF${temporaryId}`,
+              telegram_id: null,
+              telegram_username: null,
+              guest_id: guestId,
+              created_at: new Date().toISOString(),
+              referrer_id: null,
+              is_fallback: true,
+              message: 'Временный аккаунт создан (аварийный режим)'
+            };
+          }
         }
       );
       

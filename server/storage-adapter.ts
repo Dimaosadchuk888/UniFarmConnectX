@@ -7,11 +7,16 @@ import { createInsertSchema } from "drizzle-zod";
 // Адаптер для хранилища с фолбеком на хранилище в памяти
 class StorageAdapter implements IStorage {
   private dbStorage: IStorage;
-  private memStorage: MemStorage;
+  private _memStorage: MemStorage;
   private useMemory: boolean = false;
   
+  // Геттер для доступа к хранилищу в памяти
+  get memStorage(): MemStorage {
+    return this._memStorage;
+  }
+  
   constructor() {
-    this.memStorage = new MemStorage();
+    this._memStorage = new MemStorage();
     
     // Реализация хранилища с использованием базы данных
     this.dbStorage = {
