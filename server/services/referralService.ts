@@ -237,6 +237,42 @@ export class ReferralService {
     
     return referral;
   }
+  
+  /**
+   * Получает реферальное дерево пользователя
+   * @param userId ID пользователя
+   * @returns Реферальное дерево
+   */
+  static async getReferralTree(userId: number): Promise<any> {
+    try {
+      // Получаем пользователя
+      const user = await UserService.getUserById(userId);
+      if (!user) {
+        throw new ValidationError('Пользователь не найден', { userId });
+      }
+
+      // Получаем прямых рефералов пользователя через parent_ref_code
+      const directReferrals = await this.getUserReferrals(userId);
+      
+      // Формируем результат
+      return {
+        user_id: userId,
+        ref_code: user.ref_code || 'Unknown',
+        username: user.username || 'user',
+        referrals: directReferrals.map(ref => ({
+          id: ref.user_id,
+          username: ref.username || 'user',
+          ref_code: ref.ref_code || 'Unknown',
+          created_at: ref.created_at,
+          level: ref.level || 1
+        })),
+        total_count: directReferrals.length
+      };
+    } catch (error) {
+      console.error('[ReferralService] Error in getReferralTree:', error);
+      throw error;
+    }
+  }
 
   /**
    * Проверяет, есть ли у пользователя пригласитель
