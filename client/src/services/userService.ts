@@ -221,8 +221,9 @@ class UserService {
     }
     
     try {
-      // Делаем запрос к API
-      const data = await apiRequest('/api/me');
+      // Делаем запрос к API, используя correctApiRequest
+      console.log('[UserService] Используем correctApiRequest для запроса /api/me');
+      const data = await correctApiRequest('/api/me', 'GET');
       
       // Подробный лог для отладки
       console.log('[UserService] API /me result:', {
@@ -386,7 +387,8 @@ class UserService {
    */
   private async fetchDevUserFromApi(): Promise<User> {
     try {
-      const devData = await apiRequest('/api/users/1');
+      console.log('[UserService] Используем correctApiRequest для запроса dev-пользователя');
+      const devData = await correctApiRequest('/api/users/1', 'GET');
       if (devData.success && devData.data && this.isValidUserData(devData.data)) {
         console.log('[UserService] Successfully got DEV user data from API:', { id: devData.data.id });
         return devData.data;
