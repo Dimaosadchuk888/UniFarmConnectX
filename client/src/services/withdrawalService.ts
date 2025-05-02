@@ -1,4 +1,5 @@
 import { apiRequest } from '@/lib/queryClient';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 import { WithdrawalFormData } from '@/schemas/withdrawalSchema';
 
 /**
@@ -101,18 +102,19 @@ export async function submitWithdrawal(
     
     console.log(`[submitWithdrawal] [${requestId}] Отправка запроса на вывод: ${requestData.amount} ${requestData.currency}`);
     
-    // Отправляем запрос на сервер с обработкой сетевых ошибок
+    // Отправляем запрос на сервер с улучшенной обработкой ошибок через correctApiRequest
     let response;
     try {
-      response = await apiRequest('/api/wallet/withdraw', {
-        method: 'POST',
-        body: JSON.stringify(requestData)
-      });
+      console.log(`[submitWithdrawal] [${requestId}] Используем correctApiRequest для запроса`);
+      
+      // correctApiRequest автоматически обрабатывает сетевые ошибки и стандартизирует ответ
+      response = await correctApiRequest('/api/wallet/withdraw', 'POST', requestData);
       
       console.log(`[submitWithdrawal] [${requestId}] Получен ответ от сервера:`, 
                    typeof response === 'object' ? JSON.stringify(response).slice(0, 100) + '...' : response);
     } catch (networkError) {
-      console.error(`[submitWithdrawal] [${requestId}] Сетевая ошибка:`, networkError);
+      // correctApiRequest должен сам обрабатывать ошибки, но добавляем дополнительную защиту
+      console.error(`[submitWithdrawal] [${requestId}] Критическая ошибка в сетевом слое:`, networkError);
       return {
         message: 'Ошибка сети при отправке запроса. Пожалуйста, проверьте подключение к интернету',
       };
