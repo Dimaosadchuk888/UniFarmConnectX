@@ -368,6 +368,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/security/sanitize", SecurityController.sanitizeUserInput);
   app.post("/api/airdrop/register", AuthController.registerGuestUser);
   
+  // Системный маршрут для проверки состояния приложения и базы данных
+  app.get("/api/system/status", async (req: Request, res: Response) => {
+    try {
+      // Импортируем статус подключения из модуля db
+      const { dbConnectionStatus } = await import('./db');
+      
+      // Получаем информацию о режиме работы StorageAdapter
+      const { storage } = await import('./storage-adapter');
+      const isUsingMemory = (storage as any).isUsingMemory === true;
+      
+      // Собираем системную информацию
+      const systemInfo = {
+        serverTime: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        database: {
+          connectionStatus: dbConnectionStatus,
+          usingInMemoryStorage: isUsingMemory,
+          lastConnectionAttempt: new Date().toISOString(),
+          reconnectingMode: isUsingMemory,
+        },
+        uptime: process.uptime(), // Время работы процесса в секундах
+        memoryUsage: process.memoryUsage(), // Использование памяти
+        version: {
+          node: process.version,
+          app: '1.0.0' // Версия приложения (можно заменить на динамическое значение)
+        }
+      };
+      
+      // Проверяем статус базы данных
+      let dbHealthy = false;
+      try {
+        // Импортируем функцию проверки подключения
+        const { testDatabaseConnection } = await import('./db');
+        dbHealthy = await testDatabaseConnection();
+        systemInfo.database.connectionStatus = dbHealthy ? 'connected' : 'disconnected';
+      } catch (dbError) {
+        systemInfo.database.lastError = (dbError instanceof Error) ? dbError.message : String(dbError);
+      }
+      
+      // Определяем HTTP статус в зависимости от состояния системы
+      const httpStatus = dbHealthy || isUsingMemory ? 200 : 503; // 503 Service Unavailable если есть проблемы
+      
+      // Если используется in-memory storage, но база данных доступна, добавляем предупреждение
+      if (isUsingMemory && dbHealthy) {
+        systemInfo.database.warning = 'База данных доступна, но приложение использует in-memory storage. Требуется перезапуск.';
+      }
+      
+      return res.status(httpStatus).json({
+        success: true,
+        status: httpStatus === 200 ? 'healthy' : 'degraded',
+        data: systemInfo
+      });
+    } catch (error) {
+      console.error('[API] Ошибка при получении статуса системы:', error);
+      return res.status(500).json({
+        success: false,
+        status: 'critical',
+        message: 'Внутренняя ошибка сервера при получении статуса системы',
+        error: (error instanceof Error) ? error.message : String(error)
+      });
+    }
+  });
+
   // Маршрут для логирования запусков Mini App (Этап 5.1)
   app.post("/api/log-launch", async (req: Request, res: Response) => {
     try {
