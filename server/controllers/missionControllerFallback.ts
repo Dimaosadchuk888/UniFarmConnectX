@@ -6,10 +6,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { MissionService } from '../services/missionService';
 import { wrapServiceFunction } from '../db-service-wrapper';
-import { sendSuccess, sendSuccessArray } from '../utils/responseFormatter';
-import { userIdSchema } from '../validators/commonValidators';
-import { ValidationError } from '../exceptions/validationError';
-import { formatZodErrors } from '../utils/formatZodErrors';
+import { sendSuccess, sendSuccessArray } from '../utils/responseUtils';
+import { userIdSchema } from '../validators/schemas';
+import { ValidationError } from '../middleware/errorHandler';
+import { formatZodErrors } from '../utils/validationUtils';
 
 export class MissionControllerFallback {
   /**
@@ -172,21 +172,18 @@ export class MissionControllerFallback {
       }
       
       // Заворачиваем вызов сервиса в обработчик ошибок с поддержкой fallback
-      const checkMissionCompletionWithFallback = wrapServiceFunction(
-        MissionService.checkMissionCompletion.bind(MissionService),
+      const isUserMissionCompletedWithFallback = wrapServiceFunction(
+        MissionService.isUserMissionCompleted.bind(MissionService),
         async (error, userId, missionId) => {
           console.log(`[MissionControllerFallback] Возвращаем заглушку для проверки выполнения задания ${missionId} пользователем: ${userId}`);
           
           // Возвращаем по умолчанию что задание не выполнено
-          return {
-            completed: false,
-            completedAt: null
-          };
+          return false;
         }
       );
       
-      const completionStatus = await checkMissionCompletionWithFallback(userId, missionId);
-      sendSuccess(res, completionStatus);
+      const isCompleted = await isUserMissionCompletedWithFallback(userId, missionId);
+      sendSuccess(res, { is_completed: isCompleted });
     } catch (error) {
       next(error);
     }

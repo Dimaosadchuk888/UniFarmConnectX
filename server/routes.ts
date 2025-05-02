@@ -27,6 +27,7 @@ import crypto from 'crypto';
 import { UserController } from './controllers/userController';
 import { TransactionController } from './controllers/transactionController';
 import { MissionController } from './controllers/missionController';
+import { MissionControllerFallback } from './controllers/missionControllerFallback'; // Fallback контроллер для заданий
 import { FarmingController } from './controllers/farmingController';
 import { ReferralController } from './controllers/referralController';
 import { ReferralControllerFallback } from './controllers/referralControllerFallback';
@@ -1240,11 +1241,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/transactions/create", TransactionController.createTransaction);
   
   // Маршруты для миссий
-  app.get("/api/missions/active", MissionController.getActiveMissions);
-  app.get("/api/user_missions", MissionController.getUserCompletedMissions);
-  app.get("/api/missions/with-completion", MissionController.getMissionsWithCompletion);
-  app.get("/api/missions/check/:userId/:missionId", MissionController.checkMissionCompletion);
-  app.post("/api/missions/complete", MissionController.completeMission);
+  app.get("/api/missions/active", MissionControllerFallback.getActiveMissions);
+  app.get("/api/user_missions", MissionControllerFallback.getUserCompletedMissions);
+  app.get("/api/missions/with-completion", MissionControllerFallback.getMissionsWithCompletion);
+  app.get("/api/missions/check/:userId/:missionId", MissionControllerFallback.checkMissionCompletion);
+  app.post("/api/missions/complete", MissionControllerFallback.completeMission);
   
   // Маршруты для фарминг-депозитов
   app.get("/api/farming-deposits", FarmingController.getUserFarmingDeposits);
