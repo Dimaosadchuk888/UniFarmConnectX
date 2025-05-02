@@ -18,6 +18,7 @@ import sessionRestoreService from '@/services/sessionRestoreService'; // Сер�
 import { UserProvider } from "@/contexts/userContext"; // Импортируем UserProvider
 import { NotificationProvider } from "@/contexts/notificationContext"; // Импортируем NotificationProvider
 import NotificationContainer from "@/components/ui/NotificationContainer"; // Импортируем контейнер уведомлений
+import ErrorBoundary from "@/components/ui/ErrorBoundary"; // Импортируем ErrorBoundary
 
 // Импортируем компоненты UI
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
