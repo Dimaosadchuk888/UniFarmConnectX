@@ -6,6 +6,7 @@ import userService from '@/services/userService';
 import type { User } from '@/services/userService';
 import { queryClient } from '@/lib/queryClient';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 
 /**
  * Страница партнерской программы
@@ -165,17 +166,17 @@ const Friends: React.FC = () => {
         return;
       }
       
-      // Делаем прямой запрос к API для получения пользователя по guest_id
-      let response, data;
+      // Делаем запрос к API с использованием correctApiRequest
+      let data;
       try {
-        response = await fetch(`/api/users/guest/${guestId}`);
-        data = await response.json();
-      } catch (fetchError) {
-        console.error('Ошибка при запросе данных пользователя:', fetchError);
+        // Используем correctApiRequest вместо прямого fetch
+        data = await correctApiRequest(`/api/users/guest/${guestId}`, 'GET');
+      } catch (apiError: any) {
+        console.error('Ошибка при запросе данных пользователя:', apiError);
         setDirectLinkData({ 
           isLoading: false, 
           refCode: '', 
-          error: 'Не удалось подключиться к серверу' 
+          error: apiError.message || 'Не удалось подключиться к серверу' 
         });
         return;
       }
@@ -187,15 +188,12 @@ const Friends: React.FC = () => {
           error: '' 
         });
       } else if (data.success && data.data && !data.data.ref_code) {
-        // Если нет ref_code, пробуем генерировать
+        // Если нет ref_code, пробуем генерировать с использованием correctApiRequest
         try {
-          const genResponse = await fetch('/api/users/generate-refcode', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: data.data.id })
+          // Используем correctApiRequest вместо прямого fetch
+          const genData = await correctApiRequest('/api/users/generate-refcode', 'POST', { 
+            user_id: data.data.id 
           });
-          
-          const genData = await genResponse.json();
           
           if (genData.success && genData.data && genData.data.ref_code) {
             setDirectLinkData({ 
