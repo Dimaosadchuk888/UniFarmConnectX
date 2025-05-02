@@ -35,6 +35,85 @@ class StorageAdapter implements IStorage {
         }
       },
       
+      async getUserByGuestId(guestId: string): Promise<User | undefined> {
+        try {
+          console.log(`[StorageAdapter] Получение пользователя по guest_id: ${guestId}`);
+          const [user] = await db.select().from(users).where(eq(users.guest_id, guestId));
+          return user || undefined;
+        } catch (error) {
+          console.error(`[StorageAdapter] Ошибка при получении пользователя по guest_id ${guestId}:`, error);
+          throw error;
+        }
+      },
+      
+      async getUserByRefCode(refCode: string): Promise<User | undefined> {
+        try {
+          console.log(`[StorageAdapter] Получение пользователя по ref_code: ${refCode}`);
+          const [user] = await db.select().from(users).where(eq(users.ref_code, refCode));
+          return user || undefined;
+        } catch (error) {
+          console.error(`[StorageAdapter] Ошибка при получении пользователя по ref_code ${refCode}:`, error);
+          throw error;
+        }
+      },
+      
+      async updateUserRefCode(userId: number, refCode: string): Promise<User | undefined> {
+        try {
+          console.log(`[StorageAdapter] Обновление ref_code для пользователя ID: ${userId}, новый код: ${refCode}`);
+          const [user] = await db
+            .update(users)
+            .set({ ref_code: refCode })
+            .where(eq(users.id, userId))
+            .returning();
+          return user || undefined;
+        } catch (error) {
+          console.error(`[StorageAdapter] Ошибка при обновлении ref_code для пользователя ${userId}:`, error);
+          throw error;
+        }
+      },
+      
+      generateRefCode(): string {
+        console.log('[StorageAdapter] Генерация реферального кода');
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        
+        for (let i = 0; i < 8; i++) {
+          result += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        
+        return result;
+      },
+      
+      async generateUniqueRefCode(): Promise<string> {
+        console.log('[StorageAdapter] Генерация уникального реферального кода');
+        let refCode = this.generateRefCode();
+        let isUnique = await this.isRefCodeUnique(refCode);
+        
+        // Пробуем до 10 раз сгенерировать уникальный код
+        let attempts = 0;
+        while (!isUnique && attempts < 10) {
+          refCode = this.generateRefCode();
+          isUnique = await this.isRefCodeUnique(refCode);
+          attempts++;
+        }
+        
+        return refCode;
+      },
+      
+      async isRefCodeUnique(refCode: string): Promise<boolean> {
+        try {
+          console.log(`[StorageAdapter] Проверка уникальности ref_code: ${refCode}`);
+          const [count] = await db
+            .select({ count: sql`count(*)` })
+            .from(users)
+            .where(eq(users.ref_code, refCode));
+          return Number(count.count) === 0;
+        } catch (error) {
+          console.error(`[StorageAdapter] Ошибка при проверке уникальности ref_code ${refCode}:`, error);
+          throw error;
+        }
+      },
+      
       async createUser(insertUser: InsertUser): Promise<User> {
         try {
           const [user] = await db.insert(users).values(insertUser).returning();
@@ -87,6 +166,78 @@ class StorageAdapter implements IStorage {
       console.error('[StorageAdapter] Ошибка при получении пользователя по имени, переключаемся на хранилище в памяти:', error);
       this.useMemory = true;
       return await this.memStorage.getUserByUsername(username);
+    }
+  }
+  
+  async getUserByGuestId(guestId: string): Promise<User | undefined> {
+    try {
+      if (this.useMemory) {
+        return await this.memStorage.getUserByGuestId(guestId);
+      }
+      return await this.dbStorage.getUserByGuestId(guestId);
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при получении пользователя по guest_id ${guestId}, переключаемся на хранилище в памяти:`, error);
+      this.useMemory = true;
+      return await this.memStorage.getUserByGuestId(guestId);
+    }
+  }
+  
+  async getUserByRefCode(refCode: string): Promise<User | undefined> {
+    try {
+      if (this.useMemory) {
+        return await this.memStorage.getUserByRefCode(refCode);
+      }
+      return await this.dbStorage.getUserByRefCode(refCode);
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при получении пользователя по ref_code ${refCode}, переключаемся на хранилище в памяти:`, error);
+      this.useMemory = true;
+      return await this.memStorage.getUserByRefCode(refCode);
+    }
+  }
+  
+  async updateUserRefCode(userId: number, refCode: string): Promise<User | undefined> {
+    try {
+      if (this.useMemory) {
+        return await this.memStorage.updateUserRefCode(userId, refCode);
+      }
+      return await this.dbStorage.updateUserRefCode(userId, refCode);
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при обновлении ref_code для пользователя ${userId}, переключаемся на хранилище в памяти:`, error);
+      this.useMemory = true;
+      return await this.memStorage.updateUserRefCode(userId, refCode);
+    }
+  }
+  
+  generateRefCode(): string {
+    if (this.useMemory) {
+      return this.memStorage.generateRefCode();
+    }
+    return this.dbStorage.generateRefCode();
+  }
+  
+  async generateUniqueRefCode(): Promise<string> {
+    try {
+      if (this.useMemory) {
+        return await this.memStorage.generateUniqueRefCode();
+      }
+      return await this.dbStorage.generateUniqueRefCode();
+    } catch (error) {
+      console.error('[StorageAdapter] Ошибка при генерации уникального ref_code, переключаемся на хранилище в памяти:', error);
+      this.useMemory = true;
+      return await this.memStorage.generateUniqueRefCode();
+    }
+  }
+  
+  async isRefCodeUnique(refCode: string): Promise<boolean> {
+    try {
+      if (this.useMemory) {
+        return await this.memStorage.isRefCodeUnique(refCode);
+      }
+      return await this.dbStorage.isRefCodeUnique(refCode);
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при проверке уникальности ref_code ${refCode}, переключаемся на хранилище в памяти:`, error);
+      this.useMemory = true;
+      return await this.memStorage.isRefCodeUnique(refCode);
     }
   }
   
