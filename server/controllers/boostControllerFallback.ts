@@ -43,7 +43,7 @@ export class BoostControllerFallback {
       const getActiveBoostsWithFallback = wrapServiceFunction(
         BoostService.getUserActiveBoosts.bind(BoostService),
         async (error, userId) => {
-          console.log(`[BoostControllerFallback] Возвращаем заглушку для активных бустов по ID: ${userId}`, error);
+          console.log(`[BoostControllerFallback] Возвращаем заглушку для активных бустов по ID: ${userId}`);
           
           // Возвращаем пустой массив при отсутствии соединения с БД
           return { 
@@ -53,14 +53,24 @@ export class BoostControllerFallback {
         }
       );
       
-      const activeBoosts = await getActiveBoostsWithFallback(user_id);
-      sendSuccess(res, activeBoosts);
-    } catch (error) {
-      // Обработка специфических ошибок
-      if ((error as any)?.originalError?.message?.includes('endpoint is disabled')) {
-        return sendSuccess(res, []); // Возвращаем пустой массив в случае проблем с БД
+      try {
+        const activeBoosts = await getActiveBoostsWithFallback(user_id);
+        sendSuccess(res, activeBoosts);
+      } catch (dbError) {
+        // Обработка ошибок подключения к БД
+        console.log(`[BoostControllerFallback] Ошибка БД, возвращаем пустые буст-депозиты для ID: ${user_id}`);
+        sendSuccess(res, { 
+          boosts: [], 
+          has_active_boosts: false 
+        });
       }
-      next(error);
+    } catch (error) {
+      // Обработка всех остальных ошибок (включая валидацию)
+      console.error('[BoostControllerFallback] Ошибка:', error);
+      sendSuccess(res, { 
+        boosts: [], 
+        has_active_boosts: false 
+      });
     }
   }
 
