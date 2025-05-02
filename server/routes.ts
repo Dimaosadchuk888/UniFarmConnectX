@@ -41,6 +41,7 @@ import { BoostController } from './controllers/boostController';
 import { BoostControllerFallback } from './controllers/boostControllerFallback'; // Fallback контроллер для бустов
 import { TonBoostController } from './controllers/tonBoostController';
 import { TonBoostControllerFallback } from './controllers/tonBoostControllerFallback'; // Fallback контроллер для TON фарминга
+import { UniFarmingControllerFallback } from './controllers/uniFarmingControllerFallback'; // Fallback контроллер для UNI фарминга
 import { AuthController } from './controllers/authController'; // Обновленный контроллер (SOLID)
 import { SecurityController } from './controllers/securityController'; // Новый контроллер безопасности (SOLID)
 import { WalletController } from './controllers/walletController';
@@ -1183,17 +1184,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);
   app.post("/api/daily-bonus/claim", DailyBonusController.claimDailyBonus);
   
-  // Маршруты для UNI фарминга
-  app.get("/api/uni-farming/info", UniFarmingController.getUserFarmingInfo);
+  // Маршруты для UNI фарминга (с поддержкой fallback)
+  app.get("/api/uni-farming/info", UniFarmingControllerFallback.getUserFarmingInfo);
   app.get("/api/uni-farming/update-balance", UniFarmingController.calculateAndUpdateFarming);
-  app.post("/api/uni-farming/deposit", UniFarmingController.createUniFarmingDeposit);
-  app.get("/api/uni-farming/deposits", UniFarmingController.getUserFarmingDeposits);
-  app.post("/api/uni-farming/harvest", UniFarmingController.harvestFarmingInfo);
+  app.post("/api/uni-farming/deposit", UniFarmingControllerFallback.depositFarming);
+  app.get("/api/uni-farming/deposits", UniFarmingControllerFallback.getUserFarmingDeposits);
+  app.post("/api/uni-farming/harvest", UniFarmingControllerFallback.harvestFarmingInfo);
   
-  // Маршруты для буст-пакетов
-  app.get("/api/boosts", (req, res, next) => BoostController.getBoostPackages(req, res, next));
-  app.get("/api/boosts/active", (req, res, next) => BoostController.getUserActiveBoosts(req, res, next));
-  app.post("/api/boosts/purchase", (req, res, next) => BoostController.purchaseBoost(req, res, next));
+  // Маршруты для буст-пакетов (с поддержкой fallback)
+  app.get("/api/boosts", (req, res, next) => BoostControllerFallback.getBoostPackages(req, res, next));
+  app.get("/api/boosts/active", (req, res, next) => BoostControllerFallback.getUserActiveBoosts(req, res, next));
+  app.post("/api/boosts/purchase", (req, res, next) => BoostControllerFallback.purchaseBoost(req, res, next));
   
   // Маршруты для TON Boost-пакетов
   app.get("/api/ton-boosts", TonBoostController.getTonBoostPackages);
@@ -1211,8 +1212,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     return await TonBoostController.processIncomingTransaction(req, res);
   });
-  app.get("/api/ton-farming/info", TonBoostController.getUserTonFarmingInfo);
-  app.get("/api/ton-farming/update-balance", TonBoostController.calculateAndUpdateTonFarming);
+  
+  // TON фарминг с поддержкой fallback
+  app.get("/api/ton-farming/info", TonBoostControllerFallback.getUserTonFarmingInfo);
+  app.get("/api/ton-farming/update-balance", TonBoostControllerFallback.calculateAndUpdateTonFarming);
 
   // Добавление обработчика для всех маршрутов, которые не соответствуют API
   // Это необходимо для корректной работы с Telegram Mini App

@@ -9,11 +9,16 @@ import {
  * Схемы валидации запросов API
  */
 
-// Схема для получения пользователя по ID
+// Схема для получения пользователя по ID с поддержкой как числовых, так и строковых значений
 export const userIdSchema = z.object({
-  user_id: z.number().int().positive({
-    message: 'ID пользователя должен быть положительным числом'
-  })
+  user_id: z.union([
+    z.string().refine(val => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+      message: 'ID пользователя должен быть положительным числом'
+    }),
+    z.number().int().positive({
+      message: 'ID пользователя должен быть положительным числом'
+    })
+  ]).transform(val => typeof val === 'string' ? parseInt(val) : val)
 });
 
 // Схема для получения пользователя по guest_id
@@ -102,6 +107,21 @@ export const depositSchema = z.object({
     message: 'Сумма должна быть положительным числом'
   }),
   package_id: z.number().int().nonnegative().optional(),
+});
+
+// Схема для валидации запроса на депозит фарминга
+export const depositFarmingRequestSchema = z.object({
+  user_id: z.number().int().positive({
+    message: 'ID пользователя должен быть положительным числом'
+  }),
+  amount: z.union([
+    z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+      message: 'Сумма должна быть положительным числом'
+    }),
+    z.number().positive({
+      message: 'Сумма должна быть положительным числом'
+    })
+  ])
 });
 
 // Валидация TON-адреса с помощью регулярного выражения
