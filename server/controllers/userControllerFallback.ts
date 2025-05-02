@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../services/userService';
 import { sendSuccess } from '../utils/responseUtils';
 import { ValidationError } from '../middleware/errorHandler';
-import { userIdSchema, registerUserSchema, guestRegistrationSchema } from '../validators/schemas';
+import { userIdSchema, createUserSchema, guestRegistrationSchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
 import { wrapServiceFunction } from '../db-service-wrapper';
 import { v4 as uuidv4 } from 'uuid';

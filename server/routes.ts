@@ -529,18 +529,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Это нужно, потому что Express обрабатывает маршруты в порядке их определения
   // Если маршрут с :id будет первым, то /guest/xxx будет обработан как {id: 'guest'}
   
-  // Маршрут для получения пользователя по guest_id
+  // Маршрут для получения пользователя по guest_id с поддержкой fallback
   // Этот маршрут необходим для поддержки метода getUserByGuestId из клиентского сервиса
-  app.get("/api/users/guest/:guestId", UserController.getUserByGuestId);
+  // app.get("/api/users/guest/:guestId", UserController.getUserByGuestId);
+  app.get("/api/users/guest/:guest_id", UserControllerFallback.getUserByGuestId);
   
-  // Более общий маршрут для получения пользователя по ID
-  app.get("/api/users/:id", UserController.getUserById);
+  // Более общий маршрут для получения пользователя по ID с поддержкой fallback
+  // app.get("/api/users/:id", UserController.getUserById);
+  app.get("/api/users/:id", UserControllerFallback.getUserById);
   app.post("/api/users/generate-refcode", UserController.generateRefCode);
-  app.get("/api/wallet/balance", UserController.getUserBalance);
+  
+  // Маршрут для получения баланса кошелька с поддержкой fallback
+  // app.get("/api/wallet/balance", UserController.getUserBalance);
+  app.get("/api/wallet/balance", WalletControllerFallback.getWalletBalance);
+  
   app.get("/api/me", UserController.getCurrentUser);
   
-  // Маршрут для восстановления сессии по guest_id (Этап 3.1)
-  app.get("/api/restore-session", SessionController.restoreSession);
+  // Маршрут для восстановления сессии по guest_id (Этап 3.1) с поддержкой fallback
+  // app.get("/api/restore-session", SessionController.restoreSession);
+  app.post("/api/session/restore", UserControllerFallback.restoreSession);
   
   // Маршруты для миграций и обслуживания базы данных (только для разработки)
   app.post("/api/migrations/add-guest-id", runAddGuestIdMigration);
@@ -1184,8 +1191,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/referral/register-start-param", ReferralController.registerStartParam);
   
   // Маршруты для ежедневного бонуса
-  app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);
-  app.post("/api/daily-bonus/claim", DailyBonusController.claimDailyBonus);
+  // app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);
+  // app.post("/api/daily-bonus/claim", DailyBonusController.claimDailyBonus);
+  
+  // Используем fallback контроллер для ежедневных бонусов
+  app.get("/api/daily-bonus/status", DailyBonusControllerFallback.checkDailyBonusStatus);
+  app.post("/api/daily-bonus/claim", DailyBonusControllerFallback.claimDailyBonus);
   
   // Маршруты для UNI фарминга (с поддержкой fallback)
   app.get("/api/uni-farming/info", UniFarmingControllerFallback.getUserFarmingInfo);

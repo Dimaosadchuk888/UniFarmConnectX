@@ -362,4 +362,167 @@ export class UserService {
       username
     };
   }
+
+  /**
+   * Регистрирует нового пользователя в гостевом режиме
+   * @param guestId Идентификатор гостя
+   * @param referrerCode Реферальный код пригласившего (опционально)
+   * @param airdropMode Режим AirDrop (опционально)
+   * @returns Объект с информацией о зарегистрированном пользователе
+   */
+  static async registerGuestUser(
+    guestId: string,
+    referrerCode: string | null = null,
+    airdropMode: boolean = false
+  ): Promise<{
+    id: number;
+    username: string;
+    ref_code: string;
+    telegram_id: number | null;
+    telegram_username: string | null;
+    guest_id: string;
+    created_at: string | Date;
+    referrer_id: number | null;
+    message?: string;
+  }> {
+    console.log(`[UserService] Registering guest user with guestId: ${guestId}, referrerCode: ${referrerCode}, airdropMode: ${airdropMode}`);
+    
+    // Проверяем, существует ли уже пользователь с таким guestId
+    const existingUser = await this.getUserByGuestId(guestId);
+    if (existingUser) {
+      console.log(`[UserService] User with guestId ${guestId} already exists: ${existingUser.id}`);
+      return {
+        id: existingUser.id,
+        username: existingUser.username || `guest_${existingUser.id}`,
+        ref_code: existingUser.ref_code || '',
+        telegram_id: existingUser.telegram_id,
+        telegram_username: existingUser.username || null,
+        guest_id: guestId,
+        created_at: existingUser.created_at || new Date(),
+        referrer_id: existingUser.parent_id || null,
+        message: 'Пользователь уже существует'
+      };
+    }
+    
+    // Создаем нового пользователя
+    let referrerId: number | null = null;
+    
+    // Если предоставлен реферальный код, пытаемся найти пригласителя
+    if (referrerCode) {
+      const inviter = await this.getUserByRefCode(referrerCode);
+      if (inviter) {
+        referrerId = inviter.id;
+      }
+    }
+    
+    const newUserData: any = {
+      telegram_id: null,
+      username: `guest_${Date.now()}`,
+      guest_id: guestId,
+      ref_code: null, // Будет сгенерирован автоматически
+      parent_ref_code: referrerCode,
+      parent_id: referrerId
+    };
+    
+    const newUser = await this.createUser(newUserData);
+    
+    return {
+      id: newUser.id,
+      username: newUser.username || `guest_${newUser.id}`,
+      ref_code: newUser.ref_code || '',
+      telegram_id: newUser.telegram_id,
+      telegram_username: newUser.username || null,
+      guest_id: guestId,
+      created_at: newUser.created_at || new Date(),
+      referrer_id: newUser.parent_id || null,
+      message: 'Пользователь успешно зарегистрирован'
+    };
+  }
+
+  /**
+   * Восстанавливает сессию пользователя
+   * @param guestId Идентификатор гостя (опционально)
+   * @param telegramData Данные от Telegram (опционально)
+   * @returns Объект с информацией о пользователе и сессии
+   */
+  static async restoreSession(
+    guestId?: string,
+    telegramData?: any
+  ): Promise<{
+    user: User;
+    session_id: string;
+    is_new_user: boolean;
+    message?: string;
+  }> {
+    console.log(`[UserService] Restoring session for guestId: ${guestId || 'not provided'}, telegramData: ${telegramData ? 'provided' : 'not provided'}`);
+    
+    let user: User | undefined;
+    let isNewUser = false;
+    
+    // Сначала пробуем найти пользователя по гостевому ID
+    if (guestId) {
+      user = await this.getUserByGuestId(guestId);
+      
+      if (user) {
+        console.log(`[UserService] Found user by guestId: ${user.id}`);
+      }
+    }
+    
+    // Если не нашли по гостевому ID, и есть данные Telegram, пробуем найти или создать
+    if (!user && telegramData) {
+      // Здесь должна быть проверка и обработка данных Telegram
+      // Предполагаем, что telegramData содержит id пользователя
+      try {
+        if (telegramData.id) {
+          const telegramId = Number(telegramData.id);
+          user = await this.getUserByTelegramId(telegramId);
+          
+          if (user) {
+            console.log(`[UserService] Found user by telegramId: ${user.id}`);
+          } else {
+            // Создаем нового пользователя с данными из Telegram
+            const newUserData: any = {
+              telegram_id: telegramId,
+              username: telegramData.username || `telegram_${telegramId}`,
+              first_name: telegramData.first_name,
+              last_name: telegramData.last_name,
+              guest_id: guestId || crypto.randomUUID(),
+              ref_code: null // Будет сгенерирован автоматически
+            };
+            
+            user = await this.createUser(newUserData);
+            isNewUser = true;
+            console.log(`[UserService] Created new user from Telegram data: ${user.id}`);
+          }
+        }
+      } catch (error) {
+        console.error('[UserService] Error processing Telegram data:', error);
+      }
+    }
+    
+    // Если пользователь все еще не найден, создаем нового гостевого пользователя
+    if (!user) {
+      const newGuestId = guestId || crypto.randomUUID();
+      const newUserData: any = {
+        telegram_id: null,
+        username: `guest_${Date.now()}`,
+        guest_id: newGuestId,
+        ref_code: null // Будет сгенерирован автоматически
+      };
+      
+      user = await this.createUser(newUserData);
+      isNewUser = true;
+      console.log(`[UserService] Created new guest user: ${user.id}`);
+    }
+    
+    // Генерируем идентификатор сессии
+    const sessionId = `sess_${crypto.randomUUID()}`;
+    
+    return {
+      user,
+      session_id: sessionId,
+      is_new_user: isNewUser,
+      message: isNewUser ? 'Создан новый пользователь' : 'Восстановлена сессия существующего пользователя'
+    };
+  }
 }

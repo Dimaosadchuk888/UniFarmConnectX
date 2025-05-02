@@ -174,6 +174,15 @@ export const createFarmingDepositSchema = insertFarmingDepositSchema.extend({
   // Можно добавить дополнительные поля или валидацию
 });
 
+// Схема для регистрации гостевого пользователя
+export const guestRegistrationSchema = z.object({
+  guest_id: z.string().min(1, {
+    message: 'guest_id должен быть непустой строкой'
+  }),
+  referrer_code: z.string().nullable().optional(),
+  airdrop_mode: z.boolean().optional()
+});
+
 // Схемы для валидации запросов к API буст-пакетов
 export const boostIdParamSchema = z.object({
   boost_id: z.number().int().positive({
