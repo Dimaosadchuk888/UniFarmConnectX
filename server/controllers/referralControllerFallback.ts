@@ -122,9 +122,13 @@ export class ReferralControllerFallback {
               console.log(`[ReferralControllerFallback] Пользователь с ID ${userId} не найден в MemStorage`);
               return {
                 user_id: userId,
-                ref_code: 'Unknown',
+                ref_code: null,
+                username: null,
                 total_referrals: 0,
-                active_referrals: 0,
+                referral_counts: {},
+                level_income: {},
+                total_income: { uni: 0, ton: 0 },
+                status: 'inactive',
                 is_fallback: true,
                 message: 'Данные в режиме fallback'
               };
@@ -138,12 +142,22 @@ export class ReferralControllerFallback {
               refUser.parent_ref_code === user.ref_code
             );
             
+            // В режиме fallback все рефералы считаются уровня 1
+            const referralCounts = { 1: referrals.length };
+            
+            // В режиме fallback мы не можем получить информацию о доходах, поэтому возвращаем пустые значения
+            const levelIncome = { 1: { uni: 0, ton: 0 } };
+            
             // Формируем результат
             return {
               user_id: userId,
-              ref_code: user.ref_code || 'Unknown',
+              ref_code: user.ref_code || null,
+              username: user.username || 'user',
               total_referrals: referrals.length,
-              active_referrals: referrals.length, // В режиме fallback считаем всех активными
+              referral_counts: referralCounts,
+              level_income: levelIncome,
+              total_income: { uni: 0, ton: 0 },
+              status: referrals.length > 0 ? 'active' : 'inactive',
               is_fallback: true,
               message: 'Статистика получена из резервного хранилища'
             };
@@ -153,9 +167,13 @@ export class ReferralControllerFallback {
             // Возвращаем пустые данные при ошибке
             return {
               user_id: userId,
-              ref_code: 'Unknown',
+              ref_code: null,
+              username: null,
               total_referrals: 0,
-              active_referrals: 0,
+              referral_counts: {},
+              level_income: {},
+              total_income: { uni: 0, ton: 0 },
+              status: 'inactive',
               is_fallback: true,
               message: 'Недоступно из-за ошибки в резервном хранилище'
             };

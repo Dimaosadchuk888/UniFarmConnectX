@@ -273,6 +273,51 @@ export class ReferralService {
       throw error;
     }
   }
+  
+  /**
+   * Получает статистику реферальной программы для пользователя
+   * @param userId ID пользователя
+   * @returns Статистика по рефералам
+   */
+  static async getReferralStats(userId: number): Promise<any> {
+    try {
+      // Получаем пользователя
+      const user = await UserService.getUserById(userId);
+      if (!user) {
+        throw new ValidationError('Пользователь не найден', { userId });
+      }
+
+      // Получаем количество рефералов по уровням
+      const referralCounts = await this.getReferralCounts(userId);
+      
+      // Получаем данные о доходах по уровням
+      const levelIncome = await this.getLevelIncomeData(userId);
+      
+      // Получаем общее количество рефералов
+      const totalReferrals = Object.values(referralCounts).reduce((sum, count) => sum + count, 0);
+      
+      // Получаем общий доход от рефералов
+      const totalIncome = {
+        uni: Object.values(levelIncome).reduce((sum, income) => sum + income.uni, 0),
+        ton: Object.values(levelIncome).reduce((sum, income) => sum + income.ton, 0)
+      };
+      
+      // Формируем результат
+      return {
+        user_id: userId,
+        ref_code: user.ref_code || null,
+        username: user.username || 'user',
+        total_referrals: totalReferrals,
+        referral_counts: referralCounts,
+        level_income: levelIncome,
+        total_income: totalIncome,
+        status: totalReferrals > 0 ? 'active' : 'inactive'
+      };
+    } catch (error) {
+      console.error('[ReferralService] Error in getReferralStats:', error);
+      throw error;
+    }
+  }
 
   /**
    * Проверяет, есть ли у пользователя пригласитель

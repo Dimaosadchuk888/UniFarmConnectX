@@ -29,6 +29,7 @@ import { TransactionController } from './controllers/transactionController';
 import { MissionController } from './controllers/missionController';
 import { FarmingController } from './controllers/farmingController';
 import { ReferralController } from './controllers/referralController';
+import { ReferralControllerFallback } from './controllers/referralControllerFallback';
 import { SessionController } from './controllers/sessionController';
 import { runAddGuestIdMigration } from './controllers/migrationController';
 
@@ -1190,6 +1191,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/referrals", ReferralController.getUserReferrals);
   app.get("/api/referrals/inviter/:id", ReferralController.getUserInviter);
   app.post("/api/referral/register-start-param", ReferralController.registerStartParam);
+  
+  // Маршруты для реферальной системы с fallback
+  app.get("/api/referrals/tree", ReferralControllerFallback.getReferralTree);
+  app.get("/api/referrals/stats", ReferralControllerFallback.getReferralStats);
   
   // Маршруты для ежедневного бонуса
   // app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);
