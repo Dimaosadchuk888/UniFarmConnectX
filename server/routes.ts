@@ -38,7 +38,9 @@ import { TelegramController } from './controllers/telegramController'; // Нов
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { UniFarmingController } from './controllers/uniFarmingController';
 import { BoostController } from './controllers/boostController';
+import { BoostControllerFallback } from './controllers/boostControllerFallback'; // Fallback контроллер для бустов
 import { TonBoostController } from './controllers/tonBoostController';
+import { TonBoostControllerFallback } from './controllers/tonBoostControllerFallback'; // Fallback контроллер для TON фарминга
 import { AuthController } from './controllers/authController'; // Обновленный контроллер (SOLID)
 import { SecurityController } from './controllers/securityController'; // Новый контроллер безопасности (SOLID)
 import { WalletController } from './controllers/walletController';

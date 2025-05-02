@@ -1,7 +1,8 @@
 import { users, type User, type InsertUser } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { IStorage, MemStorage } from './storage-memory';
+import { createInsertSchema } from "drizzle-zod";
 
 // Адаптер для хранилища с фолбеком на хранилище в памяти
 class StorageAdapter implements IStorage {

@@ -28,21 +28,27 @@ export class MemStorage implements IStorage {
     console.log('[MemStorage] Создание нового пользователя:', insertUser);
     const id = this.nextId++;
     const createdAt = new Date();
-    const updatedAt = createdAt;
     
+    // Создаем нового пользователя согласно схеме
     const newUser: User = {
       id,
-      ...insertUser,
-      created_at: createdAt,
-      updated_at: updatedAt,
-      wallet_address: insertUser.wallet_address || null,
-      ref_code: insertUser.ref_code || `REF${id.toString().padStart(6, '0')}`,
-      ref_parent_id: insertUser.ref_parent_id || null,
-      uni_balance: 0,
-      ton_balance: 0,
       telegram_id: insertUser.telegram_id || null,
+      guest_id: insertUser.guest_id || null,
       username: insertUser.username || `user${id}`,
-      guest_id: insertUser.guest_id || null
+      wallet: insertUser.wallet || null,
+      ton_wallet_address: insertUser.ton_wallet_address || null,
+      ref_code: insertUser.ref_code || `REF${id.toString().padStart(6, '0')}`,
+      parent_ref_code: insertUser.parent_ref_code || null,
+      balance_uni: "0",
+      balance_ton: "0",
+      uni_deposit_amount: "0",
+      uni_farming_start_timestamp: null,
+      uni_farming_balance: "0",
+      uni_farming_rate: "0",
+      uni_farming_last_update: null,
+      created_at: createdAt,
+      checkin_last_date: null,
+      checkin_streak: 0
     };
     
     this.users.push(newUser);
