@@ -359,6 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/register", AuthController.registerUser);
   
   // Маршрут для регистрации пользователя в режиме AirDrop (Этап 4)
+  app.post("/api/auth/guest/register", UserControllerFallback.registerGuestUser);
   
   // Новые маршруты безопасности (SOLID)
   app.post("/api/security/validate-telegram", SecurityController.validateTelegramInitData);
