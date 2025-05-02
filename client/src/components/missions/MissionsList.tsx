@@ -20,6 +20,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useUser } from '@/contexts/userContext';
 import { invalidateQueryWithUserId } from '@/lib/queryClient';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 
 // Определение типов статусов миссий
 export enum MissionStatus {
@@ -82,36 +83,13 @@ export const MissionsList: React.FC = () => {
     queryFn: async () => {
       console.log('🚀 Запрос активных миссий');
       
-      // Формируем абсолютный URL с протоколом
-      const protocol = window.location.protocol;
-      const host = window.location.host;
-      const endpoint = '/api/missions/active';
-      const url = `${protocol}//${host}${endpoint}`;
-      
-      console.log(`📤 GET запрос активных миссий на URL: ${url}`);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-      
-      console.log(`📥 Ответ получен (статус: ${response.status} ${response.statusText})`);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Ошибка при получении активных миссий: ${response.status} ${errorText}`);
-      }
-      
-      // Получаем текст ответа
-      const responseText = await response.text();
-      console.log(`📥 Текст ответа: ${responseText.substring(0, 100)}...`);
+      // Используем стандартизированный метод для API запросов
+      console.log(`📤 GET запрос активных миссий с использованием correctApiRequest`);
       
       try {
-        const data = JSON.parse(responseText);
+        // correctApiRequest автоматически формирует URL и добавляет нужные заголовки
+        const data = await correctApiRequest('/api/missions/active', 'GET');
+        console.log(`📥 Ответ получен через correctApiRequest:`, data);
         // Проверяем что у нас есть массив с данными
         if (data && data.success && Array.isArray(data.data)) {
           console.log(`✅ Получены активные миссии (${data.data.length} шт.)`);
@@ -134,36 +112,13 @@ export const MissionsList: React.FC = () => {
     queryFn: async () => {
       console.log('🚀 Запрос выполненных миссий пользователя ID:', userId);
       
-      // Формируем абсолютный URL с протоколом
-      const protocol = window.location.protocol;
-      const host = window.location.host;
-      const endpoint = `/api/user_missions?user_id=${userId || 1}`;
-      const url = `${protocol}//${host}${endpoint}`;
-      
-      console.log(`📤 GET запрос выполненных миссий на URL: ${url}`);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-      
-      console.log(`📥 Ответ получен (статус: ${response.status} ${response.statusText})`);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Ошибка при получении выполненных миссий: ${response.status} ${errorText}`);
-      }
-      
-      // Получаем текст ответа
-      const responseText = await response.text();
-      console.log(`📥 Текст ответа: ${responseText.substring(0, 100)}...`);
+      // Используем стандартизированный метод для API запросов
+      console.log(`📤 GET запрос выполненных миссий с использованием correctApiRequest`);
       
       try {
-        const data = JSON.parse(responseText);
+        // Используем correctApiRequest с ID пользователя
+        const data = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}`, 'GET');
+        console.log(`📥 Ответ получен через correctApiRequest:`, data);
         // Проверяем что у нас есть массив с данными
         if (data && data.success && Array.isArray(data.data)) {
           console.log(`✅ Получены выполненные миссии (${data.data.length} шт.)`);
@@ -226,23 +181,15 @@ export const MissionsList: React.FC = () => {
           : mission
       ));
       
-      // Выполняем API запрос
-      const response = await fetch('/api/missions/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user_id: userId || 1,
-          mission_id: missionId
-        })
-      });
+      // Выполняем API запрос через correctApiRequest
+      console.log(`📤 Отправка запроса на выполнение миссии ${missionId} с использованием correctApiRequest`);
       
-      if (!response.ok) {
-        throw new Error('Failed to complete mission');
-      }
+      const result = await correctApiRequest('/api/missions/complete', 'POST', {
+        user_id: userId || 1,
+        mission_id: missionId
+      }) as CompleteMissionResponse;
       
-      const result: CompleteMissionResponse = await response.json();
+      console.log(`📥 Ответ получен через correctApiRequest:`, result);
       
       if (result.success) {
         // Имитируем прогресс заполнения прогресс-бара
