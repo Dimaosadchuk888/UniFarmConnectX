@@ -367,113 +367,113 @@ function App() {
               <TelegramWebAppCheck>
                 <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
                   <Switch>
-              {/* Маршруты для Telegram Mini App */}
-              <Route path="/UniFarm/">
-                <TelegramMiniApp />
-              </Route>
-              
-              {/* Для совместимости, маршрут для Mini App независимо от регистра */}
-              <Route path="/unifarm/">
-                <TelegramMiniApp />
-              </Route>
-              
-              {/* Специальный обработчик для маршрута /app/ со слешем */}
-              <Route path="/app/">
-                <TelegramMiniApp />
-              </Route>
-              
-              {/* Основной маршрут /app без слеша */}
-              <Route path="/app">
-                <TelegramMiniApp />
-              </Route>
-              
-              {/* Административная страница для настройки бота */}
-              <Route path="/admin">
-                <AdminPage />
-              </Route>
-              
-              {/* Руководство по настройке Telegram Mini App */}
-              <Route path="/telegram-setup">
-                <TelegramSetupGuide />
-              </Route>
-              
-              {/* Прямой маршрут на страницу фарминга */}
-              <Route path="/farming">
-                <div className="max-w-md mx-auto bg-background">
-                  <Header />
-                  <main className="px-4 pt-2 pb-20">
-                    <Farming />
-                  </main>
-                  <NavigationBar activeTab="farming" setActiveTab={setActiveTab} />
-                </div>
-              </Route>
+                    {/* Маршруты для Telegram Mini App */}
+                    <Route path="/UniFarm/">
+                      <TelegramMiniApp />
+                    </Route>
+                    
+                    {/* Для совместимости, маршрут для Mini App независимо от регистра */}
+                    <Route path="/unifarm/">
+                      <TelegramMiniApp />
+                    </Route>
+                    
+                    {/* Специальный обработчик для маршрута /app/ со слешем */}
+                    <Route path="/app/">
+                      <TelegramMiniApp />
+                    </Route>
+                    
+                    {/* Основной маршрут /app без слеша */}
+                    <Route path="/app">
+                      <TelegramMiniApp />
+                    </Route>
+                    
+                    {/* Административная страница для настройки бота */}
+                    <Route path="/admin">
+                      <AdminPage />
+                    </Route>
+                    
+                    {/* Руководство по настройке Telegram Mini App */}
+                    <Route path="/telegram-setup">
+                      <TelegramSetupGuide />
+                    </Route>
+                    
+                    {/* Прямой маршрут на страницу фарминга */}
+                    <Route path="/farming">
+                      <div className="max-w-md mx-auto bg-background">
+                        <Header />
+                        <main className="px-4 pt-2 pb-20">
+                          <Farming />
+                        </main>
+                        <NavigationBar activeTab="farming" setActiveTab={setActiveTab} />
+                      </div>
+                    </Route>
 
-              {/* Прямой маршрут на страницу кошелька */}
-              <Route path="/wallet">
-                <div className="max-w-md mx-auto bg-background">
-                  <Header />
-                  <main className="px-4 pt-2 pb-20">
-                    <Wallet />
-                  </main>
-                  <NavigationBar activeTab="wallet" setActiveTab={setActiveTab} />
-                </div>
-              </Route>
+                    {/* Прямой маршрут на страницу кошелька */}
+                    <Route path="/wallet">
+                      <div className="max-w-md mx-auto bg-background">
+                        <Header />
+                        <main className="px-4 pt-2 pb-20">
+                          <Wallet />
+                        </main>
+                        <NavigationBar activeTab="wallet" setActiveTab={setActiveTab} />
+                      </div>
+                    </Route>
 
-              {/* Прямой маршрут на страницу друзей/партнёрки */}
-              <Route path="/friends">
-                <div className="max-w-md mx-auto bg-background">
-                  <Header />
-                  <main className="px-4 pt-2 pb-20">
-                    <Friends />
-                  </main>
-                  <NavigationBar activeTab="friends" setActiveTab={setActiveTab} />
-                </div>
-              </Route>
+                    {/* Прямой маршрут на страницу друзей/партнёрки */}
+                    <Route path="/friends">
+                      <div className="max-w-md mx-auto bg-background">
+                        <Header />
+                        <main className="px-4 pt-2 pb-20">
+                          <Friends />
+                        </main>
+                        <NavigationBar activeTab="friends" setActiveTab={setActiveTab} />
+                      </div>
+                    </Route>
 
-              {/* Прямой маршрут на страницу миссий */}
-              <Route path="/missions">
-                <div className="max-w-md mx-auto bg-background">
-                  <Header />
-                  <main className="px-4 pt-2 pb-20">
-                    <Missions />
-                  </main>
-                  <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
-                </div>
-              </Route>
+                    {/* Прямой маршрут на страницу миссий */}
+                    <Route path="/missions">
+                      <div className="max-w-md mx-auto bg-background">
+                        <Header />
+                        <main className="px-4 pt-2 pb-20">
+                          <Missions />
+                        </main>
+                        <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
+                      </div>
+                    </Route>
 
-              {/* Прямой маршрут на страницу дашборда */}
-              <Route path="/dashboard">
-                <div className="max-w-md mx-auto bg-background">
-                  <Header />
-                  <main className="px-4 pt-2 pb-20">
-                    <Dashboard />
-                  </main>
-                  <NavigationBar activeTab="dashboard" setActiveTab={setActiveTab} />
+                    {/* Прямой маршрут на страницу дашборда */}
+                    <Route path="/dashboard">
+                      <div className="max-w-md mx-auto bg-background">
+                        <Header />
+                        <main className="px-4 pt-2 pb-20">
+                          <Dashboard />
+                        </main>
+                        <NavigationBar activeTab="dashboard" setActiveTab={setActiveTab} />
+                      </div>
+                    </Route>
+                    
+                    {/* Основной интерфейс приложения */}
+                    <Route path="*">
+                      <Header />
+                      {/* Показываем предупреждение о проблемах с Telegram WebApp */}
+                      <main className="px-4 pt-2 pb-20">
+                        {isLoading ? (
+                          <div className="flex items-center justify-center h-32">
+                            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                          </div>
+                        ) : (
+                          /* Просто рендерим страницу, не показываем ошибку Telegram авторизации */
+                          renderActivePage()
+                        )}
+                      </main>
+                      <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
+                    </Route>
+                  </Switch>
+                  <Toaster />
                 </div>
-              </Route>
-              
-              {/* Основной интерфейс приложения */}
-              <Route path="*">
-                <Header />
-                {/* Показываем предупреждение о проблемах с Telegram WebApp */}
-                <main className="px-4 pt-2 pb-20">
-                  {isLoading ? (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
-                    </div>
-                  ) : (
-                    /* Просто рендерим страницу, не показываем ошибку Telegram авторизации */
-                    renderActivePage()
-                  )}
-                </main>
-                <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
-              </Route>
-            </Switch>
-          </div>
-          <Toaster />
-        </TelegramWebAppCheck>
+              </TelegramWebAppCheck>
             </ErrorBoundary>
-        </UserProvider>
+          </UserProvider>
         </NotificationProvider>
       </TonConnectUIProvider>
     </QueryClientProvider>
