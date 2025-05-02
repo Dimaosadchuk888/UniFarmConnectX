@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -219,14 +219,11 @@ const BoostPackagesCard: React.FC = () => {
           if (result) {
             console.log('[DEBUG] Транзакция успешно отправлена, регистрируем на сервере...');
             // Если пользователь подтвердил транзакцию в Tonkeeper, регистрируем её на сервере
-            const registerResponse = await apiRequest('/api/ton-boosts/purchase', {
-              method: 'POST',
-              body: JSON.stringify({
+            const registerResponse = await correctApiRequest('/api/ton-boosts/purchase', 'POST', {
                 user_id: userId,
                 boost_id: boostId,
                 payment_method: 'external_wallet',
                 tx_hash: result.txHash // Передаем хеш транзакции
-              })
             });
             
             if (!registerResponse.ok) {
@@ -246,12 +243,9 @@ const BoostPackagesCard: React.FC = () => {
             
             // Теперь отправляем запрос на подтверждение платежа
             // Это нужно, чтобы система знала, что транзакция подтверждена пользователем
-            await apiRequest('/api/ton-boosts/confirm-payment', {
-              method: 'POST',
-              body: JSON.stringify({
+            await correctApiRequest('/api/ton-boosts/confirm-payment', 'POST', {
                 user_id: userIdInt,
                 transaction_id: transactionId
-              })
             });
             
             // Теперь показываем диалог ожидания только ПОСЛЕ того, как пользователь подтвердил транзакцию
