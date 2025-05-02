@@ -365,8 +365,8 @@ function App() {
             {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
             <ErrorBoundary>
               <TelegramWebAppCheck>
-          <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
-            <Switch>
+                <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
+                  <Switch>
               {/* Маршруты для Telegram Mini App */}
               <Route path="/UniFarm/">
                 <TelegramMiniApp />
