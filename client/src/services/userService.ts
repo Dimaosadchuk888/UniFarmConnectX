@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/queryClient";
 import { getCachedTelegramUserId } from "@/services/telegramService";
 import apiConfig from "@/config/apiConfig";
+import { correctApiRequest } from "@/lib/correctApiRequest";
 
 /**
  * Интерфейс пользователя, возвращаемый API
@@ -88,86 +89,55 @@ class UserService {
       const url = apiConfig.getFullUrl('/api/airdrop/register');
       console.log(`[UserService] AirDrop: Отправка запроса по URL: ${url}`);
       
-      // Отправляем запрос на регистрацию в режиме AirDrop
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          guest_id: guestId, // Передаем guest_id, который будет основным идентификатором
-          username: username,
-          ref_code: referralCode, // Передаем реферальный код через параметр ref_code
-          airdrop_mode: true // Явно указываем, что это режим AirDrop
-        })
+      // Отправляем запрос на регистрацию в режиме AirDrop с использованием correctApiRequest
+      console.log('[UserService] Используем correctApiRequest для запроса в режиме AirDrop');
+      
+      // correctApiRequest обрабатывает заголовки, преобразование JSON и анализ ответов автоматически
+      const result = await correctApiRequest(url, 'POST', {
+        guest_id: guestId, // Передаем guest_id, который будет основным идентификатором
+        username: username,
+        ref_code: referralCode, // Передаем реферальный код через параметр ref_code
+        airdrop_mode: true // Явно указываем, что это режим AirDrop
       });
+        
+      console.log('[UserService] Успешная регистрация в режиме AirDrop. Данные:', result);
       
-      // Полностью логируем ответ для отладки
-      const responseText = await response.text();
-      console.log(`[UserService] Получен ответ от сервера (status: ${response.status}):`, responseText);
-      
-      if (response.ok) {
-        try {
-          // Пробуем распарсить ответ как JSON
-          const result = JSON.parse(responseText);
-          console.log('[UserService] Успешная регистрация в режиме AirDrop. Данные:', result);
-          
-          // Проверяем, есть ли данные пользователя в ответе
-          if (result && result.data) {
-            // Проверяем наличие реферального кода в ответе
-            if (result.data.ref_code) {
-              console.log('[UserService] Получен реферальный код:', result.data.ref_code);
-            } else {
-              console.warn('[UserService] Реферальный код отсутствует в ответе от сервера');
-            }
-            
-            console.log('[UserService] Кэширование данных пользователя:', result.data);
-            
-            // Сохраняем данные пользователя в кэш
-            this.cacheUserData(result.data);
-            
-            // Возвращаем успешный результат и данные
-            return { 
-              success: true, 
-              data: result.data 
-            };
-          } else {
-            console.error('[UserService] В ответе отсутствуют данные пользователя:', result);
-            return { success: false };
-          }
-        } catch (parseError) {
-          console.error('[UserService] Ошибка при разборе JSON ответа:', parseError, 'Ответ:', responseText);
-          return { success: false };
+      // Проверяем, есть ли данные пользователя в ответе
+      if (result && result.data) {
+        // Проверяем наличие реферального кода в ответе
+        if (result.data.ref_code) {
+          console.log('[UserService] Получен реферальный код:', result.data.ref_code);
+        } else {
+          console.warn('[UserService] Реферальный код отсутствует в ответе от сервера');
         }
+        
+        console.log('[UserService] Кэширование данных пользователя:', result.data);
+        
+        // Сохраняем данные пользователя в кэш
+        this.cacheUserData(result.data);
+        
+        // Возвращаем успешный результат и данные
+        return { 
+          success: true, 
+          data: result.data 
+        };
       } else {
-        console.error('[UserService] Ошибка HTTP при регистрации:', response.status, responseText);
-        
-        // Анализируем возможные причины ошибки
-        if (response.status === 400) {
-          console.warn('[UserService] Возможно, проблема с валидацией данных на сервере.');
-        } else if (response.status === 500) {
-          console.warn('[UserService] Возможно, проблема с базой данных или внутренняя ошибка сервера.');
-        }
-        
-        try {
-          // Пробуем распарсить текст ошибки, если это JSON
-          const errorObj = JSON.parse(responseText);
-          return { 
-            success: false, 
-            data: { error: errorObj.message || 'Неизвестная ошибка' } 
-          };
-        } catch (e) {
-          return { 
-            success: false, 
-            data: { error: `HTTP ошибка ${response.status}` } 
-          };
-        }
+        console.error('[UserService] В ответе отсутствуют данные пользователя:', result);
+        return { 
+          success: false,
+          data: { error: 'Некорректный ответ сервера, отсутствуют данные пользователя' }
+        };
       }
-    } catch (error) {
-      console.error('[UserService] Критическая ошибка при регистрации в режиме AirDrop:', error);
+    } catch (error: any) {
+      console.error('[UserService] Ошибка при регистрации в режиме AirDrop:', error);
+      
+      // correctApiRequest уже предоставляет структурированную ошибку
       return { 
         success: false, 
-        data: { error: (error as Error).message || 'Неизвестная ошибка' }
+        data: { 
+          error: error.message || 'Неизвестная ошибка при регистрации',
+          details: error.details || error
+        }
       };
     }
   }

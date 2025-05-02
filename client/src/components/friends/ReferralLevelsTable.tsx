@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiConfig from '@/config/apiConfig';
 import logger from '@/utils/logger';
 import { safeFormatAmount } from '@/utils/formatters';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 
 /**
  * Таблица уровней реферальной программы
@@ -106,26 +107,11 @@ const ReferralLevelsTable: React.FC = () => {
         logger.debug('[ReferralLevelsTable] Запрос данных о рефералах по URL:', url);
         
         try {
-          // Запрос данных с сервера с явной обработкой ошибок и таймаутом
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+          // Используем correctApiRequest для стандартизированного запроса с обработкой ошибок
+          logger.debug('[ReferralLevelsTable] Использование correctApiRequest для запроса данных');
           
-          const response = await fetch(url, { 
-            signal: controller.signal,
-            headers: {
-              'Accept': 'application/json',
-              'Cache-Control': 'no-cache'
-            }
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (!response.ok) {
-            throw new Error(`Ошибка сервера: ${response.status}`);
-          }
-          
-          // Получаем данные из ответа
-          const responseData = await response.json();
+          // correctApiRequest автоматически устанавливает нужные заголовки и обрабатывает ошибки
+          const responseData = await correctApiRequest(url, 'GET');
           
           // Проверяем базовую структуру ответа
           if (!responseData || typeof responseData !== 'object') {
