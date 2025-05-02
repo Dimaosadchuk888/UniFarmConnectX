@@ -494,7 +494,7 @@ export const MissionsList: React.FC = () => {
               onClick={() => {
                 // Инвалидируем запросы для перезагрузки данных
                 queryClient.invalidateQueries({ queryKey: ['/api/missions/active'] });
-                queryClient.invalidateQueries({ queryKey: ['/api/user_missions', currentUserId] });
+                queryClient.invalidateQueries({ queryKey: ['/api/user_missions', userId] });
               }}
             >
               Попробовать снова
@@ -525,7 +525,7 @@ export const MissionsList: React.FC = () => {
               onClick={() => {
                 // Инвалидируем запросы для перезагрузки данных
                 queryClient.invalidateQueries({ queryKey: ['/api/missions/active'] });
-                queryClient.invalidateQueries({ queryKey: ['/api/user_missions', currentUserId] });
+                queryClient.invalidateQueries({ queryKey: ['/api/user_missions', userId] });
               }}
             >
               Обновить
