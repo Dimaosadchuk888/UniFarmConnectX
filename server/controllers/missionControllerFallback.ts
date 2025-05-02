@@ -4,12 +4,26 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { MissionService } from '../services/missionService';
+import { MissionService, MissionWithCompletion, MissionStatus } from '../services/missionService';
 import { wrapServiceFunction } from '../db-service-wrapper';
 import { sendSuccess, sendSuccessArray } from '../utils/responseUtils';
 import { userIdSchema } from '../validators/schemas';
 import { ValidationError } from '../middleware/errorHandler';
 import { formatZodErrors } from '../utils/validationUtils';
+
+// Тип для совместимости с MissionWithCompletion в режиме fallback
+interface MissionWithCompletionFallback {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  reward_uni: string;
+  is_active: boolean;
+  is_completed: boolean;
+  completed_at: null;
+  status: MissionStatus;
+  progress: number;
+}
 
 export class MissionControllerFallback {
   /**
@@ -110,7 +124,7 @@ export class MissionControllerFallback {
       const { user_id } = validationResult.data;
       
       // Заворачиваем вызов сервиса в обработчик ошибок с поддержкой fallback
-      const getMissionsWithCompletionWithFallback = wrapServiceFunction(
+      const getMissionsWithCompletionWithFallback = wrapServiceFunction<MissionWithCompletion[]>(
         MissionService.getAllMissionsWithCompletion.bind(MissionService),
         async (error, userId) => {
           console.log(`[MissionControllerFallback] Возвращаем заглушку для заданий со статусом выполнения для пользователя: ${userId}`);
@@ -124,7 +138,10 @@ export class MissionControllerFallback {
               description: 'Получите ежедневный бонус',
               reward_uni: '5',
               is_active: true,
-              completed: false
+              is_completed: false,
+              completed_at: null,
+              status: MissionStatus.AVAILABLE,
+              progress: 0
             },
             {
               id: 2,
@@ -133,7 +150,10 @@ export class MissionControllerFallback {
               description: 'Подпишитесь на наш Telegram канал',
               reward_uni: '10',
               is_active: true,
-              completed: false
+              is_completed: false,
+              completed_at: null,
+              status: MissionStatus.AVAILABLE,
+              progress: 0
             },
             {
               id: 3,
@@ -142,9 +162,12 @@ export class MissionControllerFallback {
               description: 'Пригласите друга и получите бонус',
               reward_uni: '15',
               is_active: true,
-              completed: false
+              is_completed: false,
+              completed_at: null,
+              status: MissionStatus.AVAILABLE,
+              progress: 0
             }
-          ];
+          ] as MissionWithCompletion[];
         }
       );
       
