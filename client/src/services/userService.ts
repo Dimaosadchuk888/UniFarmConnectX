@@ -422,11 +422,9 @@ class UserService {
         user_id: currentUser.id
       };
       
-      // Делаем запрос к серверу для генерации кода
-      const response = await apiRequest('/api/users/generate-refcode', {
-        method: 'POST',
-        body: JSON.stringify(requestData),
-      });
+      // Делаем запрос к серверу для генерации кода с использованием correctApiRequest
+      console.log('[UserService] Используем correctApiRequest для генерации реферального кода');
+      const response = await correctApiRequest('/api/users/generate-refcode', 'POST', requestData);
       
       if (response.success && response.data) {
         console.log('[UserService] Успешно получен реферальный код:', response.data);
@@ -464,8 +462,9 @@ class UserService {
       
       console.log(`[UserService] Запрос пользователя по guest_id: ${guestId}`);
       
-      // Отправляем запрос к API для получения пользователя по guest_id
-      const response = await apiRequest(`/api/users/guest/${guestId}`);
+      // Отправляем запрос к API для получения пользователя по guest_id, используя correctApiRequest
+      console.log('[UserService] Используем correctApiRequest для запроса по guest_id');
+      const response = await correctApiRequest(`/api/users/guest/${guestId}`, 'GET');
       
       if (response.success && response.data) {
         console.log('[UserService] Успешно получен пользователь по guest_id:', response.data);
