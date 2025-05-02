@@ -127,11 +127,15 @@ export class UserControllerFallback {
             
             // Попытка найти реферала если передан код
             let parentRefCode = null;
+            console.log(`[UserControllerFallback] Ищем реферала по коду: ${referrerCode}`);
             if (referrerCode) {
               const referrer = await memStorage.getUserByRefCode(referrerCode);
+              console.log(`[UserControllerFallback] Результат поиска реферала:`, referrer);
               if (referrer) {
                 parentRefCode = referrer.ref_code;
-                console.log(`[UserControllerFallback] Найден реферал с кодом ${referrerCode}, ID: ${referrer.id}`);
+                console.log(`[UserControllerFallback] Найден реферал с кодом ${referrerCode}, ID: ${referrer.id}, устанавливаем parent_ref_code=${parentRefCode}`);
+              } else {
+                console.log(`[UserControllerFallback] Реферал с кодом ${referrerCode} не найден`);
               }
             }
             

@@ -37,7 +37,10 @@ export class MemStorage implements IStorage {
   
   async getUserByRefCode(refCode: string): Promise<User | undefined> {
     console.log('[MemStorage] Получение пользователя по ref_code:', refCode);
-    return this.users.find(user => user.ref_code === refCode);
+    console.log('[MemStorage] Текущие пользователи:', this.users);
+    const user = this.users.find(user => user.ref_code === refCode);
+    console.log('[MemStorage] Результат поиска пользователя по ref_code:', user || 'не найден');
+    return user;
   }
   
   async updateUserRefCode(userId: number, refCode: string): Promise<User | undefined> {
