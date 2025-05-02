@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import { apiRequest } from '@/lib/queryClient';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 import { fetchBalance, type Balance } from '@/services/balanceService';
 import { TonConnectUI } from '@tonconnect/ui-react';
 import { 
@@ -417,12 +417,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             // Вызываем API для сохранения адреса кошелька
             console.log('[UserContext] Сохраняем адрес кошелька на сервере:', { userId, address });
             
-            const response = await apiRequest('/api/wallet/connect', {
-              method: 'POST',
-              body: JSON.stringify({
-                user_id: userId,
-                wallet_address: address
-              })
+            const response = await correctApiRequest('/api/wallet/connect', 'POST', {
+              user_id: userId,
+              wallet_address: address
             });
             
             console.log('[UserContext] Результат сохранения адреса кошелька:', response);
@@ -520,11 +517,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         try {
           console.log('[UserContext] Отключаем кошелек на сервере для пользователя:', userId);
           
-          const response = await apiRequest('/api/wallet/disconnect', {
-            method: 'POST',
-            body: JSON.stringify({
-              user_id: userId
-            })
+          const response = await correctApiRequest('/api/wallet/disconnect', 'POST', {
+            user_id: userId
           });
           
           console.log('[UserContext] Результат отключения кошелька на сервере:', response);
