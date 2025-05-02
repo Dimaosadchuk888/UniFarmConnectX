@@ -18,7 +18,7 @@ import sessionRestoreService from '@/services/sessionRestoreService'; // Сер�
 import { UserProvider } from "@/contexts/userContext"; // Импортируем UserProvider
 import { NotificationProvider } from "@/contexts/notificationContext"; // Импортируем NotificationProvider
 import NotificationContainer from "@/components/ui/NotificationContainer"; // Импортируем контейнер уведомлений
-import ErrorBoundary from "@/components/ui/ErrorBoundary"; // Импортируем ErrorBoundary
+import ErrorBoundary from "@/components/ui/ErrorBoundary"; // Импортируем глобальный ErrorBoundary
 
 // Импортируем компоненты UI
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
@@ -363,7 +363,8 @@ function App() {
           {/* Оборачиваем весь контент в Provider контекста пользователя */}
           <UserProvider>
             {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
-            <TelegramWebAppCheck>
+            <ErrorBoundary>
+              <TelegramWebAppCheck>
           <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
             <Switch>
               {/* Маршруты для Telegram Mini App */}
@@ -471,6 +472,7 @@ function App() {
           </div>
           <Toaster />
         </TelegramWebAppCheck>
+            </ErrorBoundary>
         </UserProvider>
         </NotificationProvider>
       </TonConnectUIProvider>
