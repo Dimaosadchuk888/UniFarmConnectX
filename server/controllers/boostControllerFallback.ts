@@ -43,10 +43,13 @@ export class BoostControllerFallback {
       const getActiveBoostsWithFallback = wrapServiceFunction(
         BoostService.getUserActiveBoosts.bind(BoostService),
         async (error, userId) => {
-          console.log(`[BoostControllerFallback] Возвращаем заглушку для активных бустов по ID: ${userId}`);
+          console.log(`[BoostControllerFallback] Возвращаем заглушку для активных бустов по ID: ${userId}`, error);
           
           // Возвращаем пустой массив при отсутствии соединения с БД
-          return [];
+          return { 
+            boosts: [], 
+            has_active_boosts: false 
+          };
         }
       );
       
