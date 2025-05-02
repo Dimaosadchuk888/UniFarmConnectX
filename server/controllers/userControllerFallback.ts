@@ -125,12 +125,23 @@ export class UserControllerFallback {
               return existingUser;
             }
             
+            // Попытка найти реферала если передан код
+            let parentRefCode = null;
+            if (referrerCode) {
+              const referrer = await memStorage.getUserByRefCode(referrerCode);
+              if (referrer) {
+                parentRefCode = referrer.ref_code;
+                console.log(`[UserControllerFallback] Найден реферал с кодом ${referrerCode}, ID: ${referrer.id}`);
+              }
+            }
+            
             // Создаем временного пользователя в MemStorage
             const newUser = await memStorage.createUser({
               guest_id: guestId,
               username: `guest_${Date.now()}`,
               ref_code: null, // Будет сгенерирован автоматически
-              telegram_id: null
+              telegram_id: null,
+              parent_ref_code: parentRefCode
             });
             
             return {
