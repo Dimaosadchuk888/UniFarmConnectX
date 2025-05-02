@@ -4,6 +4,7 @@ import type { User } from '@/services/userService';
 import userService from '@/services/userService';
 import { buildReferralLink, buildDirectBotReferralLink } from '@/utils/referralUtils';
 import { apiRequest } from '@/lib/queryClient';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 
 /**
  * Компонент для отображения реферальной ссылки

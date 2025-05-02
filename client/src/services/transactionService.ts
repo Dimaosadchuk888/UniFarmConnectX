@@ -1,4 +1,5 @@
 import { apiRequest } from '@/lib/queryClient';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 
 /**
  * Типы транзакций
@@ -62,11 +63,16 @@ export async function fetchTransactions(
       throw new Error('userId is required to fetch transactions');
     }
     
-    const response = await apiRequest(`/api/wallet/transactions?user_id=${userId}&limit=${limit}&offset=${offset}`);
+    // Используем улучшенный метод correctApiRequest с обработкой ошибок
+    console.log('[transactionService] Запрос транзакций через correctApiRequest');
     
+    const response = await correctApiRequest(`/api/wallet/transactions?user_id=${userId}&limit=${limit}&offset=${offset}`, 'GET');
+    
+    // correctApiRequest сам обрабатывает основные ошибки запроса,
+    // но мы все равно проверяем структуру данных для более надежной работы
     if (!response.success || !response.data) {
-      console.error('[transactionService] Ошибка получения транзакций:', response.error || 'Unknown error');
-      throw new Error(response.error || 'Failed to fetch transactions');
+      console.error('[transactionService] Ошибка в структуре ответа:', response);
+      throw new Error('Некорректная структура ответа при получении транзакций');
     }
     
     console.log('[transactionService] Получены транзакции:', response.data);
