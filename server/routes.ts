@@ -42,6 +42,9 @@ import { BoostControllerFallback } from './controllers/boostControllerFallback';
 import { TonBoostController } from './controllers/tonBoostController';
 import { TonBoostControllerFallback } from './controllers/tonBoostControllerFallback'; // Fallback контроллер для TON фарминга
 import { UniFarmingControllerFallback } from './controllers/uniFarmingControllerFallback'; // Fallback контроллер для UNI фарминга
+import { DailyBonusControllerFallback } from './controllers/dailyBonusControllerFallback'; // Fallback контроллер для ежедневных бонусов
+import { WalletControllerFallback } from './controllers/walletControllerFallback'; // Fallback контроллер для кошелька
+import { UserControllerFallback } from './controllers/userControllerFallback'; // Fallback контроллер для пользователей
 import { AuthController } from './controllers/authController'; // Обновленный контроллер (SOLID)
 import { SecurityController } from './controllers/securityController'; // Новый контроллер безопасности (SOLID)
 import { WalletController } from './controllers/walletController';
