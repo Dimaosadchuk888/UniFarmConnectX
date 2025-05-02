@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByGuestId(guestId: string): Promise<User | undefined>;
   createUser(insertUser: InsertUser): Promise<User>;
 }
 
@@ -22,6 +23,11 @@ export class MemStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     console.log('[MemStorage] Получение пользователя по имени:', username);
     return this.users.find(user => user.username === username);
+  }
+
+  async getUserByGuestId(guestId: string): Promise<User | undefined> {
+    console.log('[MemStorage] Получение пользователя по guest_id:', guestId);
+    return this.users.find(user => user.guest_id === guestId);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
