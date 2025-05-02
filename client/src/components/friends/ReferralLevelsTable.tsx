@@ -3,6 +3,7 @@ import { Coins } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import apiConfig from '@/config/apiConfig';
 import logger from '@/utils/logger';
+import { safeFormatAmount } from '@/utils/formatters';
 
 /**
  * Таблица уровней реферальной программы
@@ -246,24 +247,35 @@ const ReferralLevelsTable: React.FC = () => {
           ? safeIncome.ton || 0 
           : 0;
         
-        // Форматируем числа безопасно
-        const formattedUniIncome = typeof uniIncome === 'number' && !isNaN(uniIncome)
-          ? parseFloat(uniIncome.toFixed(8)) 
-          : 0;
-        
-        const formattedTonIncome = typeof tonIncome === 'number' && !isNaN(tonIncome)
-          ? parseFloat(tonIncome.toFixed(6)) 
-          : 0;
-        
-        return {
-          level: `Уровень ${levelNumber}`,
-          friends: count,
-          income: { 
-            uni: `${formattedUniIncome} UNI`, 
-            ton: `${formattedTonIncome} TON` 
-          },
-          percent: `${LEVEL_PERCENTAGES[i]}%`
-        };
+        // Форматируем числа безопасно с использованием глобальной функции
+        try {
+          // Используем глобальную функцию safeFormatAmount для форматирования
+          // Аргументы: значение, десятичные знаки, валюта
+          const formattedUniIncome = safeFormatAmount(uniIncome, 8, 'UNI').replace(' UNI', ''); 
+          const formattedTonIncome = safeFormatAmount(tonIncome, 6, 'TON').replace(' TON', '');
+          
+          return {
+            level: `Уровень ${levelNumber}`,
+            friends: count,
+            income: { 
+              uni: `${formattedUniIncome} UNI`, 
+              ton: `${formattedTonIncome} TON` 
+            },
+            percent: `${LEVEL_PERCENTAGES[i]}%`
+          };
+        } catch (formatError) {
+          logger.error('[ReferralLevelsTable] Ошибка форматирования доходов:', formatError);
+          // Возвращаем безопасные значения в случае ошибки форматирования
+          return {
+            level: `Уровень ${levelNumber}`,
+            friends: count,
+            income: { 
+              uni: "0 UNI", 
+              ton: "0 TON" 
+            },
+            percent: `${LEVEL_PERCENTAGES[i]}%`
+          };
+        }
       });
     } catch (error) {
       logger.error('[ReferralLevelsTable] Ошибка обработки данных:', error);
