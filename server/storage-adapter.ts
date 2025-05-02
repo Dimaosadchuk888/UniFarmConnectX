@@ -1,6 +1,6 @@
 import { users, type User, type InsertUser } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
-import { db, pool, dbConnectionStatus, queryWithRetry } from "./db";
+import { db, pool, dbConnectionStatus, queryWithRetry, getCurrentProvider } from "./db-selector";
 import { IStorage, MemStorage } from './storage-memory';
 import { createInsertSchema } from "drizzle-zod";
 

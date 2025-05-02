@@ -8,6 +8,8 @@ import { setupProductionStatic } from "./productionStatic";
 // Импортируем middleware для стандартизации API ответов и обработки ошибок
 import { responseFormatter } from "./middleware/responseFormatter";
 import { errorHandler } from "./middleware/errorHandler";
+// Импортируем селектор базы данных и инициализируем подключение к БД Replit
+import { setDatabaseProvider } from "./db-selector";
 
 const app = express();
 app.use(express.json());
@@ -46,6 +48,10 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
 }) as any);
 
 (async () => {
+  // Устанавливаем использование Replit PostgreSQL по умолчанию
+  setDatabaseProvider('replit');
+  console.log('[DB] Инициализировано подключение к Replit PostgreSQL');
+  
   /**
    * Глобальный обработчик необработанных исключений и отказов промисов
    * Это важно для предотвращения аварийного завершения приложения
