@@ -104,10 +104,26 @@ export class BoostControllerFallback {
         }
       );
       
-      const purchaseResult = await purchaseBoostWithFallback(user_id, boost_id);
-      sendSuccess(res, purchaseResult);
+      try {
+        const purchaseResult = await purchaseBoostWithFallback(user_id, boost_id);
+        sendSuccess(res, purchaseResult);
+      } catch (dbError) {
+        // Обработка ошибок подключения к БД
+        console.log(`[BoostControllerFallback] Ошибка БД при покупке буста ID: ${boost_id} для пользователя: ${user_id}`);
+        sendSuccess(res, {
+          success: false,
+          message: "База данных недоступна, покупка буста временно невозможна",
+          boost_id: boost_id
+        });
+      }
     } catch (error) {
-      next(error);
+      // Обработка всех остальных ошибок (включая валидацию)
+      console.error('[BoostControllerFallback] Критическая ошибка:', error);
+      sendSuccess(res, {
+        success: false,
+        message: "Произошла ошибка при обработке запроса",
+        boost_id: req.body?.boost_id || 0
+      });
     }
   }
 }

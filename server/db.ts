@@ -1,6 +1,10 @@
-import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 import * as schema from "../shared/schema";
+import ws from "ws";
+
+// Настройка WebSocket для Neon Serverless
+neonConfig.webSocketConstructor = ws;
 
 // Проверка наличия переменной окружения DATABASE_URL
 if (!process.env.DATABASE_URL) {
@@ -9,17 +13,11 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-console.log('[DB] Инициализация стандартного PostgreSQL соединения');
+console.log('[DB] Инициализация Neon PostgreSQL соединения через serverless драйвер');
 
-// Создаем пул подключений к PostgreSQL
+// Создаем пул подключений к PostgreSQL используя Neon Serverless
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 10, // максимальное количество клиентов в пуле
-  idleTimeoutMillis: 30000, // время простоя, после которого клиент будет отключен
-  connectionTimeoutMillis: 5000, // время ожидания подключения
-  ssl: {
-    rejectUnauthorized: false // для подключения к Neon через SSL
-  }
+  connectionString: process.env.DATABASE_URL
 });
 
 // Обработка событий пула
