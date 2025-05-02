@@ -1,4 +1,4 @@
-import { apiRequest } from '@/lib/queryClient';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 
 /**
  * Интерфейс для данных баланса пользователя
@@ -25,7 +25,7 @@ export async function fetchBalance(userId: number): Promise<Balance> {
       throw new Error('userId is required to fetch balance');
     }
     
-    const response = await apiRequest(`/api/wallet/balance?user_id=${userId}`);
+    const response = await correctApiRequest(`/api/wallet/balance?user_id=${userId}`, 'GET');
     
     if (!response.success || !response.data) {
       console.error('[balanceService] Ошибка получения баланса:', response.error || 'Unknown error');
@@ -62,13 +62,10 @@ export async function requestWithdrawal(userId: number, amount: string, address:
       throw new Error('userId, amount и address обязательны для запроса на вывод');
     }
     
-    const response = await apiRequest('/api/wallet/withdraw', {
-      method: 'POST',
-      body: JSON.stringify({
-        user_id: userId,
-        amount,
-        wallet_address: address
-      })
+    const response = await correctApiRequest('/api/wallet/withdraw', 'POST', {
+      user_id: userId,
+      amount,
+      wallet_address: address
     });
     
     if (!response.success) {

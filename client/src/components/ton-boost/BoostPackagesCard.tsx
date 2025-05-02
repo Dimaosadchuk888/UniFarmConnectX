@@ -291,13 +291,10 @@ const BoostPackagesCard: React.FC = () => {
         }
       } else {
         // Для внутреннего баланса - стандартный процесс
-        const response = await apiRequest('/api/ton-boosts/purchase', {
-          method: 'POST',
-          body: JSON.stringify({
+        const response = await correctApiRequest('/api/ton-boosts/purchase', 'POST', {
             user_id: userId,
             boost_id: boostId,
             payment_method: paymentMethod
-          })
         });
         
         if (!response.success) {

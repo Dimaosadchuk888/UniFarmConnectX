@@ -13,10 +13,10 @@
  * 3. Затем выполнение запросов к API
  */
 
-import { apiRequest } from "@/lib/queryClient";
 import { v4 as uuidv4 } from 'uuid';
 import { isTelegramWebApp } from './telegramService';
 import apiConfig from "@/config/apiConfig";
+import { correctApiRequest } from "@/lib/correctApiRequest";
 
 /**
  * Константы для хранения ключей в localStorage/sessionStorage
@@ -124,9 +124,8 @@ const restoreSession = async (guestId: string) => {
     
     // Отправляем запрос на восстановление сессии
     console.log('[SessionRestoreService] Формирование запроса к серверу с телом:', JSON.stringify({ guest_id: guestId }));
-    const result = await apiRequest('/api/session/restore', {
-      method: 'POST',
-      body: JSON.stringify({ guest_id: guestId })
+    const result = await correctApiRequest('/api/session/restore', 'POST', {
+      guest_id: guestId
     });
     
     if (result.success && result.data) {
