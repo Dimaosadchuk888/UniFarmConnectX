@@ -2,6 +2,7 @@ import React from 'react';
 import WithdrawalForm from '@/components/wallet/WithdrawalForm';
 import BalanceCard from '@/components/wallet/BalanceCard';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 /**
  * Страница кошелька с информацией о балансе, формой вывода средств и историей транзакций
@@ -14,11 +15,18 @@ const Wallet: React.FC = () => {
       </div>
       
       {/* Отображаем карточку с балансом */}
-      <BalanceCard />
+      <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить информацию о балансе</div>}>
+        <BalanceCard />
+      </ErrorBoundary>
       
       {/* Отображаем форму вывода и историю транзакций */}
-      <WithdrawalForm />
-      <TransactionHistory />
+      <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить форму вывода средств</div>}>
+        <WithdrawalForm />
+      </ErrorBoundary>
+      
+      <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить историю транзакций</div>}>
+        <TransactionHistory />
+      </ErrorBoundary>
     </div>
   );
 };

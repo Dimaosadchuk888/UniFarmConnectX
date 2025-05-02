@@ -8,6 +8,7 @@ import FarmingHistory from '../components/farming/FarmingHistory';
 import TonBoostPackagesCard from '../components/ton-boost/BoostPackagesCard';
 import TonFarmingStatusCard from '../components/ton-boost/TonFarmingStatusCard';
 import ActiveTonBoostsCard from '../components/ton-boost/ActiveTonBoostsCard';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 const Farming: React.FC = () => {
   // Хардкод ID=1 для демонстрации
@@ -33,31 +34,45 @@ const Farming: React.FC = () => {
         
         <TabsContent value="uni">
           {/* Основной UNI пакет */}
-          <UniFarmingCard userData={userData} />
+          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить фарминг UNI</div>}>
+            <UniFarmingCard userData={userData} />
+          </ErrorBoundary>
           
           {/* UNI Boost Пакеты */}
-          <BoostPackagesCard userData={userData} />
+          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить бусты UNI</div>}>
+            <BoostPackagesCard userData={userData} />
+          </ErrorBoundary>
           
           {/* Активные Boost-пакеты */}
-          <ActiveBoostsCard userId={userId} />
+          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить активные бусты</div>}>
+            <ActiveBoostsCard userId={userId} />
+          </ErrorBoundary>
         </TabsContent>
         
         <TabsContent value="ton">
           {/* Статус TON фарминга - добавлен новый компонент */}
-          <TonFarmingStatusCard />
+          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить статус TON фарминга</div>}>
+            <TonFarmingStatusCard />
+          </ErrorBoundary>
           
           {/* Активные TON Boost-пакеты */}
-          <ActiveTonBoostsCard />
+          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить активные TON бусты</div>}>
+            <ActiveTonBoostsCard />
+          </ErrorBoundary>
           
           {/* TON Boost-пакеты */}
-          <div className="mb-6">
-            <TonBoostPackagesCard />
-          </div>
+          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить TON бусты</div>}>
+            <div className="mb-6">
+              <TonBoostPackagesCard />
+            </div>
+          </ErrorBoundary>
         </TabsContent>
       </Tabs>
       
       {/* История фарминга (общая для обоих типов) */}
-      <FarmingHistory userId={userId} />
+      <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить историю фарминга</div>}>
+        <FarmingHistory userId={userId} />
+      </ErrorBoundary>
     </div>
   );
 };
