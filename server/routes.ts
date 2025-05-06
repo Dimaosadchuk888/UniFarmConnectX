@@ -355,6 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/telegram", AuthController.authenticateTelegram);
   
   // Маршрут для восстановления сессии по guest_id (Этап 3)
+  // Маршрут для восстановления сессии по guest_id - используется текущий метод SessionController
   app.post("/api/session/restore", SessionController.restoreSession);
   
   // Маршрут для регистрации через Telegram (согласно ТЗ 2.1)
@@ -613,7 +614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Маршрут для восстановления сессии по guest_id (Этап 3.1) с поддержкой fallback
   // app.get("/api/restore-session", SessionController.restoreSession);
-  app.post("/api/session/restore", UserControllerFallback.restoreSession);
+  // Удаляем дублирующий маршрут /api/session/restore, так как он уже определен выше
   
   // Маршруты для миграций и обслуживания базы данных (только для разработки)
   app.post("/api/migrations/add-guest-id", runAddGuestIdMigration);
