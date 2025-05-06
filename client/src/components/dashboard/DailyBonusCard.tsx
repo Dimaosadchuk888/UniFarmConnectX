@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { invalidateQueryWithUserId } from '@/lib/queryClient';
-import { correctApiRequest } from '@/lib/correctApiRequest';
+import { apiGet, apiPost } from '@/lib/apiService';
 import { useUser } from '@/contexts/userContext';
 
 // Типы для статуса бонуса
@@ -37,14 +37,14 @@ const DailyBonusCard: React.FC = () => {
     queryKey: ['dailyBonusStatus', userId], // Добавляем userId в ключ запроса
     queryFn: async () => {
       try {
-        // Исправляем подход к запросу с использованием correctApiRequest
+        // Используем новый унифицированный метод apiGet
         const endpoint = `/api/daily-bonus/status?user_id=${userId || 1}`;
         console.log('[DailyBonusCard] Запрос статуса бонуса:', endpoint);
         
-        const response = await correctApiRequest<{success: boolean, data: DailyBonusStatus}>(endpoint, 'GET');
+        const response = await apiGet<DailyBonusStatus>(endpoint);
         
         if (!response.success) {
-          throw new Error('Ошибка при получении статуса бонуса');
+          throw new Error(response.error || 'Ошибка при получении статуса бонуса');
         }
         
         return response.data as DailyBonusStatus;
@@ -65,19 +65,18 @@ const DailyBonusCard: React.FC = () => {
   const claimBonusMutation = useMutation({
     mutationFn: async () => {
       try {
-        // Используем correctApiRequest вместо прямого fetch
+        // Используем новый унифицированный метод apiPost
         const endpoint = '/api/daily-bonus/claim';
         console.log('[DailyBonusCard] Отправка запроса на получение бонуса:', endpoint);
         
         // Отправляем POST запрос с корректными заголовками
-        const response = await correctApiRequest<ClaimBonusResult>(
+        const response = await apiPost<ClaimBonusResult>(
           endpoint, 
-          'POST', 
           { user_id: userId || 1 } // Используем динамический userId
         );
         
         if (!response.success) {
-          throw new Error(response.message || 'Ошибка при получении бонуса');
+          throw new Error(response.error || response.message || 'Ошибка при получении бонуса');
         }
         
         return response;
