@@ -91,10 +91,11 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
 }
 
 /**
- * НОВАЯ РЕАЛИЗАЦИЯ apiRequest С ПОДДЕРЖКОЙ ТОЛЬКО ОДНОГО ФОРМАТА:
+ * Унифицированный метод для всех API-запросов в проекте
+ * РЕКОМЕНДУЕМЫЙ ФОРМАТ ИСПОЛЬЗОВАНИЯ:
  * apiRequest('/api/route', { method: 'POST', body: JSON.stringify(data) })
  * 
- * БОЛЬШЕ НЕ ПОДДЕРЖИВАЕТСЯ:
+ * УСТАРЕВШИЙ ФОРМАТ (поддерживается для обратной совместимости, но не рекомендуется):
  * apiRequest('POST', '/api/route', data)
  * 
  * @param url API URL для запроса
@@ -102,6 +103,11 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
  * @returns Результат запроса в формате JSON
  */
 export async function apiRequest(url: string, options?: RequestInit): Promise<any> {
+  // Импортируем улучшенный apiService
+  const { apiService } = await import('./apiService');
+  
+  console.log('[queryClient] apiRequest to', url);
+  
   // Проверка наличия URL и валидация
   if (!url || typeof url !== 'string') {
     console.error('[queryClient] Ошибка: отсутствует или некорректный URL для запроса', { url });
@@ -121,218 +127,32 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
     };
   }
   
-  // Дополнительная проверка для отладки - нужна ли?
-  if (options?.method === url) {
-    console.error('[queryClient] Предупреждение: метод совпадает с URL, что может указывать на путаницу:', { url, method: options.method });
+  // Извлекаем метод из options или используем GET по умолчанию
+  const method = options?.method || 'GET';
+  
+  // Преобразуем body в правильный формат
+  let body: any;
+  
+  if (options?.body) {
+    try {
+      // Проверяем, является ли body строкой в формате JSON
+      if (typeof options.body === 'string') {
+        body = JSON.parse(options.body);
+      } else {
+        body = options.body;
+      }
+    } catch {
+      // Если не удалось спарсить JSON, используем как есть
+      body = options.body;
+    }
   }
   
-  console.log('[queryClient] apiRequest to', url);
-
-  try {
-    // Нормализуем путь, если он не начинается со слеша
-    const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
-    
-    // Формируем полный URL с учетом протокола и хоста
-    let fullUrl = '';
-    
-    // Определяем текущий протокол и хост из window.location
-    if (typeof window !== 'undefined') {
-      const protocol = window.location.protocol;
-      const host = window.location.host;
-      
-      // Создаем абсолютный URL с учетом протокола
-      fullUrl = `${protocol}//${host}${normalizedUrl}`;
-      
-      console.log('[queryClient] Сформирован абсолютный URL:', fullUrl);
-    } else {
-      // Запасной вариант, если window недоступен
-      fullUrl = `https://uni-farm-connect-2-misterxuniverse.replit.app${normalizedUrl}`;
-      console.log('[queryClient] Сформирован резервный URL:', fullUrl);
-    }
-    
-    // Определяем метод из options или по умолчанию GET
-    const method = options?.method || 'GET';
-    console.log(`[queryClient] Выполняем ${method} запрос к: ${fullUrl}`);
-    
-    // Необходимые базовые заголовки
-    const baseHeaders = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-    
-    // Объединяем базовые заголовки с переданными в options
-    const customHeaders = options?.headers || {};
-    const mergedHeaders = {
-      ...baseHeaders,
-      ...(customHeaders as Record<string, string>)
-    };
-    
-    // Добавляем Telegram заголовки
-    const apiHeaders = getApiHeaders(mergedHeaders);
-    
-    // Создаем чистые опции для fetch
-    const fetchOptions: RequestInit = {
-      method,
-      credentials: 'include',
-      headers: apiHeaders
-    };
-    
-    // Копируем остальные опции (кроме headers, так как мы их уже объединили)
-    if (options) {
-      if (options.body) fetchOptions.body = options.body;
-      if (options.cache) fetchOptions.cache = options.cache;
-      if (options.mode) fetchOptions.mode = options.mode;
-      if (options.redirect) fetchOptions.redirect = options.redirect;
-      if (options.signal) fetchOptions.signal = options.signal;
-    }
-    
-    // Проверка и логирование тела запроса
-    if (fetchOptions.body) {
-      console.log(`[queryClient] Request body: ${fetchOptions.body}`);
-      
-      // Детальная проверка формата body для POST/PUT запросов
-      if (method === 'POST' || method === 'PUT') {
-        try {
-          // Проверяем, что тело - это строка в формате JSON
-          let parsedBody = JSON.parse(fetchOptions.body as string);
-          
-          // Применяем исправление типов данных для запросов к API
-          // Преобразует числовые amount в строковые для совместимости с сервером
-          parsedBody = fixRequestBody(parsedBody);
-          
-          // Дополнительно проверяем, есть ли user_id в теле запроса
-          // Если нет, и у нас есть информация о пользователе в localStorage, добавляем её
-          if (!('user_id' in parsedBody)) {
-            try {
-              const userData = localStorage.getItem('unifarm_user_data');
-              if (userData) {
-                const userInfo = JSON.parse(userData);
-                if (userInfo && userInfo.id) {
-                  console.log(`[queryClient] Автоматически добавляем user_id=${userInfo.id} в тело запроса`);
-                  parsedBody.user_id = userInfo.id;
-                }
-              }
-            } catch (err) {
-              console.warn('[queryClient] Не удалось получить ID пользователя из localStorage:', err);
-            }
-          }
-          
-          // Если тело запроса было изменено, обновляем его в fetchOptions
-          const fixedBody = JSON.stringify(parsedBody);
-          if (fixedBody !== fetchOptions.body) {
-            console.log(`[queryClient] Тело запроса было исправлено для совместимости с сервером`);
-            fetchOptions.body = fixedBody;
-          }
-          
-          console.log(`[queryClient] Тело запроса (валидный JSON):`, parsedBody);
-          
-          // Если делаем запрос к фармингу, проверим структуру данных
-          if (url.includes('/uni-farming/')) {
-            console.log(`[queryClient] Проверка тела запроса фарминга:`, {
-              hasAmount: 'amount' in parsedBody,
-              amountType: typeof parsedBody.amount,
-              hasUserId: 'user_id' in parsedBody,
-              userIdType: typeof parsedBody.user_id
-            });
-          }
-        } catch (e: any) {
-          console.error(`[queryClient] ОШИБКА! Тело запроса не является валидным JSON:`, e);
-          throw new Error(`Недопустимый формат JSON в запросе: ${e?.message || 'Неизвестная ошибка'}`);
-        }
-      }
-    } else if (method === 'POST' || method === 'PUT') {
-      console.warn(`[queryClient] ВНИМАНИЕ! ${method}-запрос без тела! URL: ${fullUrl}`);
-    }
-    
-    console.log(`[queryClient] Отправляем запрос на ${method} ${fullUrl}`);
-    
-    // Выполняем запрос
-    const response = await fetch(fullUrl, fetchOptions);
-    
-    console.log(`[queryClient] Response status: ${response.status} ${response.statusText}`);
-    
-    // Проверяем статус ответа
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API Error (${response.status}): ${errorText}`);
-    }
-    
-    try {
-      // Получаем текст ответа для проверки
-      const responseText = await response.text();
-      
-      // Проверяем, что ответ не пустой
-      if (!responseText || !responseText.trim()) {
-        console.log('[queryClient] Получен пустой ответ');
-        // Возвращаем базовый успешный ответ для пустого ответа
-        return { 
-          success: true,
-          message: 'Операция успешно выполнена (пустой ответ)'
-        };
-      }
-      
-      // Проверяем, начинается ли текст с HTML тега
-      if (responseText.trim().startsWith('<!DOCTYPE html>') || 
-          responseText.trim().startsWith('<html') || 
-          responseText.trim().match(/^<[!a-z]/i)) {
-        console.error('[queryClient] Получен HTML-ответ вместо JSON:', responseText.substring(0, 100) + '...');
-        return {
-          success: false,
-          error: 'Получен HTML-ответ вместо JSON. Возможно, сервер перенаправил на другую страницу.',
-          type: 'html_response',
-          isHtmlResponse: true
-        };
-      }
-      
-      try {
-        // Преобразуем ответ в JSON
-        const data = JSON.parse(responseText);
-        
-        // Логируем общую структуру ответа
-        console.log(`[queryClient] Response received:`, {
-          success: data?.success,
-          hasData: data?.data !== undefined,
-          dataType: data?.data ? (Array.isArray(data.data) ? 'array' : typeof data.data) : 'undefined'
-        });
-        
-        return data;
-      } catch (parseError: any) {
-        console.error(`[queryClient] JSON parse error:`, parseError);
-        console.log(`[queryClient] Raw response text:`, responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
-        
-        // Проверка на наличие признаков редиректа в тексте ответа
-        if (responseText.includes('Redirecting to') || responseText.includes('301 Moved Permanently')) {
-          console.warn('[queryClient] Обнаружен редирект в ответе. Это может вызывать проблемы с JSON-парсингом.');
-          return { 
-            success: false, 
-            error: 'Сервер вернул редирект вместо JSON-ответа',
-            type: 'redirect_response',
-            isRedirect: true,
-            rawResponse: responseText.substring(0, 300)
-          };
-        }
-        
-        // Для удобства отладки, возвращаем объект с сырым текстом ответа и сообщением об ошибке
-        return { 
-          success: false, 
-          error: 'Недопустимый формат JSON в ответе',
-          type: 'parse_error',
-          rawResponse: responseText.substring(0, 1000),
-          errorDetails: parseError?.message || 'Неизвестная ошибка'
-        };
-      }
-    } catch (error: any) {
-      console.error(`[queryClient] Response handling error:`, error);
-      return {
-        success: false,
-        error: `Ошибка при обработке ответа: ${error?.message || 'Неизвестная ошибка'}`,
-        type: 'response_handling_error'
-      };
-    }
-  } catch (error) {
-    console.error(`[queryClient] API request error to ${url}:`, error);
-    throw error;
-  }
+  // Используем унифицированный apiService
+  return await apiService(url, {
+    method: method as any,
+    body,
+    headers: options?.headers as Record<string, string>
+  });
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
