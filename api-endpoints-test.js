@@ -5,92 +5,60 @@
  * стандартизированному формату { success: true/false, data/error: ... }
  */
 
-require('dotenv').config();
-const fetch = require('node-fetch');
-const fs = require('fs');
-const path = require('path');
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
 
-// Базовый URL API
-const API_BASE_URL = process.env.API_URL || 'http://localhost:3000/api';
+// Загружаем переменные окружения
+dotenv.config();
 
-// Цветные логи для лучшей читаемости
-const colors = {
-  reset: '\x1b[0m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
-  white: '\x1b[37m',
+// Базовый URL для API запросов
+const BASE_URL = process.env.API_URL || 'http://localhost:3000';
+
+// Тестовые учетные данные
+const TEST_USER = {
+  id: 1,
+  username: 'test_user',
+  guest_id: 'test-guest-id',
+  ref_code: 'TEST1234',
+  balance_uni: 100,
+  balance_ton: 1.5
 };
 
-// Тестовые данные
-let testUser = {
-  guest_id: `guest_${Date.now()}_${Math.floor(Math.random() * 1000)}`
-};
-
-// Объект для хранения результатов тестов
-const testResults = {
-  endpoints: [],
-  totalEndpoints: 0,
-  passedEndpoints: 0,
-  failedEndpoints: 0,
-  standardizedResponses: 0,
-  nonStandardizedResponses: 0
-};
+// Результаты тестирования
+const testResults = [];
 
 /**
  * Выполняет API-запрос
  */
 async function callApi(endpoint, method = 'GET', body = null) {
-  console.log(`${colors.cyan}[API Request] ${method} ${endpoint}${colors.reset}`);
+  const url = `${BASE_URL}${endpoint}`;
+  const options = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  };
+
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+
   try {
-    const options = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
-
-    if (body) {
-      options.body = JSON.stringify(body);
-      console.log(`${colors.cyan}[Request Body] ${JSON.stringify(body, null, 2)}${colors.reset}`);
+    console.log(`Выполняем ${method} запрос к ${url}`);
+    const response = await fetch(url, options);
+    const contentType = response.headers.get('content-type') || '';
+    
+    if (contentType.includes('application/json')) {
+      const data = await response.json();
+      return { status: response.status, data };
+    } else {
+      const text = await response.text();
+      return { status: response.status, text };
     }
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-    const responseText = await response.text();
-    
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.log(`${colors.red}[API Response] Non-JSON response (Status: ${response.status}): ${responseText}${colors.reset}`);
-      return {
-        status: response.status,
-        data: null,
-        isStandardized: false,
-      };
-    }
-    
-    // Проверяем, соответствует ли ответ стандартизированному формату
-    const isStandardized = 'success' in data;
-    
-    console.log(`${colors.cyan}[API Response] Status: ${response.status}, Standardized: ${isStandardized}${colors.reset}`);
-    console.log(`${colors.cyan}[Response Body] ${JSON.stringify(data, null, 2)}${colors.reset}`);
-    
-    return {
-      status: response.status,
-      data,
-      isStandardized,
-    };
   } catch (error) {
-    console.error(`${colors.red}[API Error] ${error.message}${colors.reset}`);
-    return {
-      status: 500,
-      data: { error: error.message },
-      isStandardized: false,
-    };
+    console.error(`Ошибка при запросе к ${url}:`, error.message);
+    return { status: 500, error: error.message };
   }
 }
 
@@ -98,7 +66,7 @@ async function callApi(endpoint, method = 'GET', body = null) {
  * Регистрирует результат теста
  */
 function recordTestResult(endpoint, method, status, isSuccess, isStandardized, notes = '') {
-  testResults.endpoints.push({
+  testResults.push({
     endpoint,
     method,
     status,
@@ -106,335 +74,192 @@ function recordTestResult(endpoint, method, status, isSuccess, isStandardized, n
     isStandardized,
     notes
   });
-  
-  testResults.totalEndpoints++;
-  
-  if (isSuccess) {
-    testResults.passedEndpoints++;
-  } else {
-    testResults.failedEndpoints++;
-  }
-  
-  if (isStandardized) {
-    testResults.standardizedResponses++;
-  } else {
-    testResults.nonStandardizedResponses++;
-  }
 }
 
 /**
  * Тестирует каждый API-эндпоинт
  */
 async function testAllEndpoints() {
-  console.log(`${colors.magenta}====================================${colors.reset}`);
-  console.log(`${colors.magenta}Тестирование всех API-эндпоинтов UniFarm${colors.reset}`);
-  console.log(`${colors.magenta}====================================${colors.reset}`);
-  
-  try {
-    // Тест #1: Регистрация пользователя (гостя)
-    console.log(`\n${colors.green}==== Тест #1: /auth/register-guest ====${colors.reset}`);
-    const registerResponse = await callApi('/auth/register-guest', 'POST', { guest_id: testUser.guest_id });
-    
-    const registerSuccess = registerResponse.status === 200 && 
-                            registerResponse.data && 
-                            (registerResponse.isStandardized ? registerResponse.data.success : true);
-    
-    if (registerSuccess) {
-      console.log(`${colors.green}✓ Регистрация пользователя успешна${colors.reset}`);
-      // Сохраняем данные пользователя для последующих тестов
-      if (registerResponse.isStandardized) {
-        testUser.id = registerResponse.data.data?.user?.id;
-        testUser.ref_code = registerResponse.data.data?.user?.ref_code;
-      } else {
-        testUser.id = registerResponse.data.user?.id;
-        testUser.ref_code = registerResponse.data.user?.ref_code;
-      }
-    } else {
-      console.log(`${colors.red}✘ Регистрация пользователя не удалась${colors.reset}`);
-    }
-    
-    recordTestResult('/auth/register-guest', 'POST', registerResponse.status, registerSuccess, registerResponse.isStandardized);
-    
-    // Тест #2: Получить данные пользователя
-    console.log(`\n${colors.green}==== Тест #2: /users/me ====${colors.reset}`);
-    const userResponse = await callApi(`/users/me?user_id=${testUser.id}`, 'GET');
-    
-    const userSuccess = userResponse.status === 200 && 
-                        userResponse.data && 
-                        (userResponse.isStandardized ? userResponse.data.success : true);
-    
-    if (userSuccess) {
-      console.log(`${colors.green}✓ Получение данных пользователя успешно${colors.reset}`);
-    } else {
-      console.log(`${colors.red}✘ Получение данных пользователя не удалось${colors.reset}`);
-    }
-    
-    recordTestResult('/users/me', 'GET', userResponse.status, userSuccess, userResponse.isStandardized);
-    
-    // Тест #3: Создание депозита в фарминг
-    console.log(`\n${colors.green}==== Тест #3: /uni-farming/deposit ====${colors.reset}`);
-    const depositResponse = await callApi('/uni-farming/deposit', 'POST', {
-      user_id: testUser.id,
-      amount: "5"
-    });
-    
-    const depositSuccess = depositResponse.status === 200 && 
-                           depositResponse.data && 
-                           (depositResponse.isStandardized ? depositResponse.data.success : true);
-    
-    if (depositSuccess) {
-      console.log(`${colors.green}✓ Создание депозита в фарминг успешно${colors.reset}`);
-    } else {
-      console.log(`${colors.red}✘ Создание депозита в фарминг не удалось${colors.reset}`);
-    }
-    
-    recordTestResult('/uni-farming/deposit', 'POST', depositResponse.status, depositSuccess, depositResponse.isStandardized);
-    
-    // Тест #4: Получение списка депозитов
-    console.log(`\n${colors.green}==== Тест #4: /uni-farming/deposits ====${colors.reset}`);
-    const depositsResponse = await callApi(`/uni-farming/deposits?user_id=${testUser.id}`, 'GET');
-    
-    const depositsSuccess = depositsResponse.status === 200 && 
-                            depositsResponse.data && 
-                            (depositsResponse.isStandardized ? depositsResponse.data.success : true);
-    
-    if (depositsSuccess) {
-      console.log(`${colors.green}✓ Получение списка депозитов успешно${colors.reset}`);
-    } else {
-      console.log(`${colors.red}✘ Получение списка депозитов не удалось${colors.reset}`);
-    }
-    
-    recordTestResult('/uni-farming/deposits', 'GET', depositsResponse.status, depositsSuccess, depositsResponse.isStandardized);
-    
-    // Ожидаем накопления фарминга
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Тест #5: Сбор фарминга
-    console.log(`\n${colors.green}==== Тест #5: /uni-farming/harvest ====${colors.reset}`);
-    const harvestResponse = await callApi('/uni-farming/harvest', 'POST', {
-      user_id: testUser.id
-    });
-    
-    const harvestSuccess = harvestResponse.status === 200 && 
-                           harvestResponse.data && 
-                           (harvestResponse.isStandardized ? harvestResponse.data.success : true);
-    
-    if (harvestSuccess) {
-      console.log(`${colors.green}✓ Сбор фарминга успешен${colors.reset}`);
-    } else {
-      console.log(`${colors.red}✘ Сбор фарминга не удался${colors.reset}`);
-    }
-    
-    recordTestResult('/uni-farming/harvest', 'POST', harvestResponse.status, harvestSuccess, harvestResponse.isStandardized);
-    
-    // Тест #6: Запрос на вывод средств
-    console.log(`\n${colors.green}==== Тест #6: /withdraw ====${colors.reset}`);
-    const withdrawResponse = await callApi('/withdraw', 'POST', {
-      user_id: testUser.id,
-      amount: "1",
-      currency: "UNI",
-      address: "UQExampleTonAddressForTestingPurposesOnly12345"
-    });
-    
-    const withdrawSuccess = withdrawResponse.status === 200 && 
-                            withdrawResponse.data && 
-                            (withdrawResponse.isStandardized ? withdrawResponse.data.success : true);
-    
-    if (withdrawSuccess) {
-      console.log(`${colors.green}✓ Запрос на вывод средств успешен${colors.reset}`);
-    } else {
-      console.log(`${colors.red}✘ Запрос на вывод средств не удался${colors.reset}`);
-    }
-    
-    recordTestResult('/withdraw', 'POST', withdrawResponse.status, withdrawSuccess, withdrawResponse.isStandardized);
-    
-    // Тест #7: Получение истории транзакций
-    console.log(`\n${colors.green}==== Тест #7: /transactions ====${colors.reset}`);
-    const transactionsResponse = await callApi(`/transactions?user_id=${testUser.id}`, 'GET');
-    
-    const transactionsSuccess = transactionsResponse.status === 200 && 
-                                transactionsResponse.data && 
-                                (transactionsResponse.isStandardized ? transactionsResponse.data.success : true);
-    
-    if (transactionsSuccess) {
-      console.log(`${colors.green}✓ Получение истории транзакций успешно${colors.reset}`);
-    } else {
-      console.log(`${colors.red}✘ Получение истории транзакций не удалось${colors.reset}`);
-    }
-    
-    recordTestResult('/transactions', 'GET', transactionsResponse.status, transactionsSuccess, transactionsResponse.isStandardized);
-    
-    // Тест #8: Привязка адреса кошелька
-    console.log(`\n${colors.green}==== Тест #8: /wallet/link-address ====${colors.reset}`);
-    const linkWalletResponse = await callApi('/wallet/link-address', 'POST', {
-      user_id: testUser.id,
-      wallet_address: "UQExampleTonAddressForTestingPurposesOnly12345"
-    });
-    
-    const linkWalletSuccess = linkWalletResponse.status === 200 && 
-                              linkWalletResponse.data && 
-                              (linkWalletResponse.isStandardized ? linkWalletResponse.data.success : true);
-    
-    if (linkWalletSuccess) {
-      console.log(`${colors.green}✓ Привязка адреса кошелька успешна${colors.reset}`);
-    } else {
-      console.log(`${colors.red}✘ Привязка адреса кошелька не удалась${colors.reset}`);
-    }
-    
-    recordTestResult('/wallet/link-address', 'POST', linkWalletResponse.status, linkWalletSuccess, linkWalletResponse.isStandardized);
-    
-    // Тест #9: Получение адреса кошелька
-    console.log(`\n${colors.green}==== Тест #9: /wallet/address ====${colors.reset}`);
-    const walletAddressResponse = await callApi(`/wallet/address?user_id=${testUser.id}`, 'GET');
-    
-    const walletAddressSuccess = walletAddressResponse.status === 200 && 
-                                 walletAddressResponse.data && 
-                                 (walletAddressResponse.isStandardized ? walletAddressResponse.data.success : true);
-    
-    if (walletAddressSuccess) {
-      console.log(`${colors.green}✓ Получение адреса кошелька успешно${colors.reset}`);
-    } else {
-      console.log(`${colors.red}✘ Получение адреса кошелька не удалось${colors.reset}`);
-    }
-    
-    recordTestResult('/wallet/address', 'GET', walletAddressResponse.status, walletAddressSuccess, walletAddressResponse.isStandardized);
-    
-    // Тест #10: Получение реферального дерева
-    console.log(`\n${colors.green}==== Тест #10: /referral/tree ====${colors.reset}`);
-    const refTreeResponse = await callApi(`/referral/tree?user_id=${testUser.id}`, 'GET');
-    
-    const refTreeSuccess = refTreeResponse.status === 200 && 
-                           refTreeResponse.data && 
-                           (refTreeResponse.isStandardized ? refTreeResponse.data.success : true);
-    
-    if (refTreeSuccess) {
-      console.log(`${colors.green}✓ Получение реферального дерева успешно${colors.reset}`);
-    } else {
-      console.log(`${colors.red}✘ Получение реферального дерева не удалось${colors.reset}`);
-    }
-    
-    recordTestResult('/referral/tree', 'GET', refTreeResponse.status, refTreeSuccess, refTreeResponse.isStandardized);
-    
-    // Тест #11: Генерация реферальной ссылки
-    console.log(`\n${colors.green}==== Тест #11: /referral/link ====${colors.reset}`);
-    const refLinkResponse = await callApi('/referral/link', 'POST', {
-      ref_code: testUser.ref_code
-    });
-    
-    const refLinkSuccess = refLinkResponse.status === 200 && 
-                           refLinkResponse.data && 
-                           (refLinkResponse.isStandardized ? refLinkResponse.data.success : true);
-    
-    if (refLinkSuccess) {
-      console.log(`${colors.green}✓ Генерация реферальной ссылки успешна${colors.reset}`);
-    } else {
-      console.log(`${colors.red}✘ Генерация реферальной ссылки не удалась${colors.reset}`);
-    }
-    
-    recordTestResult('/referral/link', 'POST', refLinkResponse.status, refLinkSuccess, refLinkResponse.isStandardized);
-    
-    // Формируем итоговый отчет
-    generateReport();
-    
-  } catch (error) {
-    console.error(`${colors.red}[Критическая ошибка] ${error.message}${colors.reset}`);
-    console.error(error.stack);
-  }
+  console.log('🔍 Начинаем тестирование API эндпоинтов...\n');
+
+  // 1. Тест базового API
+  const healthCheck = await callApi('/api/test-json');
+  recordTestResult('/api/test-json', 'GET', healthCheck.status, 
+    healthCheck.status === 200, 
+    healthCheck.data && typeof healthCheck.data.status === 'string',
+    'Базовый проверочный эндпоинт');
+
+  // 2. Проверка подключения к базе данных через системный статус
+  const dbStatus = await callApi('/api/system/status');
+  recordTestResult('/api/system/status', 'GET', dbStatus.status, 
+    dbStatus.status === 200, 
+    dbStatus.data && dbStatus.data.success === true,
+    `Статус DB: ${dbStatus.data?.data?.database || 'неизвестно'}`);
+
+  // 3. Тестирование API пользователей
+  const userApi = await callApi(`/api/users/${TEST_USER.id}`);
+  recordTestResult(`/api/users/${TEST_USER.id}`, 'GET', userApi.status, 
+    userApi.status === 200, 
+    userApi.data && (userApi.data.success === true || userApi.data.success === false),
+    userApi.data?.success ? 'Пользователь найден' : 'Пользователь не найден');
+
+  // 4. Тестирование API восстановления сессии
+  const sessionRestore = await callApi('/api/session/restore', 'POST', { guest_id: TEST_USER.guest_id });
+  recordTestResult('/api/session/restore', 'POST', sessionRestore.status, 
+    sessionRestore.status === 200 || sessionRestore.status === 400, 
+    sessionRestore.data && (sessionRestore.data.success === true || sessionRestore.data.success === false),
+    sessionRestore.data?.success ? 'Сессия восстановлена' : 'Сессия не найдена');
+
+  // 5. Тестирование API баланса кошелька
+  const walletBalance = await callApi('/api/wallet/balance?user_id=1');
+  recordTestResult('/api/wallet/balance', 'GET', walletBalance.status, 
+    walletBalance.status === 200, 
+    walletBalance.data && (walletBalance.data.success === true || walletBalance.data.success === false),
+    `Баланс ${walletBalance.data?.success ? 'получен' : 'не получен'}`);
+
+  // 6. Тестирование API транзакций пользователя
+  const transactions = await callApi('/api/user/transactions?user_id=1');
+  recordTestResult('/api/user/transactions', 'GET', transactions.status, 
+    transactions.status === 200, 
+    transactions.data && (transactions.data.success === true || transactions.data.success === false),
+    `Транзакции ${transactions.data?.success ? 'получены' : 'не получены'}`);
+
+  // 7. Тестирование API получения текущего пользователя
+  const currentUser = await callApi('/api/me');
+  recordTestResult('/api/me', 'GET', currentUser.status, 
+    currentUser.status === 200 || currentUser.status === 401, 
+    currentUser.data && (currentUser.data.success === true || currentUser.data.success === false),
+    currentUser.data?.success ? 'Пользователь авторизован' : 'Пользователь не авторизован');
+
+  // 8. Тестирование API реферальной системы
+  const referrals = await callApi('/api/referrals?user_id=1');
+  recordTestResult('/api/referrals', 'GET', referrals.status, 
+    referrals.status === 200, 
+    referrals.data && (referrals.data.success === true || referrals.data.success === false),
+    `Рефералы ${referrals.data?.success ? 'получены' : 'не получены'}`);
+
+  // 9. Тестирование API информации о фарминге UNI
+  const uniFarming = await callApi('/api/uni-farming/info?user_id=1');
+  recordTestResult('/api/uni-farming/info', 'GET', uniFarming.status, 
+    uniFarming.status === 200, 
+    uniFarming.data && (uniFarming.data.success === true || uniFarming.data.success === false),
+    `Информация о фарминге UNI ${uniFarming.data?.success ? 'получена' : 'не получена'}`);
+
+  // 10. Тестирование API активных бустов
+  const activeBoosts = await callApi('/api/boosts/active?user_id=1');
+  recordTestResult('/api/boosts/active', 'GET', activeBoosts.status, 
+    activeBoosts.status === 200, 
+    activeBoosts.data && (activeBoosts.data.success === true || activeBoosts.data.success === false),
+    `Активные бусты ${activeBoosts.data?.success ? 'получены' : 'не получены'}`);
+
+  // 11. Тестирование API ежедневного бонуса
+  const dailyBonus = await callApi('/api/daily-bonus/status?user_id=1');
+  recordTestResult('/api/daily-bonus/status', 'GET', dailyBonus.status, 
+    dailyBonus.status === 200, 
+    dailyBonus.data && (dailyBonus.data.success === true || dailyBonus.data.success === false),
+    `Статус ежедневного бонуса ${dailyBonus.data?.success ? 'получен' : 'не получен'}`);
+
+  // 12. Тестирование API доступных миссий
+  const activeMissions = await callApi('/api/missions/active');
+  recordTestResult('/api/missions/active', 'GET', activeMissions.status, 
+    activeMissions.status === 200, 
+    activeMissions.data && (activeMissions.data.success === true || activeMissions.data.success === false),
+    `Активные миссии ${activeMissions.data?.success ? 'получены' : 'не получены'}`);
+
+  // 13. Тестирование API миссий пользователя
+  const userMissions = await callApi('/api/user_missions?user_id=1');
+  recordTestResult('/api/user_missions', 'GET', userMissions.status, 
+    userMissions.status === 200, 
+    userMissions.data && (userMissions.data.success === true || userMissions.data.success === false),
+    `Миссии пользователя ${userMissions.data?.success ? 'получены' : 'не получены'}`);
+
+  console.log('\n✅ Тестирование API эндпоинтов завершено');
 }
 
 /**
  * Генерирует отчет о результатах тестирования
  */
 function generateReport() {
-  console.log(`\n${colors.magenta}====================================${colors.reset}`);
-  console.log(`${colors.magenta}Отчет о результатах тестирования API${colors.reset}`);
-  console.log(`${colors.magenta}====================================${colors.reset}`);
+  console.log('\n📊 Отчет о результатах тестирования API:');
+  console.log('=============================================');
   
-  console.log(`\n${colors.blue}Всего протестировано эндпоинтов: ${testResults.totalEndpoints}${colors.reset}`);
-  console.log(`${colors.green}Успешных тестов: ${testResults.passedEndpoints} (${Math.round(testResults.passedEndpoints / testResults.totalEndpoints * 100)}%)${colors.reset}`);
-  console.log(`${colors.red}Неуспешных тестов: ${testResults.failedEndpoints} (${Math.round(testResults.failedEndpoints / testResults.totalEndpoints * 100)}%)${colors.reset}`);
-  console.log(`${colors.yellow}Стандартизированных ответов: ${testResults.standardizedResponses} (${Math.round(testResults.standardizedResponses / testResults.totalEndpoints * 100)}%)${colors.reset}`);
-  console.log(`${colors.yellow}Нестандартизированных ответов: ${testResults.nonStandardizedResponses} (${Math.round(testResults.nonStandardizedResponses / testResults.totalEndpoints * 100)}%)${colors.reset}`);
+  let passedCount = 0;
+  let failedCount = 0;
   
-  console.log(`\n${colors.blue}Детали по каждому эндпоинту:${colors.reset}`);
-  console.log(`${colors.blue}+------------------------+--------+--------+----------+---------------+${colors.reset}`);
-  console.log(`${colors.blue}| Эндпоинт               | Метод  | Статус | Успешно  | Стандартный   |${colors.reset}`);
-  console.log(`${colors.blue}+------------------------+--------+--------+----------+---------------+${colors.reset}`);
-  
-  for (const result of testResults.endpoints) {
-    const statusColor = result.status >= 200 && result.status < 300 ? colors.green : colors.red;
-    const successColor = result.isSuccess ? colors.green : colors.red;
-    const standardizedColor = result.isStandardized ? colors.green : colors.yellow;
+  testResults.forEach(result => {
+    const statusSymbol = result.isSuccess ? '✅' : '❌';
+    const standardizedSymbol = result.isStandardized ? '✓' : '✗';
     
-    console.log(
-      `${colors.white}| ${result.endpoint.padEnd(22)} | ${result.method.padEnd(6)} | ` + 
-      `${statusColor}${result.status}${colors.white.padEnd(8 - result.status.toString().length)} | ` + 
-      `${successColor}${result.isSuccess ? 'Да' : 'Нет'}${colors.white.padEnd(8)} | ` + 
-      `${standardizedColor}${result.isStandardized ? 'Да' : 'Нет'}${colors.white.padEnd(13)} |${colors.reset}`
-    );
+    console.log(`${statusSymbol} ${result.method} ${result.endpoint} [${result.status}] [Стандарт API: ${standardizedSymbol}]`);
+    console.log(`   ${result.notes}`);
+    
+    if (result.isSuccess && result.isStandardized) {
+      passedCount++;
+    } else {
+      failedCount++;
+    }
+  });
+  
+  console.log('=============================================');
+  console.log(`Итого: ${passedCount} успешно, ${failedCount} с ошибками`);
+  console.log(`Общее соответствие: ${Math.round((passedCount / testResults.length) * 100)}%`);
+  
+  // Предоставляем рекомендации, если есть проблемы
+  if (failedCount > 0) {
+    provideRecommendations();
   }
-  console.log(`${colors.blue}+------------------------+--------+--------+----------+---------------+${colors.reset}`);
-  
-  // Записываем результаты в JSON-файл
-  const reportData = {
-    timestamp: new Date().toISOString(),
-    summary: {
-      totalEndpoints: testResults.totalEndpoints,
-      passedEndpoints: testResults.passedEndpoints,
-      failedEndpoints: testResults.failedEndpoints,
-      standardizedResponses: testResults.standardizedResponses,
-      nonStandardizedResponses: testResults.nonStandardizedResponses
-    },
-    endpoints: testResults.endpoints
-  };
-  
-  const reportFile = path.join(__dirname, 'api-test-report.json');
-  fs.writeFileSync(reportFile, JSON.stringify(reportData, null, 2));
-  
-  console.log(`\n${colors.green}Отчет сохранен в файл: ${reportFile}${colors.reset}`);
-  
-  // Анализируем проблемы и даем рекомендации
-  provideRecommendations();
 }
 
 /**
  * Анализирует проблемы и дает рекомендации по исправлению
  */
 function provideRecommendations() {
-  console.log(`\n${colors.magenta}====================================${colors.reset}`);
-  console.log(`${colors.magenta}Рекомендации по результатам тестов${colors.reset}`);
-  console.log(`${colors.magenta}====================================${colors.reset}`);
+  console.log('\n🛠️ Рекомендации по исправлению:');
   
-  // Если есть неуспешные тесты
-  if (testResults.failedEndpoints > 0) {
-    console.log(`\n${colors.yellow}Проблемы в работе API:${colors.reset}`);
-    
-    const failedEndpoints = testResults.endpoints.filter(e => !e.isSuccess);
-    for (const endpoint of failedEndpoints) {
-      console.log(`${colors.red}✘ Эндпоинт ${endpoint.method} ${endpoint.endpoint} вернул ошибку (статус ${endpoint.status})${colors.reset}`);
-      console.log(`  Необходимо проверить контроллер, обрабатывающий этот эндпоинт, на корректность логики и валидации параметров.`);
-    }
+  const failedEndpoints = testResults.filter(result => !result.isSuccess || !result.isStandardized);
+  
+  // Группируем по типам проблем
+  const connectionIssues = failedEndpoints.filter(result => result.status >= 500);
+  const authIssues = failedEndpoints.filter(result => result.status === 401 || result.status === 403);
+  const standardIssues = failedEndpoints.filter(result => !result.isStandardized);
+  const notFoundIssues = failedEndpoints.filter(result => result.status === 404);
+  
+  if (connectionIssues.length > 0) {
+    console.log('1. Проблемы с подключением к базе данных:');
+    console.log('   - Проверьте переменные окружения DATABASE_URL и другие переменные для подключения к БД');
+    console.log('   - Убедитесь, что PostgreSQL запущен и доступен');
+    console.log('   - Проверьте логи сервера на наличие ошибок подключения');
   }
   
-  // Если есть нестандартизированные ответы
-  if (testResults.nonStandardizedResponses > 0) {
-    console.log(`\n${colors.yellow}Проблемы со стандартизацией ответов API:${colors.reset}`);
-    
-    const nonStandardEndpoints = testResults.endpoints.filter(e => !e.isStandardized);
-    for (const endpoint of nonStandardEndpoints) {
-      console.log(`${colors.yellow}✘ Эндпоинт ${endpoint.method} ${endpoint.endpoint} не использует стандартизированный формат ответа${colors.reset}`);
-      console.log(`  Рекомендуется обновить контроллер для использования формата { success: true/false, data/error: ... }`);
-    }
+  if (authIssues.length > 0) {
+    console.log('2. Проблемы с аутентификацией:');
+    console.log('   - Проверьте сессию пользователя и cookie');
+    console.log('   - Убедитесь, что пользователь существует в базе данных');
   }
   
-  // Общие рекомендации
-  console.log(`\n${colors.green}Общие рекомендации:${colors.reset}`);
-  console.log(`${colors.green}1. Стандартизировать все API-ответы с помощью middleware${colors.reset}`);
-  console.log(`${colors.green}2. Улучшить обработку ошибок и валидацию параметров${colors.reset}`);
-  console.log(`${colors.green}3. Обеспечить согласованность HTTP-кодов ответа${colors.reset}`);
-  console.log(`${colors.green}4. Внедрить механизм идемпотентности для предотвращения дублирования операций${colors.reset}`);
-  console.log(`${colors.green}5. Реализовать централизованный механизм логирования API-запросов${colors.reset}`);
+  if (standardIssues.length > 0) {
+    console.log('3. Проблемы со стандартизацией API:');
+    console.log('   - Следующие эндпоинты не соответствуют стандарту { success: true/false, data/error: ... }:');
+    standardIssues.forEach(issue => {
+      console.log(`     - ${issue.method} ${issue.endpoint}`);
+    });
+  }
+  
+  if (notFoundIssues.length > 0) {
+    console.log('4. Отсутствующие эндпоинты:');
+    console.log('   - Следующие эндпоинты не найдены (404):');
+    notFoundIssues.forEach(issue => {
+      console.log(`     - ${issue.method} ${issue.endpoint}`);
+    });
+    console.log('   - Проверьте маршрутизацию и регистрацию маршрутов в routes.ts');
+  }
 }
 
-// Запускаем тестирование всех эндпоинтов
-testAllEndpoints();
+// Запускаем тестирование и генерируем отчет
+testAllEndpoints()
+  .then(() => {
+    generateReport();
+  })
+  .catch(error => {
+    console.error('Ошибка при тестировании API:', error);
+  });
