@@ -12,9 +12,10 @@ UniFarm - платформа для криптовалютного фармин�
 
 ## Технологический стек
 
-- Frontend: React, TypeScript, TailwindCSS
+- Frontend: React, TypeScript, TailwindCSS, Shadcn/UI
 - Backend: Node.js, Express
 - Database: PostgreSQL с Drizzle ORM
+- API: Унифицированный API-сервис с улучшенной обработкой ошибок
 - Telegram: Telegram Bot API, Telegram Mini App API
 - Blockchain: TON
 
@@ -83,7 +84,13 @@ ADMIN_SECRET_KEY=секретный_ключ_для_админ_функций
 - `server/telegramBot.ts` - Функции для работы с Telegram Bot API
 - `server/routes.ts` - API маршруты, включая webhook для Telegram
 - `shared/schema.ts` - Схемы данных и типы для Drizzle ORM
+- `client/src/lib/apiService.ts` - Унифицированный сервис для API-запросов
 - `client/src/pages` - React компоненты для страниц приложения
+
+### Документация
+
+- `docs/API_SERVICE_MIGRATION.md` - Руководство по миграции на новый API-сервис
+- `docs/API_SERVICE_TESTING.md` - Рекомендации по тестированию API-компонентов
 
 ## Деплой в Replit
 

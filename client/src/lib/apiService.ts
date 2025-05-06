@@ -7,6 +7,39 @@
  * - Согласованный интерфейс ответов
  * - Безопасную обработку ошибок сети
  * - Исправление типов данных
+ * 
+ * Примеры использования:
+ * 
+ * 1. GET-запрос:
+ * ```typescript
+ * const response = await apiGet<UserProfile>('/api/user/profile');
+ * if (response.success) {
+ *   // Используем данные
+ *   const profile = response.data;
+ * }
+ * ```
+ * 
+ * 2. POST-запрос:
+ * ```typescript
+ * const response = await apiPost<TransactionResult>('/api/transaction/create', {
+ *   amount: '100',
+ *   type: 'deposit'
+ * });
+ * ```
+ * 
+ * 3. Обработка ошибок:
+ * ```typescript
+ * try {
+ *   const response = await apiGet('/api/data');
+ *   if (!response.success) {
+ *     console.error('API ошибка:', response.error);
+ *     return;
+ *   }
+ *   // Работа с данными
+ * } catch (error) {
+ *   console.error('Ошибка сети:', error);
+ * }
+ * ```
  */
 
 import { correctApiRequest } from './correctApiRequest';
