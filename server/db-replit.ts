@@ -29,13 +29,21 @@ const getBackoff = (retry: number) => {
 // Статус подключения к базе данных
 export let dbConnectionStatus = 'disconnected';
 
-// Создаем пул подключений к PostgreSQL
+// Создаем пул подключений к PostgreSQL с явными параметрами из переменных окружения
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  host: process.env.PGHOST,
+  port: parseInt(process.env.PGPORT || '5432'),
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
   max: 5, // Ограничиваем максимальное количество соединений
   idleTimeoutMillis: 30000, // Время простоя до закрытия неиспользуемых соединений
   connectionTimeoutMillis: 10000, // Увеличенное время ожидания соединения
-  allowExitOnIdle: false // Запрещаем завершение процесса при простое
+  allowExitOnIdle: false, // Запрещаем завершение процесса при простое
+  ssl: {
+    rejectUnauthorized: false // Для подключения к Replit PostgreSQL
+  }
 });
 
 // Обработка событий пула
