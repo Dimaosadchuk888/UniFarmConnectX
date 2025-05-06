@@ -607,7 +607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users/generate-refcode", UserController.generateRefCode);
   
   // Маршрут для получения баланса кошелька с поддержкой fallback
-  // app.get("/api/wallet/balance", UserController.getUserBalance);
+  // Маршрут для получения баланса кошелька
   app.get("/api/wallet/balance", WalletControllerFallback.getWalletBalance);
   
   app.get("/api/me", UserController.getCurrentUser);
@@ -1232,7 +1232,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/user/link-wallet", WalletController.linkWalletAddress);
   app.get("/api/user/wallet-address", WalletController.getUserWalletAddress);
   app.get("/api/user/wallet-info", WalletController.getWalletInfo);
-  app.get("/api/user/transactions", WalletController.getUserTransactions);
+  // Маршрут для получения транзакций пользователя
+  app.get("/api/user/transactions", WalletControllerFallback.getTransactionHistory);
   app.post("/api/user/withdraw", WalletController.withdrawFunds);
   
   // Маршруты для транзакций

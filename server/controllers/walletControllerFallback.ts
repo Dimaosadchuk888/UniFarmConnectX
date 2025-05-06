@@ -25,9 +25,12 @@ export class WalletControllerFallback {
       
       const { user_id } = validationResult.data;
       
+      // Создаем экземпляр сервиса
+      const walletService = new WalletService();
+      
       // Заворачиваем вызов сервиса в обработчик ошибок
       const getWalletBalanceWithFallback = wrapServiceFunction(
-        WalletService.getBalance.bind(WalletService),
+        walletService.getUserBalance.bind(walletService),
         async (error, userId) => {
           console.log(`[WalletControllerFallback] Возвращаем заглушку для баланса по ID: ${userId}`, error);
           
@@ -44,9 +47,23 @@ export class WalletControllerFallback {
         }
       );
       
-      const balance = await getWalletBalanceWithFallback(user_id);
+      // Получаем баланс через сервис
+      const userBalance = await getWalletBalanceWithFallback(user_id);
+      
+      // Преобразуем формат ответа, если нужно
+      const balance = {
+        uni_balance: userBalance.balanceUni || "0",
+        ton_balance: userBalance.balanceTon || "0",
+        total_earned_uni: "0", // Можно добавить расчет этих значений в будущем
+        total_earned_ton: "0",
+        total_withdrawn_uni: "0",
+        total_withdrawn_ton: "0",
+        is_fallback: false
+      };
+      
       sendSuccess(res, balance);
     } catch (error) {
+      console.error('[WalletControllerFallback] Ошибка при получении баланса:', error);
       next(error);
     }
   }
@@ -65,26 +82,49 @@ export class WalletControllerFallback {
       }
       
       const { user_id } = validationResult.data;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      const currency = req.query.currency as string;
+      const status = req.query.status as string;
+      
+      // Создаем экземпляр сервиса
+      const walletService = new WalletService();
       
       // Заворачиваем вызов сервиса в обработчик ошибок
       const getTransactionHistoryWithFallback = wrapServiceFunction(
-        WalletService.getTransactionHistory.bind(WalletService),
-        async (error, userId) => {
-          console.log(`[WalletControllerFallback] Возвращаем заглушку для истории транзакций по ID: ${userId}`, error);
+        walletService.getUserTransactions.bind(walletService),
+        async (error, params) => {
+          console.log(`[WalletControllerFallback] Возвращаем заглушку для истории транзакций по ID: ${params.userId}`, error);
           
           // Возвращаем пустой массив при отсутствии соединения с БД
           return {
             transactions: [],
-            has_more: false,
-            total_count: 0,
+            total: 0,
             is_fallback: true
           };
         }
       );
       
-      const history = await getTransactionHistoryWithFallback(user_id);
+      // Получаем транзакции через сервис
+      const result = await getTransactionHistoryWithFallback({
+        userId: user_id,
+        limit,
+        offset,
+        currency: currency as any,
+        status: status as any
+      });
+      
+      // Преобразуем ответ в формат, ожидаемый клиентом
+      const history = {
+        transactions: result.transactions || [],
+        has_more: result.total > (offset + limit),
+        total_count: result.total || 0,
+        is_fallback: result.is_fallback || false
+      };
+      
       sendSuccess(res, history);
     } catch (error) {
+      console.error('[WalletControllerFallback] Ошибка при получении истории транзакций:', error);
       next(error);
     }
   }
