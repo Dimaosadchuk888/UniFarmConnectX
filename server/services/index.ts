@@ -6,7 +6,7 @@
  */
 
 import { IStorage } from '../storage-interface';
-import { storage } from '../storage-standard';
+import { storage } from '../storage-adapter';
 import { createSessionService, SessionService } from './SessionService';
 import { createUserService, UserService } from './UserService';
 import { createTransactionService, TransactionService } from './TransactionService';

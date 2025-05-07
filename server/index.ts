@@ -91,14 +91,16 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   
   // Регистрируем новые маршруты API, использующие новую архитектуру
   try {
+    // Используем правильный импорт с обновленными контроллерами
     import('./routes-new')
       .then(module => {
+        console.log('[Server] Начинаем регистрацию новых маршрутов API v2...');
         module.registerNewRoutes(app);
-        console.log('[Server] Новые маршруты API v2 успешно зарегистрированы');
+        console.log('[Server] ✅ Новые маршруты API v2 успешно зарегистрированы');
       })
       .catch(error => {
         console.error('[Server] Ошибка при регистрации новых маршрутов API:', error);
-        console.log('[Server] Новые маршруты API v2 временно отключены из-за ошибки');
+        console.log('[Server] Новые маршруты API v2 временно отключены из-за ошибки:', error.message);
       });
   } catch (error) {
     console.error('[Server] Ошибка при импорте новых маршрутов API:', error);
