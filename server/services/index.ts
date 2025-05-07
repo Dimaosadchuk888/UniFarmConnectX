@@ -14,6 +14,7 @@ import { createReferralService, type IReferralService } from './referralServiceI
 import { createReferralBonusService, type IReferralBonusService } from './referralBonusServiceInstance';
 import { createTransactionService, type ITransactionService } from './transactionServiceInstance';
 import { createTonBoostService, type ITonBoostService } from './tonBoostServiceInstance';
+import { createFarmingService, type IFarmingService } from './farmingServiceInstance';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 const userService = createUserService(extendedStorage);
@@ -21,6 +22,7 @@ const referralService = createReferralService(extendedStorage);
 const referralBonusService = createReferralBonusService(userService, referralService);
 const transactionService = createTransactionService(extendedStorage);
 const tonBoostService = createTonBoostService(referralBonusService);
+const farmingService = createFarmingService();
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
@@ -28,7 +30,8 @@ export {
   referralService,
   referralBonusService,
   transactionService,
-  tonBoostService
+  tonBoostService,
+  farmingService
 };
 
 // Экспортируем типы для использования в пользовательском коде
