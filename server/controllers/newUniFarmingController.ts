@@ -8,8 +8,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { NewUniFarmingService } from '../services/newUniFarmingService';
-import { ValidationError, NotFoundError } from '../utils/errors';
-import { formatZodErrors } from '../utils/validation-utils';
+import { ValidationError, NotFoundError } from '../middleware/errorHandler';
+import { formatZodErrors } from '../utils/validationUtils';
 
 // Схема для валидации запроса с user_id
 const userIdSchema = z.object({

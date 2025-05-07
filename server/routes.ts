@@ -39,6 +39,7 @@ import * as telegramBot from './telegramBot';
 import { TelegramController } from './controllers/telegramController'; // Новый TypeScript контроллер для Telegram
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { UniFarmingController } from './controllers/uniFarmingController';
+import { NewUniFarmingController } from './controllers/newUniFarmingController'; // Контроллер для множественного UNI фарминга
 import { BoostController } from './controllers/boostController';
 import { BoostControllerFallback } from './controllers/boostControllerFallback'; // Fallback контроллер для бустов
 import { TonBoostController } from './controllers/tonBoostController';
@@ -1276,6 +1277,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/uni-farming/deposit", UniFarmingControllerFallback.depositFarming);
   app.get("/api/uni-farming/deposits", UniFarmingControllerFallback.getUserFarmingDeposits);
   app.post("/api/uni-farming/harvest", UniFarmingControllerFallback.harvestFarmingInfo);
+  
+  // Маршруты для множественного UNI фарминга (новая версия)
+  app.get("/api/new-uni-farming/info", NewUniFarmingController.getUserFarmingInfo);
+  app.get("/api/new-uni-farming/update-balance", NewUniFarmingController.updateUserFarmingBalance);
+  app.post("/api/new-uni-farming/deposit", NewUniFarmingController.createDeposit);
+  app.get("/api/new-uni-farming/deposits", NewUniFarmingController.getUserDeposits);
   
   // Маршруты для буст-пакетов (с поддержкой fallback)
   app.get("/api/boosts", (req, res, next) => BoostControllerFallback.getBoostPackages(req, res, next));
