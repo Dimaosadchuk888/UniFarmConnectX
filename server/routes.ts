@@ -548,7 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (inviter) {
                 // Создаем реферальную связь (уровень 1)
-                const referral = await ReferralService.createReferral({
+                const referral = await referralService.createReferral({
                   user_id: user.id,
                   inviter_id: inviterId,
                   level: 1,
@@ -809,7 +809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[TEST] Попытка создания реферальной связи: user=${userId}, inviter=${inviterId}`);
       
       // Используем обновленный метод с защитой от перезаписи
-      const result = await ReferralService.createReferralRelationship(Number(userId), Number(inviterId));
+      const result = await referralService.createReferralRelationship(Number(userId), Number(inviterId));
       
       return res.status(200).json({
         success: true,
@@ -850,10 +850,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[TEST] Проверка реферальной связи для пользователя ID=${userId}`);
       
       // Получаем информацию о пригласителе
-      const userInviter = await ReferralService.getUserInviter(Number(userId));
+      const userInviter = await referralService.getUserInviter(Number(userId));
       
       // Получаем все реферальные связи пользователя
-      const userReferrals = await ReferralService.getUserReferrals(Number(userId));
+      const userReferrals = await referralService.getUserReferrals(Number(userId));
       
       // Получаем количество рефералов по уровням
       const referralCounts = await ReferralService.getReferralCounts(Number(userId));
