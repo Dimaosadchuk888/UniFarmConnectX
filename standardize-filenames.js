@@ -61,11 +61,13 @@ const CONFIG = {
   // Путь к директории проекта
   projectRoot: './',
   
-  // Файлы для поиска импортов
+  // Файлы для поиска импортов - ограничиваем только ключевыми директориями
   filesToSearch: [
-    './server/**/*.ts', 
-    './client/src/**/*.{ts,tsx}',
-    './shared/**/*.ts'
+    './server/routes.ts',
+    './server/routes-new.ts',
+    './server/index.ts',
+    './server/controllers/*.ts',
+    './server/services/*.ts'
   ],
   
   // Исключения - файлы, которые не нужно обновлять
@@ -212,17 +214,31 @@ async function removeProxyFiles() {
   
   for (const filePath of CONFIG.filesToRemoveAfterFix) {
     const fullPath = path.join(CONFIG.projectRoot, filePath);
+    const fileName = path.basename(filePath, '.ts');
     
     try {
       if (await fileExists(fullPath)) {
-        // Перед удалением проверим, что мы правильно исправили все импорты
-        const importsCheckResult = await execPromise(`grep -r "from.*${path.basename(filePath, '.ts')}" --include="*.ts" --include="*.tsx" ./server`);
-        
-        if (importsCheckResult.stdout.trim() !== '') {
-          console.warn(`⚠️ Найдены импорты для ${filePath}, отмена удаления:`);
-          console.warn(importsCheckResult.stdout);
-          errorCount++;
-          continue;
+        // Перед удалением проверим, используются ли где-то импорты в верхнем регистре
+        // Обратите внимание: grep возвращает код 1, если ничего не найдено,
+        // что вызывает исключение в execPromise, но это нормально в нашем случае
+        try {
+          const importsCheckResult = await execPromise(`grep -r "from.*${fileName}" --include="*.ts" --include="*.tsx" ./server`);
+          
+          if (importsCheckResult.stdout.trim() !== '') {
+            console.warn(`⚠️ Найдены импорты для ${filePath}, отмена удаления:`);
+            console.warn(importsCheckResult.stdout);
+            errorCount++;
+            continue;
+          }
+        } catch (grepError) {
+          // Если grep не нашел соответствий - это хорошо!
+          // Код возврата 1 означает, что не найдено совпадений
+          if (grepError.code !== 1) {
+            console.error(`⚠️ Ошибка при проверке импортов для ${filePath}:`);
+            console.error(grepError);
+            errorCount++;
+            continue;
+          }
         }
         
         // Удаляем файл
@@ -322,4 +338,18 @@ async function testGrepImports(pattern) {
 }
 
 // Запуск стандартизации
-standardizeImports();
+//standardizeImports();
+
+// Запуск только удаления файлов-посредников
+(async function() {
+  console.log('🚀 Начинаем удаление файлов-посредников...\n');
+  const result = await removeProxyFiles();
+  
+  if (result.successCount > 0 && result.errorCount === 0) {
+    console.log('\n✅ Удаление файлов-посредников успешно завершено!');
+  } else if (result.errorCount > 0) {
+    console.warn('\n⚠️ Удаление файлов-посредников завершено с ошибками.');
+  } else {
+    console.log('\n✅ Файлы-посредники не обнаружены или уже удалены.');
+  }
+})();
