@@ -112,13 +112,13 @@ async function runAllTests() {
 async function runSingleTest() {
   // Раскомментируйте нужную строку для тестирования конкретного метода
   // await testGetFarmingInfo();
-  await testCreateDeposit('1000');
+  // await testCreateDeposit('1000');
   // await testGetDeposits();
   // await testUpdateFarmingBalance();
 }
 
 // Запускаем все тесты
-// runAllTests();
+runAllTests();
 
 // Запуск одного теста
-runSingleTest();
+// runSingleTest();
