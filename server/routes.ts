@@ -856,7 +856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userReferrals = await referralService.getUserReferrals(Number(userId));
       
       // Получаем количество рефералов по уровням
-      const referralCounts = await ReferralService.getReferralCounts(Number(userId));
+      const referralCounts = await referralService.getReferralCounts(Number(userId));
       
       return res.status(200).json({
         success: true,
@@ -972,7 +972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Создаем реферальную связь с поддержкой ref_path
-      const result = await ReferralService.createReferralRelationship(
+      const result = await referralService.createReferralRelationship(
         Number(userId), 
         Number(inviterId),
         1 // Уровень = 1 (прямой реферал)
