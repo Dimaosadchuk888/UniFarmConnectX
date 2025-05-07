@@ -16,7 +16,7 @@ import { storage } from "./storage";
 // Импортируем сервисы
 import { userService } from './services/index';
 import { referralService } from './services';
-import { ReferralBonusService } from './services/referralBonusService';
+import { referralBonusService } from './services';
 import { LaunchLogService } from './services/launchLogService'; // Добавлен сервис логирования запусков
 import { db } from './db';
 import { referrals, type InsertLaunchLog } from '@shared/schema';
@@ -927,7 +927,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Создаем реферальную цепочку с защитой от повторного создания
-      const result = await ReferralBonusService.createReferralChain(Number(userId), Number(inviterId));
+      const result = await referralBonusService.createReferralChain(Number(userId), Number(inviterId));
       
       return res.status(200).json({
         success: true,
