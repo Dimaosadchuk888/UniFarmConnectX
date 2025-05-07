@@ -16,6 +16,7 @@ import { createTransactionService, type ITransactionService } from './transactio
 import { createTonBoostService, type ITonBoostService } from './tonBoostServiceInstance';
 import { createFarmingService, type IFarmingService } from './farmingServiceInstance';
 import { createUniFarmingService, type IUniFarmingService } from './uniFarmingServiceInstance';
+import { createNewUniFarmingService, type INewUniFarmingService } from './newUniFarmingServiceInstance';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 const userService = createUserService(extendedStorage);
@@ -25,6 +26,7 @@ const transactionService = createTransactionService(extendedStorage);
 const tonBoostService = createTonBoostService(referralBonusService);
 const farmingService = createFarmingService();
 const uniFarmingService = createUniFarmingService();
+const newUniFarmingService = createNewUniFarmingService();
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
@@ -34,7 +36,8 @@ export {
   transactionService,
   tonBoostService,
   farmingService,
-  uniFarmingService
+  uniFarmingService,
+  newUniFarmingService
 };
 
 // Экспортируем типы для использования в пользовательском коде
@@ -45,7 +48,8 @@ export type {
   ITransactionService as TransactionService,
   ITonBoostService as TonBoostService,
   IFarmingService as FarmingService,
-  IUniFarmingService as UniFarmingService
+  IUniFarmingService as UniFarmingService,
+  INewUniFarmingService as NewUniFarmingService
 };
 
 // Реэкспортируем типы интерфейсов для использования в тестах и моках
@@ -56,6 +60,7 @@ export type { ITransactionService } from './transactionServiceInstance';
 export type { ITonBoostService } from './tonBoostServiceInstance';
 export type { IFarmingService } from './farmingServiceInstance';
 export type { IUniFarmingService } from './uniFarmingServiceInstance';
+export type { INewUniFarmingService } from './newUniFarmingServiceInstance';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -69,5 +74,6 @@ export {
   createTransactionService,
   createTonBoostService,
   createFarmingService,
-  createUniFarmingService
+  createUniFarmingService,
+  createNewUniFarmingService
 };
