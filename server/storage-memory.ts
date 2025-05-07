@@ -17,6 +17,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByGuestId(guestId: string): Promise<User | undefined>;
   getUserByRefCode(refCode: string): Promise<User | undefined>;
+  getUserByTelegramId(telegramId: number): Promise<User | undefined>;
   createUser(insertUser: InsertUser): Promise<User>;
   updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
   updateUserBalance(userId: number, currencyType: 'uni' | 'ton', amount: string): Promise<User | undefined>;
@@ -87,6 +88,11 @@ export class MemStorage implements IStorage {
     const user = this.users.find(user => user.ref_code === refCode);
     console.log('[MemStorage] Результат поиска пользователя по ref_code:', user || 'не найден');
     return user;
+  }
+  
+  async getUserByTelegramId(telegramId: number): Promise<User | undefined> {
+    console.log('[MemStorage] Получение пользователя по Telegram ID:', telegramId);
+    return this.users.find(user => user.telegram_id === telegramId);
   }
   
   async updateUserRefCode(userId: number, refCode: string): Promise<User | undefined> {
