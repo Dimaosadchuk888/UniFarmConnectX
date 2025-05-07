@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-// import { registerNewRoutes } from "./routes-new"; // Импортируем новые маршруты - временно отключено
+import { registerNewRoutes } from "./routes-new"; // Импортируем новые маршруты
 import { setupVite, serveStatic, log } from "./vite";
 import { startBackgroundTasks } from "./background-tasks";
 import { migrateRefCodes } from "./migrations/refCodeMigration";
@@ -90,9 +90,8 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   const server = await registerRoutes(app);
   
   // Регистрируем новые маршруты API, использующие новую архитектуру
-  // Временно отключено для отладки
-  // registerNewRoutes(app);
-  console.log('[Server] Новые маршруты API v2 временно отключены для отладки');
+  registerNewRoutes(app);
+  console.log('[Server] Новые маршруты API v2 успешно зарегистрированы');
 
   // Регистрируем централизованный обработчик ошибок
   app.use(((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next)) as any);
