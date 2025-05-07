@@ -618,6 +618,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // app.get("/api/restore-session", SessionController.restoreSession);
   // Удаляем дублирующий маршрут /api/session/restore, так как он уже определен выше
   
+  // Добавляем маршруты для работы с базой данных
+  app.get("/api/database/check-connection", DatabaseController.checkConnection);
+  app.get("/api/database/status", DatabaseController.getDatabaseStatus);
+  app.get("/api/database/tables", DatabaseController.getTablesList);
+  app.get("/api/database/tables/:tableName", DatabaseController.getTableInfo);
+  app.post("/api/database/backup-table/:tableName", DatabaseController.backupTable);
+  app.get("/api/database/check-integrity", DatabaseController.checkDataIntegrity);
+  app.post("/api/database/execute-query", DatabaseController.executeQuery);
+  app.post("/api/database/add-missing-columns", DatabaseController.addMissingUserColumns);
+  
   // Маршруты для миграций и обслуживания базы данных (только для разработки)
   // Маршрут для миграции фарминга 
   app.post("/api/admin/migrate-farming-data", migrateFarmingData);
