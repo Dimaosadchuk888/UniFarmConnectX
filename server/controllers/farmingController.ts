@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { FarmingService } from '../services/farmingService';
-import { UserService } from '../services/userService';
+import { userService } from '../services';
 import { TransactionService } from '../services/transactionService';
 import { sendSuccess, sendSuccessArray, sendError, sendServerError } from '../utils/responseUtils';
 import { extractUserId } from '../utils/validationUtils';
@@ -48,7 +48,7 @@ export class FarmingController {
       const { user_id, amount, package_id } = validationResult.data;
       
       // Проверка существования пользователя
-      const user = await UserService.getUserById(user_id);
+      const user = await userService.getUserById(user_id);
       if (!user) {
         return sendError(res, 'User not found', 404);
       }

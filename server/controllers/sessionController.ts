@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { storage } from "../storage";
-import { UserService } from "../services/userService";
+import { extendedStorage } from "../storage-adapter-extended";
+import { userService } from "../services";
 import 'express-session';
 
 // Для корректной работы с сессией расширяем интерфейс Request
@@ -66,7 +66,7 @@ export class SessionController {
       }
       
       // Ищем пользователя по guest_id
-      const user = await storage.getUserByGuestId(guest_id);
+      const user = await extendedStorage.getUserByGuestId(guest_id);
       
       // Проверяем, найден ли пользователь
       if (!user) {
@@ -95,11 +95,11 @@ export class SessionController {
         
         try {
           // Генерируем уникальный реферальный код
-          const refCode = await UserService.generateUniqueRefCode();
+          const refCode = await userService.generateRefCode();
           console.log(`[SessionController] Сгенерирован новый реферальный код: ${refCode}`);
           
           // Обновляем пользователя с новым кодом
-          const result = await UserService.updateUserRefCode(user.id, refCode);
+          const result = await userService.updateUserRefCode(user.id, refCode);
           
           if (result) {
             updatedUser = result;

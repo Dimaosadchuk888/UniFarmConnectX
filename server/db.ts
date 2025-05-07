@@ -1,60 +1,18 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
-import * as schema from "../shared/schema";
 import ws from "ws";
+import * as schema from "@shared/schema";
 
-// Настройка WebSocket для Neon Serverless
 neonConfig.webSocketConstructor = ws;
 
-// Проверка наличия переменной окружения DATABASE_URL
 if (!process.env.DATABASE_URL) {
   throw new Error(
     "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
 
-console.log('[DB] Инициализация Neon PostgreSQL соединения через serverless драйвер');
-
-// Настройки повторных попыток
-const MAX_RETRIES = 5;
-const INITIAL_BACKOFF = 200; // ms
-const MAX_BACKOFF = 10000; // ms
-
-// Функция для экспоненциальной задержки между попытками
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Функция для вычисления времени задержки с джиттером
-const getBackoff = (retry: number) => {
-  const baseBackoff = Math.min(MAX_BACKOFF, INITIAL_BACKOFF * Math.pow(2, retry));
-  // Добавляем 20% джиттера, чтобы избежать "грозовых стад" - когда все клиенты пытаются переподключиться одновременно
-  return baseBackoff * (0.8 + Math.random() * 0.4);
-};
-
-// Статус подключения к базе данных
-export let dbConnectionStatus = 'disconnected';
-
-// Создаем пул подключений к PostgreSQL используя Neon Serverless с улучшенной устойчивостью
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 5, // Ограничиваем максимальное количество соединений
-  idleTimeoutMillis: 30000, // Время простоя до закрытия неиспользуемых соединений
-  connectionTimeoutMillis: 10000, // Увеличенное время ожидания соединения
-  allowExitOnIdle: false // Запрещаем завершение процесса при простое
-});
-
-// Обработка событий пула
-pool.on('error', (err) => {
-  console.error('[DB] Неожиданная ошибка в idle клиенте', err);
-  dbConnectionStatus = 'error';
-});
-
-pool.on('connect', () => {
-  console.log('[DB] Успешное подключение к Neon PostgreSQL');
-  dbConnectionStatus = 'connected';
-});
-
-// Экспортируем инстанс drizzle для работы с схемой
-export const db = drizzle(pool, { schema });
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle({ client: pool, schema });
 
 // Типизированный интерфейс для результатов SQL запросов
 export interface QueryResult<T = any> {

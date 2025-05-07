@@ -1,16 +1,24 @@
 /**
- * Экспорт контроллеров API
+ * Центральный модуль для экспорта контроллеров
  * 
- * Централизованный экспорт всех контроллеров для упрощения импорта в маршрутизаторе
+ * Этот файл импортирует и повторно экспортирует все контроллеры приложения,
+ * обеспечивая единую точку доступа к ним для маршрутов API.
  */
 
-// Экспорт контроллеров пользователей
-export * as UserController from './userController';
+// Импорт контроллеров
+import { UserController } from './userController';
+// import { TransactionController } from './transactionController';
+// import { SessionController } from './sessionController';
+// import { FarmingController } from './farmingController';
+// import { ReferralController } from './referralController';
+// import { AnalyticsController } from './analyticsController';
 
-// Экспорт контроллеров транзакций
-export * as TransactionController from './transactionController';
-
-// Экспорт контроллеров сессий
-export * as SessionController from './sessionController';
-
-// Другие контроллеры можно добавить по мере необходимости
+// Экспорт всех контроллеров
+export {
+  UserController,
+  // TransactionController,
+  // SessionController,
+  // FarmingController, 
+  // ReferralController,
+  // AnalyticsController
+};

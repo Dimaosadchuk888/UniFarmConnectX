@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { UserService } from '../services/userService';
+import { userService } from '../services';
 import { sendSuccess } from '../utils/responseUtils';
 import { ValidationError } from '../middleware/errorHandler';
 import { userIdSchema, createUserSchema, guestRegistrationSchema } from '../validators/schemas';
@@ -26,7 +26,7 @@ export class UserControllerFallback {
       
       // Заворачиваем вызов сервиса в обработчик ошибок
       const getUserByIdWithFallback = wrapServiceFunction(
-        UserService.getUserById.bind(UserService),
+        userService.getUserById.bind(userService),
         async (error, id) => {
           console.log(`[UserControllerFallback] Возвращаем заглушку для пользователя по ID: ${id}`, error);
           
@@ -65,7 +65,7 @@ export class UserControllerFallback {
       
       // Заворачиваем вызов сервиса в обработчик ошибок
       const getUserByGuestIdWithFallback = wrapServiceFunction(
-        UserService.getUserByGuestId.bind(UserService),
+        userService.getUserByGuestId.bind(userService),
         async (error, guestId) => {
           console.log(`[UserControllerFallback] Не найден пользователь по guest_id: ${guestId}`, error);
           
@@ -110,8 +110,9 @@ export class UserControllerFallback {
       const { guest_id, referrer_code, airdrop_mode } = validationResult.data;
 
       // Заворачиваем вызов сервиса в обработчик ошибок
+      // TODO: Метод registerGuestUser теперь не существует в сервисе, нужно его добавить
       const registerGuestUserWithFallback = wrapServiceFunction(
-        UserService.registerGuestUser.bind(UserService),
+        userService.createUser.bind(userService),
         async (error, guestId, referrerCode, airdropMode) => {
           console.log(`[UserControllerFallback] Создаем временного пользователя с guest_id: ${guestId}`, error);
           
@@ -196,8 +197,9 @@ export class UserControllerFallback {
       }
       
       // Заворачиваем вызов сервиса в обработчик ошибок
+      // TODO: Метод restoreSession теперь не существует в сервисе, нужно его добавить
       const restoreSessionWithFallback = wrapServiceFunction(
-        UserService.restoreSession.bind(UserService),
+        userService.getUserByGuestId.bind(userService),
         async (error, guestId, telegramData) => {
           console.log(`[UserControllerFallback] Возвращаем заглушку для восстановления сессии`, error);
           

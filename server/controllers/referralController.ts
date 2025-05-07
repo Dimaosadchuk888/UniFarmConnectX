@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { ReferralService } from '../services/referralService';
-import { UserService } from '../services/userService';
+import { userService } from '../services';
 import { sendSuccess, sendSuccessArray, sendError, sendServerError } from '../utils/responseUtils';
 import { extractUserId } from '../utils/validationUtils';
 import { ValidationError } from '../middleware/errorHandler';
@@ -48,7 +48,7 @@ export class ReferralController {
       }
       
       // Получаем данные о пользователе-пригласителе
-      const inviterUser = await UserService.getUserById(inviterId);
+      const inviterUser = await userService.getUserById(inviterId);
       
       if (!inviterUser) {
         console.warn(`[ReferralController] [StartParam] Inviter user not found with id: ${inviterId}`);
@@ -141,7 +141,7 @@ export class ReferralController {
 
       try {
         // Проверяем существование пользователя
-        const user = await UserService.getUserById(userId);
+        const user = await userService.getUserById(userId);
         if (!user) {
           console.log(`[ReferralController] Пользователь с ID ${userId} не найден`);
           return sendError(res, 'Пользователь не найден', 404);
@@ -159,7 +159,7 @@ export class ReferralController {
         // Получаем данные о пользователе-пригласителе
         let inviterUser = null;
         if (inviter.inviter_id !== null && typeof inviter.inviter_id === 'number') {
-          inviterUser = await UserService.getUserById(inviter.inviter_id);
+          inviterUser = await userService.getUserById(inviter.inviter_id);
         }
         
         // Формируем ответ с информацией о пригласителе
