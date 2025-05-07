@@ -90,9 +90,20 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   const server = await registerRoutes(app);
   
   // Регистрируем новые маршруты API, использующие новую архитектуру
-  // Временно отключено из-за ошибки синтаксиса
-  // registerNewRoutes(app);
-  console.log('[Server] Новые маршруты API v2 временно отключены из-за ошибки синтаксиса');
+  try {
+    import('./routes-new')
+      .then(module => {
+        module.registerNewRoutes(app);
+        console.log('[Server] Новые маршруты API v2 успешно зарегистрированы');
+      })
+      .catch(error => {
+        console.error('[Server] Ошибка при регистрации новых маршрутов API:', error);
+        console.log('[Server] Новые маршруты API v2 временно отключены из-за ошибки');
+      });
+  } catch (error) {
+    console.error('[Server] Ошибка при импорте новых маршрутов API:', error);
+    console.log('[Server] Новые маршруты API v2 временно отключены из-за ошибки импорта');
+  }
 
   // Регистрируем централизованный обработчик ошибок
   app.use(((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next)) as any);
