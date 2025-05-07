@@ -90,8 +90,9 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   const server = await registerRoutes(app);
   
   // Регистрируем новые маршруты API, использующие новую архитектуру
-  registerNewRoutes(app);
-  console.log('[Server] Новые маршруты API v2 успешно зарегистрированы');
+  // Временно отключено из-за ошибки синтаксиса
+  // registerNewRoutes(app);
+  console.log('[Server] Новые маршруты API v2 временно отключены из-за ошибки синтаксиса');
 
   // Регистрируем централизованный обработчик ошибок
   app.use(((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next)) as any);
