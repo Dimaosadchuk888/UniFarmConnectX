@@ -379,7 +379,7 @@ export class TonBoostService {
           const tonAmount = parseFloat(boostPackage.priceTon);
           
           // Вызываем сервис начисления реферальных бонусов
-          await ReferralBonusService.processReferralBonus(
+          await referralBonusService.processReferralBonus(
             userId, 
             tonAmount, 
             Currency.TON
@@ -524,7 +524,7 @@ export class TonBoostService {
         // Обрабатываем реферальные бонусы от дохода фарминга TON
         try {
           // Пытаемся начислить "доход от дохода" рефералам
-          const { totalRewardsDistributed } = await ReferralBonusService.processFarmingReferralReward(
+          const { totalRewardsDistributed } = await referralBonusService.processFarmingReferralReward(
             userId,
             totalAccumulatedTon.toNumber(),
             Currency.UNI // Все реферальные бонусы начисляются в UNI, даже для TON
@@ -748,7 +748,7 @@ export class TonBoostService {
         const tonAmount = parseFloat(boostPackage.priceTon);
         
         // Вызываем сервис начисления реферальных бонусов
-        await ReferralBonusService.processReferralBonus(
+        await referralBonusService.processReferralBonus(
           userId, 
           tonAmount, 
           Currency.TON
