@@ -1,11 +1,34 @@
-import { users, type User, type InsertUser } from "../shared/schema";
+import { 
+  users, 
+  type User, 
+  type InsertUser,
+  referrals,
+  type Referral,
+  type InsertReferral,
+  transactions,
+  type Transaction,
+  type InsertTransaction,
+  farmingDeposits,
+  type FarmingDeposit,
+  type InsertFarmingDeposit,
+  uniFarmingDeposits,
+  type UniFarmingDeposit,
+  type InsertUniFarmingDeposit,
+  tonBoostDeposits,
+  type TonBoostDeposit,
+  type InsertTonBoostDeposit,
+  userMissions,
+  type UserMission,
+  type InsertUserMission
+} from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { db, pool, dbConnectionStatus, queryWithRetry, getCurrentProvider } from "./db-selector";
-import { IStorage, MemStorage } from './storage-memory';
+import { IStorage, IExtendedStorage } from './storage-interface';
+import { MemStorage } from './storage-memory';
 import { createInsertSchema } from "drizzle-zod";
 
 // Адаптер для хранилища с фолбеком на хранилище в памяти
-class StorageAdapter implements IStorage {
+class StorageAdapter implements IExtendedStorage {
   private dbStorage: IStorage;
   private _memStorage: MemStorage;
   private useMemory: boolean = false;
@@ -339,6 +362,448 @@ class StorageAdapter implements IStorage {
       console.error('[StorageAdapter] Ошибка при создании пользователя, переключаемся на хранилище в памяти:', error);
       this.useMemory = true;
       return await this.memStorage.createUser(insertUser);
+    }
+  }
+
+  // Реализация методов из IExtendedStorage
+
+  // Транзакции
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    console.log('[StorageAdapter] Создание транзакции');
+    try {
+      const columns = Object.keys(transaction).join(', ');
+      const values = Object.keys(transaction).map((_, i) => `$${i + 1}`).join(', ');
+      const placeholders = Object.values(transaction);
+      
+      const query = `
+        INSERT INTO transactions (${columns})
+        VALUES (${values})
+        RETURNING *
+      `;
+      
+      const result = await queryWithRetry(query, placeholders);
+      if (result.rows.length === 0) {
+        throw new Error('Не удалось создать транзакцию');
+      }
+      
+      return result.rows[0] as Transaction;
+    } catch (error) {
+      console.error('[StorageAdapter] Ошибка при создании транзакции:', error);
+      throw error;
+    }
+  }
+
+  async getUserTransactions(userId: number, limit: number = 10, offset: number = 0): Promise<{transactions: Transaction[], total: number}> {
+    console.log(`[StorageAdapter] Получение транзакций пользователя с ID: ${userId}`);
+    try {
+      const countResult = await queryWithRetry(
+        'SELECT COUNT(*) as total FROM transactions WHERE user_id = $1',
+        [userId]
+      );
+      
+      const result = await queryWithRetry(
+        'SELECT * FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+        [userId, limit, offset]
+      );
+      
+      return {
+        transactions: result.rows as Transaction[],
+        total: parseInt(countResult.rows[0].total, 10)
+      };
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при получении транзакций пользователя ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  // Рефералы
+  async createReferral(referral: InsertReferral): Promise<Referral> {
+    console.log('[StorageAdapter] Создание реферального приглашения');
+    try {
+      const columns = Object.keys(referral).join(', ');
+      const values = Object.keys(referral).map((_, i) => `$${i + 1}`).join(', ');
+      const placeholders = Object.values(referral);
+      
+      const query = `
+        INSERT INTO referrals (${columns})
+        VALUES (${values})
+        RETURNING *
+      `;
+      
+      const result = await queryWithRetry(query, placeholders);
+      if (result.rows.length === 0) {
+        throw new Error('Не удалось создать реферальное приглашение');
+      }
+      
+      return result.rows[0] as Referral;
+    } catch (error) {
+      console.error('[StorageAdapter] Ошибка при создании реферального приглашения:', error);
+      throw error;
+    }
+  }
+
+  async getUserReferrals(userId: number): Promise<{referrals: User[], total: number}> {
+    console.log(`[StorageAdapter] Получение рефералов пользователя с ID: ${userId}`);
+    try {
+      const countResult = await queryWithRetry(
+        'SELECT COUNT(*) as total FROM referrals WHERE inviter_id = $1',
+        [userId]
+      );
+      
+      const result = await queryWithRetry(
+        `SELECT u.* FROM users u
+         JOIN referrals r ON u.id = r.user_id
+         WHERE r.inviter_id = $1
+         ORDER BY r.created_at DESC`,
+        [userId]
+      );
+      
+      return {
+        referrals: result.rows as User[],
+        total: parseInt(countResult.rows[0].total, 10)
+      };
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при получении рефералов пользователя ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getReferralByUserIdAndInviterId(userId: number, inviterId: number): Promise<Referral | undefined> {
+    console.log(`[StorageAdapter] Получение реферального приглашения для user_id: ${userId}, inviter_id: ${inviterId}`);
+    try {
+      const [referral] = await queryWithRetry(
+        'SELECT * FROM referrals WHERE user_id = $1 AND inviter_id = $2',
+        [userId, inviterId]
+      ).then(result => result.rows as Referral[]);
+      
+      return referral || undefined;
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при получении реферального приглашения для user_id ${userId}, inviter_id ${inviterId}:`, error);
+      throw error;
+    }
+  }
+
+  // Farming депозиты
+  async createFarmingDeposit(deposit: InsertFarmingDeposit): Promise<FarmingDeposit> {
+    console.log('[StorageAdapter] Создание депозита фарминга');
+    try {
+      const columns = Object.keys(deposit).join(', ');
+      const values = Object.keys(deposit).map((_, i) => `$${i + 1}`).join(', ');
+      const placeholders = Object.values(deposit);
+      
+      const query = `
+        INSERT INTO farming_deposits (${columns})
+        VALUES (${values})
+        RETURNING *
+      `;
+      
+      const result = await queryWithRetry(query, placeholders);
+      if (result.rows.length === 0) {
+        throw new Error('Не удалось создать депозит фарминга');
+      }
+      
+      return result.rows[0] as FarmingDeposit;
+    } catch (error) {
+      console.error('[StorageAdapter] Ошибка при создании депозита фарминга:', error);
+      throw error;
+    }
+  }
+
+  async getUserFarmingDeposits(userId: number): Promise<FarmingDeposit[]> {
+    console.log(`[StorageAdapter] Получение депозитов фарминга пользователя с ID: ${userId}`);
+    try {
+      const result = await queryWithRetry(
+        'SELECT * FROM farming_deposits WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId]
+      );
+      
+      return result.rows as FarmingDeposit[];
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при получении депозитов фарминга пользователя ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  // UNI Фарминг
+  async createUniFarmingDeposit(deposit: InsertUniFarmingDeposit): Promise<UniFarmingDeposit> {
+    console.log('[StorageAdapter] Создание депозита UNI фарминга');
+    try {
+      const columns = Object.keys(deposit).join(', ');
+      const values = Object.keys(deposit).map((_, i) => `$${i + 1}`).join(', ');
+      const placeholders = Object.values(deposit);
+      
+      const query = `
+        INSERT INTO uni_farming_deposits (${columns})
+        VALUES (${values})
+        RETURNING *
+      `;
+      
+      const result = await queryWithRetry(query, placeholders);
+      if (result.rows.length === 0) {
+        throw new Error('Не удалось создать депозит UNI фарминга');
+      }
+      
+      return result.rows[0] as UniFarmingDeposit;
+    } catch (error) {
+      console.error('[StorageAdapter] Ошибка при создании депозита UNI фарминга:', error);
+      throw error;
+    }
+  }
+
+  async updateUniFarmingDeposit(id: number, data: Partial<UniFarmingDeposit>): Promise<UniFarmingDeposit | undefined> {
+    console.log(`[StorageAdapter] Обновление депозита UNI фарминга с ID: ${id}`);
+    try {
+      const setClause = Object.keys(data)
+        .map((key, index) => `${key} = $${index + 2}`)
+        .join(', ');
+      
+      const query = `
+        UPDATE uni_farming_deposits 
+        SET ${setClause}
+        WHERE id = $1
+        RETURNING *
+      `;
+      
+      const values = [id, ...Object.values(data)];
+      const result = await queryWithRetry(query, values);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      return result.rows[0] as UniFarmingDeposit;
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при обновлении депозита UNI фарминга ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserUniFarmingDeposits(userId: number): Promise<UniFarmingDeposit[]> {
+    console.log(`[StorageAdapter] Получение депозитов UNI фарминга пользователя с ID: ${userId}`);
+    try {
+      const result = await queryWithRetry(
+        'SELECT * FROM uni_farming_deposits WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId]
+      );
+      
+      return result.rows as UniFarmingDeposit[];
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при получении депозитов UNI фарминга пользователя ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getActiveUniFarmingDeposits(): Promise<UniFarmingDeposit[]> {
+    console.log('[StorageAdapter] Получение активных депозитов UNI фарминга');
+    try {
+      const result = await queryWithRetry(
+        'SELECT * FROM uni_farming_deposits WHERE is_active = true ORDER BY created_at DESC'
+      );
+      
+      return result.rows as UniFarmingDeposit[];
+    } catch (error) {
+      console.error('[StorageAdapter] Ошибка при получении активных депозитов UNI фарминга:', error);
+      throw error;
+    }
+  }
+
+  // TON Boost
+  async createTonBoostDeposit(deposit: InsertTonBoostDeposit): Promise<TonBoostDeposit> {
+    console.log('[StorageAdapter] Создание депозита TON Boost');
+    try {
+      const columns = Object.keys(deposit).join(', ');
+      const values = Object.keys(deposit).map((_, i) => `$${i + 1}`).join(', ');
+      const placeholders = Object.values(deposit);
+      
+      const query = `
+        INSERT INTO ton_boost_deposits (${columns})
+        VALUES (${values})
+        RETURNING *
+      `;
+      
+      const result = await queryWithRetry(query, placeholders);
+      if (result.rows.length === 0) {
+        throw new Error('Не удалось создать депозит TON Boost');
+      }
+      
+      return result.rows[0] as TonBoostDeposit;
+    } catch (error) {
+      console.error('[StorageAdapter] Ошибка при создании депозита TON Boost:', error);
+      throw error;
+    }
+  }
+
+  async updateTonBoostDeposit(id: number, data: Partial<TonBoostDeposit>): Promise<TonBoostDeposit | undefined> {
+    console.log(`[StorageAdapter] Обновление депозита TON Boost с ID: ${id}`);
+    try {
+      const setClause = Object.keys(data)
+        .map((key, index) => `${key} = $${index + 2}`)
+        .join(', ');
+      
+      const query = `
+        UPDATE ton_boost_deposits 
+        SET ${setClause}
+        WHERE id = $1
+        RETURNING *
+      `;
+      
+      const values = [id, ...Object.values(data)];
+      const result = await queryWithRetry(query, values);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      return result.rows[0] as TonBoostDeposit;
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при обновлении депозита TON Boost ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserTonBoostDeposits(userId: number): Promise<TonBoostDeposit[]> {
+    console.log(`[StorageAdapter] Получение депозитов TON Boost пользователя с ID: ${userId}`);
+    try {
+      const result = await queryWithRetry(
+        'SELECT * FROM ton_boost_deposits WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId]
+      );
+      
+      return result.rows as TonBoostDeposit[];
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при получении депозитов TON Boost пользователя ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getActiveTonBoostDeposits(): Promise<TonBoostDeposit[]> {
+    console.log('[StorageAdapter] Получение активных депозитов TON Boost');
+    try {
+      const result = await queryWithRetry(
+        'SELECT * FROM ton_boost_deposits WHERE is_active = true ORDER BY created_at DESC'
+      );
+      
+      return result.rows as TonBoostDeposit[];
+    } catch (error) {
+      console.error('[StorageAdapter] Ошибка при получении активных депозитов TON Boost:', error);
+      throw error;
+    }
+  }
+
+  // Миссии
+  async createUserMission(userMission: InsertUserMission): Promise<UserMission> {
+    console.log('[StorageAdapter] Создание миссии пользователя');
+    try {
+      const columns = Object.keys(userMission).join(', ');
+      const values = Object.keys(userMission).map((_, i) => `$${i + 1}`).join(', ');
+      const placeholders = Object.values(userMission);
+      
+      const query = `
+        INSERT INTO user_missions (${columns})
+        VALUES (${values})
+        RETURNING *
+      `;
+      
+      const result = await queryWithRetry(query, placeholders);
+      if (result.rows.length === 0) {
+        throw new Error('Не удалось создать миссию пользователя');
+      }
+      
+      return result.rows[0] as UserMission;
+    } catch (error) {
+      console.error('[StorageAdapter] Ошибка при создании миссии пользователя:', error);
+      throw error;
+    }
+  }
+
+  async getUserMissions(userId: number): Promise<UserMission[]> {
+    console.log(`[StorageAdapter] Получение миссий пользователя с ID: ${userId}`);
+    try {
+      const result = await queryWithRetry(
+        'SELECT * FROM user_missions WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId]
+      );
+      
+      return result.rows as UserMission[];
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при получении миссий пользователя ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async hasUserCompletedMission(userId: number, missionId: number): Promise<boolean> {
+    console.log(`[StorageAdapter] Проверка завершения миссии ${missionId} пользователем с ID: ${userId}`);
+    try {
+      const result = await queryWithRetry(
+        'SELECT COUNT(*) as count FROM user_missions WHERE user_id = $1 AND mission_id = $2 AND is_completed = true',
+        [userId, missionId]
+      );
+      
+      return parseInt(result.rows[0].count, 10) > 0;
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при проверке завершения миссии ${missionId} пользователем ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  // Обновление баланса пользователя
+  async updateUserBalance(userId: number, currency: 'UNI' | 'TON', amount: string): Promise<User> {
+    console.log(`[StorageAdapter] Обновление баланса ${currency} пользователя с ID: ${userId}, сумма: ${amount}`);
+    try {
+      const field = currency === 'UNI' ? 'uni_balance' : 'ton_balance';
+      
+      // Используем выражение для обновления баланса
+      const query = `
+        UPDATE users 
+        SET ${field} = ${field} + $1
+        WHERE id = $2
+        RETURNING *
+      `;
+      
+      const result = await queryWithRetry(query, [amount, userId]);
+      
+      if (result.rows.length === 0) {
+        throw new Error(`Не удалось обновить баланс пользователя с ID: ${userId}`);
+      }
+      
+      return result.rows[0] as User;
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при обновлении баланса ${currency} пользователя ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  // Транзакционные операции
+  async executeTransaction<T>(operations: (tx: any) => Promise<T>): Promise<T> {
+    console.log('[StorageAdapter] Выполнение транзакции');
+    
+    // Если используем память, просто выполняем операции без транзакции
+    if (this.useMemory) {
+      return await operations(null);
+    }
+    
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      const result = await operations(client);
+      
+      await client.query('COMMIT');
+      
+      return result;
+    } catch (error) {
+      console.error('[StorageAdapter] Ошибка при выполнении транзакции, откат:', error);
+      
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('[StorageAdapter] Ошибка при откате транзакции:', rollbackError);
+      }
+      
+      throw error;
+    } finally {
+      client.release();
     }
   }
 }

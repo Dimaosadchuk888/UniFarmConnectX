@@ -5,7 +5,7 @@
  * используя фабричные функции для каждого типа сервиса
  */
 
-import { IStorage } from '../storage-interface';
+import { IExtendedStorage } from '../storage-interface';
 import { storage } from '../storage-adapter';
 import { createSessionService, SessionService } from './SessionService';
 import { createUserService, UserService } from './UserService';
