@@ -32,6 +32,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByGuestId(guestId: string): Promise<User | undefined>;
   getUserByRefCode(refCode: string): Promise<User | undefined>;
+  getUserByTelegramId(telegramId: number): Promise<User | undefined>;
   createUser(insertUser: InsertUser): Promise<User>;
   updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
   

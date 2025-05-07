@@ -14,7 +14,7 @@ interface ExtendedWebSocket extends WebSocket {
 import { storage } from "./storage";
 
 // Импортируем сервисы
-import { UserService } from './services/userService';
+import { userService } from './services/index';
 import { ReferralService } from './services/referralService';
 import { ReferralBonusService } from './services/referralBonusService';
 import { LaunchLogService } from './services/launchLogService'; // Добавлен сервис логирования запусков

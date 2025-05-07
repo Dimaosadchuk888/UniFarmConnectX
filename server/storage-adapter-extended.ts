@@ -42,6 +42,22 @@ export class ExtendedStorageAdapter implements IExtendedStorage {
     return this.storage.getUserByRefCode(refCode);
   }
 
+  async getUserByTelegramId(telegramId: number): Promise<User | undefined> {
+    if (!telegramId) return undefined;
+    
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegram_id, telegramId));
+      
+      return user || undefined;
+    } catch (error) {
+      console.error('[StorageAdapter] Error in getUserByTelegramId:', error);
+      return undefined;
+    }
+  }
+
   createUser(insertUser: InsertUser): Promise<User> {
     return this.storage.createUser(insertUser);
   }

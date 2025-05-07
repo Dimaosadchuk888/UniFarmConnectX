@@ -17,6 +17,7 @@ export interface IUserService {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByGuestId(guestId: string): Promise<User | undefined>;
   getUserByRefCode(refCode: string): Promise<User | undefined>;
+  getUserByTelegramId(telegramId: number): Promise<User | undefined>;
   createUser(userData: InsertUser): Promise<User>;
   updateUserBalance(userId: number, currencyType: 'uni' | 'ton', amount: string): Promise<User | undefined>;
   updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
@@ -80,6 +81,20 @@ export function createUserService(storage: IExtendedStorage): IUserService {
         return await storage.getUserByRefCode(refCode);
       } catch (error) {
         console.error('[UserService] Error in getUserByRefCode:', error);
+        return undefined;
+      }
+    },
+
+    /**
+     * Получает пользователя по Telegram ID
+     */
+    async getUserByTelegramId(telegramId: number): Promise<User | undefined> {
+      if (!telegramId) return undefined;
+      
+      try {
+        return await storage.getUserByTelegramId(telegramId);
+      } catch (error) {
+        console.error('[UserService] Error in getUserByTelegramId:', error);
         return undefined;
       }
     },

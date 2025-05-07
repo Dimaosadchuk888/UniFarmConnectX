@@ -281,5 +281,33 @@ export const UserController = {
       console.error('[UserController] Ошибка при генерации реферального кода:', err);
       res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
     }
+  },
+
+  /**
+   * Получает информацию о текущем пользователе на основе сессии
+   */
+  async getCurrentUser(req: Request, res: Response): Promise<void> {
+    try {
+      // Получаем ID пользователя из сессии или из заголовка
+      const userId = req.session?.userId || 
+                   parseInt(req.headers['x-user-id'] as string, 10);
+      
+      if (!userId || isNaN(userId)) {
+        res.status(401).json(error('Пользователь не аутентифицирован', 'USER_NOT_AUTHENTICATED'));
+        return;
+      }
+      
+      const user = await userService.getUserById(userId);
+      
+      if (!user) {
+        res.status(404).json(error('Пользователь не найден', 'USER_NOT_FOUND'));
+        return;
+      }
+      
+      res.json(success(user));
+    } catch (err) {
+      console.error('[UserController] Ошибка при получении текущего пользователя:', err);
+      res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
+    }
   }
 };
