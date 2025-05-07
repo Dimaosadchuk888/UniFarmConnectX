@@ -33,6 +33,7 @@ import { ReferralController } from './controllers/referralController';
 import { ReferralControllerFallback } from './controllers/referralControllerFallback';
 import { SessionController } from './controllers/sessionController';
 import { migrateFarmingData, checkUserFarmingStatus } from './controllers/migrationController';
+import * as DatabaseController from './controllers/databaseController';
 
 // Импорт обработчика команд для Telegram-бота
 import * as telegramBot from './telegramBot';
@@ -662,6 +663,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Административные маршруты (защищены ключом)
   app.get("/api/admin/users/list-with-telegram-id", AdminController.listUsersWithTelegramId);
+  
+  // Контроллер для работы с базой данных
+  
+  // API маршруты для работы с базой данных (только для администраторов)
+  app.get("/api/admin/db/status", DatabaseController.getDatabaseStatus);
+  app.get("/api/admin/db/tables", DatabaseController.getTablesList);
+  app.get("/api/admin/db/tables/:tableName", DatabaseController.getTableInfo);
+  app.get("/api/admin/db/tables/:tableName/backup", DatabaseController.backupTable);
+  app.get("/api/admin/db/integrity", DatabaseController.checkDataIntegrity);
+  app.post("/api/admin/db/query", DatabaseController.executeQuery);
   
   // API для работы с партициями таблицы transactions
   app.get("/api/system/partitions/list", PartitionController.getPartitionsList);

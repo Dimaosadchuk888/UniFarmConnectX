@@ -5,8 +5,8 @@
  * управления подключениями и мониторинга состояния базы данных.
  */
 
-import { db } from '../db';
-import { SQL, eq, and, or, desc, sql } from 'drizzle-orm';
+import { db, pool } from "../db";
+import { eq } from "drizzle-orm";
 
 export interface IDatabaseService {
   /**
@@ -58,35 +58,36 @@ export interface IDatabaseService {
 }
 
 class DatabaseService implements IDatabaseService {
-  // Хранит информацию о последних запросах (для отладки)
+  // Сохраняем последние выполненные запросы для анализа
   private lastQueries: Array<{ query: string, timestamp: Date }> = [];
   private readonly MAX_QUERY_HISTORY = 20;
-  
-  // Добавляет запрос в историю
+
+  // Логируем запрос в историю
   private logQuery(query: string): void {
     this.lastQueries.unshift({ query, timestamp: new Date() });
+    
     if (this.lastQueries.length > this.MAX_QUERY_HISTORY) {
       this.lastQueries.pop();
     }
   }
-  
+
   /**
    * Проверка состояния подключения к базе данных
    */
   async checkConnection(): Promise<{ isConnected: boolean, error?: string }> {
     try {
-      // Проверяем соединение, выполняя простой запрос
-      await db.execute(sql`SELECT 1`);
+      // Выполняем простой запрос для проверки соединения
+      await this.executeRawQuery('SELECT 1 as check_connection');
       return { isConnected: true };
     } catch (error) {
-      console.error('[DatabaseService] Ошибка проверки соединения:', error);
+      console.error('[DatabaseService] Error in checkConnection:', error);
       return { 
         isConnected: false, 
         error: error instanceof Error ? error.message : String(error)
       };
     }
   }
-  
+
   /**
    * Получение информации о состоянии базы данных
    */
@@ -95,71 +96,75 @@ class DatabaseService implements IDatabaseService {
     tablesCount?: number;
     lastOperations?: Array<{ query: string, timestamp: Date }>;
     error?: string;
+    databaseSize?: string;
+    activeConnections?: string;
   }> {
     try {
-      // Проверяем соединение
-      const connectionCheck = await this.checkConnection();
+      const tables = await this.getTablesList();
       
-      if (!connectionCheck.isConnected) {
-        return {
-          connectionStatus: 'disconnected',
-          error: connectionCheck.error
-        };
-      }
+      // Получаем информацию о размере базы данных
+      const sizeResult = await this.executeRawQuery<{ size: string }>(`
+        SELECT pg_size_pretty(pg_database_size(current_database())) as size
+      `);
       
-      // Получаем количество таблиц
-      const tablesCountResult = await this.executeRawQuery<{count: string}>(
-        'SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = $1',
-        ['public']
-      );
-      
-      const tablesCount = parseInt(tablesCountResult[0]?.count || '0', 10);
+      // Получаем информацию о количестве активных соединений
+      const connectionsResult = await this.executeRawQuery<{ count: string }>(`
+        SELECT count(*) as count FROM pg_stat_activity 
+        WHERE datname = current_database()
+      `);
       
       return {
         connectionStatus: 'connected',
-        tablesCount,
-        lastOperations: [...this.lastQueries]
+        tablesCount: tables.length,
+        lastOperations: this.lastQueries,
+        databaseSize: sizeResult[0]?.size,
+        activeConnections: connectionsResult[0]?.count
       };
     } catch (error) {
-      console.error('[DatabaseService] Ошибка получения статуса базы данных:', error);
-      return {
-        connectionStatus: 'error',
+      console.error('[DatabaseService] Error in getDatabaseStatus:', error);
+      return { 
+        connectionStatus: 'error', 
         error: error instanceof Error ? error.message : String(error)
       };
     }
   }
-  
+
   /**
    * Выполнение произвольного SQL-запроса
    */
   async executeRawQuery<T = any>(query: string, params: any[] = []): Promise<T[]> {
     try {
+      // Логируем запрос в историю
       this.logQuery(query);
-      const result = await db.execute(sql.raw(query, params));
+      
+      // Выполняем запрос через пул соединений
+      const result = await pool.query(query, params);
       return result.rows as T[];
     } catch (error) {
-      console.error('[DatabaseService] Ошибка выполнения запроса:', error);
+      console.error('[DatabaseService] Error in executeRawQuery:', error);
       throw error;
     }
   }
-  
+
   /**
    * Получение списка таблиц в базе данных
    */
   async getTablesList(): Promise<string[]> {
     try {
-      const tables = await this.executeRawQuery<{table_name: string}>(
-        'SELECT table_name FROM information_schema.tables WHERE table_schema = $1 ORDER BY table_name',
-        ['public']
-      );
+      const tablesResult = await this.executeRawQuery<{ table_name: string }>(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public'
+        ORDER BY table_name
+      `);
       
-      return tables.map(t => t.table_name);
+      return tablesResult.map(row => row.table_name);
     } catch (error) {
-      console.error('[DatabaseService] Ошибка получения списка таблиц:', error);
+      console.error('[DatabaseService] Error in getTablesList:', error);
       throw error;
     }
   }
-  
+
   /**
    * Получение информации о структуре таблицы
    */
@@ -169,107 +174,101 @@ class DatabaseService implements IDatabaseService {
     indexes: Array<{ name: string, definition: string }>;
   }> {
     try {
-      // Получаем информацию о колонках
-      const columns = await this.executeRawQuery<{
+      // Получаем информацию о колонках таблицы
+      const columnsResult = await this.executeRawQuery<{
         column_name: string;
         data_type: string;
         is_nullable: string;
-      }>(
-        `SELECT column_name, data_type, is_nullable 
-         FROM information_schema.columns 
-         WHERE table_schema = 'public' AND table_name = $1
-         ORDER BY ordinal_position`,
-        [tableName]
-      );
+      }>(`
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = $1
+        ORDER BY ordinal_position
+      `, [tableName]);
       
-      // Получаем информацию об ограничениях
-      const constraints = await this.executeRawQuery<{
+      // Получаем информацию о ограничениях таблицы
+      const constraintsResult = await this.executeRawQuery<{
         constraint_name: string;
         constraint_type: string;
         definition: string;
-      }>(
-        `SELECT c.constraint_name, c.constraint_type, 
-                pgc.definition as definition
-         FROM information_schema.table_constraints c
-         LEFT JOIN pg_constraint pgc 
-           ON c.constraint_name = pgc.conname
-         WHERE c.table_schema = 'public' AND c.table_name = $1`,
-        [tableName]
-      );
+      }>(`
+        SELECT
+          c.conname as constraint_name,
+          CASE
+            WHEN c.contype = 'p' THEN 'PRIMARY KEY'
+            WHEN c.contype = 'f' THEN 'FOREIGN KEY'
+            WHEN c.contype = 'u' THEN 'UNIQUE'
+            WHEN c.contype = 'c' THEN 'CHECK'
+            ELSE c.contype::text
+          END as constraint_type,
+          pg_get_constraintdef(c.oid) as definition
+        FROM pg_constraint c
+        JOIN pg_namespace n ON n.oid = c.connamespace
+        WHERE n.nspname = 'public'
+        AND c.conrelid = (SELECT oid FROM pg_class WHERE relname = $1 AND relnamespace = n.oid)
+        ORDER BY constraint_type, constraint_name
+      `, [tableName]);
       
-      // Получаем информацию об индексах
-      const indexes = await this.executeRawQuery<{
+      // Получаем информацию об индексах таблицы
+      const indexesResult = await this.executeRawQuery<{
         indexname: string;
         indexdef: string;
-      }>(
-        `SELECT indexname, indexdef
-         FROM pg_indexes
-         WHERE schemaname = 'public' AND tablename = $1`,
-        [tableName]
-      );
+      }>(`
+        SELECT
+          i.relname as indexname,
+          pg_get_indexdef(idx.indexrelid) as indexdef
+        FROM pg_index idx
+        JOIN pg_class i ON i.oid = idx.indexrelid
+        JOIN pg_class t ON t.oid = idx.indrelid
+        JOIN pg_namespace n ON n.oid = t.relnamespace
+        WHERE n.nspname = 'public'
+        AND t.relname = $1
+        ORDER BY i.relname
+      `, [tableName]);
       
       return {
-        columns: columns.map(c => ({
-          name: c.column_name,
-          type: c.data_type,
-          nullable: c.is_nullable === 'YES'
+        columns: columnsResult.map(col => ({
+          name: col.column_name,
+          type: col.data_type,
+          nullable: col.is_nullable === 'YES'
         })),
-        constraints: constraints.map(c => ({
-          name: c.constraint_name,
-          type: c.constraint_type,
-          definition: c.definition || ''
+        constraints: constraintsResult.map(con => ({
+          name: con.constraint_name,
+          type: con.constraint_type,
+          definition: con.definition
         })),
-        indexes: indexes.map(i => ({
-          name: i.indexname,
-          definition: i.indexdef
+        indexes: indexesResult.map(idx => ({
+          name: idx.indexname,
+          definition: idx.indexdef
         }))
       };
     } catch (error) {
-      console.error(`[DatabaseService] Ошибка получения информации о таблице ${tableName}:`, error);
+      console.error('[DatabaseService] Error in getTableInfo:', error);
       throw error;
     }
   }
-  
+
   /**
    * Создание резервной копии данных таблицы
    */
   async backupTable(tableName: string): Promise<{ success: boolean, backupData?: any[], error?: string }> {
     try {
-      // Проверяем существование таблицы
-      const tableExists = await this.executeRawQuery<{exists: boolean}>(
-        `SELECT EXISTS (
-           SELECT FROM information_schema.tables 
-           WHERE table_schema = 'public' 
-           AND table_name = $1
-         ) as exists`,
-        [tableName]
-      );
-      
-      if (!tableExists[0]?.exists) {
-        return { 
-          success: false, 
-          error: `Таблица ${tableName} не существует` 
-        };
-      }
-      
-      // Получаем данные таблицы
-      const data = await this.executeRawQuery(
-        `SELECT * FROM ${tableName}`
-      );
+      // Выполняем запрос для получения всех данных из таблицы
+      const result = await this.executeRawQuery(`SELECT * FROM ${tableName}`);
       
       return {
         success: true,
-        backupData: data
+        backupData: result
       };
     } catch (error) {
-      console.error(`[DatabaseService] Ошибка создания резервной копии таблицы ${tableName}:`, error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
+      console.error('[DatabaseService] Error in backupTable:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error) 
       };
     }
   }
-  
+
   /**
    * Проверка целостности данных
    */
@@ -278,102 +277,68 @@ class DatabaseService implements IDatabaseService {
     issues: Array<{ table: string, issue: string, severity: 'high' | 'medium' | 'low' }>;
   }> {
     const issues: Array<{ table: string, issue: string, severity: 'high' | 'medium' | 'low' }> = [];
-    const checkedTables: string[] = [];
     
     try {
       // Получаем список таблиц для проверки
-      let tables = options?.tables;
-      if (!tables || tables.length === 0) {
+      let tables = options?.tables || [];
+      
+      if (!tables.length) {
         tables = await this.getTablesList();
       }
       
-      // Проходим по каждой таблице и выполняем проверки
-      for (const tableName of tables) {
-        checkedTables.push(tableName);
+      // Проверяем каждую таблицу на наличие NULL в обязательных полях
+      for (const table of tables) {
+        // Получаем информацию о структуре таблицы
+        const tableInfo = await this.getTableInfo(table);
         
-        // Проверяем дубликаты в первичных ключах
-        const tableInfo = await this.getTableInfo(tableName);
-        const pkColumns = tableInfo.constraints
-          .filter(c => c.type === 'PRIMARY KEY')
-          .map(c => c.definition)
-          .join('');
+        // Проверяем поля, которые не должны быть NULL
+        const nonNullableColumns = tableInfo.columns
+          .filter(col => !col.nullable)
+          .map(col => col.name);
         
-        const pkColumnMatch = pkColumns.match(/\(([^)]+)\)/);
-        
-        if (pkColumnMatch && pkColumnMatch[1]) {
-          const pkColumnName = pkColumnMatch[1].trim();
+        for (const column of nonNullableColumns) {
+          // Проверяем наличие NULL значений
+          const nullResult = await this.executeRawQuery<{ count: string }>(`
+            SELECT COUNT(*) as count FROM ${table} WHERE ${column} IS NULL
+          `);
           
-          // Проверяем дубликаты в первичных ключах (если это не serial/id)
-          if (!['id', 'serial'].includes(pkColumnName.toLowerCase())) {
-            const duplicatePKCheck = await this.executeRawQuery<{count: string}>(
-              `SELECT ${pkColumnName}, COUNT(*) as count
-               FROM ${tableName}
-               GROUP BY ${pkColumnName}
-               HAVING COUNT(*) > 1`
-            );
-            
-            if (duplicatePKCheck.length > 0) {
-              issues.push({
-                table: tableName,
-                issue: `Найдены дублирующиеся значения в первичном ключе ${pkColumnName}`,
-                severity: 'high'
-              });
-            }
+          const nullCount = parseInt(nullResult[0].count);
+          
+          if (nullCount > 0) {
+            issues.push({
+              table,
+              issue: `Найдено ${nullCount} NULL значений в колонке ${column}, которая должна быть NOT NULL`,
+              severity: 'high'
+            });
           }
         }
         
-        // Проверяем NULL значения в не-NULL столбцах
-        for (const column of tableInfo.columns) {
-          if (!column.nullable) {
-            const nullCheck = await this.executeRawQuery<{count: string}>(
-              `SELECT COUNT(*) as count
-               FROM ${tableName}
-               WHERE ${column.name} IS NULL`
-            );
-            
-            if (parseInt(nullCheck[0]?.count || '0', 10) > 0) {
-              issues.push({
-                table: tableName,
-                issue: `Найдены NULL значения в NOT NULL столбце ${column.name}`,
-                severity: 'high'
-              });
-            }
-          }
-        }
+        // Проверяем дублирующиеся записи в полях с UNIQUE индексами
+        const uniqueIndexes = tableInfo.constraints
+          .filter(constraint => constraint.type === 'UNIQUE')
+          .concat(tableInfo.constraints.filter(constraint => constraint.type === 'PRIMARY KEY'));
         
-        // Проверяем целостность внешних ключей, если требуется
-        if (options?.relations) {
-          const fkConstraints = tableInfo.constraints
-            .filter(c => c.type === 'FOREIGN KEY');
+        for (const index of uniqueIndexes) {
+          // Извлекаем имена колонок из определения индекса
+          const columnMatch = index.definition.match(/\(([^)]+)\)/);
           
-          for (const fk of fkConstraints) {
-            // Сложно парсить определение FK, используем простой запрос для проверки
-            // Это не самый эффективный способ, но работает для большинства случаев
-            const fkViolations = await this.executeRawQuery<{violations: number}>(
-              `WITH orphaned_rows AS (
-                 SELECT t.* FROM ${tableName} t
-                 LEFT JOIN information_schema.table_constraints tc
-                   ON tc.constraint_name = '${fk.name}'
-                 LEFT JOIN information_schema.constraint_column_usage ccu
-                   ON ccu.constraint_name = tc.constraint_name
-                 LEFT JOIN information_schema.key_column_usage kcu
-                   ON kcu.constraint_name = tc.constraint_name
-                 WHERE tc.constraint_type = 'FOREIGN KEY'
-                 AND NOT EXISTS (
-                   SELECT 1 FROM information_schema.tables rt
-                   JOIN information_schema.constraint_column_usage rccu
-                     ON rccu.table_name = rt.table_name
-                   WHERE rccu.constraint_name = tc.constraint_name
-                   AND rccu.table_name != '${tableName}'
-                 )
-               )
-               SELECT COUNT(*) as violations FROM orphaned_rows`
-            );
+          if (columnMatch && columnMatch[1]) {
+            const columns = columnMatch[1].split(',').map(col => col.trim());
             
-            if (parseInt(fkViolations[0]?.violations?.toString() || '0', 10) > 0) {
+            // Проверяем наличие дубликатов
+            const duplicatesQuery = `
+              SELECT ${columns.join(', ')}, COUNT(*)
+              FROM ${table}
+              GROUP BY ${columns.join(', ')}
+              HAVING COUNT(*) > 1
+            `;
+            
+            const duplicatesResult = await this.executeRawQuery(duplicatesQuery);
+            
+            if (duplicatesResult.length > 0) {
               issues.push({
-                table: tableName,
-                issue: `Найдены нарушения целостности внешнего ключа ${fk.name}`,
+                table,
+                issue: `Найдено ${duplicatesResult.length} дублирующихся записей в полях ${columns.join(', ')}`,
                 severity: 'high'
               });
             }
@@ -381,30 +346,74 @@ class DatabaseService implements IDatabaseService {
         }
       }
       
-      // Проверяем таблицы с нулевым количеством строк
-      for (const tableName of checkedTables) {
-        const rowCount = await this.executeRawQuery<{count: string}>(
-          `SELECT COUNT(*) as count FROM ${tableName}`
-        );
+      // Если требуется, проверяем целостность связей между таблицами
+      if (options?.relations) {
+        // Получаем все внешние ключи
+        const foreignKeysResult = await this.executeRawQuery<{
+          table_name: string;
+          constraint_name: string;
+          column_name: string;
+          foreign_table_name: string;
+          foreign_column_name: string;
+        }>(`
+          SELECT
+            tc.table_name,
+            tc.constraint_name,
+            kcu.column_name,
+            ccu.table_name AS foreign_table_name,
+            ccu.column_name AS foreign_column_name
+          FROM
+            information_schema.table_constraints AS tc
+            JOIN information_schema.key_column_usage AS kcu
+              ON tc.constraint_name = kcu.constraint_name
+              AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage AS ccu
+              ON ccu.constraint_name = tc.constraint_name
+              AND ccu.table_schema = tc.table_schema
+          WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_schema = 'public'
+        `);
         
-        if (parseInt(rowCount[0]?.count || '0', 10) === 0) {
-          issues.push({
-            table: tableName,
-            issue: 'Таблица не содержит данных',
-            severity: 'low'
-          });
+        // Проверяем каждый внешний ключ
+        for (const fk of foreignKeysResult) {
+          // Пропускаем, если таблица не входит в список проверяемых
+          if (options?.tables && !options.tables.includes(fk.table_name)) {
+            continue;
+          }
+          
+          // Проверяем наличие "висящих" ссылок
+          const brokenRefsQuery = `
+            SELECT count(*) as count
+            FROM ${fk.table_name} t1
+            LEFT JOIN ${fk.foreign_table_name} t2
+              ON t1.${fk.column_name} = t2.${fk.foreign_column_name}
+            WHERE t1.${fk.column_name} IS NOT NULL
+              AND t2.${fk.foreign_column_name} IS NULL
+          `;
+          
+          const brokenRefsResult = await this.executeRawQuery<{ count: string }>(brokenRefsQuery);
+          const brokenCount = parseInt(brokenRefsResult[0].count);
+          
+          if (brokenCount > 0) {
+            issues.push({
+              table: fk.table_name,
+              issue: `Найдено ${brokenCount} записей с неверными ссылками на ${fk.foreign_table_name} (FK: ${fk.constraint_name})`,
+              severity: 'high'
+            });
+          }
         }
       }
       
       return {
-        success: issues.filter(i => i.severity === 'high').length === 0,
+        success: issues.length === 0,
         issues
       };
     } catch (error) {
-      console.error('[DatabaseService] Ошибка проверки целостности данных:', error);
+      console.error('[DatabaseService] Error in checkDataIntegrity:', error);
+      
       issues.push({
-        table: 'global',
-        issue: error instanceof Error ? error.message : String(error),
+        table: 'system',
+        issue: `Ошибка при проверке целостности данных: ${error instanceof Error ? error.message : String(error)}`,
         severity: 'high'
       });
       
@@ -416,5 +425,4 @@ class DatabaseService implements IDatabaseService {
   }
 }
 
-// Создаем единственный экземпляр сервиса
 export const databaseServiceInstance = new DatabaseService();
