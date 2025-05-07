@@ -61,11 +61,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async isRefCodeUnique(refCode: string): Promise<boolean> {
-    const [count] = await db
-      .select({ count: db.fn.count() })
+    const result = await db
+      .select()
       .from(users)
       .where(eq(users.ref_code, refCode));
-    return Number(count) === 0;
+    // Если пользователей с таким ref_code нет, то код уникален
+    return result.length === 0;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
