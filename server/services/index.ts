@@ -51,5 +51,5 @@ export {
   createUserService,
   createReferralService,
   createReferralBonusService,
-  // createTransactionService
+  createTransactionService
 };

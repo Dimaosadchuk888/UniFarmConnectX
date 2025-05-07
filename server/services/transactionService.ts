@@ -1,9 +1,66 @@
 /**
  * Сервис для работы с транзакциями - файл-посредник
  * 
- * Этот файл экспортирует функциональность из оригинальной реализации
- * для обеспечения совместимости импортов.
+ * Этот файл экспортирует функциональность из инстанс-ориентированной реализации
+ * для обеспечения совместимости импортов и перенаправляет статические вызовы на инстанс.
  */
 
-// Экспортируем все из оригинальной реализации
-export * from './transaction-service-original';
+// Импортируем тип из схемы
+import { type InsertTransaction } from '@shared/schema';
+
+// Импортируем остальные типы и интерфейсы из инстанса
+import { 
+  TransactionType, 
+  Currency, 
+  TransactionStatus,
+  type TransactionData
+} from './transactionServiceInstance';
+
+// Импортируем инстанс сервиса транзакций из центрального экспорта
+import { transactionService } from './index';
+
+// Определяем категории транзакций
+export enum TransactionCategory {
+  DEPOSIT = 'deposit',
+  WITHDRAWAL = 'withdrawal',
+  TRANSFER = 'transfer',
+  REWARD = 'reward',
+  BONUS = 'bonus',
+  REFERRAL = 'referral'
+}
+
+// Реэкспортируем типы для совместимости
+export { 
+  TransactionType, 
+  Currency, 
+  TransactionStatus,
+  TransactionData
+};
+
+// Переопределяем статический API для обеспечения обратной совместимости
+export const TransactionService = {
+  // Создание транзакции
+  async createTransaction(data: InsertTransaction): Promise<any> {
+    return transactionService.createTransaction(data);
+  },
+  
+  // Получение транзакции по ID
+  async getTransactionById(id: number): Promise<any | undefined> {
+    return transactionService.getTransactionById(id);
+  },
+  
+  // Получение транзакций пользователя
+  async getUserTransactions(userId: number, limit = 50): Promise<any[]> {
+    return transactionService.getUserTransactions(userId, limit);
+  },
+  
+  // Обновление статуса транзакции
+  async updateTransactionStatus(id: number, status: TransactionStatus): Promise<any | undefined> {
+    return transactionService.updateTransactionStatus(id, status);
+  },
+  
+  // Логирование транзакции
+  async logTransaction(data: TransactionData): Promise<any> {
+    return transactionService.logTransaction(data);
+  }
+};
