@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { referrals, Referral, InsertReferral, users, User } from '@shared/schema';
 import { eq, sql, and } from 'drizzle-orm';
-import { UserService } from './userService';
+import { UserService } from './user-service-original';
 import { ValidationError } from '../middleware/errorHandler';
 
 // Максимальная глубина реферальной цепочки согласно ТЗ

@@ -7,9 +7,9 @@
 
 import { IExtendedStorage } from '../storage-interface';
 import { storage } from '../storage-adapter';
-import { createSessionService, SessionService } from './SessionService';
-import { createUserService, UserService } from './UserService';
-import { createTransactionService, TransactionService } from './TransactionService';
+import { createSessionService, SessionService } from './session-service-original';
+import { createUserService, UserService } from './user-service-original';
+import { createTransactionService, TransactionService } from './transaction-service-original';
 
 // Создаем экземпляры сервисов с помощью фабричных функций
 const sessionServiceInstance = createSessionService(storage);
