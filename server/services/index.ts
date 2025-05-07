@@ -10,33 +10,33 @@
 
 import { extendedStorage } from '../storage-adapter-extended';
 import { createUserService, type UserService } from './userService';
+import { createReferralService, type IReferralService } from './referralServiceInstance';
 // Импортируйте другие сервисы по мере их создания и реорганизации
 // import { createTransactionService, type TransactionService } from './transactionService';
-// import { createReferralService, type ReferralService } from './referralService';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 const userService = createUserService(extendedStorage);
+const referralService = createReferralService(extendedStorage);
 // const transactionService = createTransactionService(extendedStorage);
-// const referralService = createReferralService(extendedStorage);
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
   userService,
-  // transactionService,
-  // referralService
+  referralService,
+  // transactionService
 };
 
 // Экспортируем типы для использования в пользовательском коде
 export type {
   UserService,
-  // TransactionService,
-  // ReferralService
+  IReferralService as ReferralService,
+  // TransactionService
 };
 
 // Реэкспортируем типы интерфейсов для использования в тестах и моках
 export type { IUserService } from './userService';
+export type { IReferralService } from './referralServiceInstance';
 // export type { ITransactionService } from './transactionService';
-// export type { IReferralService } from './referralService';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -45,6 +45,6 @@ export type { IUserService } from './userService';
  */
 export {
   createUserService,
-  // createTransactionService,
-  // createReferralService
+  createReferralService,
+  // createTransactionService
 };

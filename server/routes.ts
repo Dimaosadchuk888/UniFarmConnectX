@@ -15,7 +15,7 @@ import { storage } from "./storage";
 
 // Импортируем сервисы
 import { userService } from './services/index';
-import { ReferralService } from './services/referralService';
+import { referralService } from './services';
 import { ReferralBonusService } from './services/referralBonusService';
 import { LaunchLogService } from './services/launchLogService'; // Добавлен сервис логирования запусков
 import { db } from './db';
