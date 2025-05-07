@@ -15,6 +15,7 @@ import { createReferralBonusService, type IReferralBonusService } from './referr
 import { createTransactionService, type ITransactionService } from './transactionServiceInstance';
 import { createTonBoostService, type ITonBoostService } from './tonBoostServiceInstance';
 import { createFarmingService, type IFarmingService } from './farmingServiceInstance';
+import { createUniFarmingService, type IUniFarmingService } from './uniFarmingServiceInstance';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 const userService = createUserService(extendedStorage);
@@ -23,6 +24,7 @@ const referralBonusService = createReferralBonusService(userService, referralSer
 const transactionService = createTransactionService(extendedStorage);
 const tonBoostService = createTonBoostService(referralBonusService);
 const farmingService = createFarmingService();
+const uniFarmingService = createUniFarmingService();
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
@@ -31,7 +33,8 @@ export {
   referralBonusService,
   transactionService,
   tonBoostService,
-  farmingService
+  farmingService,
+  uniFarmingService
 };
 
 // Экспортируем типы для использования в пользовательском коде
@@ -41,7 +44,8 @@ export type {
   IReferralBonusService as ReferralBonusService,
   ITransactionService as TransactionService,
   ITonBoostService as TonBoostService,
-  IFarmingService as FarmingService
+  IFarmingService as FarmingService,
+  IUniFarmingService as UniFarmingService
 };
 
 // Реэкспортируем типы интерфейсов для использования в тестах и моках
@@ -51,6 +55,7 @@ export type { IReferralBonusService } from './referralBonusServiceInstance';
 export type { ITransactionService } from './transactionServiceInstance';
 export type { ITonBoostService } from './tonBoostServiceInstance';
 export type { IFarmingService } from './farmingServiceInstance';
+export type { IUniFarmingService } from './uniFarmingServiceInstance';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -63,5 +68,6 @@ export {
   createReferralBonusService,
   createTransactionService,
   createTonBoostService,
-  createFarmingService
+  createFarmingService,
+  createUniFarmingService
 };
