@@ -11,9 +11,9 @@
 import express, { Express, Request, Response } from "express";
 
 // Явно импортируем контроллеры для новых маршрутов API
-import { SessionController } from './controllers/SessionController';
-import { UserController } from './controllers/UserController';
-import { TransactionController } from './controllers/TransactionController';
+import { SessionController } from './controllers/sessionController';
+import { UserController } from './controllers/userController';
+import { TransactionController } from './controllers/transactionController';
 
 /**
  * Регистрирует новые маршруты API в указанном приложении Express

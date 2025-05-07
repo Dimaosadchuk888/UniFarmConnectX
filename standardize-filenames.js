@@ -1,8 +1,10 @@
 /**
- * Скрипт для стандартизации имен файлов в проекте
+ * Скрипт для стандартизации импортов в проекте
  * 
- * Этот скрипт переименовывает файлы с учетом соглашений об именовании 
- * и обновляет все импорты в других файлах.
+ * Этот скрипт анализирует и исправляет все импорты, чтобы они ссылались на
+ * файлы с корректным именованием. В нашем проекте уже настроена система
+ * файлов-посредников, поэтому мы не переименовываем сами файлы, а только
+ * обновляем импорты.
  * 
  * Соглашения об именовании:
  * - Файлы сервисов: camelCase + Service.ts
@@ -21,19 +23,39 @@ const execPromise = promisify(exec);
 
 // Настройки
 const CONFIG = {
-  // Список файлов для переименования в формате { oldPath: 'путь/к/старому/файлу', newPath: 'путь/к/новому/файлу' }
-  renameList: [
+  // Список импортов для исправления в формате { oldImport: 'импорт/в/неправильном/регистре', newImport: 'импорт/в/правильном/регистре' }
+  importFixList: [
     // Сервисы (camelCase)
-    { oldPath: 'server/services/UserService.ts', newPath: 'server/services/userService.ts' },
-    { oldPath: 'server/services/TransactionService.ts', newPath: 'server/services/transactionService.ts' },
-    { oldPath: 'server/services/SessionService.ts', newPath: 'server/services/sessionService.ts' },
+    { oldImport: './UserService', newImport: './userService' },
+    { oldImport: './TransactionService', newImport: './transactionService' },
+    { oldImport: './SessionService', newImport: './sessionService' },
+    { oldImport: '@server/services/UserService', newImport: '@server/services/userService' },
+    { oldImport: '@server/services/TransactionService', newImport: '@server/services/transactionService' },
+    { oldImport: '@server/services/SessionService', newImport: '@server/services/sessionService' },
+    { oldImport: './services/UserService', newImport: './services/userService' },
+    { oldImport: './services/TransactionService', newImport: './services/transactionService' },
+    { oldImport: './services/SessionService', newImport: './services/sessionService' },
     
     // Контроллеры (camelCase)
-    { oldPath: 'server/controllers/UserController.ts', newPath: 'server/controllers/userController.ts' },
-    { oldPath: 'server/controllers/TransactionController.ts', newPath: 'server/controllers/transactionController.ts' },
-    { oldPath: 'server/controllers/SessionController.ts', newPath: 'server/controllers/sessionController.ts' },
-    
-    // Другие файлы, которые нужно переименовать...
+    { oldImport: './UserController', newImport: './userController' },
+    { oldImport: './TransactionController', newImport: './transactionController' },
+    { oldImport: './SessionController', newImport: './sessionController' },
+    { oldImport: '@server/controllers/UserController', newImport: '@server/controllers/userController' },
+    { oldImport: '@server/controllers/TransactionController', newImport: '@server/controllers/transactionController' },
+    { oldImport: '@server/controllers/SessionController', newImport: '@server/controllers/sessionController' },
+    { oldImport: './controllers/UserController', newImport: './controllers/userController' },
+    { oldImport: './controllers/TransactionController', newImport: './controllers/transactionController' },
+    { oldImport: './controllers/SessionController', newImport: './controllers/sessionController' },
+  ],
+  
+  // Файлы, которые будут удалены после исправления всех импортов
+  filesToRemoveAfterFix: [
+    'server/services/UserService.ts',
+    'server/services/TransactionService.ts',
+    'server/services/SessionService.ts',
+    'server/controllers/UserController.ts',
+    'server/controllers/TransactionController.ts',
+    'server/controllers/SessionController.ts',
   ],
   
   // Путь к директории проекта
@@ -50,7 +72,14 @@ const CONFIG = {
   excludedFiles: [
     '**/node_modules/**',
     '**/dist/**',
-    '**/build/**'
+    '**/build/**',
+    // Исключаем сами файлы-посредники
+    '**/UserService.ts',
+    '**/TransactionService.ts',
+    '**/SessionService.ts',
+    '**/UserController.ts',
+    '**/TransactionController.ts',
+    '**/SessionController.ts'
   ]
 };
 
@@ -126,62 +155,43 @@ async function moveFile(oldPath, newPath) {
   return true;
 }
 
-async function updateImports(file, oldPath, newPath) {
-  // Получить относительные пути для импортов
-  const fileDir = path.dirname(file);
-  const oldRelativePath = path.relative(fileDir, oldPath).replace(/\.ts$/, '');
-  const newRelativePath = path.relative(fileDir, newPath).replace(/\.ts$/, '');
-  
-  // Преобразовать в формат импортов (с заменой обратных слешей на прямые)
-  const oldImportPath = oldRelativePath.replace(/\\/g, '/');
-  const newImportPath = newRelativePath.replace(/\\/g, '/');
-  
-  // Добавить префикс ./ для корректного импорта из текущей директории
-  const oldImport = oldImportPath.startsWith('.') ? oldImportPath : `./${oldImportPath}`;
-  const newImport = newImportPath.startsWith('.') ? newImportPath : `./${newImportPath}`;
-  
-  // Проверить, содержит ли файл импорт
+async function checkAndFixImportsInFile(file) {
   let content = await fs.promises.readFile(file, 'utf8');
-  
-  // Шаблоны для поиска импортов
-  const importPatterns = [
-    `import .*;? from ['"]${oldImport}['"]`,
-    `import .*?['"]${oldImport}['"].*?`,
-    `require\\(['"]${oldImport}['"]\\)`,
-    `from ['"]${oldImport}['"]`
-  ];
-  
   let fileWasUpdated = false;
   
-  for (const pattern of importPatterns) {
-    const regex = new RegExp(pattern, 'g');
-    if (regex.test(content)) {
-      // Создать резервную копию перед изменением файла
-      if (!fileWasUpdated) {
-        await createBackupOfFile(file);
-        fileWasUpdated = true;
-      }
-      
-      // Заменить импорты
-      content = content.replace(regex, (match) => {
-        return match.replace(oldImport, newImport);
-      });
-    }
-  }
-  
-  // Также обработать возможные импорты с использованием абсолютных путей
-  const oldAbsoluteImport = `@server/${oldPath.replace('server/', '').replace(/\.ts$/, '')}`;
-  const newAbsoluteImport = `@server/${newPath.replace('server/', '').replace(/\.ts$/, '')}`;
-  
-  if (content.includes(oldAbsoluteImport)) {
-    // Создать резервную копию перед изменением файла
-    if (!fileWasUpdated) {
-      await createBackupOfFile(file);
-      fileWasUpdated = true;
-    }
+  // Для каждой замены из списка проверяем импорты
+  for (const fixItem of CONFIG.importFixList) {
+    const { oldImport, newImport } = fixItem;
     
-    // Заменить импорты
-    content = content.replace(new RegExp(oldAbsoluteImport, 'g'), newAbsoluteImport);
+    // Проверяем разные форматы импортов
+    const importPatterns = [
+      // ES6 именованный импорт: import { something } from 'module-name'
+      `import\\s+\\{[^}]*\\}\\s+from\\s+['"]${oldImport}['"]`,
+      // ES6 импорт по умолчанию: import Name from 'module-name'
+      `import\\s+[^{]*\\s+from\\s+['"]${oldImport}['"]`,
+      // ES6 импорт пространства имен: import * as name from 'module-name'
+      `import\\s+\\*\\s+as\\s+[^\\s]+\\s+from\\s+['"]${oldImport}['"]`,
+      // Только импорт: import 'module-name'
+      `import\\s+['"]${oldImport}['"]`,
+      // CommonJS импорт: require('module-name')
+      `require\\(['"]${oldImport}['"]\\)`
+    ];
+    
+    for (const pattern of importPatterns) {
+      const regex = new RegExp(pattern, 'g');
+      if (regex.test(content)) {
+        // Создать резервную копию перед изменением файла (только один раз)
+        if (!fileWasUpdated) {
+          await createBackupOfFile(file);
+          fileWasUpdated = true;
+        }
+        
+        // Заменяем импорт на правильный
+        content = content.replace(regex, (match) => {
+          return match.replace(oldImport, newImport);
+        });
+      }
+    }
   }
   
   // Сохранить файл, если были сделаны изменения
@@ -194,97 +204,122 @@ async function updateImports(file, oldPath, newPath) {
   return false;
 }
 
-async function processRename(item) {
-  console.log(`\n🔄 Обработка переименования: ${item.oldPath} -> ${item.newPath}`);
-  
-  // Полные пути к файлам
-  const oldFullPath = path.join(CONFIG.projectRoot, item.oldPath);
-  const newFullPath = path.join(CONFIG.projectRoot, item.newPath);
-  
-  // Шаг 1: Копирование файла
-  const fileMoved = await moveFile(oldFullPath, newFullPath);
-  if (!fileMoved) {
-    console.error(`❌ Не удалось скопировать файл: ${item.oldPath}`);
-    return false;
-  }
-  
-  // Шаг 2: Обновление импортов во всех файлах
-  const filesToUpdate = await getAllFilesToUpdate();
-  let importUpdatesCount = 0;
-  
-  for (const file of filesToUpdate) {
-    const updated = await updateImports(file, item.oldPath, item.newPath);
-    if (updated) {
-      importUpdatesCount++;
-    }
-  }
-  
-  console.log(`✅ Обновлены импорты в ${importUpdatesCount} файлах для: ${item.newPath}`);
-  
-  // Шаг 3: Удаление оригинального файла (если он отличается от нового)
-  if (oldFullPath.toLowerCase() !== newFullPath.toLowerCase()) {
-    try {
-      await fs.promises.unlink(oldFullPath);
-      console.log(`✅ Удален оригинальный файл: ${item.oldPath}`);
-    } catch (error) {
-      console.warn(`⚠️ Не удалось удалить оригинальный файл: ${item.oldPath}`);
-      console.error(error);
-    }
-  } else {
-    console.log(`ℹ️ Пропущено удаление: исходный и целевой пути совпадают в нижнем регистре`);
-  }
-  
-  return true;
-}
-
-async function standardizeFilenames() {
-  console.log('🚀 Начинаем стандартизацию имен файлов...\n');
+async function removeProxyFiles() {
+  console.log('\n🗑️ Удаление файлов-посредников с верхним регистром...');
   
   let successCount = 0;
   let errorCount = 0;
   
-  for (const item of CONFIG.renameList) {
+  for (const filePath of CONFIG.filesToRemoveAfterFix) {
+    const fullPath = path.join(CONFIG.projectRoot, filePath);
+    
     try {
-      const success = await processRename(item);
-      if (success) {
+      if (await fileExists(fullPath)) {
+        // Перед удалением проверим, что мы правильно исправили все импорты
+        const importsCheckResult = await execPromise(`grep -r "from.*${path.basename(filePath, '.ts')}" --include="*.ts" --include="*.tsx" ./server`);
+        
+        if (importsCheckResult.stdout.trim() !== '') {
+          console.warn(`⚠️ Найдены импорты для ${filePath}, отмена удаления:`);
+          console.warn(importsCheckResult.stdout);
+          errorCount++;
+          continue;
+        }
+        
+        // Удаляем файл
+        await fs.promises.unlink(fullPath);
+        console.log(`✅ Удален файл-посредник: ${filePath}`);
         successCount++;
       } else {
-        errorCount++;
+        console.log(`ℹ️ Файл не существует, пропускаем: ${filePath}`);
       }
     } catch (error) {
-      console.error(`❌ Ошибка при обработке ${item.oldPath}:`);
+      console.error(`❌ Ошибка при удалении файла ${filePath}:`);
+      console.error(error);
+      errorCount++;
+    }
+  }
+  
+  console.log(`✅ Успешно удалено: ${successCount} файлов`);
+  console.log(`❌ Ошибок: ${errorCount}`);
+  
+  return { successCount, errorCount };
+}
+
+async function standardizeImports() {
+  console.log('🚀 Начинаем стандартизацию импортов...\n');
+  
+  // Шаг 1: Получить все файлы для обновления
+  const filesToUpdate = await getAllFilesToUpdate();
+  console.log(`📁 Найдено ${filesToUpdate.length} файлов для проверки и обновления импортов`);
+  
+  // Шаг 2: Обработать каждый файл
+  let updatedCount = 0;
+  let errorCount = 0;
+  
+  for (const file of filesToUpdate) {
+    try {
+      const wasUpdated = await checkAndFixImportsInFile(file);
+      if (wasUpdated) {
+        updatedCount++;
+      }
+    } catch (error) {
+      console.error(`❌ Ошибка при обработке файла ${file}:`);
       console.error(error);
       errorCount++;
     }
     
     // Пауза между операциями для снижения нагрузки
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
   
-  console.log('\n📊 Итоги стандартизации:');
-  console.log(`✅ Успешно обработано: ${successCount} файлов`);
-  console.log(`❌ Ошибок: ${errorCount} файлов`);
+  console.log('\n📊 Итоги стандартизации импортов:');
+  console.log(`✅ Обновлено файлов: ${updatedCount}`);
+  console.log(`❌ Ошибок: ${errorCount}`);
   
-  if (successCount > 0) {
-    console.log('\n🔄 Перезапуск сервера рекомендуется после этих изменений.');
+  // Шаг 3: Удалить файлы-посредники если все импорты успешно исправлены
+  if (updatedCount > 0 && errorCount === 0) {
+    // Дать время файловой системе и TypeScript обновить ссылки
+    console.log('\n⏳ Ожидание перед удалением файлов-посредников...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Удаляем файлы-посредники
+    const removalResult = await removeProxyFiles();
+    
+    if (removalResult.successCount > 0 && removalResult.errorCount === 0) {
+      console.log('\n✅ Стандартизация импортов успешно завершена!');
+    } else {
+      console.warn('\n⚠️ Стандартизация импортов частично завершена.');
+      console.warn('   Некоторые файлы-посредники не были удалены из-за ошибок.');
+    }
+  } else if (errorCount > 0) {
+    console.warn('\n⚠️ Стандартизация импортов завершена с ошибками.');
+    console.warn('   Файлы-посредники не были удалены для сохранения работоспособности приложения.');
+  } else {
+    console.log('\n✅ Проверка импортов завершена - изменений не потребовалось.');
   }
+  
+  console.log('\n🔄 Перезапуск сервера рекомендуется после этих изменений.');
 }
 
 // Вспомогательная функция для отладки
-async function testGrepImports(oldPath) {
+async function testGrepImports(pattern) {
   try {
-    const { stdout, stderr } = await execPromise(`grep -r "from.*${oldPath}" --include="*.ts" --include="*.tsx" ./server`);
-    console.log('Найдены импорты:');
+    const { stdout, stderr } = await execPromise(`grep -r "from.*${pattern}" --include="*.ts" --include="*.tsx" ./server`);
+    console.log(`Найдены импорты для ${pattern}:`);
     console.log(stdout);
     if (stderr) {
       console.error('Ошибки:');
       console.error(stderr);
     }
   } catch (error) {
-    console.log('Импорты не найдены или произошла ошибка:');
-    console.error(error);
+    console.log(`Импорты не найдены для ${pattern} или произошла ошибка:`);
+    if (error.stderr) {
+      console.error(error.stderr);
+    } else {
+      console.error(error);
+    }
   }
 }
 
 // Запуск стандартизации
-standardizeFilenames();
+standardizeImports();
