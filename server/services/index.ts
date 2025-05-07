@@ -45,6 +45,7 @@ export type { IUserService } from './userService';
 export type { IReferralService } from './referralServiceInstance';
 export type { IReferralBonusService } from './referralBonusServiceInstance';
 export type { ITransactionService } from './transactionServiceInstance';
+export type { ITonBoostService } from './tonBoostServiceInstance';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -55,5 +56,6 @@ export {
   createUserService,
   createReferralService,
   createReferralBonusService,
-  createTransactionService
+  createTransactionService,
+  createTonBoostService
 };
