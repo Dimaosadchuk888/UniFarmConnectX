@@ -135,7 +135,7 @@ export class AuthService {
 
       // Обрабатываем реферальный бонус, если указан родительский код
       if (parent_ref_code) {
-        await ReferralBonusService.processRegistrationBonus(createdUser.id, parent_ref_code);
+        await referralBonusService.processRegistrationBonus(createdUser.id, parent_ref_code);
       }
 
       return createdUser;
@@ -174,7 +174,7 @@ export class AuthService {
 
       // Если указан родительский реферальный код, начисляем бонус
       if (data.parent_ref_code) {
-        await ReferralBonusService.processRegistrationBonus(createdUser.id, data.parent_ref_code);
+        await referralBonusService.processRegistrationBonus(createdUser.id, data.parent_ref_code);
       }
 
       return createdUser;
@@ -224,7 +224,7 @@ export class AuthService {
 
       // Обрабатываем реферальный бонус, если указан родительский код
       if (parent_ref_code) {
-        await ReferralBonusService.processRegistrationBonus(createdUser.id, parent_ref_code);
+        await referralBonusService.processRegistrationBonus(createdUser.id, parent_ref_code);
       }
 
       return createdUser;

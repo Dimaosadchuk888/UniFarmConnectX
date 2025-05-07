@@ -10,7 +10,7 @@ import {
   type InsertTransaction
 } from "@shared/schema";
 import BigNumber from "bignumber.js";
-import { ReferralBonusService } from "./referralBonusService";
+import { referralBonusService } from "./index";
 import { Currency } from "./transactionService";
 
 /**
