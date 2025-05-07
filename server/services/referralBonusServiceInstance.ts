@@ -44,6 +44,14 @@ export interface IReferralBonusService {
    * @returns Сумма начисленных бонусов
    */
   processReferralBonus(userId: number, amount: number, currency: Currency): Promise<number>;
+  
+  /**
+   * Обрабатывает бонус за регистрацию по реферальному коду
+   * @param userId ID зарегистрированного пользователя
+   * @param refCode Реферальный код, по которому была совершена регистрация
+   * @returns Результат обработки бонуса
+   */
+  processRegistrationBonus(userId: number, refCode: string | null): Promise<boolean>;
 }
 
 /**
@@ -412,6 +420,44 @@ export class ReferralBonusService implements IReferralBonusService {
     } catch (error) {
       console.error('[ReferralBonusService] Error processing referral bonus:', error);
       return 0;
+    }
+  }
+  
+  /**
+   * Обрабатывает бонус за регистрацию по реферальному коду
+   * @param userId ID зарегистрированного пользователя
+   * @param refCode Реферальный код, по которому была совершена регистрация
+   * @returns Результат обработки бонуса
+   */
+  async processRegistrationBonus(userId: number, refCode: string | null): Promise<boolean> {
+    try {
+      // Проверяем наличие реферального кода
+      if (!refCode) {
+        console.log(`[ReferralBonusService] No referral code provided for user ${userId}, skipping registration bonus`);
+        return false;
+      }
+      
+      console.log(`[ReferralBonusService] Processing registration bonus for user ${userId} with refCode ${refCode}`);
+      
+      // Находим владельца реферального кода
+      const referrer = await this.userService.getUserByReferralCode(refCode);
+      if (!referrer) {
+        console.log(`[ReferralBonusService] No user found with referral code ${refCode}, skipping registration bonus`);
+        return false;
+      }
+      
+      // Создаем реферальную цепочку
+      const chainResult = await this.createReferralChain(userId, referrer.id);
+      if (!chainResult.success) {
+        console.log(`[ReferralBonusService] Failed to create referral chain: ${chainResult.message}`);
+        return false;
+      }
+      
+      console.log(`[ReferralBonusService] Successfully processed registration bonus for user ${userId} with refCode ${refCode}`);
+      return true;
+    } catch (error) {
+      console.error('[ReferralBonusService] Error processing registration bonus:', error);
+      return false;
     }
   }
 }

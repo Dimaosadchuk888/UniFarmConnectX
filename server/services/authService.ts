@@ -3,9 +3,8 @@ import { storage } from '../storage';
 import { User, InsertUser } from '@shared/schema';
 import { validateTelegramInitData, TelegramValidationResult } from '../utils/telegramUtils';
 import { generateUniqueRefCode } from '../utils/refCodeUtils';
-// import { ReferralBonusService } from './referralBonusService';
-// TODO: Добавить импорт и использование referralBonusService из фабрики сервисов
-import { userService } from './index';
+// Используем инстанс-подход вместо статического класса
+import { userService, referralBonusService } from './index';
 
 /**
  * Интерфейс для аутентификации через Telegram
