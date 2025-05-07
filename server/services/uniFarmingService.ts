@@ -52,6 +52,16 @@ export class UniFarmingService {
   }
 
   /**
+   * Алиас для createUniFarmingDeposit для поддержки старого контроллера
+   * @param userId ID пользователя
+   * @param amount Сумма депозита
+   * @returns Объект с данными о созданном депозите
+   */
+  static async depositFarming(userId: number, amount: string): Promise<CreateDepositResult> {
+    return uniFarmingService.createUniFarmingDeposit(userId, amount);
+  }
+
+  /**
    * Получает данные о UNI фарминге пользователя
    * @param userId ID пользователя
    * @returns Объект с данными о фарминге
@@ -76,6 +86,15 @@ export class UniFarmingService {
    * @returns Информационное сообщение о том, что доход начисляется автоматически
    */
   static async harvestFarmingBalance(userId: number): Promise<HarvestResult> {
+    return uniFarmingService.harvestFarmingBalance(userId);
+  }
+
+  /**
+   * Алиас для harvestFarmingBalance для поддержки старого контроллера
+   * @param userId ID пользователя 
+   * @returns Информационное сообщение о том, что доход начисляется автоматически
+   */
+  static async harvestFarming(userId: number): Promise<HarvestResult> {
     return uniFarmingService.harvestFarmingBalance(userId);
   }
 }
