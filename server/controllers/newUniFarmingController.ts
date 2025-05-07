@@ -74,6 +74,8 @@ export class NewUniFarmingController {
           message: error.message
         });
         return;
+      } else if (error instanceof Error) {
+        console.error(error.stack);
       }
       
       // Если это какая-то другая ошибка
@@ -130,6 +132,8 @@ export class NewUniFarmingController {
           message: error.message
         });
         return;
+      } else if (error instanceof Error) {
+        console.error(error.stack);
       }
       
       // Если это какая-то другая ошибка
@@ -179,6 +183,8 @@ export class NewUniFarmingController {
           message: error.message
         });
         return;
+      } else if (error instanceof Error) {
+        console.error(error.stack);
       }
       
       // Если это какая-то другая ошибка
@@ -233,6 +239,8 @@ export class NewUniFarmingController {
           message: error.message
         });
         return;
+      } else if (error instanceof Error) {
+        console.error(error.stack);
       }
       
       // Если это какая-то другая ошибка
