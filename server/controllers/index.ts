@@ -5,12 +5,12 @@
  */
 
 // Экспорт контроллеров пользователей
-export * as UserController from './UserController';
+export * as UserController from './userController';
 
 // Экспорт контроллеров транзакций
-export * as TransactionController from './TransactionController';
+export * as TransactionController from './transactionController';
 
 // Экспорт контроллеров сессий
-export * as SessionController from './SessionController';
+export * as SessionController from './sessionController';
 
 // Другие контроллеры можно добавить по мере необходимости
