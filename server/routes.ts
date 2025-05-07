@@ -1481,24 +1481,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
   // Создаем WebSocket сервер на отдельном пути, чтобы не конфликтовать с Vite HMR
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws',
+    // Увеличиваем тайм-аут для более устойчивого соединения
+    clientTracking: true,
+    // Настраиваем heartbeat для поддержания соединения
+    perMessageDeflate: {
+      zlibDeflateOptions: {
+        chunkSize: 1024,
+        memLevel: 7,
+        level: 3
+      },
+      zlibInflateOptions: {
+        chunkSize: 10 * 1024
+      },
+      // Ниже порог для сжатия пакетов
+      threshold: 1024,
+      // Не сжимаем пакеты, если коэффициент сжатия будет больше 1
+      concurrencyLimit: 10,
+      // Лимиты для предотвращения DoS атак
+      serverNoContextTakeover: true,
+      clientNoContextTakeover: true
+    }
+  });
+  
+  // Отслеживание активных подключений
+  const clients = new Map<string, ExtendedWebSocket>();
+  
+  // Функция для поддержания соединений активными
+  function heartbeat(this: ExtendedWebSocket) {
+    this.isAlive = true;
+  }
+  
+  // Расширяем тип для отслеживания состояния
+  interface ExtendedWebSocket extends WebSocket {
+    userId?: number;
+    isAlive?: boolean;
+    clientId?: string;
+    _socket?: {
+      remoteAddress?: string;
+    };
+  }
+  
+  // Интервал проверки активности клиентов
+  const pingInterval = setInterval(() => {
+    wss.clients.forEach((ws: WebSocket) => {
+      const client = ws as ExtendedWebSocket;
+      
+      if (client.isAlive === false) {
+        // Если клиент не ответил на ping, закрываем соединение
+        if (client.clientId) {
+          clients.delete(client.clientId);
+        }
+        return client.terminate();
+      }
+      
+      // Отмечаем клиент как неактивный перед отправкой ping
+      client.isAlive = false;
+      
+      // Отправляем ping
+      try {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() }));
+        }
+      } catch (e) {
+        console.error('[WebSocket] Ошибка при отправке ping:', e);
+        client.terminate();
+      }
+    });
+  }, 15000); // проверяем каждые 15 секунд
   
   // Обработка подключений WebSocket
   wss.on('connection', (ws: ExtendedWebSocket) => {
-    console.log('[WebSocket] Новое подключение установлено');
+    // Назначаем уникальный ID клиенту
+    const clientId = Date.now() + Math.random().toString(36).substr(2, 9);
+    ws.clientId = clientId;
+    ws.isAlive = true; // помечаем клиент как активный
+    
+    // Добавляем клиент в Map
+    clients.set(clientId, ws);
+    
+    console.log('[WebSocket] Новое подключение установлено', { clientId });
+    
+    // Устанавливаем обработчик heartbeat
+    ws.on('pong', heartbeat);
     
     // Отправляем приветственное сообщение
-    ws.send(JSON.stringify({ type: 'connected', message: 'Соединение с сервером успешно установлено' }));
-    
-    // Отправляем периодические пинги для поддержания соединения
-    const pingInterval = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() }));
-      }
-    }, 30000); // каждые 30 секунд
+    try {
+      ws.send(JSON.stringify({ 
+        type: 'connected', 
+        message: 'Соединение с сервером успешно установлено',
+        clientId
+      }));
+    } catch (e) {
+      console.error('[WebSocket] Ошибка при отправке приветствия:', e);
+    }
     
     // Обработка сообщений от клиента
     ws.on('message', (message: Buffer | string) => {
+      ws.isAlive = true; // обновляем статус активности при получении сообщения
+      
       try {
         const data = JSON.parse(message.toString());
         console.log('[WebSocket] Получено сообщение:', data);
@@ -1506,15 +1589,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Обработка различных типов сообщений
         if (data.type === 'pong') {
           // Пользователь ответил на пинг
-          console.log('[WebSocket] Получен pong от клиента');
+          ws.isAlive = true;
         } else if (data.type === 'subscribe' && data.userId) {
           // Подписка на обновления для конкретного пользователя
           ws.userId = data.userId;
-          ws.send(JSON.stringify({ 
-            type: 'subscribed', 
-            userId: data.userId,
-            message: `Подписка на обновления для пользователя ${data.userId} оформлена` 
-          }));
+          try {
+            ws.send(JSON.stringify({ 
+              type: 'subscribed', 
+              userId: data.userId,
+              message: `Подписка на обновления для пользователя ${data.userId} оформлена` 
+            }));
+          } catch (e) {
+            console.error('[WebSocket] Ошибка при отправке подтверждения подписки:', e);
+          }
         }
       } catch (error) {
         console.error('[WebSocket] Ошибка обработки сообщения:', error);
@@ -1523,8 +1610,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Обработка закрытия соединения
     ws.on('close', () => {
-      console.log('[WebSocket] Соединение закрыто');
-      clearInterval(pingInterval);
+      console.log('[WebSocket] Соединение закрыто', { clientId });
+      // Удаляем клиент из Map
+      if (ws.clientId) {
+        clients.delete(ws.clientId);
+      }
     });
     
     // Обработка ошибок
@@ -1533,6 +1623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('[WebSocket] [Ошибка соединения]', {
         error: error instanceof Error ? error.message : 'Неизвестная ошибка',
         userId: ws.userId || 'не определён',
+        clientId,
         timestamp: new Date().toISOString()
       });
       
@@ -1540,7 +1631,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (process.env.NODE_ENV === 'development') {
         console.error('[WebSocket] [Стек ошибки]:', error);
       }
+      
+      // Удаляем клиент из Map при ошибке
+      if (ws.clientId) {
+        clients.delete(ws.clientId);
+      }
     });
+  });
+  
+  // Обработка закрытия сервера
+  wss.on('close', () => {
+    clearInterval(pingInterval);
   });
   
   /**
@@ -1550,29 +1651,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
    * @param data Данные для отправки
    */
   (global as any).broadcastUserUpdate = (userId: number, data: Record<string, unknown>): void => {
-    wss.clients.forEach((client: WebSocket) => {
-      try {
-        const extClient = client as ExtendedWebSocket;
-        if (extClient.readyState === WebSocket.OPEN && extClient.userId === userId) {
+    let sentCount = 0;
+    
+    // Используем Map для более эффективного доступа
+    for (const [clientId, extClient] of clients.entries()) {
+      if (extClient.readyState === WebSocket.OPEN && extClient.userId === userId) {
+        try {
           extClient.send(JSON.stringify({
             type: 'update',
+            clientId,
             ...data
           }));
-        }
-      } catch (error) {
-        // Структурированное логирование ошибки
-        console.error('[WebSocket] [Ошибка отправки] Не удалось отправить обновление пользователю:', {
-          userId,
-          error: error instanceof Error ? error.message : 'Неизвестная ошибка',
-          timestamp: new Date().toISOString()
-        });
-        
-        // В производственной среде не выводим полный стек ошибки
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[WebSocket] [Стек ошибки]:', error);
+          sentCount++;
+        } catch (error) {
+          // Структурированное логирование ошибки
+          console.error('[WebSocket] [Ошибка отправки] Не удалось отправить обновление пользователю:', {
+            userId,
+            clientId,
+            error: error instanceof Error ? error.message : 'Неизвестная ошибка',
+            timestamp: new Date().toISOString()
+          });
+          
+          // В производственной среде не выводим полный стек ошибки
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[WebSocket] [Стек ошибки]:', error);
+          }
+          
+          // Если соединение в ошибке, удаляем его из Map
+          clients.delete(clientId);
         }
       }
-    });
+    }
+    
+    if (sentCount > 0) {
+      console.log(`[WebSocket] Отправлены обновления для пользователя ${userId} на ${sentCount} устройств`);
+    }
   };
   
   // Для успешного прохождения Replit делпоя
