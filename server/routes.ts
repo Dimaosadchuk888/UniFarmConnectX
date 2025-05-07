@@ -32,7 +32,7 @@ import { FarmingController } from './controllers/farmingController';
 import { ReferralController } from './controllers/referralController';
 import { ReferralControllerFallback } from './controllers/referralControllerFallback';
 import { SessionController } from './controllers/sessionController';
-import { runAddGuestIdMigration } from './controllers/migrationController';
+import { migrateFarmingData, checkUserFarmingStatus } from './controllers/migrationController';
 
 // Импорт обработчика команд для Telegram-бота
 import * as telegramBot from './telegramBot';
@@ -618,7 +618,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Удаляем дублирующий маршрут /api/session/restore, так как он уже определен выше
   
   // Маршруты для миграций и обслуживания базы данных (только для разработки)
-  app.post("/api/migrations/add-guest-id", runAddGuestIdMigration);
+  // Маршрут для миграции фарминга 
+  app.post("/api/admin/migrate-farming-data", migrateFarmingData);
+  app.get("/api/admin/check-farming-status/:userId", checkUserFarmingStatus);
   
   // Отладочный эндпоинт для анализа заголовков и данных пользователя
   app.get("/debug/me/raw", async (req: Request, res: Response) => {

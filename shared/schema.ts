@@ -27,6 +27,9 @@ export const users = pgTable("users", {
   uni_farming_balance: numeric("uni_farming_balance", { precision: 18, scale: 6 }).default("0"),
   uni_farming_rate: numeric("uni_farming_rate", { precision: 18, scale: 6 }).default("0"),
   uni_farming_last_update: timestamp("uni_farming_last_update"),
+  // Поля для совместимости со старой системой фарминга (используются в миграции)
+  uni_farming_deposit: numeric("uni_farming_deposit", { precision: 18, scale: 6 }).default("0"),
+  uni_farming_activated_at: timestamp("uni_farming_activated_at"),
   created_at: timestamp("created_at").defaultNow(),
   checkin_last_date: timestamp("checkin_last_date"),
   checkin_streak: integer("checkin_streak").default(0)

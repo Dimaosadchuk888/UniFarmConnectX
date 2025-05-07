@@ -1,99 +1,119 @@
-import { pool } from '../db';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import * as schema from '@shared/schema';
+/**
+ * Прокси для сервиса базы данных
+ * 
+ * Обеспечивает обратную совместимость со статическими вызовами
+ * методов databaseService путем перенаправления их на экземпляр сервиса.
+ */
+
+import { databaseServiceInstance, type IDatabaseService } from './databaseServiceInstance';
 
 /**
- * Сервис для транзакционной работы с базой данных
- * Обеспечивает выполнение нескольких операций в рамках одной транзакции
+ * Прокси класс для сервиса базы данных, перенаправляющий статические вызовы на экземпляр
  */
-export class DatabaseService {
+export class DatabaseService implements IDatabaseService {
   /**
-   * Выполняет группу операций в одной транзакции
-   * 
-   * @param callback Функция с операциями базы данных
-   * @returns Результат выполнения callback
+   * Проверка состояния подключения к базе данных
    */
-  static async withTransaction<T>(callback: (txDb: any) => Promise<T>): Promise<T> {
-    const client = await pool.connect();
-    
-    try {
-      // Начинаем транзакцию
-      await client.query('BEGIN');
-      
-      // Создаем инстанс drizzle с клиентом транзакции
-      const txDb = drizzle(client, { schema });
-      
-      // Вызываем callback с контекстом транзакции
-      const result = await callback(txDb);
-      
-      // Фиксируем транзакцию
-      await client.query('COMMIT');
-      
-      return result;
-    } catch (error) {
-      // Откатываем транзакцию в случае ошибки
-      await client.query('ROLLBACK');
-      console.error('[DatabaseService] Ошибка транзакции:', error);
-      throw error;
-    } finally {
-      // Освобождаем клиент
-      client.release();
-    }
+  static async checkConnection(): Promise<{ isConnected: boolean, error?: string }> {
+    return databaseServiceInstance.checkConnection();
   }
   
   /**
-   * Проверяет существование пользователя по ID
-   * 
-   * @param userId ID пользователя
-   * @returns true, если пользователь существует, иначе false
+   * Получение информации о состоянии базы данных
    */
-  static async userExists(userId: number): Promise<boolean> {
-    try {
-      const result = await pool.query(
-        'SELECT EXISTS(SELECT 1 FROM users WHERE id = $1) AS exists',
-        [userId]
-      );
-      
-      return result.rows[0].exists;
-    } catch (error) {
-      console.error('[DatabaseService] Ошибка при проверке существования пользователя:', error);
-      return false;
-    }
-  }
-  
-  /**
-   * Проверяет, достаточно ли у пользователя средств для операции
-   * 
-   * @param userId ID пользователя
-   * @param amount Сумма операции
-   * @param currency Валюта (UNI или TON)
-   * @returns Объект с результатом проверки и балансом пользователя
-   */
-  static async hasEnoughFunds(userId: number, amount: number, currency: string): Promise<{ 
-    hasEnough: boolean; 
-    balance: number;
-    formattedCurrency: string;
+  static async getDatabaseStatus(): Promise<{
+    connectionStatus: string;
+    tablesCount?: number;
+    lastOperations?: Array<{ query: string, timestamp: Date }>;
+    error?: string;
   }> {
-    try {
-      const formattedCurrency = currency.toUpperCase();
-      const balanceField = formattedCurrency === 'UNI' ? 'balance_uni' : 'balance_ton';
-      
-      const result = await pool.query(
-        `SELECT ${balanceField} FROM users WHERE id = $1`,
-        [userId]
-      );
-      
-      if (result.rows.length === 0) {
-        return { hasEnough: false, balance: 0, formattedCurrency };
-      }
-      
-      const balance = parseFloat(result.rows[0][balanceField] || '0');
-      const hasEnough = balance >= amount;
-      
-      return { hasEnough, balance, formattedCurrency };
-    } catch (error) {
-      console.error('[DatabaseService] Ошибка при проверке баланса:', error);
-      return { hasEnough: false, balance: 0, formattedCurrency: currency.toUpperCase() };
-    }
+    return databaseServiceInstance.getDatabaseStatus();
+  }
+  
+  /**
+   * Выполнение произвольного SQL-запроса
+   */
+  static async executeRawQuery<T = any>(query: string, params?: any[]): Promise<T[]> {
+    return databaseServiceInstance.executeRawQuery<T>(query, params);
+  }
+  
+  /**
+   * Получение списка таблиц в базе данных
+   */
+  static async getTablesList(): Promise<string[]> {
+    return databaseServiceInstance.getTablesList();
+  }
+  
+  /**
+   * Получение информации о структуре таблицы
+   */
+  static async getTableInfo(tableName: string): Promise<{
+    columns: Array<{ name: string, type: string, nullable: boolean }>;
+    constraints: Array<{ name: string, type: string, definition: string }>;
+    indexes: Array<{ name: string, definition: string }>;
+  }> {
+    return databaseServiceInstance.getTableInfo(tableName);
+  }
+  
+  /**
+   * Создание резервной копии данных таблицы
+   */
+  static async backupTable(tableName: string): Promise<{ success: boolean, backupData?: any[], error?: string }> {
+    return databaseServiceInstance.backupTable(tableName);
+  }
+  
+  /**
+   * Проверка целостности данных
+   */
+  static async checkDataIntegrity(options?: { tables?: string[], relations?: boolean }): Promise<{
+    success: boolean;
+    issues: Array<{ table: string, issue: string, severity: 'high' | 'medium' | 'low' }>;
+  }> {
+    return databaseServiceInstance.checkDataIntegrity(options);
+  }
+  
+  // Реализация интерфейса IDatabaseService для поддержки возможности
+  // создания экземпляров класса в будущем
+  async checkConnection(): Promise<{ isConnected: boolean, error?: string }> {
+    return databaseServiceInstance.checkConnection();
+  }
+  
+  async getDatabaseStatus(): Promise<{
+    connectionStatus: string;
+    tablesCount?: number;
+    lastOperations?: Array<{ query: string, timestamp: Date }>;
+    error?: string;
+  }> {
+    return databaseServiceInstance.getDatabaseStatus();
+  }
+  
+  async executeRawQuery<T = any>(query: string, params: any[] = []): Promise<T[]> {
+    return databaseServiceInstance.executeRawQuery<T>(query, params);
+  }
+  
+  async getTablesList(): Promise<string[]> {
+    return databaseServiceInstance.getTablesList();
+  }
+  
+  async getTableInfo(tableName: string): Promise<{
+    columns: Array<{ name: string, type: string, nullable: boolean }>;
+    constraints: Array<{ name: string, type: string, definition: string }>;
+    indexes: Array<{ name: string, definition: string }>;
+  }> {
+    return databaseServiceInstance.getTableInfo(tableName);
+  }
+  
+  async backupTable(tableName: string): Promise<{ success: boolean, backupData?: any[], error?: string }> {
+    return databaseServiceInstance.backupTable(tableName);
+  }
+  
+  async checkDataIntegrity(options?: { tables?: string[], relations?: boolean }): Promise<{
+    success: boolean;
+    issues: Array<{ table: string, issue: string, severity: 'high' | 'medium' | 'low' }>;
+  }> {
+    return databaseServiceInstance.checkDataIntegrity(options);
   }
 }
+
+// Экспортируем экземпляр сервиса для использования в качестве объекта
+export const databaseService = databaseServiceInstance;

@@ -17,6 +17,8 @@ import { createTonBoostService, type ITonBoostService } from './tonBoostServiceI
 import { createFarmingService, type IFarmingService } from './farmingServiceInstance';
 import { createUniFarmingService, type IUniFarmingService } from './uniFarmingServiceInstance';
 import { createNewUniFarmingService, type INewUniFarmingService } from './newUniFarmingServiceInstance';
+import { createLaunchLogService, type ILaunchLogService } from './launchLogServiceInstance';
+import { databaseServiceInstance, type IDatabaseService } from './databaseServiceInstance';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 const userService = createUserService(extendedStorage);
@@ -27,6 +29,7 @@ const tonBoostService = createTonBoostService(referralBonusService);
 const farmingService = createFarmingService();
 const uniFarmingService = createUniFarmingService();
 const newUniFarmingService = createNewUniFarmingService();
+const launchLogService = createLaunchLogService();
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
@@ -37,7 +40,9 @@ export {
   tonBoostService,
   farmingService,
   uniFarmingService,
-  newUniFarmingService
+  newUniFarmingService,
+  launchLogService,
+  databaseServiceInstance as databaseService
 };
 
 // Экспортируем типы для использования в пользовательском коде
@@ -49,7 +54,8 @@ export type {
   ITonBoostService as TonBoostService,
   IFarmingService as FarmingService,
   IUniFarmingService as UniFarmingService,
-  INewUniFarmingService as NewUniFarmingService
+  INewUniFarmingService as NewUniFarmingService,
+  ILaunchLogService as LaunchLogService
 };
 
 // Реэкспортируем типы интерфейсов для использования в тестах и моках
@@ -61,6 +67,7 @@ export type { ITonBoostService } from './tonBoostServiceInstance';
 export type { IFarmingService } from './farmingServiceInstance';
 export type { IUniFarmingService } from './uniFarmingServiceInstance';
 export type { INewUniFarmingService } from './newUniFarmingServiceInstance';
+export type { ILaunchLogService } from './launchLogServiceInstance';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -75,5 +82,6 @@ export {
   createTonBoostService,
   createFarmingService,
   createUniFarmingService,
-  createNewUniFarmingService
+  createNewUniFarmingService,
+  createLaunchLogService
 };
