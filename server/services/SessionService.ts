@@ -6,7 +6,7 @@
  */
 
 import { IStorage } from "../storage-interface";
-import { userService } from "./index";
+import { generateRandomString } from "../utils/string-utils";
 import { User } from "@shared/schema";
 import { StorageErrors, StorageErrorType } from "../storage-interface";
 
@@ -61,12 +61,12 @@ export function createSessionService(storage: IStorage): SessionService {
         console.log(`[SessionService] ⚠️ У пользователя с ID ${user.id} отсутствует реферальный код, генерируем новый`);
         
         try {
-          // Генерируем уникальный реферальный код через userService
-          const refCode = await userService.generateUniqueRefCode();
+          // Генерируем уникальный реферальный код через хранилище
+          const refCode = await storage.generateUniqueRefCode();
           console.log(`[SessionService] Сгенерирован новый реферальный код: ${refCode}`);
           
           // Обновляем пользователя с новым кодом
-          const updatedUser = await userService.updateRefCode(user.id, refCode);
+          const updatedUser = await storage.updateUserRefCode(user.id, refCode);
           
           if (updatedUser) {
             console.log(`[SessionService] ✅ Успешно обновлен реферальный код для пользователя ${user.id}: ${refCode}`);
@@ -86,6 +86,3 @@ export function createSessionService(storage: IStorage): SessionService {
     }
   };
 }
-
-// Экспорт типов для использования в других модулях
-export type { SessionService };

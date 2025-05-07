@@ -12,6 +12,7 @@ import { storage } from '../storage-standard';
 // Импорт сервисов
 import { UserService, createUserService } from './UserService';
 import { TransactionService, createTransactionService } from './TransactionService';
+import { SessionService, createSessionService } from './SessionService';
 
 /**
  * Интерфейс сервисов приложения
@@ -19,6 +20,7 @@ import { TransactionService, createTransactionService } from './TransactionServi
 export interface Services {
   userService: UserService;
   transactionService: TransactionService;
+  sessionService: SessionService;
 }
 
 /**
@@ -38,7 +40,8 @@ export function createServices(storageInstance: IStorage = storage): Services {
   
   return {
     userService: createUserService(storageInstance),
-    transactionService: createTransactionService(extendedStorage)
+    transactionService: createTransactionService(extendedStorage),
+    sessionService: createSessionService(storageInstance)
   };
 }
 
@@ -65,6 +68,7 @@ export function setServices(services: Services): void {
 // Экспортируем экземпляры и типы
 export * from './UserService';
 export * from './TransactionService';
+export * from './SessionService';
 
 // Экспорт экземпляров сервисов по умолчанию
-export const { userService, transactionService } = getServices();
+export const { userService, transactionService, sessionService } = getServices();
