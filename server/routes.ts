@@ -472,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // для привязки записи к конкретному аккаунту
       if (telegram_user_id) {
         try {
-          const user = await UserService.getUserByTelegramId(Number(telegram_user_id));
+          const user = await userService.getUserByTelegramId(Number(telegram_user_id));
           if (user) {
             launchData.user_id = user.id;
           }
@@ -526,8 +526,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let referrerRegistered = false;
         
         // Создаем нового пользователя, используя сервис напрямую
-        // Импортируем UserService в начале файла
-        const user = await UserService.createUser({
+        // Используем инстанс сервиса вместо статического класса
+        const user = await userService.createUser({
           telegram_id: testUserId,
           username: `test_user_${testUserId}`,
           balance_uni: "5000", // Тестовый бонус
@@ -544,7 +544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let inviterId = parseInt(referrerId);
             if (!isNaN(inviterId)) {
               // Проверяем, существует ли пользователь-приглашающий
-              const inviter = await UserService.getUserById(inviterId);
+              const inviter = await userService.getUserById(inviterId);
               
               if (inviter) {
                 // Создаем реферальную связь (уровень 1)
