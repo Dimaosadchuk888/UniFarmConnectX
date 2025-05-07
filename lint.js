@@ -1,25 +1,18 @@
 #!/usr/bin/env node
 
 /**
- * Скрипт для запуска ESLint проверки именования файлов
- * Помогает автоматически выявлять нарушения соглашения об именовании
- * файлов в проекте
+ * Скрипт для проверки соответствия файлов соглашениям об именовании
+ * Версия, не зависящая от ESLint, который имеет проблемы с flat config в текущей версии
  */
 
-import { ESLint } from 'eslint';
 import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import { dirname, resolve, basename, relative } from 'path';
 import { readdirSync, statSync } from 'fs';
-import { execSync } from 'child_process';
+import { filenamingRules } from './eslint.config.js';
 
 // Получаем текущую директорию
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// Создаем экземпляр ESLint
-const eslint = new ESLint({
-  overrideConfigFile: resolve(__dirname, '.eslintrc.cjs')
-});
 
 /**
  * Рекурсивно находит все файлы в указанной директории
@@ -52,63 +45,98 @@ function findFiles(dir, includePattern = /\.(js|jsx|ts|tsx)$/, excludePattern = 
 }
 
 /**
- * Выполняет проверку файлов на соответствие соглашению об именовании
+ * Проверяет соответствие файла правилам именования
  */
-async function lintFiles() {
-  try {
-    console.log('Поиск файлов для проверки...');
+function checkFilenameRules(filePath) {
+  const relPath = relative(__dirname, filePath);
+  const fileName = basename(filePath);
+  
+  for (const [pattern, regex] of Object.entries(filenamingRules)) {
+    // Преобразуем паттерн glob в регулярное выражение для проверки пути
+    const globToRegex = pattern
+      .replace(/\//g, '\\/')
+      .replace(/\./g, '\\.')
+      .replace(/\*\*/g, '.*')
+      .replace(/\*/g, '[^/]*')
+      .replace(/\{([^}]+)\}/g, '($1)');
     
-    // Находим все файлы
-    const serverFiles = findFiles(resolve(__dirname, 'server'));
-    const sharedFiles = findFiles(resolve(__dirname, 'shared'));
-    const clientFiles = findFiles(resolve(__dirname, 'client'));
+    const patternRegex = new RegExp(globToRegex);
     
-    const allFiles = [...serverFiles, ...sharedFiles, ...clientFiles];
-    
-    console.log(`Найдено ${allFiles.length} файлов для проверки`);
-    
-    // Запускаем линтер
-    console.log('Проверка соответствия соглашению об именовании файлов...');
-    const results = await eslint.lintFiles(allFiles);
-    
-    // Отфильтровываем только ошибки именования файлов
-    const filenameResults = results.filter(result => 
-      result.messages.some(msg => msg.ruleId === 'filename-rules/match')
-    );
-    
-    if (filenameResults.length === 0) {
-      console.log('\x1b[32m%s\x1b[0m', '✅ Все файлы соответствуют соглашению об именовании!');
-      return;
-    }
-    
-    // Выводим результаты проверки
-    console.log('\x1b[31m%s\x1b[0m', `⚠️ Найдено ${filenameResults.length} файлов с нарушением соглашения об именовании:`);
-    
-    filenameResults.forEach(result => {
-      const filenameMessages = result.messages.filter(msg => msg.ruleId === 'filename-rules/match');
-      if (filenameMessages.length > 0) {
-        console.log('\x1b[31m%s\x1b[0m', `  - ${result.filePath}`);
-        filenameMessages.forEach(msg => {
-          console.log(`    ${msg.message}`);
-        });
+    // Если путь соответствует шаблону, проверяем имя файла по регулярному выражению
+    if (patternRegex.test(relPath)) {
+      if (!regex.test(fileName)) {
+        return {
+          valid: false,
+          pattern,
+          expected: regex.toString()
+        };
       }
+      return { valid: true };
+    }
+  }
+  
+  return { valid: true, skipped: true };
+}
+
+/**
+ * Выполняет проверку файлов
+ */
+async function checkFiles() {
+  console.log('Поиск файлов для проверки...');
+  
+  // Находим все файлы
+  const serverFiles = findFiles(resolve(__dirname, 'server'));
+  const sharedFiles = findFiles(resolve(__dirname, 'shared'));
+  const clientFiles = findFiles(resolve(__dirname, 'client'));
+  
+  const allFiles = [...serverFiles, ...sharedFiles, ...clientFiles];
+  
+  console.log(`Найдено ${allFiles.length} файлов для проверки`);
+  
+  // Проверяем каждый файл
+  const invalidFiles = [];
+  const skippedFiles = [];
+  
+  for (const filePath of allFiles) {
+    const result = checkFilenameRules(filePath);
+    
+    if (!result.valid) {
+      invalidFiles.push({
+        path: filePath,
+        pattern: result.pattern,
+        expected: result.expected
+      });
+    } else if (result.skipped) {
+      skippedFiles.push(filePath);
+    }
+  }
+  
+  // Выводим результаты
+  if (invalidFiles.length === 0) {
+    console.log('\x1b[32m%s\x1b[0m', '✅ Все файлы соответствуют соглашению об именовании!');
+  } else {
+    console.log('\x1b[31m%s\x1b[0m', `⚠️ Найдено ${invalidFiles.length} файлов с нарушением соглашения об именовании:`);
+    
+    invalidFiles.forEach(file => {
+      console.log('\x1b[31m%s\x1b[0m', `  - ${file.path}`);
+      console.log(`    Должно соответствовать шаблону: ${file.expected}`);
+      console.log(`    Правило для: ${file.pattern}`);
     });
     
     console.log('\n\x1b[33m%s\x1b[0m', 'Пожалуйста, переименуйте файлы в соответствии с соглашением:');
     console.log('  * Используйте camelCase для файлов сервисов и утилит (например, userService.ts)');
     console.log('  * Используйте PascalCase для компонентов React и типов/интерфейсов');
-  } catch (error) {
-    console.error('Ошибка выполнения проверки:', error);
-    process.exit(1);
   }
-}
-
-// Делаем скрипт исполняемым
-try {
-  execSync('chmod +x lint.js');
-} catch (error) {
-  console.error('Не удалось сделать скрипт исполняемым:', error);
+  
+  console.log(`\nПропущено файлов (нет правил для их проверки): ${skippedFiles.length}`);
+  
+  return invalidFiles.length === 0;
 }
 
 // Запускаем проверку
-lintFiles();
+checkFiles().then(valid => {
+  process.exit(valid ? 0 : 1);
+}).catch(error => {
+  console.error('Ошибка выполнения проверки:', error);
+  process.exit(1);
+});
