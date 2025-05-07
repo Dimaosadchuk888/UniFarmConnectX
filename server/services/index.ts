@@ -40,7 +40,8 @@ export type {
   IReferralService as ReferralService,
   IReferralBonusService as ReferralBonusService,
   ITransactionService as TransactionService,
-  ITonBoostService as TonBoostService
+  ITonBoostService as TonBoostService,
+  IFarmingService as FarmingService
 };
 
 // Реэкспортируем типы интерфейсов для использования в тестах и моках
@@ -49,6 +50,7 @@ export type { IReferralService } from './referralServiceInstance';
 export type { IReferralBonusService } from './referralBonusServiceInstance';
 export type { ITransactionService } from './transactionServiceInstance';
 export type { ITonBoostService } from './tonBoostServiceInstance';
+export type { IFarmingService } from './farmingServiceInstance';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -60,5 +62,6 @@ export {
   createReferralService,
   createReferralBonusService,
   createTransactionService,
-  createTonBoostService
+  createTonBoostService,
+  createFarmingService
 };

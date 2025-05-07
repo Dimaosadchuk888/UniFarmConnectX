@@ -1,6 +1,14 @@
-import { db } from '../db';
-import { farmingDeposits, FarmingDeposit, InsertFarmingDeposit } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+/**
+ * Сервис для работы с фарминг-депозитами - файл-посредник
+ * 
+ * Этот файл экспортирует функциональность из инстанс-ориентированной реализации
+ * для обеспечения совместимости импортов и перенаправляет статические вызовы на инстанс.
+ */
+
+import { type FarmingDeposit, type InsertFarmingDeposit } from '@shared/schema';
+
+// Импортируем инстанс сервиса фарминга из центрального экспорта
+import { farmingService } from './index';
 
 /**
  * Сервис для работы с фарминг-депозитами
@@ -12,13 +20,7 @@ export class FarmingService {
    * @returns Массив активных фарминг-депозитов
    */
   static async getUserFarmingDeposits(userId: number): Promise<FarmingDeposit[]> {
-    const deposits = await db
-      .select()
-      .from(farmingDeposits)
-      .where(eq(farmingDeposits.user_id, userId))
-      .orderBy(farmingDeposits.created_at);
-    
-    return deposits;
+    return farmingService.getUserFarmingDeposits(userId);
   }
 
   /**
@@ -27,12 +29,7 @@ export class FarmingService {
    * @returns Созданный депозит
    */
   static async createFarmingDeposit(depositData: InsertFarmingDeposit): Promise<FarmingDeposit> {
-    const [deposit] = await db
-      .insert(farmingDeposits)
-      .values(depositData)
-      .returning();
-    
-    return deposit;
+    return farmingService.createFarmingDeposit(depositData);
   }
 
   /**
@@ -41,13 +38,7 @@ export class FarmingService {
    * @returns Обновленный депозит
    */
   static async updateLastClaim(depositId: number): Promise<FarmingDeposit | undefined> {
-    const [updatedDeposit] = await db
-      .update(farmingDeposits)
-      .set({ last_claim: new Date() })
-      .where(eq(farmingDeposits.id, depositId))
-      .returning();
-    
-    return updatedDeposit;
+    return farmingService.updateLastClaim(depositId);
   }
 
   /**
@@ -56,12 +47,6 @@ export class FarmingService {
    * @returns Обновленный депозит
    */
   static async applyBoost(depositId: number): Promise<FarmingDeposit | undefined> {
-    const [boostedDeposit] = await db
-      .update(farmingDeposits)
-      .set({ is_boosted: true })
-      .where(eq(farmingDeposits.id, depositId))
-      .returning();
-    
-    return boostedDeposit;
+    return farmingService.applyBoost(depositId);
   }
 }
