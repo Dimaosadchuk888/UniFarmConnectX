@@ -915,9 +915,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[TEST] Попытка создания реферальной цепочки: user=${userId}, inviter=${inviterId}`);
       
-      // Проверяем существование пользователей
-      const user = await UserService.getUserById(Number(userId));
-      const inviter = await UserService.getUserById(Number(inviterId));
+      // Проверяем существование пользователей через инстанс сервиса
+      const user = await userService.getUserById(Number(userId));
+      const inviter = await userService.getUserById(Number(inviterId));
       
       if (!user || !inviter) {
         return res.status(404).json({
@@ -960,9 +960,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[TEST 4.1] Создание реферальной связи: user=${userId}, inviter=${inviterId}`);
       
-      // Проверяем существование пользователей
-      const user = await UserService.getUserById(Number(userId));
-      const inviter = await UserService.getUserById(Number(inviterId));
+      // Проверяем существование пользователей через инстанс сервиса
+      const user = await userService.getUserById(Number(userId));
+      const inviter = await userService.getUserById(Number(inviterId));
       
       if (!user || !inviter) {
         return res.status(404).json({

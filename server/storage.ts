@@ -46,6 +46,14 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users).where(eq(users.ref_code, refCode));
     return user || undefined;
   }
+  
+  /**
+   * Получение пользователя по его Telegram ID
+   */
+  async getUserByTelegramId(telegramId: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.telegram_id, telegramId));
+    return user || undefined;
+  }
 
   /**
    * Обновление реферального кода пользователя
