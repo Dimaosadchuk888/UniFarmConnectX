@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import 'express-session';
-import { walletService, type WalletService } from '../services';
+import { walletService } from '../services';
 import { WalletCurrency, TransactionStatusType } from '../services/walletService';
 import { ValidationError, NotFoundError } from '../middleware/errorHandler';
 import { createValidationErrorFromZod, extractUserId } from '../utils/validationUtils';
@@ -239,7 +239,7 @@ export class WalletController {
       const { limit, offset, currency, status } = validation.data;
       
       // Получаем транзакции через WalletService
-      const result = await this.walletService.getUserTransactions({
+      const result = await walletService.getUserTransactions({
         userId,
         limit,
         offset,
@@ -338,7 +338,7 @@ export class WalletController {
       console.log(`[WalletController] Запрос на вывод ${amount} ${currency} для пользователя ${userId}`);
       
       // Делегируем операцию вывода средств WalletService
-      const result = await this.walletService.withdrawFunds({
+      const result = await walletService.withdrawFunds({
         userId,
         amount,
         currency: currency as WalletCurrency,
