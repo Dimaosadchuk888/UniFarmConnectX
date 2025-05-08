@@ -47,6 +47,20 @@ export enum TransactionStatus {
 }
 
 /**
+ * Категории транзакций
+ */
+export enum TransactionCategory {
+  DEPOSIT = 'deposit',
+  WITHDRAWAL = 'withdrawal',
+  REWARD = 'reward',
+  BONUS = 'bonus',
+  REFERRAL = 'referral',
+  FARMING = 'farming',
+  AIRDROP = 'airdrop',
+  TRANSFER = 'transfer'
+}
+
+/**
  * Данные для создания транзакции
  */
 export interface TransactionData {

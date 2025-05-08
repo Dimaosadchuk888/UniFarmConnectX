@@ -13,29 +13,20 @@ import {
   TransactionType, 
   Currency, 
   TransactionStatus,
+  TransactionCategory,
   type TransactionData
 } from './transactionServiceInstance';
 
 // Импортируем инстанс сервиса транзакций из центрального экспорта
 import { transactionService } from './index';
 
-// Определяем категории транзакций
-export enum TransactionCategory {
-  DEPOSIT = 'deposit',
-  WITHDRAWAL = 'withdrawal',
-  TRANSFER = 'transfer',
-  REWARD = 'reward',
-  BONUS = 'bonus',
-  REFERRAL = 'referral',
-  REFUND = 'refund'
-}
-
 // Реэкспортируем типы для совместимости
 export { 
   TransactionType, 
   Currency, 
   TransactionStatus,
-  TransactionData
+  TransactionData,
+  TransactionCategory // Теперь импортируем TransactionCategory из инстанса
 };
 
 // Переопределяем статический API для обеспечения обратной совместимости
