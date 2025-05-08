@@ -288,18 +288,14 @@ class TelegramServiceImpl implements ITelegramService {
     const refCode = `ref_${Math.random().toString(36).substring(2, 10)}`;
 
     // Создаем нового пользователя
-    const newUser = await storage.createUserWithTelegram({
+    const newUser = await storage.createUser({
+      username: username || `user_${userId}`,
       telegram_id: userId,
-      username: username || null,
-      first_name: firstName || null,
-      last_name: lastName || null,
-      balance: 0,
-      farming_rate: 1,
-      wallet_address: null,
+      guest_id: null, // В случае регистрации через Telegram guest_id не нужен
+      wallet: null,
+      ton_wallet_address: null,
       ref_code: refCode,
-      referrer_id: referrer ? parseInt(referrer) : null,
-      created_at: new Date(),
-      updated_at: new Date()
+      parent_ref_code: referrer || null
     });
 
     return {

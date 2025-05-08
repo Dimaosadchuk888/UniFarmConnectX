@@ -24,6 +24,7 @@ import { createAuthService, type IAuthService } from './authServiceInstance';
 import { createSecurityService, type ISecurityService } from './securityServiceInstance';
 import { createAdminService, type IAdminService } from './adminServiceInstance';
 import { databaseServiceInstance, type IDatabaseService } from './databaseServiceInstance';
+import { telegramServiceInstance, createTelegramService, type ITelegramService } from './telegramServiceInstance';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 const userService = createUserService(extendedStorage);
@@ -57,7 +58,8 @@ export {
   authService,
   securityService,
   adminService,
-  databaseServiceInstance as databaseService
+  databaseServiceInstance as databaseService,
+  telegramServiceInstance as telegramService
 };
 
 // Экспортируем типы для использования в пользовательском коде
@@ -76,6 +78,7 @@ export type {
   IAuthService as AuthService,
   ISecurityService as SecurityService,
   IAdminService as AdminService,
+  ITelegramService as TelegramService,
   // Экспортируем дополнительные типы для использования в контроллерах
   DailyBonusStatusResponse,
   DailyBonusClaimResponse
@@ -96,6 +99,7 @@ export type { IPartitionService } from './partitionServiceInstance';
 export type { IAuthService } from './authServiceInstance';
 export type { ISecurityService } from './securityServiceInstance';
 export type { IAdminService } from './adminServiceInstance';
+export type { ITelegramService } from './telegramServiceInstance';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
