@@ -17,7 +17,7 @@ import { storage } from "./storage";
 import { userService } from './services/index';
 import { referralService } from './services';
 import { referralBonusService } from './services';
-import { LaunchLogService } from './services/launchLogService'; // Добавлен сервис логирования запусков
+import { launchLogService } from './services'; // Импорт из централизованного экспорта
 import { db } from './db';
 import { referrals, type InsertLaunchLog } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -484,7 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Записываем информацию о запуске
-      const log = await LaunchLogService.logLaunch(launchData);
+      const log = await launchLogService.logLaunch(launchData);
       
       // Отправляем успешный ответ
       return res.status(200).json({
