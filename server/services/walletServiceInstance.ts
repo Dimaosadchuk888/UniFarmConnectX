@@ -709,7 +709,7 @@ class WalletServiceImpl implements IWalletService {
           .update(transactions)
           .set({ 
             status: TransactionStatusType.REJECTED,
-            notes: reason || 'Вывод отклонен'
+            description: reason || 'Вывод отклонен'
           })
           .where(eq(transactions.id, transactionId))
           .returning();
@@ -730,8 +730,7 @@ class WalletServiceImpl implements IWalletService {
             wallet_address: transaction.wallet_address,
             source: 'withdrawal_rejected',
             category: TransactionCategory.REFUND,
-            related_tx_id: transaction.id,
-            notes: `Возврат средств для транзакции #${transaction.id}: ${reason || 'Вывод отклонен'}`
+            description: `Возврат средств для транзакции #${transaction.id}: ${reason || 'Вывод отклонен'}`
           })
           .returning();
         

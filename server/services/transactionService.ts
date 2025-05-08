@@ -26,7 +26,8 @@ export enum TransactionCategory {
   TRANSFER = 'transfer',
   REWARD = 'reward',
   BONUS = 'bonus',
-  REFERRAL = 'referral'
+  REFERRAL = 'referral',
+  REFUND = 'refund'
 }
 
 // Реэкспортируем типы для совместимости
