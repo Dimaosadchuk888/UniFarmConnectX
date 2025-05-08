@@ -117,16 +117,16 @@ export interface AddressValidationResult {
  */
 export interface UserTransaction {
   id: number;
-  userId: number;
-  type: string;
-  amount: string;
-  currency: string;
-  createdAt: Date;
-  status: string;
+  userId: number | null;
+  type: string | null;
+  amount: string | null;
+  currency: string | null;
+  createdAt: Date | null;
+  status: string | null;
   walletAddress: string | null;
-  source?: string;
-  category?: string;
-  txHash?: string;
+  source?: string | null;
+  category?: string | null;
+  txHash?: string | null;
 }
 
 /**
@@ -612,7 +612,7 @@ class WalletServiceImpl implements IWalletService {
         userId,
         -numericAmount, // Отрицательное значение для вывода
         currency,
-        TransactionType.WITHDRAWALAL,
+        TransactionType.WITHDRAWAL,
         {
           walletAddress: withdrawAddress,
           source: 'user_request',
@@ -715,7 +715,7 @@ class WalletServiceImpl implements IWalletService {
           .returning();
         
         // Сумма для возврата (положительное значение)
-        const refundAmount = Math.abs(parseFloat(transaction.amount));
+        const refundAmount = Math.abs(parseFloat(transaction.amount || '0'));
         
         // Создаем транзакцию возврата средств
         const [refundTransaction] = await tx
@@ -735,7 +735,7 @@ class WalletServiceImpl implements IWalletService {
           .returning();
         
         // Обновляем баланс пользователя (возвращаем средства)
-        const balanceField = transaction.currency.toLowerCase() === 'uni' ? 'balance_uni' : 'balance_ton';
+        const balanceField = (transaction.currency || '').toLowerCase() === 'uni' ? 'balance_uni' : 'balance_ton';
         
         const [userWithBalance] = await tx
           .select()
@@ -874,7 +874,7 @@ class WalletServiceImpl implements IWalletService {
    */
   private mapTransactionToUserTransaction(tx: Transaction): UserTransaction {
     return {
-      id: tx.id,
+      id: tx.id ?? 0,
       userId: tx.user_id,
       type: tx.type,
       amount: tx.amount,

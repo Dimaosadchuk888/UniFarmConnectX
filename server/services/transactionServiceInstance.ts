@@ -6,7 +6,6 @@
  */
 
 import { db } from '../db';
-import { IExtendedStorage } from '../storage-interface';
 import { 
   transactions, 
   Transaction, 
@@ -74,108 +73,117 @@ export interface ITransactionService {
 }
 
 /**
- * Фабрика для создания сервиса транзакций
+ * Реализация сервиса транзакций
  */
-export function createTransactionService(storage: IExtendedStorage): ITransactionService {
-  return {
-    /**
-     * Создает новую транзакцию
-     */
-    async createTransaction(data: InsertTransaction): Promise<Transaction> {
-      try {
-        const [transaction] = await db
-          .insert(transactions)
-          .values(data)
-          .returning();
-        
-        return transaction;
-      } catch (error) {
-        console.error('[TransactionService] Error in createTransaction:', error);
-        throw error;
-      }
-    },
-
-    /**
-     * Получает транзакцию по ID
-     */
-    async getTransactionById(id: number): Promise<Transaction | undefined> {
-      try {
-        const [transaction] = await db
-          .select()
-          .from(transactions)
-          .where(eq(transactions.id, id));
-        
-        return transaction;
-      } catch (error) {
-        console.error('[TransactionService] Error in getTransactionById:', error);
-        return undefined;
-      }
-    },
-
-    /**
-     * Получает транзакции пользователя
-     */
-    async getUserTransactions(userId: number, limit = 50): Promise<Transaction[]> {
-      try {
-        const userTransactions = await db
-          .select()
-          .from(transactions)
-          .where(eq(transactions.user_id, userId))
-          .orderBy(desc(transactions.created_at))
-          .limit(limit);
-        
-        return userTransactions;
-      } catch (error) {
-        console.error('[TransactionService] Error in getUserTransactions:', error);
-        return [];
-      }
-    },
-
-    /**
-     * Обновляет статус транзакции
-     */
-    async updateTransactionStatus(id: number, status: TransactionStatus): Promise<Transaction | undefined> {
-      try {
-        const [updatedTransaction] = await db
-          .update(transactions)
-          .set({ status })
-          .where(eq(transactions.id, id))
-          .returning();
-        
-        return updatedTransaction;
-      } catch (error) {
-        console.error('[TransactionService] Error in updateTransactionStatus:', error);
-        return undefined;
-      }
-    },
-
-    /**
-     * Создает транзакцию из упрощенных данных
-     * Используется для совместимости со старым кодом
-     */
-    async logTransaction(data: TransactionData): Promise<Transaction> {
-      try {
-        const transactionData: InsertTransaction = {
-          user_id: data.userId,
-          type: data.type,
-          currency: data.currency,
-          amount: data.amount,
-          status: data.status,
-          source: data.source,
-          category: data.category,
-          tx_hash: data.tx_hash || null
-        };
-
-        const [transaction] = await db
-          .insert(transactions)
-          .values(transactionData)
-          .returning();
-        
-        return transaction;
-      } catch (error) {
-        console.error('[TransactionService] Error in logTransaction:', error);
-        throw error;
-      }
+class TransactionServiceImpl implements ITransactionService {
+  /**
+   * Создает новую транзакцию
+   */
+  async createTransaction(data: InsertTransaction): Promise<Transaction> {
+    try {
+      const [transaction] = await db
+        .insert(transactions)
+        .values(data)
+        .returning();
+      
+      return transaction;
+    } catch (error) {
+      console.error('[TransactionService] Error in createTransaction:', error);
+      throw error;
     }
-  };
+  }
+
+  /**
+   * Получает транзакцию по ID
+   */
+  async getTransactionById(id: number): Promise<Transaction | undefined> {
+    try {
+      const [transaction] = await db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.id, id));
+      
+      return transaction;
+    } catch (error) {
+      console.error('[TransactionService] Error in getTransactionById:', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Получает транзакции пользователя
+   */
+  async getUserTransactions(userId: number, limit = 50): Promise<Transaction[]> {
+    try {
+      const userTransactions = await db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.user_id, userId))
+        .orderBy(desc(transactions.created_at))
+        .limit(limit);
+      
+      return userTransactions;
+    } catch (error) {
+      console.error('[TransactionService] Error in getUserTransactions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Обновляет статус транзакции
+   */
+  async updateTransactionStatus(id: number, status: TransactionStatus): Promise<Transaction | undefined> {
+    try {
+      const [updatedTransaction] = await db
+        .update(transactions)
+        .set({ status })
+        .where(eq(transactions.id, id))
+        .returning();
+      
+      return updatedTransaction;
+    } catch (error) {
+      console.error('[TransactionService] Error in updateTransactionStatus:', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Создает транзакцию из упрощенных данных
+   * Используется для совместимости со старым кодом
+   */
+  async logTransaction(data: TransactionData): Promise<Transaction> {
+    try {
+      const transactionData: InsertTransaction = {
+        user_id: data.userId,
+        type: data.type,
+        currency: data.currency,
+        amount: data.amount,
+        status: data.status,
+        source: data.source,
+        category: data.category,
+        tx_hash: data.tx_hash || null
+      };
+
+      const [transaction] = await db
+        .insert(transactions)
+        .values(transactionData)
+        .returning();
+      
+      return transaction;
+    } catch (error) {
+      console.error('[TransactionService] Error in logTransaction:', error);
+      throw error;
+    }
+  }
+}
+
+// Создаем единственный экземпляр сервиса
+export const transactionServiceInstance = new TransactionServiceImpl();
+
+/**
+ * Фабрика для создания сервиса транзакций
+ * @returns Экземпляр сервиса транзакций
+ */
+export function createTransactionService(): ITransactionService {
+  return transactionServiceInstance;
 }

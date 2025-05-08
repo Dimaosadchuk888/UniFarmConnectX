@@ -13,7 +13,7 @@ import { createUserService, type IUserService } from './userService';
 import { userServiceInstance } from './userServiceInstance.js';
 import { createReferralService, type IReferralService } from './referralServiceInstance';
 import { createReferralBonusService, type IReferralBonusService } from './referralBonusServiceInstance';
-import { createTransactionService, type ITransactionService } from './transactionServiceInstance';
+import { transactionServiceInstance, createTransactionService, type ITransactionService } from './transactionServiceInstance';
 import { createTonBoostService, type ITonBoostService } from './tonBoostServiceInstance';
 import { createFarmingService, type IFarmingService } from './farmingServiceInstance';
 import { createUniFarmingService, type IUniFarmingService } from './uniFarmingServiceInstance';
@@ -34,7 +34,8 @@ import { walletServiceInstance, createWalletService, type IWalletService } from 
 // Сервисы с instance-паттерном используют реализацию из соответствующих файлов
 const referralService = createReferralService(extendedStorage);
 const referralBonusService = createReferralBonusService(userServiceInstance, referralService);
-const transactionService = createTransactionService(extendedStorage);
+// Используем существующий экземпляр transactionServiceInstance вместо создания нового
+const transactionService = createTransactionService();
 const tonBoostService = createTonBoostService(referralBonusService);
 const farmingService = createFarmingService();
 const uniFarmingService = createUniFarmingService();
