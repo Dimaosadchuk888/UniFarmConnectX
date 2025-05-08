@@ -253,7 +253,7 @@ export class TransactionController {
         category: 'withdrawal'
       };
       
-      const transaction = await TransactionService.logTransaction(transactionData);
+      const transaction = await transactionService.logTransaction(transactionData);
       
       // Здесь должен быть код для обработки запроса на вывод средств
       // Обновление баланса пользователя будет выполняться после подтверждения вывода
@@ -307,7 +307,7 @@ export class TransactionController {
       const { user_id, type, currency, amount, status, source, category, tx_hash } = validation.data;
 
       // Создаем транзакцию через сервис
-      const transaction = await TransactionService.logTransaction({
+      const transaction = await transactionService.logTransaction({
         userId: user_id,
         type,
         currency,

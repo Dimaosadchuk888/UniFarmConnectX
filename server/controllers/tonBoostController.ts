@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import { TonBoostService, TonBoostPaymentMethod } from "../services/tonBoostService";
+import { tonBoostService } from "../services";
+import { TonBoostPaymentMethod } from "../services/tonBoostService";
 
 /**
  * Контроллер для работы с TON Boost-пакетами
@@ -42,7 +43,7 @@ export class TonBoostController {
           });
         }
         
-        const result = await TonBoostService.processIncomingTonTransaction(
+        const result = await tonBoostService.processIncomingTonTransaction(
           sender_address,
           amount,
           comment || '',
@@ -58,7 +59,7 @@ export class TonBoostController {
           });
         }
         
-        const result = await TonBoostService.processIncomingTonTransaction(sender_address, amount, comment);
+        const result = await tonBoostService.processIncomingTonTransaction(sender_address, amount, comment);
         return res.json(result);
       }
     } catch (error) {
@@ -74,7 +75,7 @@ export class TonBoostController {
    */
   static async getTonBoostPackages(req: Request, res: Response): Promise<void> {
     try {
-      const packages = TonBoostService.getBoostPackages();
+      const packages = tonBoostService.getBoostPackages();
       res.json({ success: true, data: packages });
     } catch (error) {
       console.error("[TonBoostController] Error in getTonBoostPackages:", error);
@@ -99,7 +100,7 @@ export class TonBoostController {
         });
       }
 
-      const boosts = await TonBoostService.getUserActiveBoosts(userId);
+      const boosts = await tonBoostService.getUserActiveBoosts(userId);
       res.json({ success: true, data: boosts });
     } catch (error) {
       console.error("[TonBoostController] Error in getUserTonBoosts:", error);
@@ -140,7 +141,7 @@ export class TonBoostController {
         paymentMethodEnum = TonBoostPaymentMethod.EXTERNAL_WALLET;
       }
 
-      const result = await TonBoostService.purchaseTonBoost(userId, boostId, paymentMethodEnum);
+      const result = await tonBoostService.purchaseTonBoost(userId, boostId, paymentMethodEnum);
       
       if (result.success) {
         const responseData: any = {
@@ -190,7 +191,7 @@ export class TonBoostController {
         });
       }
 
-      const farmingInfo = await TonBoostService.getUserTonFarmingInfo(userId);
+      const farmingInfo = await tonBoostService.getUserTonFarmingInfo(userId);
       res.json({ success: true, data: farmingInfo });
     } catch (error) {
       console.error("[TonBoostController] Error in getUserTonFarmingInfo:", error);
@@ -215,7 +216,7 @@ export class TonBoostController {
         });
       }
 
-      const result = await TonBoostService.calculateAndUpdateUserTonFarming(userId);
+      const result = await tonBoostService.calculateAndUpdateUserTonFarming(userId);
       res.json({ success: true, data: result });
     } catch (error) {
       console.error("[TonBoostController] Error in calculateAndUpdateTonFarming:", error);
@@ -250,7 +251,7 @@ export class TonBoostController {
         });
       }
 
-      const result = await TonBoostService.confirmExternalPayment(userId, transactionId);
+      const result = await tonBoostService.confirmExternalPayment(userId, transactionId);
       
       if (result.success) {
         res.json({

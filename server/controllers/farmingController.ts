@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { FarmingService } from '../services/farmingService';
 import { userService } from '../services';
-import { TransactionService } from '../services/transactionService';
+import { transactionService } from '../services';
 import { sendSuccess, sendSuccessArray, sendError, sendServerError } from '../utils/responseUtils';
 import { extractUserId } from '../utils/validationUtils';
 import { depositSchema } from '../validators/schemas';
@@ -81,7 +81,7 @@ export class FarmingController {
       });
 
       // Создаем транзакцию
-      await TransactionService.createTransaction({
+      await transactionService.createTransaction({
         user_id,
         type: 'deposit',
         amount,
