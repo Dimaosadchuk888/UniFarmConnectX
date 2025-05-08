@@ -1,11 +1,10 @@
 import { Request, Response } from 'express';
-import { NewUniFarmingService } from '../services/newUniFarmingService';
+import { newUniFarmingService, databaseService } from '../services';
 import { z } from 'zod';
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { NotFoundError, ValidationError } from '../middleware/errorHandler';
-import { DatabaseService } from '../services/databaseService';
 
 /**
  * Контроллер для работы с UNI фармингом
@@ -22,12 +21,12 @@ export class UniFarmingController {
       }
 
       // Проверяем существование пользователя
-      const userExists = await DatabaseService.userExists(userId);
+      const userExists = await databaseService.userExists(userId);
       if (!userExists) {
         throw new NotFoundError(`Пользователь с ID=${userId} не найден`);
       }
 
-      const farmingInfo = await NewUniFarmingService.getUserFarmingInfo(userId);
+      const farmingInfo = await newUniFarmingService.getUserFarmingInfo(userId);
       res.success(farmingInfo);
     } catch (error) {
       console.error('Ошибка в getUserFarmingInfo:', error);
@@ -97,7 +96,7 @@ export class UniFarmingController {
       
       // Проверяем существование пользователя
       if (userId !== 1) { // Для default user_id=1 пропускаем проверку, т.к. это специальный случай
-        const userExists = await DatabaseService.userExists(userId);
+        const userExists = await databaseService.userExists(userId);
         if (!userExists) {
           throw new NotFoundError(`Пользователь с ID=${userId} не найден`);
         }
@@ -106,8 +105,8 @@ export class UniFarmingController {
       console.log(`Создаем депозит для user_id=${userId}, amount=${numericAmount}`);
       
       // Используем транзакционную обработку через DatabaseService
-      const depositResult = await DatabaseService.withTransaction(async (txDb) => {
-        return await NewUniFarmingService.createUniFarmingDeposit(userId, numericAmount.toString());
+      const depositResult = await databaseService.withTransaction(async (txDb) => {
+        return await newUniFarmingService.createUniFarmingDeposit(userId, numericAmount.toString());
       });
       
       console.log('Результат создания депозита:', depositResult);
@@ -152,14 +151,14 @@ export class UniFarmingController {
       }
 
       // Проверяем существование пользователя
-      const userExists = await DatabaseService.userExists(userId);
+      const userExists = await databaseService.userExists(userId);
       if (!userExists) {
         throw new NotFoundError(`Пользователь с ID=${userId} не найден`);
       }
 
       // Используем транзакционную обработку
-      const updateResult = await DatabaseService.withTransaction(async (txDb) => {
-        return await NewUniFarmingService.calculateAndUpdateUserFarming(userId);
+      const updateResult = await databaseService.withTransaction(async (txDb) => {
+        return await newUniFarmingService.calculateAndUpdateUserFarming(userId);
       });
       
       res.success(updateResult);
