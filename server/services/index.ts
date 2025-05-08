@@ -26,6 +26,7 @@ import { createAdminService, type IAdminService } from './adminServiceInstance';
 import { databaseServiceInstance, type IDatabaseService } from './databaseServiceInstance';
 import { telegramServiceInstance, createTelegramService, type ITelegramService } from './telegramServiceInstance.js';
 import { missionServiceInstance, createMissionService, type IMissionService } from './missionServiceInstance.js';
+import { boostServiceInstance, createBoostService, type IBoostService } from './boostServiceInstance.js';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 const userService = createUserService(extendedStorage);
@@ -61,7 +62,8 @@ export {
   adminService,
   databaseServiceInstance as databaseService,
   telegramServiceInstance as telegramService,
-  missionServiceInstance as missionService
+  missionServiceInstance as missionService,
+  boostServiceInstance as boostService
 };
 
 // Типы и интерфейсы из missionServiceInstance доступны через реэкспорт из missionService
@@ -84,6 +86,7 @@ export type {
   IAdminService as AdminService,
   ITelegramService as TelegramService,
   IMissionService as MissionService,
+  IBoostService as BoostService,
   // Экспортируем дополнительные типы для использования в контроллерах
   DailyBonusStatusResponse,
   DailyBonusClaimResponse
@@ -106,6 +109,7 @@ export type { ISecurityService } from './securityServiceInstance.js';
 export type { IAdminService } from './adminServiceInstance.js';
 export type { ITelegramService } from './telegramServiceInstance.js';
 export type { IMissionService } from './missionServiceInstance.js';
+export type { IBoostService } from './boostServiceInstance.js';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -128,5 +132,6 @@ export {
   createSecurityService,
   createAdminService,
   createTelegramService,
-  createMissionService
+  createMissionService,
+  createBoostService
 };
