@@ -1,3 +1,3 @@
-// Re-export the new MissionsList component
-export { default as MissionsList } from './MissionsListNew';
-export { MissionsList as default } from './MissionsListNew';
+// Экспортируем SimpleMissionsList в качестве основного компонента миссий
+export { default as MissionsList } from './SimpleMissionsList';
+export { SimpleMissionsList as default } from './SimpleMissionsList';
