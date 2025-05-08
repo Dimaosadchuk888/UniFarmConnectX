@@ -28,6 +28,7 @@ import { databaseServiceInstance, type IDatabaseService } from './databaseServic
 import { telegramServiceInstance, createTelegramService, type ITelegramService } from './telegramServiceInstance.js';
 import { missionServiceInstance, createMissionService, type IMissionService } from './missionServiceInstance.js';
 import { boostServiceInstance, createBoostService, type IBoostService } from './boostServiceInstance.js';
+import { walletServiceInstance, createWalletService, type IWalletService } from './walletServiceInstance.js';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 // Сервисы с instance-паттерном используют реализацию из соответствующих файлов
@@ -64,7 +65,8 @@ export {
   databaseServiceInstance as databaseService,
   telegramServiceInstance as telegramService,
   missionServiceInstance as missionService,
-  boostServiceInstance as boostService
+  boostServiceInstance as boostService,
+  walletServiceInstance as walletService
 };
 
 // Типы и интерфейсы из missionServiceInstance доступны через реэкспорт из missionService
@@ -88,6 +90,7 @@ export type {
   ITelegramService as TelegramService,
   IMissionService as MissionService,
   IBoostService as BoostService,
+  IWalletService as WalletService,
   // Экспортируем дополнительные типы для использования в контроллерах
   DailyBonusStatusResponse,
   DailyBonusClaimResponse
@@ -111,6 +114,7 @@ export type { IAdminService } from './adminServiceInstance.js';
 export type { ITelegramService } from './telegramServiceInstance.js';
 export type { IMissionService } from './missionServiceInstance.js';
 export type { IBoostService } from './boostServiceInstance.js';
+export type { IWalletService } from './walletServiceInstance.js';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
