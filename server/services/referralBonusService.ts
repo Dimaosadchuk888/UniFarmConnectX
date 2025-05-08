@@ -205,16 +205,12 @@ export class ReferralBonusService {
           const uniBalance = inviter.balance_uni !== null ? inviter.balance_uni : "0";
           const tonBalance = inviter.balance_ton !== null ? inviter.balance_ton : "0";
           
-          // Увеличиваем баланс пользователя
-          const newBalance = currency === Currency.UNI 
-            ? Number(uniBalance) + bonusAmount 
-            : Number(tonBalance) + bonusAmount;
-          
-          // Обновляем баланс пользователя
-          await UserService.updateUserBalance(ref.inviter_id, {
-            balance_uni: currency === Currency.UNI ? newBalance.toString() : uniBalance,
-            balance_ton: currency === Currency.TON ? newBalance.toString() : tonBalance
-          });
+          // Увеличиваем баланс пользователя (вместо объекта используем новый метод с типом валюты)
+          await userService.updateUserBalance(
+            ref.inviter_id, 
+            currency === Currency.UNI ? 'uni' : 'ton', 
+            bonusAmount.toString()
+          );
           
           // Создаем и валидируем данные транзакции через схему
           const transactionData = insertTransactionSchema.parse({
@@ -324,16 +320,12 @@ export class ReferralBonusService {
           const uniBalance = inviter.balance_uni !== null ? inviter.balance_uni : "0";
           const tonBalance = inviter.balance_ton !== null ? inviter.balance_ton : "0";
           
-          // Увеличиваем баланс пользователя
-          const newBalance = currency === Currency.UNI 
-            ? Number(uniBalance) + bonusAmount 
-            : Number(tonBalance) + bonusAmount;
-          
-          // Обновляем баланс пользователя
-          await UserService.updateUserBalance(ref.inviter_id, {
-            balance_uni: currency === Currency.UNI ? newBalance.toString() : uniBalance,
-            balance_ton: currency === Currency.TON ? newBalance.toString() : tonBalance
-          });
+          // Увеличиваем баланс пользователя через новый сервис
+          await userService.updateUserBalance(
+            ref.inviter_id, 
+            currency === Currency.UNI ? 'uni' : 'ton', 
+            bonusAmount.toString()
+          );
           
           // Создаем и валидируем данные транзакции через схему с дополнительными метаданными
           const transactionData = insertTransactionSchema.parse({
