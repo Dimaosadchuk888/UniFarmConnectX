@@ -120,5 +120,6 @@ export {
   createPartitionService,
   createAuthService,
   createSecurityService,
-  createAdminService
+  createAdminService,
+  createTelegramService
 };

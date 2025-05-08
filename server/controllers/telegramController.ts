@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { TelegramService } from '../services/telegramService';
+import { telegramService } from '../services/index';
 import { ValidationError } from '../middleware/errorHandler';
 import { z } from 'zod';
 
@@ -33,7 +33,7 @@ export class TelegramController {
       
       // Даже при неудачной обработке webhook мы всегда отвечаем 200 OK,
       // чтобы Telegram не пытался повторно отправить запрос
-      const result = await TelegramService.handleWebhook(req.body);
+      const result = await telegramService.handleWebhook(req.body);
       
       // Отправляем 200 OK в любом случае
       res.status(200).send('OK');
@@ -54,7 +54,7 @@ export class TelegramController {
       const validatedData = initDataSchema.parse(req.body);
       
       // Вызываем сервис для обработки бизнес-логики
-      const result = await TelegramService.validateInitData(validatedData.initData);
+      const result = await telegramService.validateInitData(validatedData.initData);
       
       // Форматируем ответ в зависимости от результата
       if (result.user) {
@@ -93,7 +93,7 @@ export class TelegramController {
   static async getMiniAppInfo(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Получаем информацию о мини-приложении из сервиса
-      const miniAppInfo = TelegramService.getMiniAppInfo();
+      const miniAppInfo = telegramService.getMiniAppInfo();
       
       // Возвращаем результат
       res.json({
@@ -115,7 +115,7 @@ export class TelegramController {
       const validatedData = registerTelegramUserSchema.parse(req.body);
       
       // Вызываем сервис для регистрации пользователя
-      const user = await TelegramService.registerUser({
+      const user = await telegramService.registerUser({
         initData: validatedData.initData,
         referrer: validatedData.referrer || null
       });
