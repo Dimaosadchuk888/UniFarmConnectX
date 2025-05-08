@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { ReferralService } from './referralService';
-import { UserService } from './user-service-original';
-import { TransactionType, Currency, TransactionStatus } from './transaction-service-original';
+import { userService } from './index'; // Используем инстанс из централизованного экспорта
+import { TransactionType, Currency, TransactionStatus } from './transactionService'; // Импортируем типы из нового файла
 import { eq } from 'drizzle-orm';
 import { users, referrals, transactions, insertTransactionSchema } from '@shared/schema';
 import { z } from 'zod';
