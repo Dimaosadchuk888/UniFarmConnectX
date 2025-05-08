@@ -278,3 +278,22 @@ export function createUserService(storage: IExtendedStorage): IUserService {
  * Используется для аннотации импортов из этого модуля
  */
 export type UserService = ReturnType<typeof createUserService>;
+
+// Импортируем экземпляр сервиса для прокси-функций
+import { userServiceInstance } from './userServiceInstance.js';
+
+/**
+ * Прокси для доступа к методам userServiceInstance
+ * 
+ * Это позволяет использовать статические методы для доступа к экземпляру сервиса,
+ * что упрощает использование сервиса в существующем коде.
+ */
+export const getUserById = (id: number): Promise<User | undefined> => userServiceInstance.getUserById(id);
+export const getUserByUsername = (username: string): Promise<User | undefined> => userServiceInstance.getUserByUsername(username);
+export const getUserByGuestId = (guestId: string): Promise<User | undefined> => userServiceInstance.getUserByGuestId(guestId);
+export const getUserByRefCode = (refCode: string): Promise<User | undefined> => userServiceInstance.getUserByRefCode(refCode);
+export const getUserByTelegramId = (telegramId: number): Promise<User | undefined> => userServiceInstance.getUserByTelegramId(telegramId);
+export const createUser = (userData: InsertUser): Promise<User> => userServiceInstance.createUser(userData);
+export const updateUserBalance = (userId: number, currencyType: 'uni' | 'ton', amount: string): Promise<User | undefined> => userServiceInstance.updateUserBalance(userId, currencyType, amount);
+export const updateUserRefCode = (userId: number, refCode: string): Promise<User | undefined> => userServiceInstance.updateUserRefCode(userId, refCode);
+export const generateRefCode = (): Promise<string> => userServiceInstance.generateRefCode();
