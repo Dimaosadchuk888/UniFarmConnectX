@@ -138,5 +138,6 @@ export {
   createAdminService,
   createTelegramService,
   createMissionService,
-  createBoostService
+  createBoostService,
+  createWalletService
 };
