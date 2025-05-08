@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import crypto from 'crypto';
-import { AuthService } from '../services/authService';
+import { authService } from '../services/index';
 import { sendSuccess, sendError } from '../utils/responseUtils';
-import { UserService } from '../services/userService';
+import { userService } from '../services/index';
 
 /**
  * Обновленный AuthController следующий принципам SOLID
@@ -42,7 +42,7 @@ export class AuthController {
                             process.env.IS_DEV === 'true';
       
       // Вызываем сервис аутентификации
-      const user = await AuthService.authenticateTelegram(validatedData.data, isDevelopment);
+      const user = await authService.authenticateTelegram(validatedData.data, isDevelopment);
       
       // Обогащаем данные пользователя для ответа
       const userResponse = {
@@ -93,7 +93,7 @@ export class AuthController {
       }
       
       // Вызываем сервис регистрации гостевых пользователей
-      const user = await AuthService.registerGuestUser(validatedData.data);
+      const user = await authService.registerGuestUser(validatedData.data);
       
       // Обогащаем данные пользователя для ответа
       const userResponse = {
@@ -144,7 +144,7 @@ export class AuthController {
       }
       
       // Вызываем сервис регистрации
-      const user = await AuthService.registerUser(validatedData.data);
+      const user = await authService.registerUser(validatedData.data);
       
       // Обогащаем данные пользователя для ответа
       const userResponse = {

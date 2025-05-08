@@ -147,8 +147,7 @@ class AuthServiceImpl implements IAuthService {
         wallet: null,
         ton_wallet_address: null,
         ref_code,
-        parent_ref_code,
-        password: null // Явно указываем null для password
+        parent_ref_code
       };
 
       const createdUser = await storage.createUser(newUser);
