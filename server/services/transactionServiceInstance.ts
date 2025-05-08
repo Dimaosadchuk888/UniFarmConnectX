@@ -25,7 +25,8 @@ export enum TransactionType {
   REFERRAL = 'referral',
   REFERRAL_BONUS = 'referral_bonus',
   FARMING_REWARD = 'farming_reward',
-  SYSTEM = 'system'
+  SYSTEM = 'system',
+  REFUND = 'refund'
 }
 
 /**

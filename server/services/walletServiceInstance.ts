@@ -612,7 +612,7 @@ class WalletServiceImpl implements IWalletService {
         userId,
         -numericAmount, // Отрицательное значение для вывода
         currency,
-        TransactionType.WITHDRAW,
+        TransactionType.WITHDRAWALAL,
         {
           walletAddress: withdrawAddress,
           source: 'user_request',
@@ -652,7 +652,7 @@ class WalletServiceImpl implements IWalletService {
         throw new NotFoundError(`Транзакция с ID ${transactionId} не найдена`);
       }
       
-      if (transaction.type !== TransactionType.WITHDRAW) {
+      if (transaction.type !== TransactionType.WITHDRAWAL) {
         throw new ValidationError(`Транзакция с ID ${transactionId} не является выводом средств`);
       }
       
@@ -694,7 +694,7 @@ class WalletServiceImpl implements IWalletService {
         throw new NotFoundError(`Транзакция с ID ${transactionId} не найдена`);
       }
       
-      if (transaction.type !== TransactionType.WITHDRAW) {
+      if (transaction.type !== TransactionType.WITHDRAWAL) {
         throw new ValidationError(`Транзакция с ID ${transactionId} не является выводом средств`);
       }
       
