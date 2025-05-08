@@ -146,7 +146,7 @@ export const MissionsList: React.FC = () => {
 
   // Преобразуем данные из БД в формат для UI
   useEffect(() => {
-    if (dbMissions && userCompletedMissions) {
+    if (dbMissions && Array.isArray(userCompletedMissions)) {
       // Создаем карту выполненных миссий для быстрого поиска
       const completedMissionsMap = new Map(
         userCompletedMissions.map(m => [m.mission_id, m])
