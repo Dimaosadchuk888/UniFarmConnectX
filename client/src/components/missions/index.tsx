@@ -1,6 +1,3 @@
-// Импортируем улучшенный компонент миссий
-import EnhancedMissionsList from './EnhancedMissionsList';
-
-// Экспортируем его как основной компонент миссий
-export { EnhancedMissionsList as MissionsList };
-export default EnhancedMissionsList;
+// Прямой экспорт из SimpleMissionsList
+export { default } from './SimpleMissionsList';
+export { SimpleMissionsList as MissionsList } from './SimpleMissionsList';

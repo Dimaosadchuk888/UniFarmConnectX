@@ -19,11 +19,14 @@ interface Mission {
 
 // Экспортируем простой компонент списка миссий
 export const SimpleMissionsList: React.FC = () => {
+  console.log('SimpleMissionsList: компонент отрисовывается');
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [completedMissions, setCompletedMissions] = useState<number[]>([]);
   const { userId } = useUser();
+  
+  console.log('SimpleMissionsList: userId =', userId);
 
   // Тип для выполненной миссии
   interface UserMission {
@@ -35,34 +38,53 @@ export const SimpleMissionsList: React.FC = () => {
 
   // Загрузка миссий
   useEffect(() => {
+    console.log('SimpleMissionsList: useEffect запущен');
+    
     async function loadMissions() {
       try {
+        console.log('SimpleMissionsList: загрузка миссий начата');
+        setLoading(true);
+        
         // Загружаем активные миссии
+        console.log('SimpleMissionsList: отправка запроса active missions');
         const missionsResponse = await correctApiRequest('/api/missions/active', 'GET');
+        console.log('SimpleMissionsList: ответ получен', missionsResponse);
         
         if (missionsResponse && missionsResponse.success && Array.isArray(missionsResponse.data)) {
-          console.log('Загружены миссии:', missionsResponse.data.length);
+          console.log('SimpleMissionsList: загружены миссии:', missionsResponse.data.length);
           setMissions(missionsResponse.data);
         } else {
-          console.error('Ошибка формата данных миссий:', missionsResponse);
+          console.error('SimpleMissionsList: ошибка формата данных миссий:', missionsResponse);
+          setError(true);
           setMissions([]);
         }
         
         // Загружаем выполненные миссии
+        console.log('SimpleMissionsList: отправка запроса user missions');
         const userMissionsResponse = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}`, 'GET');
+        console.log('SimpleMissionsList: ответ user missions получен', userMissionsResponse);
         
         if (userMissionsResponse && userMissionsResponse.success && Array.isArray(userMissionsResponse.data)) {
-          const completedMissionIds = userMissionsResponse.data
-            .filter((m: any) => m && typeof m === 'object' && 'mission_id' in m)
-            .map((m: UserMission) => m.mission_id);
+          // Безопасное получение ID выполненных миссий
+          const missionIds: number[] = [];
+          for (const mission of userMissionsResponse.data) {
+            if (mission && typeof mission === 'object' && 'mission_id' in mission) {
+              missionIds.push(mission.mission_id);
+            }
+          }
           
-          setCompletedMissions(completedMissionIds);
+          console.log('SimpleMissionsList: выполненные миссии:', missionIds);
+          setCompletedMissions(missionIds);
+        } else {
+          console.error('SimpleMissionsList: ошибка загрузки выполненных миссий:', userMissionsResponse);
+          setCompletedMissions([]);
         }
       } catch (err) {
-        console.error('Ошибка загрузки миссий:', err);
+        console.error('SimpleMissionsList: ошибка загрузки миссий:', err);
         setError(true);
       } finally {
         setLoading(false);
+        console.log('SimpleMissionsList: загрузка миссий завершена');
       }
     }
     
