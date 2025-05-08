@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
-import { FarmingService } from '../services/farmingService';
-import { userService } from '../services';
-import { transactionService } from '../services';
+import { userService, farmingService, transactionService } from '../services';
 import { sendSuccess, sendSuccessArray, sendError, sendServerError } from '../utils/responseUtils';
 import { extractUserId } from '../utils/validationUtils';
 import { depositSchema } from '../validators/schemas';
@@ -26,7 +24,7 @@ export class FarmingController {
         return;
       }
 
-      const deposits = await FarmingService.getUserFarmingDeposits(userId);
+      const deposits = await farmingService.getUserFarmingDeposits(userId);
       sendSuccessArray(res, deposits);
     } catch (error) {
       console.error('Error fetching farming deposits:', error);
@@ -72,7 +70,7 @@ export class FarmingController {
       const rateTon = "1.00"; // Базовая ставка в %
 
       // Создаем фарминг-депозит
-      const deposit = await FarmingService.createFarmingDeposit({
+      const deposit = await farmingService.createFarmingDeposit({
         user_id,
         amount_uni: amount,
         rate_uni: rateUni,
