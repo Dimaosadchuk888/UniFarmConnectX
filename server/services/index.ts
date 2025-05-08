@@ -9,7 +9,8 @@
  */
 
 import { extendedStorage } from '../storage-adapter-extended';
-import { createUserService, type UserService } from './userService';
+import { createUserService, type IUserService } from './userService';
+import { userServiceInstance } from './userServiceInstance.js';
 import { createReferralService, type IReferralService } from './referralServiceInstance';
 import { createReferralBonusService, type IReferralBonusService } from './referralBonusServiceInstance';
 import { createTransactionService, type ITransactionService } from './transactionServiceInstance';
@@ -29,9 +30,9 @@ import { missionServiceInstance, createMissionService, type IMissionService } fr
 import { boostServiceInstance, createBoostService, type IBoostService } from './boostServiceInstance.js';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
-const userService = createUserService(extendedStorage);
+// Сервисы с instance-паттерном используют реализацию из соответствующих файлов
 const referralService = createReferralService(extendedStorage);
-const referralBonusService = createReferralBonusService(userService, referralService);
+const referralBonusService = createReferralBonusService(userServiceInstance, referralService);
 const transactionService = createTransactionService(extendedStorage);
 const tonBoostService = createTonBoostService(referralBonusService);
 const farmingService = createFarmingService();
@@ -46,7 +47,7 @@ const adminService = createAdminService();
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
-  userService,
+  userServiceInstance as userService,
   referralService,
   referralBonusService,
   transactionService,
@@ -70,7 +71,7 @@ export {
 
 // Экспортируем типы для использования в пользовательском коде
 export type {
-  UserService,
+  IUserService as UserService,
   IReferralService as ReferralService,
   IReferralBonusService as ReferralBonusService,
   ITransactionService as TransactionService,
