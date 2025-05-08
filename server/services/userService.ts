@@ -8,19 +8,89 @@
 
 import { User, InsertUser } from '@shared/schema';
 import { IExtendedStorage, StorageErrors } from '../storage-interface';
+import { NotFoundError, DatabaseError } from '../middleware/errorHandler';
+
+// Тип для безопасного доступа к свойству message у ошибок
+type ErrorWithMessage = { message: string };
 
 /**
  * Интерфейс сервиса для работы с пользователями
+ * 
+ * Все методы могут выбрасывать исключения:
+ * @throws {NotFoundError} Если пользователь не найден
+ * @throws {DatabaseError} При ошибке в базе данных
  */
 export interface IUserService {
+  /**
+   * Получает пользователя по ID
+   * @param id ID пользователя
+   * @returns Объект пользователя или undefined, если пользователь не найден
+   * @throws {DatabaseError} При ошибке в базе данных
+   */
   getUserById(id: number): Promise<User | undefined>;
+  
+  /**
+   * Получает пользователя по имени пользователя
+   * @param username Имя пользователя
+   * @returns Объект пользователя или undefined, если пользователь не найден
+   */
   getUserByUsername(username: string): Promise<User | undefined>;
+  
+  /**
+   * Получает пользователя по гостевому ID
+   * @param guestId Гостевой ID
+   * @returns Объект пользователя или undefined, если пользователь не найден
+   */
   getUserByGuestId(guestId: string): Promise<User | undefined>;
+  
+  /**
+   * Получает пользователя по реферальному коду
+   * @param refCode Реферальный код
+   * @returns Объект пользователя или undefined, если пользователь не найден
+   */
   getUserByRefCode(refCode: string): Promise<User | undefined>;
+  
+  /**
+   * Получает пользователя по Telegram ID
+   * @param telegramId Telegram ID
+   * @returns Объект пользователя или undefined, если пользователь не найден
+   */
   getUserByTelegramId(telegramId: number): Promise<User | undefined>;
+  
+  /**
+   * Создает нового пользователя
+   * @param userData Данные пользователя
+   * @returns Созданный объект пользователя
+   * @throws {DatabaseError} При ошибке в базе данных
+   */
   createUser(userData: InsertUser): Promise<User>;
+  
+  /**
+   * Обновляет баланс пользователя
+   * @param userId ID пользователя
+   * @param currencyType Тип валюты (uni или ton)
+   * @param amount Сумма изменения баланса (положительная или отрицательная)
+   * @returns Обновленный объект пользователя или undefined в случае ошибки
+   * @throws {NotFoundError} Если пользователь не найден
+   * @throws {DatabaseError} При ошибке в базе данных
+   */
   updateUserBalance(userId: number, currencyType: 'uni' | 'ton', amount: string): Promise<User | undefined>;
+  
+  /**
+   * Обновляет реферальный код пользователя
+   * @param userId ID пользователя
+   * @param refCode Новый реферальный код
+   * @returns Обновленный объект пользователя или undefined в случае ошибки
+   * @throws {NotFoundError} Если пользователь не найден
+   * @throws {DatabaseError} При ошибке в базе данных или если код не уникален
+   */
   updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
+  
+  /**
+   * Генерирует уникальный реферальный код
+   * @returns Сгенерированный реферальный код
+   * @throws {DatabaseError} При ошибке в базе данных
+   */
   generateRefCode(): Promise<string>;
 }
 
@@ -31,6 +101,7 @@ export function createUserService(storage: IExtendedStorage): IUserService {
   return {
     /**
      * Получает пользователя по ID
+     * @throws {DatabaseError} При ошибке в базе данных
      */
     async getUserById(id: number): Promise<User | undefined> {
       if (!id) return undefined;
@@ -38,8 +109,9 @@ export function createUserService(storage: IExtendedStorage): IUserService {
       try {
         return await storage.getUser(id);
       } catch (error) {
-        console.error('[UserService] Error in getUserById:', error);
-        return undefined;
+        const err = error as ErrorWithMessage;
+        console.error('[UserService] Error in getUserById:', err.message);
+        throw new DatabaseError(`Ошибка при получении пользователя по ID ${id}: ${err.message}`, error);
       }
     },
 
@@ -101,53 +173,101 @@ export function createUserService(storage: IExtendedStorage): IUserService {
 
     /**
      * Создает нового пользователя
+     * @throws {DatabaseError} При ошибке в базе данных
      */
     async createUser(userData: InsertUser): Promise<User> {
       try {
         return await storage.createUser(userData);
       } catch (error) {
-        console.error('[UserService] Error in createUser:', error);
-        throw error;
+        // Логируем ошибку и преобразуем в DatabaseError
+        const err = error as ErrorWithMessage;
+        console.error('[UserService] Error in createUser:', err.message);
+        throw new DatabaseError(`Ошибка при создании пользователя: ${err.message}`, error);
       }
     },
 
     /**
      * Обновляет баланс пользователя
+     * @throws {NotFoundError} Если пользователь не найден
+     * @throws {DatabaseError} При ошибке в базе данных
      */
     async updateUserBalance(userId: number, currencyType: 'uni' | 'ton', amount: string): Promise<User | undefined> {
       try {
+        // Проверяем существование пользователя
+        const user = await this.getUserById(userId);
+        if (!user) {
+          throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+        }
+        
         // Преобразуем тип валюты к верхнему регистру для соответствия интерфейсу хранилища
         const currency = currencyType === 'uni' ? 'UNI' : 'TON';
         
         return await storage.updateUserBalance(userId, currency, amount);
       } catch (error) {
-        console.error('[UserService] Error in updateUserBalance:', error);
-        return undefined;
+        // Пропускаем NotFoundError дальше без изменений
+        if (error instanceof NotFoundError) {
+          throw error;
+        }
+        
+        // Логируем ошибку и преобразуем в DatabaseError
+        const err = error as ErrorWithMessage;
+        console.error('[UserService] Error in updateUserBalance:', err.message);
+        throw new DatabaseError(`Ошибка при обновлении баланса пользователя: ${err.message}`, error);
       }
     },
 
     /**
      * Обновляет реферальный код пользователя
+     * @throws {NotFoundError} Если пользователь не найден
+     * @throws {DatabaseError} При ошибке в базе данных
      */
     async updateUserRefCode(userId: number, refCode: string): Promise<User | undefined> {
       try {
+        // Проверяем существование пользователя
+        const user = await this.getUserById(userId);
+        if (!user) {
+          throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+        }
+        
+        // Проверяем уникальность реферального кода
+        const isUnique = await storage.isRefCodeUnique(refCode);
+        if (!isUnique) {
+          throw new DatabaseError(`Реферальный код ${refCode} уже используется`);
+        }
+        
         return await storage.updateUserRefCode(userId, refCode);
       } catch (error) {
-        console.error('[UserService] Error in updateUserRefCode:', error);
-        return undefined;
+        // Пропускаем NotFoundError дальше без изменений
+        if (error instanceof NotFoundError || error instanceof DatabaseError) {
+          throw error;
+        }
+        
+        // Логируем ошибку и преобразуем в DatabaseError
+        const err = error as ErrorWithMessage;
+        console.error('[UserService] Error in updateUserRefCode:', err.message);
+        throw new DatabaseError(`Ошибка при обновлении реферального кода: ${err.message}`, error);
       }
     },
 
     /**
      * Генерирует уникальный реферальный код
+     * @throws {DatabaseError} При ошибке в базе данных
      */
     async generateRefCode(): Promise<string> {
       try {
         return await storage.generateUniqueRefCode();
       } catch (error) {
-        console.error('[UserService] Error in generateRefCode:', error);
-        // Используем синхронную версию генерации кода при ошибке
-        return storage.generateRefCode();
+        // Логируем ошибку, но используем синхронную версию генерации кода при ошибке
+        const err = error as ErrorWithMessage;
+        console.error('[UserService] Error in generateRefCode:', err.message);
+        
+        try {
+          // Пытаемся использовать локальный генератор как запасной вариант
+          return storage.generateRefCode();
+        } catch (fallbackError) {
+          const fallbackErr = fallbackError as ErrorWithMessage;
+          throw new DatabaseError(`Не удалось сгенерировать реферальный код: ${fallbackErr.message}`, fallbackError);
+        }
       }
     }
   };
