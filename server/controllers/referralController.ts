@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
-import { ReferralService } from '../services/referralService';
-import { userService } from '../services';
+import { referralService, userService } from '../services';
 import { sendSuccess, sendSuccessArray, sendError, sendServerError } from '../utils/responseUtils';
 import { extractUserId } from '../utils/validationUtils';
 import { ValidationError } from '../middleware/errorHandler';
@@ -39,7 +38,7 @@ export class ReferralController {
       }
       
       // Используем метод из сервиса для обработки startParam
-      const { inviterId, refCode } = await ReferralService.processStartParam(startParam);
+      const { inviterId, refCode } = await referralService.processStartParam(startParam);
       
       // Если пригласитель не найден, возвращаем ошибку
       if (!inviterId) {
@@ -78,7 +77,7 @@ export class ReferralController {
   /**
    * Получает данные по партнерке для пользователя
    * Преимущества:
-   * - Использует метод ReferralService.getUserReferralData для получения всех данных одним вызовом
+   * - Использует метод referralService.getUserReferralData для получения всех данных одним вызовом
    * - Гарантирует возврат валидных данных даже при отсутствии рефералов
    * - Обеспечивает строгую валидацию входных параметров
    * - Следует принципу единственной ответственности (SRP)
@@ -99,7 +98,7 @@ export class ReferralController {
 
       try {
         // Получаем все данные из сервиса одним вызовом
-        const referralData = await ReferralService.getUserReferralData(userId);
+        const referralData = await referralService.getUserReferralData(userId);
         
         // Отправляем успешный ответ
         sendSuccess(res, referralData);
@@ -148,7 +147,7 @@ export class ReferralController {
         }
         
         // Получаем информацию о пригласителе из сервиса
-        const inviter = await ReferralService.getUserInviter(userId);
+        const inviter = await referralService.getUserInviter(userId);
         
         if (!inviter) {
           // Обрабатываем ситуацию, когда пригласитель не найден
