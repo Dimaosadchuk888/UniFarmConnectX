@@ -60,7 +60,7 @@ export class MissionController {
       const { user_id } = validationResult.data;
       
       // Получаем выполненные миссии
-      const completedMissions = await MissionService.getUserCompletedMissions(user_id);
+      const completedMissions = await missionService.getUserCompletedMissions(user_id);
       
       // Отправляем ответ
       sendSuccessArray(res, completedMissions);
@@ -97,7 +97,7 @@ export class MissionController {
       const { user_id } = validationResult.data;
       
       // Получаем миссии со статусом выполнения
-      const missionsWithCompletion = await MissionService.getAllMissionsWithCompletion(user_id);
+      const missionsWithCompletion = await missionService.getAllMissionsWithCompletion(user_id);
       
       // Отправляем ответ
       sendSuccessArray(res, missionsWithCompletion);
@@ -122,7 +122,7 @@ export class MissionController {
       }
       
       // Проверяем выполнение миссии
-      const isCompleted = await MissionService.isUserMissionCompleted(userId, missionId);
+      const isCompleted = await missionService.isUserMissionCompleted(userId, missionId);
       
       // Отправляем результат
       sendSuccess(res, { is_completed: isCompleted });
@@ -159,7 +159,7 @@ export class MissionController {
       const { user_id, mission_id } = validationResult.data;
       
       // Выполняем миссию через сервис
-      const result = await MissionService.completeMission(user_id, mission_id);
+      const result = await missionService.completeMission(user_id, mission_id);
       
       // Отправляем результат
       sendSuccess(res, result);
@@ -195,7 +195,7 @@ export class MissionController {
       const { userId, missionId } = validationResult.data;
       
       // Получаем статус миссии через сервис
-      const status = await MissionService.getMissionStatus(
+      const status = await missionService.getMissionStatus(
         parseInt(userId),
         parseInt(missionId)
       );
@@ -233,7 +233,7 @@ export class MissionController {
       const { user_id, mission_id } = validationResult.data;
       
       // Отправляем миссию на проверку через сервис
-      const result = await MissionService.submitMission(user_id, mission_id);
+      const result = await missionService.submitMission(user_id, mission_id);
       
       // Отправляем результат
       sendSuccess(res, result);
@@ -268,7 +268,7 @@ export class MissionController {
       const { user_id, mission_id } = validationResult.data;
       
       // Получаем награду через сервис
-      const result = await MissionService.claimMissionReward(user_id, mission_id);
+      const result = await missionService.claimMissionReward(user_id, mission_id);
       
       // Отправляем результат
       sendSuccess(res, result);
