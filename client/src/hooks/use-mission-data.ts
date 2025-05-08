@@ -106,40 +106,51 @@ export function useMissionData() {
   
   // Объединяем данные о миссиях
   useEffect(() => {
+    console.log('useEffect в хуке useMissionData вызван');
+    
     if (!dbMissions) {
       console.log('dbMissions не загружены');
       return;
     }
     
-    // Безопасно создаем карту выполненных миссий
-    const completedMissionsMap = new Map<number, UserMission>();
+    // Преобразуем массив выполненных миссий в объект для быстрого поиска
+    const completedMissionsById: Record<number, boolean> = {};
     
+    // Проверяем тип и структуру userCompletedMissions перед использованием
     if (userCompletedMissions && Array.isArray(userCompletedMissions)) {
       console.log('Обработка массива выполненных миссий:', userCompletedMissions.length);
       
-      // Используем forEach вместо map для безопасной итерации
-      userCompletedMissions.forEach(mission => {
+      // Безопасно итерируем по массиву и заполняем объект
+      for (let i = 0; i < userCompletedMissions.length; i++) {
+        const mission = userCompletedMissions[i];
         if (mission && typeof mission === 'object' && 'mission_id' in mission) {
-          completedMissionsMap.set(mission.mission_id, mission);
+          completedMissionsById[mission.mission_id] = true;
         }
-      });
+      }
     } else {
-      console.log('userCompletedMissions отсутствует или не является массивом');
+      console.log('userCompletedMissions отсутствует или не является массивом:', userCompletedMissions);
     }
     
-    // Преобразуем данные для UI
-    const mappedMissions: Mission[] = dbMissions.map(dbMission => {
-      const isCompleted = completedMissionsMap.has(dbMission.id);
-      
-      return {
-        id: dbMission.id,
-        type: dbMission.type,
-        title: dbMission.title,
-        description: dbMission.description,
-        rewardUni: parseFloat(dbMission.reward_uni),
-        status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
-      };
-    });
+    // Преобразуем данные для UI с безопасной проверкой
+    const mappedMissions: Mission[] = [];
+    
+    if (Array.isArray(dbMissions)) {
+      for (let i = 0; i < dbMissions.length; i++) {
+        const dbMission = dbMissions[i];
+        if (dbMission && typeof dbMission === 'object') {
+          const isCompleted = completedMissionsById[dbMission.id] || false;
+          
+          mappedMissions.push({
+            id: dbMission.id,
+            type: dbMission.type || 'unknown',
+            title: dbMission.title || 'Без названия',
+            description: dbMission.description || 'Нет описания',
+            rewardUni: parseFloat(dbMission.reward_uni) || 0,
+            status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
+          });
+        }
+      }
+    }
     
     console.log('Загружено миссий:', mappedMissions.length);
     setMissions(mappedMissions);
