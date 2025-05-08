@@ -1,33 +1,68 @@
 /**
- * Сервис для работы с множественным UNI фармингом - файл-посредник
+ * Сервис для работы с множественными UNI фарминг-депозитами - файл-посредник
  * 
  * Этот файл экспортирует функциональность из инстанс-ориентированной реализации
  * для обеспечения совместимости импортов и перенаправляет статические вызовы на инстанс.
  */
 
-import {
-  type MultiFarmingUpdateResult,
-  type CreateMultiDepositResult,
-  type MultiFarmingInfo
+import { newUniFarmingService } from './index';
+import { 
+  INewUniFarmingService
 } from './newUniFarmingServiceInstance';
 
-// Импортируем инстанс сервиса множественного UNI фарминга из центрального экспорта
-import { newUniFarmingService } from './index';
+// Define the types here to avoid circular imports
+export interface MultiFarmingUpdateResult {
+  totalDepositAmount: string;
+  totalRatePerSecond: string;
+  earnedThisUpdate: string;
+  depositCount: number;
+}
 
-// Реэкспортируем типы и интерфейсы
-export type {
-  MultiFarmingUpdateResult,
-  CreateMultiDepositResult,
-  MultiFarmingInfo
-};
+export interface CreateMultiDepositResult {
+  success: boolean;
+  message: string;
+  depositId?: number;
+  depositAmount?: string;
+  ratePerSecond?: string;
+}
+
+export interface MultiFarmingInfo {
+  isActive: boolean;
+  totalDepositAmount: string;
+  depositCount: number;
+  totalRatePerSecond: string;
+  dailyIncomeUni: string;
+  deposits: any[];
+}
+
+export enum TransactionType {
+  DEPOSIT = 'deposit',
+  WITHDRAWAL = 'withdrawal',
+  TRANSFER = 'transfer',
+  BONUS = 'bonus',
+  REFERRAL = 'referral',
+  REFERRAL_BONUS = 'referral_bonus',
+  FARMING_REWARD = 'farming_reward',
+  SYSTEM = 'system',
+  REFUND = 'refund'
+}
+
+export enum TransactionStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled'
+}
+
+export enum Currency {
+  TON = 'TON',
+  UNI = 'UNI'
+}
 
 /**
- * Сервис для работы с множественным UNI фармингом
+ * Сервис для работы с множественными UNI фарминг-депозитами
  */
 export class NewUniFarmingService {
-  private static readonly DAILY_RATE = 0.005; // 0.5% в день
-  private static readonly SECONDS_IN_DAY = 86400;
-
   /**
    * Начисляет доход пользователю от UNI фарминга на основе всех активных депозитов
    * @param userId ID пользователя
@@ -52,7 +87,7 @@ export class NewUniFarmingService {
    * @param userId ID пользователя
    * @returns Массив активных депозитов
    */
-  static async getUserFarmingDeposits(userId: number) {
+  static async getUserFarmingDeposits(userId: number): Promise<any[]> {
     return newUniFarmingService.getUserFarmingDeposits(userId);
   }
 
@@ -65,3 +100,5 @@ export class NewUniFarmingService {
     return newUniFarmingService.getUserFarmingInfo(userId);
   }
 }
+
+// No need to re-export these types as they're already exported above
