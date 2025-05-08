@@ -10,6 +10,11 @@ import {
   ValidationError 
 } from '../middleware/errorHandler.js';
 
+// Вспомогательный тип для более безопасной обработки ошибок
+type ErrorWithMessage = {
+  message: string;
+};
+
 /**
  * Модель буст-пакета
  */
@@ -225,7 +230,8 @@ class BoostServiceImpl implements IBoostService {
       if (error instanceof NotFoundError) {
         throw error;
       }
-      throw new DatabaseError(`Failed to get user balances: ${error.message}`);
+      const err = error as ErrorWithMessage;
+      throw new DatabaseError(`Failed to get user balances: ${err.message}`);
     }
   }
 
@@ -287,7 +293,8 @@ class BoostServiceImpl implements IBoostService {
       if (error instanceof NotFoundError) {
         throw error;
       }
-      throw new DatabaseError(`Failed to get user active boosts: ${error.message}`);
+      const err = error as ErrorWithMessage;
+      throw new DatabaseError(`Failed to get user active boosts: ${err.message}`);
     }
   }
 
@@ -303,7 +310,8 @@ class BoostServiceImpl implements IBoostService {
 
     if (balance.isLessThan(price)) {
       throw new InsufficientFundsError(
-        `Insufficient UNI balance. Required: ${priceUni}, Available: ${balanceUni}`
+        `Insufficient UNI balance. Required: ${priceUni}, Available: ${balanceUni}`,
+        { required: priceUni, available: balanceUni }
       );
     }
   }
@@ -341,7 +349,8 @@ class BoostServiceImpl implements IBoostService {
 
       return deposit.id;
     } catch (error) {
-      throw new DatabaseError(`Failed to create boost deposit: ${error.message}`);
+      const err = error as ErrorWithMessage;
+      throw new DatabaseError(`Failed to create boost deposit: ${err.message}`);
     }
   }
 
@@ -378,7 +387,8 @@ class BoostServiceImpl implements IBoostService {
 
       return transaction.id;
     } catch (error) {
-      throw new DatabaseError(`Failed to create boost transaction: ${error.message}`);
+      const err = error as ErrorWithMessage;
+      throw new DatabaseError(`Failed to create boost transaction: ${err.message}`);
     }
   }
 
@@ -399,7 +409,8 @@ class BoostServiceImpl implements IBoostService {
         })
         .where(eq(users.id, userId));
     } catch (error) {
-      throw new DatabaseError(`Failed to update user balance: ${error.message}`);
+      const err = error as ErrorWithMessage;
+      throw new DatabaseError(`Failed to update user balance: ${err.message}`);
     }
   }
 
