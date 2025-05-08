@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, Calendar, CheckCircle, Coins, MessageCircle, UserPlus } from 'lucide-react';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useUser } from '@/contexts/userContext';
+import { useNotification } from '@/contexts/notificationContext';
 
 // Тип миссии из API
 interface Mission {
@@ -78,9 +79,16 @@ export const SimpleMissionsList: React.FC = () => {
     }
   };
   
+  // Получаем доступ к системе уведомлений
+  const { showNotification } = useNotification();
+  
   // Функция для выполнения миссии
   const completeMission = async (missionId: number) => {
     try {
+      // Находим миссию по ID для отображения названия в уведомлении
+      const mission = missions.find(m => m.id === missionId);
+      const missionTitle = mission?.title || `Миссия #${missionId}`;
+      
       const result = await correctApiRequest('/api/missions/complete', 'POST', {
         user_id: userId || 1,
         mission_id: missionId
@@ -89,13 +97,31 @@ export const SimpleMissionsList: React.FC = () => {
       if (result && result.success) {
         // Добавляем миссию в список выполненных
         setCompletedMissions([...completedMissions, missionId]);
-        alert(`Миссия выполнена! Награда: ${result.reward || 0} UNI`);
+        
+        // Правильно извлекаем награду из ответа API
+        const reward = result.data && result.data.reward 
+          ? result.data.reward 
+          : (result.reward || 0);
+        
+        // Показываем красивое уведомление вместо alert
+        showNotification('success', {
+          message: `${missionTitle} выполнена! Награда: ${reward} UNI`
+        });
       } else {
-        alert(`Ошибка: ${result?.message || 'Не удалось выполнить миссию'}`);
+        const errorMessage = result?.message || (result?.data?.message) || 'Не удалось выполнить миссию';
+        
+        // Показываем уведомление об ошибке
+        showNotification('error', {
+          message: `Ошибка: ${errorMessage}`
+        });
       }
     } catch (err) {
       console.error('Ошибка выполнения миссии:', err);
-      alert('Произошла ошибка при выполнении миссии');
+      
+      // Показываем уведомление об ошибке
+      showNotification('error', {
+        message: 'Произошла ошибка при выполнении миссии'
+      });
     }
   };
   
