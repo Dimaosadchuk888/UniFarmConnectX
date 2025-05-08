@@ -129,6 +129,8 @@ export function useMissionData() {
       }
     } else {
       console.log('userCompletedMissions отсутствует или не является массивом:', userCompletedMissions);
+      // Возвращаем пустой массив, если данные отсутствуют
+      // Это предотвратит ошибку map is not a function
     }
     
     // Преобразуем данные для UI с безопасной проверкой
