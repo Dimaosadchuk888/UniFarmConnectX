@@ -1,9 +1,10 @@
 import React from 'react';
-// Импортируем непосредственно компонент
+// Импортируем пряммо из файла компонента
 import { SimpleMissionsList } from '@/components/missions/SimpleMissionsList';
 
 const Missions: React.FC = () => {
   console.log('Rendering Missions page - Simple version');
+  
   return (
     <div>
       <h1 className="text-xl font-semibold text-white mb-4">Выполняй задания — получай UNI</h1>

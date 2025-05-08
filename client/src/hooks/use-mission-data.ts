@@ -116,6 +116,14 @@ export function useMissionData() {
     // Преобразуем массив выполненных миссий в объект для быстрого поиска
     const completedMissionsById: Record<number, boolean> = {};
     
+    // Явно логируем состояние userCompletedMissions для отладки
+    console.log('userCompletedMissions состояние:', {
+      isUndefined: userCompletedMissions === undefined,
+      isNull: userCompletedMissions === null,
+      isArray: Array.isArray(userCompletedMissions),
+      value: userCompletedMissions
+    });
+    
     // Проверяем тип и структуру userCompletedMissions перед использованием
     if (userCompletedMissions && Array.isArray(userCompletedMissions)) {
       console.log('Обработка массива выполненных миссий:', userCompletedMissions.length);
@@ -128,9 +136,8 @@ export function useMissionData() {
         }
       }
     } else {
-      console.log('userCompletedMissions отсутствует или не является массивом:', userCompletedMissions);
-      // Возвращаем пустой массив, если данные отсутствуют
-      // Это предотвратит ошибку map is not a function
+      console.log('userCompletedMissions отсутствует или не является массивом, используем пустой объект');
+      // Т.к. userCompletedMissions не массив, просто оставляем пустой объект completedMissionsById
     }
     
     // Преобразуем данные для UI с безопасной проверкой

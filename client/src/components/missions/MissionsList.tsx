@@ -146,33 +146,53 @@ export const MissionsList: React.FC = () => {
 
   // Преобразуем данные из БД в формат для UI
   useEffect(() => {
-    if (!dbMissions) return;
+    console.log('MissionsList: dbMissions загружены:', dbMissions);
     
-    // Создаем карту выполненных миссий для быстрого поиска
-    const completedMissionsMap = new Map();
+    // Проверяем что dbMissions определены
+    if (!dbMissions || !Array.isArray(dbMissions)) {
+      console.log('MissionsList: dbMissions не определены или не являются массивом');
+      return;
+    }
+    
+    // Создаем объект выполненных миссий для быстрого поиска
+    const completedMissionsObj: Record<number, UserMission> = {};
     
     // Проверяем, что userCompletedMissions существует и является массивом
     if (userCompletedMissions && Array.isArray(userCompletedMissions)) {
-      userCompletedMissions.forEach(m => {
-        if (m && typeof m === 'object' && 'mission_id' in m) {
-          completedMissionsMap.set(m.mission_id, m);
+      console.log('MissionsList: обработка userCompletedMissions:', userCompletedMissions.length);
+      
+      // Безопасная итерация по массиву
+      for (let i = 0; i < userCompletedMissions.length; i++) {
+        const mission = userCompletedMissions[i];
+        if (mission && typeof mission === 'object' && 'mission_id' in mission) {
+          completedMissionsObj[mission.mission_id] = mission;
         }
-      });
+      }
+    } else {
+      console.log('MissionsList: userCompletedMissions отсутствует или не является массивом');
     }
     
     // Конвертируем DbMission[] в Mission[] с учетом выполненных миссий
-    const mappedMissions: Mission[] = dbMissions.map(dbMission => {
-      const isCompleted = completedMissionsMap.has(dbMission.id);
-      
-      return {
-        id: dbMission.id,
-        type: dbMission.type,
-        title: dbMission.title,
-        description: dbMission.description,
-        rewardUni: parseFloat(dbMission.reward_uni), // Конвертируем строку в число
-        status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
-      };
-    });
+    const mappedMissions: Mission[] = [];
+    
+    // Безопасно итерируем по массиву
+    for (let i = 0; i < dbMissions.length; i++) {
+      const dbMission = dbMissions[i];
+      if (dbMission && typeof dbMission === 'object') {
+        const isCompleted = !!completedMissionsObj[dbMission.id];
+        
+        mappedMissions.push({
+          id: dbMission.id,
+          type: dbMission.type || '',
+          title: dbMission.title || '',
+          description: dbMission.description || '',
+          rewardUni: parseFloat(dbMission.reward_uni) || 0, // Конвертируем строку в число
+          status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
+        });
+      }
+    }
+    
+    console.log('MissionsList: сформировано миссий для отображения:', mappedMissions.length);
     
     setMissions(mappedMissions);
   }, [dbMissions, userCompletedMissions]);
