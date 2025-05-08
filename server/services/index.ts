@@ -14,7 +14,7 @@ import { userServiceInstance } from './userServiceInstance.js';
 import { referralServiceInstance, createReferralService, type IReferralService } from './referralServiceInstance';
 import { referralBonusServiceInstance, createReferralBonusService, type IReferralBonusService } from './referralBonusServiceInstance';
 import { transactionServiceInstance, createTransactionService, type ITransactionService } from './transactionServiceInstance';
-import { createTonBoostService, type ITonBoostService } from './tonBoostServiceInstance';
+import { tonBoostServiceInstance, createTonBoostService, type ITonBoostService } from './tonBoostServiceInstance';
 import { createFarmingService, type IFarmingService } from './farmingServiceInstance';
 import { createUniFarmingService, type IUniFarmingService } from './uniFarmingServiceInstance';
 import { createNewUniFarmingService, type INewUniFarmingService } from './newUniFarmingServiceInstance';
@@ -37,7 +37,8 @@ import { walletServiceInstance, createWalletService, type IWalletService } from 
 const referralBonusService = createReferralBonusService();
 // Используем существующий экземпляр transactionServiceInstance вместо создания нового
 const transactionService = createTransactionService();
-const tonBoostService = createTonBoostService(referralBonusService);
+// Используем существующий экземпляр tonBoostServiceInstance
+const tonBoostService = createTonBoostService();
 const farmingService = createFarmingService();
 const uniFarmingService = createUniFarmingService();
 const newUniFarmingService = createNewUniFarmingService();
