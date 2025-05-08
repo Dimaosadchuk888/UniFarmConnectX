@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { MissionService, MissionStatus } from '../services/missionService';
+import { missionService } from '../services';
+import { MissionStatus } from '../services/missionServiceInstance'; // Импортируем только константу из файла с интерфейсом
 import { sendSuccess, sendSuccessArray } from '../utils/responseUtils';
 import { 
   completeMissionSchema, 
@@ -23,7 +24,7 @@ export class MissionController {
    */
   static async getActiveMissions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const activeMissions = await MissionService.getActiveMissions();
+      const activeMissions = await missionService.getActiveMissions();
       // Важно: Сохраняем текущий формат ответа для обратной совместимости с фронтендом
       sendSuccessArray(res, activeMissions);
     } catch (error) {
