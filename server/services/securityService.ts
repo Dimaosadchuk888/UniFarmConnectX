@@ -4,20 +4,51 @@
  * Этот файл является прокси-оберткой для обратной совместимости.
  * Для новых разработок используйте инстанс securityService из services/index.ts
  */
-
 import { securityServiceInstance } from './securityServiceInstance';
-export * from './securityServiceInstance';
+import { 
+  telegramDataSchema,
+  headersSchema
+} from './securityServiceInstance';
+import { z } from 'zod';
+
+// Определяем типы для совместимости
+export type TelegramData = {
+  authData?: string;
+  userId?: number;
+  startParam?: string;
+  telegramInitData?: string;
+};
+
+export type HeadersData = {
+  'telegram-init-data'?: string;
+  'x-telegram-init-data'?: string;
+  'telegram-data'?: string;
+  'x-telegram-data'?: string;
+};
+
+// Определяем интерфейс для совместимости
+export interface ISecurityService {
+  validateTelegramData(data: TelegramData, isDevelopment?: boolean): Promise<boolean>;
+  parseTelegramInitData(initData: string): Record<string, any>;
+  extractTelegramDataFromHeaders(headers: HeadersData): string | null;
+  sanitizeInput(input: string): string;
+  checkUserPermission(userId: number, requiredPermission: string): Promise<boolean>;
+}
+
+// Реэкспортируем типы для удобства
+export { 
+  telegramDataSchema,
+  headersSchema
+};
 
 /**
- * @deprecated Используйте инстанс securityService из services/index.ts
+ * @deprecated Используйте инстанс securityService из services/index.ts вместо статических методов
  */
 export class SecurityService {
-  private static BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-
   /**
    * Проверяет Telegram данные на валидность
    */
-  static async validateTelegramData(data: any, isDevelopment: boolean = false): Promise<boolean> {
+  static async validateTelegramData(data: TelegramData, isDevelopment?: boolean): Promise<boolean> {
     return securityServiceInstance.validateTelegramData(data, isDevelopment);
   }
 
@@ -31,7 +62,7 @@ export class SecurityService {
   /**
    * Извлекает Telegram данные из заголовков
    */
-  static extractTelegramDataFromHeaders(headers: any): string | null {
+  static extractTelegramDataFromHeaders(headers: HeadersData): string | null {
     return securityServiceInstance.extractTelegramDataFromHeaders(headers);
   }
 
