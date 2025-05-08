@@ -4,7 +4,7 @@ import { users, referrals, transactions, insertTransactionSchema } from '@shared
 import { z } from 'zod';
 import { IReferralService } from '.';
 import { IUserService } from '.';
-import { TransactionType, Currency, TransactionStatus } from './transaction-service-original';
+import { TransactionType, Currency, TransactionStatus } from './transactionService';
 import { IExtendedStorage } from '../storage-adapter-extended';
 
 // Интерфейс для сервиса реферальных бонусов
