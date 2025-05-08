@@ -161,21 +161,20 @@ export const MissionsList: React.FC = () => {
     }
     
     // Конвертируем DbMission[] в Mission[] с учетом выполненных миссий
-      const mappedMissions: Mission[] = dbMissions.map(dbMission => {
-        const isCompleted = completedMissionsMap.has(dbMission.id);
-        
-        return {
-          id: dbMission.id,
-          type: dbMission.type,
-          title: dbMission.title,
-          description: dbMission.description,
-          rewardUni: parseFloat(dbMission.reward_uni), // Конвертируем строку в число
-          status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
-        };
-      });
+    const mappedMissions: Mission[] = dbMissions.map(dbMission => {
+      const isCompleted = completedMissionsMap.has(dbMission.id);
       
-      setMissions(mappedMissions);
-    }
+      return {
+        id: dbMission.id,
+        type: dbMission.type,
+        title: dbMission.title,
+        description: dbMission.description,
+        rewardUni: parseFloat(dbMission.reward_uni), // Конвертируем строку в число
+        status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
+      };
+    });
+    
+    setMissions(mappedMissions);
   }, [dbMissions, userCompletedMissions]);
   
   // Обработчик клика по кнопке "Выполнить"
