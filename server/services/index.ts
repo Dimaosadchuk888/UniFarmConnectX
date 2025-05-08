@@ -24,7 +24,8 @@ import { createAuthService, type IAuthService } from './authServiceInstance';
 import { createSecurityService, type ISecurityService } from './securityServiceInstance';
 import { createAdminService, type IAdminService } from './adminServiceInstance';
 import { databaseServiceInstance, type IDatabaseService } from './databaseServiceInstance';
-import { telegramServiceInstance, createTelegramService, type ITelegramService } from './telegramServiceInstance';
+import { telegramServiceInstance, createTelegramService, type ITelegramService } from './telegramServiceInstance.js';
+import { missionServiceInstance, createMissionService, type IMissionService } from './missionServiceInstance.js';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 const userService = createUserService(extendedStorage);
@@ -59,8 +60,11 @@ export {
   securityService,
   adminService,
   databaseServiceInstance as databaseService,
-  telegramServiceInstance as telegramService
+  telegramServiceInstance as telegramService,
+  missionServiceInstance as missionService
 };
+
+// Типы и интерфейсы из missionServiceInstance доступны через реэкспорт из missionService
 
 // Экспортируем типы для использования в пользовательском коде
 export type {
@@ -79,6 +83,7 @@ export type {
   ISecurityService as SecurityService,
   IAdminService as AdminService,
   ITelegramService as TelegramService,
+  IMissionService as MissionService,
   // Экспортируем дополнительные типы для использования в контроллерах
   DailyBonusStatusResponse,
   DailyBonusClaimResponse
@@ -86,20 +91,21 @@ export type {
 
 // Реэкспортируем типы интерфейсов для использования в тестах и моках
 export type { IUserService } from './userService';
-export type { IReferralService } from './referralServiceInstance';
-export type { IReferralBonusService } from './referralBonusServiceInstance';
-export type { ITransactionService } from './transactionServiceInstance';
-export type { ITonBoostService } from './tonBoostServiceInstance';
-export type { IFarmingService } from './farmingServiceInstance';
-export type { IUniFarmingService } from './uniFarmingServiceInstance';
-export type { INewUniFarmingService } from './newUniFarmingServiceInstance';
-export type { ILaunchLogService } from './launchLogServiceInstance';
-export type { IDailyBonusService } from './dailyBonusServiceInstance';
-export type { IPartitionService } from './partitionServiceInstance';
-export type { IAuthService } from './authServiceInstance';
-export type { ISecurityService } from './securityServiceInstance';
-export type { IAdminService } from './adminServiceInstance';
-export type { ITelegramService } from './telegramServiceInstance';
+export type { IReferralService } from './referralServiceInstance.js';
+export type { IReferralBonusService } from './referralBonusServiceInstance.js';
+export type { ITransactionService } from './transactionServiceInstance.js';
+export type { ITonBoostService } from './tonBoostServiceInstance.js';
+export type { IFarmingService } from './farmingServiceInstance.js';
+export type { IUniFarmingService } from './uniFarmingServiceInstance.js';
+export type { INewUniFarmingService } from './newUniFarmingServiceInstance.js';
+export type { ILaunchLogService } from './launchLogServiceInstance.js';
+export type { IDailyBonusService } from './dailyBonusServiceInstance.js';
+export type { IPartitionService } from './partitionServiceInstance.js';
+export type { IAuthService } from './authServiceInstance.js';
+export type { ISecurityService } from './securityServiceInstance.js';
+export type { IAdminService } from './adminServiceInstance.js';
+export type { ITelegramService } from './telegramServiceInstance.js';
+export type { IMissionService } from './missionServiceInstance.js';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -121,5 +127,6 @@ export {
   createAuthService,
   createSecurityService,
   createAdminService,
-  createTelegramService
+  createTelegramService,
+  createMissionService
 };
