@@ -8,7 +8,8 @@
  * - Получение логов партиционирования
  */
 
-import * as partitionService from '../services/partition-service.js';
+// Импорт из централизованного сервиса с поддержкой обратной совместимости
+import { partitionService } from '../services/index.js';
 
 /**
  * Получение статуса партиционирования таблицы

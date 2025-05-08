@@ -4,7 +4,7 @@
  */
 
 import { Request, Response } from 'express';
-import { partitionService } from '../services/partition-service';
+import { partitionService } from '../services'; // Импорт из централизованного экспорта
 
 /**
  * Получение списка всех партиций с информацией о них
