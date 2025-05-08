@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { WalletService } from '../services/walletService';
+import { walletService } from '../services';
 import { sendSuccess } from '../utils/responseUtils';
 import { ValidationError } from '../middleware/errorHandler';
 import { userIdSchema } from '../validators/schemas';
@@ -25,10 +25,7 @@ export class WalletControllerFallback {
       
       const { user_id } = validationResult.data;
       
-      // Создаем экземпляр сервиса
-      const walletService = new WalletService();
-      
-      // Заворачиваем вызов сервиса в обработчик ошибок
+      // Заворачиваем вызов сервиса в обработчик ошибок, используя сервис из импорта
       const getWalletBalanceWithFallback = wrapServiceFunction(
         walletService.getUserBalance.bind(walletService),
         async (error, userId) => {
@@ -87,10 +84,7 @@ export class WalletControllerFallback {
       const currency = req.query.currency as string;
       const status = req.query.status as string;
       
-      // Создаем экземпляр сервиса
-      const walletService = new WalletService();
-      
-      // Заворачиваем вызов сервиса в обработчик ошибок
+      // Заворачиваем вызов сервиса в обработчик ошибок, используя сервис из импорта
       const getTransactionHistoryWithFallback = wrapServiceFunction(
         walletService.getUserTransactions.bind(walletService),
         async (error, params) => {
