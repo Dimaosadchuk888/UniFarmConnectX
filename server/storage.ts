@@ -7,6 +7,10 @@ import { users, transactions, uniFarmingDeposits, referrals, tonBoostDeposits,
 import { db } from "./db";
 import { eq, and, desc, sql, gt, lt } from "drizzle-orm";
 import type { IStorage } from './storage-memory';
+import { DatabaseError, NotFoundError } from './middleware/errorHandler';
+
+// Тип для безопасного доступа к свойству message у ошибок
+type ErrorWithMessage = { message: string };
 
 /**
  * Реализация хранилища с использованием базы данных PostgreSQL через Drizzle ORM
@@ -17,10 +21,16 @@ export class DatabaseStorage implements IStorage {
   
   /**
    * Получение пользователя по его ID
+   * @throws {DatabaseError} При ошибке в базе данных
    */
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user || undefined;
+    } catch (error) {
+      const err = error as ErrorWithMessage;
+      throw new DatabaseError(`Ошибка при получении пользователя по ID ${id}: ${err.message}`, error);
+    }
   }
 
   /**
@@ -69,21 +79,42 @@ export class DatabaseStorage implements IStorage {
 
   /**
    * Обновление баланса пользователя
+   * @throws {NotFoundError} Если пользователь не найден
+   * @throws {DatabaseError} При ошибке в базе данных
    */
   async updateUserBalance(userId: number, currencyType: 'uni' | 'ton', amount: string): Promise<User | undefined> {
-    // Используем соответствующее поле в зависимости от типа валюты
-    const fieldToUpdate = currencyType === 'uni' ? 'balance_uni' : 'balance_ton';
-    
-    // Используем SQL выражение для атомарного обновления
-    const [user] = await db
-      .update(users)
-      .set({
-        [fieldToUpdate]: sql`${users[fieldToUpdate]} + ${amount}::numeric`
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    
-    return user || undefined;
+    try {
+      // Проверка существования пользователя
+      const existingUser = await this.getUser(userId);
+      if (!existingUser) {
+        throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+      }
+      
+      // Используем соответствующее поле в зависимости от типа валюты
+      const fieldToUpdate = currencyType === 'uni' ? 'balance_uni' : 'balance_ton';
+      
+      // Используем SQL выражение для атомарного обновления
+      const [user] = await db
+        .update(users)
+        .set({
+          [fieldToUpdate]: sql`COALESCE(${users[fieldToUpdate]}, '0') + ${amount}::numeric`
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!user) {
+        throw new NotFoundError(`Не удалось обновить баланс для пользователя с ID ${userId}`);
+      }
+      
+      return user;
+    } catch (error) {
+      // Если это не наши специальные ошибки, оборачиваем в DatabaseError
+      if (!(error instanceof NotFoundError)) {
+        const err = error as ErrorWithMessage;
+        throw new DatabaseError(`Ошибка при обновлении баланса: ${err.message}`, error);
+      }
+      throw error;
+    }
   }
 
   /**

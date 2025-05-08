@@ -3,6 +3,16 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
+// Константы для управления соединением с базой данных
+const MAX_RETRIES = 3;
+let dbConnectionStatus: 'connected' | 'error' | 'initial' = 'initial';
+
+// Вспомогательная функция для задержки
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Рассчитывает время задержки для повторных попыток с экспоненциальным увеличением
+const getBackoff = (attempt: number) => Math.min(100 * Math.pow(2, attempt), 3000);
+
 neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
@@ -31,6 +41,9 @@ export const testDatabaseConnection = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     dbConnectionStatus = 'error';
+    // Используем тип ErrorWithMessage для безопасного доступа к свойству message
+    type ErrorWithMessage = { message: string };
+    
     const errorObj = error instanceof Error 
       ? error 
       : new Error(String(error));
@@ -75,6 +88,9 @@ export const queryWithRetry = async <T = any>(
       lastError = error;
       
       // Преобразуем error в Error, чтобы гарантировать наличие message
+      // Используем тип ErrorWithMessage для безопасного доступа к свойству message
+      type ErrorWithMessage = { message: string };
+      
       const errorObj = error instanceof Error 
         ? error 
         : new Error(String(error));
@@ -112,6 +128,9 @@ export const query = async <T = any>(text: string, params: any[] = []): Promise<
   try {
     return await queryWithRetry<T>(text, params);
   } catch (error) {
+    // Используем тип ErrorWithMessage для безопасного доступа к свойству message
+    type ErrorWithMessage = { message: string };
+    
     const errorObj = error instanceof Error 
       ? error 
       : new Error(String(error));
