@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { BoostService } from '../services/boostService';
+import { boostService } from '../services/index.js';
 import { sendSuccess } from '../utils/responseUtils';
 import { ValidationError } from '../middleware/errorHandler';
 import { boostUserQuerySchema, boostRequestSchema } from '../validators/schemas';
@@ -17,8 +17,8 @@ export class BoostController {
    */
   static async getBoostPackages(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Вызов метода сервиса
-      const boostPackages = BoostService.getBoostPackages();
+      // Вызов метода сервиса через экземпляр
+      const boostPackages = boostService.getBoostPackages();
       
       // Отправка успешного ответа с данными
       sendSuccess(res, boostPackages);
@@ -44,7 +44,7 @@ export class BoostController {
       const { user_id } = validationResult.data;
       
       // Вызов метода сервиса для получения активных бустов пользователя
-      const activeBoosts = await BoostService.getUserActiveBoosts(user_id);
+      const activeBoosts = await boostService.getUserActiveBoosts(user_id);
       
       // Отправка успешного ответа с данными
       sendSuccess(res, activeBoosts);
@@ -72,7 +72,7 @@ export class BoostController {
       // Вызов метода сервиса для покупки буста
       // Если в сервисе возникнет ошибка (InsufficientFundsError, NotFoundError и пр.), 
       // она будет обработана централизованным обработчиком через next(error)
-      const purchaseResult = await BoostService.purchaseBoost(user_id, boost_id);
+      const purchaseResult = await boostService.purchaseBoost(user_id, boost_id);
       
       // Отправка успешного ответа с результатом покупки
       sendSuccess(res, purchaseResult);

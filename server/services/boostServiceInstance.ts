@@ -364,14 +364,16 @@ class BoostServiceImpl implements IBoostService {
       const [transaction] = await db.insert(transactions).values({
         user_id: userId,
         type: 'boost_purchase',
+        currency: 'UNI',
         amount: amount,
-        status: 'completed',
-        details: JSON.stringify({
+        status: 'confirmed',
+        description: `Boost package purchase (ID: ${boostId})`,
+        category: 'boost',
+        source: 'boost_purchase',
+        data: JSON.stringify({
           boost_id: boostId,
           deposit_id: depositId
-        }),
-        created_at: new Date(),
-        updated_at: new Date()
+        })
       }).returning({ id: transactions.id });
 
       return transaction.id;
@@ -393,8 +395,7 @@ class BoostServiceImpl implements IBoostService {
     try {
       await db.update(users)
         .set({
-          balance_uni: sql`${users.balance_uni} + ${uniAmount}`,
-          updated_at: new Date()
+          balance_uni: sql`${users.balance_uni} + ${uniAmount}`
         })
         .where(eq(users.id, userId));
     } catch (error) {
