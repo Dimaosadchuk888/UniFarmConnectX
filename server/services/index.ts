@@ -21,6 +21,7 @@ import { createLaunchLogService, type ILaunchLogService } from './launchLogServi
 import { createDailyBonusService, type IDailyBonusService, type DailyBonusStatusResponse, type DailyBonusClaimResponse } from './dailyBonusServiceInstance';
 import { createPartitionService, type IPartitionService } from './partitionServiceInstance';
 import { createAuthService, type IAuthService } from './authServiceInstance';
+import { createSecurityService, type ISecurityService } from './securityServiceInstance';
 import { databaseServiceInstance, type IDatabaseService } from './databaseServiceInstance';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
@@ -36,6 +37,7 @@ const launchLogService = createLaunchLogService();
 const dailyBonusService = createDailyBonusService();
 const partitionService = createPartitionService();
 const authService = createAuthService();
+const securityService = createSecurityService();
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
@@ -51,6 +53,7 @@ export {
   dailyBonusService,
   partitionService,
   authService,
+  securityService,
   databaseServiceInstance as databaseService
 };
 
@@ -68,6 +71,7 @@ export type {
   IDailyBonusService as DailyBonusService,
   IPartitionService as PartitionService,
   IAuthService as AuthService,
+  ISecurityService as SecurityService,
   // Экспортируем дополнительные типы для использования в контроллерах
   DailyBonusStatusResponse,
   DailyBonusClaimResponse
@@ -86,6 +90,7 @@ export type { ILaunchLogService } from './launchLogServiceInstance';
 export type { IDailyBonusService } from './dailyBonusServiceInstance';
 export type { IPartitionService } from './partitionServiceInstance';
 export type { IAuthService } from './authServiceInstance';
+export type { ISecurityService } from './securityServiceInstance';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -104,5 +109,6 @@ export {
   createLaunchLogService,
   createDailyBonusService,
   createPartitionService,
-  createAuthService
+  createAuthService,
+  createSecurityService
 };

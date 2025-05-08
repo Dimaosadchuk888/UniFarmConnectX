@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { SecurityService, telegramDataSchema, headersSchema } from '../services/securityService';
+import { telegramDataSchema, headersSchema } from '../services/securityService';
+import { securityService } from '../services/index';
 import { sendSuccess } from '../utils/responseUtils';
 import { z } from 'zod';
 
@@ -24,7 +25,7 @@ export class SecurityController {
       
       // Извлекаем данные Telegram из заголовков, если они там есть
       const telegramInitData = headersData.success ? 
-                            SecurityService.extractTelegramDataFromHeaders(headersData.data) : 
+                            securityService.extractTelegramDataFromHeaders(headersData.data) : 
                             null;
       
       // Объединяем данные из тела и заголовков
