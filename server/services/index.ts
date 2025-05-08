@@ -32,9 +32,8 @@ import { walletServiceInstance, createWalletService, type IWalletService } from 
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 // Сервисы с instance-паттерном используют реализацию из соответствующих файлов
-// Используем существующий экземпляр referralServiceInstance 
-const referralService = createReferralService();
-const referralBonusService = createReferralBonusService(userServiceInstance, referralService);
+// Используем существующий экземпляр referralServiceInstance
+const referralBonusService = createReferralBonusService(userServiceInstance, referralServiceInstance);
 // Используем существующий экземпляр transactionServiceInstance вместо создания нового
 const transactionService = createTransactionService();
 const tonBoostService = createTonBoostService(referralBonusService);
@@ -51,7 +50,7 @@ const adminService = createAdminService();
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
   userServiceInstance as userService,
-  referralService,
+  referralServiceInstance as referralService,
   referralBonusService,
   transactionService,
   tonBoostService,

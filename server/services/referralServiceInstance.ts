@@ -1,7 +1,6 @@
 import { referrals, Referral, InsertReferral, users, User } from '@shared/schema';
 import { eq, sql, and } from 'drizzle-orm';
 import { ValidationError } from '../middleware/errorHandler';
-import { extendedStorage } from '../storage-adapter-extended';
 import { IExtendedStorage } from '../storage-interface';
 
 // Максимальная глубина реферальной цепочки согласно ТЗ
@@ -553,8 +552,8 @@ export class ReferralService implements IReferralService {
 }
 
 // Создаем единственный экземпляр сервиса
-import { extendedStorage } from '../storage-adapter-extended';
-export const referralServiceInstance = new ReferralService(extendedStorage);
+import { extendedStorage as storageInstance } from '../storage-adapter-extended';
+export const referralServiceInstance = new ReferralService(storageInstance);
 
 /**
  * Фабричная функция для создания экземпляра ReferralService
