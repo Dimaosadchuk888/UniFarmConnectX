@@ -6,6 +6,9 @@ import { userIdSchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
 import { wrapServiceFunction } from '../db-service-wrapper';
 
+// Отладочный вывод для контроля использования fallback
+console.log('[WalletControllerFallback] Использование обновленного fallback контроллера');
+
 /**
  * Контроллер для работы с кошельком пользователя с поддержкой fallback режима
  */
@@ -32,20 +35,19 @@ export class WalletControllerFallback {
           console.log(`[WalletControllerFallback] Возвращаем заглушку для баланса по ID: ${userId}`, error);
           
           // Возвращаем данные по умолчанию при отсутствии соединения с БД
+          // Важно: Возвращаемые данные должны соответствовать интерфейсу IWalletService.getUserBalance
           return {
-            uni_balance: "0",
-            ton_balance: "0",
-            total_earned_uni: "0",
-            total_earned_ton: "0",
-            total_withdrawn_uni: "0",
-            total_withdrawn_ton: "0",
-            is_fallback: true
+            balanceUni: "0",
+            balanceTon: "0"
           };
         }
       );
       
       // Получаем баланс через сервис
       const userBalance = await getWalletBalanceWithFallback(user_id);
+      
+      // Отладочный вывод для проверки данных
+      console.log('[WalletControllerFallback] Получен баланс:', JSON.stringify(userBalance));
       
       // Преобразуем формат ответа, если нужно
       const balance = {
@@ -91,10 +93,10 @@ export class WalletControllerFallback {
           console.log(`[WalletControllerFallback] Возвращаем заглушку для истории транзакций по ID: ${params.userId}`, error);
           
           // Возвращаем пустой массив при отсутствии соединения с БД
+          // Формат должен соответствовать интерфейсу IWalletService.getUserTransactions
           return {
             transactions: [],
-            total: 0,
-            is_fallback: true
+            total: 0
           };
         }
       );
@@ -113,7 +115,7 @@ export class WalletControllerFallback {
         transactions: result.transactions || [],
         has_more: result.total > (offset + limit),
         total_count: result.total || 0,
-        is_fallback: result.is_fallback || false
+        is_fallback: false // У объекта result нет свойства is_fallback
       };
       
       sendSuccess(res, history);
