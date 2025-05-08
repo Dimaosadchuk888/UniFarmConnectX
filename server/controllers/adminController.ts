@@ -33,7 +33,7 @@ export class AdminController {
       const validationResult = adminKeySchema.safeParse({ adminKey });
       
       if (!validationResult.success) {
-        const errorMessage = validationResult.error.errors.map(e => e.message).join(', ');
+        const errorMessage = validationResult.error.errors.map((e: any) => e.message).join(', ');
         console.warn(`[AdminController] Ошибка валидации: ${errorMessage}`);
         return sendError(res, errorMessage, 400);
       }
@@ -67,13 +67,13 @@ export class AdminController {
       const paramsResult = adminParamsSchema.safeParse(queryParams);
       
       if (!paramsResult.success) {
-        const errorMessage = paramsResult.error.errors.map(e => e.message).join(', ');
+        const errorMessage = paramsResult.error.errors.map((e: any) => e.message).join(', ');
         console.warn(`[AdminController] Ошибка параметров: ${errorMessage}`);
         return sendError(res, errorMessage, 400);
       }
       
       // Получаем данные через сервис
-      const result = await AdminService.listUsersWithTelegramId(paramsResult.data);
+      const result = await adminService.listUsersWithTelegramId(paramsResult.data);
       
       // Отправляем успешный ответ
       sendSuccess(res, result);
