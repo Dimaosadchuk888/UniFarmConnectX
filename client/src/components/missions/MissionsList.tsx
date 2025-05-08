@@ -559,8 +559,8 @@ export const MissionsList: React.FC = () => {
       <div className="space-y-4 p-4">
         {missions.map((mission) => {
           const statusInfo = getMissionStatusInfo(mission.status);
-          const isRecentlyCompleted = completedMissionId === mission.id;
-          const isProcessing = processingMissionId === mission.id;
+          const isRecentlyCompleted = completedMissionId !== null && completedMissionId === mission.id;
+          const isProcessing = processingMissionId !== null && processingMissionId === mission.id;
           
           return (
             <motion.div
