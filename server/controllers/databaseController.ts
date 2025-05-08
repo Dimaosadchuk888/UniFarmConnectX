@@ -9,7 +9,7 @@
  */
 
 import { Request, Response } from 'express';
-import { databaseService } from '../services/databaseService';
+import { databaseService } from '../services';
 import { pool } from '../db';
 
 /**
