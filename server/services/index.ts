@@ -22,6 +22,7 @@ import { createDailyBonusService, type IDailyBonusService, type DailyBonusStatus
 import { createPartitionService, type IPartitionService } from './partitionServiceInstance';
 import { createAuthService, type IAuthService } from './authServiceInstance';
 import { createSecurityService, type ISecurityService } from './securityServiceInstance';
+import { createAdminService, type IAdminService } from './adminServiceInstance';
 import { databaseServiceInstance, type IDatabaseService } from './databaseServiceInstance';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
@@ -38,6 +39,7 @@ const dailyBonusService = createDailyBonusService();
 const partitionService = createPartitionService();
 const authService = createAuthService();
 const securityService = createSecurityService();
+const adminService = createAdminService();
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {

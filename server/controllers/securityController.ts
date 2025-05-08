@@ -40,14 +40,14 @@ export class SecurityController {
                          req.body.testMode === true;
       
       // Проверяем валидность данных
-      await SecurityService.validateTelegramData(data, isDevelopment);
+      await securityService.validateTelegramData(data, isDevelopment);
       
       // Парсим данные для возврата клиенту
       let parsedData = null;
       const authData = data.telegramInitData || data.authData;
       
       if (authData) {
-        parsedData = SecurityService.parseTelegramInitData(authData);
+        parsedData = securityService.parseTelegramInitData(authData);
       }
       
       // Отправляем положительный ответ
@@ -83,7 +83,7 @@ export class SecurityController {
       }
       
       // Проверяем разрешения
-      const hasPermission = await SecurityService.checkUserPermission(
+      const hasPermission = await securityService.checkUserPermission(
         validatedData.data.userId,
         validatedData.data.permission
       );
@@ -115,7 +115,7 @@ export class SecurityController {
       }
       
       // Очищаем ввод
-      const sanitizedInput = SecurityService.sanitizeInput(validatedData.data.input);
+      const sanitizedInput = securityService.sanitizeInput(validatedData.data.input);
       
       // Отправляем результат
       sendSuccess(res, {
