@@ -57,8 +57,8 @@ export class ReferralBonusService {
   }> {
     try {
       // Проверка существования пользователей
-      const user = await UserService.getUserById(userId);
-      const inviter = await UserService.getUserById(inviterId);
+      const user = await userService.getUserById(userId);
+      const inviter = await userService.getUserById(inviterId);
       
       if (!user || !inviter) {
         console.error('[ReferralBonusService] User or inviter not found:', { userId, inviterId });
@@ -196,7 +196,7 @@ export class ReferralBonusService {
         // Начисляем вознаграждение пригласителю
         if (bonusAmount > 0 && ref.inviter_id !== null) {
           // Получаем пользователя-приглашателя
-          const inviter = await UserService.getUserById(ref.inviter_id);
+          const inviter = await userService.getUserById(ref.inviter_id);
           if (!inviter) {
             continue;
           }
@@ -313,8 +313,8 @@ export class ReferralBonusService {
         
         // Начисляем вознаграждение пригласителю
         if (bonusAmount > 0 && ref.inviter_id !== null) {
-          // Получаем пользователя-приглашателя
-          const inviter = await UserService.getUserById(ref.inviter_id);
+          // Получаем пользователя-приглашателя через новый сервис
+          const inviter = await userService.getUserById(ref.inviter_id);
           if (!inviter) {
             console.log(`[ReferralBonus] Inviter ID ${ref.inviter_id} not found, skipping`);
             continue;
