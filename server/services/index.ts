@@ -15,7 +15,7 @@ import { referralServiceInstance, createReferralService, type IReferralService }
 import { referralBonusServiceInstance, createReferralBonusService, type IReferralBonusService } from './referralBonusServiceInstance';
 import { transactionServiceInstance, createTransactionService, type ITransactionService } from './transactionServiceInstance';
 import { tonBoostServiceInstance, createTonBoostService, type ITonBoostService } from './tonBoostServiceInstance';
-import { createFarmingService, type IFarmingService } from './farmingServiceInstance';
+import { farmingServiceInstance, createFarmingService, type IFarmingService } from './farmingServiceInstance';
 import { createUniFarmingService, type IUniFarmingService } from './uniFarmingServiceInstance';
 import { createNewUniFarmingService, type INewUniFarmingService } from './newUniFarmingServiceInstance';
 import { createLaunchLogService, type ILaunchLogService } from './launchLogServiceInstance';
@@ -39,7 +39,8 @@ const referralBonusService = createReferralBonusService();
 const transactionService = createTransactionService();
 // Используем существующий экземпляр tonBoostServiceInstance
 const tonBoostService = createTonBoostService();
-const farmingService = createFarmingService();
+// Используем существующий экземпляр farmingServiceInstance
+const farmingService = farmingServiceInstance;
 const uniFarmingService = createUniFarmingService();
 const newUniFarmingService = createNewUniFarmingService();
 const launchLogService = createLaunchLogService();
