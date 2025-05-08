@@ -18,7 +18,9 @@ import { createFarmingService, type IFarmingService } from './farmingServiceInst
 import { createUniFarmingService, type IUniFarmingService } from './uniFarmingServiceInstance';
 import { createNewUniFarmingService, type INewUniFarmingService } from './newUniFarmingServiceInstance';
 import { createLaunchLogService, type ILaunchLogService } from './launchLogServiceInstance';
-import { createDailyBonusService, type IDailyBonusService } from './dailyBonusServiceInstance';
+import { createDailyBonusService, type IDailyBonusService, type DailyBonusStatusResponse, type DailyBonusClaimResponse } from './dailyBonusServiceInstance';
+import { createPartitionService, type IPartitionService } from './partitionServiceInstance';
+import { createAuthService, type IAuthService } from './authServiceInstance';
 import { databaseServiceInstance, type IDatabaseService } from './databaseServiceInstance';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
@@ -32,6 +34,8 @@ const uniFarmingService = createUniFarmingService();
 const newUniFarmingService = createNewUniFarmingService();
 const launchLogService = createLaunchLogService();
 const dailyBonusService = createDailyBonusService();
+const partitionService = createPartitionService();
+const authService = createAuthService();
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
@@ -45,6 +49,8 @@ export {
   newUniFarmingService,
   launchLogService,
   dailyBonusService,
+  partitionService,
+  authService,
   databaseServiceInstance as databaseService
 };
 
@@ -59,7 +65,12 @@ export type {
   IUniFarmingService as UniFarmingService,
   INewUniFarmingService as NewUniFarmingService,
   ILaunchLogService as LaunchLogService,
-  IDailyBonusService as DailyBonusService
+  IDailyBonusService as DailyBonusService,
+  IPartitionService as PartitionService,
+  IAuthService as AuthService,
+  // Экспортируем дополнительные типы для использования в контроллерах
+  DailyBonusStatusResponse,
+  DailyBonusClaimResponse
 };
 
 // Реэкспортируем типы интерфейсов для использования в тестах и моках
@@ -73,6 +84,8 @@ export type { IUniFarmingService } from './uniFarmingServiceInstance';
 export type { INewUniFarmingService } from './newUniFarmingServiceInstance';
 export type { ILaunchLogService } from './launchLogServiceInstance';
 export type { IDailyBonusService } from './dailyBonusServiceInstance';
+export type { IPartitionService } from './partitionServiceInstance';
+export type { IAuthService } from './authServiceInstance';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -89,5 +102,7 @@ export {
   createUniFarmingService,
   createNewUniFarmingService,
   createLaunchLogService,
-  createDailyBonusService
+  createDailyBonusService,
+  createPartitionService,
+  createAuthService
 };
