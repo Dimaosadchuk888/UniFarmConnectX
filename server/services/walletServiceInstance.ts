@@ -1,67 +1,305 @@
 /**
- * Прокси-модуль для доступа к сервису работы с кошельками
+ * Реализация сервиса кошелька
  * 
- * Этот файл использует паттерн прокси для перенаправления вызовов статических методов
- * к методам экземпляра IWalletService из walletServiceInstance.
+ * Этот модуль реализует интерфейс IWalletService для работы с кошельками пользователей.
+ * Следует паттерну instance+proxy - создает единственный экземпляр и экспортирует его.
  * 
- * Такой подход позволяет сохранить обратную совместимость с кодом, использующим
- * статические методы, но при этом использовать преимущества инстанс-паттерна.
+ * @module walletServiceInstance
  */
 
-import { 
-  walletServiceInstance,
-  IWalletService,
-  WalletCurrency,
-  BalanceOperationType,
-  TransactionStatusType,
-  GetTransactionsParams,
-  WithdrawRequest,
-  DepositRequest,
-  WalletBindRequest,
-  WalletOperationResult,
-  WalletInfo,
-  AddressValidationResult,
-  UserTransaction
-} from './walletServiceInstance.js';
-import { NotFoundError, ValidationError, InsufficientFundsError } from '../middleware/errorHandler.js';
-import { TransactionType, TransactionCategory } from './transactionService.js';
-
-// Реэкспорт типов для обратной совместимости
-export { 
-  WalletCurrency,
-  BalanceOperationType,
-  TransactionStatusType,
-  type GetTransactionsParams,
-  type WithdrawRequest,
-  type DepositRequest,
-  type WalletBindRequest,
-  type WalletOperationResult,
-  type WalletInfo,
-  type AddressValidationResult,
-  type UserTransaction
-};
+import { db } from '../db.js';
+import { users, transactions, tonBoostDeposits, type User, type Transaction } from '@shared/schema';
+import { eq, sql, desc, and, or, asc } from 'drizzle-orm';
+import { InsufficientFundsError, NotFoundError, ValidationError } from '../middleware/errorHandler.js';
+import { TransactionService, TransactionType, Currency, TransactionStatus, TransactionCategory } from './transactionService.js';
 
 /**
- * Сервис для работы с кошельком пользователя
- * Обеспечивает все операции с балансом и транзакциями пользователей
- * в соответствии с принципами SOLID
+ * Типы валют для операций с балансом
  */
-export class WalletService {
+export enum WalletCurrency {
+  UNI = 'UNI',
+  TON = 'TON'
+}
+
+/**
+ * Типы операций с балансом
+ */
+export enum BalanceOperationType {
+  DEPOSIT = 'deposit',
+  WITHDRAW = 'withdraw',
+  TRANSFER = 'transfer',
+  REWARD = 'reward',
+  BONUS = 'bonus'
+}
+
+/**
+ * Статусы транзакций
+ */
+export enum TransactionStatusType {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  REJECTED = 'rejected'
+}
+
+/**
+ * Параметры для получения транзакций пользователя
+ */
+export interface GetTransactionsParams {
+  userId: number;
+  limit?: number;
+  offset?: number;
+  currency?: WalletCurrency;
+  status?: TransactionStatusType;
+}
+
+/**
+ * Интерфейс для запроса вывода средств
+ */
+export interface WithdrawRequest {
+  userId: number;
+  amount: string | number;
+  currency: WalletCurrency;
+  walletAddress?: string;
+}
+
+/**
+ * Интерфейс для запроса пополнения средств
+ */
+export interface DepositRequest {
+  userId: number;
+  amount: string | number;
+  currency: WalletCurrency;
+  source?: string;
+  category?: string;
+  walletAddress?: string;
+}
+
+/**
+ * Интерфейс для привязки кошелька
+ */
+export interface WalletBindRequest {
+  userId: number;
+  walletAddress: string;
+}
+
+/**
+ * Результат операции с кошельком
+ */
+export interface WalletOperationResult {
+  success: boolean;
+  userId: number;
+  transactionId?: number;
+  newBalance?: string;
+  message?: string;
+  walletAddress?: string | null;
+}
+
+/**
+ * Информация о кошельке пользователя
+ */
+export interface WalletInfo {
+  userId: number;
+  balanceUni: string;
+  balanceTon: string;
+  walletAddress: string | null;
+}
+
+/**
+ * Результат валидации TON-адреса
+ */
+export interface AddressValidationResult {
+  isValid: boolean;
+  message?: string;
+}
+
+/**
+ * Транзакция пользователя
+ */
+export interface UserTransaction {
+  id: number;
+  userId: number;
+  type: string;
+  amount: string;
+  currency: string;
+  createdAt: Date;
+  status: string;
+  walletAddress: string | null;
+  source?: string;
+  category?: string;
+  txHash?: string;
+}
+
+/**
+ * Интерфейс сервиса кошелька
+ * 
+ * Определяет функциональность для работы с кошельками пользователей:
+ * - получение информации о кошельке
+ * - управление адресом кошелька
+ * - управление балансом
+ * - обработка транзакций
+ */
+export interface IWalletService {
   /**
    * Получает информацию о кошельке пользователя
    * @param userId ID пользователя
    * @returns Полная информация о кошельке пользователя
    * @throws {NotFoundError} если пользователь не найден
    */
-  static async getWalletInfo(userId: number): Promise<WalletInfo> {
-    return await walletServiceInstance.getWalletInfo(userId);
+  getWalletInfo(userId: number): Promise<WalletInfo>;
+  
+  /**
+   * Получает адрес TON-кошелька пользователя
+   * @param userId ID пользователя
+   * @returns Объект с ID пользователя и адресом кошелька
+   * @throws {NotFoundError} если пользователь не найден
+   */
+  getWalletAddress(userId: number): Promise<{ userId: number; walletAddress: string | null }>;
+  
+  /**
+   * Проверяет уникальность адреса TON-кошелька
+   * @param walletAddress Адрес TON-кошелька для проверки
+   * @param currentUserId ID текущего пользователя (исключается из проверки)
+   * @returns true, если адрес уникален или принадлежит currentUserId
+   * @throws {ValidationError} если адрес уже привязан к другому пользователю
+   */
+  checkWalletAddressAvailability(walletAddress: string, currentUserId: number): Promise<boolean>;
+  
+  /**
+   * Обновляет адрес TON-кошелька пользователя
+   * @param userId ID пользователя
+   * @param walletAddress Новый адрес TON-кошелька
+   * @returns Обновленная информация о пользователе
+   * @throws {NotFoundError} если пользователь не найден
+   * @throws {ValidationError} если адрес недопустим
+   */
+  updateWalletAddress(userId: number, walletAddress: string): Promise<{ userId: number; walletAddress: string }>;
+  
+  /**
+   * Получает баланс пользователя
+   * @param userId ID пользователя
+   * @returns Объект с балансами UNI и TON
+   * @throws {NotFoundError} если пользователь не найден
+   */
+  getUserBalance(userId: number): Promise<{ balanceUni: string; balanceTon: string }>;
+  
+  /**
+   * Обновляет баланс пользователя
+   * @param userId ID пользователя
+   * @param amount Сумма для изменения баланса (может быть отрицательной)
+   * @param currency Валюта (UNI или TON)
+   * @param transactionType Тип транзакции
+   * @param params Дополнительные параметры транзакции
+   * @returns Обновленный баланс пользователя
+   * @throws {NotFoundError} если пользователь не найден
+   * @throws {InsufficientFundsError} если недостаточно средств для снятия
+   */
+  updateBalance(
+    userId: number,
+    amount: number, 
+    currency: WalletCurrency,
+    transactionType: string,
+    params?: {
+      walletAddress?: string | null;
+      source?: string;
+      category?: string;
+      txHash?: string;
+      status?: TransactionStatusType;
+    }
+  ): Promise<{ newBalance: string; transactionId: number }>;
+  
+  /**
+   * Проверяет формат TON-адреса
+   * @param address Адрес TON-кошелька
+   * @returns Результат проверки с флагом и сообщением
+   */
+  validateTonAddress(address: string): AddressValidationResult;
+  
+  /**
+   * Регистрирует депозит средств
+   * @param request Параметры пополнения
+   * @returns Результат операции пополнения
+   * @throws {NotFoundError} если пользователь не найден
+   * @throws {ValidationError} если параметры некорректны
+   */
+  depositFunds(request: DepositRequest): Promise<WalletOperationResult>;
+  
+  /**
+   * Выводит средства с кошелька пользователя
+   * @param request Параметры вывода средств
+   * @returns Результат операции вывода
+   * @throws {NotFoundError} если пользователь не найден
+   * @throws {ValidationError} если параметры некорректны
+   * @throws {InsufficientFundsError} если недостаточно средств
+   */
+  withdrawFunds(request: WithdrawRequest): Promise<WalletOperationResult>;
+  
+  /**
+   * Подтверждает транзакцию вывода средств
+   * @param transactionId ID транзакции для подтверждения
+   * @param txHash Хеш транзакции в блокчейне (если есть)
+   * @returns Обновленная транзакция
+   * @throws {NotFoundError} если транзакция не найдена
+   * @throws {ValidationError} если транзакция не является выводом или имеет неподходящий статус
+   */
+  confirmWithdrawal(transactionId: number, txHash?: string): Promise<UserTransaction>;
+  
+  /**
+   * Отклоняет транзакцию вывода средств и делает возврат средств
+   * @param transactionId ID транзакции для отклонения
+   * @param reason Причина отклонения
+   * @returns Обновленная транзакция и транзакция возврата
+   * @throws {NotFoundError} если транзакция не найдена
+   * @throws {ValidationError} если транзакция не является выводом или имеет неподходящий статус
+   */
+  rejectWithdrawal(transactionId: number, reason: string): Promise<{ transaction: UserTransaction; refund: UserTransaction }>;
+  
+  /**
+   * Получает транзакции пользователя
+   * @param params Параметры запроса
+   * @returns Массив транзакций и общее количество
+   */
+  getUserTransactions(params: GetTransactionsParams): Promise<{ transactions: UserTransaction[]; total: number }>;
+  
+  /**
+   * Получает транзакции TON Boost для пользователя
+   * @param userId ID пользователя
+   * @returns Массив транзакций TON Boost
+   */
+  getUserTonBoostTransactions(userId: number): Promise<any[]>;
+}
+
+/**
+ * Класс для работы с кошельком пользователя
+ * Реализует все методы интерфейса IWalletService
+ */
+class WalletServiceImpl implements IWalletService {
+  /**
+   * Получает информацию о кошельке пользователя
+   * @param userId ID пользователя
+   * @returns Полная информация о кошельке пользователя
+   * @throws {NotFoundError} если пользователь не найден
+   */
+  async getWalletInfo(userId: number): Promise<WalletInfo> {
+    try {
+      const user = await this.getUserById(userId);
+      
+      return {
+        userId: user.id,
+        balanceUni: String(user.balance_uni || '0.000000'),
+        balanceTon: String(user.balance_ton || '0.000000'),
+        walletAddress: user.ton_wallet_address
+      };
+    } catch (error) {
+      console.error(`[WalletService] Ошибка при получении информации о кошельке пользователя ${userId}:`, error);
+      throw error;
+    }
   }
 
   /**
    * Получает адрес TON-кошелька пользователя
    * @param userId ID пользователя
    * @returns Объект с ID пользователя и адресом кошелька
-   * @throws NotFoundError если пользователь не найден
+   * @throws {NotFoundError} если пользователь не найден
    */
   async getWalletAddress(userId: number): Promise<{ userId: number; walletAddress: string | null }> {
     try {
@@ -86,13 +324,13 @@ export class WalletService {
       throw error;
     }
   }
-  
+
   /**
    * Проверяет уникальность адреса TON-кошелька
    * @param walletAddress Адрес TON-кошелька для проверки
    * @param currentUserId ID текущего пользователя (исключается из проверки)
    * @returns true, если адрес уникален или принадлежит currentUserId
-   * @throws ValidationError если адрес уже привязан к другому пользователю
+   * @throws {ValidationError} если адрес уже привязан к другому пользователю
    */
   async checkWalletAddressAvailability(walletAddress: string, currentUserId: number): Promise<boolean> {
     try {
@@ -113,14 +351,14 @@ export class WalletService {
       throw error;
     }
   }
-  
+
   /**
    * Обновляет адрес TON-кошелька пользователя
    * @param userId ID пользователя
    * @param walletAddress Новый адрес TON-кошелька
    * @returns Обновленная информация о пользователе
-   * @throws NotFoundError если пользователь не найден
-   * @throws ValidationError если адрес недопустим
+   * @throws {NotFoundError} если пользователь не найден
+   * @throws {ValidationError} если адрес недопустим
    */
   async updateWalletAddress(userId: number, walletAddress: string): Promise<{ userId: number; walletAddress: string }> {
     try {
@@ -161,7 +399,7 @@ export class WalletService {
    * Получает баланс пользователя
    * @param userId ID пользователя
    * @returns Объект с балансами UNI и TON
-   * @throws NotFoundError если пользователь не найден
+   * @throws {NotFoundError} если пользователь не найден
    */
   async getUserBalance(userId: number): Promise<{ balanceUni: string; balanceTon: string }> {
     try {
@@ -176,7 +414,7 @@ export class WalletService {
       throw error;
     }
   }
-  
+
   /**
    * Обновляет баланс пользователя
    * @param userId ID пользователя
@@ -185,8 +423,8 @@ export class WalletService {
    * @param transactionType Тип транзакции
    * @param params Дополнительные параметры транзакции
    * @returns Обновленный баланс пользователя
-   * @throws NotFoundError если пользователь не найден
-   * @throws InsufficientFundsError если недостаточно средств для снятия
+   * @throws {NotFoundError} если пользователь не найден
+   * @throws {InsufficientFundsError} если недостаточно средств для снятия
    */
   async updateBalance(
     userId: number,
@@ -278,6 +516,8 @@ export class WalletService {
    * Регистрирует депозит средств
    * @param request Параметры пополнения
    * @returns Результат операции пополнения
+   * @throws {NotFoundError} если пользователь не найден
+   * @throws {ValidationError} если параметры некорректны
    */
   async depositFunds(request: DepositRequest): Promise<WalletOperationResult> {
     try {
@@ -333,6 +573,9 @@ export class WalletService {
    * Выводит средства с кошелька пользователя
    * @param request Параметры вывода средств
    * @returns Результат операции вывода
+   * @throws {NotFoundError} если пользователь не найден
+   * @throws {ValidationError} если параметры некорректны
+   * @throws {InsufficientFundsError} если недостаточно средств
    */
   async withdrawFunds(request: WithdrawRequest): Promise<WalletOperationResult> {
     try {
@@ -391,12 +634,14 @@ export class WalletService {
       throw error;
     }
   }
-  
+
   /**
    * Подтверждает транзакцию вывода средств
    * @param transactionId ID транзакции для подтверждения
    * @param txHash Хеш транзакции в блокчейне (если есть)
    * @returns Обновленная транзакция
+   * @throws {NotFoundError} если транзакция не найдена
+   * @throws {ValidationError} если транзакция не является выводом или имеет неподходящий статус
    */
   async confirmWithdrawal(transactionId: number, txHash?: string): Promise<UserTransaction> {
     try {
@@ -420,14 +665,10 @@ export class WalletService {
         .update(transactions)
         .set({ 
           status: TransactionStatusType.CONFIRMED,
-          tx_hash: txHash ?? null
+          tx_hash: txHash || transaction.tx_hash
         })
         .where(eq(transactions.id, transactionId))
         .returning();
-      
-      if (!updatedTransaction) {
-        throw new NotFoundError(`Не удалось обновить транзакцию с ID ${transactionId}`);
-      }
       
       return this.mapTransactionToUserTransaction(updatedTransaction);
     } catch (error) {
@@ -435,12 +676,14 @@ export class WalletService {
       throw error;
     }
   }
-  
+
   /**
-   * Отклоняет транзакцию вывода средств и возвращает средства на баланс пользователя
+   * Отклоняет транзакцию вывода средств и делает возврат средств
    * @param transactionId ID транзакции для отклонения
    * @param reason Причина отклонения
-   * @returns Обновленная транзакция и информация о возврате средств
+   * @returns Обновленная транзакция и транзакция возврата
+   * @throws {NotFoundError} если транзакция не найдена
+   * @throws {ValidationError} если транзакция не является выводом или имеет неподходящий статус
    */
   async rejectWithdrawal(transactionId: number, reason: string): Promise<{ transaction: UserTransaction; refund: UserTransaction }> {
     try {
@@ -459,68 +702,55 @@ export class WalletService {
         throw new ValidationError(`Транзакция с ID ${transactionId} уже имеет статус ${transaction.status}`);
       }
       
-      // Возвращаем средства пользователю и обновляем статус транзакции
+      // Выполняем транзакцию в БД
       return await db.transaction(async (tx) => {
-        // Обновляем статус транзакции
+        // Обновляем статус исходной транзакции
         const [updatedTransaction] = await tx
           .update(transactions)
           .set({ 
             status: TransactionStatusType.REJECTED,
-            description: reason
+            notes: reason || 'Вывод отклонен'
           })
           .where(eq(transactions.id, transactionId))
           .returning();
         
-        if (!updatedTransaction) {
-          throw new NotFoundError(`Не удалось обновить транзакцию с ID ${transactionId}`);
-        }
+        // Сумма для возврата (положительное значение)
+        const refundAmount = Math.abs(parseFloat(transaction.amount));
         
-        // Возвращаем средства на баланс пользователя
-        const amount = Math.abs(parseFloat(updatedTransaction.amount || '0'));
-        const txCurrency = updatedTransaction.currency || 'UNI';
-        const currency = txCurrency.toLowerCase() as 'uni' | 'ton';
-        const balanceField = currency === 'uni' ? 'balance_uni' : 'balance_ton';
-        
-        // Получаем текущий баланс
-        const [user] = await tx
-          .select()
-          .from(users)
-          .where(eq(users.id, updatedTransaction.user_id))
-          .limit(1);
-        
-        if (!user) {
-          throw new NotFoundError(`Пользователь с ID ${updatedTransaction.user_id} не найден`);
-        }
-        
-        const currentBalance = parseFloat(user[balanceField as keyof User] as string || '0');
-        const newBalance = (currentBalance + amount).toFixed(6);
-        
-        // Обновляем баланс
-        await tx
-          .update(users)
-          .set({ [balanceField]: newBalance })
-          .where(eq(users.id, updatedTransaction.user_id));
-        
-        // Создаем транзакцию возврата
+        // Создаем транзакцию возврата средств
         const [refundTransaction] = await tx
           .insert(transactions)
           .values({
-            user_id: updatedTransaction.user_id,
-            type: 'refund',
-            amount: amount.toString(),
-            currency: txCurrency,
+            user_id: transaction.user_id,
+            type: TransactionType.REFUND,
+            amount: refundAmount.toString(),
+            currency: transaction.currency,
             created_at: sql`CURRENT_TIMESTAMP`,
             status: TransactionStatusType.CONFIRMED,
-            wallet_address: updatedTransaction.wallet_address,
-            source: 'refund',
-            category: 'refund',
-            description: `Возврат средств за отклоненный вывод #${transactionId}: ${reason}`
+            wallet_address: transaction.wallet_address,
+            source: 'withdrawal_rejected',
+            category: TransactionCategory.REFUND,
+            related_tx_id: transaction.id,
+            notes: `Возврат средств для транзакции #${transaction.id}: ${reason || 'Вывод отклонен'}`
           })
           .returning();
         
-        if (!refundTransaction) {
-          throw new Error(`Не удалось создать транзакцию возврата`);
-        }
+        // Обновляем баланс пользователя (возвращаем средства)
+        const balanceField = transaction.currency.toLowerCase() === 'uni' ? 'balance_uni' : 'balance_ton';
+        
+        const [userWithBalance] = await tx
+          .select()
+          .from(users)
+          .where(eq(users.id, transaction.user_id))
+          .limit(1);
+        
+        const currentBalance = parseFloat(userWithBalance[balanceField as keyof User] as string || '0');
+        const newBalance = (currentBalance + refundAmount).toFixed(6);
+        
+        await tx
+          .update(users)
+          .set({ [balanceField]: newBalance })
+          .where(eq(users.id, transaction.user_id));
         
         return {
           transaction: this.mapTransactionToUserTransaction(updatedTransaction),
@@ -534,41 +764,43 @@ export class WalletService {
   }
 
   /**
-   * Получает транзакции пользователя с гибкой фильтрацией и пагинацией
-   * @param params Параметры запроса транзакций
-   * @returns Массив транзакций пользователя и общее количество
+   * Получает транзакции пользователя
+   * @param params Параметры запроса
+   * @returns Массив транзакций и общее количество
    */
   async getUserTransactions(params: GetTransactionsParams): Promise<{ transactions: UserTransaction[]; total: number }> {
     try {
       const { userId, limit = 20, offset = 0, currency, status } = params;
       
-      // Проверяем существование пользователя
-      await this.getUserById(userId);
+      // Строим условие для фильтрации транзакций
+      let whereCondition = eq(transactions.user_id, userId);
       
-      // Формируем условия для запроса
-      const conditions: SQL[] = [eq(transactions.user_id, userId)];
-      
+      // Добавляем фильтр по валюте, если указана
       if (currency) {
-        conditions.push(eq(transactions.currency, currency));
+        whereCondition = and(
+          whereCondition,
+          eq(transactions.currency, currency)
+        );
       }
       
+      // Добавляем фильтр по статусу, если указан
       if (status) {
-        conditions.push(eq(transactions.status, status));
+        whereCondition = and(
+          whereCondition,
+          eq(transactions.status, status)
+        );
       }
       
-      // Объединяем условия через AND
-      const whereCondition = conditions.length > 1 
-        ? and(...conditions) 
-        : conditions[0];
-      
-      // Получаем общее количество транзакций по фильтру
-      const [{ count }] = await db
+      // Получаем общее количество транзакций
+      const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(transactions)
         .where(whereCondition);
       
-      // Получаем транзакции с пагинацией
-      const userTransactions = await db
+      const total = countResult.count;
+      
+      // Получаем транзакции с учетом лимита и смещения
+      const txs = await db
         .select()
         .from(transactions)
         .where(whereCondition)
@@ -576,79 +808,47 @@ export class WalletService {
         .limit(limit)
         .offset(offset);
       
-      // Преобразуем записи из БД в интерфейс UserTransaction
-      const mappedTransactions = userTransactions.map(tx => this.mapTransactionToUserTransaction(tx));
+      // Преобразуем транзакции в пользовательский формат
+      const userTransactions = txs.map(tx => this.mapTransactionToUserTransaction(tx));
       
       return {
-        transactions: mappedTransactions,
-        total: Number(count)
+        transactions: userTransactions,
+        total
       };
     } catch (error) {
-      console.error(`[WalletService] Ошибка при получении транзакций пользователя ${params.userId}:`, error);
+      console.error(`[WalletService] Ошибка при получении транзакций пользователя:`, error);
       throw error;
     }
   }
-  
+
   /**
-   * Получает все транзакции TON-boost-депозитов для пользователя
+   * Получает транзакции TON Boost для пользователя
    * @param userId ID пользователя
-   * @returns Массив депозитов TON-boost и связанных с ними транзакций
+   * @returns Массив транзакций TON Boost
    */
   async getUserTonBoostTransactions(userId: number): Promise<any[]> {
     try {
-      // Проверяем существование пользователя
-      await this.getUserById(userId);
-      
-      // Получаем все TON-boost-депозиты пользователя
-      const deposits = await db
+      const boostTransactions = await db
         .select()
         .from(tonBoostDeposits)
         .where(eq(tonBoostDeposits.user_id, userId))
         .orderBy(desc(tonBoostDeposits.created_at));
       
-      // Получаем все транзакции связанные с TON-boost
-      const boostTransactions = await db
-        .select()
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.user_id, userId),
-            or(
-              eq(transactions.type, TransactionType.TON_BOOST),
-              eq(transactions.source, 'ton_boost')
-            )
-          )
-        )
-        .orderBy(desc(transactions.created_at));
-      
-      // Связываем депозиты с транзакциями (можно расширить логику)
-      return deposits.map(deposit => ({
-        ...deposit,
-        transactions: boostTransactions.filter(tx => 
-          tx.description?.includes(`boost_id:${deposit.id}`) || 
-          tx.data?.includes(`boost_id:${deposit.id}`)
-        )
-      }));
+      return boostTransactions;
     } catch (error) {
-      console.error(`[WalletService] Ошибка при получении TON-boost-транзакций пользователя ${userId}:`, error);
+      console.error(`[WalletService] Ошибка при получении TON Boost транзакций пользователя ${userId}:`, error);
       throw error;
     }
   }
 
-  // Вспомогательные методы
-
   /**
    * Получает пользователя по ID
    * @param userId ID пользователя
-   * @returns Данные пользователя
-   * @throws NotFoundError если пользователь не найден
+   * @returns Пользователь
+   * @throws {NotFoundError} если пользователь не найден
    */
   private async getUserById(userId: number): Promise<User> {
-    const user = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
+    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     
     if (!user[0]) {
       throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
@@ -656,44 +856,47 @@ export class WalletService {
     
     return user[0];
   }
-  
+
   /**
    * Получает транзакцию по ID
    * @param transactionId ID транзакции
-   * @returns Данные транзакции или null, если не найдена
+   * @returns Транзакция или null, если не найдена
    */
   private async getTransactionById(transactionId: number): Promise<Transaction | null> {
-    const transaction = await db
-      .select()
-      .from(transactions)
-      .where(eq(transactions.id, transactionId))
-      .limit(1);
+    const transaction = await db.select().from(transactions).where(eq(transactions.id, transactionId)).limit(1);
     
     return transaction[0] || null;
   }
-  
+
   /**
-   * Преобразует запись транзакции из БД в формат UserTransaction
-   * @param tx Запись транзакции из БД
-   * @returns Объект в формате UserTransaction
+   * Преобразует транзакцию из БД в пользовательский формат
+   * @param tx Транзакция из базы данных
+   * @returns Транзакция в пользовательском формате
    */
   private mapTransactionToUserTransaction(tx: Transaction): UserTransaction {
-    if (!tx || typeof tx.id !== 'number') {
-      throw new Error('Невозможно преобразовать недействительную транзакцию');
-    }
-    
     return {
       id: tx.id,
       userId: tx.user_id,
-      type: tx.type || 'unknown',
-      amount: tx.amount || '0',
-      currency: tx.currency || 'UNI',
-      createdAt: tx.created_at || new Date(),
-      status: tx.status || 'unknown',
-      walletAddress: tx.wallet_address || null,
+      type: tx.type,
+      amount: tx.amount,
+      currency: tx.currency,
+      createdAt: tx.created_at,
+      status: tx.status,
+      walletAddress: tx.wallet_address,
       source: tx.source || undefined,
       category: tx.category || undefined,
       txHash: tx.tx_hash || undefined
     };
   }
+}
+
+// Создаем единственный экземпляр сервиса
+export const walletServiceInstance = new WalletServiceImpl();
+
+/**
+ * Создает новый экземпляр сервиса кошелька
+ * @returns Новый экземпляр сервиса кошелька
+ */
+export function createWalletService(): IWalletService {
+  return walletServiceInstance;
 }
