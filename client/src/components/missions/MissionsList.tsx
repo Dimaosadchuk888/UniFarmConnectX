@@ -146,13 +146,21 @@ export const MissionsList: React.FC = () => {
 
   // Преобразуем данные из БД в формат для UI
   useEffect(() => {
-    if (dbMissions && Array.isArray(userCompletedMissions)) {
-      // Создаем карту выполненных миссий для быстрого поиска
-      const completedMissionsMap = new Map(
-        userCompletedMissions.map(m => [m.mission_id, m])
-      );
-      
-      // Конвертируем DbMission[] в Mission[] с учетом выполненных миссий
+    if (!dbMissions) return;
+    
+    // Создаем карту выполненных миссий для быстрого поиска
+    const completedMissionsMap = new Map();
+    
+    // Проверяем, что userCompletedMissions существует и является массивом
+    if (userCompletedMissions && Array.isArray(userCompletedMissions)) {
+      userCompletedMissions.forEach(m => {
+        if (m && typeof m === 'object' && 'mission_id' in m) {
+          completedMissionsMap.set(m.mission_id, m);
+        }
+      });
+    }
+    
+    // Конвертируем DbMission[] в Mission[] с учетом выполненных миссий
       const mappedMissions: Mission[] = dbMissions.map(dbMission => {
         const isCompleted = completedMissionsMap.has(dbMission.id);
         
