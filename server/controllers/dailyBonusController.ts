@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { 
-  DailyBonusService, 
-  DailyBonusStatusResponse, 
-  DailyBonusClaimResponse 
-} from '../services/dailyBonusService';
+  dailyBonusService, 
+  type DailyBonusStatusResponse, 
+  type DailyBonusClaimResponse 
+} from '../services/index';
 import { sendSuccess } from '../utils/responseUtils';
 import { ValidationError } from '../middleware/errorHandler';
 import { userIdSchema, userMissionsQuerySchema } from '../validators/schemas';
@@ -50,7 +50,7 @@ export class DailyBonusController {
       
       // Вызываем метод сервиса для получения статуса бонуса
       const bonusStatus: DailyBonusStatusResponse = 
-        await DailyBonusService.getDailyBonusStatus(user_id);
+        await dailyBonusService.getDailyBonusStatus(user_id);
       
       // Отправляем успешный ответ
       sendSuccess(res, bonusStatus);
@@ -82,7 +82,7 @@ export class DailyBonusController {
       
       // Вызываем метод сервиса для получения бонуса
       const result: DailyBonusClaimResponse = 
-        await DailyBonusService.claimDailyBonus(user_id);
+        await dailyBonusService.claimDailyBonus(user_id);
       
       // Даже если бонус не получен (уже забран сегодня), 
       // используем стандартный формат ответа с полем success

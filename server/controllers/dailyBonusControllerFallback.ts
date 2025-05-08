@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { DailyBonusService } from '../services/dailyBonusService';
+import { dailyBonusService } from '../services/index';
 import { sendSuccess } from '../utils/responseUtils';
 import { ValidationError } from '../middleware/errorHandler';
 import { userIdSchema } from '../validators/schemas';
@@ -27,7 +27,7 @@ export class DailyBonusControllerFallback {
       
       // Заворачиваем вызов сервиса в обработчик ошибок
       const getDailyBonusStatusWithFallback = wrapServiceFunction(
-        DailyBonusService.getDailyBonusStatus.bind(DailyBonusService),
+        dailyBonusService.getDailyBonusStatus.bind(dailyBonusService),
         async (error, userId) => {
           console.log(`[DailyBonusControllerFallback] Возвращаем заглушку для бонуса по ID: ${userId}`, error);
           
@@ -68,7 +68,7 @@ export class DailyBonusControllerFallback {
 
       // Заворачиваем вызов сервиса в обработчик ошибок
       const claimDailyBonusWithFallback = wrapServiceFunction(
-        DailyBonusService.claimDailyBonus.bind(DailyBonusService),
+        dailyBonusService.claimDailyBonus.bind(dailyBonusService),
         async (error, userId) => {
           console.log(`[DailyBonusControllerFallback] Возвращаем заглушку для получения бонуса по ID: ${userId}`, error);
           

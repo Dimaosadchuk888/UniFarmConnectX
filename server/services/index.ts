@@ -18,6 +18,7 @@ import { createFarmingService, type IFarmingService } from './farmingServiceInst
 import { createUniFarmingService, type IUniFarmingService } from './uniFarmingServiceInstance';
 import { createNewUniFarmingService, type INewUniFarmingService } from './newUniFarmingServiceInstance';
 import { createLaunchLogService, type ILaunchLogService } from './launchLogServiceInstance';
+import { createDailyBonusService, type IDailyBonusService } from './dailyBonusServiceInstance';
 import { databaseServiceInstance, type IDatabaseService } from './databaseServiceInstance';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
@@ -30,6 +31,7 @@ const farmingService = createFarmingService();
 const uniFarmingService = createUniFarmingService();
 const newUniFarmingService = createNewUniFarmingService();
 const launchLogService = createLaunchLogService();
+const dailyBonusService = createDailyBonusService();
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
@@ -42,6 +44,7 @@ export {
   uniFarmingService,
   newUniFarmingService,
   launchLogService,
+  dailyBonusService,
   databaseServiceInstance as databaseService
 };
 
@@ -55,7 +58,8 @@ export type {
   IFarmingService as FarmingService,
   IUniFarmingService as UniFarmingService,
   INewUniFarmingService as NewUniFarmingService,
-  ILaunchLogService as LaunchLogService
+  ILaunchLogService as LaunchLogService,
+  IDailyBonusService as DailyBonusService
 };
 
 // Реэкспортируем типы интерфейсов для использования в тестах и моках
@@ -68,6 +72,7 @@ export type { IFarmingService } from './farmingServiceInstance';
 export type { IUniFarmingService } from './uniFarmingServiceInstance';
 export type { INewUniFarmingService } from './newUniFarmingServiceInstance';
 export type { ILaunchLogService } from './launchLogServiceInstance';
+export type { IDailyBonusService } from './dailyBonusServiceInstance';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -83,5 +88,6 @@ export {
   createFarmingService,
   createUniFarmingService,
   createNewUniFarmingService,
-  createLaunchLogService
+  createLaunchLogService,
+  createDailyBonusService
 };
