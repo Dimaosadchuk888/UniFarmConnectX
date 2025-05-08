@@ -462,16 +462,20 @@ export class ReferralBonusService implements IReferralBonusService {
   }
 }
 
+// Импортируем необходимые службы для создания синглтона
+import { userServiceInstance } from './userServiceInstance';
+import { referralServiceInstance } from './referralServiceInstance';
+
+// Создаем единственный экземпляр сервиса
+export const referralBonusServiceInstance = new ReferralBonusService(
+  userServiceInstance,
+  referralServiceInstance
+);
+
 /**
  * Фабричная функция для создания экземпляра сервиса ReferralBonusService
- * @param storage Хранилище данных
- * @param userService Сервис пользователей
- * @param referralService Сервис реферальных связей
  * @returns Экземпляр сервиса ReferralBonusService
  */
-export function createReferralBonusService(
-  userService: IUserService,
-  referralService: IReferralService
-): IReferralBonusService {
-  return new ReferralBonusService(userService, referralService);
+export function createReferralBonusService(): IReferralBonusService {
+  return referralBonusServiceInstance;
 }

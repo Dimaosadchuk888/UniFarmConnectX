@@ -12,7 +12,7 @@ import { extendedStorage } from '../storage-adapter-extended';
 import { createUserService, type IUserService } from './userService';
 import { userServiceInstance } from './userServiceInstance.js';
 import { referralServiceInstance, createReferralService, type IReferralService } from './referralServiceInstance';
-import { createReferralBonusService, type IReferralBonusService } from './referralBonusServiceInstance';
+import { referralBonusServiceInstance, createReferralBonusService, type IReferralBonusService } from './referralBonusServiceInstance';
 import { transactionServiceInstance, createTransactionService, type ITransactionService } from './transactionServiceInstance';
 import { createTonBoostService, type ITonBoostService } from './tonBoostServiceInstance';
 import { createFarmingService, type IFarmingService } from './farmingServiceInstance';
@@ -33,7 +33,8 @@ import { walletServiceInstance, createWalletService, type IWalletService } from 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 // Сервисы с instance-паттерном используют реализацию из соответствующих файлов
 // Используем существующий экземпляр referralServiceInstance
-const referralBonusService = createReferralBonusService(userServiceInstance, referralServiceInstance);
+// Используем существующий экземпляр referralBonusServiceInstance
+const referralBonusService = createReferralBonusService();
 // Используем существующий экземпляр transactionServiceInstance вместо создания нового
 const transactionService = createTransactionService();
 const tonBoostService = createTonBoostService(referralBonusService);
