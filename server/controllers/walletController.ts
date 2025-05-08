@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import 'express-session';
-import { WalletService, WalletCurrency, TransactionStatusType } from '../services/walletService';
+import { walletService, type WalletService } from '../services';
+import { WalletCurrency, TransactionStatusType } from '../services/walletService';
 import { ValidationError, NotFoundError } from '../middleware/errorHandler';
 import { createValidationErrorFromZod, extractUserId } from '../utils/validationUtils';
 
@@ -23,16 +24,6 @@ declare module 'express-session' {
  * Делегирует всю бизнес-логику WalletService
  */
 export class WalletController {
-  // Создаем одиночный экземпляр WalletService
-  private static _walletServiceInstance: WalletService | null = null;
-  
-  // Геттер для доступа к сервису из статического метода
-  private static get walletService(): WalletService {
-    if (!WalletController._walletServiceInstance) {
-      WalletController._walletServiceInstance = new WalletService();
-    }
-    return WalletController._walletServiceInstance;
-  }
   
   /**
    * Привязывает TON-адрес кошелька к пользователю
@@ -63,7 +54,7 @@ export class WalletController {
       console.log(`[WalletController] Привязка адреса ${wallet_address} к пользователю ${userId}`);
       
       // Делегируем всю логику валидации и обновления адреса кошелька WalletService
-      const updatedWallet = await this.walletService.updateWalletAddress(userId, wallet_address);
+      const updatedWallet = await walletService.updateWalletAddress(userId, wallet_address);
       
       // Для аудита логируем результат
       console.log(`[WalletController] Успешно обновлен адрес кошелька для пользователя ${userId}`);
@@ -109,7 +100,7 @@ export class WalletController {
       console.log(`[WalletController] Получение адреса кошелька для пользователя ${userId}`);
       
       // Делегируем получение адреса кошелька WalletService
-      const walletData = await this.walletService.getWalletAddress(userId);
+      const walletData = await walletService.getWalletAddress(userId);
       
       // Возвращаем успешный ответ через responseFormatter
       res.success({
@@ -171,7 +162,7 @@ export class WalletController {
       console.log(`[WalletController] Получение информации о кошельке для пользователя ${userId}`);
       
       // Получаем полную информацию о кошельке
-      const walletInfo = await this.walletService.getWalletInfo(userId);
+      const walletInfo = await walletService.getWalletInfo(userId);
       
       // Возвращаем успешный ответ через responseFormatter
       res.success({
