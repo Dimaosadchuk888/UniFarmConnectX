@@ -1,5 +1,5 @@
 import React from 'react';
-import MissionsList from '@/components/missions/MissionsList';
+import MissionsList from '@/components/missions';
 
 const Missions: React.FC = () => {
   return (
