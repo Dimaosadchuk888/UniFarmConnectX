@@ -105,7 +105,7 @@ export class InsufficientFundsError extends Error {
   name = 'InsufficientFundsError';
   errors: Record<string, string>;
   
-  constructor(message: string, balance: number, currency: string) {
+  constructor(message: string, balance: number | string, currency: string) {
     super(message);
     this.errors = {
       amount: `Недостаточно средств для операции. Доступный баланс: ${balance} ${currency}`

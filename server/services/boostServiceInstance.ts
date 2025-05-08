@@ -223,8 +223,8 @@ class BoostServiceImpl implements IBoostService {
       }
 
       return {
-        uniBalance: user.balance_uni,
-        tonBalance: user.balance_ton
+        uniBalance: user.balance_uni || '0',
+        tonBalance: user.balance_ton || '0'
       };
     } catch (error) {
       if (error instanceof NotFoundError) {
@@ -311,7 +311,8 @@ class BoostServiceImpl implements IBoostService {
     if (balance.isLessThan(price)) {
       throw new InsufficientFundsError(
         `Insufficient UNI balance. Required: ${priceUni}, Available: ${balanceUni}`,
-        { required: priceUni, available: balanceUni }
+        balanceUni,
+        'UNI'
       );
     }
   }
@@ -482,7 +483,8 @@ class BoostServiceImpl implements IBoostService {
           endDate
         };
       } catch (error) {
-        throw new DatabaseError(`Failed to complete boost purchase: ${error.message}`);
+        const err = error as ErrorWithMessage;
+        throw new DatabaseError(`Failed to complete boost purchase: ${err.message}`);
       }
     } catch (error) {
       if (
@@ -495,9 +497,10 @@ class BoostServiceImpl implements IBoostService {
           message: error.message
         };
       }
+      const err = error as ErrorWithMessage;
       return {
         success: false,
-        message: `Unexpected error: ${error.message}`
+        message: `Unexpected error: ${err.message}`
       };
     }
   }
