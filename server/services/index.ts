@@ -56,6 +56,7 @@ export {
   partitionService,
   authService,
   securityService,
+  adminService,
   databaseServiceInstance as databaseService
 };
 
@@ -74,6 +75,7 @@ export type {
   IPartitionService as PartitionService,
   IAuthService as AuthService,
   ISecurityService as SecurityService,
+  IAdminService as AdminService,
   // Экспортируем дополнительные типы для использования в контроллерах
   DailyBonusStatusResponse,
   DailyBonusClaimResponse
@@ -93,6 +95,7 @@ export type { IDailyBonusService } from './dailyBonusServiceInstance';
 export type { IPartitionService } from './partitionServiceInstance';
 export type { IAuthService } from './authServiceInstance';
 export type { ISecurityService } from './securityServiceInstance';
+export type { IAdminService } from './adminServiceInstance';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -112,5 +115,6 @@ export {
   createDailyBonusService,
   createPartitionService,
   createAuthService,
-  createSecurityService
+  createSecurityService,
+  createAdminService
 };

@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
+import { adminService } from '../services/index';
 import { 
-  AdminService, 
   adminKeySchema, 
   adminParamsSchema,
-  AdminParams
-} from '../services/adminService';
+  type AdminParams 
+} from '../services/adminServiceInstance';
 import { ForbiddenError, ValidationError } from '../middleware/errorHandler';
 import { z } from 'zod';
 
@@ -40,7 +40,7 @@ export class AdminController {
       
       try {
         // Проверяем права администратора
-        AdminService.verifyAdminAccess(adminKey);
+        adminService.verifyAdminAccess(adminKey);
       } catch (error) {
         if (error instanceof ForbiddenError) {
           return sendError(res, error.message, 403);
