@@ -7,7 +7,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { NewUniFarmingService } from '../services/newUniFarmingService';
+import { newUniFarmingService } from '../services';
 import { ValidationError, NotFoundError } from '../middleware/errorHandler';
 import { formatZodErrors } from '../utils/validationUtils';
 
@@ -44,7 +44,7 @@ export class NewUniFarmingController {
       const { user_id } = validationResult.data;
       
       // Получаем информацию о фарминге
-      const farmingInfo = await NewUniFarmingService.getUserFarmingInfo(user_id);
+      const farmingInfo = await newUniFarmingService.getUserFarmingInfo(user_id);
       
       res.json({
         success: true,
@@ -102,7 +102,7 @@ export class NewUniFarmingController {
       const { user_id, amount } = validationResult.data;
       
       // Создаем новый депозит
-      const depositResult = await NewUniFarmingService.createUniFarmingDeposit(user_id, amount);
+      const depositResult = await newUniFarmingService.createUniFarmingDeposit(user_id, amount);
       
       if (depositResult.success) {
         res.json({
@@ -160,7 +160,7 @@ export class NewUniFarmingController {
       const { user_id } = validationResult.data;
       
       // Получаем депозиты
-      const deposits = await NewUniFarmingService.getUserFarmingDeposits(user_id);
+      const deposits = await newUniFarmingService.getUserFarmingDeposits(user_id);
       
       res.json({
         success: true,
@@ -211,7 +211,7 @@ export class NewUniFarmingController {
       const { user_id } = validationResult.data;
       
       // Обновляем и получаем баланс фарминга
-      const updateResult = await NewUniFarmingService.calculateAndUpdateUserFarming(user_id);
+      const updateResult = await newUniFarmingService.calculateAndUpdateUserFarming(user_id);
       
       res.json({
         success: true,

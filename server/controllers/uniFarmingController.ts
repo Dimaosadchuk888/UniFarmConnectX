@@ -185,7 +185,7 @@ export class UniFarmingController {
       }
 
       // Проверяем существование пользователя
-      const userExists = await DatabaseService.userExists(userId);
+      const userExists = await databaseService.userExists(userId);
       if (!userExists) {
         throw new NotFoundError(`Пользователь с ID=${userId} не найден`);
       }
@@ -205,7 +205,7 @@ export class UniFarmingController {
 
       // Получаем депозиты (без учета пагинации, т.к. метод пока не поддерживает параметры)
       // Примечание: в будущем метод должен быть доработан для поддержки limit и offset
-      const deposits = await NewUniFarmingService.getUserFarmingDeposits(userId);
+      const deposits = await newUniFarmingService.getUserFarmingDeposits(userId);
       
       res.success({ 
         deposits,
@@ -260,14 +260,14 @@ export class UniFarmingController {
       
       // Проверяем существование пользователя
       if (userId !== 1) { // Для default user_id=1 пропускаем проверку, т.к. это специальный случай
-        const userExists = await DatabaseService.userExists(userId);
+        const userExists = await databaseService.userExists(userId);
         if (!userExists) {
           throw new NotFoundError(`Пользователь с ID=${userId} не найден`);
         }
       }
       
       // Получаем текущую информацию о балансе фарминга
-      const farmingInfo = await NewUniFarmingService.getUserFarmingInfo(userId);
+      const farmingInfo = await newUniFarmingService.getUserFarmingInfo(userId);
       
       // Возвращаем информационное сообщение и данные фарминга
       res.success({ 
