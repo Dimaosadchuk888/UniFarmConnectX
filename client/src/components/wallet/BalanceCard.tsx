@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
 import { useNotification } from '@/contexts/notificationContext';
@@ -40,44 +40,49 @@ const BalanceCard: React.FC = () => {
   const [wsStatus, setWsStatus] = useState<string>('Подключение...');
   
   // Предыдущее значение баланса для отслеживания изменений
-  const [prevUniBalance, setPrevUniBalance] = useState<number>(0);
-  const [prevTonBalance, setPrevTonBalance] = useState<number>(0);
+  const [prevUniBalance, setPrevUniBalance] = useState<number | null>(null);
+  const [prevTonBalance, setPrevTonBalance] = useState<number | null>(null);
   
-  // Храним состояние для отслеживания показанных уведомлений, чтобы не показывать слишком часто
+  // Храним состояние для отслеживания показанных уведомлений
   const [wsErrorNotificationShown, setWsErrorNotificationShown] = useState<boolean>(false);
   const [wsConnectedOnce, setWsConnectedOnce] = useState<boolean>(false);
   
-  // Обработчики для WebSocket
-  const onOpen = useCallback(() => {
+  // Используем ref для отслеживания состояния подписки и дополнительных флагов
+  const isSubscribedRef = useRef<boolean>(false);
+  const initialLoadedRef = useRef<boolean>(false);
+  
+  // ===== WebSocket обработчики =====
+  
+  // Обработчик открытия соединения
+  const handleOpen = useCallback((event: Event) => {
+    console.log('[BalanceCard] WebSocket connection opened', event);
     setWsStatus('Соединение установлено');
     setWsConnectedOnce(true);
-    setWsErrorNotificationShown(false); // Сбрасываем флаг показа ошибок при успешном подключении
+    setWsErrorNotificationShown(false);
     
-    // Показываем уведомление о подключении только один раз
     if (!wsConnectedOnce) {
       showNotification('success', {
         message: 'WebSocket соединение установлено',
         duration: 3000
       });
     }
-  }, [wsConnectedOnce, showNotification]);
+  }, [showNotification, wsConnectedOnce]);
   
-  const onMessage = useCallback((data: any) => {
-    // Обрабатываем сообщения от сервера
+  // Обработчик получения сообщения
+  const handleMessage = useCallback((data: any) => {
+    console.log('[BalanceCard] WebSocket message received', data);
+    
     if (data.type === 'update' && data.balanceData) {
-      // Обновляем баланс через контекст, только если есть userId
       if (userId) {
         refreshBalance();
       }
       
-      // Устанавливаем анимации для визуального эффекта
       setUniAnimating(true);
       setTimeout(() => setUniAnimating(false), 800);
       
       setTonAnimating(true);
       setTimeout(() => setTonAnimating(false), 800);
       
-      // Показываем уведомление об обновлении баланса
       showNotification('info', {
         message: 'Баланс обновлен',
         duration: 2000
@@ -85,11 +90,12 @@ const BalanceCard: React.FC = () => {
     }
   }, [userId, refreshBalance, showNotification]);
   
-  const onClose = useCallback(() => {
+  // Обработчик закрытия соединения
+  const handleClose = useCallback((event: CloseEvent) => {
+    console.log('[BalanceCard] WebSocket connection closed', event);
     setWsStatus('Соединение закрыто');
+    isSubscribedRef.current = false;
     
-    // Не показываем уведомления о закрытии соединения, если оно уже показано
-    // или если соединение никогда не устанавливалось (чтобы избежать спама)
     if (!wsErrorNotificationShown && wsConnectedOnce) {
       setWsErrorNotificationShown(true);
       showNotification('error', {
@@ -99,10 +105,12 @@ const BalanceCard: React.FC = () => {
     }
   }, [wsErrorNotificationShown, wsConnectedOnce, showNotification]);
   
-  const onError = useCallback(() => {
+  // Обработчик ошибки соединения
+  const handleError = useCallback((event: Event) => {
+    console.error('[BalanceCard] WebSocket error', event);
     setWsStatus('Ошибка соединения');
+    isSubscribedRef.current = false;
     
-    // Показываем уведомление об ошибке только один раз
     if (!wsErrorNotificationShown) {
       setWsErrorNotificationShown(true);
       showNotification('error', {
@@ -112,106 +120,146 @@ const BalanceCard: React.FC = () => {
     }
   }, [wsErrorNotificationShown, showNotification]);
   
-  // Инициализируем WebSocket соединение с мемоизированными обработчиками
-  const { isConnected, subscribeToUserUpdates, errorCount, forceReconnect } = useWebSocket({
-    onOpen,
-    onMessage,
-    onClose,
-    onError,
-    reconnectInterval: 2000 // Интервал переподключения в миллисекундах
+  // Инициализируем WebSocket соединение
+  const { 
+    isConnected,
+    subscribeToUserUpdates,
+    errorCount, 
+    forceReconnect 
+  } = useWebSocket({
+    onOpen: handleOpen,
+    onMessage: handleMessage,
+    onClose: handleClose,
+    onError: handleError,
+    reconnectInterval: 3000
   });
-
-  // Создаем внешнюю функцию handleUserSubscription, которая будет использоваться в useEffect
-  const handleUserSubscription = useCallback((subscribe: (id: number) => void, id: number) => {
-    if (id) {
-      setTimeout(() => {
-        subscribe(id);
-      }, 500);
-    }
-  }, []);
   
-  // Подписываемся на обновления при наличии userId и активном соединении
+  // ===== Эффекты и обработчики =====
+  
+  // Подписываемся на обновления пользователя
   useEffect(() => {
-    if (userId && isConnected && subscribeToUserUpdates) {
-      handleUserSubscription(subscribeToUserUpdates, userId);
+    if (!userId || !isConnected || !subscribeToUserUpdates || isSubscribedRef.current) {
+      return;
     }
-  }, [userId, isConnected, subscribeToUserUpdates, handleUserSubscription]);
+    
+    console.log('[BalanceCard] Subscribing to user updates', userId);
+    
+    // Небольшая задержка перед подпиской для стабильности
+    const timeoutId = setTimeout(() => {
+      try {
+        const success = subscribeToUserUpdates(userId);
+        if (success) {
+          console.log('[BalanceCard] Successfully subscribed to user updates');
+          isSubscribedRef.current = true;
+        } else {
+          console.warn('[BalanceCard] Failed to subscribe to user updates');
+        }
+      } catch (error) {
+        console.error('[BalanceCard] Error subscribing to user updates', error);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [userId, isConnected, subscribeToUserUpdates]);
   
-  // Функция для обновления баланса UNI с анимацией
-  const updateUniBalanceWithAnimation = useCallback((newValue: number, oldValue: number) => {
-    if (newValue !== oldValue) {
+  // Сбрасываем флаг подписки при потере соединения
+  useEffect(() => {
+    if (!isConnected) {
+      isSubscribedRef.current = false;
+    }
+  }, [isConnected]);
+  
+  // Отслеживаем изменения баланса UNI
+  useEffect(() => {
+    // Инициализируем предыдущее значение баланса при первой загрузке
+    if (prevUniBalance === null && uniBalance !== undefined) {
+      setPrevUniBalance(uniBalance);
+      return;
+    }
+    
+    // Проверяем, изменился ли баланс
+    if (prevUniBalance !== null && uniBalance !== prevUniBalance) {
+      console.log('[BalanceCard] UNI balance changed', { prev: prevUniBalance, current: uniBalance });
+      
+      // Включаем анимацию
       setUniAnimating(true);
       setTimeout(() => setUniAnimating(false), 800);
-    }
-  }, []);
-  
-  // Отслеживаем изменения балансов для анимаций
-  useEffect(() => {
-    if (prevUniBalance !== uniBalance) {
-      updateUniBalanceWithAnimation(uniBalance, prevUniBalance);
-      setPrevUniBalance(uniBalance);
       
-      // Если баланс увеличился, показываем уведомление
-      if (uniBalance > prevUniBalance && prevUniBalance !== 0) {
+      // Показываем уведомление об увеличении баланса
+      if (uniBalance > prevUniBalance && initialLoadedRef.current) {
         const increase = uniBalance - prevUniBalance;
         showNotification('success', {
           message: `Получено ${increase.toFixed(8)} UNI`,
           duration: 3000
         });
       }
+      
+      // Обновляем предыдущее значение баланса
+      setPrevUniBalance(uniBalance);
     }
-  }, [uniBalance, prevUniBalance, updateUniBalanceWithAnimation, showNotification]);
+  }, [uniBalance, prevUniBalance, showNotification]);
   
+  // Отслеживаем изменения баланса TON
   useEffect(() => {
-    if (prevTonBalance !== tonBalance) {
+    // Инициализируем предыдущее значение баланса при первой загрузке
+    if (prevTonBalance === null && tonBalance !== undefined) {
+      setPrevTonBalance(tonBalance);
+      return;
+    }
+    
+    // Проверяем, изменился ли баланс
+    if (prevTonBalance !== null && tonBalance !== prevTonBalance) {
+      console.log('[BalanceCard] TON balance changed', { prev: prevTonBalance, current: tonBalance });
+      
+      // Включаем анимацию
       setTonAnimating(true);
       setTimeout(() => setTonAnimating(false), 800);
-      setPrevTonBalance(tonBalance);
       
-      // Если баланс TON увеличился, показываем уведомление
-      if (tonBalance > prevTonBalance && prevTonBalance !== 0) {
+      // Показываем уведомление об увеличении баланса
+      if (tonBalance > prevTonBalance && initialLoadedRef.current) {
         const increase = tonBalance - prevTonBalance;
         showNotification('success', {
           message: `Получено ${increase.toFixed(5)} TON`,
           duration: 3000
         });
       }
+      
+      // Обновляем предыдущее значение баланса
+      setPrevTonBalance(tonBalance);
     }
   }, [tonBalance, prevTonBalance, showNotification]);
   
-  // Обновление баланса каждые 30 секунд
-  // Это резервный интервал, основное обновление через WebSocket
+  // Периодическое обновление баланса как запасной вариант
   useEffect(() => {
-    // Для начального обновления при монтировании используем таймаут,
-    // чтобы предотвратить одновременный вызов обновления из разных эффектов
-    const initialTimeout = setTimeout(() => {
-      if (userId) {
-        try {
-          refreshBalance();
-        } catch (error) {
-          // Обработка ошибки при начальной загрузке баланса
-          showNotification('error', {
-            message: 'Не удалось загрузить данные кошелька',
-            duration: 4000
-          });
-        }
-      }
-    }, 1000); // Задержка 1 секунда для предотвращения конфликтов
+    if (!userId) return;
     
-    // Создаем интервал для периодического обновления
+    // Начальная загрузка баланса после небольшой задержки
+    const initialTimeout = setTimeout(() => {
+      try {
+        console.log('[BalanceCard] Initial balance refresh');
+        refreshBalance();
+        // После первой загрузки устанавливаем флаг, чтобы показывать уведомления
+        initialLoadedRef.current = true;
+      } catch (error) {
+        console.error('[BalanceCard] Error refreshing balance initially', error);
+        showNotification('error', {
+          message: 'Не удалось загрузить данные кошелька',
+          duration: 4000
+        });
+      }
+    }, 1500);
+    
+    // Периодическое обновление (резервный вариант)
     const interval = setInterval(() => {
-      if (userId && !isBalanceFetching) { // Проверяем, что userId существует и нет активной загрузки
+      if (!isBalanceFetching) {
         try {
+          console.log('[BalanceCard] Periodic balance refresh');
           refreshBalance();
         } catch (error) {
-          // Обработка ошибки при автоматическом обновлении баланса
-          showNotification('error', {
-            message: 'Ошибка обновления баланса',
-            duration: 3000
-          });
+          console.error('[BalanceCard] Error in periodic balance refresh', error);
         }
       }
-    }, 30000); // Увеличили интервал до 30 секунд, так как основные обновления через WS
+    }, 30000);
     
     return () => {
       clearTimeout(initialTimeout);
@@ -219,35 +267,80 @@ const BalanceCard: React.FC = () => {
     };
   }, [userId, refreshBalance, showNotification, isBalanceFetching]);
   
-  // Устанавливаем значение скорости фарминга на основе суммы депозита и общей ставки
+  // Расчет скорости фарминга
   useEffect(() => {
-    // Примерная скорость: 0.000000289351851800 per second (из общего описания проекта)
-    const estimatedRate = 0.000000289351851800 * uniDepositAmount;
-    setUniRate(estimatedRate);
+    if (uniDepositAmount !== undefined) {
+      // Примерная скорость фарминга
+      const estimatedRate = 0.000000289351851800 * uniDepositAmount;
+      setUniRate(estimatedRate);
+    }
   }, [uniDepositAmount]);
-
+  
+  // ===== Вспомогательные функции =====
+  
   // Форматирование скорости начисления доходов
-  const formatRateNumber = (rate: number): JSX.Element => {
+  const formatRateNumber = useCallback((rate: number): JSX.Element => {
     if (rate > 0.001) {
       // Для ставок больше 0.001 показываем до 5 знаков
-      return (
-        <span>
-          +{formatTonNumber(rate)}
-        </span>
-      );
+      return <span>+{formatTonNumber(rate)}</span>;
     } else if (rate > 0) {
       // Для очень маленьких ставок показываем до 7 знаков уменьшенным шрифтом
-      return (
-        <span className="text-[0.7em] text-opacity-80">
-          +{formatUniNumber(rate, 7)}
-        </span>
-      );
+      return <span className="text-[0.7em] text-opacity-80">+{formatUniNumber(rate, 7)}</span>;
     } else {
       // Для нулевых ставок
       return <span>+0.00000</span>;
     }
-  };
+  }, []);
+  
+  // Обработчик ручного обновления баланса
+  const handleManualRefresh = useCallback(() => {
+    // Проверка, что не выполняется другое обновление
+    if (isBalanceFetching) return;
+    
+    showNotification('loading', {
+      message: 'Обновление баланса...',
+      duration: 1500
+    });
+    
+    try {
+      refreshBalance();
+      
+      // Показываем уведомление об успешном обновлении с задержкой
+      setTimeout(() => {
+        showNotification('success', {
+          message: 'Баланс успешно обновлён',
+          duration: 2000
+        });
+      }, 1000);
+      
+      // Анимация обновления
+      setUniAnimating(true);
+      setTimeout(() => setUniAnimating(false), 800);
+      
+      setTonAnimating(true);
+      setTimeout(() => setTonAnimating(false), 800);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
+      showNotification('error', {
+        message: `Не удалось обновить баланс: ${errorMessage}`,
+        duration: 3000
+      });
+    }
+  }, [refreshBalance, showNotification, isBalanceFetching]);
+  
+  // Обработчик переподключения WebSocket
+  const handleReconnect = useCallback(() => {
+    showNotification('loading', {
+      message: 'Переподключение...',
+      duration: 2000
+    });
+    
+    // Сбрасываем флаг подписки перед переподключением
+    isSubscribedRef.current = false;
+    forceReconnect();
+  }, [forceReconnect, showNotification]);
 
+  // ===== Рендеринг компонента =====
   return (
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
       {/* Декоративный градиентный фон */}
@@ -267,41 +360,7 @@ const BalanceCard: React.FC = () => {
           Ваш баланс
         </div>
         <button 
-          onClick={() => {
-            // Показываем уведомление о процессе обновления баланса
-            showNotification('loading', {
-              message: 'Обновление баланса...',
-              duration: 1500
-            });
-            
-            try {
-              // Обновляем баланс через контекст
-              refreshBalance();
-              
-              // Устанавливаем таймер на показ уведомления об успешном обновлении
-              // (таймаут нужен чтобы дать время на запрос)
-              setTimeout(() => {
-                showNotification('success', {
-                  message: 'Баланс успешно обновлён',
-                  duration: 2000
-                });
-              }, 1000);
-            } catch (err) {
-              // Уведомление об ошибке
-              const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
-              showNotification('error', {
-                message: `Не удалось обновить баланс: ${errorMessage}`,
-                duration: 3000
-              });
-            }
-            
-            // Анимируем обновление UNI и TON
-            setUniAnimating(true);
-            setTimeout(() => setUniAnimating(false), 800);
-            
-            setTonAnimating(true);
-            setTimeout(() => setTonAnimating(false), 800);
-          }}
+          onClick={handleManualRefresh}
           className="text-sm text-gray-400 hover:text-primary transition-colors"
           disabled={isBalanceFetching}
           title="Обновить баланс"
@@ -367,13 +426,7 @@ const BalanceCard: React.FC = () => {
               {/* Кнопка повторного подключения, если соединение в ошибке */}
               {errorCount > 0 && (
                 <button 
-                  onClick={() => {
-                    showNotification('loading', {
-                      message: 'Переподключение...',
-                      duration: 2000
-                    });
-                    forceReconnect();
-                  }}
+                  onClick={handleReconnect}
                   className="text-blue-400 hover:text-blue-300 transition-colors text-xs flex items-center"
                   title="Переподключиться к WebSocket"
                 >
@@ -397,18 +450,34 @@ const BalanceCard: React.FC = () => {
             {errorCount > 0 && (
               <div className="text-yellow-400 mt-1">
                 <i className="fas fa-exclamation-triangle mr-1 text-yellow-400"></i>
-                Проблемы соединения: {errorCount} {errorCount === 1 ? 'ошибка' : 'ошибки'}
+                Ошибок соединения: {errorCount}
               </div>
             )}
             
-            {/* Инструкция по обновлению при отсутствии WebSocket */}
+            {/* Кеширование для оффлайн работы */}
             {!isConnected && wsErrorNotificationShown && (
               <div className="mt-2 bg-blue-500/10 text-blue-100 rounded-md px-2 py-1.5 text-xs">
                 <i className="fas fa-info-circle mr-1 text-blue-300"></i>
-                Соединение прервано. Используйте кнопку обновления для ручного обновления баланса или нажмите "Переподключиться".
+                Кэшированные данные могут быть не актуальными
               </div>
             )}
           </div>
+          
+          {/* Фарминг-баланс, если активен */}
+          {uniFarmingActive && (
+            <div className="mt-4 border-t border-gray-700/30 pt-3">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Баланс фарминга:</span>
+                <span className="text-white">{formatUniNumber(uniFarmingBalance)} UNI</span>
+              </div>
+              <div className="flex justify-between text-xs mt-1">
+                <span className="text-gray-400">Доходность:</span>
+                <span className="text-success">
+                  ~{formatRateNumber(uniRate * 86400)} UNI/день
+                </span>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* TON Token */}
@@ -417,58 +486,68 @@ const BalanceCard: React.FC = () => {
           <div className="absolute inset-0 opacity-20">
             <div 
               className="w-24 h-24 rounded-full absolute -right-8 -top-8 blur-xl"
-              style={{ background: 'linear-gradient(45deg, #3C86FF, #63B4FF)' }}
+              style={{ background: 'linear-gradient(45deg, #0088CC, #29B8FF)' }}
             ></div>
           </div>
           
           {/* Заголовок токена */}
           <div className="flex items-center mb-3">
             <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center mr-2">
-              <i className="fas fa-diamond text-blue-500"></i>
+              <i className="fas fa-gem text-blue-500"></i>
             </div>
             <div>
-              <h3 className="text-md font-medium text-white">TON Token</h3>
-              <p className="text-xs text-gray-400">блокчейн TON</p>
+              <h3 className="text-md font-medium text-white">TON</h3>
+              <p className="text-xs text-gray-400">нативный токен блокчейна</p>
             </div>
           </div>
           
-          {/* Баланс с расширенной анимацией */}
+          {/* Баланс с анимацией */}
           <div className="mb-2">
-            <div className={`relative ${tonAnimating ? 'before:absolute before:inset-0 before:bg-blue-500/5 before:rounded-md before:animate-pulse' : ''}`}>
-              <div className="text-2xl font-bold text-white flex items-center relative z-10">
-                <span className={`transition-all duration-500 ${
-                  tonAnimating 
-                    ? 'text-blue-400 scale-105 animate-tonGlow' 
-                    : ''
-                }`}>
-                  {formatTonNumber(tonBalance)}
-                </span>
-                <span className="text-sm ml-1 text-gray-400">TON</span>
-                
-                {/* Индикатор изменения */}
-                {tonAnimating && tonBalance > prevTonBalance && (
-                  <span className="text-xs ml-2 text-blue-400 animate-fade-up absolute -top-3 right-0">
-                    <i className="fas fa-caret-up mr-1"></i>
-                    +{formatTonNumber(tonBalance - prevTonBalance)}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-gray-400">
-                {getUSDEquivalent(tonBalance, 'TON')}
-              </div>
+            <div className="text-2xl font-bold text-white flex items-center">
+              <span className={`transition-all duration-300 ${tonAnimating ? 'text-blue-400 scale-105' : ''}`}>
+                {formatTonNumber(tonBalance)}
+              </span>
+              <span className="text-sm ml-1 text-gray-400">TON</span>
+            </div>
+            <div className="text-xs text-gray-400">
+              {getUSDEquivalent(tonBalance, 'TON')}
+            </div>
+          </div>
+          
+          {/* Скорость начисления */}
+          <div className="bg-blue-400/10 text-blue-400 rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
+            <i className="fas fa-arrow-trend-up mr-1"></i>
+            <span className={tonAnimating ? 'text-blue-300 font-bold' : ''}>
+              {formatRateNumber(tonRate)}
+            </span>
+            <span className="text-gray-400 ml-1">TON / сек</span>
+          </div>
+          
+          {/* Дополнительная информация для TON */}
+          <div className="mt-4 border-t border-gray-700/30 pt-3 text-xs text-gray-400">
+            <div className="flex justify-between">
+              <span>Доступно для вывода:</span>
+              <span className="text-white">{formatTonNumber(tonBalance)} TON</span>
             </div>
             
-            {/* Доход TON отображается только если больше 0 */}
-            {tonRate > 0 && (
-              <div className="bg-blue-500/10 text-blue-500 rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
-                <i className="fas fa-arrow-trend-up mr-1"></i>
-                <span className={tonAnimating ? 'text-blue-400 font-bold' : ''}>
-                  {formatRateNumber(tonRate)}
-                </span>
-                <span className="text-gray-400 ml-1">TON / сек</span>
-              </div>
-            )}
+            <div className="flex items-center mt-3">
+              <i className="fas fa-info-circle mr-2 text-blue-400"></i>
+              <span>Выводы в сеть TON доступны в разделе Вывод</span>
+            </div>
           </div>
+        </div>
+      </div>
+      
+      {/* Информационная панель внизу */}
+      <div className="mt-4 text-xs text-gray-500 border-t border-gray-700/30 pt-3">
+        <div className="flex justify-between">
+          <span>Последнее обновление: {new Date().toLocaleTimeString()}</span>
+          {isBalanceFetching && (
+            <span className="text-gray-400 flex items-center">
+              <i className="fas fa-circle-notch animate-spin mr-1"></i>
+              Обновление...
+            </span>
+          )}
         </div>
       </div>
     </div>
