@@ -1725,29 +1725,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
   // Создаем WebSocket сервер на отдельном пути, чтобы не конфликтовать с Vite HMR
+  // Создаем упрощенный WebSocketServer без сложных настроек,
+  // которые могут вызывать проблемы в среде Replit
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws',
-    // Увеличиваем тайм-аут для более устойчивого соединения
+    // Только базовые настройки для максимальной совместимости
     clientTracking: true,
-    // Настраиваем heartbeat для поддержания соединения
-    perMessageDeflate: {
-      zlibDeflateOptions: {
-        chunkSize: 1024,
-        memLevel: 7,
-        level: 3
-      },
-      zlibInflateOptions: {
-        chunkSize: 10 * 1024
-      },
-      // Ниже порог для сжатия пакетов
-      threshold: 1024,
-      // Не сжимаем пакеты, если коэффициент сжатия будет больше 1
-      concurrencyLimit: 10,
-      // Лимиты для предотвращения DoS атак
-      serverNoContextTakeover: true,
-      clientNoContextTakeover: true
-    }
+    // Отключаем сжатие, которое может вызывать проблемы
+    perMessageDeflate: false,
+    // Увеличиваем таймауты для лучшей стабильности
+    maxPayload: 1024 * 1024 // 1MB
   });
   
   // Отслеживание активных подключений
