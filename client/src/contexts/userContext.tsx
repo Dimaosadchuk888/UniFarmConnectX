@@ -112,6 +112,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     queryKey: ['/api/me'],
     retry: 3,
     staleTime: 0, // Отключаем кеширование данных пользователя
+    gcTime: 0, // Не храним результаты в кеше
+    // Тихо обрабатываем ошибки без вывода в консоль
+    meta: {
+      silentError: true 
+    }
   });
   
   // Запрос баланса
@@ -126,6 +131,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     refetchOnWindowFocus: false, // Отключаем обновление при фокусе окна
     retry: false, // Отключаем повторные попытки при ошибке
     retryOnMount: false, // Отключаем повторные попытки при монтировании
+    gcTime: 0, // Не храним результаты в кеше
+    // Тихо обрабатываем ошибки без вывода в консоль
+    meta: {
+      silentError: true 
+    }
   });
 
   // Обновление данных пользователя при изменении userData с защитой от ошибок
@@ -135,93 +145,89 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     
-    // Устанавливаем флаг обработки
-    processingUserDataRef.current = true;
-    
-    try {
-      // Защищенная проверка структуры ответа API
-      if (!userData) {
-        console.warn('[UserContext] Данные пользователя отсутствуют (userData is null/undefined)');
-        processingUserDataRef.current = false;
+    // Защищенная проверка структуры ответа API
+    if (!userData) {
+      console.warn('[UserContext] Данные пользователя отсутствуют (userData is null/undefined)');
+      return;
+    }
+
+    // Запрос обработки в следующем микротаске для предотвращения проблем с React 18
+    setTimeout(() => {
+      // Проверяем флаг еще раз, так как он мог измениться до запуска setTimeout
+      if (processingUserDataRef.current) {
         return;
       }
       
-      // Проверка успешности ответа
-      if (userData.success === true && userData.data) {
-        try {
-          const user = userData.data;
-          
-          // Проверка целостности данных пользователя перед установкой
-          if (typeof user !== 'object') {
-            console.error('[UserContext] Неверный формат данных пользователя:', user);
-            setError(new Error('Неверный формат данных пользователя'));
-            return;
-          }
-          
-          // Безопасная установка основных данных пользователя с проверкой типов
-          // ID - проверяем, что это число
-          const id = typeof user.id === 'number' ? user.id : 
-                    (typeof user.id === 'string' && !isNaN(parseInt(user.id))) ? parseInt(user.id) : null;
-          setUserId(id);
-          
-          // Username - проверяем, что это строка
-          const username = typeof user.username === 'string' ? user.username : 
-                         (user.username !== null && user.username !== undefined) ? String(user.username) : null;
-          setUsername(username);
-          
-          // Guest ID - проверяем, что это строка
-          const guestId = typeof user.guest_id === 'string' ? user.guest_id : 
-                        (user.guest_id !== null && user.guest_id !== undefined) ? String(user.guest_id) : null;
-          setGuestId(guestId);
-          
-          // Telegram ID - проверяем, что это число
-          const telegramId = typeof user.telegram_id === 'number' ? user.telegram_id : 
-                           (typeof user.telegram_id === 'string' && !isNaN(parseInt(user.telegram_id))) ? 
-                           parseInt(user.telegram_id) : null;
-          setTelegramId(telegramId);
-          
-          // Ref Code - проверяем, что это строка
-          const refCode = typeof user.ref_code === 'string' ? user.ref_code : 
-                        (user.ref_code !== null && user.ref_code !== undefined) ? String(user.ref_code) : null;
-          setRefCode(refCode);
-          
-          // Логируем обновленные данные с минимизацией ошибок
-          try {
-            console.log('[UserContext] Данные пользователя обновлены:', {
-              id: id,
-              username: username,
-              guest_id: guestId,
-              telegram_id: telegramId,
-              ref_code: refCode
-            });
-          } catch (logError) {
-            console.error('[UserContext] Ошибка при логировании данных пользователя:', logError);
-          }
-        } catch (dataError) {
-          console.error('[UserContext] Ошибка при обработке данных пользователя:', dataError);
-          setError(dataError instanceof Error ? dataError : new Error('Ошибка при обработке данных пользователя'));
-        }
-      } else if (userData.success === false) {
-        // Обрабатываем явную ошибку API
-        const errorMessage = userData.error || userData.message || 'Ошибка получения данных пользователя';
-        console.error('[UserContext] Ошибка получения данных пользователя:', errorMessage);
-        setError(new Error(errorMessage));
-      } else {
-        // Неизвестный формат ответа
-        console.warn('[UserContext] Неопределенный формат ответа API:', userData);
-      }
-    } catch (criticalError) {
-      // Обрабатываем критические ошибки в самом обработчике эффекта
-      console.error('[UserContext] Критическая ошибка при обновлении данных пользователя:', criticalError);
+      // Устанавливаем флаг обработки
+      processingUserDataRef.current = true;
+      
       try {
-        setError(criticalError instanceof Error ? criticalError : new Error('Критическая ошибка при обновлении данных пользователя'));
-      } catch (stateError) {
-        console.error('[UserContext] Ошибка при установке состояния ошибки:', stateError);
+        // Проверка успешности ответа
+        if (userData.success === true && userData.data) {
+          try {
+            const user = userData.data;
+            
+            // Проверка целостности данных пользователя перед установкой
+            if (typeof user !== 'object') {
+              console.error('[UserContext] Неверный формат данных пользователя:', user);
+              setError(new Error('Неверный формат данных пользователя'));
+              return;
+            }
+            
+            // Собираем все данные и обновляем состояние одним батчем
+            const updates = {
+              id: typeof user.id === 'number' ? user.id : 
+                  (typeof user.id === 'string' && !isNaN(parseInt(user.id))) ? parseInt(user.id) : null,
+              username: typeof user.username === 'string' ? user.username : 
+                       (user.username !== null && user.username !== undefined) ? String(user.username) : null,
+              guestId: typeof user.guest_id === 'string' ? user.guest_id : 
+                      (user.guest_id !== null && user.guest_id !== undefined) ? String(user.guest_id) : null,
+              telegramId: typeof user.telegram_id === 'number' ? user.telegram_id : 
+                         (typeof user.telegram_id === 'string' && !isNaN(parseInt(user.telegram_id))) ? 
+                         parseInt(user.telegram_id) : null,
+              refCode: typeof user.ref_code === 'string' ? user.ref_code : 
+                      (user.ref_code !== null && user.ref_code !== undefined) ? String(user.ref_code) : null
+            };
+            
+            // Обновляем все состояния в одном микротаске
+            setUserId(updates.id);
+            setUsername(updates.username);
+            setGuestId(updates.guestId);
+            setTelegramId(updates.telegramId);
+            setRefCode(updates.refCode);
+            
+            // Логируем обновленные данные с минимизацией ошибок
+            try {
+              console.log('[UserContext] Данные пользователя обновлены:', updates);
+            } catch (logError) {
+              console.error('[UserContext] Ошибка при логировании данных пользователя:', logError);
+            }
+          } catch (dataError) {
+            console.error('[UserContext] Ошибка при обработке данных пользователя:', dataError);
+            setError(dataError instanceof Error ? dataError : new Error('Ошибка при обработке данных пользователя'));
+          }
+        } else if (userData.success === false) {
+          // Обрабатываем явную ошибку API
+          const errorMessage = userData.error || userData.message || 'Ошибка получения данных пользователя';
+          console.error('[UserContext] Ошибка получения данных пользователя:', errorMessage);
+          setError(new Error(errorMessage));
+        } else {
+          // Неизвестный формат ответа
+          console.warn('[UserContext] Неопределенный формат ответа API:', userData);
+        }
+      } catch (criticalError) {
+        // Обрабатываем критические ошибки в самом обработчике эффекта
+        console.error('[UserContext] Критическая ошибка при обновлении данных пользователя:', criticalError);
+        try {
+          setError(criticalError instanceof Error ? criticalError : new Error('Критическая ошибка при обновлении данных пользователя'));
+        } catch (stateError) {
+          console.error('[UserContext] Ошибка при установке состояния ошибки:', stateError);
+        }
+      } finally {
+        // Сбрасываем флаг обработки вне зависимости от результата
+        processingUserDataRef.current = false;
       }
-    } finally {
-      // Сбрасываем флаг обработки вне зависимости от результата
-      processingUserDataRef.current = false;
-    }
+    }, 0);
   }, [userData]);
 
   // Обновление баланса при изменении balanceData с расширенной защитой от ошибок
@@ -231,138 +237,145 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     
-    // Устанавливаем флаг обработки
-    processingBalanceRef.current = true;
+    // Защищенная проверка структуры ответа API
+    if (!balanceData) {
+      console.warn('[UserContext] Данные баланса отсутствуют (balanceData is null/undefined)');
+      return;
+    }
     
-    try {
-      // Защищенная проверка структуры ответа API
-      if (!balanceData) {
-        console.warn('[UserContext] Данные баланса отсутствуют (balanceData is null/undefined)');
-        processingBalanceRef.current = false;
+    // Запрос обработки в следующем микротаске для предотвращения проблем с React 18
+    setTimeout(() => {
+      // Проверяем флаг еще раз, так как он мог измениться до запуска setTimeout
+      if (processingBalanceRef.current) {
         return;
       }
       
-      // Проверка успешности ответа
-      if (balanceData.success === true && balanceData.data) {
-        try {
-          const data = balanceData.data;
-          
-          // Проверка целостности данных баланса перед обработкой
-          if (typeof data !== 'object') {
-            console.error('[UserContext] Неверный формат данных баланса:', data);
-            setError(new Error('Неверный формат данных баланса'));
-            return;
-          }
-          
-          // Безопасное преобразование значений баланса с проверкой типов и защитой от NaN
-          const safeParseFloat = (value: any, defaultValue: number = 0): number => {
-            try {
-              // Если значение уже число, возвращаем его
-              if (typeof value === 'number' && !isNaN(value)) {
-                return value;
-              }
-              
-              // Если значение строка, преобразуем в число
-              if (typeof value === 'string') {
-                const parsed = parseFloat(value);
-                return !isNaN(parsed) ? parsed : defaultValue;
-              }
-              
-              // Для других типов возвращаем значение по умолчанию
-              return defaultValue;
-            } catch (parseError) {
-              console.warn('[UserContext] Ошибка при преобразовании значения баланса:', parseError);
-              return defaultValue;
-            }
-          };
-          
-          // Безопасное преобразование boolean значений
-          const safeBooleanConvert = (value: any): boolean => {
-            try {
-              if (typeof value === 'boolean') {
-                return value;
-              }
-              
-              if (typeof value === 'number') {
-                return value !== 0;
-              }
-              
-              if (typeof value === 'string') {
-                return value.toLowerCase() === 'true' || value === '1';
-              }
-              
-              return !!value;
-            } catch (boolError) {
-              console.warn('[UserContext] Ошибка при преобразовании boolean значения:', boolError);
-              return false;
-            }
-          };
-          
-          // Создаем объект баланса с безопасным доступом к свойствам
-          const balanceInfo: Balance = {
-            uniBalance: safeParseFloat(data.balance_uni),
-            tonBalance: safeParseFloat(data.balance_ton),
-            uniFarmingActive: safeBooleanConvert(data.uni_farming_active),
-            uniDepositAmount: safeParseFloat(data.uni_deposit_amount),
-            uniFarmingBalance: safeParseFloat(data.uni_farming_balance)
-          };
-          
-          // Проверка на отрицательные значения (защита от некорректных данных)
-          const sanitizedBalance: Balance = {
-            uniBalance: Math.max(0, balanceInfo.uniBalance),
-            tonBalance: Math.max(0, balanceInfo.tonBalance),
-            uniFarmingActive: balanceInfo.uniFarmingActive,
-            uniDepositAmount: Math.max(0, balanceInfo.uniDepositAmount),
-            uniFarmingBalance: Math.max(0, balanceInfo.uniFarmingBalance)
-          };
-          
-          // Обновляем состояние баланса
-          setBalance(sanitizedBalance);
-          
-          // Логируем обновленные данные с минимизацией ошибок
-          try {
-            console.log('[UserContext] Баланс обновлен:', sanitizedBalance);
-          } catch (logError) {
-            console.error('[UserContext] Ошибка при логировании данных баланса:', logError);
-          }
-        } catch (dataError) {
-          console.error('[UserContext] Ошибка при обработке данных баланса:', dataError);
-          
-          // В случае ошибки при обработке данных, сохраняем нулевые значения баланса
-          // для предотвращения отображения некорректных данных
-          try {
-            setBalance({
-              uniBalance: 0,
-              tonBalance: 0,
-              uniFarmingActive: false,
-              uniDepositAmount: 0,
-              uniFarmingBalance: 0
-            });
-          } catch {}
-          
-          setError(dataError instanceof Error ? dataError : new Error('Ошибка при обработке данных баланса'));
-        }
-      } else if (balanceData.success === false) {
-        // Обрабатываем явную ошибку API
-        const errorMessage = balanceData.error || balanceData.message || 'Ошибка получения баланса';
-        console.error('[UserContext] Ошибка получения баланса:', errorMessage);
-        setError(new Error(errorMessage));
-      } else {
-        // Неизвестный формат ответа
-        console.warn('[UserContext] Неопределенный формат ответа API для баланса:', balanceData);
-      }
-    } catch (criticalError) {
-      // Обрабатываем критические ошибки в самом обработчике эффекта
-      console.error('[UserContext] Критическая ошибка при обновлении баланса:', criticalError);
+      // Устанавливаем флаг обработки
+      processingBalanceRef.current = true;
+      
       try {
-        setError(criticalError instanceof Error ? criticalError : new Error('Критическая ошибка при обновлении баланса'));
-      } catch (stateError) {
-        console.error('[UserContext] Ошибка при установке состояния ошибки баланса:', stateError);
+        // Проверка успешности ответа
+        if (balanceData.success === true && balanceData.data) {
+          try {
+            const data = balanceData.data;
+            
+            // Проверка целостности данных баланса перед обработкой
+            if (typeof data !== 'object') {
+              console.error('[UserContext] Неверный формат данных баланса:', data);
+              setError(new Error('Неверный формат данных баланса'));
+              return;
+            }
+            
+            // Безопасное преобразование значений баланса с проверкой типов и защитой от NaN
+            const safeParseFloat = (value: any, defaultValue: number = 0): number => {
+              try {
+                // Если значение уже число, возвращаем его
+                if (typeof value === 'number' && !isNaN(value)) {
+                  return value;
+                }
+                
+                // Если значение строка, преобразуем в число
+                if (typeof value === 'string') {
+                  const parsed = parseFloat(value);
+                  return !isNaN(parsed) ? parsed : defaultValue;
+                }
+                
+                // Для других типов возвращаем значение по умолчанию
+                return defaultValue;
+              } catch (parseError) {
+                console.warn('[UserContext] Ошибка при преобразовании значения баланса:', parseError);
+                return defaultValue;
+              }
+            };
+            
+            // Безопасное преобразование boolean значений
+            const safeBooleanConvert = (value: any): boolean => {
+              try {
+                if (typeof value === 'boolean') {
+                  return value;
+                }
+                
+                if (typeof value === 'number') {
+                  return value !== 0;
+                }
+                
+                if (typeof value === 'string') {
+                  return value.toLowerCase() === 'true' || value === '1';
+                }
+                
+                return !!value;
+              } catch (boolError) {
+                console.warn('[UserContext] Ошибка при преобразовании boolean значения:', boolError);
+                return false;
+              }
+            };
+            
+            // Создаем объект баланса с безопасным доступом к свойствам
+            const balanceInfo: Balance = {
+              uniBalance: safeParseFloat(data.balance_uni),
+              tonBalance: safeParseFloat(data.balance_ton),
+              uniFarmingActive: safeBooleanConvert(data.uni_farming_active),
+              uniDepositAmount: safeParseFloat(data.uni_deposit_amount),
+              uniFarmingBalance: safeParseFloat(data.uni_farming_balance)
+            };
+            
+            // Проверка на отрицательные значения (защита от некорректных данных)
+            const sanitizedBalance: Balance = {
+              uniBalance: Math.max(0, balanceInfo.uniBalance),
+              tonBalance: Math.max(0, balanceInfo.tonBalance),
+              uniFarmingActive: balanceInfo.uniFarmingActive,
+              uniDepositAmount: Math.max(0, balanceInfo.uniDepositAmount),
+              uniFarmingBalance: Math.max(0, balanceInfo.uniFarmingBalance)
+            };
+            
+            // Обновляем состояние баланса
+            setBalance(sanitizedBalance);
+            
+            // Логируем обновленные данные с минимизацией ошибок
+            try {
+              console.log('[UserContext] Баланс обновлен:', sanitizedBalance);
+            } catch (logError) {
+              console.error('[UserContext] Ошибка при логировании данных баланса:', logError);
+            }
+          } catch (dataError) {
+            console.error('[UserContext] Ошибка при обработке данных баланса:', dataError);
+            
+            // В случае ошибки при обработке данных, сохраняем нулевые значения баланса
+            // для предотвращения отображения некорректных данных
+            try {
+              setBalance({
+                uniBalance: 0,
+                tonBalance: 0,
+                uniFarmingActive: false,
+                uniDepositAmount: 0,
+                uniFarmingBalance: 0
+              });
+            } catch {}
+            
+            setError(dataError instanceof Error ? dataError : new Error('Ошибка при обработке данных баланса'));
+          }
+        } else if (balanceData.success === false) {
+          // Обрабатываем явную ошибку API
+          const errorMessage = balanceData.error || balanceData.message || 'Ошибка получения баланса';
+          console.error('[UserContext] Ошибка получения баланса:', errorMessage);
+          setError(new Error(errorMessage));
+        } else {
+          // Неизвестный формат ответа
+          console.warn('[UserContext] Неопределенный формат ответа API для баланса:', balanceData);
+        }
+      } catch (criticalError) {
+        // Обрабатываем критические ошибки в самом обработчике эффекта
+        console.error('[UserContext] Критическая ошибка при обновлении баланса:', criticalError);
+        try {
+          setError(criticalError instanceof Error ? criticalError : new Error('Критическая ошибка при обновлении баланса'));
+        } catch (stateError) {
+          console.error('[UserContext] Ошибка при установке состояния ошибки баланса:', stateError);
+        }
+      } finally {
+        // Сбрасываем флаг обработки вне зависимости от результата
+        processingBalanceRef.current = false;
       }
-    } finally {
-      // Сбрасываем флаг обработки вне зависимости от результата
-      processingBalanceRef.current = false;
-    }
+    }, 0);
   }, [balanceData]);
 
   // Обновление состояния подключения кошелька
