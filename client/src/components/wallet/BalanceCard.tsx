@@ -43,15 +43,24 @@ const BalanceCard: React.FC = () => {
   const [prevUniBalance, setPrevUniBalance] = useState<number>(0);
   const [prevTonBalance, setPrevTonBalance] = useState<number>(0);
   
+  // Храним состояние для отслеживания показанных уведомлений, чтобы не показывать слишком часто
+  const [wsErrorNotificationShown, setWsErrorNotificationShown] = useState<boolean>(false);
+  const [wsConnectedOnce, setWsConnectedOnce] = useState<boolean>(false);
+  
   // Используем WebSocket хук для обновления в реальном времени
   const { isConnected, subscribeToUserUpdates } = useWebSocket({
     onOpen: () => {
       setWsStatus('Соединение установлено');
-      // Показываем уведомление о подключении
-      showNotification('success', {
-        message: 'WebSocket соединение установлено',
-        duration: 3000
-      });
+      setWsConnectedOnce(true);
+      setWsErrorNotificationShown(false); // Сбрасываем флаг показа ошибок при успешном подключении
+      
+      // Показываем уведомление о подключении только один раз
+      if (!wsConnectedOnce) {
+        showNotification('success', {
+          message: 'WebSocket соединение установлено',
+          duration: 3000
+        });
+      }
       
       // Подписываемся на обновления для пользователя, если userId доступен
       if (userId) {
@@ -80,22 +89,31 @@ const BalanceCard: React.FC = () => {
     },
     onClose: () => {
       setWsStatus('Соединение закрыто');
-      // Показываем уведомление о разрыве соединения
-      showNotification('error', {
-        message: 'WebSocket соединение закрыто',
-        duration: 3000
-      });
+      
+      // Не показываем уведомления о закрытии соединения, если оно уже показано
+      // или если соединение никогда не устанавливалось (чтобы избежать спама)
+      if (!wsErrorNotificationShown && wsConnectedOnce) {
+        setWsErrorNotificationShown(true);
+        showNotification('error', {
+          message: 'WebSocket соединение закрыто',
+          duration: 3000
+        });
+      }
     },
     onError: () => {
       setWsStatus('Ошибка соединения');
-      // Показываем уведомление об ошибке
-      showNotification('error', {
-        message: 'Ошибка WebSocket соединения',
-        duration: 3000
-      });
+      
+      // Показываем уведомление об ошибке только один раз
+      if (!wsErrorNotificationShown) {
+        setWsErrorNotificationShown(true);
+        showNotification('error', {
+          message: 'Ошибка WebSocket соединения',
+          duration: 3000
+        });
+      }
     },
     autoReconnect: true,
-    reconnectAttempts: 5
+    reconnectAttempts: 3 // Уменьшаем количество попыток переподключения
   });
   
   // Функция для обновления баланса UNI с анимацией
@@ -314,6 +332,14 @@ const BalanceCard: React.FC = () => {
             {uniDepositAmount > 0 && (
               <div className="text-gray-400">
                 Депозит в фарминге: {formatUniNumber(uniDepositAmount)} UNI
+              </div>
+            )}
+            
+            {/* Инструкция по обновлению при отсутствии WebSocket */}
+            {!isConnected && wsErrorNotificationShown && (
+              <div className="mt-2 bg-blue-500/10 text-blue-100 rounded-md px-2 py-1.5 text-xs">
+                <i className="fas fa-info-circle mr-1 text-blue-300"></i>
+                Автообновление недоступно. Используйте кнопку <i className="fas fa-sync-alt mx-1"></i> для ручного обновления баланса.
               </div>
             )}
           </div>
