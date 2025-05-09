@@ -44,6 +44,14 @@ export function useMissionsSafe() {
         console.log('useMissionsSafe: загрузка миссий');
         const missionsResponse = await correctApiRequest('/api/missions/active', 'GET');
         
+        // Детальный лог структуры ответа для отладки
+        console.log('DEBUG - missionsResponse:', JSON.stringify(missionsResponse));
+        console.log('DEBUG - typeof missionsResponse.data:', typeof missionsResponse.data);
+        console.log('DEBUG - isArray(missionsResponse.data):', Array.isArray(missionsResponse.data));
+        if (missionsResponse && missionsResponse.data) {
+          console.log('DEBUG - missionsResponse.data[0]:', JSON.stringify(missionsResponse.data[0]));
+        }
+        
         if (!isMounted) return;
         
         if (missionsResponse && missionsResponse.success && Array.isArray(missionsResponse.data)) {
@@ -58,6 +66,16 @@ export function useMissionsSafe() {
         // 2. Загружаем миссии пользователя
         console.log('useMissionsSafe: загрузка выполненных миссий');
         const userMissionsResponse = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}`, 'GET');
+        
+        // Детальный лог структуры ответа для отладки
+        console.log('DEBUG - userMissionsResponse:', JSON.stringify(userMissionsResponse));
+        console.log('DEBUG - typeof userMissionsResponse.data:', typeof userMissionsResponse.data);
+        console.log('DEBUG - isArray(userMissionsResponse.data):', Array.isArray(userMissionsResponse.data));
+        if (userMissionsResponse && userMissionsResponse.data && userMissionsResponse.data.length > 0) {
+          console.log('DEBUG - userMissionsResponse.data[0]:', JSON.stringify(userMissionsResponse.data[0]));
+          // Попытка идентифицировать возможную проблему с map
+          console.log('DEBUG - mission_id присутствует:', 'mission_id' in userMissionsResponse.data[0]);
+        }
         
         if (!isMounted) return;
         
