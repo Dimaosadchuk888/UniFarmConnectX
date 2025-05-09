@@ -26,6 +26,15 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Безопасная обработка миссий
+  const safeProcessMissions = (data: any): UserMission[] => {
+    if (!data || !Array.isArray(data)) {
+      console.warn('Получены некорректные данные миссий:', data);
+      return [];
+    }
+    return data;
+  };
+
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -55,8 +64,9 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
 
         if (!isMounted) return;
 
-        if (userMissionsResponse?.success && Array.isArray(userMissionsResponse.data)) {
-          setUserMissions(userMissionsResponse.data);
+        if (userMissionsResponse?.success) {
+          const safeMissions = safeProcessMissions(userMissionsResponse.data);
+          setUserMissions(safeMissions);
 
           const completed: Record<number, boolean> = {};
           userMissionsResponse.data.forEach(mission => {
