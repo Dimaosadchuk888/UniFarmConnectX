@@ -5,7 +5,29 @@
 
 import apiConfig from "@/config/apiConfig";
 
-// Используем глобальное определение типов из types/global.d.ts
+// Типы для работы с Telegram WebApp API
+declare global {
+  interface Window {
+    // Базовая поддержка хранилища
+    localStorage?: Storage;
+    
+    // Поддержка Telegram WebApp API
+    Telegram?: {
+      WebApp?: {
+        ready: () => void;
+        expand: () => void;
+        close: () => void;
+        initData: string;
+        initDataUnsafe: {
+          user?: {
+            id: number;
+            first_name: string;
+            last_name?: string;
+            username?: string;
+          };
+          start_param?: string;
+        };
+        version: string;
         platform: string;
         MainButton?: {
           show: () => void;
@@ -289,148 +311,92 @@ export function checkTelegramWebApp(): Record<string, any> {
  * @param guestId Уникальный идентификатор гостя
  * @param referrerCode Реферальный код, если есть
  */
-export async function registerUserWithTelegram(guestId: string, referrerCode?: string): Promise<any> {
+export async function registerUserWithTelegram(
+  guestId: string,
+  referrerCode?: string
+): Promise<any> {
   try {
-    console.log(`[telegramService] Регистрация пользователя с guest_id: ${guestId}, referrerCode: ${referrerCode || 'none'}`);
+    console.log(`[telegramService] Регистрация пользователя с guest_id: ${guestId}, рефкод: ${referrerCode || 'отсутствует'}`);
     
-    // Добавляем базовые данные регистрации
-    const registrationData = {
-      guest_id: guestId,
-      ...(referrerCode ? { parent_ref_code: referrerCode } : {}),
-      // Добавляем флаг, указывающий на создание пользователя в режиме AirDrop
-      // Это предотвратит любые проверки telegram_id на сервере
-      airdrop_mode: true
+    // Подготавливаем данные для регистрации
+    const registerData: any = {
+      guest_id: guestId
     };
     
-    console.log('[telegramService] Данные регистрации:', registrationData);
+    // Добавляем реферальный код, если он предоставлен
+    if (referrerCode) {
+      registerData.ref_code = referrerCode;
+    }
     
-    // Формируем полный URL для запроса
-    const url = apiConfig.getFullUrl('/api/airdrop/register');
-    console.log('[telegramService] Отправка запроса на регистрацию по URL:', url);
-    
-    // Отправляем запрос на регистрацию через AirDrop API
-    const response = await fetch(url, {
+    // Отправляем запрос на регистрацию
+    const response = await fetch(`${apiConfig.baseUrl}/api/register/guest`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...getTelegramAuthHeaders() // Добавляем заголовки авторизации
       },
-      body: JSON.stringify(registrationData)
+      body: JSON.stringify(registerData)
     });
     
-    // Обработка ответа
     if (!response.ok) {
-      throw new Error(`Ошибка регистрации: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Ошибка регистрации: ${response.status} ${response.statusText} - ${errorText}`);
     }
     
-    const result = await response.json();
+    // Получаем данные о регистрации
+    const registrationResult = await response.json();
     
-    console.log('[telegramService] Результат регистрации:', result);
+    console.log(`[telegramService] Пользователь успешно зарегистрирован:`, registrationResult);
     
-    // Проверяем наличие реферального кода в ответе
-    if (result.success && result.data && result.data.ref_code) {
-      console.log('[telegramService] Пользователь получил реферальный код:', result.data.ref_code);
-    } else if (result.success && result.data) {
-      console.warn('[telegramService] Регистрация успешна, но ref_code отсутствует в ответе');
-    }
-    
-    return result;
+    // Возвращаем результат регистрации
+    return registrationResult;
   } catch (error) {
-    console.error('[telegramService] Ошибка регистрации:', error);
-    throw error;
+    console.error(`[telegramService] Ошибка при регистрации пользователя:`, error);
+    
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
   }
 }
 
 /**
- * Логирует запуск Mini App и передает базовые метрики
- * @returns {Promise<boolean>} Результат логирования
+ * Логирует запуск Mini App в аналитику
+ * @returns {Promise<boolean>} Промис с результатом запроса
  */
 export async function logAppLaunch(): Promise<boolean> {
   try {
-    // Проверяем наличие Telegram WebApp API
-    const isTelegramAvailable = typeof window !== 'undefined' && !!window.Telegram;
-    const isWebAppAvailable = isTelegramAvailable && !!window.Telegram?.WebApp;
+    // Собираем диагностическую информацию о среде
+    const environment = diagnosticTelegramWebApp();
     
-    // Создаем объект с метаданными запуска
-    const launchData: Record<string, any> = {
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'unknown',
-      referrer: document.referrer || 'direct',
-      userAgent: navigator.userAgent,
-      isInIframe: window !== window.parent,
-      telegramAvailable: isTelegramAvailable,
-      webAppAvailable: isWebAppAvailable,
-      hasInitData: isWebAppAvailable && !!window.Telegram?.WebApp?.initData,
-      platform: isWebAppAvailable ? window.Telegram?.WebApp?.platform || 'unknown' : 'unknown',
-      webAppVersion: isWebAppAvailable ? window.Telegram?.WebApp?.version || 'unknown' : 'unknown'
+    // Упрощенное тело запроса с основной информацией
+    const logData = {
+      client_timestamp: new Date().toISOString(),
+      is_telegram_app: environment.webAppExists,
+      platform: environment.telegramExists && environment.webAppExists ? 
+                window.Telegram?.WebApp?.platform || 'unknown' : 
+                'browser',
+      user_agent: navigator.userAgent
     };
     
-    // Получаем guest_id если он есть
-    const guestId = localStorage.getItem(GUEST_ID_KEY);
-    if (guestId) {
-      launchData.guestId = guestId;
+    // Отправляем логгирующий запрос в аналитику
+    const response = await fetch(`${apiConfig.baseUrl}/api/analytics/app-launch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getTelegramAuthHeaders() // Добавляем заголовки авторизации
+      },
+      body: JSON.stringify(logData)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Ошибка логирования запуска: ${response.status} ${response.statusText}`);
     }
     
-    console.log('[telegramService] Logging Mini App launch...');
-    
-    // Отправляем запрос на логирование запуска
-    try {
-      // Формируем полный URL для запроса
-      const url = apiConfig.getFullUrl('/api/analytics/app-launch');
-      console.log('[telegramService] Отправка запроса на логирование по URL:', url);
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(launchData)
-      });
-      
-      if (response.ok) {
-        console.log('[telegramService] App launch logged successfully');
-        return true;
-      } else {
-        console.warn('[telegramService] Failed to log app launch:', response.status, response.statusText);
-        return false;
-      }
-    } catch (requestError) {
-      console.error('[telegramService] Error sending app launch log:', requestError);
-      return false;
-    }
+    console.log('[telegramService] App launch logged successfully');
+    return true;
   } catch (error) {
     console.error('[telegramService] Error logging app launch:', error);
     return false;
   }
-}
-
-/**
- * Получает ID пользователя из нескольких источников с приоритетами
- * (заглушка для совместимости)
- * @param defaultValue Значение по умолчанию, если ID не удалось получить
- * @returns ID пользователя или defaultValue
- */
-export function getTelegramId(defaultValue: number | null = null): number | null {
-  try {
-    // В режиме разработки возвращаем тестовый ID
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[telegramService] [DEV] Using default test user ID: 1');
-      return 1;
-    }
-    
-    console.warn('[telegramService] getTelegramId: функция устарела (Этап 10.4), возвращает defaultValue');
-    return defaultValue;
-  } catch (error) {
-    console.error('[telegramService] Error getting telegram id:', error);
-    return defaultValue;
-  }
-}
-
-/**
- * Возвращает отображаемое имя пользователя Telegram для приветствия
- * Этап 10.3: Используем заглушку вместо данных из Telegram WebApp
- * @returns {string} Отображаемое имя пользователя или 'Уважаемый пользователь'
- */
-export function getTelegramUserDisplayName(): string {
-  // Приветствие по умолчанию
-  return 'Уважаемый пользователь';
 }

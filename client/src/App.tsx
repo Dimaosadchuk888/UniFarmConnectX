@@ -39,7 +39,42 @@ import TelegramSetupGuide from "./pages/TelegramSetupGuide";
 import TelegramMiniApp from "./pages/TelegramMiniApp";
 import TelegramInitializer from "@/components/telegram/TelegramInitializer";
 import { DirectMissionsComponent } from "@/components/missions/DirectMissions"; // Импорт компонента прямого доступа к миссиям
-// Используем глобальное определение типов из types/global.d.ts
+
+// Дополнительные определения для глобальных объектов
+declare global {
+  interface Window {
+    process: any; // Используем any, чтобы избежать конфликта типов
+    TextEncoder: typeof TextEncoder;
+    Telegram?: {
+      WebApp?: {
+        ready: () => void;
+        expand: () => void;
+        close: () => void;
+        initData: string;
+        initDataUnsafe: {
+          user?: {
+            id: number;
+            first_name: string;
+            last_name?: string;
+            username?: string;
+          };
+          start_param?: string;
+        };
+        version: string;
+        platform: string;
+        colorScheme?: string;
+        MainButton?: any;
+        CloudStorage?: {
+          getItem: (key: string) => Promise<string | null>;
+          setItem: (key: string, value: string) => Promise<void>;
+          removeItem: (key: string) => Promise<void>;
+          getItems: (keys: string[]) => Promise<Record<string, string | null>>;
+          removeItems: (keys: string[]) => Promise<void>;
+        };
+      }
+    }
+  }
+}
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
