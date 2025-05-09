@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useReducer } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { correctApiRequest } from '@/lib/correctApiRequest';
@@ -73,36 +73,81 @@ const defaultUserData = {
 };
 
 /**
- * Провайдер контекста пользователя
+ * Провайдер контекста пользователя - переработанный для предотвращения циклов обновления
  */
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [tonConnectUI] = useTonConnectUI();
   
-  // Используем useRef для отслеживания состояния обновления
+  // Используем useReducer вместо множества useState для минимизации рендеров
+  const initialState = {
+    userId: null as number | null,
+    username: null as string | null,
+    guestId: null as string | null,
+    telegramId: null as number | null,
+    refCode: null as string | null,
+    balance: {
+      uniBalance: 0,
+      tonBalance: 0,
+      uniFarmingActive: false,
+      uniDepositAmount: 0,
+      uniFarmingBalance: 0
+    } as Balance,
+    error: null as Error | null,
+    isProcessing: false,
+    updatingUserData: false,
+    updatingBalance: false,
+    refreshInProgress: false,
+    refreshId: null as string | null,
+    walletConnected: false,
+    walletAddress: null as string | null
+  };
+
+  type UserAction = 
+    | { type: 'SET_USER_DATA', payload: { id?: number | null, username?: string | null, guestId?: string | null, telegramId?: number | null, refCode?: string | null } }
+    | { type: 'SET_BALANCE', payload: Balance }
+    | { type: 'SET_ERROR', payload: Error | null }
+    | { type: 'SET_PROCESSING', payload: { field: 'updatingUserData' | 'updatingBalance' | 'refreshInProgress', value: boolean } }
+    | { type: 'SET_REFRESH_ID', payload: string | null }
+    | { type: 'SET_WALLET', payload: { connected: boolean, address: string | null } };
+
+  function userReducer(state: typeof initialState, action: UserAction): typeof initialState {
+    switch (action.type) {
+      case 'SET_USER_DATA':
+        return { 
+          ...state, 
+          userId: action.payload.id ?? state.userId,
+          username: action.payload.username ?? state.username,
+          guestId: action.payload.guestId ?? state.guestId,
+          telegramId: action.payload.telegramId ?? state.telegramId,
+          refCode: action.payload.refCode ?? state.refCode
+        };
+      case 'SET_BALANCE':
+        return { ...state, balance: action.payload };
+      case 'SET_ERROR':
+        return { ...state, error: action.payload };
+      case 'SET_PROCESSING':
+        return { ...state, [action.payload.field]: action.payload.value };
+      case 'SET_REFRESH_ID':
+        return { ...state, refreshId: action.payload };
+      case 'SET_WALLET':
+        return { 
+          ...state,
+          walletConnected: action.payload.connected,
+          walletAddress: action.payload.address
+        };
+      default:
+        return state;
+    }
+  }
+
+  const [state, dispatch] = useReducer(userReducer, initialState);
+  
+  // Refs для отслеживания состояний и предотвращения циклов
   const processingUserDataRef = useRef<boolean>(false);
   const processingBalanceRef = useRef<boolean>(false);
   const refreshInProgressRef = useRef<boolean>(false);
   const refreshIdRef = useRef<string | null>(null);
-  
-  // Состояние пользовательских данных
-  const [userId, setUserId] = useState<number | null>(null);
-  const [username, setUsername] = useState<string | null>(null);
-  const [guestId, setGuestId] = useState<string | null>(null);
-  const [telegramId, setTelegramId] = useState<number | null>(null);
-  const [refCode, setRefCode] = useState<string | null>(null);
-  
-  // Состояние баланса
-  const [balance, setBalance] = useState<Balance>({
-    uniBalance: 0,
-    tonBalance: 0,
-    uniFarmingActive: false,
-    uniDepositAmount: 0,
-    uniFarmingBalance: 0
-  });
-  
-  // Состояние ошибки
-  const [error, setError] = useState<Error | null>(null);
   
   // Запрос данных пользователя - отключен для устранения бесконечных циклов обновления
   const userData = { success: false, data: null } as ApiResponse;
@@ -150,7 +195,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             // Проверка целостности данных пользователя перед установкой
             if (typeof user !== 'object') {
               console.error('[UserContext] Неверный формат данных пользователя:', user);
-              setError(new Error('Неверный формат данных пользователя'));
+              dispatch({ type: 'SET_ERROR', payload: new Error('Неверный формат данных пользователя') });
               return;
             }
             
@@ -169,12 +214,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                       (user.ref_code !== null && user.ref_code !== undefined) ? String(user.ref_code) : null
             };
             
-            // Обновляем все состояния в одном микротаске
-            setUserId(updates.id);
-            setUsername(updates.username);
-            setGuestId(updates.guestId);
-            setTelegramId(updates.telegramId);
-            setRefCode(updates.refCode);
+            // Обновляем все состояния в одном батче через dispatch
+            dispatch({ 
+              type: 'SET_USER_DATA', 
+              payload: {
+                id: updates.id,
+                username: updates.username,
+                guestId: updates.guestId,
+                telegramId: updates.telegramId,
+                refCode: updates.refCode
+              }
+            });
             
             // Логируем обновленные данные с минимизацией ошибок
             try {
