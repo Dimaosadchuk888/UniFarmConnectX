@@ -168,12 +168,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Специальный маршрут для проверки здоровья системы Replit Deployments
   // Этот маршрут необходим для успешной проверки работоспособности при деплое
   // ВАЖНО: Размещаем этот маршрут ПЕРЕД другими маршрутами для корректного обнаружения Replit
-  app.get("/", (req, res) => {
+  app.get("/api/health", (req, res) => {
     // Отдаем JSON для health check при деплое
     res.setHeader('Content-Type', 'application/json');
-    console.log('[Health Check] Запрос health check на корневой маршрут: /', 
+    console.log('[Health Check] Запрос health check: /api/health', 
       { userAgent: req.headers['user-agent'], ip: req.ip });
     return res.status(200).send(JSON.stringify({ status: "ok", message: "Health check passed" }));
+  });
+  
+  // Перенаправляем корневой маршрут на основное приложение
+  app.get("/", (req, res) => {
+    console.log('[Root Route] Запрос к корневому маршруту, отправляем index.html');
+    
+    // Определяем возможные пути к index.html в разных режимах работы
+    const possiblePaths = [
+      path.join(projectRoot, 'client', 'index.html'),         // клиентский исходник
+      path.join(projectRoot, 'client', 'public', 'index.html'), // публичная версия клиента
+      path.join(projectRoot, 'server', 'public', 'index.html'), // серверная публичная версия
+      path.join(projectRoot, 'client', 'dist', 'index.html'),   // режим разработки, если бы был сборка
+      path.join(projectRoot, 'dist', 'public', 'index.html'),   // режим production (после сборки)
+      path.join(projectRoot, 'dist', 'index.html'),            // альтернативный вариант
+    ];
+    
+    // Ищем существующий файл среди возможных путей
+    const existingPath = possiblePaths.find(p => fs.existsSync(p));
+    
+    if (existingPath) {
+      // Отправляем найденный index.html
+      console.log(`[Root Route] Используем файл: ${existingPath}`);
+      // Добавляем заголовки против кеширования
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+      res.sendFile(existingPath);
+    } else {
+      // Если файла нигде нет, отправляем ошибку
+      console.log(`[Root Route] Файл index.html не найден! Проверенные пути:`, possiblePaths);
+      res.status(500).send('App initialization error: index.html not found');
+    }
   });
 
   // Специальные маршруты для Telegram Mini App
@@ -191,9 +224,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Определяем возможные пути к index.html в разных режимах работы
       const possiblePaths = [
-        path.join(projectRoot, 'client', 'dist', 'index.html'), // режим разработки
-        path.join(projectRoot, 'dist', 'public', 'index.html'), // режим production (после сборки)
-        path.join(projectRoot, 'dist', 'index.html'),  // альтернативный вариант
+        path.join(projectRoot, 'client', 'index.html'),         // клиентский исходник
+        path.join(projectRoot, 'client', 'public', 'index.html'), // публичная версия клиента
+        path.join(projectRoot, 'server', 'public', 'index.html'), // серверная публичная версия
+        path.join(projectRoot, 'client', 'dist', 'index.html'),   // режим разработки, если бы был сборка
+        path.join(projectRoot, 'dist', 'public', 'index.html'),   // режим production (после сборки)
+        path.join(projectRoot, 'dist', 'index.html'),            // альтернативный вариант
       ];
       
       // Ищем существующий файл среди возможных путей
@@ -202,6 +238,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingPath) {
         // Отправляем найденный index.html
         console.log(`[Telegram Mini App] Используем файл: ${existingPath}`);
+        // Добавляем заголовки против кеширования
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
         res.sendFile(existingPath);
       } else {
         // Если файла нигде нет, отправляем перенаправление на корневой URL
