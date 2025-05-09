@@ -1,14 +1,14 @@
-// Импортируем полифиллы перед загрузкой React
+// Импортируем основные модули React
+import React, { createElement } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./index.css";
+
+// Импортируем полифиллы перед взаимодействием с API
 import installAllPolyfills from './lib/polyfills';
 
 // Устанавливаем полифиллы в самом начале для исправления проблем с Map и Array.prototype.map
 installAllPolyfills();
-
-// Импорты для React
-import { createRoot } from "react-dom/client";
-import { createElement } from "react";
-import App from "./App";
-import "./index.css";
 
 // Импортируем функции из telegramService
 import { 
@@ -66,4 +66,5 @@ if (process.env.NODE_ENV === 'development' || isTelegramEnvironment) {
 }
 
 // Рендеринг выбранного компонента
-createRoot(document.getElementById("root")!).render(createElement(ComponentToRender));
+const root = createRoot(document.getElementById("root")!);
+root.render(<ComponentToRender />);
