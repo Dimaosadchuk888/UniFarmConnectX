@@ -31,7 +31,7 @@ import Dashboard from "@/pages/Dashboard";
 import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
 import MissionsNavMenu from "@/pages/MissionsNavMenu"; // Специальная версия для меню
-import DirectMissions from "@/pages/DirectMissions"; // Специальная страница миссий без React Query
+// Используем только основной компонент миссий
 import Friends from "@/pages/Friends"; // Компонент страницы друзей и реферальной системы
 import Wallet from "@/pages/Wallet";
 import AdminPage from "./pages/AdminPage";
