@@ -83,13 +83,16 @@ export const MissionsList: React.FC = () => {
     queryFn: async () => {
       console.log('🚀 Запрос активных миссий');
       
-      // Используем стандартизированный метод для API запросов
-      console.log(`📤 GET запрос активных миссий с использованием correctApiRequest`);
-      
       try {
-        // correctApiRequest автоматически формирует URL и добавляет нужные заголовки
-        const data = await correctApiRequest('/api/missions/active', 'GET');
+        // Используем стандартизированный метод для API запросов с параметром nocache для предотвращения кэширования
+        console.log(`📤 GET запрос активных миссий с использованием correctApiRequest`);
+        
+        // Добавляем nocache параметр чтобы избежать кэширования запросов
+        const nocache = Date.now();
+        const data = await correctApiRequest(`/api/missions/active?nocache=${nocache}`, 'GET');
+        
         console.log(`📥 Ответ получен через correctApiRequest:`, data);
+        
         // Проверяем что у нас есть массив с данными
         if (data && data.success && Array.isArray(data.data)) {
           console.log(`✅ Получены активные миссии (${data.data.length} шт.)`);
@@ -99,11 +102,17 @@ export const MissionsList: React.FC = () => {
           // Если не получаем ожидаемый формат, возвращаем пустой массив
           return [];
         }
-      } catch (jsonError) {
-        console.error('⚠️ Ошибка разбора JSON:', jsonError);
+      } catch (error) {
+        console.error('⚠️ Ошибка при запросе миссий:', error);
+        // Не выбрасываем ошибку дальше, а возвращаем пустой массив
+        // Чтобы избежать проблем с рендерингом
         return [];
       }
-    }
+    },
+    // Отключаем повторные запросы при ошибке
+    retry: false,
+    // Отключаем кэширование 
+    staleTime: 0
   });
   
   // Загружаем выполненные миссии пользователя c явным указанием queryFn
@@ -112,13 +121,16 @@ export const MissionsList: React.FC = () => {
     queryFn: async () => {
       console.log('🚀 Запрос выполненных миссий пользователя ID:', userId);
       
-      // Используем стандартизированный метод для API запросов
-      console.log(`📤 GET запрос выполненных миссий с использованием correctApiRequest`);
-      
       try {
-        // Используем correctApiRequest с ID пользователя
-        const data = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}`, 'GET');
+        // Используем стандартизированный метод для API запросов с nocache
+        console.log(`📤 GET запрос выполненных миссий с использованием correctApiRequest`);
+        
+        // Добавляем nocache параметр чтобы избежать кэширования запросов
+        const nocache = Date.now();
+        const data = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}&nocache=${nocache}`, 'GET');
+        
         console.log(`📥 Ответ получен через correctApiRequest:`, data);
+        
         // Проверяем что у нас есть массив с данными
         if (data && data.success && Array.isArray(data.data)) {
           console.log(`✅ Получены выполненные миссии (${data.data.length} шт.)`);
@@ -128,11 +140,18 @@ export const MissionsList: React.FC = () => {
           // Если не получаем ожидаемый формат, возвращаем пустой массив
           return [];
         }
-      } catch (jsonError) {
-        console.error('⚠️ Ошибка разбора JSON:', jsonError);
+      } catch (error) {
+        console.error('⚠️ Ошибка при запросе выполненных миссий:', error);
+        // Возвращаем пустой массив вместо выбрасывания ошибки
         return [];
       }
-    }
+    },
+    // Отключаем повторные запросы при ошибке
+    retry: false,
+    // Отключаем кэширование
+    staleTime: 0,
+    // Включаем запрос только когда ID пользователя определен
+    enabled: !!userId
   });
   
   // Очистка интервала при размонтировании компонента
@@ -179,16 +198,21 @@ export const MissionsList: React.FC = () => {
     for (let i = 0; i < dbMissions.length; i++) {
       const dbMission = dbMissions[i];
       if (dbMission && typeof dbMission === 'object') {
-        const isCompleted = !!completedMissionsObj[dbMission.id];
+        const isCompleted = completedMissionsObj && dbMission.id 
+          ? !!completedMissionsObj[dbMission.id] 
+          : false;
         
-        mappedMissions.push({
-          id: dbMission.id,
-          type: dbMission.type || '',
-          title: dbMission.title || '',
-          description: dbMission.description || '',
-          rewardUni: parseFloat(dbMission.reward_uni) || 0, // Конвертируем строку в число
-          status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
-        });
+        // Добавляем миссию в массив только если все данные корректны
+        if (dbMission.id !== undefined) {
+          mappedMissions.push({
+            id: dbMission.id,
+            type: dbMission.type || '',
+            title: dbMission.title || '',
+            description: dbMission.description || '',
+            rewardUni: parseFloat(dbMission.reward_uni) || 0, // Конвертируем строку в число
+            status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
+          });
+        }
       }
     }
     
