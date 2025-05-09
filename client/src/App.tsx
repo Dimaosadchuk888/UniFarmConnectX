@@ -41,38 +41,12 @@ import TelegramInitializer from "@/components/telegram/TelegramInitializer";
 // Используем только стандартный компонент MissionsList
 
 // Дополнительные определения для глобальных объектов
+// Тип для Telegram определен в telegramService.ts
 declare global {
   interface Window {
     process: any; // Используем any, чтобы избежать конфликта типов
     TextEncoder: typeof TextEncoder;
-    Telegram?: {
-      WebApp?: {
-        ready: () => void;
-        expand: () => void;
-        close: () => void;
-        initData: string;
-        initDataUnsafe: {
-          user?: {
-            id: number;
-            first_name: string;
-            last_name?: string;
-            username?: string;
-          };
-          start_param?: string;
-        };
-        version: string;
-        platform: string;
-        colorScheme?: string;
-        MainButton?: any;
-        CloudStorage?: {
-          getItem: (key: string) => Promise<string | null>;
-          setItem: (key: string, value: string) => Promise<void>;
-          removeItem: (key: string) => Promise<void>;
-          getItems: (keys: string[]) => Promise<Record<string, string | null>>;
-          removeItems: (keys: string[]) => Promise<void>;
-        };
-      }
-    }
+    // Определение для Telegram перемещено в telegramService.ts
   }
 }
 
