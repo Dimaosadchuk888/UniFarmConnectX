@@ -264,7 +264,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
   
   // Обновление баланса
-  const refreshBalance = useCallback(async () => {
+  const refreshBalance = useCallback(async (forceRefresh: boolean = false) => {
     if (refreshInProgressRef.current || !state.userId) {
       return;
     }
@@ -273,44 +273,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: true } });
     
     try {
-      // Явно передаем userId в запрос
-      const response = await correctApiRequest(`/api/wallet/balance?user_id=${state.userId}`);
+      // Используем улучшенный сервис с поддержкой forceRefresh
+      console.log('[UserContext] Запрос баланса с forceRefresh:', forceRefresh);
+      const balance = await fetchBalance(state.userId, forceRefresh);
       
-      if (response.success && response.data) {
-        const data = response.data;
-        
-        // Безопасное получение значений
-        const safeParseFloat = (value: any, defaultValue = 0) => {
-          if (typeof value === 'number' && !isNaN(value)) return value;
-          if (typeof value === 'string') {
-            const parsed = parseFloat(value);
-            return !isNaN(parsed) ? parsed : defaultValue;
-          }
-          return defaultValue;
-        };
-        
-        const safeBooleanParse = (value: any) => {
-          if (typeof value === 'boolean') return value;
-          if (typeof value === 'number') return value !== 0;
-          if (typeof value === 'string') return value.toLowerCase() === 'true' || value === '1';
-          return Boolean(value);
-        };
-        
-        const newBalance: Balance = {
-          uniBalance: Math.max(0, safeParseFloat(data.balance_uni)),
-          tonBalance: Math.max(0, safeParseFloat(data.balance_ton)),
-          uniFarmingActive: safeBooleanParse(data.uni_farming_active),
-          uniDepositAmount: Math.max(0, safeParseFloat(data.uni_deposit_amount)),
-          uniFarmingBalance: Math.max(0, safeParseFloat(data.uni_farming_balance))
-        };
-        
-        dispatch({ type: 'SET_BALANCE', payload: newBalance });
-        dispatch({ type: 'SET_ERROR', payload: null });
-      } else {
-        const errorMsg = response.error || response.message || 'Ошибка получения баланса';
-        console.error('[UserContext] Ошибка получения баланса:', errorMsg);
-        dispatch({ type: 'SET_ERROR', payload: new Error(errorMsg) });
-      }
+      // Обновляем состояние баланса
+      dispatch({ type: 'SET_BALANCE', payload: balance });
+      dispatch({ type: 'SET_ERROR', payload: null });
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Ошибка получения баланса');
       console.error('[UserContext] Ошибка получения баланса:', error);

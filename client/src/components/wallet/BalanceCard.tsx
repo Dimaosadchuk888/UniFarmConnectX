@@ -216,7 +216,8 @@ const BalanceCard: React.FC = () => {
     try {
       // Обновляем с небольшой задержкой для предотвращения множественных вызовов
       setTimeout(() => {
-        refreshBalance();
+        // Принудительно обновляем баланс (forceRefresh = true)
+        refreshBalance(true);
         
         // Вычисляем уровень доходности после обновления баланса
         calculateRate();
@@ -269,7 +270,8 @@ const BalanceCard: React.FC = () => {
       
       // Затем с небольшой задержкой обновляем баланс
       setTimeout(() => {
-        refreshBalance();
+        // Принудительно обновляем баланс (forceRefresh = true)
+        refreshBalance(true);
         calculateRate();
         
         showNotification('success', {
