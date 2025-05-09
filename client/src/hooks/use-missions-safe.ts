@@ -19,145 +19,189 @@ export interface UserMission {
   completed_at: string;
 }
 
+// Доп. тип для безопасного управления
+interface MissionResult {
+  success: boolean;
+  reward?: number;
+  error?: string;
+}
+
 /**
- * Безопасный хук для работы с миссиями
- * Предотвращает ошибки с Map и map() через использование обычных объектов
+ * Полностью переписанный безопасный хук для работы с миссиями
+ * Предотвращает ошибки с Map и map() через использование обычных JS-объектов и простых массивов
  * @param forceRefresh - флаг принудительного обновления данных для решения проблем с кешированием
  */
 export function useMissionsSafe(forceRefresh: boolean = false) {
   const { userId } = useUser();
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [userMissions, setUserMissions] = useState<UserMission[]>([]);
+  
+  // Используем только массивы и обычные объекты
+  const [missions, setMissions] = useState<Array<Mission>>([]);
+  const [userMissions, setUserMissions] = useState<Array<UserMission>>([]);
+  
+  // Для быстрого поиска используем обычный JS объект
   const [completedMissionIds, setCompletedMissionIds] = useState<Record<number, boolean>>({});
-  const [loading, setLoading] = useState(true);
+  
+  // Состояние загрузки
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Загрузка данных при монтировании
+  
+  // Добавляем ключ для принудительного обновления компонента
   useEffect(() => {
-    console.log('useMissionsSafe: начинаем загрузку данных', forceRefresh ? 'с принудительным обновлением' : '');
+    console.log('[useMissionsSafe v2] Начинаем загрузку данных', forceRefresh ? '(принудительное обновление)' : '');
     let isMounted = true;
+    
+    // Устанавливаем начальные значения
     setLoading(true);
     setError(null);
-
-    async function loadData() {
+    
+    // Вспомогательная функция для загрузки данных
+    async function fetchData() {
       try {
-        // 1. Загружаем доступные миссии
-        console.log('useMissionsSafe: загрузка миссий');
-        // Добавляем случайный параметр для избежания кеширования при forceRefresh
-        const cacheParam = forceRefresh ? `?nocache=${Date.now()}` : '';
-        const missionsResponse = await correctApiRequest(`/api/missions/active${cacheParam}`, 'GET');
+        // Шаг 1: Загружаем активные миссии
+        console.log('[useMissionsSafe v2] Загрузка активных миссий');
+        let missionsUrl = '/api/missions/active';
         
-        // Детальный лог структуры ответа для отладки
-        console.log('DEBUG - missionsResponse:', JSON.stringify(missionsResponse));
-        console.log('DEBUG - typeof missionsResponse.data:', typeof missionsResponse.data);
-        console.log('DEBUG - isArray(missionsResponse.data):', Array.isArray(missionsResponse.data));
-        if (missionsResponse && missionsResponse.data) {
-          console.log('DEBUG - missionsResponse.data[0]:', JSON.stringify(missionsResponse.data[0]));
+        // Добавляем случайный параметр для обхода кеширования
+        if (forceRefresh) {
+          const noCache = Date.now();
+          missionsUrl += `?nocache=${noCache}`;
         }
         
+        // Выполняем запрос
+        const missionsResponse = await correctApiRequest(missionsUrl, 'GET');
+        
+        // Проверяем монтирование
         if (!isMounted) return;
         
+        // Проверяем и обрабатываем ответ
         if (missionsResponse && missionsResponse.success && Array.isArray(missionsResponse.data)) {
-          console.log(`useMissionsSafe: получено ${missionsResponse.data.length} миссий`);
-          setMissions(missionsResponse.data);
+          console.log(`[useMissionsSafe v2] Успешно получено ${missionsResponse.data.length} миссий`);
+          
+          // Безопасное копирование массива
+          const missionsArray: Array<Mission> = [];
+          for (let i = 0; i < missionsResponse.data.length; i++) {
+            missionsArray.push(missionsResponse.data[i]);
+          }
+          
+          setMissions(missionsArray);
         } else {
-          console.error('useMissionsSafe: ошибка загрузки миссий', missionsResponse);
-          setError('Не удалось загрузить миссии');
+          console.error('[useMissionsSafe v2] Ошибка формата данных миссий', missionsResponse);
+          setError('Не удалось загрузить список миссий');
           setMissions([]);
         }
-
-        // 2. Загружаем миссии пользователя
-        console.log('useMissionsSafe: загрузка выполненных миссий');
-        // Аналогично добавляем параметр для избежания кеширования
-        const userCacheParam = forceRefresh ? `&nocache=${Date.now()}` : '';
-        const userMissionsResponse = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}${userCacheParam}`, 'GET');
         
-        // Детальный лог структуры ответа для отладки
-        console.log('DEBUG - userMissionsResponse:', JSON.stringify(userMissionsResponse));
-        console.log('DEBUG - typeof userMissionsResponse.data:', typeof userMissionsResponse.data);
-        console.log('DEBUG - isArray(userMissionsResponse.data):', Array.isArray(userMissionsResponse.data));
-        if (userMissionsResponse && userMissionsResponse.data && userMissionsResponse.data.length > 0) {
-          console.log('DEBUG - userMissionsResponse.data[0]:', JSON.stringify(userMissionsResponse.data[0]));
-          // Попытка идентифицировать возможную проблему с map
-          console.log('DEBUG - mission_id присутствует:', 'mission_id' in userMissionsResponse.data[0]);
+        // Шаг 2: Загружаем выполненные миссии пользователя
+        console.log('[useMissionsSafe v2] Загрузка выполненных миссий');
+        let userMissionsUrl = `/api/user_missions?user_id=${userId || 1}`;
+        
+        // Добавляем параметр для обхода кеширования
+        if (forceRefresh) {
+          const noCache = Date.now();
+          userMissionsUrl += `&nocache=${noCache}`;
         }
         
+        // Выполняем запрос
+        const userMissionsResponse = await correctApiRequest(userMissionsUrl, 'GET');
+        
+        // Проверяем монтирование
         if (!isMounted) return;
         
+        // Проверяем и обрабатываем ответ
         if (userMissionsResponse && userMissionsResponse.success && Array.isArray(userMissionsResponse.data)) {
-          console.log(`useMissionsSafe: получено ${userMissionsResponse.data.length} выполненных миссий`);
+          console.log(`[useMissionsSafe v2] Успешно получено ${userMissionsResponse.data.length} выполненных миссий`);
           
-          // Сохраняем массив
-          setUserMissions(userMissionsResponse.data);
-          
-          // Создаем объект для быстрой проверки ID
-          const completedMap: Record<number, boolean> = {};
-          
-          // Безопасная итерация по массиву
+          // Безопасное копирование массива
+          const userMissionsArray: Array<UserMission> = [];
           for (let i = 0; i < userMissionsResponse.data.length; i++) {
-            const mission = userMissionsResponse.data[i];
+            userMissionsArray.push(userMissionsResponse.data[i]);
+          }
+          
+          setUserMissions(userMissionsArray);
+          
+          // Создаем объект для быстрого поиска выполненных миссий
+          const completed: Record<number, boolean> = {};
+          
+          // Простая итерация по массиву
+          for (let i = 0; i < userMissionsArray.length; i++) {
+            const mission = userMissionsArray[i];
             if (mission && typeof mission === 'object' && 'mission_id' in mission) {
-              completedMap[mission.mission_id] = true;
+              completed[mission.mission_id] = true;
             }
           }
           
-          setCompletedMissionIds(completedMap);
+          setCompletedMissionIds(completed);
         } else {
-          console.error('useMissionsSafe: ошибка загрузки выполненных миссий', userMissionsResponse);
+          console.error('[useMissionsSafe v2] Ошибка формата данных выполненных миссий', userMissionsResponse);
           setUserMissions([]);
           setCompletedMissionIds({});
         }
       } catch (err) {
+        // Обрабатываем ошибки только если компонент все еще смонтирован
         if (isMounted) {
-          console.error('useMissionsSafe: ошибка загрузки данных', err);
-          setError('Произошла ошибка при загрузке заданий');
+          console.error('[useMissionsSafe v2] Ошибка при загрузке данных:', err);
+          setError('Произошла ошибка при загрузке заданий. Пожалуйста, попробуйте позже.');
         }
       } finally {
+        // Завершаем загрузку только если компонент все еще смонтирован
         if (isMounted) {
           setLoading(false);
         }
       }
     }
-
-    loadData();
-
+    
+    // Запускаем загрузку данных
+    fetchData();
+    
+    // Функция очистки при размонтировании
     return () => {
+      console.log('[useMissionsSafe v2] Компонент размонтирован');
       isMounted = false;
     };
   }, [userId, forceRefresh]);
   
-  // Выполнение миссии
-  const completeMission = async (missionId: number) => {
+  // Функция для выполнения миссии
+  const completeMission = async (missionId: number): Promise<MissionResult> => {
+    console.log(`[useMissionsSafe v2] Выполнение миссии ${missionId}`);
+    
     try {
+      // Отправляем запрос на выполнение миссии
       const result = await correctApiRequest('/api/missions/complete', 'POST', {
         user_id: userId || 1,
         mission_id: missionId
       });
       
+      // Проверяем результат
       if (result && result.success) {
-        // Обновляем локальное состояние
-        setCompletedMissionIds(prev => ({
-          ...prev,
-          [missionId]: true
-        }));
+        console.log(`[useMissionsSafe v2] Миссия ${missionId} успешно выполнена`);
+        
+        // Обновляем локальное состояние: добавляем ID в список выполненных
+        const newCompletedMissionIds = { ...completedMissionIds };
+        newCompletedMissionIds[missionId] = true;
+        setCompletedMissionIds(newCompletedMissionIds);
         
         // Добавляем новую запись в список выполненных миссий
         if (result.data && result.data.userMission) {
-          setUserMissions(prev => [...prev, result.data.userMission]);
+          const newUserMissions = [...userMissions];
+          newUserMissions.push(result.data.userMission);
+          setUserMissions(newUserMissions);
         }
         
+        // Возвращаем успешный результат
         return { 
           success: true, 
           reward: result.data?.reward || 0
         };
       } else {
+        // Возвращаем информацию об ошибке
+        console.error(`[useMissionsSafe v2] Ошибка выполнения миссии ${missionId}:`, result?.message);
         return { 
           success: false, 
           error: result?.message || 'Не удалось выполнить миссию'
         };
       }
     } catch (err) {
-      console.error('useMissionsSafe: ошибка выполнения миссии', err);
+      // Обрабатываем ошибки запроса
+      console.error(`[useMissionsSafe v2] Исключение при выполнении миссии ${missionId}:`, err);
       return { 
         success: false, 
         error: 'Произошла ошибка при выполнении миссии'
@@ -165,13 +209,24 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
     }
   };
   
+  // Функция проверки выполнения миссии по ID
+  const isCompleted = (missionId: number): boolean => {
+    return !!completedMissionIds[missionId];
+  };
+  
+  // Возвращаем данные и функции
   return {
+    // Данные
     missions,
     userMissions,
     completedMissionIds,
-    isCompleted: (missionId: number) => !!completedMissionIds[missionId],
+    
+    // Состояние
     loading,
     error,
+    
+    // Функции
+    isCompleted,
     completeMission
   };
 }
