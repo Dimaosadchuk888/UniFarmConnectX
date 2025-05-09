@@ -1473,10 +1473,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/transactions/create", TransactionController.createTransaction);
   
   // Маршруты для миссий
-  app.get("/api/missions/active", MissionControllerFallback.getActiveMissions);
-  app.get("/api/user_missions", MissionControllerFallback.getUserCompletedMissions);
-  app.get("/api/missions/with-completion", MissionControllerFallback.getMissionsWithCompletion);
-  app.get("/api/missions/check/:userId/:missionId", MissionControllerFallback.checkMissionCompletion);
+  app.get("/api/missions/active", MissionController.getActiveMissions);
+  app.get("/api/user_missions", MissionController.getUserCompletedMissions);
+  app.get("/api/missions/with-completion", MissionController.getMissionsWithCompletion);
+  app.get("/api/missions/check/:userId/:missionId", MissionController.checkMissionCompletion);
   app.post("/api/missions/complete", MissionControllerFallback.completeMission);
   
   // Маршруты для фарминг-депозитов
@@ -1501,7 +1501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/daily-bonus/claim", DailyBonusControllerFallback.claimDailyBonus);
   
   // Маршруты для UNI фарминга (с поддержкой fallback)
-  app.get("/api/uni-farming/info", UniFarmingControllerFallback.getUserFarmingInfo);
+  app.get("/api/uni-farming/info", UniFarmingController.getUserFarmingInfo);
   app.get("/api/uni-farming/update-balance", UniFarmingController.calculateAndUpdateFarming);
   app.post("/api/uni-farming/deposit", UniFarmingControllerFallback.depositFarming);
   app.get("/api/uni-farming/deposits", UniFarmingControllerFallback.getUserFarmingDeposits);
