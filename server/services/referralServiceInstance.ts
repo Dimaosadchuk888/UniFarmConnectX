@@ -398,6 +398,13 @@ export class ReferralService implements IReferralService {
       
       // Получаем все транзакции пользователя типа "referral_bonus"
       const transactions = await this.storage.getUserTransactions(userId);
+      
+      // Проверяем, что transactions - это массив
+      if (!transactions || !Array.isArray(transactions)) {
+        console.error('[ReferralService] Error in getLevelIncomeData: transactions is not an array', transactions);
+        return {}; // Возвращаем пустой объект если transactions не массив
+      }
+      
       const referralTransactions = transactions.filter(tx => tx.type === 'referral_bonus');
       
       if (!referralTransactions.length) {
