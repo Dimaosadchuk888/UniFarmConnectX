@@ -10,10 +10,14 @@ import { useMissionsSafe } from '@/hooks/use-missions-safe';
  * Безопасная версия компонента списка миссий, использующая хук useMissionsSafe
  * который предотвращает проблемы с Map и методами map()
  */
-export const SafeMissionsList: React.FC = () => {
-  console.log('SafeMissionsList: компонент отрисовывается');
+interface SafeMissionsListProps {
+  forceRefresh?: boolean;
+}
+
+export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh = false }) => {
+  console.log('SafeMissionsList: компонент отрисовывается', forceRefresh ? '- с принудительным обновлением' : '');
   
-  // Используем безопасный хук для миссий
+  // Используем безопасный хук для миссий с параметром принудительного обновления
   const { 
     missions, 
     completedMissionIds, 
@@ -21,7 +25,7 @@ export const SafeMissionsList: React.FC = () => {
     error, 
     completeMission,
     isCompleted
-  } = useMissionsSafe();
+  } = useMissionsSafe(forceRefresh);
   
   // Получаем доступ к системе уведомлений
   const { showNotification } = useNotification();

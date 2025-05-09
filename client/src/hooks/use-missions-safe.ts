@@ -22,8 +22,9 @@ export interface UserMission {
 /**
  * Безопасный хук для работы с миссиями
  * Предотвращает ошибки с Map и map() через использование обычных объектов
+ * @param forceRefresh - флаг принудительного обновления данных для решения проблем с кешированием
  */
-export function useMissionsSafe() {
+export function useMissionsSafe(forceRefresh: boolean = false) {
   const { userId } = useUser();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [userMissions, setUserMissions] = useState<UserMission[]>([]);
