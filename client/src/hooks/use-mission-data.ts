@@ -135,11 +135,12 @@ export function useMissionData() {
             // Глубокая проверка полей каждого элемента
             return safeArrayMap(data.data, (item) => {
               if (item && typeof item === 'object') {
+                const typedItem = item as Record<string, any>;
                 return {
-                  id: item.id || 0,
-                  user_id: item.user_id || 0,
-                  mission_id: item.mission_id || 0,
-                  completed_at: item.completed_at || '',
+                  id: typedItem.id || 0,
+                  user_id: typedItem.user_id || 0,
+                  mission_id: typedItem.mission_id || 0,
+                  completed_at: typedItem.completed_at || '',
                 };
               }
               // Если элемент не является объектом, возвращаем пустой объект с дефолтными значениями

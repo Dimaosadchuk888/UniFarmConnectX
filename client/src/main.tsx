@@ -1,3 +1,9 @@
+// Импортируем полифиллы перед загрузкой React
+import installAllPolyfills from './lib/polyfills';
+
+// Устанавливаем полифиллы в самом начале для исправления проблем с Map и Array.prototype.map
+installAllPolyfills();
+
 // Импорты для React
 import { createRoot } from "react-dom/client";
 import { createElement } from "react";
