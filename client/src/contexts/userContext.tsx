@@ -164,7 +164,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
     
     try {
-      const response = await correctApiRequest('/api/me');
+      // Пытаемся получить userId из localStorage, если там есть сохраненная сессия
+      let userId = null;
+      try {
+        const lastSessionStr = localStorage.getItem('unifarm_last_session');
+        if (lastSessionStr) {
+          const lastSession = JSON.parse(lastSessionStr);
+          userId = lastSession.user_id;
+          console.log('[UserContext] Найден user_id в localStorage:', userId);
+        }
+      } catch (e) {
+        console.warn('[UserContext] Ошибка при попытке получить user_id из localStorage:', e);
+      }
+      
+      // Делаем запрос с явно указанным user_id, если он доступен
+      const response = await correctApiRequest(userId ? `/api/me?user_id=${userId}` : '/api/me');
       
       if (response.success && response.data) {
         const user = response.data;
@@ -181,12 +195,65 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         
         dispatch({ type: 'SET_ERROR', payload: null });
+        
+        // Сохраняем обновленные данные в localStorage
+        try {
+          localStorage.setItem('unifarm_last_session', JSON.stringify({
+            timestamp: new Date().toISOString(),
+            user_id: user.id || userId,
+            username: user.username || null,
+            refCode: user.ref_code || null
+          }));
+        } catch (e) {
+          console.warn('[UserContext] Ошибка при сохранении данных пользователя в localStorage:', e);
+        }
       } else {
-        const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';
-        console.error('[UserContext] Ошибка получения данных пользователя:', errorMsg);
-        dispatch({ type: 'SET_ERROR', payload: new Error(errorMsg) });
+        // Если запрос не удался, сначала проверяем, если user_id есть в localStorage
+        if (userId) {
+          console.log('[UserContext] Используем информацию о пользователе из localStorage:', userId);
+          // Установим минимально необходимые данные из localStorage
+          dispatch({
+            type: 'SET_USER_DATA',
+            payload: {
+              userId: userId,
+              username: null,
+              guestId: null,
+              telegramId: null,
+              refCode: null
+            }
+          });
+          dispatch({ type: 'SET_ERROR', payload: null });
+        } else {
+          const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';
+          console.error('[UserContext] Ошибка получения данных пользователя:', errorMsg);
+          dispatch({ type: 'SET_ERROR', payload: new Error(errorMsg) });
+        }
       }
     } catch (err) {
+      // Проверяем, если есть данные пользователя в localStorage
+      try {
+        const lastSessionStr = localStorage.getItem('unifarm_last_session');
+        if (lastSessionStr) {
+          const lastSession = JSON.parse(lastSessionStr);
+          if (lastSession.user_id) {
+            console.log('[UserContext] Восстановление данных из localStorage после ошибки:', lastSession.user_id);
+            dispatch({
+              type: 'SET_USER_DATA',
+              payload: {
+                userId: lastSession.user_id,
+                username: lastSession.username || null,
+                guestId: null,
+                telegramId: null,
+                refCode: lastSession.refCode || null
+              }
+            });
+            dispatch({ type: 'SET_ERROR', payload: null });
+          }
+        }
+      } catch (e) {
+        console.warn('[UserContext] Ошибка при попытке восстановить данные из localStorage:', e);
+      }
+      
       const error = err instanceof Error ? err : new Error('Ошибка получения данных пользователя');
       console.error('[UserContext] Ошибка получения данных пользователя:', error);
       dispatch({ type: 'SET_ERROR', payload: error });

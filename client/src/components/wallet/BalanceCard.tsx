@@ -171,6 +171,22 @@ const BalanceCard: React.FC = () => {
     }
   }, [uniDepositAmount]);
   
+  // Инициализация баланса при первой загрузке
+  React.useEffect(() => {
+    // Делаем только один раз при первой загрузке компонента
+    if (!initialLoadedRef.current && userId) {
+      console.log("[BalanceCard] Начальная инициализация баланса для userId:", userId);
+      
+      initialLoadedRef.current = true;
+      
+      // Делаем полное обновление при первом рендере
+      refreshBalance();
+      
+      // Рассчитываем уровень доходности
+      calculateRate();
+    }
+  }, [userId, refreshBalance, calculateRate]);
+  
   // ===== Вспомогательные функции =====
   
   // Форматирование скорости начисления доходов
