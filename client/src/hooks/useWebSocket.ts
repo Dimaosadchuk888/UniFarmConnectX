@@ -10,33 +10,26 @@ interface UseWebSocketOptions {
   onMessage?: (data: any) => void;
   onClose?: (event: CloseEvent) => void;
   onError?: (event: Event) => void;
-  reconnectAttempts?: number;
   reconnectInterval?: number;
-  autoReconnect?: boolean;
-  fallbackMode?: boolean;
 }
 
 /**
  * Хук для работы с WebSocket соединением
- * Полностью переработанная версия с улучшенной обработкой ошибок
- * и поддержкой режима fallback для работы без WebSocket
+ * Оптимизированная версия с улучшенной стабильностью соединения и надежностью
  */
 const useWebSocket = (options: UseWebSocketOptions = {}) => {
-  // Константы
-  const MAX_ERROR_COUNT = 3; // Максимальное число ошибок перед переходом в fallback режим
-  const CONNECTION_TIMEOUT = 5000; // Таймаут для соединения (5 секунд)
-  
   // Состояние
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
-  const [reconnectCount, setReconnectCount] = useState<number>(0);
   const [errorCount, setErrorCount] = useState<number>(0);
-  const [isFallbackMode, setIsFallbackMode] = useState<boolean>(options.fallbackMode || false);
   
   // Refs для сохранения данных между рендерами
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastPingSentRef = useRef<number>(0);
+  const lastPongReceivedRef = useRef<number>(0);
   
   // Опции
   const {
@@ -44,33 +37,8 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
     onMessage,
     onClose,
     onError,
-    reconnectAttempts = 3,
-    reconnectInterval = 5000,
-    autoReconnect = true
+    reconnectInterval = 2000
   } = options;
-  
-  /**
-   * Обработка ошибок WebSocket с предельным счетчиком
-   */
-  const handleWebSocketError = useCallback(() => {
-    setErrorCount(prev => {
-      const newCount = prev + 1;
-      console.warn(`[WebSocket] Error count increased: ${newCount}/${MAX_ERROR_COUNT}`);
-      
-      // Если достигли максимального количества ошибок, 
-      // переходим в режим резервного обновления
-      if (newCount >= MAX_ERROR_COUNT) {
-        setIsFallbackMode(true);
-        
-        // Информируем пользователя о переходе в резервный режим
-        console.info('%c[WebSocket] Переход в резервный режим', 'color: #FF9800; font-weight: bold; font-size: 14px;');
-        console.info('%cФункция WebSocket недоступна. Приложение перешло в режим ручного обновления.', 'color: #2196F3; font-size: 12px;');
-        console.info('%cДля обновления данных используйте кнопки обновления или перезагрузите страницу.', 'color: #2196F3; font-size: 12px;');
-      }
-      
-      return newCount;
-    });
-  }, []);
   
   /**
    * Очистка всех таймеров и ресурсов
@@ -82,10 +50,16 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
       reconnectTimeoutRef.current = null;
     }
     
-    // Очищаем таймаут соединения
-    if (connectionTimeoutRef.current) {
-      clearTimeout(connectionTimeoutRef.current);
-      connectionTimeoutRef.current = null;
+    // Очищаем таймаут проверки пинга
+    if (pingTimeoutRef.current) {
+      clearTimeout(pingTimeoutRef.current);
+      pingTimeoutRef.current = null;
+    }
+    
+    // Очищаем интервал отправки пингов
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
     }
   }, []);
   
@@ -97,14 +71,20 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
     
     // Закрываем сокет, если он открыт
     if (socketRef.current) {
-      // Пытаемся закрыть нормально, только если сокет открыт или подключается
-      if (socketRef.current.readyState === WebSocket.OPEN || 
-          socketRef.current.readyState === WebSocket.CONNECTING) {
-        try {
+      try {
+        // Удаляем все обработчики событий
+        if (socketRef.current.onopen) socketRef.current.onopen = null;
+        if (socketRef.current.onmessage) socketRef.current.onmessage = null;
+        if (socketRef.current.onclose) socketRef.current.onclose = null;
+        if (socketRef.current.onerror) socketRef.current.onerror = null;
+        
+        // Пытаемся закрыть нормально, только если сокет открыт или подключается
+        if (socketRef.current.readyState === WebSocket.OPEN || 
+            socketRef.current.readyState === WebSocket.CONNECTING) {
           socketRef.current.close(1000, "Normal closure");
-        } catch (err) {
-          console.error('[WebSocket] Error closing socket:', err);
         }
+      } catch (err) {
+        console.error('[WebSocket] Error closing socket:', err);
       }
       
       socketRef.current = null;
@@ -114,187 +94,206 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
   }, [clearResources]);
   
   /**
-   * Инициализация WebSocket соединения с улучшенной обработкой ошибок
+   * Проверка состояния соединения по таймауту ping/pong
+   */
+  const checkConnectionHealth = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastPing = now - lastPingSentRef.current;
+    const timeSinceLastPong = now - lastPongReceivedRef.current;
+    
+    // Если прошло больше 30 секунд с момента отправки ping и не получили pong
+    if (lastPingSentRef.current > 0 && timeSinceLastPing > 30000 && 
+        (lastPongReceivedRef.current === 0 || timeSinceLastPing > timeSinceLastPong + 20000)) {
+      console.warn('[WebSocket] Connection seems dead (no pong response)');
+      disconnect();
+      connect();
+    }
+  }, []);
+  
+  /**
+   * Отправка ping для проверки соединения
+   */
+  const sendPing = useCallback(() => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      try {
+        const pingMessage = {
+          type: 'ping',
+          timestamp: new Date().toISOString()
+        };
+        
+        socketRef.current.send(JSON.stringify(pingMessage));
+        lastPingSentRef.current = Date.now();
+        
+        // Проверяем здоровье соединения через 10 секунд
+        if (pingTimeoutRef.current) {
+          clearTimeout(pingTimeoutRef.current);
+        }
+        
+        pingTimeoutRef.current = setTimeout(() => {
+          checkConnectionHealth();
+        }, 10000);
+        
+      } catch (error) {
+        console.error('[WebSocket] Error sending ping:', error);
+      }
+    }
+  }, [checkConnectionHealth]);
+  
+  /**
+   * Настройка периодической отправки ping
+   */
+  const setupPingInterval = useCallback(() => {
+    clearResources();
+    
+    // Отправляем ping каждые 25 секунд
+    pingIntervalRef.current = setInterval(() => {
+      sendPing();
+    }, 25000);
+    
+    // Отправляем первый ping сразу
+    sendPing();
+  }, [sendPing, clearResources]);
+  
+  /**
+   * Принудительное переподключение сбрасывает счетчики ошибок
+   */
+  const forceReconnect = useCallback(() => {
+    console.log('[WebSocket] Forced reconnection initiated');
+    setErrorCount(0);
+    disconnect();
+    
+    // Небольшая задержка перед переподключением
+    setTimeout(() => {
+      connect();
+    }, 500);
+  }, [disconnect]);
+  
+  /**
+   * Инициализация WebSocket соединения с оптимизированной обработкой ошибок
    */
   const connect = useCallback(() => {
-    // Не пытаемся подключаться в режиме fallback
-    if (isFallbackMode) {
-      console.log('[WebSocket] Not connecting in fallback mode');
-      return;
-    }
-    
     // Очищаем предыдущие ресурсы перед новым подключением
     clearResources();
     
+    // Закрываем предыдущее соединение
+    if (socketRef.current) {
+      disconnect();
+    }
+    
     try {
-      // Закрываем предыдущее соединение
-      if (socketRef.current) {
-        disconnect();
-      }
-      
       // Определяем URL для WebSocket соединения
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
       
       console.log('[WebSocket] Connecting to:', wsUrl);
       
-      // Устанавливаем таймаут соединения
-      connectionTimeoutRef.current = setTimeout(() => {
-        console.warn('[WebSocket] Connection timeout');
-        
-        // Если соединение не установлено за отведенное время, считаем это ошибкой
-        if (socketRef.current && socketRef.current.readyState !== WebSocket.OPEN) {
-          handleWebSocketError();
-          disconnect();
-          
-          // Пытаемся переподключиться, если автоматическое переподключение включено
-          // и не превысили лимит ошибок
-          if (autoReconnect && errorCount < MAX_ERROR_COUNT && reconnectCount < reconnectAttempts) {
-            const nextReconnectCount = reconnectCount + 1;
-            setReconnectCount(nextReconnectCount);
-            console.log(`[WebSocket] Reconnecting (attempt ${nextReconnectCount}/${reconnectAttempts}) after timeout...`);
-            
-            // Устанавливаем таймаут для переподключения с экспоненциальной задержкой
-            reconnectTimeoutRef.current = setTimeout(() => {
-              connect();
-            }, reconnectInterval * Math.pow(1.5, reconnectCount));
-          }
-        }
-      }, CONNECTION_TIMEOUT);
-      
-      // Создаем новое соединение
+      // Создаем новое соединение с увеличенными таймаутами
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
       
       // Обработчик успешного соединения
       socket.onopen = (event) => {
         console.log('[WebSocket] Connection established');
-        
-        // Очищаем таймаут соединения
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
-          connectionTimeoutRef.current = null;
-        }
-        
         setIsConnected(true);
-        setReconnectCount(0);
         setErrorCount(0); // Сбрасываем счетчик ошибок при успешном соединении
         
-        // Вызываем пользовательский обработчик, если он передан
+        // Запускаем ping/pong механизм для поддержания соединения
+        setupPingInterval();
+        
+        // Вызываем пользовательский обработчик
         if (onOpen) onOpen(event);
       };
       
-      // Обработчик получения сообщения
+      // Обработчик получения сообщения с улучшенной обработкой ping/pong
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           console.log('[WebSocket] Message received:', data);
           setLastMessage(data);
           
-          // Автоматически отвечаем на пинги от сервера
+          // Обработка ping/pong для поддержания соединения
           if (data.type === 'ping') {
-            const pongMessage = { type: 'pong', timestamp: new Date().toISOString() };
-            const serializedMessage = JSON.stringify(pongMessage);
+            // Отправляем pong в ответ на ping
             if (socket.readyState === WebSocket.OPEN) {
               try {
-                socket.send(serializedMessage);
+                socket.send(JSON.stringify({ 
+                  type: 'pong', 
+                  timestamp: data.timestamp 
+                }));
               } catch (sendError) {
                 console.error('[WebSocket] Error sending pong:', sendError);
               }
             }
+          } else if (data.type === 'pong') {
+            // Регистрируем получение pong
+            lastPongReceivedRef.current = Date.now();
           }
           
-          // Вызываем пользовательский обработчик, если он передан
+          // Вызываем пользовательский обработчик
           if (onMessage) onMessage(data);
         } catch (error) {
           console.error('[WebSocket] Error parsing message:', error);
         }
       };
       
-      // Обработчик закрытия соединения с улучшенной логикой переподключения
+      // Обработчик закрытия соединения с оптимизированной логикой переподключения
       socket.onclose = (event) => {
         console.log('[WebSocket] Connection closed:', event.code, event.reason);
-        
-        // Очищаем таймаут соединения
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
-          connectionTimeoutRef.current = null;
-        }
-        
         setIsConnected(false);
         
-        // Вызываем пользовательский обработчик, если он передан
+        // Очищаем ресурсы при закрытии соединения
+        clearResources();
+        
+        // Вызываем пользовательский обработчик
         if (onClose) onClose(event);
         
-        // Анормальное закрытие считаем ошибкой
+        // Автоматическое переподключение при неожиданном закрытии
         if (event.code !== 1000 && event.code !== 1001) {
-          handleWebSocketError();
-        }
-        
-        // Пытаемся переподключиться, если:
-        // 1. Включено автоматическое переподключение
-        // 2. Не превышен лимит попыток переподключения
-        // 3. Не превышен лимит ошибок
-        // 4. Не находимся в режиме fallback
-        if (autoReconnect && reconnectCount < reconnectAttempts && 
-            errorCount < MAX_ERROR_COUNT && !isFallbackMode) {
-          const nextReconnectCount = reconnectCount + 1;
-          setReconnectCount(nextReconnectCount);
-          console.log(`[WebSocket] Reconnecting (attempt ${nextReconnectCount}/${reconnectAttempts})...`);
+          setErrorCount(prev => prev + 1);
           
-          // Устанавливаем таймаут для переподключения с экспоненциальной задержкой
+          // Переподключаемся через интервал с небольшой случайной задержкой
+          const randomDelay = Math.floor(Math.random() * 1000); // 0-1000ms случайная задержка
+          const delay = reconnectInterval + randomDelay;
+          
+          console.log(`[WebSocket] Reconnecting in ${delay}ms...`);
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
-          }, reconnectInterval * Math.pow(1.5, reconnectCount));
+          }, delay);
         }
       };
       
-      // Улучшенный обработчик ошибок
+      // Обработчик ошибок
       socket.onerror = (event) => {
-        console.error('[WebSocket] Error:', event);
+        console.error('[WebSocket] Error occurred');
+        setErrorCount(prev => prev + 1);
         
-        // Увеличиваем счетчик ошибок
-        handleWebSocketError();
-        
-        // Вызываем пользовательский обработчик, если он передан
+        // Вызываем пользовательский обработчик
         if (onError) onError(event);
       };
     } catch (error) {
       console.error('[WebSocket] Failed to connect:', error);
-      handleWebSocketError();
+      setErrorCount(prev => prev + 1);
       
-      // Очищаем таймаут соединения при ошибке
-      if (connectionTimeoutRef.current) {
-        clearTimeout(connectionTimeoutRef.current);
-        connectionTimeoutRef.current = null;
-      }
+      // Автоматическое переподключение при ошибке создания соединения
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connect();
+      }, reconnectInterval);
     }
   }, [
-    isFallbackMode,
-    onOpen,
-    onMessage,
-    onClose,
-    onError,
-    reconnectAttempts,
-    reconnectInterval,
-    autoReconnect,
-    errorCount,
-    reconnectCount,
-    handleWebSocketError,
-    disconnect,
-    clearResources
+    onOpen, 
+    onMessage, 
+    onClose, 
+    onError, 
+    reconnectInterval, 
+    clearResources, 
+    disconnect, 
+    setupPingInterval
   ]);
   
   /**
    * Отправка сообщения на сервер с улучшенной обработкой ошибок
    */
   const send = useCallback((message: any): boolean => {
-    // В режиме fallback не отправляем сообщения
-    if (isFallbackMode) {
-      console.warn('[WebSocket] Cannot send message in fallback mode');
-      return false;
-    }
-    
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       try {
         const serializedMessage = typeof message === 'string' 
@@ -305,62 +304,43 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
         return true;
       } catch (error) {
         console.error('[WebSocket] Error sending message:', error);
-        handleWebSocketError();
         return false;
       }
     } else {
-      console.warn('[WebSocket] Cannot send message: connection not open');
+      // Если соединение не открыто, пытаемся переподключиться
+      if (!reconnectTimeoutRef.current) {
+        forceReconnect();
+      }
       return false;
     }
-  }, [isFallbackMode, handleWebSocketError]);
+  }, [forceReconnect]);
   
   /**
    * Подписка на обновления для пользователя с указанным ID
    */
   const subscribeToUserUpdates = useCallback((userId: number): boolean => {
+    if (!userId) {
+      console.error('[WebSocket] Cannot subscribe without userId');
+      return false;
+    }
+    
     return send({
       type: 'subscribe',
-      userId
+      userId,
+      timestamp: new Date().toISOString()
     });
   }, [send]);
   
-  /**
-   * Переключение между обычным и резервным режимом
-   */
-  const toggleFallbackMode = useCallback((enable: boolean) => {
-    setIsFallbackMode(enable);
-    
-    if (enable) {
-      disconnect();
-    } else {
-      setErrorCount(0);
-      connect();
-    }
-  }, [connect, disconnect]);
-  
-  /**
-   * Принудительная попытка переподключения (сбрасывает счетчики ошибок)
-   */
-  const forceReconnect = useCallback(() => {
-    setErrorCount(0);
-    setReconnectCount(0);
-    setIsFallbackMode(false);
-    disconnect();
-    connect();
-  }, [connect, disconnect]);
-  
   // Инициализация соединения при монтировании компонента
   useEffect(() => {
-    // Подключаемся, только если не в режиме fallback
-    if (!isFallbackMode) {
-      connect();
-    }
+    // Устанавливаем соединение при монтировании
+    connect();
     
-    // Очищаем ресурсы при размонтировании компонента
+    // Очищаем ресурсы при размонтировании
     return () => {
       disconnect();
     };
-  }, [connect, disconnect, isFallbackMode]);
+  }, [connect, disconnect]);
   
   return {
     isConnected,
@@ -369,9 +349,6 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
     subscribeToUserUpdates,
     connect,
     disconnect,
-    reconnectCount,
-    isFallbackMode,
-    toggleFallbackMode,
     forceReconnect,
     errorCount
   };

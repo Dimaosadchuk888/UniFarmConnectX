@@ -48,7 +48,7 @@ const BalanceCard: React.FC = () => {
   const [wsConnectedOnce, setWsConnectedOnce] = useState<boolean>(false);
   
   // Используем WebSocket хук для обновления в реальном времени
-  const { isConnected, subscribeToUserUpdates, isFallbackMode, errorCount, forceReconnect } = useWebSocket({
+  const { isConnected, subscribeToUserUpdates, errorCount, forceReconnect } = useWebSocket({
     onOpen: () => {
       setWsStatus('Соединение установлено');
       setWsConnectedOnce(true);
@@ -112,8 +112,7 @@ const BalanceCard: React.FC = () => {
         });
       }
     },
-    autoReconnect: true,
-    reconnectAttempts: 3 // Уменьшаем количество попыток переподключения
+    reconnectInterval: 2000 // Интервал переподключения в миллисекундах
   });
   
   // Функция для обновления баланса UNI с анимацией
@@ -328,28 +327,26 @@ const BalanceCard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 WebSocket: 
-                {isFallbackMode ? (
-                  <span className="text-orange-400 ml-1">Резервный режим</span>
-                ) : (
-                  <span className={`ml-1 ${isConnected ? 'text-green-400' : 'text-red-400'}`}>{wsStatus}</span>
-                )}
+                <span className={`ml-1 ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
+                  {isConnected ? 'Подключено' : wsStatus}
+                </span>
               </div>
               
               {/* Кнопка повторного подключения, если соединение в ошибке */}
-              {(errorCount > 0 || isFallbackMode) && (
+              {errorCount > 0 && (
                 <button 
                   onClick={() => {
                     showNotification('loading', {
-                      message: 'Попытка восстановления соединения...',
+                      message: 'Переподключение...',
                       duration: 2000
                     });
                     forceReconnect();
                   }}
                   className="text-blue-400 hover:text-blue-300 transition-colors text-xs flex items-center"
-                  title="Попытаться восстановить соединение"
+                  title="Переподключиться к WebSocket"
                 >
                   <i className="fas fa-redo-alt mr-1"></i>
-                  Восстановить
+                  Переподключиться
                 </button>
               )}
             </div>
@@ -365,20 +362,18 @@ const BalanceCard: React.FC = () => {
             )}
             
             {/* Статус ошибок WebSocket */}
-            {errorCount > 0 && !isFallbackMode && (
+            {errorCount > 0 && (
               <div className="text-yellow-400 mt-1">
                 <i className="fas fa-exclamation-triangle mr-1 text-yellow-400"></i>
-                Ошибки соединения: {errorCount}/3
+                Проблемы соединения: {errorCount} {errorCount === 1 ? 'ошибка' : 'ошибки'}
               </div>
             )}
             
             {/* Инструкция по обновлению при отсутствии WebSocket */}
-            {(isFallbackMode || (!isConnected && wsErrorNotificationShown)) && (
+            {!isConnected && wsErrorNotificationShown && (
               <div className="mt-2 bg-blue-500/10 text-blue-100 rounded-md px-2 py-1.5 text-xs">
                 <i className="fas fa-info-circle mr-1 text-blue-300"></i>
-                {isFallbackMode 
-                  ? "Автоматическое обновление отключено из-за проблем соединения. Используйте кнопку обновления для ручного обновления баланса."
-                  : "Автообновление недоступно. Используйте кнопку обновления для ручного обновления баланса."}
+                Соединение прервано. Используйте кнопку обновления для ручного обновления баланса или нажмите "Переподключиться".
               </div>
             )}
           </div>
