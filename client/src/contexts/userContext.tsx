@@ -206,7 +206,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: true } });
     
     try {
-      const response = await correctApiRequest('/api/wallet/balance');
+      // Явно передаем userId в запрос
+      const response = await correctApiRequest(`/api/wallet/balance?user_id=${state.userId}`);
       
       if (response.success && response.data) {
         const data = response.data;
@@ -314,6 +315,28 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     initializedRef.current = true;
   }, [tonConnectUI]);
+  
+  // Автоматическая загрузка данных пользователя при первом рендере
+  useEffect(() => {
+    const loadInitialUserData = async () => {
+      console.log('[UserContext] Автоматическая загрузка данных пользователя...');
+      try {
+        // Сначала запрашиваем данные пользователя
+        await refreshUserData();
+        
+        // Затем, если получили userId, запрашиваем баланс
+        if (state.userId) {
+          console.log('[UserContext] Данные пользователя получены, запрашиваем баланс...');
+          await refreshBalance();
+        }
+      } catch (err) {
+        console.error('[UserContext] Ошибка при загрузке начальных данных:', err);
+      }
+    };
+    
+    loadInitialUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [/* Пустой массив зависимостей, чтобы эффект выполнился только при первом рендере */]);
   
   // Значение контекста
   const value: UserContextType = {
