@@ -141,26 +141,41 @@ export function useMissionData() {
       console.log('Массив выполненных миссий пуст');
     }
     
-    // Преобразуем данные для UI с безопасной проверкой
+    // Преобразуем данные для UI с безопасной проверкой и дополнительным логированием
     const mappedMissions: Mission[] = [];
     
-    if (Array.isArray(dbMissions)) {
-      for (let i = 0; i < dbMissions.length; i++) {
-        const dbMission = dbMissions[i];
+    console.log('Начинаем преобразование миссий:', { 
+      dbMissions, 
+      isArray: Array.isArray(dbMissions),
+      length: dbMissions?.length 
+    });
+    
+    if (dbMissions && Array.isArray(dbMissions)) {
+      for (const dbMission of dbMissions) {
         if (dbMission && typeof dbMission === 'object') {
           const isCompleted = completedMissionsById[dbMission.id] || false;
           
-          mappedMissions.push({
-            id: dbMission.id,
-            type: dbMission.type || 'unknown',
-            title: dbMission.title || 'Без названия',
-            description: dbMission.description || 'Нет описания',
-            rewardUni: parseFloat(dbMission.reward_uni) || 0,
-            status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
-          });
+          try {
+            mappedMissions.push({
+              id: dbMission.id || 0,
+              type: dbMission.type || 'unknown',
+              title: dbMission.title || 'Без названия',
+              description: dbMission.description || 'Нет описания',
+              rewardUni: typeof dbMission.reward_uni === 'string' ? 
+                parseFloat(dbMission.reward_uni) : 
+                (typeof dbMission.reward_uni === 'number' ? dbMission.reward_uni : 0),
+              status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
+            });
+          } catch (err) {
+            console.error('Ошибка обработки миссии:', err, dbMission);
+          }
         }
       }
+    } else {
+      console.warn('dbMissions не является массивом:', dbMissions);
     }
+    
+    console.log('Преобразовано миссий:', mappedMissions.length);
     
     console.log('Загружено миссий:', mappedMissions.length);
     setMissions(mappedMissions);
