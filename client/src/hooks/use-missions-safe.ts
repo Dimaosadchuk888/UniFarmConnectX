@@ -98,26 +98,26 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
 
   const completeMission = async (missionId: number): Promise<any> => {
     console.log(`[useMissionsSafe v4] Выполнение миссии ${missionId}`);
-    
+
     try {
       const result = await correctApiRequest('/api/missions/complete', 'POST', {
         user_id: userId || 1,
         mission_id: missionId
       });
-      
+
       if (result && result.success) {
         console.log(`[useMissionsSafe v4] Миссия ${missionId} успешно выполнена`);
-        
+
         // Обновляем локальное состояние
         const newCompletedIds = { ...completedMissionIds };
         newCompletedIds[missionId] = true;
         setCompletedMissionIds(newCompletedIds);
-        
+
         // Если получили данные о выполненной миссии, добавляем в список
         if (result.data && result.data.userMission) {
           setUserMissions(prev => [...(prev || []), result.data.userMission]);
         }
-        
+
         return { 
           success: true, 
           reward: result.data?.reward || 0
