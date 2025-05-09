@@ -53,22 +53,26 @@ interface State {
   toasts: ToasterToast[]
 }
 
-const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
+// Заменяем Map на обычный объект для предотвращения ошибок
+const toastTimeouts: Record<string, ReturnType<typeof setTimeout>> = {}
 
 const addToRemoveQueue = (toastId: string) => {
-  if (toastTimeouts.has(toastId)) {
+  // Проверяем наличие таймаута для toast с помощью in оператора для объекта
+  if (toastId in toastTimeouts) {
     return
   }
 
   const timeout = setTimeout(() => {
-    toastTimeouts.delete(toastId)
+    // Удаляем свойство из объекта
+    delete toastTimeouts[toastId]
     dispatch({
       type: "REMOVE_TOAST",
       toastId: toastId,
     })
   }, TOAST_REMOVE_DELAY)
 
-  toastTimeouts.set(toastId, timeout)
+  // Устанавливаем свойство объекта
+  toastTimeouts[toastId] = timeout
 }
 
 export const reducer = (state: State, action: Action): State => {
