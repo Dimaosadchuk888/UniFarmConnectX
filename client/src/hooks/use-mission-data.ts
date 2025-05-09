@@ -125,19 +125,20 @@ export function useMissionData() {
     });
     
     // Проверяем тип и структуру userCompletedMissions перед использованием
-    if (userCompletedMissions && Array.isArray(userCompletedMissions)) {
-      console.log('Обработка массива выполненных миссий:', userCompletedMissions.length);
+    // Убеждаемся что работаем с массивом
+    const safeUserMissions = Array.isArray(userCompletedMissions) ? userCompletedMissions : [];
+    
+    if (safeUserMissions.length > 0) {
+      console.log('Обработка массива выполненных миссий:', safeUserMissions.length);
       
       // Безопасно итерируем по массиву и заполняем объект
-      for (let i = 0; i < userCompletedMissions.length; i++) {
-        const mission = userCompletedMissions[i];
+      for (const mission of safeUserMissions) {
         if (mission && typeof mission === 'object' && 'mission_id' in mission) {
           completedMissionsById[mission.mission_id] = true;
         }
       }
     } else {
-      console.log('userCompletedMissions отсутствует или не является массивом, используем пустой объект');
-      // Т.к. userCompletedMissions не массив, просто оставляем пустой объект completedMissionsById
+      console.log('Массив выполненных миссий пуст');
     }
     
     // Преобразуем данные для UI с безопасной проверкой
