@@ -165,60 +165,71 @@ export const MissionsList: React.FC = () => {
 
   // Преобразуем данные из БД в формат для UI
   useEffect(() => {
-    console.log('MissionsList: dbMissions загружены:', dbMissions);
-    
-    // Проверяем что dbMissions определены
-    if (!dbMissions || !Array.isArray(dbMissions)) {
-      console.log('MissionsList: dbMissions не определены или не являются массивом');
-      return;
-    }
-    
-    // Создаем объект выполненных миссий для быстрого поиска
-    const completedMissionsObj: Record<number, UserMission> = {};
-    
-    // Проверяем, что userCompletedMissions существует и является массивом
-    if (userCompletedMissions && Array.isArray(userCompletedMissions)) {
-      console.log('MissionsList: обработка userCompletedMissions:', userCompletedMissions.length);
+    try {
+      console.log('MissionsList: dbMissions загружены:', dbMissions ? 'данные получены' : 'нет данных');
       
-      // Безопасная итерация по массиву
-      for (let i = 0; i < userCompletedMissions.length; i++) {
-        const mission = userCompletedMissions[i];
-        if (mission && typeof mission === 'object' && 'mission_id' in mission) {
-          completedMissionsObj[mission.mission_id] = mission;
-        }
+      // Защита от null/undefined для базовых данных
+      if (!dbMissions) {
+        console.log('MissionsList: dbMissions отсутствуют, устанавливаем пустой массив миссий');
+        setMissions([]);
+        return;
       }
-    } else {
-      console.log('MissionsList: userCompletedMissions отсутствует или не является массивом');
-    }
-    
-    // Конвертируем DbMission[] в Mission[] с учетом выполненных миссий
-    const mappedMissions: Mission[] = [];
-    
-    // Безопасно итерируем по массиву
-    for (let i = 0; i < dbMissions.length; i++) {
-      const dbMission = dbMissions[i];
-      if (dbMission && typeof dbMission === 'object') {
-        const isCompleted = completedMissionsObj && dbMission.id 
-          ? !!completedMissionsObj[dbMission.id] 
-          : false;
+      
+      // Защита от неверного типа данных
+      if (!Array.isArray(dbMissions)) {
+        console.log('MissionsList: dbMissions не является массивом, устанавливаем пустой массив миссий');
+        setMissions([]);
+        return;
+      }
+      
+      console.log(`MissionsList: обрабатываем ${dbMissions.length} миссий из базы данных`);
+      
+      // Создаем безопасную карту выполненных миссий
+      const completedMissionsMap = new Map<number, UserMission>();
+      
+      // Безопасно обрабатываем пользовательские миссии
+      if (userCompletedMissions && Array.isArray(userCompletedMissions)) {
+        console.log(`MissionsList: обрабатываем ${userCompletedMissions.length} выполненных миссий`);
         
-        // Добавляем миссию в массив только если все данные корректны
-        if (dbMission.id !== undefined) {
-          mappedMissions.push({
-            id: dbMission.id,
-            type: dbMission.type || '',
-            title: dbMission.title || '',
-            description: dbMission.description || '',
-            rewardUni: parseFloat(dbMission.reward_uni) || 0, // Конвертируем строку в число
-            status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
-          });
-        }
+        // Безопасная итерация по массиву
+        userCompletedMissions.forEach(mission => {
+          if (mission && typeof mission === 'object' && 'mission_id' in mission && typeof mission.mission_id === 'number') {
+            completedMissionsMap.set(mission.mission_id, mission);
+          }
+        });
+        
+        console.log(`MissionsList: в карту добавлено ${completedMissionsMap.size} выполненных миссий`);
+      } else {
+        console.log('MissionsList: выполненные миссии отсутствуют или формат некорректен');
       }
+      
+      // Конвертируем DbMission[] в Mission[] с защитой от ошибок
+      const mappedMissions: Mission[] = dbMissions
+        .filter(dbMission => dbMission && typeof dbMission === 'object' && dbMission.id !== undefined)
+        .map(dbMission => {
+          // Безопасно проверяем, выполнена ли миссия
+          const isCompleted = dbMission.id !== undefined && completedMissionsMap.has(dbMission.id);
+          
+          // Конвертируем данные с проверками наличия свойств
+          return {
+            id: dbMission.id as number,
+            type: dbMission.type || 'default',
+            title: dbMission.title || 'Миссия',
+            description: dbMission.description || 'Описание отсутствует',
+            rewardUni: typeof dbMission.reward_uni === 'string' ? parseFloat(dbMission.reward_uni) || 0 : 0,
+            status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
+          };
+        });
+      
+      console.log(`MissionsList: сформировано ${mappedMissions.length} миссий для отображения`);
+      
+      // Устанавливаем состояние только если есть валидные данные
+      setMissions(mappedMissions);
+    } catch (error) {
+      console.error('MissionsList: ошибка при обработке данных миссий:', error);
+      // При любой ошибке устанавливаем пустой массив
+      setMissions([]);
     }
-    
-    console.log('MissionsList: сформировано миссий для отображения:', mappedMissions.length);
-    
-    setMissions(mappedMissions);
   }, [dbMissions, userCompletedMissions]);
   
   // Обработчик клика по кнопке "Выполнить"
