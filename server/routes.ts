@@ -478,11 +478,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             import '/@vite/client'
             
             // Затем импортируем основной скрипт приложения
-            import { createApp } from '/src/main'
+            import '/src/main.tsx'
             
-            // Создаем и монтируем приложение
-            const app = createApp()
-            app.mount('#app')
+            // Сообщаем об успешной загрузке
+            console.log('Vite client успешно загружен')
             
             // Если возникла ошибка, показываем её
             window.addEventListener('error', (event) => {
