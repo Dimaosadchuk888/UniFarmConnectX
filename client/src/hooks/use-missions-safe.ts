@@ -69,7 +69,7 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
           setUserMissions(safeMissions);
 
           const completed: Record<number, boolean> = {};
-          userMissionsResponse.data.forEach(mission => {
+          userMissionsResponse.data.forEach((mission: { mission_id?: number } | undefined) => {
             if (mission && typeof mission === 'object' && mission.mission_id) {
               completed[mission.mission_id] = true;
             }
@@ -156,7 +156,7 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
     }
 
     const missionsMap = new Map();
-    data.forEach(mission => {
+    data.forEach((mission: { mission_id?: number } | undefined) => {
       if (mission && mission.mission_id) {
         missionsMap.set(mission.mission_id, mission);
       }
