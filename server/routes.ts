@@ -178,34 +178,176 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Перенаправляем корневой маршрут на основное приложение
   app.get("/", (req, res) => {
-    console.log('[Root Route] Запрос к корневому маршруту, отправляем index.html');
+    console.log('[Root Route] Запрос к корневому маршруту, отправляем HTML-страницу');
     
-    // Определяем возможные пути к index.html в разных режимах работы
-    const possiblePaths = [
-      path.join(projectRoot, 'client', 'index.html'),         // клиентский исходник
-      path.join(projectRoot, 'client', 'public', 'index.html'), // публичная версия клиента
-      path.join(projectRoot, 'server', 'public', 'index.html'), // серверная публичная версия
-      path.join(projectRoot, 'client', 'dist', 'index.html'),   // режим разработки, если бы был сборка
-      path.join(projectRoot, 'dist', 'public', 'index.html'),   // режим production (после сборки)
-      path.join(projectRoot, 'dist', 'index.html'),            // альтернативный вариант
-    ];
-    
-    // Ищем существующий файл среди возможных путей
-    const existingPath = possiblePaths.find(p => fs.existsSync(p));
-    
-    if (existingPath) {
-      // Отправляем найденный index.html
-      console.log(`[Root Route] Используем файл: ${existingPath}`);
+    // В режиме разработки перенаправляем на Vite dev server
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Root Route] Режим разработки, перенаправляем на Vite dev server');
+      
       // Добавляем заголовки против кеширования
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
-      res.sendFile(existingPath);
+      
+      // Создаем базовую HTML страницу с автоматическим перенаправлением на клиентский dev-сервер
+      // Обычно Vite dev server запускается на порту 5173
+      const redirectHTML = `
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>UniFarm - Loading Development Version</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+              background-color: #f0f2f5;
+              color: #333;
+            }
+            .container {
+              text-align: center;
+              max-width: 90%;
+              padding: 20px;
+              border-radius: 10px;
+              background-color: white;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            .loader {
+              border: 5px solid #f3f3f3;
+              border-top: 5px solid #3498db;
+              border-radius: 50%;
+              width: 40px;
+              height: 40px;
+              animation: spin 1s linear infinite;
+              margin: 20px auto;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            a {
+              display: inline-block;
+              margin-top: 20px;
+              color: #3498db;
+              text-decoration: none;
+              padding: 10px 20px;
+              border: 1px solid #3498db;
+              border-radius: 5px;
+              transition: all 0.3s;
+            }
+            a:hover {
+              background-color: #3498db;
+              color: white;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>UniFarm</h1>
+            <p>Загрузка версии для разработки...</p>
+            <div class="loader"></div>
+            <p id="status">Переадресация на Vite Dev Server через <span id="countdown">3</span> секунды</p>
+            <a href="http://localhost:5173" id="manual-link">Перейти вручную</a>
+            
+            <script>
+              // Функция для получения хоста текущего сервера
+              function getBaseUrl() {
+                return window.location.protocol + '//' + window.location.host;
+              }
+              
+              // Функция для проверки Vite dev server
+              async function checkViteServer() {
+                try {
+                  const baseUrl = getBaseUrl();
+                  // Проверяем доступность Vite dev server на том же хосте
+                  const response = await fetch(baseUrl + '/@vite/client', { 
+                    method: 'HEAD',
+                    cache: 'no-store'
+                  });
+                  return response.ok;
+                } catch (error) {
+                  console.error('Ошибка при проверке Vite dev server:', error);
+                  return false;
+                }
+              }
+              
+              // Функция для перенаправления
+              function redirect() {
+                window.location.href = getBaseUrl() + '/client';
+              }
+              
+              // Обратный отсчет
+              let countdown = 3;
+              const countdownElement = document.getElementById('countdown');
+              const statusElement = document.getElementById('status');
+              const manualLinkElement = document.getElementById('manual-link');
+              
+              // Обновляем ссылку для ручного перехода
+              manualLinkElement.href = getBaseUrl() + '/client';
+              
+              // Функция обратного отсчета
+              function updateCountdown() {
+                countdownElement.textContent = countdown;
+                if (countdown <= 0) {
+                  redirect();
+                } else {
+                  countdown--;
+                  setTimeout(updateCountdown, 1000);
+                }
+              }
+              
+              // Проверяем Vite dev server
+              checkViteServer().then(isViteServerRunning => {
+                if (isViteServerRunning) {
+                  statusElement.textContent = 'Vite dev server обнаружен, переадресация...';
+                  setTimeout(redirect, 500);
+                } else {
+                  statusElement.textContent = 'Не удалось обнаружить Vite dev server. Пожалуйста, перейдите вручную.';
+                  updateCountdown();
+                }
+              });
+            </script>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      return res.send(redirectHTML);
     } else {
-      // Если файла нигде нет, отправляем ошибку
-      console.log(`[Root Route] Файл index.html не найден! Проверенные пути:`, possiblePaths);
-      res.status(500).send('App initialization error: index.html not found');
+      // В production режиме ищем готовую сборку
+      // Определяем возможные пути к index.html в разных режимах работы
+      const possiblePaths = [
+        path.join(projectRoot, 'client', 'dist', 'index.html'), // собранная версия клиента
+        path.join(projectRoot, 'dist', 'public', 'index.html'), // альтернативный путь
+        path.join(projectRoot, 'dist', 'index.html'),          // еще один альтернативный путь
+        path.join(projectRoot, 'client', 'index.html'),        // исходный файл клиента
+        path.join(projectRoot, 'client', 'public', 'index.html'), // публичная версия клиента
+        path.join(projectRoot, 'server', 'public', 'index.html'), // серверная публичная версия
+      ];
+      
+      // Ищем существующий файл среди возможных путей
+      const existingPath = possiblePaths.find(p => fs.existsSync(p));
+      
+      if (existingPath) {
+        // Отправляем найденный index.html
+        console.log(`[Root Route] Используем файл: ${existingPath}`);
+        // Добавляем заголовки против кеширования
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+        res.sendFile(existingPath);
+      } else {
+        // Если файла нигде нет, отправляем ошибку
+        console.log(`[Root Route] Файл index.html не найден! Проверенные пути:`, possiblePaths);
+        res.status(500).send('App initialization error: index.html not found');
+      }
     }
   });
 
@@ -260,6 +402,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/test-json", (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).send(JSON.stringify({ status: "ok", message: "API работает" }));
+  });
+  
+  // Специальный маршрут для клиентского приложения в режиме разработки
+  app.get("/client", (req, res) => {
+    console.log('[Client Route] Запрос к клиентскому маршруту /client');
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Client Route] Режим разработки, отправляем заглушку для Vite client');
+      
+      // Добавляем заголовки против кеширования
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+      
+      // Создаем базовую HTML страницу с автоматической загрузкой Vite клиента
+      const clientHTML = `
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>UniFarm - Development Mode</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+              margin: 0;
+              padding: 0;
+              background-color: #f0f2f5;
+              display: flex;
+              flex-direction: column;
+              min-height: 100vh;
+            }
+            #app {
+              flex-grow: 1;
+              display: flex;
+              flex-direction: column;
+            }
+            .loading {
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              text-align: center;
+              color: #333;
+            }
+            .spinner {
+              border: 4px solid rgba(0, 0, 0, 0.1);
+              border-radius: 50%;
+              border-top: 4px solid #3498db;
+              width: 40px;
+              height: 40px;
+              animation: spin 1s linear infinite;
+              margin-bottom: 20px;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+        </head>
+        <body>
+          <div id="app">
+            <div class="loading">
+              <div class="spinner"></div>
+              <h2>Загрузка UniFarm...</h2>
+              <p>Идет обработка исходного кода через Vite</p>
+            </div>
+          </div>
+          
+          <script type="module">
+            // Импортируем Vite клиентские скрипты для разработки
+            import '/@vite/client'
+            
+            // Затем импортируем основной скрипт приложения
+            import { createApp } from '/src/main'
+            
+            // Создаем и монтируем приложение
+            const app = createApp()
+            app.mount('#app')
+            
+            // Если возникла ошибка, показываем её
+            window.addEventListener('error', (event) => {
+              const errorDiv = document.createElement('div')
+              errorDiv.style.backgroundColor = '#FFF0F0'
+              errorDiv.style.color = '#DC3545'
+              errorDiv.style.padding = '20px'
+              errorDiv.style.margin = '20px'
+              errorDiv.style.borderRadius = '5px'
+              errorDiv.style.border = '1px solid #DC3545'
+              errorDiv.style.fontFamily = 'monospace'
+              errorDiv.style.whiteSpace = 'pre-wrap'
+              errorDiv.style.overflow = 'auto'
+              errorDiv.style.maxHeight = '60vh'
+              
+              errorDiv.innerHTML = \`<h3>Ошибка загрузки приложения:</h3>
+              <p>\${event.error ? event.error.message : event.message}</p>
+              <details>
+                <summary>Подробности</summary>
+                <code>\${event.error ? event.error.stack : 'Stack trace not available'}</code>
+              </details>\`
+              
+              document.querySelector('.loading').replaceWith(errorDiv)
+            })
+          </script>
+        </body>
+        </html>
+      `;
+      
+      return res.send(clientHTML);
+    } else {
+      // В production режиме перенаправляем на корневой URL
+      console.log('[Client Route] Режим production, перенаправляем на / (корневой URL)');
+      return res.redirect('/');
+    }
   });
   
   // Диагностический эндпоинт для отладки Telegram данных
@@ -1513,20 +1771,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
   
+  // Обработчик для всех остальных маршрутов - перенаправляем на React SPA
+  // Важно: этот обработчик должен быть определен ПОСЛЕ всех API-маршрутов
   app.get(/^\/(?!api\/).*$/, (req: Request, res: Response, next: NextFunction) => {
-    // Проверка на наличие параметров Telegram WebApp в URL
-    const hasTelegramParams = req.query.tgWebAppStartParam || 
-                              req.query.tgWebAppData || 
-                              req.query.tgWebAppVersion;
-                              
-    // Логирование для отладки
-    if (hasTelegramParams) {
-      console.log('[TelegramWebApp] Обнаружены параметры в URL:', req.url);
+    try {
+      // Добавляем заголовки против кеширования
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+      
+      // Проверка на наличие параметров Telegram WebApp в URL
+      const hasTelegramParams = req.query.tgWebAppStartParam || 
+                                req.query.tgWebAppData || 
+                                req.query.tgWebAppVersion;
+                                
+      // Логирование для отладки
+      if (hasTelegramParams) {
+        console.log('[TelegramWebApp] Обнаружены параметры в URL:', req.url);
+      }
+      
+      // В режиме разработки отправляем на клиентский маршрут
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[SPA] Режим разработки, перенаправляем запрос ${req.path} на клиентский маршрут`);
+        
+        // Для source-map и модулей проксируем на Vite
+        if (req.path.startsWith('/src/') || req.path.startsWith('/@') || req.path.includes('.map')) {
+          console.log(`[SPA] Vite dev path: ${req.path}`);
+          next();
+          return;
+        }
+        
+        // Для других маршрутов отправляем на /client
+        console.log(`[SPA] Перенаправляем на клиентский маршрут: ${req.path} -> /client`);
+        return res.redirect('/client');
+      }
+      
+      // В production находим готовый index.html
+      const indexPath = path.join(projectRoot, 'dist', 'public', 'index.html');
+      if (fs.existsSync(indexPath)) {
+        return res.sendFile(indexPath);
+      }
+      
+      // Если нет файла, передаем управление дальше
+      next();
+    } catch (error) {
+      console.error(`[SPA] Ошибка при обработке маршрута ${req.path}:`, error);
+      res.status(500).send('Internal Server Error');
     }
-    
-    // Передать управление следующему middleware (в продакшне - будет serveStatic, 
-    // в разработке - будет vite middleware из setupVite)
-    next();
   });
 
   // Регистрируем маршруты для управления партициями таблиц
