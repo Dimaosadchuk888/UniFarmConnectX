@@ -89,6 +89,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Добавляем Content-Security-Policy для работы в Telegram
     res.header("Content-Security-Policy", "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'");
     
+    // Добавляем заголовки для предотвращения кеширования
+    res.header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.header("Pragma", "no-cache");
+    res.header("Expires", "0");
+    res.header("Surrogate-Control", "no-store");
+    
     next();
   };
   app.use(corsMiddleware);
@@ -133,11 +139,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     path.join(projectRoot, 'dist', 'public'), // Режим production после сборки
   ];
   
+  // Опции для express.static с отключенным кешированием
+  const staticOptions = {
+    etag: false, // Отключаем ETag
+    lastModified: false, // Отключаем Last-Modified
+    maxAge: 0, // Устанавливаем максимальное время кеширования в 0
+    setHeaders: (res: Response) => {
+      // Устанавливаем заголовки для предотвращения кеширования
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+    }
+  };
+  
   // Проверяем наличие каждой папки и подключаем только существующие
   staticPaths.forEach(staticPath => {
     if (fs.existsSync(staticPath)) {
-      app.use(express.static(staticPath));
-      console.log(`[Server] Статические файлы доступны из: ${staticPath}`);
+      app.use(express.static(staticPath, staticOptions));
+      console.log(`[Server] Статические файлы доступны из: ${staticPath} (кеширование отключено)`);
     }
   });
   
