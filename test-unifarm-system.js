@@ -3,10 +3,10 @@
  * Данный скрипт выполняет проверку всех компонентов UniFarm без изменения постоянных данных
  */
 
-const fetch = require('node-fetch');
-const { Pool } = require('pg');
-const WebSocket = require('ws');
-const fs = require('fs');
+import fetch from 'node-fetch';
+import { Pool } from 'pg';
+import WebSocket from 'ws';
+import fs from 'fs';
 
 // Базовый URL API (используем текущий домен из окружения)
 const API_BASE = process.env.API_BASE || 'https://93cb0060-75d7-4281-ac65-b204cda864a4-00-1j7bpbfst9vfx.pike.replit.dev/api';
@@ -60,6 +60,23 @@ async function callApi(endpoint, method = 'GET', body = null) {
   try {
     log(`Запрос ${method} ${url}`);
     const response = await fetch(url, options);
+    
+    // Проверяем тип контента
+    const contentType = response.headers.get('content-type') || '';
+    
+    // Если это не JSON или статус не успешный, возвращаем текст ошибки
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+      log(`Получен не JSON ответ: ${text.substring(0, 100)}...`, 'warning');
+      return { 
+        status: response.status, 
+        ok: false, 
+        error: {
+          message: `Неправильный формат ответа: ${contentType}. Ожидался JSON.`
+        }
+      };
+    }
+    
     const data = await response.json();
     return { 
       status: response.status, 
@@ -71,7 +88,9 @@ async function callApi(endpoint, method = 'GET', body = null) {
     return { 
       status: 500, 
       ok: false, 
-      error: error.message 
+      error: {
+        message: error.message
+      }
     };
   }
 }
@@ -171,10 +190,11 @@ async function testSessionRestore() {
         userData: response.data.data
       };
     } else {
-      log(`Ошибка восстановления сессии: ${response.data.error?.message || 'Неизвестная ошибка'}`, 'error');
+      const errorMessage = response.error?.message || response.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка восстановления сессии: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: response.data.error?.message || 'Неизвестная ошибка' 
+        error: errorMessage 
       };
     }
   } catch (error) {
@@ -195,10 +215,11 @@ async function testBalanceFetching(userId) {
     const normalResponse = await callApi(`/wallet/balance?user_id=${userId}`);
     
     if (!normalResponse.ok) {
-      log(`Ошибка получения баланса: ${normalResponse.data.error?.message || 'Неизвестная ошибка'}`, 'error');
+      const errorMessage = normalResponse.error?.message || normalResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения баланса: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: normalResponse.data.error?.message || 'Неизвестная ошибка' 
+        error: errorMessage 
       };
     }
     
@@ -255,10 +276,11 @@ async function testBalanceForceRefresh(userId) {
     const forceResponse = await callApi(`/wallet/balance?user_id=${userId}&forceRefresh=true`);
     
     if (!forceResponse.ok) {
-      log(`Ошибка при форсированном обновлении баланса: ${forceResponse.data.error?.message || 'Неизвестная ошибка'}`, 'error');
+      const errorMessage = forceResponse.error?.message || forceResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка при форсированном обновлении баланса: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: forceResponse.data.error?.message || 'Неизвестная ошибка' 
+        error: errorMessage 
       };
     }
     
@@ -286,10 +308,11 @@ async function testFarming(userId) {
     const farmingResponse = await callApi(`/uni-farming/status?user_id=${userId}`);
     
     if (!farmingResponse.ok) {
-      log(`Ошибка получения статуса фарминга: ${farmingResponse.data.error?.message || 'Неизвестная ошибка'}`, 'error');
+      const errorMessage = farmingResponse.error?.message || farmingResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения статуса фарминга: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: farmingResponse.data.error?.message || 'Неизвестная ошибка' 
+        error: errorMessage 
       };
     }
     
@@ -300,7 +323,8 @@ async function testFarming(userId) {
     const depositsResponse = await callApi(`/uni-farming/deposits?user_id=${userId}`);
     
     if (!depositsResponse.ok) {
-      log(`Ошибка получения депозитов: ${depositsResponse.data.error?.message || 'Неизвестная ошибка'}`, 'warning');
+      const errorMessage = depositsResponse.error?.message || depositsResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения депозитов: ${errorMessage}`, 'warning');
     } else {
       log(`Получено ${depositsResponse.data.data?.length || 0} депозитов`, 'success');
     }
@@ -309,7 +333,8 @@ async function testFarming(userId) {
     const historyResponse = await callApi(`/uni-farming/history?user_id=${userId}`);
     
     if (!historyResponse.ok) {
-      log(`Ошибка получения истории фарминга: ${historyResponse.data.error?.message || 'Неизвестная ошибка'}`, 'warning');
+      const errorMessage = historyResponse.error?.message || historyResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения истории фарминга: ${errorMessage}`, 'warning');
     } else {
       log(`Получено ${historyResponse.data.data?.length || 0} записей истории фарминга`, 'success');
     }
