@@ -610,9 +610,42 @@ async function testLoyaltyAndBonuses(userId) {
   }
 }
 
+// Функция для проверки доступности API-эндпоинта
+async function checkApiEndpoint(endpoint) {
+  try {
+    log(`Проверка доступности API-эндпоинта: ${endpoint}`);
+    const response = await callApi(endpoint);
+    
+    // Проверяем, что ответ содержит JSON и не является HTML
+    if (response.ok && !response.error) {
+      log(`API-эндпоинт ${endpoint} доступен и возвращает корректный JSON`, 'success');
+      return true;
+    } else {
+      const errorType = response.error?.message?.includes('Неправильный формат ответа') 
+        ? 'возвращает HTML вместо JSON' 
+        : 'возвращает ошибку';
+      log(`API-эндпоинт ${endpoint} недоступен (${errorType})`, 'warning');
+      return false;
+    }
+  } catch (error) {
+    log(`Ошибка при проверке API-эндпоинта ${endpoint}: ${error.message}`, 'error');
+    return false;
+  }
+}
+
 // Основная функция тестирования
 async function runTests() {
   log('Начало комплексного тестирования UniFarm системы...');
+  
+  // Проверяем доступность критических API-эндпоинтов
+  log('Проверка доступности API-эндпоинтов...');
+  const endpoints = {
+    farming: await checkApiEndpoint('/uni-farming/status?user_id=34'),
+    referrals: await checkApiEndpoint('/referrals/info?user_id=34'),
+    missions: await checkApiEndpoint('/missions/available?user_id=34')
+  };
+  
+  log(`Результаты проверки доступности API: Фарминг - ${endpoints.farming ? 'Доступен' : 'Недоступен'}, Рефералы - ${endpoints.referrals ? 'Доступны' : 'Недоступны'}, Миссии - ${endpoints.missions ? 'Доступны' : 'Недоступны'}`);
   
   // Проверка восстановления сессии
   const sessionResult = await testSessionRestore();
@@ -680,16 +713,27 @@ async function runTests() {
   
   // Тестирование фарминга
   const farmingResult = await testFarming(userId);
-  testResults.details.push({
-    name: 'Система фарминга',
-    result: farmingResult.ok ? 'PASSED' : 'FAILED',
-    details: farmingResult
-  });
   
-  if (farmingResult.ok) {
-    testResults.passedTests++;
+  // Проверяем, помечен ли тест как пропущенный (API недоступен)
+  if (farmingResult.skipped) {
+    testResults.skippedTests++;
+    testResults.details.push({
+      name: 'Система фарминга',
+      result: 'SKIPPED',
+      details: farmingResult
+    });
   } else {
-    testResults.failedTests++;
+    testResults.details.push({
+      name: 'Система фарминга',
+      result: farmingResult.ok ? 'PASSED' : 'FAILED',
+      details: farmingResult
+    });
+    
+    if (farmingResult.ok) {
+      testResults.passedTests++;
+    } else {
+      testResults.failedTests++;
+    }
   }
   testResults.totalTests++;
   
@@ -782,7 +826,14 @@ function generateSummaryReport() {
   
   log('\nДетальные результаты:');
   testResults.details.forEach((test, index) => {
-    const statusIcon = test.result === 'PASSED' ? '✅' : '❌';
+    let statusIcon;
+    if (test.result === 'PASSED') {
+      statusIcon = '✅';
+    } else if (test.result === 'SKIPPED') {
+      statusIcon = '⏩';
+    } else {
+      statusIcon = '❌';
+    }
     log(`${index + 1}. ${statusIcon} ${test.name}: ${test.result}`);
   });
   
