@@ -497,33 +497,43 @@ async function testReferralSystem(userId) {
   try {
     log(`Тестирование реферальной системы для пользователя ${userId}...`);
     
-    // Проверка доступности API рефералов
-    const apiStatus = await checkApiEndpoint(`/referrals/info?user_id=${userId}`);
-    if (!apiStatus) {
-      log('API реферальной системы недоступен, пропускаем тест', 'skip');
-      return { 
-        ok: false, 
-        skipped: true,
-        error: 'API реферальной системы недоступен (возвращает HTML вместо JSON)'
-      };
+    // Проверка доступности API рефералов, включая альтернативные маршруты
+    const apiStatusResult = await checkApiEndpoint(`/referrals/info?user_id=${userId}`);
+    
+    if (!apiStatusResult.available) {
+      log(`API реферальной системы недоступен: ${apiStatusResult.error}. Тест будет выполнен с использованием альтернативных эндпоинтов.`, 'warning');
+      // Не пропускаем тест, а продолжаем с использованием альтернативных маршрутов
     }
     
+    // Определяем эндпоинт для информации о рефералах
+    const infoEndpoint = apiStatusResult.available ? apiStatusResult.endpoint : '/api/referrals';
+    log(`Используем эндпоинт для информации о рефералах: ${infoEndpoint}`, 'info');
+    
     // Получаем информацию о рефералах
-    const referralInfoResponse = await callApi(`/referrals/info?user_id=${userId}`);
+    const referralInfoResponse = await callApi(infoEndpoint + `?user_id=${userId}`);
     
     if (!referralInfoResponse.ok) {
       const errorMessage = referralInfoResponse.error?.message || referralInfoResponse.data?.error?.message || 'Неизвестная ошибка';
       log(`Ошибка получения информации о рефералах: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: errorMessage 
+        error: errorMessage,
+        endpoint: infoEndpoint,
+        response: referralInfoResponse
       };
     }
     
     log('Информация о рефералах успешно получена', 'success');
     
-    // Получаем реферальное дерево (если доступно)
-    const treeResponse = await callApi(`/referrals/tree?user_id=${userId}`);
+    // Определяем эндпоинт для реферального дерева
+    const treeEndpoint = apiStatusResult.available && !apiStatusResult.isAlternative 
+      ? `/referrals/tree?user_id=${userId}` 
+      : `/api/referrals/tree?user_id=${userId}`;
+    
+    log(`Используем эндпоинт для реферального дерева: ${treeEndpoint}`, 'info');
+    
+    // Получаем реферальное дерево
+    const treeResponse = await callApi(treeEndpoint);
     
     if (!treeResponse.ok) {
       const errorMessage = treeResponse.error?.message || treeResponse.data?.error?.message || 'Неизвестная ошибка';
@@ -532,24 +542,39 @@ async function testReferralSystem(userId) {
       log('Реферальное дерево успешно получено', 'success');
     }
     
-    // Получаем статистику рефералов по уровням
-    const levelsResponse = await callApi(`/referrals/levels?user_id=${userId}`);
+    // Определяем эндпоинт для статистики рефералов
+    const statsEndpoint = apiStatusResult.available && !apiStatusResult.isAlternative 
+      ? `/referrals/stats?user_id=${userId}` 
+      : `/api/referrals/stats?user_id=${userId}`;
+      
+    log(`Используем эндпоинт для статистики рефералов: ${statsEndpoint}`, 'info');
     
-    if (!levelsResponse.ok) {
-      const errorMessage = levelsResponse.error?.message || levelsResponse.data?.error?.message || 'Неизвестная ошибка';
-      log(`Ошибка получения статистики по уровням: ${errorMessage}`, 'warning');
+    // Получаем статистику рефералов
+    const statsResponse = await callApi(statsEndpoint);
+    
+    if (!statsResponse.ok) {
+      const errorMessage = statsResponse.error?.message || statsResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения статистики рефералов: ${errorMessage}`, 'warning');
     } else {
-      log('Статистика по уровням успешно получена', 'success');
+      log('Статистика рефералов успешно получена', 'success');
       
-      // Проверяем 20 уровней реферальной системы
-      const levels = levelsResponse.data.data;
-      const maxLevel = Math.max(...levels.map(level => level.level));
-      
-      log(`Максимальный обнаруженный уровень: ${maxLevel}`, 'info');
-      if (maxLevel >= 20) {
-        log('Система поддерживает 20 уровней рефералов', 'success');
-      } else {
-        log(`Система поддерживает только ${maxLevel} уровней рефералов`, 'warning');
+      // Анализируем уровни рефералов, если данные доступны
+      if (statsResponse.data && statsResponse.data.data && Array.isArray(statsResponse.data.data)) {
+        const referralStats = statsResponse.data.data;
+        
+        // Проверяем наличие уровней в статистике
+        if (referralStats.length > 0 && referralStats[0].level !== undefined) {
+          const maxLevel = Math.max(...referralStats.map(stat => stat.level));
+          log(`Максимальный обнаруженный уровень: ${maxLevel}`, 'info');
+          
+          if (maxLevel >= 20) {
+            log('Система поддерживает 20 уровней рефералов', 'success');
+          } else {
+            log(`Система поддерживает только ${maxLevel} уровней рефералов`, 'warning');
+          }
+        } else {
+          log('Информация об уровнях рефералов не найдена в ответе API', 'warning');
+        }
       }
     }
     
@@ -557,7 +582,12 @@ async function testReferralSystem(userId) {
       ok: true, 
       referralInfo: referralInfoResponse.data.data,
       tree: treeResponse.ok ? treeResponse.data.data : null,
-      levels: levelsResponse.ok ? levelsResponse.data.data : null
+      stats: statsResponse.ok ? statsResponse.data.data : null,
+      endpoints: {
+        info: infoEndpoint,
+        tree: treeEndpoint,
+        stats: statsEndpoint
+      }
     };
   } catch (error) {
     log(`Исключение при проверке реферальной системы: ${error.message}`, 'error');
@@ -573,45 +603,96 @@ async function testMissions(userId) {
   try {
     log(`Тестирование системы миссий для пользователя ${userId}...`);
     
-    // Проверка доступности API миссий
-    const apiStatus = await checkApiEndpoint(`/missions/available?user_id=${userId}`);
-    if (!apiStatus) {
-      log('API системы миссий недоступен, пропускаем тест', 'skip');
-      return { 
-        ok: false, 
-        skipped: true,
-        error: 'API системы миссий недоступен (возвращает HTML вместо JSON)'
-      };
+    // Проверка доступности API миссий, включая альтернативные маршруты
+    const apiStatusResult = await checkApiEndpoint(`/missions/available?user_id=${userId}`);
+    
+    if (!apiStatusResult.available) {
+      log(`API системы миссий недоступен: ${apiStatusResult.error}. Тест будет выполнен с использованием альтернативных эндпоинтов.`, 'warning');
+      // Не пропускаем тест, а продолжаем с использованием альтернативных маршрутов
     }
     
-    // Получаем доступные миссии
-    const missionsResponse = await callApi(`/missions/available?user_id=${userId}`);
+    // Определяем эндпоинт для получения активных миссий
+    const activeMissionsEndpoint = apiStatusResult.available ? apiStatusResult.endpoint : '/api/missions/active';
+    log(`Используем эндпоинт для получения миссий: ${activeMissionsEndpoint}`, 'info');
+    
+    // Получаем активные миссии
+    const missionsResponse = await callApi(activeMissionsEndpoint + `?user_id=${userId}`);
     
     if (!missionsResponse.ok) {
       const errorMessage = missionsResponse.error?.message || missionsResponse.data?.error?.message || 'Неизвестная ошибка';
-      log(`Ошибка получения доступных миссий: ${errorMessage}`, 'error');
+      log(`Ошибка получения миссий: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: errorMessage 
+        error: errorMessage,
+        endpoint: activeMissionsEndpoint,
+        response: missionsResponse
       };
     }
     
-    log(`Получено ${missionsResponse.data.data?.length || 0} доступных миссий`, 'success');
+    log(`Получено ${missionsResponse.data.data?.length || 0} активных миссий`, 'success');
     
-    // Получаем выполненные миссии
-    const completedResponse = await callApi(`/missions/completed?user_id=${userId}`);
+    // Определяем эндпоинт для проверки миссий с информацией о выполнении
+    const withCompletionEndpoint = apiStatusResult.available && !apiStatusResult.isAlternative 
+      ? `/missions/with-completion?user_id=${userId}` 
+      : `/api/missions/with-completion?user_id=${userId}`;
     
-    if (!completedResponse.ok) {
-      const errorMessage = completedResponse.error?.message || completedResponse.data?.error?.message || 'Неизвестная ошибка';
-      log(`Ошибка получения выполненных миссий: ${errorMessage}`, 'warning');
+    log(`Используем эндпоинт для миссий с информацией о выполнении: ${withCompletionEndpoint}`, 'info');
+    
+    // Получаем миссии с информацией о выполнении
+    const withCompletionResponse = await callApi(withCompletionEndpoint);
+    
+    // Если альтернативный эндпоинт также недоступен, попробуем endpoint user_missions
+    let userMissionsResponse = { ok: false };
+    if (!withCompletionResponse.ok) {
+      const errorMessage = withCompletionResponse.error?.message || withCompletionResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения миссий с информацией о выполнении: ${errorMessage}. Пробуем альтернативный эндпоинт.`, 'warning');
+      
+      const userMissionsEndpoint = `/api/user_missions?user_id=${userId}`;
+      log(`Используем альтернативный эндпоинт: ${userMissionsEndpoint}`, 'info');
+      userMissionsResponse = await callApi(userMissionsEndpoint);
+      
+      if (!userMissionsResponse.ok) {
+        const errorMsg = userMissionsResponse.error?.message || userMissionsResponse.data?.error?.message || 'Неизвестная ошибка';
+        log(`Ошибка получения пользовательских миссий: ${errorMsg}`, 'warning');
+      } else {
+        log(`Получено ${userMissionsResponse.data.data?.length || 0} пользовательских миссий`, 'success');
+      }
     } else {
-      log(`Получено ${completedResponse.data.data?.length || 0} выполненных миссий`, 'success');
+      log(`Получено ${withCompletionResponse.data.data?.length || 0} миссий с информацией о выполнении`, 'success');
+    }
+    
+    // Создаем список для проверки одиночных миссий по ID
+    const missionToCheck = (missionsResponse.data.data && missionsResponse.data.data.length > 0) 
+      ? missionsResponse.data.data[0] 
+      : null;
+      
+    let singleMissionResponse = { ok: false };
+    if (missionToCheck && missionToCheck.id) {
+      const singleMissionEndpoint = `/api/missions/check/${userId}/${missionToCheck.id}`;
+      log(`Проверяем получение информации об отдельной миссии: ${singleMissionEndpoint}`, 'info');
+      
+      singleMissionResponse = await callApi(singleMissionEndpoint);
+      
+      if (!singleMissionResponse.ok) {
+        const errorMessage = singleMissionResponse.error?.message || singleMissionResponse.data?.error?.message || 'Неизвестная ошибка';
+        log(`Ошибка получения информации об отдельной миссии: ${errorMessage}`, 'warning');
+      } else {
+        log(`Информация о миссии #${missionToCheck.id} успешно получена`, 'success');
+      }
     }
     
     return { 
-      ok: true, 
-      availableMissions: missionsResponse.data.data,
-      completedMissions: completedResponse.ok ? completedResponse.data.data : null
+      ok: true,
+      missions: missionsResponse.data.data,
+      withCompletion: withCompletionResponse.ok ? withCompletionResponse.data.data : null,
+      userMissions: userMissionsResponse.ok ? userMissionsResponse.data.data : null,
+      singleMission: singleMissionResponse.ok ? singleMissionResponse.data.data : null,
+      endpoints: {
+        active: activeMissionsEndpoint,
+        withCompletion: withCompletionEndpoint,
+        userMissions: userMissionsResponse.ok ? `/api/user_missions` : null,
+        singleMission: singleMissionResponse.ok ? `/api/missions/check` : null
+      }
     };
   } catch (error) {
     log(`Исключение при проверке системы миссий: ${error.message}`, 'error');
@@ -822,26 +903,17 @@ async function runTests() {
   // Тестирование фарминга
   const farmingResult = await testFarming(userId);
   
-  // Проверяем, помечен ли тест как пропущенный (API недоступен)
-  if (farmingResult.skipped) {
-    testResults.skippedTests++;
-    testResults.details.push({
-      name: 'Система фарминга',
-      result: 'SKIPPED',
-      details: farmingResult
-    });
+  // Больше не делаем пропуск теста, а получаем реальный результат
+  testResults.details.push({
+    name: 'Система фарминга',
+    result: farmingResult.ok ? 'PASSED' : 'FAILED',
+    details: farmingResult
+  });
+  
+  if (farmingResult.ok) {
+    testResults.passedTests++;
   } else {
-    testResults.details.push({
-      name: 'Система фарминга',
-      result: farmingResult.ok ? 'PASSED' : 'FAILED',
-      details: farmingResult
-    });
-    
-    if (farmingResult.ok) {
-      testResults.passedTests++;
-    } else {
-      testResults.failedTests++;
-    }
+    testResults.failedTests++;
   }
   testResults.totalTests++;
   
@@ -878,52 +950,34 @@ async function runTests() {
   // Тестирование реферальной системы
   const referralResult = await testReferralSystem(userId);
   
-  // Проверяем, помечен ли тест как пропущенный (API недоступен)
-  if (referralResult.skipped) {
-    testResults.skippedTests++;
-    testResults.details.push({
-      name: 'Реферальная система',
-      result: 'SKIPPED',
-      details: referralResult
-    });
+  // Больше не делаем пропуск теста, а получаем реальный результат
+  testResults.details.push({
+    name: 'Реферальная система',
+    result: referralResult.ok ? 'PASSED' : 'FAILED',
+    details: referralResult
+  });
+  
+  if (referralResult.ok) {
+    testResults.passedTests++;
   } else {
-    testResults.details.push({
-      name: 'Реферальная система',
-      result: referralResult.ok ? 'PASSED' : 'FAILED',
-      details: referralResult
-    });
-    
-    if (referralResult.ok) {
-      testResults.passedTests++;
-    } else {
-      testResults.failedTests++;
-    }
+    testResults.failedTests++;
   }
   testResults.totalTests++;
   
   // Тестирование миссий
   const missionsResult = await testMissions(userId);
   
-  // Проверяем, помечен ли тест как пропущенный (API недоступен)
-  if (missionsResult.skipped) {
-    testResults.skippedTests++;
-    testResults.details.push({
-      name: 'Система миссий',
-      result: 'SKIPPED',
-      details: missionsResult
-    });
+  // Больше не делаем пропуск теста, а получаем реальный результат
+  testResults.details.push({
+    name: 'Система миссий',
+    result: missionsResult.ok ? 'PASSED' : 'FAILED',
+    details: missionsResult
+  });
+  
+  if (missionsResult.ok) {
+    testResults.passedTests++;
   } else {
-    testResults.details.push({
-      name: 'Система миссий',
-      result: missionsResult.ok ? 'PASSED' : 'FAILED',
-      details: missionsResult
-    });
-    
-    if (missionsResult.ok) {
-      testResults.passedTests++;
-    } else {
-      testResults.failedTests++;
-    }
+    testResults.failedTests++;
   }
   testResults.totalTests++;
   

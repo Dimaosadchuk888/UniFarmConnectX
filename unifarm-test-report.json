@@ -1,8 +1,8 @@
 {
   "totalTests": 10,
   "passedTests": 7,
-  "failedTests": 0,
-  "skippedTests": 3,
+  "failedTests": 3,
+  "skippedTests": 0,
   "details": [
     {
       "name": "Восстановление сессии",
@@ -70,11 +70,18 @@
     },
     {
       "name": "Система фарминга",
-      "result": "SKIPPED",
+      "result": "FAILED",
       "details": {
         "ok": false,
-        "skipped": true,
-        "error": "API фарминга недоступен (возвращает HTML вместо JSON)"
+        "error": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON.",
+        "endpoint": "/api/uni-farming/info",
+        "response": {
+          "status": 200,
+          "ok": false,
+          "error": {
+            "message": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON."
+          }
+        }
       }
     },
     {
@@ -148,20 +155,34 @@
     },
     {
       "name": "Реферальная система",
-      "result": "SKIPPED",
+      "result": "FAILED",
       "details": {
         "ok": false,
-        "skipped": true,
-        "error": "API реферальной системы недоступен (возвращает HTML вместо JSON)"
+        "error": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON.",
+        "endpoint": "/api/referrals",
+        "response": {
+          "status": 200,
+          "ok": false,
+          "error": {
+            "message": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON."
+          }
+        }
       }
     },
     {
       "name": "Система миссий",
-      "result": "SKIPPED",
+      "result": "FAILED",
       "details": {
         "ok": false,
-        "skipped": true,
-        "error": "API системы миссий недоступен (возвращает HTML вместо JSON)"
+        "error": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON.",
+        "endpoint": "/api/missions/active",
+        "response": {
+          "status": 200,
+          "ok": false,
+          "error": {
+            "message": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON."
+          }
+        }
       }
     },
     {
