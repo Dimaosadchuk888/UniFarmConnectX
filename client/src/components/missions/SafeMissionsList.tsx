@@ -175,15 +175,15 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
               <Badge className={isCompletedMission ? 'bg-teal-500/70' : 'bg-blue-500'}>
                 <span className="flex items-center">
                   {isCompletedMission ? (
-                    <React.Fragment>
+                    <>
                       <CheckCircle className="h-4 w-4 mr-1" />
                       Выполнено
-                    </React.Fragment>
+                    </>
                   ) : (
-                    <React.Fragment>
+                    <>
                       <AlertCircle className="h-4 w-4 mr-1" />
                       Доступно
-                    </React.Fragment>
+                    </>
                   )}
                 </span>
               </Badge>
