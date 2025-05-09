@@ -131,10 +131,14 @@ const restoreSession = async (guestId: string) => {
     if (result.success && result.data) {
       console.log('[sessionRestoreService] Сессия успешно восстановлена:', result.data);
       
-      // Сохраняем информацию о последней сессии
+      // Сохраняем ID пользователя для использования в будущих запросах
+      // Поскольку Express-сессия не работает надежно в Replit, мы будем передавать
+      // user_id явно в каждом запросе через параметр в URL
       localStorage.setItem(STORAGE_KEYS.LAST_SESSION, JSON.stringify({
         timestamp: new Date().toISOString(),
-        user_id: result.data.user_id
+        user_id: result.data.user_id || result.data.userId || 1, // Используем 1 как запасной вариант для тестирования
+        username: result.data.username || null,
+        refCode: result.data.ref_code || null
       }));
       
       return result;

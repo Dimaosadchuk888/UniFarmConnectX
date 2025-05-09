@@ -53,6 +53,26 @@ export async function correctApiRequest<T = any>(
         console.warn(`[correctApiRequest] [${requestId}] Не удалось получить host из window.location`);
       }
       
+      // Получаем userId из localStorage чтобы передать его в запросах
+      const lastSessionStr = localStorage.getItem('unifarm_last_session');
+      let userId = null;
+      if (lastSessionStr) {
+        try {
+          const lastSession = JSON.parse(lastSessionStr);
+          userId = lastSession.user_id;
+        } catch (e) {
+          console.warn(`[correctApiRequest] [${requestId}] Ошибка при извлечении userId из localStorage:`, e);
+        }
+      }
+      
+      // Добавляем userId ко всем запросам кроме /session и если это не GET с уже имеющимся user_id
+      if (userId && !endpoint.includes('/session') && 
+          !(method === 'GET' && endpoint.includes('user_id='))) {
+        const separator = endpoint.includes('?') ? '&' : '?';
+        endpoint = `${endpoint}${separator}user_id=${userId}`;
+        console.log(`[correctApiRequest] [${requestId}] Добавлен user_id=${userId} к запросу`);
+      }
+      
       fullUrl = `${protocol}//${host}${endpoint}`;
       console.log(`[correctApiRequest] [${requestId}] Отправка ${method} запроса на ${fullUrl}`);
     } catch (urlError) {
