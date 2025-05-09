@@ -268,22 +268,63 @@ export const queryClient = new QueryClient({
  * invalidateQueryWithUserId('/api/uni-farming/info')
  * вместо
  * queryClient.invalidateQueries({ queryKey: ['/api/uni-farming/info'] })
+ * 
+ * Улучшенная версия с поддержкой обновления нескольких ключей и защитой от кеширования.
  */
-export function invalidateQueryWithUserId(endpoint: string): Promise<void> {
+export function invalidateQueryWithUserId(endpoint: string, additionalEndpoints: string[] = []): Promise<void> {
+  // Создаем массив всех endpoint для обновления
+  const allEndpoints = [endpoint, ...additionalEndpoints];
+  
+  // Добавляем базовые конечные точки, которые всегда нужно обновлять при изменении состояния
+  const criticalEndpoints = ['/api/me', '/api/wallet/balance'];
+  for (const criticalEndpoint of criticalEndpoints) {
+    if (!allEndpoints.includes(criticalEndpoint)) {
+      allEndpoints.push(criticalEndpoint);
+    }
+  }
+  
   try {
     // Пытаемся получить ID пользователя из localStorage
     const userData = localStorage.getItem('unifarm_user_data');
+    let userId = null;
+    
     if (userData) {
-      const userInfo = JSON.parse(userData);
-      if (userInfo && userInfo.id) {
-        console.log(`[queryClient] Обновляем кэш для ${endpoint} с user_id=${userInfo.id}`);
-        return queryClient.invalidateQueries({ queryKey: [endpoint, userInfo.id] });
+      try {
+        const userInfo = JSON.parse(userData);
+        if (userInfo && userInfo.id) {
+          userId = userInfo.id;
+        }
+      } catch (parseError) {
+        console.warn('[queryClient] Ошибка при парсинге данных пользователя:', parseError);
       }
     }
+    
+    // Массив промисов для обновления кеша всех эндпоинтов
+    const invalidationPromises = allEndpoints.map(endpointUrl => {
+      console.log(`[queryClient] Обновляем кэш для ${endpointUrl}${userId ? ` с user_id=${userId}` : ''}`);
+      
+      // Если у нас есть ID пользователя, обновляем оба варианта queryKey
+      if (userId) {
+        return Promise.all([
+          queryClient.invalidateQueries({ queryKey: [endpointUrl, userId] }),
+          queryClient.invalidateQueries({ queryKey: [endpointUrl] })
+        ]);
+      }
+      
+      // Иначе обновляем только базовый queryKey
+      return queryClient.invalidateQueries({ queryKey: [endpointUrl] });
+    });
+    
+    // Ждем завершения всех операций обновления кеша
+    return Promise.all(invalidationPromises).then(() => undefined);
   } catch (err) {
-    console.warn('[queryClient] Не удалось получить ID пользователя из localStorage:', err);
+    console.warn('[queryClient] Ошибка при обновлении кеша запросов:', err);
+    
+    // В случае ошибки обновляем все запросы без userId
+    return Promise.all(
+      allEndpoints.map(endpointUrl => 
+        queryClient.invalidateQueries({ queryKey: [endpointUrl] })
+      )
+    ).then(() => undefined);
   }
-  
-  // Если не удалось получить user_id, используем стандартный подход
-  return queryClient.invalidateQueries({ queryKey: [endpoint] });
 }

@@ -106,7 +106,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   } = useQuery<ApiResponse>({
     queryKey: ['/api/me'],
     retry: 3,
-    staleTime: 30000, // 30 секунд до устаревания данных
+    staleTime: 0, // Отключаем кеширование данных пользователя
   });
   
   // Запрос баланса
