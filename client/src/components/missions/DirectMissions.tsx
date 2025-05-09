@@ -10,7 +10,7 @@ import { AlertCircle, CheckCircle2, ChevronRight, Clock } from 'lucide-react';
  * Реализует ТЗ: "Настроить вызов именно на `/missions` и обеспечить корректную загрузку карточек"
  */
 export const DirectMissionsComponent: React.FC = () => {
-  console.log('DirectMissionsComponent: компонент отрисовывается (v6)');
+  console.log('DirectMissionsComponent: компонент отрисовывается (v7)');
   
   // Состояния для хранения данных
   const [missions, setMissions] = useState<any[]>([]);
@@ -29,6 +29,9 @@ export const DirectMissionsComponent: React.FC = () => {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'X-Development-Mode': 'true', // Для разработки
+            'X-Development-User-ID': '1', // Для авторизации в dev-режиме
           },
           credentials: 'include'
         });
@@ -59,7 +62,11 @@ export const DirectMissionsComponent: React.FC = () => {
           
           // Получаем статус миссий пользователя
           try {
-            const userMissionsResponse = await directFetch('/api/user_missions?user_id=29');
+            // Используем user_id из URL параметров или ID по умолчанию
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('user_id') || '29';
+            
+            const userMissionsResponse = await directFetch(`/api/user_missions?user_id=${userId}`);
             
             if (userMissionsResponse?.success && Array.isArray(userMissionsResponse.data)) {
               console.log('[DirectMissionsComponent] ✅ Статусы миссий загружены:', userMissionsResponse.data.length);
@@ -103,42 +110,34 @@ export const DirectMissionsComponent: React.FC = () => {
   // Отображение ошибки
   if (error) {
     return (
-      <Card className="w-full mb-4 bg-opacity-80 border border-red-500/30 bg-red-950/10">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center text-red-300">
-            <AlertCircle className="mr-2 h-5 w-5 text-red-400" />
-            Ошибка загрузки
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()}
-            className="w-full"
-          >
-            Попробовать снова
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="w-full mb-4 rounded-xl overflow-hidden border border-red-500/30 bg-red-950/10 p-4">
+        <div className="flex items-center mb-2">
+          <AlertCircle className="mr-2 h-5 w-5 text-red-400" />
+          <h3 className="text-lg font-semibold text-red-300">Ошибка загрузки</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">{error}</p>
+        <Button 
+          onClick={() => window.location.reload()}
+          className="w-full"
+        >
+          Попробовать снова
+        </Button>
+      </div>
     );
   }
   
   // Отображение сообщения при отсутствии миссий
   if (!missions || missions.length === 0) {
     return (
-      <Card className="w-full mb-4">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center">
-            <AlertCircle className="mr-2 h-5 w-5 text-yellow-400" />
-            Нет доступных миссий
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            В данный момент нет доступных миссий. Пожалуйста, проверьте позже.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="w-full mb-4 rounded-xl overflow-hidden border p-4">
+        <div className="flex items-center mb-2">
+          <AlertCircle className="mr-2 h-5 w-5 text-yellow-400" />
+          <h3 className="text-lg font-semibold">Нет доступных миссий</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          В данный момент нет доступных миссий. Пожалуйста, проверьте позже.
+        </p>
+      </div>
     );
   }
   
@@ -148,7 +147,7 @@ export const DirectMissionsComponent: React.FC = () => {
     return userMission?.status || 'not_started';
   };
   
-  // Функция для отображения иконки статуса
+  // Функция для рендеринга значка статуса
   const renderStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -162,65 +161,71 @@ export const DirectMissionsComponent: React.FC = () => {
   
   // Основной рендер карточек миссий
   return (
-    <div className="grid gap-4">
+    <>
       {missions.map((mission) => {
         const status = getMissionStatus(mission.id);
         
+        // Классы для разных состояний миссий
+        const cardClasses = `
+          w-full mb-4 rounded-xl overflow-hidden hover:shadow-md transition-all 
+          ${status === 'completed' ? 'border-green-500/50 bg-gradient-to-br from-green-950/20 to-transparent' : 
+           status === 'in_progress' ? 'border-amber-500/50 bg-gradient-to-br from-amber-950/20 to-transparent' : 
+           'border hover:border-primary/50'}
+        `;
+        
+        const statusText = 
+          status === 'completed' ? 'Выполнено' : 
+          status === 'in_progress' ? 'В процессе' : 
+          'Не начато';
+        
+        const buttonText = 
+          status === 'completed' ? 'Выполнено' : 
+          status === 'in_progress' ? 'Продолжить' : 
+          'Начать';
+        
+        const buttonVariant = status === 'completed' ? 'outline' : 'default';
+        
+        const difficultyText = 
+          mission.difficulty === 'easy' ? 'Легко' : 
+          mission.difficulty === 'medium' ? 'Средне' : 
+          mission.difficulty === 'hard' ? 'Сложно' : 
+          'Средне';
+        
         return (
-          <Card 
-            key={mission.id} 
-            className={`
-              hover:border-primary/50 transition-all 
-              ${status === 'completed' ? 'border-green-500/30 bg-green-950/10' : ''}
-              ${status === 'in_progress' ? 'border-amber-500/30 bg-amber-950/10' : ''}
-            `}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-start justify-between">
-                <span>{mission.title}</span>
+          <div key={mission.id} className={cardClasses}>
+            <div className="p-4">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-medium">{mission.title}</h3>
                 <span className="text-xl font-bold text-primary whitespace-nowrap">
                   {mission.reward} UNI
                 </span>
-              </CardTitle>
-              <CardDescription>{mission.description}</CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="flex items-center justify-between">
+              </div>
+              
+              <p className="text-sm text-gray-400 mb-4">{mission.description}</p>
+              
+              <div className="flex items-center justify-between mb-4">
                 <div className="text-sm text-muted-foreground">
-                  {status === 'completed' && 'Выполнено'}
-                  {status === 'in_progress' && 'В процессе'}
-                  {status === 'not_started' && 'Не начато'}
+                  {statusText}
                 </div>
                 
                 <div className="flex items-center gap-1 text-sm">
                   <span className="text-muted-foreground">Сложность:</span>
-                  <span className="font-medium">
-                    {mission.difficulty === 'easy' && 'Легко'}
-                    {mission.difficulty === 'medium' && 'Средне'}
-                    {mission.difficulty === 'hard' && 'Сложно'}
-                  </span>
+                  <span className="font-medium">{difficultyText}</span>
                 </div>
               </div>
-            </CardContent>
-            
-            <CardFooter>
+              
               <Button 
                 className="w-full justify-between" 
-                variant={status === 'completed' ? 'outline' : 'default'}
+                variant={buttonVariant as any}
                 disabled={status === 'completed'}
               >
-                <span>
-                  {status === 'completed' && 'Выполнено'}
-                  {status === 'in_progress' && 'Продолжить'}
-                  {status === 'not_started' && 'Начать'}
-                </span>
+                <span>{buttonText}</span>
                 {renderStatusIcon(status)}
               </Button>
-            </CardFooter>
-          </Card>
+            </div>
+          </div>
         );
       })}
-    </div>
+    </>
   );
 };

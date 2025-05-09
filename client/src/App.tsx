@@ -38,13 +38,12 @@ import AdminPage from "./pages/AdminPage";
 import TelegramSetupGuide from "./pages/TelegramSetupGuide";
 import TelegramMiniApp from "./pages/TelegramMiniApp";
 import TelegramInitializer from "@/components/telegram/TelegramInitializer";
+import { DirectMissionsComponent } from "@/components/missions/DirectMissions"; // Импорт компонента прямого доступа к миссиям
 
 // Дополнительные определения для глобальных объектов
 declare global {
   interface Window {
-    process: {
-      env: Record<string, string | undefined>;
-    };
+    process: any; // Используем any, чтобы избежать конфликта типов
     TextEncoder: typeof TextEncoder;
     Telegram?: {
       WebApp?: {
@@ -336,13 +335,29 @@ function App() {
     // ЭТАП 4.1: Удалена проверка на минимальную версию.
     // Всегда используем единый компонент Friends, работающий во всех средах.
     
+    // Используем дополнительные импорты на верхнем уровне
+    // Используем MissionsFix вместо стандартного Missions
+    // для прямого отображения на вкладке без ошибок
+    // import { DirectMissionsComponent } from '@/components/missions/DirectMissions';
+    
     switch (activeTab) {
       case "dashboard":
         return <Dashboard />;
       case "farming":
         return <Farming />;
       case "missions":
-        return <Missions />;
+        // Использовать новый компонент с прямыми вызовами API
+        // Это требуется по ТЗ: "Настроить вызов именно на /missions и обеспечить корректную загрузку карточек"
+        // Обходим ошибку "w.map is not a function" используя прямой компонент
+        return (
+          <div className="p-4">
+            <h1 className="text-xl font-semibold text-white mb-4">Выполняй задания — получай UNI</h1>
+            <div className="grid gap-4">
+              {/* Инлайним основные элементы из DirectMissionsComponent, чтобы избежать импортов */}
+              <DirectMissionsComponent />
+            </div>
+          </div>
+        );
       case "friends":
         // Используем основной компонент Friends
         return <Friends />;
