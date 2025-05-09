@@ -1,4 +1,5 @@
 import { fixRequestBody } from './apiFix';
+import sessionRestoreService from '../services/sessionRestoreService';
 
 /**
  * Улучшенная функция для выполнения API-запросов с надежной обработкой ошибок
@@ -171,6 +172,23 @@ export async function correctApiRequest<T = any>(
       // Обработка HTTP ошибок
       if (!response.ok) {
         console.warn(`[correctApiRequest] [${requestId}] HTTP ошибка: ${response.status} ${response.statusText}`);
+        
+        // Проверка на ошибку авторизации 401 для автоматического повторного входа
+        if (response.status === 401 && !endpoint.includes('/session')) {
+          console.log(`[correctApiRequest] [${requestId}] Обнаружена ошибка авторизации, пытаемся повторно аутентифицироваться...`);
+          
+          // Пытаемся автоматически восстановить сессию
+          const reauthResult = await sessionRestoreService.autoReauthenticate();
+          
+          if (reauthResult) {
+            console.log(`[correctApiRequest] [${requestId}] Успешная повторная аутентификация, повторяем исходный запрос`);
+            
+            // Если повторная аутентификация удалась, повторяем исходный запрос
+            return correctApiRequest(endpoint, method, data);
+          } else {
+            console.error(`[correctApiRequest] [${requestId}] Не удалось выполнить повторную аутентификацию`);
+          }
+        }
         
         // Пытаемся извлечь информацию из ответа
         let errorBody: any;

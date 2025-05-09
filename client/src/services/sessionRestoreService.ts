@@ -318,6 +318,36 @@ const waitForTelegramWebApp = (timeoutMs = 5000): Promise<boolean> => {
   });
 };
 
+/**
+ * Функция для автоматического повторного входа в случае истечения сессии
+ * @returns Promise с результатом повторной аутентификации
+ */
+const autoReauthenticate = async (): Promise<boolean> => {
+  try {
+    console.log('[sessionRestoreService] Начинаем автоматическую повторную аутентификацию...');
+    
+    // Получаем guest_id или создаем новый
+    const guestId = getOrCreateGuestId();
+    
+    // Ожидаем инициализации Telegram WebApp, если она требуется
+    await waitForTelegramWebApp();
+    
+    // Пытаемся восстановить сессию
+    const result = await restoreSession(guestId);
+    
+    if (result.success) {
+      console.log('[sessionRestoreService] ✅ Автоматическая повторная аутентификация успешна!');
+      return true;
+    } else {
+      console.error('[sessionRestoreService] ❌ Не удалось выполнить повторную аутентификацию:', result.message);
+      return false;
+    }
+  } catch (error) {
+    console.error('[sessionRestoreService] ❌ Ошибка при повторной аутентификации:', error);
+    return false;
+  }
+};
+
 // Экспортируем методы сервиса
 const sessionRestoreService = {
   shouldAttemptRestore,
@@ -330,7 +360,8 @@ const sessionRestoreService = {
   getOrCreateGuestId,
   isTelegramWebAppReady,
   markTelegramWebAppAsReady,
-  waitForTelegramWebApp
+  waitForTelegramWebApp,
+  autoReauthenticate
 };
 
 export default sessionRestoreService;
