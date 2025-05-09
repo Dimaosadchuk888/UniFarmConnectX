@@ -304,34 +304,53 @@ async function testFarming(userId) {
   try {
     log(`Тестирование статуса фарминга для пользователя ${userId}...`);
     
-    // Проверка доступности API фарминга
-    const apiStatus = await checkApiEndpoint(`/uni-farming/status?user_id=${userId}`);
-    if (!apiStatus) {
-      log('API фарминга недоступен, пропускаем тест', 'skip');
-      return { 
-        ok: false, 
-        skipped: true,
-        error: 'API фарминга недоступен (возвращает HTML вместо JSON)'
-      };
+    // Проверка доступности API фарминга, включая альтернативные маршруты
+    const apiStatusResult = await checkApiEndpoint(`/uni-farming/status?user_id=${userId}`);
+    
+    if (!apiStatusResult.available) {
+      log(`API фарминга недоступен: ${apiStatusResult.error}. Тест будет выполнен, но с ожиданием ошибок.`, 'warning');
+      // Не пропускаем тест, а фиксируем ошибку для объективной оценки состояния системы
     }
     
+    // Определяем эндпоинт для использования
+    const endpoint = apiStatusResult.available ? apiStatusResult.endpoint : '/api/uni-farming/info';
+    log(`Используем эндпоинт для тестирования фарминга: ${endpoint}`, 'info');
+    
     // Получаем информацию о фарминге
-    const farmingResponse = await callApi(`/uni-farming/status?user_id=${userId}`);
+    const farmingResponse = await callApi(endpoint + `?user_id=${userId}`);
     
     if (!farmingResponse.ok) {
       const errorMessage = farmingResponse.error?.message || farmingResponse.data?.error?.message || 'Неизвестная ошибка';
-      log(`Ошибка получения статуса фарминга: ${errorMessage}`, 'error');
+      log(`Ошибка получения информации о фарминге: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: errorMessage 
+        error: errorMessage,
+        endpoint: endpoint,
+        response: farmingResponse
       };
     }
     
-    log('Статус фарминга успешно получен', 'success');
+    log('Информация о фарминге успешно получена', 'success');
     const farmingStatus = farmingResponse.data.data;
     
-    // Проверяем депозиты
-    const depositsResponse = await callApi(`/uni-farming/deposits?user_id=${userId}`);
+    // Проверяем депозиты (пробуем оба пути - стандартный и альтернативный)
+    let depositsEndpoint = apiStatusResult.available && !apiStatusResult.isAlternative 
+      ? `/uni-farming/deposits?user_id=${userId}` 
+      : `/api/uni-farming/deposits?user_id=${userId}`;
+    
+    log(`Используем эндпоинт для депозитов: ${depositsEndpoint}`, 'info');
+    let depositsResponse = await callApi(depositsEndpoint);
+    
+    // Если не удалось через первый эндпоинт, пробуем альтернативный
+    if (!depositsResponse.ok && depositsEndpoint.startsWith('/uni-farming/')) {
+      log(`Пробуем альтернативный эндпоинт для депозитов`, 'info');
+      depositsEndpoint = `/api/uni-farming/deposits?user_id=${userId}`;
+      depositsResponse = await callApi(depositsEndpoint);
+    } else if (!depositsResponse.ok && depositsEndpoint.startsWith('/api/uni-farming/')) {
+      log(`Пробуем альтернативный эндпоинт для депозитов`, 'info');
+      depositsEndpoint = `/api/new-uni-farming/deposits?user_id=${userId}`;
+      depositsResponse = await callApi(depositsEndpoint);
+    }
     
     if (!depositsResponse.ok) {
       const errorMessage = depositsResponse.error?.message || depositsResponse.data?.error?.message || 'Неизвестная ошибка';
@@ -340,21 +359,31 @@ async function testFarming(userId) {
       log(`Получено ${depositsResponse.data.data?.length || 0} депозитов`, 'success');
     }
     
-    // Проверяем историю фарминга
-    const historyResponse = await callApi(`/uni-farming/history?user_id=${userId}`);
+    // Проверяем обновление баланса (актуальных наград)
+    const updateEndpoint = apiStatusResult.available && !apiStatusResult.isAlternative
+      ? `/uni-farming/update-balance?user_id=${userId}`
+      : `/api/uni-farming/update-balance?user_id=${userId}`;
+      
+    log(`Используем эндпоинт для обновления баланса: ${updateEndpoint}`, 'info');
+    const updateResponse = await callApi(updateEndpoint);
     
-    if (!historyResponse.ok) {
-      const errorMessage = historyResponse.error?.message || historyResponse.data?.error?.message || 'Неизвестная ошибка';
-      log(`Ошибка получения истории фарминга: ${errorMessage}`, 'warning');
+    if (!updateResponse.ok) {
+      const errorMessage = updateResponse.error?.message || updateResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка обновления баланса фарминга: ${errorMessage}`, 'warning');
     } else {
-      log(`Получено ${historyResponse.data.data?.length || 0} записей истории фарминга`, 'success');
+      log(`Баланс фарминга успешно обновлен`, 'success');
     }
     
     return { 
       ok: true, 
       farmingStatus,
       deposits: depositsResponse.ok ? depositsResponse.data.data : null,
-      history: historyResponse.ok ? historyResponse.data.data : null
+      updateBalance: updateResponse.ok ? updateResponse.data.data : null,
+      endpoints: {
+        info: endpoint,
+        deposits: depositsEndpoint,
+        update: updateEndpoint
+      }
     };
   } catch (error) {
     log(`Исключение при проверке фарминга: ${error.message}`, 'error');
@@ -643,6 +672,13 @@ async function testLoyaltyAndBonuses(userId) {
   }
 }
 
+// Карта соответствия тестовых эндпоинтов и их альтернатив
+const API_ENDPOINT_MAP = {
+  '/uni-farming/status': '/api/uni-farming/info', 
+  '/referrals/info': '/api/referrals',
+  '/missions/available': '/api/missions/active'
+};
+
 // Функция для проверки доступности API-эндпоинта
 async function checkApiEndpoint(endpoint) {
   try {
@@ -652,17 +688,52 @@ async function checkApiEndpoint(endpoint) {
     // Проверяем, что ответ содержит JSON и не является HTML
     if (response.ok && !response.error) {
       log(`API-эндпоинт ${endpoint} доступен и возвращает корректный JSON`, 'success');
-      return true;
+      return {
+        available: true,
+        endpoint: endpoint
+      };
     } else {
       const errorType = response.error?.message?.includes('Неправильный формат ответа') 
         ? 'возвращает HTML вместо JSON' 
         : 'возвращает ошибку';
       log(`API-эндпоинт ${endpoint} недоступен (${errorType})`, 'warning');
-      return false;
+      
+      // Если эндпоинт недоступен, проверим альтернативный маршрут
+      const baseEndpoint = endpoint.split('?')[0]; // Отделяем путь от параметров
+      const alternativeEndpoint = API_ENDPOINT_MAP[baseEndpoint];
+      
+      if (alternativeEndpoint) {
+        const queryParams = endpoint.includes('?') ? endpoint.split('?')[1] : '';
+        const fullAlternativeEndpoint = alternativeEndpoint + (queryParams ? `?${queryParams}` : '');
+        
+        log(`Пробуем альтернативный эндпоинт: ${fullAlternativeEndpoint}`, 'info');
+        const altResponse = await callApi(fullAlternativeEndpoint);
+        
+        if (altResponse.ok && !altResponse.error) {
+          log(`Альтернативный API-эндпоинт ${fullAlternativeEndpoint} доступен и возвращает корректный JSON`, 'success');
+          return {
+            available: true,
+            endpoint: fullAlternativeEndpoint,
+            isAlternative: true
+          };
+        } else {
+          log(`Альтернативный API-эндпоинт ${fullAlternativeEndpoint} также недоступен`, 'warning');
+        }
+      }
+      
+      return {
+        available: false,
+        endpoint: endpoint,
+        error: errorType
+      };
     }
   } catch (error) {
     log(`Ошибка при проверке API-эндпоинта ${endpoint}: ${error.message}`, 'error');
-    return false;
+    return {
+      available: false,
+      endpoint: endpoint,
+      error: error.message
+    };
   }
 }
 
@@ -678,7 +749,11 @@ async function runTests() {
     missions: await checkApiEndpoint('/missions/available?user_id=34')
   };
   
-  log(`Результаты проверки доступности API: Фарминг - ${endpoints.farming ? 'Доступен' : 'Недоступен'}, Рефералы - ${endpoints.referrals ? 'Доступны' : 'Недоступны'}, Миссии - ${endpoints.missions ? 'Доступны' : 'Недоступны'}`);
+  log(`Результаты проверки доступности API: 
+    Фарминг - ${endpoints.farming.available ? 'Доступен' : 'Недоступен'} ${endpoints.farming.isAlternative ? '(используется альтернативный эндпоинт)' : ''} 
+    Рефералы - ${endpoints.referrals.available ? 'Доступны' : 'Недоступны'} ${endpoints.referrals.isAlternative ? '(используется альтернативный эндпоинт)' : ''}
+    Миссии - ${endpoints.missions.available ? 'Доступны' : 'Недоступны'} ${endpoints.missions.isAlternative ? '(используется альтернативный эндпоинт)' : ''}
+  `);
   
   // Проверка восстановления сессии
   const sessionResult = await testSessionRestore();
