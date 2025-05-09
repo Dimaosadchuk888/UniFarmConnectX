@@ -582,6 +582,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   // Функция для принудительного обновления баланса с защитой от ошибок
   const refreshBalance = useCallback(() => {
+    // Проверяем, не выполняется ли уже обновление
+    if (refreshInProgressRef.current) {
+      console.log('[UserContext] Уже выполняется другое обновление. Пропускаем запрос.');
+      return;
+    }
+    
     try {
       if (!userId) {
         console.warn('[UserContext] Невозможно обновить баланс: userId отсутствует');
@@ -593,6 +599,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
+      // Устанавливаем флаг, что обновление в процессе
+      refreshInProgressRef.current = true;
       console.log('[UserContext] Запрошено обновление баланса для пользователя:', userId);
       
       try {
@@ -606,17 +614,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       try {
         setError(criticalError instanceof Error ? criticalError : new Error('Критическая ошибка при обновлении баланса'));
       } catch {}
+    } finally {
+      // Сбрасываем флаг в любом случае через небольшую задержку
+      setTimeout(() => {
+        refreshInProgressRef.current = false;
+      }, 100);
     }
   }, [userId, refetchBalance, isBalanceFetching]);
 
   // Функция для принудительного обновления данных пользователя с защитой от ошибок
   const refreshUserData = useCallback(() => {
+    // Проверяем, не выполняется ли уже обновление
+    if (refreshInProgressRef.current) {
+      console.log('[UserContext] Уже выполняется другое обновление. Пропускаем запрос.');
+      return;
+    }
+    
     try {
       if (isFetching) {
         console.log('[UserContext] Обновление данных пользователя уже выполняется. Пропускаем запрос.');
         return;
       }
       
+      // Устанавливаем флаг, что обновление в процессе
+      refreshInProgressRef.current = true;
       console.log('[UserContext] Запрошено обновление данных пользователя');
       
       try {
@@ -630,6 +651,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       try {
         setError(criticalError instanceof Error ? criticalError : new Error('Критическая ошибка при обновлении данных пользователя'));
       } catch {}
+    } finally {
+      // Сбрасываем флаг в любом случае через небольшую задержку
+      setTimeout(() => {
+        refreshInProgressRef.current = false;
+      }, 100);
     }
   }, [refetchUserData, isFetching]);
 
