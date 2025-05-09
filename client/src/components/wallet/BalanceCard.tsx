@@ -47,16 +47,8 @@ const BalanceCard: React.FC = () => {
   const [wsErrorNotificationShown, setWsErrorNotificationShown] = useState<boolean>(false);
   const [wsConnectedOnce, setWsConnectedOnce] = useState<boolean>(false);
   
-  // Используем WebSocket хук для обновления в реальном времени
-  // Мемоизированные колбеки для WebSocket, чтобы избежать лишних рендеров
-  // Используем локальную функцию для подписки, избегая циклической зависимости
-  const handleSubscription = useCallback((id: number) => {
-    if (subscribeToUserUpdates) {
-      subscribeToUserUpdates(id);
-    }
-  }, [subscribeToUserUpdates]);
-  
-  const onOpenCallback = useCallback(() => {
+  // Обработчики для WebSocket
+  const onOpen = useCallback(() => {
     setWsStatus('Соединение установлено');
     setWsConnectedOnce(true);
     setWsErrorNotificationShown(false); // Сбрасываем флаг показа ошибок при успешном подключении
@@ -68,20 +60,12 @@ const BalanceCard: React.FC = () => {
         duration: 3000
       });
     }
-    
-    // Подписываемся на обновления для пользователя, если userId доступен
-    if (userId) {
-      // Используем setTimeout для предотвращения вызова во время инициализации
-      setTimeout(() => {
-        handleSubscription(userId);
-      }, 100);
-    }
-  }, [userId, wsConnectedOnce, showNotification, handleSubscription]);
+  }, [wsConnectedOnce, showNotification]);
   
-  const onMessageCallback = useCallback((data) => {
+  const onMessage = useCallback((data: any) => {
     // Обрабатываем сообщения от сервера
     if (data.type === 'update' && data.balanceData) {
-      // Обновляем баланс через контекст
+      // Обновляем баланс через контекст, только если есть userId
       if (userId) {
         refreshBalance();
       }
@@ -101,36 +85,57 @@ const BalanceCard: React.FC = () => {
     }
   }, [userId, refreshBalance, showNotification]);
   
+  const onClose = useCallback(() => {
+    setWsStatus('Соединение закрыто');
+    
+    // Не показываем уведомления о закрытии соединения, если оно уже показано
+    // или если соединение никогда не устанавливалось (чтобы избежать спама)
+    if (!wsErrorNotificationShown && wsConnectedOnce) {
+      setWsErrorNotificationShown(true);
+      showNotification('error', {
+        message: 'WebSocket соединение закрыто',
+        duration: 3000
+      });
+    }
+  }, [wsErrorNotificationShown, wsConnectedOnce, showNotification]);
+  
+  const onError = useCallback(() => {
+    setWsStatus('Ошибка соединения');
+    
+    // Показываем уведомление об ошибке только один раз
+    if (!wsErrorNotificationShown) {
+      setWsErrorNotificationShown(true);
+      showNotification('error', {
+        message: 'Ошибка WebSocket соединения',
+        duration: 3000
+      });
+    }
+  }, [wsErrorNotificationShown, showNotification]);
+  
+  // Инициализируем WebSocket соединение с мемоизированными обработчиками
   const { isConnected, subscribeToUserUpdates, errorCount, forceReconnect } = useWebSocket({
-    onOpen: onOpenCallback,
-    onMessage: onMessageCallback,
-    onClose: () => {
-      setWsStatus('Соединение закрыто');
-      
-      // Не показываем уведомления о закрытии соединения, если оно уже показано
-      // или если соединение никогда не устанавливалось (чтобы избежать спама)
-      if (!wsErrorNotificationShown && wsConnectedOnce) {
-        setWsErrorNotificationShown(true);
-        showNotification('error', {
-          message: 'WebSocket соединение закрыто',
-          duration: 3000
-        });
-      }
-    },
-    onError: () => {
-      setWsStatus('Ошибка соединения');
-      
-      // Показываем уведомление об ошибке только один раз
-      if (!wsErrorNotificationShown) {
-        setWsErrorNotificationShown(true);
-        showNotification('error', {
-          message: 'Ошибка WebSocket соединения',
-          duration: 3000
-        });
-      }
-    },
+    onOpen,
+    onMessage,
+    onClose,
+    onError,
     reconnectInterval: 2000 // Интервал переподключения в миллисекундах
   });
+
+  // Создаем внешнюю функцию handleUserSubscription, которая будет использоваться в useEffect
+  const handleUserSubscription = useCallback((subscribe: (id: number) => void, id: number) => {
+    if (id) {
+      setTimeout(() => {
+        subscribe(id);
+      }, 500);
+    }
+  }, []);
+  
+  // Подписываемся на обновления при наличии userId и активном соединении
+  useEffect(() => {
+    if (userId && isConnected && subscribeToUserUpdates) {
+      handleUserSubscription(subscribeToUserUpdates, userId);
+    }
+  }, [userId, isConnected, subscribeToUserUpdates, handleUserSubscription]);
   
   // Функция для обновления баланса UNI с анимацией
   const updateUniBalanceWithAnimation = useCallback((newValue: number, oldValue: number) => {
