@@ -31,6 +31,7 @@ import Dashboard from "@/pages/Dashboard";
 import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
 import MissionsNavMenu from "@/pages/MissionsNavMenu"; // Специальная версия для меню
+import DirectMissions from "@/pages/DirectMissions"; // Специальная страница миссий без React Query
 import Friends from "@/pages/Friends"; // Компонент страницы друзей и реферальной системы
 import Wallet from "@/pages/Wallet";
 import AdminPage from "./pages/AdminPage";
@@ -439,6 +440,17 @@ function App() {
                         <Header />
                         <main className="px-4 pt-2 pb-20">
                           <Missions />
+                        </main>
+                        <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
+                      </div>
+                    </Route>
+                    
+                    {/* Специальный маршрут для прямого доступа к миссиям без React Query */}
+                    <Route path="/direct-missions">
+                      <div className="max-w-md mx-auto bg-background">
+                        <Header />
+                        <main className="px-4 pt-2 pb-20">
+                          <DirectMissions />
                         </main>
                         <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
                       </div>
