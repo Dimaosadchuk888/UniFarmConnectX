@@ -41,12 +41,45 @@ export interface Mission {
   verificationAvailable?: boolean; // доступна ли кнопка проверки
 }
 
+// Полифилл для Array.prototype.map на случай, если он был переопределен
+function safeArrayMap<T, U>(array: T[], callback: (value: T, index: number, array: T[]) => U): U[] {
+  if (!array || !Array.isArray(array)) {
+    console.warn('[safeArrayMap] Входящий параметр не является массивом:', array);
+    return [];
+  }
+  
+  const result: U[] = [];
+  for (let i = 0; i < array.length; i++) {
+    result.push(callback(array[i], i, array));
+  }
+  return result;
+}
+
 /**
  * Хук для получения данных о миссиях
  */
 export function useMissionData() {
   const { userId } = useUser();
   const [missions, setMissions] = useState<Mission[]>([]);
+  
+  // Полифилл для Array.prototype.map, если он был удален или переопределен
+  useEffect(() => {
+    if (!Array.prototype.map) {
+      console.warn('[useMissionData] Array.prototype.map отсутствует, добавляем полифилл');
+      // @ts-ignore
+      Array.prototype.map = function<T, U>(callback: (value: T, index: number, array: T[]) => U, thisArg?: any): U[] {
+        const O = Object(this);
+        const len = O.length >>> 0;
+        const A = new Array(len);
+        for (let k = 0; k < len; k++) {
+          if (k in O) {
+            A[k] = callback.call(thisArg, O[k], k, O);
+          }
+        }
+        return A;
+      };
+    }
+  }, []);
   
   // Загружаем активные миссии
   const { 
@@ -62,9 +95,14 @@ export function useMissionData() {
         const data = await correctApiRequest('/api/missions/active', 'GET');
         console.log(`📥 Ответ получен через correctApiRequest:`, data);
         
-        if (data && data.success && Array.isArray(data.data)) {
-          console.log(`✅ Получены активные миссии (${data.data.length} шт.)`);
-          return data.data;
+        if (data && data.success) {
+          if (Array.isArray(data.data)) {
+            console.log(`✅ Получены активные миссии (${data.data.length} шт.)`);
+            return data.data;
+          } else {
+            console.log('⚠️ data.data не является массивом:', data.data);
+            return [];
+          }
         } else {
           console.log('⚠️ Неожиданный формат данных:', data);
           return [];
@@ -90,9 +128,32 @@ export function useMissionData() {
         const data = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}`, 'GET');
         console.log(`📥 Ответ получен через correctApiRequest:`, data);
         
-        if (data && data.success && Array.isArray(data.data)) {
-          console.log(`✅ Получены выполненные миссии (${data.data.length} шт.)`);
-          return data.data;
+        if (data && data.success) {
+          // Дополнительные проверки и защитные преобразования
+          if (Array.isArray(data.data)) {
+            console.log(`✅ Получены выполненные миссии (${data.data.length} шт.)`);
+            // Глубокая проверка полей каждого элемента
+            return safeArrayMap(data.data, (item) => {
+              if (item && typeof item === 'object') {
+                return {
+                  id: item.id || 0,
+                  user_id: item.user_id || 0,
+                  mission_id: item.mission_id || 0,
+                  completed_at: item.completed_at || '',
+                };
+              }
+              // Если элемент не является объектом, возвращаем пустой объект с дефолтными значениями
+              return {
+                id: 0,
+                user_id: 0,
+                mission_id: 0,
+                completed_at: '',
+              };
+            });
+          } else {
+            console.log('⚠️ data.data не является массивом:', data.data);
+            return [];
+          }
         } else {
           console.log('⚠️ Неожиданный формат данных:', data);
           return [];
@@ -134,7 +195,8 @@ export function useMissionData() {
       console.log('Обработка массива выполненных миссий:', safeUserMissions.length);
       
       // Безопасно итерируем по массиву и заполняем объект
-      for (const mission of safeUserMissions) {
+      for (let i = 0; i < safeUserMissions.length; i++) {
+        const mission = safeUserMissions[i];
         if (mission && typeof mission === 'object' && 'mission_id' in mission) {
           completedMissionsById[mission.mission_id] = true;
         }
@@ -153,7 +215,8 @@ export function useMissionData() {
     });
     
     if (dbMissions && Array.isArray(dbMissions)) {
-      for (const dbMission of dbMissions) {
+      for (let i = 0; i < dbMissions.length; i++) {
+        const dbMission = dbMissions[i];
         if (dbMission && typeof dbMission === 'object') {
           const isCompleted = completedMissionsById[dbMission.id] || false;
           
