@@ -363,10 +363,11 @@ async function testBoosts(userId) {
     const boostsResponse = await callApi(`/boosts?user_id=${userId}`);
     
     if (!boostsResponse.ok) {
-      log(`Ошибка получения информации о бустах: ${boostsResponse.data.error?.message || 'Неизвестная ошибка'}`, 'error');
+      const errorMessage = boostsResponse.error?.message || boostsResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения информации о бустах: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: boostsResponse.data.error?.message || 'Неизвестная ошибка' 
+        error: errorMessage 
       };
     }
     
@@ -409,10 +410,11 @@ async function testTransactions(userId) {
     const transactionsResponse = await callApi(`/transactions?user_id=${userId}`);
     
     if (!transactionsResponse.ok) {
-      log(`Ошибка получения транзакций: ${transactionsResponse.data.error?.message || 'Неизвестная ошибка'}`, 'error');
+      const errorMessage = transactionsResponse.error?.message || transactionsResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения транзакций: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: transactionsResponse.data.error?.message || 'Неизвестная ошибка' 
+        error: errorMessage 
       };
     }
     
@@ -459,10 +461,11 @@ async function testReferralSystem(userId) {
     const referralInfoResponse = await callApi(`/referrals/info?user_id=${userId}`);
     
     if (!referralInfoResponse.ok) {
-      log(`Ошибка получения информации о рефералах: ${referralInfoResponse.data.error?.message || 'Неизвестная ошибка'}`, 'error');
+      const errorMessage = referralInfoResponse.error?.message || referralInfoResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения информации о рефералах: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: referralInfoResponse.data.error?.message || 'Неизвестная ошибка' 
+        error: errorMessage 
       };
     }
     
@@ -472,7 +475,8 @@ async function testReferralSystem(userId) {
     const treeResponse = await callApi(`/referrals/tree?user_id=${userId}`);
     
     if (!treeResponse.ok) {
-      log(`Ошибка получения реферального дерева: ${treeResponse.data.error?.message || 'Неизвестная ошибка'}`, 'warning');
+      const errorMessage = treeResponse.error?.message || treeResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения реферального дерева: ${errorMessage}`, 'warning');
     } else {
       log('Реферальное дерево успешно получено', 'success');
     }
@@ -481,7 +485,8 @@ async function testReferralSystem(userId) {
     const levelsResponse = await callApi(`/referrals/levels?user_id=${userId}`);
     
     if (!levelsResponse.ok) {
-      log(`Ошибка получения статистики по уровням: ${levelsResponse.data.error?.message || 'Неизвестная ошибка'}`, 'warning');
+      const errorMessage = levelsResponse.error?.message || levelsResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения статистики по уровням: ${errorMessage}`, 'warning');
     } else {
       log('Статистика по уровням успешно получена', 'success');
       
@@ -521,10 +526,11 @@ async function testMissions(userId) {
     const missionsResponse = await callApi(`/missions/available?user_id=${userId}`);
     
     if (!missionsResponse.ok) {
-      log(`Ошибка получения доступных миссий: ${missionsResponse.data.error?.message || 'Неизвестная ошибка'}`, 'error');
+      const errorMessage = missionsResponse.error?.message || missionsResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения доступных миссий: ${errorMessage}`, 'error');
       return { 
         ok: false, 
-        error: missionsResponse.data.error?.message || 'Неизвестная ошибка' 
+        error: errorMessage 
       };
     }
     
@@ -534,7 +540,8 @@ async function testMissions(userId) {
     const completedResponse = await callApi(`/missions/completed?user_id=${userId}`);
     
     if (!completedResponse.ok) {
-      log(`Ошибка получения выполненных миссий: ${completedResponse.data.error?.message || 'Неизвестная ошибка'}`, 'warning');
+      const errorMessage = completedResponse.error?.message || completedResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения выполненных миссий: ${errorMessage}`, 'warning');
     } else {
       log(`Получено ${completedResponse.data.data?.length || 0} выполненных миссий`, 'success');
     }
@@ -562,7 +569,8 @@ async function testLoyaltyAndBonuses(userId) {
     const dailyBonusResponse = await callApi(`/daily-bonus/status?user_id=${userId}`);
     
     if (!dailyBonusResponse.ok) {
-      log(`Ошибка получения информации о ежедневных бонусах: ${dailyBonusResponse.data.error?.message || 'Неизвестная ошибка'}`, 'warning');
+      const errorMessage = dailyBonusResponse.error?.message || dailyBonusResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения информации о ежедневных бонусах: ${errorMessage}`, 'warning');
     } else {
       log('Информация о ежедневных бонусах успешно получена', 'success');
     }
@@ -571,7 +579,8 @@ async function testLoyaltyAndBonuses(userId) {
     const loyaltyHistoryResponse = await callApi(`/loyalty/history?user_id=${userId}`);
     
     if (!loyaltyHistoryResponse.ok) {
-      log(`Ошибка получения истории программы лояльности: ${loyaltyHistoryResponse.data.error?.message || 'Неизвестная ошибка'}`, 'warning');
+      const errorMessage = loyaltyHistoryResponse.error?.message || loyaltyHistoryResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения истории программы лояльности: ${errorMessage}`, 'warning');
     } else {
       log(`Получено ${loyaltyHistoryResponse.data.data?.length || 0} записей по программе лояльности`, 'success');
     }
@@ -580,7 +589,8 @@ async function testLoyaltyAndBonuses(userId) {
     const promotionsResponse = await callApi(`/promotions?user_id=${userId}`);
     
     if (!promotionsResponse.ok) {
-      log(`Ошибка получения информации о акциях: ${promotionsResponse.data.error?.message || 'Неизвестная ошибка'}`, 'warning');
+      const errorMessage = promotionsResponse.error?.message || promotionsResponse.data?.error?.message || 'Неизвестная ошибка';
+      log(`Ошибка получения информации о акциях: ${errorMessage}`, 'warning');
     } else {
       log(`Получено ${promotionsResponse.data.data?.length || 0} активных акций/активностей`, 'success');
     }
