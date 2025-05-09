@@ -48,45 +48,62 @@ const BalanceCard: React.FC = () => {
   const [wsConnectedOnce, setWsConnectedOnce] = useState<boolean>(false);
   
   // Используем WebSocket хук для обновления в реальном времени
-  const { isConnected, subscribeToUserUpdates, errorCount, forceReconnect } = useWebSocket({
-    onOpen: () => {
-      setWsStatus('Соединение установлено');
-      setWsConnectedOnce(true);
-      setWsErrorNotificationShown(false); // Сбрасываем флаг показа ошибок при успешном подключении
-      
-      // Показываем уведомление о подключении только один раз
-      if (!wsConnectedOnce) {
-        showNotification('success', {
-          message: 'WebSocket соединение установлено',
-          duration: 3000
-        });
-      }
-      
-      // Подписываемся на обновления для пользователя, если userId доступен
+  // Мемоизированные колбеки для WebSocket, чтобы избежать лишних рендеров
+  // Используем локальную функцию для подписки, избегая циклической зависимости
+  const handleSubscription = useCallback((id: number) => {
+    if (subscribeToUserUpdates) {
+      subscribeToUserUpdates(id);
+    }
+  }, [subscribeToUserUpdates]);
+  
+  const onOpenCallback = useCallback(() => {
+    setWsStatus('Соединение установлено');
+    setWsConnectedOnce(true);
+    setWsErrorNotificationShown(false); // Сбрасываем флаг показа ошибок при успешном подключении
+    
+    // Показываем уведомление о подключении только один раз
+    if (!wsConnectedOnce) {
+      showNotification('success', {
+        message: 'WebSocket соединение установлено',
+        duration: 3000
+      });
+    }
+    
+    // Подписываемся на обновления для пользователя, если userId доступен
+    if (userId) {
+      // Используем setTimeout для предотвращения вызова во время инициализации
+      setTimeout(() => {
+        handleSubscription(userId);
+      }, 100);
+    }
+  }, [userId, wsConnectedOnce, showNotification, handleSubscription]);
+  
+  const onMessageCallback = useCallback((data) => {
+    // Обрабатываем сообщения от сервера
+    if (data.type === 'update' && data.balanceData) {
+      // Обновляем баланс через контекст
       if (userId) {
-        subscribeToUserUpdates(userId);
-      }
-    },
-    onMessage: (data) => {
-      // Обрабатываем сообщения от сервера
-      if (data.type === 'update' && data.balanceData) {
-        // Обновляем баланс через контекст
         refreshBalance();
-        
-        // Устанавливаем анимации для визуального эффекта
-        setUniAnimating(true);
-        setTimeout(() => setUniAnimating(false), 800);
-        
-        setTonAnimating(true);
-        setTimeout(() => setTonAnimating(false), 800);
-        
-        // Показываем уведомление об обновлении баланса
-        showNotification('info', {
-          message: 'Баланс обновлен',
-          duration: 2000
-        });
       }
-    },
+      
+      // Устанавливаем анимации для визуального эффекта
+      setUniAnimating(true);
+      setTimeout(() => setUniAnimating(false), 800);
+      
+      setTonAnimating(true);
+      setTimeout(() => setTonAnimating(false), 800);
+      
+      // Показываем уведомление об обновлении баланса
+      showNotification('info', {
+        message: 'Баланс обновлен',
+        duration: 2000
+      });
+    }
+  }, [userId, refreshBalance, showNotification]);
+  
+  const { isConnected, subscribeToUserUpdates, errorCount, forceReconnect } = useWebSocket({
+    onOpen: onOpenCallback,
+    onMessage: onMessageCallback,
     onClose: () => {
       setWsStatus('Соединение закрыто');
       
@@ -157,35 +174,45 @@ const BalanceCard: React.FC = () => {
     }
   }, [tonBalance, prevTonBalance, showNotification]);
   
-  // Автоматически запрашиваем обновление баланса каждые 10 секунд
-  // Обратите внимание: в userContext уже есть автообновление, 
-  // поэтому интервал может быть больше
+  // Обновление баланса каждые 30 секунд
+  // Это резервный интервал, основное обновление через WebSocket
   useEffect(() => {
-    // Начальное обновление при монтировании
-    try {
-      refreshBalance();
-    } catch (error) {
-      // Обработка ошибки при начальной загрузке баланса
-      showNotification('error', {
-        message: 'Не удалось загрузить данные кошелька',
-        duration: 4000
-      });
-    }
-    
-    const interval = setInterval(() => {
-      try {
-        refreshBalance();
-      } catch (error) {
-        // Обработка ошибки при автоматическом обновлении баланса
-        showNotification('error', {
-          message: 'Ошибка обновления баланса',
-          duration: 3000
-        });
+    // Для начального обновления при монтировании используем таймаут,
+    // чтобы предотвратить одновременный вызов обновления из разных эффектов
+    const initialTimeout = setTimeout(() => {
+      if (userId) {
+        try {
+          refreshBalance();
+        } catch (error) {
+          // Обработка ошибки при начальной загрузке баланса
+          showNotification('error', {
+            message: 'Не удалось загрузить данные кошелька',
+            duration: 4000
+          });
+        }
       }
-    }, 10000);
+    }, 1000); // Задержка 1 секунда для предотвращения конфликтов
     
-    return () => clearInterval(interval);
-  }, [refreshBalance, showNotification]);
+    // Создаем интервал для периодического обновления
+    const interval = setInterval(() => {
+      if (userId && !isBalanceFetching) { // Проверяем, что userId существует и нет активной загрузки
+        try {
+          refreshBalance();
+        } catch (error) {
+          // Обработка ошибки при автоматическом обновлении баланса
+          showNotification('error', {
+            message: 'Ошибка обновления баланса',
+            duration: 3000
+          });
+        }
+      }
+    }, 30000); // Увеличили интервал до 30 секунд, так как основные обновления через WS
+    
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, [userId, refreshBalance, showNotification, isBalanceFetching]);
   
   // Устанавливаем значение скорости фарминга на основе суммы депозита и общей ставки
   useEffect(() => {
