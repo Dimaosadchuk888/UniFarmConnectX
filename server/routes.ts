@@ -1692,71 +1692,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Для других маршрутов используем index.html напрямую
         console.log(`[SPA] Обслуживаем клиентский маршрут: ${req.path}`);
         
-        // В режиме разработки используем HTML-шаблон с загрузкой Vite для HMR
-        const clientHTML = `
-          <!DOCTYPE html>
-          <html lang="ru">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>UniFarm - Development Mode</title>
-            <style>
-              body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                margin: 0;
-                padding: 0;
-                background-color: #f0f2f5;
-              }
-              #root {
-                display: flex;
-                flex-direction: column;
-                min-height: 100vh;
-              }
-              .loading {
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                text-align: center;
-                color: #333;
-              }
-              .spinner {
-                border: 4px solid rgba(0, 0, 0, 0.1);
-                border-radius: 50%;
-                border-top: 4px solid #3498db;
-                width: 40px;
-                height: 40px;
-                animation: spin 1s linear infinite;
-                margin-bottom: 20px;
-              }
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            </style>
-          </head>
-          <body>
-            <div id="root">
-              <div class="loading">
-                <div class="spinner"></div>
-                <h2>Загрузка UniFarm...</h2>
-                <p>Идет обработка исходного кода через Vite</p>
-              </div>
-            </div>
-            
-            <script type="module">
-              // Импортируем Vite клиентские скрипты для разработки
-              import '/@vite/client'
-              
-              // Импортируем основной скрипт
-              import '/src/main.tsx'
-            </script>
-          </body>
-          </html>
-        `;
-        
-        return res.send(clientHTML);
+        // В режиме разработки не генерируем HTML, а просто передаем управление в middleware
+        // Это позволит Vite самостоятельно обработать запрос
+        console.log(`[SPA] Передаем запрос Vite middleware: ${req.path}`);
+        return next();
       }
       
       // В production находим готовый index.html
