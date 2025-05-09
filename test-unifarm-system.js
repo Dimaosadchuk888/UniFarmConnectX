@@ -45,7 +45,13 @@ function log(message, type = 'info') {
 
 // Выполнение API запроса
 async function callApi(endpoint, method = 'GET', body = null) {
-  const url = `${API_BASE}${endpoint}`;
+  // Убираем дублирование /api в URL
+  let adjustedEndpoint = endpoint;
+  if (endpoint.startsWith('/api/')) {
+    adjustedEndpoint = endpoint.substring(4); // Убираем /api/ из начала
+  }
+  
+  const url = `${API_BASE}${adjustedEndpoint}`;
   const options = {
     method,
     headers: {

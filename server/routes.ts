@@ -1501,8 +1501,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/daily-bonus/claim", DailyBonusControllerFallback.claimDailyBonus);
   
   // Маршруты для UNI фарминга (с поддержкой fallback)
-  app.get("/api/uni-farming/info", UniFarmingController.getUserFarmingInfo);
-  app.get("/api/uni-farming/update-balance", UniFarmingController.calculateAndUpdateFarming);
+  app.get("/api/uni-farming/info", UniFarmingControllerFallback.getUserFarmingInfo);
+  // Убираем проблемный маршрут update-balance, так как соответствующий метод отсутствует в контроллере
   app.post("/api/uni-farming/deposit", UniFarmingControllerFallback.depositFarming);
   app.get("/api/uni-farming/deposits", UniFarmingControllerFallback.getUserFarmingDeposits);
   app.post("/api/uni-farming/harvest", UniFarmingControllerFallback.harvestFarmingInfo);

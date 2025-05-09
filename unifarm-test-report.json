@@ -1,7 +1,7 @@
 {
   "totalTests": 10,
-  "passedTests": 7,
-  "failedTests": 3,
+  "passedTests": 8,
+  "failedTests": 2,
   "skippedTests": 0,
   "details": [
     {
@@ -73,13 +73,14 @@
       "result": "FAILED",
       "details": {
         "ok": false,
-        "error": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON.",
+        "error": "Неизвестная ошибка",
         "endpoint": "/api/uni-farming/info",
         "response": {
-          "status": 200,
+          "status": 500,
           "ok": false,
-          "error": {
-            "message": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON."
+          "data": {
+            "success": false,
+            "message": "Внутренняя ошибка сервера при получении информации о фарминге"
           }
         }
       }
@@ -158,30 +159,110 @@
       "result": "FAILED",
       "details": {
         "ok": false,
-        "error": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON.",
+        "error": "Ошибка при обработке запроса реферальных данных",
         "endpoint": "/api/referrals",
         "response": {
-          "status": 200,
+          "status": 500,
           "ok": false,
-          "error": {
-            "message": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON."
+          "data": {
+            "success": false,
+            "error": {
+              "message": "Ошибка при обработке запроса реферальных данных"
+            }
           }
         }
       }
     },
     {
       "name": "Система миссий",
-      "result": "FAILED",
+      "result": "PASSED",
       "details": {
-        "ok": false,
-        "error": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON.",
-        "endpoint": "/api/missions/active",
-        "response": {
-          "status": 200,
-          "ok": false,
-          "error": {
-            "message": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON."
+        "ok": true,
+        "missions": [
+          {
+            "id": 1,
+            "type": "daily",
+            "title": "Ежедневный бонус",
+            "description": "Получите ежедневный бонус UNI токенов для фарминга",
+            "reward_uni": "10.000000",
+            "is_active": true
+          },
+          {
+            "id": 2,
+            "type": "social",
+            "title": "Подписка на канал",
+            "description": "Подпишитесь на наш Telegram канал https://t.me/unifarm",
+            "reward_uni": "15.000000",
+            "is_active": true
+          },
+          {
+            "id": 3,
+            "type": "deposit",
+            "title": "Первый депозит",
+            "description": "Внесите свой первый депозит в фарминг",
+            "reward_uni": "20.000000",
+            "is_active": true
+          },
+          {
+            "id": 4,
+            "type": "invite",
+            "title": "Приглашение друга",
+            "description": "Пригласите друга по реферальной ссылке",
+            "reward_uni": "25.000000",
+            "is_active": true
           }
+        ],
+        "withCompletion": [
+          {
+            "id": 1,
+            "type": "daily",
+            "title": "Ежедневный бонус",
+            "description": "Получите ежедневный бонус UNI токенов для фарминга",
+            "reward_uni": "10.000000",
+            "is_active": true,
+            "is_completed": false,
+            "completed_at": null
+          },
+          {
+            "id": 2,
+            "type": "social",
+            "title": "Подписка на канал",
+            "description": "Подпишитесь на наш Telegram канал https://t.me/unifarm",
+            "reward_uni": "15.000000",
+            "is_active": true,
+            "is_completed": false,
+            "completed_at": null
+          },
+          {
+            "id": 3,
+            "type": "deposit",
+            "title": "Первый депозит",
+            "description": "Внесите свой первый депозит в фарминг",
+            "reward_uni": "20.000000",
+            "is_active": true,
+            "is_completed": false,
+            "completed_at": null
+          },
+          {
+            "id": 4,
+            "type": "invite",
+            "title": "Приглашение друга",
+            "description": "Пригласите друга по реферальной ссылке",
+            "reward_uni": "25.000000",
+            "is_active": true,
+            "is_completed": false,
+            "completed_at": null
+          }
+        ],
+        "userMissions": null,
+        "singleMission": {
+          "is_completed": false
+        },
+        "endpoints": {
+          "active": "/api/missions/active?user_id=34",
+          "withCompletion": "/api/missions/with-completion?user_id=34",
+          "userMissions": null,
+          "singleMission": "/api/missions/check"
         }
       }
     },
