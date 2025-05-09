@@ -16,7 +16,7 @@ interface SafeMissionsListProps {
 
 export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh = false }) => {
   console.log('SafeMissionsList: компонент отрисовывается (v5)', forceRefresh ? '- с принудительным обновлением' : '');
-  
+
   // Используем безопасный хук для миссий с параметром принудительного обновления
   const { 
     missions, 
@@ -26,7 +26,7 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
     completeMission,
     isCompleted
   } = useMissionsSafe(forceRefresh);
-  
+
   // Получаем доступ к системе уведомлений
   const { showNotification } = useNotification();
 
@@ -39,13 +39,13 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
       default: return <Coins className="h-5 w-5 text-purple-400" />;
     }
   };
-  
+
   // Обработчик выполнения миссии
   const handleCompleteMission = async (missionId: number) => {
     try {
       // Находим миссию по ID для отображения названия в уведомлении
       let missionTitle = `Миссия #${missionId}`;
-      
+
       // Защищённый поиск по массиву
       if (missions && Array.isArray(missions)) {
         for (let i = 0; i < missions.length; i++) {
@@ -55,9 +55,9 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
           }
         }
       }
-      
+
       const result = await completeMission(missionId);
-      
+
       if (result.success) {
         // Показываем красивое уведомление
         showNotification('success', {
@@ -71,14 +71,14 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
       }
     } catch (err) {
       console.error('Ошибка выполнения миссии:', err);
-      
+
       // Показываем уведомление об ошибке
       showNotification('error', {
         message: 'Произошла ошибка при выполнении миссии'
       });
     }
   };
-  
+
   // Рендерим компоненты загрузчика
   const renderLoaderCards = () => {
     const loaders = [];
@@ -93,7 +93,7 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
     }
     return loaders;
   };
-  
+
   // Отображение загрузки
   if (loading) {
     return (
@@ -103,7 +103,7 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
       </div>
     );
   }
-  
+
   // Отображение ошибки
   if (error) {
     return (
@@ -130,10 +130,10 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
       </div>
     );
   }
-  
+
   // Защитная проверка missions на массив
   const missionsArray = missions && Array.isArray(missions) ? missions : [];
-  
+
   // Отображение пустого списка
   if (missionsArray.length === 0) {
     return (
@@ -160,24 +160,24 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
       </div>
     );
   }
-  
+
   // Рендерим карточки миссий
   const renderMissionCards = () => {
     const cards = [];
-    
+
     if (!Array.isArray(missionsArray)) {
       console.error('Unexpected format: missions is not an array', missions);
       return []; // Защитный возврат пустого массива
     }
-    
+
     for (let i = 0; i < missionsArray.length; i++) {
       const mission = missionsArray[i];
-      
+
       // Защитная проверка на null/undefined
       if (!mission) continue;
-      
+
       const isCompletedMission = isCompleted(mission.id);
-      
+
       cards.push(
         <Card key={mission.id || i} className="w-full">
           <CardHeader className="pb-2">
@@ -206,7 +206,7 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
             </div>
             <CardDescription className="mt-2">{mission.description || 'Без описания'}</CardDescription>
           </CardHeader>
-          
+
           <CardFooter className="flex justify-between items-center border-t pt-4">
             <div className="flex items-center">
               <div className="text-purple-300/80 font-medium mr-2">Награда:</div>
@@ -217,7 +217,7 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
                 </span>
               </div>
             </div>
-            
+
             {isCompletedMission ? (
               <Badge variant="outline" className="border-purple-400/60 text-purple-300 px-3 py-1">
                 <CheckCircle className="h-4 w-4 mr-1.5" />
@@ -236,10 +236,10 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
         </Card>
       );
     }
-    
+
     return cards;
   };
-  
+
   // Основное отображение списка миссий
   return (
     <div className="space-y-4 p-4">

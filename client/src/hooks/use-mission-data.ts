@@ -108,8 +108,10 @@ export function useMissionData() {
   useEffect(() => {
     console.log('useEffect в хуке useMissionData вызван');
     
-    if (!dbMissions) {
-      console.log('dbMissions не загружены');
+    // Проверяем корректность данных миссий
+    if (!dbMissions || !Array.isArray(dbMissions)) {
+      console.log('dbMissions не загружены или не являются массивом');
+      setMissions([]);
       return;
     }
     
