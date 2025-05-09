@@ -7,8 +7,14 @@ import "./index.css";
 // Импортируем полифиллы перед взаимодействием с API
 import installAllPolyfills from './lib/polyfills';
 
+// Импортируем утилиту для подавления ненужных логов
+import { setupLogSuppression } from './utils/suppressLogs';
+
 // Устанавливаем полифиллы в самом начале для исправления проблем с Map и Array.prototype.map
 installAllPolyfills();
+
+// Устанавливаем фильтрацию логов для подавления ненужных сообщений
+setupLogSuppression();
 
 // Импортируем функции из telegramService
 import { 
