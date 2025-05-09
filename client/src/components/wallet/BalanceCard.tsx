@@ -48,7 +48,7 @@ const BalanceCard: React.FC = () => {
   const [wsConnectedOnce, setWsConnectedOnce] = useState<boolean>(false);
   
   // Используем WebSocket хук для обновления в реальном времени
-  const { isConnected, subscribeToUserUpdates } = useWebSocket({
+  const { isConnected, subscribeToUserUpdates, isFallbackMode, errorCount, forceReconnect } = useWebSocket({
     onOpen: () => {
       setWsStatus('Соединение установлено');
       setWsConnectedOnce(true);
@@ -325,21 +325,60 @@ const BalanceCard: React.FC = () => {
           
           {/* WebSocket статус */}
           <div className="mt-2 text-xs text-gray-500/50">
-            <div>
-              WebSocket: <span className={`${isConnected ? 'text-green-400' : 'text-red-400'}`}>{wsStatus}</span>
-              {uniFarmingActive && <span className="text-green-400 ml-2">• Фарминг активен</span>}
+            <div className="flex items-center justify-between">
+              <div>
+                WebSocket: 
+                {isFallbackMode ? (
+                  <span className="text-orange-400 ml-1">Резервный режим</span>
+                ) : (
+                  <span className={`ml-1 ${isConnected ? 'text-green-400' : 'text-red-400'}`}>{wsStatus}</span>
+                )}
+              </div>
+              
+              {/* Кнопка повторного подключения, если соединение в ошибке */}
+              {(errorCount > 0 || isFallbackMode) && (
+                <button 
+                  onClick={() => {
+                    showNotification('loading', {
+                      message: 'Попытка восстановления соединения...',
+                      duration: 2000
+                    });
+                    forceReconnect();
+                  }}
+                  className="text-blue-400 hover:text-blue-300 transition-colors text-xs flex items-center"
+                  title="Попытаться восстановить соединение"
+                >
+                  <i className="fas fa-redo-alt mr-1"></i>
+                  Восстановить
+                </button>
+              )}
             </div>
+            
+            {uniFarmingActive && (
+              <div className="text-green-400">• Фарминг активен</div>
+            )}
+            
             {uniDepositAmount > 0 && (
               <div className="text-gray-400">
                 Депозит в фарминге: {formatUniNumber(uniDepositAmount)} UNI
               </div>
             )}
             
+            {/* Статус ошибок WebSocket */}
+            {errorCount > 0 && !isFallbackMode && (
+              <div className="text-yellow-400 mt-1">
+                <i className="fas fa-exclamation-triangle mr-1 text-yellow-400"></i>
+                Ошибки соединения: {errorCount}/3
+              </div>
+            )}
+            
             {/* Инструкция по обновлению при отсутствии WebSocket */}
-            {!isConnected && wsErrorNotificationShown && (
+            {(isFallbackMode || (!isConnected && wsErrorNotificationShown)) && (
               <div className="mt-2 bg-blue-500/10 text-blue-100 rounded-md px-2 py-1.5 text-xs">
                 <i className="fas fa-info-circle mr-1 text-blue-300"></i>
-                Автообновление недоступно. Используйте кнопку <i className="fas fa-sync-alt mx-1"></i> для ручного обновления баланса.
+                {isFallbackMode 
+                  ? "Автоматическое обновление отключено из-за проблем соединения. Используйте кнопку обновления для ручного обновления баланса."
+                  : "Автообновление недоступно. Используйте кнопку обновления для ручного обновления баланса."}
               </div>
             )}
           </div>
