@@ -1,63 +1,354 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTonConnectUI } from '@tonconnect/ui-react';
+import { correctApiRequest } from '@/lib/correctApiRequest';
+import { fetchBalance, type Balance } from '@/services/balanceService';
+import { 
+  getWalletAddress, 
+  isWalletConnected, 
+  connectWallet as connectTonWallet,
+  disconnectWallet as disconnectTonWallet
+} from '@/services/tonConnectService';
 
-// Очень простая версия контекста пользователя, предотвращающая циклы обновлений
+// Интерфейс для API-ответов
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+// Тип для контекста пользователя
 interface UserContextType {
   userId: number | null;
   username: string | null;
   guestId: string | null;
   telegramId: number | null;
   refCode: string | null;
+  // Данные баланса
   uniBalance: number;
   tonBalance: number;
   uniFarmingActive: boolean;
   uniDepositAmount: number;
   uniFarmingBalance: number;
+  // Данные кошелька
   isWalletConnected: boolean;
   walletAddress: string | null;
+  // Функции
   connectWallet: () => Promise<boolean>;
   disconnectWallet: () => Promise<void>;
   refreshBalance: () => void;
   refreshUserData: () => void;
+  // Состояния
   isFetching: boolean;
   isBalanceFetching: boolean;
   error: Error | null;
 }
 
-// Статичные значения заглушек для предотвращения циклов
-const defaultContextValue: UserContextType = {
-  userId: 1, // Временное значение для отладки
-  username: 'debug_user',
+// Тип состояния для useReducer
+interface UserState {
+  // Данные пользователя
+  userId: number | null;
+  username: string | null;
+  guestId: string | null;
+  telegramId: number | null;
+  refCode: string | null;
+  
+  // Данные баланса
+  balanceState: Balance;
+  
+  // Состояние кошелька
+  walletConnected: boolean;
+  walletAddress: string | null;
+  
+  // Состояния загрузки и ошибок
+  isFetching: boolean;
+  isBalanceFetching: boolean;
+  error: Error | null;
+}
+
+// Начальное состояние
+const initialState: UserState = {
+  userId: null,
+  username: null,
   guestId: null,
   telegramId: null,
   refCode: null,
-  uniBalance: 0,
-  tonBalance: 0,
-  uniFarmingActive: false,
-  uniDepositAmount: 0,
-  uniFarmingBalance: 0,
-  isWalletConnected: false,
+  
+  balanceState: {
+    uniBalance: 0,
+    tonBalance: 0,
+    uniFarmingActive: false,
+    uniDepositAmount: 0,
+    uniFarmingBalance: 0
+  },
+  
+  walletConnected: false,
   walletAddress: null,
-  // Функции-заглушки
-  connectWallet: async () => false,
-  disconnectWallet: async () => {/* noop */},
-  refreshBalance: () => {/* noop */},
-  refreshUserData: () => {/* noop */},
+  
   isFetching: false,
   isBalanceFetching: false,
   error: null
 };
 
-// Создание контекста с начальным значением
-const UserContext = createContext<UserContextType>(defaultContextValue);
+// Типы действий для reducer
+type UserAction =
+  | { type: 'SET_USER_DATA'; payload: Partial<UserState> }
+  | { type: 'SET_BALANCE'; payload: Balance }
+  | { type: 'SET_WALLET_CONNECTED'; payload: { connected: boolean; address: string | null } }
+  | { type: 'SET_LOADING'; payload: { field: 'isFetching' | 'isBalanceFetching'; value: boolean } }
+  | { type: 'SET_ERROR'; payload: Error | null };
+
+// Reducer функция для обработки действий
+function userReducer(state: UserState, action: UserAction): UserState {
+  switch (action.type) {
+    case 'SET_USER_DATA':
+      return { ...state, ...action.payload };
+      
+    case 'SET_BALANCE':
+      return {
+        ...state,
+        balanceState: action.payload
+      };
+      
+    case 'SET_WALLET_CONNECTED':
+      return {
+        ...state,
+        walletConnected: action.payload.connected,
+        walletAddress: action.payload.address
+      };
+      
+    case 'SET_LOADING':
+      return {
+        ...state,
+        [action.payload.field]: action.payload.value
+      };
+      
+    case 'SET_ERROR':
+      return {
+        ...state,
+        error: action.payload
+      };
+      
+    default:
+      return state;
+  }
+}
+
+// Контекст с начальным значением undefined
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
 /**
- * Минимальная версия UserProvider без хуков состояния и эффектов
- * для предотвращения циклов обновления
+ * Провайдер контекста пользователя с использованием useReducer
+ * для предотвращения бесконечных циклов обновления
  */
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  // Просто возвращаем компонент без изменений состояния
+  // Инициализация хуков
+  const queryClient = useQueryClient();
+  const [tonConnectUI] = useTonConnectUI();
+  
+  // Создаем состояние с помощью useReducer
+  const [state, dispatch] = useReducer(userReducer, initialState);
+  
+  // Рефы для предотвращения повторных вызовов
+  const refreshInProgressRef = useRef<boolean>(false);
+  const initializedRef = useRef<boolean>(false);
+  
+  // Обновление данных пользователя
+  const refreshUserData = useCallback(async () => {
+    if (refreshInProgressRef.current) {
+      return;
+    }
+    
+    refreshInProgressRef.current = true;
+    dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
+    
+    try {
+      const response = await correctApiRequest('/api/me');
+      
+      if (response.success && response.data) {
+        const user = response.data;
+        
+        dispatch({
+          type: 'SET_USER_DATA',
+          payload: {
+            userId: user.id || null,
+            username: user.username || null,
+            guestId: user.guest_id || null,
+            telegramId: user.telegram_id || null,
+            refCode: user.ref_code || null
+          }
+        });
+        
+        dispatch({ type: 'SET_ERROR', payload: null });
+      } else {
+        const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';
+        console.error('[UserContext] Ошибка получения данных пользователя:', errorMsg);
+        dispatch({ type: 'SET_ERROR', payload: new Error(errorMsg) });
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Ошибка получения данных пользователя');
+      console.error('[UserContext] Ошибка получения данных пользователя:', error);
+      dispatch({ type: 'SET_ERROR', payload: error });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: false } });
+      refreshInProgressRef.current = false;
+    }
+  }, []);
+  
+  // Обновление баланса
+  const refreshBalance = useCallback(async () => {
+    if (refreshInProgressRef.current || !state.userId) {
+      return;
+    }
+    
+    refreshInProgressRef.current = true;
+    dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: true } });
+    
+    try {
+      const response = await correctApiRequest('/api/wallet/balance');
+      
+      if (response.success && response.data) {
+        const data = response.data;
+        
+        // Безопасное получение значений
+        const safeParseFloat = (value: any, defaultValue = 0) => {
+          if (typeof value === 'number' && !isNaN(value)) return value;
+          if (typeof value === 'string') {
+            const parsed = parseFloat(value);
+            return !isNaN(parsed) ? parsed : defaultValue;
+          }
+          return defaultValue;
+        };
+        
+        const safeBooleanParse = (value: any) => {
+          if (typeof value === 'boolean') return value;
+          if (typeof value === 'number') return value !== 0;
+          if (typeof value === 'string') return value.toLowerCase() === 'true' || value === '1';
+          return Boolean(value);
+        };
+        
+        const newBalance: Balance = {
+          uniBalance: Math.max(0, safeParseFloat(data.balance_uni)),
+          tonBalance: Math.max(0, safeParseFloat(data.balance_ton)),
+          uniFarmingActive: safeBooleanParse(data.uni_farming_active),
+          uniDepositAmount: Math.max(0, safeParseFloat(data.uni_deposit_amount)),
+          uniFarmingBalance: Math.max(0, safeParseFloat(data.uni_farming_balance))
+        };
+        
+        dispatch({ type: 'SET_BALANCE', payload: newBalance });
+        dispatch({ type: 'SET_ERROR', payload: null });
+      } else {
+        const errorMsg = response.error || response.message || 'Ошибка получения баланса';
+        console.error('[UserContext] Ошибка получения баланса:', errorMsg);
+        dispatch({ type: 'SET_ERROR', payload: new Error(errorMsg) });
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Ошибка получения баланса');
+      console.error('[UserContext] Ошибка получения баланса:', error);
+      dispatch({ type: 'SET_ERROR', payload: error });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: false } });
+      refreshInProgressRef.current = false;
+    }
+  }, [state.userId]);
+  
+  // Функции работы с кошельком
+  const connectWallet = useCallback(async (): Promise<boolean> => {
+    try {
+      await connectTonWallet(tonConnectUI);
+      
+      const connected = isWalletConnected(tonConnectUI);
+      if (connected) {
+        const address = getWalletAddress(tonConnectUI);
+        
+        dispatch({
+          type: 'SET_WALLET_CONNECTED',
+          payload: { connected: true, address }
+        });
+        
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Ошибка подключения кошелька');
+      dispatch({ type: 'SET_ERROR', payload: error });
+      return false;
+    }
+  }, [tonConnectUI]);
+  
+  const disconnectWallet = useCallback(async (): Promise<void> => {
+    try {
+      await disconnectTonWallet(tonConnectUI);
+      
+      dispatch({
+        type: 'SET_WALLET_CONNECTED',
+        payload: { connected: false, address: null }
+      });
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Ошибка отключения кошелька');
+      dispatch({ type: 'SET_ERROR', payload: error });
+    }
+  }, [tonConnectUI]);
+  
+  // Проверяем статус подключения кошелька
+  useEffect(() => {
+    if (initializedRef.current) return;
+    
+    try {
+      // Проверяем, подключен ли кошелек
+      const connected = isWalletConnected(tonConnectUI);
+      if (connected) {
+        const address = getWalletAddress(tonConnectUI);
+        
+        // Кошелек уже подключен, устанавливаем состояние
+        dispatch({
+          type: 'SET_WALLET_CONNECTED',
+          payload: { connected: true, address }
+        });
+      }
+    } catch (err) {
+      console.error('[UserContext] Ошибка при проверке статуса кошелька:', err);
+    }
+    
+    initializedRef.current = true;
+  }, [tonConnectUI]);
+  
+  // Значение контекста
+  const value: UserContextType = {
+    // Данные пользователя
+    userId: state.userId,
+    username: state.username,
+    guestId: state.guestId,
+    telegramId: state.telegramId,
+    refCode: state.refCode,
+    
+    // Данные баланса
+    uniBalance: state.balanceState.uniBalance,
+    tonBalance: state.balanceState.tonBalance,
+    uniFarmingActive: state.balanceState.uniFarmingActive,
+    uniDepositAmount: state.balanceState.uniDepositAmount,
+    uniFarmingBalance: state.balanceState.uniFarmingBalance,
+    
+    // Данные кошелька
+    isWalletConnected: state.walletConnected,
+    walletAddress: state.walletAddress,
+    
+    // Функции
+    connectWallet,
+    disconnectWallet,
+    refreshBalance,
+    refreshUserData,
+    
+    // Состояния
+    isFetching: state.isFetching,
+    isBalanceFetching: state.isBalanceFetching,
+    error: state.error
+  };
+  
   return (
-    <UserContext.Provider value={defaultContextValue}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );
