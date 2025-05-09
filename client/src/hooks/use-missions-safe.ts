@@ -138,6 +138,23 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
     }
   };
 
+  // Безопасная обработка миссий и создание Map
+  const processMissions = (data: any[]): Mission[] => {
+    if (!Array.isArray(data)) {
+      console.warn('Получены некорректные данные миссий:', data);
+      return [];
+    }
+
+    const missionsMap = new Map();
+    data.forEach(mission => {
+      if (mission && mission.mission_id) {
+        missionsMap.set(mission.mission_id, mission);
+      }
+    });
+
+    return Array.from(missionsMap.values());
+  };
+
   return {
     missions,
     userMissions,
