@@ -28,6 +28,7 @@ import NavigationBar from "@/components/layout/NavigationBar";
 import Dashboard from "@/pages/Dashboard";
 import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
+import MissionsNavMenu from "@/pages/MissionsNavMenu"; // Специальная версия для меню
 import Friends from "@/pages/Friends"; // Компонент страницы друзей и реферальной системы
 import Wallet from "@/pages/Wallet";
 import AdminPage from "./pages/AdminPage";
@@ -430,12 +431,23 @@ function App() {
                       </div>
                     </Route>
 
-                    {/* Прямой маршрут на страницу миссий */}
+                    {/* Прямой маршрут на страницу миссий - URL версия */}
                     <Route path="/missions">
                       <div className="max-w-md mx-auto bg-background">
                         <Header />
                         <main className="px-4 pt-2 pb-20">
                           <Missions />
+                        </main>
+                        <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
+                      </div>
+                    </Route>
+                    
+                    {/* Тестовый маршрут на страницу миссий для навигации через меню */}
+                    <Route path="/missions-nav">
+                      <div className="max-w-md mx-auto bg-background">
+                        <Header />
+                        <main className="px-4 pt-2 pb-20">
+                          <MissionsNavMenu />
                         </main>
                         <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
                       </div>

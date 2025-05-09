@@ -34,7 +34,7 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
 
   // Загрузка данных при монтировании
   useEffect(() => {
-    console.log('useMissionsSafe: начинаем загрузку данных');
+    console.log('useMissionsSafe: начинаем загрузку данных', forceRefresh ? 'с принудительным обновлением' : '');
     let isMounted = true;
     setLoading(true);
     setError(null);
@@ -43,7 +43,9 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
       try {
         // 1. Загружаем доступные миссии
         console.log('useMissionsSafe: загрузка миссий');
-        const missionsResponse = await correctApiRequest('/api/missions/active', 'GET');
+        // Добавляем случайный параметр для избежания кеширования при forceRefresh
+        const cacheParam = forceRefresh ? `?nocache=${Date.now()}` : '';
+        const missionsResponse = await correctApiRequest(`/api/missions/active${cacheParam}`, 'GET');
         
         // Детальный лог структуры ответа для отладки
         console.log('DEBUG - missionsResponse:', JSON.stringify(missionsResponse));
@@ -66,7 +68,9 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
 
         // 2. Загружаем миссии пользователя
         console.log('useMissionsSafe: загрузка выполненных миссий');
-        const userMissionsResponse = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}`, 'GET');
+        // Аналогично добавляем параметр для избежания кеширования
+        const userCacheParam = forceRefresh ? `&nocache=${Date.now()}` : '';
+        const userMissionsResponse = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}${userCacheParam}`, 'GET');
         
         // Детальный лог структуры ответа для отладки
         console.log('DEBUG - userMissionsResponse:', JSON.stringify(userMissionsResponse));
@@ -120,7 +124,7 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
     return () => {
       isMounted = false;
     };
-  }, [userId]);
+  }, [userId, forceRefresh]);
   
   // Выполнение миссии
   const completeMission = async (missionId: number) => {
