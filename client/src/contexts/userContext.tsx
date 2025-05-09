@@ -82,6 +82,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Используем useRef для отслеживания состояния обновления
   const processingUserDataRef = useRef<boolean>(false);
   const processingBalanceRef = useRef<boolean>(false);
+  const refreshInProgressRef = useRef<boolean>(false);
   
   // Состояние пользовательских данных
   const [userId, setUserId] = useState<number | null>(null);
@@ -217,15 +218,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       } catch (stateError) {
         console.error('[UserContext] Ошибка при установке состояния ошибки:', stateError);
       }
+    } finally {
+      // Сбрасываем флаг обработки вне зависимости от результата
+      processingUserDataRef.current = false;
     }
   }, [userData]);
 
   // Обновление баланса при изменении balanceData с расширенной защитой от ошибок
   useEffect(() => {
+    // Если уже обрабатываем данные баланса, пропускаем этот цикл
+    if (processingBalanceRef.current) {
+      return;
+    }
+    
+    // Устанавливаем флаг обработки
+    processingBalanceRef.current = true;
+    
     try {
       // Защищенная проверка структуры ответа API
       if (!balanceData) {
         console.warn('[UserContext] Данные баланса отсутствуют (balanceData is null/undefined)');
+        processingBalanceRef.current = false;
         return;
       }
       
@@ -346,6 +359,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       } catch (stateError) {
         console.error('[UserContext] Ошибка при установке состояния ошибки баланса:', stateError);
       }
+    } finally {
+      // Сбрасываем флаг обработки вне зависимости от результата
+      processingBalanceRef.current = false;
     }
   }, [balanceData]);
 
