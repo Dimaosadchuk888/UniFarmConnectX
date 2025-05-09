@@ -1,23 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 
-// Добавляем типы для Telegram WebApp API
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        ready: () => void;
-        expand: () => void;
-        initData?: string;
-        initDataUnsafe?: any;
-        version?: string;
-        platform?: string;
-        colorScheme?: string;
-        MainButton?: any;
-      }
-    }
-  }
-}
+// Используем глобальное определение типов из types/global.d.ts
 
 /**
  * Компонент для обработки URL с завершающим слэшем в Telegram Mini App

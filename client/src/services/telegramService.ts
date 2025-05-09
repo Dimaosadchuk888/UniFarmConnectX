@@ -5,29 +5,7 @@
 
 import apiConfig from "@/config/apiConfig";
 
-// Типы для работы с Telegram WebApp API
-declare global {
-  interface Window {
-    // Базовая поддержка хранилища
-    localStorage?: Storage;
-    
-    // Поддержка Telegram WebApp API
-    Telegram?: {
-      WebApp?: {
-        ready: () => void;
-        expand: () => void;
-        close: () => void;
-        initData: string;
-        initDataUnsafe: {
-          user?: {
-            id: number;
-            first_name: string;
-            last_name?: string;
-            username?: string;
-          };
-          start_param?: string;
-        };
-        version: string;
+// Используем глобальное определение типов из types/global.d.ts
         platform: string;
         MainButton?: {
           show: () => void;
