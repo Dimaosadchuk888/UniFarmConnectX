@@ -79,6 +79,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [tonConnectUI] = useTonConnectUI();
   
+  // Используем useRef для отслеживания состояния обновления
+  const processingUserDataRef = useRef<boolean>(false);
+  const processingBalanceRef = useRef<boolean>(false);
+  
   // Состояние пользовательских данных
   const [userId, setUserId] = useState<number | null>(null);
   const [username, setUsername] = useState<string | null>(null);
@@ -118,14 +122,26 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     queryKey: ['/api/wallet/balance', userId],
     enabled: userId !== null, // Запрос активен только если есть userId
     refetchInterval: 10000, // Обновление каждые 10 секунд
+    refetchOnWindowFocus: false, // Отключаем обновление при фокусе окна
+    retry: false, // Отключаем повторные попытки при ошибке
+    retryOnMount: false, // Отключаем повторные попытки при монтировании
   });
 
   // Обновление данных пользователя при изменении userData с защитой от ошибок
   useEffect(() => {
+    // Если уже обрабатываем данные пользователя, пропускаем этот цикл
+    if (processingUserDataRef.current) {
+      return;
+    }
+    
+    // Устанавливаем флаг обработки
+    processingUserDataRef.current = true;
+    
     try {
       // Защищенная проверка структуры ответа API
       if (!userData) {
         console.warn('[UserContext] Данные пользователя отсутствуют (userData is null/undefined)');
+        processingUserDataRef.current = false;
         return;
       }
       
