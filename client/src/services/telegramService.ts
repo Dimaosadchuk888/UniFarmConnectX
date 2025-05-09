@@ -29,11 +29,27 @@ declare global {
         };
         version: string;
         platform: string;
+        colorScheme?: string;
+        viewportHeight?: number;
+        viewportStableHeight?: number;
         MainButton?: {
           show: () => void;
           hide: () => void;
           setText: (text: string) => void;
           onClick: (callback: () => void) => void;
+        };
+        BackButton?: {
+          show: () => void;
+          hide: () => void;
+          onClick: (callback: () => void) => void;
+        };
+        CloudStorage?: {
+          setItem: (key: string, value: string) => Promise<void>;
+          getItem: (key: string) => Promise<string>;
+          getItems: (keys: string[]) => Promise<Record<string, string>>;
+          removeItem: (key: string) => Promise<void>;
+          removeItems: (keys: string[]) => Promise<void>;
+          getKeys: () => Promise<string[]>;
         };
       };
     };
@@ -256,6 +272,44 @@ export function getTelegramAuthHeaders(): Record<string, string> {
   } catch (error) {
     console.error('[telegramService] Error preparing auth headers:', error);
     return {};
+  }
+}
+
+/**
+ * Возвращает отображаемое имя пользователя Telegram
+ * @returns Имя пользователя или дефолтное значение
+ */
+export function getTelegramUserDisplayName(): string {
+  try {
+    // Проверяем наличие WebApp API
+    if (typeof window !== 'undefined' && 
+        window.Telegram?.WebApp?.initDataUnsafe?.user) {
+      const user = window.Telegram.WebApp.initDataUnsafe.user;
+      
+      // Формируем имя из доступных полей
+      if (user.first_name) {
+        if (user.last_name) {
+          return `${user.first_name} ${user.last_name}`;
+        }
+        return user.first_name;
+      }
+      
+      // Если есть только username
+      if (user.username) {
+        return user.username;
+      }
+    }
+    
+    // Если работаем в режиме разработки
+    if (process.env.NODE_ENV === 'development') {
+      return 'Тестовый Пользователь';
+    }
+    
+    // В случае отсутствия данных возвращаем дефолтное значение
+    return 'Пользователь';
+  } catch (error) {
+    console.error('[telegramService] Error getting username:', error);
+    return 'Пользователь';
   }
 }
 
