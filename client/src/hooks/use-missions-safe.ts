@@ -45,8 +45,38 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Принудительно добавляем прототипное свойство map к Array, если его нет
+  // Это нужно для предотвращения ошибки "map is not a function" 
+  // при работе с потенциально модифицированными прототипами
   useEffect(() => {
-    console.log('[useMissionsSafe v3] Начинаем загрузку данных', forceRefresh ? '(принудительное обновление)' : '');
+    // Безопасно расширяем прототип Array, если его метод map отсутствует
+    if (!Array.prototype.map) {
+      console.warn('[SafetyFix] Array.prototype.map отсутствует, добавляем полифилл');
+      
+      // Добавляем стандартную полифилл-реализацию map
+      // @ts-ignore - игнорируем ошибку TypeScript при модификации прототипа
+      Array.prototype.map = function(callback, thisArg) {
+        if (this == null) {
+          throw new TypeError('this is null or not defined');
+        }
+        
+        const O = Object(this);
+        const len = O.length >>> 0;
+        const A = new Array(len);
+        
+        for (let k = 0; k < len; k++) {
+          if (k in O) {
+            A[k] = callback.call(thisArg, O[k], k, O);
+          }
+        }
+        
+        return A;
+      };
+    }
+  }, []);
+  
+  useEffect(() => {
+    console.log('[useMissionsSafe v4] Начинаем загрузку данных', forceRefresh ? '(принудительное обновление)' : '');
     let isMounted = true;
     
     // Устанавливаем начальные значения
@@ -67,10 +97,10 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
         if (!isMounted) return;
         
         if (missionsResponse?.success && Array.isArray(missionsResponse.data)) {
-          console.log(`[useMissionsSafe v3] Успешно получено ${missionsResponse.data.length} миссий`);
-          setMissions(missionsResponse.data);
+          console.log(`[useMissionsSafe v4] Успешно получено ${missionsResponse.data.length} миссий`);
+          setMissions(missionsResponse.data || []);
         } else {
-          console.error('[useMissionsSafe v3] Неверный формат данных для миссий');
+          console.error('[useMissionsSafe v4] Неверный формат данных для миссий');
           setMissions([]); // Защита от undefined
         }
         
@@ -85,16 +115,22 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
         
         if (!isMounted) return;
         
-        if (userMissionsResponse?.success && Array.isArray(userMissionsResponse.data)) {
-          console.log(`[useMissionsSafe v3] Успешно получено ${userMissionsResponse.data.length} выполненных миссий`);
+        if (userMissionsResponse?.success) {
+          // Убедимся, что userMissionsResponse.data - это массив
+          const userMissionsData = Array.isArray(userMissionsResponse.data) 
+            ? userMissionsResponse.data 
+            : [];
+            
+          console.log(`[useMissionsSafe v4] Успешно получено ${userMissionsData.length} выполненных миссий`);
           
-          setUserMissions(userMissionsResponse.data);
+          setUserMissions(userMissionsData);
           
           // Создаем объект для быстрого поиска выполненных миссий
           const completed: Record<number, boolean> = {};
           
-          for (let i = 0; i < userMissionsResponse.data.length; i++) {
-            const mission = userMissionsResponse.data[i];
+          // Безопасная итерация по массиву
+          for (let i = 0; i < userMissionsData.length; i++) {
+            const mission = userMissionsData[i];
             if (mission && typeof mission === 'object' && 'mission_id' in mission) {
               completed[mission.mission_id] = true;
             }
@@ -102,14 +138,14 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
           
           setCompletedMissionIds(completed);
         } else {
-          console.error('[useMissionsSafe v3] Неверный формат данных для выполненных миссий');
+          console.error('[useMissionsSafe v4] Неверный формат данных для выполненных миссий');
           setUserMissions([]); // Защита от undefined
           setCompletedMissionIds({});
         }
       } catch (err) {
         if (!isMounted) return;
         
-        console.error('[useMissionsSafe v3] Ошибка загрузки данных:', err);
+        console.error('[useMissionsSafe v4] Ошибка загрузки данных:', err);
         setError('Произошла ошибка при загрузке заданий. Пожалуйста, попробуйте позже.');
         setMissions([]); // Защита от undefined даже в случае ошибки
         setUserMissions([]);
@@ -130,7 +166,7 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
   
   // Функция для выполнения миссии
   const completeMission = async (missionId: number): Promise<MissionResult> => {
-    console.log(`[useMissionsSafe v3] Выполнение миссии ${missionId}`);
+    console.log(`[useMissionsSafe v4] Выполнение миссии ${missionId}`);
     
     try {
       const result = await correctApiRequest('/api/missions/complete', 'POST', {
@@ -139,7 +175,7 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
       });
       
       if (result && result.success) {
-        console.log(`[useMissionsSafe v3] Миссия ${missionId} успешно выполнена`);
+        console.log(`[useMissionsSafe v4] Миссия ${missionId} успешно выполнена`);
         
         // Обновляем локальное состояние
         const newCompletedIds = { ...completedMissionIds };
@@ -148,7 +184,7 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
         
         // Если получили данные о выполненной миссии, добавляем в список
         if (result.data && result.data.userMission) {
-          setUserMissions(prev => [...prev, result.data.userMission]);
+          setUserMissions(prev => [...(prev || []), result.data.userMission]);
         }
         
         return { 
@@ -156,14 +192,14 @@ export function useMissionsSafe(forceRefresh: boolean = false) {
           reward: result.data?.reward || 0
         };
       } else {
-        console.error(`[useMissionsSafe v3] Ошибка выполнения миссии ${missionId}:`, result?.message);
+        console.error(`[useMissionsSafe v4] Ошибка выполнения миссии ${missionId}:`, result?.message);
         return { 
           success: false, 
           error: result?.message || 'Не удалось выполнить миссию'
         };
       }
     } catch (err) {
-      console.error(`[useMissionsSafe v3] Исключение при выполнении миссии ${missionId}:`, err);
+      console.error(`[useMissionsSafe v4] Исключение при выполнении миссии ${missionId}:`, err);
       return { 
         success: false, 
         error: 'Произошла ошибка при выполнении миссии'

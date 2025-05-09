@@ -15,7 +15,7 @@ interface SafeMissionsListProps {
 }
 
 export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh = false }) => {
-  console.log('SafeMissionsList: компонент отрисовывается', forceRefresh ? '- с принудительным обновлением' : '');
+  console.log('SafeMissionsList: компонент отрисовывается (v5)', forceRefresh ? '- с принудительным обновлением' : '');
   
   // Используем безопасный хук для миссий с параметром принудительного обновления
   const { 
@@ -45,10 +45,14 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
     try {
       // Находим миссию по ID для отображения названия в уведомлении
       let missionTitle = `Миссия #${missionId}`;
-      for (let i = 0; i < missions.length; i++) {
-        if (missions[i].id === missionId) {
-          missionTitle = missions[i].title || missionTitle;
-          break;
+      
+      // Защищённый поиск по массиву
+      if (missions && Array.isArray(missions)) {
+        for (let i = 0; i < missions.length; i++) {
+          if (missions[i]?.id === missionId) {
+            missionTitle = missions[i]?.title || missionTitle;
+            break;
+          }
         }
       }
       
@@ -127,8 +131,11 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
     );
   }
   
+  // Защитная проверка missions на массив
+  const missionsArray = missions && Array.isArray(missions) ? missions : [];
+  
   // Отображение пустого списка
-  if (!missions || missions.length === 0) {
+  if (missionsArray.length === 0) {
     return (
       <div className="space-y-4 p-4">
         <Card className="w-full bg-slate-800/70 border border-slate-700">
@@ -158,19 +165,28 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
   const renderMissionCards = () => {
     const cards = [];
     
-    for (let i = 0; i < missions.length; i++) {
-      const mission = missions[i];
+    if (!Array.isArray(missionsArray)) {
+      console.error('Unexpected format: missions is not an array', missions);
+      return []; // Защитный возврат пустого массива
+    }
+    
+    for (let i = 0; i < missionsArray.length; i++) {
+      const mission = missionsArray[i];
+      
+      // Защитная проверка на null/undefined
+      if (!mission) continue;
+      
       const isCompletedMission = isCompleted(mission.id);
       
       cards.push(
-        <Card key={mission.id} className="w-full">
+        <Card key={mission.id || i} className="w-full">
           <CardHeader className="pb-2">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center">
                   {getMissionIcon(mission.type)}
                 </div>
-                <CardTitle className="text-lg">{mission.title}</CardTitle>
+                <CardTitle className="text-lg">{mission.title || 'Миссия без названия'}</CardTitle>
               </div>
               <Badge className={isCompletedMission ? 'bg-teal-500/70' : 'bg-blue-500'}>
                 <span className="flex items-center">
@@ -188,7 +204,7 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
                 </span>
               </Badge>
             </div>
-            <CardDescription className="mt-2">{mission.description}</CardDescription>
+            <CardDescription className="mt-2">{mission.description || 'Без описания'}</CardDescription>
           </CardHeader>
           
           <CardFooter className="flex justify-between items-center border-t pt-4">
@@ -197,7 +213,7 @@ export const SafeMissionsList: React.FC<SafeMissionsListProps> = ({ forceRefresh
               <div className="flex items-center px-2 py-1 bg-purple-900/30 rounded-md">
                 <Coins className="h-4 w-4 text-purple-400 mr-1.5" />
                 <span className="text-purple-300 font-semibold">
-                  {parseFloat(mission.reward_uni)} UNI
+                  {mission.reward_uni ? parseFloat(mission.reward_uni) : 0} UNI
                 </span>
               </div>
             </div>
