@@ -397,15 +397,28 @@ export class ReferralService implements IReferralService {
       }
       
       // Получаем все транзакции пользователя типа "referral_bonus"
-      const transactions = await this.storage.getUserTransactions(userId);
+      const transactionData = await this.storage.getUserTransactions(userId);
       
-      // Проверяем, что transactions - это массив
-      if (!transactions || !Array.isArray(transactions)) {
-        console.error('[ReferralService] Error in getLevelIncomeData: transactions is not an array', transactions);
-        return {}; // Возвращаем пустой объект если transactions не массив
+      // Обрабатываем результат, который может быть либо массивом, либо объектом вида { transactions: [], total: 0 }
+      let transactionsArray = [];
+      
+      if (Array.isArray(transactionData)) {
+        transactionsArray = transactionData;
+      } else if (transactionData && typeof transactionData === 'object') {
+        // Если это объект с полем transactions
+        if (Array.isArray(transactionData.transactions)) {
+          transactionsArray = transactionData.transactions;
+        } else {
+          // Менее агрессивный лог - просто информация о том, что транзакции не найдены
+          console.log(`[ReferralService] No transactions found for user ${userId}`);
+          return {}; 
+        }
+      } else {
+        console.log(`[ReferralService] No transactions data found for user ${userId}`);
+        return {};
       }
       
-      const referralTransactions = transactions.filter(tx => tx.type === 'referral_bonus');
+      const referralTransactions = transactionsArray.filter(tx => tx && tx.type === 'referral_bonus');
       
       if (!referralTransactions.length) {
         return {};
