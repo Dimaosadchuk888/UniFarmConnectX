@@ -179,8 +179,8 @@ const BalanceCard: React.FC = () => {
       
       initialLoadedRef.current = true;
       
-      // Делаем полное обновление при первом рендере
-      refreshBalance();
+      // Делаем полное обновление при первом рендере (параметр false поскольку это первый запрос)
+      refreshBalance(false);
       
       // Рассчитываем уровень доходности
       calculateRate();
@@ -216,7 +216,7 @@ const BalanceCard: React.FC = () => {
     try {
       // Обновляем с небольшой задержкой для предотвращения множественных вызовов
       setTimeout(() => {
-        // Принудительно обновляем баланс (forceRefresh = true)
+        // Принудительно обновляем баланс с передачей параметра forceRefresh
         refreshBalance(true);
         
         // Вычисляем уровень доходности после обновления баланса
@@ -270,7 +270,7 @@ const BalanceCard: React.FC = () => {
       
       // Затем с небольшой задержкой обновляем баланс
       setTimeout(() => {
-        // Принудительно обновляем баланс (forceRefresh = true)
+        // Принудительно обновляем баланс с явной передачей параметра
         refreshBalance(true);
         calculateRate();
         

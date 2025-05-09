@@ -37,7 +37,7 @@ interface UserContextType {
   // Функции
   connectWallet: () => Promise<boolean>;
   disconnectWallet: () => Promise<void>;
-  refreshBalance: () => void;
+  refreshBalance: (forceRefresh?: boolean) => void;
   refreshUserData: () => void;
   // Состояния
   isFetching: boolean;
