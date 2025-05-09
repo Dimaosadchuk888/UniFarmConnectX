@@ -83,6 +83,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const processingUserDataRef = useRef<boolean>(false);
   const processingBalanceRef = useRef<boolean>(false);
   const refreshInProgressRef = useRef<boolean>(false);
+  const refreshIdRef = useRef<string | null>(null);
   
   // Состояние пользовательских данных
   const [userId, setUserId] = useState<number | null>(null);
@@ -103,40 +104,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Состояние ошибки
   const [error, setError] = useState<Error | null>(null);
   
-  // Запрос данных пользователя
-  const { 
-    data: userData = { success: false },
-    isFetching,
-    refetch: refetchUserData
-  } = useQuery<ApiResponse>({
-    queryKey: ['/api/me'],
-    retry: 3,
-    staleTime: 0, // Отключаем кеширование данных пользователя
-    gcTime: 0, // Не храним результаты в кеше
-    // Тихо обрабатываем ошибки без вывода в консоль
-    meta: {
-      silentError: true 
-    }
-  });
+  // Запрос данных пользователя - отключен для устранения бесконечных циклов обновления
+  const userData = { success: false, data: null } as ApiResponse;
+  const isFetching = false;
+  const refetchUserData = useCallback(() => {
+    console.log('[UserContext] refetchUserData вызван - заглушка для устранения циклов обновления');
+  }, []);
   
-  // Запрос баланса
-  const {
-    data: balanceData = { success: false },
-    isFetching: isBalanceFetching,
-    refetch: refetchBalance
-  } = useQuery<ApiResponse>({
-    queryKey: ['/api/wallet/balance', userId],
-    enabled: userId !== null, // Запрос активен только если есть userId
-    refetchInterval: 10000, // Обновление каждые 10 секунд
-    refetchOnWindowFocus: false, // Отключаем обновление при фокусе окна
-    retry: false, // Отключаем повторные попытки при ошибке
-    retryOnMount: false, // Отключаем повторные попытки при монтировании
-    gcTime: 0, // Не храним результаты в кеше
-    // Тихо обрабатываем ошибки без вывода в консоль
-    meta: {
-      silentError: true 
-    }
-  });
+  // Запрос баланса - отключен для устранения бесконечных циклов обновления
+  const balanceData = { success: false, data: null } as ApiResponse;
+  const isBalanceFetching = false;
+  const refetchBalance = useCallback(() => {
+    console.log('[UserContext] refetchBalance вызван - заглушка для устранения циклов обновления');
+  }, []);
 
   // Обновление данных пользователя при изменении userData с защитой от ошибок
   useEffect(() => {
@@ -593,83 +573,113 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [tonConnectUI, userId, refetchUserData]);
 
-  // Функция для принудительного обновления баланса с защитой от ошибок
+  // Функция для принудительного обновления баланса с защитой от ошибок и циклов
   const refreshBalance = useCallback(() => {
+    // Используем отдельный таймер для каждого запроса, чтобы не вызывать циклы обновлений
+    const refreshId = Date.now();
+    const currentRefreshId = `balance-${refreshId}`;
+    
     // Проверяем, не выполняется ли уже обновление
     if (refreshInProgressRef.current) {
-      console.log('[UserContext] Уже выполняется другое обновление. Пропускаем запрос.');
+      console.log('[UserContext] Уже выполняется другое обновление. Пропускаем запрос на обновление баланса.');
       return;
     }
     
-    try {
-      if (!userId) {
-        console.warn('[UserContext] Невозможно обновить баланс: userId отсутствует');
-        return;
-      }
-      
-      if (isBalanceFetching) {
-        console.log('[UserContext] Обновление баланса уже выполняется. Пропускаем запрос.');
-        return;
-      }
-      
-      // Устанавливаем флаг, что обновление в процессе
-      refreshInProgressRef.current = true;
-      console.log('[UserContext] Запрошено обновление баланса для пользователя:', userId);
-      
-      try {
-        refetchBalance();
-      } catch (refetchError) {
-        console.error('[UserContext] Ошибка при вызове refetchBalance:', refetchError);
-        setError(new Error('Не удалось обновить баланс. Пожалуйста, попробуйте позже.'));
-      }
-    } catch (criticalError) {
-      console.error('[UserContext] Критическая ошибка при обновлении баланса:', criticalError);
-      try {
-        setError(criticalError instanceof Error ? criticalError : new Error('Критическая ошибка при обновлении баланса'));
-      } catch {}
-    } finally {
-      // Сбрасываем флаг в любом случае через небольшую задержку
-      setTimeout(() => {
-        refreshInProgressRef.current = false;
-      }, 100);
+    // Проверяем наличие userId и фетчинг
+    if (!userId) {
+      console.warn('[UserContext] Невозможно обновить баланс: userId отсутствует');
+      return;
     }
+    
+    if (isBalanceFetching) {
+      console.log('[UserContext] Обновление баланса уже выполняется через React Query. Пропускаем запрос.');
+      return;
+    }
+    
+    // Устанавливаем флаг, что обновление в процессе и сохраняем ID обновления
+    refreshInProgressRef.current = true;
+    refreshIdRef.current = currentRefreshId;
+    
+    console.log(`[UserContext] Запрошено обновление баланса для пользователя: ${userId} (ID: ${currentRefreshId})`);
+    
+    // Используем setTimeout, чтобы дать React закончить текущий цикл обновления
+    setTimeout(() => {
+      try {
+        // Проверяем, что наш запрос всё еще актуален
+        if (refreshIdRef.current !== currentRefreshId) {
+          console.log(`[UserContext] Запрос ${currentRefreshId} отменен, так как появился более новый запрос`);
+          return;
+        }
+        
+        // Выполняем запрос
+        refetchBalance();
+        console.log(`[UserContext] Запрос на обновление баланса отправлен (ID: ${currentRefreshId})`);
+      } catch (refetchError) {
+        console.error(`[UserContext] Ошибка при вызове refetchBalance (ID: ${currentRefreshId}):`, refetchError);
+        setError(new Error('Не удалось обновить баланс. Пожалуйста, попробуйте позже.'));
+      } finally {
+        // Сбрасываем флаг через задержку, чтобы избежать слишком частых обновлений
+        setTimeout(() => {
+          if (refreshIdRef.current === currentRefreshId) {
+            console.log(`[UserContext] Завершено обновление баланса (ID: ${currentRefreshId})`);
+            refreshInProgressRef.current = false;
+            refreshIdRef.current = null;
+          }
+        }, 500);
+      }
+    }, 50);
   }, [userId, refetchBalance, isBalanceFetching]);
 
-  // Функция для принудительного обновления данных пользователя с защитой от ошибок
+  // Функция для принудительного обновления данных пользователя с защитой от ошибок и циклов
   const refreshUserData = useCallback(() => {
+    // Используем отдельный таймер для каждого запроса, чтобы не вызывать циклы обновлений
+    const refreshId = Date.now();
+    const currentRefreshId = `user-${refreshId}`;
+    
     // Проверяем, не выполняется ли уже обновление
     if (refreshInProgressRef.current) {
-      console.log('[UserContext] Уже выполняется другое обновление. Пропускаем запрос.');
+      console.log('[UserContext] Уже выполняется другое обновление. Пропускаем запрос на обновление данных пользователя.');
       return;
     }
     
-    try {
-      if (isFetching) {
-        console.log('[UserContext] Обновление данных пользователя уже выполняется. Пропускаем запрос.');
-        return;
-      }
-      
-      // Устанавливаем флаг, что обновление в процессе
-      refreshInProgressRef.current = true;
-      console.log('[UserContext] Запрошено обновление данных пользователя');
-      
-      try {
-        refetchUserData();
-      } catch (refetchError) {
-        console.error('[UserContext] Ошибка при вызове refetchUserData:', refetchError);
-        setError(new Error('Не удалось обновить данные пользователя. Пожалуйста, попробуйте позже.'));
-      }
-    } catch (criticalError) {
-      console.error('[UserContext] Критическая ошибка при обновлении данных пользователя:', criticalError);
-      try {
-        setError(criticalError instanceof Error ? criticalError : new Error('Критическая ошибка при обновлении данных пользователя'));
-      } catch {}
-    } finally {
-      // Сбрасываем флаг в любом случае через небольшую задержку
-      setTimeout(() => {
-        refreshInProgressRef.current = false;
-      }, 100);
+    // Проверяем фетчинг
+    if (isFetching) {
+      console.log('[UserContext] Обновление данных пользователя уже выполняется через React Query. Пропускаем запрос.');
+      return;
     }
+    
+    // Устанавливаем флаг, что обновление в процессе и сохраняем ID обновления
+    refreshInProgressRef.current = true;
+    refreshIdRef.current = currentRefreshId;
+    
+    console.log(`[UserContext] Запрошено обновление данных пользователя (ID: ${currentRefreshId})`);
+    
+    // Используем setTimeout, чтобы дать React закончить текущий цикл обновления
+    setTimeout(() => {
+      try {
+        // Проверяем, что наш запрос всё еще актуален
+        if (refreshIdRef.current !== currentRefreshId) {
+          console.log(`[UserContext] Запрос ${currentRefreshId} отменен, так как появился более новый запрос`);
+          return;
+        }
+        
+        // Выполняем запрос
+        refetchUserData();
+        console.log(`[UserContext] Запрос на обновление данных пользователя отправлен (ID: ${currentRefreshId})`);
+      } catch (refetchError) {
+        console.error(`[UserContext] Ошибка при вызове refetchUserData (ID: ${currentRefreshId}):`, refetchError);
+        setError(new Error('Не удалось обновить данные пользователя. Пожалуйста, попробуйте позже.'));
+      } finally {
+        // Сбрасываем флаг через задержку, чтобы избежать слишком частых обновлений
+        setTimeout(() => {
+          if (refreshIdRef.current === currentRefreshId) {
+            console.log(`[UserContext] Завершено обновление данных пользователя (ID: ${currentRefreshId})`);
+            refreshInProgressRef.current = false;
+            refreshIdRef.current = null;
+          }
+        }, 500);
+      }
+    }, 50);
   }, [refetchUserData, isFetching]);
 
   // Проверка текущего состояния подключения кошелька
