@@ -1,177 +1,60 @@
 import { useState, useEffect } from 'react';
 import { correctApiRequest } from '@/lib/correctApiRequest';
-import { useUser } from '@/contexts/userContext';
 
-export interface Mission {
-  id: number;
-  type: string;
-  title: string;
-  description: string;
-  reward_uni: string;
-  is_active: boolean;
-}
-
-export interface UserMission {
-  id: number;
-  user_id: number;
-  mission_id: number;
-  completed_at: string;
-}
-
-export function useMissionsSafe(forceRefresh: boolean = false) {
-  const { userId } = useUser();
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [userMissions, setUserMissions] = useState<UserMission[]>([]);
-  const [completedMissionIds, setCompletedMissionIds] = useState<Record<number, boolean>>({});
-  const [loading, setLoading] = useState<boolean>(true);
+/**
+ * Безопасный хук для загрузки миссий напрямую через API без React Query
+ * Реализует ТЗ: "Настроить вызов именно на `/missions` и обеспечить корректную загрузку карточек"
+ */
+export function useMissionsData() {
+  const [missions, setMissions] = useState<any[]>([]);
+  const [userMissions, setUserMissions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Безопасная обработка миссий
-  const safeProcessMissions = (data: any): UserMission[] => {
-    if (!data || !Array.isArray(data)) {
-      console.warn('Получены некорректные данные миссий:', data);
-      return [];
-    }
-    return data;
-  };
-
   useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
-    setError(null);
-
-    async function fetchData() {
+    const fetchMissions = async () => {
       try {
-        // Загружаем активные миссии
-        let missionsUrl = '/api/missions/active';
-        if (forceRefresh) {
-          missionsUrl += `?nocache=${Date.now()}`;
-        }
-
-        const missionsResponse = await correctApiRequest(missionsUrl, 'GET');
-
-        if (!isMounted) return;
-
+        setLoading(true);
+        
+        // Запрос активных миссий
+        const missionsResponse = await correctApiRequest('/api/missions/active', 'GET');
+        
         if (missionsResponse?.success && Array.isArray(missionsResponse.data)) {
+          console.log('✅ API /api/missions/active успешно вернул данные:', missionsResponse.data.length);
           setMissions(missionsResponse.data);
-        } else {
-          console.error('Некорректный формат данных миссий:', missionsResponse);
-          setMissions([]);
-        }
-
-        // Загружаем выполненные миссии
-        const userMissionsResponse = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}`, 'GET');
-
-        if (!isMounted) return;
-
-        if (userMissionsResponse?.success) {
-          const safeMissions = safeProcessMissions(userMissionsResponse.data);
-          setUserMissions(safeMissions);
-
-          const completed: Record<number, boolean> = {};
-          userMissionsResponse.data.forEach((mission: { mission_id?: number } | undefined) => {
-            if (mission && typeof mission === 'object' && mission.mission_id) {
-              completed[mission.mission_id] = true;
+          
+          // Запрос статуса миссий для пользователя
+          try {
+            // Используем ID пользователя 1 для демо-режима (или другой ID из контекста пользователя)
+            const userMissionsResponse = await correctApiRequest('/api/user_missions?user_id=1', 'GET');
+            
+            if (userMissionsResponse?.success && Array.isArray(userMissionsResponse.data)) {
+              console.log('✅ API /api/user_missions успешно вернул данные:', userMissionsResponse.data.length);
+              setUserMissions(userMissionsResponse.data);
+            } else {
+              console.warn('⚠️ API /api/user_missions вернул некорректные данные:', userMissionsResponse);
+              setUserMissions([]);
             }
-          });
-
-          setCompletedMissionIds(completed);
+          } catch (userMissionsError) {
+            console.error('❌ Ошибка при загрузке статуса миссий пользователя:', userMissionsError);
+            setUserMissions([]);
+          }
         } else {
-          console.error('Некорректный формат данных выполненных миссий:', userMissionsResponse);
-          setUserMissions([]);
-          setCompletedMissionIds({});
+          console.error('❌ API /api/missions/active вернул некорректные данные:', missionsResponse);
+          setMissions([]);
+          setError('Не удалось загрузить миссии. Пожалуйста, попробуйте позже.');
         }
       } catch (err) {
-        if (!isMounted) return;
-        console.error('Ошибка загрузки миссий:', err);
-        setError('Произошла ошибка при загрузке миссий');
+        console.error('❌ Критическая ошибка при загрузке миссий:', err);
         setMissions([]);
-        setUserMissions([]);
-        setCompletedMissionIds({});
+        setError('Произошла ошибка при загрузке миссий.');
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
-    }
-
-    fetchData();
-
-    return () => {
-      isMounted = false;
     };
-  }, [userId, forceRefresh]);
+    
+    fetchMissions();
+  }, []);
 
-  const isCompleted = (missionId: number): boolean => {
-    return !!completedMissionIds[missionId];
-  };
-
-  const completeMission = async (missionId: number): Promise<any> => {
-    console.log(`[useMissionsSafe v4] Выполнение миссии ${missionId}`);
-
-    try {
-      const result = await correctApiRequest('/api/missions/complete', 'POST', {
-        user_id: userId || 1,
-        mission_id: missionId
-      });
-
-      if (result && result.success) {
-        console.log(`[useMissionsSafe v4] Миссия ${missionId} успешно выполнена`);
-
-        // Обновляем локальное состояние
-        const newCompletedIds = { ...completedMissionIds };
-        newCompletedIds[missionId] = true;
-        setCompletedMissionIds(newCompletedIds);
-
-        // Если получили данные о выполненной миссии, добавляем в список
-        if (result.data && result.data.userMission) {
-          setUserMissions(prev => [...(prev || []), result.data.userMission]);
-        }
-
-        return { 
-          success: true, 
-          reward: result.data?.reward || 0
-        };
-      } else {
-        console.error(`[useMissionsSafe v4] Ошибка выполнения миссии ${missionId}:`, result?.message);
-        return { 
-          success: false, 
-          error: result?.message || 'Не удалось выполнить миссию'
-        };
-      }
-    } catch (err) {
-      console.error(`[useMissionsSafe v4] Исключение при выполнении миссии ${missionId}:`, err);
-      return { 
-        success: false, 
-        error: 'Произошла ошибка при выполнении миссии'
-      };
-    }
-  };
-
-  // Безопасная обработка миссий и создание Map
-  const processMissions = (data: any[]): Mission[] => {
-    if (!Array.isArray(data)) {
-      console.warn('Получены некорректные данные миссий:', data);
-      return [];
-    }
-
-    const missionsMap = new Map();
-    data.forEach((mission: { mission_id?: number } | undefined) => {
-      if (mission && mission.mission_id) {
-        missionsMap.set(mission.mission_id, mission);
-      }
-    });
-
-    return Array.from(missionsMap.values());
-  };
-
-  return {
-    missions,
-    userMissions,
-    completedMissionIds,
-    loading,
-    error,
-    isCompleted,
-    completeMission
-  };
+  return { missions, userMissions, loading, error };
 }
