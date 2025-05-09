@@ -1,7 +1,7 @@
 {
   "totalTests": 10,
-  "passedTests": 6,
-  "failedTests": 4,
+  "passedTests": 7,
+  "failedTests": 3,
   "skippedTests": 0,
   "details": [
     {
@@ -73,7 +73,7 @@
       "result": "FAILED",
       "details": {
         "ok": false,
-        "error": "Cannot read properties of undefined (reading 'error')"
+        "error": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON."
       }
     },
     {
@@ -150,7 +150,7 @@
       "result": "FAILED",
       "details": {
         "ok": false,
-        "error": "Cannot read properties of undefined (reading 'error')"
+        "error": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON."
       }
     },
     {
@@ -158,15 +158,21 @@
       "result": "FAILED",
       "details": {
         "ok": false,
-        "error": "Cannot read properties of undefined (reading 'error')"
+        "error": "Неправильный формат ответа: text/html; charset=utf-8. Ожидался JSON."
       }
     },
     {
       "name": "Программы лояльности и бонусы",
-      "result": "FAILED",
+      "result": "PASSED",
       "details": {
-        "ok": false,
-        "error": "Cannot read properties of undefined (reading 'error')"
+        "ok": true,
+        "dailyBonus": {
+          "canClaim": true,
+          "streak": 0,
+          "bonusAmount": 500
+        },
+        "loyaltyHistory": null,
+        "promotions": null
       }
     }
   ]
