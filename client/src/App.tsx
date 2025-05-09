@@ -38,7 +38,7 @@ import AdminPage from "./pages/AdminPage";
 import TelegramSetupGuide from "./pages/TelegramSetupGuide";
 import TelegramMiniApp from "./pages/TelegramMiniApp";
 import TelegramInitializer from "@/components/telegram/TelegramInitializer";
-import { DirectMissionsComponent } from "@/components/missions/DirectMissions"; // Импорт компонента прямого доступа к миссиям
+// Используем только стандартный компонент MissionsList
 
 // Дополнительные определения для глобальных объектов
 declare global {
@@ -337,9 +337,7 @@ function App() {
     
     // Используем дополнительные импорты на верхнем уровне
     // Используем MissionsFix вместо стандартного Missions
-    // для прямого отображения на вкладке без ошибок
-    // import { DirectMissionsComponent } from '@/components/missions/DirectMissions';
-    
+    // Используем только стандартные компоненты
     switch (activeTab) {
       case "dashboard":
         return <Dashboard />;
@@ -353,8 +351,8 @@ function App() {
           <div className="p-4">
             <h1 className="text-xl font-semibold text-white mb-4">Выполняй задания — получай UNI</h1>
             <div className="grid gap-4">
-              {/* Инлайним основные элементы из DirectMissionsComponent, чтобы избежать импортов */}
-              <DirectMissionsComponent />
+              {/* Используем основной компонент MissionsList через импорт из Missions */}
+              <Missions />
             </div>
           </div>
         );
@@ -460,16 +458,7 @@ function App() {
                       </div>
                     </Route>
                     
-                    {/* Специальный маршрут для прямого доступа к миссиям без React Query */}
-                    <Route path="/direct-missions">
-                      <div className="max-w-md mx-auto bg-background">
-                        <Header />
-                        <main className="px-4 pt-2 pb-20">
-                          <DirectMissions />
-                        </main>
-                        <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
-                      </div>
-                    </Route>
+                    {/* Удален специальный маршрут для прямого доступа к миссиям без React Query */}
                     
                     {/* Тестовый маршрут на страницу миссий для навигации через меню */}
                     <Route path="/missions-nav">
