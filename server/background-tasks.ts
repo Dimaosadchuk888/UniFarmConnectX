@@ -17,9 +17,12 @@ export function startBackgroundTasks(): void {
   const ONE_HOUR_MS = 60 * 60 * 1000;
   setInterval(updateAllUsersFarming, ONE_HOUR_MS);
   
-  // Запускаем первое начисление через 5 секунд после старта сервера
-  // для проверки работоспособности
-  setTimeout(updateAllUsersFarming, 5000);
+  // Запускаем первое начисление через 5 секунд после старта сервера,
+  // но только для инициализации системы, без реальных начислений
+  setTimeout(() => {
+    console.log('[Background Tasks] Initial system check after server start');
+    systemInitialized = true;
+  }, 5000);
 }
 
 // Переменная для отслеживания времени последнего вывода сообщения в лог
