@@ -23,8 +23,15 @@ const API_BASE_URL = 'https://93cb0060-75d7-4281-ac65-b204cda864a4-00-1j7bpbfst9
 
 // Конфигурация тестирования
 const TEST_BALANCE_AMOUNT = 5; // Количество бонусов для начисления
-const DEPOSIT_AMOUNT = 1000; // Сумма для депозита в фарминг
+const DEPOSIT_AMOUNT = 50; // Сумма для депозита в фарминг (max 50 у пользователя)
 const SIMULATED_REWARD = 10; // Искусственная награда для теста сбора
+
+// Добавляем заголовки для режима разработки
+const API_HEADERS = {
+  'Content-Type': 'application/json',
+  'x-development-mode': 'true',
+  'x-development-user-id': '1'
+};
 
 /**
  * Получает баланс пользователя
@@ -35,7 +42,7 @@ async function getUserBalance(userId) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/wallet/balance?user_id=${userId}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: API_HEADERS
     });
     
     if (!response.ok) {
@@ -58,7 +65,7 @@ async function getFarmingInfo(userId) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/uni-farming/info?user_id=${userId}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: API_HEADERS
     });
     
     if (!response.ok) {
@@ -83,7 +90,7 @@ async function depositToFarming(userId, amount) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/uni-farming/deposit`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: API_HEADERS,
       body: JSON.stringify({
         user_id: userId,
         amount: amount.toString() // Отправляем как строку, как это делает фронтенд
@@ -121,7 +128,7 @@ async function harvestFarming(userId) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/uni-farming/harvest`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: API_HEADERS,
       body: JSON.stringify({ user_id: userId })
     });
     
@@ -158,7 +165,7 @@ async function simulateReward(userId, rewardAmount) {
     // Используем API для добавления вознаграждения
     const response = await fetch(`${API_BASE_URL}/api/uni-farming/simulate-reward`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: API_HEADERS,
       body: JSON.stringify({
         user_id: userId,
         amount: rewardAmount.toString()
@@ -220,7 +227,7 @@ async function addTestBalance(userId) {
     
     const resetResponse = await fetch(`${API_BASE_URL}/api/daily-bonus/reset-test`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: API_HEADERS,
       body: JSON.stringify({ user_id: userId })
     });
     
@@ -234,7 +241,7 @@ async function addTestBalance(userId) {
     console.log('Проверка статуса ежедневного бонуса...');
     const statusResponse = await fetch(`${API_BASE_URL}/api/daily-bonus/status?user_id=${userId}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: API_HEADERS
     });
     
     if (!statusResponse.ok) {
@@ -252,7 +259,7 @@ async function addTestBalance(userId) {
     console.log('Запрос на получение ежедневного бонуса...');
     const claimResponse = await fetch(`${API_BASE_URL}/api/daily-bonus/claim`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: API_HEADERS,
       body: JSON.stringify({ user_id: userId })
     });
     
@@ -264,7 +271,7 @@ async function addTestBalance(userId) {
       console.log('Пробуем альтернативный API для тестового начисления средств...');
       const testAddResponse = await fetch(`${API_BASE_URL}/api/wallet/test-add`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: API_HEADERS,
         body: JSON.stringify({ 
           user_id: userId,
           amount: (TEST_BALANCE_AMOUNT * 200).toString() // Чтобы одного добавления хватило для всех тестов
