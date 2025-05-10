@@ -1508,6 +1508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/uni-farming/deposits", UniFarmingControllerFallback.getUserFarmingDeposits);
   app.post("/api/uni-farming/harvest", UniFarmingControllerFallback.harvestFarmingInfo);
   app.post("/api/uni-farming/simulate-reward", UniFarmingControllerFallback.simulateReward);
+  app.post("/api/uni-farming/migrate-deposits", UniFarmingControllerFallback.migrateDeposits);
   
   // Маршруты для множественного UNI фарминга (новая версия)
   app.get("/api/new-uni-farming/info", NewUniFarmingController.getUserFarmingInfo);
