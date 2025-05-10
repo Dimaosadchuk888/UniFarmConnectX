@@ -88,25 +88,55 @@ export async function correctApiRequest<T = any>(
     
     // Добавляем заголовки разработчика, если находимся в режиме разработки
     if (process.env.NODE_ENV !== 'production') {
-      // Получаем userId из localStorage
-      const lastSessionStr = localStorage.getItem('unifarm_last_session');
-      let userId = null;
+      // Импортируем здесь для избежания циклических импортов
+      const sessionStorageService = require('../services/sessionStorageService').default;
       
-      if (lastSessionStr) {
-        try {
-          const lastSession = JSON.parse(lastSessionStr);
-          userId = lastSession.user_id;
-        } catch (e) {
-          console.warn(`[correctApiRequest] [${requestId}] Ошибка при извлечении userId из localStorage:`, e);
+      // Получаем userId через новый сервис
+      let userId = null;
+      try {
+        userId = sessionStorageService.getUserId();
+      } catch (e) {
+        console.warn(`[correctApiRequest] [${requestId}] Ошибка при получении userId через сервис:`, e);
+        
+        // Запасной способ получения userId
+        const lastSessionStr = localStorage.getItem('unifarm_last_session');
+        if (lastSessionStr) {
+          try {
+            const lastSession = JSON.parse(lastSessionStr);
+            userId = lastSession.user_id;
+          } catch (e) {
+            console.warn(`[correctApiRequest] [${requestId}] Ошибка при извлечении userId из localStorage:`, e);
+          }
         }
       }
       
+      // Получаем guest_id через сервис
+      let guestId = null;
+      try {
+        guestId = sessionStorageService.getGuestId();
+      } catch (e) {
+        console.warn(`[correctApiRequest] [${requestId}] Ошибка при получении guestId через сервис:`, e);
+      }
+      
       // Для разработки добавляем специальные заголовки
-      // Эти заголовки позволяют правильно идентифицировать пользователя на сервере
+      headers['x-development-mode'] = 'true';
+      
+      // Добавляем user_id, если он есть
       if (userId) {
-        headers['x-development-mode'] = 'true';
         headers['x-development-user-id'] = userId.toString();
         headers['x-telegram-user-id'] = userId.toString();
+        console.log(`[correctApiRequest] [${requestId}] Добавлены заголовки разработки с user_id=${userId}`);
+      } else {
+        // Запасной вариант для режима разработки - используем ID 1
+        headers['x-development-user-id'] = '1';
+        headers['x-telegram-user-id'] = '1';
+        console.log(`[correctApiRequest] [${requestId}] Добавлены заголовки разработки с запасным user_id=1`);
+      }
+      
+      // Добавляем guest_id, если он есть
+      if (guestId) {
+        headers['x-development-guest-id'] = guestId;
+        console.log(`[correctApiRequest] [${requestId}] Добавлен заголовок с guest_id=${guestId}`);
       }
     }
 

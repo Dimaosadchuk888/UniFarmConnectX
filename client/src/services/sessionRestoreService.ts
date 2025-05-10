@@ -17,15 +17,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { isTelegramWebApp } from './telegramService';
 import apiConfig from "@/config/apiConfig";
 import { correctApiRequest } from "@/lib/correctApiRequest";
+import sessionStorageService, { SESSION_KEYS } from './sessionStorageService';
 
 /**
  * Константы для хранения ключей в localStorage/sessionStorage
+ * @deprecated Используйте константы из sessionStorageService
  */
-const STORAGE_KEYS = {
-  GUEST_ID: 'unifarm_guest_id',
-  LAST_SESSION: 'unifarm_last_session',
-  TELEGRAM_READY: 'unifarm_telegram_ready'
-};
+const STORAGE_KEYS = SESSION_KEYS;
 
 /**
  * Проверяет, следует ли пытаться восстановить сессию

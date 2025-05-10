@@ -30,14 +30,15 @@ export class SessionController {
    * @param req Запрос
    * @param res Ответ с данными тестового пользователя
    */
-  static async devLogin(req: RequestWithSession, res: Response): Promise<void> {
+  static async devLogin(req: RequestWithSession, res: Response): Promise<any> {
     try {
       // Проверяем, что мы в режиме разработки
       if (process.env.NODE_ENV !== 'development') {
-        return res.status(403).json({
+        res.status(403).json({
           success: false,
           message: 'Доступно только в режиме разработки'
         });
+        return;
       }
       
       console.log('[SessionController] Создание тестовой сессии для режима разработки');
@@ -89,12 +90,17 @@ export class SessionController {
    * @param req Запрос с guest_id в параметрах
    * @param res Ответ с данными пользователя или ошибкой
    */
-  static async restoreSession(req: RequestWithSession, res: Response): Promise<void> {
+  static async restoreSession(req: RequestWithSession, res: Response): Promise<any> {
     try {
       // Получаем guest_id из тела запроса
       const { guest_id } = req.body;
       // Получаем telegram_id из тела запроса (если есть)
       const { telegram_id } = req.body;
+      // Проверка режима разработки
+      const isDevelopmentMode = process.env.NODE_ENV === 'development' || req.headers['x-development-mode'] === 'true';
+      const developmentUserId = req.headers['x-development-user-id'] 
+        ? Number(req.headers['x-development-user-id']) 
+        : undefined;
       
       // Логирование всех заголовков запроса для диагностики
       console.log('[SessionController] Входящий запрос восстановления сессии. guest_id:', guest_id || 'отсутствует');
@@ -104,19 +110,71 @@ export class SessionController {
           .reduce((obj, key) => ({...obj, [key]: req.headers[key]}), {})
       );
       console.log('[SessionController] Session:', req.session ? 'доступна' : 'недоступна');
+      console.log('[SessionController] Режим разработки:', isDevelopmentMode ? 'включен' : 'выключен');
+      if (developmentUserId) console.log('[SessionController] ID тестового пользователя:', developmentUserId);
+      
       if (req.session) {
         console.log('[SessionController] Session user:', req.session.user ? 'установлен' : 'не установлен');
         console.log('[SessionController] Session userId:', req.session.userId);
       }
       
-      // Проверяем наличие guest_id
+      // В режиме разработки с указанным ID пользователя используем его вместо guest_id
+      if (isDevelopmentMode && developmentUserId) {
+        console.log(`[SessionController] Режим разработки: используем ID пользователя ${developmentUserId} вместо guest_id`);
+        
+        try {
+          // Получаем пользователя по ID
+          const devUser = await extendedStorage.getUser(developmentUserId);
+          
+          if (devUser) {
+            console.log(`[SessionController] ✅ Тестовый пользователь найден с ID: ${devUser.id}`);
+            
+            // Сохраняем данные пользователя в Express-сессии для последующих запросов
+            if (req.session) {
+              req.session.userId = devUser.id;
+              req.session.user = {
+                id: devUser.id,
+                username: devUser.username || '',
+                ref_code: devUser.ref_code || undefined,
+                guest_id: devUser.guest_id || undefined
+              };
+              console.log(`[SessionController] ✅ Данные тестового пользователя сохранены в сессии`);
+            }
+            
+            // Возвращаем данные пользователя
+            return res.status(200).json({
+              success: true,
+              message: 'Сессия успешно восстановлена (режим разработки)',
+              data: {
+                user_id: devUser.id,
+                username: devUser.username,
+                telegram_id: devUser.telegram_id, 
+                balance_uni: devUser.balance_uni,
+                balance_ton: devUser.balance_ton,
+                ref_code: devUser.ref_code,
+                guest_id: devUser.guest_id,
+                created_at: devUser.created_at,
+                parent_ref_code: devUser.parent_ref_code
+              }
+            });
+          } else {
+            console.warn(`[SessionController] ⚠️ Тестовый пользователь с ID ${developmentUserId} не найден, продолжаем обычное восстановление`);
+            // Если тестовый пользователь не найден, продолжаем обычное восстановление по guest_id
+          }
+        } catch (devError) {
+          console.error(`[SessionController] Ошибка при получении тестового пользователя:`, devError);
+          // В случае ошибки продолжаем обычное восстановление по guest_id
+        }
+      }
+      
+      // Проверяем наличие guest_id (только если не в режиме разработки или не удалось получить тестового пользователя)
       if (!guest_id) {
         console.error('[SessionController] Отсутствует guest_id в запросе');
-        res.status(400).json({
+        return res.status(400).json({
           success: false,
-          message: 'Отсутствует guest_id в запросе'
+          message: 'Отсутствует guest_id в запросе',
+          error_code: 'MISSING_GUEST_ID'
         });
-        return;
       }
       
       console.log(`[SessionController] Этап 5: Попытка безопасного восстановления сессии для guest_id: ${guest_id}`);
@@ -130,11 +188,11 @@ export class SessionController {
       // Проверяем, найден ли пользователь
       if (!user) {
         console.log(`[SessionController] Пользователь с guest_id ${guest_id} не найден`);
-        res.status(404).json({
+        return res.status(404).json({
           success: false,
-          message: 'Пользователь не найден'
+          message: 'Пользователь не найден',
+          error_code: 'USER_NOT_FOUND'
         });
-        return;
       }
       
       // Если передан telegram_id и он отличается от сохраненного, логируем этот факт
@@ -208,7 +266,8 @@ export class SessionController {
       console.error('[SessionController] Ошибка при восстановлении сессии:', error);
       res.status(500).json({
         success: false,
-        message: 'Внутренняя ошибка сервера при восстановлении сессии'
+        message: 'Внутренняя ошибка сервера при восстановлении сессии',
+        error_code: 'SESSION_RESTORE_FAILED'
       });
     }
   }
