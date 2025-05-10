@@ -42,6 +42,9 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   const { userId } = useUser();
 
   const handleSelectMethod = async (method: 'internal_balance' | 'external_wallet') => {
+    // Проверяем и логируем статус userId
+    console.log("[DEBUG] PaymentMethodDialog - handleSelectMethod: userId текущего пользователя =", userId);
+    
     // Убедимся, что boostPriceTon всегда имеет значение, используя дефолтную цену при null
     if (boostPriceTon === null || boostPriceTon === undefined) {
       const defaultPrices: Record<number, string> = { 1: "1", 2: "5", 3: "15", 4: "25" };

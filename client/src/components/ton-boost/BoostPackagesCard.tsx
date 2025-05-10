@@ -124,13 +124,25 @@ const BoostPackagesCard: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Получаем ID пользователя из URL или используем фиксированный ID для разработки
-      let userId = getUserIdFromURL();
+      // Получаем ID пользователя из useUser (добавлено для исправления ошибки)
+      let userId = user?.id?.toString();
+      console.log("[DEBUG] BoostPackagesCard - handleSelectPaymentMethod: ID из useUser =", userId);
+      
+      // Если useUser не сработал, пробуем получить из URL
+      if (!userId) {
+        userId = getUserIdFromURL();
+        console.log("[DEBUG] BoostPackagesCard - handleSelectPaymentMethod: ID из URL =", userId);
+      }
       
       // Для разработки используем фиксированный ID, если не удалось получить из других источников
       if (!userId && process.env.NODE_ENV !== 'production') {
-        console.log("[DEBUG] BoostPackagesCard - Используем ID для разработки");
+        console.log("[DEBUG] BoostPackagesCard - handleSelectPaymentMethod: Используем резервный ID для разработки");
         userId = '1';
+      }
+      
+      // Выдаем предупреждение для отладки
+      if (!userId) {
+        console.warn("[WARNING] BoostPackagesCard - handleSelectPaymentMethod: userId отсутствует");
       }
       
       if (!userId) {
