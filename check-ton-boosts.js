@@ -21,33 +21,51 @@ const TEST_USER_ID = 1;
 async function getActiveBoosts() {
   console.log('Получение списка активных TON Boost-пакетов...');
   
-  const response = await fetch(`${API_URL}/api/ton-farming/active?user_id=${TEST_USER_ID}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-development-mode': 'true',
-      'x-development-user-id': TEST_USER_ID.toString(),
-      'x-telegram-user-id': TEST_USER_ID.toString()
+  try {
+    const response = await fetch(`${API_URL}/api/ton-farming/active?user_id=${TEST_USER_ID}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-development-mode': 'true',
+        'x-development-user-id': TEST_USER_ID.toString(),
+        'x-telegram-user-id': TEST_USER_ID.toString()
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`❌ Ошибка HTTP: ${response.status} ${response.statusText}`);
+      return null;
     }
-  });
-  
-  const data = await response.json();
-  
-  console.log('Ответ от API:', JSON.stringify(data, null, 2));
-  
-  if (!data.success) {
-    console.error('❌ Ошибка при получении активных TON Boost-пакетов:', data.error || 'Неизвестная ошибка');
+    
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error('❌ Неверный формат JSON ответа:', text.substring(0, 100) + '...');
+      return null;
+    }
+    
+    console.log('Ответ от API:', JSON.stringify(data, null, 2));
+    
+    if (!data.success) {
+      console.error('❌ Ошибка при получении активных TON Boost-пакетов:', data.error || 'Неизвестная ошибка');
+      return null;
+    }
+    
+    console.log(`Найдено ${data.data.length} активных TON Boost-пакетов:`);
+    data.data.forEach(boost => {
+      console.log(`ID: ${boost.id}, Сумма TON: ${boost.ton_amount}, Бонус UNI: ${boost.bonus_uni}`);
+      console.log(`Дата создания: ${boost.created_at}, Последнее обновление: ${boost.last_updated_at}`);
+      console.log(`Ставка TON: ${parseFloat(boost.rate_ton_per_second) * 86400 * 100}% в день, Ставка UNI: ${parseFloat(boost.rate_uni_per_second) * 86400 * 100}% в день`);
+      console.log('---');
+    });
+    
+    return data.data;
+  } catch (error) {
+    console.error('❌ Ошибка при запросе активных TON Boost:', error.message);
     return null;
   }
-  
-  console.log(`Найдено ${data.data.length} активных TON Boost-пакетов:`);
-  data.data.forEach(boost => {
-    console.log(`ID: ${boost.id}, Тип: ${boost.boost_type || boost.boostId}, Дата начала: ${boost.start_date || boost.startDate}`);
-    console.log(`Сумма депозита: ${boost.deposit_amount || boost.depositAmount} TON, Ставка: ${boost.rate_per_day || boost.ratePerDay}% в день`);
-    console.log('---');
-  });
-  
-  return data.data;
 }
 
 /**
@@ -56,31 +74,48 @@ async function getActiveBoosts() {
 async function getAvailableBoostPackages() {
   console.log('Получение списка доступных TON Boost-пакетов...');
   
-  const response = await fetch(`${API_URL}/api/ton-boosts`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-development-mode': 'true',
-      'x-development-user-id': TEST_USER_ID.toString(),
-      'x-telegram-user-id': TEST_USER_ID.toString()
+  try {
+    const response = await fetch(`${API_URL}/api/ton-boosts`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-development-mode': 'true',
+        'x-development-user-id': TEST_USER_ID.toString(),
+        'x-telegram-user-id': TEST_USER_ID.toString()
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`❌ Ошибка HTTP: ${response.status} ${response.statusText}`);
+      return null;
     }
-  });
-  
-  const data = await response.json();
-  
-  if (!data.success) {
-    console.error('❌ Ошибка при получении списка TON Boost-пакетов:', data.error || 'Неизвестная ошибка');
+    
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error('❌ Неверный формат JSON ответа:', text.substring(0, 100) + '...');
+      return null;
+    }
+    
+    if (!data.success) {
+      console.error('❌ Ошибка при получении списка TON Boost-пакетов:', data.error || 'Неизвестная ошибка');
+      return null;
+    }
+    
+    console.log('Доступные TON Boost-пакеты:');
+    data.data.forEach(boost => {
+      console.log(`ID: ${boost.id}, Название: ${boost.name}, Цена: ${boost.priceTon} TON, UNI бонус: ${boost.bonusUni}`);
+      console.log(`Ставка: ${boost.rateTon}% TON в день, ${boost.rateUni}% UNI в день`);
+      console.log('---');
+    });
+    
+    return data.data;
+  } catch (error) {
+    console.error('❌ Ошибка при запросе доступных TON Boost:', error.message);
     return null;
   }
-  
-  console.log('Доступные TON Boost-пакеты:');
-  data.data.forEach(boost => {
-    console.log(`ID: ${boost.id}, Название: ${boost.name}, Цена: ${boost.priceTon} TON, UNI бонус: ${boost.bonusUni}`);
-    console.log(`Ставка: ${boost.rateTon}% TON в день, ${boost.rateUni}% UNI в день`);
-    console.log('---');
-  });
-  
-  return data.data;
 }
 
 /**
@@ -89,25 +124,42 @@ async function getAvailableBoostPackages() {
 async function getUserBalance() {
   console.log('Получение баланса пользователя...');
   
-  const response = await fetch(`${API_URL}/api/users/${TEST_USER_ID}/balance`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-development-mode': 'true',
-      'x-development-user-id': TEST_USER_ID.toString(),
-      'x-telegram-user-id': TEST_USER_ID.toString()
+  try {
+    const response = await fetch(`${API_URL}/api/balance?user_id=${TEST_USER_ID}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-development-mode': 'true',
+        'x-development-user-id': TEST_USER_ID.toString(),
+        'x-telegram-user-id': TEST_USER_ID.toString()
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`❌ Ошибка HTTP: ${response.status} ${response.statusText}`);
+      return null;
     }
-  });
-  
-  const data = await response.json();
-  
-  if (!data.success) {
-    console.error('❌ Ошибка при получении баланса:', data.error || 'Неизвестная ошибка');
+    
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error('❌ Неверный формат JSON ответа:', text.substring(0, 100) + '...');
+      return null;
+    }
+    
+    if (!data.success) {
+      console.error('❌ Ошибка при получении баланса:', data.error || 'Неизвестная ошибка');
+      return null;
+    }
+    
+    console.log(`Текущий баланс: ${data.data.ton || 'N/A'} TON, ${data.data.uni || 'N/A'} UNI`);
+    return data.data;
+  } catch (error) {
+    console.error('❌ Ошибка при запросе баланса:', error.message);
     return null;
   }
-  
-  console.log(`Текущий баланс: ${data.data.ton || 'N/A'} TON, ${data.data.uni || 'N/A'} UNI`);
-  return data.data;
 }
 
 /**
