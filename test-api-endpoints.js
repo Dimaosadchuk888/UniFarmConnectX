@@ -10,7 +10,7 @@
 import fetch from 'node-fetch';
 
 // Базовый URL API
-const API_BASE_URL = process.env.API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.API_URL || 'https://93cb0060-75d7-4281-ac65-b204cda864a4-00-1j7bpbfst9vfx.pike.replit.dev';
 
 /**
  * Тестирует все основные API эндпоинты
