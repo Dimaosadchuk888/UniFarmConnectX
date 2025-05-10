@@ -39,7 +39,7 @@ const TransactionHistory: React.FC = () => {
     isFetching,
     refetch
   } = useQuery<Transaction[]>({
-    queryKey: ['/api/wallet/transactions', userId, page, limit],
+    queryKey: ['/api/transactions', userId, page, limit],
     queryFn: () => userId ? fetchTransactions(userId, limit, (page - 1) * limit) : Promise.resolve([]),
     enabled: !!userId, // Запрос активен только если есть userId
     staleTime: 30000, // 30 секунд до устаревания данных
