@@ -98,6 +98,9 @@ export class ReferralBonusService implements IReferralBonusService {
    * Создаёт реферальную цепочку до 20 уровней на основе приглашающего
    * В рамках ТЗ (Этап 3.1) реализует однократную и необратимую привязку
    * 
+   * Оптимизированная версия с пакетной обработкой для улучшения производительности
+   * с глубокими цепочками (5+ уровней)
+   * 
    * @param userId ID пользователя
    * @param inviterId ID приглашающего пользователя
    * @returns Объект с информацией о результате операции
@@ -108,6 +111,9 @@ export class ReferralBonusService implements IReferralBonusService {
     message: string;
   }> {
     try {
+      const chainCreationId = crypto.randomUUID();
+      console.log(`[ReferralBonusService] Starting chain creation. ChainID: ${chainCreationId}, User: ${userId}, Inviter: ${inviterId}`);
+      
       // Проверка существования пользователей
       const user = await this.userService.getUserById(userId);
       const inviter = await this.userService.getUserById(inviterId);
@@ -121,59 +127,99 @@ export class ReferralBonusService implements IReferralBonusService {
         };
       }
       
-      // Записываем первый уровень - прямое приглашение
-      // Используем новый интерфейс метода createReferralRelationship, который реализует требования ТЗ 3.1
-      const result = await this.referralService.createReferralRelationship(userId, inviterId, 1);
-      
-      // Если связь не была создана (уже существовала), выходим сразу
-      if (!result.isNewConnection) {
-        console.log(`[ReferralBonusService] User ${userId} already has a referral chain, operation skipped`);
-        return {
-          success: result.success,
-          isNewConnection: false,
-          message: 'Пользователь уже имеет реферальную связь'
-        };
-      }
-      
-      // Получаем все вышестоящие уровни для пригласителя
-      const inviterReferrals = await db
-        .select()
-        .from(referrals)
-        .where(eq(referrals.user_id, inviterId))
-        .orderBy(referrals.level);
-      
-      // Создаем последующие уровни (до MAX_LEVELS)
-      for (const ref of inviterReferrals) {
-        // Проверяем, что уровень определен и не превышаем MAX_LEVELS
-        if (ref.level !== null && ref.level >= this.MAX_LEVELS) {
-          break;
+      // Обрабатываем в транзакции для атомарности операции
+      return await db.transaction(async (tx) => {
+        // Записываем первый уровень - прямое приглашение
+        // Используем новый интерфейс метода createReferralRelationship, который реализует требования ТЗ 3.1
+        const result = await this.referralService.createReferralRelationship(userId, inviterId, 1);
+        
+        // Если связь не была создана (уже существовала), выходим сразу
+        if (!result.isNewConnection) {
+          console.log(`[ReferralBonusService] User ${userId} already has a referral chain, operation skipped`);
+          return {
+            success: result.success,
+            isNewConnection: false,
+            message: 'Пользователь уже имеет реферальную связь'
+          };
         }
         
-        // Определяем уровень для новой связи
-        const newLevel = ref.level !== null ? ref.level + 1 : 1;
+        // Получаем все вышестоящие уровни для пригласителя одним запросом
+        const inviterReferrals = await tx
+          .select()
+          .from(referrals)
+          .where(eq(referrals.user_id, inviterId))
+          .orderBy(referrals.level);
         
-        try {
-          // Используем метод createReferral из интерфейса
-          await this.referralService.createReferral({
+        if (inviterReferrals.length === 0) {
+          console.log(`[ReferralBonusService] No higher-level referrals found for inviter ${inviterId}, chain contains only direct relationship`);
+          return {
+            success: true,
+            isNewConnection: true,
+            message: 'Создана прямая реферальная связь (только 1-й уровень)'
+          };
+        }
+        
+        // Подготавливаем пакет для массовой вставки связей
+        const referralRecords = [];
+        
+        // Формируем массив записей для пакетной вставки
+        for (const ref of inviterReferrals) {
+          // Проверяем, что уровень определен и не превышаем MAX_LEVELS
+          if (ref.level === null || ref.level >= this.MAX_LEVELS) {
+            continue;
+          }
+          
+          // Определяем уровень для новой связи
+          const newLevel = ref.level + 1;
+          
+          // Добавляем в массив для пакетной обработки
+          referralRecords.push({
             user_id: userId,
             inviter_id: ref.inviter_id,
-            level: newLevel
+            level: newLevel,
+            created_at: new Date() // Устанавливаем текущую дату создания
           });
-          
-          console.log(`[ReferralBonusService] Создана связь уровня ${newLevel}: пользователь ${userId} → пригласитель ${ref.inviter_id}`);
-        } catch (error) {
-          // Возможна ошибка нарушения уникальности, если связь уже существует
-          console.error(`[ReferralBonusService] Ошибка при создании связи уровня ${newLevel}: ${error}`);
-          // Продолжаем для остальных уровней
         }
-      }
-      
-      console.log(`[ReferralBonusService] Complete referral chain created for user ${userId} with inviter ${inviterId}`);
-      return {
-        success: true,
-        isNewConnection: true,
-        message: 'Реферальная цепочка успешно создана'
-      };
+        
+        // Выполняем пакетную вставку, если есть записи для вставки
+        if (referralRecords.length > 0) {
+          console.log(`[ReferralBonusService] Inserting ${referralRecords.length} referral relationships in batch operation`);
+          
+          try {
+            // Используем .onConflictDoNothing для игнорирования дубликатов, если они возникнут
+            await tx.insert(referrals)
+              .values(referralRecords)
+              .onConflictDoNothing({ 
+                target: [referrals.user_id, referrals.inviter_id] 
+              });
+              
+            console.log(`[ReferralBonusService] Batch insertion completed successfully, created ${referralRecords.length} referral relationships`);
+          } catch (batchError) {
+            console.error(`[ReferralBonusService] Error during batch insertion of referral relationships:`, batchError);
+            
+            // В случае ошибки с пакетной вставкой, откатимся к последовательной вставке как резервному методу
+            for (const record of referralRecords) {
+              try {
+                await this.referralService.createReferral({
+                  user_id: record.user_id,
+                  inviter_id: record.inviter_id,
+                  level: record.level
+                });
+              } catch (fallbackError) {
+                console.error(`[ReferralBonusService] Fallback insertion error for level ${record.level}:`, fallbackError);
+                // Продолжаем для остальных записей
+              }
+            }
+          }
+        }
+        
+        console.log(`[ReferralBonusService] Chain ${chainCreationId} created. Total levels: ${referralRecords.length + 1}`);
+        return {
+          success: true,
+          isNewConnection: true,
+          message: `Реферальная цепочка успешно создана (${referralRecords.length + 1} уровней)`
+        };
+      });
     } catch (error) {
       console.error('[ReferralBonusService] Error creating referral chain:', error);
       return {
@@ -365,10 +411,11 @@ export class ReferralBonusService implements IReferralBonusService {
         return result;
       } catch (txError) {
         // Обновляем журнал в случае ошибки в транзакции
+        const errorMessage = txError instanceof Error ? txError.message : 'Transaction failed';
         await db.update(reward_distribution_logs)
           .set({ 
             status: 'failed', 
-            error_message: txError.message || 'Transaction failed',
+            error_message: errorMessage,
             completed_at: new Date()
           })
           .where(eq(reward_distribution_logs.batch_id, batchId));
@@ -400,7 +447,7 @@ export class ReferralBonusService implements IReferralBonusService {
       console.log(`[ReferralBonusService] Processing registration bonus for user ${userId} with refCode ${refCode}`);
       
       // Находим владельца реферального кода
-      const referrer = await this.userService.getUserByReferralCode(refCode);
+      const referrer = await this.userService.getUserByRefCode(refCode);
       if (!referrer) {
         console.log(`[ReferralBonusService] No user found with referral code ${refCode}, skipping registration bonus`);
         return false;
