@@ -26,6 +26,65 @@ type RequestWithSession = Request & {
  */
 export class SessionController {
   /**
+   * Создает тестовую сессию для режима разработки
+   * @param req Запрос
+   * @param res Ответ с данными тестового пользователя
+   */
+  static async devLogin(req: RequestWithSession, res: Response): Promise<void> {
+    try {
+      // Проверяем, что мы в режиме разработки
+      if (process.env.NODE_ENV !== 'development') {
+        return res.status(403).json({
+          success: false,
+          message: 'Доступно только в режиме разработки'
+        });
+      }
+      
+      console.log('[SessionController] Создание тестовой сессии для режима разработки');
+      
+      // Создаем фиктивный тестовый аккаунт
+      const testUser = {
+        id: 1,
+        username: 'dev_user',
+        telegram_id: '123456789',
+        balance_uni: '1000000',
+        balance_ton: '25.5',
+        ref_code: 'DEV123',
+        guest_id: 'dev-guest-id-123',
+        created_at: new Date().toISOString(),
+        parent_ref_code: null
+      };
+      
+      // Сохраняем данные пользователя в Express-сессии для последующих запросов
+      if (req.session) {
+        req.session.userId = testUser.id;
+        req.session.user = {
+          id: testUser.id,
+          username: testUser.username,
+          ref_code: testUser.ref_code,
+          guest_id: testUser.guest_id
+        };
+        console.log(`[SessionController] ✅ Тестовые данные пользователя сохранены в Express-сессии: userId=${testUser.id}`);
+      } else {
+        console.warn(`[SessionController] ⚠️ Express-сессия недоступна, нельзя сохранить данные пользователя`);
+      }
+      
+      // Возвращаем данные тестового пользователя
+      res.status(200).json({
+        success: true,
+        message: 'Тестовая сессия создана',
+        data: testUser
+      });
+      
+    } catch (error) {
+      console.error('[SessionController] Ошибка при создании тестовой сессии:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Внутренняя ошибка сервера при создании тестовой сессии'
+      });
+    }
+  }
+  /**
    * Восстанавливает сессию пользователя по guest_id без создания нового аккаунта
    * @param req Запрос с guest_id в параметрах
    * @param res Ответ с данными пользователя или ошибкой
