@@ -317,7 +317,7 @@ class TonBoostService implements ITonBoostService {
         };
       }
 
-      // Рассчитываем доходность для каждого депозита
+      // Рассчитываем доходность для каждого депозита и обновляем accumulated_ton
       for (const deposit of activeDeposits) {
         // Начисления TON: rate_ton_per_second * elapsed_time
         const earnedTon = new BigNumber(deposit.rate_ton_per_second || "0")
@@ -329,10 +329,26 @@ class TonBoostService implements ITonBoostService {
           
         totalEarnedTon = totalEarnedTon.plus(earnedTon);
         totalEarnedUni = totalEarnedUni.plus(earnedUni);
+        
+        // Обновляем накопленные значения и время последнего обновления для каждого депозита
+        if (earnedTon.isGreaterThan(0)) {
+          const currentAccumulatedTon = new BigNumber(deposit.accumulated_ton || "0");
+          const newAccumulatedTon = currentAccumulatedTon.plus(earnedTon);
+          
+          console.log(`[TonBoostService] Обновление депозита ID ${deposit.id}: добавлено ${earnedTon} TON, всего накоплено: ${newAccumulatedTon} TON`);
+          
+          // Обновляем депозит
+          await db
+            .update(tonBoostDeposits)
+            .set({
+              accumulated_ton: newAccumulatedTon.toString(),
+              last_updated_at: new Date(currentTimestamp * 1000)
+            })
+            .where(eq(tonBoostDeposits.id, deposit.id));
+        }
       }
 
-      // Временное решение: используем транзакции для отслеживания начислений фарминга
-      // В будущем заменить на отдельную таблицу для хранения баланса фарминга
+      // Обновляем время последнего обновления пользователя, если были начисления
       if (totalEarnedTon.isGreaterThan(TON_MIN_CHANGE_THRESHOLD) || totalEarnedUni.isGreaterThan(0)) {
         // Обновляем время последнего обновления
         await db
@@ -466,6 +482,23 @@ class TonBoostService implements ITonBoostService {
           category: "farming"  // Категория - фарминг
         })
         .returning();
+      
+      // Сбрасываем accumulated_ton до 0 для всех активных депозитов пользователя
+      // Получаем активные депозиты пользователя
+      const activeDeposits = await this.getUserActiveBoosts(userId);
+      
+      // Сбрасываем накопленное значение для каждого депозита
+      for (const deposit of activeDeposits) {
+        console.log(`[TonBoostService] Сброс накопленного TON для депозита ID ${deposit.id}: сброшено ${deposit.accumulated_ton} TON`);
+        
+        await db
+          .update(tonBoostDeposits)
+          .set({
+            accumulated_ton: "0",
+            last_updated_at: new Date()
+          })
+          .where(eq(tonBoostDeposits.id, deposit.id));
+      }
         
       // Обрабатываем реферальное вознаграждение от фарминга
       try {
