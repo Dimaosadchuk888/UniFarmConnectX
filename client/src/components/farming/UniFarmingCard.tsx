@@ -747,4 +747,5 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   );
 };
 
+// Экспортируем компонент с оберткой Error Boundary
 export default UniFarmingCard;
