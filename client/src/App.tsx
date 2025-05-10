@@ -18,11 +18,11 @@ import { getReferrerIdFromURL } from './lib/utils';
 import userService from '@/services/userService';
 import sessionRestoreService from '@/services/sessionRestoreService'; // Сервис восстановления сессии
 import { UserProvider } from "@/contexts/userContext"; // Импортируем UserProvider
+import { WebSocketProvider } from "@/contexts/webSocketContext"; // Импортируем WebSocketProvider
+import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator"; // Импортируем индикатор статуса сети
 import { NotificationProvider } from "@/contexts/notificationContext"; // Импортируем NotificationProvider
 import NotificationContainer from "@/components/ui/NotificationContainer"; // Импортируем контейнер уведомлений
 import ErrorBoundary from "@/components/ui/ErrorBoundary"; // Импортируем глобальный ErrorBoundary
-import WebSocketProvider from "@/contexts/webSocketContext"; // Импортируем WebSocketProvider
-import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator"; // Импортируем индикатор состояния сети
 
 // Импортируем компоненты UI
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
