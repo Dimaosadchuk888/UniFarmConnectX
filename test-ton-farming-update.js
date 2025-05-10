@@ -2,7 +2,7 @@
  * Скрипт для ручного обновления TON фарминга для тестирования
  */
 
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 async function callApi(endpoint, method = 'GET', body = null) {
   const headers = {
@@ -109,6 +109,7 @@ async function testTonFarmingUpdate() {
   await checkAccumulatedTon();
 }
 
+// Выполняем тестирование
 testTonFarmingUpdate()
   .then(() => console.log('\nТестирование завершено успешно'))
   .catch(error => console.error('\nОшибка при тестировании:', error));
