@@ -6,9 +6,10 @@
  */
 
 import { db } from '../db';
-import { users } from '@shared/schema';
+import { users, uniFarmingDeposits, transactions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { BigNumber } from 'bignumber.js';
+import { transactionService } from './index';
 
 // Используем BigNumber для точных вычислений с плавающей точкой
 BigNumber.config({
@@ -45,6 +46,7 @@ export interface FarmingInfo {
   farmingBalance: string;
   ratePerSecond: string;
   startDate: string | null;
+  lastUpdate: string | null;
 }
 
 /**
@@ -294,20 +296,48 @@ class UniFarmingService implements IUniFarmingService {
       const isFirstDeposit = !user.uni_farming_start_timestamp || 
                             new BigNumber(user.uni_deposit_amount?.toString() || '0').isZero();
       
-      // Обновляем данные пользователя
-      await db
-        .update(users)
-        .set({
-          balance_uni: balanceUni.minus(depositAmount).toString(),
-          uni_deposit_amount: depositAmount.toString(),
-          uni_farming_start_timestamp: isFirstDeposit ? now : user.uni_farming_start_timestamp,
-          uni_farming_last_update: now
-          // В новой версии не используем uni_farming_balance, т.к. доход начисляется напрямую
-        })
-        .where(eq(users.id, userId));
-      
       // Рассчитываем скорость начисления
       const ratePerSecond = this.calculateRatePerSecond(depositAmount.toString());
+      
+      // Используем транзакцию для атомарного обновления нескольких таблиц
+      await db.transaction(async (tx) => {
+        // 1. Обновляем данные пользователя
+        await tx
+          .update(users)
+          .set({
+            balance_uni: balanceUni.minus(depositAmount).toString(),
+            uni_deposit_amount: depositAmount.toString(),
+            uni_farming_start_timestamp: isFirstDeposit ? now : user.uni_farming_start_timestamp,
+            uni_farming_last_update: now
+            // В новой версии не используем uni_farming_balance, т.к. доход начисляется напрямую
+          })
+          .where(eq(users.id, userId));
+        
+        // 2. Добавляем запись в таблицу uni_farming_deposits
+        await tx.insert(uniFarmingDeposits).values({
+          user_id: userId,
+          amount: depositAmount.toString(),
+          rate_per_second: ratePerSecond,
+          created_at: now,
+          last_updated_at: now,
+          is_active: true
+        });
+        
+        // 3. Добавляем запись в таблицу transactions для отслеживания депозита
+        await tx.insert(transactions).values({
+          user_id: userId,
+          type: 'deposit',
+          currency: 'UNI',
+          amount: depositAmount.toString(),
+          status: 'confirmed',
+          source: 'uni_farming',
+          category: 'farming',
+          description: 'UNI Farming депозит',
+          created_at: now
+        });
+      });
+      
+      console.log(`[UniFarmingService] Создан депозит UNI Farming для пользователя ${userId}: ${depositAmount} UNI со скоростью ${ratePerSecond}/с`);
       
       return {
         success: true,
@@ -330,40 +360,77 @@ class UniFarmingService implements IUniFarmingService {
    * @returns Объект с данными о фарминге
    */
   async getUserFarmingInfo(userId: number): Promise<FarmingInfo> {
-    // Обновляем баланс для получения актуальных данных
-    const updatedFarming = await this.calculateAndUpdateUserFarming(userId);
-    
-    // Получаем данные пользователя
-    const [user] = await db
-      .select({
-        uni_deposit_amount: users.uni_deposit_amount,
-        uni_farming_start_timestamp: users.uni_farming_start_timestamp,
-        uni_farming_last_update: users.uni_farming_last_update
-      })
-      .from(users)
-      .where(eq(users.id, userId));
-    
-    // Значения по умолчанию, если пользователь не найден
-    if (!user) {
+    try {
+      // Обновляем баланс для получения актуальных данных
+      const updatedFarming = await this.calculateAndUpdateUserFarming(userId);
+      
+      // Получаем данные пользователя
+      const [user] = await db
+        .select({
+          uni_deposit_amount: users.uni_deposit_amount,
+          uni_farming_start_timestamp: users.uni_farming_start_timestamp,
+          uni_farming_last_update: users.uni_farming_last_update
+        })
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      // Значения по умолчанию, если пользователь не найден
+      if (!user) {
+        return {
+          isActive: false,
+          depositAmount: '0',
+          farmingBalance: '0',
+          ratePerSecond: '0',
+          startDate: null,
+          lastUpdate: null
+        };
+      }
+      
+      // Проверяем наличие депозита в таблице uni_farming_deposits
+      const [deposit] = await db
+        .select()
+        .from(uniFarmingDeposits)
+        .where(eq(uniFarmingDeposits.user_id, userId))
+        .where(eq(uniFarmingDeposits.is_active, true))
+        .orderBy(uniFarmingDeposits.created_at, 'desc')
+        .limit(1);
+      
+      let depositAmount = user.uni_deposit_amount?.toString() || '0';
+      let ratePerSecond = '0';
+      
+      // Если есть активный депозит в таблице uni_farming_deposits, используем данные из неё
+      if (deposit) {
+        depositAmount = deposit.amount.toString();
+        ratePerSecond = deposit.rate_per_second.toString();
+        console.log(`[UniFarmingService] Обнаружен депозит в БД для пользователя ${userId}: ${depositAmount} UNI со скоростью ${ratePerSecond}/с`);
+      } else if (new BigNumber(depositAmount).isGreaterThan(0)) {
+        // Если депозита нет в таблице, но есть в users, то используем данные из users
+        // и рассчитываем скорость начисления самостоятельно
+        ratePerSecond = this.calculateRatePerSecond(depositAmount);
+        console.log(`[UniFarmingService] Используем данные из таблицы пользователей для ${userId}: ${depositAmount} UNI`);
+      }
+      
+      const isActive = new BigNumber(depositAmount).isGreaterThan(0) && !!user.uni_farming_start_timestamp;
+      
+      return {
+        isActive,
+        depositAmount,
+        farmingBalance: '0', // В новой версии всегда 0, т.к. доход начисляется автоматически
+        ratePerSecond,
+        startDate: user.uni_farming_start_timestamp ? user.uni_farming_start_timestamp.toISOString() : null,
+        lastUpdate: user.uni_farming_last_update ? user.uni_farming_last_update.toISOString() : null
+      };
+    } catch (error) {
+      console.error(`Error getting user farming info for user ${userId}:`, error);
       return {
         isActive: false,
         depositAmount: '0',
         farmingBalance: '0',
         ratePerSecond: '0',
-        startDate: null
+        startDate: null,
+        lastUpdate: null
       };
     }
-    
-    const depositAmount = user.uni_deposit_amount?.toString() || '0';
-    const isActive = new BigNumber(depositAmount).isGreaterThan(0) && !!user.uni_farming_start_timestamp;
-    
-    return {
-      isActive,
-      depositAmount,
-      farmingBalance: '0', // В новой версии всегда 0, т.к. доход начисляется автоматически
-      ratePerSecond: isActive ? this.calculateRatePerSecond(depositAmount) : '0',
-      startDate: user.uni_farming_start_timestamp ? user.uni_farming_start_timestamp.toISOString() : null
-    };
   }
 
   /**
