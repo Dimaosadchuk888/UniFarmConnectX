@@ -51,7 +51,7 @@ async function updateAllUsersFarming(): Promise<void> {
     const startTime = new Date();
     const secondsSinceServerStart = Math.floor((startTime.getTime() - SERVER_START_TIME.getTime()) / 1000);
     
-    // При первом запуске помечаем систему как инициализированную без фактических начислений
+    // При первом запуске пропускаем обновление
     if (!systemInitialized) {
       console.log(`[Background Tasks] Initializing farming system. Skipping first update to prevent excessive rewards.`);
       systemInitialized = true;
@@ -63,6 +63,8 @@ async function updateAllUsersFarming(): Promise<void> {
       console.log(`[Background Tasks] Server just started (${secondsSinceServerStart}s ago). Waiting for system stabilization.`);
       return;
     }
+    
+    console.log(`[Background Tasks] Starting hourly farming update - ${new Date().toISOString()}`);
     
     // Получаем всех пользователей с активными депозитами UNI в новой таблице
     const usersWithUniDeposits = await db
@@ -110,56 +112,58 @@ async function updateAllUsersFarming(): Promise<void> {
     }
     
     if (activeUsers.length === 0) {
+      console.log(`[Background Tasks] No active farming users found. Skipping update.`);
       return;
     }
     
-    // Выводим лог раз в 10 секунд для снижения нагрузки
-    const currentTime = Date.now();
-    if (currentTime - lastLogTime > 10000) {
-      lastLogTime = currentTime;
-      console.log(`[Background Tasks] Updating farming for ${activeUsers.length} users`);
-    }
+    console.log(`[Background Tasks] Processing hourly farming update for ${activeUsers.length} users`);
+    
+    let updatedCount = 0;
     
     // Обновляем фарминг для каждого пользователя
     for (const user of activeUsers) {
-      // Проверяем UNI-фарминг
-      // Сначала проверяем, есть ли у пользователя новые депозиты
-      const uniDeposits = await db
-        .select()
-        .from(uniFarmingDeposits)
-        .where(and(
-          eq(uniFarmingDeposits.user_id, user.id),
-          eq(uniFarmingDeposits.is_active, true)
-        ));
-      
-      if (uniDeposits.length > 0) {
-        // Если есть новые депозиты, используем новый сервис
-        await NewUniFarmingService.calculateAndUpdateUserFarming(user.id);
-      } else {
-        // Если нет новых депозитов, используем старый сервис для обратной совместимости
-        await UniFarmingService.calculateAndUpdateUserFarming(user.id);
-      }
+      try {
+        // Проверяем UNI-фарминг
+        // Сначала проверяем, есть ли у пользователя новые депозиты
+        const uniDeposits = await db
+          .select()
+          .from(uniFarmingDeposits)
+          .where(and(
+            eq(uniFarmingDeposits.user_id, user.id),
+            eq(uniFarmingDeposits.is_active, true)
+          ));
+        
+        if (uniDeposits.length > 0) {
+          // Если есть новые депозиты, используем новый сервис
+          await NewUniFarmingService.calculateAndUpdateUserFarming(user.id);
+        } else {
+          // Если нет новых депозитов, используем старый сервис для обратной совместимости
+          await UniFarmingService.calculateAndUpdateUserFarming(user.id);
+        }
 
-      // Проверяем TON-фарминг
-      const tonBoosts = await db
-        .select()
-        .from(tonBoostDeposits)
-        .where(and(
-          eq(tonBoostDeposits.user_id, user.id),
-          eq(tonBoostDeposits.is_active, true)
-        ));
-      
-      if (tonBoosts.length > 0) {
-        // Обновляем TON-фарминг
-        await TonBoostService.calculateAndUpdateUserTonFarming(user.id);
+        // Проверяем TON-фарминг
+        const tonBoosts = await db
+          .select()
+          .from(tonBoostDeposits)
+          .where(and(
+            eq(tonBoostDeposits.user_id, user.id),
+            eq(tonBoostDeposits.is_active, true)
+          ));
+        
+        if (tonBoosts.length > 0) {
+          // Обновляем TON-фарминг
+          await TonBoostService.calculateAndUpdateUserTonFarming(user.id);
+        }
+        
+        updatedCount++;
+      } catch (userError) {
+        console.error(`[Background Tasks] Error updating farming for user ${user.id}:`, userError);
+        // Продолжаем с другими пользователями даже при ошибке
       }
     }
     
-    // Выводим лог об успехе также только раз в 10 секунд
-    if (currentTime - lastLogTime < 100) { // Если это то же "окно", в котором мы вывели первый лог
-      console.log('[Background Tasks] Farming updated successfully');
-    }
+    console.log(`[Background Tasks] Hourly farming update completed. Successfully updated ${updatedCount}/${activeUsers.length} users.`);
   } catch (error) {
-    console.error('[Background Tasks] Error updating farming:', error);
+    console.error('[Background Tasks] Error in hourly farming update:', error);
   }
 }
