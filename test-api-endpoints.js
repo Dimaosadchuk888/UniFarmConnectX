@@ -10,7 +10,7 @@
 import fetch from 'node-fetch';
 
 // Базовый URL API
-const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.API_URL || 'http://localhost:5000';
 
 /**
  * Тестирует все основные API эндпоинты
