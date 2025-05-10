@@ -110,34 +110,44 @@ const saveGuestId = (guestId: string): void => {
 /**
  * Отправляет запрос на восстановление сессии
  * @param guestId уникальный идентификатор гостя
+ * @param additionalData дополнительные данные для отправки в запросе
  * @returns Promise с результатом запроса
  */
-const restoreSession = async (guestId: string) => {
+const restoreSession = async (guestId: string, additionalData: Record<string, any> = {}) => {
   try {
     console.log('[sessionRestoreService] Текущий guest_id:', guestId);
     console.log('[sessionRestoreService] Попытка восстановить сессию через /api/session/restore с guest_id:', guestId);
     console.log('[SessionRestoreService] Объект localStorage доступен:', typeof localStorage !== 'undefined');
-    console.log('[SessionRestoreService] Все ключи в localStorage:', 
-      Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)?.substring(0, 20)}...`));
+    
+    // Подготавливаем данные для запроса
+    const requestData = {
+      guest_id: guestId,
+      ...additionalData
+    };
     
     // Отправляем запрос на восстановление сессии
-    console.log('[SessionRestoreService] Формирование запроса к серверу с телом:', JSON.stringify({ guest_id: guestId }));
-    const result = await correctApiRequest('/api/session/restore', 'POST', {
-      guest_id: guestId
-    });
+    console.log('[SessionRestoreService] Формирование запроса к серверу с телом:', JSON.stringify(requestData));
+    const result = await correctApiRequest('/api/session/restore', 'POST', requestData);
     
     if (result.success && result.data) {
       console.log('[sessionRestoreService] Сессия успешно восстановлена:', result.data);
       
-      // Сохраняем ID пользователя для использования в будущих запросах
-      // Поскольку Express-сессия не работает надежно в Replit, мы будем передавать
-      // user_id явно в каждом запросе через параметр в URL
-      localStorage.setItem(STORAGE_KEYS.LAST_SESSION, JSON.stringify({
+      // Сохраняем данные сессии в новом сервисе и в localStorage для обратной совместимости
+      const sessionData = {
         timestamp: new Date().toISOString(),
         user_id: result.data.user_id || result.data.userId || 1, // Используем 1 как запасной вариант для тестирования
         username: result.data.username || null,
-        refCode: result.data.ref_code || null
-      }));
+        ref_code: result.data.ref_code || null,
+        guest_id: result.data.guest_id || guestId
+      };
+      
+      // Сохраняем для обратной совместимости
+      localStorage.setItem(STORAGE_KEYS.LAST_SESSION, JSON.stringify(sessionData));
+      
+      // Также сохраняем guest_id отдельно для надежности
+      if (guestId) {
+        localStorage.setItem(STORAGE_KEYS.GUEST_ID, guestId);
+      }
       
       return result;
     } else {
@@ -328,17 +338,42 @@ const autoReauthenticate = async (): Promise<boolean> => {
   try {
     console.log('[sessionRestoreService] Начинаем автоматическую повторную аутентификацию...');
     
-    // Получаем guest_id или создаем новый
-    const guestId = getOrCreateGuestId();
+    // Получаем guest_id или создаем новый через улучшенный сервис
+    const guestId = sessionStorageService.getGuestId() || getOrCreateGuestId();
+    
+    // Для дополнительной надежности сохраняем guest_id в новом сервисе
+    sessionStorageService.saveGuestId(guestId);
     
     // Ожидаем инициализации Telegram WebApp, если она требуется
     await waitForTelegramWebApp();
     
-    // Пытаемся восстановить сессию
-    const result = await restoreSession(guestId);
+    // Добавляем информацию о режиме разработки
+    const additionalData: Record<string, any> = {};
+    if (process.env.NODE_ENV !== 'production') {
+      additionalData.development_mode = true;
+      
+      // Если есть user_id, добавляем его для режима разработки
+      const userId = sessionStorageService.getUserId();
+      if (userId) {
+        additionalData.user_id = userId;
+      }
+    }
+    
+    console.log('[sessionRestoreService] Дополнительные данные для восстановления:', 
+      JSON.stringify(additionalData, null, 2));
+    
+    // Пытаемся восстановить сессию с дополнительными данными
+    const result = await restoreSession(guestId, additionalData);
     
     if (result.success) {
       console.log('[sessionRestoreService] ✅ Автоматическая повторная аутентификация успешна!');
+      
+      // Сохраняем обновленную сессию через новый сервис
+      if (result.data) {
+        sessionStorageService.saveSession(result.data);
+        console.log('[sessionRestoreService] Данные сессии сохранены');
+      }
+      
       return true;
     } else {
       console.error('[sessionRestoreService] ❌ Не удалось выполнить повторную аутентификацию:', result.message);
@@ -350,8 +385,23 @@ const autoReauthenticate = async (): Promise<boolean> => {
   }
 };
 
-// Экспортируем методы сервиса
-const sessionRestoreService = {
+// Экспортируем методы сервиса с указанием точных типов
+type SessionRestoreService = {
+  shouldAttemptRestore: () => boolean;
+  getGuestId: () => string | null;
+  saveGuestId: (guestId: string) => void;
+  restoreSession: (guestId: string, additionalData?: Record<string, any>) => Promise<any>;
+  clearGuestIdAndSession: () => void;
+  hasTelegramUserChanged: (any: any) => boolean;
+  updateSessionWithTelegramData: (telegramId: any, userId: any) => void;
+  getOrCreateGuestId: () => string;
+  isTelegramWebAppReady: () => boolean;
+  markTelegramWebAppAsReady: () => void;
+  waitForTelegramWebApp: (timeoutMs?: number) => Promise<boolean>;
+  autoReauthenticate: () => Promise<boolean>;
+};
+
+const sessionRestoreService: SessionRestoreService = {
   shouldAttemptRestore,
   getGuestId,
   saveGuestId,

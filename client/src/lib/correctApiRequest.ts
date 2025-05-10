@@ -88,17 +88,11 @@ export async function correctApiRequest<T = any>(
     
     // Добавляем заголовки разработчика, если находимся в режиме разработки
     if (process.env.NODE_ENV !== 'production') {
-      // Импортируем здесь для избежания циклических импортов
-      const sessionStorageService = require('../services/sessionStorageService').default;
+      // Здесь используем более простую стратегию для предотвращения циклических импортов
       
-      // Получаем userId через новый сервис
+      // Получаем userId через localStorage
       let userId = null;
       try {
-        userId = sessionStorageService.getUserId();
-      } catch (e) {
-        console.warn(`[correctApiRequest] [${requestId}] Ошибка при получении userId через сервис:`, e);
-        
-        // Запасной способ получения userId
         const lastSessionStr = localStorage.getItem('unifarm_last_session');
         if (lastSessionStr) {
           try {
@@ -108,14 +102,28 @@ export async function correctApiRequest<T = any>(
             console.warn(`[correctApiRequest] [${requestId}] Ошибка при извлечении userId из localStorage:`, e);
           }
         }
+      } catch (e) {
+        console.warn(`[correctApiRequest] [${requestId}] Ошибка при получении userId:`, e);
       }
       
-      // Получаем guest_id через сервис
+      // Получаем guest_id напрямую из localStorage
       let guestId = null;
       try {
-        guestId = sessionStorageService.getGuestId();
+        guestId = localStorage.getItem('unifarm_guest_id');
+        if (!guestId) {
+          // Пробуем получить из сессии
+          const lastSessionStr = localStorage.getItem('unifarm_last_session');
+          if (lastSessionStr) {
+            try {
+              const lastSession = JSON.parse(lastSessionStr);
+              guestId = lastSession.guest_id;
+            } catch (e) {
+              console.warn(`[correctApiRequest] [${requestId}] Ошибка при извлечении guestId из localStorage:`, e);
+            }
+          }
+        }
       } catch (e) {
-        console.warn(`[correctApiRequest] [${requestId}] Ошибка при получении guestId через сервис:`, e);
+        console.warn(`[correctApiRequest] [${requestId}] Ошибка при получении guestId:`, e);
       }
       
       // Для разработки добавляем специальные заголовки
