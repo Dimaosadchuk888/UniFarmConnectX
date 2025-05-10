@@ -5,10 +5,9 @@ import UniFarmingCardWithErrorBoundary from '../components/farming/UniFarmingCar
 import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPackagesCardWithErrorBoundary';
 import ActiveBoostsCardWithErrorBoundary from '../components/farming/ActiveBoostsCardWithErrorBoundary';
 import FarmingHistoryWithErrorBoundary from '../components/farming/FarmingHistoryWithErrorBoundary';
-import TonBoostPackagesCard from '../components/ton-boost/BoostPackagesCard';
-import TonFarmingStatusCard from '../components/ton-boost/TonFarmingStatusCard';
-import ActiveTonBoostsCard from '../components/ton-boost/ActiveTonBoostsCard';
-import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import TonBoostPackagesCardWithErrorBoundary from '../components/ton-boost/TonBoostPackagesCardWithErrorBoundary';
+import TonFarmingStatusCardWithErrorBoundary from '../components/ton-boost/TonFarmingStatusCardWithErrorBoundary';
+import ActiveTonBoostsCardWithErrorBoundary from '../components/ton-boost/ActiveTonBoostsCardWithErrorBoundary';
 
 const Farming: React.FC = () => {
   // Хардкод ID=1 для демонстрации
@@ -44,22 +43,16 @@ const Farming: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="ton">
-          {/* Статус TON фарминга - добавлен новый компонент */}
-          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить статус TON фарминга</div>}>
-            <TonFarmingStatusCard />
-          </ErrorBoundary>
+          {/* Статус TON фарминга - с ErrorBoundary */}
+          <TonFarmingStatusCardWithErrorBoundary />
           
-          {/* Активные TON Boost-пакеты */}
-          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить активные TON бусты</div>}>
-            <ActiveTonBoostsCard />
-          </ErrorBoundary>
+          {/* Активные TON Boost-пакеты - с ErrorBoundary */}
+          <ActiveTonBoostsCardWithErrorBoundary />
           
-          {/* TON Boost-пакеты */}
-          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить TON бусты</div>}>
-            <div className="mb-6">
-              <TonBoostPackagesCard />
-            </div>
-          </ErrorBoundary>
+          {/* TON Boost-пакеты - с ErrorBoundary */}
+          <div className="mb-6">
+            <TonBoostPackagesCardWithErrorBoundary />
+          </div>
         </TabsContent>
       </Tabs>
       
