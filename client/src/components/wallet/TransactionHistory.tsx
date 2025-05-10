@@ -51,22 +51,44 @@ const TransactionHistory: React.FC = () => {
       }
     },
     enabled: !!userId, // Запрос активен только если есть userId
-    staleTime: 30000, // 30 секунд до устаревания данных
+    staleTime: 300000, // 5 минут до устаревания данных
+    refetchOnWindowFocus: false, // Не обновлять при фокусе окна
+    refetchOnMount: true, // Обновлять только при монтировании компонента
+    refetchOnReconnect: false, // Не обновлять при восстановлении соединения
+    refetchInterval: false, // Отключаем автоматическое обновление по интервалу
   });
   
-  // Обновляем данные при изменении userId или страницы
+  // Обновляем данные при изменении userId или страницы, но только один раз при изменении
   useEffect(() => {
-    if (userId) {
-      refetch()
-        .catch(err => {
-          // Показываем уведомление об ошибке загрузки
-          showNotification('error', {
-            message: 'Не удалось загрузить историю транзакций',
-            duration: 3000
-          });
-        });
+    // Создаем флаг, чтобы избежать повторных вызовов
+    let isMounted = true;
+    
+    if (userId && isMounted) {
+      console.log('[TransactionHistory] Однократное обновление транзакций при изменении userId или страницы');
+      
+      // Используем setTimeout, чтобы избежать повторных вызовов
+      const timer = setTimeout(() => {
+        if (isMounted) {
+          refetch()
+            .catch(err => {
+              // Показываем уведомление об ошибке загрузки только если компонент еще смонтирован
+              if (isMounted) {
+                showNotification('error', {
+                  message: 'Не удалось загрузить историю транзакций',
+                  duration: 3000
+                });
+              }
+            });
+        }
+      }, 300);
+      
+      // Очистка при размонтировании
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
     }
-  }, [userId, page, refetch, showNotification]);
+  }, [userId, page]); // Убираем refetch и showNotification из зависимостей
   
   // Фильтрация транзакций по выбранному токену
   const filteredTransactions = transactions.filter(transaction => {
@@ -79,9 +101,15 @@ const TransactionHistory: React.FC = () => {
   const isEmptyFiltered = !isLoading && !error && filteredTransactions.length === 0 && transactions.length > 0;
   const hasTransactions = !isLoading && !error && filteredTransactions.length > 0;
   
-  // Уведомления о пустом списке транзакций и успешной загрузке
+  // Однократные уведомления о пустом списке транзакций и успешной загрузке
   useEffect(() => {
-    if (!isLoading && !isFetching && userId) {
+    // Создаем флаг первого запуска для предотвращения повторных показов уведомлений
+    let firstLoad = true;
+    let timer: number | undefined;
+    
+    if (!isLoading && !isFetching && userId && firstLoad) {
+      firstLoad = false; // Выполняем только один раз после загрузки
+      
       if (isEmpty) {
         // Показываем уведомление при полностью пустом списке
         showNotification('info', {
@@ -90,18 +118,22 @@ const TransactionHistory: React.FC = () => {
         });
       } else if (hasTransactions && transactions.length > 0) {
         // Показываем уведомление при успешной загрузке транзакций
-        // Используем setTimeout, чтобы не показывать уведомление при каждом рендере
-        const timer = setTimeout(() => {
+        // Используем setTimeout чтобы не показывать уведомление при каждом рендере
+        timer = window.setTimeout(() => {
           showNotification('success', {
             message: `Загружено ${transactions.length} транзакций`,
             duration: 2000
           });
-        }, 500);
-        
-        return () => clearTimeout(timer);
+        }, 1000);
       }
     }
-  }, [isEmpty, hasTransactions, isLoading, isFetching, userId, transactions.length, showNotification]);
+    
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [isEmpty]); // Реагируем только на изменение флага isEmpty
   
   return (
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
