@@ -1,5 +1,5 @@
 import React from 'react';
-import { MissionsList } from '@/components/missions/MissionsList';
+import MissionsListWithErrorBoundary from '@/components/missions/MissionsListWithErrorBoundary';
 
 /**
  * Компонент страницы миссий
@@ -11,7 +11,7 @@ const Missions: React.FC = () => {
   return (
     <div className="p-4">
       <h1 className="text-xl font-semibold text-white mb-4">Выполняй задания — получай UNI</h1>
-      <MissionsList />
+      <MissionsListWithErrorBoundary />
     </div>
   );
 };
