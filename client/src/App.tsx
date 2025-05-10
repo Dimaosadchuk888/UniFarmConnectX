@@ -348,17 +348,21 @@ function App() {
         {/* Компонент для автоматической инициализации Telegram WebApp */}
         <TelegramInitializer />
         
-        {/* Оборачиваем весь контент в NotificationProvider и UserProvider */}
-        <NotificationProvider>
-          {/* Компонент для отображения уведомлений */}
-          <NotificationContainer />
-          
-          {/* Оборачиваем весь контент в Provider контекста пользователя */}
-          <UserProvider>
-            {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
-            <ErrorBoundary>
-              <TelegramWebAppCheck>
-                <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
+        {/* Оборачиваем весь контент в WebSocketProvider для отслеживания соединения */}
+        <WebSocketProvider>
+          {/* Оборачиваем весь контент в NotificationProvider и UserProvider */}
+          <NotificationProvider>
+            {/* Компонент для отображения уведомлений */}
+            <NotificationContainer />
+            
+            {/* Оборачиваем весь контент в Provider контекста пользователя */}
+            <UserProvider>
+              {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
+              <ErrorBoundary>
+                <TelegramWebAppCheck>
+                  <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
+                    {/* Индикатор статуса сети и WebSocket соединения */}
+                    <NetworkStatusIndicator />
                   <Switch>
                     {/* Маршруты для Telegram Mini App */}
                     <Route path="/UniFarm/">
@@ -481,6 +485,7 @@ function App() {
             </ErrorBoundary>
           </UserProvider>
         </NotificationProvider>
+        </WebSocketProvider>
       </TonConnectUIProvider>
     </QueryClientProvider>
   );

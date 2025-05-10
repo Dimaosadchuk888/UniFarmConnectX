@@ -1,6 +1,6 @@
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import MissionStats from './MissionStats';
+import MissionStats from '@/components/missions/MissionStats';
 
 /**
  * Компонент-обертка с ErrorBoundary для статистики миссий
