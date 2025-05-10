@@ -1542,6 +1542,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ton-farming/update-balance", TonBoostControllerFallback.calculateAndUpdateTonFarming);
   app.get("/api/ton-farming/active", TonBoostControllerFallback.getUserActiveTonBoosts);
   
+  // Добавляем эндпоинт для тестирования обновления TON фарминга
+  app.post("/api/ton-farming/update", async (req: Request, res: Response) => {
+    try {
+      const userId = req.body.user_id || (req.headers['x-development-user-id'] as string) || '1';
+      const userIdNum = parseInt(userId);
+      
+      console.log(`[DEBUG] Ручное обновление TON фарминга для пользователя ${userIdNum}`);
+      
+      const { tonBoostServiceInstance } = require('./services/tonBoostServiceInstance');
+      const result = await tonBoostServiceInstance.calculateAndUpdateUserTonFarming(userIdNum);
+      
+      return res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      console.error('[Error] Ошибка при обновлении TON фарминга:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Внутренняя ошибка сервера',
+        error: error.message
+      });
+    }
+  });
+  
+  // Добавляем эндпоинт для тестирования харвеста TON фарминга
+  app.post("/api/ton-farming/harvest", async (req: Request, res: Response) => {
+    try {
+      const userId = req.body.user_id || (req.headers['x-development-user-id'] as string) || '1';
+      const userIdNum = parseInt(userId);
+      
+      console.log(`[DEBUG] Ручной сбор TON фарминга для пользователя ${userIdNum}`);
+      
+      const { tonBoostServiceInstance } = require('./services/tonBoostServiceInstance');
+      const result = await tonBoostServiceInstance.harvestTonFarming(userIdNum);
+      
+      return res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      console.error('[Error] Ошибка при сборе TON фарминга:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Внутренняя ошибка сервера',
+        error: error.message
+      });
+    }
+  });
+  
+  // Добавляем эндпоинт для выполнения SQL-запросов в режиме разработки
+  app.post("/api/db/query", async (req: Request, res: Response) => {
+    // Проверяем, что это режим разработки
+    if (req.headers['x-development-mode'] !== 'true') {
+      return res.status(403).json({
+        success: false,
+        message: 'Доступно только в режиме разработки'
+      });
+    }
+    
+    try {
+      const { query } = req.body;
+      
+      if (!query) {
+        return res.status(400).json({
+          success: false,
+          message: 'Запрос не указан'
+        });
+      }
+      
+      console.log(`[DEBUG] Выполнение SQL-запроса: ${query}`);
+      
+      // Разрешаем только SELECT-запросы
+      if (!query.trim().toLowerCase().startsWith('select')) {
+        return res.status(403).json({
+          success: false,
+          message: 'Разрешены только SELECT-запросы'
+        });
+      }
+      
+      const result = await db.execute(query);
+      
+      return res.json({
+        success: true,
+        data: result.rows || []
+      });
+    } catch (error: any) {
+      console.error('[Error] Ошибка при выполнении SQL-запроса:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Ошибка при выполнении SQL-запроса',
+        error: error.message
+      });
+    }
+  });
+  
   // Эндпоинты для получения активных бустов фарминга
   app.get("/api/farming/boosts/active", BoostControllerFallback.getUserFarmingBoosts);
 
