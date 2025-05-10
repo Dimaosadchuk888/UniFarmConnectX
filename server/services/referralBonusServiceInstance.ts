@@ -1,11 +1,18 @@
 import { db } from '../db';
 import { eq } from 'drizzle-orm';
-import { users, referrals, transactions, insertTransactionSchema } from '@shared/schema';
+import { 
+  users, 
+  referrals, 
+  transactions, 
+  reward_distribution_logs,
+  insertTransactionSchema,
+  insertRewardDistributionLogSchema
+} from '@shared/schema';
 import { z } from 'zod';
 import { IReferralService } from '.';
 import { IUserService } from '.';
 import { TransactionType, Currency, TransactionStatus } from './transactionService';
-import { IExtendedStorage } from '../storage-adapter-extended';
+import crypto from 'crypto';
 
 // Интерфейс для сервиса реферальных бонусов
 export interface IReferralBonusService {
@@ -186,103 +193,188 @@ export class ReferralBonusService implements IReferralBonusService {
    */
   async processFarmingReferralReward(userId: number, earnedAmount: number, currency: Currency): Promise<{totalRewardsDistributed: number}> {
     try {
-      // Общая сумма распределенных бонусов
-      let totalRewardsDistributed = 0;
+      // Создаем уникальный идентификатор для пакета начислений
+      const batchId = crypto.randomUUID();
+      console.log(`[ReferralBonusService] Starting farming reward distribution. BatchID: ${batchId}, User: ${userId}, Amount: ${earnedAmount} ${currency}`);
       
       // Если сумма слишком мала, не выполняем расчеты
       if (earnedAmount < this.MIN_REWARD_THRESHOLD) {
+        console.log(`[ReferralBonusService] Amount ${earnedAmount} is too small, skipping distribution`);
         return {totalRewardsDistributed: 0};
       }
       
-      // Получаем всех пригласителей пользователя
-      const userReferrals = await db
-        .select()
-        .from(referrals)
-        .where(eq(referrals.user_id, userId))
-        .orderBy(referrals.level);
+      // Создаем запись в журнале распределения вознаграждений
+      const logData = insertRewardDistributionLogSchema.parse({
+        source_user_id: userId,
+        batch_id: batchId,
+        currency: currency,
+        earned_amount: earnedAmount.toString(),
+        status: 'pending'
+      });
       
-      // Если нет реферальных связей, выходим
-      if (userReferrals.length === 0) {
-        return {totalRewardsDistributed: 0};
-      }
+      // Вставляем запись журнала перед началом транзакции для отслеживания
+      await db.insert(reward_distribution_logs).values(logData);
       
-      // Для каждого уровня начисляем вознаграждение
-      for (const ref of userReferrals) {
-        // Проверяем, что уровень определен
-        if (ref.level === null) {
-          continue;
-        }
-        
-        const level = ref.level;
-        
-        // Проверяем, что уровень в пределах допустимых
-        if (level <= 0 || level > this.MAX_LEVELS) {
-          continue;
-        }
-        
-        // Получаем процент для данного уровня
-        const percent = this.LEVEL_PERCENTS[level - 1];
-        
-        // Вычисляем сумму вознаграждения
-        const bonusAmount = earnedAmount * (percent / 100);
-        
-        // Пропускаем микро-начисления
-        if (bonusAmount < this.MIN_REWARD_THRESHOLD) {
-          continue;
-        }
-        
-        // Начисляем вознаграждение пригласителю
-        if (bonusAmount > 0 && ref.inviter_id !== null) {
-          // Получаем пользователя-приглашателя
-          const inviter = await this.userService.getUserById(ref.inviter_id);
-          if (!inviter) {
-            continue;
+      try {
+        // Выполняем всю логику начисления внутри транзакции для обеспечения атомарности
+        const result = await db.transaction(async (tx) => {
+          let totalRewardsDistributed = 0;
+          let levelsProcessed = 0;
+          let inviterCount = 0;
+          
+          // Получаем всех пригласителей пользователя внутри транзакции
+          const userReferrals = await tx
+            .select()
+            .from(referrals)
+            .where(eq(referrals.user_id, userId))
+            .orderBy(referrals.level);
+          
+          // Если нет реферальных связей, выходим
+          if (userReferrals.length === 0) {
+            console.log(`[ReferralBonusService] No referrals found for user ${userId}, skipping`);
+            
+            // Обновляем запись журнала - завершено без распределения
+            await db.update(reward_distribution_logs)
+              .set({ 
+                status: 'completed', 
+                levels_processed: 0,
+                inviter_count: 0,
+                total_distributed: '0',
+                completed_at: new Date()
+              })
+              .where(eq(reward_distribution_logs.batch_id, batchId));
+              
+            return {totalRewardsDistributed: 0};
           }
           
-          // Проверяем значения баланса и обрабатываем null значения
-          const uniBalance = inviter.balance_uni !== null ? inviter.balance_uni : "0";
-          const tonBalance = inviter.balance_ton !== null ? inviter.balance_ton : "0";
+          console.log(`[ReferralBonusService] Found ${userReferrals.length} referrals for user ${userId}, processing...`);
           
-          // Увеличиваем баланс пользователя
-          const newBalance = currency === Currency.UNI 
-            ? Number(uniBalance) + bonusAmount 
-            : Number(tonBalance) + bonusAmount;
+          // Для каждого уровня начисляем вознаграждение
+          for (const ref of userReferrals) {
+            // Проверяем, что уровень определен
+            if (ref.level === null) {
+              continue;
+            }
+            
+            const level = ref.level;
+            levelsProcessed++;
+            
+            // Проверяем, что уровень в пределах допустимых
+            if (level <= 0 || level > this.MAX_LEVELS) {
+              continue;
+            }
+            
+            // Получаем процент для данного уровня
+            const percent = this.LEVEL_PERCENTS[level - 1];
+            
+            // Вычисляем сумму вознаграждения
+            const bonusAmount = earnedAmount * (percent / 100);
+            
+            // Пропускаем микро-начисления
+            if (bonusAmount < this.MIN_REWARD_THRESHOLD) {
+              continue;
+            }
+            
+            // Начисляем вознаграждение пригласителю
+            if (bonusAmount > 0 && ref.inviter_id !== null) {
+              try {
+                // Получаем пользователя-приглашателя (внутри транзакции)
+                const [inviter] = await tx
+                  .select()
+                  .from(users)
+                  .where(eq(users.id, ref.inviter_id));
+                  
+                if (!inviter) {
+                  console.log(`[ReferralBonusService] Inviter with ID ${ref.inviter_id} not found, skipping`);
+                  continue;
+                }
+                
+                // Проверяем значения баланса и обрабатываем null значения
+                const uniBalance = inviter.balance_uni !== null ? inviter.balance_uni : "0";
+                const tonBalance = inviter.balance_ton !== null ? inviter.balance_ton : "0";
+                
+                // Увеличиваем баланс пользователя
+                const newBalance = currency === Currency.UNI 
+                  ? Number(uniBalance) + bonusAmount 
+                  : Number(tonBalance) + bonusAmount;
+                
+                // Обновляем баланс пользователя внутри транзакции
+                await tx
+                  .update(users)
+                  .set({
+                    balance_uni: currency === Currency.UNI ? newBalance.toString() : uniBalance,
+                    balance_ton: currency === Currency.TON ? newBalance.toString() : tonBalance
+                  })
+                  .where(eq(users.id, ref.inviter_id));
+                
+                // Создаем и валидируем данные транзакции через схему
+                const transactionData = insertTransactionSchema.parse({
+                  user_id: ref.inviter_id,
+                  type: TransactionType.REFERRAL,
+                  amount: bonusAmount.toString(),
+                  currency: currency,
+                  status: TransactionStatus.CONFIRMED,
+                  source: "Referral Income",
+                  description: `Referral reward from level ${level} farming`,
+                  source_user_id: userId, // ID реферала, чьи доходы стали источником
+                  category: "bonus",
+                  data: JSON.stringify({
+                    batch_id: batchId,
+                    level: level,
+                    percent: percent
+                  })
+                });
+                
+                // Вставляем данные в таблицу транзакций внутри общей транзакции
+                await tx
+                  .insert(transactions)
+                  .values(transactionData);
+                
+                // Суммируем начисленные бонусы
+                totalRewardsDistributed += bonusAmount;
+                inviterCount++;
+                
+                console.log(
+                  `[Farming ReferralBonus] Level ${level} (${percent}%) | Amount: ${bonusAmount.toFixed(8)} ${currency} | ` +
+                  `From: ${userId} | To: ${ref.inviter_id} | Processed`
+                );
+              } catch (levelError) {
+                // Логируем ошибку на уровне, но продолжаем обработку остальных уровней
+                console.error(`[ReferralBonusService] Error processing level ${level} for user ${userId} to inviter ${ref.inviter_id}:`, levelError);
+                // Не прерываем цикл, позволяя другим уровням получить начисления
+              }
+            }
+          }
           
-          // Обновляем баланс пользователя
-          await this.userService.updateUserBalance(ref.inviter_id, {
-            balance_uni: currency === Currency.UNI ? newBalance.toString() : uniBalance,
-            balance_ton: currency === Currency.TON ? newBalance.toString() : tonBalance
-          });
+          console.log(`[ReferralBonusService] Batch ${batchId} completed. Total distributed: ${totalRewardsDistributed} ${currency}`);
           
-          // Создаем и валидируем данные транзакции через схему
-          const transactionData = insertTransactionSchema.parse({
-            user_id: ref.inviter_id,
-            type: TransactionType.REFERRAL,
-            amount: bonusAmount.toString(),
-            currency: currency,
-            status: TransactionStatus.CONFIRMED,
-            source: "Referral Income",
-            description: `Referral reward from level ${level} farming`,
-            source_user_id: userId, // ID реферала, чьи доходы стали источником
-            category: "bonus"
-          });
+          // Обновляем запись журнала с результатами
+          await tx.update(reward_distribution_logs)
+            .set({ 
+              status: 'completed', 
+              levels_processed: levelsProcessed,
+              inviter_count: inviterCount,
+              total_distributed: totalRewardsDistributed.toString(),
+              completed_at: new Date()
+            })
+            .where(eq(reward_distribution_logs.batch_id, batchId));
+            
+          return {totalRewardsDistributed};
+        });
+        
+        return result;
+      } catch (txError) {
+        // Обновляем журнал в случае ошибки в транзакции
+        await db.update(reward_distribution_logs)
+          .set({ 
+            status: 'failed', 
+            error_message: txError.message || 'Transaction failed',
+            completed_at: new Date()
+          })
+          .where(eq(reward_distribution_logs.batch_id, batchId));
           
-          // Вставляем данные в таблицу транзакций
-          await db
-            .insert(transactions)
-            .values(transactionData);
-          
-          // Суммируем начисленные бонусы
-          totalRewardsDistributed += bonusAmount;
-          
-          console.log(
-            `[Farming ReferralBonus] Level ${level} (${percent}%) | Amount: ${bonusAmount.toFixed(8)} ${currency} | ` +
-            `From: ${userId} | To: ${ref.inviter_id} | Processed`
-          );
-        }
+        throw txError; // Повторно бросаем ошибку для внешнего обработчика
       }
-      
-      return {totalRewardsDistributed};
     } catch (error) {
       console.error('[ReferralBonusService] Error processing farming referral reward:', error);
       return {totalRewardsDistributed: 0};
