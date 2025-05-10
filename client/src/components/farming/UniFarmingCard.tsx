@@ -120,9 +120,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     mutationFn: async (amount: string) => {
       // Формируем тело запроса с правильными типами данных
       const requestBody = {
-        amount: String(amount), // Гарантированно строка
-        user_id: userId // Динамический ID пользователя
+        amount: String(amount).trim(), // Гарантированно строка без пробелов
+        user_id: Number(userId || 1) // Гарантированно число
       };
+      
+      console.log('Отправляем депозит:', requestBody);
       
       // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
       return correctApiRequest('/api/uni-farming/deposit', 'POST', requestBody);
@@ -197,18 +199,27 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return;
       }
       
-      // Минимальная сумма депозита
-      const MIN_DEPOSIT = 5;
+      // Минимальная сумма депозита - 10 UNI согласно требованиям
+      const MIN_DEPOSIT = 10;
       
       try {
         // Создаем BigNumber для безопасной работы с числами
         let amount: BigNumber;
         try {
-          amount = new BigNumber(depositAmount);
+          // Удаляем все пробелы и другие нецифровые символы, кроме точки
+          const cleanAmount = depositAmount.trim().replace(/[^\d.]/g, '');
+          amount = new BigNumber(cleanAmount);
           
           // Проверка на валидное число
           if (amount.isNaN() || !amount.isFinite()) {
             setError('Введено некорректное числовое значение');
+            setIsSubmitting(false);
+            return;
+          }
+          
+          // Проверка минимальной суммы
+          if (amount.isLessThan(MIN_DEPOSIT)) {
+            setError(`Минимальная сумма депозита - ${MIN_DEPOSIT} UNI`);
             setIsSubmitting(false);
             return;
           }
