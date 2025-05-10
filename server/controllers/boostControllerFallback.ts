@@ -75,6 +75,44 @@ export class BoostControllerFallback {
   }
 
   /**
+   * Получает активные буст-пакеты фарминга для пользователя
+   * @route GET /api/farming/boosts/active?user_id=123
+   */
+  static async getUserFarmingBoosts(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = Number(req.query.user_id);
+      
+      if (isNaN(userId)) {
+        return res.json({ 
+          success: false, 
+          message: "Не указан или некорректный ID пользователя"
+        });
+      }
+      
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const getActiveBoostsWithFallback = wrapServiceFunction(
+        BoostService.getUserFarmingBoosts.bind(BoostService),
+        async (error, userId) => {
+          console.log(`[BoostControllerFallback] Возвращаем заглушку для активных бустов фарминга по ID: ${userId}`);
+          // Возвращаем пустой массив при отсутствии соединения с БД
+          return [];
+        }
+      );
+      
+      try {
+        const farmingBoosts = await getActiveBoostsWithFallback(userId);
+        res.json({ success: true, data: farmingBoosts });
+      } catch (dbError) {
+        console.error("[BoostControllerFallback] Ошибка БД при получении бустов фарминга:", dbError);
+        res.json({ success: true, data: [] });
+      }
+    } catch (error) {
+      console.error('[BoostControllerFallback] Ошибка в getUserFarmingBoosts:', error);
+      res.json({ success: true, data: [] });
+    }
+  }
+
+  /**
    * Покупает буст-пакет для пользователя с поддержкой fallback
    * @route POST /api/boosts/purchase
    */

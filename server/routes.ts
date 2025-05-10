@@ -1540,6 +1540,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // TON фарминг с поддержкой fallback
   app.get("/api/ton-farming/info", TonBoostControllerFallback.getUserTonFarmingInfo);
   app.get("/api/ton-farming/update-balance", TonBoostControllerFallback.calculateAndUpdateTonFarming);
+  app.get("/api/ton-farming/active", TonBoostControllerFallback.getUserActiveTonBoosts);
+  
+  // Эндпоинты для получения активных бустов фарминга
+  app.get("/api/farming/boosts/active", BoostControllerFallback.getUserFarmingBoosts);
 
   // Добавление обработчика для всех маршрутов, которые не соответствуют API
   // Это необходимо для корректной работы с Telegram Mini App

@@ -93,4 +93,43 @@ export class TonBoostControllerFallback {
       });
     }
   }
+
+  /**
+   * Получает активные TON буст-депозиты пользователя
+   * @route GET /api/ton-farming/active?user_id=123
+   */
+  static async getUserActiveTonBoosts(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = Number(req.query.user_id);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Не указан или некорректный ID пользователя"
+        });
+      }
+
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const getActiveBoostsWithFallback = wrapServiceFunction(
+        TonBoostService.getUserActiveBoosts.bind(TonBoostService), 
+        async (error, userId) => {
+          console.log(`[TonBoostControllerFallback] Возвращаем заглушку для активных TON бустов по ID: ${userId}`);
+          
+          // Возвращаем пустой массив при отсутствии соединения с БД
+          return [];
+        }
+      );
+
+      try {
+        const activeBoosts = await getActiveBoostsWithFallback(userId);
+        res.json({ success: true, data: activeBoosts });
+      } catch (dbError) {
+        console.error("[TonBoostControllerFallback] Error getting active TON boosts:", dbError);
+        res.json({ success: true, data: [] });
+      }
+    } catch (error) {
+      console.error("[TonBoostControllerFallback] Error in getUserActiveTonBoosts:", error);
+      res.json({ success: true, data: [] });
+    }
+  }
 }
