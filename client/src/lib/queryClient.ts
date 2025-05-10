@@ -1,4 +1,4 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, QueryCache, MutationCache } from "@tanstack/react-query";
 import { getTelegramAuthHeaders } from "@/services/telegramService";
 import apiConfig from "@/config/apiConfig";
 import { fixRequestBody } from "./apiFix";
@@ -289,6 +289,16 @@ const globalQueryErrorHandler = (error: unknown) => {
   return error;
 };
 
+// Создаем кэши с обработчиками ошибок
+const queryCache = new QueryCache({
+  onError: globalQueryErrorHandler
+});
+
+const mutationCache = new MutationCache({
+  onError: globalQueryErrorHandler
+});
+
+// Создаем экземпляр QueryClient с настроенными кэшами
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -302,13 +312,8 @@ export const queryClient = new QueryClient({
       retry: false,
     },
   },
-  // Глобальный обработчик ошибок
-  queryCache: {
-    onError: globalQueryErrorHandler,
-  },
-  mutationCache: {
-    onError: globalQueryErrorHandler,
-  },
+  queryCache,
+  mutationCache,
 });
 
 /**
