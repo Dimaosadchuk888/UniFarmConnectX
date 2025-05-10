@@ -24,12 +24,21 @@ interface FarmingInfo {
 const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const queryClient = useQueryClient();
   const { userId } = useUser(); // Получаем ID пользователя из контекста
+  const { showNotification } = useNotification(); // Для показа уведомлений
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   // Защита от повторных вызовов
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   // Флаг для предотвращения автоматических вызовов
   const depositRequestSent = useRef<boolean>(false);
+  
+  // Применяем Error Boundary к компоненту
+  const withErrorBoundary = useErrorBoundary({
+    queryKey: ['/api/uni-farming/info', userId],
+    errorTitle: 'Ошибка загрузки UNI фарминга',
+    errorDescription: 'Не удалось загрузить информацию о вашем UNI фарминге. Пожалуйста, обновите страницу или повторите позже.',
+    resetButtonText: 'Обновить данные'
+  });
   
   // Получаем информацию о фарминге с динамическим ID пользователя
   const { data: farmingResponse, isLoading } = useQuery<{ success: boolean; data: FarmingInfo }>({
