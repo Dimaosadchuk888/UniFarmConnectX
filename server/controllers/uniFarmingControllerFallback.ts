@@ -12,6 +12,76 @@ import { UniFarmingService } from '../services/uniFarmingService';
  */
 export class UniFarmingControllerFallback {
   /**
+   * Симулирует начисление вознаграждения в фарминге для тестирования
+   * Этот метод используется только для тестовых целей и не должен быть доступен в production
+   * @route POST /api/uni-farming/simulate-reward
+   */
+  static async simulateReward(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      console.log('Получен запрос POST /api/uni-farming/simulate-reward');
+      console.log('Content-Type:', req.headers['content-type']);
+      console.log('Тело запроса:', JSON.stringify(req.body));
+      
+      // Проверка содержимого запроса
+      if (!req.body) {
+        throw new ValidationError('Тело запроса пустое');
+      }
+      
+      // Получение user_id и amount из тела запроса
+      const { user_id, amount } = req.body;
+      
+      if (amount === undefined || amount === null || amount === '') {
+        throw new ValidationError('Отсутствует обязательное поле amount');
+      }
+      
+      // Валидация amount (поддержка как строкового, так и числового формата)
+      let numericAmount: number;
+      
+      if (typeof amount === 'number') {
+        console.log('Получен amount как число:', amount);
+        numericAmount = amount;
+      } else if (typeof amount === 'string') {
+        console.log('Получен amount как строка:', amount);
+        numericAmount = parseFloat(amount);
+        if (isNaN(numericAmount)) {
+          throw new ValidationError('Amount должен быть корректным числом');
+        }
+      } else {
+        console.log('Ошибка: amount имеет неподдерживаемый тип:', typeof amount);
+        throw new ValidationError('Amount должно быть числом или строкой');
+      }
+      
+      // Проверяем, что amount положительное число
+      if (numericAmount <= 0) {
+        throw new ValidationError('Amount должен быть положительным числом');
+      }
+      
+      // Обработка user_id (включая случай с null и undefined)
+      let userId = 1; // значение по умолчанию
+      
+      if (user_id !== undefined && user_id !== null) {
+        const userIdValue = parseInt(String(user_id));
+        if (isNaN(userIdValue) || userIdValue <= 0 || userIdValue !== Number(user_id)) {
+          throw new ValidationError('user_id должен быть положительным целым числом');
+        }
+        userId = userIdValue;
+      }
+      
+      console.log(`Симуляция вознаграждения для user_id=${userId}, amount=${numericAmount}`);
+      
+      // Возвращаем успешный результат
+      sendSuccess(res, {
+        success: true,
+        message: 'Вознаграждение успешно симулировано',
+        user_id: userId,
+        amount: numericAmount
+      });
+    } catch (error) {
+      console.error('Ошибка в simulateReward:', error);
+      next(error);
+    }
+  }
+  /**
    * Получает информацию о UNI фарминге пользователя
    * @route GET /api/uni-farming/info
    */
