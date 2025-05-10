@@ -27,7 +27,7 @@ interface ApiRequestOptions {
 
 export async function correctApiRequest<T = any>(
   endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' = 'GET',
   data?: any,
   options?: ApiRequestOptions
 ): Promise<T> {
@@ -257,13 +257,24 @@ export async function correctApiRequest<T = any>(
         console.error(`[correctApiRequest] [${requestId}] Запрос превысил таймаут (30с): ${fullUrl}`);
       }, 30000);
       
-      const response = await fetch(fullUrl, {
+      // Создаем базовые опции запроса
+      const fetchOptions: RequestInit = {
         method,
         headers,
-        body,
         credentials: 'include',
         signal
-      });
+      };
+      
+      // Добавляем body только для не-GET запросов
+      if (method !== 'GET' && method !== 'HEAD' && body) {
+        fetchOptions.body = body;
+      } else if ((method === 'GET' || method === 'HEAD') && body) {
+        // Для GET и HEAD запросов выводим предупреждение, если body был передан
+        console.warn(`[correctApiRequest] [${requestId}] Для ${method} запроса body игнорируется`);
+      }
+      
+      // Выполняем запрос
+      const response = await fetch(fullUrl, fetchOptions);
       
       // Очищаем таймаут после получения ответа
       if (timeoutId) {
