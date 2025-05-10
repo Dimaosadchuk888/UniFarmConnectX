@@ -288,12 +288,50 @@ export const UserController = {
    */
   async getCurrentUser(req: Request, res: Response): Promise<void> {
     try {
-      // Получаем ID пользователя из сессии или из заголовка
-      const userId = req.session?.userId || 
-                   parseInt(req.headers['x-user-id'] as string, 10);
+      // В режиме разработки проверяем несколько источников ID пользователя
+      let userId = null;
       
+      if (process.env.NODE_ENV === 'development') {
+        // 1. Сначала пробуем получить ID из заголовка x-development-user-id
+        if (req.headers['x-development-user-id']) {
+          userId = parseInt(req.headers['x-development-user-id'] as string, 10);
+          console.log(`[UserController] Получен ID пользователя из заголовка x-development-user-id: ${userId}`);
+        }
+        
+        // 2. Затем проверяем query параметр user_id
+        if (!userId && req.query.user_id) {
+          userId = parseInt(req.query.user_id as string, 10);
+          console.log(`[UserController] Получен ID пользователя из query параметра user_id: ${userId}`);
+        }
+        
+        // 3. Проверяем устаревший заголовок x-user-id для обратной совместимости
+        if (!userId && req.headers['x-user-id']) {
+          userId = parseInt(req.headers['x-user-id'] as string, 10);
+          console.log(`[UserController] Получен ID пользователя из заголовка x-user-id: ${userId}`);
+        }
+      }
+      
+      // Если в режиме разработки не найден ID, или мы не в режиме разработки, 
+      // пробуем стандартный путь через сессию
+      if (!userId) {
+        userId = req.session?.userId || (req as any).user?.id;
+        console.log(`[UserController] Получен ID пользователя из сессии: ${userId}`);
+      }
+      
+      // Проверяем валидность ID
       if (!userId || isNaN(userId)) {
-        res.status(401).json(error('Пользователь не аутентифицирован', 'USER_NOT_AUTHENTICATED'));
+        console.log(`[UserController] Ошибка аутентификации - userId: ${userId}, 
+          isNaN: ${isNaN(userId)}, headers: ${JSON.stringify(req.headers)}`);
+          
+        res.status(401).json(error('Пользователь не аутентифицирован', 'USER_NOT_AUTHENTICATED', {
+          session_exists: !!req.session,
+          user_in_session: !!req.session?.userId,
+          development_mode: process.env.NODE_ENV === 'development',
+          dev_headers: {
+            development_mode: !!req.headers['x-development-mode'],
+            development_user_id: req.headers['x-development-user-id']
+          }
+        }));
         return;
       }
       
