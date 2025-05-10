@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/contexts/userContext';
 import { useNotification } from '@/contexts/notificationContext';
+import useErrorBoundary from '@/hooks/useErrorBoundary';
 import {
   fetchTransactions,
   Transaction
@@ -135,7 +136,16 @@ const TransactionHistory: React.FC = () => {
     };
   }, [isEmpty]); // Реагируем только на изменение флага isEmpty
   
-  return (
+  // Используем Error Boundary для обработки ошибок в React Query
+  const withErrorBoundary = useErrorBoundary({
+    queryKey: ['/api/transactions', userId],
+    errorTitle: 'Ошибка загрузки истории транзакций',
+    errorDescription: 'Не удалось загрузить историю ваших транзакций. Попробуйте обновить страницу или повторите позже.',
+    resetButtonText: 'Обновить историю'
+  });
+
+  // Оборачиваем весь компонент в Error Boundary
+  return withErrorBoundary(
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
       {/* Декоративный градиентный фон */}
       <div 
