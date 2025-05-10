@@ -483,27 +483,29 @@ export class ValidationService implements IValidationService {
 
     // Пытаемся преобразовать значение в число
     let numValue: number;
+    let strValue: string;
     
     if (typeof value === 'string') {
       // Заменяем запятую на точку в строковом значении
-      value = value.replace(',', '.');
-      numValue = parseFloat(value);
+      strValue = value.replace(',', '.');
+      numValue = parseFloat(strValue);
     } else {
       numValue = value;
+      strValue = value.toString();
     }
 
     // Проверяем, что значение является числом
     if (isNaN(numValue)) {
-      throw new ValidationError('Некорректный формат числа', { value });
+      throw new ValidationError('Некорректный формат числа', { value: strValue });
     }
 
     // Проверяем ограничения min и max
     if (numValue < min) {
-      throw new ValidationError(`Значение не может быть меньше ${min} ${currency}`, { value, min });
+      throw new ValidationError(`Значение не может быть меньше ${min} ${currency}`, { value: strValue, min: min.toString() });
     }
 
     if (numValue > max) {
-      throw new ValidationError(`Значение не может быть больше ${max} ${currency}`, { value, max });
+      throw new ValidationError(`Значение не может быть больше ${max} ${currency}`, { value: strValue, max: max.toString() });
     }
 
     // Форматируем число с указанной точностью
@@ -562,15 +564,15 @@ export class ValidationService implements IValidationService {
   private cleanupOperationCache(maxAge: number = 3600000): void {
     const now = new Date().getTime();
     
-    // Проходим по всем записям в кэше
-    for (const [key, value] of this.operationCache.entries()) {
+    // Проходим по всем записям в кэше (с использованием Array.from для итерации)
+    Array.from(this.operationCache.entries()).forEach(([key, value]) => {
       const timestamp = value.timestamp.getTime();
       
       // Если запись старше maxAge, удаляем её
       if (now - timestamp > maxAge) {
         this.operationCache.delete(key);
       }
-    }
+    });
   }
 }
 

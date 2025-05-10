@@ -29,6 +29,7 @@ import { telegramServiceInstance, createTelegramService, type ITelegramService }
 import { missionServiceInstance, createMissionService, type IMissionService } from './missionServiceInstance.js';
 import { boostServiceInstance, createBoostService, type IBoostService } from './boostServiceInstance.js';
 import { walletServiceInstance, createWalletService, type IWalletService } from './walletServiceInstance.js';
+import { validationServiceInstance, createValidationService, type IValidationService } from './validationService';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
 // Сервисы с instance-паттерном используют реализацию из соответствующих файлов
@@ -49,6 +50,8 @@ const partitionService = createPartitionService();
 const authService = createAuthService();
 const securityService = createSecurityService();
 const adminService = createAdminService();
+// Используем существующий экземпляр validationServiceInstance
+const validationService = validationServiceInstance;
 
 // Экспортируем экземпляры сервисов для использования в контроллерах
 export {
@@ -70,7 +73,8 @@ export {
   telegramServiceInstance as telegramService,
   missionServiceInstance as missionService,
   boostServiceInstance as boostService,
-  walletServiceInstance as walletService
+  walletServiceInstance as walletService,
+  validationService
 };
 
 // Типы и интерфейсы из missionServiceInstance доступны через реэкспорт из missionService
@@ -95,6 +99,7 @@ export type {
   IMissionService as MissionService,
   IBoostService as BoostService,
   IWalletService as WalletService,
+  IValidationService as ValidationService,
   // Экспортируем дополнительные типы для использования в контроллерах
   DailyBonusStatusResponse,
   DailyBonusClaimResponse
@@ -119,6 +124,7 @@ export type { ITelegramService } from './telegramServiceInstance.js';
 export type { IMissionService } from './missionServiceInstance.js';
 export type { IBoostService } from './boostServiceInstance.js';
 export type { IWalletService } from './walletServiceInstance.js';
+export type { IValidationService } from './validationService';
 
 /**
  * Повторно экспортируем фабричные функции для создания сервисов
@@ -143,5 +149,6 @@ export {
   createTelegramService,
   createMissionService,
   createBoostService,
-  createWalletService
+  createWalletService,
+  createValidationService
 };
