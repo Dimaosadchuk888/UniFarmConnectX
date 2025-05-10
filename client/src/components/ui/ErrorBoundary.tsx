@@ -1,8 +1,17 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, AlertTriangle, ChevronRight } from 'lucide-react';
+import { queryClient } from '@/lib/queryClient';
+import { invalidateQueryWithUserId } from '@/lib/queryClient';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
+  onReset?: () => void;
+  errorTitle?: string;
+  errorDescription?: string;
+  resetButtonText?: string;
 }
 
 interface ErrorBoundaryState {
@@ -52,6 +61,22 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         error: null,
         errorInfo: null
       });
+      
+      // Если передан обработчик сброса, вызываем его
+      if (this.props.onReset) {
+        this.props.onReset();
+      }
+      
+      // Всегда обновляем ключевые данные приложения при сбросе ошибки
+      try {
+        // Обновляем основные данные пользователя в кэше React Query
+        invalidateQueryWithUserId('/api/me', [
+          '/api/wallet/balance',
+          '/api/transactions'
+        ]);
+      } catch (queryError) {
+        console.error('[ErrorBoundary] Ошибка при обновлении кэша запросов:', queryError);
+      }
     } catch (resetError) {
       console.error('[ErrorBoundary] Ошибка при сбросе состояния:', resetError);
     }
@@ -65,35 +90,43 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         return this.props.fallback;
       }
       
-      // Стандартный fallback UI
+      // Получаем тексты из props или используем дефолтные
+      const errorTitle = this.props.errorTitle || 'Что-то пошло не так';
+      const errorDescription = this.props.errorDescription || 'Возникла ошибка при отображении этого компонента.';
+      const resetButtonText = this.props.resetButtonText || 'Попробовать снова';
+      
+      // Современный стилизованный fallback UI, используя компоненты ShadCN
       return (
-        <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-700 my-4">
-          <h3 className="text-lg font-semibold mb-2">Что-то пошло не так</h3>
-          <p className="mb-4">Возникла ошибка при отображении этого компонента.</p>
+        <Alert variant="destructive" className="my-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle className="font-medium">{errorTitle}</AlertTitle>
+          <AlertDescription className="mt-2">
+            {errorDescription}
+            
+            {process.env.NODE_ENV !== 'production' && this.state.error && (
+              <details className="mt-2 text-xs">
+                <summary className="cursor-pointer">Детали ошибки</summary>
+                <pre className="mt-2 whitespace-pre-wrap rounded bg-destructive/10 p-2">
+                  {this.state.error.toString()}
+                  {this.state.errorInfo && this.state.errorInfo.componentStack}
+                </pre>
+              </details>
+            )}
+          </AlertDescription>
           
-          {process.env.NODE_ENV !== 'production' && this.state.error && (
-            <div className="mb-4">
-              <p className="font-mono text-sm bg-red-100 p-2 rounded">
-                {this.state.error.toString()}
-              </p>
-              {this.state.errorInfo && (
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-sm">Стек ошибки</summary>
-                  <pre className="mt-2 text-xs overflow-auto p-2 bg-red-100 rounded max-h-40">
-                    {this.state.errorInfo.componentStack}
-                  </pre>
-                </details>
-              )}
-            </div>
-          )}
-          
-          <button
-            onClick={this.handleReset}
-            className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition-colors"
-          >
-            Попробовать снова
-          </button>
-        </div>
+          <div className="flex justify-end mt-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={this.handleReset}
+              className="text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <RefreshCw className="h-3 w-3" />
+              {resetButtonText}
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
+        </Alert>
       );
     }
 

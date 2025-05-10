@@ -297,12 +297,17 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
-      onError: globalQueryErrorHandler,
     },
     mutations: {
       retry: false,
-      onError: globalQueryErrorHandler,
     },
+  },
+  // Глобальный обработчик ошибок
+  queryCache: {
+    onError: globalQueryErrorHandler,
+  },
+  mutationCache: {
+    onError: globalQueryErrorHandler,
   },
 });
 
