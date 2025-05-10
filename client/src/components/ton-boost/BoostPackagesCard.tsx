@@ -124,11 +124,17 @@ const BoostPackagesCard: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Получаем ID пользователя из URL
-      const userId = getUserIdFromURL();
+      // Получаем ID пользователя из URL или используем фиксированный ID для разработки
+      let userId = getUserIdFromURL();
+      
+      // Для разработки используем фиксированный ID, если не удалось получить из других источников
+      if (!userId && process.env.NODE_ENV !== 'production') {
+        console.log("[DEBUG] BoostPackagesCard - Используем ID для разработки");
+        userId = '1';
+      }
       
       if (!userId) {
-        console.error("No userId found in URL");
+        console.error("[ERROR] BoostPackagesCard - Не удалось получить userId из URL или других источников");
         toast({
           title: "Ошибка",
           description: "Не удалось определить ID пользователя",
@@ -136,6 +142,8 @@ const BoostPackagesCard: React.FC = () => {
         });
         return;
       }
+      
+      console.log("[DEBUG] BoostPackagesCard - Используем userId:", userId);
 
       // Находим выбранный буст-пакет
       const selectedBoost = boostPackages.find(p => p.id === boostId);
