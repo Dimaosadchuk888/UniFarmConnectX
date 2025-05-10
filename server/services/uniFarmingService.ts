@@ -108,4 +108,14 @@ export class UniFarmingService {
     const { NewUniFarmingService } = await import('./newUniFarmingService');
     return NewUniFarmingService.getUserFarmingDeposits(userId);
   }
+
+  /**
+   * Мигрирует существующие депозиты из таблицы users в таблицу uni_farming_deposits
+   * @param forceOverwrite Принудительно перезаписать существующие депозиты
+   * @param dryRun Только симуляция миграции без реального изменения данных
+   * @returns Результат миграции с количеством перенесенных депозитов
+   */
+  static async migrateExistingDeposits(forceOverwrite: boolean = false, dryRun: boolean = false): Promise<{ success: boolean, count: number, message: string }> {
+    return uniFarmingService.migrateExistingDeposits();
+  }
 }
