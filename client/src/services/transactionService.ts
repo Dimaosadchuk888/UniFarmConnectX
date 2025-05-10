@@ -76,6 +76,9 @@ export async function fetchTransactions(
       }
     });
     
+    // Для отладки: вывести полный ответ
+    console.log('[transactionService] Полный ответ API:', JSON.stringify(response));
+    
     // correctApiRequest сам обрабатывает основные ошибки запроса,
     // но мы все равно проверяем структуру данных для более надежной работы
     if (!response.success || !response.data) {
@@ -85,8 +88,14 @@ export async function fetchTransactions(
     
     console.log('[transactionService] Получены транзакции:', response.data);
     
+    // Проверяем структуру ответа
+    if (!response.data || !response.data.transactions) {
+      console.warn('[transactionService] Структура ответа от API отличается от ожидаемой:', response.data);
+      return [];
+    }
+    
     // Преобразуем данные в нужный формат
-    return response.data.map((tx: any) => formatTransaction(tx));
+    return response.data.transactions.map((tx: any) => formatTransaction(tx));
   } catch (error) {
     console.error('[transactionService] Ошибка в fetchTransactions:', error);
     throw error;
@@ -99,18 +108,54 @@ export async function fetchTransactions(
  * @returns Отформатированная транзакция
  */
 function formatTransaction(rawTransaction: any): Transaction {
-  const type = formatTransactionType(rawTransaction.type);
+  // Проверяем наличие полей в сыром объекте
+  if (!rawTransaction || typeof rawTransaction !== 'object') {
+    console.warn('[transactionService] Попытка форматирования некорректного объекта транзакции:', rawTransaction);
+    
+    // Возвращаем объект с дефолтными значениями для безопасности
+    return {
+      id: 0,
+      type: TransactionType.UNKNOWN,
+      title: 'Неизвестная транзакция',
+      amount: 0,
+      tokenType: 'UNI',
+      timestamp: new Date(),
+      status: TransactionStatus.PENDING,
+      source: '',
+      category: 'other',
+      description: 'Данные транзакции недоступны'
+    };
+  }
+  
+  // Определяем тип токена из currency или token_type
+  let tokenType = 'UNI';
+  if (rawTransaction.currency) {
+    tokenType = rawTransaction.currency;
+  } else if (rawTransaction.token_type) {
+    tokenType = rawTransaction.token_type;
+  }
+  
+  // Определяем тип транзакции
+  const type = formatTransactionType(rawTransaction.type || 'unknown');
   const title = getTransactionTitle(type);
-  const category = getTransactionCategory(type);
+  const category = getTransactionCategory(type) || rawTransaction.category || 'other';
+  
+  // Определяем timestamp из created_at или timestamp
+  let timestamp = new Date();
+  if (rawTransaction.created_at) {
+    timestamp = new Date(rawTransaction.created_at);
+  } else if (rawTransaction.timestamp) {
+    timestamp = new Date(rawTransaction.timestamp);
+  }
   
   return {
-    id: rawTransaction.id,
+    id: rawTransaction.id || 0,
     type: type,
-    title: title,
-    amount: parseFloat(rawTransaction.amount) || 0,
-    tokenType: rawTransaction.token_type || 'UNI',
-    timestamp: new Date(rawTransaction.created_at),
-    status: formatTransactionStatus(rawTransaction.status),
+    title: rawTransaction.title || title,
+    amount: typeof rawTransaction.amount === 'string' ? parseFloat(rawTransaction.amount) : (rawTransaction.amount || 0),
+    tokenType: tokenType,
+    timestamp: timestamp,
+    status: formatTransactionStatus(rawTransaction.status || 'pending'),
     source: rawTransaction.source || '',
     category: category,
     description: rawTransaction.description || ''

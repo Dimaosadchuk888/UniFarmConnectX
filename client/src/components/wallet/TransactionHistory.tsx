@@ -40,7 +40,16 @@ const TransactionHistory: React.FC = () => {
     refetch
   } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions', userId, page, limit],
-    queryFn: () => userId ? fetchTransactions(userId, limit, (page - 1) * limit) : Promise.resolve([]),
+    queryFn: async () => {
+      if (!userId) return Promise.resolve([]);
+      
+      try {
+        return await fetchTransactions(userId, limit, (page - 1) * limit);
+      } catch (err) {
+        console.error('[TransactionHistory] Ошибка загрузки транзакций:', err);
+        return [];
+      }
+    },
     enabled: !!userId, // Запрос активен только если есть userId
     staleTime: 30000, // 30 секунд до устаревания данных
   });
