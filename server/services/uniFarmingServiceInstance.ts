@@ -99,6 +99,12 @@ export interface IUniFarmingService {
    * @returns Информационное сообщение о том, что доход начисляется автоматически
    */
   harvestFarmingBalance(userId: number): Promise<HarvestResult>;
+  
+  /**
+   * Мигрирует существующие депозиты из таблицы users в таблицу uni_farming_deposits
+   * @returns Результат миграции с количеством перенесенных депозитов
+   */
+  migrateExistingDeposits(): Promise<{ success: boolean, count: number, message: string }>;
 }
 
 /**
@@ -481,6 +487,96 @@ class UniFarmingService implements IUniFarmingService {
       return {
         success: false,
         message: 'Произошла ошибка при проверке фарминга'
+      };
+    }
+  }
+  
+  /**
+   * Мигрирует существующие депозиты из таблицы users в таблицу uni_farming_deposits
+   * Используется для сохранения данных о депозитах старых пользователей
+   * @returns Результат миграции с количеством перенесенных депозитов
+   */
+  async migrateExistingDeposits(): Promise<{ success: boolean, count: number, message: string }> {
+    try {
+      // Находим всех пользователей с активными депозитами в таблице users
+      const usersWithDeposits = await db
+        .select({
+          id: users.id,
+          uni_deposit_amount: users.uni_deposit_amount,
+          uni_farming_start_timestamp: users.uni_farming_start_timestamp,
+          uni_farming_last_update: users.uni_farming_last_update
+        })
+        .from(users)
+        .where(db.sql`${users.uni_deposit_amount} > 0`);
+      
+      if (usersWithDeposits.length === 0) {
+        return {
+          success: true,
+          count: 0,
+          message: 'Не найдено активных депозитов для миграции'
+        };
+      }
+      
+      let migratedCount = 0;
+      const now = new Date();
+      
+      // Для каждого пользователя с депозитом
+      for (const user of usersWithDeposits) {
+        // Проверяем, есть ли уже запись в таблице uni_farming_deposits
+        const [existingDeposit] = await db
+          .select()
+          .from(uniFarmingDeposits)
+          .where(eq(uniFarmingDeposits.user_id, user.id))
+          .where(eq(uniFarmingDeposits.is_active, true))
+          .limit(1);
+        
+        // Если депозит уже есть, пропускаем пользователя
+        if (existingDeposit) {
+          continue;
+        }
+        
+        // Рассчитываем скорость начисления
+        const depositAmount = user.uni_deposit_amount?.toString() || '0';
+        const ratePerSecond = this.calculateRatePerSecond(depositAmount);
+        
+        // Добавляем запись в таблицу uni_farming_deposits
+        await db.insert(uniFarmingDeposits).values({
+          user_id: user.id,
+          amount: depositAmount,
+          rate_per_second: ratePerSecond,
+          created_at: user.uni_farming_start_timestamp || now,
+          last_updated_at: user.uni_farming_last_update || now,
+          is_active: true
+        });
+        
+        // Добавляем запись в таблицу transactions для отслеживания миграции
+        await db.insert(transactions).values({
+          user_id: user.id,
+          type: 'deposit',
+          currency: 'UNI',
+          amount: depositAmount,
+          status: 'confirmed',
+          source: 'uni_farming',
+          category: 'farming',
+          description: 'UNI Farming депозит (миграция)',
+          created_at: user.uni_farming_start_timestamp || now
+        });
+        
+        migratedCount++;
+        console.log(`[UniFarmingService] Мигрирован депозит для пользователя ${user.id}: ${depositAmount} UNI`);
+      }
+      
+      return {
+        success: true,
+        count: migratedCount,
+        message: `Успешно мигрировано ${migratedCount} депозитов`
+      };
+    } catch (error) {
+      console.error('Error migrating UNI farming deposits:', error);
+      return {
+        success: false,
+        count: 0,
+        message: 'Произошла ошибка при миграции депозитов'
       };
     }
   }
