@@ -295,39 +295,5 @@ export class UniFarmingControllerFallback {
     }
   }
 
-  /**
-   * Выполняет миграцию существующих депозитов из таблицы users в uni_farming_deposits
-   * @route POST /api/uni-farming/migrate-deposits
-   */
-  static async migrateDeposits(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      // Проверяем параметры запроса
-      const forceOverwrite = req.body?.force_overwrite === true;
-      const dryRun = req.body?.dry_run === true;
-      
-      console.log(`[UniFarmingControllerFallback] Запуск миграции депозитов. forceOverwrite=${forceOverwrite}, dryRun=${dryRun}`);
-      
-      // Заворачиваем вызов сервиса миграции в обработчик ошибок с поддержкой fallback
-      const migrateWithFallback = wrapServiceFunction(
-        UniFarmingService.migrateExistingDeposits.bind(UniFarmingService),
-        async (error, forceOverwriteParam, dryRunParam) => {
-          console.log(`[UniFarmingControllerFallback] Ошибка при миграции депозитов: ${error?.message}`);
-          
-          // Возвращаем сообщение об ошибке при отсутствии соединения с БД
-          return {
-            success: false,
-            message: "База данных недоступна, миграция депозитов временно невозможна",
-            count: 0,
-            error: error?.message || "Неизвестная ошибка"
-          };
-        }
-      );
-      
-      const migrationResult = await migrateWithFallback(forceOverwrite, dryRun);
-      sendSuccess(res, migrationResult);
-    } catch (error) {
-      console.error('Ошибка в migrateDeposits:', error);
-      next(error);
-    }
-  }
+  // Метод migrateDeposits удален, так как переключились на использование правильной схемы без миграции
 }
