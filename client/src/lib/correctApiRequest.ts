@@ -85,6 +85,30 @@ export async function correctApiRequest<T = any>(
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
+    
+    // Добавляем заголовки разработчика, если находимся в режиме разработки
+    if (process.env.NODE_ENV !== 'production') {
+      // Получаем userId из localStorage
+      const lastSessionStr = localStorage.getItem('unifarm_last_session');
+      let userId = null;
+      
+      if (lastSessionStr) {
+        try {
+          const lastSession = JSON.parse(lastSessionStr);
+          userId = lastSession.user_id;
+        } catch (e) {
+          console.warn(`[correctApiRequest] [${requestId}] Ошибка при извлечении userId из localStorage:`, e);
+        }
+      }
+      
+      // Для разработки добавляем специальные заголовки
+      // Эти заголовки позволяют правильно идентифицировать пользователя на сервере
+      if (userId) {
+        headers['x-development-mode'] = 'true';
+        headers['x-development-user-id'] = userId.toString();
+        headers['x-telegram-user-id'] = userId.toString();
+      }
+    }
 
     // Безопасная обработка тела запроса
     let body: string | undefined;

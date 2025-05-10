@@ -291,17 +291,31 @@ const BoostPackagesCard: React.FC = () => {
         }
       } else {
         // Для внутреннего баланса - стандартный процесс
-        const response = await correctApiRequest('/api/ton-boosts/purchase', 'POST', {
-            user_id: userId,
-            boost_id: boostId,
-            payment_method: paymentMethod
+        console.log('[DEBUG] Отправка запроса покупки TON Boost через внутренний баланс:', {
+          user_id: userId,
+          boost_id: boostId,
+          payment_method: paymentMethod
         });
         
-        if (!response.success) {
-          throw new Error(response.error || "Failed to purchase boost package");
+        try {
+          const response = await correctApiRequest('/api/ton-boosts/purchase', 'POST', {
+              user_id: userId,
+              boost_id: boostId,
+              payment_method: paymentMethod
+          });
+          
+          console.log('[DEBUG] Ответ сервера на запрос покупки TON Boost:', response);
+          
+          if (!response.success) {
+            console.error('[ERROR] Неуспешный ответ на покупку TON Boost:', response);
+            throw new Error(response.error || response.message || "Failed to purchase boost package");
+          }
+          
+          const data = response;
+        } catch (purchaseError) {
+          console.error('[ERROR] Ошибка при покупке TON Boost:', purchaseError);
+          throw purchaseError;
         }
-        
-        const data = response;
         
         if (data.success) {
           toast({
