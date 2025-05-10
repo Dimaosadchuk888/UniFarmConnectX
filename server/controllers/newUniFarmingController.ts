@@ -7,7 +7,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { newUniFarmingService } from '../services';
+import { newUniFarmingService, validationService } from '../services';
 import { ValidationError, NotFoundError } from '../middleware/errorHandler';
 import { formatZodErrors } from '../utils/validationUtils';
 
@@ -92,7 +92,7 @@ export class NewUniFarmingController {
    */
   static async createDeposit(req: Request, res: Response): Promise<void> {
     try {
-      // Валидация входных данных
+      // Валидация входных данных с помощью Zod для базовой проверки структуры
       const validationResult = createDepositSchema.safeParse(req.body);
       
       if (!validationResult.success) {
@@ -101,8 +101,56 @@ export class NewUniFarmingController {
       
       const { user_id, amount } = validationResult.data;
       
+      // Используем централизованный ValidationService для проверки финансовой операции
+      const farmingOperationValidation = validationService.validateFarmingOperation(
+        user_id,
+        amount,
+        'deposit',
+        req.headers['x-idempotency-key'] as string
+      );
+      
+      if (!farmingOperationValidation.success) {
+        throw new ValidationError(
+          farmingOperationValidation.error || 'Невалидные данные для фарминга',
+          { 
+            'amount': String(amount), 
+            'user_id': String(user_id) 
+          }
+        );
+      }
+      
+      // Проверяем повторную операцию с тем же ключом идемпотентности
+      const idempotencyKey = req.headers['x-idempotency-key'] as string;
+      if (idempotencyKey && validationService.isOperationDuplicate(idempotencyKey)) {
+        console.log(`[NewUniFarmingController] Дублирующая операция депозита с ключом: ${idempotencyKey}`);
+        
+        // Если операция уже была выполнена, возвращаем тот же результат
+        res.json({
+          success: true,
+          data: {
+            message: 'Депозит уже был создан ранее с тем же ключом идемпотентности',
+            deposit_id: null,
+            duplicate: true
+          }
+        });
+        return;
+      }
+      
       // Создаем новый депозит
-      const depositResult = await newUniFarmingService.createUniFarmingDeposit(user_id, amount);
+      const depositResult = await newUniFarmingService.createUniFarmingDeposit(
+        user_id, 
+        validationService.validateAndParseNumber(amount, {
+          min: 100,  // Минимальная сумма депозита 100 UNI
+          max: 10000000,  // Максимальная сумма депозита 10,000,000 UNI
+          currency: 'UNI',
+          precision: 6
+        })
+      );
+      
+      // Если есть ключ идемпотентности, регистрируем завершенную операцию
+      if (idempotencyKey) {
+        validationService.registerCompletedOperation(idempotencyKey, depositResult);
+      }
       
       if (depositResult.success) {
         res.json({
@@ -210,8 +258,39 @@ export class NewUniFarmingController {
       
       const { user_id } = validationResult.data;
       
+      // Генерируем ключ идемпотентности для обновления баланса
+      // Используем временную метку и ID пользователя для уникальности
+      const currentHour = Math.floor(Date.now() / (60 * 60 * 1000));
+      const idempotencyKey = req.headers['x-idempotency-key'] as string || 
+        validationService.generateIdempotencyKey({
+          userId: user_id,
+          operation: 'update-farming-balance',
+          timestamp: currentHour
+        });
+      
+      // Проверяем, было ли уже обновление в этом часу
+      if (validationService.isOperationDuplicate(idempotencyKey)) {
+        console.log(`[NewUniFarmingController] Обновление баланса уже выполнялось в этом часу для пользователя ${user_id}`);
+        
+        res.json({
+          success: true,
+          data: {
+            message: 'Обновление баланса уже было выполнено в текущем часу',
+            duplicate: true,
+            total_deposit_amount: '0.000000',
+            total_rate_per_second: '0.000000',
+            earned_this_update: '0.000000',
+            deposit_count: 0
+          }
+        });
+        return;
+      }
+      
       // Обновляем и получаем баланс фарминга
       const updateResult = await newUniFarmingService.calculateAndUpdateUserFarming(user_id);
+      
+      // Регистрируем выполненную операцию обновления
+      validationService.registerCompletedOperation(idempotencyKey, updateResult);
       
       res.json({
         success: true,
