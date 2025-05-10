@@ -5,6 +5,7 @@ import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { NotFoundError, ValidationError } from '../middleware/errorHandler';
+import { uniFarmingServiceInstance } from '../services/uniFarmingServiceInstance';
 
 /**
  * Контроллер для работы с UNI фармингом
@@ -295,6 +296,38 @@ export class UniFarmingController {
       
       // Если это какая-то другая ошибка
       res.error('Внутренняя ошибка сервера при обработке запроса', null, 500);
+    }
+  }
+  
+  /**
+   * Выполняет миграцию существующих депозитов из таблицы users в таблицу uni_farming_deposits
+   * @route POST /api/uni-farming/migrate-deposits
+   */
+  static async migrateDeposits(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('[UniFarmingController] Запущен процесс миграции депозитов');
+      
+      // Этот эндпоинт доступен только в режиме разработки или с админ-правами
+      const isDevMode = process.env.NODE_ENV === 'development' || req.headers['x-development-mode'] === 'true';
+      const isAdmin = req.headers['x-admin-access'] === 'true';
+      
+      if (!isDevMode && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          error: 'Доступ запрещен. Этот эндпоинт доступен только в режиме разработки или с админ-правами.'
+        });
+      }
+      
+      // Выполняем миграцию депозитов через сервис
+      const result = await uniFarmingServiceInstance.migrateExistingDeposits();
+      
+      res.success({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('Ошибка при миграции депозитов:', error);
+      res.error('Ошибка при миграции депозитов', null, 500);
     }
   }
   
