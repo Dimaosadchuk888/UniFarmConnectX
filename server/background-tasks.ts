@@ -6,6 +6,7 @@ import { TonBoostService } from './services/tonBoostService';
 import { ReferralBonusService } from './services/referralBonusService';
 import { Currency } from './services/transactionService';
 import { and, ne, isNotNull, eq } from 'drizzle-orm';
+import { referralBonusProcessor } from './services/referralBonusProcessor';
 
 /**
  * Запускает фоновые задачи, которые выполняются периодически
@@ -23,6 +24,9 @@ export function startBackgroundTasks(): void {
     console.log('[Background Tasks] Initial system check after server start');
     systemInitialized = true;
   }, 5000);
+  
+  // Инициализация обработчика реферальных начислений
+  initializeReferralProcessor();
 }
 
 // Переменная для отслеживания времени последнего вывода сообщения в лог

@@ -13,6 +13,7 @@ import { IReferralService } from '.';
 import { IUserService } from '.';
 import { TransactionType, Currency, TransactionStatus } from './transactionService';
 import crypto from 'crypto';
+import { referralBonusProcessor } from './referralBonusProcessor';
 
 // Интерфейс для сервиса реферальных бонусов
 export interface IReferralBonusService {
@@ -34,16 +35,26 @@ export interface IReferralBonusService {
 
   /**
    * Начисляет реферальное вознаграждение от фарминга (доход от дохода)
+   * Выполняется синхронно с транзакционной поддержкой
    * @param userId ID пользователя, который получил фарминг-доход
    * @param earnedAmount Сумма заработка от фарминга
    * @param currency Валюта (UNI/TON)
    * @returns Объект с информацией о начисленных бонусах
+   * @deprecated Используйте queueFarmingReferralReward для асинхронной обработки больших объемов
    */
   processFarmingReferralReward(userId: number, earnedAmount: number, currency: Currency): Promise<{
     totalRewardsDistributed: number
   }>;
 
-
+  /**
+   * Помещает реферальное вознаграждение в очередь на асинхронную обработку
+   * Оптимизировано для больших реферальных сетей
+   * @param userId ID пользователя, который получил фарминг-доход
+   * @param earnedAmount Сумма заработка от фарминга
+   * @param currency Валюта (UNI/TON)
+   * @returns Идентификатор пакета для отслеживания
+   */
+  queueFarmingReferralReward(userId: number, earnedAmount: number, currency: Currency): Promise<string>;
   
   /**
    * Обрабатывает бонус за регистрацию по реферальному коду
@@ -57,7 +68,8 @@ export interface IReferralBonusService {
 /**
  * Сервис для обработки реферальных вознаграждений
  * Поддерживает начисления:
- * 1. От фарминга (доход от дохода - processFarmingReferralReward)
+ * 1. От фарминга (доход от дохода) - синхронно через processFarmingReferralReward
+ * 2. От фарминга (доход от дохода) - асинхронно через queueFarmingReferralReward для больших объемов
  */
 export class ReferralBonusService implements IReferralBonusService {
   // Минимальный порог для начисления реферального вознаграждения отключен (в маркетинге важна каждая транзакция)
@@ -465,6 +477,38 @@ export class ReferralBonusService implements IReferralBonusService {
     } catch (error) {
       console.error('[ReferralBonusService] Error processing registration bonus:', error);
       return false;
+    }
+  }
+
+  /**
+   * Помещает реферальное вознаграждение в очередь на асинхронную обработку
+   * Оптимизировано для больших реферальных сетей
+   * @param userId ID пользователя, который получил фарминг-доход
+   * @param earnedAmount Сумма заработка от фарминга
+   * @param currency Валюта (UNI/TON)
+   * @returns Идентификатор пакета для отслеживания
+   */
+  async queueFarmingReferralReward(userId: number, earnedAmount: number, currency: Currency): Promise<string> {
+    try {
+      // Валидация входных параметров
+      if (userId <= 0) {
+        throw new Error('Invalid user ID');
+      }
+      
+      if (earnedAmount <= 0) {
+        throw new Error('Earned amount must be positive');
+      }
+      
+      console.log(`[ReferralBonusService] Queueing farming reward for user ${userId}, amount: ${earnedAmount} ${currency}`);
+      
+      // Делегируем обработку асинхронному процессору
+      const batchId = await referralBonusProcessor.queueReferralReward(userId, earnedAmount, currency);
+      
+      console.log(`[ReferralBonusService] Successfully queued reward, batch ID: ${batchId}`);
+      return batchId;
+    } catch (error) {
+      console.error('[ReferralBonusService] Error queueing farming referral reward:', error);
+      throw error;
     }
   }
 }

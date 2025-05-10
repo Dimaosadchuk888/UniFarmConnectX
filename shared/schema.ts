@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric, json, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -129,9 +129,9 @@ export type Transaction = typeof transactions.$inferSelect;
 // Таблица referrals по требованиям задачи
 export const referrals = pgTable("referrals", {
   id: serial("id").primaryKey(),
-  user_id: integer("user_id").references(() => users.id),
-  inviter_id: integer("inviter_id").references(() => users.id),
-  level: integer("level"), // Уровень (1–20)
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  inviter_id: integer("inviter_id").references(() => users.id).notNull(),
+  level: integer("level").notNull(), // Уровень (1–20)
   reward_uni: numeric("reward_uni", { precision: 18, scale: 6 }),
   ref_path: json("ref_path").array(), // Массив ID пригласителей в цепочке [inviter_id, inviter_inviter_id, ...]
   created_at: timestamp("created_at").defaultNow()
@@ -269,7 +269,7 @@ export const partition_logs = pgTable("partition_logs", {
 export const reward_distribution_logs = pgTable("reward_distribution_logs", {
   id: serial("id").primaryKey(),
   source_user_id: integer("source_user_id").notNull(), // ID пользователя, от которого идёт распределение
-  batch_id: text("batch_id").notNull(), // Уникальный ID пакета распределения (UUID)
+  batch_id: text("batch_id").notNull().unique(), // Уникальный ID пакета распределения (UUID)
   currency: text("currency").notNull(), // UNI / TON
   earned_amount: numeric("earned_amount", { precision: 18, scale: 6 }).notNull(), // Исходная сумма заработка
   total_distributed: numeric("total_distributed", { precision: 18, scale: 6 }).default("0"), // Общая сумма распределенных вознаграждений
