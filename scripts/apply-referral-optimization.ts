@@ -10,87 +10,29 @@
  */
 
 import { db } from '../server/db';
-import { referralBonusProcessor } from '../server/services/referralBonusProcessor';
 import { sql } from 'drizzle-orm';
+import { referralBonusProcessor } from '../server/services/referralBonusProcessor';
+import { reward_distribution_logs } from '../shared/schema';
 
 /**
- * Выполняет прямые SQL-запросы для создания индексов
+ * Применяет схему таблицы reward_distribution_logs
  */
-async function createIndexes() {
-  console.log('Creating database indexes for referral optimization...');
-  
+async function applySchema(): Promise<void> {
   try {
-    // Создаем индекс для поиска по реферальным связям пользователя (если его нет)
-    await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS idx_referrals_user_id ON referrals(user_id);
-    `);
+    console.log('Applying database schema for reward_distribution_logs...');
     
-    // Создаем индекс для поиска всех приглашенных пользователей
-    await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS idx_referrals_inviter_id ON referrals(inviter_id);
-    `);
+    // Проверяем, существует ли уже таблица
+    const tableExists = await checkTableExists('reward_distribution_logs');
     
-    // Создаем индекс для поиска по уровням
-    await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS idx_referrals_level ON referrals(level);
-    `);
-    
-    // Создаем составной индекс для уникальности и ускорения поиска связей
-    await db.execute(sql`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_referrals_user_inviter ON referrals(user_id, inviter_id);
-    `);
-    
-    // Индексы для reward_distribution_logs
-    await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS idx_reward_logs_source_user ON reward_distribution_logs(source_user_id);
-    `);
-    
-    await db.execute(sql`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_reward_logs_batch_id ON reward_distribution_logs(batch_id);
-    `);
-    
-    await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS idx_reward_logs_status ON reward_distribution_logs(status);
-    `);
-    
-    await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS idx_reward_logs_processed_at ON reward_distribution_logs(processed_at);
-    `);
-    
-    console.log('Indexes created successfully.');
-  } catch (error) {
-    console.error('Error creating indexes:', error);
-  }
-}
-
-/**
- * Создает таблицу reward_distribution_logs если она не существует
- */
-async function createRewardDistributionLogsTable() {
-  console.log('Ensuring reward_distribution_logs table exists...');
-  
-  try {
-    // Проверяем существование таблицы
-    const tableExists = await db.execute(sql`
-      SELECT EXISTS (
-        SELECT FROM pg_tables
-        WHERE schemaname = 'public'
-        AND tablename = 'reward_distribution_logs'
-      );
-    `);
-    
-    const exists = tableExists.rows && tableExists.rows[0] && tableExists.rows[0].exists === true;
-    
-    if (exists) {
-      console.log('Table reward_distribution_logs already exists.');
+    if (tableExists) {
+      console.log('Table reward_distribution_logs already exists. Skipping creation.');
     } else {
-      console.log('Creating reward_distribution_logs table...');
-      
+      // Создаем таблицу reward_distribution_logs
       await db.execute(sql`
-        CREATE TABLE reward_distribution_logs (
+        CREATE TABLE IF NOT EXISTS reward_distribution_logs (
           id SERIAL PRIMARY KEY,
           source_user_id INTEGER NOT NULL,
-          batch_id TEXT NOT NULL,
+          batch_id TEXT NOT NULL UNIQUE,
           currency TEXT NOT NULL,
           earned_amount NUMERIC(18, 6) NOT NULL,
           total_distributed NUMERIC(18, 6) DEFAULT '0',
@@ -98,84 +40,148 @@ async function createRewardDistributionLogsTable() {
           inviter_count INTEGER DEFAULT 0,
           status TEXT DEFAULT 'pending',
           error_message TEXT,
-          processed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
           completed_at TIMESTAMP
-        );
+        )
       `);
       
       console.log('Table reward_distribution_logs created successfully.');
+      
+      // Создаем индексы для оптимизации
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_reward_logs_source_user ON reward_distribution_logs (source_user_id);
+        CREATE INDEX IF NOT EXISTS idx_reward_logs_status ON reward_distribution_logs (status);
+        CREATE INDEX IF NOT EXISTS idx_reward_logs_processed_at ON reward_distribution_logs (processed_at);
+      `);
+      
+      console.log('Indexes for reward_distribution_logs created successfully.');
     }
   } catch (error) {
-    console.error('Error creating reward_distribution_logs table:', error);
+    console.error('Error applying schema:', error);
+    throw error;
+  }
+}
+
+/**
+ * Проверяет, существует ли таблица
+ */
+async function checkTableExists(tableName: string): Promise<boolean> {
+  try {
+    const result = await db.execute(sql`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_name = ${tableName}
+      );
+    `);
+    
+    return result.rows[0].exists;
+  } catch (error) {
+    console.error(`Error checking if table ${tableName} exists:`, error);
+    return false;
+  }
+}
+
+/**
+ * Выполняет прямые SQL-запросы для создания индексов на таблице referrals
+ */
+async function createReferralIndexes(): Promise<void> {
+  try {
+    console.log('Creating referral optimization indexes...');
+    
+    // Индекс для ускорения поиска пригласителей
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_referrals_user_id ON referrals(user_id);
+    `);
+    
+    // Индекс для ускорения поиска цепочек рефералов
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_referrals_inviter_id ON referrals(inviter_id);
+    `);
+    
+    // Индекс для фильтрации активных рефералов
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS idx_referrals_level ON referrals(level);
+    `);
+    
+    console.log('Referral optimization indexes created successfully.');
+  } catch (error) {
+    console.error('Error creating referral indexes:', error);
+    throw error;
   }
 }
 
 /**
  * Анализирует таблицы после создания индексов
  */
-async function analyzeAllTables() {
-  console.log('Analyzing tables...');
-  
+async function analyzeAllTables(): Promise<void> {
   try {
-    await db.execute(sql`ANALYZE referrals;`);
-    await db.execute(sql`ANALYZE reward_distribution_logs;`);
-    await db.execute(sql`ANALYZE users;`);
-    await db.execute(sql`ANALYZE transactions;`);
+    console.log('Analyzing tables...');
     
-    console.log('Tables analyzed successfully.');
+    await db.execute(sql`ANALYZE referrals;`);
+    
+    if (await checkTableExists('reward_distribution_logs')) {
+      await db.execute(sql`ANALYZE reward_distribution_logs;`);
+    }
+    
+    console.log('Table analysis completed.');
   } catch (error) {
     console.error('Error analyzing tables:', error);
+    // Продолжаем выполнение даже при ошибке анализа
   }
 }
 
 /**
  * Запускает восстановление прерванных операций
  */
-async function recoverFailedOperations() {
-  console.log('Recovering any failed operations...');
-  
+async function recoverFailedOperations(): Promise<void> {
   try {
+    console.log('Recovering failed operations from logs...');
+    
+    if (!await checkTableExists('reward_distribution_logs')) {
+      console.log('Table reward_distribution_logs does not exist yet. Skipping recovery.');
+      return;
+    }
+    
+    // Используем процессор для восстановления операций
     const recoveredCount = await referralBonusProcessor.recoverFailedProcessing();
     
     if (recoveredCount > 0) {
-      console.log(`Queued ${recoveredCount} failed operations for recovery.`);
+      console.log(`Successfully recovered ${recoveredCount} failed operations.`);
     } else {
       console.log('No failed operations to recover.');
     }
   } catch (error) {
     console.error('Error recovering failed operations:', error);
+    throw error;
   }
 }
 
 /**
  * Главная функция скрипта
  */
-async function main() {
-  console.log('Starting referral optimization application...');
-  
+async function main(): Promise<void> {
   try {
-    // Шаг 1: Создаем таблицу для журналирования
-    await createRewardDistributionLogsTable();
+    console.log('Starting referral optimization application...');
     
-    // Шаг 2: Создаем индексы для оптимизации
-    await createIndexes();
+    // Применяем схему для reward_distribution_logs
+    await applySchema();
     
-    // Шаг 3: Анализируем таблицы
+    // Создаем индексы для оптимизации
+    await createReferralIndexes();
+    
+    // Анализируем таблицы для обновления статистики
     await analyzeAllTables();
     
-    // Шаг 4: Восстанавливаем прерванные операции
+    // Восстанавливаем прерванные операции
     await recoverFailedOperations();
     
-    console.log('Referral optimization applied successfully!');
+    console.log('Referral optimization application completed successfully.');
     process.exit(0);
   } catch (error) {
-    console.error('Error applying referral optimization:', error);
+    console.error('Error in main function:', error);
     process.exit(1);
   }
 }
 
-// Запускаем скрипт
-main().catch(error => {
-  console.error('Unhandled error in main function:', error);
-  process.exit(1);
-});
+// Запускаем главную функцию
+main();

@@ -29,6 +29,33 @@ export function startBackgroundTasks(): void {
   initializeReferralProcessor();
 }
 
+/**
+ * Инициализирует процессор реферальных бонусов
+ * - Создает необходимые индексы
+ * - Восстанавливает незавершенные операции после перезапуска
+ */
+async function initializeReferralProcessor(): Promise<void> {
+  try {
+    console.log('[Background Tasks] Initializing referral bonus processor');
+    
+    // Создаем необходимые индексы для оптимизации работы
+    await referralBonusProcessor.ensureIndexes();
+    
+    // Восстанавливаем незавершенные операции после перезапуска
+    const recoveredCount = await referralBonusProcessor.recoverFailedProcessing();
+    
+    if (recoveredCount > 0) {
+      console.log(`[Background Tasks] Recovered ${recoveredCount} referral reward operations`);
+    } else {
+      console.log('[Background Tasks] No failed referral operations to recover');
+    }
+    
+    console.log('[Background Tasks] Referral bonus processor initialized successfully');
+  } catch (error) {
+    console.error('[Background Tasks] Error initializing referral processor:', error);
+  }
+}
+
 // Переменная для отслеживания времени последнего вывода сообщения в лог
 let lastLogTime = 0;
 
