@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import UniFarmingCard from '../components/farming/UniFarmingCard';
-import BoostPackagesCard from '../components/farming/BoostPackagesCard';
-import ActiveBoostsCard from '../components/farming/ActiveBoostsCard';
+import UniFarmingCardWithErrorBoundary from '../components/farming/UniFarmingCardWithErrorBoundary';
+import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPackagesCardWithErrorBoundary';
+import ActiveBoostsCardWithErrorBoundary from '../components/farming/ActiveBoostsCardWithErrorBoundary';
 import FarmingHistory from '../components/farming/FarmingHistory';
 import TonBoostPackagesCard from '../components/ton-boost/BoostPackagesCard';
 import TonFarmingStatusCard from '../components/ton-boost/TonFarmingStatusCard';
@@ -34,19 +34,13 @@ const Farming: React.FC = () => {
         
         <TabsContent value="uni">
           {/* Основной UNI пакет */}
-          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить фарминг UNI</div>}>
-            <UniFarmingCard userData={userData} />
-          </ErrorBoundary>
+          <UniFarmingCardWithErrorBoundary userData={userData} />
           
           {/* UNI Boost Пакеты */}
-          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить бусты UNI</div>}>
-            <BoostPackagesCard userData={userData} />
-          </ErrorBoundary>
+          <BoostPackagesCardWithErrorBoundary userData={userData} />
           
           {/* Активные Boost-пакеты */}
-          <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить активные бусты</div>}>
-            <ActiveBoostsCard userId={userId} />
-          </ErrorBoundary>
+          <ActiveBoostsCardWithErrorBoundary userId={userId} />
         </TabsContent>
         
         <TabsContent value="ton">
