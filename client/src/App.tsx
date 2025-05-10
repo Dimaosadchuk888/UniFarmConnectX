@@ -35,6 +35,7 @@ import Missions from "@/pages/Missions";
 import MissionsNavMenu from "@/pages/MissionsNavMenu"; // Специальная версия для меню
 // Используем только основной компонент миссий
 import Friends from "@/pages/Friends"; // Компонент страницы друзей и реферальной системы
+import FriendsWithErrorBoundary from "@/components/friends/FriendsWithErrorBoundary"; // ErrorBoundary для страницы друзей
 import Wallet from "@/pages/Wallet";
 import AdminPage from "./pages/AdminPage";
 import TelegramSetupGuide from "./pages/TelegramSetupGuide";
@@ -333,8 +334,8 @@ function App() {
           </div>
         );
       case "friends":
-        // Используем основной компонент Friends
-        return <Friends />;
+        // Используем компонент Friends с ErrorBoundary
+        return <FriendsWithErrorBoundary />;
       case "wallet":
         return <Wallet />;
       default:
