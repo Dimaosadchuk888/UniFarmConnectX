@@ -465,8 +465,15 @@ class UserService {
       console.log(`[UserService] Запрос пользователя по guest_id: ${guestId}`);
       
       // Отправляем запрос к API для получения пользователя по guest_id, используя correctApiRequest
+      // ВАЖНО: URL на сервере ожидает guest_id, а не guestId в параметре пути
       console.log('[UserService] Используем correctApiRequest для запроса по guest_id');
-      const response = await correctApiRequest(`/api/users/guest/${guestId}`, 'GET');
+      const response = await correctApiRequest(`/api/users/guest/${guestId}?user_id=1`, 'GET', null, {
+        additionalLogging: true,
+        errorHandling: {
+          report404: true, // Логировать 404 ошибки
+          detailed: true   // Подробное логирование ошибок
+        }
+      });
       
       if (response.success && response.data) {
         console.log('[UserService] Успешно получен пользователь по guest_id:', response.data);

@@ -6,15 +6,38 @@ import sessionRestoreService from '../services/sessionRestoreService';
  * @param endpoint URL эндпоинта API
  * @param method HTTP метод запроса
  * @param data Данные для отправки (для POST, PUT)
+ * @param options Дополнительные опции запроса:
+ *   - additionalLogging: включает дополнительное логирование
+ *   - errorHandling: опции обработки ошибок
+ *     - report404: включает специальный вывод для 404 ошибок
+ *     - detailed: включает детальное логирование
+ *     - traceId: позволяет задать идентификатор запроса для отслеживания
  * @returns Результат API запроса
  */
+interface ApiErrorHandlingOptions {
+  report404?: boolean;
+  detailed?: boolean;
+  traceId?: string;
+}
+
+interface ApiRequestOptions {
+  additionalLogging?: boolean;
+  errorHandling?: ApiErrorHandlingOptions;
+}
+
 export async function correctApiRequest<T = any>(
   endpoint: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
-  data?: any
+  data?: any,
+  options?: ApiRequestOptions
 ): Promise<T> {
   let fullUrl = '';
-  let requestId = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+  // Используем traceId из опций, если он предоставлен
+  let requestId = options?.errorHandling?.traceId || 
+                  (Date.now().toString(36) + Math.random().toString(36).substring(2, 7));
+  
+  // Включено ли подробное логирование
+  const detailedLogging = options?.additionalLogging || options?.errorHandling?.detailed || false;
   
   try {
     // Проверка корректности входных данных
@@ -251,6 +274,12 @@ export async function correctApiRequest<T = any>(
       // Логируем статус
       console.log(`[correctApiRequest] [${requestId}] Статус: ${response.status} ${response.statusText}`);
       
+      // Дополнительное логирование для 404 ошибок если запрошено
+      if (response.status === 404 && options?.errorHandling?.report404) {
+        console.warn(`[correctApiRequest] [${requestId}] 404 Ошибка для URL: ${fullUrl}`);
+        console.warn(`[correctApiRequest] [${requestId}] Метод: ${method}, headers:`, headers);
+      }
+      
       // Обработка HTTP ошибок
       if (!response.ok) {
         console.warn(`[correctApiRequest] [${requestId}] HTTP ошибка: ${response.status} ${response.statusText}`);
@@ -326,6 +355,17 @@ export async function correctApiRequest<T = any>(
           }
           
           console.warn(`[correctApiRequest] [${requestId}] Ответ не в формате JSON (content-type: ${contentType || 'не указан'})`);
+          
+          // Если включено подробное логирование, выводим часть содержимого
+          if (detailedLogging) {
+            const previewText = text.length > 200 ? text.substring(0, 200) + '...' : text;
+            console.warn(`[correctApiRequest] [${requestId}] Начало содержимого:`, previewText);
+            
+            // Проверяем, похоже ли содержимое на HTML
+            if (text.includes('<!DOCTYPE html>') || text.includes('<html>')) {
+              console.warn(`[correctApiRequest] [${requestId}] Получен HTML вместо JSON. URL: ${fullUrl}`);
+            }
+          }
           
           // Если не удалось распарсить JSON, возвращаем текст в объекте
           return { 

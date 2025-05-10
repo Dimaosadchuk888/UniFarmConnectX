@@ -66,7 +66,15 @@ export async function fetchTransactions(
     // Используем улучшенный метод correctApiRequest с обработкой ошибок
     console.log('[transactionService] Запрос транзакций через correctApiRequest');
     
-    const response = await correctApiRequest(`/api/wallet/transactions?user_id=${userId}&limit=${limit}&offset=${offset}`, 'GET');
+    // Добавляем поддержку как старого, так и нового пути API
+    const response = await correctApiRequest(`/api/transactions?user_id=${userId}&limit=${limit}&offset=${offset}`, 'GET', null, {
+      additionalLogging: true,
+      errorHandling: {
+        report404: true,
+        detailed: true,
+        traceId: `transactions-${Date.now()}`
+      }
+    });
     
     // correctApiRequest сам обрабатывает основные ошибки запроса,
     // но мы все равно проверяем структуру данных для более надежной работы
