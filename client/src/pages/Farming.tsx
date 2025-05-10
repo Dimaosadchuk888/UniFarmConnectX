@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UniFarmingCardWithErrorBoundary from '../components/farming/UniFarmingCardWithErrorBoundary';
 import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPackagesCardWithErrorBoundary';
 import ActiveBoostsCardWithErrorBoundary from '../components/farming/ActiveBoostsCardWithErrorBoundary';
-import FarmingHistory from '../components/farming/FarmingHistory';
+import FarmingHistoryWithErrorBoundary from '../components/farming/FarmingHistoryWithErrorBoundary';
 import TonBoostPackagesCard from '../components/ton-boost/BoostPackagesCard';
 import TonFarmingStatusCard from '../components/ton-boost/TonFarmingStatusCard';
 import ActiveTonBoostsCard from '../components/ton-boost/ActiveTonBoostsCard';
@@ -64,9 +64,7 @@ const Farming: React.FC = () => {
       </Tabs>
       
       {/* История фарминга (общая для обоих типов) */}
-      <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить историю фарминга</div>}>
-        <FarmingHistory userId={userId} />
-      </ErrorBoundary>
+      <FarmingHistoryWithErrorBoundary userId={userId} />
     </div>
   );
 };
