@@ -1,182 +1,172 @@
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+type ConnectionStatus = 'connected' | 'disconnected' | 'connecting';
 
 interface WebSocketContextType {
-  isConnected: boolean;
-  lastMessageTimestamp: number | null;
+  connectionStatus: ConnectionStatus;
   sendMessage: (message: any) => void;
-  reconnect: () => void;
+  lastMessage: any;
 }
 
-// Создаем контекст с начальными значениями
 const WebSocketContext = createContext<WebSocketContextType>({
-  isConnected: false,
-  lastMessageTimestamp: null,
+  connectionStatus: 'disconnected',
   sendMessage: () => {},
-  reconnect: () => {}
+  lastMessage: null,
 });
 
-// Хук для использования контекста WebSocket
-export const useWebSocket = () => useContext(WebSocketContext);
-
 interface WebSocketProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-/**
- * Провайдер контекста WebSocket
- * Предоставляет информацию о состоянии WebSocket соединения и методы для работы с ним
- */
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [lastMessageTimestamp, setLastMessageTimestamp] = useState<number | null>(null);
-  
-  // Ссылка на WebSocket соединение
-  const webSocketRef = useRef<WebSocket | null>(null);
-  
-  // Таймер для автоматического переподключения
-  const reconnectTimerRef = useRef<number | null>(null);
-  
-  // Функция инициализации WebSocket соединения
-  const initializeWebSocket = () => {
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+  const [lastMessage, setLastMessage] = useState<any>(null);
+  const [reconnectTimeout, setReconnectTimeout] = useState<number | null>(null);
+
+  // Функция для создания WebSocket соединения
+  const createWebSocket = () => {
     try {
-      // Закрываем предыдущее соединение, если оно существует
-      if (webSocketRef.current && webSocketRef.current.readyState === WebSocket.OPEN) {
-        webSocketRef.current.close();
-      }
-      
-      // Определяем URL для WebSocket
+      // Получаем корректный URL для WebSocket
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
       
-      console.log('[WebSocketContext] Connecting to WebSocket server:', wsUrl);
+      console.log('[WebSocket] Connecting to:', wsUrl);
       
-      // Создаем новое соединение
-      const socket = new WebSocket(wsUrl);
-      webSocketRef.current = socket;
-      
-      // Обработчик открытия соединения
-      socket.onopen = () => {
-        console.log('[WebSocketContext] WebSocket connection established');
-        setIsConnected(true);
+      const newSocket = new WebSocket(wsUrl);
+      setSocket(newSocket);
+      setConnectionStatus('connecting');
+
+      // Устанавливаем обработчики событий
+      newSocket.onopen = (event) => {
+        console.log('[WebSocket] Connection established');
+        setConnectionStatus('connected');
         
-        // Отправляем ping, чтобы проверить соединение
-        sendPing();
-        
-        // Очищаем таймер переподключения, если он был установлен
-        if (reconnectTimerRef.current !== null) {
-          window.clearTimeout(reconnectTimerRef.current);
-          reconnectTimerRef.current = null;
+        // Отправляем пинг сразу после подключения
+        try {
+          newSocket.send(JSON.stringify({ 
+            type: 'ping', 
+            timestamp: new Date().toISOString() 
+          }));
+        } catch (error) {
+          console.error('[WebSocket] Error sending initial ping:', error);
         }
       };
-      
-      // Обработчик получения сообщения
-      socket.onmessage = (event) => {
+
+      newSocket.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          console.log('[WebSocketContext] Message received:', data);
-          
-          // Обновляем временную метку последнего сообщения
-          setLastMessageTimestamp(Date.now());
-          
-          // Если получили pong, отправляем следующий ping через 15 секунд
-          if (data.type === 'pong') {
-            setTimeout(sendPing, 15000);
+          const message = JSON.parse(event.data);
+          console.log('[WebSocket] Message received:', message);
+          setLastMessage(message);
+
+          // Автоматически отвечаем на пинг
+          if (message.type === 'ping') {
+            try {
+              newSocket.send(JSON.stringify({ 
+                type: 'pong', 
+                timestamp: message.timestamp 
+              }));
+            } catch (error) {
+              console.error('[WebSocket] Error sending pong:', error);
+            }
           }
         } catch (error) {
-          console.error('[WebSocketContext] Error parsing WebSocket message:', error);
+          console.error('[WebSocket] Error parsing message:', error);
         }
       };
-      
-      // Обработчик ошибки
-      socket.onerror = (error) => {
-        console.error('[WebSocketContext] WebSocket error:', error);
-        setIsConnected(false);
-      };
-      
-      // Обработчик закрытия соединения
-      socket.onclose = (event) => {
-        console.log('[WebSocketContext] WebSocket connection closed:', event.code, event.reason);
-        setIsConnected(false);
+
+      newSocket.onclose = (event) => {
+        console.log('[WebSocket] Connection closed:', event.code, event.reason);
+        setConnectionStatus('disconnected');
         
-        // Устанавливаем таймер для переподключения через 3 секунды
-        reconnectTimerRef.current = window.setTimeout(() => {
-          console.log('[WebSocketContext] Attempting to reconnect...');
-          initializeWebSocket();
-        }, 3000);
+        // Запускаем переподключение с небольшой задержкой
+        const randomDelay = 3000 + Math.random() * 1000;
+        console.log(`[WebSocket] Reconnecting in ${Math.round(randomDelay)}ms...`);
+        
+        const timeout = window.setTimeout(() => {
+          createWebSocket();
+        }, randomDelay);
+        
+        setReconnectTimeout(timeout);
       };
+
+      newSocket.onerror = (event) => {
+        console.error('[WebSocket] Error occurred');
+        // Не меняем статус здесь, т.к. onclose сработает автоматически
+      };
+
     } catch (error) {
-      console.error('[WebSocketContext] Error initializing WebSocket:', error);
-      setIsConnected(false);
+      console.error('[WebSocket] Error creating connection:', error);
+      setConnectionStatus('disconnected');
       
-      // Устанавливаем таймер для переподключения через 5 секунд
-      reconnectTimerRef.current = window.setTimeout(() => {
-        console.log('[WebSocketContext] Attempting to reconnect after error...');
-        initializeWebSocket();
+      // Пытаемся переподключиться при ошибке создания
+      const timeout = window.setTimeout(() => {
+        createWebSocket();
       }, 5000);
-    }
-  };
-  
-  // Функция для отправки ping-сообщения
-  const sendPing = () => {
-    if (webSocketRef.current && webSocketRef.current.readyState === WebSocket.OPEN) {
-      const pingMessage = {
-        type: 'ping',
-        timestamp: new Date().toISOString()
-      };
       
-      webSocketRef.current.send(JSON.stringify(pingMessage));
-      console.log('[WebSocketContext] Ping sent');
+      setReconnectTimeout(timeout);
     }
   };
-  
-  // Функция для отправки сообщения через WebSocket
+
+  // Функция для отправки сообщений
   const sendMessage = (message: any) => {
-    if (webSocketRef.current && webSocketRef.current.readyState === WebSocket.OPEN) {
-      webSocketRef.current.send(JSON.stringify(message));
-      console.log('[WebSocketContext] Message sent:', message);
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      try {
+        socket.send(typeof message === 'string' ? message : JSON.stringify(message));
+      } catch (error) {
+        console.error('[WebSocket] Error sending message:', error);
+      }
     } else {
-      console.warn('[WebSocketContext] Cannot send message, WebSocket is not open');
+      console.warn('[WebSocket] Cannot send message: connection not open');
     }
   };
-  
-  // Функция для ручного переподключения
-  const reconnect = () => {
-    console.log('[WebSocketContext] Manual reconnection triggered');
-    initializeWebSocket();
-  };
-  
-  // Инициализируем WebSocket соединение при монтировании компонента
+
+  // Устанавливаем соединение при монтировании компонента
   useEffect(() => {
-    console.log('[WebSocketContext] Initializing WebSocket provider');
-    initializeWebSocket();
-    
-    // Очистка при размонтировании
+    createWebSocket();
+
+    // Настраиваем периодическую отправку пингов
+    const pingInterval = setInterval(() => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        try {
+          socket.send(JSON.stringify({ 
+            type: 'ping', 
+            timestamp: new Date().toISOString() 
+          }));
+        } catch (error) {
+          console.error('[WebSocket] Error sending ping:', error);
+        }
+      }
+    }, 30000); // Пинг каждые 30 секунд
+
     return () => {
-      console.log('[WebSocketContext] Cleaning up WebSocket');
-      
-      if (webSocketRef.current) {
-        webSocketRef.current.close();
+      // Очищаем ресурсы при размонтировании
+      if (socket) {
+        socket.close();
       }
       
-      if (reconnectTimerRef.current !== null) {
-        window.clearTimeout(reconnectTimerRef.current);
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
       }
+      
+      clearInterval(pingInterval);
     };
-  }, []);
-  
-  // Значение контекста
-  const value: WebSocketContextType = {
-    isConnected,
-    lastMessageTimestamp,
-    sendMessage,
-    reconnect
-  };
-  
+  }, []); // Пустой массив зависимостей для выполнения только при монтировании
+
   return (
-    <WebSocketContext.Provider value={value}>
+    <WebSocketContext.Provider
+      value={{
+        connectionStatus,
+        sendMessage,
+        lastMessage,
+      }}
+    >
       {children}
     </WebSocketContext.Provider>
   );
 };
 
-export default WebSocketProvider;
+// Хук для использования WebSocket контекста
+export const useWebSocket = () => useContext(WebSocketContext);
+
+export default WebSocketContext;

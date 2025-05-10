@@ -1,5 +1,5 @@
 import React from 'react';
-import QueryErrorBoundary from '@/components/common/QueryErrorBoundary';
+import { ErrorBoundary } from 'react-error-boundary';
 import MissionStats from './MissionStats';
 
 /**
@@ -8,23 +8,16 @@ import MissionStats from './MissionStats';
  */
 const MissionStatsWithErrorBoundary: React.FC = () => {
   return (
-    <QueryErrorBoundary
-      fallbackRender={({ error }) => (
-        <div className="p-4 bg-red-950/30 border border-red-800 rounded-lg my-4">
-          <h3 className="text-lg font-semibold text-red-200 mb-2">
-            Не удалось загрузить статистику миссий
-          </h3>
-          <p className="text-sm text-red-300">
-            Произошла ошибка при получении данных. Пожалуйста, повторите попытку позже.
-          </p>
-          <p className="text-xs text-red-400 mt-2">
-            Детали ошибки: {error.message || 'Неизвестная ошибка'}
-          </p>
+    <ErrorBoundary
+      fallbackRender={({ error }: { error: Error }) => (
+        <div className="p-4 border border-red-300 rounded-md bg-red-50 text-red-500">
+          <p className="font-medium">Ошибка при загрузке статистики миссий</p>
+          <p className="text-sm">{error?.message || 'Неизвестная ошибка'}</p>
         </div>
       )}
     >
       <MissionStats />
-    </QueryErrorBoundary>
+    </ErrorBoundary>
   );
 };
 

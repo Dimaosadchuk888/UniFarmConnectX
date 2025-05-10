@@ -1,132 +1,108 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useUser } from '@/contexts/userContext';
+import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { correctApiRequest } from '@/lib/correctApiRequest';
-import { CheckCircle, Award, Clock } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Тип для статистики миссий
-interface MissionStats {
-  totalMissions: number;
-  completedMissions: number;
-  availableMissions: number;
-  totalEarned: number;
+interface MissionStatsData {
+  completed: number;
+  total: number;
+  userPoints: number;
+  totalAvailable: number;
 }
 
 /**
- * Компонент для отображения статистики выполнения миссий пользователя
+ * Компонент для отображения статистики по миссиям
+ * Показывает прогресс выполнения миссий и количество заработанных баллов
  */
 const MissionStats: React.FC = () => {
-  const { userId } = useUser();
-  
-  // Запрос статистики миссий пользователя
-  const { data, isLoading, error } = useQuery<MissionStats>({
-    queryKey: ['/api/missions/stats', userId],
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['/api/missions/stats'],
     queryFn: async () => {
-      try {
-        if (!userId) {
-          throw new Error('ID пользователя не определен');
-        }
-        
-        const result = await correctApiRequest(`/api/missions/stats?user_id=${userId}`, 'GET');
-        
-        if (result.success && result.data) {
-          return result.data;
-        }
-        
-        throw new Error('Некорректный формат данных');
-      } catch (err) {
-        console.error('Ошибка при получении статистики миссий:', err);
-        
-        // Возвращаем шаблонные данные в случае ошибки
-        return {
-          totalMissions: 0,
-          completedMissions: 0,
-          availableMissions: 0,
-          totalEarned: 0
-        };
-      }
-    },
-    enabled: !!userId, // Запрос выполняется только если userId определен
-    refetchOnWindowFocus: false,
-    staleTime: 300000 // 5 минут
-  });
-  
-  // Процент выполненных миссий
-  const completionPercentage = data 
-    ? Math.round((data.completedMissions / (data.totalMissions || 1)) * 100) 
-    : 0;
-  
-  return (
-    <Card className="mb-6 bg-card/60 backdrop-blur-sm border-primary/20">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold flex items-center">
-          <Award className="mr-2 h-5 w-5 text-primary" />
-          Статистика миссий
-        </CardTitle>
-        <CardDescription>
-          Ваш прогресс выполнения миссий
-        </CardDescription>
-      </CardHeader>
+      const response = await correctApiRequest<{ success: boolean; data: MissionStatsData; message?: string }>(
+        '/api/missions/stats',
+        'GET'
+      );
       
-      <CardContent>
-        {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-full bg-gray-700/50" />
-            <Skeleton className="h-4 w-3/4 bg-gray-700/50" />
-            <Skeleton className="h-6 w-full bg-gray-700/50" />
-            <Skeleton className="h-20 w-full rounded-md bg-gray-700/50" />
-          </div>
-        ) : error ? (
-          <div className="p-4 text-red-400 text-center">
-            <p>Не удалось загрузить статистику миссий</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Линия прогресса */}
+      if (!response.success) {
+        throw new Error(response.message || 'Не удалось загрузить статистику миссий');
+      }
+      
+      return response.data;
+    },
+  });
+
+  const percentage = data ? Math.round((data.completed / Math.max(data.total, 1)) * 100) : 0;
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Статистика миссий</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-6">
+            <Skeleton className="h-24 w-24 rounded-full" />
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Прогресс выполнения</span>
-                <span className="font-medium text-primary">{completionPercentage}%</span>
-              </div>
-              <Progress value={completionPercentage} className="h-2" />
-            </div>
-            
-            {/* Карточки со статистикой */}
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              <div className="bg-gray-800/50 p-3 rounded-lg">
-                <div className="flex items-center text-blue-400 mb-1">
-                  <Clock className="h-4 w-4 mr-1" />
-                  <span className="text-xs">Доступно</span>
-                </div>
-                <div className="text-xl font-semibold">{data?.availableMissions || 0}</div>
-              </div>
-              
-              <div className="bg-gray-800/50 p-3 rounded-lg">
-                <div className="flex items-center text-green-400 mb-1">
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  <span className="text-xs">Выполнено</span>
-                </div>
-                <div className="text-xl font-semibold">{data?.completedMissions || 0}</div>
-              </div>
-            </div>
-            
-            {/* Общая статистика */}
-            <div className="bg-gradient-to-r from-primary/10 to-purple-500/10 p-4 rounded-lg mt-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-300 text-sm">Всего заработано UNI</p>
-                  <p className="text-2xl font-bold text-primary">
-                    {data?.totalEarned ? data.totalEarned.toLocaleString('ru-RU') : '0'}
-                  </p>
-                </div>
-                <Award className="h-10 w-10 text-primary opacity-30" />
-              </div>
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-5 w-36" />
             </div>
           </div>
-        )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="w-full bg-red-50 dark:bg-red-950 border-red-300">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Ошибка загрузки статистики</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-red-600 dark:text-red-400">
+            {error instanceof Error ? error.message : 'Неизвестная ошибка'}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="w-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">Статистика миссий</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-6">
+          <div className="h-24 w-24">
+            <CircularProgressbar
+              value={percentage}
+              text={`${percentage}%`}
+              styles={buildStyles({
+                textSize: '22px',
+                pathColor: `hsla(var(--primary))`,
+                textColor: 'hsla(var(--primary))',
+                trailColor: 'hsla(var(--muted))',
+              })}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm">
+              <span className="font-medium">{data?.completed || 0}</span> из{' '}
+              <span className="font-medium">{data?.total || 0}</span> миссий выполнено
+            </p>
+            <p className="text-sm">
+              Заработано: <span className="font-medium">{data?.userPoints || 0} UNI</span>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Доступно ещё: <span className="font-medium">{data?.totalAvailable || 0} UNI</span>
+            </p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

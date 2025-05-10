@@ -1,181 +1,129 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, WifiOff, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useWebSocket } from '@/contexts/webSocketContext';
-import { toast } from '@/hooks/use-toast';
+import { 
+  Alert,
+  AlertTitle,
+  AlertDescription
+} from '@/components/ui/alert';
+import { WifiIcon, WifiOffIcon, ServerIcon, ServerOffIcon } from 'lucide-react';
+
+type AlertType = 'online' | 'offline' | 'wsConnected' | 'wsDisconnected' | 'hidden';
 
 /**
- * Компонент для отображения статуса сетевого подключения и WebSocket соединения
- * Автоматически отображает предупреждения при проблемах с соединением
+ * Компонент для отображения статуса сетевого соединения и WebSocket
+ * Показывает уведомление при потере соединения
  */
 const NetworkStatusIndicator: React.FC = () => {
-  // Состояния для отслеживания разных типов соединений
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [hasInternetAccess, setHasInternetAccess] = useState<boolean>(true);
-  const [checkingStatus, setCheckingStatus] = useState<boolean>(false);
-  
-  // Получаем информацию о состоянии WebSocket из контекста
-  const { isConnected: isWebSocketConnected } = useWebSocket();
-  
-  // Обработчики для событий онлайн/оффлайн
+  const [alertType, setAlertType] = useState<AlertType>('hidden');
+  const [alertVisible, setAlertVisible] = useState<boolean>(false);
+  const { connectionStatus } = useWebSocket();
+
+  // Обновляем статус онлайн/оффлайн
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      checkInternetAccess();
-      toast({
-        title: 'Соединение восстановлено',
-        description: 'Сетевое подключение восстановлено',
-        variant: 'success',
-        duration: 3000,
-      });
+      setAlertType('online');
+      setAlertVisible(true);
+      
+      // Автоматически скрываем уведомление об успешном подключении через 3 секунды
+      setTimeout(() => {
+        setAlertVisible(false);
+      }, 3000);
     };
-    
+
     const handleOffline = () => {
       setIsOnline(false);
-      setHasInternetAccess(false);
-      toast({
-        title: 'Нет соединения',
-        description: 'Отсутствует сетевое подключение',
-        variant: 'destructive',
-        duration: 5000,
-      });
+      setAlertType('offline');
+      setAlertVisible(true);
     };
-    
-    // Проверка интернет-соединения при загрузке компонента
-    checkInternetAccess();
-    
-    // Устанавливаем обработчики
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
-    // Периодическая проверка интернет-соединения
-    const checkInterval = setInterval(checkInternetAccess, 30000); // каждые 30 секунд
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(checkInterval);
     };
   }, []);
-  
-  // Мониторинг состояния WebSocket
+
+  // Обновляем статус WebSocket соединения
   useEffect(() => {
-    // Показываем уведомление только когда статус меняется с connected на disconnected
-    if (!isWebSocketConnected) {
-      toast({
-        title: 'WebSocket отключен',
-        description: 'Соединение с сервером потеряно, обновления в реальном времени недоступны',
-        variant: 'destructive',
-        duration: 5000,
-      });
-    }
-  }, [isWebSocketConnected]);
-  
-  // Функция для проверки наличия реального доступа к интернету
-  const checkInternetAccess = async () => {
-    if (!navigator.onLine) {
-      setHasInternetAccess(false);
-      return;
-    }
-    
-    setCheckingStatus(true);
-    
-    try {
-      // Отправляем запрос на надежный эндпоинт (с добавлением метки времени для предотвращения кэширования)
-      const timestamp = new Date().getTime();
-      const response = await fetch(`/api/health?timestamp=${timestamp}`, {
-        method: 'HEAD',
-        cache: 'no-cache',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
+    if (connectionStatus === 'connected') {
+      setAlertType('wsConnected');
+      setAlertVisible(true);
       
-      // Проверяем, что запрос прошел успешно
-      const newStatus = response.ok;
-      
-      // Обновляем статус только если он изменился
-      if (newStatus !== hasInternetAccess) {
-        setHasInternetAccess(newStatus);
-        
-        // Если подключение только что восстановилось, показываем уведомление
-        if (newStatus) {
-          toast({
-            title: 'Соединение с сервером восстановлено',
-            description: 'Приложение снова на связи',
-            variant: 'success',
-            duration: 3000,
-          });
-        }
-      }
-    } catch (error) {
-      // Если произошла ошибка, считаем что интернета нет
-      if (hasInternetAccess) {
-        setHasInternetAccess(false);
-        
-        toast({
-          title: 'Проблемы с подключением',
-          description: 'Не удается соединиться с сервером',
-          variant: 'destructive',
-          duration: 5000,
-        });
-      }
-    } finally {
-      setCheckingStatus(false);
+      // Автоматически скрываем уведомление об успешном подключении через 3 секунды
+      setTimeout(() => {
+        setAlertVisible(false);
+      }, 3000);
+    } else if (connectionStatus === 'disconnected') {
+      setAlertType('wsDisconnected');
+      setAlertVisible(true);
+    } else {
+      // Если статус 'connecting', не показываем уведомление
     }
-  };
-  
-  // Определяем статус для отображения
-  let status: 'online' | 'limited' | 'offline' = 'offline';
-  
-  if (isOnline && hasInternetAccess && isWebSocketConnected) {
-    status = 'online';
-  } else if (isOnline && hasInternetAccess) {
-    status = 'limited';
-  } else {
-    status = 'offline';
+  }, [connectionStatus]);
+
+  // Если нет проблем с соединением, ничего не показываем
+  if (!alertVisible) {
+    return null;
   }
-  
-  // Определяем цвета и иконки в зависимости от статуса
-  const statusConfig = {
+
+  const alertContent = {
     online: {
-      icon: <Wifi className="h-4 w-4" />,
-      textColor: 'text-green-400',
-      bgColor: 'bg-green-400/10',
-      borderColor: 'border-green-400/20',
-      text: 'Соединение стабильно'
-    },
-    limited: {
-      icon: <AlertTriangle className="h-4 w-4" />,
-      textColor: 'text-yellow-400',
-      bgColor: 'bg-yellow-400/10',
-      borderColor: 'border-yellow-400/20',
-      text: 'Ограниченное соединение'
+      icon: <WifiIcon className="h-4 w-4 text-green-600" />,
+      title: "Соединение восстановлено",
+      description: "Интернет-соединение успешно восстановлено.",
+      variant: "default" as const
     },
     offline: {
-      icon: <WifiOff className="h-4 w-4" />,
-      textColor: 'text-red-400',
-      bgColor: 'bg-red-400/10',
-      borderColor: 'border-red-400/20',
-      text: 'Нет соединения'
+      icon: <WifiOffIcon className="h-4 w-4 text-red-600" />,
+      title: "Нет интернет-соединения",
+      description: "Проверьте ваше подключение к интернету.",
+      variant: "destructive" as const
+    },
+    wsConnected: {
+      icon: <ServerIcon className="h-4 w-4 text-green-600" />,
+      title: "Соединение с сервером установлено",
+      description: "Данные обновляются в реальном времени.",
+      variant: "default" as const
+    },
+    wsDisconnected: {
+      icon: <ServerOffIcon className="h-4 w-4 text-red-600" />,
+      title: "Ошибка соединения с сервером",
+      description: "Попытка переподключения...",
+      variant: "destructive" as const
+    },
+    hidden: {
+      icon: null,
+      title: "",
+      description: "",
+      variant: "default" as const
     }
   };
-  
-  const config = statusConfig[status];
-  
+
+  const { icon, title, description, variant } = alertContent[alertType];
+
   return (
-    <div 
-      className={`fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-full ${config.bgColor} ${config.borderColor} border shadow-lg transition-all duration-300 ${config.textColor}`}
-      onClick={checkInternetAccess}
-    >
-      <div className={`animate-pulse ${checkingStatus ? 'opacity-100' : 'opacity-0'}`}>
-        {config.icon}
-      </div>
-      <div className={`${checkingStatus ? 'opacity-0' : 'opacity-100'}`}>
-        {config.icon}
-      </div>
-      <span className="text-xs font-medium">{config.text}</span>
+    <div className="fixed top-16 left-0 right-0 z-50 mx-auto w-full max-w-md px-4">
+      <Alert 
+        variant={variant === 'default' ? 'default' : 'destructive'}
+        className={cn(
+          "border shadow-lg transition-opacity duration-300",
+          alertType === 'online' || alertType === 'wsConnected' ? 'bg-green-50 dark:bg-green-950' : '',
+          alertType === 'offline' || alertType === 'wsDisconnected' ? 'bg-red-50 dark:bg-red-950' : ''
+        )}
+      >
+        <div className="flex items-center gap-2">
+          {icon}
+          <div>
+            <AlertTitle>{title}</AlertTitle>
+            <AlertDescription>{description}</AlertDescription>
+          </div>
+        </div>
+      </Alert>
     </div>
   );
 };
