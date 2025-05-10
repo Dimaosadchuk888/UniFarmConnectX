@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
 import { useNotification } from '@/contexts/notificationContext';
+import useErrorBoundary from '@/hooks/useErrorBoundary';
 import { 
   formatUniNumber, 
   formatTonNumber, 
@@ -313,7 +314,16 @@ const BalanceCard: React.FC = () => {
   }, [forceReconnect, showNotification]);
 
   // ===== Рендеринг компонента =====
-  return (
+  // Используем Error Boundary для обработки ошибок в компоненте
+  const withErrorBoundary = useErrorBoundary({
+    queryKey: ['/api/wallet/balance', userId],
+    errorTitle: 'Ошибка загрузки баланса',
+    errorDescription: 'Не удалось загрузить информацию о вашем балансе. Пожалуйста, обновите страницу или повторите позже.',
+    resetButtonText: 'Обновить баланс'
+  });
+  
+  // Оборачиваем весь компонент в Error Boundary для обработки ошибок
+  return withErrorBoundary(
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
       {/* Декоративный градиентный фон */}
       <div 
