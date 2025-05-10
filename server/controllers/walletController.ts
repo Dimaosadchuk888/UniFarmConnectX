@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import 'express-session';
-import { walletService } from '../services';
+import { walletService, validationService } from '../services';
 import { WalletCurrency, TransactionStatusType } from '../services/walletService';
 import { ValidationError, NotFoundError } from '../middleware/errorHandler';
 import { createValidationErrorFromZod, extractUserId } from '../utils/validationUtils';
@@ -283,7 +283,7 @@ export class WalletController {
       console.log(`[WalletController] Query params:`, req.query);
       console.log(`[WalletController] Body:`, req.body);
       
-      // Валидация входных данных с помощью Zod
+      // Валидация входных данных с помощью Zod для базовой проверки структуры
       const schema = z.object({
         amount: z.union([
           z.string().min(1, "Сумма должна быть указана"),
@@ -337,20 +337,68 @@ export class WalletController {
       
       console.log(`[WalletController] Запрос на вывод ${amount} ${currency} для пользователя ${userId}`);
       
-      // Делегируем операцию вывода средств WalletService
-      const result = await walletService.withdrawFunds({
+      // Используем idempotency key из заголовка, если он есть
+      const idempotencyKey = req.headers['x-idempotency-key'] as string;
+      
+      // Используем centralized ValidationService для проверки операции с балансом
+      const balanceOperationValidation = validationService.validateBalanceOperation({
         userId,
         amount,
+        currency,
+        operationType: 'withdraw',
+        idempotencyKey,
+        source: 'wallet',
+        category: 'withdraw'
+      });
+      
+      if (!balanceOperationValidation.success) {
+        throw new ValidationError(
+          balanceOperationValidation.error || 'Невалидные данные для вывода средств',
+          { amount: String(amount), currency, userId: String(userId) }
+        );
+      }
+      
+      // Проверяем наличие дублирующих операций, если предоставлен ключ идемпотентности
+      if (idempotencyKey && validationService.isOperationDuplicate(idempotencyKey)) {
+        console.log(`[WalletController] Дублирующая операция вывода с ключом: ${idempotencyKey}`);
+        
+        // Если операция уже была выполнена, возвращаем сообщение о дубликате
+        res.success({
+          transaction_id: null,
+          user_id: userId,
+          message: `Вывод ${amount} ${currency} уже был инициирован ранее с тем же идентификатором`,
+          duplicate: true
+        });
+        return;
+      }
+      
+      // Проверяем и форматируем сумму с указанной точностью
+      const validatedAmount = validationService.validateAndParseNumber(amount, {
+        min: currency === 'UNI' ? 1000 : 0.1,  // Минимальная сумма вывода 1000 UNI или 0.1 TON
+        max: currency === 'UNI' ? 1000000 : 1000,  // Максимальная сумма вывода 1,000,000 UNI или 1000 TON
+        currency,
+        precision: currency === 'UNI' ? 6 : 6  // Точность для UNI - 6 знаков, для TON - 6 знаков
+      });
+      
+      // Делегируем операцию вывода средств WalletService с валидированной суммой
+      const result = await walletService.withdrawFunds({
+        userId,
+        amount: validatedAmount,
         currency: currency as WalletCurrency,
         walletAddress: wallet_address
       });
+      
+      // Если предоставлен ключ идемпотентности, регистрируем завершенную операцию
+      if (idempotencyKey) {
+        validationService.registerCompletedOperation(idempotencyKey, result);
+      }
       
       // Возвращаем успешный ответ через responseFormatter
       res.success({
         transaction_id: result.transactionId,
         new_balance: result.newBalance,
         user_id: result.userId,
-        message: result.message || `Вывод ${amount} ${currency} успешно инициирован`,
+        message: result.message || `Вывод ${validatedAmount} ${currency} успешно инициирован`,
         wallet_address: result.walletAddress
       });
     } catch (error) {
