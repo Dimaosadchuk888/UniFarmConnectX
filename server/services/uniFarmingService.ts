@@ -97,4 +97,15 @@ export class UniFarmingService {
   static async harvestFarming(userId: number): Promise<HarvestResult> {
     return uniFarmingService.harvestFarmingBalance(userId);
   }
+
+  /**
+   * Получает список депозитов пользователя в UNI фарминге
+   * @param userId ID пользователя
+   * @returns Массив депозитов
+   */
+  static async getUserFarmingDeposits(userId: number): Promise<any[]> {
+    // Используем метод из нового сервиса для обеспечения совместимости
+    const { NewUniFarmingService } = await import('./newUniFarmingService');
+    return NewUniFarmingService.getUserFarmingDeposits(userId);
+  }
 }
