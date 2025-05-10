@@ -7,6 +7,18 @@ import { wrapServiceFunction } from '../db-service-wrapper';
 import { UniFarmingService } from '../services/uniFarmingService';
 
 /**
+ * Интерфейс для данных UNI фарминга
+ */
+export interface FarmingInfo {
+  isActive: boolean;
+  depositAmount: string;
+  farmingBalance: string;
+  ratePerSecond: string;
+  startDate: string | null;
+  lastUpdate: string | null;
+}
+
+/**
  * Fallback контроллер для работы с UNI фармингом
  * с поддержкой автоматического перехода в режим работы без БД
  */
@@ -102,21 +114,14 @@ export class UniFarmingControllerFallback {
         async (error, userId) => {
           console.log(`[UniFarmingControllerFallback] Возвращаем заглушку для фарминга по ID: ${userId}`);
           
-          // Возвращаем базовую информацию при отсутствии соединения с БД
+          // Возвращаем базовую информацию при отсутствии соединения с БД в новом формате FarmingInfo
           return {
-            is_farming_active: false,
-            uni_deposit_amount: "0",
-            uni_farming_balance: "0",
-            uni_farming_rate: "0",
-            uni_farming_start_timestamp: null,
-            uni_farming_last_update: null,
-            details: {
-              rate_per_second: "0.000000289351851800",
-              rate_per_day: "0.025",
-              total_earned: "0",
-              time_since_start: 0,
-              time_since_last_update: 0
-            }
+            isActive: false,
+            depositAmount: "0.000000",
+            farmingBalance: "0.000000",
+            ratePerSecond: "0.000000289351851800",
+            startDate: null,
+            lastUpdate: null
           };
         }
       );
@@ -150,6 +155,7 @@ export class UniFarmingControllerFallback {
           console.log(`[UniFarmingControllerFallback] Возвращаем заглушку для статуса фарминга по ID: ${userId}`);
           
           // Возвращаем формат совместимый с клиентом для статуса
+          // Используем правильный формат данных
           return {
             isActive: false,
             depositAmount: "0.000000",
@@ -166,12 +172,12 @@ export class UniFarmingControllerFallback {
       
       // Трансформируем в формат status для фронтенда
       const farmingStatus = {
-        isActive: farmingInfo.is_farming_active || false,
-        depositAmount: farmingInfo.uni_deposit_amount || "0.000000",
-        farmingBalance: farmingInfo.uni_farming_balance || "0.000000",
-        ratePerSecond: farmingInfo.details?.rate_per_second || "0.000000289351851800",
-        startDate: farmingInfo.uni_farming_start_timestamp,
-        lastUpdate: farmingInfo.uni_farming_last_update
+        isActive: farmingInfo.isActive || false,
+        depositAmount: farmingInfo.depositAmount || "0.000000",
+        farmingBalance: farmingInfo.farmingBalance || "0.000000",
+        ratePerSecond: farmingInfo.ratePerSecond || "0.000000289351851800",
+        startDate: farmingInfo.startDate,
+        lastUpdate: farmingInfo.lastUpdate
       };
       
       sendSuccess(res, farmingStatus);
