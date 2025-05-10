@@ -250,17 +250,28 @@ export async function correctApiRequest<T = any>(
         } else {
           // Если ответ не в формате JSON, пробуем вернуть как текст
           const text = await response.text();
-          console.warn(`[correctApiRequest] [${requestId}] Ответ не в формате JSON:`, contentType);
           
           // Пробуем распарсить JSON из текста (многие серверы возвращают JSON с неправильным content-type)
           try {
             if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
-              return JSON.parse(text);
+              const parsedJson = JSON.parse(text);
+              console.log(`[correctApiRequest] [${requestId}] Успешно распарсили JSON из текстового ответа:`, 
+                typeof parsedJson === 'object' ? 'object' : typeof parsedJson);
+              return parsedJson;
             }
-          } catch {}
+          } catch (parseError) {
+            console.warn(`[correctApiRequest] [${requestId}] Не удалось распарсить JSON из текстового ответа:`, parseError instanceof Error ? parseError.message : parseError);
+          }
+          
+          console.warn(`[correctApiRequest] [${requestId}] Ответ не в формате JSON (content-type: ${contentType || 'не указан'})`);
           
           // Если не удалось распарсить JSON, возвращаем текст в объекте
-          return { text, status: response.status } as unknown as T;
+          return { 
+            success: false,
+            text, 
+            status: response.status,
+            message: 'Ответ сервера не в формате JSON' 
+          } as unknown as T;
         }
       } catch (jsonError) {
         const text = await response.text();
