@@ -49,10 +49,13 @@ export class WalletControllerFallback {
       // Отладочный вывод для проверки данных
       console.log('[WalletControllerFallback] Получен баланс:', JSON.stringify(userBalance));
       
-      // Преобразуем формат ответа, если нужно
+      // Преобразуем формат ответа в соответствии с ожиданиями клиента
       const balance = {
-        uni_balance: userBalance.balanceUni || "0",
-        ton_balance: userBalance.balanceTon || "0",
+        balance_uni: userBalance.balanceUni || "0",
+        balance_ton: userBalance.balanceTon || "0",
+        uni_farming_active: false,
+        uni_deposit_amount: "0",
+        uni_farming_balance: "0",
         total_earned_uni: "0", // Можно добавить расчет этих значений в будущем
         total_earned_ton: "0",
         total_withdrawn_uni: "0",
