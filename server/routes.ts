@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import path from "path";
 import fs from "fs";
+import * as healthApi from './api/health'; // Импорт контроллера health API
 
 // Расширяем тип WebSocket для поддержки пользовательских свойств
 interface ExtendedWebSocket extends WebSocket {
@@ -168,13 +169,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Специальный маршрут для проверки здоровья системы Replit Deployments
   // Этот маршрут необходим для успешной проверки работоспособности при деплое
   // ВАЖНО: Размещаем этот маршрут ПЕРЕД другими маршрутами для корректного обнаружения Replit
-  app.get("/api/health", (req, res) => {
-    // Отдаем JSON для health check при деплое
-    res.setHeader('Content-Type', 'application/json');
-    console.log('[Health Check] Запрос health check: /api/health', 
-      { userAgent: req.headers['user-agent'], ip: req.ip });
-    return res.status(200).send(JSON.stringify({ status: "ok", message: "Health check passed" }));
-  });
+  app.get("/api/health", healthApi.checkHealth);
+  
+  // Простой ping эндпоинт
+  app.get("/api/ping", healthApi.ping);
   
   // Перенаправляем корневой маршрут на основное приложение
   app.get("/", (req, res) => {

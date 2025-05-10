@@ -21,6 +21,8 @@ import { UserProvider } from "@/contexts/userContext"; // Импортируем
 import { NotificationProvider } from "@/contexts/notificationContext"; // Импортируем NotificationProvider
 import NotificationContainer from "@/components/ui/NotificationContainer"; // Импортируем контейнер уведомлений
 import ErrorBoundary from "@/components/ui/ErrorBoundary"; // Импортируем глобальный ErrorBoundary
+import WebSocketProvider from "@/contexts/webSocketContext"; // Импортируем WebSocketProvider
+import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator"; // Импортируем индикатор состояния сети
 
 // Импортируем компоненты UI
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
