@@ -40,7 +40,8 @@ const TransactionHistoryWithErrorBoundary: React.FC<TransactionHistoryWithErrorB
       errorDescription="Не удалось загрузить историю ваших транзакций. Пожалуйста, обновите страницу или повторите позже."
       resetButtonText="Обновить историю"
     >
-      <TransactionHistory limit={limit} />
+      {/* Здесь явно не передаем параметр, чтобы он использовал внутренний limit из компонента */}
+      <TransactionHistory />
     </QueryErrorBoundary>
   );
 };

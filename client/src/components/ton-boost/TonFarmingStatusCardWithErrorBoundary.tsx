@@ -14,16 +14,22 @@ const TonFarmingStatusCardWithErrorBoundary: React.FC = () => {
   
   // Обработчик сброса состояния ошибки и инвалидации данных
   const handleReset = () => {
-    queryClient.invalidateQueries({ 
-      queryKey: ['/api/ton-farming/status', userId] 
-    });
+    if (userId) {
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/ton-farming', userId] 
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/users', userId] 
+      });
+    }
   };
   
   return (
     <QueryErrorBoundary
       onReset={handleReset}
-      queryKey={['/api/ton-farming/status', userId]}
-      errorTitle="Ошибка загрузки статуса TON фарминга"
+      queryKey={userId ? ['/api/ton-farming', userId] : undefined}
+      errorTitle="Ошибка загрузки данных о TON фарминге"
       errorDescription="Не удалось загрузить информацию о вашем TON фарминге. Пожалуйста, обновите страницу или повторите позже."
       resetButtonText="Обновить данные"
     >
