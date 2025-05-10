@@ -129,6 +129,58 @@ export class UniFarmingControllerFallback {
   }
 
   /**
+   * Получает текущий статус UNI фарминга пользователя в формате, совместимом с клиентом
+   * @route GET /api/uni-farming/status
+   */
+  static async getUserFarmingStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Валидация параметров запроса
+      const validationResult = userIdSchema.safeParse(req.query);
+      
+      if (!validationResult.success) {
+        throw new ValidationError('Ошибка валидации', formatZodErrors(validationResult.error));
+      }
+      
+      const { user_id } = validationResult.data;
+      
+      // Заворачиваем вызов сервиса в обработчик ошибок с поддержкой fallback
+      const getFarmingStatusWithFallback = wrapServiceFunction(
+        UniFarmingService.getUserFarmingInfo.bind(UniFarmingService),
+        async (error, userId) => {
+          console.log(`[UniFarmingControllerFallback] Возвращаем заглушку для статуса фарминга по ID: ${userId}`);
+          
+          // Возвращаем формат совместимый с клиентом для статуса
+          return {
+            isActive: false,
+            depositAmount: "0.000000",
+            farmingBalance: "0.000000",
+            ratePerSecond: "0.000000289351851800",
+            startDate: null,
+            lastUpdate: null
+          };
+        }
+      );
+      
+      // Получаем базовую информацию о фарминге
+      const farmingInfo = await getFarmingStatusWithFallback(user_id);
+      
+      // Трансформируем в формат status для фронтенда
+      const farmingStatus = {
+        isActive: farmingInfo.is_farming_active || false,
+        depositAmount: farmingInfo.uni_deposit_amount || "0.000000",
+        farmingBalance: farmingInfo.uni_farming_balance || "0.000000",
+        ratePerSecond: farmingInfo.details?.rate_per_second || "0.000000289351851800",
+        startDate: farmingInfo.uni_farming_start_timestamp,
+        lastUpdate: farmingInfo.uni_farming_last_update
+      };
+      
+      sendSuccess(res, farmingStatus);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Активирует UNI фарминг для пользователя (депозит UNI)
    * @route POST /api/uni-farming/deposit
    */
