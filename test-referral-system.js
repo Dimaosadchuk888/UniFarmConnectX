@@ -2,11 +2,12 @@
  * Скрипт для тестирования оптимизированной системы реферальных бонусов
  */
 
-import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/pg-pool';
-import { eq, sql } from 'drizzle-orm';
-import dotenv from 'dotenv';
-import crypto from 'crypto';
+// Используем CommonJS синтаксис
+const { Pool } = require('pg');
+const { drizzle } = require('drizzle-orm/node-postgres');
+const { eq, sql } = require('drizzle-orm');
+const dotenv = require('dotenv');
+const crypto = require('crypto');
 
 // Загрузить переменные окружения
 dotenv.config();

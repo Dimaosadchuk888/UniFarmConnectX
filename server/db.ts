@@ -1,6 +1,5 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
 // Константы для управления соединением с базой данных
@@ -13,8 +12,6 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Рассчитывает время задержки для повторных попыток с экспоненциальным увеличением
 const getBackoff = (attempt: number) => Math.min(100 * Math.pow(2, attempt), 3000);
 
-neonConfig.webSocketConstructor = ws;
-
 if (!process.env.DATABASE_URL) {
   throw new Error(
     "DATABASE_URL must be set. Did you forget to provision a database?",
@@ -22,7 +19,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+export const db = drizzle(pool, { schema });
 
 // Типизированный интерфейс для результатов SQL запросов
 export interface QueryResult<T = any> {
