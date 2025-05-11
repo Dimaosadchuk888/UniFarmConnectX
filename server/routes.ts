@@ -48,7 +48,6 @@ import { BoostControllerFallback } from './controllers/boostControllerFallback';
 import { TonBoostController } from './controllers/tonBoostController';
 import { TonBoostControllerFallback } from './controllers/tonBoostControllerFallback'; // Fallback контроллер для TON фарминга
 import { UniFarmingControllerFallback } from './controllers/uniFarmingControllerFallback'; // Fallback контроллер для UNI фарминга
-import { FarmingBoostController } from './controllers/farmingBoostController'; // Контроллер для синхронизации бустов фарминга
 import { DailyBonusControllerFallback } from './controllers/dailyBonusControllerFallback'; // Fallback контроллер для ежедневных бонусов
 import { WalletControllerFallback } from './controllers/walletControllerFallback'; // Fallback контроллер для кошелька
 import { UserControllerFallback } from './controllers/userControllerFallback'; // Fallback контроллер для пользователей
@@ -1546,7 +1545,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // TON фарминг с поддержкой fallback
   app.get("/api/ton-farming/info", TonBoostControllerFallback.getUserTonFarmingInfo);
   app.get("/api/ton-farming/update-balance", TonBoostControllerFallback.calculateAndUpdateTonFarming);
-  app.get("/api/ton-farming/active", FarmingBoostController.getTonFarmingActive);
+  // Перенаправление на основной эндпоинт
+  app.get("/api/ton-farming/active", TonBoostController.getUserTonBoosts);
   
   // Добавляем эндпоинт для тестирования обновления TON фарминга
   app.post("/api/ton-farming/update", async (req: Request, res: Response) => {
@@ -1645,7 +1645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Эндпоинты для получения активных бустов фарминга
-  app.get("/api/farming/boosts/active", FarmingBoostController.getUserActiveTonBoosts);
+  app.get("/api/farming/boosts/active", TonBoostController.getUserTonBoosts);
   
   // Эндпоинты для управления реферальной системой
   app.get("/api/system/referrals/mode", ReferralSystemController.getReferralSystemMode);
