@@ -34,7 +34,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   
   // Применяем Error Boundary к компоненту
   const withErrorBoundary = useErrorBoundary({
-    queryKey: ['/api/uni-farming/info', userId],
+    queryKey: ['/api/uni-farming/status', userId],
     errorTitle: 'Ошибка загрузки UNI фарминга',
     errorDescription: 'Не удалось загрузить информацию о вашем UNI фарминге. Пожалуйста, обновите страницу или повторите позже.',
     resetButtonText: 'Обновить данные'
@@ -42,17 +42,29 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   
   // Получаем информацию о фарминге с динамическим ID пользователя
   const { data: farmingResponse, isLoading } = useQuery<{ success: boolean; data: FarmingInfo }>({
-    queryKey: ['/api/uni-farming/info', userId], // Динамический ID пользователя
-    refetchInterval: 30000, // Увеличили интервал до 30 секунд для уменьшения нагрузки
+    queryKey: ['/api/uni-farming/status', userId], // Обновлено на корректный эндпоинт /api/uni-farming/status
+    refetchInterval: 15000, // Обновление каждые 15 секунд для более актуальных данных
     enabled: !!userId, // Запрос активен только если есть userId
     queryFn: async () => {
       try {
         // Используем безопасный запрос с правильными заголовками
         const response = await correctApiRequest<{ success: boolean; data: FarmingInfo }>(
-          `/api/uni-farming/info?user_id=${userId || 1}`, 
+          `/api/uni-farming/status?user_id=${userId || 1}`, 
           'GET'
         );
         
+        console.log('[DEBUG] Получены данные фарминга:', response.data);
+        // Выводим подробные дебаг данные для анализа точности отображения
+        if (response.data) {
+          console.log('[DEBUG] UNI Farming - Детали:',{
+            isActive: response.data.isActive,
+            depositAmount: response.data.depositAmount,
+            ratePerSecond: response.data.ratePerSecond,
+            depositCount: response.data.depositCount,
+            totalDepositAmount: response.data.totalDepositAmount,
+            startTimestamp: response.data.uni_farming_start_timestamp || response.data.startDate
+          })
+        }
         return response;
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка при получении информации о фарминге:', error);
@@ -69,6 +81,26 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     depositCount: 0,
     totalDepositAmount: '0',
   };
+  
+  // Для подсчета транзакций фарминга
+  const { data: transactionsResponse } = useQuery({
+    queryKey: ['/api/transactions', userId],
+    enabled: !!userId && farmingInfo.isActive,
+    queryFn: async () => {
+      return await correctApiRequest('/api/transactions?user_id=' + (userId || 1), 'GET');
+    }
+  });
+  
+  // Подсчет количества депозитов из транзакций
+  const farmingDeposits = React.useMemo(() => {
+    if (!transactionsResponse?.data?.transactions) return [];
+    return transactionsResponse.data.transactions.filter(
+      (tx: any) => tx.type === 'deposit' && tx.currency === 'UNI' && tx.source === 'uni_farming'
+    );
+  }, [transactionsResponse?.data?.transactions]);
+  
+  // Подсчитываем количество активных депозитов
+  const depositCount = farmingDeposits.length || 0;
   
   // Информационная мутация (просто для показа информации о новом механизме)
   const infoMutation = useMutation({
@@ -107,7 +139,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         // Обновляем данные с учетом динамического ID пользователя
         // Используем новую функцию вместо прямого вызова invalidateQueries
-        invalidateQueryWithUserId('/api/uni-farming/info');
+        invalidateQueryWithUserId('/api/uni-farming/status');
         invalidateQueryWithUserId('/api/wallet/balance');
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess infoMutation:', error);
@@ -148,7 +180,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         // Обновляем данные с учетом динамического ID пользователя
         // Используем новую функцию вместо прямого вызова invalidateQueries
-        invalidateQueryWithUserId('/api/uni-farming/info');
+        invalidateQueryWithUserId('/api/uni-farming/status');
         invalidateQueryWithUserId('/api/wallet/balance');
         invalidateQueryWithUserId('/api/transactions');
       } catch (error: any) {
@@ -455,54 +487,43 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Расчет дневного дохода (для отображения) с улучшенной обработкой ошибок
   const calculateDailyIncome = (): string => {
     try {
-      // Проверяем активность фарминга и наличие данных
+      // Проверяем активность фарминга
       if (!isActive) {
         return '0';
       }
       
-      // Безопасно получаем сумму депозита
-      const depositAmountStr = farmingInfo.totalDepositAmount;
-      if (!depositAmountStr) {
-        console.log('Отсутствует сумма депозита для расчета дневного дохода');
+      // Получаем скорость начисления в секунду из API напрямую
+      const ratePerSecondStr = farmingInfo.ratePerSecond;
+      if (!ratePerSecondStr) {
+        console.log('Отсутствует скорость начисления для расчета дневного дохода');
         return '0';
       }
       
       try {
-        // Создаем BigNumber с защитой от некорректных данных
-        let totalDepositAmount: BigNumber;
+        // Используем BigNumber для безопасных вычислений
+        const ratePerSecond = new BigNumber(ratePerSecondStr);
         
-        // Проверка типа данных
-        if (typeof depositAmountStr !== 'string' && typeof depositAmountStr !== 'number') {
-          console.error('Некорректный тип данных для расчета дохода:', typeof depositAmountStr);
+        // Проверка на валидное число
+        if (ratePerSecond.isNaN() || !ratePerSecond.isFinite()) {
+          console.error('Невалидное значение скорости начисления:', ratePerSecondStr);
           return '0';
         }
         
-        // Создаем BigNumber и проверяем валидность
-        totalDepositAmount = new BigNumber(depositAmountStr);
-        if (totalDepositAmount.isNaN() || !totalDepositAmount.isFinite()) {
-          console.error('Невалидное значение для расчета дохода:', depositAmountStr);
+        // Количество секунд в дне
+        const SECONDS_IN_DAY = new BigNumber(86400);
+        
+        // Вычисляем дневной доход: ratePerSecond * SECONDS_IN_DAY
+        const dailyIncome = ratePerSecond.multipliedBy(SECONDS_IN_DAY);
+        
+        // Проверка результата на валидность
+        if (dailyIncome.isNaN() || !dailyIncome.isFinite()) {
+          console.error('Ошибка при расчете дневного дохода, получено:', dailyIncome.toString());
           return '0';
         }
         
-        // Расчет дохода с защитой от ошибок
-        try {
-          // Доходность составляет 0.5% в день от общего депозита
-          const dailyInterestRate = new BigNumber(0.005);
-          const dailyIncome = totalDepositAmount.multipliedBy(dailyInterestRate);
-          
-          // Проверка результата на валидность
-          if (dailyIncome.isNaN() || !dailyIncome.isFinite()) {
-            console.error('Ошибка при расчете дневного дохода, получено:', dailyIncome.toString());
-            return '0';
-          }
-          
-          return dailyIncome.toFixed(3); // 3 знака после запятой для дневного дохода
-        } catch (calculationError) {
-          console.error('Ошибка при расчете дневного дохода:', calculationError);
-          return '0';
-        }
-      } catch (bnError) {
-        console.error('Ошибка при создании BigNumber для расчета дохода:', bnError);
+        return dailyIncome.toFixed(3); // 3 знака после запятой для дневного дохода
+      } catch (calculationError) {
+        console.error('Ошибка при вычислении дневного дохода:', calculationError);
         return '0';
       }
     } catch (err) {
@@ -514,61 +535,32 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Расчет дохода в секунду (для отображения) с улучшенной обработкой ошибок
   const calculateSecondRate = (): string => {
     try {
-      // Проверяем активность фарминга и наличие данных
+      // Проверяем активность фарминга
       if (!isActive) {
         return '0';
       }
       
-      // Безопасно получаем дневной доход
-      let dailyIncome: BigNumber;
-      try {
-        // Получаем сумму депозита
-        const depositAmountStr = farmingInfo.totalDepositAmount;
-        if (!depositAmountStr) {
-          console.log('Отсутствует сумма депозита для расчета секундного дохода');
-          return '0';
-        }
-        
-        // Проверка типа данных
-        if (typeof depositAmountStr !== 'string' && typeof depositAmountStr !== 'number') {
-          console.error('Некорректный тип данных для расчета секундного дохода:', typeof depositAmountStr);
-          return '0';
-        }
-        
-        // Создаем BigNumber и проверяем валидность
-        const totalDepositAmount = new BigNumber(depositAmountStr);
-        if (totalDepositAmount.isNaN() || !totalDepositAmount.isFinite()) {
-          console.error('Невалидное значение для расчета секундного дохода:', depositAmountStr);
-          return '0';
-        }
-        
-        // Расчет дневного дохода
-        dailyIncome = totalDepositAmount.multipliedBy(0.005);
-        
-        // Проверка результата на валидность
-        if (dailyIncome.isNaN() || !dailyIncome.isFinite()) {
-          console.error('Ошибка при расчете дневного дохода для секундного, получено:', dailyIncome.toString());
-          return '0';
-        }
-      } catch (bnError) {
-        console.error('Ошибка при создании BigNumber для секундного дохода:', bnError);
+      // Получаем скорость начисления в секунду непосредственно из API
+      const ratePerSecondStr = farmingInfo.ratePerSecond;
+      if (!ratePerSecondStr) {
+        console.log('Отсутствует скорость начисления из API');
         return '0';
       }
       
       try {
-        // Получаем доход в секунду
-        const secondsInDay = new BigNumber(86400); // 24 * 60 * 60
-        const secondRate = dailyIncome.dividedBy(secondsInDay);
+        // Создаем BigNumber из скорости начисления
+        const ratePerSecond = new BigNumber(ratePerSecondStr);
         
-        // Проверка результата на валидность
-        if (secondRate.isNaN() || !secondRate.isFinite()) {
-          console.error('Ошибка при расчете секундного дохода, получено:', secondRate.toString());
+        // Проверка на валидное число
+        if (ratePerSecond.isNaN() || !ratePerSecond.isFinite()) {
+          console.error('Невалидное значение скорости начисления:', ratePerSecondStr);
           return '0';
         }
         
-        return secondRate.toFixed(8); // 8 знаков для секундного дохода
-      } catch (divisionError) {
-        console.error('Ошибка при делении для расчета секундного дохода:', divisionError);
+        // Возвращаем скорость напрямую из API с форматированием
+        return ratePerSecond.toFixed(8); // 8 знаков для секундного дохода
+      } catch (bnError) {
+        console.error('Ошибка при обработке скорости начисления:', bnError);
         return '0';
       }
     } catch (err) {
@@ -578,6 +570,28 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   };
   
   // Форматирование даты начала фарминга с улучшенной обработкой ошибок
+  // Расчет годовой доходности (APR) на основе скорости начисления
+  const calculateAPR = (): { annual: string, daily: string } => {
+    try {
+      // Проверяем активность фарминга
+      if (!isActive) {
+        return { annual: '0', daily: '0' };
+      }
+      
+      // В нашем случае ставка фиксированная: 0.5% в день (из бизнес-логики)
+      const DAILY_PERCENTAGE = 0.5;
+      const ANNUAL_PERCENTAGE = DAILY_PERCENTAGE * 365;
+      
+      return {
+        annual: ANNUAL_PERCENTAGE.toFixed(1), // 182.5%
+        daily: DAILY_PERCENTAGE.toFixed(1)    // 0.5%
+      };
+    } catch (err) {
+      console.error('Ошибка при расчете APR:', err);
+      return { annual: '182.5', daily: '0.5' }; // Значения по умолчанию
+    }
+  };
+  
   const formatStartDate = (): string => {
     try {
       // Проверка активности фарминга
@@ -646,8 +660,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <p className="text-sm text-foreground opacity-70">Текущий депозит</p>
-              <p className="text-lg font-medium">{formatNumber(farmingInfo.totalDepositAmount || '0')} UNI</p>
+              <p className="text-sm text-foreground opacity-70">Общая сумма депозитов</p>
+              <p className="text-lg font-medium">{formatNumber(farmingInfo.depositAmount || '0')} UNI</p>
             </div>
             <div>
               <p className="text-sm text-foreground opacity-70">Дата активации</p>
@@ -660,13 +674,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-foreground opacity-70">Активных депозитов UNI</p>
-              <p className="text-md font-medium">{farmingInfo.depositCount || 0} шт.</p>
+              <p className="text-md font-medium">{depositCount} шт.</p>
             </div>
             <div>
               <p className="text-sm text-foreground opacity-70">Годовая доходность (APR)</p>
               <p className="text-md font-medium flex items-center">
-                <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-semibold bg-primary/20 text-primary rounded mr-2">182.5%</span>
-                <span className="text-xs text-foreground/60">(0.5% в день)</span>
+                <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-semibold bg-primary/20 text-primary rounded mr-2">{calculateAPR().annual}%</span>
+                <span className="text-xs text-foreground/60">({calculateAPR().daily}% в день)</span>
               </p>
             </div>
           </div>
