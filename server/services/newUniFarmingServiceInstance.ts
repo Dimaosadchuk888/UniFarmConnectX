@@ -29,6 +29,9 @@ export interface INewUniFarmingService {
   createUniFarmingDeposit(userId: number, amount: string): Promise<CreateMultiDepositResult>;
   getUserFarmingDeposits(userId: number): Promise<any[]>;
   getUserFarmingInfo(userId: number): Promise<MultiFarmingInfo>;
+  getUserFarmingStatus(userId: number): Promise<any>;
+  harvestUserFarming(userId: number): Promise<any>;
+  simulateFarmingReward(userId: number, amount: string): Promise<any>;
 }
 
 // Константы для расчетов
@@ -388,6 +391,8 @@ export const newUniFarmingServiceInstance: INewUniFarmingService = {
     
     const deposits = await this.getUserFarmingDeposits(userId);
     
+    console.log(`[MultiFarming] getUserFarmingInfo - Actual deposits count: ${deposits.length}`);
+    
     if (deposits.length === 0) {
       return {
         isActive: false,
@@ -417,6 +422,174 @@ export const newUniFarmingServiceInstance: INewUniFarmingService = {
       dailyIncomeUni,
       deposits
     };
+  },
+  
+  async getUserFarmingStatus(userId: number): Promise<any> {
+    try {
+      // Получаем информацию о фарминге
+      const farmingInfo = await this.getUserFarmingInfo(userId);
+      
+      // Получаем накопленную прибыль за текущую сессию
+      const [user] = await db
+        .select({
+          uni_farming_balance: users.uni_farming_balance,
+          balance_uni: users.balance_uni
+        })
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      if (!user) {
+        throw new Error(`Пользователь с ID ${userId} не найден`);
+      }
+      
+      const accumulatedBalance = user.uni_farming_balance !== null ? user.uni_farming_balance.toString() : '0';
+      const currentBalance = user.balance_uni !== null ? user.balance_uni.toString() : '0';
+      
+      // Получаем активные депозиты
+      const deposits = await db
+        .select()
+        .from(uniFarmingDeposits)
+        .where(and(
+          eq(uniFarmingDeposits.user_id, userId),
+          eq(uniFarmingDeposits.is_active, true)
+        ));
+      
+      console.log(`[MultiFarming] getUserFarmingStatus - Actual deposits count: ${deposits.length}`);
+      
+      // Используем фактическое количество депозитов из базы данных
+      return {
+        isActive: farmingInfo.isActive,
+        totalDepositAmount: farmingInfo.totalDepositAmount,
+        depositCount: deposits.length, // Используем фактическое количество депозитов из БД
+        totalRatePerSecond: farmingInfo.totalRatePerSecond,
+        dailyIncomeUni: farmingInfo.dailyIncomeUni, 
+        accumulatedBalance: accumulatedBalance,
+        currentBalance: currentBalance,
+        latestDeposits: deposits.slice(0, 5).map(deposit => ({
+          id: deposit.id,
+          amount: deposit.amount.toString(),
+          rate_per_second: deposit.rate_per_second.toString(),
+          created_at: deposit.created_at
+        }))
+      };
+    } catch (error) {
+      console.error(`Ошибка при получении статуса фарминга для пользователя ${userId}:`, error);
+      throw error;
+    }
+  },
+  
+  async harvestUserFarming(userId: number): Promise<any> {
+    try {
+      // Получаем текущий накопленный баланс пользователя
+      const [user] = await db
+        .select({
+          uni_farming_balance: users.uni_farming_balance
+        })
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      if (!user) {
+        throw new Error(`Пользователь с ID ${userId} не найден`);
+      }
+      
+      const accumulatedBalance = new BigNumber(user.uni_farming_balance !== null ? user.uni_farming_balance.toString() : '0');
+      
+      if (accumulatedBalance.isLessThanOrEqualTo(0)) {
+        return {
+          success: false,
+          message: 'Нет накопленной прибыли для сбора',
+          harvested_amount: '0'
+        };
+      }
+      
+      // Обновляем базу данных - переводим накопленные средства на основной баланс
+      await db.transaction(async (tx) => {
+        // Сбрасываем накопленный баланс
+        await tx
+          .update(users)
+          .set({
+            balance_uni: db.raw(`balance_uni + ${accumulatedBalance.toString()}`),
+            uni_farming_balance: 0
+          })
+          .where(eq(users.id, userId));
+        
+        // Создаем транзакцию в истории для учета сбора фарминга
+        await TransactionService.createTransaction({
+          user_id: userId,
+          type: 'reward' as TransactionType,
+          currency: 'UNI' as Currency,
+          amount: accumulatedBalance.toString(),
+          status: 'confirmed' as TransactionStatus,
+          source: 'UNI Farming Harvest',
+          category: 'farming',
+          description: 'Сбор накопленной прибыли от UNI фарминга'
+        });
+      });
+      
+      console.log(`[UniFarmingService] Пользователь ${userId} собрал ${accumulatedBalance.toString()} UNI из фарминга`);
+      
+      // Обработка реферальных бонусов от сбора фарминга
+      await referralBonusService.processReferralBonusFromFarming(userId, accumulatedBalance.toString());
+      
+      return {
+        success: true,
+        message: 'Прибыль успешно собрана',
+        harvested_amount: accumulatedBalance.toString()
+      };
+    } catch (error) {
+      console.error(`Ошибка при сборе фарминга для пользователя ${userId}:`, error);
+      throw error;
+    }
+  },
+  
+  async simulateFarmingReward(userId: number, amount: string): Promise<any> {
+    try {
+      // Преобразуем сумму в BigNumber для безопасных вычислений
+      const depositAmount = new BigNumber(amount);
+      
+      if (depositAmount.isLessThanOrEqualTo(0)) {
+        return {
+          success: false,
+          message: 'Сумма должна быть положительным числом'
+        };
+      }
+      
+      // Рассчитываем скорость накопления прибыли (rate_per_second)
+      const ratePerSecond = depositAmount
+        .multipliedBy(DAILY_RATE)
+        .dividedBy(SECONDS_IN_DAY)
+        .toString();
+      
+      // Рассчитываем прибыль за день
+      const dailyIncome = depositAmount
+        .multipliedBy(DAILY_RATE)
+        .toString();
+      
+      // Рассчитываем прибыль за неделю
+      const weeklyIncome = depositAmount
+        .multipliedBy(DAILY_RATE)
+        .multipliedBy(7)
+        .toString();
+      
+      // Рассчитываем прибыль за месяц (30 дней)
+      const monthlyIncome = depositAmount
+        .multipliedBy(DAILY_RATE)
+        .multipliedBy(30)
+        .toString();
+      
+      return {
+        success: true,
+        deposit_amount: depositAmount.toString(),
+        rate_per_second: ratePerSecond,
+        daily_income: dailyIncome,
+        weekly_income: weeklyIncome,
+        monthly_income: monthlyIncome,
+        annual_percentage: (DAILY_RATE * 100 * 365).toString() // Годовой процент
+      };
+    } catch (error) {
+      console.error(`Ошибка при симуляции вознаграждения для суммы ${amount}:`, error);
+      throw error;
+    }
   }
 };
 

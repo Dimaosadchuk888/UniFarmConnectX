@@ -41,13 +41,11 @@ import * as ReferralSystemController from './controllers/referralSystemControlle
 import * as telegramBot from './telegramBot';
 import { TelegramController } from './controllers/telegramController'; // Новый TypeScript контроллер для Telegram
 import { DailyBonusController } from './controllers/dailyBonusController';
-import { UniFarmingController } from './controllers/uniFarmingController';
-import { NewUniFarmingController } from './controllers/newUniFarmingController'; // Контроллер для множественного UNI фарминга
+import { NewUniFarmingController } from './controllers/newUniFarmingController'; // Основной контроллер для UNI фарминга
 import { BoostController } from './controllers/boostController';
 import { BoostControllerFallback } from './controllers/boostControllerFallback'; // Fallback контроллер для бустов
 import { TonBoostController } from './controllers/tonBoostController';
 import { TonBoostControllerFallback } from './controllers/tonBoostControllerFallback'; // Fallback контроллер для TON фарминга
-import { UniFarmingControllerFallback } from './controllers/uniFarmingControllerFallback'; // Fallback контроллер для UNI фарминга
 import { DailyBonusControllerFallback } from './controllers/dailyBonusControllerFallback'; // Fallback контроллер для ежедневных бонусов
 import { WalletControllerFallback } from './controllers/walletControllerFallback'; // Fallback контроллер для кошелька
 import { UserControllerFallback } from './controllers/userControllerFallback'; // Fallback контроллер для пользователей
@@ -1506,27 +1504,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/daily-bonus/claim", DailyBonusControllerFallback.claimDailyBonus);
   
   // Маршруты для UNI фарминга (с поддержкой fallback)
-  app.get("/api/uni-farming/info", UniFarmingControllerFallback.getUserFarmingInfo);
-  app.get("/api/uni-farming/status", UniFarmingControllerFallback.getUserFarmingStatus);
-  // Важно: используем NewUniFarmingController для корректного обновления баланса
-  // Этот маршрут должен быть ЕДИНСТВЕННЫМ для создания депозита
+  // Основные маршруты для UNI фарминга (используем новый контроллер)
+  app.get("/api/uni-farming/info", NewUniFarmingController.getUserFarmingInfo);
+  app.get("/api/uni-farming/status", NewUniFarmingController.getUserFarmingStatus);
+  // Маршрут для депозита UNI в фарминг
   app.post("/api/uni-farming/deposit", (req, res) => {
     console.log('[ROUTES] 🔄 Депозит запрошен через /api/uni-farming/deposit');
     return NewUniFarmingController.createDeposit(req, res);
   });
-  app.get("/api/uni-farming/deposits", UniFarmingControllerFallback.getUserFarmingDeposits);
-  app.post("/api/uni-farming/harvest", UniFarmingControllerFallback.harvestFarmingInfo);
-  app.post("/api/uni-farming/simulate-reward", UniFarmingControllerFallback.simulateReward);
+  app.get("/api/uni-farming/deposits", NewUniFarmingController.getUserDeposits);
+  app.post("/api/uni-farming/harvest", NewUniFarmingController.harvestFarming);
+  app.post("/api/uni-farming/simulate-reward", NewUniFarmingController.simulateReward);
   
-  // Маршруты для множественного UNI фарминга (новая версия)
-  app.get("/api/new-uni-farming/info", NewUniFarmingController.getUserFarmingInfo);
+  // Маршруты для множественного UNI фарминга (для совместимости)
+  // Перенаправляем на основные маршруты
+  app.get("/api/new-uni-farming/info", (req, res) => {
+    console.log('[ROUTES] ⚠️ Устаревший маршрут: /api/new-uni-farming/info, рекомендуется использовать /api/uni-farming/info');
+    return NewUniFarmingController.getUserFarmingInfo(req, res);
+  });
   app.get("/api/new-uni-farming/update-balance", NewUniFarmingController.updateUserFarmingBalance);
-  // Для совместимости перенаправляем на основной маршрут
   app.post("/api/new-uni-farming/deposit", (req, res) => {
     console.log('[ROUTES] ⚠️ Устаревший маршрут: /api/new-uni-farming/deposit, рекомендуется использовать /api/uni-farming/deposit');
     return NewUniFarmingController.createDeposit(req, res);
   });
-  app.get("/api/new-uni-farming/deposits", NewUniFarmingController.getUserDeposits);
+  app.get("/api/new-uni-farming/deposits", (req, res) => {
+    console.log('[ROUTES] ⚠️ Устаревший маршрут: /api/new-uni-farming/deposits, рекомендуется использовать /api/uni-farming/deposits');
+    return NewUniFarmingController.getUserDeposits(req, res);
+  });
   
   // Маршруты для буст-пакетов (с поддержкой fallback)
   app.get("/api/boosts", (req, res, next) => BoostControllerFallback.getBoostPackages(req, res, next));

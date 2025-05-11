@@ -16,6 +16,14 @@ const userIdSchema = z.object({
   user_id: z.coerce.number()
 });
 
+// Схема для валидации запроса на симуляцию вознаграждения
+const simulateRewardSchema = z.object({
+  user_id: z.coerce.number(),
+  amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: 'Сумма должна быть положительным числом'
+  })
+});
+
 // Схема для валидации запроса на создание депозита
 const createDepositSchema = z.object({
   user_id: z.coerce.number(),
@@ -334,6 +342,178 @@ export class NewUniFarmingController {
         success: false,
         message: 'Внутренняя ошибка сервера при обновлении баланса фарминга'
       });
+    }
+  }
+
+  /**
+   * Получает статус фарминга пользователя
+   * @route GET /api/uni-farming/status
+   */
+  static async getUserFarmingStatus(req: Request, res: Response): Promise<void> {
+    try {
+      // Валидация параметров запроса
+      const validationResult = userIdSchema.safeParse(req.query);
+      
+      if (!validationResult.success) {
+        throw new ValidationError('Ошибка валидации параметров', formatZodErrors(validationResult.error));
+      }
+      
+      const { user_id } = validationResult.data;
+      
+      // Получаем статус фарминга
+      const status = await newUniFarmingService.getUserFarmingStatus(user_id);
+      
+      res.json({
+        success: true,
+        data: status
+      });
+    } catch (error) {
+      console.error('Ошибка в getUserFarmingStatus:', error);
+      
+      // Обрабатываем ошибки валидации и Not Found
+      if (error instanceof ValidationError) {
+        res.status(400).json({
+          success: false,
+          message: error.message,
+          errors: error.errors || null
+        });
+      } else if (error instanceof NotFoundError) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: 'Внутренняя ошибка сервера при получении статуса фарминга'
+        });
+      }
+    }
+  }
+
+  /**
+   * Собирает накопленную прибыль от фарминга
+   * @route POST /api/uni-farming/harvest
+   */
+  static async harvestFarming(req: Request, res: Response): Promise<void> {
+    try {
+      // Валидация входных данных
+      const validationResult = userIdSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        throw new ValidationError('Ошибка валидации данных', formatZodErrors(validationResult.error));
+      }
+      
+      const { user_id } = validationResult.data;
+      
+      // Проверяем наличие ключа идемпотентности для предотвращения дублирования
+      const idempotencyKey = req.headers['x-idempotency-key'] as string || 
+        validationService.generateIdempotencyKey({
+          userId: user_id,
+          operation: 'harvest-farming',
+          timestamp: Date.now()
+        });
+      
+      // Проверяем, была ли уже выполнена эта операция
+      if (idempotencyKey && validationService.isOperationDuplicate(idempotencyKey)) {
+        res.json({
+          success: true,
+          data: {
+            message: 'Операция сбора УЖЕ была выполнена ранее',
+            duplicate: true,
+            harvested_amount: '0.000000'
+          }
+        });
+        return;
+      }
+      
+      // Выполняем сбор фарминга
+      const harvestResult = await newUniFarmingService.harvestUserFarming(user_id);
+      
+      // Регистрируем выполненную операцию
+      if (idempotencyKey) {
+        validationService.registerCompletedOperation(idempotencyKey, harvestResult);
+      }
+      
+      res.json({
+        success: true,
+        data: harvestResult
+      });
+    } catch (error) {
+      console.error('Ошибка в harvestFarming:', error);
+      
+      // Обрабатываем различные типы ошибок
+      if (error instanceof ValidationError) {
+        res.status(400).json({
+          success: false,
+          message: error.message,
+          errors: error.errors || null
+        });
+      } else if (error instanceof NotFoundError) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: 'Внутренняя ошибка сервера при сборе фарминга'
+        });
+      }
+    }
+  }
+
+  /**
+   * Симулирует расчет вознаграждения для заданной суммы депозита
+   * @route POST /api/uni-farming/simulate-reward
+   */
+  static async simulateReward(req: Request, res: Response): Promise<void> {
+    try {
+      // Валидация входных данных
+      const validationResult = simulateRewardSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        throw new ValidationError('Ошибка валидации данных', formatZodErrors(validationResult.error));
+      }
+      
+      const { user_id, amount } = validationResult.data;
+      
+      // Парсим и валидируем сумму
+      const parsedAmount = validationService.validateAndParseNumber(amount, {
+        min: 50,
+        max: 10000000,
+        currency: 'UNI',
+        precision: 6
+      });
+      
+      // Симулируем вознаграждение
+      const simulationResult = await newUniFarmingService.simulateFarmingReward(user_id, parsedAmount);
+      
+      res.json({
+        success: true,
+        data: simulationResult
+      });
+    } catch (error) {
+      console.error('Ошибка в simulateReward:', error);
+      
+      // Обрабатываем различные типы ошибок
+      if (error instanceof ValidationError) {
+        res.status(400).json({
+          success: false,
+          message: error.message,
+          errors: error.errors || null
+        });
+      } else if (error instanceof NotFoundError) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: 'Внутренняя ошибка сервера при симуляции вознаграждения'
+        });
+      }
     }
   }
 }
