@@ -12,12 +12,19 @@ const crypto = require('crypto');
 // Загрузить переменные окружения
 dotenv.config();
 
+// Проверяем наличие DATABASE_URL
+if (!process.env.DATABASE_URL) {
+  console.error("❌ Ошибка: переменная окружения DATABASE_URL не установлена");
+  process.exit(1);
+}
+
 // Определяем структуры таблиц вручную, так как TypeScript-схема не может быть импортирована напрямую в JavaScript
 const users = {
   id: 'id',
   username: 'username',
   ref_code: 'ref_code',
   parent_ref_code: 'parent_ref_code',
+  parent_id: 'parent_id', // добавлено поле parent_id для запросов с рекурсией
   balance_uni: 'balance_uni',
   balance_ton: 'balance_ton'
 };
@@ -44,13 +51,18 @@ const reward_distribution_logs = {
   status: 'status',
   error_message: 'error_message',
   processed_at: 'processed_at',
-  completed_at: 'completed_at'
+  completed_at: 'completed_at',
+  created_at: 'created_at' // Добавлено поле created_at, которое используется в INSERT
 };
 
 // Создать подключение к базе данных
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
+
+// Вывод информации о соединении для отладки
+console.log(`\nПодключение к PostgreSQL используя строку подключения в DATABASE_URL`);
+console.log(`(Реальная строка подключения скрыта для безопасности)\n`);
 
 // Создать экземпляр Drizzle с нашей схемой
 const db = drizzle(pool, { schema: { users, transactions, reward_distribution_logs } });

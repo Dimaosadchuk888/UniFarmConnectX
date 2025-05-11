@@ -3,12 +3,8 @@
  * Используется как альтернатива drizzle-kit push, который может работать медленно
  */
 
-// Для работы с ESM импортами в CommonJS
-const { Pool, neonConfig } = require('@neondatabase/serverless');
-const ws = require('ws');
-
-// Настройка WebSocket для Neon Serverless
-neonConfig.webSocketConstructor = ws;
+// Для работы с PostgreSQL
+const { Pool } = require('pg');
 
 // Подключение к базе данных
 const pool = new Pool({ 
