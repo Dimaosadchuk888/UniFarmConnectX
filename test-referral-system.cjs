@@ -123,34 +123,76 @@ async function testReferralBonusDistribution(userId, amount, currency) {
     
     // Проверяем наличие пользователя
     console.log(`\n2. Проверка пользователя с ID ${userId}...`);
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    if (!user) {
-      console.error(`✗ Пользователь с ID ${userId} не найден`);
+    try {
+      // Используем сырой SQL-запрос вместо drizzle-orm для отладки проблемы
+      const result = await pool.query(`SELECT * FROM users WHERE id = $1`, [userId]);
+      const user = result.rows[0];
+      
+      if (!user) {
+        console.error(`✗ Пользователь с ID ${userId} не найден`);
+        return false;
+      }
+      console.log(`✓ Пользователь найден: ${user.username} (${user.ref_code})`);
+    } catch (error) {
+      console.error(`✗ Ошибка при поиске пользователя:`, error);
       return false;
     }
-    console.log(`✓ Пользователь найден: ${user.username} (${user.ref_code})`);
     
     // Получаем информацию о реферальной структуре
     console.log('\n3. Анализ реферальной структуры...');
     console.time('Запрос структуры');
-    const { results: structure } = await db.execute(sql`
-      WITH RECURSIVE ref_tree AS (
-        SELECT id, parent_id, username, ref_code, 0 AS level
-        FROM users
-        WHERE id = ${userId}
-        
-        UNION ALL
-        
-        SELECT u.id, u.parent_id, u.username, u.ref_code, rt.level + 1
-        FROM users u
-        JOIN ref_tree rt ON u.parent_id = rt.id
-        WHERE rt.level < 20
-      )
-      SELECT level, COUNT(*) as users_count
-      FROM ref_tree
-      GROUP BY level
-      ORDER BY level
-    `);
+    
+    // Используем сырой SQL запрос для получения реферальной структуры
+    let structure = [];
+    try {
+      // Проверим структуру таблицы users
+      console.log('Проверка структуры таблицы users...');
+      const columnsResult = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'users'
+      `);
+      
+      console.log('Колонки в таблице users:');
+      columnsResult.rows.forEach(row => {
+        console.log(`  - ${row.column_name}`);
+      });
+      
+      // Попробуем использовать parent_ref_code вместо parent_id
+      const result = await pool.query(`
+        WITH RECURSIVE ref_tree AS (
+          SELECT 
+            id, 
+            ref_code, 
+            parent_ref_code,
+            username, 
+            0 AS level
+          FROM users
+          WHERE id = $1
+          
+          UNION ALL
+          
+          SELECT 
+            u.id, 
+            u.ref_code, 
+            u.parent_ref_code,
+            u.username, 
+            rt.level + 1
+          FROM users u
+          JOIN ref_tree rt ON u.parent_ref_code = rt.ref_code
+          WHERE rt.level < 20
+        )
+        SELECT level, COUNT(*) as users_count
+        FROM ref_tree
+        GROUP BY level
+        ORDER BY level
+      `, [userId]);
+      
+      structure = result.rows;
+    } catch (error) {
+      console.error('✗ Ошибка при получении реферальной структуры:', error);
+    }
+    
     console.timeEnd('Запрос структуры');
     
     console.log('Реферальная структура по уровням:');
@@ -171,16 +213,28 @@ async function testReferralBonusDistribution(userId, amount, currency) {
     // Создаем запись в журнале распределения
     console.log(`\n4. Создание записи в журнале распределения (batch_id: ${batchId})...`);
     console.time('Создание записи');
-    await db.insert(reward_distribution_logs).values({
-      source_user_id: userId,
-      batch_id: batchId,
-      currency: currency,
-      earned_amount: amount.toString(),
-      status: 'queued',
-      created_at: new Date()
-    });
+    
+    try {
+      await pool.query(`
+        INSERT INTO reward_distribution_logs (
+          source_user_id, batch_id, currency, earned_amount, 
+          status, processed_at
+        ) VALUES ($1, $2, $3, $4, $5, $6)
+      `, [
+        userId, 
+        batchId, 
+        currency, 
+        amount.toString(), 
+        'queued',
+        new Date()
+      ]);
+      console.log('✓ Запись создана');
+    } catch (error) {
+      console.error('✗ Ошибка при создании записи:', error);
+      return false;
+    }
+    
     console.timeEnd('Создание записи');
-    console.log('✓ Запись создана');
     
     // Имитируем пакетное обновление балансов
     console.log('\n5. Тестирование пакетного обновления балансов...');
@@ -189,27 +243,33 @@ async function testReferralBonusDistribution(userId, amount, currency) {
     // Создаем тестовый набор пользователей для обновления
     const testUserIds = [userId];
     if (totalReferrals > 0) {
-      // Получаем до 5 рефералов для тестирования
-      const { results: referrals } = await db.execute(sql`
-        WITH RECURSIVE ref_tree AS (
-          SELECT id, parent_id, username, level
-          FROM users
-          WHERE id = ${userId}
-          
-          UNION ALL
-          
-          SELECT u.id, u.parent_id, u.username, rt.level + 1
-          FROM users u
-          JOIN ref_tree rt ON u.parent_id = rt.id
-          WHERE rt.level < 2 -- Только первые два уровня для теста
-        )
-        SELECT id FROM ref_tree WHERE level > 0 LIMIT 5
-      `);
-      
-      if (referrals && referrals.length > 0) {
-        referrals.forEach(ref => {
-          testUserIds.push(ref.id);
-        });
+      try {
+        // Получаем до 5 рефералов для тестирования
+        const result = await pool.query(`
+          WITH RECURSIVE ref_tree AS (
+            SELECT id, parent_id, username, 0 AS level
+            FROM users
+            WHERE id = $1
+            
+            UNION ALL
+            
+            SELECT u.id, u.parent_id, u.username, rt.level + 1
+            FROM users u
+            JOIN ref_tree rt ON u.parent_id = rt.id
+            WHERE rt.level < 2 -- Только первые два уровня для теста
+          )
+          SELECT id FROM ref_tree WHERE level > 0 LIMIT 5
+        `, [userId]);
+        
+        const referrals = result.rows;
+        
+        if (referrals && referrals.length > 0) {
+          referrals.forEach(ref => {
+            testUserIds.push(ref.id);
+          });
+        }
+      } catch (error) {
+        console.error('✗ Ошибка при получении тестовых рефералов:', error);
       }
     }
     
@@ -238,21 +298,45 @@ WHERE id IN (${userIdsStr})`);
     // Обновляем статус в журнале
     console.log('\n6. Обновление статуса в журнале...');
     console.time('Обновление статуса');
-    await db.update(reward_distribution_logs)
-      .set({ 
-        status: 'completed',
-        completed_at: new Date(),
-        levels_processed: structure ? structure.length - 1 : 0,
-        inviter_count: totalReferrals
-      })
-      .where(eq(reward_distribution_logs.batch_id, batchId));
+    
+    try {
+      await pool.query(`
+        UPDATE reward_distribution_logs
+        SET 
+          status = $1,
+          completed_at = $2,
+          levels_processed = $3,
+          inviter_count = $4
+        WHERE batch_id = $5
+      `, [
+        'completed',
+        new Date(),
+        structure ? structure.length - 1 : 0,
+        totalReferrals,
+        batchId
+      ]);
+      console.log('✓ Статус обновлен');
+    } catch (error) {
+      console.error('✗ Ошибка при обновлении статуса:', error);
+      return false;
+    }
+    
     console.timeEnd('Обновление статуса');
-    console.log('✓ Статус обновлен');
     
     // Проверяем результаты
     console.log('\n7. Проверка записи в журнале...');
-    const [logRecord] = await db.select().from(reward_distribution_logs)
-      .where(eq(reward_distribution_logs.batch_id, batchId));
+    let logRecord = null;
+    
+    try {
+      const result = await pool.query(
+        `SELECT * FROM reward_distribution_logs WHERE batch_id = $1`, 
+        [batchId]
+      );
+      logRecord = result.rows[0];
+    } catch (error) {
+      console.error('✗ Ошибка при проверке записи в журнале:', error);
+      return false;
+    }
     
     if (logRecord) {
       console.log('✓ Запись найдена в журнале:');
@@ -278,12 +362,14 @@ const amount = parseFloat(process.argv[3] || '100');
 const currency = (process.argv[4] || 'UNI').toUpperCase();
 
 // Запускаем тест
-try {
-  await testReferralBonusDistribution(userId, amount, currency);
-} catch (error) {
-  console.error('Ошибка при выполнении теста:', error);
-} finally {
-  // Закрываем соединение с БД
-  await pool.end();
-  console.timeEnd('Общее время выполнения');
-}
+(async function runTest() {
+  try {
+    await testReferralBonusDistribution(userId, amount, currency);
+  } catch (error) {
+    console.error('Ошибка при выполнении теста:', error);
+  } finally {
+    // Закрываем соединение с БД
+    await pool.end();
+    console.timeEnd('Общее время выполнения');
+  }
+})();
