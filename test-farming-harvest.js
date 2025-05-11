@@ -2,10 +2,11 @@ import fetch from 'node-fetch';
 
 /**
  * Тестирует API для получения информации о фарминге
+ * Обновлено: использует текущий домен Replit
  */
 async function testFarmingHarvest() {
   try {
-    const baseUrl = 'https://8ac7b219-438d-4a0b-ab0e-d8b58de37c6d-00-8ncue1micrhz.sisko.replit.dev';
+    const baseUrl = 'https://93cb0060-75d7-4281-ac65-b204cda864a4-00-1j7bpbfst9vfx.pike.replit.dev';
     const endpoint = '/api/uni-farming/harvest';
     const url = `${baseUrl}${endpoint}`;
     
