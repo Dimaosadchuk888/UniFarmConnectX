@@ -161,6 +161,9 @@ const runPerformanceTest = async (pool, userId, structureSize, currency, amount)
   console.log(`\n`);
   
   try {
+    // Проверяем, что мы имеем доступ к БД
+    console.log('Проверка соединения с базой данных...');
+    
     // Создаем тестовую структуру
     const { testId, levels } = await setupReferralStructure(pool, userId, structureSize);
     
@@ -225,7 +228,11 @@ function fixImportPaths() {
       return import('./server/services/transactionService.js')
         .then(transactionModule => {
           const Currency = transactionModule.Currency;
-          return { ReferralBonusService, Currency };
+          return import('./server/db.js')
+            .then(dbModule => {
+              const db = dbModule.db;
+              return { ReferralBonusService, Currency, db };
+            });
         });
     });
 }
@@ -233,24 +240,27 @@ function fixImportPaths() {
 // Точка входа
 const main = async () => {
   // Загружаем модули
-  const { ReferralBonusService, Currency } = await fixImportPaths();
+  const { ReferralBonusService, Currency, db } = await fixImportPaths();
   try {
     validateEnvironment();
     
     // Парсим аргументы командной строки
     const userId = parseInt(process.argv[2]) || 1;
-    const structureSize = process.argv[3] || 'small';
-    const currency = (process.argv[4] || 'UNI').toUpperCase();
+    const structureSize = process.argv[3] || 'medium';
     const amount = parseFloat(process.argv[5]) || 1000;
     
-    // Подключаемся к базе данных
-    const pool = await initDb();
+    console.log(`Запуск теста производительности реферальной системы:
+  - ID пользователя: ${userId}
+  - Размер структуры: ${structureSize}
+  - Валюта: ${Currency.UNI}
+  - Сумма: ${amount}
+`);
     
-    // Запускаем тест
-    await runPerformanceTest(pool, userId, structureSize, currency, amount);
+    // Запускаем тест производительности
+    await runPerformanceTest(db.client, userId, structureSize, Currency.UNI, amount);
     
     // Закрываем подключение к БД
-    await pool.end();
+    await db.client.end();
     
     console.log('\n✅ Тест успешно завершен');
   } catch (error) {
