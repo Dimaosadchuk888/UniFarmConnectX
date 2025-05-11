@@ -281,6 +281,16 @@ export const reward_distribution_logs = pgTable("reward_distribution_logs", {
   completed_at: timestamp("completed_at") // Время завершения обработки
 });
 
+// Таблица для метрик производительности
+export const performance_metrics = pgTable("performance_metrics", {
+  id: serial("id").primaryKey(),
+  operation: text("operation").notNull(), // Тип операции (process_batch, queue_reward, и т.д.)
+  batch_id: text("batch_id"), // ID связанного пакета распределения
+  duration_ms: numeric("duration_ms", { precision: 12, scale: 2 }).notNull(), // Длительность операции в миллисекундах
+  timestamp: timestamp("timestamp").defaultNow().notNull(), // Время записи метрики
+  details: text("details") // Дополнительные детали (JSON-строка)
+});
+
 // Схемы для таблицы partition_logs
 export const insertPartitionLogSchema = createInsertSchema(partition_logs).pick({
   operation: true,
@@ -310,6 +320,18 @@ export const insertRewardDistributionLogSchema = createInsertSchema(reward_distr
 
 export type InsertRewardDistributionLog = z.infer<typeof insertRewardDistributionLogSchema>;
 export type RewardDistributionLog = typeof reward_distribution_logs.$inferSelect;
+
+// Схемы для таблицы performance_metrics
+export const insertPerformanceMetricSchema = createInsertSchema(performance_metrics).pick({
+  operation: true,
+  batch_id: true,
+  duration_ms: true,
+  timestamp: true,
+  details: true
+});
+
+export type InsertPerformanceMetric = z.infer<typeof insertPerformanceMetricSchema>;
+export type PerformanceMetric = typeof performance_metrics.$inferSelect;
 
 // Схемы для таблицы launch_logs
 export const insertLaunchLogSchema = createInsertSchema(launchLogs).pick({
