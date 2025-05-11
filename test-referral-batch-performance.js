@@ -217,8 +217,23 @@ const runPerformanceTest = async (pool, userId, structureSize, currency, amount)
   }
 };
 
+// Преобразуем ESM импорты для Node.js
+function fixImportPaths() {
+  return import('./server/services/referralBonusServiceInstance.js')
+    .then(referralModule => {
+      const ReferralBonusService = referralModule.ReferralBonusService;
+      return import('./server/services/transactionService.js')
+        .then(transactionModule => {
+          const Currency = transactionModule.Currency;
+          return { ReferralBonusService, Currency };
+        });
+    });
+}
+
 // Точка входа
 const main = async () => {
+  // Загружаем модули
+  const { ReferralBonusService, Currency } = await fixImportPaths();
   try {
     validateEnvironment();
     

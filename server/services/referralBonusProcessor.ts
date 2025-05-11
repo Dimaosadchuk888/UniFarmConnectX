@@ -42,6 +42,19 @@ interface ReferralRewardData {
 }
 
 /**
+ * Интерфейс для обновления баланса
+ */
+interface BalanceUpdate {
+  id: number;
+  amount: number;
+}
+
+/**
+ * Тип для массива пользовательских ID
+ */
+type UserIdArray = number[];
+
+/**
  * Класс для фоновой и пакетной обработки реферальных начислений
  */
 export class ReferralBonusProcessor {
@@ -321,7 +334,7 @@ export class ReferralBonusProcessor {
           const numericInviterId = parseInt(inviterId);
           const bonuses = bonusesByInviter[numericInviterId];
           // Получаем пользователя-приглашателя из Map
-          const inviter = invitersMap.get(inviterId);
+          const inviter = invitersMap.get(numericInviterId);
           
           if (!inviter) {
             console.log(`[ReferralBonusProcessor] Inviter with ID ${inviterId} not found in fetched data, skipping`);
@@ -397,10 +410,10 @@ export class ReferralBonusProcessor {
           console.log(`[ReferralBonusProcessor] Performing batch balance update for ${balanceUpdates.length} users`);
           
           // Сортируем обновления для консистентности (важно для тестирования и отладки)
-          balanceUpdates.sort((a, b) => a.id - b.id);
+          balanceUpdates.sort((a, b) => Number(a.id) - Number(b.id));
           
           // Строим массив ID пользователей для обновления
-          const userIds = balanceUpdates.map(update => update.id);
+          const updateUserIds = balanceUpdates.map(update => update.id);
           
           // Определяем, какое поле баланса нужно обновить
           const balanceField = currency === Currency.UNI ? users.balance_uni : users.balance_ton;
@@ -419,7 +432,7 @@ export class ReferralBonusProcessor {
               [currency === Currency.UNI ? 'balance_uni' : 'balance_ton']: 
                 sql`CASE id ${sql.join(caseExpressions, ' ')} ELSE ${currency === Currency.UNI ? 'balance_uni' : 'balance_ton'} END`
             })
-            .where(inArray(users.id, userIds));
+            .where(inArray(users.id, updateUserIds.map(id => Number(id))));
         }
         
         // Выполняем пакетную вставку всех транзакций (одним запросом)
