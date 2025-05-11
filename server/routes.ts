@@ -1508,8 +1508,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для UNI фарминга (с поддержкой fallback)
   app.get("/api/uni-farming/info", UniFarmingControllerFallback.getUserFarmingInfo);
   app.get("/api/uni-farming/status", UniFarmingControllerFallback.getUserFarmingStatus);
-  // Убираем проблемный маршрут update-balance, так как соответствующий метод отсутствует в контроллере
-  app.post("/api/uni-farming/deposit", UniFarmingControllerFallback.depositFarming);
+  // Важно: используем NewUniFarmingController для корректного обновления баланса
+  // Этот маршрут должен быть ЕДИНСТВЕННЫМ для создания депозита
+  app.post("/api/uni-farming/deposit", (req, res) => {
+    console.log('[ROUTES] 🔄 Депозит запрошен через /api/uni-farming/deposit');
+    return NewUniFarmingController.createDeposit(req, res);
+  });
   app.get("/api/uni-farming/deposits", UniFarmingControllerFallback.getUserFarmingDeposits);
   app.post("/api/uni-farming/harvest", UniFarmingControllerFallback.harvestFarmingInfo);
   app.post("/api/uni-farming/simulate-reward", UniFarmingControllerFallback.simulateReward);
@@ -1517,7 +1521,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для множественного UNI фарминга (новая версия)
   app.get("/api/new-uni-farming/info", NewUniFarmingController.getUserFarmingInfo);
   app.get("/api/new-uni-farming/update-balance", NewUniFarmingController.updateUserFarmingBalance);
-  app.post("/api/new-uni-farming/deposit", NewUniFarmingController.createDeposit);
+  // Для совместимости перенаправляем на основной маршрут
+  app.post("/api/new-uni-farming/deposit", (req, res) => {
+    console.log('[ROUTES] ⚠️ Устаревший маршрут: /api/new-uni-farming/deposit, рекомендуется использовать /api/uni-farming/deposit');
+    return NewUniFarmingController.createDeposit(req, res);
+  });
   app.get("/api/new-uni-farming/deposits", NewUniFarmingController.getUserDeposits);
   
   // Маршруты для буст-пакетов (с поддержкой fallback)

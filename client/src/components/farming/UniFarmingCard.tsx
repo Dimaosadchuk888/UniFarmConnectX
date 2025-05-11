@@ -91,13 +91,25 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     }
   });
   
-  // Подсчет количества депозитов из транзакций
+  // Подсчет депозитов и суммирование их вклада из транзакций
   const farmingDeposits = React.useMemo(() => {
     if (!transactionsResponse?.data?.transactions) return [];
     return transactionsResponse.data.transactions.filter(
       (tx: any) => tx.type === 'deposit' && tx.currency === 'UNI' && tx.source === 'uni_farming'
     );
   }, [transactionsResponse?.data?.transactions]);
+  
+  // Рассчитываем суммарную величину всех депозитов
+  const totalDepositsAmount = React.useMemo(() => {
+    if (!farmingDeposits || farmingDeposits.length === 0) return farmingInfo.depositAmount || '0';
+    
+    // Суммируем все депозиты
+    const total = farmingDeposits.reduce((sum: BigNumber, tx: any) => {
+      return sum.plus(new BigNumber(tx.amount || '0'));
+    }, new BigNumber(0));
+    
+    return total.toString();
+  }, [farmingDeposits, farmingInfo.depositAmount]);
   
   // Подсчитываем количество активных депозитов
   const depositCount = farmingDeposits.length || 0;
@@ -661,7 +673,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-foreground opacity-70">Общая сумма депозитов</p>
-              <p className="text-lg font-medium">{formatNumber(farmingInfo.depositAmount || '0')} UNI</p>
+              <p className="text-lg font-medium">{formatNumber(totalDepositsAmount)} UNI</p>
             </div>
             <div>
               <p className="text-sm text-foreground opacity-70">Дата активации</p>

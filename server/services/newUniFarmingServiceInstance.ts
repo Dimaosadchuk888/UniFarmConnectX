@@ -234,15 +234,19 @@ export const newUniFarmingServiceInstance: INewUniFarmingService = {
   },
 
   async createUniFarmingDeposit(userId: number, amount: string): Promise<CreateMultiDepositResult> {
+    console.log('[NewUniFarmingService] ➡️ Запрос на создание депозита, параметры:', { userId, amount });
+    
     try {
       const depositAmount = new BigNumber(amount);
       if (depositAmount.isNaN() || depositAmount.isLessThanOrEqualTo(0)) {
+        console.error('[NewUniFarmingService] ❌ Некорректная сумма депозита:', amount);
         return {
           success: false,
           message: 'Сумма депозита должна быть положительной'
         };
       }
       
+      console.log('[NewUniFarmingService] 🔍 Проверка баланса пользователя:', userId);
       const [user] = await db
         .select({
           balance_uni: users.balance_uni
@@ -251,6 +255,7 @@ export const newUniFarmingServiceInstance: INewUniFarmingService = {
         .where(eq(users.id, userId));
       
       if (!user) {
+        console.error('[NewUniFarmingService] ❌ Пользователь не найден:', userId);
         return {
           success: false,
           message: 'Пользователь не найден'
@@ -258,7 +263,18 @@ export const newUniFarmingServiceInstance: INewUniFarmingService = {
       }
       
       const balanceUni = new BigNumber(user.balance_uni !== null ? user.balance_uni.toString() : '0');
+      console.log('[NewUniFarmingService] ℹ️ Текущий баланс:', { 
+        userId, 
+        balance: balanceUni.toString(), 
+        depositAmount: depositAmount.toString(),
+        sufficientFunds: balanceUni.isGreaterThanOrEqualTo(depositAmount)
+      });
+      
       if (balanceUni.decimalPlaces(6).isLessThan(depositAmount)) {
+        console.error('[NewUniFarmingService] ❌ Недостаточно средств:', { 
+          balance: balanceUni.toString(), 
+          depositAmount: depositAmount.toString() 
+        });
         return {
           success: false,
           message: 'Недостаточно средств на балансе'
@@ -303,13 +319,30 @@ export const newUniFarmingServiceInstance: INewUniFarmingService = {
         };
       }
 
-      await db
-        .update(users)
-        .set({
-          balance_uni: balanceUni.minus(depositAmount).toFixed(6)
-        })
-        .where(eq(users.id, userId));
-        
+      // КРИТИЧЕСКИ ВАЖНАЯ ОПЕРАЦИЯ: Вычитание из баланса пользователя
+      console.log('[NewUniFarmingService] 💸 Вычитаем из баланса:', {
+        userId,
+        oldBalance: balanceUni.toString(),
+        subtractAmount: depositAmount.toString(),
+        newBalance: balanceUni.minus(depositAmount).toString()
+      });
+      
+      try {
+        await db
+          .update(users)
+          .set({
+            balance_uni: balanceUni.minus(depositAmount).toFixed(6)
+          })
+          .where(eq(users.id, userId));
+          
+        console.log('[NewUniFarmingService] ✅ Баланс пользователя успешно обновлен');
+      } catch (error) {
+        console.error('[NewUniFarmingService] ❌ Ошибка при обновлении баланса:', error);
+        throw new Error('Ошибка при обновлении баланса пользователя');
+      }
+      
+      // Логируем транзакцию
+      console.log('[NewUniFarmingService] 📝 Логируем транзакцию депозита');
       await TransactionService.logTransaction({
         userId,
         type: TransactionType.DEPOSIT,

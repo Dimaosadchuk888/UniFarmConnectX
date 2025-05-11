@@ -91,15 +91,22 @@ export class NewUniFarmingController {
    * @route POST /api/new-uni-farming/deposit
    */
   static async createDeposit(req: Request, res: Response): Promise<void> {
+    console.log('[NewUniFarmingController] 🔎 createDeposit - Запрос на создание депозита:', {
+      path: req.path,
+      body: JSON.stringify(req.body)
+    });
+    
     try {
       // Валидация входных данных с помощью Zod для базовой проверки структуры
       const validationResult = createDepositSchema.safeParse(req.body);
       
       if (!validationResult.success) {
+        console.error('[NewUniFarmingController] ❌ Ошибка валидации данных:', formatZodErrors(validationResult.error));
         throw new ValidationError('Ошибка валидации данных', formatZodErrors(validationResult.error));
       }
       
       const { user_id, amount } = validationResult.data;
+      console.log('[NewUniFarmingController] ✅ Валидация пройдена, данные:', { user_id, amount });
       
       // Используем централизованный ValidationService для проверки финансовой операции
       const farmingOperationValidation = validationService.validateFarmingOperation(
