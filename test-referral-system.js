@@ -2,25 +2,61 @@
  * Скрипт для тестирования оптимизированной системы реферальных бонусов
  */
 
-import pg from 'pg';
-import { drizzle } from 'drizzle-orm/pg-serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 import { eq, sql } from 'drizzle-orm';
 import dotenv from 'dotenv';
+import ws from 'ws';
 
 // Загрузить переменные окружения
 dotenv.config();
 
+// Определяем структуры таблиц вручную, так как TypeScript-схема не может быть импортирована напрямую в JavaScript
+const users = {
+  id: 'id',
+  username: 'username',
+  ref_code: 'ref_code',
+  parent_ref_code: 'parent_ref_code',
+  balance_uni: 'balance_uni',
+  balance_ton: 'balance_ton'
+};
+
+const transactions = {
+  id: 'id',
+  user_id: 'user_id',
+  type: 'type',
+  currency: 'currency',
+  amount: 'amount',
+  status: 'status',
+  created_at: 'created_at'
+};
+
+// Определяем структуру таблицы reward_distribution_logs
+const reward_distribution_logs = {
+  id: 'id',
+  source_user_id: 'source_user_id',
+  batch_id: 'batch_id',
+  currency: 'currency',
+  earned_amount: 'earned_amount',
+  total_distributed: 'total_distributed',
+  levels_processed: 'levels_processed',
+  inviter_count: 'inviter_count',
+  status: 'status',
+  error_message: 'error_message',
+  processed_at: 'processed_at',
+  completed_at: 'completed_at'
+};
+
+// Настраиваем WebSocket для Neon
+neonConfig.webSocketConstructor = ws;
+
 // Создать подключение к базе данных
-const { Pool } = pg;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
 
 // Создать экземпляр Drizzle с нашей схемой
-const db = drizzle(pool);
-
-// Импортируем типы схемы напрямую
-import { users, transactions } from './shared/schema.js';
+const db = drizzle(pool, { schema: { users, transactions } });
 
 // Определяем структуру таблицы reward_distribution_logs, так как она может отсутствовать в схеме
 const reward_distribution_logs = {
