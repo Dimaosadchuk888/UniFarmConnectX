@@ -48,6 +48,7 @@ import { BoostControllerFallback } from './controllers/boostControllerFallback';
 import { TonBoostController } from './controllers/tonBoostController';
 import { TonBoostControllerFallback } from './controllers/tonBoostControllerFallback'; // Fallback контроллер для TON фарминга
 import { UniFarmingControllerFallback } from './controllers/uniFarmingControllerFallback'; // Fallback контроллер для UNI фарминга
+import { FarmingBoostController } from './controllers/farmingBoostController'; // Контроллер для синхронизации бустов фарминга
 import { DailyBonusControllerFallback } from './controllers/dailyBonusControllerFallback'; // Fallback контроллер для ежедневных бонусов
 import { WalletControllerFallback } from './controllers/walletControllerFallback'; // Fallback контроллер для кошелька
 import { UserControllerFallback } from './controllers/userControllerFallback'; // Fallback контроллер для пользователей
@@ -1545,7 +1546,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // TON фарминг с поддержкой fallback
   app.get("/api/ton-farming/info", TonBoostControllerFallback.getUserTonFarmingInfo);
   app.get("/api/ton-farming/update-balance", TonBoostControllerFallback.calculateAndUpdateTonFarming);
-  app.get("/api/ton-farming/active", TonBoostControllerFallback.getUserActiveTonBoosts);
+  app.get("/api/ton-farming/active", FarmingBoostController.getTonFarmingActive);
   
   // Добавляем эндпоинт для тестирования обновления TON фарминга
   app.post("/api/ton-farming/update", async (req: Request, res: Response) => {
@@ -1644,7 +1645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Эндпоинты для получения активных бустов фарминга
-  app.get("/api/farming/boosts/active", BoostControllerFallback.getUserFarmingBoosts);
+  app.get("/api/farming/boosts/active", FarmingBoostController.getUserActiveTonBoosts);
   
   // Эндпоинты для управления реферальной системой
   app.get("/api/system/referrals/mode", ReferralSystemController.getReferralSystemMode);
@@ -1844,13 +1845,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     path: '/ws',
     // Установка основных параметров для оптимальной производительности
     clientTracking: true,
-    // Полностью отключаем сжатие для устранения проблем совместимости
-    perMessageDeflate: false,
+    // Включаем сжатие для экономии трафика и лучшей совместимости с современными клиентами
+    perMessageDeflate: {
+      zlibDeflateOptions: { level: 1 }, // Минимальное сжатие для низкой нагрузки на CPU
+      zlibInflateOptions: { chunkSize: 10 * 1024 }, // 10KB в буфере для инфляции
+      clientNoContextTakeover: true, // Снижает использование памяти
+      serverNoContextTakeover: true, // Снижает использование памяти
+      threshold: 1024 // Сжимать только сообщения > 1KB
+    },
     // Увеличиваем максимальный размер сообщения
-    maxPayload: 1024 * 1024, // 1MB
-    // Настраиваем websocket для более высокой стабильности
-    // 120 секунд (2 минуты) на завершение handshake
-    handshakeTimeout: 120000
+    maxPayload: 1024 * 1024 // 1MB
   });
   
   // Отслеживание активных подключений
@@ -1873,31 +1877,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Интервал проверки активности клиентов
   const pingInterval = setInterval(() => {
+    let activeClients = 0;
+    let terminatedClients = 0;
+    
     wss.clients.forEach((ws: WebSocket) => {
       const client = ws as ExtendedWebSocket;
       
       if (client.isAlive === false) {
+        // Дополнительная проверка состояния соединения перед закрытием
+        if (client.readyState !== WebSocket.OPEN && client.readyState !== WebSocket.CONNECTING) {
+          // Если клиент уже закрыт или закрывается, просто удаляем из Map
+          if (client.clientId) {
+            clients.delete(client.clientId);
+          }
+          terminatedClients++;
+          return;
+        }
+        
         // Если клиент не ответил на ping, закрываем соединение
         if (client.clientId) {
           clients.delete(client.clientId);
+          console.log('[WebSocket] Клиент не отвечает, закрываем соединение', { clientId: client.clientId });
         }
+        terminatedClients++;
         return client.terminate();
       }
       
       // Отмечаем клиент как неактивный перед отправкой ping
       client.isAlive = false;
+      activeClients++;
       
       // Отправляем ping
       try {
         if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() }));
+          client.send(JSON.stringify({ 
+            type: 'ping', 
+            timestamp: new Date().toISOString(),
+            clientId: client.clientId
+          }));
         }
       } catch (e) {
         console.error('[WebSocket] Ошибка при отправке ping:', e);
+        if (client.clientId) {
+          clients.delete(client.clientId);
+        }
+        terminatedClients++;
         client.terminate();
       }
     });
-  }, 15000); // проверяем каждые 15 секунд
+    
+    // Логирование статистики каждые 5 минут (или при изменениях)
+    if (terminatedClients > 0 || new Date().getMinutes() % 5 === 0) {
+      console.log('[WebSocket] Статистика соединений:', { 
+        activeClients, 
+        terminatedClients,
+        totalTracked: clients.size
+      });
+    }
+  }, 30000); // проверяем каждые 30 секунд вместо 15
   
   // Обработка подключений WebSocket
   wss.on('connection', (ws: ExtendedWebSocket) => {
@@ -1931,20 +1968,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         const data = JSON.parse(message.toString());
-        console.log('[WebSocket] Получено сообщение:', data);
+        
+        // Ограничиваем логирование, только если это не ping/pong сообщение
+        if (data.type !== 'ping' && data.type !== 'pong') {
+          console.log('[WebSocket] Получено сообщение:', data);
+        }
         
         // Обработка различных типов сообщений
-        if (data.type === 'pong') {
+        if (data.type === 'ping') {
+          // Клиент прислал ping, отвечаем pong
+          ws.isAlive = true;
+          try {
+            ws.send(JSON.stringify({ 
+              type: 'pong', 
+              timestamp: new Date().toISOString(),
+              clientId: ws.clientId,
+              echo: data.timestamp // Возвращаем исходную метку для измерения задержки
+            }));
+          } catch (e) {
+            console.error('[WebSocket] Ошибка при отправке pong-ответа:', e);
+          }
+        } else if (data.type === 'pong') {
           // Пользователь ответил на пинг
           ws.isAlive = true;
         } else if (data.type === 'subscribe' && data.userId) {
           // Подписка на обновления для конкретного пользователя
-          ws.userId = data.userId;
+          ws.userId = parseInt(data.userId);
           try {
             ws.send(JSON.stringify({ 
               type: 'subscribed', 
-              userId: data.userId,
-              message: `Подписка на обновления для пользователя ${data.userId} оформлена` 
+              userId: ws.userId,
+              clientId: ws.clientId,
+              timestamp: new Date().toISOString(),
+              message: `Подписка на обновления для пользователя ${ws.userId} оформлена` 
             }));
           } catch (e) {
             console.error('[WebSocket] Ошибка при отправке подтверждения подписки:', e);
@@ -2000,8 +2056,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   (global as any).broadcastUserUpdate = (userId: number, data: Record<string, unknown>): void => {
     let sentCount = 0;
     
-    // Используем Map для более эффективного доступа
-    for (const [clientId, extClient] of clients.entries()) {
+    // Используем Array.from для совместимости с TypeScript без downlevelIteration
+    Array.from(clients.entries()).forEach(([clientId, extClient]) => {
       if (extClient.readyState === WebSocket.OPEN && extClient.userId === userId) {
         try {
           extClient.send(JSON.stringify({
@@ -2028,12 +2084,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
           clients.delete(clientId);
         }
       }
-    }
+    });
     
     if (sentCount > 0) {
       console.log(`[WebSocket] Отправлены обновления для пользователя ${userId} на ${sentCount} устройств`);
     }
   };
+  
+  // Добавляем глобальную функцию для отправки тестовых сообщений всем клиентам
+  // Используется для проверки стабильности WebSocket соединений
+  (global as any).broadcastAll = (message: string): void => {
+    let sentCount = 0;
+    const timestamp = new Date().toISOString();
+    
+    // Используем безопасную итерацию по Map
+    Array.from(clients.entries()).forEach(([clientId, extClient]) => {
+      if (extClient.readyState === WebSocket.OPEN) {
+        try {
+          extClient.send(JSON.stringify({
+            type: 'broadcast',
+            message,
+            timestamp,
+            clientId
+          }));
+          sentCount++;
+        } catch (error) {
+          console.error('[WebSocket] Ошибка при отправке broadcast:', {
+            clientId,
+            error: error instanceof Error ? error.message : 'Неизвестная ошибка'
+          });
+        }
+      }
+    });
+    
+    console.log(`[WebSocket] Широковещательное сообщение отправлено ${sentCount} клиентам`);
+  };
+  
+  // Добавляем диагностический API-маршрут для проверки WebSocket соединений
+  app.get('/api/websocket/status', (req: Request, res: Response) => {
+    const clientsCount = clients.size;
+    const activeClients = Array.from(clients.values()).filter(c => c.isAlive && c.readyState === WebSocket.OPEN).length;
+    
+    res.json({
+      success: true,
+      data: {
+        total: clientsCount,
+        active: activeClients,
+        timestamp: new Date().toISOString()
+      }
+    });
+  });
   
   // Для успешного прохождения Replit делпоя
   // Мы временно удаляем обработчик маршрута UniFarm

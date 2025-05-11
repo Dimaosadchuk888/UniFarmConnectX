@@ -61,6 +61,10 @@ interface Transaction {
   boost_id?: number;
   currency?: string;
   status?: string;
+  source?: string;
+  category?: string;
+  description?: string;
+  data?: any;
 }
 
 // Интерфейс для пропсов компонента
@@ -142,9 +146,9 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     refetchInterval: 10000, // Обновляем каждые 10 секунд
   });
   
-  // Запрос на получение активных бустов
+  // Запрос на получение активных бустов используя новый общий эндпоинт
   const { data: activeBoostsResponse, refetch: refetchBoosts } = useQuery({
-    queryKey: ['/api/farming/boosts/active', { user_id: validUserId }],
+    queryKey: ['/api/ton-boosts/active', { user_id: validUserId }],
     queryFn: async () => {
       try {
         // Проверка наличия userId перед запросом
@@ -155,7 +159,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         
         // Используем correctApiRequest с расширенной обработкой ошибок
         try {
-          const result = await correctApiRequest<any>(`/api/farming/boosts/active?user_id=${validUserId}`, 'GET');
+          console.log("[DEBUG] Запрос активных TON бустов по URL /api/ton-boosts/active");
+          const result = await correctApiRequest<any>(`/api/ton-boosts/active?user_id=${validUserId}`, 'GET');
           
           // Проверка структуры ответа на валидность
           if (!result) {
@@ -209,9 +214,46 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     refetchInterval: 10000, // Обновляем каждые 10 секунд
   });
   
-  // Запрос на получение активных TON-бустов
-  const { data: activeTonBoostsResponse, refetch: refetchTonBoosts } = useQuery({
+  // Запрос на получение активных TON-бустов (fallback-версия)
+  const { data: tonFarmingActiveResponse } = useQuery({
     queryKey: ['/api/ton-farming/active', { user_id: validUserId }],
+    queryFn: async () => {
+      try {
+        // Проверка наличия userId перед запросом
+        if (!validUserId) {
+          console.warn("[WARNING] FarmingHistory - Попытка получить TON фарминг без userId");
+          return { success: true, data: [] };
+        }
+        
+        // Используем correctApiRequest с расширенной обработкой ошибок
+        try {
+          console.log("[DEBUG] Запрос активных TON бустов по альтернативному URL /api/ton-farming/active");
+          const result = await correctApiRequest<any>(`/api/ton-farming/active?user_id=${validUserId}`, 'GET');
+          
+          // Проверим, что запрос вернул данные
+          if (result && result.success && Array.isArray(result.data)) {
+            console.log("[DEBUG] Получены данные через альтернативный API:", result.data.length, "бустов");
+          } else {
+            console.warn("[WARNING] Альтернативный API вернул пустой или некорректный результат");
+          }
+          
+          return result || { success: true, data: [] };
+        } catch (apiError) {
+          console.error("[ERROR] FarmingHistory - Ошибка запроса альтернативного API TON фарминга:", apiError);
+          return { success: true, data: [] };
+        }
+      } catch (globalError) {
+        console.error("[ERROR] FarmingHistory - Критическая ошибка при получении альтернативных данных TON фарминга:", globalError);
+        return { success: true, data: [] };
+      }
+    },
+    enabled: !!validUserId,
+    refetchInterval: 10000, // Обновляем каждые 10 секунд
+  });
+  
+  // Запрос на получение активных TON-бустов (основной)
+  const { data: activeTonBoostsResponse, refetch: refetchTonBoosts } = useQuery({
+    queryKey: ['/api/ton-boosts/active', { user_id: validUserId }],
     queryFn: async () => {
       try {
         // Проверка наличия userId перед запросом
@@ -222,7 +264,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         
         // Используем correctApiRequest с расширенной обработкой ошибок
         try {
-          const result = await correctApiRequest<any>(`/api/ton-farming/active?user_id=${validUserId}`, 'GET');
+          console.log("[DEBUG] Запрос активных TON бустов по URL /api/ton-boosts/active");
+          const result = await correctApiRequest<any>(`/api/ton-boosts/active?user_id=${validUserId}`, 'GET');
           
           // Проверка структуры ответа на валидность
           if (!result) {
@@ -333,6 +376,41 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     enabled: !!validUserId,
     refetchInterval: 10000, // Обновляем каждые 10 секунд
   });
+  
+  // Эффект для отладки ответов API
+  useEffect(() => {
+    if (activeTonBoostsResponse) {
+      console.log("[DEBUG] Получен ответ от API TON бустов:", activeTonBoostsResponse);
+      
+      if (activeTonBoostsResponse.success && Array.isArray(activeTonBoostsResponse.data)) {
+        console.log("[DEBUG] Количество активных TON бустов:", activeTonBoostsResponse.data.length);
+        activeTonBoostsResponse.data.forEach((boost: TonBoostDeposit, index: number) => {
+          console.log(`[DEBUG] TON буст #${index + 1}:`, boost);
+        });
+      }
+    }
+  }, [activeTonBoostsResponse]);
+  
+  // Эффект для сравнения результатов из обоих API-эндпоинтов
+  useEffect(() => {
+    if (activeBoostsResponse && tonFarmingActiveResponse) {
+      const mainApiCount = activeBoostsResponse.success && Array.isArray(activeBoostsResponse.data) 
+        ? activeBoostsResponse.data.length 
+        : 0;
+        
+      const fallbackApiCount = tonFarmingActiveResponse.success && Array.isArray(tonFarmingActiveResponse.data) 
+        ? tonFarmingActiveResponse.data.length 
+        : 0;
+      
+      console.log("[DEBUG] Сравнение API ответов для TON бустов:");
+      console.log(`  - /api/ton-boosts/active: ${mainApiCount} бустов`);
+      console.log(`  - /api/ton-farming/active: ${fallbackApiCount} бустов`);
+      
+      if (mainApiCount !== fallbackApiCount) {
+        console.warn("[WARNING] Обнаружено расхождение в количестве активных TON бустов между API!");
+      }
+    }
+  }, [activeBoostsResponse, tonFarmingActiveResponse]);
   
   // Обработка полученных данных с усиленной защитой от ошибок
   useEffect(() => {
@@ -520,6 +598,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
       // Добавляем активные TON Boost пакеты с защитой от ошибок
       try {
         if (activeTonBoostsResponse?.success && Array.isArray(activeTonBoostsResponse.data)) {
+          console.log("[DEBUG] TON активные бусты:", activeTonBoostsResponse.data);
+          
           activeTonBoostsResponse.data.forEach((tonBoost: TonBoostDeposit, index: number) => {
             try {
               // Проверка валидности буста
@@ -566,10 +646,18 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                 amount: tonBoost.amount || "0",
                 daysLeft
               });
+              
+              console.log("[DEBUG] Добавлен TON депозит:", {
+                id: 4000000 + index,
+                packageId,
+                amount: tonBoost.amount
+              });
             } catch (tonBoostError) {
               console.error('[ERROR] FarmingHistory - Ошибка при обработке TON буста:', tonBoostError);
             }
           });
+        } else {
+          console.log("[DEBUG] Нет TON бустов или неверный формат:", activeTonBoostsResponse);
         }
       } catch (tonBoostsError) {
         console.error('[ERROR] FarmingHistory - Критическая ошибка при обработке всех TON бустов:', tonBoostsError);
@@ -814,8 +902,16 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                           type: tx.type,
                           rawAmount: tx.amount,
                           parsedAmount: amount,
-                          boost_id: tx.boost_id
+                          boost_id: tx.boost_id,
+                          source: tx.source,
+                          category: tx.category,
+                          description: tx.description
                         });
+                        
+                        // Для TON транзакций установим более низкий порог значимости
+                        if (typeof amount === 'number' && amount > 0.0000001) {
+                          console.log("[TON История] Значимая TON транзакция обнаружена:", { id: tx.id, amount });
+                        }
                       } catch (logError) {
                         console.error('[ERROR] FarmingHistory - Ошибка при логировании TON транзакции:', logError);
                       }
@@ -856,11 +952,24 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                       isSignificant = false;
                     }
                     
-                    // Логирование отфильтрованных TON транзакций
-                    if (!isSignificant && item.currency === 'TON') {
-                      console.log(`[TON История] Отфильтрована незначительная транзакция: ID=${item.id}, Сумма=${item.amount}`);
+                    // Особая обработка для транзакций TON
+                    if (item.currency === 'TON') {
+                      // Для TON используем более низкий порог значимости
+                      const isTonSignificant = typeof item.amount === 'number' && 
+                        isFinite(item.amount) && 
+                        item.amount > 0.0000001;
+                      
+                      if (!isTonSignificant) {
+                        console.log(`[TON История] Отфильтрована незначительная транзакция: ID=${item.id}, Сумма=${item.amount}`);
+                      } else {
+                        console.log(`[TON История] Принята TON транзакция: ID=${item.id}, Сумма=${item.amount}`);
+                      }
+                      
+                      // Для TON принимаем транзакции с любой положительной суммой
+                      return isTonSignificant;
                     }
                     
+                    // Для других валют используем стандартный порог
                     return isSignificant;
                   } catch (filterError) {
                     console.error('[ERROR] FarmingHistory - Ошибка при фильтрации транзакции:', filterError);
