@@ -286,8 +286,8 @@ export class ReferralBonusProcessor {
         const invitersMap = new Map(invitersData.map(inviter => [inviter.id, inviter]));
         
         // Подготавливаем массивы для истинно пакетных операций
-        const balanceUpdates = [];
-        const transactionInserts = [];
+        const balanceUpdates: BalanceUpdate[] = [];
+        const transactionInserts: any[] = [];
         
         // Предварительная групповая обработка - вычисляем награды для всех реферальных уровней сразу
         const bonusCalcs = userReferrals
@@ -413,7 +413,7 @@ export class ReferralBonusProcessor {
           balanceUpdates.sort((a, b) => Number(a.id) - Number(b.id));
           
           // Строим массив ID пользователей для обновления
-          const updateUserIds = balanceUpdates.map(update => update.id);
+          const updateUserIds: UserIdArray = balanceUpdates.map(update => Number(update.id));
           
           // Определяем, какое поле баланса нужно обновить
           const balanceField = currency === Currency.UNI ? users.balance_uni : users.balance_ton;
@@ -432,7 +432,7 @@ export class ReferralBonusProcessor {
               [currency === Currency.UNI ? 'balance_uni' : 'balance_ton']: 
                 sql`CASE id ${sql.join(caseExpressions, ' ')} ELSE ${currency === Currency.UNI ? 'balance_uni' : 'balance_ton'} END`
             })
-            .where(inArray(users.id, updateUserIds.map(id => Number(id))));
+            .where(inArray(users.id, updateUserIds));
         }
         
         // Выполняем пакетную вставку всех транзакций (одним запросом)
