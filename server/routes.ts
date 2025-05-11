@@ -35,6 +35,7 @@ import { ReferralControllerFallback } from './controllers/referralControllerFall
 import { SessionController } from './controllers/sessionController';
 import { migrateFarmingData, checkUserFarmingStatus } from './controllers/migrationController';
 import * as DatabaseController from './controllers/databaseController';
+import * as ReferralSystemController from './controllers/referralSystemController';
 
 // Импорт обработчика команд для Telegram-бота
 import * as telegramBot from './telegramBot';
@@ -55,7 +56,6 @@ import { SecurityController } from './controllers/securityController'; // Нов
 import { WalletController } from './controllers/walletController';
 import { AdminController } from './controllers/adminController';
 import * as PartitionController from './controllers/partition-controller'; // Контроллер для управления партициями
-import { ReferralSystemController } from './controllers/referralSystemController'; // Контроллер для оптимизированной реферальной системы
 
 // Импортируем маршруты для партиционирования
 import { registerPartitionRoutes } from './api/partition-routes';
@@ -1492,10 +1492,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/referrals/stats", ReferralControllerFallback.getReferralStats);
   
   // Маршруты для оптимизированной реферальной системы
-  app.get("/api/referrals/tree/optimized", ReferralSystemController.getReferralTree);
-  app.get("/api/referrals/structure", ReferralSystemController.getReferralStructureInfo);
-  app.post("/api/system/referrals/toggle-optimized", ReferralSystemController.toggleOptimizedSystem);
-  app.get("/api/system/referrals/metrics", ReferralSystemController.getSystemMetrics);
+  app.get("/api/referrals/tree/optimized", ReferralSystemController.getReferralStructure);
+  app.get("/api/referrals/structure", ReferralSystemController.getReferralStructure);
+  app.post("/api/system/referrals/toggle-optimized", ReferralSystemController.toggleOptimizedReferralSystem);
+  app.get("/api/system/referrals/metrics", ReferralSystemController.getReferralSystemMetrics);
   
   // Маршруты для ежедневного бонуса
   // app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);
@@ -1645,6 +1645,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Эндпоинты для получения активных бустов фарминга
   app.get("/api/farming/boosts/active", BoostControllerFallback.getUserFarmingBoosts);
+  
+  // Эндпоинты для управления реферальной системой
+  app.get("/api/system/referrals/mode", ReferralSystemController.getReferralSystemMode);
+  app.post("/api/system/referrals/toggle-optimized", ReferralSystemController.toggleOptimizedReferralSystem);
+  app.get("/api/system/referrals/metrics", ReferralSystemController.getReferralSystemMetrics);
+  app.get("/api/referrals/structure", ReferralSystemController.getReferralStructure);
 
   // Добавление обработчика для всех маршрутов, которые не соответствуют API
   // Это необходимо для корректной работы с Telegram Mini App

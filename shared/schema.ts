@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric, json, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric, json, jsonb, varchar, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -299,19 +299,19 @@ export const partition_logs = pgTable("partition_logs", {
   error_details: text("error_details")
 });
 
-// Таблица для журналирования распределения реферальных вознаграждений
+// Таблица для логов распределения реферальных вознаграждений
 export const reward_distribution_logs = pgTable("reward_distribution_logs", {
   id: serial("id").primaryKey(),
+  message_id: varchar("message_id", { length: 36 }).notNull(), // Уникальный ID сообщения в формате UUID
   source_user_id: integer("source_user_id").notNull(), // ID пользователя, от которого идёт распределение
-  batch_id: text("batch_id").notNull().unique(), // Уникальный ID пакета распределения (UUID)
-  currency: text("currency").notNull(), // UNI / TON
-  earned_amount: numeric("earned_amount", { precision: 18, scale: 6 }).notNull(), // Исходная сумма заработка
-  total_distributed: numeric("total_distributed", { precision: 18, scale: 6 }).default("0"), // Общая сумма распределенных вознаграждений
-  levels_processed: integer("levels_processed").default(0), // Кол-во обработанных уровней
-  inviter_count: integer("inviter_count").default(0), // Кол-во пригласителей, получивших вознаграждение
+  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(), // Сумма исходного действия
+  currency: varchar("currency", { length: 10 }).notNull(), // Валюта (UNI/TON)
+  created_at: timestamp("created_at").notNull().defaultNow(), // Время создания сообщения
+  processed_at: timestamp("processed_at"), // Время обработки сообщения
   status: text("status").default("pending"), // pending / completed / failed
-  error_message: text("error_message"), // Сообщение об ошибке, если была
-  processed_at: timestamp("processed_at").defaultNow().notNull(), // Время обработки
+  system_type: varchar("system_type", { length: 20 }).notNull(), // Тип системы (standard/optimized)
+  error: text("error"), // Ошибка при обработке, если была
+  metadata: jsonb("metadata"), // Дополнительные данные
   completed_at: timestamp("completed_at") // Время завершения обработки
 });
 
@@ -351,15 +351,14 @@ export type PartitionLog = typeof partition_logs.$inferSelect;
 
 // Схемы для таблицы reward_distribution_logs
 export const insertRewardDistributionLogSchema = createInsertSchema(reward_distribution_logs).pick({
+  message_id: true,
   source_user_id: true,
-  batch_id: true,
+  amount: true,
   currency: true,
-  earned_amount: true,
-  total_distributed: true,
-  levels_processed: true,
-  inviter_count: true,
+  system_type: true,
   status: true,
-  error_message: true,
+  error: true,
+  metadata: true,
   completed_at: true
 });
 

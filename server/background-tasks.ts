@@ -7,7 +7,7 @@ import { ReferralBonusService } from './services/referralBonusService';
 import { Currency } from './services/transactionService';
 import { and, ne, isNotNull, eq } from 'drizzle-orm';
 import { referralBonusProcessor } from './services/referralBonusProcessor';
-import { referralSystemIntegrator } from './services/referralSystemIntegrator';
+import { referralSystem } from './services/referralSystemIntegrator';
 
 /**
  * Запускает фоновые задачи, которые выполняются периодически
@@ -52,11 +52,11 @@ async function initializeReferralProcessor(): Promise<void> {
     }
     
     // Инициализируем оптимизированный процессор реферальной системы
-    await referralSystemIntegrator.initialize();
+    await referralSystem.initialize();
     
     // В режиме разработки можно включить оптимизированный процессор
     if (process.env.USE_OPTIMIZED_REFERRALS === 'true') {
-      referralSystemIntegrator.setOptimizedVersion(true);
+      referralSystem.setOptimizedVersion(true);
       console.log('[Background Tasks] Optimized referral system ENABLED');
     } else {
       console.log('[Background Tasks] Using standard referral system (optimized system available but disabled)');

@@ -1,194 +1,211 @@
 /**
- * Модуль интеграции оптимизированной реферальной системы
+ * Интегратор реферальной системы
  * 
- * Этот модуль обеспечивает плавную миграцию с существующей системы на новую
- * оптимизированную версию без нарушения работы приложения
+ * Этот модуль объединяет оптимизированную и стандартную реферальные системы,
+ * предоставляя единый интерфейс для работы с ними и возможность переключения
+ * между различными реализациями.
  */
 
-import { optimizedReferralBonusProcessor } from './optimizedReferralBonusProcessor';
-import { optimizedReferralTreeService } from './optimizedReferralTreeService';
-import { referralBonusProcessor } from './referralBonusProcessor';
-import { db } from '../db';
-import { sql } from 'drizzle-orm';
-import { Currency } from './transactionService';
+import * as dotenv from "dotenv";
+import { 
+  StandardReferralTreeService, 
+  ReferralTreeService 
+} from "./standardReferralTreeService";
+import { 
+  OptimizedReferralTreeService 
+} from "./optimizedReferralTreeService";
+import {
+  StandardReferralBonusProcessor,
+  ReferralBonusProcessor
+} from "./standardReferralBonusProcessor";
+import {
+  OptimizedReferralBonusProcessor
+} from "./optimizedReferralBonusProcessor";
+import { pool, db } from "../db";
 
-/**
- * Флаг, указывающий на использование оптимизированной версии
- * Можно изменить для постепенного тестирования и перехода
- */
-let useOptimizedVersion = false;
+// Загружаем переменные окружения
+dotenv.config();
 
-/**
- * Интерфейс для системных метрик
- */
-interface SystemMetrics {
-  optimizationEnabled: boolean;
-  processingQueueSize: number;
-  recentCompletion: number;
-  recentErrors: number;
-  averageProcessingTime: number;
-  indices: {
-    ref_code: boolean;
-    parent_ref_code: boolean;
-    referral_user_id: boolean;
-    reward_distribution_logs: boolean;
-  };
+interface ReferralStructureItem {
+  level: number;
+  count: number;
+  total_rewards_uni?: number;
+}
+
+interface ReferralSystem {
+  // Основные методы для работы с деревом рефералов
+  getReferralTree(userId: number): Promise<any>;
+  getInviterChain(userId: number): Promise<any[]>;
+  getReferralStructure(userId: number): Promise<ReferralStructureItem[]>;
+  
+  // Методы для работы с бонусами
+  queueReferralReward(sourceUserId: number, amount: number, currency: string): Promise<string>;
+  processReferralRewards(): Promise<void>;
+  
+  // Служебные методы
+  isOptimizedMode(): boolean;
+  enableOptimizedMode(): void;
+  disableOptimizedMode(): void;
 }
 
 /**
- * Класс для интеграции оптимизированной реферальной системы
+ * Система управления реферальными деревьями и бонусами
+ * с поддержкой переключения между стандартной и оптимизированной версиями.
  */
-export class ReferralSystemIntegrator {
-  /**
-   * Инициализирует оптимизированную систему и создает необходимые индексы
-   */
-  async initialize(): Promise<void> {
-    try {
-      console.log('[ReferralSystemIntegrator] Initializing optimized referral system...');
-      
-      // Создаем индексы для улучшения производительности
-      await optimizedReferralTreeService.createOptimalIndexes();
-      
-      // Инициализируем оптимизированный процессор
-      await optimizedReferralBonusProcessor.initialize();
-      
-      console.log('[ReferralSystemIntegrator] Optimized referral system initialized successfully');
-    } catch (error) {
-      console.error('[ReferralSystemIntegrator] Initialization error:', error);
-    }
+class ReferralSystemIntegrator implements ReferralSystem {
+  private _standardTreeService: ReferralTreeService;
+  private _optimizedTreeService: OptimizedReferralTreeService;
+  
+  private _standardBonusProcessor: ReferralBonusProcessor;
+  private _optimizedBonusProcessor: OptimizedReferralBonusProcessor;
+  
+  private _useOptimized: boolean = false;
+  
+  constructor() {
+    // Инициализируем обе реализации
+    this._standardTreeService = new StandardReferralTreeService();
+    this._optimizedTreeService = new OptimizedReferralTreeService(db);
+    
+    this._standardBonusProcessor = new StandardReferralBonusProcessor();
+    this._optimizedBonusProcessor = new OptimizedReferralBonusProcessor(pool, db);
+    
+    // Определяем режим работы из переменной окружения
+    this._useOptimized = process.env.USE_OPTIMIZED_REFERRALS === "true";
+    
+    console.log(`[ReferralSystemIntegrator] Initializing ${this._useOptimized ? 'optimized' : 'standard'} referral system...`);
   }
   
   /**
-   * Переключает между обычной и оптимизированной версией реферальной системы
+   * Проверяет, используется ли оптимизированная версия системы
    */
-  setOptimizedVersion(enabled: boolean): void {
-    useOptimizedVersion = enabled;
-    console.log(`[ReferralSystemIntegrator] Optimized referral system is now ${enabled ? 'ENABLED' : 'DISABLED'}`);
+  public isOptimizedMode(): boolean {
+    return this._useOptimized;
   }
   
   /**
-   * Проверяет, используется ли оптимизированная версия
+   * Включает использование оптимизированной версии системы
    */
-  isOptimizedVersionEnabled(): boolean {
-    return useOptimizedVersion;
+  public enableOptimizedMode(): void {
+    console.log("[ReferralSystemIntegrator] Switching to optimized mode");
+    this._useOptimized = true;
   }
   
   /**
-   * Асинхронно обрабатывает реферальное вознаграждение с использованием
-   * выбранной системы (оптимизированной или стандартной)
+   * Отключает использование оптимизированной версии системы
    */
-  async queueReferralReward(userId: number, earnedAmount: number, currency: Currency): Promise<string> {
-    if (useOptimizedVersion) {
-      return optimizedReferralBonusProcessor.queueReferralReward(userId, earnedAmount, currency);
+  public disableOptimizedMode(): void {
+    console.log("[ReferralSystemIntegrator] Switching to standard mode");
+    this._useOptimized = false;
+  }
+  
+  /**
+   * Получает полное дерево рефералов для пользователя
+   */
+  public async getReferralTree(userId: number): Promise<any> {
+    if (this._useOptimized) {
+      return this._optimizedTreeService.getReferralTree(userId);
     } else {
-      return referralBonusProcessor.queueReferralReward(userId, earnedAmount, currency);
+      return this._standardTreeService.getReferralTree(userId);
     }
   }
   
   /**
-   * Получает метрики системы для мониторинга
+   * Получает цепочку пригласителей для пользователя
    */
-  async getSystemMetrics(): Promise<SystemMetrics> {
-    try {
-      // Проверяем наличие индексов
-      const indexesResult = await db.execute(sql`
-        SELECT 
-          EXISTS (
-            SELECT 1 FROM pg_indexes 
-            WHERE indexname = 'idx_users_ref_code'
-          ) as has_ref_code_index,
-          EXISTS (
-            SELECT 1 FROM pg_indexes 
-            WHERE indexname = 'idx_users_parent_ref_code'
-          ) as has_parent_ref_code_index,
-          EXISTS (
-            SELECT 1 FROM pg_indexes 
-            WHERE indexname = 'idx_referrals_user_id'
-          ) as has_referral_user_id_index,
-          EXISTS (
-            SELECT 1 FROM pg_indexes 
-            WHERE indexname = 'idx_reward_distribution_logs_source_user_id'
-          ) as has_reward_logs_index
-      `);
+  public async getInviterChain(userId: number): Promise<any[]> {
+    if (this._useOptimized) {
+      return this._optimizedTreeService.getInviterChain(userId);
+    } else {
+      return this._standardTreeService.getInviterChain(userId);
+    }
+  }
+  
+  /**
+   * Получает агрегированную структуру рефералов по уровням
+   */
+  public async getReferralStructure(userId: number): Promise<ReferralStructureItem[]> {
+    if (this._useOptimized) {
+      return this._optimizedTreeService.getReferralStructureByLevel(userId);
+    } else {
+      // В стандартной реализации такой метод отсутствует, эмулируем его
+      const tree = await this._standardTreeService.getReferralTree(userId);
       
-      // Получаем статистику по последним операциям
-      const statsResult = await db.execute(sql`
-        SELECT 
-          COUNT(*) as completed_count,
-          COUNT(*) FILTER (WHERE status = 'failed') as error_count,
-          AVG(
-            EXTRACT(EPOCH FROM (completed_at - processed_at)) * 1000
-          ) as avg_processing_ms
-        FROM 
-          reward_distribution_logs
-        WHERE 
-          processed_at > NOW() - INTERVAL '24 hours'
-      `);
+      // Преобразуем древовидную структуру в плоский список
+      const flatList: any[] = [];
       
-      // Формируем метрики
-      return {
-        optimizationEnabled: useOptimizedVersion,
-        processingQueueSize: 0, // Заглушка, реальное значение будет динамическим
-        recentCompletion: Number(statsResult.rows[0]?.completed_count || 0),
-        recentErrors: Number(statsResult.rows[0]?.error_count || 0),
-        averageProcessingTime: Number(statsResult.rows[0]?.avg_processing_ms || 0),
-        indices: {
-          ref_code: indexesResult.rows[0]?.has_ref_code_index === true,
-          parent_ref_code: indexesResult.rows[0]?.has_parent_ref_code_index === true,
-          referral_user_id: indexesResult.rows[0]?.has_referral_user_id_index === true,
-          reward_distribution_logs: indexesResult.rows[0]?.has_reward_logs_index === true
+      function flattenTree(node: any, level: number = 1) {
+        if (!node.referrals || node.referrals.length === 0) return;
+        
+        for (const ref of node.referrals) {
+          flatList.push({ ...ref, level });
+          if (ref.referrals && ref.referrals.length > 0) {
+            flattenTree(ref, level + 1);
+          }
         }
-      };
-    } catch (error) {
-      console.error('[ReferralSystemIntegrator] Error getting system metrics:', error);
-      return {
-        optimizationEnabled: useOptimizedVersion,
-        processingQueueSize: 0,
-        recentCompletion: 0,
-        recentErrors: 0,
-        averageProcessingTime: 0,
-        indices: {
-          ref_code: false,
-          parent_ref_code: false,
-          referral_user_id: false,
-          reward_distribution_logs: false
+      }
+      
+      flattenTree(tree);
+      
+      // Группируем по уровням
+      const levelMap = new Map<number, { count: number, total_rewards_uni: number }>();
+      
+      for (const referal of flatList) {
+        if (!levelMap.has(referal.level)) {
+          levelMap.set(referal.level, { count: 0, total_rewards_uni: 0 });
         }
-      };
+        
+        const levelData = levelMap.get(referal.level)!;
+        levelData.count++;
+        levelData.total_rewards_uni += parseFloat(referal.reward_uni || "0");
+      }
+      
+      // Преобразуем Map в массив результатов
+      const result: ReferralStructureItem[] = [];
+      for (const [level, data] of levelMap.entries()) {
+        result.push({
+          level,
+          count: data.count,
+          total_rewards_uni: data.total_rewards_uni
+        });
+      }
+      
+      return result.sort((a, b) => a.level - b.level);
     }
   }
   
   /**
-   * Получает дерево рефералов для указанного пользователя
-   * используя оптимизированную версию для глубоких деревьев
+   * Ставит в очередь реферальное вознаграждение
    */
-  async getReferralTree(userId: number, maxDepth: number = 5) {
-    if (useOptimizedVersion) {
-      return optimizedReferralTreeService.getReferralTree(userId, maxDepth);
+  public async queueReferralReward(sourceUserId: number, amount: number, currency: string): Promise<string> {
+    if (this._useOptimized) {
+      return this._optimizedBonusProcessor.queueReferralReward(sourceUserId, amount, currency);
     } else {
-      // Здесь будет вызов стандартного метода получения дерева
-      // Реализация зависит от существующей структуры
-      return null;
+      return this._standardBonusProcessor.queueReferralReward(sourceUserId, amount, currency);
     }
   }
   
   /**
-   * Получает аналитику реферальной структуры пользователя
+   * Обрабатывает все реферальные вознаграждения в очереди
    */
-  async getReferralStructureInfo(userId: number) {
-    return optimizedReferralTreeService.getReferralStructureInfo(userId);
-  }
-  
-  /**
-   * Получает детальную статистику производительности
-   */
-  async getPerformanceStats() {
-    if (useOptimizedVersion) {
-      return optimizedReferralBonusProcessor.getPerformanceStats();
+  public async processReferralRewards(): Promise<void> {
+    if (this._useOptimized) {
+      await this._optimizedBonusProcessor.processReferralRewards();
     } else {
-      return { message: 'Performance stats are only available in optimized mode' };
+      await this._standardBonusProcessor.processReferralRewards();
     }
+  }
+  
+  /**
+   * Инициализирует реферальную систему
+   */
+  public async initialize(): Promise<void> {
+    // Инициализируем оптимизированные компоненты (чтобы они создали нужные индексы и т.д.)
+    await this._optimizedTreeService.initialize();
+    await this._optimizedBonusProcessor.initialize();
+    
+    console.log("[ReferralSystemIntegrator] Optimized referral system initialized successfully");
   }
 }
 
 // Создаем и экспортируем единственный экземпляр интегратора
-export const referralSystemIntegrator = new ReferralSystemIntegrator();
+export const referralSystem = new ReferralSystemIntegrator();

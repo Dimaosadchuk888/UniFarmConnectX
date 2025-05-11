@@ -1,359 +1,346 @@
 /**
- * Оптимизированный сервис для работы с реферальными деревьями
+ * Оптимизированный сервис реферального дерева
  * 
- * Этот сервис предоставляет методы для эффективной работы с глубокими реферальными цепочками,
- * используя рекурсивные CTE (Common Table Expressions) для повышения производительности при больших объемах данных.
+ * Обеспечивает высокопроизводительные операции с реферальным деревом
+ * для больших структур и глубоких деревьев
  */
 
-import { db } from '../db';
-import { sql } from 'drizzle-orm';
-import { users, referrals } from '@shared/schema';
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { sql } from "drizzle-orm";
+import * as schema from "@shared/schema";
 
 /**
- * Интерфейс структуры реферального уровня с агрегированными данными
+ * Результат запроса структуры рефералов по уровням
  */
-export interface ReferralLevel {
+interface ReferralStructureItem {
   level: number;
   count: number;
-  user_ids: number[];
+  total_rewards_uni: number;
 }
 
 /**
- * Интерфейс структуры реферала для отображения в дереве
- */
-export interface ReferralTreeNode {
-  id: number;
-  username: string;
-  ref_code: string;
-  level: number;
-  children?: ReferralTreeNode[];
-}
-
-/**
- * Интерфейс для расширенной информации о реферальной структуре
- */
-export interface ReferralStructureInfo {
-  total_referrals: number;
-  levels: ReferralLevel[];
-  max_depth: number;
-}
-
-/**
- * Оптимизированный сервис для работы с глубокими реферальными структурами
+ * Оптимизированная реализация сервиса реферального дерева
+ * 
+ * Использует рекурсивные CTE-запросы для эффективной работы 
+ * с глубокими реферальными структурами
  */
 export class OptimizedReferralTreeService {
+  private db: NodePgDatabase<typeof schema>;
+  
   /**
-   * Максимальная глубина для выборки реферальной структуры
+   * @param db Экземпляр базы данных Drizzle ORM
    */
-  private readonly MAX_DEPTH = 20;
-
+  constructor(db: NodePgDatabase<typeof schema>) {
+    this.db = db;
+  }
+  
   /**
-   * Получает агрегированную информацию о реферальной структуре пользователя по уровням
-   * Использует рекурсивный CTE для эффективного построения дерева с любой глубиной
-   * 
-   * @param userId ID пользователя, для которого строится структура
-   * @param maxDepth Максимальная глубина дерева, по умолчанию MAX_DEPTH (20)
-   * @returns Агрегированные данные о реферальной структуре
+   * Инициализирует сервис
+   * Создаёт необходимые индексы и представления в БД, если их нет
    */
-  async getReferralStructureInfo(userId: number, maxDepth: number = this.MAX_DEPTH): Promise<ReferralStructureInfo> {
+  public async initialize(): Promise<void> {
+    // Проверяем и создаём индексы
     try {
-      // Получаем код пользователя для построения дерева
-      const [userInfo] = await db
-        .select({ ref_code: users.ref_code })
-        .from(users)
-        .where(sql`${users.id} = ${userId}`);
-
-      if (!userInfo || !userInfo.ref_code) {
-        console.error(`[OptimizedReferralTreeService] User ${userId} not found or has no ref_code`);
-        return { total_referrals: 0, levels: [], max_depth: 0 };
-      }
-
-      // Строим рекурсивный CTE для эффективного построения дерева
-      const result = await db.execute(sql`
-        WITH RECURSIVE referral_chain AS (
-          -- Начальный запрос: выбираем прямых рефералов (уровень 1)
-          SELECT 
-            u.id, 
-            u.username, 
-            u.ref_code, 
-            u.parent_ref_code,
-            1 AS level
-          FROM 
-            users u
-          WHERE 
-            u.parent_ref_code = ${userInfo.ref_code}
-          
-          UNION ALL
-          
-          -- Рекурсивный запрос: находим всех рефералов на следующих уровнях
-          SELECT 
-            u.id, 
-            u.username, 
-            u.ref_code, 
-            u.parent_ref_code, 
-            rc.level + 1 AS level
-          FROM 
-            users u
-          INNER JOIN 
-            referral_chain rc ON u.parent_ref_code = rc.ref_code
-          WHERE 
-            rc.level < ${maxDepth}  -- Ограничиваем глубину
-        )
-        -- Финальный запрос: группируем результаты по уровням для агрегации
-        SELECT 
-          level,
-          COUNT(*) AS count,
-          ARRAY_AGG(id) AS user_ids
-        FROM 
-          referral_chain
-        GROUP BY 
-          level
-        ORDER BY 
-          level
+      await this.db.execute(sql`
+        -- Индекс для ref_code
+        CREATE INDEX IF NOT EXISTS users_ref_code_idx 
+        ON users (ref_code);
+        
+        -- Индекс для parent_ref_code
+        CREATE INDEX IF NOT EXISTS users_parent_ref_code_idx 
+        ON users (parent_ref_code);
+        
+        -- Составной индекс для эффективной работы с реферальным деревом
+        CREATE INDEX IF NOT EXISTS users_ref_combo_idx 
+        ON users (ref_code, parent_ref_code);
       `);
-
-      // Преобразуем результат в нужный формат
-      const levels: ReferralLevel[] = result.rows.map(row => ({
-        level: Number(row.level),
-        count: Number(row.count),
-        user_ids: Array.isArray(row.user_ids) ? row.user_ids.map(Number) : []
-      }));
-
-      // Вычисляем общее количество рефералов и максимальную глубину
-      const total_referrals = levels.reduce((sum, level) => sum + level.count, 0);
-      const max_depth = levels.length > 0 ? levels[levels.length - 1].level : 0;
-
-      return {
-        total_referrals,
-        levels,
-        max_depth
-      };
+      
+      console.log("[OptimizedReferralTreeService] Индексы для реферальной системы успешно созданы");
     } catch (error) {
-      console.error('[OptimizedReferralTreeService] Error getting referral structure:', error);
-      return { total_referrals: 0, levels: [], max_depth: 0 };
+      console.error("[OptimizedReferralTreeService] Ошибка при создании индексов:", error);
+      throw error;
     }
   }
-
+  
   /**
-   * Получает полное дерево рефералов для пользователя, включая вложенную структуру
-   * Эффективная замена старого метода с множественными запросами
+   * Получает полное дерево рефералов для пользователя
+   * Использует рекурсивные Common Table Expressions (CTE) для построения дерева за один запрос
    * 
-   * @param userId ID пользователя, для которого строится дерево
-   * @param maxDepth Максимальная глубина дерева, по умолчанию 5
-   * @returns Многоуровневое дерево рефералов
+   * @param userId ID пользователя, для которого получаем дерево
+   * @returns Дерево рефералов в виде JSON-структуры
    */
-  async getReferralTree(userId: number, maxDepth: number = 5): Promise<ReferralTreeNode[]> {
+  public async getReferralTree(userId: number): Promise<any> {
     try {
-      // Получаем код пользователя для построения дерева
-      const [userInfo] = await db
-        .select({ ref_code: users.ref_code })
-        .from(users)
-        .where(sql`${users.id} = ${userId}`);
-
-      if (!userInfo || !userInfo.ref_code) {
-        console.error(`[OptimizedReferralTreeService] User ${userId} not found or has no ref_code`);
-        return [];
+      // Получаем информацию о пользователе для проверки
+      const [userExists] = await this.db.execute<{ exists: boolean }>(sql`
+        SELECT EXISTS(SELECT 1 FROM users WHERE id = ${userId}) as exists
+      `);
+      
+      if (!userExists || !userExists.exists) {
+        throw new Error(`Пользователь с ID ${userId} не найден`);
       }
-
-      // Получаем плоский список всех рефералов с рекурсивным CTE
-      const result = await db.execute(sql`
-        WITH RECURSIVE referral_chain AS (
-          -- Находим всех прямых рефералов
+      
+      // Получаем ref_code пользователя
+      const [user] = await this.db.execute<{ ref_code: string }>(sql`
+        SELECT ref_code FROM users WHERE id = ${userId}
+      `);
+      
+      // Используем рекурсивный CTE-запрос для построения дерева
+      const result = await this.db.execute(sql`
+        WITH RECURSIVE referral_tree AS (
+          -- Базовый случай: корневой пользователь
           SELECT 
             u.id, 
             u.username, 
             u.ref_code, 
-            u.parent_ref_code,
-            1 AS level,
-            u.ref_code AS path
-          FROM 
-            users u
-          WHERE 
-            u.parent_ref_code = ${userInfo.ref_code}
+            u.created_at,
+            0 as level
+          FROM users u
+          WHERE u.id = ${userId}
           
           UNION ALL
           
-          -- Рекурсивно находим всех рефералов на следующих уровнях
+          -- Рекурсивный случай: добавляем рефералов
           SELECT 
             u.id, 
             u.username, 
             u.ref_code, 
-            u.parent_ref_code, 
-            rc.level + 1 AS level,
-            rc.path || ',' || u.ref_code AS path
-          FROM 
-            users u
-          INNER JOIN 
-            referral_chain rc ON u.parent_ref_code = rc.ref_code
-          WHERE 
-            rc.level < ${maxDepth}
+            u.created_at,
+            rt.level + 1 as level
+          FROM users u
+          JOIN referral_tree rt ON u.parent_ref_code = rt.ref_code
+          WHERE rt.level < 10  -- Ограничиваем глубину дерева
         )
-        -- Основной запрос: выбираем все данные для построения дерева
+        
+        -- Возвращаем дерево с правильной структурой
         SELECT 
           id,
           username,
           ref_code,
-          parent_ref_code,
+          created_at,
           level,
-          path
-        FROM 
-          referral_chain
-        ORDER BY 
-          path, level
+          parent_ref_code
+        FROM (
+          SELECT 
+            r.id, 
+            r.username, 
+            r.ref_code, 
+            r.created_at,
+            r.level,
+            u.parent_ref_code
+          FROM referral_tree r
+          JOIN users u ON r.id = u.id
+          ORDER BY r.level, r.id
+        ) as result
       `);
-
-      // Преобразуем плоский список в иерархическое дерево
-      const flatNodes: any[] = result.rows;
-      const rootNodes: ReferralTreeNode[] = [];
-      const nodeMap = new Map<string, ReferralTreeNode>();
-
-      // Сначала создаем все узлы
-      flatNodes.forEach(node => {
-        const treeNode: ReferralTreeNode = {
-          id: node.id,
-          username: node.username,
-          ref_code: node.ref_code,
-          level: node.level,
-          children: []
-        };
-        nodeMap.set(node.ref_code, treeNode);
-      });
-
-      // Затем устанавливаем иерархические связи
-      flatNodes.forEach(node => {
-        const treeNode = nodeMap.get(node.ref_code);
-        if (node.level === 1) {
-          // Узлы первого уровня добавляем в корневой массив
-          rootNodes.push(treeNode!);
-        } else {
-          // Остальные узлы добавляем как дочерние к соответствующим родителям
-          const parentNode = nodeMap.get(node.parent_ref_code);
-          if (parentNode) {
-            if (!parentNode.children) {
-              parentNode.children = [];
-            }
-            parentNode.children.push(treeNode!);
-          }
+      
+      // Трансформируем плоский результат в иерархическую структуру
+      const rootNode = {
+        id: userId,
+        username: result.length > 0 ? result[0].username : 'Unknown',
+        ref_code: user.ref_code,
+        created_at: result.length > 0 ? result[0].created_at : null,
+        referrals: []
+      };
+      
+      // Строим дерево из плоского списка
+      const nodeMap = new Map();
+      nodeMap.set(userId, rootNode);
+      
+      // Обрабатываем все ноды кроме корня (пропускаем первую запись, которая уже обработана)
+      for (let i = 1; i < result.length; i++) {
+        const item = result[i];
+        
+        // Находим родительский узел
+        const parentNode = this.findParentNode(result, nodeMap, item);
+        
+        if (parentNode) {
+          // Создаем дочерний узел и добавляем его к родителю
+          const childNode = {
+            id: item.id,
+            username: item.username,
+            ref_code: item.ref_code,
+            created_at: item.created_at,
+            referrals: []
+          };
+          
+          parentNode.referrals.push(childNode);
+          nodeMap.set(item.id, childNode);
         }
-      });
-
-      return rootNodes;
+      }
+      
+      return rootNode;
     } catch (error) {
-      console.error('[OptimizedReferralTreeService] Error building referral tree:', error);
-      return [];
+      console.error(`[OptimizedReferralTreeService] Ошибка при получении дерева рефералов:`, error);
+      throw error;
     }
   }
-
+  
   /**
-   * Получает всех пригласителей пользователя с использованием рекурсивного CTE
-   * Эффективная замена запросов в цикле для получения цепочки пригласителей
+   * Получает цепочку пригласителей для пользователя используя рекурсивный CTE
    * 
-   * @param userId ID пользователя, для которого ищутся пригласители
-   * @param maxLevels Максимальное количество уровней вверх
-   * @returns Массив пригласителей с указанием уровня
+   * @param userId ID пользователя, для которого получаем цепочку
+   * @returns Массив пользователей в цепочке пригласителей (от ближайшего к корню)
    */
-  async getUserInviters(userId: number, maxLevels: number = this.MAX_DEPTH): Promise<{ id: number, level: number }[]> {
+  public async getInviterChain(userId: number): Promise<any[]> {
     try {
-      // Получаем информацию о пользователе
-      const [userInfo] = await db
-        .select({ parent_ref_code: users.parent_ref_code })
-        .from(users)
-        .where(sql`${users.id} = ${userId}`);
-
-      if (!userInfo || !userInfo.parent_ref_code) {
-        // У пользователя нет пригласителя
-        return [];
-      }
-
-      // Выполняем запрос с рекурсивным CTE для получения всей цепочки пригласителей
-      const result = await db.execute(sql`
+      const inviterChain = await this.db.execute(sql`
         WITH RECURSIVE inviter_chain AS (
-          -- Начальный запрос: находим прямого пригласителя
+          -- Базовый случай: начальный пользователь
           SELECT 
             u.id, 
-            u.ref_code, 
+            u.username, 
+            u.ref_code,
             u.parent_ref_code,
-            1 AS level
-          FROM 
-            users u
-          WHERE 
-            u.ref_code = ${userInfo.parent_ref_code}
+            1 as level
+          FROM users u
+          WHERE u.id = ${userId}
           
           UNION ALL
           
-          -- Рекурсивный запрос: находим пригласителей более высоких уровней
+          -- Рекурсивный случай: находим пригласителя
+          SELECT 
+            p.id, 
+            p.username, 
+            p.ref_code,
+            p.parent_ref_code,
+            ic.level + 1 as level
+          FROM users p
+          JOIN inviter_chain ic ON p.ref_code = ic.parent_ref_code
+          WHERE ic.parent_ref_code IS NOT NULL
+          AND ic.level < 20  -- Защита от циклических ссылок
+        )
+        
+        -- Получаем всех пригласителей (пропускаем начального пользователя)
+        SELECT id, username, ref_code, level
+        FROM inviter_chain
+        WHERE level > 1  -- Исключаем самого пользователя
+        ORDER BY level ASC
+      `);
+      
+      return inviterChain;
+    } catch (error) {
+      console.error(`[OptimizedReferralTreeService] Ошибка при получении цепочки пригласителей:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Получает агрегированную структуру рефералов по уровням
+   * 
+   * @param userId ID пользователя, для которого получаем структуру
+   * @returns Массив объектов со статистикой по каждому уровню
+   */
+  public async getReferralStructureByLevel(userId: number): Promise<ReferralStructureItem[]> {
+    try {
+      // Проверяем и получаем ref_code пользователя
+      const [user] = await this.db.execute<{ ref_code: string }>(sql`
+        SELECT ref_code FROM users WHERE id = ${userId}
+      `);
+      
+      if (!user) {
+        throw new Error(`Пользователь с ID ${userId} не найден`);
+      }
+      
+      // Используем рекурсивный CTE для получения всех рефералов по уровням
+      const referralStructure = await this.db.execute<ReferralStructureItem>(sql`
+        WITH RECURSIVE referral_tree AS (
+          -- Базовый случай: пользователи, непосредственно пригашенные текущим пользователем
           SELECT 
             u.id, 
+            u.username, 
             u.ref_code, 
-            u.parent_ref_code, 
-            ic.level + 1 AS level
-          FROM 
-            users u
-          INNER JOIN 
-            inviter_chain ic ON u.ref_code = ic.parent_ref_code
-          WHERE 
-            u.parent_ref_code IS NOT NULL AND
-            ic.level < ${maxLevels}
+            u.created_at,
+            1 as level
+          FROM users u
+          WHERE u.parent_ref_code = ${user.ref_code}
+          
+          UNION ALL
+          
+          -- Рекурсивный случай: рефералы рефералов
+          SELECT 
+            u.id, 
+            u.username, 
+            u.ref_code, 
+            u.created_at,
+            rt.level + 1 as level
+          FROM users u
+          JOIN referral_tree rt ON u.parent_ref_code = rt.ref_code
+          WHERE rt.level < 20  -- Ограничиваем глубину дерева
         )
-        -- Финальный запрос
+        
+        -- Агрегируем данные по уровням
         SELECT 
-          id,
-          level
-        FROM 
-          inviter_chain
-        ORDER BY 
-          level
+          level,
+          COUNT(*) as count,
+          COALESCE(SUM(reward_amount), 0) as total_rewards_uni
+        FROM (
+          SELECT 
+            r.id, 
+            r.level,
+            (
+              SELECT COALESCE(SUM(amount), 0)
+              FROM transactions t
+              WHERE t.user_id = r.id 
+              AND t.type = 'referral_reward'
+              AND t.currency = 'UNI'
+            ) as reward_amount
+          FROM referral_tree r
+        ) as reward_data
+        GROUP BY level
+        ORDER BY level ASC
       `);
-
-      // Преобразуем результат в требуемый формат
-      return result.rows.map(row => ({
-        id: Number(row.id),
-        level: Number(row.level)
-      }));
+      
+      return referralStructure;
     } catch (error) {
-      console.error('[OptimizedReferralTreeService] Error getting user inviters:', error);
-      return [];
+      console.error(`[OptimizedReferralTreeService] Ошибка при получении структуры рефералов:`, error);
+      throw error;
     }
   }
-
+  
   /**
-   * Создает индексы для оптимизации запросов к реферальной структуре
-   * Должен вызываться при инициализации приложения
+   * Вспомогательный метод для поиска родительского узла при построении дерева
    */
-  async createOptimalIndexes(): Promise<void> {
-    try {
-      console.log('[OptimizedReferralTreeService] Creating optimal indexes for referral queries...');
-      
-      // Создаем индекс для parent_ref_code для быстрого поиска прямых рефералов
-      await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_users_parent_ref_code 
-        ON users (parent_ref_code)
-      `);
-      
-      // Создаем индекс для ref_code для быстрого поиска по реферальным кодам
-      await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_users_ref_code 
-        ON users (ref_code)
-      `);
-
-      // Индекс для быстрого поиска реферальных связей по user_id
-      await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_referrals_user_id 
-        ON referrals (user_id)
-      `);
-
-      // Индекс для быстрого поиска реферальных связей по inviter_id
-      await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS idx_referrals_inviter_id 
-        ON referrals (inviter_id)
-      `);
-
-      console.log('[OptimizedReferralTreeService] Optimal indexes created successfully');
-    } catch (error) {
-      console.error('[OptimizedReferralTreeService] Error creating indexes:', error);
+  private findParentNode(items: any[], nodeMap: Map<number, any>, item: any): any {
+    // Если у нас есть прямая ссылка на parent_ref_code, находим родителя по нему
+    if (item.parent_ref_code) {
+      // Ищем родителя в уже построенном дереве
+      for (const existingItem of items) {
+        if (existingItem.ref_code === item.parent_ref_code) {
+          return nodeMap.get(existingItem.id);
+        }
+      }
     }
+    
+    // Для случая, когда уровни уже известны, идем на один уровень выше
+    if (item.level > 0) {
+      for (const existingItem of items) {
+        if (existingItem.level === item.level - 1 && 
+            nodeMap.has(existingItem.id) && 
+            this.isParentChild(items, existingItem.id, item.id)) {
+          return nodeMap.get(existingItem.id);
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Проверяет, является ли один узел родителем другого
+   */
+  private isParentChild(items: any[], parentId: number, childId: number): boolean {
+    for (const item of items) {
+      if (item.id === childId) {
+        for (const potentialParent of items) {
+          if (potentialParent.id === parentId && 
+              item.parent_ref_code === potentialParent.ref_code) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+    return false;
   }
 }
-
-// Создаем и экспортируем единственный экземпляр сервиса
-export const optimizedReferralTreeService = new OptimizedReferralTreeService();
