@@ -629,6 +629,21 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       {/* Информация о текущем фарминге (отображается всегда, если активен) */}
       {isActive && (
         <div className="mb-5">
+          {/* Индикатор активности фарминга */}
+          <div className="mb-4 p-3 bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-500/30 rounded-lg flex items-center">
+            <div className="flex items-center justify-center w-8 h-8 mr-3 bg-green-500/20 rounded-full">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            </div>
+            <div>
+              <p className="text-sm text-green-300 font-medium">
+                Фарминг активен
+              </p>
+              <p className="text-xs text-green-200/70 mt-1">
+                Доход начисляется автоматически в реальном времени
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-foreground opacity-70">Текущий депозит</p>
@@ -648,9 +663,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               <p className="text-md font-medium">{farmingInfo.depositCount || 0} шт.</p>
             </div>
             <div>
-              <p className="text-sm text-foreground opacity-70">Процент доходности</p>
-              <p className="text-md font-medium">
-                <span className="text-primary">0.5%</span> в сутки
+              <p className="text-sm text-foreground opacity-70">Годовая доходность (APR)</p>
+              <p className="text-md font-medium flex items-center">
+                <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-semibold bg-primary/20 text-primary rounded mr-2">182.5%</span>
+                <span className="text-xs text-foreground/60">(0.5% в день)</span>
               </p>
             </div>
           </div>
@@ -683,11 +699,55 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         </div>
       )}
       
+      {/* Информация для неактивного состояния фарминга */}
+      {!isActive && (
+        <div className="mb-5">
+          <div className="mb-4 p-3 bg-gradient-to-r from-amber-900/30 to-orange-900/20 border border-amber-500/30 rounded-lg flex items-center">
+            <div className="flex items-center justify-center w-8 h-8 mr-3 bg-amber-500/20 rounded-full">
+              <i className="fas fa-seedling text-amber-400"></i>
+            </div>
+            <div>
+              <p className="text-sm text-amber-300 font-medium">
+                Фарминг не активирован
+              </p>
+              <p className="text-xs text-amber-200/70 mt-1">
+                Создайте свой первый депозит, чтобы начать получать доход
+              </p>
+            </div>
+          </div>
+          
+          <div className="mb-5 p-3 bg-gradient-to-r from-slate-900/50 to-slate-800/30 rounded-lg">
+            <h3 className="text-md font-medium mb-2 flex items-center">
+              <i className="fas fa-percentage text-primary mr-2"></i>
+              Информация о доходности
+            </h3>
+            <ul className="text-sm space-y-2 text-slate-300">
+              <li className="flex items-start">
+                <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
+                <span>Ежедневная доходность: <span className="text-primary font-medium">0.5% в день</span></span>
+              </li>
+              <li className="flex items-start">
+                <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
+                <span>Годовая доходность (APR): <span className="text-primary font-medium">182.5%</span></span>
+              </li>
+              <li className="flex items-start">
+                <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
+                <span>Начисления: <span className="text-primary font-medium">каждую секунду</span></span>
+              </li>
+              <li className="flex items-start">
+                <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
+                <span>Минимальный депозит: <span className="text-primary font-medium">5 UNI</span></span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )}
+      
       {/* Форма для создания депозита (отображается всегда) */}
       <div className={isActive ? "mt-6 pt-4 border-t border-slate-700" : ""}>
-        {isActive && (
-          <h3 className="text-md font-medium mb-4">Пополнить фарминг</h3>
-        )}
+        <h3 className="text-md font-medium mb-4">
+          {isActive ? "Пополнить фарминг" : "Создать депозит и активировать фарминг"}
+        </h3>
         
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -734,13 +794,25 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <button 
             type="submit"
             disabled={isLoading || error === 'Обработка запроса...'}
-            className={`w-full py-2 px-4 rounded-lg font-medium ${
+            className={`w-full py-3 px-4 rounded-lg font-medium text-base ${
               isLoading || error === 'Обработка запроса...'
                 ? 'bg-muted text-foreground opacity-50'
-                : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700'
-            } transition-all duration-300`}
+                : !isActive 
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-900/20 hover:shadow-green-900/30'
+                  : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 shadow-lg shadow-purple-900/20 hover:shadow-purple-900/30'
+            } transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]`}
           >
-            {error === 'Обработка запроса...' ? 'Обработка...' : isActive ? 'Пополнить' : 'Активировать фарминг'}
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                <span>Обработка...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center">
+                <i className={`fas ${isActive ? 'fa-arrow-up' : 'fa-seedling'} mr-2`}></i>
+                <span>{isActive ? 'Пополнить фарминг' : 'Активировать фарминг UNI'}</span>
+              </div>
+            )}
           </button>
         </form>
       </div>
