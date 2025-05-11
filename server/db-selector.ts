@@ -1,13 +1,14 @@
 // Файл для динамического выбора драйвера базы данных
+// Обновлено: основной драйвер (./db.ts) теперь использует Replit PostgreSQL
 
-import * as neonDb from './db'; // Импорт Neon PostgreSQL драйвера
-import * as replitDb from './db-replit'; // Импорт Replit PostgreSQL драйвера
+import * as dbDriver from './db'; // Основной драйвер теперь использует Replit PostgreSQL
+import * as replitDb from './db-replit'; // Запасной импорт Replit PostgreSQL драйвера
 
-// Тип подключения к базе данных
-export type DatabaseProvider = 'neon' | 'replit';
+// Тип подключения к базе данных - оставлен для обратной совместимости
+export type DatabaseProvider = 'standard' | 'replit';
 
-// По умолчанию используем Replit PostgreSQL
-let selectedProvider: DatabaseProvider = 'replit';
+// По умолчанию используем стандартный драйвер
+let selectedProvider: DatabaseProvider = 'standard';
 
 // Функция для установки провайдера
 export function setDatabaseProvider(provider: DatabaseProvider): void {
@@ -16,12 +17,11 @@ export function setDatabaseProvider(provider: DatabaseProvider): void {
 }
 
 // Экспортируем выбранный драйвер базы данных
-export const db = selectedProvider === 'neon' ? neonDb.db : replitDb.db;
-export const pool = selectedProvider === 'neon' ? neonDb.pool : replitDb.pool;
-export const dbConnectionStatus = selectedProvider === 'neon' ? neonDb.dbConnectionStatus : replitDb.dbConnectionStatus;
-export const testDatabaseConnection = selectedProvider === 'neon' ? neonDb.testDatabaseConnection : replitDb.testDatabaseConnection;
-export const queryWithRetry = selectedProvider === 'neon' ? neonDb.queryWithRetry : replitDb.queryWithRetry;
-export const query = selectedProvider === 'neon' ? neonDb.query : replitDb.query;
+export const db = selectedProvider === 'standard' ? dbDriver.db : replitDb.db;
+export const pool = selectedProvider === 'standard' ? dbDriver.pool : replitDb.pool;
+export const testDatabaseConnection = selectedProvider === 'standard' ? dbDriver.testDatabaseConnection : replitDb.testDatabaseConnection;
+export const queryWithRetry = selectedProvider === 'standard' ? dbDriver.queryWithRetry : replitDb.queryWithRetry;
+export const query = selectedProvider === 'standard' ? dbDriver.query : replitDb.query;
 
 // Функция для получения типа текущего провайдера
 export function getCurrentProvider(): DatabaseProvider {
