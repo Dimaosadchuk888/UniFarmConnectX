@@ -2,11 +2,11 @@
  * Скрипт для тестирования оптимизированной системы реферальных бонусов
  */
 
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/pg-pool';
 import { eq, sql } from 'drizzle-orm';
 import dotenv from 'dotenv';
-import ws from 'ws';
+import crypto from 'crypto';
 
 // Загрузить переменные окружения
 dotenv.config();
@@ -31,7 +31,6 @@ const transactions = {
   created_at: 'created_at'
 };
 
-// Определяем структуру таблицы reward_distribution_logs
 const reward_distribution_logs = {
   id: 'id',
   source_user_id: 'source_user_id',
@@ -47,30 +46,15 @@ const reward_distribution_logs = {
   completed_at: 'completed_at'
 };
 
-// Настраиваем WebSocket для Neon
-neonConfig.webSocketConstructor = ws;
-
 // Создать подключение к базе данных
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
 
 // Создать экземпляр Drizzle с нашей схемой
-const db = drizzle(pool, { schema: { users, transactions } });
+const db = drizzle(pool, { schema: { users, transactions, reward_distribution_logs } });
 
-// Определяем структуру таблицы reward_distribution_logs, так как она может отсутствовать в схеме
-const reward_distribution_logs = {
-  id: 'id',
-  source_user_id: 'source_user_id',
-  batch_id: 'batch_id',
-  currency: 'currency',
-  earned_amount: 'earned_amount',
-  status: 'status',
-  created_at: 'created_at',
-  completed_at: 'completed_at',
-  levels_processed: 'levels_processed',
-  inviter_count: 'inviter_count'
-};
+// Структура reward_distribution_logs уже определена выше
 // Эмуляция типов транзакций
 const TransactionType = {
   REFERRAL_BONUS: 'referral_bonus'
@@ -86,7 +70,6 @@ const TransactionStatus = {
   PENDING: 'pending',
   FAILED: 'failed'
 };
-import crypto from 'crypto';
 
 // Измеряем производительность операций
 console.time('Общее время выполнения');
@@ -105,8 +88,21 @@ async function testReferralBonusDistribution(userId, amount, currency) {
     // Проверяем наличие таблицы reward_distribution_logs
     console.log('\n1. Проверка таблицы reward_distribution_logs...');
     try {
-      await db.select().from(reward_distribution_logs).limit(1);
-      console.log('✓ Таблица reward_distribution_logs существует');
+      // Используем сырой SQL запрос вместо ORM для проверки существования таблицы
+      const { rows } = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public'
+          AND table_name = 'reward_distribution_logs'
+        )
+      `);
+      
+      if (rows[0].exists) {
+        console.log('✓ Таблица reward_distribution_logs существует');
+      } else {
+        console.log('✗ Таблица reward_distribution_logs не найдена');
+        return false;
+      }
     } catch (error) {
       console.error('✗ Ошибка при проверке таблицы reward_distribution_logs:', error);
       return false;
