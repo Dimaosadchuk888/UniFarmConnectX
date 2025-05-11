@@ -352,7 +352,7 @@ export class ReferralBonusProcessor {
             // Создаем транзакцию для каждого отдельного бонуса
             try {
               const transactionData = insertTransactionSchema.parse({
-                user_id: inviterId,
+                user_id: Number(inviterId),
                 type: TransactionType.REFERRAL,
                 amount: bonus.bonusAmount.toString(),
                 currency: currency,
@@ -395,9 +395,8 @@ export class ReferralBonusProcessor {
             
             // Добавляем в массив обновлений баланса (один раз для каждого пользователя)
             balanceUpdates.push({
-              id: inviterId,
-              balance_uni: currency === Currency.UNI ? newBalance.toString() : uniBalance,
-              balance_ton: currency === Currency.TON ? newBalance.toString() : tonBalance
+              id: Number(inviterId),
+              amount: totalInviterBonus
             });
             
             // Суммируем все начисленные бонусы для общей статистики
@@ -419,10 +418,11 @@ export class ReferralBonusProcessor {
           const balanceField = currency === Currency.UNI ? users.balance_uni : users.balance_ton;
           
           // Строим сложное выражение CASE для массового обновления
+          // Формируем SQL-выражения для обновления балансов
           const caseExpressions = balanceUpdates.map(update => {
-            const newValue = currency === Currency.UNI ? 
-              update.balance_uni : update.balance_ton;
-            return sql`WHEN ${update.id} THEN ${newValue}`;
+            // Для каждого ID пользователя определяем, сколько добавить к его балансу
+            const fieldName = currency === Currency.UNI ? 'balance_uni' : 'balance_ton';
+            return sql`WHEN ${update.id} THEN ${fieldName}::numeric + ${update.amount}`;
           });
           
           // Выполняем единое массовое обновление для всех пользователей
