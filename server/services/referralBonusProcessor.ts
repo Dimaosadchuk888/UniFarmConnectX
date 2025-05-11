@@ -272,109 +272,159 @@ export class ReferralBonusProcessor {
         // Создаем Map для быстрого доступа к данным пригласителей
         const invitersMap = new Map(invitersData.map(inviter => [inviter.id, inviter]));
         
-        // Подготавливаем массивы для пакетных операций
+        // Подготавливаем массивы для истинно пакетных операций
         const balanceUpdates = [];
         const transactionInserts = [];
         
-        // Для каждого уровня начисляем вознаграждение
-        for (const ref of userReferrals) {
-          // Проверяем, что уровень определен
-          if (ref.level === null) {
-            continue;
-          }
-          
-          const level = ref.level;
-          levelsProcessed++;
-          
-          // Проверяем, что уровень в пределах допустимых
-          if (level <= 0 || level > this.maxLevels) {
-            continue;
-          }
-          
-          // Получаем процент для данного уровня
-          const percent = this.levelPercents[level - 1];
-          
-          // Вычисляем сумму вознаграждения
-          const bonusAmount = earnedAmount * (percent / 100);
-          
-          // Пропускаем микро-начисления
-          if (bonusAmount < this.minRewardThreshold) {
-            continue;
-          }
-          
-          // Начисляем вознаграждение пригласителю
-          if (bonusAmount > 0 && ref.inviter_id !== null) {
-            // Получаем пользователя-приглашателя из Map
-            const inviter = invitersMap.get(ref.inviter_id);
+        // Предварительная групповая обработка - вычисляем награды для всех реферальных уровней сразу
+        const bonusCalcs = userReferrals
+          .filter(ref => 
+            ref.level !== null && 
+            ref.level > 0 && 
+            ref.level <= this.maxLevels && 
+            ref.inviter_id !== null
+          )
+          .map(ref => {
+            const level = ref.level!;
+            const percent = this.levelPercents[level - 1];
+            const bonusAmount = earnedAmount * (percent / 100);
             
-            if (!inviter) {
-              console.log(`[ReferralBonusProcessor] Inviter with ID ${ref.inviter_id} not found in fetched data, skipping`);
-              continue;
+            levelsProcessed++;
+            
+            return {
+              level,
+              inviter_id: ref.inviter_id!,
+              percent,
+              bonusAmount,
+              valid: bonusAmount >= this.minRewardThreshold
+            };
+          })
+          .filter(calc => calc.valid);
+          
+        console.log(`[ReferralBonusProcessor] Calculated rewards for ${bonusCalcs.length} valid levels out of ${levelsProcessed} total`);
+        
+        // Группируем бонусы по получателям для случаев, когда пользователь может получить 
+        // вознаграждения с нескольких уровней (например, при цикличных структурах)
+        const bonusesByInviter: Record<number, any[]> = {};
+        
+        // Группируем бонусы по ID пригласителя (используем обычный объект вместо Map)
+        for (const calc of bonusCalcs) {
+          const key = calc.inviter_id;
+          if (!bonusesByInviter[key]) {
+            bonusesByInviter[key] = [];
+          }
+          bonusesByInviter[key].push(calc);
+        }
+        
+        // Обрабатываем каждого уникального пригласителя один раз
+        for (const inviterId of Object.keys(bonusesByInviter)) {
+          const numericInviterId = parseInt(inviterId);
+          const bonuses = bonusesByInviter[numericInviterId];
+          // Получаем пользователя-приглашателя из Map
+          const inviter = invitersMap.get(inviterId);
+          
+          if (!inviter) {
+            console.log(`[ReferralBonusProcessor] Inviter with ID ${inviterId} not found in fetched data, skipping`);
+            continue;
+          }
+          
+          // Обработка всех бонусов для одного пригласителя
+          let totalInviterBonus = 0;
+          const inviterTransactions = [];
+          
+          for (const bonus of bonuses) {
+            // Накапливаем общую сумму бонусов для этого пригласителя
+            totalInviterBonus += bonus.bonusAmount;
+            
+            // Создаем транзакцию для каждого отдельного бонуса
+            try {
+              const transactionData = insertTransactionSchema.parse({
+                user_id: inviterId,
+                type: TransactionType.REFERRAL,
+                amount: bonus.bonusAmount.toString(),
+                currency: currency,
+                status: TransactionStatus.CONFIRMED,
+                source: "Referral Income",
+                description: `Referral reward from level ${bonus.level} farming`,
+                source_user_id: userId,
+                category: "bonus",
+                data: JSON.stringify({
+                  batch_id: batchId,
+                  level: bonus.level,
+                  percent: bonus.percent
+                })
+              });
+              
+              // Добавляем в массив транзакций для этого пользователя
+              inviterTransactions.push(transactionData);
+              
+              // Подсчитываем общее количество бонусных начислений
+              inviterCount++;
+            } catch (validationError) {
+              console.error(`[ReferralBonusProcessor] Validation error for transaction data: ${validationError}`);
+              // Продолжаем для других бонусов
             }
-            
+          }
+          
+          // Добавляем все транзакции для пользователя в общий массив
+          transactionInserts.push(...inviterTransactions);
+          
+          // Вычисляем новый баланс (один раз для всех бонусов пользователя)
+          if (totalInviterBonus > 0) {
             // Проверяем значения баланса и обрабатываем null значения
             const uniBalance = inviter.balance_uni !== null ? inviter.balance_uni : "0";
             const tonBalance = inviter.balance_ton !== null ? inviter.balance_ton : "0";
             
-            // Увеличиваем баланс пользователя
+            // Увеличиваем баланс пользователя общей суммой всех его бонусов
             const newBalance = currency === Currency.UNI 
-              ? Number(uniBalance) + bonusAmount 
-              : Number(tonBalance) + bonusAmount;
+              ? Number(uniBalance) + totalInviterBonus 
+              : Number(tonBalance) + totalInviterBonus;
             
-            // Добавляем в массив обновлений баланса
+            // Добавляем в массив обновлений баланса (один раз для каждого пользователя)
             balanceUpdates.push({
-              id: ref.inviter_id,
+              id: inviterId,
               balance_uni: currency === Currency.UNI ? newBalance.toString() : uniBalance,
               balance_ton: currency === Currency.TON ? newBalance.toString() : tonBalance
             });
             
-            // Создаем и валидируем данные транзакции через схему
-            try {
-              const transactionData = insertTransactionSchema.parse({
-                user_id: ref.inviter_id,
-                type: TransactionType.REFERRAL,
-                amount: bonusAmount.toString(),
-                currency: currency,
-                status: TransactionStatus.CONFIRMED,
-                source: "Referral Income",
-                description: `Referral reward from level ${level} farming`,
-                source_user_id: userId, // ID реферала, чьи доходы стали источником
-                category: "bonus",
-                data: JSON.stringify({
-                  batch_id: batchId,
-                  level: level,
-                  percent: percent
-                })
-              });
-              
-              // Добавляем в массив для пакетной вставки
-              transactionInserts.push(transactionData);
-              
-              // Суммируем начисленные бонусы
-              totalRewardsDistributed += bonusAmount;
-              inviterCount++;
-            } catch (validationError) {
-              console.error(`[ReferralBonusProcessor] Validation error for transaction data: ${validationError}`);
-              // Продолжаем для других уровней
-            }
+            // Суммируем все начисленные бонусы для общей статистики
+            totalRewardsDistributed += totalInviterBonus;
           }
         }
         
-        // Выполняем пакетное обновление балансов (одним запросом)
+        // Теперь выполняем пакетное обновление балансов с помощью VALUES и CASE
         if (balanceUpdates.length > 0) {
-          for (const update of balanceUpdates) {
-            await tx
-              .update(users)
-              .set({
-                balance_uni: update.balance_uni,
-                balance_ton: update.balance_ton
-              })
-              .where(eq(users.id, update.id));
-          }
+          console.log(`[ReferralBonusProcessor] Performing batch balance update for ${balanceUpdates.length} users`);
+          
+          // Сортируем обновления для консистентности (важно для тестирования и отладки)
+          balanceUpdates.sort((a, b) => a.id - b.id);
+          
+          // Строим массив ID пользователей для обновления
+          const userIds = balanceUpdates.map(update => update.id);
+          
+          // Определяем, какое поле баланса нужно обновить
+          const balanceField = currency === Currency.UNI ? users.balance_uni : users.balance_ton;
+          
+          // Строим сложное выражение CASE для массового обновления
+          const caseExpressions = balanceUpdates.map(update => {
+            const newValue = currency === Currency.UNI ? 
+              update.balance_uni : update.balance_ton;
+            return sql`WHEN ${update.id} THEN ${newValue}`;
+          });
+          
+          // Выполняем единое массовое обновление для всех пользователей
+          await tx
+            .update(users)
+            .set({
+              [currency === Currency.UNI ? 'balance_uni' : 'balance_ton']: 
+                sql`CASE id ${sql.join(caseExpressions, ' ')} ELSE ${currency === Currency.UNI ? 'balance_uni' : 'balance_ton'} END`
+            })
+            .where(inArray(users.id, userIds));
         }
         
-        // Выполняем пакетную вставку транзакций (одним запросом)
+        // Выполняем пакетную вставку всех транзакций (одним запросом)
         if (transactionInserts.length > 0) {
+          console.log(`[ReferralBonusProcessor] Inserting ${transactionInserts.length} transactions in batch`);
           await tx.insert(transactions).values(transactionInserts);
         }
         
