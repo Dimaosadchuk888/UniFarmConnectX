@@ -55,6 +55,7 @@ import { SecurityController } from './controllers/securityController'; // Нов
 import { WalletController } from './controllers/walletController';
 import { AdminController } from './controllers/adminController';
 import * as PartitionController from './controllers/partition-controller'; // Контроллер для управления партициями
+import { ReferralSystemController } from './controllers/referralSystemController'; // Контроллер для оптимизированной реферальной системы
 
 // Импортируем маршруты для партиционирования
 import { registerPartitionRoutes } from './api/partition-routes';
