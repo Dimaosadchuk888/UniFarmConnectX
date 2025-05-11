@@ -10,30 +10,41 @@ export const authUsers = pgTable("auth_users", {
 });
 
 // Таблица users по требованиям задачи
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  telegram_id: bigint("telegram_id", { mode: "number" }).unique(),
-  guest_id: text("guest_id").unique(), // Уникальный идентификатор пользователя, независимый от Telegram
-  username: text("username"),
-  wallet: text("wallet"),
-  ton_wallet_address: text("ton_wallet_address"), // Новое поле для хранения TON-адреса кошелька
-  ref_code: text("ref_code").unique(), // Уникальный реферальный код для пользователя
-  parent_ref_code: text("parent_ref_code"), // Реферальный код пригласившего пользователя
-  balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default("0"),
-  balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default("0"),
-  // Поля для основного UNI фарминга
-  uni_deposit_amount: numeric("uni_deposit_amount", { precision: 18, scale: 6 }).default("0"),
-  uni_farming_start_timestamp: timestamp("uni_farming_start_timestamp"),
-  uni_farming_balance: numeric("uni_farming_balance", { precision: 18, scale: 6 }).default("0"),
-  uni_farming_rate: numeric("uni_farming_rate", { precision: 18, scale: 6 }).default("0"),
-  uni_farming_last_update: timestamp("uni_farming_last_update"),
-  // Поля для совместимости со старой системой фарминга (используются в миграции)
-  uni_farming_deposit: numeric("uni_farming_deposit", { precision: 18, scale: 6 }).default("0"),
-  uni_farming_activated_at: timestamp("uni_farming_activated_at"),
-  created_at: timestamp("created_at").defaultNow(),
-  checkin_last_date: timestamp("checkin_last_date"),
-  checkin_streak: integer("checkin_streak").default(0)
-});
+export const users = pgTable(
+  "users", 
+  {
+    id: serial("id").primaryKey(),
+    telegram_id: bigint("telegram_id", { mode: "number" }).unique(),
+    guest_id: text("guest_id").unique(), // Уникальный идентификатор пользователя, независимый от Telegram
+    username: text("username"),
+    wallet: text("wallet"),
+    ton_wallet_address: text("ton_wallet_address"), // Новое поле для хранения TON-адреса кошелька
+    ref_code: text("ref_code").unique(), // Уникальный реферальный код для пользователя
+    parent_ref_code: text("parent_ref_code"), // Реферальный код пригласившего пользователя
+    balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default("0"),
+    balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default("0"),
+    // Поля для основного UNI фарминга
+    uni_deposit_amount: numeric("uni_deposit_amount", { precision: 18, scale: 6 }).default("0"),
+    uni_farming_start_timestamp: timestamp("uni_farming_start_timestamp"),
+    uni_farming_balance: numeric("uni_farming_balance", { precision: 18, scale: 6 }).default("0"),
+    uni_farming_rate: numeric("uni_farming_rate", { precision: 18, scale: 6 }).default("0"),
+    uni_farming_last_update: timestamp("uni_farming_last_update"),
+    // Поля для совместимости со старой системой фарминга (используются в миграции)
+    uni_farming_deposit: numeric("uni_farming_deposit", { precision: 18, scale: 6 }).default("0"),
+    uni_farming_activated_at: timestamp("uni_farming_activated_at"),
+    created_at: timestamp("created_at").defaultNow(),
+    checkin_last_date: timestamp("checkin_last_date"),
+    checkin_streak: integer("checkin_streak").default(0)
+  },
+  (table) => {
+    return {
+      // Создаем индекс для parent_ref_code для оптимизации реферальных запросов
+      parentRefCodeIdx: index("idx_users_parent_ref_code").on(table.parent_ref_code),
+      // Индекс для ref_code уже есть (из-за unique), но для явности добавим
+      refCodeIdx: index("idx_users_ref_code").on(table.ref_code),
+    };
+  }
+);
 
 // Таблица farming_deposits по требованиям задачи
 export const farmingDeposits = pgTable("farming_deposits", {
@@ -90,22 +101,33 @@ export type InsertFarmingDeposit = z.infer<typeof insertFarmingDepositSchema>;
 export type FarmingDeposit = typeof farmingDeposits.$inferSelect;
 
 // Таблица transactions по требованиям задачи
-export const transactions = pgTable("transactions", {
-  id: serial("id").primaryKey(),
-  user_id: integer("user_id").references(() => users.id),
-  type: text("type"), // deposit / withdraw / reward / boost_bonus
-  currency: text("currency"), // UNI / TON
-  amount: numeric("amount", { precision: 18, scale: 6 }),
-  status: text("status").default("confirmed"), // pending / confirmed / rejected
-  source: text("source"), // источник транзакции (например, "TON Boost")
-  category: text("category"), // категория транзакции (например, "bonus")
-  tx_hash: text("tx_hash"), // хеш транзакции для блокчейн-операций
-  description: text("description"), // описание транзакции
-  source_user_id: integer("source_user_id"), // ID пользователя-источника (например, реферала)
-  wallet_address: text("wallet_address"), // адрес кошелька для вывода средств
-  data: text("data"), // JSON-строка с дополнительными данными транзакции
-  created_at: timestamp("created_at").defaultNow()
-});
+export const transactions = pgTable(
+  "transactions", 
+  {
+    id: serial("id").primaryKey(),
+    user_id: integer("user_id").references(() => users.id),
+    type: text("type"), // deposit / withdraw / reward / boost_bonus
+    currency: text("currency"), // UNI / TON
+    amount: numeric("amount", { precision: 18, scale: 6 }),
+    status: text("status").default("confirmed"), // pending / confirmed / rejected
+    source: text("source"), // источник транзакции (например, "TON Boost")
+    category: text("category"), // категория транзакции (например, "bonus")
+    tx_hash: text("tx_hash"), // хеш транзакции для блокчейн-операций
+    description: text("description"), // описание транзакции
+    source_user_id: integer("source_user_id"), // ID пользователя-источника (например, реферала)
+    wallet_address: text("wallet_address"), // адрес кошелька для вывода средств
+    data: text("data"), // JSON-строка с дополнительными данными транзакции
+    created_at: timestamp("created_at").defaultNow()
+  },
+  (table) => {
+    return {
+      // Индексы для ускорения запросов к транзакциям
+      userIdIdx: index("idx_transactions_user_id").on(table.user_id),
+      sourceUserIdIdx: index("idx_transactions_source_user_id").on(table.source_user_id),
+      typeStatusIdx: index("idx_transactions_type_status").on(table.type, table.status),
+    };
+  }
+);
 
 // Схемы для таблицы transactions
 export const insertTransactionSchema = createInsertSchema(transactions).pick({
@@ -127,15 +149,27 @@ export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 
 // Таблица referrals по требованиям задачи
-export const referrals = pgTable("referrals", {
-  id: serial("id").primaryKey(),
-  user_id: integer("user_id").references(() => users.id).notNull(),
-  inviter_id: integer("inviter_id").references(() => users.id).notNull(),
-  level: integer("level").notNull(), // Уровень (1–20)
-  reward_uni: numeric("reward_uni", { precision: 18, scale: 6 }),
-  ref_path: json("ref_path").array(), // Массив ID пригласителей в цепочке [inviter_id, inviter_inviter_id, ...]
-  created_at: timestamp("created_at").defaultNow()
-});
+export const referrals = pgTable(
+  "referrals",
+  {
+    id: serial("id").primaryKey(),
+    user_id: integer("user_id").references(() => users.id).notNull(),
+    inviter_id: integer("inviter_id").references(() => users.id).notNull(),
+    level: integer("level").notNull(), // Уровень (1–20)
+    reward_uni: numeric("reward_uni", { precision: 18, scale: 6 }),
+    ref_path: json("ref_path").array(), // Массив ID пригласителей в цепочке [inviter_id, inviter_inviter_id, ...]
+    created_at: timestamp("created_at").defaultNow()
+  },
+  (table) => {
+    return {
+      // Индексы для ускорения реферальных запросов
+      userIdIdx: index("idx_referrals_user_id").on(table.user_id),
+      inviterIdIdx: index("idx_referrals_inviter_id").on(table.inviter_id),
+      userInviterIdx: index("idx_referrals_user_inviter").on(table.user_id, table.inviter_id),
+      levelIdx: index("idx_referrals_level").on(table.level),
+    };
+  }
+);
 
 // Схемы для таблицы referrals
 export const insertReferralSchema = createInsertSchema(referrals).pick({
@@ -282,14 +316,25 @@ export const reward_distribution_logs = pgTable("reward_distribution_logs", {
 });
 
 // Таблица для метрик производительности
-export const performance_metrics = pgTable("performance_metrics", {
-  id: serial("id").primaryKey(),
-  operation: text("operation").notNull(), // Тип операции (process_batch, queue_reward, и т.д.)
-  batch_id: text("batch_id"), // ID связанного пакета распределения
-  duration_ms: numeric("duration_ms", { precision: 12, scale: 2 }).notNull(), // Длительность операции в миллисекундах
-  timestamp: timestamp("timestamp").defaultNow().notNull(), // Время записи метрики
-  details: text("details") // Дополнительные детали (JSON-строка)
-});
+export const performance_metrics = pgTable(
+  "performance_metrics", 
+  {
+    id: serial("id").primaryKey(),
+    operation: text("operation").notNull(), // Тип операции (process_batch, queue_reward, и т.д.)
+    batch_id: text("batch_id"), // ID связанного пакета распределения
+    duration_ms: numeric("duration_ms", { precision: 12, scale: 2 }).notNull(), // Длительность операции в миллисекундах
+    timestamp: timestamp("timestamp").defaultNow().notNull(), // Время записи метрики
+    details: text("details") // Дополнительные детали (JSON-строка)
+  },
+  (table) => {
+    return {
+      // Индексы для эффективного анализа метрик производительности
+      timestampIdx: index("idx_performance_metrics_timestamp").on(table.timestamp),
+      operationIdx: index("idx_performance_metrics_operation").on(table.operation),
+      batchIdIdx: index("idx_performance_metrics_batch_id").on(table.batch_id),
+    };
+  }
+);
 
 // Схемы для таблицы partition_logs
 export const insertPartitionLogSchema = createInsertSchema(partition_logs).pick({

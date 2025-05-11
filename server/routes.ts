@@ -1491,6 +1491,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/referrals/tree", ReferralControllerFallback.getReferralTree);
   app.get("/api/referrals/stats", ReferralControllerFallback.getReferralStats);
   
+  // Маршруты для оптимизированной реферальной системы
+  app.get("/api/referrals/tree/optimized", ReferralSystemController.getReferralTree);
+  app.get("/api/referrals/structure", ReferralSystemController.getReferralStructureInfo);
+  app.post("/api/system/referrals/toggle-optimized", ReferralSystemController.toggleOptimizedSystem);
+  app.get("/api/system/referrals/metrics", ReferralSystemController.getSystemMetrics);
+  
   // Маршруты для ежедневного бонуса
   // app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);
   // app.post("/api/daily-bonus/claim", DailyBonusController.claimDailyBonus);
