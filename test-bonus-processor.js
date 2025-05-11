@@ -8,10 +8,11 @@
  * node test-bonus-processor.js <user_id> <amount> <currency>
  */
 
-require('dotenv').config();
-const { Pool } = require('pg');
+import 'dotenv/config';
+import pg from 'pg';
 
 // Подключение к базе данных
+const { Pool } = pg;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
