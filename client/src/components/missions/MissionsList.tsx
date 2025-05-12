@@ -271,7 +271,17 @@ export const MissionsList: React.FC = () => {
             
             // Показываем эффект конфетти и сообщение о награде
             setCompletedMissionId(missionId);
-            setRewardAmount(result.reward || 0);
+            
+            // Получаем величину награды из двух возможных мест:
+            // 1. Прямо из API-ответа (result.reward)
+            // 2. Из текущей миссии, если API-ответ не содержит награды
+            const currentMission = missions.find(m => m.id === missionId);
+            const rewardValue = result.reward !== undefined ? result.reward : 
+                                (currentMission ? currentMission.rewardUni : 0);
+            
+            console.log(`[DEBUG] Награда за миссию: API=${result.reward}, UI=${currentMission?.rewardUni}, Итог=${rewardValue}`);
+            
+            setRewardAmount(rewardValue);
             setShowConfetti(true);
             
             // Обновляем статус миссии
