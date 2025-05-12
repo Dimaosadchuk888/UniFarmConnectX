@@ -91,10 +91,16 @@ const TransactionHistory: React.FC = () => {
     }
   }, [userId, page]); // Убираем refetch и showNotification из зависимостей
   
+  // Логгирование транзакций TON для отладки
+  const tonTransactions = transactions.filter(tx => tx.tokenType === 'TON');
+  console.log('[TransactionHistory] TON транзакции:', tonTransactions);
+  
   // Фильтрация транзакций по выбранному токену
   const filteredTransactions = transactions.filter(transaction => {
     if (activeFilter === 'ALL') return true;
-    return transaction.tokenType === activeFilter;
+    // Нормализуем tokenType для сравнения
+    const normalizedTokenType = transaction.tokenType?.toUpperCase();
+    return normalizedTokenType === activeFilter;
   });
   
   // Статусы для отображения в UI

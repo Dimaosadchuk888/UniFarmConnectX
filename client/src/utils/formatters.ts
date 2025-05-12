@@ -3,6 +3,44 @@
  */
 
 /**
+ * Форматирует сумму с учетом типа токена
+ * @param amount Сумма
+ * @param tokenType Тип токена (UNI/TON)
+ * @returns Отформатированная сумма в виде строки
+ */
+export function formatAmount(amount: number, tokenType: string = 'UNI'): string {
+  try {
+    if (typeof amount !== 'number' || isNaN(amount)) {
+      return `0 ${tokenType}`;
+    }
+    
+    // Используем соответствующий форматтер в зависимости от типа токена
+    const formattedValue = tokenType.toUpperCase() === 'TON' 
+      ? formatTonNumber(amount) 
+      : formatUniNumber(amount);
+    
+    return `${formattedValue} ${tokenType}`;
+  } catch (error) {
+    console.error('[ERROR] Ошибка в formatAmount:', error);
+    return `${amount} ${tokenType}`;
+  }
+}
+
+/**
+ * Форматирует дату транзакции в понятный формат
+ * @param date Дата для форматирования
+ * @returns Отформатированная дата в виде строки
+ */
+export function formatDate(date: Date | string): string {
+  try {
+    return formatDateTime(date);
+  } catch (error) {
+    console.error('[ERROR] Ошибка в formatDate:', error);
+    return typeof date === 'string' ? date : date.toLocaleString();
+  }
+}
+
+/**
  * Определяет оптимальное количество десятичных знаков для форматирования числа
  * в зависимости от его величины и типа валюты
  * 
