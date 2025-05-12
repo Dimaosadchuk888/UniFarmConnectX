@@ -241,12 +241,9 @@ export class ReferralBonusProcessor {
           await tx.update(reward_distribution_logs)
             .set({ 
               status: 'completed',
-              levels_processed: 0,
-              inviter_count: 0,
-              total_distributed: '0',
               completed_at: new Date()
             })
-            .where(eq(reward_distribution_logs.batch_id, batchId));
+            .where(eq(reward_distribution_logs.message_id, batchId));
             
           return {totalRewardsDistributed: 0};
         }
@@ -265,12 +262,9 @@ export class ReferralBonusProcessor {
           await tx.update(reward_distribution_logs)
             .set({ 
               status: 'completed',
-              levels_processed: 0,
-              inviter_count: 0,
-              total_distributed: '0',
               completed_at: new Date()
             })
-            .where(eq(reward_distribution_logs.batch_id, batchId));
+            .where(eq(reward_distribution_logs.message_id, batchId));
             
           return {totalRewardsDistributed: 0};
         }
@@ -361,7 +355,7 @@ export class ReferralBonusProcessor {
                 source_user_id: userId,
                 category: "bonus",
                 data: JSON.stringify({
-                  batch_id: batchId,
+                  message_id: batchId,
                   level: bonus.level,
                   percent: bonus.percent
                 })
@@ -444,12 +438,9 @@ export class ReferralBonusProcessor {
         await tx.update(reward_distribution_logs)
           .set({ 
             status: 'completed',
-            levels_processed: levelsProcessed,
-            inviter_count: inviterCount,
-            total_distributed: totalRewardsDistributed.toString(),
             completed_at: new Date()
           })
-          .where(eq(reward_distribution_logs.batch_id, batchId));
+          .where(eq(reward_distribution_logs.message_id, batchId));
         
         console.log(`[ReferralBonusProcessor] Batch ${batchId} completed. Total distributed: ${totalRewardsDistributed} ${currency} to ${inviterCount} inviters`);
         return { totalRewardsDistributed };
@@ -462,10 +453,10 @@ export class ReferralBonusProcessor {
       await db.update(reward_distribution_logs)
         .set({ 
           status: 'failed',
-          error_message: errorMessage,
+          error: errorMessage,
           completed_at: new Date()
         })
-        .where(eq(reward_distribution_logs.batch_id, batchId));
+        .where(eq(reward_distribution_logs.message_id, batchId));
       
       // Повторяем обработку, если не превышено максимальное количество попыток
       if (retryCount < RETRY_CONFIG.maxRetries) {
@@ -523,7 +514,7 @@ export class ReferralBonusProcessor {
       for (const record of failedRecords) {
         this.processingQueue.push({
           userId: record.source_user_id,
-          earnedAmount: Number(record.earned_amount),
+          earnedAmount: Number(record.amount),
           currency: record.currency as Currency
         });
       }
