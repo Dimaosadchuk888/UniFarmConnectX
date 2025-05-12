@@ -3,12 +3,10 @@
  * Создает пользователей и реферальные связи непосредственно через API-запросы
  */
 
-import fetch from 'node-fetch';
-
 // Конфигурация
 const CONFIG = {
   // Базовый URL API
-  API_URL: 'https://93cb0060-75d7-4281-ac65-b204cda864a4-00-1j7bpbfst9vfx.pike.replit.dev:3000/api',
+  API_URL: 'https://93cb0060-75d7-4281-ac65-b204cda864a4-00-1j7bpbfst9vfx.pike.replit.dev/api',
   // Количество уровней для создания (максимум 20)
   LEVELS: 3, // Можно увеличить до 20 для полного тестирования
   // Префикс для имен пользователей
@@ -16,6 +14,9 @@ const CONFIG = {
   // Базовая сумма для депозита
   DEPOSIT_AMOUNT: 100
 };
+
+// Используем fetch из 'node-fetch'
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 /**
  * Выполняет GET-запрос к API
@@ -311,8 +312,10 @@ async function main() {
 }
 
 // Запускаем основную функцию
-try {
-  await main();
-} catch (error) {
-  console.error('Непредвиденная ошибка:', error);
-}
+(async () => {
+  try {
+    await main();
+  } catch (error) {
+    console.error('Непредвиденная ошибка:', error);
+  }
+})();
