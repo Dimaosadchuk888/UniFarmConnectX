@@ -55,44 +55,44 @@ export function getOptimalDecimals(value: number | string, currency: string = 'U
     
     // Проверка на валидное число
     if (numValue === undefined || numValue === null || !isFinite(numValue)) {
-      return 8; // Используем 8 знаков по умолчанию для обеих валют
+      return 5; // Используем 5 знаков по умолчанию для обеих валют
     }
     
     // Унифицированная стратегия для обеих валют (TON и UNI)
     // для лучшей читаемости и единообразия
-    if (numValue < 0.00001) return 8;
-    if (numValue < 0.0001) return 8;
-    if (numValue < 0.001) return 8;
-    if (numValue < 0.01) return 6;
-    if (numValue < 0.1) return 5;
-    if (numValue < 1) return 4;
-    if (numValue < 10) return 3;
+    if (numValue < 0.00001) return 5;
+    if (numValue < 0.0001) return 5;
+    if (numValue < 0.001) return 5;
+    if (numValue < 0.01) return 5;
+    if (numValue < 0.1) return 4;
+    if (numValue < 1) return 3;
+    if (numValue < 10) return 2;
     return 2;
   } catch (error) {
     console.error("[ERROR] Ошибка в getOptimalDecimals:", error);
-    return 8; // Безопасное значение по умолчанию
+    return 5; // Безопасное значение по умолчанию
   }
 }
 
 /**
  * Форматирует число UNI в строковое представление с нужной точностью
  * @param value Числовое значение UNI
- * @param maximumFractionDigits Максимальное количество знаков после запятой (по умолчанию 8)
+ * @param maximumFractionDigits Максимальное количество знаков после запятой (по умолчанию 5)
  * @returns Отформатированное значение в виде строки
  */
-export function formatUniNumber(value: number, maximumFractionDigits: number = 8): string {
+export function formatUniNumber(value: number, maximumFractionDigits: number = 5): string {
   if (typeof value !== 'number' || isNaN(value)) {
-    return '0.00000000';
+    return '0.00000';
   }
 
   // Если число целое, добавляем десятичную часть с нулями для единообразия
   if (Number.isInteger(value)) {
-    return value.toString() + '.00000000'.substring(0, maximumFractionDigits + 1);
+    return value.toString() + '.00000'.substring(0, maximumFractionDigits + 1);
   }
 
-  // Для очень маленьких сумм обеспечиваем отображение до 8 знаков
+  // Для очень маленьких сумм обеспечиваем отображение до 5 знаков
   const formatted = value.toLocaleString('en-US', {
-    minimumFractionDigits: Math.min(4, maximumFractionDigits),
+    minimumFractionDigits: Math.min(3, maximumFractionDigits),
     maximumFractionDigits
   }).replace(/,/g, '');
   
@@ -103,22 +103,22 @@ export function formatUniNumber(value: number, maximumFractionDigits: number = 8
 /**
  * Форматирует число TON в строковое представление с нужной точностью
  * @param value Числовое значение TON
- * @param maximumFractionDigits Максимальное количество знаков после запятой (по умолчанию 8)
+ * @param maximumFractionDigits Максимальное количество знаков после запятой (по умолчанию 5)
  * @returns Отформатированное значение в виде строки
  */
-export function formatTonNumber(value: number, maximumFractionDigits: number = 8): string {
+export function formatTonNumber(value: number, maximumFractionDigits: number = 5): string {
   if (typeof value !== 'number' || isNaN(value)) {
-    return '0.00000000';
+    return '0.00000';
   }
 
   // Если число целое, добавляем десятичную часть с нулями для единообразия
   if (Number.isInteger(value)) {
-    return value.toString() + '.00000000'.substring(0, maximumFractionDigits + 1);
+    return value.toString() + '.00000'.substring(0, maximumFractionDigits + 1);
   }
 
-  // Для TON обеспечиваем отображение до 8 знаков (как и для UNI)
+  // Для TON обеспечиваем отображение до 5 знаков (как и для UNI)
   const formatted = value.toLocaleString('en-US', {
-    minimumFractionDigits: Math.min(4, maximumFractionDigits),
+    minimumFractionDigits: Math.min(3, maximumFractionDigits),
     maximumFractionDigits
   }).replace(/,/g, '');
   
