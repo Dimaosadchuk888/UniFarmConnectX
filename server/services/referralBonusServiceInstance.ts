@@ -263,10 +263,11 @@ export class ReferralBonusService implements IReferralBonusService {
       
       // Создаем запись в журнале распределения вознаграждений
       const logData = insertRewardDistributionLogSchema.parse({
+        message_id: batchId, // Используем batchId как message_id
         source_user_id: userId,
-        batch_id: batchId,
+        amount: earnedAmount.toString(), // Правильное поле amount вместо earned_amount
         currency: currency,
-        earned_amount: earnedAmount.toString(),
+        system_type: 'standard', // Указываем тип системы
         status: 'pending'
       });
       

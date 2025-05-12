@@ -102,10 +102,11 @@ export class ReferralBonusProcessor {
     // Создаем запись в журнале распределения
     try {
       const logData = insertRewardDistributionLogSchema.parse({
+        message_id: batchId, // Используем batchId как message_id
         source_user_id: userId,
-        batch_id: batchId,
+        amount: earnedAmount.toString(), // Правильное поле amount вместо earned_amount
         currency: currency,
-        earned_amount: earnedAmount.toString(),
+        system_type: 'optimized', // Указываем тип системы для оптимизированной версии
         status: 'queued' // Начальный статус - в очереди
       });
       
@@ -191,14 +192,15 @@ export class ReferralBonusProcessor {
       await db
         .insert(reward_distribution_logs)
         .values({
+          message_id: batchId, // Используем batchId как message_id
           source_user_id: userId,
-          batch_id: batchId,
+          amount: earnedAmount.toString(), // Правильное поле amount вместо earned_amount
           currency: currency,
-          earned_amount: earnedAmount.toString(),
+          system_type: 'optimized', // Указываем тип системы
           status: 'processing'
         })
         .onConflictDoUpdate({
-          target: reward_distribution_logs.batch_id,
+          target: [reward_distribution_logs.message_id], // Используем message_id вместо batch_id
           set: { 
             status: 'processing',
             processed_at: new Date()
@@ -212,12 +214,9 @@ export class ReferralBonusProcessor {
         await db.update(reward_distribution_logs)
           .set({ 
             status: 'completed',
-            levels_processed: 0,
-            inviter_count: 0,
-            total_distributed: '0',
             completed_at: new Date()
           })
-          .where(eq(reward_distribution_logs.batch_id, batchId));
+          .where(eq(reward_distribution_logs.message_id, batchId));
           
         return {totalRewardsDistributed: 0};
       }
