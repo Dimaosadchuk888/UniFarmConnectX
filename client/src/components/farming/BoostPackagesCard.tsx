@@ -696,15 +696,7 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
                     <span className="text-white font-semibold text-right">{boost.uniBonus}</span>
                   </div>
                   
-                  <div className="flex justify-between items-center p-3 rounded-lg bg-white/10">
-                    <span className="text-sm text-white/80 flex items-center gap-2 min-w-[120px]">
-                      <BadgeCheck size={14} className="text-white/70" />
-                      Цена в UNI:
-                    </span>
-                    <span className="text-white font-semibold text-right">
-                      {uniPriceDisplay}
-                    </span>
-                  </div>
+
                 </div>
                 
                 {/* Button */}
