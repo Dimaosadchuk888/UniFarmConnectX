@@ -91,23 +91,23 @@ export const MISSIONS = [
     reward: "500 UNI",
     icon: "bullhorn",
     category: "Соцсети",
-    description: "Подпишитесь на наш официальный Telegram канал"
+    description: "Подпишись на Telegram-канал Universe Games https://t.me/UniverseGamesChannel"
   },
   {
     id: 2,
-    title: "Пригласить 1 друга",
-    reward: "1000 UNI",
-    icon: "user-plus",
-    category: "Приглашение",
-    description: "Пригласите друга по вашей реферальной ссылке"
+    title: "Вступить в Telegram чат",
+    reward: "500 UNI",
+    icon: "message-circle",
+    category: "Соцсети",
+    description: "Вступи в Telegram-чат Universe Games https://t.me/UniverseGamesChat"
   },
   {
     id: 3,
     title: "Подписка на YouTube",
-    reward: "800 UNI",
+    reward: "500 UNI",
     icon: "youtube",
     category: "Соцсети",
-    description: "Подпишитесь на наш YouTube канал"
+    description: "Подпишись на YouTube-канал https://youtube.com/@universegamesyoutube?si=XHebHkmEcGpADUAE"
   },
   {
     id: 4,
@@ -119,19 +119,19 @@ export const MISSIONS = [
   },
   {
     id: 5,
-    title: "Поставить лайк в Twitter",
-    reward: "300 UNI",
-    icon: "twitter",
+    title: "Подписаться на TikTok",
+    reward: "500 UNI",
+    icon: "music",
     category: "Соцсети",
-    description: "Поставьте лайк нашему последнему посту в Twitter"
+    description: "Подпишись на TikTok Universe Games https://www.tiktok.com/@universegames.io"
   },
   {
     id: 6,
-    title: "Присоединиться к Discord",
-    reward: "400 UNI",
-    icon: "discord",
-    category: "Соцсети",
-    description: "Присоединитесь к нашему сообществу в Discord"
+    title: "Пригласить 1 друга",
+    reward: "1000 UNI",
+    icon: "user-plus",
+    category: "Приглашение",
+    description: "Пригласите друга по вашей реферальной ссылке"
   },
   {
     id: 7,
