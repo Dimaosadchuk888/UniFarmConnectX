@@ -155,7 +155,7 @@ export class NewUniFarmingController {
       const depositResult = await newUniFarmingService.createUniFarmingDeposit(
         user_id, 
         validationService.validateAndParseNumber(amount, {
-          min: 100,  // Минимальная сумма депозита 100 UNI
+          min: 0.001,  // Минимальная сумма депозита 0.001 UNI (согласовано с сервисом)
           max: 10000000,  // Максимальная сумма депозита 10,000,000 UNI
           currency: 'UNI',
           precision: 6

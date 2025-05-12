@@ -141,7 +141,7 @@ export class ValidationService implements IValidationService {
       MAX_WITHDRAW: 100          // Максимальный вывод TON
     },
     FARMING: {
-      MIN_DEPOSIT: 50,           // Минимальный депозит в фарминг
+      MIN_DEPOSIT: 0.001,        // Минимальный депозит в фарминг (согласовано с сервисом)
       MAX_DEPOSIT: 1000000,      // Максимальный депозит в фарминг
       MIN_HARVEST: 0.000001,     // Минимальный сбор с фарминга
       MAX_HARVEST: 1000000       // Максимальный сбор с фарминга

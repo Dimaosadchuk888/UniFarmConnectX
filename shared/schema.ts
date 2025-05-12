@@ -302,16 +302,16 @@ export const partition_logs = pgTable("partition_logs", {
 // Таблица для логов распределения реферальных вознаграждений
 export const reward_distribution_logs = pgTable("reward_distribution_logs", {
   id: serial("id").primaryKey(),
-  message_id: varchar("message_id", { length: 36 }).notNull(), // Уникальный ID сообщения в формате UUID
+  batch_id: text("batch_id").notNull(), // Уникальный ID пакета операций
   source_user_id: integer("source_user_id").notNull(), // ID пользователя, от которого идёт распределение
-  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(), // Сумма исходного действия
-  currency: varchar("currency", { length: 10 }).notNull(), // Валюта (UNI/TON)
-  created_at: timestamp("created_at").notNull().defaultNow(), // Время создания сообщения
+  earned_amount: numeric("earned_amount", { precision: 18, scale: 6 }).notNull(), // Сумма исходного действия
+  currency: text("currency").notNull(), // Валюта (UNI/TON)
   processed_at: timestamp("processed_at"), // Время обработки сообщения
   status: text("status").default("pending"), // pending / completed / failed
-  system_type: varchar("system_type", { length: 20 }).notNull(), // Тип системы (standard/optimized)
-  error: text("error"), // Ошибка при обработке, если была
-  metadata: jsonb("metadata"), // Дополнительные данные
+  levels_processed: integer("levels_processed"), // Количество обработанных уровней
+  inviter_count: integer("inviter_count"), // Количество пригласителей
+  total_distributed: numeric("total_distributed", { precision: 18, scale: 6 }), // Общая распределенная сумма
+  error_message: text("error_message"), // Ошибка при обработке, если была
   completed_at: timestamp("completed_at") // Время завершения обработки
 });
 
@@ -351,14 +351,15 @@ export type PartitionLog = typeof partition_logs.$inferSelect;
 
 // Схемы для таблицы reward_distribution_logs
 export const insertRewardDistributionLogSchema = createInsertSchema(reward_distribution_logs).pick({
-  message_id: true,
+  batch_id: true,
   source_user_id: true,
-  amount: true,
+  earned_amount: true,
   currency: true,
-  system_type: true,
   status: true,
-  error: true,
-  metadata: true,
+  levels_processed: true,
+  inviter_count: true,
+  total_distributed: true,
+  error_message: true,
   completed_at: true
 });
 

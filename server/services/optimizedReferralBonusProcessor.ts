@@ -78,15 +78,17 @@ export class OptimizedReferralBonusProcessor {
       await this.db.execute(sql`
         CREATE TABLE IF NOT EXISTS reward_distribution_logs (
           id SERIAL PRIMARY KEY,
-          message_id VARCHAR(36) NOT NULL,
+          batch_id VARCHAR(36) NOT NULL,
           source_user_id INTEGER NOT NULL,
-          amount NUMERIC(18,6) NOT NULL,
+          earned_amount NUMERIC(18,6) NOT NULL,
           currency VARCHAR(10) NOT NULL,
-          created_at TIMESTAMP NOT NULL,
-          processed_at TIMESTAMP NOT NULL,
-          system_type VARCHAR(20) NOT NULL,
-          error TEXT,
-          metadata JSONB
+          processed_at TIMESTAMP,
+          status VARCHAR(20),
+          levels_processed INTEGER,
+          inviter_count INTEGER,
+          total_distributed NUMERIC(18,6),
+          error_message TEXT,
+          completed_at TIMESTAMP
         );
         
         -- Индекс для статистики по пользователям
@@ -95,7 +97,7 @@ export class OptimizedReferralBonusProcessor {
         
         -- Индекс для анализа производительности
         CREATE INDEX IF NOT EXISTS reward_logs_performance_idx 
-        ON reward_distribution_logs (system_type, created_at, processed_at);
+        ON reward_distribution_logs (batch_id, processed_at);
       `);
       
       console.log("[OptimizedReferralBonusProcessor] Таблицы и индексы для обработки вознаграждений успешно созданы");
@@ -221,18 +223,17 @@ export class OptimizedReferralBonusProcessor {
           // Логируем обработку
           await client.query(`
             INSERT INTO reward_distribution_logs (
-              message_id, source_user_id, amount, currency, created_at, processed_at, system_type, metadata
+              batch_id, source_user_id, earned_amount, currency, processed_at, status
             ) VALUES (
-              $1, $2, $3, $4, $5, $6, 'optimized', $7
+              $1, $2, $3, $4, $5, $6
             )
           `, [
             message.id, 
             message.sourceUserId, 
             message.amount, 
             message.currency, 
-            message.timestamp, 
             new Date(),
-            JSON.stringify({ reward_count: rewards.length })
+            'processing'
           ]);
           
           await client.query('COMMIT');
@@ -248,10 +249,10 @@ export class OptimizedReferralBonusProcessor {
           // Логируем ошибку
           await this.db.execute(sql`
             INSERT INTO reward_distribution_logs (
-              message_id, source_user_id, amount, currency, created_at, processed_at, system_type, error
+              batch_id, source_user_id, earned_amount, currency, processed_at, status, error_message
             ) VALUES (
               ${message.id}, ${message.sourceUserId}, ${message.amount}, ${message.currency}, 
-              ${message.timestamp.toISOString()}, ${new Date().toISOString()}, 'optimized', 
+              ${new Date().toISOString()}, 'error', 
               ${message.error}
             )
           `);
@@ -271,10 +272,10 @@ export class OptimizedReferralBonusProcessor {
         // Логируем ошибку
         await this.db.execute(sql`
           INSERT INTO reward_distribution_logs (
-            message_id, source_user_id, amount, currency, created_at, processed_at, system_type, error
+            batch_id, source_user_id, earned_amount, currency, processed_at, status, error_message
           ) VALUES (
             ${message.id}, ${message.sourceUserId}, ${message.amount}, ${message.currency}, 
-            ${message.timestamp.toISOString()}, ${new Date().toISOString()}, 'optimized', 
+            ${new Date().toISOString()}, 'error', 
             ${message.error}
           )
         `);
@@ -331,11 +332,12 @@ export class OptimizedReferralBonusProcessor {
         ) inv
       `);
       
-      if (!result || result.length === 0 || !result[0]) {
+      const queryResult = result as any;
+      if (!queryResult || !queryResult.rows || queryResult.rows.length === 0) {
         return null;
       }
       
-      return result[0];
+      return queryResult.rows[0];
     } catch (error) {
       console.error(`[OptimizedReferralBonusProcessor] Ошибка при получении цепочки пригласителей:`, error);
       throw error;
@@ -447,10 +449,10 @@ export class OptimizedReferralBonusProcessor {
       return `id = $${index * 2 + 1}`;
     }).join(' OR ');
     
-    const params = [];
-    for (const [userId, amount] of userRewards.entries()) {
+    const params: (number | string)[] = [];
+    Array.from(userRewards.entries()).forEach(([userId, amount]) => {
       params.push(userId, amount);
-    }
+    });
     
     // Выполняем запрос на обновление балансов
     await client.query(`

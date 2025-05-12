@@ -102,9 +102,9 @@ export class ReferralBonusProcessor {
     // Создаем запись в журнале распределения
     try {
       const logData = insertRewardDistributionLogSchema.parse({
-        message_id: batchId, // Используем batchId как message_id
+        batch_id: batchId,
         source_user_id: userId,
-        amount: earnedAmount.toString(), // Правильное поле amount вместо earned_amount
+        earned_amount: earnedAmount.toString(),
         currency: currency,
         system_type: 'optimized', // Указываем тип системы для оптимизированной версии
         status: 'queued' // Начальный статус - в очереди
@@ -192,15 +192,14 @@ export class ReferralBonusProcessor {
       await db
         .insert(reward_distribution_logs)
         .values({
-          message_id: batchId, // Используем batchId как message_id
+          batch_id: batchId,
           source_user_id: userId,
-          amount: earnedAmount.toString(), // Правильное поле amount вместо earned_amount
+          earned_amount: earnedAmount.toString(),
           currency: currency,
-          system_type: 'optimized', // Указываем тип системы
           status: 'processing'
         })
         .onConflictDoUpdate({
-          target: [reward_distribution_logs.message_id], // Используем message_id вместо batch_id
+          target: [reward_distribution_logs.batch_id],
           set: { 
             status: 'processing',
             processed_at: new Date()
@@ -216,7 +215,7 @@ export class ReferralBonusProcessor {
             status: 'completed',
             completed_at: new Date()
           })
-          .where(eq(reward_distribution_logs.message_id, batchId));
+          .where(eq(reward_distribution_logs.batch_id, batchId));
           
         return {totalRewardsDistributed: 0};
       }
@@ -243,7 +242,7 @@ export class ReferralBonusProcessor {
               status: 'completed',
               completed_at: new Date()
             })
-            .where(eq(reward_distribution_logs.message_id, batchId));
+            .where(eq(reward_distribution_logs.batch_id, batchId));
             
           return {totalRewardsDistributed: 0};
         }
@@ -264,7 +263,7 @@ export class ReferralBonusProcessor {
               status: 'completed',
               completed_at: new Date()
             })
-            .where(eq(reward_distribution_logs.message_id, batchId));
+            .where(eq(reward_distribution_logs.batch_id, batchId));
             
           return {totalRewardsDistributed: 0};
         }
@@ -355,7 +354,7 @@ export class ReferralBonusProcessor {
                 source_user_id: userId,
                 category: "bonus",
                 data: JSON.stringify({
-                  message_id: batchId,
+                  batch_id: batchId,
                   level: bonus.level,
                   percent: bonus.percent
                 })
@@ -440,7 +439,7 @@ export class ReferralBonusProcessor {
             status: 'completed',
             completed_at: new Date()
           })
-          .where(eq(reward_distribution_logs.message_id, batchId));
+          .where(eq(reward_distribution_logs.batch_id, batchId));
         
         console.log(`[ReferralBonusProcessor] Batch ${batchId} completed. Total distributed: ${totalRewardsDistributed} ${currency} to ${inviterCount} inviters`);
         return { totalRewardsDistributed };
@@ -453,10 +452,10 @@ export class ReferralBonusProcessor {
       await db.update(reward_distribution_logs)
         .set({ 
           status: 'failed',
-          error: errorMessage,
+          error_message: errorMessage,
           completed_at: new Date()
         })
-        .where(eq(reward_distribution_logs.message_id, batchId));
+        .where(eq(reward_distribution_logs.batch_id, batchId));
       
       // Повторяем обработку, если не превышено максимальное количество попыток
       if (retryCount < RETRY_CONFIG.maxRetries) {
@@ -514,7 +513,7 @@ export class ReferralBonusProcessor {
       for (const record of failedRecords) {
         this.processingQueue.push({
           userId: record.source_user_id,
-          earnedAmount: Number(record.amount),
+          earnedAmount: Number(record.earned_amount),
           currency: record.currency as Currency
         });
       }
