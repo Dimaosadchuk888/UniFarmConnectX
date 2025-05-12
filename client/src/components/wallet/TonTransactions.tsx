@@ -98,6 +98,19 @@ const TonTransactions: React.FC = () => {
       {tonTransactions.length === 0 ? (
         <div className="text-center p-4 text-muted-foreground">
           <p>У вас пока нет TON транзакций</p>
+          <p className="mt-2 text-sm">
+            Приобретите TON Boost на вкладке "TON Фарминг", чтобы начать получать доход в TON
+          </p>
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-blue-500 hover:text-blue-600"
+              onClick={() => window.location.href = '/farming'}
+            >
+              Перейти к TON Boost
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="max-h-[400px] overflow-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900/20 space-y-3 pr-1">

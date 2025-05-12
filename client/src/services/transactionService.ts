@@ -152,12 +152,21 @@ export async function fetchTonTransactions(
     const tonTransactions = response.data.transactions.filter((tx: any) => {
       const currency = (tx.currency || tx.token_type || '').toUpperCase();
       const type = (tx.type || '').toLowerCase();
+      const source = (tx.source || '').toLowerCase();
+      const category = (tx.category || '').toLowerCase();
       
-      // Проверяем и по типу валюты, и по специальным типам транзакций
+      // Проверяем по различным признакам TON-транзакций:
+      // 1. Валюта TON
+      // 2. Тип транзакции связан с TON (boost_purchase, ton_boost, ton_farming_reward)
+      // 3. Источник транзакции содержит TON
+      // 4. Категория связана с farming или boost
       return currency === 'TON' || 
+             type.includes('ton') ||
              type === 'boost_purchase' ||  // Покупка TON Boost пакетов
              type === 'ton_boost' ||       // TON Boost операции
-             type === 'ton_farming_reward'; // TON Farming награды
+             source.includes('ton') ||
+             type === 'ton_farming_reward' || // TON Farming награды
+             (category === 'boost' && currency === 'TON');
     });
     
     console.log('[transactionService] Найдено TON транзакций:', tonTransactions.length);
