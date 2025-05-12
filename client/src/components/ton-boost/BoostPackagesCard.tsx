@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { useUser } from '@/contexts/userContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Coins, Wallet, Loader2 } from 'lucide-react';
+import { Coins, Wallet, Loader2, Zap } from 'lucide-react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import PaymentMethodDialog from './PaymentMethodDialog';
 import ExternalPaymentStatus from './ExternalPaymentStatus';
@@ -46,6 +47,7 @@ const BoostPackagesCard: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tonConnectUI] = useTonConnectUI();
+  const { user } = useUser(); // Получаем доступ к контексту пользователя
   const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState<boolean>(false);
@@ -505,9 +507,13 @@ const BoostPackagesCard: React.FC = () => {
 
   return (
     <>
-      <Card className="w-full shadow-md border-blue-800/30 bg-gradient-to-br from-blue-950/40 to-blue-900/10">
+      <Card className="w-full shadow-md border-blue-800/30 bg-gradient-to-br from-blue-950/40 to-blue-900/10 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 animate-shimmer"></div>
         <CardHeader className="pb-2">
-          <CardTitle className="text-xl text-blue-400">TON Boost-пакеты</CardTitle>
+          <CardTitle className="text-xl text-blue-400 flex items-center gap-2">
+            <Zap className="h-5 w-5 text-yellow-300 animate-pulse" />
+            <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">TON Boost-пакеты</span>
+          </CardTitle>
           <CardDescription className="text-blue-300/80">
             Активируйте TON Boost для ускорения фарминга и получения бонусов
           </CardDescription>
@@ -522,25 +528,34 @@ const BoostPackagesCard: React.FC = () => {
               {boostPackages.map((boost) => (
                 <div 
                   key={boost.id}
-                  className="bg-blue-900/20 rounded-lg border border-blue-700/30 p-4 hover:bg-blue-800/20 transition-colors"
+                  className="bg-blue-900/20 rounded-lg border border-blue-700/30 p-4 hover:bg-blue-800/20 transition-all hover:shadow-lg hover:shadow-blue-900/30 transform hover:-translate-y-1 duration-300"
                 >
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-lg font-medium text-blue-300">{boost.name}</h3>
-                    <span className="text-blue-300 font-bold">{boost.priceTon} TON</span>
+                    <h3 className="text-lg font-medium text-blue-300 relative inline-block">
+                      <span className="relative z-10">{boost.name}</span>
+                      <span className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 animate-shimmer rounded"></span>
+                    </h3>
+                    <span className="text-blue-300 font-bold animate-pulse">{boost.priceTon} TON</span>
                   </div>
                   <Separator className="bg-blue-700/30 my-2" />
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between">
                       <span className="text-blue-400/80">Бонус UNI:</span>
-                      <span className="text-purple-300">+{boost.bonusUni} UNI</span>
+                      <span className="text-purple-300 font-bold relative group">
+                        +{boost.bonusUni} UNI
+                        <span className="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"></span>
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-blue-400/80">Доходность TON:</span>
-                      <span className="text-blue-300">{boost.rateTon}% / день</span>
+                      <span className="text-blue-300 font-semibold relative">
+                        <span className="relative z-10">{boost.rateTon}% / день</span>
+                        <span className="absolute inset-0 bg-blue-500/5 rounded animate-tonGlow"></span>
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-blue-400/80">В сутки:</span>
-                      <span className="text-blue-300">
+                      <span className="text-blue-300 font-semibold bg-gradient-to-r from-blue-300 to-blue-200 bg-clip-text text-transparent">
                         {(() => {
                           // Рассчитываем доход в день на основе стоимости пакета и процентной ставки
                           const priceTon = parseFloat(boost.priceTon);
@@ -579,7 +594,7 @@ const BoostPackagesCard: React.FC = () => {
                   <Button
                     onClick={() => handleBoostClick(boost.id)}
                     disabled={isLoading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white relative overflow-hidden group animate-pulse hover:animate-none"
                   >
                     {isLoading && selectedBoostId === boost.id ? (
                       <>
@@ -587,7 +602,10 @@ const BoostPackagesCard: React.FC = () => {
                         Активация...
                       </>
                     ) : (
-                      'Активировать'
+                      <>
+                        <Zap className="mr-2 h-4 w-4 text-yellow-300 animate-pulse" />
+                        Активировать
+                      </>
                     )}
                   </Button>
                 </div>

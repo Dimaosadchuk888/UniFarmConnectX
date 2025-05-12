@@ -1,25 +1,140 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { correctApiRequest } from '@/lib/correctApiRequest';
+import { useUser } from '@/contexts/userContext';
+
+// Интерфейсы для данных API
+interface UniFarmingInfo {
+  isActive: boolean;
+  depositAmount?: string;
+  ratePerSecond?: string;
+  depositCount?: number;
+  totalDepositAmount?: string;
+  totalRatePerSecond?: string;
+  dailyIncomeUni?: string;
+  startDate?: string | null;
+  uni_farming_start_timestamp?: string | null;
+}
+
+interface TonFarmingInfo {
+  totalTonRatePerSecond: string;
+  totalUniRatePerSecond: string;
+  dailyIncomeTon: string;
+  dailyIncomeUni: string;
+  deposits: Array<{
+    id: number;
+    user_id: number;
+    ton_amount: string | number;
+    uni_amount?: string | number;
+    start_date: string;
+    end_date?: string;
+    status: string;
+    created_at: string;
+  }>;
+}
 
 const IncomeCardNew: React.FC = () => {
+  const { userId } = useUser();
+  const validUserId = userId || '1';
+  
   // Анимация нарастающего счетчика
   const [displayedHourRate, setDisplayedHourRate] = useState(0);
   const [displayedDayRate, setDisplayedDayRate] = useState(0);
   const [displayedTonHourRate, setDisplayedTonHourRate] = useState(0);
   const [displayedTonDayRate, setDisplayedTonDayRate] = useState(0);
-  const targetHourRate = 0.0972; // Целевое значение UNI/час
-  const targetDayRate = 2.332; // Целевое значение UNI/день
-  const targetTonHourRate = 0.00083; // Целевое значение TON/час
-  const targetTonDayRate = 0.0198; // Целевое значение TON/день
+  
+  // Состояния для хранения целевых значений из API
+  const [targetHourRate, setTargetHourRate] = useState(0);
+  const [targetDayRate, setTargetDayRate] = useState(0);
+  const [targetTonHourRate, setTargetTonHourRate] = useState(0);
+  const [targetTonDayRate, setTargetTonDayRate] = useState(0);
   
   // Рефы для анимации "всплеска"
   const pulseRef = useRef<boolean>(false);
   const [isPulsing, setIsPulsing] = useState(false);
   const [isTonPulsing, setIsTonPulsing] = useState(false);
   
-  // Запускаем анимацию счетчика при первой загрузке
+  // Загружаем данные UNI фарминга
+  const { data: uniFarmingResponse } = useQuery<{ success: boolean; data: UniFarmingInfo }>({
+    queryKey: ['/api/uni-farming/status', validUserId],
+    refetchInterval: 15000, // Обновление каждые 15 секунд
+    queryFn: async () => {
+      return await correctApiRequest<{ success: boolean; data: UniFarmingInfo }>(
+        `/api/uni-farming/status?user_id=${validUserId}`,
+        'GET'
+      );
+    }
+  });
+  
+  // Загружаем данные TON фарминга
+  const { data: tonFarmingResponse } = useQuery<{ success: boolean; data: TonFarmingInfo }>({
+    queryKey: ['/api/ton-farming/info', validUserId],
+    refetchInterval: 15000, // Обновление каждые 15 секунд
+    queryFn: async () => {
+      return await correctApiRequest<{ success: boolean; data: TonFarmingInfo }>(
+        `/api/ton-farming/info?user_id=${validUserId}`,
+        'GET'
+      );
+    }
+  });
+  
+  // Обновляем целевые значения при получении новых данных
+  useEffect(() => {
+    if (uniFarmingResponse?.success && uniFarmingResponse.data) {
+      const uniData = uniFarmingResponse.data;
+      
+      // Рассчитываем часовой доход UNI, преобразуя секундную ставку
+      const ratePerSecond = parseFloat(uniData.totalRatePerSecond || '0');
+      const hourlyRate = ratePerSecond * 3600; // секунд в часе
+      
+      // Рассчитываем дневной доход UNI
+      const dailyRate = parseFloat(uniData.dailyIncomeUni || '0');
+      
+      // Добавляем диагностику
+      console.log('[DEBUG] UNI Farming rates:', {
+        ratePerSecond,
+        hourlyRate,
+        dailyRate,
+        rawData: uniData
+      });
+      
+      // Устанавливаем целевые значения
+      setTargetHourRate(hourlyRate);
+      setTargetDayRate(dailyRate);
+    }
+    
+    if (tonFarmingResponse?.success && tonFarmingResponse.data) {
+      const tonData = tonFarmingResponse.data;
+      
+      // Рассчитываем часовой доход TON, преобразуя секундную ставку
+      const ratePerSecond = parseFloat(tonData.totalTonRatePerSecond || '0');
+      const hourlyRate = ratePerSecond * 3600; // секунд в часе
+      
+      // Рассчитываем дневной доход TON
+      const dailyRate = parseFloat(tonData.dailyIncomeTon || '0');
+      
+      // Добавляем диагностику
+      console.log('[DEBUG] TON Farming rates:', {
+        ratePerSecond,
+        hourlyRate,
+        dailyRate,
+        rawData: tonData
+      });
+      
+      // Устанавливаем целевые значения
+      setTargetTonHourRate(hourlyRate);
+      setTargetTonDayRate(dailyRate);
+    }
+  }, [uniFarmingResponse, tonFarmingResponse]);
+  
+  // Запускаем анимацию счетчика при изменении целевых значений
   useEffect(() => {
     const animationDuration = 2000; // 2 секунды
     const startTime = Date.now();
+    const startUniHour = displayedHourRate;
+    const startUniDay = displayedDayRate;
+    const startTonHour = displayedTonHourRate;
+    const startTonDay = displayedTonDayRate;
     
     const animateCounters = () => {
       const currentTime = Date.now();
@@ -29,38 +144,32 @@ const IncomeCardNew: React.FC = () => {
       // Используем эффект замедления в конце анимации
       const easedProgress = 1 - Math.pow(1 - progress, 3);
       
-      setDisplayedHourRate(targetHourRate * easedProgress);
-      setDisplayedDayRate(targetDayRate * easedProgress);
-      setDisplayedTonHourRate(targetTonHourRate * easedProgress);
-      setDisplayedTonDayRate(targetTonDayRate * easedProgress);
+      // Обновляем значения с учетом предыдущих значений для плавной анимации
+      setDisplayedHourRate(startUniHour + (targetHourRate - startUniHour) * easedProgress);
+      setDisplayedDayRate(startUniDay + (targetDayRate - startUniDay) * easedProgress);
+      setDisplayedTonHourRate(startTonHour + (targetTonHourRate - startTonHour) * easedProgress);
+      setDisplayedTonDayRate(startTonDay + (targetTonDayRate - startTonDay) * easedProgress);
       
       if (progress < 1) {
         requestAnimationFrame(animateCounters);
       }
     };
     
-    requestAnimationFrame(animateCounters);
-  }, []);
-  
-  // Периодически добавляем эффект "всплеска" для имитации обновления значений
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!pulseRef.current) {
-        pulseRef.current = true;
-        setIsPulsing(true);
-        setIsTonPulsing(true);
-        
-        // Через 700ms убираем эффект всплеска
-        setTimeout(() => {
-          pulseRef.current = false;
-          setIsPulsing(false);
-          setIsTonPulsing(false);
-        }, 700);
-      }
-    }, 5000); // Каждые 5 секунд
+    // Добавляем эффект пульсации при обновлении
+    if (!pulseRef.current) {
+      pulseRef.current = true;
+      setIsPulsing(true);
+      setIsTonPulsing(true);
+      
+      setTimeout(() => {
+        pulseRef.current = false;
+        setIsPulsing(false);
+        setIsTonPulsing(false);
+      }, 700);
+    }
     
-    return () => clearInterval(interval);
-  }, []);
+    requestAnimationFrame(animateCounters);
+  }, [targetHourRate, targetDayRate, targetTonHourRate, targetTonDayRate]);
 
   return (
     <div className="bg-card rounded-xl p-4 mb-5 shadow-md border border-primary/10">

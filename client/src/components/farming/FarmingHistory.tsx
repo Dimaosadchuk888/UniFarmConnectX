@@ -74,7 +74,7 @@ interface FarmingHistoryProps {
 
 // Основной компонент истории фарминга
 const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
-  const [activeTab, setActiveTab] = useState('uni');  // 'uni' или 'ton'
+  const [activeTab, setActiveTab] = useState('ton');  // Меняем начальную вкладку на 'ton' вместо 'uni'
   const [farmingHistory, setFarmingHistory] = useState<FarmingHistory[]>([]);
   const [deposits, setDeposits] = useState<FarmingDeposit[]>([]);
   const [opacity, setOpacity] = useState(0);
@@ -578,6 +578,19 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           Array.from(new Set(transactionsArray.map(tx => tx.type))).join(', ') : 'N/A',
         sample: transactionsArray.slice(0, 3)
       });
+      
+      // Дополнительно логируем количество TON транзакций для отладки
+      try {
+        const tonTransactionsCount = transactionsArray.filter(tx => tx && tx.currency === 'TON').length;
+        console.log(`[DEBUG] FarmingHistory - Найдено ${tonTransactionsCount} TON транзакций из ${transactionsArray.length}`);
+        
+        if (tonTransactionsCount > 0) {
+          console.log("[DEBUG] FarmingHistory - Примеры TON транзакций:", 
+            transactionsArray.filter(tx => tx && tx.currency === 'TON').slice(0, 3));
+        }
+      } catch (debug_error) {
+        console.error("[ERROR] FarmingHistory - Ошибка при подсчете TON транзакций:", debug_error);
+      }
       
       if (transactionsArray.length > 0) {
         // Фильтрация всех транзакций (включая TON и UNI)
@@ -1363,7 +1376,12 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                       if (activeTab === 'uni') {
                         return item.currency === 'UNI';
                       } else {
-                        return item.currency === 'TON';
+                        // Добавляем отладочную информацию для TON транзакций
+                        const isTon = item.currency === 'TON';
+                        if (isTon) {
+                          console.log("[DEBUG] FarmingHistory - Найдена TON транзакция:", item);
+                        }
+                        return isTon;
                       }
                     })
                     .map((item) => (
@@ -1426,8 +1444,20 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
     }
     
     // Проверка наличия TON транзакций с защитой от ошибок
+    console.log("[DEBUG] FarmingHistory - Проверка наличия TON транзакций в истории, общее количество:", farmingHistory.length);
+    
     const hasTonTransactions = (() => {
       try {
+        // Подсчитываем количество TON транзакций для отладки
+        const tonTransactions = farmingHistory.filter(item => {
+          try {
+            return item.currency === 'TON';
+          } catch (e) {
+            return false;
+          }
+        });
+        console.log(`[DEBUG] FarmingHistory - Найдено ${tonTransactions.length} TON транзакций в истории фарминга`);
+        
         return farmingHistory.filter(item => {
           try {
             // Безопасная проверка на TON транзакцию

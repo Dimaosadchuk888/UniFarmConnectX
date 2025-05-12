@@ -102,6 +102,11 @@ export default {
           "25%": { opacity: "1", transform: "translateY(-5px)" },
           "75%": { opacity: "1", transform: "translateY(-5px)" },
           "100%": { opacity: "0", transform: "translateY(-15px)" }
+        },
+        "shimmer": {
+          "0%": { transform: "translateX(-100%)" },
+          "50%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(100%)" }
         }
       },
       animation: {
@@ -111,7 +116,8 @@ export default {
         "pulseGlow": "pulseGlow 2s infinite",
         "tonGlow": "tonGlow 1.5s ease-in-out infinite",
         "flashBlue": "flashBlue 0.7s ease-out",
-        "fadeUp": "fadeUp 1.2s ease-out forwards"
+        "fadeUp": "fadeUp 1.2s ease-out forwards",
+        "shimmer": "shimmer 3s ease-in-out infinite"
       },
     },
   },

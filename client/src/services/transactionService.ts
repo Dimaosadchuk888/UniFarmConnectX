@@ -155,18 +155,71 @@ export async function fetchTonTransactions(
       const source = (tx.source || '').toLowerCase();
       const category = (tx.category || '').toLowerCase();
       
+      // Дополнительное логирование всех TON-связанных транзакций
+      if (currency === 'TON' || type.includes('ton') || source.includes('ton') || 
+          type === 'boost_purchase' || (category === 'boost' && currency === 'TON')) {
+        console.log('[transactionService] Детали TON-связанной транзакции:', {
+          id: tx.id,
+          type,
+          currency,
+          source,
+          category,
+          amount: tx.amount,
+          created_at: tx.created_at
+        });
+      }
+      
+      // Ищем начисления от TON Boost
+      if (source.includes('ton boost') || source.match(/ton\s+boost/i)) {
+        console.log('[transactionService] 🌟 Обнаружено начисление от TON Boost:', {
+          id: tx.id,
+          type,
+          currency, 
+          source,
+          amount: tx.amount,
+          created_at: tx.created_at
+        });
+      }
+      
       // Проверяем по различным признакам TON-транзакций:
       // 1. Валюта TON
       // 2. Тип транзакции связан с TON (boost_purchase, ton_boost, ton_farming_reward)
       // 3. Источник транзакции содержит TON
       // 4. Категория связана с farming или boost
+      // 5. Проверяем начисления TON Boost через специальные проверки
+      
+      // Проверка на начисления TON Boost
+      // Многие начисления от TON Boost могут быть в UNI и TON
+      const isTonBoostReward = 
+        (source.includes('ton boost') || source.includes('ton farming')) ||
+        (type === 'boost_bonus' && (
+          source.toLowerCase().includes('ton') || 
+          // Проверяем любые бонусы от TON Boost включая UNI-награды
+          (tx.description && tx.description.toLowerCase().includes('ton'))
+        )) ||
+        (type === 'ton_farming_reward') ||
+        // Ищем начисления UNI, которые связаны с TON Boost
+        (currency === 'UNI' && source.toLowerCase().includes('ton'));
+        
+      if (isTonBoostReward) {
+        console.log('[transactionService] 💰 Найдено начисление от TON Boost/Farming:', {
+          id: tx.id,
+          type,
+          currency,
+          source,
+          amount: tx.amount,
+          created_at: tx.created_at
+        });
+      }
+        
       return currency === 'TON' || 
              type.includes('ton') ||
              type === 'boost_purchase' ||  // Покупка TON Boost пакетов
              type === 'ton_boost' ||       // TON Boost операции
              source.includes('ton') ||
              type === 'ton_farming_reward' || // TON Farming награды
-             (category === 'boost' && currency === 'TON');
+             (category === 'boost' && currency === 'TON') ||
+             isTonBoostReward;  // Начисления от TON Boost
     });
     
     console.log('[transactionService] Найдено TON транзакций:', tonTransactions.length);

@@ -113,7 +113,7 @@ const TonTransactions: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="max-h-[400px] overflow-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900/20 space-y-3 pr-1">
+        <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900/20 space-y-3 pr-1" style={{ height: '400px' }}>
           {limitedTransactions.map((transaction: Transaction) => (
             <TransactionItem
               key={transaction.id}
@@ -123,7 +123,7 @@ const TonTransactions: React.FC = () => {
 
           {/* Кнопка "Загрузить еще" - показываем только если есть еще транзакции */}
           {tonTransactions.length > displayLimit && (
-            <div className="flex justify-center mt-4">
+            <div className="flex justify-center pt-3 pb-2">
               <Button
                 variant="outline"
                 size="sm"

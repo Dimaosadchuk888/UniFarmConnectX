@@ -813,8 +813,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   
   // Оборачиваем весь компонент в Error Boundary
   return withErrorBoundary(
-    <div className="bg-card rounded-xl p-4 mb-5 shadow-md transition-all duration-300 hover:shadow-lg">
-      <h2 className="text-xl font-semibold mb-3 purple-gradient-text">Основной UNI пакет</h2>
+    <div className="bg-card rounded-xl p-4 mb-5 shadow-md">
+      <h2 className="text-xl font-semibold mb-3 text-primary">Основной UNI пакет</h2>
       
       {/* Информация о текущем фарминге (отображается всегда, если активен) */}
       {isActive && (
@@ -822,7 +822,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           {/* Индикатор активности фарминга */}
           <div className="mb-4 p-3 bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-500/30 rounded-lg flex items-center">
             <div className="flex items-center justify-center w-8 h-8 mr-3 bg-green-500/20 rounded-full">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             </div>
             <div>
               <p className="text-sm text-green-300 font-medium">
@@ -835,11 +835,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
+            <div className="p-2 rounded-lg">
               <p className="text-sm text-foreground opacity-70">Общая сумма депозитов</p>
-              <p className="text-lg font-medium">{formatNumber(totalDepositsAmount)} UNI</p>
+              <p className="text-lg font-medium">
+                <span className="text-primary">{formatNumber(totalDepositsAmount)}</span> UNI
+              </p>
             </div>
-            <div>
+            <div className="p-2 rounded-lg">
               <p className="text-sm text-foreground opacity-70">Дата активации</p>
               <p className="text-md font-medium">
                 {formatStartDate()}
@@ -848,11 +850,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           </div>
           
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
+            <div className="p-2 rounded-lg">
               <p className="text-sm text-foreground opacity-70">Активных депозитов UNI</p>
-              <p className="text-md font-medium">{depositCount} шт.</p>
+              <p className="text-md font-medium flex items-center">
+                <span className="text-primary">{depositCount}</span> шт.
+              </p>
             </div>
-            <div>
+            <div className="p-2 rounded-lg">
               <p className="text-sm text-foreground opacity-70">Годовая доходность (APR)</p>
               <p className="text-md font-medium flex items-center">
                 <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-semibold bg-primary/20 text-primary rounded mr-2">{calculateAPR().annual}%</span>
@@ -861,17 +865,17 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             </div>
           </div>
           
-          <div className="mb-3">
+          <div className="mb-3 p-2 rounded-lg">
             <p className="text-sm text-foreground opacity-70">Скорость начисления</p>
             <p className="text-md font-medium">
               <span className="text-primary">+{formatNumber(calculateSecondRate(), 8)}</span> UNI/сек
               <span className="text-foreground opacity-70 ml-2">
-                (≈ +{formatNumber(calculateDailyIncome())} UNI в день)
+                (≈ <span className="text-primary">+{formatNumber(calculateDailyIncome())}</span> UNI в день)
               </span>
             </p>
           </div>
           
-          <div className="p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg flex items-center">
+          <div className="p-3 bg-gradient-to-r from-indigo-900/30 to-purple-900/20 border border-indigo-500/30 rounded-lg flex items-center">
             <div className="text-indigo-300 mr-2">
               <i className="fas fa-info-circle"></i>
             </div>
@@ -909,7 +913,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="mb-5 p-3 bg-gradient-to-r from-slate-900/50 to-slate-800/30 rounded-lg">
             <h3 className="text-md font-medium mb-2 flex items-center">
               <i className="fas fa-percentage text-primary mr-2"></i>
-              Информация о доходности
+              <span>Информация о доходности</span>
             </h3>
             <ul className="text-sm space-y-2 text-slate-300">
               <li className="flex items-start">
@@ -935,8 +939,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       
       {/* Форма для создания депозита (отображается всегда) */}
       <div className={isActive ? "mt-6 pt-4 border-t border-slate-700" : ""}>
-        <h3 className="text-md font-medium mb-4">
-          {isActive ? "Пополнить фарминг" : "Создать депозит и активировать фарминг"}
+        <h3 className="text-md font-medium mb-4 flex items-center">
+          <span className="text-primary">{isActive ? "Пополнить фарминг" : "Создать депозит и активировать фарминг"}</span>
         </h3>
         
         <form onSubmit={handleSubmit}>
@@ -960,24 +964,24 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
                   // В случае ошибки сохраняем текущее значение
                 }
               }}
-              className="w-full p-2 border border-input rounded-lg bg-card"
+              className="w-full p-2 border border-input rounded-lg bg-card focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all duration-300"
               placeholder="0.00"
             />
             <p className="text-sm text-foreground opacity-70 mt-1">
-              Доступно: {formatNumber(userData?.balance_uni || '0')} UNI
+              Доступно: <span className="text-primary">{formatNumber(userData?.balance_uni || '0')}</span> UNI
             </p>
           </div>
           
           {error && (
-            <div className="mb-4 p-2 bg-red-900/30 border border-red-500 rounded-lg text-red-300 text-sm">
+            <div className="mb-4 p-2 bg-red-900/30 border border-red-500 rounded-lg text-red-300 text-sm animate-pulse">
               {error}
             </div>
           )}
           
-          <div className="mb-4">
+          <div className="mb-4 transition-all duration-300 hover:scale-[1.02] hover:bg-card/80 p-2 rounded-lg">
             <p className="text-sm text-foreground opacity-70">Минимальный депозит</p>
             <p className="text-md font-medium">
-              <span className="text-primary">5</span> UNI
+              <span className="text-primary animate-pulse">5</span> UNI
             </p>
           </div>
           
@@ -990,7 +994,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
                 : !isActive 
                   ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-900/20 hover:shadow-green-900/30'
                   : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 shadow-lg shadow-purple-900/20 hover:shadow-purple-900/30'
-            } transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]`}
+            }`}
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
@@ -1000,7 +1004,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             ) : (
               <div className="flex items-center justify-center">
                 <i className={`fas ${isActive ? 'fa-arrow-up' : 'fa-seedling'} mr-2`}></i>
-                <span>{isActive ? 'Пополнить фарминг' : 'Активировать фарминг UNI'}</span>
+                <span>
+                  {isActive ? 'Пополнить фарминг' : 'Активировать фарминг UNI'}
+                </span>
               </div>
             )}
           </button>
