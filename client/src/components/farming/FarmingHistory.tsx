@@ -588,7 +588,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                      typeof tx === 'object' && 
                      tx.type !== 'debug' && 
                      (tx.currency === 'UNI' || tx.currency === 'TON') && 
-                     ['deposit', 'farming', 'check-in', 'reward', 'farming_reward', 'ton_boost', 'boost_farming'].includes(tx.type);
+                     ['deposit', 'farming', 'check-in', 'reward', 'farming_reward', 'ton_boost', 'boost_farming', 'ton_farming_reward', 'boost', 'boost_bonus'].includes(tx.type);
             } catch (filterItemError) {
               console.error('[ERROR] FarmingHistory - Ошибка при фильтрации транзакции:', filterItemError);
               return false;
@@ -714,6 +714,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                     if (txType === 'farming') type = 'Фарминг';
                     else if (txType === 'farming_reward') type = 'Награда за фарминг';
                     else if (txType === 'boost_farming') type = 'TON фарминг';
+                    else if (txType === 'ton_farming_reward') type = 'Награда за TON фарминг';
                     else if (txType === 'ton_boost') type = 'TON Boost';
                     else if (txType === 'deposit') type = 'Депозит';
                     else if (txType === 'boost') type = 'Boost';
@@ -984,8 +985,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                       // Проверка валидности транзакции
                       if (!tx || typeof tx !== 'object') return false;
                       
-                      // Проверка типа и валюты
-                      return tx.type === 'boost' && tx.currency === 'TON';
+                      // Проверка типа и валюты - включая TON фарминг
+                      return (tx.type === 'boost' || tx.type === 'ton_boost' || tx.type === 'ton_farming_reward') && tx.currency === 'TON';
                     } catch (txError) {
                       console.error('[ERROR] FarmingHistory - Ошибка при фильтрации буст-транзакции:', txError);
                       return false;
@@ -1378,6 +1379,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                               ${item.type === 'Фарминг' ? 'bg-green-500' : 
                                 item.type === 'Депозит' ? 'bg-purple-500' : 
                                 item.type === 'Награда за фарминг' ? 'bg-pink-500' : 
+                                item.type === 'Награда за TON фарминг' ? 'bg-amber-500' : 
                                 item.type === 'TON фарминг' ? 'bg-blue-500' : 
                                 item.type === 'Ежедневный бонус' ? 'bg-yellow-500' : 
                                 'bg-blue-500'}

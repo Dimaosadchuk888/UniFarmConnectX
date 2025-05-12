@@ -107,7 +107,9 @@ export function formatTransactionAmount(amount: number, tokenType: string, type?
   const isNegative = type === 'withdrawal' || type === 'purchase' || type === 'ton_boost' || type === 'boost';
   // Если сумма уже отрицательная, не добавляем еще один минус
   const isAlreadyNegative = typeof amount === 'number' && amount < 0;
-  const sign = isNegative && !isAlreadyNegative ? '-' : '+';
+  // Для ton_farming_reward всегда показываем как положительную сумму
+  const isPositiveOverride = type === 'ton_farming_reward';
+  const sign = isPositiveOverride ? '+' : (isNegative && !isAlreadyNegative ? '-' : '+');
   const absoluteAmount = Math.abs(amount);
   
   // Форматируем в зависимости от типа токена
@@ -156,6 +158,9 @@ export function getTransactionColorClass(tokenType: string, type?: string): stri
   if (tokenType === 'TON') {
     if (type === 'ton_boost' || type === 'boost') {
       return 'bg-indigo-500/10 text-indigo-400';
+    }
+    if (type === 'ton_farming_reward') {
+      return 'bg-amber-500/10 text-amber-400';
     }
     return 'bg-cyan-500/10 text-cyan-400';
   }

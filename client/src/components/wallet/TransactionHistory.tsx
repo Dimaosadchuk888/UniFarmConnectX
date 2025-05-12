@@ -303,14 +303,18 @@ const TransactionHistory: React.FC = () => {
                       ? 'bg-green-500/20' 
                       : transaction.type === 'ton_boost' || transaction.type === 'boost'
                         ? 'bg-indigo-500/20'
-                        : 'bg-cyan-500/20'
+                        : transaction.type === 'ton_farming_reward'
+                          ? 'bg-amber-500/20'
+                          : 'bg-cyan-500/20'
                     } flex items-center justify-center mr-3 transition-all duration-300`}>
                     <i className={`fas ${getTransactionIcon(transaction.type, transaction.tokenType)} ${
                       transaction.tokenType === 'UNI' 
                         ? 'text-green-400' 
                         : transaction.type === 'ton_boost' || transaction.type === 'boost'
                           ? 'text-indigo-400'
-                          : 'text-cyan-400'
+                          : transaction.type === 'ton_farming_reward'
+                            ? 'text-amber-400'
+                            : 'text-cyan-400'
                     }`}></i>
                   </div>
                   
