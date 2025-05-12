@@ -24,6 +24,7 @@ export interface CreateMultiDepositResult {
   depositId?: number;
   depositAmount?: string;
   ratePerSecond?: string;
+  newBalance?: string; // Новый баланс пользователя после операции
 }
 
 export interface MultiFarmingInfo {

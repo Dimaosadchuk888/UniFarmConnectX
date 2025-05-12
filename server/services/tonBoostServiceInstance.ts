@@ -357,6 +357,28 @@ class TonBoostService implements ITonBoostService {
             uni_farming_last_update: new Date(currentTimestamp * 1000)
           })
           .where(eq(users.id, userId));
+          
+        // Создаем транзакцию для начисления TON фарминга, если было начисление
+        if (totalEarnedTon.isGreaterThan(TON_MIN_CHANGE_THRESHOLD)) {
+          try {
+            await db
+              .insert(transactions)
+              .values({
+                user_id: userId,
+                type: "ton_farming_reward",
+                currency: "TON",
+                amount: totalEarnedTon.toString(),
+                status: "confirmed",
+                source: "TON Boost фарминг",
+                category: "farming"
+              });
+            
+            console.log(`[TonBoostService] Создана транзакция начисления TON фарминга: ${totalEarnedTon} TON для пользователя ${userId}`);
+          } catch (txError) {
+            console.error(`[TonBoostService] Ошибка при создании транзакции начисления TON фарминга: ${txError}`);
+            // Не прерываем выполнение основного процесса при ошибке создания транзакции
+          }
+        }
       }
 
       return {
@@ -407,6 +429,73 @@ class TonBoostService implements ITonBoostService {
       dailyIncomeUni: dailyIncomeUni.toString(),
       deposits: activeDeposits
     };
+  }
+
+  /**
+   * Запускает обновление TON фарминга для всех пользователей с активными депозитами
+   * @returns Результат обновления
+   */
+  async updateAllUsersTonFarming(): Promise<{
+    success: boolean;
+    usersUpdated: number;
+    errors: number;
+  }> {
+    try {
+      console.log('[TonBoostService] Запуск обновления TON фарминга для всех пользователей');
+      
+      // Получаем уникальные user_id из активных депозитов
+      const activeDepositsQuery = await db
+        .select({ userId: tonBoostDeposits.user_id })
+        .from(tonBoostDeposits)
+        .where(
+          and(
+            eq(tonBoostDeposits.is_active, true)
+          )
+        )
+        .groupBy(tonBoostDeposits.user_id);
+        
+      const userIds = activeDepositsQuery.map(row => row.userId);
+      console.log(`[TonBoostService] Найдено ${userIds.length} пользователей с активными TON депозитами`);
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      // Обновляем каждого пользователя
+      for (const userId of userIds) {
+        try {
+          const result = await this.calculateAndUpdateUserTonFarming(userId);
+          if (result.success) {
+            successCount++;
+            // Логируем только если было реальное начисление
+            if (new BigNumber(result.earnedTon).isGreaterThan(TON_MIN_CHANGE_THRESHOLD)) {
+              console.log(`[TonBoostService] Успешно обновлен TON фарминг для пользователя ${userId}: +${result.earnedTon} TON`);
+            }
+          } else {
+            errorCount++;
+            console.error(`[TonBoostService] Ошибка обновления TON фарминга для пользователя ${userId}`);
+          }
+        } catch (userError) {
+          errorCount++;
+          console.error(`[TonBoostService] Исключение при обновлении пользователя ${userId}: ${userError}`);
+        }
+      }
+      
+      console.log(`[TonBoostService] Обновление TON фарминга завершено: успешно=${successCount}, ошибок=${errorCount}`);
+      
+      return {
+        success: true,
+        usersUpdated: successCount,
+        errors: errorCount
+      };
+      
+    } catch (error) {
+      console.error(`[TonBoostService] Критическая ошибка при обновлении TON фарминга для всех пользователей: ${error}`);
+      return {
+        success: false,
+        usersUpdated: 0,
+        errors: 0
+      };
+    }
   }
 
   /**

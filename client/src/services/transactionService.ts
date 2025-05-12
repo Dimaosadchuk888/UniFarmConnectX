@@ -15,6 +15,9 @@ export enum TransactionType {
   DAILY_BONUS = 'daily_bonus',
   SIGNUP_BONUS = 'signup_bonus',
   AIRDROP = 'airdrop',
+  TON_BOOST = 'ton_boost',
+  BOOST = 'boost',
+  TON_FARMING_REWARD = 'ton_farming_reward',
   UNKNOWN = 'unknown'
 }
 
@@ -178,7 +181,10 @@ function formatTransactionType(type: string): string {
     'referral_reward': TransactionType.REFERRAL_REWARD,
     'daily_bonus': TransactionType.DAILY_BONUS,
     'signup_bonus': TransactionType.SIGNUP_BONUS,
-    'airdrop': TransactionType.AIRDROP
+    'airdrop': TransactionType.AIRDROP,
+    'ton_boost': TransactionType.TON_BOOST,
+    'boost': TransactionType.BOOST,
+    'ton_farming_reward': TransactionType.TON_FARMING_REWARD
   };
   
   return typeMap[type.toLowerCase()] || TransactionType.UNKNOWN;
@@ -215,7 +221,10 @@ function getTransactionCategory(type: string): string {
     [TransactionType.REFERRAL_REWARD]: 'referral',
     [TransactionType.DAILY_BONUS]: 'bonus',
     [TransactionType.SIGNUP_BONUS]: 'bonus',
-    [TransactionType.AIRDROP]: 'airdrop'
+    [TransactionType.AIRDROP]: 'airdrop',
+    [TransactionType.TON_BOOST]: 'boost',
+    [TransactionType.BOOST]: 'boost',
+    [TransactionType.TON_FARMING_REWARD]: 'farming'
   };
   
   return categoryMap[type] || 'other';
@@ -237,7 +246,10 @@ function getTransactionTitle(type: string): string {
     [TransactionType.REFERRAL_REWARD]: 'Реферальное вознаграждение',
     [TransactionType.DAILY_BONUS]: 'Ежедневный бонус',
     [TransactionType.SIGNUP_BONUS]: 'Бонус регистрации',
-    [TransactionType.AIRDROP]: 'Airdrop'
+    [TransactionType.AIRDROP]: 'Airdrop',
+    [TransactionType.TON_BOOST]: 'TON Boost пакет',
+    [TransactionType.BOOST]: 'Boost пакет',
+    [TransactionType.TON_FARMING_REWARD]: 'Начисление TON фарминга'
   };
   
   return titleMap[type] || 'Другая операция';

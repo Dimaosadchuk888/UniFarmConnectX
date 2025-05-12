@@ -17,6 +17,8 @@ interface FarmingInfo {
   ratePerSecond: string;
   depositCount?: number;
   totalDepositAmount?: string;
+  totalRatePerSecond?: string;
+  dailyIncomeUni?: string;
   startDate?: string | null;
   uni_farming_start_timestamp?: string | null;
 }
@@ -53,17 +55,38 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           'GET'
         );
         
-        console.log('[DEBUG] Получены данные фарминга:', response.data);
+        console.log('[DEBUG] Получены данные фарминга:', JSON.stringify(response));
         // Выводим подробные дебаг данные для анализа точности отображения
         if (response.data) {
-          console.log('[DEBUG] UNI Farming - Детали:',{
+          console.log('[DEBUG] UNI Farming - Детали API:',{
             isActive: response.data.isActive,
-            depositAmount: response.data.depositAmount,
-            ratePerSecond: response.data.ratePerSecond,
             depositCount: response.data.depositCount,
             totalDepositAmount: response.data.totalDepositAmount,
-            startTimestamp: response.data.uni_farming_start_timestamp || response.data.startDate
-          })
+            ratePerSecond: response.data.totalRatePerSecond,
+            dailyIncome: response.data.dailyIncomeUni
+          });
+          
+          // Вывод полного объекта response.data для диагностики
+          console.log('[DEBUG] UNI Farming - Полный объект данных:', response.data);
+          
+          // Проверка числовых значений
+          try {
+            // Приоритет отдаем общей скорости начисления из API
+            const ratePerSecond = new BigNumber(response.data.totalRatePerSecond || response.data.ratePerSecond || '0');
+            const dailyRate = ratePerSecond.multipliedBy(86400);
+            console.log('[DEBUG] Числовые проверки:', {
+              totalRatePerSecond: response.data.totalRatePerSecond,
+              ratePerSecond: response.data.ratePerSecond,
+              calculatedRate: ratePerSecond.toString(),
+              dailyRate: dailyRate.toString(),
+              dailyIncomeUni: response.data.dailyIncomeUni,
+              depositCount: response.data.depositCount,
+              isNaN: ratePerSecond.isNaN(),
+              isFinite: ratePerSecond.isFinite()
+            });
+          } catch (bnError) {
+            console.error('[ERROR] Ошибка преобразования числовых значений:', bnError);
+          }
         }
         return response;
       } catch (error: any) {
@@ -101,18 +124,63 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   
   // Рассчитываем суммарную величину всех депозитов
   const totalDepositsAmount = React.useMemo(() => {
-    if (!farmingDeposits || farmingDeposits.length === 0) return farmingInfo.depositAmount || '0';
-    
-    // Суммируем все депозиты
-    const total = farmingDeposits.reduce((sum: BigNumber, tx: any) => {
-      return sum.plus(new BigNumber(tx.amount || '0'));
-    }, new BigNumber(0));
-    
-    return total.toString();
-  }, [farmingDeposits, farmingInfo.depositAmount]);
+    try {
+      console.log('[DEBUG] totalDepositsAmount - Начало расчета');
+      
+      // Если API вернул значение для общей суммы, используем его
+      if (farmingInfo.totalDepositAmount) {
+        console.log('[DEBUG] totalDepositsAmount - Используем API значение totalDepositAmount:', farmingInfo.totalDepositAmount);
+        return farmingInfo.totalDepositAmount;
+      }
+      
+      // Если нет транзакций, вернем depositAmount из API
+      if (!farmingDeposits || farmingDeposits.length === 0) {
+        console.log('[DEBUG] totalDepositsAmount - Нет депозитов, используем depositAmount из API:', farmingInfo.depositAmount);
+        return farmingInfo.depositAmount || '0';
+      }
+      
+      console.log('[DEBUG] totalDepositsAmount - Количество депозитов для подсчета:', farmingDeposits.length);
+      
+      // Суммируем все депозиты
+      const total = farmingDeposits.reduce((sum: BigNumber, tx: any) => {
+        try {
+          // Обрабатываем значение безопасно
+          const txAmount = String(tx.amount || '0').trim();
+          console.log('[DEBUG] totalDepositsAmount - Обработка депозита:', { amount: txAmount });
+          
+          const amountBN = new BigNumber(txAmount);
+          // Проверяем на валидность
+          if (amountBN.isNaN() || !amountBN.isFinite()) {
+            console.log('[DEBUG] totalDepositsAmount - Невалидное значение депозита:', txAmount);
+            return sum;
+          }
+          
+          const newSum = sum.plus(amountBN);
+          console.log('[DEBUG] totalDepositsAmount - Промежуточная сумма:', newSum.toString());
+          return newSum;
+        } catch (depError) {
+          console.error('[ERROR] totalDepositsAmount - Ошибка при обработке депозита:', depError);
+          return sum;
+        }
+      }, new BigNumber(0));
+      
+      const result = total.toString();
+      console.log('[DEBUG] totalDepositsAmount - Финальный результат:', result);
+      return result;
+    } catch (error) {
+      console.error('[ERROR] totalDepositsAmount - Глобальная ошибка:', error);
+      return farmingInfo.depositAmount || '0';
+    }
+  }, [farmingDeposits, farmingInfo.depositAmount, farmingInfo.totalDepositAmount]);
   
-  // Подсчитываем количество активных депозитов
-  const depositCount = farmingDeposits.length || 0;
+  // Подсчитываем количество активных депозитов 
+  // Приоритет отдаем значению из API, а если его нет, считаем локально
+  const depositCount = farmingInfo.depositCount || farmingDeposits.length || 0;
+  console.log('[DEBUG] Количество депозитов:', {
+    fromAPI: farmingInfo.depositCount,
+    localCount: farmingDeposits.length,
+    finalCount: depositCount
+  });
   
   // Информационная мутация (просто для показа информации о новом механизме)
   const infoMutation = useMutation({
@@ -151,8 +219,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         // Обновляем данные с учетом динамического ID пользователя
         // Используем новую функцию вместо прямого вызова invalidateQueries
-        invalidateQueryWithUserId('/api/uni-farming/status');
-        invalidateQueryWithUserId('/api/wallet/balance');
+        invalidateQueryWithUserId('/api/uni-farming/status', [
+          '/api/wallet/balance'
+        ]);
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess infoMutation:', error);
         // Даже в случае ошибки показываем позитивное сообщение
@@ -184,17 +253,39 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
       return correctApiRequest('/api/uni-farming/deposit', 'POST', requestBody);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       try {
         // Очищаем форму и сообщение об ошибке
         setDepositAmount('');
         setError(null);
         
+        // Показываем уведомление об успешном создании депозита
+        showNotification('success', {
+          message: 'Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!',
+          duration: 5000
+        });
+        
+        // Обновляем контекст пользователя для обновления баланса без перезагрузки
+        if (userData && response?.data?.newBalance) {
+          console.log('[INFO] Обновляем баланс пользователя:', {
+            oldBalance: userData.balance_uni,
+            newBalance: response.data.newBalance
+          });
+          
+          // Обновляем userData напрямую для мгновенного эффекта
+          userData.balance_uni = response.data.newBalance;
+        }
+        
         // Обновляем данные с учетом динамического ID пользователя
         // Используем новую функцию вместо прямого вызова invalidateQueries
-        invalidateQueryWithUserId('/api/uni-farming/status');
-        invalidateQueryWithUserId('/api/wallet/balance');
-        invalidateQueryWithUserId('/api/transactions');
+        // Обновляем сразу все основные эндпоинты
+        invalidateQueryWithUserId('/api/uni-farming/status', [
+          '/api/wallet/balance',
+          '/api/transactions'
+        ]);
+        
+        // Принудительно обновляем баланс пользователя
+        queryClient.refetchQueries({ queryKey: ['/api/me'] });
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess depositMutation:', error);
         // Даже в случае ошибки отображаем успех
@@ -425,8 +516,16 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Форматирование числа с учетом малых значений и расширенной обработкой ошибок
   const formatNumber = (value: string | undefined, decimals: number = 3): string => {
     try {
+      // Отладочный лог входных данных
+      console.log('[DEBUG] formatNumber - Входные данные:', {
+        value,
+        type: typeof value,
+        decimals
+      });
+      
       // Проверка наличия значения
       if (value === undefined || value === null) {
+        console.log('[DEBUG] formatNumber - Значение undefined или null');
         return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
       }
       
@@ -437,58 +536,69 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       if (typeof value !== 'string') {
         try {
           normalizedValue = String(value);
+          console.log('[DEBUG] formatNumber - Преобразовано в строку:', normalizedValue);
         } catch (conversionError) {
-          console.error('Ошибка преобразования значения в строку:', conversionError);
+          console.error('[ERROR] formatNumber - Ошибка преобразования значения в строку:', conversionError);
           return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
         }
       }
       
       // Проверка на пустую строку
       if (normalizedValue.trim() === '') {
+        console.log('[DEBUG] formatNumber - Пустая строка');
         return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
       }
       
       // Создаем BigNumber с защитой от некорректных значений
       let num: BigNumber;
       try {
-        num = new BigNumber(normalizedValue);
+        // Гарантируем, что передаем строку и удаляем лишние пробелы
+        num = new BigNumber(String(normalizedValue).trim());
+        console.log('[DEBUG] formatNumber - BigNumber создан:', num.toString());
         
         // Проверка на NaN или Infinity
         if (num.isNaN() || !num.isFinite()) {
-          console.error('Получено нечисловое значение:', normalizedValue);
+          console.error('[ERROR] formatNumber - Получено нечисловое значение:', normalizedValue);
           return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
         }
       } catch (bnError) {
-        console.error('Ошибка создания BigNumber:', bnError, 'для значения:', normalizedValue);
+        console.error('[ERROR] formatNumber - Ошибка создания BigNumber:', bnError, 'для значения:', normalizedValue);
         return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
       }
       
       try {
         // Для очень маленьких значений используем научную нотацию
         if (num.isGreaterThan(0) && num.isLessThanOrEqualTo(0.001)) {
-          return num.toExponential(2);
+          const result = num.toExponential(2);
+          console.log('[DEBUG] formatNumber - Малое значение, научная нотация:', result);
+          return result;
         }
         
         // Для нормальных значений используем фиксированное количество десятичных знаков
-        return num.toFixed(decimals);
+        const result = num.toFixed(decimals);
+        console.log('[DEBUG] formatNumber - Финальный результат:', result);
+        return result;
       } catch (formatError) {
-        console.error('Ошибка форматирования числа:', formatError);
+        console.error('[ERROR] formatNumber - Ошибка форматирования числа:', formatError);
         
         // Запасной вариант форматирования - просто преобразуем в строку и округлим
         try {
           const numValue = parseFloat(normalizedValue);
           if (isNaN(numValue)) {
+            console.log('[DEBUG] formatNumber - Запасной вариант вернул NaN');
             return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
           }
           
-          return numValue.toFixed(decimals);
+          const result = numValue.toFixed(decimals);
+          console.log('[DEBUG] formatNumber - Результат запасного варианта:', result);
+          return result;
         } catch (fallbackError) {
-          console.error('Ошибка в запасном форматировании:', fallbackError);
+          console.error('[ERROR] formatNumber - Ошибка в запасном форматировании:', fallbackError);
           return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
         }
       }
     } catch (err) {
-      console.error('Глобальная ошибка в formatNumber:', err);
+      console.error('[ERROR] Глобальная ошибка в formatNumber:', err);
       return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
     }
   };
@@ -505,19 +615,31 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
       
       // Получаем скорость начисления в секунду из API напрямую
-      const ratePerSecondStr = farmingInfo.ratePerSecond;
+      // Приоритет отдаем dailyIncomeUni, затем totalRatePerSecond, затем обычному ratePerSecond
+      if (farmingInfo.dailyIncomeUni) {
+        console.log('[DEBUG] calculateDailyIncome - Используем готовый дневной доход из API:', farmingInfo.dailyIncomeUni);
+        return farmingInfo.dailyIncomeUni;
+      }
+      
+      const ratePerSecondStr = farmingInfo.totalRatePerSecond || farmingInfo.ratePerSecond;
       if (!ratePerSecondStr) {
-        console.log('Отсутствует скорость начисления для расчета дневного дохода');
+        console.log('[DEBUG] calculateDailyIncome - Отсутствует скорость начисления для расчета дневного дохода');
         return '0';
       }
       
       try {
-        // Используем BigNumber для безопасных вычислений
-        const ratePerSecond = new BigNumber(ratePerSecondStr);
+        // Выводим значение для диагностики
+        console.log('[DEBUG] calculateDailyIncome - Входные данные:', {
+          ratePerSecondStr: ratePerSecondStr,
+          type: typeof ratePerSecondStr
+        });
+        
+        // Используем BigNumber для безопасных вычислений, гарантируем строку
+        const ratePerSecond = new BigNumber(String(ratePerSecondStr).trim());
         
         // Проверка на валидное число
         if (ratePerSecond.isNaN() || !ratePerSecond.isFinite()) {
-          console.error('Невалидное значение скорости начисления:', ratePerSecondStr);
+          console.error('[ERROR] calculateDailyIncome - Невалидное значение скорости начисления:', ratePerSecondStr);
           return '0';
         }
         
@@ -527,19 +649,29 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // Вычисляем дневной доход: ratePerSecond * SECONDS_IN_DAY
         const dailyIncome = ratePerSecond.multipliedBy(SECONDS_IN_DAY);
         
+        // Логирование для диагностики
+        console.log('[DEBUG] calculateDailyIncome - Результат расчета:', {
+          ratePerSecond: ratePerSecond.toString(),
+          seconds: SECONDS_IN_DAY.toString(),
+          dailyIncome: dailyIncome.toString()
+        });
+        
         // Проверка результата на валидность
         if (dailyIncome.isNaN() || !dailyIncome.isFinite()) {
-          console.error('Ошибка при расчете дневного дохода, получено:', dailyIncome.toString());
+          console.error('[ERROR] calculateDailyIncome - Ошибка при расчете дневного дохода, получено:', dailyIncome.toString());
           return '0';
         }
         
-        return dailyIncome.toFixed(3); // 3 знака после запятой для дневного дохода
+        // Округляем до 3 знаков для отображения
+        const result = dailyIncome.toFixed(3);
+        console.log('[DEBUG] calculateDailyIncome - Финальный результат:', result);
+        return result;
       } catch (calculationError) {
-        console.error('Ошибка при вычислении дневного дохода:', calculationError);
+        console.error('[ERROR] calculateDailyIncome - Ошибка при вычислении:', calculationError);
         return '0';
       }
     } catch (err) {
-      console.error('Глобальная ошибка в calculateDailyIncome:', err);
+      console.error('[ERROR] Глобальная ошибка в calculateDailyIncome:', err);
       return '0';
     }
   };
@@ -553,30 +685,44 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
       
       // Получаем скорость начисления в секунду непосредственно из API
-      const ratePerSecondStr = farmingInfo.ratePerSecond;
+      // Приоритет отдаем полю totalRatePerSecond из нового API
+      const ratePerSecondStr = farmingInfo.totalRatePerSecond || farmingInfo.ratePerSecond;
       if (!ratePerSecondStr) {
-        console.log('Отсутствует скорость начисления из API');
+        console.log('[DEBUG] calculateSecondRate - Отсутствует скорость начисления из API');
         return '0';
       }
       
       try {
-        // Создаем BigNumber из скорости начисления
-        const ratePerSecond = new BigNumber(ratePerSecondStr);
+        // Выводим значение для диагностики
+        console.log('[DEBUG] calculateSecondRate - Входные данные:', {
+          totalRatePerSecond: farmingInfo.totalRatePerSecond,
+          ratePerSecond: farmingInfo.ratePerSecond,
+          finalRate: ratePerSecondStr,
+          type: typeof ratePerSecondStr
+        });
+        
+        // Создаем BigNumber из скорости начисления, гарантируя строковый тип
+        const ratePerSecond = new BigNumber(String(ratePerSecondStr).trim());
         
         // Проверка на валидное число
         if (ratePerSecond.isNaN() || !ratePerSecond.isFinite()) {
-          console.error('Невалидное значение скорости начисления:', ratePerSecondStr);
+          console.error('[ERROR] calculateSecondRate - Невалидное значение скорости начисления:', ratePerSecondStr);
           return '0';
         }
         
+        // Логируем результат для диагностики
+        console.log('[DEBUG] calculateSecondRate - Обработанное значение:', ratePerSecond.toString());
+        
         // Возвращаем скорость напрямую из API с форматированием
-        return ratePerSecond.toFixed(8); // 8 знаков для секундного дохода
+        const result = ratePerSecond.toFixed(8); // 8 знаков для секундного дохода
+        console.log('[DEBUG] calculateSecondRate - Финальный результат:', result);
+        return result;
       } catch (bnError) {
-        console.error('Ошибка при обработке скорости начисления:', bnError);
+        console.error('[ERROR] calculateSecondRate - Ошибка при обработке скорости начисления:', bnError);
         return '0';
       }
     } catch (err) {
-      console.error('Глобальная ошибка в calculateSecondRate:', err);
+      console.error('[ERROR] Глобальная ошибка в calculateSecondRate:', err);
       return '0';
     }
   };
@@ -587,19 +733,25 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     try {
       // Проверяем активность фарминга
       if (!isActive) {
+        console.log('[DEBUG] calculateAPR - Фарминг неактивен');
         return { annual: '0', daily: '0' };
       }
+      
+      console.log('[DEBUG] calculateAPR - Расчет фиксированной ставки');
       
       // В нашем случае ставка фиксированная: 0.5% в день (из бизнес-логики)
       const DAILY_PERCENTAGE = 0.5;
       const ANNUAL_PERCENTAGE = DAILY_PERCENTAGE * 365;
       
-      return {
+      const result = {
         annual: ANNUAL_PERCENTAGE.toFixed(1), // 182.5%
         daily: DAILY_PERCENTAGE.toFixed(1)    // 0.5%
       };
+      
+      console.log('[DEBUG] calculateAPR - Результат:', result);
+      return result;
     } catch (err) {
-      console.error('Ошибка при расчете APR:', err);
+      console.error('[ERROR] Ошибка при расчете APR:', err);
       return { annual: '182.5', daily: '0.5' }; // Значения по умолчанию
     }
   };
@@ -607,42 +759,54 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const formatStartDate = (): string => {
     try {
       // Проверка активности фарминга
-      if (!isActive) return '-';
+      if (!isActive) {
+        console.log('[DEBUG] formatStartDate - Фарминг неактивен');
+        return '-';
+      }
       
       // Получаем timestamp из доступных полей
       const timestamp = farmingInfo.uni_farming_start_timestamp || farmingInfo.startDate;
+      console.log('[DEBUG] formatStartDate - Получена дата:', timestamp);
       
       // Проверка наличия метки времени
-      if (!timestamp) return '-';
+      if (!timestamp) {
+        console.log('[DEBUG] formatStartDate - Отсутствует дата начала');
+        return '-';
+      }
       
       // Попытка преобразовать строку в объект Date
       const date = new Date(timestamp);
+      console.log('[DEBUG] formatStartDate - Создан объект Date:', date);
       
       // Проверка валидности даты
       if (isNaN(date.getTime())) {
-        console.error('Невалидная дата:', timestamp);
+        console.error('[ERROR] formatStartDate - Невалидная дата:', timestamp);
         return '-';
       }
       
       // Форматирование даты с обработкой ошибок
       try {
-        return date.toLocaleDateString('ru-RU');
+        const formatted = date.toLocaleDateString('ru-RU');
+        console.log('[DEBUG] formatStartDate - Отформатированная дата:', formatted);
+        return formatted;
       } catch (formatError) {
-        console.error('Ошибка форматирования даты:', formatError);
+        console.error('[ERROR] formatStartDate - Ошибка форматирования даты:', formatError);
         
         // Запасной вариант форматирования
         try {
           const day = date.getDate().toString().padStart(2, '0');
           const month = (date.getMonth() + 1).toString().padStart(2, '0');
           const year = date.getFullYear();
-          return `${day}.${month}.${year}`;
+          const formatted = `${day}.${month}.${year}`;
+          console.log('[DEBUG] formatStartDate - Запасное форматирование даты:', formatted);
+          return formatted;
         } catch (backupFormatError) {
-          console.error('Ошибка в запасном форматировании даты:', backupFormatError);
+          console.error('[ERROR] formatStartDate - Ошибка в запасном форматировании даты:', backupFormatError);
           return '-';
         }
       }
     } catch (err) {
-      console.error('Глобальная ошибка в formatStartDate:', err);
+      console.error('[ERROR] Глобальная ошибка в formatStartDate:', err);
       return '-';
     }
   };

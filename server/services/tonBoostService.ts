@@ -146,6 +146,17 @@ export class TonBoostService {
   static async calculateAndUpdateUserTonFarming(userId: number): Promise<TonFarmingUpdateResult> {
     return tonBoostServiceInstance.calculateAndUpdateUserTonFarming(userId);
   }
+  
+  /**
+   * Запускает обновление TON фарминга для всех пользователей с активными депозитами
+   */
+  static async updateAllUsersTonFarming(): Promise<{
+    success: boolean;
+    usersUpdated: number;
+    errors: number;
+  }> {
+    return tonBoostServiceInstance.updateAllUsersTonFarming();
+  }
 
   /**
    * Получает информацию о TON фарминге пользователя

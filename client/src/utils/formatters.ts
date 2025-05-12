@@ -103,9 +103,11 @@ export function formatTransactionAmount(amount: number, tokenType: string, type?
     return `+0 ${tokenType || 'UNI'}`;
   }
 
-  // Знак для суммы (withdrawals показываем как отрицательные)
-  const isNegative = type === 'withdrawal' || type === 'purchase';
-  const sign = isNegative ? '-' : '+';
+  // Знак для суммы (withdrawals и ton_boost показываем как отрицательные)
+  const isNegative = type === 'withdrawal' || type === 'purchase' || type === 'ton_boost' || type === 'boost';
+  // Если сумма уже отрицательная, не добавляем еще один минус
+  const isAlreadyNegative = typeof amount === 'number' && amount < 0;
+  const sign = isNegative && !isAlreadyNegative ? '-' : '+';
   const absoluteAmount = Math.abs(amount);
   
   // Форматируем в зависимости от типа токена
@@ -200,6 +202,9 @@ export function getTransactionIcon(type: string, tokenType: string): string {
   }
   if (type === 'ton_boost' || type === 'boost') {
     return 'fa-rocket';
+  }
+  if (type === 'ton_farming_reward') {
+    return 'fa-bolt';
   }
   if (type === 'check-in' || type === 'daily_bonus' || type === 'signup_bonus') {
     return 'fa-gift';

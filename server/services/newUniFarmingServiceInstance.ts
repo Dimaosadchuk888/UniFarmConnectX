@@ -330,11 +330,14 @@ export const newUniFarmingServiceInstance: INewUniFarmingService = {
         newBalance: balanceUni.minus(depositAmount).toString()
       });
       
+      // Вычисляем новый баланс
+      const newBalance = balanceUni.minus(depositAmount).toFixed(6);
+      
       try {
         await db
           .update(users)
           .set({
-            balance_uni: balanceUni.minus(depositAmount).toFixed(6)
+            balance_uni: newBalance
           })
           .where(eq(users.id, userId));
           
@@ -361,7 +364,8 @@ export const newUniFarmingServiceInstance: INewUniFarmingService = {
         message: 'Депозит успешно создан',
         depositId: newDeposit.id,
         depositAmount: depositAmount.toString(),
-        ratePerSecond
+        ratePerSecond,
+        newBalance // Добавляем новый баланс в ответ
       };
     } catch (error) {
       console.error('[createUniFarmingDeposit] Неизвестная ошибка:', error);

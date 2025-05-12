@@ -4,7 +4,7 @@ import * as schema from "@shared/schema";
 
 // Константы для управления соединением с базой данных
 const MAX_RETRIES = 3;
-let dbConnectionStatus: 'connected' | 'error' | 'initial' = 'initial';
+export let dbConnectionStatus: 'connected' | 'error' | 'initial' = 'initial';
 
 // Вспомогательная функция для задержки
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

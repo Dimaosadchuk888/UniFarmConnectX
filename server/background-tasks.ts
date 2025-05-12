@@ -195,7 +195,10 @@ async function updateAllUsersFarming(): Promise<void> {
         
         if (tonBoosts.length > 0) {
           // Обновляем TON-фарминг
-          await TonBoostService.calculateAndUpdateUserTonFarming(user.id);
+          const result = await TonBoostService.calculateAndUpdateUserTonFarming(user.id);
+          if (result && result.success) {
+            console.log(`[Background Tasks] User ${user.id} TON farming updated: +${result.earnedTon} TON`);
+          }
         }
         
         updatedCount++;

@@ -1585,6 +1585,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Добавляем эндпоинт для обновления TON фарминга всех пользователей
+  app.post("/api/ton-farming/update-all", async (req: Request, res: Response) => {
+    try {
+      console.log(`[DEBUG] Запуск обновления TON фарминга для всех пользователей`);
+      
+      const { TonBoostService } = require('./services/tonBoostService');
+      const result = await TonBoostService.updateAllUsersTonFarming();
+      
+      return res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      console.error('[Error] Ошибка при обновлении TON фарминга всех пользователей:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Внутренняя ошибка сервера',
+        error: error.message
+      });
+    }
+  });
+  
   // Добавляем эндпоинт для тестирования харвеста TON фарминга
   app.post("/api/ton-farming/harvest", async (req: Request, res: Response) => {
     try {
