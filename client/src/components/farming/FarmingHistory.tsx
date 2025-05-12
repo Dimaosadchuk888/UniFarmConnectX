@@ -1339,7 +1339,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         <div className="mt-6 pt-6 border-t border-gray-800/30">
           <h3 className="text-md font-medium mb-4">История UNI фарминга</h3>
           
-          <div className="overflow-hidden relative">
+          <div className="overflow-auto relative max-h-[400px] scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900/20">
             {farmingHistory.filter(item => item.currency === 'UNI').length === 0 ? (
               <div className="text-center py-4">
                 <p className="text-sm text-foreground opacity-70">
@@ -1498,7 +1498,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         <div className="mt-6 pt-6 border-t border-gray-800/30">
           <h3 className="text-md font-medium mb-4">История TON транзакций</h3>
           
-          <div className="overflow-hidden relative">
+          <div className="overflow-auto relative max-h-[400px] scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900/20">
             <table className="w-full">
               <thead className="sticky top-0 bg-card z-10">
                 <tr className="border-b border-gray-800">

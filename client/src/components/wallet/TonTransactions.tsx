@@ -100,7 +100,7 @@ const TonTransactions: React.FC = () => {
           <p>У вас пока нет TON транзакций</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="max-h-[400px] overflow-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900/20 space-y-3 pr-1">
           {limitedTransactions.map((transaction: Transaction) => (
             <TransactionItem
               key={transaction.id}

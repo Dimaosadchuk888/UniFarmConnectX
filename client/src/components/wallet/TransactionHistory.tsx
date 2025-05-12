@@ -220,8 +220,8 @@ const TransactionHistory: React.FC = () => {
         {/* Эффект затухания внизу */}
         <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-card to-transparent z-10 pointer-events-none"></div>
         
-        {/* Скроллируемый контейнер */}
-        <div className="max-h-[350px] overflow-y-auto scrollbar-none relative z-0 pr-1">
+        {/* Скроллируемый контейнер с настраиваемым скроллбаром */}
+        <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900/20 relative z-0 pr-1">
           {isLoading || isFetching ? (
             // Скелетон загрузки
             Array(5).fill(0).map((_, index) => (

@@ -54,7 +54,7 @@ const ActiveTonBoostsCard: React.FC = () => {
             <p>У вас нет активных TON Boost-пакетов</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="max-h-[400px] overflow-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900/20 space-y-3 pr-1">
             {activeTonBoosts?.data?.map((boost) => {
               // Расчет дохода в день
               const secondsInDay = 24 * 60 * 60;

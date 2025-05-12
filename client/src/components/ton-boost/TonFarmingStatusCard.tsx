@@ -5,14 +5,20 @@ import { Loader2 } from 'lucide-react';
 import { formatNumberWithPrecision, getUserIdFromURL } from '@/lib/utils';
 
 interface TonFarmingInfo {
-  isActive: boolean;
-  totalTonDepositAmount: string;
-  depositCount: number;
   totalTonRatePerSecond: string;
   totalUniRatePerSecond: string;
   dailyIncomeTon: string;
   dailyIncomeUni: string;
-  deposits: any[];
+  deposits: Array<{
+    id: number;
+    user_id: number;
+    ton_amount: string | number;
+    uni_amount?: string | number;
+    start_date: string;
+    end_date?: string;
+    status: string;
+    created_at: string;
+  }>;
 }
 
 const TonFarmingStatusCard: React.FC = () => {
@@ -72,8 +78,9 @@ const TonFarmingStatusCard: React.FC = () => {
         try {
           const farmingData = farmingInfo.data;
           
-          // Установка статуса активности
-          setIsActive(farmingData.isActive);
+          // Определяем активность фарминга на основе наличия депозитов
+          const hasDeposits = Array.isArray(farmingData.deposits) && farmingData.deposits.length > 0;
+          setIsActive(hasDeposits);
           
           // Преобразуем строковые значения непосредственно в числа
           // Используем строгое приведение типов с обработкой научной нотации
@@ -182,7 +189,7 @@ const TonFarmingStatusCard: React.FC = () => {
 
   return (
     <Card className={`w-full shadow-md mb-6 overflow-hidden transition-all duration-300 ${
-      isActive ? 'border-blue-600/50 bg-gradient-to-br from-blue-950/40 to-blue-900/10' : 'border-gray-800/30 bg-card'
+      isActive ? 'border-blue-600/50 bg-gradient-to-br from-blue-950/40 to-blue-900/10' : 'border-blue-600/20 bg-gradient-to-br from-blue-950/20 to-blue-900/5'
     }`}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
@@ -199,31 +206,14 @@ const TonFarmingStatusCard: React.FC = () => {
             <CardDescription className="text-blue-300/70">
               {(() => {
                 try {
-                  if (!isActive) {
-                    return 'Нет активных TON Boost депозитов';
-                  }
+                  // Получаем количество депозитов непосредственно из массива
+                  const deposits = farmingInfo?.data?.deposits || [];
+                  const count = Array.isArray(deposits) ? deposits.length : 0;
                   
-                  // Безопасный доступ к depositCount с проверкой
-                  const depositCount = farmingInfo?.data?.depositCount;
-                  
-                  // Проверяем что depositCount число или может быть преобразовано в число
-                  let count = 0;
-                  
-                  if (depositCount !== undefined && depositCount !== null) {
-                    if (typeof depositCount === 'number') {
-                      count = isNaN(depositCount) ? 0 : depositCount;
-                    } else if (typeof depositCount === 'string') {
-                      const parsed = parseInt(depositCount, 10);
-                      count = isNaN(parsed) ? 0 : parsed;
-                    }
-                  }
-                  
-                  return `Активно ${count} TON Boost депозитов`;
+                  return `${count > 0 ? `Активно ${count} TON Boost депозитов` : 'Стейкинг TON токенов'}`;
                 } catch (error) {
                   console.error('Ошибка при формировании описания:', error);
-                  return isActive 
-                    ? 'Активны TON Boost депозиты' 
-                    : 'Нет активных TON Boost депозитов';
+                  return 'Стейкинг TON токенов';
                 }
               })()}
             </CardDescription>
@@ -236,10 +226,6 @@ const TonFarmingStatusCard: React.FC = () => {
           <div className="flex justify-center items-center py-6">
             <Loader2 className="h-6 w-6 text-blue-400 animate-spin" />
           </div>
-        ) : !isActive ? (
-          <div className="text-center py-4 text-foreground opacity-70">
-            <p>Купите TON Boost-пакеты для начала фарминга</p>
-          </div>
         ) : (
           <div className={`
             grid grid-cols-2 gap-4 mt-1
@@ -251,7 +237,7 @@ const TonFarmingStatusCard: React.FC = () => {
                 <span className="text-blue-400 text-xl font-medium">
                   {(() => {
                     try {
-                      // Проверка на валидное число
+                      // Проверка на валидное число и отображение с 5 знаками после запятой
                       return formatNumberWithPrecision(isNaN(dailyYield) ? 0 : dailyYield, 5);
                     } catch (error) {
                       console.error('Ошибка при форматировании дневного дохода:', error);
@@ -269,7 +255,7 @@ const TonFarmingStatusCard: React.FC = () => {
                 <span className="text-blue-400 text-xl font-medium">
                   {(() => {
                     try {
-                      // Проверка на валидное число
+                      // Отображаем с 8 знаками после запятой для лучшей точности
                       return formatNumberWithPrecision(isNaN(perSecond) ? 0 : perSecond, 8);
                     } catch (error) {
                       console.error('Ошибка при форматировании значения в секунду:', error);
@@ -287,9 +273,17 @@ const TonFarmingStatusCard: React.FC = () => {
                 <span className="text-blue-400 text-xl font-medium">
                   {(() => {
                     try {
-                      const rawAmount = farmingInfo?.data?.totalTonDepositAmount || "0";
-                      const amount = typeof rawAmount === 'string' ? parseFloat(rawAmount) : (rawAmount || 0);
-                      // Проверка на валидное число
+                      // Рассчитываем общую сумму из массива депозитов
+                      let amount = 0;
+                      const deposits = farmingInfo?.data?.deposits || [];
+                      if (Array.isArray(deposits) && deposits.length > 0) {
+                        amount = deposits.reduce((sum, deposit) => {
+                          const depositAmount = typeof deposit.ton_amount === 'string' ? 
+                            parseFloat(deposit.ton_amount) : (deposit.ton_amount || 0);
+                          return sum + (isNaN(depositAmount) ? 0 : depositAmount);
+                        }, 0);
+                      }
+                      // Отображаем с 2 знаками после запятой
                       return formatNumberWithPrecision(isNaN(amount) ? 0 : amount, 2);
                     } catch (error) {
                       console.error('Ошибка при форматировании общей суммы:', error);
@@ -307,28 +301,11 @@ const TonFarmingStatusCard: React.FC = () => {
                 <span className="text-blue-400 text-xl font-medium">
                   {(() => {
                     try {
-                      // Безопасный доступ к depositCount с проверкой
-                      const depositCount = farmingInfo?.data?.depositCount;
-                      
-                      // Проверяем что depositCount число или может быть преобразовано в число
-                      if (depositCount === undefined || depositCount === null) {
-                        return 0;
-                      }
-                      
-                      if (typeof depositCount === 'number') {
-                        return isNaN(depositCount) ? 0 : depositCount;
-                      }
-                      
-                      // Если это строка, пробуем преобразовать
-                      if (typeof depositCount === 'string') {
-                        const parsed = parseInt(depositCount, 10);
-                        return isNaN(parsed) ? 0 : parsed;
-                      }
-                      
-                      // Если другой тип данных, возвращаем 0
-                      return 0;
+                      // Получаем количество депозитов непосредственно из массива
+                      const deposits = farmingInfo?.data?.deposits || [];
+                      return Array.isArray(deposits) ? deposits.length : 0;
                     } catch (error) {
-                      console.error('Ошибка при форматировании количества депозитов:', error);
+                      console.error('Ошибка при подсчете количества депозитов:', error);
                       return 0;
                     }
                   })()}

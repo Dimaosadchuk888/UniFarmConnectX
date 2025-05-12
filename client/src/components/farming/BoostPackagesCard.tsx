@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import PaymentMethodDialog from '../ton-boost/PaymentMethodDialog';
 import ExternalPaymentStatus from '../ton-boost/ExternalPaymentStatus';
 import { useUser } from '@/contexts/userContext';
+import { BadgeCheck, Rocket, Sparkles, TrendingUp, Zap } from 'lucide-react';
 
 // Определяем структуру буст-пакета
 interface BoostPackage {
@@ -14,37 +15,49 @@ interface BoostPackage {
   price: string;
   tonDailyYield: string;
   uniBonus: string;
+  color?: string;
+  icon?: JSX.Element;
+  popular?: boolean;
 }
 
 // Создаем массив с буст-пакетами и их ценой в UNI
 const boostPackages: BoostPackage[] = [
   {
     id: 1,
-    name: 'Boost 1',
+    name: 'Starter Boost',
     price: '1 TON',
     tonDailyYield: '+0.5%/день',
-    uniBonus: '+10,000 UNI'
+    uniBonus: '+10,000 UNI',
+    color: 'from-blue-500 to-indigo-600',
+    icon: <Zap size={18} className="text-blue-100" />
   },
   {
     id: 2,
-    name: 'Boost 5',
+    name: 'Standard Boost',
     price: '5 TON',
     tonDailyYield: '+1%/день',
-    uniBonus: '+75,000 UNI'
+    uniBonus: '+75,000 UNI',
+    color: 'from-purple-500 to-violet-600',
+    icon: <TrendingUp size={18} className="text-purple-100" />,
+    popular: true
   },
   {
     id: 3,
-    name: 'Boost 15',
+    name: 'Advanced Boost',
     price: '15 TON',
     tonDailyYield: '+2%/день',
-    uniBonus: '+250,000 UNI'
+    uniBonus: '+250,000 UNI',
+    color: 'from-pink-500 to-rose-600',
+    icon: <Sparkles size={18} className="text-pink-100" />
   },
   {
     id: 4,
-    name: 'Boost 25',
+    name: 'Premium Boost',
     price: '25 TON',
     tonDailyYield: '+2.5%/день',
-    uniBonus: '+500,000 UNI'
+    uniBonus: '+500,000 UNI',
+    color: 'from-amber-500 to-orange-600',
+    icon: <Rocket size={18} className="text-amber-100" />
   }
 ];
 
@@ -506,8 +519,13 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
   };
   
   return (
-    <div className="mt-8">
-      <h2 className="text-xl font-semibold mb-6 text-center">Airdrop Boost Пакеты</h2>
+    <div className="mt-8 px-2">
+      <h2 className="text-xl font-semibold mb-6 text-center">
+        <span className="inline-flex items-center gap-2">
+          <Sparkles size={20} className="text-indigo-400" />
+          <span>Airdrop Boost Пакеты</span>
+        </span>
+      </h2>
       
       {/* Модальное окно выбора способа оплаты с защитой от ошибок */}
       <PaymentMethodDialog
@@ -607,7 +625,7 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
         </div>
       )}
       
-      <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
+      <div className="grid grid-cols-1 gap-8 max-w-2xl mx-auto">
         {boostPackages.map((boost) => {
           // Защищенный доступ к цене в UNI с обработкой потенциальных ошибок
           let uniPriceDisplay = '0 UNI';
@@ -634,41 +652,80 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
           return (
             <div 
               key={boost.id} 
-              className="bg-card rounded-xl p-6 shadow-lg transition-all duration-300 hover:shadow-xl border border-indigo-200 dark:border-indigo-800 flex flex-col h-full w-full"
-              style={{ boxShadow: '0 8px 20px rgba(162, 89, 255, 0.15)' }}
+              className={`relative bg-gradient-to-br ${boost.color || 'from-blue-500 to-indigo-600'} rounded-xl overflow-hidden transition-all duration-300 hover:transform hover:scale-[1.02] group shadow-lg ${boost.popular ? 'ring-2 ring-white/30 ring-offset-2 ring-offset-background z-10' : ''}`}
             >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-xl text-white">{boost.name || 'Boost'}</h3>
-                <span className="text-[#6DBFFF] font-bold">{boost.price || '0 TON'}</span>
-              </div>
+              {/* Shine effect overlay */}
+              <div className="absolute inset-0 bg-white opacity-[0.03] transform rotate-45 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
               
-              <div className="mb-6 space-y-4 flex-grow">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-foreground opacity-70">Доход в TON:</span>
-                  <span className="text-[#6DBFFF] font-semibold">{boost.tonDailyYield || '+0%/день'}</span>
+              {/* Popular badge */}
+              {boost.popular && (
+                <div className="absolute -top-1 -right-1 bg-white/90 text-xs font-medium px-2 py-1 rounded-bl-lg rounded-tr-xl text-purple-700 shadow-md backdrop-blur-sm z-10 transform rotate-12 animate-pulse">
+                  Популярный 🔥
+                </div>
+              )}
+              
+              <div className="relative p-8 flex flex-col h-full">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                      {boost.icon}
+                    </div>
+                    <h3 className="font-bold text-xl text-white">{boost.name}</h3>
+                  </div>
+                  <div className="bg-white/15 backdrop-blur-sm rounded-full px-3 py-1">
+                    <span className="text-white font-bold">{boost.price}</span>
+                  </div>
                 </div>
                 
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-foreground opacity-70">Бонус UNI:</span>
-                  <span className="text-[#00D364] font-semibold">{boost.uniBonus || '+0 UNI'}</span>
+                {/* Content */}
+                <div className="mb-5 space-y-4 flex-grow backdrop-blur-[2px]">
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-white/10">
+                    <span className="text-sm text-white/80 flex items-center gap-2 min-w-[120px]">
+                      <TrendingUp size={14} className="text-white/70" />
+                      Доход в TON:
+                    </span>
+                    <span className="text-white font-semibold text-right">{boost.tonDailyYield}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-white/10">
+                    <span className="text-sm text-white/80 flex items-center gap-2 min-w-[120px]">
+                      <Sparkles size={14} className="text-white/70" />
+                      Бонус UNI:
+                    </span>
+                    <span className="text-white font-semibold text-right">{boost.uniBonus}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-white/10">
+                    <span className="text-sm text-white/80 flex items-center gap-2 min-w-[120px]">
+                      <BadgeCheck size={14} className="text-white/70" />
+                      Цена в UNI:
+                    </span>
+                    <span className="text-white font-semibold text-right">
+                      {uniPriceDisplay}
+                    </span>
+                  </div>
                 </div>
                 
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-sm text-foreground opacity-70">Цена в UNI:</span>
-                  <span className="text-primary font-semibold">
-                    {uniPriceDisplay}
-                  </span>
-                </div>
+                {/* Button */}
+                <button 
+                  className="w-full py-3 px-4 rounded-lg font-medium bg-white/20 backdrop-blur-sm text-white transition-all duration-300 hover:bg-white/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  disabled={purchasingBoostId !== null || !userData || !canBuyBoost(boost.id)}
+                  onClick={() => handleBuyBoost(boost.id)}
+                >
+                  {purchasingBoostId === boost.id ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      <span>Покупка...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} className="opacity-80" />
+                      <span>Buy Boost</span>
+                    </>
+                  )}
+                </button>
               </div>
-              
-              {/* Кнопка Buy Boost */}
-              <button 
-                className="w-full py-3 px-4 rounded-lg font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white transition-all duration-300 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
-                disabled={purchasingBoostId !== null || !userData || !canBuyBoost(boost.id)}
-                onClick={() => handleBuyBoost(boost.id)}
-              >
-                {purchasingBoostId === boost.id ? 'Покупка...' : 'Buy Boost'}
-              </button>
             </div>
           );
         })}
