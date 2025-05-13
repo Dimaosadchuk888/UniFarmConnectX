@@ -117,24 +117,27 @@ const EnhancedMissionsList: React.FC = () => {
           ? result.data.reward 
           : (result.reward || 0);
         
-        // Показываем уведомление об успехе
+        // Показываем улучшенное уведомление об успехе с эмодзи
         showNotification('success', {
-          message: `${missionTitle} выполнена! Награда: ${reward} UNI`
+          message: `Задание "${missionTitle}" выполнено! Награда: ${reward} UNI`,
+          duration: 5000 // Увеличиваем время показа для важных уведомлений
         });
       } else {
         const errorMessage = result?.message || (result?.data?.message) || 'Не удалось выполнить миссию';
         
-        // Показываем уведомление об ошибке
+        // Показываем улучшенное уведомление об ошибке
         showNotification('error', {
-          message: `Ошибка: ${errorMessage}`
+          message: `Ошибка при выполнении задания: ${errorMessage}`,
+          duration: 6000 // Увеличиваем время показа для ошибок
         });
       }
     } catch (err: any) {
       console.error('[EnhancedMissionsList] Ошибка выполнения миссии:', err);
       
-      // Показываем уведомление об ошибке
+      // Показываем улучшенное уведомление об ошибке
       showNotification('error', {
-        message: `Произошла ошибка: ${err.message || 'Не удалось выполнить миссию'}`
+        message: `Не удалось выполнить задание: ${err.message || 'Произошла неизвестная ошибка'}`,
+        duration: 6000 // Увеличиваем время показа для ошибок
       });
     }
   };
