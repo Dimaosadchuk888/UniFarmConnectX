@@ -2,7 +2,6 @@ import React, { useState, useCallback, useRef } from 'react';
 import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
 import { useNotification } from '@/contexts/notificationContext';
-import useErrorBoundary from '@/hooks/useErrorBoundary';
 import { 
   formatUniNumber, 
   formatTonNumber, 
@@ -172,22 +171,6 @@ const BalanceCard: React.FC = () => {
     }
   }, [uniDepositAmount]);
   
-  // Инициализация баланса при первой загрузке
-  React.useEffect(() => {
-    // Делаем только один раз при первой загрузке компонента
-    if (!initialLoadedRef.current && userId) {
-      console.log("[BalanceCard] Начальная инициализация баланса для userId:", userId);
-      
-      initialLoadedRef.current = true;
-      
-      // Делаем полное обновление при первом рендере (параметр false поскольку это первый запрос)
-      refreshBalance(false);
-      
-      // Рассчитываем уровень доходности
-      calculateRate();
-    }
-  }, [userId, refreshBalance, calculateRate]);
-  
   // ===== Вспомогательные функции =====
   
   // Форматирование скорости начисления доходов
@@ -217,8 +200,7 @@ const BalanceCard: React.FC = () => {
     try {
       // Обновляем с небольшой задержкой для предотвращения множественных вызовов
       setTimeout(() => {
-        // Принудительно обновляем баланс с передачей параметра forceRefresh
-        refreshBalance(true);
+        refreshBalance();
         
         // Вычисляем уровень доходности после обновления баланса
         calculateRate();
@@ -271,8 +253,7 @@ const BalanceCard: React.FC = () => {
       
       // Затем с небольшой задержкой обновляем баланс
       setTimeout(() => {
-        // Принудительно обновляем баланс с явной передачей параметра
-        refreshBalance(true);
+        refreshBalance();
         calculateRate();
         
         showNotification('success', {
@@ -314,16 +295,7 @@ const BalanceCard: React.FC = () => {
   }, [forceReconnect, showNotification]);
 
   // ===== Рендеринг компонента =====
-  // Используем Error Boundary для обработки ошибок в компоненте
-  const withErrorBoundary = useErrorBoundary({
-    queryKey: ['/api/wallet/balance', userId],
-    errorTitle: 'Ошибка загрузки баланса',
-    errorDescription: 'Не удалось загрузить информацию о вашем балансе. Пожалуйста, обновите страницу или повторите позже.',
-    resetButtonText: 'Обновить баланс'
-  });
-  
-  // Оборачиваем весь компонент в Error Boundary для обработки ошибок
-  return withErrorBoundary(
+  return (
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
       {/* Декоративный градиентный фон */}
       <div 
