@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
 import { useNotification } from '@/contexts/notificationContext';
@@ -293,6 +293,39 @@ const BalanceCard: React.FC = () => {
     isSubscribedRef.current = false;
     forceReconnect();
   }, [forceReconnect, showNotification]);
+  
+  // Проверка и обновление баланса только при первом рендере компонента
+  useEffect(() => {
+    // Проверяем баланс только один раз при монтировании компонента
+    if (userId && uniBalance === 0 && !initialLoadedRef.current) {
+      // Устанавливаем флаг, что первая загрузка была выполнена
+      initialLoadedRef.current = true;
+      
+      // Отображаем уведомление о загрузке
+      showNotification('loading', {
+        message: 'Загрузка баланса...',
+        duration: 2000
+      });
+      
+      console.log('[BalanceCard] Первичная загрузка баланса, т.к. текущее значение = 0');
+      
+      // Добавляем небольшую задержку для избежания состояния гонки
+      setTimeout(() => {
+        // Загружаем баланс принудительно
+        refreshBalance(true);
+        calculateRate();
+        
+        // Добавляем визуальный эффект при обновлении
+        setTimeout(() => {
+          setUniAnimating(true);
+          setTimeout(() => setUniAnimating(false), 800);
+          
+          setTonAnimating(true);
+          setTimeout(() => setTonAnimating(false), 800);
+        }, 1000);
+      }, 500);
+    }
+  }, [userId, uniBalance, refreshBalance, calculateRate, showNotification]);
 
   // ===== Рендеринг компонента =====
   return (
@@ -379,29 +412,11 @@ const BalanceCard: React.FC = () => {
             <span className="text-gray-400 ml-1">UNI / сек</span>
           </div>
           
-          {/* WebSocket статус */}
+          {/* WebSocket статус и другие элементы скрыты по запросу */}
           <div className="mt-2 text-xs text-gray-500/50">
-            <div className="flex items-center justify-between">
-              <div>
-                WebSocket: 
-                <span className={`ml-1 ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
-                  {isConnected ? 'Подключено' : wsStatus}
-                </span>
-              </div>
-              
-              {/* Добавлены кнопки для подписки и переподключения */}
+            <div className="flex items-center justify-end">
+              {/* Кнопка переподключения при ошибках - оставляем для отладки */}
               <div className="flex space-x-2">
-                {!isSubscribedRef.current && isConnected && (
-                  <button 
-                    onClick={handleSubscribe}
-                    className="text-blue-400 hover:text-blue-300 transition-colors text-xs"
-                    title="Подписаться на обновления"
-                  >
-                    <i className="fas fa-bell mr-1"></i>
-                    Подписаться
-                  </button>
-                )}
-                
                 {errorCount > 0 && (
                   <button 
                     onClick={handleReconnect}
@@ -409,23 +424,13 @@ const BalanceCard: React.FC = () => {
                     title="Переподключиться к WebSocket"
                   >
                     <i className="fas fa-redo-alt mr-1"></i>
-                    Переподключиться
+                    Обновить соединение
                   </button>
                 )}
               </div>
             </div>
             
-            {uniFarmingActive && (
-              <div className="text-green-400">• Фарминг активен</div>
-            )}
-            
-            {uniDepositAmount > 0 && (
-              <div className="text-gray-400">
-                Депозит в фарминге: {formatUniNumber(uniDepositAmount)} UNI
-              </div>
-            )}
-            
-            {/* Статус ошибок WebSocket */}
+            {/* Статус ошибок WebSocket - оставляем для отладки */}
             {errorCount > 0 && (
               <div className="text-yellow-400 mt-1">
                 <i className="fas fa-exclamation-triangle mr-1 text-yellow-400"></i>
@@ -433,16 +438,7 @@ const BalanceCard: React.FC = () => {
               </div>
             )}
             
-            {/* Кнопка обновления расчета ставки для фарминга */}
-            {uniDepositAmount > 0 && (
-              <button 
-                onClick={calculateRate}
-                className="text-xs text-blue-400 hover:text-blue-300 mt-1 transition-colors"
-              >
-                <i className="fas fa-calculator mr-1"></i>
-                Рассчитать доходность
-              </button>
-            )}
+            {/* Кнопка обновления расчета ставки для фарминга - убрана по запросу */}
           </div>
         </div>
         
@@ -493,35 +489,14 @@ const BalanceCard: React.FC = () => {
             </div>
           </div>
           
-          {/* Фарминг TON */}
+          {/* Фарминг TON - скрыт по запросу */}
           <div className="mt-3 text-xs text-gray-500/70">
-            {uniFarmingBalance > 0 && (
-              <div>
-                Баланс фарминга: {formatUniNumber(uniFarmingBalance)} UNI
-              </div>
-            )}
+            {/* Информация о фарминге скрыта */}
           </div>
         </div>
       </div>
       
-      {/* Обновить сейчас - Большая кнопка внизу */}
-      <button
-        onClick={handleManualRefresh}
-        disabled={isBalanceFetching}
-        className="w-full mt-4 py-2 bg-gradient-to-r from-primary/80 to-primary/60 hover:from-primary hover:to-primary/80 rounded-md text-white font-medium transition-all duration-300 flex items-center justify-center"
-      >
-        {isBalanceFetching ? (
-          <>
-            <i className="fas fa-spinner animate-spin mr-2"></i>
-            Обновление...
-          </>
-        ) : (
-          <>
-            <i className="fas fa-sync-alt mr-2"></i>
-            Обновить сейчас
-          </>
-        )}
-      </button>
+      {/* Кнопка "Обновить сейчас" удалена по запросу */}
     </div>
   );
 };
