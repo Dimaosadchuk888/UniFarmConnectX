@@ -345,7 +345,7 @@ export class ReferralBonusProcessor {
             try {
               const transactionData = insertTransactionSchema.parse({
                 user_id: Number(inviterId),
-                type: TransactionType.REFERRAL,
+                type: TransactionType.REFERRAL_BONUS,
                 amount: bonus.bonusAmount.toString(),
                 currency: currency,
                 status: TransactionStatus.CONFIRMED,

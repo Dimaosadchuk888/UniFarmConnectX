@@ -368,7 +368,7 @@ export class ReferralBonusService implements IReferralBonusService {
                 // Создаем и валидируем данные транзакции через схему
                 const transactionData = insertTransactionSchema.parse({
                   user_id: ref.inviter_id,
-                  type: TransactionType.REFERRAL,
+                  type: TransactionType.REFERRAL_BONUS,
                   amount: bonusAmount.toString(),
                   currency: currency,
                   status: TransactionStatus.CONFIRMED,

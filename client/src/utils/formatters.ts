@@ -249,7 +249,7 @@ export function getTransactionIcon(type: string, tokenType: string): string {
   if (type === 'check-in' || type === 'daily_bonus' || type === 'signup_bonus') {
     return 'fa-gift';
   }
-  if (type === 'reward' || type === 'mission' || type === 'referral_reward') {
+  if (type === 'reward' || type === 'mission' || type === 'referral_reward' || type === 'referral_bonus' || type === 'referral') {
     return 'fa-award';
   }
   if (type === 'withdrawal') {
