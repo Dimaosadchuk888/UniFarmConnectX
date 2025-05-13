@@ -378,6 +378,31 @@ export const insertPerformanceMetricSchema = createInsertSchema(performance_metr
 export type InsertPerformanceMetric = z.infer<typeof insertPerformanceMetricSchema>;
 export type PerformanceMetric = typeof performance_metrics.$inferSelect;
 
+// Таблица boost_packages для хранения доступных буст-пакетов
+export const boostPackages = pgTable("boost_packages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  price_uni: numeric("price_uni", { precision: 18, scale: 6 }).notNull(),
+  rate_multiplier: numeric("rate_multiplier", { precision: 5, scale: 2 }).notNull(),
+  duration_days: integer("duration_days").default(365),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow()
+});
+
+// Схемы для таблицы boost_packages
+export const insertBoostPackageSchema = createInsertSchema(boostPackages).pick({
+  name: true,
+  description: true,
+  price_uni: true,
+  rate_multiplier: true,
+  duration_days: true,
+  is_active: true
+});
+
+export type InsertBoostPackage = z.infer<typeof insertBoostPackageSchema>;
+export type BoostPackage = typeof boostPackages.$inferSelect;
+
 // Схемы для таблицы launch_logs
 export const insertLaunchLogSchema = createInsertSchema(launchLogs).pick({
   telegram_user_id: true,
