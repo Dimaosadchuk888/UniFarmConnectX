@@ -262,17 +262,7 @@ const Friends: React.FC = () => {
           </div>
           
           {/* Блок со статистикой "Ваш реферальный код" удален согласно ТЗ от 28 апреля 2025 */}
-          
-          {/* Кнопка обновления данных */}
-          <button 
-            onClick={forceDataRefresh}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg shadow mb-4 flex items-center space-x-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>Обновить данные</span>
-          </button>
+          {/* Кнопка "Обновить данные" удалена согласно запросу от 13 мая 2025 */}
         </div>
       </ErrorBoundary>
       
@@ -295,17 +285,18 @@ const Friends: React.FC = () => {
       
       {/* Бонусный блок с анимацией */}
       <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить информацию о бонусах</div>}>
-        <div className="w-full p-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg shadow-lg mb-6 relative overflow-hidden">
+        <div className="w-full p-5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg shadow-lg mb-6 relative overflow-hidden">
           <div className="relative z-10">
-            <h3 className="text-xl text-white font-bold mb-2">Приглашайте друзей и зарабатывайте!</h3>
-            <p className="text-white text-sm mb-3">
+            <h3 className="text-xl md:text-2xl text-white font-bold mb-3">Приглашайте друзей и зарабатывайте!</h3>
+            <p className="text-white text-base mb-3 leading-relaxed">
               С каждого заработка ваших рефералов вы получаете бонус.
               Строите сеть до 20 уровней в глубину!
             </p>
           </div>
-          {/* Декоративный элемент (пузырьки) */}
-          <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-yellow-300 opacity-20 animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full bg-orange-300 opacity-20 animate-pulse" style={{animationDelay: '1s'}}></div>
+          {/* Декоративные элементы (пузырьки) - улучшенная анимация */}
+          <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-yellow-300 opacity-30 animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-20 h-20 rounded-full bg-orange-300 opacity-30 animate-pulse" style={{animationDelay: '1s'}}></div>
+          <div className="absolute bottom-10 right-10 w-12 h-12 rounded-full bg-yellow-200 opacity-20 animate-pulse" style={{animationDelay: '1.5s'}}></div>
         </div>
       </ErrorBoundary>
     </div>

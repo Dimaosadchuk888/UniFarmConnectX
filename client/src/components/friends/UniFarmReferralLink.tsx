@@ -429,11 +429,7 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
             Реферальная ссылка
           </h3>
           
-          {/* Реферальный код */}
-          <div className="flex items-center text-sm text-muted-foreground mt-1 sm:mt-0">
-            <span className="mr-2">Ваш код:</span>
-            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-mono">{refCode}</span>
-          </div>
+          {/* Реферальный код полностью скрыт по запросу */}
         </div>
         
         {/* Переключатель типа ссылки */}
@@ -534,18 +530,18 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
         </p>
       </div>
       
-      {/* Подсказка о принципе работы */}
-      <div className="text-xs text-foreground opacity-70 mt-4 bg-primary/5 p-3 rounded-lg">
-        <p className="font-medium mb-1 text-center text-primary/90">
+      {/* Подсказка о принципе работы - улучшена читаемость для мобильных устройств */}
+      <div className="text-sm md:text-base text-foreground mt-4 bg-primary/10 p-4 rounded-lg shadow-sm">
+        <p className="font-semibold mb-2 text-center text-primary text-base md:text-lg">
           Приглашайте друзей и зарабатывайте до 100% от их дохода в UNI и TON!
         </p>
-        <p className="mb-1">
+        <p className="mb-2">
           С первого уровня — вы получаете 100% от фарминга приглашённого.
         </p>
-        <p className="mb-1">
+        <p className="mb-2">
           Стройте глубокую сеть до 20 уровней и получайте стабильный доход с каждого уровня.
         </p>
-        <p>
+        <p className="font-medium">
           Пассивный доход растёт вместе с вашей командой!
         </p>
       </div>

@@ -5,12 +5,27 @@ import {
   isWalletConnected, 
   getWalletAddress
 } from '@/services/tonConnectService';
+import { useQuery } from '@tanstack/react-query';
 
 const WelcomeSection: React.FC = () => {
   const [userName, setUserName] = useState<string>('Пользователь');
   const [walletConnected, setWalletConnected] = useState<boolean>(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [tonConnectUI] = useTonConnectUI();
+  
+  // Запрос данных о пользователе через API
+  const { data: userData } = useQuery<{
+    success: boolean;
+    data?: {
+      id: number;
+      username: string;
+      // другие поля пользователя
+    }
+  }>({
+    queryKey: ['/api/me'],
+    staleTime: 60000, // Кэширование на 1 минуту
+    refetchOnWindowFocus: false
+  });
   
   // Обновляем состояние кошелька при изменении tonConnectUI
   useEffect(() => {
@@ -35,11 +50,21 @@ const WelcomeSection: React.FC = () => {
     }
   }, [tonConnectUI]);
   
+  // Обновляем имя пользователя при получении данных или при старте приложения
   useEffect(() => {
-    // Этап 10.3: Всегда используем getTelegramUserDisplayName независимо от среды
+    // Если получили данные пользователя через API
+    if (userData?.success && userData?.data) {
+      // Используем имя пользователя из данных пользователя, если доступно
+      if (userData.data.username) {
+        setUserName(userData.data.username);
+        return;
+      }
+    }
+    
+    // Как запасной вариант, используем имя из Telegram
     const displayName = getTelegramUserDisplayName();
     setUserName(displayName);
-  }, []);
+  }, [userData]);
   
   return (
     <div className="welcome-card-bg subtle-pattern rounded-xl p-5 mb-6 shadow-lg shadow-primary/20 backdrop-blur-md border border-white/10 overflow-hidden">
@@ -52,7 +77,7 @@ const WelcomeSection: React.FC = () => {
       <div className="relative flex items-start justify-between">
         {/* Лого UniFarm с эффектом парения */}
         <div className="flex items-center float-animation">
-          {/* Монета с буквой U */}
+          {/* Усовершенствованная монета с буквой U */}
           <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-primary via-purple-600 to-purple-800 flex items-center justify-center mr-3 border-[1.5px] border-white/20 shadow-md shadow-primary/30 unifarm-logo-glow overflow-hidden coin-3d-effect">
             {/* Внутреннее свечение */}
             <div className="absolute inset-1 bg-gradient-to-tr from-accent/30 to-transparent opacity-70 rounded-full"></div>
@@ -60,16 +85,37 @@ const WelcomeSection: React.FC = () => {
             {/* Эффект блика */}
             <div className="absolute -top-4 -left-4 w-8 h-8 bg-white/40 blur-sm rotate-45 transform"></div>
             
+            {/* Концентрические круги для эффекта рельефа монеты */}
+            <div className="absolute inset-[3px] border-[0.5px] border-white/10 rounded-full"></div>
+            <div className="absolute inset-[5px] border-[0.5px] border-white/5 rounded-full"></div>
+            
+            {/* Металлический эффект с движущимся бликом */}
+            <div className="metallic-effect"></div>
+            
             {/* Точечный паттерн для текстуры монеты */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-1/4 left-1/4 w-0.5 h-0.5 bg-white rounded-full"></div>
               <div className="absolute top-1/4 right-1/4 w-0.5 h-0.5 bg-white rounded-full"></div>
               <div className="absolute bottom-1/4 left-1/4 w-0.5 h-0.5 bg-white rounded-full"></div>
               <div className="absolute bottom-1/4 right-1/4 w-0.5 h-0.5 bg-white rounded-full"></div>
+              <div className="absolute top-[18%] left-[40%] w-0.5 h-0.5 bg-white rounded-full"></div>
+              <div className="absolute top-[45%] right-[18%] w-0.5 h-0.5 bg-white rounded-full"></div>
+              <div className="absolute bottom-[18%] left-[35%] w-0.5 h-0.5 bg-white rounded-full"></div>
+              <div className="absolute bottom-[45%] right-[20%] w-0.5 h-0.5 bg-white rounded-full"></div>
             </div>
             
-            {/* Буква U со стилизованным видом */}
-            <span className="relative text-white text-2xl font-extrabold drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">U</span>
+            {/* Кольцо вокруг буквы для рельефа */}
+            <div className="absolute inset-[3px] bg-gradient-to-br from-primary/50 via-purple-600/30 to-purple-800/50 rounded-full opacity-20"></div>
+            
+            {/* Буква U с металлическим эффектом */}
+            <div className="relative z-10 flex items-center justify-center">
+              <span className="relative text-white text-2xl font-extrabold bg-clip-text drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">U</span>
+              {/* Блик на букве */}
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-white/70 blur-[1px] rounded-full"></div>
+            </div>
+            
+            {/* Тонкий ободок по краю */}
+            <div className="absolute inset-0 rounded-full border border-white/10"></div>
           </div>
           
           {/* Текст "UniFarm" с улучшенным стилем */}

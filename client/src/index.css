@@ -541,10 +541,29 @@
   }
 }
 
+@keyframes coin-rotate {
+  0% {
+    transform: rotateY(0deg) rotateX(0deg);
+  }
+  25% {
+    transform: rotateY(5deg) rotateX(2deg);
+  }
+  50% {
+    transform: rotateY(0deg) rotateX(5deg);
+  }
+  75% {
+    transform: rotateY(-3deg) rotateX(2deg);
+  }
+  100% {
+    transform: rotateY(0deg) rotateX(0deg);
+  }
+}
+
 .coin-3d-effect {
-  animation: coin-rotate 4s ease-in-out infinite;
+  animation: coin-rotate 5s ease-in-out infinite;
   transform-style: preserve-3d;
   perspective: 1000px;
+  position: relative;
 }
 
 /* Улучшенное свечение для логотипа UniFarm */
@@ -560,8 +579,43 @@
   }
 }
 
+/* Металлический эффект для монеты */
+@keyframes metallic-shine {
+  0% {
+    opacity: 0.2;
+    background-position: -100% 0;
+  }
+  50% {
+    opacity: 0.3;
+    background-position: 200% 0;
+  }
+  100% {
+    opacity: 0.2;
+    background-position: -100% 0;
+  }
+}
+
+.metallic-effect {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.1) 25%, 
+    rgba(255, 255, 255, 0.3) 50%, 
+    rgba(255, 255, 255, 0.1) 75%, 
+    rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: metallic-shine 5s ease infinite;
+  mix-blend-mode: overlay;
+  opacity: 0.2;
+}
+
+/* Улучшенное свечение для монеты */
 .unifarm-logo-glow {
   animation: logo-glow 3s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
 }
 
 /* Дополнительные анимации и стили для карточки */
