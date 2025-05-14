@@ -5,8 +5,8 @@
 
 // Настраиваем переменные окружения
 process.env.NODE_ENV = 'production';
-// В Replit рекомендуется использовать порт 8080 для производственных приложений
-process.env.PORT = process.env.PORT || '8080';
+// Используем порт 3000 для совместимости с Replit
+process.env.PORT = process.env.PORT || '3000';
 // Устанавливаем Replit PostgreSQL как основной провайдер БД
 process.env.DATABASE_PROVIDER = 'replit';
 
