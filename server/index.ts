@@ -10,7 +10,7 @@ import { setupProductionStatic } from "./productionStatic";
 import { responseFormatter } from "./middleware/responseFormatter";
 import { errorHandler } from "./middleware/errorHandler";
 // Импортируем селектор базы данных и инициализируем подключение к БД Replit
-import { setDatabaseProvider } from "./db-selector";
+import { setDatabaseProvider } from "./db-selector-new";
 
 const app = express();
 app.use(express.json());

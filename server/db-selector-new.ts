@@ -10,10 +10,10 @@ import * as neonDB from './db';
 import * as replitDB from './db-replit';
 
 // Тип источника данных
-type DatabaseProvider = 'neon' | 'replit';
+export type DatabaseProvider = 'neon' | 'replit';
 
 // Переменная, хранящая текущий провайдер
-let databaseProvider: DatabaseProvider;
+let currentDatabaseProvider: DatabaseProvider;
 
 // Определяем, какой источник данных использовать
 const getDatabaseProvider = (): DatabaseProvider => {
@@ -26,17 +26,12 @@ const getDatabaseProvider = (): DatabaseProvider => {
   return provider as DatabaseProvider;
 };
 
-// Функция для получения текущего провайдера базы данных
-export const getCurrentProvider = (): DatabaseProvider => {
-  return databaseProvider;
-};
-
 // Инициализируем провайдер
-databaseProvider = getDatabaseProvider();
+currentDatabaseProvider = getDatabaseProvider();
 
 // Функция для получения нужного модуля на основе текущего провайдера
 const getSelectedModule = () => {
-  return databaseProvider === 'replit' ? replitDB : neonDB;
+  return currentDatabaseProvider === 'replit' ? replitDB : neonDB;
 };
 
 // Экспорты, обновляющиеся при изменении провайдера
@@ -61,9 +56,14 @@ const updateExports = () => {
 // Функция для динамического изменения провайдера базы данных
 export const setDatabaseProvider = (provider: DatabaseProvider): void => {
   console.log(`[DB-Selector] Провайдер базы данных изменен на: ${provider}`);
-  databaseProvider = provider;
+  currentDatabaseProvider = provider;
   // Обновляем экспорты при изменении провайдера
   updateExports();
+};
+
+// Функция для получения текущего провайдера базы данных
+export const getCurrentProvider = (): DatabaseProvider => {
+  return currentDatabaseProvider;
 };
 
 // Функция для тестирования соединения
@@ -71,9 +71,9 @@ export const testConnection = async (): Promise<boolean> => {
   try {
     const connected = await testDatabaseConnection();
     if (connected) {
-      console.log(`[DB-Selector] Соединение с базой данных ${databaseProvider} установлено`);
+      console.log(`[DB-Selector] Соединение с базой данных ${currentDatabaseProvider} установлено`);
     } else {
-      console.error(`[DB-Selector] Не удалось подключиться к базе данных ${databaseProvider}`);
+      console.error(`[DB-Selector] Не удалось подключиться к базе данных ${currentDatabaseProvider}`);
     }
     return connected;
   } catch (error) {

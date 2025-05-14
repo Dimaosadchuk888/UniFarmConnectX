@@ -1,18 +1,14 @@
 /**
- * Скрипт для запуска приложения с Replit PostgreSQL
+ * Скрипт для запуска приложения с использованием PostgreSQL на Replit
  * 
- * Выполняет следующие действия:
- * 1. Проверяет наличие необходимых переменных окружения для PostgreSQL
- * 2. Запускает миграцию базы данных (если нужно)
- * 3. Запускает сервер приложения
+ * Устанавливает переменную окружения DATABASE_PROVIDER=replit
+ * и запускает сервер с новыми настройками
  */
 
-import { execSync, spawn } from 'child_process';
-import fs from 'fs';
+import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Получаем путь к текущему скрипту
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -36,124 +32,86 @@ function log(message, color = colors.reset) {
 }
 
 /**
- * Проверяет наличие переменных окружения PostgreSQL
+ * Проверяет наличие необходимых переменных окружения
  */
 function checkEnvironmentVariables() {
-  log('Проверка переменных окружения...', colors.cyan);
+  log('Проверка переменных окружения PostgreSQL...', colors.cyan);
   
   const requiredVars = ['PGHOST', 'PGPORT', 'PGUSER', 'PGPASSWORD', 'PGDATABASE', 'DATABASE_URL'];
   const missingVars = requiredVars.filter(varName => !process.env[varName]);
   
   if (missingVars.length > 0) {
     log(`Отсутствуют необходимые переменные окружения: ${missingVars.join(', ')}`, colors.red);
-    log('Пожалуйста, создайте базу данных PostgreSQL на Replit:', colors.yellow);
-    log('1. Откройте вкладку "Secrets" (Секреты) в левой панели Replit', colors.yellow);
-    log('2. Добавьте секрет с ключом "database-postgresql" и значением "true"', colors.yellow);
-    log('3. Перезапустите этот скрипт', colors.yellow);
+    log('Для создания базы данных PostgreSQL:', colors.yellow);
+    log('1. Используйте инструмент create_postgresql_database_tool в чате с ИИ', colors.yellow);
+    log('2. Перезапустите терминал после создания базы данных', colors.yellow);
     return false;
   }
   
-  log('Все необходимые переменные окружения найдены', colors.green);
+  log('Все необходимые переменные окружения PostgreSQL найдены', colors.green);
   return true;
 }
 
 /**
- * Запускает миграцию базы данных
+ * Запускает процесс сервера
  */
-function runDatabaseMigration() {
-  log('Запуск миграции базы данных...', colors.cyan);
+function startServer() {
+  log('\n=== Запуск сервера с PostgreSQL на Replit ===\n', colors.bright + colors.blue);
   
-  try {
-    // Проверяем наличие файла миграции
-    const migrationFile = path.join(__dirname, 'migrate-replit-db.js');
-    if (!fs.existsSync(migrationFile)) {
-      log(`Файл миграции не найден: ${migrationFile}`, colors.red);
-      return false;
-    }
-    
-    // Запускаем миграцию
-    execSync('node migrate-replit-db.js', { stdio: 'inherit' });
-    
-    log('Миграция успешно выполнена', colors.green);
-    return true;
-  } catch (error) {
-    log(`Ошибка при выполнении миграции: ${error.message}`, colors.red);
-    return false;
-  }
-}
-
-/**
- * Запускает сервер приложения
- */
-function startApplicationServer() {
-  log('Запуск сервера с Replit PostgreSQL...', colors.cyan);
-  
-  try {
-    // Устанавливаем переменную окружения, указывающую на использование Replit PostgreSQL
-    process.env.DATABASE_PROVIDER = 'replit';
-    
-    // Запускаем сервер
-    const server = spawn('node', ['server/index.ts'], {
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        DATABASE_PROVIDER: 'replit'
-      }
-    });
-    
-    // Обработка событий сервера
-    server.on('error', (error) => {
-      log(`Ошибка при запуске сервера: ${error.message}`, colors.red);
-    });
-    
-    server.on('close', (code) => {
-      if (code !== 0) {
-        log(`Сервер завершил работу с кодом: ${code}`, colors.red);
-      } else {
-        log('Сервер успешно завершил работу', colors.green);
-      }
-    });
-    
-    log('Сервер успешно запущен', colors.green);
-    
-    // Обработка сигналов завершения
-    process.on('SIGINT', () => {
-      log('\nЗавершение работы сервера...', colors.yellow);
-      server.kill('SIGINT');
-    });
-    
-    process.on('SIGTERM', () => {
-      log('\nЗавершение работы сервера...', colors.yellow);
-      server.kill('SIGTERM');
-    });
-    
-    return true;
-  } catch (error) {
-    log(`Ошибка при запуске сервера: ${error.message}`, colors.red);
-    return false;
-  }
-}
-
-/**
- * Главная функция
- */
-function main() {
-  log('=== Запуск приложения с Replit PostgreSQL ===', colors.bright + colors.blue);
-  
-  // Проверяем переменные окружения
   if (!checkEnvironmentVariables()) {
-    process.exit(1);
+    log('Невозможно запустить сервер без корректной конфигурации PostgreSQL', colors.red);
+    return;
   }
   
-  // Запускаем миграцию
-  const migrationSuccessful = runDatabaseMigration();
-  if (!migrationSuccessful) {
-    log('Пропускаем миграцию и пытаемся запустить сервер...', colors.yellow);
+  // Устанавливаем переменную окружения для выбора провайдера
+  process.env.DATABASE_PROVIDER = 'replit';
+  log('Установлена переменная DATABASE_PROVIDER=replit', colors.green);
+  
+  // Определяем команду для запуска сервера
+  // Проверяем наличие TypeScript
+  let serverProcess;
+  const serverPath = path.join(__dirname, 'server', 'index.ts');
+  
+  try {
+    // Пытаемся запустить сервер через TypeScript (tsx)
+    log('Запуск сервера с использованием tsx...', colors.cyan);
+    serverProcess = spawn('npx', ['tsx', serverPath], {
+      stdio: 'inherit',
+      env: { ...process.env }
+    });
+  } catch (error) {
+    // Если не получилось через tsx, пробуем node
+    log('Запуск через tsx не удался, пробуем node...', colors.yellow);
+    serverProcess = spawn('node', [serverPath], {
+      stdio: 'inherit',
+      env: { ...process.env }
+    });
   }
   
-  // Запускаем сервер
-  startApplicationServer();
+  // Обработка событий процесса
+  serverProcess.on('error', (error) => {
+    log(`Ошибка запуска сервера: ${error.message}`, colors.red);
+  });
+  
+  serverProcess.on('close', (code) => {
+    if (code !== 0) {
+      log(`Сервер завершил работу с кодом: ${code}`, colors.red);
+    } else {
+      log('Сервер корректно завершил работу', colors.green);
+    }
+  });
+  
+  // Обработка сигналов для корректного завершения
+  process.on('SIGINT', () => {
+    log('\nПолучен сигнал завершения, останавливаем сервер...', colors.yellow);
+    serverProcess.kill('SIGINT');
+  });
+  
+  process.on('SIGTERM', () => {
+    log('\nПолучен сигнал завершения, останавливаем сервер...', colors.yellow);
+    serverProcess.kill('SIGTERM');
+  });
 }
 
-// Запускаем скрипт
-main();
+// Запуск сервера
+startServer();
