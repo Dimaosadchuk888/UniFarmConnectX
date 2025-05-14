@@ -11,6 +11,21 @@ process.env.PORT = process.env.PORT || '3000';
 // Устанавливаем Replit PostgreSQL как основной провайдер БД
 process.env.DATABASE_PROVIDER = 'replit';
 
+// Обязательно используем переменные окружения Replit PostgreSQL
+// Переопределяем URL, хост, порт, имя пользователя, пароль и имя базы данных
+if (process.env.REPLIT_DB_URL) {
+  console.log('[DB] Используем PostgreSQL от Replit');
+  // Проверяем наличие параметров для Replit PostgreSQL
+  if (process.env.PGDATABASE && process.env.PGUSER && process.env.PGHOST) {
+    // Принудительно устанавливаем DATABASE_URL для Replit PostgreSQL
+    const DATABASE_URL = `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
+    console.log(`[DB] Обновлен DATABASE_URL для Replit PostgreSQL: ${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`);
+    process.env.DATABASE_URL = DATABASE_URL;
+  } else {
+    console.warn('[DB] Не найдены все необходимые переменные окружения для Replit PostgreSQL');
+  }
+}
+
 console.log('[DB] Установлен провайдер базы данных: replit');
 
 // Импортируем модули с использованием ESM синтаксиса
