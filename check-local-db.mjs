@@ -1,47 +1,25 @@
 /**
- * Скрипт для проверки соединения с базой данных PostgreSQL
- * 
- * Запускает тестовое подключение к БД и выполняет простой запрос
+ * Скрипт для проверки соединения с локальной базой данных PostgreSQL на Replit
+ * Принудительно использует локальное подключение, игнорируя переменные окружения
  */
 
 import { Pool } from 'pg';
 
-// Определяем настройки подключения в зависимости от DATABASE_URL
-let connectionConfig;
-let dbProvider = 'replit'; // По умолчанию используем Replit
+// Явные настройки подключения к локальному PostgreSQL от Replit
+const connectionConfig = {
+  host: 'localhost',
+  port: 5432,
+  user: 'runner',
+  password: '',
+  database: 'postgres',
+};
 
-// Если есть DATABASE_URL, используем его для подключения
-if (process.env.DATABASE_URL) {
-  connectionConfig = {
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false }
-  };
-  dbProvider = process.env.DATABASE_URL.includes('neon') ? 'neon' : 'external';
-} else {
-  // Настройки для локального PostgreSQL от Replit
-  connectionConfig = {
-    host: 'localhost',
-    port: 5432,
-    user: 'runner',
-    password: '',
-    database: 'postgres',
-  };
-}
-
-console.log(`🔍 Проверка соединения с ${dbProvider} PostgreSQL...`);
+console.log('🔍 Проверка принудительного соединения с локальной PostgreSQL на Replit...');
 console.log('📝 Настройки подключения:');
-
-if (connectionConfig.connectionString) {
-  // Для подключения через URL скрываем пароль, если он есть
-  let safeUrl = connectionConfig.connectionString.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
-  console.log(`  Connection URL: ${safeUrl}`);
-} else {
-  // Для прямого подключения
-  console.log(`  Host: ${connectionConfig.host}`);
-  console.log(`  Port: ${connectionConfig.port}`);
-  console.log(`  User: ${connectionConfig.user}`);
-  console.log(`  Database: ${connectionConfig.database}`);
-}
+console.log(`  Host: ${connectionConfig.host}`);
+console.log(`  Port: ${connectionConfig.port}`);
+console.log(`  User: ${connectionConfig.user}`);
+console.log(`  Database: ${connectionConfig.database}`);
 
 async function checkDatabaseConnection() {
   const pool = new Pool(connectionConfig);
@@ -78,6 +56,26 @@ async function checkDatabaseConnection() {
       console.log('ℹ️ Таблицы не найдены. База данных пуста или требуется миграция.');
     }
     
+    // Создание тестовой таблицы, если ещё не существует
+    console.log('🔄 Создание тестовой таблицы...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS test_connection (
+        id SERIAL PRIMARY KEY,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        message TEXT
+      )
+    `);
+    console.log('✅ Тестовая таблица создана или уже существует');
+    
+    // Вставка тестовой записи
+    console.log('🔄 Вставка тестовой записи...');
+    const insertResult = await client.query(`
+      INSERT INTO test_connection (message) 
+      VALUES ('Тест подключения выполнен успешно в ' || CURRENT_TIMESTAMP::TEXT)
+      RETURNING id
+    `);
+    console.log(`✅ Тестовая запись добавлена с ID: ${insertResult.rows[0].id}`);
+    
     // Освобождение соединения
     client.release();
     await pool.end();
@@ -97,9 +95,9 @@ async function checkDatabaseConnection() {
     }
     
     console.log('💡 Рекомендации:');
-    console.log('  1. Убедитесь, что сервис PostgreSQL запущен в Replit');
-    console.log('  2. Проверьте, что переменные окружения установлены корректно');
-    console.log('  3. Используйте DATABASE_PROVIDER=replit при запуске приложения');
+    console.log('  1. Проверьте, запущен ли сервис PostgreSQL в вашем Replit');
+    console.log('  2. Перезапустите Replit или создайте новую базу данных PostgreSQL в интерфейсе Replit');
+    console.log('  3. Если ошибка сохраняется, обратитесь в поддержку Replit');
     
     return false;
   }

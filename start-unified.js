@@ -1,20 +1,16 @@
 // @ts-check
 // @ts-nocheck
 // @ts-ignore
-"use strict";
 
 /**
  * Универсальный скрипт запуска приложения UniFarm
  * Работает как в режиме разработки, так и в production-среде Replit
+ * Адаптирован для работы в ESM среде (package.json type: module)
  * 
  * @format
- * @type {module} commonjs
+ * @type {module}
  * @packageDocumentation
  */
-
-// Явно указываем, что этот файл использует CommonJS
-// Это заставит Replit использовать CommonJS вместо ESM
-// See: https://nodejs.org/api/packages.html#packages_type
 
 // Определяем текущий режим
 const isProd = process.env.NODE_ENV === 'production';
@@ -32,20 +28,23 @@ if (isProd) {
   
   try {
     console.log('🔄 Запуск production-сервера...');
+    
+    // Динамический импорт для ES модулей
+    const childProcess = await import('child_process');
+    
     // Используем дочерний процесс для запуска ESM модуля
-    const { spawn } = require('child_process');
-    const server = spawn('node', ['production-server.mjs'], {
+    const server = childProcess.spawn('node', ['production-server.mjs'], {
       stdio: 'inherit',
       env: { ...process.env }
     });
     
-    server.on('error', (err) => {
+    server.on('error', async (err) => {
       console.error('❌ Ошибка при запуске production-сервера:', err);
       
       // Пробуем запасной вариант с .js файлом
       console.log('🔄 Пробуем запустить через запасной механизм...');
       try {
-        const fallbackServer = spawn('node', ['production-server.js'], {
+        const fallbackServer = childProcess.spawn('node', ['production-server.js'], {
           stdio: 'inherit',
           env: { ...process.env }
         });
@@ -68,7 +67,21 @@ if (isProd) {
   console.log('✅ Используем конфигурацию для разработки');
   
   try {
-    require('./server');
+    // Используем динамический импорт для ESM
+    import('./server/index.ts').catch(err => {
+      console.error('❌ Ошибка при импорте ./server/index.ts:', err);
+      
+      // Пробуем fallback
+      import('./server/index.js').catch(err2 => {
+        console.error('❌ Ошибка при импорте ./server/index.js:', err2);
+        
+        // Последняя попытка - прямой запуск из dist
+        import('./dist/index.js').catch(err3 => {
+          console.error('❌ Все попытки импорта ./server неудачны:', err3);
+          process.exit(1);
+        });
+      });
+    });
   } catch (error) {
     console.error('❌ Ошибка при запуске сервера разработки:', error);
     process.exit(1);

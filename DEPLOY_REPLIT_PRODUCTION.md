@@ -1,121 +1,96 @@
-# Руководство по деплою UniFarm на Replit (Production)
+# Развертывание UniFarm на Replit
 
-## Подготовка к деплою
+Этот документ описывает процесс развертывания UniFarm на платформе Replit в production-режиме.
 
-### 1. Проверка необходимых переменных окружения
+## Требования
 
-Убедитесь, что в проекте настроены все необходимые переменные окружения:
+- Replit аккаунт с доступом к проекту
+- PostgreSQL база данных (автоматически предоставляется Replit)
+- Правильно настроенный Telegram Mini App
 
-- **База данных Replit PostgreSQL:**
-  - `DATABASE_URL=postgresql://runner@localhost:5432/postgres`
-  - `PGDATABASE=postgres`
-  - `PGUSER=runner`
-  - `PGHOST=localhost`
-  - `PGPORT=5432`
-  
-- **Telegram Bot:**
-  - `TELEGRAM_BOT_TOKEN` - токен вашего Telegram бота
+## Шаги деплоя
 
-### 2. Подготовка файлов конфигурации
+### 1. Настройка переменных окружения
 
-Все файлы конфигурации для деплоя уже подготовлены:
+Установите следующие переменные окружения в Replit:
 
-- `.replit.production` - конфигурация Replit для production
-- `production-server.mjs` - ESM-версия сервера для production
-- `deploy-config.js` - настройки для автоматизации деплоя
-- `deploy.js` - скрипт автоматического деплоя
-
-## Автоматический деплой
-
-Для автоматического деплоя просто выполните скрипт `deploy.js`:
-
-```bash
-node deploy.js
+```
+NODE_ENV=production
+PORT=3000
+DATABASE_PROVIDER=replit
 ```
 
-Скрипт выполнит следующие действия:
-1. Скопирует `.replit.production` в `.replit`
-2. Проверит наличие `production-server.mjs`
-3. Запустит сборку проекта (`npm run build`)
-4. Выполнит миграции базы данных (`npm run db:push`)
-5. Проверит соединение с базой данных
-6. Запустит production-сервер
+### 2. Настройка базы данных
 
-## Ручной деплой
+База данных PostgreSQL автоматически настраивается на Replit. Соединение с Replit PostgreSQL настроено в файле `server/db-replit.ts`.
 
-Если вы предпочитаете ручной деплой, выполните следующие шаги:
+### 3. Запуск сервера
 
-### 1. Настройка Replit
+Запуск production-сервера выполняется командой:
 
 ```bash
-cp .replit.production .replit
+node production-server-port.mjs
 ```
 
-### 2. Сборка проекта
+Этот скрипт автоматически:
+- Находит свободный порт, начиная с порта 3000
+- Устанавливает соединение с базой данных Replit PostgreSQL
+- Запускает сервер в production-режиме
 
-```bash
-npm run build
+### 4. Настройка постоянного запуска
+
+Для постоянного запуска проекта на Replit необходимо создать и активировать файл `.replit` с правильной конфигурацией:
+
+```toml
+run = "NODE_ENV=production DATABASE_PROVIDER=replit node production-server-port.mjs"
+modules = ["nodejs-20:v8-20230920-bd784b9"]
+
+[env]
+DATABASE_PROVIDER = "replit"
+NODE_ENV = "production"
+PORT = "3000"
+
+[deployment]
+run = ["sh", "-c", "NODE_ENV=production DATABASE_PROVIDER=replit node production-server-port.mjs"]
+deploymentTarget = "cloudrun"
+ignorePorts = false
+
+[[ports]]
+localPort = 3000
+externalPort = 80
 ```
 
-### 3. Миграция базы данных
+### 5. Проверка работоспособности
 
-```bash
-NODE_ENV=production DATABASE_PROVIDER=replit npm run db:push
+После запуска сервера проверьте работоспособность, открыв эндпоинт `/api/health`:
+
+```
+https://имя-вашего-проекта.replit.app/api/health
 ```
 
-### 4. Запуск сервера
+### 6. Настройка Telegram Mini App
 
-```bash
-NODE_ENV=production PORT=3000 DATABASE_PROVIDER=replit node start-unified.js
+Укажите URL вашего приложения в настройках Telegram Bot:
+
+```
+https://имя-вашего-проекта.replit.app
 ```
 
-## Проверка работоспособности
+## Решение проблем
 
-После деплоя проверьте работоспособность приложения:
+### Проблема с портом 3000
 
-1. **Проверка базы данных:**
-   ```bash
-   node check-replit-db.mjs
-   ```
+Если порт 3000 уже занят, скрипт `production-server-port.mjs` автоматически найдет свободный порт и запустит сервер на нем.
 
-2. **Проверка API:**
-   ```bash
-   curl http://localhost:3000/api/health
-   ```
+### Ошибки подключения к базе данных
 
-3. **Проверка Telegram Бота:**
-   ```bash
-   node check-bot-settings.js
-   ```
+Если возникают ошибки подключения к базе данных, проверьте настройки в `server/db-replit.ts` и убедитесь, что переменная окружения `DATABASE_PROVIDER=replit` установлена.
 
-## Отладка проблем
+### Ошибки загрузки приложения
 
-### Проблемы с базой данных
+Если основное приложение не загружается, скрипт автоматически запустит упрощенную версию сервера, которая позволит вам диагностировать проблему.
 
-1. Проверьте подключение к базе данных:
-   ```bash
-   node check-replit-db.mjs
-   ```
+## Дополнительные инструменты
 
-2. Проверьте логи ошибок:
-   ```bash
-   cat deploy.log
-   ```
-
-### Проблемы с сервером
-
-1. Проверьте порт, на котором запущен сервер (должен быть 3000)
-2. Убедитесь, что сервер слушает на адресе 0.0.0.0, а не localhost
-3. Проверьте логи сервера
-
-### Проблемы с модулями
-
-При возникновении ошибок связанных с ESM/CommonJS модулями:
-
-1. Используйте `production-server.mjs` вместо `production-server.js`
-2. Убедитесь, что `start-unified.js` запускает правильную версию сервера
-3. Проверьте, что в проекте установлены все необходимые зависимости
-
-## Контакты для поддержки
-
-При возникновении проблем обращайтесь в службу поддержки UniFarm.
+- `check-replit-db.js` - скрипт для проверки соединения с базой данных
+- `npm run db:push` - команда для применения миграций Drizzle к базе данных

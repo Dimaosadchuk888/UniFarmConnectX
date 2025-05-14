@@ -1,0 +1,98 @@
+~/workspace$ node deploy.js
+[2025-05-14T11:06:45.362Z] Начинаем процесс деплоя UniFarm на Replit...
+
+[2025-05-14T11:06:45.365Z] Копируем конфигурационный файл .replit.production в .replit...
+
+[2025-05-14T11:06:45.366Z] ✅ Конфигурационный файл успешно скопирован
+
+[2025-05-14T11:06:45.366Z] ✅ Production-сервер готов
+
+[2025-05-14T11:06:45.366Z] Запускаем сборку проекта...
+
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.14 building for production...
+transforming (1) index.htmlBrowserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2995 modules transformed.
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /home/runner/workspace/client/src/services/userService.ts is dynamically imported by /home/runner/workspace/client/src/components/friends/ReferralLevelsTable.tsx but also statically imported by /home/runner/workspace/client/src/App.tsx, /home/runner/workspace/client/src/components/friends/UniFarmReferralLink.tsx, /home/runner/workspace/client/src/pages/Friends.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /home/runner/workspace/client/src/lib/apiService.ts is dynamically imported by /home/runner/workspace/client/src/lib/queryClient.ts but also statically imported by /home/runner/workspace/client/src/components/dashboard/DailyBonusCard.tsx, dynamic import will not move module into another chunk.
+
+../dist/public/index.html                              5.04 kB │ gzip:   2.16 kB
+../dist/public/assets/index-CnOenKvg.css             114.14 kB │ gzip:  18.94 kB
+../dist/public/assets/guestIdService-BEngbsr6.js       2.88 kB │ gzip:   1.07 kB
+../dist/public/assets/referralService-9qsRJGdd.js      2.91 kB │ gzip:   1.20 kB
+../dist/public/assets/index-C02zsD8F.js            1,170.75 kB │ gzip: 357.64 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 8.88s
+
+  dist/index.js  893.6kb
+
+⚡ Done in 20ms
+[2025-05-14T11:06:55.333Z] ✅ Сборка проекта успешно завершена
+
+[2025-05-14T11:06:55.334Z] Выполняем миграции базы данных...
+
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/home/runner/workspace/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+Error: connect ECONNREFUSED 127.0.0.1:5432
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Object.query (/home/runner/workspace/node_modules/drizzle-kit/bin.cjs:66575:26)
+    at async fromDatabase2 (/home/runner/workspace/node_modules/drizzle-kit/bin.cjs:18700:25) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 5432
+}
+[2025-05-14T11:06:56.287Z] ✅ Миграции базы данных успешно выполнены
+
+[2025-05-14T11:06:56.288Z] Проверяем соединение с базой данных...
+
+🔍 Проверка соединения с базой данных Replit PostgreSQL...
+❌ Ошибка соединения с базой данных: connect ECONNREFUSED 127.0.0.1:5432
+📋 Проверьте следующие параметры:
+1. DATABASE_URL содержит правильный URL для подключения
+2. Переменные PGHOST, PGPORT, PGDATABASE, PGUSER настроены
+3. PostgreSQL запущен и доступен
+4. Файл server/db.ts содержит правильную конфигурацию для Replit
+[2025-05-14T11:06:56.524Z] ❌ Ошибка при проверке соединения с базой данных: Command failed: node check-replit-db.mjs
+
+[2025-05-14T11:06:56.524Z] Запускаем production-сервер...
+
+[2025-05-14T11:06:56.524Z] Выполняем команду: NODE_ENV=production PORT=3000 DATABASE_PROVIDER=replit node start-unified.js
+
+[2025-05-14T11:06:56.546Z] ✅ Сервер запущен
+
+[2025-05-14T11:06:56.547Z] Процесс деплоя завершен.
+
+[2025-05-14T11:06:56.548Z] 
+Итоги деплоя:
+- Сервер запущен на порту 3000
+- База данных: postgresql://runner@localhost:5432/postgres
+- Используется файл production-server.mjs
+- Окружение: production
+
+Приложение доступно по адресу: https://workspace.osadchukdmitro2.repl.co
+
+
+[2025-05-14T11:06:56.552Z] ❌ Ошибка при запуске сервера: spawn NODE_ENV=production ENOENT
+
+~/workspace$ 

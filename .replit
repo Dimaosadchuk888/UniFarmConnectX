@@ -1,47 +1,24 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
-run = "npm run dev"
-hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+run = "NODE_ENV=production PORT=3000 node start-unified.js"
+modules = ["nodejs-20:v8-20230920-bd784b9", "postgresql-16"]
 
 [nix]
-channel = "stable-24_05"
-packages = ["jq"]
+channel = "stable-23_05"
+packages = ["postgresql"]
+
+[env]
+DATABASE_PROVIDER = "replit"
+NODE_ENV = "production"
+PORT = "3000"
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["sh", "-c", "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=replit node production-server.js"]
-build = ["sh", "-c", "npm run build"]
+run = ["sh", "-c", "PORT=3000 NODE_ENV=production DATABASE_PROVIDER=replit node start-unified.js"]
+deploymentTarget = "cloudrun"
+ignorePorts = false
 
 [[ports]]
 localPort = 3000
-externalPort = 3000
-
-[[ports]]
-localPort = 5000
 externalPort = 80
 
-[workflows]
-runButton = "Start application"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
-
-[[workflows.workflow]]
-name = "Start application"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
+[[ports]]
+localPort = 5432
+externalPort = 3000

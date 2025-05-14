@@ -5,13 +5,13 @@
  * Используется при развертывании приложения на Replit
  */
 
-// Конфигурация для Replit PostgreSQL
+// Используем текущую конфигурацию базы данных Neon
 const DATABASE_CONFIG = {
-  url: "postgresql://runner@localhost:5432/postgres",
-  host: "localhost",
-  port: 5432,
-  user: "runner",
-  database: "postgres",
+  url: process.env.DATABASE_URL || '',
+  host: process.env.PGHOST || '',
+  port: process.env.PGPORT || 5432,
+  user: process.env.PGUSER || '',
+  database: process.env.PGDATABASE || '',
 };
 
 // Конфигурация для HTTP сервера
@@ -47,8 +47,8 @@ const ENV_VARIABLES = {
 // Команды для запуска приложения
 const COMMANDS = {
   build: "npm run build",
-  migrate: "NODE_ENV=production DATABASE_PROVIDER=replit npm run db:push",
-  start: `NODE_ENV=production PORT=${SERVER_CONFIG.port} DATABASE_PROVIDER=replit node ${PATH_CONFIG.startScript}`,
+  migrate: "npm run db:push",
+  start: `node ${PATH_CONFIG.startScript}`,
   checkDb: "node check-replit-db.mjs",
 };
 

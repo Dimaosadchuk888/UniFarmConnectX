@@ -35,16 +35,19 @@ if (fs.existsSync(logFile)) {
 
 log('Начинаем процесс деплоя UniFarm на Replit...');
 
-// 1. Копируем конфигурационный файл .replit
+// 1. Проверяем конфигурационный файл .replit (пропускаем копирование из-за ограничений Replit)
 try {
-  log(`Копируем конфигурационный файл ${deployConfig.PATH_CONFIG.replit.source} в ${deployConfig.PATH_CONFIG.replit.target}...`);
-  fs.copyFileSync(
-    path.join(__dirname, deployConfig.PATH_CONFIG.replit.source),
-    path.join(__dirname, deployConfig.PATH_CONFIG.replit.target)
-  );
-  log('✅ Конфигурационный файл успешно скопирован');
+  log(`Проверка конфигурационного файла .replit...`);
+  log('⚠️ Прямое редактирование .replit запрещено в Replit. Пропускаем этот шаг.');
+  log('📝 Для настройки .replit используйте панель управления Replit.');
+  
+  // Указываем информацию о рекомендуемых настройках
+  log('ℹ️ Рекомендуемые настройки для .replit:');
+  log('  - PORT=3000');
+  log('  - DATABASE_PROVIDER=replit');
+  log('  - run = "NODE_ENV=production PORT=3000 node start-unified.js"');
 } catch (error) {
-  log(`❌ Ошибка при копировании конфигурационного файла: ${error.message}`);
+  log(`❌ Ошибка при проверке конфигурационного файла: ${error.message}`);
 }
 
 // 2. Проверяем наличие production-server.mjs
@@ -97,14 +100,14 @@ try {
 // 6. Запускаем production-сервер
 try {
   log('Запускаем production-сервер...');
-  log(`Выполняем команду: ${deployConfig.COMMANDS.start}`);
   
-  // Запускаем сервер в отдельном процессе
-  const [command, ...args] = deployConfig.COMMANDS.start.split(' ');
+  // Для запуска сервера создаем скрипт запуска
+  const startCommand = `NODE_ENV=production PORT=${deployConfig.SERVER_CONFIG.port} DATABASE_PROVIDER=replit node ${deployConfig.PATH_CONFIG.startScript}`;
+  log(`Выполняем команду: ${startCommand}`);
   
   // Используем динамический импорт для child_process
   const childProcess = await import('child_process');
-  const serverProcess = childProcess.spawn(command, args, {
+  const serverProcess = childProcess.exec(startCommand, {
     stdio: 'inherit',
     env: { ...process.env, ...deployConfig.ENV_VARIABLES }
   });
@@ -114,6 +117,8 @@ try {
   });
   
   log('✅ Сервер запущен');
+  log('⚠️ При необходимости перезапустите сервер вручную командой:');
+  log(`   ${startCommand}`);
 } catch (error) {
   log(`❌ Ошибка при запуске сервера: ${error.message}`);
 }

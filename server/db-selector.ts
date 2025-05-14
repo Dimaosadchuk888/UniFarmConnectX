@@ -1,29 +1,40 @@
-// Файл для динамического выбора драйвера базы данных
-// Обновлено: основной драйвер (./db.ts) теперь использует Replit PostgreSQL
+import * as replitDb from './db-replit';
 
-import * as dbDriver from './db'; // Основной драйвер теперь использует Replit PostgreSQL
-import * as replitDb from './db-replit'; // Запасной импорт Replit PostgreSQL драйвера
+// Тип поддерживаемых провайдеров БД
+type DatabaseProvider = 'replit' | 'neon' | 'default';
 
-// Тип подключения к базе данных - оставлен для обратной совместимости
-export type DatabaseProvider = 'standard' | 'replit';
+// Текущий провайдер БД
+let currentProvider: DatabaseProvider = 'replit';
 
-// По умолчанию используем стандартный драйвер
-let selectedProvider: DatabaseProvider = 'standard';
+// Принудительно используем только PostgreSQL от Replit
+console.log('[DB-Selector] Принудительное использование Replit PostgreSQL');
 
-// Функция для установки провайдера
-export function setDatabaseProvider(provider: DatabaseProvider): void {
-  console.log(`[DB-Selector] Переключение на провайдер базы данных: ${provider}`);
-  selectedProvider = provider;
+/**
+ * Устанавливает провайдера базы данных
+ * @param provider Провайдер БД ('replit', 'neon', 'default')
+ * @returns Имя выбранного провайдера
+ */
+export function setDatabaseProvider(provider: DatabaseProvider): DatabaseProvider {
+  // Для обратной совместимости, но всегда используем Replit
+  currentProvider = 'replit';
+  console.log(`[DB-Selector] Установлен провайдер БД: ${currentProvider} (запрошен: ${provider})`);
+  return currentProvider;
 }
 
-// Экспортируем выбранный драйвер базы данных
-export const db = selectedProvider === 'standard' ? dbDriver.db : replitDb.db;
-export const pool = selectedProvider === 'standard' ? dbDriver.pool : replitDb.pool;
-export const testDatabaseConnection = selectedProvider === 'standard' ? dbDriver.testDatabaseConnection : replitDb.testDatabaseConnection;
-export const queryWithRetry = selectedProvider === 'standard' ? dbDriver.queryWithRetry : replitDb.queryWithRetry;
-export const query = selectedProvider === 'standard' ? dbDriver.query : replitDb.query;
-
-// Функция для получения типа текущего провайдера
-export function getCurrentProvider(): DatabaseProvider {
-  return selectedProvider;
+// Возвращает текущего провайдера БД
+export function getDatabaseProvider(): DatabaseProvider {
+  return currentProvider;
 }
+
+// Экспортируем модуль Replit PostgreSQL
+export const { 
+  pool, 
+  db, 
+  testDatabaseConnection, 
+  query,
+  queryWithRetry,
+  dbConnectionStatus
+} = replitDb;
+
+// Экспортируем также типы
+export type { QueryResult } from './db-replit';
