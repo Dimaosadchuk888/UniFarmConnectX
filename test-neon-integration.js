@@ -264,14 +264,14 @@ class NeonDBTester {
         log('⚠️ Таблица transactions НЕ партиционирована', colors.yellow);
       }
       
-      // Создаем тестовую транзакцию (для не-партиционированных таблиц)
-      const testUserId = 1; // Используем существующего пользователя
+      // Используем переменную для хранения ID пользователя
+      let userId = 1; // Начинаем с ID 1
       
       // Проверяем существование пользователя
-      const userCheck = await this.pool.query('SELECT id FROM users WHERE id = $1', [testUserId]);
+      const userCheck = await this.pool.query('SELECT id FROM users WHERE id = $1', [userId]);
       
       if (userCheck.rowCount === 0) {
-        log(`⚠️ Пользователь с ID ${testUserId} не найден, создаем временного пользователя`, colors.yellow);
+        log(`⚠️ Пользователь с ID ${userId} не найден, создаем временного пользователя`, colors.yellow);
         
         // Создаем временного пользователя
         const tempUserResult = await this.pool.query(`
@@ -280,10 +280,10 @@ class NeonDBTester {
           RETURNING id
         `, [`temp_user_${Date.now()}`, `temp_${crypto.randomBytes(4).toString('hex')}`]);
         
-        testUserId = tempUserResult.rows[0].id;
+        userId = tempUserResult.rows[0].id;
       }
       
-      log(`📝 Создание тестовой транзакции для пользователя ${testUserId}...`, colors.cyan);
+      log(`📝 Создание тестовой транзакции для пользователя ${userId}...`, colors.cyan);
       
       const insertResult = await this.pool.query(`
         INSERT INTO transactions 
@@ -291,7 +291,7 @@ class NeonDBTester {
         VALUES 
         ($1, 'deposit', 'UNI', 25.5, 'confirmed', 'test', 'Test transaction', NOW())
         RETURNING id
-      `, [testUserId]);
+      `, [userId]);
       
       const transactionId = insertResult.rows[0].id;
       

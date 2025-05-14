@@ -1,18 +1,32 @@
-[languages.typescript]
-pattern = "**/{*.ts,*.tsx}"
-syntax = "typescript"
-
-[languages.typescript.languageServer]
-start = [ "typescript-language-server", "--stdio" ]
-
 [nix]
 channel = "stable-23_05"
 
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix", ".config"]
+[env]
+DATABASE_PROVIDER = "neon"
+FORCE_NEON_DB = "true"
+DISABLE_REPLIT_DB = "true"
+OVERRIDE_DB_PROVIDER = "neon"
+NODE_ENV = "production"
+PORT = "3000"
+
+[[hints]]
+regex = "Error: MODULE_NOT_FOUND"
+message = "We couldn't find needed packages, attempting to install them automatically..."
+
+[[hints]]
+regex = "Error: Cannot find module"
+message = "We couldn't find that module. Make sure you have installed the correct package. Running 'npm install' might help."
+
+[[hints]]
+regex = "Address already in use"
+message = "Port is already in use. The service might be already running."
+
+[[hints]]
+regex = "Error: Command failed: .*migrate-direct.cjs"
+message = "The database migration failed. Check your database schema for issues."
 
 [deployment]
-run = ["sh", "-c", "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=replit node start-unified.js"]
+run = ["sh", "-c", "PORT=3000 NODE_ENV=production DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true OVERRIDE_DB_PROVIDER=neon node start-with-neon.sh"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 
@@ -20,59 +34,75 @@ ignorePorts = false
 localPort = 3000
 externalPort = 80
 
-[[ports]]
-localPort = 5432
-externalPort = 3000
-exposeLocalhost = true
+[interpreter]
+command = ["bash", "-c", "PORT=3000 NODE_ENV=production DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true OVERRIDE_DB_PROVIDER=neon ./start-with-neon.sh"]
 
-[env]
-DATABASE_PROVIDER = "replit"
-NODE_ENV = "production"
-PORT = "3000"
-
-[packager]
+[unitTest]
 language = "nodejs"
-ignoredPaths = [".git", ".github", ".vscode", "node_modules"]
 
-  [packager.features]
-  packageSearch = true
-  guessImports = true
-  enabledForHosting = false
+[auth]
+pageEnabled = false
+buttonEnabled = false
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix"]
 
 [languages]
 
 [languages.javascript]
 pattern = "**/{*.js,*.jsx,*.ts,*.tsx}"
 
-  [languages.javascript.languageServer]
-  start = ["typescript-language-server", "--stdio"]
+[languages.javascript.languageServer]
+start = "typescript-language-server --stdio"
 
-[languages.css]
-pattern = "**/{*.less,*.scss,*.css}"
+[languages.typescript]
+pattern = "**/{*.ts,*.tsx}"
 
-  [languages.css.languageServer]
-  start = [ "vscode-css-language-server", "--stdio" ]
+[languages.typescript.languageServer]
+start = "typescript-language-server --stdio"
 
-[auth]
-pageEnabled = false
-buttonEnabled = false
+[debugger]
+support = true
 
-[[runners]]
-name = "Start with Replit DB"
-fileType = "javascript"
-command = "DATABASE_PROVIDER=replit npx tsx server/index.ts"
+[debugger.interactive]
+transport = "localhost:0"
+startCommand = ["dap-node"]
 
-[[runners]]
-name = "Migrate to Replit DB"
-fileType = "javascript"
-command = "node migrate-replit-db.mjs"
+[debugger.interactive.initializeMessage]
+command = "initialize"
+type = "request"
 
-[[runners]]
-name = "Start with Neon DB"
-fileType = "javascript"
-command = "DATABASE_PROVIDER=neon npx tsx server/index.ts"
+[debugger.interactive.initializeMessage.arguments]
+clientID = "replit"
+clientName = "replit.com"
+columnsStartAt1 = true
+linesStartAt1 = true
+locale = "en-us"
+pathFormat = "path"
+supportsInvalidatedEvent = true
+supportsProgressReporting = true
+supportsRunInTerminalRequest = true
+supportsVariablePaging = true
+supportsVariableType = true
 
-[[runners]]
-name = "Check Database Status"
-fileType = "javascript"
-command = "node db-status.js"
+[debugger.interactive.launchMessage]
+command = "launch"
+type = "request"
+
+[debugger.interactive.launchMessage.arguments]
+console = "externalTerminal"
+cwd = "."
+pauseForSourceMap = false
+program = "./index.js"
+request = "launch"
+sourceMaps = true
+stopOnEntry = false
+type = "pwa-node"
+
+[packager]
+language = "nodejs"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+enabledForHosting = true
