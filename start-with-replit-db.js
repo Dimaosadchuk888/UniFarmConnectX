@@ -7,94 +7,153 @@
  * 3. Запускает сервер приложения
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync, spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Проверяем наличие всех переменных окружения
+// Получаем путь к текущему скрипту
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Цвета для консоли
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m'
+};
+
+/**
+ * Выводит сообщение в консоль с цветом
+ */
+function log(message, color = colors.reset) {
+  console.log(`${color}${message}${colors.reset}`);
+}
+
+/**
+ * Проверяет наличие переменных окружения PostgreSQL
+ */
 function checkEnvironmentVariables() {
-  const requiredVars = ['PGHOST', 'PGUSER', 'PGPASSWORD', 'PGDATABASE', 'PGPORT'];
+  log('Проверка переменных окружения...', colors.cyan);
+  
+  const requiredVars = ['PGHOST', 'PGPORT', 'PGUSER', 'PGPASSWORD', 'PGDATABASE', 'DATABASE_URL'];
   const missingVars = requiredVars.filter(varName => !process.env[varName]);
   
   if (missingVars.length > 0) {
-    console.error(`[start-with-replit-db] Отсутствуют переменные окружения: ${missingVars.join(', ')}`);
-    console.error('[start-with-replit-db] Для использования Replit PostgreSQL необходимо создать базу данных через Replit Tools');
+    log(`Отсутствуют необходимые переменные окружения: ${missingVars.join(', ')}`, colors.red);
+    log('Пожалуйста, создайте базу данных PostgreSQL на Replit:', colors.yellow);
+    log('1. Откройте вкладку "Secrets" (Секреты) в левой панели Replit', colors.yellow);
+    log('2. Добавьте секрет с ключом "database-postgresql" и значением "true"', colors.yellow);
+    log('3. Перезапустите этот скрипт', colors.yellow);
     return false;
   }
   
+  log('Все необходимые переменные окружения найдены', colors.green);
   return true;
 }
 
-// Запускает миграцию базы данных
+/**
+ * Запускает миграцию базы данных
+ */
 function runDatabaseMigration() {
-  console.log('[start-with-replit-db] Запуск миграции базы данных...');
+  log('Запуск миграции базы данных...', colors.cyan);
+  
   try {
-    // Принудительно устанавливаем DATABASE_URL для Drizzle
-    process.env.DATABASE_URL = `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
-    
-    // Проверяем и запускаем скрипт миграции
-    const migrationScript = path.join(process.cwd(), 'migrate-replit-db.js');
-    if (fs.existsSync(migrationScript)) {
-      execSync(`node ${migrationScript}`, { stdio: 'inherit' });
-      console.log('[start-with-replit-db] Миграция базы данных успешно выполнена');
-    } else {
-      console.error('[start-with-replit-db] Скрипт миграции не найден:', migrationScript);
-      console.log('[start-with-replit-db] Запускаем команду drizzle-kit push напрямую...');
-      execSync('npx drizzle-kit push:pg', { stdio: 'inherit' });
+    // Проверяем наличие файла миграции
+    const migrationFile = path.join(__dirname, 'migrate-replit-db.js');
+    if (!fs.existsSync(migrationFile)) {
+      log(`Файл миграции не найден: ${migrationFile}`, colors.red);
+      return false;
     }
     
+    // Запускаем миграцию
+    execSync('node migrate-replit-db.js', { stdio: 'inherit' });
+    
+    log('Миграция успешно выполнена', colors.green);
     return true;
   } catch (error) {
-    console.error('[start-with-replit-db] Ошибка миграции базы данных:', error.message);
+    log(`Ошибка при выполнении миграции: ${error.message}`, colors.red);
     return false;
   }
 }
 
-// Запускаем сервер приложения
+/**
+ * Запускает сервер приложения
+ */
 function startApplicationServer() {
-  console.log('[start-with-replit-db] Запуск сервера приложения...');
-  
-  // Устанавливаем переменную окружения для выбора Replit PostgreSQL
-  process.env.DATABASE_PROVIDER = 'replit';
+  log('Запуск сервера с Replit PostgreSQL...', colors.cyan);
   
   try {
-    // Пытаемся запустить production-server.mjs (ESM)
-    if (fs.existsSync(path.join(process.cwd(), 'production-server.mjs'))) {
-      console.log('[start-with-replit-db] Запуск production-server.mjs...');
-      execSync('node production-server.mjs', { stdio: 'inherit' });
-      return;
-    }
+    // Устанавливаем переменную окружения, указывающую на использование Replit PostgreSQL
+    process.env.DATABASE_PROVIDER = 'replit';
     
-    // Альтернатива - запуск стандартного сервера
-    console.log('[start-with-replit-db] Запуск стандартного сервера...');
-    execSync('npm start', { stdio: 'inherit' });
+    // Запускаем сервер
+    const server = spawn('node', ['server/index.ts'], {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        DATABASE_PROVIDER: 'replit'
+      }
+    });
+    
+    // Обработка событий сервера
+    server.on('error', (error) => {
+      log(`Ошибка при запуске сервера: ${error.message}`, colors.red);
+    });
+    
+    server.on('close', (code) => {
+      if (code !== 0) {
+        log(`Сервер завершил работу с кодом: ${code}`, colors.red);
+      } else {
+        log('Сервер успешно завершил работу', colors.green);
+      }
+    });
+    
+    log('Сервер успешно запущен', colors.green);
+    
+    // Обработка сигналов завершения
+    process.on('SIGINT', () => {
+      log('\nЗавершение работы сервера...', colors.yellow);
+      server.kill('SIGINT');
+    });
+    
+    process.on('SIGTERM', () => {
+      log('\nЗавершение работы сервера...', colors.yellow);
+      server.kill('SIGTERM');
+    });
+    
+    return true;
   } catch (error) {
-    console.error('[start-with-replit-db] Ошибка запуска сервера:', error.message);
-    process.exit(1);
+    log(`Ошибка при запуске сервера: ${error.message}`, colors.red);
+    return false;
   }
 }
 
-// Основная функция
+/**
+ * Главная функция
+ */
 function main() {
-  console.log('[start-with-replit-db] Запуск приложения с Replit PostgreSQL...');
+  log('=== Запуск приложения с Replit PostgreSQL ===', colors.bright + colors.blue);
   
-  // Проверяем наличие необходимых переменных окружения
+  // Проверяем переменные окружения
   if (!checkEnvironmentVariables()) {
-    console.error('[start-with-replit-db] Отсутствуют необходимые переменные окружения для Replit PostgreSQL');
-    console.error('[start-with-replit-db] Использование стандартного DATABASE_URL без миграции');
-    startApplicationServer();
-    return;
+    process.exit(1);
   }
   
-  // Запускаем миграцию базы данных
-  const migrationSuccess = runDatabaseMigration();
-  if (!migrationSuccess) {
-    console.warn('[start-with-replit-db] Миграция не выполнена, но продолжаем запуск сервера');
+  // Запускаем миграцию
+  const migrationSuccessful = runDatabaseMigration();
+  if (!migrationSuccessful) {
+    log('Пропускаем миграцию и пытаемся запустить сервер...', colors.yellow);
   }
   
-  // Запускаем сервер приложения
+  // Запускаем сервер
   startApplicationServer();
 }
 
-// Запуск
+// Запускаем скрипт
 main();

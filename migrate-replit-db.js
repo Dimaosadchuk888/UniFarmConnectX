@@ -11,8 +11,9 @@
  * node migrate-replit-db.js
  */
 
-const { execSync } = require('child_process');
-const { Pool } = require('pg');
+import { execSync } from 'child_process';
+import pg from 'pg';
+const { Pool } = pg;
 
 // Переменные для подключения к БД
 const pgHost = process.env.PGHOST || 'localhost';
