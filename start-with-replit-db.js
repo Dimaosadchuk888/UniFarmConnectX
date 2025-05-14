@@ -8,11 +8,10 @@
  * установленные в .env.replit, игнорируя любые другие настройки
  */
 
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -131,6 +130,36 @@ function checkEnvironmentVariables() {
 }
 
 /**
+ * Запуск PostgreSQL на Replit
+ */
+function startPostgreSQL() {
+  log('\n===== Запуск PostgreSQL на Replit =====\n', colors.bright + colors.blue);
+  
+  try {
+    log('Запуск PostgreSQL через start-postgres.sh...', colors.cyan);
+    
+    // Запускаем скрипт start-postgres.sh с выводом в консоль
+    const postgresProcess = spawnSync('./start-postgres.sh', {
+      stdio: 'inherit',
+      shell: true
+    });
+    
+    // Проверяем результат запуска
+    if (postgresProcess.status !== 0) {
+      log(`❌ Ошибка запуска PostgreSQL! Код выхода: ${postgresProcess.status}`, colors.red);
+      log('Проверьте лог выше для выявления причин ошибки', colors.red);
+      return false;
+    }
+    
+    log('✅ PostgreSQL успешно запущен!', colors.green);
+    return true;
+  } catch (error) {
+    log(`❌ Критическая ошибка при запуске PostgreSQL: ${error.message}`, colors.red);
+    return false;
+  }
+}
+
+/**
  * Запускает процесс сервера
  */
 function startServer() {
@@ -145,6 +174,12 @@ function startServer() {
   // Проверяем переменные окружения
   if (!checkEnvironmentVariables()) {
     log('Невозможно запустить сервер без корректной конфигурации PostgreSQL', colors.red);
+    return;
+  }
+  
+  // Запускаем PostgreSQL перед запуском сервера
+  if (!startPostgreSQL()) {
+    log('❌ Невозможно запустить сервер без запущенного PostgreSQL', colors.red);
     return;
   }
   

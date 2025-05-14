@@ -1,93 +1,158 @@
-# Миграция с Neon DB на PostgreSQL Replit
+# Миграция на Replit PostgreSQL
 
-## Обзор
+## Цель миграции
 
-Этот документ описывает процесс миграции UniFarm с использования облачной PostgreSQL базы данных Neon DB на встроенную PostgreSQL базу данных Replit. Миграция обеспечивает:
+Переход от Neon DB на локальную PostgreSQL базу данных на Replit для обеспечения более надежной работы и упрощения процесса разработки. Миграция выполнена без изменения существующей архитектуры проекта, с сохранением всех API и бизнес-логики.
 
-1. Снижение зависимости от внешних сервисов
-2. Более высокую скорость доступа к данным из-за меньшей сетевой задержки
-3. Упрощение процесса разработки, так как все компоненты системы теперь находятся в рамках одной платформы
+## Выполненные изменения
 
-## Архитектура решения
+### 1. Настройка переменных окружения
 
-Для обеспечения возможности использования обеих баз данных (Neon DB и PostgreSQL Replit) было реализовано решение на основе паттерна "Селектор":
+Создан/обновлен файл `.env.replit` с правильными параметрами подключения к PostgreSQL на Replit:
 
-1. Создан селектор базы данных (`db-selector-new.ts`), который динамически выбирает подключение к нужной БД
-2. Добавлен адаптер для PostgreSQL Replit (`db-replit.ts`)
-3. Реализован механизм переключения между базами данных через переменную окружения `DATABASE_PROVIDER`
-4. Добавлена поддержка миграции схемы с помощью Drizzle ORM
+```
+DATABASE_PROVIDER=replit
+NODE_ENV=production
+PUBLIC_MODE=production
+PORT=3000
+VITE_BOT_USERNAME=UniFarming_Bot
+VITE_APP_NAME=UniFarm
+USE_OPTIMIZED_REFERRALS=false
+DATABASE_URL=postgresql://runner@localhost:5432/postgres
+PGHOST=localhost
+PGPORT=5432
+PGUSER=runner
+PGPASSWORD=
+PGDATABASE=postgres
+USE_LOCAL_DB_ONLY=true
+```
 
-## Технические детали
+### 2. Обновление механизма выбора базы данных
 
-### 1. Файлы миграции
+В файле `server/db-selector-new.ts` добавлена логика защиты от случайного переключения на Neon DB, когда установлен флаг `USE_LOCAL_DB_ONLY=true`. Это предотвращает потерю данных и обеспечивает безопасное использование Replit PostgreSQL.
 
-- `db-selector-new.ts` - центральный селектор для выбора провайдера БД
-- `db-replit.ts` - адаптер для работы с PostgreSQL Replit
-- `migrate-replit-db.mjs` - скрипт для миграции схемы в базу данных Replit
+### 3. Обновление механизма инициализации в `server/index.ts`
 
-### 2. Переменные окружения
+Добавлена проверка конфигурации базы данных с приоритетом использования Replit PostgreSQL. Выводятся предупреждения при обнаружении конфликтующих настроек.
 
-| Переменная | Значение | Описание |
-|------------|----------|----------|
-| DATABASE_PROVIDER | "neon" | Использование Neon DB (по умолчанию) |
-| DATABASE_PROVIDER | "replit" | Использование PostgreSQL Replit |
+### 4. Создание скриптов для работы с Replit PostgreSQL
 
-### 3. Рабочие процессы (workflows)
+1. **start-postgres.sh** - скрипт для запуска и проверки статуса PostgreSQL на Replit
+   ```bash
+   ./start-postgres.sh
+   ```
 
-- `Start with Replit DB` - запуск сервера с использованием PostgreSQL Replit
-- `Start with Neon DB` - запуск сервера с использованием Neon DB
-- `Migrate to Replit DB` - миграция схемы в PostgreSQL Replit
-- `Check Database Status` - проверка состояния базы данных
+2. **start-with-replit-db.js** - скрипт для полной настройки и запуска приложения с PostgreSQL:
+   - Запускает PostgreSQL через start-postgres.sh
+   - Загружает настройки из `.env.replit`
+   - Проверяет наличие необходимых переменных окружения
+   - Блокирует возможность подключения к Neon DB
+   - Запускает сервер с принудительным использованием Replit PostgreSQL
 
-## Как использовать
+## Использование
 
-### Запуск с PostgreSQL Replit:
+### Быстрый запуск с Replit PostgreSQL (рекомендуется)
 
 ```bash
-DATABASE_PROVIDER=replit npx tsx server/index.ts
+node start-with-replit-db.js
 ```
 
-Или через workflow:
-```
-Start with Replit DB
+Этот скрипт автоматически выполнит все необходимые действия:
+1. Запустит PostgreSQL на Replit
+2. Загрузит настройки из .env.replit
+3. Установит переменную окружения DATABASE_PROVIDER=replit
+4. Проверит наличие необходимых переменных для PostgreSQL
+5. Запустит сервер с настройками для Replit PostgreSQL
+
+### Ручной запуск компонентов
+
+Если вам нужен больший контроль:
+
+1. Запустите PostgreSQL:
+```bash
+./start-postgres.sh
 ```
 
-### Запуск с Neon DB:
+2. Запустите сервер с явным указанием провайдера:
+```bash
+DATABASE_PROVIDER=replit node server/index.ts
+```
+
+### Механизм защиты от использования Neon DB
+
+Если установлен флаг `USE_LOCAL_DB_ONLY=true` в `.env.replit`, все попытки переключения на Neon DB будут блокироваться. Это защищает от потери данных и путаницы между базами данных.
+
+## Миграция данных
+
+После запуска PostgreSQL на Replit, нужно создать схему базы данных:
+
+1. Запустите PostgreSQL:
+   ```bash
+   ./start-postgres.sh
+   ```
+
+2. Выполните миграцию схемы:
+   ```bash
+   npx drizzle-kit push:pg
+   ```
+
+## Проверка и отладка
+
+### Проверка статуса PostgreSQL
 
 ```bash
-DATABASE_PROVIDER=neon npx tsx server/index.ts
+pg_ctl status
 ```
 
-Или через workflow:
-```
-Start with Neon DB
-```
-
-### Миграция схемы:
+### Проверка соединения с базой данных
 
 ```bash
-node migrate-replit-db.mjs
+PGHOST=localhost PGUSER=runner PGDATABASE=postgres psql -c "SELECT current_database(), version();"
 ```
 
-Или через workflow:
+### Проверка переменных окружения
+
+```bash
+node -e "console.log('DATABASE_URL:', process.env.DATABASE_URL, '\nPGHOST:', process.env.PGHOST)"
 ```
-Migrate to Replit DB
-```
 
-## Ограничения и особенности
+## Устранение проблем
 
-1. Данные между базами не синхронизируются - каждая база содержит отдельный набор данных
-2. При первом запуске с PostgreSQL Replit база данных будет пустой
-3. Для тестирования API и функциональности системы в среде Replit необходимо создать тестовые данные
-4. В производственной среде рекомендуется использовать PostgreSQL Replit, особенно если скорость доступа критична
+### PostgreSQL не запускается 
 
-## Советы по устранению неполадок
+1. Проверьте, что PostgreSQL не запущен (не должно быть ошибки "порт уже используется"):
+   ```bash
+   pg_ctl status
+   ```
 
-- Если возникают ошибки подключения к базе данных, проверьте значения переменных окружения
-- При проблемах с подключением к PostgreSQL Replit убедитесь, что база данных создана и корректно настроена
-- Если возникают ошибки миграции схемы, сначала проверьте результаты миграции с помощью `Check Database Status`
-- При возникновении ошибок в селекторе, проверьте правильность экспортов в файле `db-selector-new.ts`
+2. Инициализируйте базу данных вручную:
+   ```bash
+   mkdir -p $HOME/.postgresql/data
+   pg_ctl initdb -D $HOME/.postgresql/data
+   ```
 
-## Заключение
+3. Запустите PostgreSQL:
+   ```bash
+   pg_ctl -D $HOME/.postgresql/data -l $HOME/.postgresql/logfile start
+   ```
 
-Эта миграция значительно улучшает работу UniFarm в среде Replit, избавляя от зависимости от внешней базы данных Neon DB. Архитектура реализации позволяет легко переключаться между базами данных, что упрощает тестирование и дальнейшее сопровождение.
+### Ошибка "Отсутствуют необходимые переменные окружения"
+
+Убедитесь, что создана база данных PostgreSQL на Replit:
+1. Используйте инструмент `create_postgresql_database_tool` в интерфейсе Replit
+2. Перезапустите терминал после создания базы данных
+3. Запустите приложение через `node start-with-replit-db.js`
+
+### Ошибка "Connection refused" при подключении к PostgreSQL
+
+Эта ошибка означает, что сервер PostgreSQL не запущен:
+1. Запустите PostgreSQL через скрипт: `./start-postgres.sh`
+2. Убедитесь, что сервер успешно запустился: `pg_ctl status`
+3. Затем запустите приложение: `node start-with-replit-db.js`
+
+### Конфликт настроек баз данных
+
+Если вы видите предупреждения о конфликте настроек:
+1. Проверьте содержимое `.env.replit` и других файлов .env
+2. Для принудительного использования Replit PostgreSQL установите `USE_LOCAL_DB_ONLY=true`
+3. Запустите приложение через `node start-with-replit-db.js`
