@@ -7,6 +7,10 @@
 process.env.NODE_ENV = 'production';
 // В Replit рекомендуется использовать порт 8080 для производственных приложений
 process.env.PORT = process.env.PORT || '8080';
+// Устанавливаем Replit PostgreSQL как основной провайдер БД
+process.env.DATABASE_PROVIDER = 'replit';
+
+console.log('[DB] Установлен провайдер базы данных: replit');
 
 const express = require('express');
 const path = require('path');
