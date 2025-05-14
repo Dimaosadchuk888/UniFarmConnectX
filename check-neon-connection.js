@@ -2,9 +2,9 @@
  * Скрипт для проверки подключения к Neon DB
  */
 
-require('dotenv').config(); // Загружаем переменные из .env
-
-const { Pool } = require('pg');
+import 'dotenv/config';
+import pg from 'pg';
+const { Pool } = pg;
 
 async function checkNeonConnection() {
   // Проверяем наличие URL для подключения
