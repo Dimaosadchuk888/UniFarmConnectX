@@ -9,6 +9,7 @@ packages = ["jq"]
 [deployment]
 deploymentTarget = "autoscale"
 run = ["sh", "-c", "NODE_ENV=production node dist/index.js"]
+build = ["sh", "-c", "npm run build"]
 
 [[ports]]
 localPort = 3000

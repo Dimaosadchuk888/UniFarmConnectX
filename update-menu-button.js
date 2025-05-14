@@ -25,8 +25,15 @@ async function callTelegramApi(method, data = {}) {
 }
 
 async function getCurrentDevelopmentUrl() {
+  // Проверяем, был ли передан URL через переменную окружения
+  if (process.env.DEPLOY_URL) {
+    return process.env.DEPLOY_URL;
+  }
+  
+  // Формируем URL на основе Replit данных
   const protocol = 'https://';
-  const baseUrl = process.env.REPL_SLUG + '.' + process.env.REPL_OWNER + '.repl.co';
+  // После деплоя URL становится {slug}-{owner}.replit.app
+  const baseUrl = process.env.REPL_SLUG + '-' + process.env.REPL_OWNER + '.replit.app';
   return protocol + baseUrl;
 }
 

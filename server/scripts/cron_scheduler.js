@@ -46,7 +46,7 @@ function runScript(scriptPath, args = []) {
 }
 
 // Инициализация всех cron задач
-export function initCronJobs() {
+export function setupCronJobs() {
   console.log('[Cron] Initializing cron jobs...');
   
   // 1. Создание партиций для transactions - каждый день в 00:05
@@ -111,5 +111,5 @@ export function initCronJobs() {
 
 // Если скрипт запускается напрямую, инициализируем cron задачи
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  initCronJobs();
+  setupCronJobs();
 }

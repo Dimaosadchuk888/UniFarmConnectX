@@ -111,7 +111,7 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   app.use(((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next)) as any);
 
   // Добавление обработчика для Telegram WebApp параметров
-  app.use(((req, res, next) => {
+  app.use(((req: Request, res: Response, next: NextFunction) => {
     // Добавляем специальные заголовки для корректной работы в Telegram Mini App
     res.header("Access-Control-Allow-Origin", "*");
     // Модифицированная политика безопасности для Telegram
@@ -147,42 +147,53 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
     // serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // В Replit при деплое необходимо слушать порт, указанный в переменной окружения PORT
+  // или использовать порт 5000 для обеспечения совместимости с настройками Replit
   const port = parseInt(process.env.PORT || "5000", 10);
+  console.log(`[Server] Starting on port ${port} in ${process.env.NODE_ENV || 'development'} mode`);
+  
+  // Для быстрого запуска сервера, переносим "тяжелые" операции в отдельные асинхронные процессы
+  // Эти задачи будут выполняться после открытия порта
+  function initBackgroundServices() {
+    // Задержка инициализации тяжелых сервисов для обеспечения быстрого запуска
+    setTimeout(() => {
+      // Запуск фоновых задач
+      startBackgroundTasks();
+      
+      // Запуск cron-задач для обслуживания базы данных
+      try {
+        // Импортируем и инициализируем модуль cron-задач после старта сервера
+        import('./scripts/cron_scheduler.js')
+          .then(module => {
+            module.setupCronJobs();
+            console.log('[Server] Cron-задачи успешно инициализированы');
+          })
+          .catch(error => {
+            console.error('[Server] Ошибка при инициализации cron-задач:', error);
+          });
+      } catch (error) {
+        console.error('[Server] Ошибка при импорте модуля cron-задач:', error);
+      }
+      
+      // Обновление реферальных кодов
+      try {
+        migrateRefCodes()
+          .then((result) => {
+            console.log(`[Server] Миграция реферальных кодов успешно выполнена. Обновлено ${result.updated} из ${result.total} пользователей`);
+          })
+          .catch((error: Error) => {
+            console.error('[Server] Ошибка при выполнении миграции реферальных кодов:', error);
+          });
+      } catch (error) {
+        console.error('[Server] Ошибка при запуске миграции реферальных кодов:', error);
+      }
+    }, 100); // Небольшая задержка для приоритета открытия порта
+  }
+  
+  // Запускаем сервер
   server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
-    
-    // Запуск фоновых задач
-    startBackgroundTasks();
-    
-    // Запуск cron-задач для обслуживания базы данных
-    try {
-      // Импортируем и инициализируем модуль cron-задач после старта сервера
-      import('./scripts/cron_scheduler.js')
-        .then(module => {
-          module.setupCronJobs();
-          console.log('[Server] Cron-задачи успешно инициализированы');
-        })
-        .catch(error => {
-          console.error('[Server] Ошибка при инициализации cron-задач:', error);
-        });
-    } catch (error) {
-      console.error('[Server] Ошибка при импорте модуля cron-задач:', error);
-    }
-    
-    // Обновление реферальных кодов
-    try {
-      migrateRefCodes()
-        .then((result) => {
-          console.log(`[Server] Миграция реферальных кодов успешно выполнена. Обновлено ${result.updated} из ${result.total} пользователей`);
-        })
-        .catch((error: Error) => {
-          console.error('[Server] Ошибка при выполнении миграции реферальных кодов:', error);
-        });
-    } catch (error) {
-      console.error('[Server] Ошибка при запуске миграции реферальных кодов:', error);
-    }
+    // Инициализируем фоновые сервисы после открытия порта
+    initBackgroundServices();
   });
 })();

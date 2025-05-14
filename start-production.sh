@@ -1,42 +1,33 @@
 #!/bin/bash
 
-# Скрипт для запуска приложения в production режиме
-# Устанавливает NODE_ENV=production для корректной работы Telegram WebApp
-# Copyright © 2025 UniFarm
+# Запуск UniFarm в production режиме
+# Этот скрипт обеспечивает правильную настройку для запуска в рабочем режиме
 
-echo "🚀 Starting UniFarm Telegram Mini App in PRODUCTION mode..."
+echo "🚀 Запуск UniFarm Telegram Mini App в production режиме..."
 
-# Проверка наличия файла .env
-if [ ! -f .env ]; then
-  echo "⚠️ .env file not found. Creating default configuration..."
-  echo "NODE_ENV=production" > .env
-  echo "PORT=5000" >> .env
-else
-  # Убедимся, что NODE_ENV=production в .env
-  if grep -q "NODE_ENV=" .env; then
-    # Заменяем значение NODE_ENV, если оно уже есть
-    sed -i 's/NODE_ENV=.*/NODE_ENV=production/' .env
-  else
-    # Добавляем NODE_ENV=production, если его нет
-    echo "NODE_ENV=production" >> .env
+# Устанавливаем переменные окружения
+export NODE_ENV=production
+
+# Проверяем наличие собранных файлов
+if [ ! -d "dist" ] || [ ! -f "dist/index.js" ]; then
+  echo "⚠️ Сборка не найдена. Запускаем сборку проекта..."
+  npm run build
+  
+  if [ $? -ne 0 ]; then
+    echo "❌ Ошибка при сборке проекта. Пожалуйста, исправьте ошибки и попробуйте снова."
+    exit 1
   fi
 fi
 
-# Принудительно устанавливаем NODE_ENV=production в окружении, чтобы он был доступен сразу
-export NODE_ENV=production
-
-# Проверяем доступность TELEGRAM_BOT_TOKEN
+# Проверяем настройки Telegram бота
 if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
-  echo "⚠️ TELEGRAM_BOT_TOKEN is not set in environment. Please set it for proper Telegram functionality."
-  echo "You can set it with: export TELEGRAM_BOT_TOKEN=your_bot_token"
+  echo "⚠️ ВНИМАНИЕ: переменная TELEGRAM_BOT_TOKEN не установлена!"
+  echo "Функциональность Telegram Bot будет ограничена."
 fi
 
-# Проверяем, была ли выполнена сборка клиента
-if [ ! -d "dist/public" ]; then
-  echo "⚠️ Client build not found. Building client..."
-  npm run build
-fi
+# Определяем порт для запуска
+PORT=5000
 
-# Запуск сервера в production режиме
-echo "🌐 Starting server in PRODUCTION mode (NODE_ENV=$NODE_ENV)..."
-node dist/index.js
+echo "📡 Запуск сервера на порту $PORT..."
+# Запуск Node.js приложения в production режиме
+PORT=$PORT node dist/index.js
