@@ -1,58 +1,33 @@
 /**
- * Универсальный модуль подключения к PostgreSQL
+ * Модуль подключения к Neon DB
  * 
- * Этот модуль обеспечивает подключение к PostgreSQL через Drizzle ORM
- * с учетом того, что мы работаем на Replit с локальной базой данных
+ * Этот модуль обеспечивает подключение к Neon DB через Drizzle ORM
+ * Внимание: В этом режиме используется ТОЛЬКО Neon DB, независимо от настроек среды
  */
 
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import fs from 'fs';
-import path from 'path';
 import * as schema from '../shared/schema';
 
-// Проверка, работаем ли мы на Replit
-const isReplit = process.env.REPL_ID && process.env.REPL_OWNER;
-
-// Инициализация переменных для подключения к PostgreSQL
-let pool: Pool;
-let socketPath: string;
-
-if (isReplit) {
-  // Путь к сокету PostgreSQL на Replit
-  socketPath = process.env.PGSOCKET || path.join(process.env.HOME || '', '.postgresql', 'sockets');
-  
-  // Создаем директорию для сокетов, если она не существует
-  if (!fs.existsSync(socketPath)) {
-    fs.mkdirSync(socketPath, { recursive: true });
-    console.log(`[DB] Создана директория для сокетов PostgreSQL: ${socketPath}`);
-  }
-  
-  // Настройка для PostgreSQL на Replit
-  pool = new Pool({
-    host: socketPath,
-    user: process.env.PGUSER || 'runner',
-    database: process.env.PGDATABASE || 'postgres',
-    password: process.env.PGPASSWORD || '',
-    port: parseInt(process.env.PGPORT || '5432'),
-    max: 10, // максимальное количество клиентов в пуле
-    idleTimeoutMillis: 30000, // время ожидания перед закрытием неиспользуемых соединений
-    connectionTimeoutMillis: 5000, // время ожидания при подключении нового клиента
-  });
-  
-  console.log('[DB] Инициализация Replit PostgreSQL соединения');
-} else {
-  // Подключение к внешней базе данных (Neon DB или другой PostgreSQL)
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL must be set in the environment variables');
-  }
-  
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL
-  });
-  
-  console.log('[DB] Инициализация стандартного PostgreSQL соединения');
+// Проверяем наличие строки подключения к Neon DB
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL must be set in the environment variables');
 }
+
+console.log('[DB-NEON] 🚀 Инициализация Neon DB соединения');
+
+// Создаем пул соединений с Neon DB
+let pool: Pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // Необходимо для Neon DB
+  },
+  max: 20, // максимальное количество клиентов в пуле
+  idleTimeoutMillis: 30000, // время ожидания перед закрытием неиспользуемых соединений
+  connectionTimeoutMillis: 8000, // время ожидания при подключении нового клиента
+});
+
+console.log('[DB-NEON] Соединение с Neon DB инициализировано');
 
 // Устанавливаем обработчики событий для пула соединений
 pool.on('error', (err) => {

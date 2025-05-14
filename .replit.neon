@@ -1,33 +1,20 @@
-run = "bash start-with-neon.sh"
-hidden = [".config", "package-lock.json"]
-modules = ["nodejs-20:v8-20230920-bd784b9"]
-
-[packager]
-language = "nodejs"
-  [packager.features]
-  enabledForHosting = false
-  packageSearch = true
-  guessImports = true
-
-[env]
-PATH = "/home/runner/$REPL_SLUG/.config/npm/node_global/bin:/home/runner/$REPL_SLUG/node_modules/.bin"
-XDG_CONFIG_HOME = "/home/runner/.config"
-npm_config_prefix = "/home/runner/$REPL_SLUG/.config/npm/node_global"
+run = "sh ./start-with-neon.sh"
+modules = ["nodejs-20"]
 
 [nix]
-channel = "stable-22_11"
+channel = "stable-23_05"
 
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix", ".config", "package.json", "package-lock.json"]
+[env]
+DATABASE_PROVIDER = "neon"
+FORCE_NEON_DB = "true"
+NODE_ENV = "production"
+PORT = "3000"
 
 [deployment]
-run = ["sh", "-c", "bash start-with-neon.sh"]
+run = ["sh", "-c", "DATABASE_PROVIDER=neon FORCE_NEON_DB=true NODE_ENV=production PORT=3000 sh ./start-with-neon.sh"]
 deploymentTarget = "cloudrun"
+ignorePorts = false
 
 [[ports]]
 localPort = 3000
 externalPort = 80
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
