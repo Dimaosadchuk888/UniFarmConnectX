@@ -21,7 +21,7 @@ export interface PartitionInfo {
  */
 export interface PartitionLog {
   id: number;
-  operation_type: string;
+  operation: string; // Исправлено с operation_type
   partition_name: string;
   status: string;
   notes?: string;
@@ -391,7 +391,7 @@ class PartitionServiceImpl implements IPartitionService {
         const createTableQuery = `
           CREATE TABLE partition_logs (
             id SERIAL PRIMARY KEY,
-            operation_type VARCHAR(50) NOT NULL,
+            operation VARCHAR(50) NOT NULL,
             partition_name VARCHAR(100) NOT NULL,
             status VARCHAR(20) NOT NULL,
             notes TEXT,
@@ -403,7 +403,7 @@ class PartitionServiceImpl implements IPartitionService {
         await dbQuery(createTableQuery, []);
         
         // Создаем индексы для таблицы
-        await dbQuery('CREATE INDEX partition_logs_operation_type_idx ON partition_logs (operation_type)', []);
+        await dbQuery('CREATE INDEX partition_logs_operation_idx ON partition_logs (operation)', []);
         await dbQuery('CREATE INDEX partition_logs_partition_name_idx ON partition_logs (partition_name)', []);
         await dbQuery('CREATE INDEX partition_logs_status_idx ON partition_logs (status)', []);
         await dbQuery('CREATE INDEX partition_logs_created_at_idx ON partition_logs (created_at)', []);
@@ -412,7 +412,7 @@ class PartitionServiceImpl implements IPartitionService {
       // Добавляем запись в лог
       const sqlQuery = `
         INSERT INTO partition_logs 
-        (operation_type, partition_name, status, notes, error_message) 
+        (operation, partition_name, status, notes, error_message) 
         VALUES 
         ($1, $2, $3, $4, $5)
       `;

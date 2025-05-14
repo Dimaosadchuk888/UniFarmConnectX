@@ -65,7 +65,7 @@ export async function runMigration() {
       await executeQuery(`
         CREATE TABLE partition_logs (
           id SERIAL PRIMARY KEY,
-          operation_type VARCHAR(50) NOT NULL,
+          operation VARCHAR(50) NOT NULL,
           partition_name VARCHAR(100) NOT NULL,
           status VARCHAR(20) NOT NULL,
           notes TEXT,
@@ -75,7 +75,7 @@ export async function runMigration() {
       `);
       
       log('Creating indexes on partition_logs table');
-      await executeQuery('CREATE INDEX partition_logs_operation_type_idx ON partition_logs (operation_type)');
+      await executeQuery('CREATE INDEX partition_logs_operation_idx ON partition_logs (operation)');
       await executeQuery('CREATE INDEX partition_logs_partition_name_idx ON partition_logs (partition_name)');
       await executeQuery('CREATE INDEX partition_logs_status_idx ON partition_logs (status)');
       await executeQuery('CREATE INDEX partition_logs_created_at_idx ON partition_logs (created_at)');

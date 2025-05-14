@@ -51,14 +51,40 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
 (async () => {
   /**
    * Проверяем и применяем настройки базы данных.
-   * Приоритетно используем Replit PostgreSQL, если установлены соответствующие переменные окружения.
+   * Приоритеты выбора провайдера:
+   * 1. FORCE_NEON_DB=true принудительно использует Neon DB
+   * 2. USE_LOCAL_DB_ONLY=true принудительно использует Replit PostgreSQL
+   * 3. В production режиме по умолчанию используется Neon DB
+   * 4. В остальных случаях используется указанный DATABASE_PROVIDER или 'neon' по умолчанию
    */
+  
+  // Проверка явных флагов принудительного использования Neon DB
+  const forceNeonDb = process.env.FORCE_NEON_DB === 'true';
+  const disableReplitDb = process.env.DISABLE_REPLIT_DB === 'true';
+  const overrideDbProvider = process.env.OVERRIDE_DB_PROVIDER === 'neon';
+  const hasNeonDbUrl = process.env.DATABASE_URL?.includes('neon.tech');
+  
+  // Проверка явных флагов принудительного использования Replit DB
   const useLocalDbOnly = process.env.USE_LOCAL_DB_ONLY === 'true';
+  
+  // Проверка режима работы (продакшен или разработка)
+  const isProduction = process.env.NODE_ENV === 'production';
   const hasReplitPgEnv = process.env.PGHOST === 'localhost' && process.env.PGUSER === 'runner';
-  const isNeonDb = process.env.DATABASE_URL?.includes('neon.tech');
-
-  if (useLocalDbOnly) {
-    // Если установлен флаг USE_LOCAL_DB_ONLY, принудительно используем Replit PostgreSQL
+  
+  if (forceNeonDb || disableReplitDb || overrideDbProvider) {
+    // Принудительно используем Neon DB
+    setDatabaseProvider('neon');
+    console.log('[DB] 🚀 ПРИНУДИТЕЛЬНОЕ ИСПОЛЬЗОВАНИЕ NEON DB (флаги)');
+    
+    // Проверяем наличие строки подключения к Neon DB
+    if (!hasNeonDbUrl) {
+      console.error(`
+⚠️ КРИТИЧЕСКАЯ ОШИБКА: Принудительное использование Neon DB, но переменная DATABASE_URL не указывает на Neon DB!
+Проверьте настройки или запустите приложение через start-with-neon.sh
+      `);
+    }
+  } else if (useLocalDbOnly) {
+    // Принудительно используем Replit PostgreSQL
     setDatabaseProvider('replit');
     console.log('[DB] ✅ Принудительно используем Replit PostgreSQL (USE_LOCAL_DB_ONLY=true)');
     
@@ -71,7 +97,7 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
     }
     
     // Проверяем, нет ли конфликта с Neon DB
-    if (isNeonDb) {
+    if (hasNeonDbUrl) {
       console.warn(`
 ⚠️ ПРЕДУПРЕЖДЕНИЕ: Обнаружен конфликт настроек:
 - USE_LOCAL_DB_ONLY=true указывает на использование Replit PostgreSQL
@@ -80,10 +106,15 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
 Для предотвращения потери данных будет использована локальная база Replit PostgreSQL.
       `);
     }
+  } else if (isProduction && hasNeonDbUrl) {
+    // В продакшен-режиме по умолчанию используем Neon DB, если есть URL
+    setDatabaseProvider('neon');
+    console.log('[DB] 🚀 ИСПОЛЬЗОВАНИЕ NEON DB ДЛЯ PRODUCTION РЕЖИМА');
   } else {
-    // Обычный режим - используем указанный провайдер
-    const provider = process.env.DATABASE_PROVIDER || 'neon';
-    setDatabaseProvider(provider as any);
+    // Используем указанный провайдер или по умолчанию Neon для продакшена, Replit для разработки
+    const defaultProvider = isProduction ? 'neon' : 'replit';
+    const provider = (process.env.DATABASE_PROVIDER as any) || defaultProvider;
+    setDatabaseProvider(provider);
     console.log(`[DB] Инициализировано подключение к базе данных: ${provider}`);
   }
   

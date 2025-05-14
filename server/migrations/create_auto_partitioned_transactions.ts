@@ -258,7 +258,7 @@ export async function runMigration() {
       log('Adding record to partition_logs table');
       await executeQuery(`
         INSERT INTO partition_logs 
-        (operation_type, partition_name, status, notes) 
+        (operation, partition_name, status, notes) 
         VALUES 
         ('initial_setup', 'transactions', 'success', 'Initial partitioning setup completed successfully')
       `);
