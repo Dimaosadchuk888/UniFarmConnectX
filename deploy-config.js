@@ -59,7 +59,7 @@ const DEPLOY_CONFIG = {
   startCommand: COMMANDS.start,
 };
 
-module.exports = {
+export default {
   DATABASE_CONFIG,
   SERVER_CONFIG,
   PATH_CONFIG,

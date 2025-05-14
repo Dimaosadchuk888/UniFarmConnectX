@@ -9,10 +9,15 @@
  * 5. Запускает production-сервер
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
-const config = require('./deploy-config');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+import deployConfig from './deploy-config.js';
+
+// В ESM __dirname не определен, создаем его
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Создаем лог для отслеживания процесса деплоя
 const logFile = path.join(__dirname, 'deploy.log');
@@ -32,10 +37,10 @@ log('Начинаем процесс деплоя UniFarm на Replit...');
 
 // 1. Копируем конфигурационный файл .replit
 try {
-  log(`Копируем конфигурационный файл ${config.PATH_CONFIG.replit.source} в ${config.PATH_CONFIG.replit.target}...`);
+  log(`Копируем конфигурационный файл ${deployConfig.PATH_CONFIG.replit.source} в ${deployConfig.PATH_CONFIG.replit.target}...`);
   fs.copyFileSync(
-    path.join(__dirname, config.PATH_CONFIG.replit.source),
-    path.join(__dirname, config.PATH_CONFIG.replit.target)
+    path.join(__dirname, deployConfig.PATH_CONFIG.replit.source),
+    path.join(__dirname, deployConfig.PATH_CONFIG.replit.target)
   );
   log('✅ Конфигурационный файл успешно скопирован');
 } catch (error) {
@@ -44,11 +49,11 @@ try {
 
 // 2. Проверяем наличие production-server.mjs
 try {
-  if (!fs.existsSync(path.join(__dirname, config.PATH_CONFIG.productionServer))) {
-    log(`Production файл ${config.PATH_CONFIG.productionServer} не найден, копируем из production-server.js...`);
+  if (!fs.existsSync(path.join(__dirname, deployConfig.PATH_CONFIG.productionServer))) {
+    log(`Production файл ${deployConfig.PATH_CONFIG.productionServer} не найден, копируем из production-server.js...`);
     fs.copyFileSync(
       path.join(__dirname, 'production-server.js'),
-      path.join(__dirname, config.PATH_CONFIG.productionServer)
+      path.join(__dirname, deployConfig.PATH_CONFIG.productionServer)
     );
   }
   log('✅ Production-сервер готов');
@@ -59,7 +64,7 @@ try {
 // 3. Запускаем сборку проекта
 try {
   log('Запускаем сборку проекта...');
-  execSync(config.COMMANDS.build, { stdio: 'inherit' });
+  execSync(deployConfig.COMMANDS.build, { stdio: 'inherit' });
   log('✅ Сборка проекта успешно завершена');
 } catch (error) {
   log(`❌ Ошибка при сборке проекта: ${error.message}`);
@@ -70,11 +75,11 @@ try {
   log('Выполняем миграции базы данных...');
   
   // Устанавливаем переменные окружения для миграции
-  Object.entries(config.ENV_VARIABLES).forEach(([key, value]) => {
+  Object.entries(deployConfig.ENV_VARIABLES).forEach(([key, value]) => {
     process.env[key] = value;
   });
   
-  execSync(config.COMMANDS.migrate, { stdio: 'inherit' });
+  execSync(deployConfig.COMMANDS.migrate, { stdio: 'inherit' });
   log('✅ Миграции базы данных успешно выполнены');
 } catch (error) {
   log(`❌ Ошибка при выполнении миграций: ${error.message}`);
@@ -83,7 +88,7 @@ try {
 // 5. Проверяем соединение с базой данных
 try {
   log('Проверяем соединение с базой данных...');
-  execSync(config.COMMANDS.checkDb, { stdio: 'inherit' });
+  execSync(deployConfig.COMMANDS.checkDb, { stdio: 'inherit' });
   log('✅ Соединение с базой данных проверено');
 } catch (error) {
   log(`❌ Ошибка при проверке соединения с базой данных: ${error.message}`);
@@ -92,15 +97,16 @@ try {
 // 6. Запускаем production-сервер
 try {
   log('Запускаем production-сервер...');
-  log(`Выполняем команду: ${config.COMMANDS.start}`);
+  log(`Выполняем команду: ${deployConfig.COMMANDS.start}`);
   
   // Запускаем сервер в отдельном процессе
-  const { spawn } = require('child_process');
-  const [command, ...args] = config.COMMANDS.start.split(' ');
+  const [command, ...args] = deployConfig.COMMANDS.start.split(' ');
   
-  const serverProcess = spawn(command, args, {
+  // Используем динамический импорт для child_process
+  const childProcess = await import('child_process');
+  const serverProcess = childProcess.spawn(command, args, {
     stdio: 'inherit',
-    env: { ...process.env, ...config.ENV_VARIABLES }
+    env: { ...process.env, ...deployConfig.ENV_VARIABLES }
   });
   
   serverProcess.on('error', (error) => {
@@ -115,10 +121,10 @@ try {
 log('Процесс деплоя завершен.');
 log(`
 Итоги деплоя:
-- Сервер запущен на порту ${config.SERVER_CONFIG.port}
-- База данных: ${config.DATABASE_CONFIG.url}
-- Используется файл ${config.PATH_CONFIG.productionServer}
-- Окружение: ${config.ENV_VARIABLES.NODE_ENV}
+- Сервер запущен на порту ${deployConfig.SERVER_CONFIG.port}
+- База данных: ${deployConfig.DATABASE_CONFIG.url}
+- Используется файл ${deployConfig.PATH_CONFIG.productionServer}
+- Окружение: ${deployConfig.ENV_VARIABLES.NODE_ENV}
 
 Приложение доступно по адресу: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co
 `);
