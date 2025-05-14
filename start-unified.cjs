@@ -1,20 +1,10 @@
-// @ts-check
-// @ts-nocheck
-// @ts-ignore
+#!/usr/bin/env node
 "use strict";
 
 /**
  * Универсальный скрипт запуска приложения UniFarm
  * Работает как в режиме разработки, так и в production-среде Replit
- * 
- * @format
- * @type {module} commonjs
- * @packageDocumentation
  */
-
-// Явно указываем, что этот файл использует CommonJS
-// Это заставит Replit использовать CommonJS вместо ESM
-// See: https://nodejs.org/api/packages.html#packages_type
 
 // Определяем текущий режим
 const isProd = process.env.NODE_ENV === 'production';
