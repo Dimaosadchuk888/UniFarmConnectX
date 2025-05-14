@@ -92,9 +92,9 @@ async function createPartitioning() {
     log('⚠️ Все существующие данные в таблице transactions будут ПОТЕРЯНЫ!', colors.yellow);
     log('⚠️ Нажмите Ctrl+C, если хотите отменить операцию.', colors.yellow);
     
-    // Ждем 5 секунд
-    log('\nПродолжение через 5 секунд...', colors.magenta);
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // Уменьшаем время ожидания
+    log('\nПродолжение через 1 секунду...', colors.magenta);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Проверяем существование таблицы transactions
     const tableCheck = await pool.query(`
@@ -146,8 +146,8 @@ async function createPartitioning() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       ) PARTITION BY RANGE (created_at);
       
-      -- Создаем уникальный индекс вместо PK, так как PK должен включать партиционный ключ
-      CREATE UNIQUE INDEX transactions_pkey ON transactions (id);
+      -- В партиционированной таблице Primary Key должен включать все колонки из ключа партиционирования
+      CREATE UNIQUE INDEX transactions_pkey ON transactions (id, created_at);
       
       -- Создаем индексы для ускорения запросов
       CREATE INDEX idx_transactions_user_id ON transactions (user_id);
