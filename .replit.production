@@ -1,4 +1,4 @@
-run = "NODE_ENV=production PORT=8080 node start-unified.js"
+run = "NODE_ENV=production PORT=3000 node start-unified.js"
 modules = ["nodejs-20:v8-20230920-bd784b9"]
 
 [nix]
@@ -7,13 +7,13 @@ channel = "stable-23_05"
 [env]
 DATABASE_PROVIDER = "replit"
 NODE_ENV = "production"
-PORT = "8080"
+PORT = "3000"
 
 [deployment]
-run = ["sh", "-c", "PORT=8080 NODE_ENV=production DATABASE_PROVIDER=replit node start-unified.js"]
+run = ["sh", "-c", "PORT=3000 NODE_ENV=production DATABASE_PROVIDER=replit node start-unified.js"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 
 [[ports]]
-localPort = 8080
+localPort = 3000
 externalPort = 80

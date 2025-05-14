@@ -32,28 +32,36 @@ if (isProd) {
   
   try {
     console.log('🔄 Запуск production-сервера...');
-    // Используем require для CommonJS модуля
-    require('./production-server.js');
-  } catch (error) {
-    console.error('❌ Ошибка при запуске production-сервера:', error);
+    // Используем дочерний процесс для запуска ESM модуля
+    const { spawn } = require('child_process');
+    const server = spawn('node', ['production-server.mjs'], {
+      stdio: 'inherit',
+      env: { ...process.env }
+    });
     
-    // Пробуем запустить через запасной механизм
-    console.log('🔄 Пробуем запустить через запасной механизм...');
-    try {
-      const { spawn } = require('child_process');
-      const server = spawn('node', ['production-server.js'], {
-        stdio: 'inherit',
-        env: { ...process.env }
-      });
+    server.on('error', (err) => {
+      console.error('❌ Ошибка при запуске production-сервера:', err);
       
-      server.on('error', (err) => {
-        console.error('❌ Ошибка при запуске запасного механизма:', err);
+      // Пробуем запасной вариант с .js файлом
+      console.log('🔄 Пробуем запустить через запасной механизм...');
+      try {
+        const fallbackServer = spawn('node', ['production-server.js'], {
+          stdio: 'inherit',
+          env: { ...process.env }
+        });
+        
+        fallbackServer.on('error', (fallbackErr) => {
+          console.error('❌ Ошибка при запуске запасного механизма:', fallbackErr);
+          process.exit(1);
+        });
+      } catch (fallbackErr) {
+        console.error('❌ Критическая ошибка запуска:', fallbackErr);
         process.exit(1);
-      });
-    } catch (err) {
-      console.error('❌ Критическая ошибка запуска:', err);
-      process.exit(1);
-    }
+      }
+    });
+  } catch (err) {
+    console.error('❌ Критическая ошибка запуска:', err);
+    process.exit(1);
   }
 } else {
   // В режиме разработки запускаем стандартный процесс

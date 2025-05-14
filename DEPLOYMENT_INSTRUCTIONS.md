@@ -1,54 +1,98 @@
-# Инструкции по деплою на Replit
+# Инструкции по деплою UniFarm на Replit
 
-## Настройка базы данных
+## Предварительная подготовка
 
-1. **Создать базу данных Replit PostgreSQL**
-   - В Replit перейдите в раздел "Tools" -> "Database"
-   - Нажмите "Create Database" чтобы создать новую базу данных PostgreSQL
-   - После создания будут доступны переменные окружения `DATABASE_URL`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGHOST`, `PGPORT`
+1. Убедитесь, что у вас есть токен Telegram бота в переменных окружения: 
+   - `TELEGRAM_BOT_TOKEN` 
 
-2. **Проверьте переменные окружения**
-   - Убедитесь что все переменные окружения базы данных Replit присутствуют в среде
-   - Удалите переменную окружения `DATABASE_URL` со значением Neon DB (если есть)
+2. Сконфигурирована база данных Replit PostgreSQL с переменными окружения:
+   - `DATABASE_URL=postgresql://runner@localhost:5432/postgres`
+   - `PGDATABASE=postgres` 
+   - `PGUSER=runner`
+   - `PGHOST=localhost` 
+   - `PGPORT=5432`
 
-## Настройка деплоя
+## Процесс деплоя
 
-1. **Build команда**:
-   ```
-   npm run build
-   ```
+### 1. Подготовка конфигурационного файла
 
-2. **Run команда**:
-   ```
-   NODE_ENV=production PORT=8080 DATABASE_PROVIDER=replit node start-unified.js
-   ```
+Создайте или обновите файл `.replit` в корне проекта, скопировав содержимое из `.replit.production`:
 
-3. **Переменные окружения для деплоя**:
-   - `DATABASE_PROVIDER`: `replit`
-   - `NODE_ENV`: `production` 
-   - `PORT`: `8080`
-
-## Проверка подключения к базе данных
-
-Убедитесь, что в файле `server/index.ts` присутствует следующий код:
-
-```typescript
-// Устанавливаем использование Replit PostgreSQL по умолчанию
-setDatabaseProvider('replit');
-console.log('[DB] Инициализировано подключение к Replit PostgreSQL');
+```bash
+cp .replit.production .replit
 ```
 
-## Миграция схемы базы данных
+### 2. Проверка конфигурации
 
-После деплоя выполните миграцию схемы базы данных:
+Убедитесь, что в `.replit` указаны правильные параметры:
+- `PORT=3000` 
+- `DATABASE_PROVIDER=replit`
+- `NODE_ENV=production`
 
+### 3. Запуск сборки
+
+Соберите проект, выполнив команду:
+
+```bash
+npm run build
 ```
-npm run db:push
+
+### 4. Запуск миграций базы данных
+
+Выполните миграции для создания таблиц в базе данных:
+
+```bash
+NODE_ENV=production DATABASE_PROVIDER=replit npm run db:push
 ```
 
-## Важные файлы для проверки
+### 5. Запуск сервера
 
-- `.replit.production` - настройки Replit для production
-- `server/db-replit.ts` - настройки подключения к базе данных Replit
-- `server/db-selector.ts` - выбор провайдера базы данных
-- `start-unified.js` - универсальный скрипт запуска для dev и production
+Запустите сервер в production режиме:
+
+```bash
+NODE_ENV=production PORT=3000 DATABASE_PROVIDER=replit node start-unified.js
+```
+
+### 6. Дополнительные проверки
+
+#### Проверка базы данных
+
+Убедитесь, что соединение с базой данных работает корректно:
+
+```bash
+node check-replit-db.js
+```
+
+#### Проверка Telegram бота
+
+Убедитесь, что бот правильно сконфигурирован для мини-приложения:
+
+```bash
+node check-bot-settings.js
+```
+
+## Решение проблем
+
+### Белый экран после деплоя
+
+1. Проверьте логи сервера на наличие ошибок
+2. Убедитесь, что сервер запущен на правильном порту (3000)
+3. Проверьте соединение с базой данных
+
+### Проблемы с ESM/CommonJS модулями
+
+В проекте используется гибридный подход:
+- `package.json` настроен на использование ESM (`"type": "module"`)
+- Сервер запускается через start-unified.js (CommonJS)
+- Production-сервер использует ESM синтаксис (production-server.mjs)
+
+### Проблемы с базой данных
+
+Если возникают ошибки подключения к базе:
+1. Убедитесь, что база данных создана в Replit
+2. Проверьте, что переменные окружения настроены правильно
+3. Выполните команду миграции заново
+
+## Контакты
+
+При возникновении вопросов обращайтесь к команде разработки UniFarm.

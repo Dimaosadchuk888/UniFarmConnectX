@@ -1,7 +1,6 @@
 /**
  * Простой production-сервер для запуска на Replit
  * Обеспечивает быстрый запуск и стабильную работу в production-среде
- * Адаптирован для работы с ES модулями (package.json type: module)
  */
 
 // Настраиваем переменные окружения
@@ -13,15 +12,9 @@ process.env.DATABASE_PROVIDER = 'replit';
 
 console.log('[DB] Установлен провайдер базы данных: replit');
 
-// Импортируем модули с использованием ESM синтаксиса
-import express from 'express';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-
-// В ESM __dirname не определен, поэтому создаем его
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
 
 // Создаем Express приложение
 const app = express();
@@ -134,7 +127,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Обрабатываем API запросы
-app.use('/api', async (req, res, next) => {
+app.use('/api', (req, res, next) => {
   console.log(`[API] ${req.method} ${req.path}`);
   
   // Проверяем, загрузилось ли основное приложение
@@ -150,9 +143,8 @@ app.use('/api', async (req, res, next) => {
     
     for (const appPath of possiblePaths) {
       try {
-        // Пытаемся загрузить основное приложение с использованием динамического импорта
-        const module = await import(appPath);
-        mainApp = module.default || module;
+        // Пытаемся загрузить основное приложение
+        mainApp = require(appPath);
         console.log(`✅ Основное приложение загружено из ${appPath}`);
         break;
       } catch (e) {
@@ -198,7 +190,7 @@ const server = app.listen(port, '0.0.0.0', () => {
   ];
   
   // Пытаемся запустить основное приложение
-  setTimeout(async () => {
+  setTimeout(() => {
     try {
       console.log('🔄 Запуск основного приложения...');
       
@@ -208,8 +200,7 @@ const server = app.listen(port, '0.0.0.0', () => {
       for (const appPath of possibleMainPaths) {
         try {
           console.log(`🔎 Пробуем загрузить основное приложение из ${appPath}...`);
-          // Используем динамический импорт вместо require
-          const module = await import(appPath);
+          require(appPath);
           console.log(`✅ Основное приложение успешно загружено из ${appPath}`);
           mainAppLoaded = true;
           break;
