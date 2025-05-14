@@ -1,113 +1,127 @@
 #!/bin/bash
 
-# Скрипт для запуска и проверки PostgreSQL на Replit
-echo "=== Запуск PostgreSQL на Replit ==="
-
-# Цвета для консоли
-RESET='\033[0m'
+# Цвета для логов
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Директория для сокетов
+SOCKET_DIR="$HOME/.postgresql/sockets"
 
 # Проверяем, запущен ли уже PostgreSQL
-echo -e "${CYAN}Проверка статуса PostgreSQL...${RESET}"
-pg_status=$(pg_ctl status 2>&1)
+is_postgres_running() {
+  pg_isready -h $SOCKET_DIR > /dev/null 2>&1
+  return $?
+}
 
-if [[ "$pg_status" == *"server is running"* ]]; then
-  echo -e "${GREEN}PostgreSQL уже запущен!${RESET}"
-else
-  echo -e "${YELLOW}PostgreSQL не запущен, запускаем...${RESET}"
+# Функция для проверки соединения с PostgreSQL
+test_postgres_connection() {
+  # Пытаемся выполнить запрос к PostgreSQL
+  PGPASSWORD="$PGPASSWORD" psql -h "$SOCKET_DIR" -U "$PGUSER" -d "$PGDATABASE" -c "SELECT 1" >/dev/null 2>&1
+  return $?
+}
+
+# Функция для экспорта переменных окружения PostgreSQL
+setup_postgres_env() {
+  # Экспортируем переменные окружения для удобства
+  export PGDATABASE="postgres"
+  export PGPORT="5432"
+  export PGHOST="$SOCKET_DIR"
+  export PGUSER="runner"
+  export PGPASSWORD=""
+  export DATABASE_URL="postgresql://$PGUSER@$SOCKET_DIR:$PGPORT/$PGDATABASE"
   
-  # Инициализируем базу данных, если это еще не сделано
-  if [ ! -d "$HOME/.postgresql/data" ]; then
-    echo -e "${CYAN}Инициализация базы данных PostgreSQL...${RESET}"
-    mkdir -p $HOME/.postgresql/data
-    pg_ctl initdb -D $HOME/.postgresql/data
+  echo -e "${BLUE}Переменные окружения PostgreSQL настроены:${NC}"
+  echo -e "  PGDATABASE: $PGDATABASE"
+  echo -e "  PGPORT: $PGPORT"
+  echo -e "  PGHOST: $PGHOST"
+  echo -e "  PGUSER: $PGUSER"
+  echo -e "  DATABASE_URL: $DATABASE_URL"
+  
+  # Создаем или обновляем файл с переменными окружения
+  cat > .env.replit <<EOF
+PGDATABASE=$PGDATABASE
+PGPORT=$PGPORT
+PGHOST=$PGHOST
+PGUSER=$PGUSER
+PGPASSWORD=$PGPASSWORD
+DATABASE_URL=$DATABASE_URL
+DATABASE_PROVIDER=replit
+USE_LOCAL_DB_ONLY=true
+EOF
+
+  echo -e "${GREEN}Файл .env.replit обновлен с актуальными настройками PostgreSQL${NC}"
+}
+
+# Функция для создания директории сокетов
+create_socket_dir() {
+  if [ ! -d "$SOCKET_DIR" ]; then
+    echo -e "${YELLOW}Создание директории для сокетов PostgreSQL: $SOCKET_DIR${NC}"
+    mkdir -p "$SOCKET_DIR"
+  else
+    echo -e "${BLUE}Директория для сокетов уже существует: $SOCKET_DIR${NC}"
   fi
+}
+
+# Главная функция
+main() {
+  echo -e "${CYAN}Запуск и настройка PostgreSQL для UniFarm...${NC}"
   
-  # Запускаем PostgreSQL, указывая директорию сокетов в ~/.postgresql/sockets
-  echo -e "${CYAN}Создание директории для сокетов PostgreSQL...${RESET}"
-  mkdir -p $HOME/.postgresql/sockets
+  # Создаем директорию для сокетов
+  create_socket_dir
   
-  echo -e "${CYAN}Запуск сервера PostgreSQL...${RESET}"
-  pg_ctl -D $HOME/.postgresql/data -l $HOME/.postgresql/logfile -o "-k $HOME/.postgresql/sockets" start
+  # Настраиваем переменные окружения
+  setup_postgres_env
   
-  # Проверяем, успешно ли запущен PostgreSQL
-  sleep 3
-  pg_status=$(pg_ctl status 2>&1)
-  
-  # Проверяем успешность запуска сначала по pg_ctl status, затем по наличию сокета
-  if [[ "$pg_status" == *"server is running"* ]] || [ -S "${HOME}/.postgresql/sockets/.s.PGSQL.5432" ]; then
-    echo -e "${GREEN}PostgreSQL успешно запущен!${RESET}"
-    echo -e "${CYAN}Сокет: ${HOME}/.postgresql/sockets/.s.PGSQL.5432${RESET}"
+  # Если PostgreSQL уже запущен, просто выходим
+  if is_postgres_running; then
+    echo -e "${GREEN}PostgreSQL уже запущен${NC}"
+  else
+    echo -e "${YELLOW}Запуск PostgreSQL...${NC}"
     
-    # Дополнительная проверка на доступность сервера
-    if PGHOST=${HOME}/.postgresql/sockets psql -d postgres -c "SELECT 1" >/dev/null 2>&1; then
-      echo -e "${GREEN}Соединение с сервером проверено успешно.${RESET}"
-    else
-      echo -e "${YELLOW}Сервер запущен, но соединение не тестировано. Продолжаем настройку...${RESET}"
+    # Если переменные не установлены, устанавливаем их стандартные значения
+    if [ -z "$PGUSER" ]; then
+      export PGUSER="runner"
     fi
-  else
-    echo -e "${RED}Не удалось запустить PostgreSQL!${RESET}"
-    echo "Лог ошибки:"
-    cat $HOME/.postgresql/logfile
-    exit 1
-  fi
-fi
-
-# Проверяем наличие базы данных postgres
-echo -e "${CYAN}Проверка наличия базы данных 'postgres'...${RESET}"
-if PGHOST=${HOME}/.postgresql/sockets PGUSER=runner psql -l | grep -q postgres; then
-  echo -e "${GREEN}База данных 'postgres' существует${RESET}"
-else
-  echo -e "${YELLOW}Создание базы данных 'postgres'...${RESET}"
-  PGHOST=${HOME}/.postgresql/sockets PGUSER=runner createdb postgres
-  
-  if [ $? -eq 0 ]; then
-    echo -e "${GREEN}База данных 'postgres' успешно создана${RESET}"
-  else
-    echo -e "${RED}Ошибка при создании базы данных 'postgres'${RESET}"
-    echo -e "${YELLOW}Пробуем создать суперпользователя 'runner'...${RESET}"
     
-    # Попытка создать пользователя runner как суперпользователя
-    PGHOST=${HOME}/.postgresql/sockets psql -d template1 -c "CREATE ROLE runner WITH SUPERUSER LOGIN PASSWORD '';" || true
-    PGHOST=${HOME}/.postgresql/sockets PGUSER=runner psql -d template1 -c "CREATE DATABASE postgres OWNER runner;" || true
+    if [ -z "$PGDATABASE" ]; then
+      export PGDATABASE="postgres"
+    fi
     
-    # Пробуем подключиться снова
-    if PGHOST=${HOME}/.postgresql/sockets PGUSER=runner psql -l | grep -q postgres; then
-      echo -e "${GREEN}База данных 'postgres' успешно создана${RESET}"
-    else
-      echo -e "${RED}Не удалось создать базу данных 'postgres'${RESET}"
+    # Запускаем PostgreSQL с явным указанием директории для сокетов
+    pg_ctl -D ~/.postgresql -o "-k $SOCKET_DIR" -l ~/.postgresql/logfile start
+    
+    # Ждем запуска PostgreSQL
+    for i in {1..30}; do
+      if is_postgres_running; then
+        echo -e "${GREEN}PostgreSQL запущен успешно!${NC}"
+        break
+      fi
+      echo -e "${YELLOW}Ожидание запуска PostgreSQL (попытка $i/30)...${NC}"
+      sleep 1
+    done
+    
+    # Проверяем, запустился ли PostgreSQL
+    if ! is_postgres_running; then
+      echo -e "${RED}Не удалось запустить PostgreSQL после 30 попыток.${NC}"
+      echo -e "${RED}Проверьте логи в ~/.postgresql/logfile${NC}"
       exit 1
     fi
   fi
-fi
+  
+  # Проверяем соединение
+  if test_postgres_connection; then
+    echo -e "${GREEN}Соединение с PostgreSQL успешно установлено${NC}"
+  else
+    echo -e "${RED}Не удалось подключиться к PostgreSQL! Проверьте настройки и права доступа.${NC}"
+    exit 1
+  fi
+  
+  echo -e "${GREEN}PostgreSQL готов к работе${NC}"
+}
 
-# Вывод информации о соединении
-echo -e "${BLUE}=== Информация о соединении с PostgreSQL ===${RESET}"
-echo -e "${CYAN}PGHOST (для .env): localhost${RESET}"
-echo -e "${CYAN}PGHOST (для psql): ${HOME}/.postgresql/sockets${RESET}"
-echo -e "${CYAN}PGPORT: 5432${RESET}"
-echo -e "${CYAN}PGUSER: runner${RESET}"
-echo -e "${CYAN}PGDATABASE: postgres${RESET}"
-echo -e "${CYAN}DATABASE_URL: postgresql://runner@localhost:5432/postgres?host=${HOME}/.postgresql/sockets${RESET}"
-echo -e "${BLUE}=== PostgreSQL готов к использованию ===${RESET}"
-
-# Проверяем соединение с базой данных
-echo -e "${CYAN}Тестирование соединения с базой данных...${RESET}"
-if PGHOST=${HOME}/.postgresql/sockets PGUSER=runner psql -d postgres -c "SELECT 1" > /dev/null 2>&1; then
-  echo -e "${GREEN}Соединение с базой данных успешно установлено!${RESET}"
-  echo -e "${CYAN}Версия PostgreSQL:${RESET}"
-  PGHOST=${HOME}/.postgresql/sockets PGUSER=runner psql -d postgres -c "SELECT version();"
-else
-  echo -e "${RED}Не удалось подключиться к базе данных!${RESET}"
-  echo -e "${YELLOW}Попытка выявить проблему...${RESET}"
-  pg_isready -h ${HOME}/.postgresql/sockets
-  echo -e "${YELLOW}Пользователи PostgreSQL:${RESET}"
-  PGHOST=${HOME}/.postgresql/sockets psql -d template1 -c "SELECT usename FROM pg_user;" || echo "Не удалось получить список пользователей"
-  exit 1
-fi
-
-echo -e "${GREEN}PostgreSQL успешно запущен и готов к использованию!${RESET}"
+# Запускаем главную функцию
+main

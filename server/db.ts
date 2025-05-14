@@ -1,62 +1,74 @@
-import { Pool } from 'pg';
+/**
+ * Универсальный модуль подключения к PostgreSQL
+ * 
+ * Этот модуль обеспечивает подключение к PostgreSQL через Drizzle ORM
+ * с учетом того, что мы работаем на Replit с локальной базой данных
+ */
+
 import { drizzle } from 'drizzle-orm/node-postgres';
-import * as schema from "../shared/schema";
+import { Pool } from 'pg';
+import fs from 'fs';
+import path from 'path';
+import * as schema from '../shared/schema';
 
-// Проверяем наличие переменных окружения для подключения к PostgreSQL
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL не установлен. Используйте start-postgres.sh для запуска PostgreSQL на Replit."
-  );
+// Проверка, работаем ли мы на Replit
+const isReplit = process.env.REPL_ID && process.env.REPL_OWNER;
+
+// Инициализация переменных для подключения к PostgreSQL
+let pool: Pool;
+let socketPath: string;
+
+if (isReplit) {
+  // Путь к сокету PostgreSQL на Replit
+  socketPath = process.env.PGSOCKET || path.join(process.env.HOME || '', '.postgresql', 'sockets');
+  
+  // Создаем директорию для сокетов, если она не существует
+  if (!fs.existsSync(socketPath)) {
+    fs.mkdirSync(socketPath, { recursive: true });
+    console.log(`[DB] Создана директория для сокетов PostgreSQL: ${socketPath}`);
+  }
+  
+  // Настройка для PostgreSQL на Replit
+  pool = new Pool({
+    host: socketPath,
+    user: process.env.PGUSER || 'runner',
+    database: process.env.PGDATABASE || 'postgres',
+    password: process.env.PGPASSWORD || '',
+    port: parseInt(process.env.PGPORT || '5432'),
+    max: 10, // максимальное количество клиентов в пуле
+    idleTimeoutMillis: 30000, // время ожидания перед закрытием неиспользуемых соединений
+    connectionTimeoutMillis: 5000, // время ожидания при подключении нового клиента
+  });
+  
+  console.log('[DB] Инициализация Replit PostgreSQL соединения');
+} else {
+  // Подключение к внешней базе данных (Neon DB или другой PostgreSQL)
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL must be set in the environment variables');
+  }
+  
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL
+  });
+  
+  console.log('[DB] Инициализация стандартного PostgreSQL соединения');
 }
-
-// Создаем пул соединений с базой данных
-const pool = new Pool({
-  user: process.env.PGUSER || 'runner',
-  host: process.env.PGSOCKET || process.env.HOME + '/.postgresql/sockets',
-  database: process.env.PGDATABASE || 'postgres',
-  password: process.env.PGPASSWORD || '',
-  port: parseInt(process.env.PGPORT || '5432'),
-  max: 10, // максимальное количество клиентов в пуле
-  idleTimeoutMillis: 30000, // время ожидания перед закрытием неиспользуемых соединений
-  connectionTimeoutMillis: 5000, // время ожидания при подключении нового клиента
-});
 
 // Устанавливаем обработчики событий для пула соединений
 pool.on('error', (err) => {
-  console.error('Произошла ошибка пула PostgreSQL:', err.message);
+  console.error('[DB] Произошла ошибка пула:', err.message);
   console.error(err.stack);
 });
 
 pool.on('connect', () => {
-  console.log('Новое соединение с PostgreSQL установлено');
+  console.log('[DB] Новое соединение установлено');
 });
 
-// Создаем экземпляр Drizzle с нашей схемой
+// Создаем и экспортируем Drizzle ORM
 export const db = drizzle(pool, { schema });
 
-// Экспортируем пул и состояние для совместимости с db-selector-new.ts
+// Экспортируем пул соединений для случаев, где нужен прямой доступ
 export { pool };
-export const dbState = {
-  pool: pool,
-  db: db
-};
-
-// Функция для тестирования соединения с базой данных
-export async function testDatabaseConnection() {
-  try {
-    const result = await pool.query('SELECT NOW() as time');
-    return {
-      success: true,
-      timestamp: result.rows[0].time,
-      message: 'Соединение с PostgreSQL успешно установлено'
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      message: `Ошибка соединения с PostgreSQL: ${error.message}`
-    };
-  }
-}
 
 // Функция для выполнения SQL-запросов напрямую
 export async function query(text: string, params?: any[]) {
@@ -64,7 +76,7 @@ export async function query(text: string, params?: any[]) {
     const result = await pool.query(text, params);
     return result;
   } catch (error: any) {
-    console.error(`Ошибка выполнения запроса: ${text}`, error);
+    console.error(`[DB] Ошибка выполнения запроса: ${text}`, error);
     throw error;
   }
 }
@@ -79,10 +91,10 @@ export async function queryWithRetry(text: string, params?: any[], retries = 3, 
       return result;
     } catch (error: any) {
       lastError = error;
-      console.error(`Попытка ${attempt + 1}/${retries} не удалась: ${error.message}`);
+      console.error(`[DB] Попытка ${attempt + 1}/${retries} не удалась: ${error.message}`);
       
       if (attempt < retries - 1) {
-        console.log(`Повторная попытка через ${delay}мс...`);
+        console.log(`[DB] Повторная попытка через ${delay}мс...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -112,14 +124,29 @@ export const dbConnectionStatus = {
   }
 };
 
+// Функция для тестирования соединения с базой данных
+export async function testDatabaseConnection() {
+  try {
+    const result = await pool.query('SELECT NOW() as time');
+    return {
+      success: true,
+      timestamp: result.rows[0].time,
+      message: 'Соединение с базой данных успешно установлено'
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: `Ошибка соединения с базой данных: ${error.message}`
+    };
+  }
+}
+
 // Инициализируем статус соединения
 dbConnectionStatus.update().then((isConnected) => {
   if (isConnected) {
-    console.log('✅ Соединение с PostgreSQL успешно установлено при запуске');
+    console.log('✅ [DB] Соединение успешно установлено при запуске');
   } else {
-    console.error('❌ Не удалось установить соединение с PostgreSQL при запуске');
+    console.error('❌ [DB] Не удалось установить соединение при запуске');
     console.error('Ошибка:', dbConnectionStatus.error?.message);
   }
 });
-
-export default db;

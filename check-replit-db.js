@@ -1,100 +1,108 @@
 /**
- * Скрипт для проверки соединения с базой данных Replit PostgreSQL
- * Позволяет убедиться, что все настройки указаны правильно
- * Поддерживает ESM формат package.json с "type": "module"
+ * Скрипт для проверки соединения с Replit PostgreSQL
+ * 
+ * Выполняет проверку соединения с базой данных и возвращает статус
  */
 
-// Настраиваем переменные окружения
-process.env.DATABASE_PROVIDER = 'replit';
-
-// Пытаемся определить, в каком формате запущен скрипт (ESM или CommonJS)
-let pg;
-try {
-  // Сначала пробуем ESM импорт
-  pg = await import('pg').then(module => module.default || module);
-} catch(e) {
-  try {
-    // Если не удалось, используем CommonJS
-    pg = require('pg');
-  } catch(err) {
-    console.error('❌ Не удалось импортировать модуль pg');
-    console.error(err);
-    process.exit(1);
-  }
-}
-
-// Используем деструктуризацию после определения модуля
-const { Pool } = pg;
-
-// Создаем пул соединений для Replit PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  // Для Replit эти параметры обычно уже установлены в переменных окружения:
-  // PGUSER, PGHOST, PGPASSWORD, PGDATABASE, PGPORT
-});
+const { Pool } = require('pg');
 
 async function checkDatabaseConnection() {
-  console.log('🔍 Проверка соединения с базой данных Replit PostgreSQL...');
+  console.log('Проверка соединения с Replit PostgreSQL...');
+  
+  // Получаем значения переменных окружения
+  const socketDir = process.env.PGHOST || `${process.env.HOME}/.postgresql/sockets`;
+  const database = process.env.PGDATABASE || 'postgres';
+  const user = process.env.PGUSER || 'runner';
+  const port = process.env.PGPORT || '5432';
+  
+  // Отображаем информацию о подключении
+  console.log('Параметры подключения:');
+  console.log(`  PGHOST: ${socketDir}`);
+  console.log(`  PGDATABASE: ${database}`);
+  console.log(`  PGUSER: ${user}`);
+  console.log(`  PGPORT: ${port}`);
+  
+  // Создаем объект подключения
+  const pool = new Pool({
+    host: socketDir,
+    database,
+    user,
+    port: parseInt(port),
+    // Устанавливаем разумные таймауты для тестирования соединения
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 5000,
+  });
   
   try {
-    // Устанавливаем соединение
+    // Попытка подключения
     const client = await pool.connect();
     
-    console.log('✅ Соединение с базой данных успешно установлено');
-    console.log('📋 Данные соединения:');
-    console.log(`- Хост: ${process.env.PGHOST || 'не указан'}`);
-    console.log(`- Порт: ${process.env.PGPORT || 'не указан'}`);
-    console.log(`- База данных: ${process.env.PGDATABASE || 'не указана'}`);
-    console.log(`- Пользователь: ${process.env.PGUSER || 'не указан'}`);
-    console.log(`- URL соединения: ${process.env.DATABASE_URL ? 'настроен' : 'не настроен'}`);
+    try {
+      // Проверяем соединение с помощью простого запроса
+      const result = await client.query('SELECT NOW() as time');
+      const time = result.rows[0].time;
+      
+      console.log('Соединение успешно установлено');
+      console.log(`Текущее время сервера: ${time}`);
+      
+      // Проверяем доступные таблицы
+      const tablesResult = await client.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public'
+        ORDER BY table_name
+      `);
+      
+      console.log(`\nДоступные таблицы (${tablesResult.rows.length}):`);
+      
+      if (tablesResult.rows.length === 0) {
+        console.log('  Таблицы не найдены. База данных пустая.');
+      } else {
+        tablesResult.rows.forEach((row, index) => {
+          console.log(`  ${index + 1}. ${row.table_name}`);
+        });
+      }
+      
+      return true;
+    } finally {
+      // Освобождаем соединение
+      client.release();
+    }
+  } catch (error) {
+    console.error(`Ошибка подключения к PostgreSQL: ${error.message}`);
     
-    // Получаем информацию о базе данных
-    const { rows } = await client.query('SELECT current_database(), current_user, version()');
-    console.log('\n📊 Информация о базе данных:');
-    console.log(`- Текущая БД: ${rows[0].current_database}`);
-    console.log(`- Текущий пользователь: ${rows[0].current_user}`);
-    console.log(`- Версия PostgreSQL: ${rows[0].version.split(' ')[1]}`);
-    
-    // Проверяем наличие таблиц
-    const { rows: tables } = await client.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      ORDER BY table_name
-    `);
-    
-    console.log('\n📑 Список таблиц в базе данных:');
-    if (tables.length === 0) {
-      console.log('⚠️ Таблицы не найдены. Необходимо запустить миграцию (npm run db:push)');
-    } else {
-      tables.forEach((table, index) => {
-        console.log(`${index + 1}. ${table.table_name}`);
-      });
+    // Печатаем расширенную информацию об ошибке
+    if (error.code) {
+      console.error(`Код ошибки: ${error.code}`);
     }
     
-    // Закрываем соединение
-    client.release();
-  } catch (error) {
-    console.error('❌ Ошибка соединения с базой данных:', error.message);
-    console.error('📋 Проверьте следующие параметры:');
-    console.error('1. DATABASE_URL содержит правильный URL для подключения');
-    console.error('2. Переменные PGHOST, PGPORT, PGDATABASE, PGUSER настроены');
-    console.error('3. PostgreSQL запущен и доступен');
-    console.error('4. Файл server/db.ts содержит правильную конфигурацию для Replit');
-    process.exit(1);
+    if (error.stack) {
+      console.error('Стек ошибки:');
+      console.error(error.stack);
+    }
+    
+    console.log('\nРекомендации по устранению ошибки:');
+    console.log('1. Убедитесь, что PostgreSQL запущен (запустите bash ./start-postgres.sh)');
+    console.log('2. Проверьте соответствие переменных окружения (PGUSER, PGDATABASE, PGHOST)');
+    console.log('3. Проверьте доступность директории сокетов и права доступа');
+    
+    return false;
   } finally {
     // Закрываем пул соединений
     await pool.end();
   }
 }
 
-// Запускаем проверку
+// Запускаем проверку соединения
 checkDatabaseConnection()
-  .then(() => {
-    console.log('\n✅ Проверка завершена успешно');
-    process.exit(0);
+  .then((success) => {
+    if (success) {
+      process.exit(0);
+    } else {
+      process.exit(1);
+    }
   })
   .catch((error) => {
-    console.error('❌ Проверка завершена с ошибкой:', error.message);
+    console.error('Непредвиденная ошибка:', error);
     process.exit(1);
   });
