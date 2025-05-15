@@ -23,3 +23,14 @@ externalPort = 80
 localPort = 5432
 externalPort = 3000
 exposeLocalhost = true
+
+[workflows]
+
+[[workflows.workflow]]
+name = "Neon DB Server"
+mode = "sequential"
+author = 42521392
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node start-unified.js"
