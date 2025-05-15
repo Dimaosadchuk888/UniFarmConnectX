@@ -1,247 +1,280 @@
-const { spawn, exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
-
 /**
- * Скрипт для запуска UniFarm с использованием локальной базы данных PostgreSQL
+ * Унифицированный скрипт запуска для UniFarm
  * 
- * Последовательно выполняет:
- * 1. Запуск PostgreSQL и ожидание его готовности
- * 2. Проверка соединения с базой данных
- * 3. Запуск приложения UniFarm
+ * Этот скрипт объединяет все необходимые шаги для запуска приложения:
+ * 1. Запуск PostgreSQL на Replit
+ * 2. Загрузка переменных окружения
+ * 3. Создание таблиц в базе данных (если нужно)
+ * 4. Запуск приложения
  */
 
-// Цвета для логов
+// Модули для работы с процессами, файлами и путями
+const { execSync, spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const dotenv = require('dotenv');
+const { Pool } = require('pg');
+
+// Цвета для вывода в консоль
 const colors = {
   reset: '\x1b[0m',
   red: '\x1b[31m',
-  green: '\x1b[32m',
+  green: '\x1b[32m', 
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
   cyan: '\x1b[36m',
-  gray: '\x1b[90m'
+  white: '\x1b[37m',
 };
 
-// Переменные для хранения дочерних процессов
-let postgresProcess = null;
-let appProcess = null;
-
-// Объединённые переменные окружения
-const combinedEnv = {
-  ...process.env,
-  // Принудительно используем только локальную базу данных
-  DATABASE_PROVIDER: 'replit',
-  USE_LOCAL_DB_ONLY: 'true',
-};
-
-// Создаем директорию для логов, если она не существует
-const logsDir = path.join(__dirname, 'logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
-
-// Создаем потоки для записи логов
-const postgresLogStream = fs.createWriteStream(path.join(logsDir, 'postgres.log'), { flags: 'a' });
-const appLogStream = fs.createWriteStream(path.join(logsDir, 'app.log'), { flags: 'a' });
-
-// Функция для логирования с меткой времени
+/**
+ * Вывод сообщения в консоль с цветом
+ */
 function log(message, color = colors.reset) {
-  const timestamp = new Date().toISOString();
-  console.log(`${color}[${timestamp}] ${message}${colors.reset}`);
+  console.log(color + message + colors.reset);
 }
 
-// Функция для запуска PostgreSQL и ожидания его готовности
-function startPostgres() {
-  return new Promise((resolve, reject) => {
-    log('Запуск PostgreSQL...', colors.cyan);
+/**
+ * Загрузка переменных окружения с приоритетом для Neon DB
+ */
+function loadEnvironment() {
+  log(`\n${colors.blue}=== Загрузка переменных окружения ===${colors.reset}`);
+  
+  // НОВЫЙ КОД: Сначала пробуем загрузить из .env.neon для приоритета Neon DB
+  const neonEnvPath = path.join(process.cwd(), '.env.neon');
+  if (fs.existsSync(neonEnvPath)) {
+    log(`📝 Загрузка переменных из .env.neon...`, colors.blue);
+    const envConfig = dotenv.parse(fs.readFileSync(neonEnvPath));
     
-    // Запускаем скрипт для установки и запуска PostgreSQL
-    postgresProcess = spawn('bash', ['./start-postgres.sh']);
-    
-    // Устанавливаем обработчики событий
-    postgresProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      postgresLogStream.write(`[STDOUT] ${output}`);
-      process.stdout.write(`${colors.gray}[PostgreSQL] ${output}${colors.reset}`);
-      
-      // Проверяем, готова ли база данных
-      if (output.includes('PostgreSQL готов к работе') || 
-          output.includes('PostgreSQL уже запущен')) {
-        log('PostgreSQL успешно запущен', colors.green);
-        resolve();
-      }
-    });
-    
-    postgresProcess.stderr.on('data', (data) => {
-      const output = data.toString();
-      postgresLogStream.write(`[STDERR] ${output}`);
-      process.stderr.write(`${colors.red}[PostgreSQL ERROR] ${output}${colors.reset}`);
-    });
-    
-    postgresProcess.on('close', (code) => {
-      if (code !== 0) {
-        const errorMsg = `PostgreSQL завершил работу с кодом ${code}`;
-        log(errorMsg, colors.red);
-        reject(new Error(errorMsg));
-      }
-    });
-    
-    // Устанавливаем таймаут на случай, если PostgreSQL не запустится
-    setTimeout(() => {
-      log('Истекло время ожидания запуска PostgreSQL. Пробуем продолжить...', colors.yellow);
-      resolve();
-    }, 15000);
-  });
-}
-
-// Функция для проверки соединения с базой данных
-function checkDatabaseConnection() {
-  return new Promise((resolve, reject) => {
-    log('Проверка соединения с базой данных...', colors.cyan);
-    
-    // Выполняем скрипт для проверки подключения
-    exec('node check-replit-db.js', { env: combinedEnv }, (error, stdout, stderr) => {
-      if (error) {
-        log(`Ошибка при проверке соединения: ${error.message}`, colors.red);
-        log('Пробуем продолжить несмотря на ошибку...', colors.yellow);
-        resolve(); // Продолжаем несмотря на ошибку
-        return;
-      }
-      
-      if (stderr) {
-        log(`Предупреждение при проверке соединения: ${stderr}`, colors.yellow);
-      }
-      
-      if (stdout.includes('Соединение успешно установлено')) {
-        log('Соединение с базой данных успешно установлено', colors.green);
-      } else {
-        log('Не удалось подтвердить соединение с базой данных. Пробуем продолжить...', colors.yellow);
-      }
-      
-      resolve();
-    });
-  });
-}
-
-// Функция для запуска приложения UniFarm
-function startApp() {
-  return new Promise((resolve, reject) => {
-    log('Запуск приложения UniFarm...', colors.cyan);
-    
-    // Запускаем сервер с настроенными переменными окружения
-    appProcess = spawn('node', ['server/index.js'], { env: combinedEnv });
-    
-    // Создаем интерфейс readline для обработки ввода
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-    
-    // Обработчик для ввода команд во время работы
-    rl.on('line', (line) => {
-      const command = line.trim();
-      
-      if (command === 'restart') {
-        log('Перезапуск приложения...', colors.yellow);
-        stopApp().then(() => startApp());
-      } else if (command === 'exit' || command === 'quit') {
-        log('Завершение работы...', colors.yellow);
-        cleanupAndExit();
-      } else {
-        log(`Доступные команды: restart, exit`, colors.gray);
-      }
-    });
-    
-    // Устанавливаем обработчики событий
-    appProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      appLogStream.write(`[STDOUT] ${output}`);
-      process.stdout.write(output);
-      
-      // Проверяем, запущен ли сервер успешно
-      if (output.includes('Server is listening') || 
-          output.includes('Server running on port')) {
-        log('Приложение UniFarm успешно запущено', colors.green);
-      }
-    });
-    
-    appProcess.stderr.on('data', (data) => {
-      const output = data.toString();
-      appLogStream.write(`[STDERR] ${output}`);
-      process.stderr.write(`${colors.red}${output}${colors.reset}`);
-    });
-    
-    appProcess.on('close', (code) => {
-      if (code !== 0 && code !== null) {
-        const errorMsg = `Приложение UniFarm завершило работу с кодом ${code}`;
-        log(errorMsg, colors.red);
-        reject(new Error(errorMsg));
-      } else {
-        log('Приложение UniFarm завершило работу', colors.yellow);
-        resolve();
-      }
-    });
-  });
-}
-
-// Функция для остановки приложения
-function stopApp() {
-  return new Promise((resolve) => {
-    if (appProcess && !appProcess.killed) {
-      log('Останавливаем приложение...', colors.yellow);
-      appProcess.kill();
-      appProcess = null;
+    // Применяем переменные окружения
+    for (const key in envConfig) {
+      process.env[key] = envConfig[key];
     }
-    resolve();
-  });
-}
-
-// Функция для очистки ресурсов и завершения работы
-function cleanupAndExit() {
-  log('Завершение работы всех процессов...', colors.yellow);
-  
-  // Останавливаем приложение
-  if (appProcess && !appProcess.killed) {
-    appProcess.kill();
+    
+    // Устанавливаем принудительные настройки для Neon DB
+    process.env.DATABASE_PROVIDER = 'neon';
+    process.env.FORCE_NEON_DB = 'true';
+    process.env.DISABLE_REPLIT_DB = 'true';
+    process.env.USE_LOCAL_DB_ONLY = 'false';
+    process.env.OVERRIDE_DB_PROVIDER = 'neon';
+    
+    log(`✅ Переменные окружения из .env.neon успешно загружены`, colors.green);
+    log(`✅ Установлено принудительное использование Neon DB`, colors.green);
+  } else {
+    log(`⚠️ Файл .env.neon не найден, переходим к стандартной логике`, colors.yellow);
+    
+    // Проверяем, запущен ли скрипт на Replit
+    const isReplit = process.env.REPL_ID && process.env.REPL_OWNER;
+    
+    if (isReplit) {
+      // Сначала пробуем загрузить из .env.replit
+      const replitEnvPath = path.join(process.cwd(), '.env.replit');
+      if (fs.existsSync(replitEnvPath)) {
+        log(`📝 Загрузка переменных из .env.replit...`, colors.blue);
+        const envConfig = dotenv.parse(fs.readFileSync(replitEnvPath));
+        
+        // Применяем переменные окружения
+        for (const key in envConfig) {
+          process.env[key] = envConfig[key];
+        }
+        
+        // Устанавливаем принудительные настройки для Replit
+        process.env.DATABASE_PROVIDER = 'replit';
+        process.env.USE_LOCAL_DB_ONLY = 'true';
+        
+        log(`✅ Переменные окружения из .env.replit успешно загружены`, colors.green);
+      } else {
+        log(`⚠️ Файл .env.replit не найден, используем системные переменные`, colors.yellow);
+      }
+    } else {
+      // Не на Replit - загружаем стандартный .env
+      log(`📝 Загрузка стандартных переменных окружения...`, colors.blue);
+      dotenv.config();
+      log(`✅ Стандартные переменные окружения загружены`, colors.green);
+    }
   }
   
-  // Останавливаем PostgreSQL
-  if (postgresProcess && !postgresProcess.killed) {
-    postgresProcess.kill();
+  // Проверка важных переменных окружения
+  const requiredVars = ['DATABASE_PROVIDER', 'PORT'];
+  let missingVars = [];
+  
+  for (const varName of requiredVars) {
+    if (!process.env[varName]) {
+      missingVars.push(varName);
+    }
   }
   
-  // Закрываем потоки для записи логов
-  postgresLogStream.end();
-  appLogStream.end();
+  if (missingVars.length > 0) {
+    log(`⚠️ Не найдены важные переменные окружения: ${missingVars.join(', ')}`, colors.yellow);
+    
+    // Установка значений по умолчанию с приоритетом Neon DB
+    if (!process.env.DATABASE_PROVIDER) process.env.DATABASE_PROVIDER = 'neon';
+    if (!process.env.PORT) process.env.PORT = '3000';
+    
+    log(`⚠️ Установлены значения по умолчанию`, colors.yellow);
+  }
   
-  log('Все процессы завершены. Выход...', colors.yellow);
-  process.exit(0);
+  log(`ℹ️ DATABASE_PROVIDER = ${process.env.DATABASE_PROVIDER}`, colors.blue);
+  log(`ℹ️ PORT = ${process.env.PORT}`, colors.blue);
+  
+  // Всегда выводим дополнительную информацию о настройках соединения
+  if (process.env.DATABASE_PROVIDER === 'neon') {
+    log(`🚀 НАСТРОЕНО ИСПОЛЬЗОВАНИЕ NEON DB`, colors.green);
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('neon.tech')) {
+      log(`✅ DATABASE_URL содержит neon.tech - корректная строка подключения`, colors.green);
+    } else {
+      log(`⚠️ DATABASE_URL не указывает на Neon DB или отсутствует!`, colors.yellow);
+    }
+  } else {
+    log(`📊 НАСТРОЕНО ИСПОЛЬЗОВАНИЕ REPLIT POSTGRESQL`, colors.blue);
+  }
 }
 
-// Обработка сигналов завершения
-process.on('SIGINT', cleanupAndExit);
-process.on('SIGTERM', cleanupAndExit);
-
-// Главная функция запуска
-async function main() {
-  log('Запуск унифицированного окружения UniFarm с Replit PostgreSQL', colors.magenta);
+/**
+ * Запуск и настройка PostgreSQL на Replit
+ */
+async function setupPostgreSQL() {
+  log(`\n${colors.blue}=== Настройка PostgreSQL ===${colors.reset}`);
+  
+  // Проверяем, запущен ли PostgreSQL уже
+  let isRunning = false;
   
   try {
-    // Шаг 1: Запуск PostgreSQL
-    await startPostgres();
+    // Создаем путь для сокетов, если еще не создан
+    const socketPath = process.env.HOME ? path.join(process.env.HOME, '.postgresql', 'sockets') : '/tmp/.postgresql/sockets';
     
-    // Шаг 2: Проверка соединения с базой данных
-    await checkDatabaseConnection();
+    if (!fs.existsSync(socketPath)) {
+      fs.mkdirSync(socketPath, { recursive: true });
+      log(`📁 Создан каталог для сокетов: ${socketPath}`, colors.blue);
+    }
     
-    // Шаг 3: Запуск приложения
-    await startApp();
+    process.env.PGSOCKET = socketPath;
+    
+    // Проверяем соединение с PostgreSQL
+    execSync(`PGHOST=${socketPath} PGUSER=runner psql -d postgres -c "SELECT 1" -t`);
+    isRunning = true;
+    log(`✅ PostgreSQL уже запущен и доступен`, colors.green);
   } catch (error) {
-    log(`Критическая ошибка: ${error.message}`, colors.red);
-    cleanupAndExit();
+    log(`🔄 PostgreSQL не запущен, запускаем...`, colors.yellow);
+    
+    try {
+      // Запускаем PostgreSQL с помощью нашего скрипта
+      execSync('bash ./start-postgres.sh', { stdio: 'inherit' });
+      isRunning = true;
+      log(`✅ PostgreSQL успешно запущен`, colors.green);
+    } catch (error) {
+      log(`❌ Ошибка при запуске PostgreSQL: ${error.message}`, colors.red);
+      return false;
+    }
   }
+  
+  // Проверяем структуру базы данных, если PostgreSQL запущен
+  if (isRunning) {
+    try {
+      // Проверяем наличие таблицы users
+      const result = execSync(`PGHOST=${process.env.PGSOCKET} PGUSER=runner psql -d postgres -c "
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' AND table_name = 'users'
+        )
+      " -t`).toString().trim();
+      
+      if (result === 't') {
+        log(`✅ Структура базы данных уже создана`, colors.green);
+      } else {
+        log(`🔄 Таблица users не найдена, создаем структуру базы данных...`, colors.yellow);
+        
+        try {
+          execSync('node migrate-direct.cjs', { stdio: 'inherit' });
+          log(`✅ Структура базы данных успешно создана`, colors.green);
+        } catch (error) {
+          log(`❌ Ошибка при создании структуры базы данных: ${error.message}`, colors.red);
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      log(`❌ Ошибка при проверке структуры базы данных: ${error.message}`, colors.red);
+      return false;
+    }
+  }
+  
+  return isRunning;
 }
 
-// Запускаем основную функцию
-main();
+/**
+ * Запуск сервера приложения
+ */
+function startServer() {
+  log(`\n${colors.blue}=== Запуск сервера приложения ===${colors.reset}`);
+  log(`🚀 Запуск сервера на порту ${process.env.PORT}...`, colors.magenta);
+  
+  // Учитываем как dev, так и production режимы
+  const isProduction = process.env.NODE_ENV === 'production';
+  const command = isProduction ? 'start' : 'dev';
+  log(`ℹ️ Режим: ${isProduction ? 'production' : 'development'}`, colors.blue);
+  
+  // Запускаем сервер через npm
+  const serverProcess = spawn('npm', ['run', command], {
+    stdio: 'inherit',
+    env: process.env
+  });
+  
+  // Обработка событий
+  serverProcess.on('close', (code) => {
+    log(`⚠️ Сервер завершил работу с кодом ${code}`, colors.yellow);
+    process.exit(code);
+  });
+  
+  serverProcess.on('error', (error) => {
+    log(`❌ Ошибка при запуске сервера: ${error.message}`, colors.red);
+    process.exit(1);
+  });
+  
+  // Обработка сигналов завершения
+  process.on('SIGINT', () => {
+    log(`\n👋 Завершение работы по команде пользователя...`, colors.blue);
+    serverProcess.kill('SIGINT');
+    process.exit(0);
+  });
+  
+  process.on('SIGTERM', () => {
+    log(`\n👋 Завершение работы...`, colors.blue);
+    serverProcess.kill('SIGTERM');
+    process.exit(0);
+  });
+}
+
+/**
+ * Основная функция
+ */
+async function main() {
+  // Заголовок
+  log(`\n${colors.magenta}==================================${colors.reset}`);
+  log(`${colors.magenta}= ЗАПУСК UNIFARM (UNIFIED MODE) =${colors.reset}`);
+  log(`${colors.magenta}==================================${colors.reset}`);
+  
+  // Загрузка переменных окружения
+  loadEnvironment();
+  
+  // Настройка PostgreSQL, если используется Replit
+  if (process.env.DATABASE_PROVIDER === 'replit') {
+    if (!await setupPostgreSQL()) {
+      log(`❌ Не удалось настроить PostgreSQL. Завершение работы.`, colors.red);
+      process.exit(1);
+    }
+  } else {
+    log(`ℹ️ Используется внешняя база данных (${process.env.DATABASE_PROVIDER})`, colors.blue);
+  }
+  
+  // Запуск сервера
+  startServer();
+}
+
+// Запуск основной функции
+main().catch(error => {
+  log(`\n❌ Критическая ошибка: ${error.message}`, colors.red);
+  console.error(error);
+  process.exit(1);
+});
