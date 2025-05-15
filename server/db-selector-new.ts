@@ -28,41 +28,11 @@ export type TestConnectionResult = boolean | {
 let currentDatabaseProvider: DatabaseProvider;
 
 // Определяем, какую базу данных использовать
+
+// ФОРСИРОВАННОЕ ИСПОЛЬЗОВАНИЕ NEON DB [OVERRIDE]
 const determineProvider = (): DatabaseProvider => {
-  // Проверка явных флагов принудительного использования Neon DB
-  const forceNeonDb = process.env.FORCE_NEON_DB === 'true';
-  const disableReplitDb = process.env.DISABLE_REPLIT_DB === 'true';
-  const overrideDbProvider = process.env.OVERRIDE_DB_PROVIDER === 'neon';
-  const hasNeonDbUrl = process.env.DATABASE_URL?.includes('neon.tech');
-  
-  // Проверка явных флагов принудительного использования Replit DB
-  const useLocalDbOnly = process.env.USE_LOCAL_DB_ONLY === 'true';
-  
-  // Проверка режима работы (продакшен или разработка)
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  // Логика выбора провайдера
-  if (forceNeonDb || disableReplitDb || overrideDbProvider) {
-    console.log(`[DB-Selector] 🚀 ПРИНУДИТЕЛЬНОЕ ИСПОЛЬЗОВАНИЕ NEON DB (флаги)`);
-    return 'neon';
-  }
-  
-  if (useLocalDbOnly) {
-    console.log(`[DB-Selector] 🚀 ПРИНУДИТЕЛЬНОЕ ИСПОЛЬЗОВАНИЕ REPLIT DB (USE_LOCAL_DB_ONLY=true)`);
-    return 'replit';
-  }
-  
-  // В продакшен-режиме по умолчанию используем Neon DB, если есть URL
-  if (isProduction && hasNeonDbUrl) {
-    console.log(`[DB-Selector] 🚀 ИСПОЛЬЗОВАНИЕ NEON DB ДЛЯ PRODUCTION РЕЖИМА`);
-    return 'neon';
-  }
-  
-  // Используем указанный провайдер или по умолчанию всегда Neon DB
-  const defaultProvider = 'neon'; // Всегда используем Neon DB по умолчанию
-  const provider = (process.env.DATABASE_PROVIDER as DatabaseProvider) || defaultProvider;
-  console.log(`[DB-Selector] Используем указанный провайдер: ${provider}`);
-  return provider;
+  console.log('[DB-Selector] 🚀 ФОРСИРОВАНИЕ NEON DB (override-db-provider.cjs)');
+  return 'neon';
 };
 
 // Инициализируем провайдер
