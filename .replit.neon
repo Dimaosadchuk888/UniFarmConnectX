@@ -1,8 +1,9 @@
-run = "sh ./start-with-neon.sh"
-modules = ["nodejs-20"]
+run = "./start-neon.sh"
+modules = ["postgresql-16", "nodejs-20"]
 
 [nix]
 channel = "stable-23_05"
+packages = ["postgresql", "jq"]
 
 [env]
 DATABASE_PROVIDER = "neon"
@@ -11,10 +12,15 @@ NODE_ENV = "production"
 PORT = "3000"
 
 [deployment]
-run = ["sh", "-c", "DATABASE_PROVIDER=neon FORCE_NEON_DB=true NODE_ENV=production PORT=3000 sh ./start-with-neon.sh"]
+run = ["sh", "-c", "PORT=3000 NODE_ENV=production DATABASE_PROVIDER=neon FORCE_NEON_DB=true node start-neon.cjs"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 
 [[ports]]
 localPort = 3000
 externalPort = 80
+
+[[ports]]
+localPort = 5432
+externalPort = 3000
+exposeLocalhost = true
