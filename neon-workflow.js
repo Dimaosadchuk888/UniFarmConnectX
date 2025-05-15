@@ -27,4 +27,7 @@ console.log('===========================================');
 
 // Подключаем start-unified.cjs - этот файл содержит логику
 // для подключения к Neon DB и управления партиционированием
-require('./start-unified.cjs');
+import('./start-unified.cjs').catch(err => {
+  console.error('Ошибка при импорте start-unified.cjs:', err);
+  process.exit(1);
+});
