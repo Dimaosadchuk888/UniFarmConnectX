@@ -239,8 +239,8 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   }
 
   // В Replit при деплое необходимо слушать порт, указанный в переменной окружения PORT
-  // или использовать порт 80 для обеспечения совместимости с настройками Replit
-  const port = parseInt(process.env.PORT || "80", 10);
+  // В настройках .replit внешний порт 80 маппится на внутренний порт 3000
+  const port = parseInt(process.env.PORT || "3000", 10);
   console.log(`[Server] Starting on port ${port} in ${process.env.NODE_ENV || 'development'} mode`);
   
   // Отключаем поиск PostgreSQL через Unix socket для работы в Replit
