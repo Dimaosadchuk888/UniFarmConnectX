@@ -68,26 +68,109 @@ import { telegramInitDataLogger } from './middleware/telegramInitDataLogger';
 import { errorHandler } from './middleware/errorHandler';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Определяем корневой каталог проекта
+  const projectRoot = process.cwd();
+  
   // Добавляем маршрут для health check, необходимый для деплоя Replit
-  const rootPath = path.join(process.cwd(), 'server', 'public', 'health.html');
+  // Определяем пути к health.html в разных местах
+  const healthHtmlPaths = [
+    path.join(projectRoot, 'dist', 'public', 'health.html'),  // Приоритетный путь для продакшн
+    path.join(projectRoot, 'server', 'public', 'health.html') // Запасной путь
+  ];
+  
+  // Находим существующий файл health.html
+  const healthHtmlPath = healthHtmlPaths.find(p => fs.existsSync(p));
+  
+  if (!healthHtmlPath) {
+    console.error('❌ [КРИТИЧЕСКАЯ ОШИБКА] Файл health.html не найден!');
+  } else {
+    console.log(`✅ [HEALTH] Используем файл: ${healthHtmlPath}`);
+  }
   
   app.get('/', (req: Request, res: Response) => {
-    if (req.accepts('html')) {
-      return res.sendFile(rootPath);
+    console.log('[Root Route] Запрос к корневому URL - возвращаем health.html');
+    
+    if (healthHtmlPath) {
+      // Добавляем заголовки против кеширования
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+      return res.sendFile(healthHtmlPath);
+    } else {
+      // Возвращаем базовый HTML, если файл не найден
+      return res.status(200).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>UniFarm Health Check</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                    background-color: #f0f0f0;
+                }
+                .container {
+                    text-align: center;
+                    padding: 40px;
+                    background-color: white;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                    max-width: 500px;
+                }
+                h1 {
+                    color: #4CAF50;
+                }
+                .status {
+                    font-size: 18px;
+                    margin: 20px 0;
+                }
+                .success {
+                    color: #4CAF50;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>UniFarm API Server</h1>
+                <div class="status">
+                    Status: <span class="success">Online</span>
+                </div>
+                <p>The UniFarm API server is running correctly. This is a health check page.</p>
+                <p>Server Time: <span id="serverTime"></span></p>
+            </div>
+            <script>
+                function updateTime() {
+                    document.getElementById('serverTime').textContent = new Date().toLocaleString();
+                }
+                updateTime();
+                setInterval(updateTime, 1000);
+            </script>
+        </body>
+        </html>
+      `);
     }
-    return res.status(200).json({ status: 'ok', message: 'UniFarm API server is running' });
   });
 
   app.get('/health', (req: Request, res: Response) => {
     if (req.accepts('html')) {
-      return res.sendFile(rootPath);
+      if (healthHtmlPath) {
+        return res.sendFile(healthHtmlPath);
+      }
+      // Возвращаем простой HTML, если файл не найден
+      return res.status(200).send('<html><body><h1>UniFarm API Server</h1><p>Status: Online</p></body></html>');
     }
     return res.status(200).json({ status: 'ok', message: 'Health check passed' });
   });
 
   // Обслуживание статических файлов из папки public
   // Это важно для тестовых HTML-файлов  
-  const projectRoot = process.cwd(); 
   const staticFilesPath = path.join(projectRoot, 'server', 'public');
   
   // Используем тип-предохранитель, чтобы решить проблему с типами
@@ -190,180 +273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Простой ping эндпоинт
   app.get("/api/ping", healthApi.ping);
   
-  // Перенаправляем корневой маршрут на основное приложение
-  app.get("/", (req, res) => {
-    console.log('[Root Route] Запрос к корневому маршруту, отправляем HTML-страницу');
-    
-    // В режиме разработки перенаправляем на Vite dev server
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Root Route] Режим разработки, перенаправляем на Vite dev server');
-      
-      // Добавляем заголовки против кеширования
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('Surrogate-Control', 'no-store');
-      
-      // Создаем базовую HTML страницу с автоматическим перенаправлением на клиентский dev-сервер
-      // Обычно Vite dev server запускается на порту 5173
-      const redirectHTML = `
-        <!DOCTYPE html>
-        <html lang="ru">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>UniFarm - Loading Development Version</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              height: 100vh;
-              margin: 0;
-              background-color: #f0f2f5;
-              color: #333;
-            }
-            .container {
-              text-align: center;
-              max-width: 90%;
-              padding: 20px;
-              border-radius: 10px;
-              background-color: white;
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            }
-            .loader {
-              border: 5px solid #f3f3f3;
-              border-top: 5px solid #3498db;
-              border-radius: 50%;
-              width: 40px;
-              height: 40px;
-              animation: spin 1s linear infinite;
-              margin: 20px auto;
-            }
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-            a {
-              display: inline-block;
-              margin-top: 20px;
-              color: #3498db;
-              text-decoration: none;
-              padding: 10px 20px;
-              border: 1px solid #3498db;
-              border-radius: 5px;
-              transition: all 0.3s;
-            }
-            a:hover {
-              background-color: #3498db;
-              color: white;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>UniFarm</h1>
-            <p>Загрузка версии для разработки...</p>
-            <div class="loader"></div>
-            <p id="status">Переадресация на Vite Dev Server через <span id="countdown">3</span> секунды</p>
-            <a href="http://localhost:5173" id="manual-link">Перейти вручную</a>
-            
-            <script>
-              // Функция для получения хоста текущего сервера
-              function getBaseUrl() {
-                return window.location.protocol + '//' + window.location.host;
-              }
-              
-              // Функция для проверки Vite dev server
-              async function checkViteServer() {
-                try {
-                  const baseUrl = getBaseUrl();
-                  // Проверяем доступность Vite dev server на том же хосте
-                  const response = await fetch(baseUrl + '/@vite/client', { 
-                    method: 'HEAD',
-                    cache: 'no-store'
-                  });
-                  return response.ok;
-                } catch (error) {
-                  console.error('Ошибка при проверке Vite dev server:', error);
-                  return false;
-                }
-              }
-              
-              // Функция для перенаправления
-              function redirect() {
-                window.location.href = getBaseUrl() + '/client';
-              }
-              
-              // Обратный отсчет
-              let countdown = 3;
-              const countdownElement = document.getElementById('countdown');
-              const statusElement = document.getElementById('status');
-              const manualLinkElement = document.getElementById('manual-link');
-              
-              // Обновляем ссылку для ручного перехода
-              manualLinkElement.href = getBaseUrl() + '/client';
-              
-              // Функция обратного отсчета
-              function updateCountdown() {
-                countdownElement.textContent = countdown;
-                if (countdown <= 0) {
-                  redirect();
-                } else {
-                  countdown--;
-                  setTimeout(updateCountdown, 1000);
-                }
-              }
-              
-              // Проверяем Vite dev server
-              checkViteServer().then(isViteServerRunning => {
-                if (isViteServerRunning) {
-                  statusElement.textContent = 'Vite dev server обнаружен, переадресация...';
-                  setTimeout(redirect, 500);
-                } else {
-                  statusElement.textContent = 'Не удалось обнаружить Vite dev server. Пожалуйста, перейдите вручную.';
-                  updateCountdown();
-                }
-              });
-            </script>
-          </div>
-        </body>
-        </html>
-      `;
-      
-      return res.send(redirectHTML);
-    } else {
-      // В production режиме ищем готовую сборку
-      // Определяем возможные пути к index.html в разных режимах работы
-      const possiblePaths = [
-        path.join(projectRoot, 'client', 'dist', 'index.html'), // собранная версия клиента
-        path.join(projectRoot, 'dist', 'public', 'index.html'), // альтернативный путь
-        path.join(projectRoot, 'dist', 'index.html'),          // еще один альтернативный путь
-        path.join(projectRoot, 'client', 'index.html'),        // исходный файл клиента
-        path.join(projectRoot, 'client', 'public', 'index.html'), // публичная версия клиента
-        path.join(projectRoot, 'server', 'public', 'index.html'), // серверная публичная версия
-      ];
-      
-      // Ищем существующий файл среди возможных путей
-      const existingPath = possiblePaths.find(p => fs.existsSync(p));
-      
-      if (existingPath) {
-        // Отправляем найденный index.html
-        console.log(`[Root Route] Используем файл: ${existingPath}`);
-        // Добавляем заголовки против кеширования
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        res.setHeader('Surrogate-Control', 'no-store');
-        res.sendFile(existingPath);
-      } else {
-        // Если файла нигде нет, отправляем ошибку
-        console.log(`[Root Route] Файл index.html не найден! Проверенные пути:`, possiblePaths);
-        res.status(500).send('App initialization error: index.html not found');
-      }
-    }
-  });
+  // Примечание: корневой маршрут уже определен выше
 
   // Специальные маршруты для Telegram Mini App
   app.get([

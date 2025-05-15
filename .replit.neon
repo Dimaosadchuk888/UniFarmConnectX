@@ -1,4 +1,4 @@
-run = "./start-neon.sh"
+run = "./start-with-neon.sh"
 modules = ["postgresql-16", "nodejs-20"]
 
 [nix]
@@ -8,13 +8,21 @@ packages = ["postgresql", "jq"]
 [env]
 DATABASE_PROVIDER = "neon"
 FORCE_NEON_DB = "true"
+DISABLE_REPLIT_DB = "true"
+OVERRIDE_DB_PROVIDER = "neon"
 NODE_ENV = "production"
 PORT = "3000"
+SKIP_PARTITION_CREATION = "true"
+IGNORE_PARTITION_ERRORS = "true"
 
 [deployment]
-run = ["sh", "-c", "PORT=3000 NODE_ENV=production DATABASE_PROVIDER=neon FORCE_NEON_DB=true node start-neon.cjs"]
+run = ["sh", "-c", "./start-with-neon.sh"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
+
+[[ports]]
+localPort = 80
+externalPort = 3001
 
 [[ports]]
 localPort = 3000
@@ -24,3 +32,13 @@ externalPort = 80
 localPort = 5432
 externalPort = 3000
 exposeLocalhost = true
+
+[workflows]
+
+[[workflows.workflow]]
+name = "UniFarm Neon DB Server"
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node start-neon-workflow.js"
