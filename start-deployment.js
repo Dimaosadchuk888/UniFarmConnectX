@@ -14,7 +14,7 @@ import { createRequire } from 'module';
 // Create a require function for ES modules
 const require = createRequire(import.meta.url);
 
-// Set environment variables to ENSURE Neon DB usage with highest priority
+// ПРИНУДИТЕЛЬНО устанавливаем переменные окружения для Neon DB с наивысшим приоритетом
 process.env.DATABASE_PROVIDER = 'neon';
 process.env.FORCE_NEON_DB = 'true';
 process.env.DISABLE_REPLIT_DB = 'true';
@@ -22,6 +22,28 @@ process.env.OVERRIDE_DB_PROVIDER = 'neon';
 process.env.NODE_ENV = 'production';
 process.env.SKIP_PARTITION_CREATION = 'true';
 process.env.IGNORE_PARTITION_ERRORS = 'true';
+process.env.PGSSLMODE = 'prefer';
+process.env.PGSOCKET = '';
+process.env.PGCONNECT_TIMEOUT = '10';
+
+// Проверяем, установлена ли DATABASE_URL
+if (!process.env.DATABASE_URL) {
+  console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: DATABASE_URL не установлен. Neon DB не сможет работать.');
+  console.error('Пожалуйста, установите DATABASE_URL в переменных окружения.');
+  // Не выполняем немедленный выход, чтобы пользователь мог увидеть ошибку
+} else {
+  console.log('✅ DATABASE_URL установлен, Neon DB будет использоваться для подключения');
+}
+
+// Запускаем диагностическую проверку переменных окружения
+if (fs.existsSync('./display-env-vars.js')) {
+  console.log('\n=== ДИАГНОСТИКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ ===');
+  try {
+    require('./display-env-vars.js');
+  } catch (error) {
+    console.log('Не удалось запустить диагностику переменных окружения:', error);
+  }
+}
 
 // Log early DB configuration to verify settings
 console.log('===============================================');
