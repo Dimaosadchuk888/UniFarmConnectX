@@ -1,135 +1,85 @@
 /**
- * Скрипт автоматического деплоя UniFarm на Replit
- * 
- * Выполняет все необходимые шаги для деплоя:
- * 1. Копирует конфигурационные файлы
- * 2. Устанавливает переменные окружения
- * 3. Запускает сборку проекта
- * 4. Выполняет миграции базы данных
- * 5. Запускает production-сервер
+ * Файл для деплоя UniFarm (Remix)
+ * Обеспечивает корректную работу с Neon DB и партиционированием
  */
 
-import fs from 'fs';
-import path from 'path';
-import { execSync } from 'child_process';
+import { spawn } from 'child_process';
+import { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import deployConfig from './deploy-config.js';
+import { promises as fs } from 'fs';
 
-// В ESM __dirname не определен, создаем его
+// Установка переменных окружения для принудительного использования Neon DB
+process.env.DATABASE_PROVIDER = 'neon';
+process.env.FORCE_NEON_DB = 'true';
+process.env.DISABLE_REPLIT_DB = 'true';
+process.env.OVERRIDE_DB_PROVIDER = 'neon';
+process.env.NODE_ENV = 'production';
+
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = dirname(__filename);
 
-// Создаем лог для отслеживания процесса деплоя
-const logFile = path.join(__dirname, 'deploy.log');
-const log = (message) => {
-  const timestamp = new Date().toISOString();
-  const logEntry = `[${timestamp}] ${message}\n`;
-  console.log(logEntry);
-  fs.appendFileSync(logFile, logEntry);
-};
+/**
+ * Выполняет команду как дочерний процесс
+ */
+async function runProcess(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    console.log(`Запуск: ${command} ${args.join(' ')}`);
+    
+    const childProcess = spawn(command, args, {
+      stdio: 'inherit',
+      ...options
+    });
 
-// Очищаем старый лог если есть
-if (fs.existsSync(logFile)) {
-  fs.unlinkSync(logFile);
+    childProcess.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Процесс завершился с кодом: ${code}`));
+      }
+    });
+    
+    childProcess.on('error', (error) => {
+      reject(error);
+    });
+  });
 }
 
-log('Начинаем процесс деплоя UniFarm на Replit...');
-
-// 1. Проверяем конфигурационный файл .replit (пропускаем копирование из-за ограничений Replit)
-try {
-  log(`Проверка конфигурационного файла .replit...`);
-  log('⚠️ Прямое редактирование .replit запрещено в Replit. Пропускаем этот шаг.');
-  log('📝 Для настройки .replit используйте панель управления Replit.');
+/**
+ * Главная функция запуска приложения
+ */
+async function main() {
+  console.log('===================================================');
+  console.log('  ЗАПУСК UNIFARM В РЕЖИМЕ PRODUCTION (NEON DB)');
+  console.log('===================================================');
+  console.log('Время запуска:', new Date().toISOString());
+  console.log('Настройки базы данных: ПРИНУДИТЕЛЬНО NEON DB');
+  console.log('===================================================');
   
-  // Указываем информацию о рекомендуемых настройках
-  log('ℹ️ Рекомендуемые настройки для .replit:');
-  log('  - PORT=3000');
-  log('  - DATABASE_PROVIDER=replit');
-  log('  - run = "NODE_ENV=production PORT=3000 node start-unified.js"');
-} catch (error) {
-  log(`❌ Ошибка при проверке конфигурационного файла: ${error.message}`);
-}
-
-// 2. Проверяем наличие production-server.mjs
-try {
-  if (!fs.existsSync(path.join(__dirname, deployConfig.PATH_CONFIG.productionServer))) {
-    log(`Production файл ${deployConfig.PATH_CONFIG.productionServer} не найден, копируем из production-server.js...`);
-    fs.copyFileSync(
-      path.join(__dirname, 'production-server.js'),
-      path.join(__dirname, deployConfig.PATH_CONFIG.productionServer)
-    );
+  try {
+    // В production нам нужно запустить собранное приложение
+    const startCommand = 'node server/index.js';
+    console.log(`Запуск приложения командой: ${startCommand}`);
+    console.log('===================================================');
+    
+    const [command, ...args] = startCommand.split(' ');
+    await runProcess(command, args, {
+      env: {
+        ...process.env,
+        DATABASE_PROVIDER: 'neon',
+        FORCE_NEON_DB: 'true',
+        DISABLE_REPLIT_DB: 'true',
+        OVERRIDE_DB_PROVIDER: 'neon',
+        NODE_ENV: 'production'
+      }
+    });
+  } catch (error) {
+    console.error('Ошибка при запуске приложения:', error);
+    process.exit(1);
   }
-  log('✅ Production-сервер готов');
-} catch (error) {
-  log(`❌ Ошибка при проверке production-сервера: ${error.message}`);
 }
 
-// 3. Запускаем сборку проекта
-try {
-  log('Запускаем сборку проекта...');
-  execSync(deployConfig.COMMANDS.build, { stdio: 'inherit' });
-  log('✅ Сборка проекта успешно завершена');
-} catch (error) {
-  log(`❌ Ошибка при сборке проекта: ${error.message}`);
-}
-
-// 4. Выполняем миграции базы данных
-try {
-  log('Выполняем миграции базы данных...');
-  
-  // Устанавливаем переменные окружения для миграции
-  Object.entries(deployConfig.ENV_VARIABLES).forEach(([key, value]) => {
-    process.env[key] = value;
-  });
-  
-  execSync(deployConfig.COMMANDS.migrate, { stdio: 'inherit' });
-  log('✅ Миграции базы данных успешно выполнены');
-} catch (error) {
-  log(`❌ Ошибка при выполнении миграций: ${error.message}`);
-}
-
-// 5. Проверяем соединение с базой данных
-try {
-  log('Проверяем соединение с базой данных...');
-  execSync(deployConfig.COMMANDS.checkDb, { stdio: 'inherit' });
-  log('✅ Соединение с базой данных проверено');
-} catch (error) {
-  log(`❌ Ошибка при проверке соединения с базой данных: ${error.message}`);
-}
-
-// 6. Запускаем production-сервер
-try {
-  log('Запускаем production-сервер...');
-  
-  // Для запуска сервера создаем скрипт запуска
-  const startCommand = `NODE_ENV=production PORT=${deployConfig.SERVER_CONFIG.port} DATABASE_PROVIDER=replit node ${deployConfig.PATH_CONFIG.startScript}`;
-  log(`Выполняем команду: ${startCommand}`);
-  
-  // Используем динамический импорт для child_process
-  const childProcess = await import('child_process');
-  const serverProcess = childProcess.exec(startCommand, {
-    stdio: 'inherit',
-    env: { ...process.env, ...deployConfig.ENV_VARIABLES }
-  });
-  
-  serverProcess.on('error', (error) => {
-    log(`❌ Ошибка при запуске сервера: ${error.message}`);
-  });
-  
-  log('✅ Сервер запущен');
-  log('⚠️ При необходимости перезапустите сервер вручную командой:');
-  log(`   ${startCommand}`);
-} catch (error) {
-  log(`❌ Ошибка при запуске сервера: ${error.message}`);
-}
-
-log('Процесс деплоя завершен.');
-log(`
-Итоги деплоя:
-- Сервер запущен на порту ${deployConfig.SERVER_CONFIG.port}
-- База данных: ${deployConfig.DATABASE_CONFIG.url}
-- Используется файл ${deployConfig.PATH_CONFIG.productionServer}
-- Окружение: ${deployConfig.ENV_VARIABLES.NODE_ENV}
-
-Приложение доступно по адресу: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co
-`);
+// Запускаем приложение
+main().catch(error => {
+  console.error('Критическая ошибка:', error);
+  process.exit(1);
+});
