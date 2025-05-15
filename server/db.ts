@@ -28,6 +28,12 @@ let pool: Pool = new Pool({
   connectionTimeoutMillis: 8000, // время ожидания при подключении нового клиента
 });
 
+// Отключаем поиск PostgreSQL через Unix socket для работы в Replit
+process.env.PGSSLMODE = 'prefer';
+process.env.PGHOST = process.env.PGHOST || 'default';
+process.env.PGSOCKET = '';
+process.env.PGCONNECT_TIMEOUT = '10';
+
 console.log('[DB-NEON] Соединение с Neon DB инициализировано');
 
 // Устанавливаем обработчики событий для пула соединений

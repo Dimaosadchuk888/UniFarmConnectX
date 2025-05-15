@@ -239,9 +239,15 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   }
 
   // В Replit при деплое необходимо слушать порт, указанный в переменной окружения PORT
-  // или использовать порт 5000 для обеспечения совместимости с настройками Replit
-  const port = parseInt(process.env.PORT || "5000", 10);
+  // или использовать порт 80 для обеспечения совместимости с настройками Replit
+  const port = parseInt(process.env.PORT || "80", 10);
   console.log(`[Server] Starting on port ${port} in ${process.env.NODE_ENV || 'development'} mode`);
+  
+  // Отключаем поиск PostgreSQL через Unix socket для работы в Replit
+  process.env.PGSSLMODE = 'prefer';
+  process.env.PGHOST = process.env.PGHOST || 'default';
+  process.env.PGSOCKET = '';
+  process.env.PGCONNECT_TIMEOUT = '10';
   
   // Для быстрого запуска сервера, переносим "тяжелые" операции в отдельные асинхронные процессы
   // Эти задачи будут выполняться после открытия порта
@@ -280,6 +286,19 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
       }
     }, 100); // Небольшая задержка для приоритета открытия порта
   }
+  
+  // Добавляем обработчик catch-all для health check
+  app.use('*', (req: Request, res: Response) => {
+    // Проверяем, является ли запрос с корневого пути
+    if (req.originalUrl === '/' || req.originalUrl === '') {
+      return res.status(200).json({ status: 'ok', message: 'UniFarm API server is running' });
+    }
+    // Иначе статус 404
+    return res.status(404).json({ status: 'error', message: 'Not found' });
+  });
+  
+  // Централизованный обработчик ошибок
+  app.use(errorHandler);
   
   // Запускаем сервер
   server.listen(port, "0.0.0.0", () => {

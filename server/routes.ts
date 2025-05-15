@@ -68,6 +68,23 @@ import { telegramInitDataLogger } from './middleware/telegramInitDataLogger';
 import { errorHandler } from './middleware/errorHandler';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Добавляем маршрут для health check, необходимый для деплоя Replit
+  const rootPath = path.join(process.cwd(), 'server', 'public', 'health.html');
+  
+  app.get('/', (req: Request, res: Response) => {
+    if (req.accepts('html')) {
+      return res.sendFile(rootPath);
+    }
+    return res.status(200).json({ status: 'ok', message: 'UniFarm API server is running' });
+  });
+
+  app.get('/health', (req: Request, res: Response) => {
+    if (req.accepts('html')) {
+      return res.sendFile(rootPath);
+    }
+    return res.status(200).json({ status: 'ok', message: 'Health check passed' });
+  });
+
   // Обслуживание статических файлов из папки public
   // Это важно для тестовых HTML-файлов  
   const projectRoot = process.cwd(); 
