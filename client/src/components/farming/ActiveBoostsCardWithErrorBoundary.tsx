@@ -1,7 +1,4 @@
 import React from 'react';
-import QueryErrorBoundary from '@/components/common/QueryErrorBoundary';
-import ActiveBoostsCard from './ActiveBoostsCard';
-import { useUser } from '@/contexts/userContext';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface ActiveBoostsCardWithErrorBoundaryProps {
@@ -9,30 +6,13 @@ interface ActiveBoostsCardWithErrorBoundaryProps {
 }
 
 /**
- * Компонент, оборачивающий ActiveBoostsCard в ErrorBoundary
- * для обеспечения устойчивости к ошибкам
+ * Пустой компонент, который заменил ActiveBoostsCard для UNI Farming
+ * Мы полностью скрыли блок "Активные Boost-пакеты" в UNI Farming
+ * согласно требованиям заказчика
  */
-const ActiveBoostsCardWithErrorBoundary: React.FC<ActiveBoostsCardWithErrorBoundaryProps> = ({ userId }) => {
-  const queryClient = useQueryClient();
-  
-  // Обработчик сброса состояния ошибки и инвалидации данных
-  const handleReset = () => {
-    queryClient.invalidateQueries({ 
-      queryKey: ['/api/user-boosts', userId] 
-    });
-  };
-  
-  return (
-    <QueryErrorBoundary
-      onReset={handleReset}
-      queryKey={['/api/user-boosts', userId]}
-      errorTitle="Ошибка загрузки активных бустов"
-      errorDescription="Не удалось загрузить информацию о ваших активных бустах. Пожалуйста, обновите страницу или повторите позже."
-      resetButtonText="Обновить данные"
-    >
-      <ActiveBoostsCard userId={userId} />
-    </QueryErrorBoundary>
-  );
+const ActiveBoostsCardWithErrorBoundary: React.FC<ActiveBoostsCardWithErrorBoundaryProps> = () => {
+  // Возвращаем null, чтобы компонент не отображался вообще
+  return null;
 };
 
 export default ActiveBoostsCardWithErrorBoundary;
