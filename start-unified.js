@@ -1,13 +1,13 @@
 /**
  * Unified startup script for UniFarm (Remix)
  * - Forces Neon DB usage
- * - Verifies and maintains partitioning
+ * - Suitable for deployment
  */
 
 import { spawn } from 'child_process';
-import { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { promises as fs } from 'fs';
+import { dirname } from 'path';
+import fs from 'fs';
 
 // Set environment variables to force Neon DB usage
 process.env.DATABASE_PROVIDER = 'neon';
@@ -57,22 +57,40 @@ async function main() {
   console.log('===================================================');
   
   try {
-    // In production, we need to run the built application
-    const startCommand = 'node server/index.js';
-    console.log(`Starting application with command: ${startCommand}`);
-    console.log('===================================================');
-    
-    const [command, ...args] = startCommand.split(' ');
-    await runProcess(command, args, {
-      env: {
-        ...process.env,
-        DATABASE_PROVIDER: 'neon',
-        FORCE_NEON_DB: 'true',
-        DISABLE_REPLIT_DB: 'true',
-        OVERRIDE_DB_PROVIDER: 'neon',
-        NODE_ENV: 'production'
-      }
-    });
+    // Check if index.js exists in current directory
+    if (fs.existsSync('./dist/index.js')) {
+      console.log('Found dist/index.js, starting application...');
+      
+      const startCommand = 'node dist/index.js';
+      const [command, ...args] = startCommand.split(' ');
+      
+      await runProcess(command, args, {
+        env: {
+          ...process.env,
+          DATABASE_PROVIDER: 'neon',
+          FORCE_NEON_DB: 'true',
+          DISABLE_REPLIT_DB: 'true',
+          OVERRIDE_DB_PROVIDER: 'neon',
+          NODE_ENV: 'production'
+        }
+      });
+    } else {
+      console.log('Starting index.js directly...');
+      // Start the server directly (for development mode)
+      const startCommand = 'node index.js';
+      const [command, ...args] = startCommand.split(' ');
+      
+      await runProcess(command, args, {
+        env: {
+          ...process.env,
+          DATABASE_PROVIDER: 'neon',
+          FORCE_NEON_DB: 'true',
+          DISABLE_REPLIT_DB: 'true',
+          OVERRIDE_DB_PROVIDER: 'neon',
+          NODE_ENV: 'production'
+        }
+      });
+    }
   } catch (error) {
     console.error('Error starting application:', error);
     process.exit(1);
