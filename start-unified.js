@@ -61,6 +61,10 @@ async function main() {
     if (fs.existsSync('./dist/index.js')) {
       console.log('Found dist/index.js, starting application...');
       
+      // Принудительно устанавливаем порт 80 для совместимости с Preview
+      const port = parseInt(process.env.PORT || '80', 10);
+      console.log(`Using port ${port} for application...`);
+      
       const startCommand = 'node dist/index.js';
       const [command, ...args] = startCommand.split(' ');
       
@@ -71,12 +75,18 @@ async function main() {
           FORCE_NEON_DB: 'true',
           DISABLE_REPLIT_DB: 'true',
           OVERRIDE_DB_PROVIDER: 'neon',
-          NODE_ENV: 'production'
+          NODE_ENV: 'production',
+          PORT: port.toString()
         }
       });
     } else {
       console.log('Starting index.js directly...');
       // Start the server directly (for development mode)
+      
+      // Принудительно устанавливаем порт 80 для совместимости с Preview
+      const port = parseInt(process.env.PORT || '80', 10);
+      console.log(`Using port ${port} for application...`);
+      
       const startCommand = 'node index.js';
       const [command, ...args] = startCommand.split(' ');
       
@@ -87,7 +97,8 @@ async function main() {
           FORCE_NEON_DB: 'true',
           DISABLE_REPLIT_DB: 'true',
           OVERRIDE_DB_PROVIDER: 'neon',
-          NODE_ENV: 'production'
+          NODE_ENV: 'production',
+          PORT: port.toString()
         }
       });
     }
