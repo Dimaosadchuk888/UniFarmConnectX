@@ -9,8 +9,15 @@ import { setupProductionStatic } from "./productionStatic";
 // Импортируем middleware для стандартизации API ответов и обработки ошибок
 import { responseFormatter } from "./middleware/responseFormatter";
 import { errorHandler } from "./middleware/errorHandler";
-// Импортируем селектор базы данных и инициализируем подключение к БД Replit
+// Импортируем селектор базы данных и принудительно устанавливаем Neon DB
 import { setDatabaseProvider } from "./db-selector-new";
+
+// Принудительно устанавливаем Neon DB как провайдер базы данных
+// Это переопределит любые настройки из файлов окружения
+process.env.DATABASE_PROVIDER = 'neon';
+process.env.FORCE_NEON_DB = 'true';
+process.env.DISABLE_REPLIT_DB = 'true';
+process.env.OVERRIDE_DB_PROVIDER = 'neon';
 
 const app = express();
 app.use(express.json());
