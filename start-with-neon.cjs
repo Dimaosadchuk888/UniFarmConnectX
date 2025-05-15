@@ -1,20 +1,17 @@
 /**
- * Скрипт для запуска приложения с принудительным использованием Neon DB
+ * Скрипт запуска для UniFarm с принудительным использованием Neon DB
  * 
- * Устанавливает все необходимые переменные окружения и запускает сервер
- * напрямую в режиме index.ts, а не из собранной версии
+ * Этот скрипт запускает приложение с настройками для использования Neon DB:
+ * 1. Устанавливает принудительные флаги для Neon DB
+ * 2. Загружает переменные из .env.neon
+ * 3. Запускает приложение
  */
 
-import { spawn } from 'child_process';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import dotenv from 'dotenv';
-
-// Получаем текущую директорию
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Модули для работы с процессами, файлами и путями
+const { execSync, spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const dotenv = require('dotenv');
 
 // Цвета для вывода в консоль
 const colors = {
@@ -36,13 +33,20 @@ function log(message, color = colors.reset) {
 }
 
 /**
- * Загрузка переменных окружения из Neon DB
+ * Загрузка переменных окружения для Neon DB
  */
 function loadNeonEnvironment() {
   log(`\n${colors.blue}=== Загрузка переменных окружения для Neon DB ===${colors.reset}`);
   
+  // Принудительно устанавливаем настройки для Neon DB
+  process.env.FORCE_NEON_DB = 'true';
+  process.env.DATABASE_PROVIDER = 'neon';
+  process.env.DISABLE_REPLIT_DB = 'true';
+  process.env.USE_LOCAL_DB_ONLY = 'false';
+  process.env.NODE_ENV = 'production';
+  
   // Загружаем настройки из .env.neon, если он существует
-  const neonEnvPath = path.join(__dirname, '.env.neon');
+  const neonEnvPath = path.join(process.cwd(), '.env.neon');
   if (fs.existsSync(neonEnvPath)) {
     log(`📝 Загрузка переменных из .env.neon...`, colors.blue);
     const envConfig = dotenv.parse(fs.readFileSync(neonEnvPath));
@@ -58,14 +62,6 @@ function loadNeonEnvironment() {
     log(`⚠️ Создайте файл .env.neon с настройками подключения к Neon DB`, colors.yellow);
     return false;
   }
-  
-  // Принудительно устанавливаем настройки для Neon DB
-  process.env.FORCE_NEON_DB = 'true';
-  process.env.DATABASE_PROVIDER = 'neon';
-  process.env.DISABLE_REPLIT_DB = 'true';
-  process.env.USE_LOCAL_DB_ONLY = 'false';
-  process.env.NODE_ENV = 'production';
-  process.env.OVERRIDE_DB_PROVIDER = 'neon';
   
   // Проверяем, что у нас есть DATABASE_URL для Neon DB
   if (!process.env.DATABASE_URL) {
@@ -85,20 +81,64 @@ function loadNeonEnvironment() {
   log(`✅ DATABASE_PROVIDER = ${process.env.DATABASE_PROVIDER}`, colors.green);
   log(`✅ FORCE_NEON_DB = ${process.env.FORCE_NEON_DB}`, colors.green);
   log(`✅ NODE_ENV = ${process.env.NODE_ENV}`, colors.green);
-  log(`✅ URL содержит neon.tech, это корректный URL для Neon DB`, colors.green);
   
-  return true;
+  // Пробуем протестировать соединение с Neon DB
+  try {
+    log(`🔍 Тестирование соединения с Neon DB...`, colors.blue);
+    
+    // Загружаем код для проверки соединения напрямую
+    // Это более надежно, чем пытаться использовать непосредственно модули проекта
+    const checkNeonCode = `
+      const { Pool } = require('pg');
+      
+      async function testConnection() {
+        const pool = new Pool({ 
+          connectionString: process.env.DATABASE_URL,
+          ssl: { rejectUnauthorized: false }
+        });
+        
+        try {
+          const result = await pool.query('SELECT NOW() as time');
+          console.log('✅ Соединение с Neon DB успешно установлено');
+          console.log(\`✅ Время на сервере: \${result.rows[0].time}\`);
+          await pool.end();
+          return true;
+        } catch (error) {
+          console.error('❌ Ошибка соединения с Neon DB:', error.message);
+          return false;
+        }
+      }
+      
+      testConnection();
+    `;
+    
+    // Записываем временный файл
+    const tempCheckPath = path.join(process.cwd(), 'temp-neon-check.cjs');
+    fs.writeFileSync(tempCheckPath, checkNeonCode);
+    
+    // Выполняем проверку
+    execSync(`node ${tempCheckPath}`, { stdio: 'inherit' });
+    
+    // Удаляем временный файл
+    fs.unlinkSync(tempCheckPath);
+    
+    return true;
+  } catch (error) {
+    log(`⚠️ Тест соединения не выполнен: ${error.message}`, colors.yellow);
+    log(`⚠️ Проверьте настройки подключения к Neon DB`, colors.yellow);
+    return true; // Продолжаем несмотря на ошибку теста
+  }
 }
 
 /**
- * Запуск сервера приложения напрямую через tsx
+ * Запуск сервера приложения
  */
 function startServer() {
   log(`\n${colors.blue}=== Запуск сервера приложения с Neon DB ===${colors.reset}`);
   log(`🚀 Запуск сервера на порту ${process.env.PORT || '3000'}...`, colors.magenta);
   
-  // Запускаем сервер напрямую через tsx, минуя build
-  const serverProcess = spawn('tsx', ['server/index.ts'], {
+  // Запускаем через npm run start (production режим)
+  const serverProcess = spawn('npm', ['run', 'start'], {
     stdio: 'inherit',
     env: process.env
   });
@@ -131,7 +171,7 @@ function startServer() {
 /**
  * Основная функция
  */
-function main() {
+async function main() {
   // Заголовок
   log(`\n${colors.magenta}====================================${colors.reset}`);
   log(`${colors.magenta}= ЗАПУСК UNIFARM С NEON DB (FORCED) =${colors.reset}`);
@@ -148,4 +188,8 @@ function main() {
 }
 
 // Запуск основной функции
-main();
+main().catch(error => {
+  log(`\n❌ Критическая ошибка: ${error.message}`, colors.red);
+  console.error(error);
+  process.exit(1);
+});
