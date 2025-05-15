@@ -5,6 +5,9 @@
  * Внимание: В этом режиме используется ТОЛЬКО Neon DB, независимо от настроек среды
  */
 
+// Фикс для обеспечения подключения к Neon DB в любой среде
+import '../db-connect-fix.js';
+
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '../shared/schema';

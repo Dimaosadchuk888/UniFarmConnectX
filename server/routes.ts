@@ -40,6 +40,7 @@ import * as ReferralSystemController from './controllers/referralSystemControlle
 // Импорт обработчика команд для Telegram-бота
 import * as telegramBot from './telegramBot';
 import { TelegramController } from './controllers/telegramController'; // Новый TypeScript контроллер для Telegram
+import * as DbStatusController from './api/admin/db-status'; // Контроллер для проверки статуса базы данных
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { NewUniFarmingController } from './controllers/newUniFarmingController'; // Основной контроллер для UNI фарминга
 import { BoostController } from './controllers/boostController';

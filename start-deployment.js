@@ -14,17 +14,13 @@ import { createRequire } from 'module';
 // Create a require function for ES modules
 const require = createRequire(import.meta.url);
 
-// ПРИНУДИТЕЛЬНО устанавливаем переменные окружения для Neon DB с наивысшим приоритетом
-process.env.DATABASE_PROVIDER = 'neon';
-process.env.FORCE_NEON_DB = 'true';
-process.env.DISABLE_REPLIT_DB = 'true';
-process.env.OVERRIDE_DB_PROVIDER = 'neon'; 
+// Подключаем фикс для базы данных
+import './db-connect-fix.js';
+
+// ПРИНУДИТЕЛЬНО устанавливаем дополнительные переменные окружения
 process.env.NODE_ENV = 'production';
 process.env.SKIP_PARTITION_CREATION = 'true';
 process.env.IGNORE_PARTITION_ERRORS = 'true';
-process.env.PGSSLMODE = 'prefer';
-process.env.PGSOCKET = '';
-process.env.PGCONNECT_TIMEOUT = '10';
 
 // Проверяем, установлена ли DATABASE_URL
 if (!process.env.DATABASE_URL) {
