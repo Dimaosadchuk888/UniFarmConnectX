@@ -58,8 +58,8 @@ const determineProvider = (): DatabaseProvider => {
     return 'neon';
   }
   
-  // Используем указанный провайдер или по умолчанию Neon для продакшена, Replit для разработки
-  const defaultProvider = isProduction ? 'neon' : 'replit';
+  // Используем указанный провайдер или по умолчанию всегда Neon DB
+  const defaultProvider = 'neon'; // Всегда используем Neon DB по умолчанию
   const provider = (process.env.DATABASE_PROVIDER as DatabaseProvider) || defaultProvider;
   console.log(`[DB-Selector] Используем указанный провайдер: ${provider}`);
   return provider;
