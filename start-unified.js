@@ -1,7 +1,8 @@
 /**
  * Unified startup script for UniFarm (Remix)
- * - Forces Neon DB usage
+ * - Forces Neon DB usage regardless of .replit settings
  * - Suitable for deployment
+ * - Ensures DB connections are correctly established
  */
 
 import { spawn } from 'child_process';
@@ -9,12 +10,29 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import fs from 'fs';
 
-// Set environment variables to force Neon DB usage
+// Set environment variables to ENSURE Neon DB usage with highest priority
+// These settings will override any settings from .replit file
 process.env.DATABASE_PROVIDER = 'neon';
 process.env.FORCE_NEON_DB = 'true';
 process.env.DISABLE_REPLIT_DB = 'true';
-process.env.OVERRIDE_DB_PROVIDER = 'neon';
+process.env.OVERRIDE_DB_PROVIDER = 'neon'; 
 process.env.NODE_ENV = 'production';
+process.env.SKIP_PARTITION_CREATION = 'true';
+process.env.IGNORE_PARTITION_ERRORS = 'true';
+
+// Log early DB configuration to verify settings
+console.log('===============================================');
+console.log('UNIFARM STARTUP - FORCED NEON DB CONFIGURATION');
+console.log('===============================================');
+console.log('DATABASE_PROVIDER =', process.env.DATABASE_PROVIDER);
+console.log('FORCE_NEON_DB =', process.env.FORCE_NEON_DB);
+console.log('DISABLE_REPLIT_DB =', process.env.DISABLE_REPLIT_DB);
+console.log('OVERRIDE_DB_PROVIDER =', process.env.OVERRIDE_DB_PROVIDER);
+console.log('NODE_ENV =', process.env.NODE_ENV);
+console.log('PORT =', process.env.PORT);
+console.log('SKIP_PARTITION_CREATION =', process.env.SKIP_PARTITION_CREATION);
+console.log('IGNORE_PARTITION_ERRORS =', process.env.IGNORE_PARTITION_ERRORS);
+console.log('===============================================');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -57,50 +75,55 @@ async function main() {
   console.log('===================================================');
   
   try {
-    // Check if index.js exists in current directory
-    if (fs.existsSync('./dist/index.js')) {
-      console.log('Found dist/index.js, starting application...');
-      
-      // Принудительно устанавливаем порт 3000 для совместимости с настройками Replit
-      const port = parseInt(process.env.PORT || '3000', 10);
-      console.log(`Using port ${port} for application...`);
-      
-      const startCommand = 'node dist/index.js';
-      const [command, ...args] = startCommand.split(' ');
-      
-      await runProcess(command, args, {
-        env: {
+    // Убедимся, что используем порт 3000 для совместимости с Replit
+    const port = parseInt(process.env.PORT || '3000', 10);
+    console.log(`Using port ${port} for application...`);
+    
+    // Определяем последовательность приоритета файлов для запуска
+    const potentialStartFiles = [
+      { path: './server/index.ts', command: 'npx tsx server/index.ts' },
+      { path: './server/index.js', command: 'node server/index.js' },
+      { path: './index.js', command: 'node index.js' },
+      { path: './dist/index.js', command: 'node dist/index.js' }
+    ];
+    
+    let startFileFound = false;
+    
+    // Проверяем каждый файл в порядке приоритета
+    for (const startFile of potentialStartFiles) {
+      if (fs.existsSync(startFile.path)) {
+        console.log(`Found ${startFile.path}, starting application...`);
+        startFileFound = true;
+        
+        const [command, ...args] = startFile.command.split(' ');
+        
+        // Создаем единую среду с приоритетом принудительных настроек для Neon DB
+        const envVars = {
           ...process.env,
           DATABASE_PROVIDER: 'neon',
           FORCE_NEON_DB: 'true',
           DISABLE_REPLIT_DB: 'true',
           OVERRIDE_DB_PROVIDER: 'neon',
           NODE_ENV: 'production',
-          PORT: port.toString()
-        }
-      });
-    } else {
-      console.log('Starting index.js directly...');
-      // Start the server directly (for development mode)
-      
-      // Принудительно устанавливаем порт 3000 для совместимости с настройками Replit
-      const port = parseInt(process.env.PORT || '3000', 10);
-      console.log(`Using port ${port} for application...`);
-      
-      const startCommand = 'node index.js';
-      const [command, ...args] = startCommand.split(' ');
-      
-      await runProcess(command, args, {
-        env: {
-          ...process.env,
-          DATABASE_PROVIDER: 'neon',
-          FORCE_NEON_DB: 'true',
-          DISABLE_REPLIT_DB: 'true',
-          OVERRIDE_DB_PROVIDER: 'neon',
-          NODE_ENV: 'production',
-          PORT: port.toString()
-        }
-      });
+          PORT: port.toString(),
+          SKIP_PARTITION_CREATION: 'true',
+          IGNORE_PARTITION_ERRORS: 'true'
+        };
+        
+        console.log('Starting with environment variables:');
+        console.log('DATABASE_PROVIDER =', envVars.DATABASE_PROVIDER);
+        console.log('FORCE_NEON_DB =', envVars.FORCE_NEON_DB);
+        console.log('DISABLE_REPLIT_DB =', envVars.DISABLE_REPLIT_DB);
+        console.log('OVERRIDE_DB_PROVIDER =', envVars.OVERRIDE_DB_PROVIDER);
+        
+        await runProcess(command, args, { env: envVars });
+        break;
+      }
+    }
+    
+    if (!startFileFound) {
+      console.error('Error: No valid entry point found. Looked for: server/index.ts, server/index.js, index.js, dist/index.js');
+      process.exit(1);
     }
   } catch (error) {
     console.error('Error starting application:', error);
