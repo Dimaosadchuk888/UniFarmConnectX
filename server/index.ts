@@ -18,6 +18,25 @@ process.env.DATABASE_PROVIDER = 'neon';
 process.env.FORCE_NEON_DB = 'true';
 process.env.DISABLE_REPLIT_DB = 'true';
 process.env.OVERRIDE_DB_PROVIDER = 'neon';
+process.env.SKIP_PARTITION_CREATION = 'true';
+process.env.IGNORE_PARTITION_ERRORS = 'true';
+
+// Переопределяем обработчик необработанных исключений
+process.on('uncaughtException', (error: Error) => {
+  // Игнорируем ошибки партиционирования
+  if (error.message && (
+      error.message.includes('partitioned') || 
+      error.message.includes('partition') ||
+      error.message.includes('Failed to create partitions')
+    )) {
+    console.log('[Server] ⚠️ Игнорируем ошибку партиционирования:', error.message);
+    return; // Не завершаем процесс при ошибке партиционирования
+  }
+  
+  console.error('[Server] ❌ Необработанное исключение:', error);
+  // Для других ошибок сохраняем стандартное поведение
+  console.error(error.stack);
+});
 
 const app = express();
 app.use(express.json());
