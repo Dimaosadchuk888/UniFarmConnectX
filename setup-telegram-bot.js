@@ -18,7 +18,7 @@ config();
 // Конфигурация
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const API_BASE = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const APP_URL = 'https://uni-farm-connect-2-misterxuniverse.replit.app';
+const APP_URL = 'https://uni-farm-connect-2-osadchukdmitro2.replit.app';
 const WEBHOOK_PATH = '/api/telegram/webhook';
 const WEBHOOK_URL = `${APP_URL}${WEBHOOK_PATH}`;
 const APP_NAME = 'UniFarm';
