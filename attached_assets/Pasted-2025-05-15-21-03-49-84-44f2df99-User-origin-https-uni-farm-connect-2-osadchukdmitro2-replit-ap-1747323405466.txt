@@ -1,0 +1,100 @@
+2025-05-15 21:03:49.84
+44f2df99
+User
+"origin": "https://uni-farm-connect-2-osadchukdmitro2.replit.app",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"referer": "https://uni-farm-connect-2-osadchukdmitro2.replit.app/friends",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"sec-fetch-dest": "empty",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"sec-fetch-mode": "cors",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"sec-fetch-site": "same-origin",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"server-timing": "depproxy;dur=1747317829827, pid1req;dur=1747317829844",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"traceparent": "00-320c6b0cf18db81e16af855a67e8205f-1fe67d89c933aaa8-01",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"via": "1.1 google",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-cloud-trace-context": "320c6b0cf18db81e16af855a67e8205f/2298662690558814888;o=1",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-forwarded-for": "171.4.42.33, 34.117.33.233, 35.191.97.183,34.69.33.25",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-forwarded-host": "uni-farm-connect-2-osadchukdmitro2.replit.app",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-forwarded-proto": "https",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-replit-user-bio": "",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-replit-user-id": "",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-replit-user-name": "",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-replit-user-profile-image": "",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-replit-user-roles": "",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-replit-user-teams": "",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"x-replit-user-url": ""
+2025-05-15 21:03:49.84
+44f2df99
+User
+}
+2025-05-15 21:03:49.84
+44f2df99
+User
+[АУДИТ] [2025-05-15T14:03:49.845Z] Request to POST /api/session/restore
+2025-05-15 21:03:49.84
+44f2df99
+User
+[АУДИТ] Headers: {
+2025-05-15 21:03:49.84
+44f2df99
+User
+"host": "uni-farm-connect-2-osadchukdmitro2.replit.app",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+2025-05-15 21:03:49.84
+44f2df99
+User
+"content-length": "51",

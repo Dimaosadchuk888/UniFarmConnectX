@@ -1,8 +1,8 @@
 /**
- * Unified startup script for UniFarm (Remix)
+ * Deployment startup script for UniFarm (Remix)
+ * - ES Module compatible version
  * - Forces Neon DB usage regardless of .replit settings
- * - Suitable for deployment
- * - Ensures DB connections are correctly established
+ * - Suitable for production deployment
  */
 
 import { spawn } from 'child_process';
@@ -11,11 +11,10 @@ import { dirname } from 'path';
 import fs from 'fs';
 import { createRequire } from 'module';
 
-// Создаем require функцию, которая может использоваться внутри ES модуля
+// Create a require function for ES modules
 const require = createRequire(import.meta.url);
 
 // Set environment variables to ENSURE Neon DB usage with highest priority
-// These settings will override any settings from .replit file
 process.env.DATABASE_PROVIDER = 'neon';
 process.env.FORCE_NEON_DB = 'true';
 process.env.DISABLE_REPLIT_DB = 'true';
@@ -26,7 +25,7 @@ process.env.IGNORE_PARTITION_ERRORS = 'true';
 
 // Log early DB configuration to verify settings
 console.log('===============================================');
-console.log('UNIFARM STARTUP - FORCED NEON DB CONFIGURATION');
+console.log('UNIFARM DEPLOYMENT - FORCED NEON DB CONFIGURATION');
 console.log('===============================================');
 console.log('DATABASE_PROVIDER =', process.env.DATABASE_PROVIDER);
 console.log('FORCE_NEON_DB =', process.env.FORCE_NEON_DB);
@@ -79,11 +78,11 @@ async function main() {
   console.log('===================================================');
   
   try {
-    // Убедимся, что используем порт 3000 для совместимости с Replit
+    // Use port 3000 for compatibility with Replit
     const port = parseInt(process.env.PORT || '3000', 10);
     console.log(`Using port ${port} for application...`);
     
-    // Определяем последовательность приоритета файлов для запуска
+    // Define startup file priority sequence
     const potentialStartFiles = [
       { path: './server/index.ts', command: 'npx tsx server/index.ts' },
       { path: './server/index.js', command: 'node server/index.js' },
@@ -93,7 +92,7 @@ async function main() {
     
     let startFileFound = false;
     
-    // Проверяем каждый файл в порядке приоритета
+    // Check each file in priority order
     for (const startFile of potentialStartFiles) {
       if (fs.existsSync(startFile.path)) {
         console.log(`Found ${startFile.path}, starting application...`);
@@ -101,7 +100,7 @@ async function main() {
         
         const [command, ...args] = startFile.command.split(' ');
         
-        // Создаем единую среду с приоритетом принудительных настроек для Neon DB
+        // Create unified environment with forced Neon DB settings
         const envVars = {
           ...process.env,
           DATABASE_PROVIDER: 'neon',
