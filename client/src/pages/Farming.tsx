@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UniFarmingCardWithErrorBoundary from '../components/farming/UniFarmingCardWithErrorBoundary';
 import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPackagesCardWithErrorBoundary';
-import ActiveBoostsCardWithErrorBoundary from '../components/farming/ActiveBoostsCardWithErrorBoundary';
 import TonBoostPackagesCardWithErrorBoundary from '../components/ton-boost/TonBoostPackagesCardWithErrorBoundary';
 import TonFarmingStatusCardWithErrorBoundary from '../components/ton-boost/TonFarmingStatusCardWithErrorBoundary';
 import ActiveTonBoostsCardWithErrorBoundary from '../components/ton-boost/ActiveTonBoostsCardWithErrorBoundary';
@@ -36,9 +35,6 @@ const Farming: React.FC = () => {
           
           {/* UNI Boost Пакеты */}
           <BoostPackagesCardWithErrorBoundary userData={userData} />
-          
-          {/* Активные Boost-пакеты */}
-          <ActiveBoostsCardWithErrorBoundary userId={userId} />
         </TabsContent>
         
         <TabsContent value="ton">
