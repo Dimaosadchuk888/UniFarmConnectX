@@ -88,73 +88,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   app.get('/', (req: Request, res: Response) => {
-    console.log('[Root Route] Запрос к корневому URL - возвращаем health.html');
+    console.log('[Root Route] Запрос к корневому URL - возвращаем приложение');
     
-    if (healthHtmlPath) {
+    // Определяем возможные пути к index.html в разных режимах работы
+    const possiblePaths = [
+      path.join(projectRoot, 'dist', 'public', 'index.html'),   // режим production (после сборки)
+      path.join(projectRoot, 'client', 'dist', 'index.html'),   // режим разработки
+      path.join(projectRoot, 'client', 'public', 'index.html'), // публичная версия клиента
+      path.join(projectRoot, 'client', 'index.html'),         // клиентский исходник
+      path.join(projectRoot, 'server', 'public', 'index.html'), // серверная публичная версия
+    ];
+    
+    // Ищем существующий файл среди возможных путей
+    const indexHtmlPath = possiblePaths.find(p => fs.existsSync(p));
+    
+    if (indexHtmlPath) {
+      // Отправляем найденный index.html
+      console.log(`[Root Route] Используем файл: ${indexHtmlPath}`);
       // Добавляем заголовки против кеширования
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
-      return res.sendFile(healthHtmlPath);
+      return res.sendFile(indexHtmlPath);
     } else {
-      // Возвращаем базовый HTML, если файл не найден
-      return res.status(200).send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>UniFarm Health Check</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    height: 100vh;
-                    margin: 0;
-                    background-color: #f0f0f0;
-                }
-                .container {
-                    text-align: center;
-                    padding: 40px;
-                    background-color: white;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-                    max-width: 500px;
-                }
-                h1 {
-                    color: #4CAF50;
-                }
-                .status {
-                    font-size: 18px;
-                    margin: 20px 0;
-                }
-                .success {
-                    color: #4CAF50;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>UniFarm API Server</h1>
-                <div class="status">
-                    Status: <span class="success">Online</span>
-                </div>
-                <p>The UniFarm API server is running correctly. This is a health check page.</p>
-                <p>Server Time: <span id="serverTime"></span></p>
-            </div>
-            <script>
-                function updateTime() {
-                    document.getElementById('serverTime').textContent = new Date().toLocaleString();
-                }
-                updateTime();
-                setInterval(updateTime, 1000);
-            </script>
-        </body>
-        </html>
-      `);
+      console.log('[Root Route] Файл index.html не найден, возвращаем health.html');
+      // Если index.html не найден, отдаем health.html как запасной вариант
+      if (healthHtmlPath) {
+        return res.sendFile(healthHtmlPath);
+      } else {
+        // Возвращаем базовый HTML, если файл не найден
+        return res.status(200).send(`
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>UniFarm Health Check</title>
+              <style>
+                  body {
+                      font-family: Arial, sans-serif;
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                      height: 100vh;
+                      margin: 0;
+                      background-color: #f0f0f0;
+                  }
+                  .container {
+                      text-align: center;
+                      padding: 40px;
+                      background-color: white;
+                      border-radius: 8px;
+                      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                      max-width: 500px;
+                  }
+                  h1 {
+                      color: #4CAF50;
+                  }
+                  .status {
+                      font-size: 18px;
+                      margin: 20px 0;
+                  }
+                  .success {
+                      color: #4CAF50;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>UniFarm API Server</h1>
+                  <div class="status">
+                      Status: <span class="success">Online</span>
+                  </div>
+                  <p>The UniFarm API server is running correctly. This is a health check page.</p>
+                  <p>Server Time: <span id="serverTime"></span></p>
+              </div>
+              <script>
+                  function updateTime() {
+                      document.getElementById('serverTime').textContent = new Date().toLocaleString();
+                  }
+                  updateTime();
+                  setInterval(updateTime, 1000);
+              </script>
+          </body>
+          </html>
+        `);
+      }
     }
   });
 
