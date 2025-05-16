@@ -1,26 +1,15 @@
 #!/bin/bash
 
-# Унифицированный скрипт для запуска приложения с принудительным использованием Neon DB
-# Соответствует требованиям ТЗ по деплою в Replit
-
-# Устанавливаем переменные окружения согласно ТЗ
-export DATABASE_PROVIDER=neon
+# Set environment variables for Neon DB
 export FORCE_NEON_DB=true
 export DISABLE_REPLIT_DB=true
 export OVERRIDE_DB_PROVIDER=neon
-export NODE_ENV=production
-export PORT=3000
-export SKIP_PARTITION_CREATION=true
-export IGNORE_PARTITION_ERRORS=true
+export PGSSLMODE=require
 
-# Проверяем наличие health.html в dist/public
-if [ ! -f "dist/public/health.html" ]; then
-  echo "❌ Файл health.html не найден в dist/public, копируем из server/public"
-  mkdir -p dist/public
-  cp server/public/health.html dist/public/ 2>/dev/null || echo "⚠️ Ошибка при копировании health.html"
-fi
+# Output startup message
+echo "🔄 Starting UniFarm with Neon DB configuration..."
+echo "✓ SSL Mode: require"
+echo "✓ Database Provider: Neon DB (forced)"
 
-# Запускаем приложение с корректными настройками
-echo "🚀 Запуск UniFarm с принудительным использованием Neon DB на порту $PORT"
-# Используем непосредственно собранный файл для обеспечения стабильности
-node dist/index.js
+# Start the server using tsx (TypeScript execution)
+NODE_ENV=development tsx server/index.ts

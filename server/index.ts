@@ -1,6 +1,10 @@
-// Сначала подключаем модуль db-connect-fix для отключения Unix socket
-// ВАЖНО: импорт должен быть первым
-import '../db-connect-fix.js';
+// Импортируем улучшенный модуль подключения к базе данных
+// Важно: мы проверим соединение с БД перед запуском сервера
+import { testDatabaseConnection, db, queryWithRetry } from './db-connect';
+import { databaseErrorHandler } from './middleware/databaseErrorHandler';
+
+// Устанавливаем переменные окружения для SSL
+process.env.PGSSLMODE = 'require';
 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
@@ -44,6 +48,9 @@ process.on('uncaughtException', (error: Error) => {
 
 const app = express();
 app.use(express.json());
+
+// Регистрируем middleware для проверки подключения к БД
+app.use(databaseErrorHandler);
 app.use(express.urlencoded({ extended: false }));
 // Регистрируем middleware для стандартизации ответов API
 app.use(responseFormatter as any);
@@ -79,6 +86,39 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
 }) as any);
 
 (async () => {
+  console.log('[Server] 🔄 Запуск сервера...');
+  
+  // Проверяем подключение к базе данных перед запуском сервера
+  console.log('[Server] 🔄 Проверка подключения к базе данных...');
+  const isDbConnected = await testDatabaseConnection();
+  
+  if (!isDbConnected) {
+    console.error('[Server] ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных!');
+    console.error('[Server] 🔄 Попытка переподключения...');
+    
+    // Пробуем повторно подключиться с ожиданием
+    const reconnected = await new Promise<boolean>(resolve => {
+      setTimeout(async () => {
+        try {
+          const result = await testDatabaseConnection();
+          resolve(result);
+        } catch (error) {
+          console.error('[Server] ❌ Ошибка при повторном подключении:', error);
+          resolve(false);
+        }
+      }, 3000);
+    });
+    
+    if (!reconnected) {
+      console.error('[Server] ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных после повторных попыток!');
+      console.error('[Server] ⚠️ Сервер продолжит запуск, но возможны ошибки в работе API!');
+    } else {
+      console.log('[Server] ✅ Подключение к базе данных восстановлено');
+    }
+  } else {
+    console.log('[Server] ✅ Подключение к базе данных успешно установлено');
+  }
+  
   /**
    * Проверяем и применяем настройки базы данных.
    * Приоритеты выбора провайдера:
@@ -207,10 +247,22 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
 
   // Добавление обработчика для Telegram WebApp параметров
   app.use(((req: Request, res: Response, next: NextFunction) => {
-    // Добавляем специальные заголовки для корректной работы в Telegram Mini App
-    res.header("Access-Control-Allow-Origin", "*");
+    // Получаем источник запроса
+    const origin = req.headers.origin || '*';
+    
+    // Добавляем специальные заголовки для корректной работы в Telegram Mini App с поддержкой cookies
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-telegram-data, x-telegram-user-id");
+    
     // Модифицированная политика безопасности для Telegram
     res.header("Content-Security-Policy", "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'");
+    
+    // Для запросов OPTIONS возвращаем 200 OK
+    if (req.method === 'OPTIONS') {
+      return res.status(200).send();
+    }
     
     // Логирование параметров Telegram
     const telegramParams = ['tgWebAppData', 'tgWebAppVersion', 'tgWebAppPlatform', 'tgWebAppStartParam']
@@ -289,17 +341,17 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   }
   
   // Добавляем обработчик catch-all для health check
-  app.use('*', (req: Request, res: Response) => {
+  app.use('*', ((req: Request, res: Response) => {
     // Проверяем, является ли запрос с корневого пути
     if (req.originalUrl === '/' || req.originalUrl === '') {
       return res.status(200).json({ status: 'ok', message: 'UniFarm API server is running' });
     }
     // Иначе статус 404
     return res.status(404).json({ status: 'error', message: 'Not found' });
-  });
+  }) as any);
   
   // Централизованный обработчик ошибок
-  app.use(errorHandler);
+  app.use(((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next)) as any);
   
   // Запускаем сервер
   server.listen(port, "0.0.0.0", () => {

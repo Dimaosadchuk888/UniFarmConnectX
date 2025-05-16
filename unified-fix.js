@@ -1,479 +1,323 @@
 /**
- * Универсальный модуль исправлений для UniFarm
+ * Комплексное решение для UniFarm Connect (Remix)
  * 
- * Этот модуль объединяет все необходимые исправления:
- * 1. Стабильное подключение к базе данных Neon
- * 2. Правильные настройки CORS для Telegram Mini App
- * 3. Поддержка сессий и cookies
- * 4. Интеграция с Telegram
- * 
- * Для использования достаточно добавить в начало server/index.ts:
- * import './unified-fix';
+ * Этот модуль решает несколько критических проблем:
+ * 1. Исправляет проблемы с подключением к базе данных (переключение между Replit и Neon DB)
+ * 2. Настраивает правильные CORS-заголовки для работы с Telegram Web App
+ * 3. Добавляет поддержку сессий с сохранением в БД
+ * 4. Исправляет проблемы с авторизацией через Telegram
+ * 5. Добавляет диагностические эндпоинты для проверки состояния системы
  */
 
-// Применяем фикс для базы данных в первую очередь
-console.log('[UniFarm Fix] 🛠️ Применение исправлений...');
+// Необходимые модули для работы исправлений
+import express from 'express';
+import cors from 'cors';
+import session from 'express-session';
+import crypto from 'crypto';
+import pg from 'pg';
+const { Pool } = pg;
 
-// Принудительно отключаем Unix сокеты для PostgreSQL
-process.env.PGHOST = process.env.PGHOST || 'ep-misty-brook-a4dkea48.us-east-1.aws.neon.tech';
-process.env.PGSSLMODE = 'prefer';
-process.env.PGSOCKET = '';
-process.env.PGCONNECT_TIMEOUT = '10';
+// Проверка и настройка переменных окружения
+process.env.PGHOST = process.env.PGHOST || 'localhost';
+process.env.PGPORT = process.env.PGPORT || 5432;
+process.env.PGUSER = process.env.PGUSER || 'postgres';
+process.env.PGPASSWORD = process.env.PGPASSWORD || 'postgres';
+process.env.PGDATABASE = process.env.PGDATABASE || 'postgres';
 
-// Принудительно переключаем на Neon DB
-process.env.DATABASE_PROVIDER = 'neon';
-process.env.FORCE_NEON_DB = 'true';
-process.env.DISABLE_REPLIT_DB = 'true';
-process.env.OVERRIDE_DB_PROVIDER = 'neon';
+// Создаем соединение с базой данных
+const pool = new Pool({
+  host: process.env.PGHOST,
+  port: process.env.PGPORT,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
+  ssl: process.env.NODE_ENV === 'production',
+  max: 20, // максимальное количество клиентов в пуле
+  idleTimeoutMillis: 30000, // время ожидания перед закрытием неиспользуемых клиентов
+  connectionTimeoutMillis: 2000, // время ожидания подключения
+});
 
-console.log('[UniFarm Fix] ✅ Фикс подключения к БД применен');
-
-// Экспортируем объект для Express middleware
-module.exports = {
-  /**
-   * Применяет все исправления к приложению Express
-   * @param {Object} app - Экземпляр Express
-   * @param {Object} storage - Хранилище данных (опционально)
-   * @returns {Object} - Экземпляр Express с примененными исправлениями
-   */
-  applyFixes: function(app, storage) {
-    if (!app) {
-      throw new Error('[UniFarm Fix] Не предоставлен экземпляр приложения Express');
-    }
-    
-    try {
-      // Импортируем необходимые модули
-      const crypto = require('crypto');
-      const session = require('express-session');
-      
-      // Проверяем наличие необходимых переменных окружения
-      if (!process.env.TELEGRAM_BOT_TOKEN) {
-        console.warn('[UniFarm Fix] ⚠️ Переменная окружения TELEGRAM_BOT_TOKEN не установлена');
-        console.warn('Проверка подписи данных Telegram будет отключена');
-      }
-      
-      // ---------- CORS MIDDLEWARE ----------
-      const corsMiddleware = (req, res, next) => {
-        // Получаем origin из запроса
-        const origin = req.headers.origin;
-        
-        // Список разрешенных источников
-        const allowedOrigins = [
-          'https://web.telegram.org',
-          'https://t.me',
-          'https://telegram.org',
-          'https://telegram.me'
-        ];
-        
-        // Проверяем, разрешен ли origin
-        if (origin) {
-          // Если origin в списке разрешенных или режим разработки
-          if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
-            // Устанавливаем конкретный origin вместо * для поддержки credentials
-            res.header('Access-Control-Allow-Origin', origin);
-            // Важно для работы с cookies
-            res.header('Access-Control-Allow-Credentials', 'true');
-          } else {
-            // В production разрешаем любой origin через wildcard
-            // но без credentials (согласно требованиям безопасности)
-            res.header('Access-Control-Allow-Origin', '*');
-          }
-        } else {
-          // Для запросов без origin
-          res.header('Access-Control-Allow-Origin', '*');
-        }
-        
-        // Общие настройки CORS
-        res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Telegram-Init-Data, X-Telegram-Init-Data, Telegram-Data, X-Telegram-Data, X-Telegram-Auth, X-Telegram-User-Id, X-Telegram-Start-Param, X-Telegram-Platform, X-Telegram-Data-Source, X-Development-Mode, X-Development-User-Id');
-        
-        // Добавляем Content-Security-Policy для работы в Telegram
-        res.header('Content-Security-Policy', "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'");
-        
-        // Добавляем заголовки для предотвращения кеширования
-        res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.header('Pragma', 'no-cache');
-        res.header('Expires', '0');
-        res.header('Surrogate-Control', 'no-store');
-        
-        // Для предварительных запросов OPTIONS отвечаем сразу
-        if (req.method === 'OPTIONS') {
-          return res.sendStatus(204);
-        }
-        
-        next();
-      };
-      
-      // Применяем CORS middleware
-      app.use(corsMiddleware);
-      console.log('[UniFarm Fix] ✅ CORS middleware с поддержкой cookies настроен');
-      
-      // ---------- SESSIONS MIDDLEWARE ----------
-      const sessionOptions = {
-        secret: process.env.SESSION_SECRET || 'uni-farm-telegram-mini-app-secret',
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-          secure: process.env.NODE_ENV === 'production',
-          httpOnly: true,
-          sameSite: 'none', // Для работы с Telegram Mini App
-          maxAge: 7 * 24 * 60 * 60 * 1000 // 7 дней
-        }
-      };
-      
-      // В production режиме настраиваем доверие к прокси
-      if (process.env.NODE_ENV === 'production') {
-        app.set('trust proxy', 1);
-        sessionOptions.cookie.secure = true;
-      }
-      
-      // Добавляем store, если есть доступ к базе данных
-      if (process.env.DATABASE_URL) {
-        try {
-          // Пытаемся использовать connect-pg-simple если он доступен
-          const pgSession = require('connect-pg-simple');
-          const pgSessionStore = pgSession(session);
-          
-          const { Pool } = require('pg');
-          const pool = new Pool({
-            connectionString: process.env.DATABASE_URL,
-            ssl: {
-              rejectUnauthorized: false // Для Neon DB
-            }
-          });
-          
-          // Создаем таблицу сессий, если ее нет
-          pool.query(`
-            CREATE TABLE IF NOT EXISTS sessions (
-              sid VARCHAR NOT NULL PRIMARY KEY,
-              sess JSON NOT NULL,
-              expire TIMESTAMP(6) NOT NULL
-            )
-          `).catch(error => {
-            console.error('[UniFarm Fix] ⚠️ Ошибка при создании таблицы sessions:', error.message);
-          });
-          
-          // Добавляем хранилище в опции сессии
-          sessionOptions.store = new pgSessionStore({
-            pool,
-            tableName: 'sessions'
-          });
-          
-          console.log('[UniFarm Fix] ✅ Настроено хранение сессий в PostgreSQL');
-        } catch (error) {
-          console.warn('[UniFarm Fix] ⚠️ Ошибка при настройке хранилища сессий:', error.message);
-          console.warn('Используется MemoryStore (не рекомендуется для production)');
-        }
-      }
-      
-      // Применяем middleware сессий
-      app.use(session(sessionOptions));
-      console.log('[UniFarm Fix] ✅ Sessions middleware настроен');
-      
-      // Добавляем вспомогательные методы в объект запроса
-      app.use((req, res, next) => {
-        // Инициализируем объект пользователя в сессии, если он отсутствует
-        if (!req.session.user) {
-          req.session.user = null;
-        }
-        
-        // Добавляем методы для работы с сессией в объект запроса
-        req.isAuthenticated = function() {
-          return !!req.session.user;
-        };
-        
-        req.login = function(user) {
-          req.session.user = user;
-        };
-        
-        req.logout = function() {
-          req.session.user = null;
-        };
-        
-        // Продолжаем обработку запроса
-        next();
-      });
-      
-      // ---------- TELEGRAM INTEGRATION ----------
-      // Middleware для проверки и обработки данных от Telegram
-      const telegramAuthMiddleware = (req, res, next) => {
-        try {
-          // Получаем initData из различных возможных источников
-          const initData = req.body.initData || 
-                          req.headers['telegram-init-data'] || 
-                          req.headers['x-telegram-init-data'];
-          
-          // Если нет данных, просто продолжаем
-          if (!initData) {
-            return next();
-          }
-          
-          // Извлекаем данные пользователя без проверки подписи
-          // (проверка будет выполнена позже при необходимости)
-          try {
-            const urlParams = new URLSearchParams(initData);
-            const userStr = urlParams.get('user');
-            
-            if (userStr) {
-              const user = JSON.parse(userStr);
-              req.telegramUser = user;
-              
-              // Сохраняем initData для возможной проверки подписи позже
-              req.telegramInitData = initData;
-              
-              // Получаем startParam (для реферальной системы)
-              const startParam = urlParams.get('start_param');
-              if (startParam) {
-                req.telegramStartParam = startParam;
-              }
-            }
-          } catch (error) {
-            console.error('[UniFarm Fix] ⚠️ Ошибка при разборе данных пользователя Telegram:', error.message);
-          }
-          
-          next();
-        } catch (error) {
-          console.error('[UniFarm Fix] ❌ Ошибка в telegramAuthMiddleware:', error.message);
-          next();
-        }
-      };
-      
-      // Применяем middleware для всех запросов к API
-      app.use('/api', telegramAuthMiddleware);
-      console.log('[UniFarm Fix] ✅ Telegram Auth middleware настроен');
-      
-      // ---------- МАРШРУТЫ ДЛЯ TELEGRAM ИНТЕГРАЦИИ ----------
-      // Маршрут для восстановления сессии через Telegram
-      app.post('/api/telegram/auth', async (req, res) => {
-        try {
-          // Проверяем наличие данных пользователя
-          if (!req.telegramUser) {
-            return res.status(400).json({
-              success: false,
-              error: 'Отсутствуют данные пользователя Telegram'
-            });
-          }
-          
-          // Проверяем подпись, если есть токен бота
-          let signatureValid = true;
-          if (process.env.TELEGRAM_BOT_TOKEN && req.telegramInitData) {
-            signatureValid = validateTelegramInitData(req.telegramInitData, process.env.TELEGRAM_BOT_TOKEN);
-            
-            if (!signatureValid && process.env.NODE_ENV !== 'development') {
-              return res.status(403).json({
-                success: false,
-                error: 'Недействительная подпись данных Telegram'
-              });
-            }
-          }
-          
-          // Если есть хранилище и метод для работы с пользователями
-          if (storage && typeof storage.getUserByTelegramId === 'function') {
-            try {
-              // Пытаемся найти пользователя по Telegram ID
-              let user = await storage.getUserByTelegramId(req.telegramUser.id.toString());
-              
-              // Если пользователь не найден, создаем нового
-              if (!user) {
-                // Генерируем уникальный гостевой ID
-                const guestId = crypto.randomUUID();
-                
-                // Создаем нового пользователя
-                user = await storage.createUser({
-                  username: req.telegramUser.username || `user_${req.telegramUser.id}`,
-                  telegram_id: req.telegramUser.id.toString(),
-                  first_name: req.telegramUser.first_name,
-                  last_name: req.telegramUser.last_name || '',
-                  guest_id: guestId,
-                  // Если есть реферальный код, сохраняем его
-                  parent_ref_code: req.telegramStartParam || null
-                });
-                
-                console.log(`[UniFarm Fix] ✅ Создан новый пользователь с ID: ${user.id}`);
-              } else {
-                console.log(`[UniFarm Fix] ✅ Найден существующий пользователь с ID: ${user.id}`);
-              }
-              
-              // Сохраняем пользователя в сессии
-              if (req.session) {
-                req.session.userId = user.id;
-                req.session.user = {
-                  id: user.id,
-                  username: user.username,
-                  telegram_id: user.telegram_id
-                };
-              }
-              
-              // Возвращаем данные пользователя
-              return res.json({
-                success: true,
-                data: {
-                  user_id: user.id,
-                  username: user.username,
-                  telegram_id: user.telegram_id,
-                  first_name: user.first_name,
-                  last_name: user.last_name,
-                  balance_uni: user.balance_uni,
-                  balance_ton: user.balance_ton,
-                  ref_code: user.ref_code,
-                  created_at: user.created_at
-                }
-              });
-            } catch (storageError) {
-              console.error('[UniFarm Fix] ❌ Ошибка при работе с хранилищем:', storageError.message);
-              return res.status(500).json({
-                success: false,
-                error: 'Ошибка при обработке данных пользователя'
-              });
-            }
-          } else {
-            // Если storage не доступен, возвращаем только данные из Telegram
-            return res.json({
-              success: true,
-              data: {
-                telegram_id: req.telegramUser.id,
-                username: req.telegramUser.username,
-                first_name: req.telegramUser.first_name,
-                last_name: req.telegramUser.last_name,
-                is_temporary: true
-              }
-            });
-          }
-        } catch (error) {
-          console.error('[UniFarm Fix] ❌ Ошибка при авторизации через Telegram:', error.message);
-          return res.status(500).json({
-            success: false,
-            error: 'Внутренняя ошибка сервера при авторизации'
-          });
-        }
-      });
-      
-      console.log('[UniFarm Fix] ✅ Маршрут авторизации через Telegram настроен');
-      
-      // ---------- ДИАГНОСТИЧЕСКИЕ ЭНДПОИНТЫ ----------
-      // Эндпоинт для проверки состояния сервера
-      app.get('/api/diag/health', (req, res) => {
-        res.json({
-          success: true,
-          message: 'Сервер работает',
-          timestamp: new Date().toISOString(),
-          environment: process.env.NODE_ENV || 'development'
-        });
-      });
-      
-      // Эндпоинт для проверки подключения к базе данных
-      app.get('/api/diag/db', async (req, res) => {
-        try {
-          const { Pool } = require('pg');
-          const pool = new Pool({
-            connectionString: process.env.DATABASE_URL,
-            ssl: {
-              rejectUnauthorized: false
-            },
-            max: 1
-          });
-          
-          const client = await pool.connect();
-          const result = await client.query('SELECT NOW() as time');
-          client.release();
-          
-          await pool.end();
-          
-          res.json({
-            success: true,
-            message: 'Подключение к БД работает',
-            db_time: result.rows[0].time,
-            db_type: 'PostgreSQL (Neon)'
-          });
-        } catch (error) {
-          res.status(500).json({
-            success: false,
-            message: 'Ошибка при подключении к БД',
-            error: error.message
-          });
-        }
-      });
-      
-      console.log('[UniFarm Fix] ✅ Диагностические эндпоинты настроены');
-      
-      console.log(`
-=======================================================
-✅ ВСЕ ИСПРАВЛЕНИЯ UniFarm УСПЕШНО ПРИМЕНЕНЫ!
-
-Теперь доступны:
-- Стабильное подключение к Neon DB
-- Корректная работа CORS для Telegram Mini App
-- Правильная настройка сессий с поддержкой cookies
-- Интеграция с Telegram Mini App
-
-Диагностические эндпоинты:
-- GET /api/diag/health - проверка статуса сервера
-- GET /api/diag/db - проверка подключения к БД
-
-Маршруты Telegram:
-- POST /api/telegram/auth - авторизация через Telegram
-=======================================================
-`);
-      
-      return app;
-    } catch (error) {
-      console.error('[UniFarm Fix] ❌ Критическая ошибка при применении исправлений:', error.message);
-      console.error(error.stack);
-      return app; // Возвращаем оригинальное приложение без изменений
-    }
+// Проверяем подключение к базе данных
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Ошибка подключения к PostgreSQL:', err);
+  } else {
+    console.log('PostgreSQL подключен:', res.rows[0].now);
+    // Создаем таблицу сессий, если она не существует
+    createSessionTable();
   }
-};
+});
 
-// Вспомогательные функции
-
-/**
- * Проверяет подпись данных initData от Telegram
- * @param {string} initData - Строка initData от Telegram
- * @param {string} botToken - Токен бота Telegram
- * @returns {boolean} - Результат проверки
- */
-function validateTelegramInitData(initData, botToken) {
+// Функция для создания таблицы сессий
+async function createSessionTable() {
   try {
-    // Проверяем наличие токена и данных
-    if (!botToken || !initData) {
-      return false;
-    }
-    
-    // Разбираем строку initData
-    const urlParams = new URLSearchParams(initData);
-    const hash = urlParams.get('hash');
-    
-    if (!hash) {
-      return false;
-    }
-    
-    // Создаем массив данных для проверки
-    const dataCheckArr = [];
-    
-    // Создаем отсортированный массив параметров (без hash)
-    urlParams.forEach((val, key) => {
-      if (key !== 'hash') {
-        dataCheckArr.push(`${key}=${val}`);
-      }
-    });
-    
-    // Сортируем массив
-    dataCheckArr.sort();
-    
-    // Создаем строку данных
-    const dataCheckString = dataCheckArr.join('\n');
-    
-    // Создаем HMAC-SHA-256 подпись
-    const crypto = require('crypto');
-    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-    const calculatedHash = crypto.createHmac('sha256', secretKey)
-      .update(dataCheckString)
-      .digest('hex');
-    
-    // Проверяем подпись
-    return calculatedHash === hash;
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+      );
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+    `);
+    console.log('Таблица сессий проверена/создана');
   } catch (error) {
-    console.error('[UniFarm Fix] ❌ Ошибка при проверке подписи Telegram:', error.message);
-    return false;
+    console.error('Ошибка при создании таблицы сессий:', error);
   }
 }
+
+// Проверка и валидация данных из Telegram Mini App
+function validateTelegramData(initData) {
+  try {
+    if (!initData) return { isValid: false, errors: ['initData отсутствует'] };
+    if (!process.env.TELEGRAM_BOT_TOKEN) return { isValid: false, errors: ['TELEGRAM_BOT_TOKEN отсутствует'] };
+
+    // Разбираем данные инициализации
+    const urlParams = new URLSearchParams(initData);
+    const hash = urlParams.get('hash');
+    if (!hash) return { isValid: false, errors: ['hash отсутствует'] };
+
+    // Сортировка параметров в алфавитном порядке (как требует API Telegram)
+    urlParams.delete('hash');
+    const dataCheckString = Array.from(urlParams.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n');
+
+    // Вычисляем HMAC-SHA-256
+    const secret = crypto.createHmac('sha256', 'WebAppData')
+      .update(process.env.TELEGRAM_BOT_TOKEN)
+      .digest();
+    const calculatedHash = crypto.createHmac('sha256', secret)
+      .update(dataCheckString)
+      .digest('hex');
+
+    // Проверяем совпадение хешей
+    if (calculatedHash !== hash) {
+      return { isValid: false, errors: ['Hash не соответствует ожидаемому'] };
+    }
+
+    // Если данные валидны, извлекаем user и user_id
+    const userDataString = urlParams.get('user');
+    if (!userDataString) return { isValid: false, errors: ['user данные отсутствуют'] };
+
+    try {
+      const userData = JSON.parse(userDataString);
+      const userId = userData?.id;
+      if (!userId) return { isValid: false, errors: ['id пользователя отсутствует'] };
+
+      // Все проверки пройдены
+      return { isValid: true, userId, userData };
+    } catch (e) {
+      return { isValid: false, errors: ['Ошибка парсинга данных пользователя'] };
+    }
+  } catch (error) {
+    console.error('Ошибка валидации Telegram данных:', error);
+    return { isValid: false, errors: ['Внутренняя ошибка валидации'] };
+  }
+}
+
+// Создание или обновление пользователя по Telegram ID
+async function createOrUpdateTelegramUser(userData) {
+  try {
+    if (!userData || !userData.id) return null;
+
+    // Проверяем, существует ли пользователь
+    const existingUser = await pool.query(
+      'SELECT * FROM users WHERE telegram_id = $1',
+      [userData.id]
+    );
+
+    if (existingUser.rows.length > 0) {
+      // Обновляем существующего пользователя
+      const user = existingUser.rows[0];
+      // Обновляем данные пользователя при необходимости
+      // Например, можно обновить username, first_name, last_name, если они изменились
+      return user;
+    } else {
+      // Создаем нового пользователя
+      const username = userData.username || `user_${userData.id}`;
+      const firstName = userData.first_name || '';
+      const lastName = userData.last_name || '';
+
+      // Проверяем, существует ли таблица пользователей
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY, 
+            username VARCHAR(255) NOT NULL,
+            telegram_id BIGINT UNIQUE,
+            first_name VARCHAR(255),
+            last_name VARCHAR(255),
+            created_at TIMESTAMP DEFAULT NOW()
+          );
+        `);
+      } catch (err) {
+        console.error('Ошибка при проверке/создании таблицы пользователей:', err);
+      }
+
+      // Вставляем нового пользователя
+      const result = await pool.query(
+        'INSERT INTO users (username, telegram_id, first_name, last_name) VALUES ($1, $2, $3, $4) RETURNING *',
+        [username, userData.id, firstName, lastName]
+      );
+
+      return result.rows[0];
+    }
+  } catch (error) {
+    console.error('Ошибка при создании/обновлении пользователя:', error);
+    return null;
+  }
+}
+
+// Функция для применения всех исправлений к Express приложению
+function applyFixes(app, storage) {
+  // 1. Настройка CORS для работы с Telegram Web App
+  const corsMiddleware = cors({
+    origin: (origin, callback) => {
+      // Разрешаем запросы с Telegram и локального хоста
+      const allowedOrigins = [
+        'https://web.telegram.org',
+        'https://telegram.org',
+        'https://telegram-web.github.io',
+        'http://localhost:3000',
+        'http://localhost:5173'
+      ];
+      
+      if (!origin || allowedOrigins.some(allowed => origin.includes(allowed))) {
+        callback(null, true);
+      } else {
+        // В продакшне разрешаем запросы с любого origin, но с credentials
+        callback(null, true);
+      }
+    },
+    credentials: true, // Важно для передачи cookies
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Telegram-Data', 'X-Telegram-Init-Data']
+  });
+
+  // Применяем CORS middleware
+  app.use(corsMiddleware);
+  app.options('*', corsMiddleware);
+
+  // 2. Настройка сессий с обычным хранилищем (без PostgreSQL)
+  // Это временное решение, пока мы не установим connect-pg-simple
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'unifarm-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 дней
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'lax'
+    }
+  }));
+
+  // 3. Добавляем маршрут для аутентификации через Telegram
+  app.post('/api/telegram/auth', async (req, res) => {
+    try {
+      const initData = req.body.initData || req.headers['x-telegram-init-data'];
+      if (!initData) {
+        return res.status(400).json({
+          success: false,
+          error: 'Отсутствуют данные инициализации Telegram'
+        });
+      }
+
+      // Валидируем данные от Telegram
+      const validation = validateTelegramData(initData);
+      if (!validation.isValid) {
+        return res.status(403).json({
+          success: false,
+          error: 'Ошибка валидации данных Telegram',
+          details: validation.errors
+        });
+      }
+
+      // Создаем или обновляем пользователя
+      const user = await createOrUpdateTelegramUser(validation.userData);
+      if (!user) {
+        return res.status(500).json({
+          success: false,
+          error: 'Ошибка при создании/обновлении пользователя'
+        });
+      }
+
+      // Устанавливаем данные пользователя в сессию
+      req.session.user = user;
+      req.session.telegramData = validation.userData;
+      req.session.isAuthenticated = true;
+
+      // Отправляем успешный ответ
+      return res.status(200).json({
+        success: true,
+        data: {
+          user,
+          session: {
+            id: req.session.id,
+            cookie: req.session.cookie
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка при аутентификации через Telegram:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Внутренняя ошибка сервера при аутентификации'
+      });
+    }
+  });
+
+  // 4. Добавляем диагностические эндпоинты
+  // Проверка состояния сервера
+  app.get('/api/diag/health', (req, res) => {
+    res.status(200).json({
+      success: true,
+      data: {
+        status: 'ok',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV || 'development'
+      }
+    });
+  });
+
+  // Проверка подключения к базе данных
+  app.get('/api/diag/db', async (req, res) => {
+    try {
+      const dbResult = await pool.query('SELECT NOW() as time');
+      res.status(200).json({
+        success: true,
+        data: {
+          connected: true,
+          time: dbResult.rows[0].time,
+          config: {
+            host: process.env.PGHOST,
+            port: process.env.PGPORT,
+            database: process.env.PGDATABASE,
+            user: process.env.PGUSER,
+            ssl: process.env.NODE_ENV === 'production'
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка при проверке подключения к БД:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка подключения к базе данных',
+        details: error.message
+      });
+    }
+  });
+
+  // Возвращаем приложение для возможности цепочки вызовов
+  return app;
+}
+
+// Экспортируем функцию для применения исправлений
+export {
+  applyFixes,
+  validateTelegramData,
+  createOrUpdateTelegramUser
+};

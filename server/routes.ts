@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import path from "path";
 import fs from "fs";
+import cors from 'cors';
 import * as healthApi from './api/health'; // Импорт контроллера health API
 
 // Расширяем тип WebSocket для поддержки пользовательских свойств
@@ -69,6 +70,12 @@ import { telegramInitDataLogger } from './middleware/telegramInitDataLogger';
 import { errorHandler } from './middleware/errorHandler';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Базовые настройки CORS для разрешения куки
+  app.use(cors({
+    origin: true,
+    credentials: true
+  }));
+  
   // Определяем корневой каталог проекта
   const projectRoot = process.cwd();
   

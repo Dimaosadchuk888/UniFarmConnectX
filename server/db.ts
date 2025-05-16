@@ -20,15 +20,56 @@ if (!process.env.DATABASE_URL) {
 
 console.log('[DB-NEON] 🚀 Инициализация Neon DB соединения');
 
-// Создаем пул соединений с Neon DB
+// Явно настраиваем переменные окружения (важно для корректной работы)
+process.env.PGHOST = process.env.PGHOST || process.env.REPLIT_POSTGRES_HOST || 'localhost';
+process.env.PGPORT = process.env.PGPORT || process.env.REPLIT_POSTGRES_PORT || '5432';
+process.env.PGUSER = process.env.PGUSER || process.env.REPLIT_POSTGRES_USER || 'postgres';
+process.env.PGPASSWORD = process.env.PGPASSWORD || process.env.REPLIT_POSTGRES_PASSWORD || 'postgres';
+process.env.PGDATABASE = process.env.PGDATABASE || process.env.REPLIT_POSTGRES_DATABASE || 'postgres';
+
+// Настройка SSL для разных окружений
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('postgres.neon.tech')) {
+  // Для Neon DB требуется SSL, но без верификации сертификатов
+  process.env.PGSSLMODE = 'require';
+  console.log('[DB] Обнаружена Neon DB, настройка SSL: PGSSLMODE=require');
+} else if (process.env.REPL_ID || process.env.REPL_SLUG) {
+  // Для Replit PostgreSQL предпочитаем SSL, но не требуем его
+  process.env.PGSSLMODE = 'prefer';
+  console.log('[DB] Обнаружена Replit среда, настройка SSL: PGSSLMODE=prefer');
+} else {
+  // Для других окружений (локальная разработка)
+  process.env.PGSSLMODE = 'prefer';
+  console.log('[DB] Обнаружена другая среда, настройка SSL: PGSSLMODE=prefer');
+}
+
+// Диагностическая информация перед созданием пула
+console.log('[DB] Диагностика перед подключением:');
+console.log(`[DB] DATABASE_URL: ${process.env.DATABASE_URL ? 'Установлен (скрыт)' : 'Не установлен'}`);
+console.log(`[DB] PGHOST: ${process.env.PGHOST}`);
+console.log(`[DB] PGPORT: ${process.env.PGPORT}`);
+console.log(`[DB] PGUSER: ${process.env.PGUSER ? 'Установлен (скрыт)' : 'Не установлен'}`);
+console.log(`[DB] PGDATABASE: ${process.env.PGDATABASE}`);
+console.log(`[DB] PGSSLMODE: ${process.env.PGSSLMODE}`);
+
+// Настраиваем опции SSL в зависимости от среды
+const sslOptions = {
+  // Для Neon DB и других облачных БД отключаем верификацию сертификатов
+  rejectUnauthorized: false,
+};
+
+// Создаем пул соединений с расширенными настройками
 let pool: Pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false // Необходимо для Neon DB
-  },
-  max: 20, // максимальное количество клиентов в пуле
-  idleTimeoutMillis: 30000, // время ожидания перед закрытием неиспользуемых соединений
-  connectionTimeoutMillis: 8000, // время ожидания при подключении нового клиента
+  ssl: sslOptions,
+  
+  // Оптимизация пула соединений
+  max: 10, // максимальное количество клиентов в пуле (уменьшено для лучшей стабильности)
+  idleTimeoutMillis: 60000, // увеличенное время ожидания перед закрытием неиспользуемых соединений
+  connectionTimeoutMillis: 10000, // время ожидания при подключении нового клиента
+  
+  // Включаем keepAlive для предотвращения разрывов длительных соединений
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000, // 10 секунд
 });
 
 // Настройки для PostgreSQL уже применены в db-connect-fix.js
@@ -40,11 +81,74 @@ console.log('[DB-NEON] Соединение с Neon DB инициализиро�
 pool.on('error', (err) => {
   console.error('[DB] Произошла ошибка пула:', err.message);
   console.error(err.stack);
+  
+  // Автоматическое переподключение при критических ошибках
+  if (err.message.includes('connection terminated') || 
+      err.message.includes('Connection terminated') ||
+      err.message.includes('Connection timed out')) {
+    console.log('[DB] Попытка автоматического переподключения...');
+    tryReconnect();
+  }
 });
 
 pool.on('connect', () => {
   console.log('[DB] Новое соединение установлено');
 });
+
+// Функция для повторного подключения к базе данных
+async function tryReconnect(attempts = 3, delay = 2000): Promise<boolean> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      console.log(`[DB] Попытка переподключения ${i + 1}/${attempts}...`);
+      
+      // Закрываем текущий пул, если он существует
+      try {
+        await pool.end();
+      } catch (error) {
+        const err = error as Error;
+        console.warn('[DB] Ошибка при закрытии пула:', err.message);
+      }
+      
+      // Пересоздаем переменные окружения для надежности
+      console.log('[DB] Переустановка переменных окружения...');
+      process.env.PGHOST = process.env.PGHOST || process.env.REPLIT_POSTGRES_HOST || 'localhost';
+      process.env.PGPORT = process.env.PGPORT || process.env.REPLIT_POSTGRES_PORT || '5432';
+      process.env.PGUSER = process.env.PGUSER || process.env.REPLIT_POSTGRES_USER || 'postgres';
+      process.env.PGPASSWORD = process.env.PGPASSWORD || process.env.REPLIT_POSTGRES_PASSWORD || 'postgres';
+      process.env.PGDATABASE = process.env.PGDATABASE || process.env.REPLIT_POSTGRES_DATABASE || 'postgres';
+      
+      // Создаем новый пул с теми же параметрами
+      pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: false
+        },
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 8000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10000
+      });
+      
+      // Проверяем соединение
+      await pool.query('SELECT 1');
+      console.log('[DB] ✅ Переподключение успешно выполнено');
+      
+      return true;
+    } catch (error) {
+      const err = error as Error;
+      console.error(`[DB] Ошибка при переподключении (попытка ${i + 1}/${attempts}):`, err.message);
+      
+      if (i < attempts - 1) {
+        console.log(`[DB] Следующая попытка через ${delay}мс...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  console.error('[DB] ❌ Все попытки переподключения завершились неудачно');
+  return false;
+}
 
 // Создаем и экспортируем Drizzle ORM
 export const db = drizzle(pool, { schema });
