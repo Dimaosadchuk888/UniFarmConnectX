@@ -1,3 +1,7 @@
+// Сначала подключаем модуль db-connect-fix для отключения Unix socket
+// ВАЖНО: импорт должен быть первым
+import '../db-connect-fix.js';
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { registerNewRoutes } from "./routes-new"; // Импортируем новые маршруты
@@ -243,11 +247,8 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   const port = parseInt(process.env.PORT || "3000", 10);
   console.log(`[Server] Starting on port ${port} in ${process.env.NODE_ENV || 'development'} mode`);
   
-  // Отключаем поиск PostgreSQL через Unix socket для работы в Replit
-  process.env.PGSSLMODE = 'prefer';
-  process.env.PGHOST = process.env.PGHOST || 'default';
-  process.env.PGSOCKET = '';
-  process.env.PGCONNECT_TIMEOUT = '10';
+  // Настройки для подключения уже установлены в db-connect-fix.js
+  // и дополнительно не нужны здесь, так как уже применены при старте
   
   // Для быстрого запуска сервера, переносим "тяжелые" операции в отдельные асинхронные процессы
   // Эти задачи будут выполняться после открытия порта

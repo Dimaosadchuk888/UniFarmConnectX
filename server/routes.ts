@@ -349,6 +349,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(200).send(JSON.stringify({ status: "ok", message: "API работает" }));
   });
   
+  // Эндпоинт для проверки статуса БД (для мониторинга)
+  app.get("/api/admin/db-status", DbStatusController.getDatabaseStatus);
+  
   // Мы используем обычные маршруты для клиентского приложения
   // Режим разработки обрабатывается через регулярный маршрут ниже
   
