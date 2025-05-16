@@ -37,26 +37,35 @@ async function createTestUser(pool) {
   
   const username = generateUsername();
   const refCode = generateRefCode();
+  const guestId = crypto.randomUUID(); // Генерируем уникальный guest_id
   const now = new Date().toISOString();
   
   try {
-    // Создаем пользователя
+    // Создаем пользователя с учетом реальной структуры таблицы
+    // Сначала проверим максимальный ID, чтобы не было конфликта
+    const maxIdResult = await pool.query('SELECT MAX(id) FROM users');
+    const nextId = maxIdResult.rows[0].max + 1 || 1000; // Используем большое число если таблица пустая
+    
     const userResult = await pool.query(`
       INSERT INTO users (
+        id,
         username, 
         telegram_id, 
         ref_code, 
-        balance, 
-        created_at, 
-        is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+        balance_uni,
+        balance_ton,
+        created_at,
+        guest_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
     `, [
+      nextId,
       username,
       Math.floor(Math.random() * 1000000) + 100000, // случайный telegram_id
       refCode,
-      1000, // начальный баланс
+      1000, // начальный баланс UNI
+      5,    // начальный баланс TON
       now,
-      true
+      guestId
     ]);
     
     const user = userResult.rows[0];
@@ -64,7 +73,9 @@ async function createTestUser(pool) {
     console.log(`ID: ${user.id}`);
     console.log(`Username: ${user.username}`);
     console.log(`Ref Code: ${user.ref_code}`);
-    console.log(`Balance: ${user.balance}`);
+    console.log(`Guest ID: ${user.guest_id}`);
+    console.log(`Balance UNI: ${user.balance_uni}`);
+    console.log(`Balance TON: ${user.balance_ton}`);
     console.log(`Created At: ${user.created_at}`);
     
     return user;
