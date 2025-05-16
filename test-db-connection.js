@@ -2,7 +2,8 @@
  * Simple database connection test for Neon DB
  */
 
-const { Pool } = require('pg');
+import pg from 'pg';
+const { Pool } = pg;
 
 // Set SSL mode for connection
 process.env.PGSSLMODE = 'require';
