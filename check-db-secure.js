@@ -1,15 +1,29 @@
 /**
- * Скрипт для проверки пользователей во встроенной БД Replit
+ * Скрипт для безопасного подключения к базе данных с поддержкой SSL
  */
 
 import pg from 'pg';
 const { Pool } = pg;
 
-async function runQueries() {
-  console.log('🔄 Подключение к встроенной базе данных Replit...');
+async function runSecureQuery() {
+  console.log('🔄 Подключение к базе данных...');
   
-  // Подключение к встроенной БД Replit вместо внешней
-  const pool = new Pool();
+  // Настройки подключения
+  const connectionConfig = {
+    ssl: {
+      rejectUnauthorized: false
+    }
+  };
+  
+  // Если есть строка подключения, используем её
+  if (process.env.DATABASE_URL) {
+    console.log('Используем DATABASE_URL для подключения');
+    connectionConfig.connectionString = process.env.DATABASE_URL;
+  } else {
+    console.log('Используем стандартные параметры подключения Replit');
+  }
+  
+  const pool = new Pool(connectionConfig);
   
   try {
     // Первый запрос: получение текущей базы данных и схемы
@@ -65,6 +79,6 @@ async function runQueries() {
 }
 
 // Запуск
-runQueries().catch(err => {
+runSecureQuery().catch(err => {
   console.error('❌ Необработанная ошибка:', err);
 });
