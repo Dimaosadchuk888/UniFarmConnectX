@@ -1,111 +1,51 @@
-import { useEffect } from 'react';
-import { isTelegramWebApp, initTelegramWebApp, diagnosticTelegramWebApp, logAppLaunch } from '@/services/telegramService';
-import sessionRestoreService from '@/services/sessionRestoreService';
+import { useEffect, useState } from 'react';
 
-/**
- * Компонент для инициализации Telegram WebApp API
- * Этот компонент должен быть добавлен в корень приложения
- * для обеспечения работы во всех маршрутах
- * 
- * Выполняет следующие задачи:
- * 1. Проверяет доступность Telegram WebApp API
- * 2. Вызывает WebApp.ready() для инициализации Telegram WebApp
- * 3. Отмечает готовность Telegram WebApp для других компонентов
- * 4. Логирует запуск приложения для аналитики
- */
-const TelegramInitializer = () => {
+export function TelegramInitializer() {
+  const [status, setStatus] = useState({
+    initialized: false,
+    error: null as string | null
+  });
+
   useEffect(() => {
-    console.log('[TelegramInitializer] 🔄 Инициализация...');
-    
-    // Первичная проверка на явные признаки запуска в Telegram
-    const isUserAgentTelegram = navigator.userAgent.includes('Telegram') || 
-                              navigator.userAgent.includes('TelegramBot') ||
-                              document.referrer.includes('telegram');
-    
-    const isInIframe = window.self !== window.top;
-    
-    console.log('[TelegramInitializer] Первичная проверка среды:', {
-      isUserAgentTelegram,
-      isInIframe,
-      userAgent: navigator.userAgent,
-      documentURL: window.location.href,
-      referrer: document.referrer
-    });
-    
     try {
-      // Проверяем доступность официального Telegram WebApp API
-      const isTelegram = isTelegramWebApp();
-      
-      if (isTelegram) {
-        console.log('[TelegramInitializer] ✅ Официальный Telegram WebApp API обнаружен');
-        
-        // Инициализируем Telegram WebApp API
-        const initResult = initTelegramWebApp();
-        console.log(`[TelegramInitializer] Инициализация Telegram WebApp API: ${initResult ? 'успешно' : 'не удалась'}`);
-        
-        // Повторный более надежный вызов WebApp.ready() 
-        try {
-          if (window.Telegram?.WebApp?.ready) {
-            console.log('[TelegramInitializer] Вызываем WebApp.ready() для подтверждения инициализации');
-            window.Telegram.WebApp.ready();
-            
-            // Отмечаем Telegram WebApp как готовый для других компонентов
-            sessionRestoreService.markTelegramWebAppAsReady();
-            
-            // Явно расширяем окно до максимальной высоты
-            try {
-              if (window.Telegram?.WebApp?.expand) {
-                window.Telegram.WebApp.expand();
-                console.log('[TelegramInitializer] WebApp.expand() вызван успешно');
-              }
-            } catch (expandError) {
-              console.error('[TelegramInitializer] Ошибка при вызове WebApp.expand():', expandError);
-            }
-          }
-        } catch (readyError) {
-          console.error('[TelegramInitializer] Ошибка при вызове WebApp.ready():', readyError);
-        }
-        
-        // Выводим диагностическую информацию
-        const diagnosticInfo = diagnosticTelegramWebApp();
-        console.log('[TelegramInitializer] Диагностическая информация:', diagnosticInfo);
-        
-        // Логируем запуск приложения
-        logAppLaunch().then(success => {
-          console.log(`[TelegramInitializer] Логирование запуска: ${success ? 'успешно' : 'не удалось'}`);
-        }).catch(error => {
-          console.error('[TelegramInitializer] Ошибка при логировании запуска:', error);
-        });
-      } else {
-        console.log('[TelegramInitializer] ℹ️ Telegram WebApp API не обнаружен, работаем в гостевом режиме');
-        
-        // В случае, если это похоже на Telegram, но API не обнаружен - это может быть баг
-        if (isUserAgentTelegram || isInIframe) {
-          console.warn('[TelegramInitializer] ⚠️ Похоже, что мы в Telegram, но API недоступен. Это может быть ошибкой.');
-        }
-        
-        // Отмечаем отсутствие необходимости ожидания инициализации
-        sessionRestoreService.markTelegramWebAppAsReady();
-        
-        // Всё равно логируем запуск приложения для аналитики
-        logAppLaunch().catch(error => {
-          console.error('[TelegramInitializer] Ошибка при логировании запуска:', error);
-        });
+      // Проверяем наличие Telegram WebApp
+      if (!window.Telegram?.WebApp) {
+        throw new Error('Telegram WebApp API не найден');
       }
-    } catch (error) {
-      console.error('[TelegramInitializer] ❌ Общая ошибка инициализации:', error);
-      
-      // В случае ошибки всё равно отмечаем готовность, чтобы не блокировать приложение
-      sessionRestoreService.markTelegramWebAppAsReady();
-    }
-    
-    return () => {
-      console.log('[TelegramInitializer] 🔄 Компонент демонтирован');
-    };
-  }, []);
-  
-  // Компонент не рендерит видимый контент
-  return null;
-};
 
-export default TelegramInitializer;
+      // Проверяем initData
+      const initData = window.Telegram.WebApp.initData;
+      console.log('[TelegramInitializer] InitData check:', {
+        exists: !!initData,
+        length: initData?.length || 0
+      });
+
+      // Подтверждаем готовность
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+
+      // Логируем успешную инициализацию
+      console.log('[TelegramInitializer] Диагностика:', {
+        version: window.Telegram.WebApp.version,
+        platform: window.Telegram.WebApp.platform,
+        viewportHeight: window.Telegram.WebApp.viewportHeight,
+        viewportStableHeight: window.Telegram.WebApp.viewportStableHeight,
+        isExpanded: window.Telegram.WebApp.isExpanded,
+        colorScheme: window.Telegram.WebApp.colorScheme
+      });
+
+      setStatus({ initialized: true, error: null });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      console.error('[TelegramInitializer] Ошибка:', errorMessage);
+      setStatus({ initialized: false, error: errorMessage });
+    }
+  }, []);
+
+  // Возвращаем компонент с информацией о статусе
+  return status.error ? (
+    <div style={{ padding: '1rem', color: 'red' }}>
+      Ошибка инициализации Telegram: {status.error}
+    </div>
+  ) : null;
+}
