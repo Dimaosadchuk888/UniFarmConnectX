@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export function TelegramInitializer() {
+export const TelegramInitializer = () => {
   const [status, setStatus] = useState({
     initialized: false,
     error: null as string | null
