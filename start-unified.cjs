@@ -75,12 +75,26 @@ async function main() {
     const port = parseInt(process.env.PORT || '3000', 10);
     console.log(`Using port ${port} for application...`);
     
+    // Проверяем, собран ли проект
+    if (process.env.NODE_ENV === 'production' && !fs.existsSync('./dist/index.js')) {
+      console.log('Production build not found. Running build process...');
+      
+      try {
+        // Запускаем сборку проекта
+        await runProcess('npm', ['run', 'build']);
+        console.log('Build completed successfully!');
+      } catch (buildError) {
+        console.error('Error during build process:', buildError);
+        console.log('Continuing with available files...');
+      }
+    }
+    
     // Определяем последовательность приоритета файлов для запуска
     const potentialStartFiles = [
-      { path: './server/index.ts', command: 'npx tsx server/index.ts' },
+      { path: './dist/index.js', command: 'node dist/index.js' },
       { path: './server/index.js', command: 'node server/index.js' },
-      { path: './index.js', command: 'node index.js' },
-      { path: './dist/index.js', command: 'node dist/index.js' }
+      { path: './server/index.ts', command: 'npx tsx server/index.ts' },
+      { path: './index.js', command: 'node index.js' }
     ];
     
     let startFileFound = false;
