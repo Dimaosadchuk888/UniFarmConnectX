@@ -139,9 +139,9 @@ function startPostgreSQL() {
     log('Запуск PostgreSQL через start-postgres.sh...', colors.cyan);
     
     // Запускаем скрипт start-postgres.sh с выводом в консоль
-    const postgresProcess = spawnSync('./start-postgres.sh', {
+    const postgresProcess = spawnSync('./start-postgres.sh', [], {
       stdio: 'inherit',
-      shell: true
+      shell: false
     });
     
     // Проверяем результат запуска

@@ -75,7 +75,16 @@ echo -e "${GREEN}PostgreSQL успешно отвечает${NC}"
 # Создаем пользователя и базу данных
 DB_NAME="replit_db"
 DB_USER="replit_user"
-DB_PASSWORD="replit_pass"
+
+# Используем переменную окружения или генерируем случайный пароль
+if [ -n "$DB_REPLIT_PASSWORD" ]; then
+  DB_PASSWORD="$DB_REPLIT_PASSWORD"
+  echo -e "${BLUE}Используем пароль из переменной окружения DB_REPLIT_PASSWORD${NC}"
+else
+  # Генерируем случайный надежный пароль
+  DB_PASSWORD=$(openssl rand -base64 16)
+  echo -e "${BLUE}Сгенерирован случайный пароль для базы данных${NC}"
+fi
 
 echo -e "${BLUE}Создание базы данных и пользователя...${NC}"
 

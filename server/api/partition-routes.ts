@@ -120,12 +120,13 @@ export function registerPartitionRoutes(app: Express): void {
   
   // DELETE /api/partitions/:id - Удаление указанной партиции
   app.delete(`${baseUrl}/:id`, adminAuthMiddleware, async (req: Request, res: Response) => {
-    console.log(`[PartitionRoutes] Обрабатываем DELETE запрос на удаление партиции с ID: ${req.params.id}`);
+    // Используем безопасный вывод в лог (без прямой вставки параметра запроса)
+    console.log('[PartitionRoutes] Обрабатываем DELETE запрос на удаление партиции');
     try {
       // Получаем id из URL-параметра и преобразуем в имя партиции
       const partitionName = `transactions_${req.params.id}`;
       
-      console.log('[PartitionRoutes] Удаление партиции', partitionName);
+      console.log('[PartitionRoutes] Проверка партиции на соответствие формату');
       
       // Проверяем формат имени партиции для безопасности
       if (!partitionName.match(/^transactions_\d{4}_\d{2}_\d{2}$/)) {
@@ -136,9 +137,11 @@ export function registerPartitionRoutes(app: Express): void {
         });
       }
       
+      console.log('[PartitionRoutes] Начинаем процесс удаления партиции');
+      
       // Используем executeQuery из сервиса для проверки существования партиции
       try {
-        // Проверяем существование партиции с использованием прямого SQL запроса
+        // Проверяем существование партиции с использованием параметризованного SQL запроса
         const query = `
           SELECT EXISTS (
             SELECT 1 FROM pg_catalog.pg_class
@@ -153,22 +156,22 @@ export function registerPartitionRoutes(app: Express): void {
           return res.status(404).json({
             success: false,
             error: 'Not Found',
-            message: `Партиция с именем ${partitionName} не найдена`
+            message: `Партиция не найдена`
           });
         }
         
-        // Удаляем партицию прямым SQL запросом
-        const dropQuery = `DROP TABLE IF EXISTS ${partitionName};`;
-        await executeQuery(dropQuery);
+        // Удаляем партицию используя параметризованный запрос
+        const dropQuery = 'DROP TABLE IF EXISTS $1:name;';
+        await executeQuery(dropQuery, [partitionName]);
         
-        // Логируем операцию удаления
-        console.log(`[PartitionRoutes] Партиция ${partitionName} успешно удалена`);
+        // Логируем операцию удаления без упоминания точного имени партиции в логах
+        console.log('[PartitionRoutes] Партиция успешно удалена');
         
-        // Формируем ответ
+        // Формируем ответ с безопасным сообщением
         return res.status(200).json({
           success: true,
           data: {
-            message: `Партиция ${partitionName} успешно удалена`,
+            message: 'Партиция успешно удалена',
             partitionName
           }
         });

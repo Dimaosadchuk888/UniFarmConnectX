@@ -13,9 +13,9 @@ export default function WebhookSetup() {
   const apiHost = window.location.origin;
   const webhookUrl = `${apiHost}/api/telegram/webhook`;
   
-  // Токен для примера (не настоящий, можно использовать только в UI)
-  // Реальный токен используется только на сервере
-  const sampleToken = '81369...xtx4';
+  // Шаблон токена для примера в UI (формат обозначения, не реальные данные)
+  // Реальный токен никогда не должен отображаться в UI
+  const sampleToken = '123456789:EXAMPLE_TOKEN_FORMAT_NOT_REAL';
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {

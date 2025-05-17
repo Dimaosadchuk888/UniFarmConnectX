@@ -136,16 +136,18 @@ async function countUsersInAllTables(pool) {
       const tableName = table.table_name;
       
       try {
-        const countResult = await pool.query(`SELECT COUNT(*) FROM "${schema}"."${tableName}"`);
+        // Используем параметризованный запрос для безопасного выполнения
+        const countResult = await pool.query(
+          'SELECT COUNT(*) FROM $1:name.$2:name',
+          [schema, tableName]
+        );
         console.log(`${schema}.${tableName}: ${countResult.rows[0].count} записей`);
         
-        // Выводим первые несколько записей для проверки
-        const recordsResult = await pool.query(`
-          SELECT id, username, ref_code 
-          FROM "${schema}"."${tableName}" 
-          ORDER BY id 
-          LIMIT 5
-        `);
+        // Выводим первые несколько записей для проверки - также с параметризацией
+        const recordsResult = await pool.query(
+          'SELECT id, username, ref_code FROM $1:name.$2:name ORDER BY id LIMIT 5',
+          [schema, tableName]
+        );
         
         console.log(`  Примеры записей:`);
         recordsResult.rows.forEach(row => {

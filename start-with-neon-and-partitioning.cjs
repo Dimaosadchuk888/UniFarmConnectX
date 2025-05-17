@@ -90,7 +90,7 @@ function runProcess(command, args, options = {}) {
     
     const child = spawn(command, args, {
       stdio: 'inherit',
-      shell: true,
+      shell: false,
       ...options
     });
     

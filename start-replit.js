@@ -32,7 +32,7 @@ tempServer.listen(5000, '0.0.0.0', () => {
   // Используем spawn, чтобы запустить процесс npm run dev
   const npmProcess = spawn('npm', ['run', 'dev'], {
     stdio: 'inherit',
-    shell: true
+    shell: false
   });
   
   // Обрабатываем события процесса
