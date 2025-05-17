@@ -42,6 +42,7 @@ import * as ReferralSystemController from './controllers/referralSystemControlle
 import * as telegramBot from './telegramBot';
 import { TelegramController } from './controllers/telegramController'; // Новый TypeScript контроллер для Telegram
 import * as DbStatusController from './api/admin/db-status'; // Контроллер для проверки статуса базы данных
+import * as DbSelectorStatusController from './api/db-selector-status'; // Новый контроллер для гибкого подключения к БД
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { NewUniFarmingController } from './controllers/newUniFarmingController'; // Основной контроллер для UNI фарминга
 import { BoostController } from './controllers/boostController';
@@ -358,6 +359,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Эндпоинт для проверки статуса БД (для мониторинга)
   app.get("/api/admin/db-status", DbStatusController.getDatabaseStatus);
+  
+  // Новый эндпоинт для проверки гибкого подключения к БД (Replit PostgreSQL или Neon DB)
+  app.get("/api/db-selector/status", DbSelectorStatusController.getDatabaseStatus);
   
   // Мы используем обычные маршруты для клиентского приложения
   // Режим разработки обрабатывается через регулярный маршрут ниже

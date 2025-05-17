@@ -2,7 +2,12 @@
  * Сервис для управления партициями таблицы transactions
  */
 
-import { db, query as dbQuery } from '../db';
+import { db, wrappedPool } from '../db';
+
+// Функция-обертка для запросов к базе данных
+async function dbQuery(text: string, params: any[] = []) {
+  return await wrappedPool.query(text, params);
+}
 import { format, addDays } from 'date-fns';
 
 /**

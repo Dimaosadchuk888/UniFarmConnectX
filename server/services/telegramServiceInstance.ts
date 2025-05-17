@@ -1,6 +1,5 @@
 import { storage } from '../storage';
-import { verifyTelegramWebAppData, logTelegramData, extractReferralCode } from '../utils/telegramUtils';
-import { TelegramValidationResult } from '../utils/telegramUtils';
+import { validateTelegramInitData, extractReferralCodeFromStartParam, TelegramValidationResult } from '../utils/telegramUtils';
 import { NotFoundError, ValidationError } from '../middleware/errorHandler';
 
 /**
@@ -173,7 +172,7 @@ class TelegramServiceImpl implements ITelegramService {
     }
 
     // Проверяем данные от Telegram
-    const validationResult = await verifyTelegramWebAppData(initData);
+    const validationResult = await validateTelegramInitData(initData, process.env.TELEGRAM_BOT_TOKEN);
 
     // Логирование результата для диагностики
     console.log('[TelegramService] Результат верификации initData:', {
@@ -196,7 +195,10 @@ class TelegramServiceImpl implements ITelegramService {
     }
 
     // Пытаемся найти пользователя в БД
-    const user = await storage.getUserByTelegramId(validationResult.userId);
+    const userId = typeof validationResult.userId === 'string' 
+      ? parseInt(validationResult.userId, 10) 
+      : validationResult.userId;
+    const user = await storage.getUserByTelegramId(userId);
 
     // Если пользователь существует, возвращаем его данные
     if (user) {
@@ -204,7 +206,7 @@ class TelegramServiceImpl implements ITelegramService {
         isValid: true,
         user: {
           id: user.id,
-          telegramId: user.telegram_id,
+          telegramId: typeof user.telegram_id === 'number' ? user.telegram_id : null,
           username: user.username,
           firstName: user.username || validationResult.firstName || null,
           walletAddress: user.ton_wallet_address,
@@ -217,7 +219,9 @@ class TelegramServiceImpl implements ITelegramService {
     // Если пользователя нет, возвращаем только идентификатор Telegram
     return {
       isValid: true,
-      telegramId: validationResult.userId,
+      telegramId: typeof validationResult.userId === 'string' 
+        ? parseInt(validationResult.userId, 10) 
+        : validationResult.userId,
       needRegistration: true
     };
   }
@@ -256,7 +260,7 @@ class TelegramServiceImpl implements ITelegramService {
     }
 
     // Проверяем данные от Telegram
-    const validationResult = await verifyTelegramWebAppData(initData);
+    const validationResult = await validateTelegramInitData(initData, process.env.TELEGRAM_BOT_TOKEN);
 
     if (!validationResult.isValid || !validationResult.userId) {
       throw new ValidationError(
@@ -268,13 +272,18 @@ class TelegramServiceImpl implements ITelegramService {
     // Получаем данные из initData
     const { userId, username, firstName, lastName } = validationResult;
 
+    // Преобразуем userId в число, если он строка
+    const telegramId = typeof userId === 'string' 
+      ? parseInt(userId, 10) 
+      : userId;
+
     // Проверяем, существует ли пользователь
-    const existingUser = await storage.getUserByTelegramId(userId);
+    const existingUser = await storage.getUserByTelegramId(telegramId);
 
     if (existingUser) {
       return {
         id: existingUser.id,
-        telegramId: existingUser.telegram_id,
+        telegramId: typeof existingUser.telegram_id === 'number' ? existingUser.telegram_id : null,
         username: existingUser.username,
         firstName: username || firstName || null,
         lastName: lastName || null,
@@ -289,8 +298,8 @@ class TelegramServiceImpl implements ITelegramService {
 
     // Создаем нового пользователя
     const newUser = await storage.createUser({
-      username: username || `user_${userId}`,
-      telegram_id: userId,
+      username: username || `user_${telegramId}`,
+      telegram_id: typeof telegramId === 'number' ? telegramId : null,
       guest_id: null, // В случае регистрации через Telegram guest_id не нужен
       wallet: null,
       ton_wallet_address: null,
@@ -300,7 +309,7 @@ class TelegramServiceImpl implements ITelegramService {
 
     return {
       id: newUser.id,
-      telegramId: newUser.telegram_id,
+      telegramId: typeof newUser.telegram_id === 'number' ? newUser.telegram_id : null,
       username: newUser.username,
       firstName: username || firstName || null,
       lastName: lastName || null,

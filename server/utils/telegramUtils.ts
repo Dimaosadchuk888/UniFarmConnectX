@@ -5,32 +5,71 @@
 import crypto from 'crypto';
 
 /**
- * Проверяет валидность данных Telegram Mini App
- * @param initData - Строка инициализации от Telegram Mini App
- * @returns Результат проверки
+ * Тип для результата валидации Telegram данных
  */
-export function verifyTelegramWebAppData(initData: string): { 
-  isValid: boolean; 
-  userId?: string;
+export interface TelegramValidationResult {
+  isValid: boolean;
+  userId?: number | string;
   username?: string;
   firstName?: string;
   lastName?: string;
-  errors?: string[]; 
-} {
+  errors?: string[];
+}
+
+/**
+ * Проверяет валидность данных Telegram Mini App
+ * @param initData - Строка инициализации от Telegram Mini App
+ * @param botToken - Токен телеграм бота (опционально)
+ * @param isDevelopment - Режим разработки (разрешает пустые данные)
+ * @returns Результат проверки
+ */
+export function validateTelegramInitData(
+  initData: string, 
+  botToken?: string,
+  isDevelopment: boolean = false
+): TelegramValidationResult {
   try {
+    // В режиме разработки разрешаем пустые данные
+    if (isDevelopment && !initData) {
+      return {
+        isValid: true,
+        userId: '12345678',
+        username: 'dev_user',
+        firstName: 'Dev',
+        lastName: 'User'
+      };
+    }
+    
     // Если initData пустой, возвращаем ошибку
     if (!initData) {
       return { isValid: false, errors: ['Отсутствуют данные initData'] };
     }
-
-    // Парсим параметры из строки initData
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
     
+    // Парсим данные initData
+    const params = new URLSearchParams(initData);
+    
+    // Получаем hash из initData
+    const hash = params.get('hash');
     if (!hash) {
       return { isValid: false, errors: ['Отсутствует hash в initData'] };
     }
-
+    
+    // В режиме разработки пропускаем проверку подписи
+    if (isDevelopment) {
+      return {
+        isValid: true,
+        userId: params.get('id') || '12345678',
+        username: params.get('username') || 'dev_user',
+        firstName: params.get('first_name') || 'Dev',
+        lastName: params.get('last_name') || 'User'
+      };
+    }
+    
+    // Проверяем, что у нас есть токен бота для проверки
+    if (!botToken) {
+      return { isValid: false, errors: ['Отсутствует токен бота для валидации'] };
+    }
+    
     // Создаем копию объекта URLSearchParams без hash параметра для проверки
     const dataParams = new URLSearchParams(initData);
     dataParams.delete('hash');
@@ -47,36 +86,55 @@ export function verifyTelegramWebAppData(initData: string): {
     const dataCheckString = sortedParams
       .map(([key, value]) => `${key}=${value}`)
       .join('\n');
-
-    // Создаем HMAC-SHA256 хеш
-    const secretKey = crypto.createHmac('sha256', 'WebAppData')
-      .update(process.env.TELEGRAM_BOT_TOKEN || '')
-      .digest();
-
-    const generatedHash = crypto.createHmac('sha256', secretKey)
+    
+    // Создаем секретный ключ из токена бота
+    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+    
+    // Вычисляем ожидаемый хеш
+    const calculatedHash = crypto
+      .createHmac('sha256', secretKey)
       .update(dataCheckString)
       .digest('hex');
-
-    // Проверяем, совпадает ли хеш
-    const isValid = generatedHash === hash;
-
-    // Если данные валидны, извлекаем информацию о пользователе
-    if (isValid) {
-      const user = params.get('user') ? JSON.parse(params.get('user') || '{}') : {};
-      
-      return {
-        isValid: true,
-        userId: user.id?.toString(),
-        username: user.username,
-        firstName: user.first_name,
-        lastName: user.last_name
-      };
+    
+    // Сравниваем полученный и ожидаемый хеши
+    const isValid = calculatedHash === hash;
+    
+    if (!isValid) {
+      return { isValid: false, errors: ['Неверная подпись данных'] };
     }
-
-    return { isValid: false, errors: ['Неверная подпись hash'] };
+    
+    // Попытка извлечь данные пользователя из JSON-строки поля user
+    let userId = params.get('id');
+    let username = params.get('username');
+    let firstName = params.get('first_name');
+    let lastName = params.get('last_name');
+    
+    // Если есть поле user, попробуем его распарсить
+    const userStr = params.get('user');
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        userId = userId || userData.id?.toString();
+        username = username || userData.username;
+        firstName = firstName || userData.first_name;
+        lastName = lastName || userData.last_name;
+      } catch (e) {
+        // Игнорируем ошибки парсинга
+      }
+    }
+    
+    return {
+      isValid: true,
+      userId: userId || undefined,
+      username: username || undefined,
+      firstName: firstName || undefined,
+      lastName: lastName || undefined
+    };
   } catch (error) {
-    const err = error as Error;
-    return { isValid: false, errors: [`Ошибка проверки: ${err.message}`] };
+    return { 
+      isValid: false, 
+      errors: [`Ошибка при проверке данных Telegram: ${error instanceof Error ? error.message : String(error)}`] 
+    };
   }
 }
 
