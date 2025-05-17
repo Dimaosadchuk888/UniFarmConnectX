@@ -1,43 +1,52 @@
-# Инструкции по деплою приложения на Replit
+# Инструкция по настройке деплоя на Replit
 
-## Настройки для деплоя
+Для решения проблемы с доступом к приложению через прямой URL (https://uni-farm-connect-2-osadchukdmitro2.replit.app/), следуйте этим инструкциям:
 
-При настройке деплоя в Replit используйте следующие параметры:
+## Шаг 1: Подготовка к деплою
 
-### Команда запуска
+1. Откройте раздел "Deployment" в вашем проекте на Replit
+2. Нажмите кнопку "Deploy"
+3. В открывшихся настройках укажите:
+   - Run command: `node server.js`
+   - Build command: `npm run build`
 
-```bash
-PORT=3000 NODE_ENV=production DATABASE_PROVIDER=neon node start-unified.cjs
+## Шаг 2: Настройка переменных окружения
+
+Добавьте следующие переменные окружения в разделе "Secrets" в настройках вашего проекта на Replit:
+
+```
+NODE_ENV=production
+FORCE_NEON_DB=true
+OVERRIDE_DB_PROVIDER=neon
+DATABASE_PROVIDER=neon
+SKIP_TELEGRAM_CHECK=true
+ALLOW_BROWSER_ACCESS=true
 ```
 
-### Переменные окружения
+Также убедитесь, что установлена переменная `DATABASE_URL` с корректным URL для подключения к базе данных.
 
-- `NODE_ENV`: `production`
-- `DATABASE_PROVIDER`: `neon`
-- `FORCE_NEON_DB`: `true`
-- `DISABLE_REPLIT_DB`: `true`
-- `OVERRIDE_DB_PROVIDER`: `neon`
+## Шаг 3: Ручной деплой
 
-## Проверка перед деплоем
+1. В вашем проекте на Replit перейдите в "Shell"
+2. Выполните следующие команды:
+   ```
+   npm run build
+   node server.js
+   ```
 
-1. Убедитесь, что переменная `DATABASE_URL` корректно настроена для Neon DB
-2. Проверьте, что все необходимые экспорты присутствуют в файлах db.ts и db-selector.ts
-3. Убедитесь, что скрипт start-unified.cjs использует CommonJS модули
+## Шаг 4: Проверка доступности
 
-## Решение проблем при деплое
+После запуска, приложение должно быть доступно по URL:
+https://uni-farm-connect-2-osadchukdmitro2.replit.app/
 
-### Если возникают ошибки с отсутствующими экспортами
+Вы можете проверить, что сервер работает, посетив:
+https://uni-farm-connect-2-osadchukdmitro2.replit.app/api/health
 
-Убедитесь, что в файле `server/db.ts` экспортируются следующие объекты:
-- pool
-- db
-- wrappedPool
-- testDatabaseConnection
-- dbType
-- DatabaseType
-- dbConnectionStatus
-- isTablePartitioned
+## Устранение неполадок
 
-### Если возникают ошибки с модулями
+Если приложение не отвечает или показывает "Service Unavailable":
 
-Используйте CommonJS скрипт `start-unified.cjs` вместо ESM скрипта `start-unified.js`
+1. Проверьте логи в консоли Replit
+2. Убедитесь, что файл `server.js` корректно запускается
+3. Проверьте, что компонент `TelegramWebAppCheck.tsx` отключает проверку Telegram
+4. Попробуйте перезапустить деплой
