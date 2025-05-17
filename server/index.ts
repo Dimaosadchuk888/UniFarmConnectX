@@ -53,6 +53,12 @@ process.on('uncaughtException', (error: Error) => {
 const app = express();
 app.use(express.json());
 
+// Добавляем простой эндпоинт для проверки работоспособности
+// Этот эндпоинт будет быстро отвечать на проверки здоровья
+app.get('/', (req, res) => {
+  res.status(200).send('UniFarm API is running');
+});
+
 // Создаем хранилище сессий
 const MemoryStore = memoryStore(session);
 // Настройка сессии с поддержкой PostgreSQL
