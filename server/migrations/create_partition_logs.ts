@@ -1,4 +1,3 @@
-
 import { Pool } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
 import { sql } from 'drizzle-orm';

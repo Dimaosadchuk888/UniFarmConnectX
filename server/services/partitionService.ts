@@ -53,6 +53,15 @@ export class PartitionService {
     error?: string;
   }> {
     try {
+      // Проверяем, не пересекается ли дата с future partition
+      const today = new Date();
+      if (date > today && date < new Date(today.getFullYear() + 1, 0, 1)) {
+        return {
+          success: false,
+          error: 'Cannot create partition that overlaps with future partition'
+        };
+      }
+      
       const partitionName = `transactions_${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}`;
       
       // Оптимизированная проверка для Neon

@@ -76,29 +76,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     origin: true,
     credentials: true
   }));
-  
+
   // Определяем корневой каталог проекта
   const projectRoot = process.cwd();
-  
+
   // Добавляем маршрут для health check, необходимый для деплоя Replit
   // Определяем пути к health.html в разных местах
   const healthHtmlPaths = [
     path.join(projectRoot, 'dist', 'public', 'health.html'),  // Приоритетный путь для продакшн
     path.join(projectRoot, 'server', 'public', 'health.html') // Запасной путь
   ];
-  
+
   // Находим существующий файл health.html
   const healthHtmlPath = healthHtmlPaths.find(p => fs.existsSync(p));
-  
+
   if (!healthHtmlPath) {
     console.error('❌ [КРИТИЧЕСКАЯ ОШИБКА] Файл health.html не найден!');
   } else {
     console.log(`✅ [HEALTH] Используем файл: ${healthHtmlPath}`);
   }
-  
+
   app.get('/', (req: Request, res: Response) => {
     console.log('[Root Route] Запрос к корневому URL - возвращаем приложение');
-    
+
     // Определяем возможные пути к index.html в разных режимах работы
     const possiblePaths = [
       path.join(projectRoot, 'dist', 'public', 'index.html'),   // режим production (после сборки)
@@ -107,10 +107,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       path.join(projectRoot, 'client', 'index.html'),         // клиентский исходник
       path.join(projectRoot, 'server', 'public', 'index.html'), // серверная публичная версия
     ];
-    
+
     // Ищем существующий файл среди возможных путей
     const indexHtmlPath = possiblePaths.find(p => fs.existsSync(p));
-    
+
     if (indexHtmlPath) {
       // Отправляем найденный index.html
       console.log(`[Root Route] Используем файл: ${indexHtmlPath}`);
@@ -201,12 +201,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Обслуживание статических файлов из папки public
   // Это важно для тестовых HTML-файлов  
   const staticFilesPath = path.join(projectRoot, 'server', 'public');
-  
+
   // Используем тип-предохранитель, чтобы решить проблему с типами
   const staticMiddleware = express.static(staticFilesPath);
   app.use('/static', staticMiddleware);
   console.log('[Server] Статические файлы доступны по URL /static из папки:', staticFilesPath);
-  
+
   // Добавляем CORS заголовки для работы с Telegram WebApp
   // Определяем middleware как отдельную функцию для лучшей типизации
   const corsMiddleware: express.RequestHandler = (req: Request, res: Response, next: NextFunction) => {
@@ -214,27 +214,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
     res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Telegram-Init-Data, X-Telegram-Init-Data, Telegram-Data, X-Telegram-Data, X-Telegram-Auth, X-Telegram-User-Id, X-Telegram-Start-Param, X-Telegram-Platform, X-Telegram-Data-Source, X-Development-Mode, X-Development-User-Id");
-    
+
     // Добавляем Content-Security-Policy для работы в Telegram
     res.header("Content-Security-Policy", "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'");
-    
+
     // Добавляем заголовки для предотвращения кеширования
     res.header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.header("Pragma", "no-cache");
     res.header("Expires", "0");
     res.header("Surrogate-Control", "no-store");
-    
+
     next();
   };
   app.use(corsMiddleware);
-  
+
   // АУДИТ: Логирование заголовков всех запросов к API
   const logHeadersMiddleware: express.RequestHandler = (req: Request, _res: Response, next: NextFunction) => {
     // Логирование всех заголовков запросов для диагностики проблем с Telegram
     if (req.url.startsWith('/api/')) {
       console.log(`[АУДИТ] [${new Date().toISOString()}] Request to ${req.method} ${req.url}`);
       console.log('[АУДИТ] Headers:', JSON.stringify(req.headers, null, 2));
-      
+
       // Если есть данные от Telegram, логируем их
       const telegramData = req.headers['telegram-data'] || 
                           req.headers['x-telegram-data'] || 
@@ -244,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[АУДИТ] Telegram data found in headers with length:', 
           typeof telegramData === 'string' ? telegramData.length : 'not a string');
       }
-      
+
       // Проверяем наличие нового заголовка (согласно п.1.2 ТЗ)
       const telegramInitData = req.headers['telegram-init-data'];
       if (telegramInitData) {
@@ -255,19 +255,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
   app.use(logHeadersMiddleware);
-  
+
   // Подключаем улучшенный логгер для Telegram initData - анализирует данные подробно
   app.use(telegramInitDataLogger);
-  
+
   // Улучшенные маршруты для работы с Telegram Mini App и настройка статических файлов
   // ВАЖНО: Размещаем express.static ПОСЛЕ маршрута "/", чтобы он не перехватывал наш health check
-  
+
   // Настраиваем обработку статических файлов для разных режимов
   const staticPaths = [
     path.join(projectRoot, 'client', 'dist'), // Режим разработки
     path.join(projectRoot, 'dist', 'public'), // Режим production после сборки
   ];
-  
+
   // Опции для express.static с отключенным кешированием
   const staticOptions = {
     etag: false, // Отключаем ETag
@@ -281,7 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Surrogate-Control', 'no-store');
     }
   };
-  
+
   // Проверяем наличие каждой папки и подключаем только существующие
   staticPaths.forEach(staticPath => {
     if (fs.existsSync(staticPath)) {
@@ -289,19 +289,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[Server] Статические файлы доступны из: ${staticPath} (кеширование отключено)`);
     }
   });
-  
+
   // Примечание: поддержка статических файлов из папки server/public
   // уже настроена выше, поэтому здесь мы ничего не делаем
   // (ранее здесь был дублирующий код)
-  
+
   // Специальный маршрут для проверки здоровья системы Replit Deployments
   // Этот маршрут необходим для успешной проверки работоспособности при деплое
   // ВАЖНО: Размещаем этот маршрут ПЕРЕД другими маршрутами для корректного обнаружения Replit
   app.get("/api/health", healthApi.checkHealth);
-  
+
   // Простой ping эндпоинт
   app.get("/api/ping", healthApi.ping);
-  
+
   // Примечание: корневой маршрут уже определен выше
 
   // Специальные маршруты для Telegram Mini App
@@ -313,10 +313,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   ], (req, res) => {
     try {
       console.log(`[Telegram Mini App] Запрос к специальному маршруту: ${req.path}`);
-      
+
       // В режиме разработки файлы находятся в client/dist
       // В режиме production (после сборки) файлы находятся в dist/public
-      
+
       // Определяем возможные пути к index.html в разных режимах работы
       const possiblePaths = [
         path.join(projectRoot, 'client', 'index.html'),         // клиентский исходник
@@ -326,10 +326,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         path.join(projectRoot, 'dist', 'public', 'index.html'),   // режим production (после сборки)
         path.join(projectRoot, 'dist', 'index.html'),            // альтернативный вариант
       ];
-      
+
       // Ищем существующий файл среди возможных путей
       const existingPath = possiblePaths.find(p => fs.existsSync(p));
-      
+
       if (existingPath) {
         // Отправляем найденный index.html
         console.log(`[Telegram Mini App] Используем файл: ${existingPath}`);
@@ -350,22 +350,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).send('Internal Server Error');
     }
   });
-  
+
   // Простой маршрут для проверки API (для отладки)
   app.get("/api/test-json", (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).send(JSON.stringify({ status: "ok", message: "API работает" }));
   });
-  
+
   // Эндпоинт для проверки статуса БД (для мониторинга)
   app.get("/api/admin/db-status", DbStatusController.getDatabaseStatus);
-  
+
   // Новый эндпоинт для проверки гибкого подключения к БД (Replit PostgreSQL или Neon DB)
   app.get("/api/db-selector/status", DbSelectorStatusController.getDatabaseStatus);
-  
+
   // Мы используем обычные маршруты для клиентского приложения
   // Режим разработки обрабатывается через регулярный маршрут ниже
-  
+
   // Диагностический эндпоинт для отладки Telegram данных
   app.get("/api/telegram-debug", async (req: Request, res: Response) => {
     try {
@@ -415,7 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           forwardedFor: req.headers['x-forwarded-for'],
         }
       };
-      
+
       // Анализируем initData, если она есть
       let initData = debugInfo.telegramSpecificHeaders.telegramInitData as string;
       if (initData) {
@@ -424,7 +424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (initData.includes('=') && initData.includes('&')) {
             const params = new URLSearchParams(initData);
             const parsedData: Record<string, any> = {};
-            
+
             params.forEach((value, key) => {
               // Для безопасности - не показываем полный hash
               if (key === 'hash') {
@@ -443,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 parsedData[key] = value;
               }
             });
-            
+
             debugInfo.parsedInitData = parsedData;
             debugInfo.initDataFormat = 'url-encoded';
           } 
@@ -453,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const jsonData = JSON.parse(initData);
               debugInfo.parsedInitData = jsonData;
               debugInfo.initDataFormat = 'json';
-              
+
               // Если есть hash, маскируем его для безопасности
               if (jsonData.hash) {
                 jsonData.hash = 'present (masked for security)';
@@ -465,15 +465,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (parseError) {
           debugInfo.initDataParseError = `Error parsing initData: ${(parseError as Error).message}`;
         }
-        
+
         // Добавляем результаты валидации initData
         try {
           // Импортируем функцию валидации
           const { validateTelegramInitData } = await import('./utils/telegramUtils');
-          
+
           // Получаем токен бота из переменных окружения
           const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
-          
+
           // Проверяем данные с различными настройками
           const validationResult = validateTelegramInitData(
             initData,
@@ -487,7 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               skipSignatureCheck: req.query.skip_signature === 'true'
             }
           );
-          
+
           // Добавляем результат валидации в ответ
           debugInfo.validationResult = {
             isValid: validationResult.isValid,
@@ -500,10 +500,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Error during initData validation:', validationError);
         }
       }
-      
+
       // Логирование для аудита использования
       console.log(`[ДИАГНОСТИКА] Запрос к API telegram-debug от ${req.ip}`);
-      
+
       res.json({
         success: true,
         data: debugInfo
@@ -520,33 +520,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Маршруты для аутентификации (обновленный SOLID контроллер)
   app.post("/api/auth/telegram", AuthController.authenticateTelegram);
-  
+
   // Маршрут для восстановления сессии по guest_id (Этап 3)
   // Маршрут для восстановления сессии по guest_id - используется текущий метод SessionController
   app.post("/api/session/restore", SessionController.restoreSession);
-  
+
   // Маршрут для регистрации через Telegram (согласно ТЗ 2.1)
   app.post("/api/register", AuthController.registerUser);
-  
+
   // Маршрут для регистрации пользователя в режиме AirDrop (Этап 4)
   app.post("/api/auth/guest/register", UserControllerFallback.registerGuestUser);
-  
+
   // Новые маршруты безопасности (SOLID)
   app.post("/api/security/validate-telegram", SecurityController.validateTelegramInitData);
   app.post("/api/security/check-permission", SecurityController.checkPermission);
   app.post("/api/security/sanitize", SecurityController.sanitizeUserInput);
   app.post("/api/airdrop/register", AuthController.registerGuestUser);
-  
+
   // Системный маршрут для проверки состояния приложения и базы данных
   app.get("/api/system/status", async (req: Request, res: Response) => {
     try {
       // Импортируем статус подключения из модуля db
       const { dbConnectionStatus } = await import('./db');
-      
+
       // Получаем информацию о режиме работы StorageAdapter
       const { storage } = await import('./storage-adapter');
       const isUsingMemory = (storage as any).isUsingMemory === true;
-      
+
       // Собираем системную информацию
       const systemInfo = {
         serverTime: new Date().toISOString(),
@@ -564,7 +564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           app: '1.0.0' // Версия приложения (можно заменить на динамическое значение)
         }
       };
-      
+
       // Проверяем статус базы данных
       let dbHealthy = false;
       try {
@@ -575,15 +575,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (dbError) {
         systemInfo.database.lastError = (dbError instanceof Error) ? dbError.message : String(dbError);
       }
-      
+
       // Определяем HTTP статус в зависимости от состояния системы
       const httpStatus = dbHealthy || isUsingMemory ? 200 : 503; // 503 Service Unavailable если есть проблемы
-      
+
       // Если используется in-memory storage, но база данных доступна, добавляем предупреждение
       if (isUsingMemory && dbHealthy) {
         systemInfo.database.warning = 'База данных доступна, но приложение использует in-memory storage. Требуется перезапуск.';
       }
-      
+
       return res.status(httpStatus).json({
         success: true,
         status: httpStatus === 200 ? 'healthy' : 'degraded',
@@ -612,7 +612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user_agent,
         init_data
       } = req.body;
-      
+
       // Базовая валидация данных запроса
       if (!telegram_user_id) {
         return res.status(400).json({
@@ -620,7 +620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'Отсутствует обязательный параметр telegram_user_id'
         });
       }
-      
+
       // Подготавливаем данные для логирования
       const launchData: InsertLaunchLog = {
         telegram_user_id: Number(telegram_user_id),
@@ -634,7 +634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Пытаемся найти пользователя в нашей системе по telegram_id
         user_id: null // Заполним позже, если найдем пользователя
       };
-      
+
       // Если есть telegram_user_id, пытаемся найти пользователя
       // для привязки записи к конкретному аккаунту
       if (telegram_user_id) {
@@ -647,10 +647,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.warn(`[launch-log] Не удалось найти пользователя с telegram_id=${telegram_user_id}`);
         }
       }
-      
+
       // Записываем информацию о запуске
       const log = await launchLogService.logLaunch(launchData);
-      
+
       // Отправляем успешный ответ
       return res.status(200).json({
         success: true,
@@ -662,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('[API] Ошибка при логировании запуска:', error);
-      
+
       // Если это ошибка превышения лимита запросов, возвращаем 429
       if ((error as Error).message.includes('Rate limit exceeded')) {
         return res.status(429).json({
@@ -670,7 +670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'Слишком много запросов. Пожалуйста, повторите позже.'
         });
       }
-      
+
       return res.status(500).json({
         success: false,
         message: 'Внутренняя ошибка сервера',
@@ -678,20 +678,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Тестовый API для реферальной системы (только для режима разработки)
   if (process.env.NODE_ENV === 'development') {
     app.post("/api/auth/test-referral", async (req: Request, res: Response) => {
       try {
         console.log('[TEST API] Тестирование реферальной системы');
-        
+
         const { referrerId } = req.body;
-        
+
         // Создаем тестового пользователя
         const testUserId = Math.floor(Math.random() * 10000000) + 1000000; // Случайный большой ID
         let isNewUser = true;
         let referrerRegistered = false;
-        
+
         // Создаем нового пользователя, используя сервис напрямую
         // Используем инстанс сервиса вместо статического класса
         const user = await userService.createUser({
@@ -701,9 +701,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           balance_ton: "5",
           created_at: new Date()
         });
-        
+
         console.log(`[TEST API] Создан новый тестовый пользователь: ${user.id}, telegram_id: ${testUserId}`);
-        
+
         // Обработка реферальной связи
         if (referrerId) {
           try {
@@ -712,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (!isNaN(inviterId)) {
               // Проверяем, существует ли пользователь-приглашающий
               const inviter = await userService.getUserById(inviterId);
-              
+
               if (inviter) {
                 // Создаем реферальную связь (уровень 1)
                 const referral = await referralService.createReferral({
@@ -721,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   level: 1,
                   created_at: new Date()
                 });
-                
+
                 if (referral) {
                   console.log(`[TEST API] Создана реферальная связь: пользователь ${user.id} приглашен пользователем ${inviterId}`);
                   referrerRegistered = true;
@@ -734,7 +734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error('[TEST API] Ошибка при создании реферальной связи:', error);
           }
         }
-        
+
         // Отправляем успешный ответ с данными пользователя
         return res.status(200).json({
           success: true,
@@ -745,8 +745,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             balance_uni: user.balance_uni,
             balance_ton: user.balance_ton,
             referrer_registered: referrerRegistered,
-            test_mode: true
-          }
+            test_mode: true```text
+        }
         });
       } catch (error) {
         console.error('[TEST API] Ошибка тестирования реферальной системы:', error);
@@ -757,32 +757,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   }
-  
+
   // Маршруты для пользователей
   // ВАЖНО: Сначала размещаем более специфичные маршруты, потом общие с параметрами
   // Это нужно, потому что Express обрабатывает маршруты в порядке их определения
   // Если маршрут с :id будет первым, то /guest/xxx будет обработан как {id: 'guest'}
-  
+
   // Маршрут для получения пользователя по guest_id с поддержкой fallback
   // Этот маршрут необходим для поддержки метода getUserByGuestId из клиентского сервиса
   // app.get("/api/users/guest/:guestId", UserController.getUserByGuestId);
   app.get("/api/users/guest/:guest_id", UserControllerFallback.getUserByGuestId);
-  
+
   // Более общий маршрут для получения пользователя по ID с поддержкой fallback
   // app.get("/api/users/:id", UserController.getUserById);
   app.get("/api/users/:id", UserControllerFallback.getUserById);
   app.post("/api/users/generate-refcode", UserController.generateRefCode);
-  
+
   // Маршрут для получения баланса кошелька с поддержкой fallback
   // Маршрут для получения баланса кошелька
   app.get("/api/wallet/balance", WalletControllerFallback.getWalletBalance);
-  
+
   app.get("/api/me", UserController.getCurrentUser);
-  
+
   // Маршрут для восстановления сессии по guest_id (Этап 3.1) с поддержкой fallback
   // app.get("/api/restore-session", SessionController.restoreSession);
   // Удаляем дублирующий маршрут /api/session/restore, так как он уже определен выше
-  
+
   // Добавляем маршруты для работы с базой данных
   app.get("/api/database/check-connection", DatabaseController.checkConnection);
   app.get("/api/database/status", DatabaseController.getDatabaseStatus);
@@ -792,12 +792,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/database/check-integrity", DatabaseController.checkDataIntegrity);
   app.post("/api/database/execute-query", DatabaseController.executeQuery);
   app.post("/api/database/add-missing-columns", DatabaseController.addMissingUserColumns);
-  
+
   // Маршруты для миграций и обслуживания базы данных (только для разработки)
   // Маршрут для миграции фарминга 
   app.post("/api/admin/migrate-farming-data", migrateFarmingData);
   app.get("/api/admin/check-farming-status/:userId", checkUserFarmingStatus);
-  
+
   // Отладочный эндпоинт для анализа заголовков и данных пользователя
   app.get("/debug/me/raw", async (req: Request, res: Response) => {
     try {
@@ -835,12 +835,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Административные маршруты (защищены ключом)
   app.get("/api/admin/users/list-with-telegram-id", AdminController.listUsersWithTelegramId);
-  
+
   // Контроллер для работы с базой данных
-  
+
   // API маршруты для работы с базой данных (только для администраторов)
   app.get("/api/admin/db/status", DatabaseController.getDatabaseStatus);
   app.get("/api/admin/db/tables", DatabaseController.getTablesList);
@@ -848,22 +848,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/db/tables/:tableName/backup", DatabaseController.backupTable);
   app.get("/api/admin/db/integrity", DatabaseController.checkDataIntegrity);
   app.post("/api/admin/db/query", DatabaseController.executeQuery);
-  
+
   // API для работы с партициями таблицы transactions
   app.get("/api/system/partitions/list", PartitionController.getPartitionsList);
   app.get("/api/system/partitions/logs", PartitionController.getPartitionLogs);
   app.get("/api/system/partitions/status", PartitionController.checkPartitioningStatus);
   app.post("/api/system/partitions/create-future", PartitionController.createFuturePartitions);
-  
+
   // Новый маршрут для обработки вебхуков от Telegram через TypeScript контроллер
 
-  
+
   // Добавляем новый эндпоинт для проверки валидации initData с разными настройками
   app.post("/api/telegram/validate-init-data", async (req: Request, res: Response) => {
     try {
       // Получаем параметры из тела запроса
       const { initData, options = {} } = req.body;
-      
+
       if (!initData) {
         return res.status(400).json({
           success: false,
@@ -871,16 +871,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'initData is required'
         });
       }
-      
+
       // Получаем токен бота из переменных окружения
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      
+
       // Импортируем функцию валидации
       const { validateTelegramInitData, logTelegramData } = await import('./utils/telegramUtils');
-      
+
       // Логируем данные перед валидацией
       logTelegramData(initData, null, 'ValidationEndpoint');
-      
+
       // Объединяем настройки по умолчанию с переданными
       const validationOptions = {
         maxAgeSeconds: 172800, // 48 часов
@@ -891,14 +891,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         skipSignatureCheck: process.env.NODE_ENV !== 'production',
         ...options
       };
-      
+
       // Проверяем данные
       const validationResult = validateTelegramInitData(
         initData,
         botToken,
         validationOptions
       );
-      
+
       // Логируем результат
       console.log('[ValidationEndpoint] Результаты валидации:', {
         isValid: validationResult.isValid,
@@ -906,7 +906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: validationResult.username,
         errors: validationResult.validationErrors || []
       });
-      
+
       // Отправляем результат
       res.json({
         success: true,
@@ -926,7 +926,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error in telegram/validate-init-data endpoint:', error);
-      
+
       res.status(500).json({
         success: false,
         error: 'Internal Server Error',
@@ -934,21 +934,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Маршрут для обработки вебхуков от Telegram (корневой путь /webhook)
   app.post("/webhook", async (req, res) => {
     // Добавляем метки времени и делаем вывод более структурированным
     console.log(`\n[Telegram Webhook] [${new Date().toISOString()}] Получен входящий запрос на /webhook:`);
-    
+
     // Проверка структуры запроса для лучшей диагностики
     if (!req.body) {
       console.warn('[Telegram Webhook] Получен пустой запрос без тела');
       return res.status(400).json({ ok: false, error: 'Empty request body' });
     }
-    
+
     // Логирование в более читабельном формате
     console.log(JSON.stringify(req.body, null, 2));
-    
+
     try {
       // Добавляем проверку на наличие ключевых полей в обновлении
       if (req.body.message) {
@@ -957,10 +957,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[Telegram Webhook] Текст: "${req.body.message.text}"`);
         }
       }
-      
+
       // Обрабатываем обновление
       await telegramBot.handleTelegramUpdate(req.body);
-      
+
       // Успешный ответ
       console.log('[Telegram Webhook] Обновление успешно обработано');
       return res.status(200).json({ ok: true });
@@ -970,36 +970,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`   Тип: ${error.name}`);
       console.error(`   Сообщение: ${error.message}`);
       console.error(`   Стек: ${error.stack}`);
-      
+
       return res.status(500).json({ ok: false, error: error.message });
     }
   });
-  
+
   // Маршруты для работы с Telegram Mini App
   app.post("/api/telegram/webhook", TelegramController.handleWebhook);
   app.post("/api/telegram/validate-init-data", TelegramController.validateInitData);
   app.get("/api/telegram/mini-app-info", TelegramController.getMiniAppInfo);
   app.post("/api/telegram/register", TelegramController.registerTelegramUser);
-  
+
 
 
   // Тестовый маршрут для проверки защиты от повторного связывания (ТЗ 3.1)
   app.post('/api/test/referral/link', async (req, res) => {
     try {
       const { userId, inviterId } = req.body;
-      
+
       if (!userId || !inviterId) {
         return res.status(400).json({
           success: false,
           message: 'Необходимо указать userId и inviterId'
         });
       }
-      
+
       console.log(`[TEST] Попытка создания реферальной связи: user=${userId}, inviter=${inviterId}`);
-      
+
       // Используем обновленный метод с защитой от перезаписи
       const result = await referralService.createReferralRelationship(Number(userId), Number(inviterId));
-      
+
       return res.status(200).json({
         success: true,
         message: 'Результат операции',
@@ -1023,30 +1023,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Тестовый маршрут для проверки статуса реферальной связи
   app.get('/api/test/referral/user/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
-      
+
       if (!userId) {
         return res.status(400).json({
           success: false,
           message: 'Необходимо указать userId'
         });
       }
-      
+
       console.log(`[TEST] Проверка реферальной связи для пользователя ID=${userId}`);
-      
+
       // Получаем информацию о пригласителе
       const userInviter = await referralService.getUserInviter(Number(userId));
-      
+
       // Получаем все реферальные связи пользователя
       const userReferrals = await referralService.getUserReferrals(Number(userId));
-      
+
       // Получаем количество рефералов по уровням
       const referralCounts = await referralService.getReferralCounts(Number(userId));
-      
+
       return res.status(200).json({
         success: true,
         message: 'Информация о реферальных связях',
@@ -1094,30 +1094,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/test/referral/chain', async (req, res) => {
     try {
       const { userId, inviterId } = req.body;
-      
+
       if (!userId || !inviterId) {
         return res.status(400).json({
           success: false,
           message: 'Необходимо указать userId и inviterId'
         });
       }
-      
+
       console.log(`[TEST] Попытка создания реферальной цепочки: user=${userId}, inviter=${inviterId}`);
-      
+
       // Проверяем существование пользователей через инстанс сервиса
       const user = await userService.getUserById(Number(userId));
       const inviter = await userService.getUserById(Number(inviterId));
-      
+
       if (!user || !inviter) {
         return res.status(404).json({
           success: false,
           message: 'Пользователь или пригласитель не найден'
         });
       }
-      
+
       // Создаем реферальную цепочку с защитой от повторного создания
       const result = await referralBonusService.createReferralChain(Number(userId), Number(inviterId));
-      
+
       return res.status(200).json({
         success: true,
         message: 'Результат создания реферальной цепочки',
@@ -1132,41 +1132,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Этот маршрут удален, так как дублирует ранее созданный
-  
+
   // Тестовый маршрут для создания реферальной связи (Для ТЗ 4.1)
   app.post('/api/test/referral/link', async (req: Request, res: Response) => {
     try {
       const { userId, inviterId } = req.body;
-      
+
       if (!userId || !inviterId) {
         return res.status(400).json({
           success: false,
           message: 'Необходимо указать userId и inviterId'
         });
       }
-      
+
       console.log(`[TEST 4.1] Создание реферальной связи: user=${userId}, inviter=${inviterId}`);
-      
+
       // Проверяем существование пользователей через инстанс сервиса
       const user = await userService.getUserById(Number(userId));
       const inviter = await userService.getUserById(Number(inviterId));
-      
+
       if (!user || !inviter) {
         return res.status(404).json({
           success: false,
           message: 'Пользователь или пригласитель не найден'
         });
       }
-      
+
       // Создаем реферальную связь с поддержкой ref_path
       const result = await referralService.createReferralRelationship(
         Number(userId), 
         Number(inviterId),
         1 // Уровень = 1 (прямой реферал)
       );
-      
+
       return res.status(200).json({
         success: true,
         message: 'Результат создания реферальной связи',
@@ -1181,18 +1181,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Административные маршруты для управления вебхуком Telegram
   // Эти маршруты должны быть защищены (например, доступны только в режиме разработки)
   if (process.env.NODE_ENV === 'development') {
-    
+
     // Маршрут для запуска миграции реферальных кодов
     app.post("/api/admin/migrate-ref-codes", async (req, res) => {
       try {
         console.log('[Admin API] Запуск миграции реферальных кодов');
-        
+
         const result = await migrateRefCodes();
-        
+
         return res.status(200).json({
           success: true,
           message: `Миграция успешно выполнена. Обновлено ${result.updated} из ${result.total} пользователей`,
@@ -1207,23 +1207,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     });
-    
+
     // Маршрут для обновления реферального кода конкретного пользователя
     app.post("/api/admin/update-user-ref-code", async (req, res) => {
       try {
         const { userId } = req.body;
-        
+
         if (!userId || isNaN(Number(userId))) {
           return res.status(400).json({
             success: false,
             message: 'Отсутствует или некорректен обязательный параметр userId'
           });
         }
-        
+
         console.log(`[Admin API] Обновление реферального кода для пользователя ID=${userId}`);
-        
+
         const result = await checkAndUpdateUserRefCode(Number(userId));
-        
+
         return res.status(200).json({
           success: true,
           message: result.updated 
@@ -1240,23 +1240,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     });
-    
+
     // Маршрут для ручной установки реферального кода
     app.post("/api/admin/set-ref-code", async (req, res) => {
       try {
         const { userId, refCode } = req.body;
-        
+
         if (!userId || isNaN(Number(userId)) || !refCode) {
           return res.status(400).json({
             success: false,
             message: 'Отсутствуют или некорректны обязательные параметры userId и refCode'
           });
         }
-        
+
         console.log(`[Admin API] Установка реферального кода ${refCode} для пользователя ID=${userId}`);
-        
+
         const result = await setRefCodeForUser(Number(userId), refCode);
-        
+
         return res.status(result ? 200 : 400).json({
           success: result,
           message: result 
@@ -1276,14 +1276,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.post("/api/telegram/set-webhook", async (req, res) => {
       try {
         const { webhookUrl } = req.body;
-        
+
         if (!webhookUrl) {
           return res.status(400).json({
             success: false,
             message: 'Отсутствует обязательный параметр webhookUrl'
           });
         }
-        
+
         const result = await telegramBot.setWebhook(webhookUrl);
         return res.status(result.success ? 200 : 400).json(result);
       } catch (error: any) {
@@ -1295,7 +1295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     });
-    
+
     // Удаление webhook
     app.post("/api/telegram/delete-webhook", async (req, res) => {
       try {
@@ -1310,7 +1310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     });
-    
+
     // Получение информации о webhook
     app.get("/api/telegram/webhook-info", async (req, res) => {
       try {
@@ -1325,7 +1325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     });
-    
+
     // Настройка команд для бота
     app.post("/api/telegram/set-commands", async (req, res) => {
       try {
@@ -1341,23 +1341,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     });
-    
+
     // Тестовый маршрут для отправки сообщения через бота
     app.post("/api/telegram/send-test-message", async (req, res) => {
       try {
         const { chatId, message } = req.body;
-        
+
         if (!chatId || !message) {
           return res.status(400).json({
             success: false,
             message: 'Отсутствуют обязательные параметры chatId и message'
           });
         }
-        
+
         console.log(`[Admin API] Отправка тестового сообщения в чат ${chatId}: "${message}"`);
-        
+
         const result = await telegramBot.sendMessage(Number(chatId), message);
-        
+
         return res.status(200).json({
           success: true,
           message: 'Сообщение успешно отправлено',
@@ -1372,19 +1372,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     });
-    
+
     // Маршрут для отправки уведомлений о статусе приложения
     app.post("/api/telegram/notify-app-status", async (req, res) => {
       try {
         const { chatId, status, details } = req.body;
-        
+
         if (!chatId || !status) {
           return res.status(400).json({
             success: false,
             message: 'Отсутствуют обязательные параметры chatId и status'
           });
         }
-        
+
         // Проверяем, что статус имеет допустимое значение
         if (!['started', 'deployed', 'updated', 'error'].includes(status)) {
           return res.status(400).json({
@@ -1392,15 +1392,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: 'Некорректное значение статуса. Допустимые значения: started, deployed, updated, error'
           });
         }
-        
+
         console.log(`[Admin API] Отправка уведомления о статусе приложения: ${status}`);
-        
+
         const result = await telegramBot.sendAppStatusNotification(
           Number(chatId), 
           status as "started" | "deployed" | "updated" | "error",
           details
         );
-        
+
         return res.status(200).json({
           success: true,
           message: `Уведомление о статусе "${status}" успешно отправлено`,
@@ -1416,7 +1416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   }
-  
+
   // Маршруты для работы с TON-кошельком
   app.post("/api/user/link-wallet", WalletController.linkWalletAddress);
   app.get("/api/user/wallet-address", WalletController.getUserWalletAddress);
@@ -1424,47 +1424,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршрут для получения транзакций пользователя
   app.get("/api/user/transactions", WalletControllerFallback.getTransactionHistory);
   app.post("/api/user/withdraw", WalletController.withdrawFunds);
-  
+
   // Маршруты для транзакций
   app.get("/api/transactions", TransactionController.getUserTransactions);
   app.get("/api/transactions/:user_id", TransactionController.getUserTransactions);
   app.post("/api/withdraw", TransactionController.withdrawFunds);
   app.post("/api/transactions/create", TransactionController.createTransaction);
-  
+
   // Маршруты для миссий
   app.get("/api/missions/active", MissionController.getActiveMissions);
   app.get("/api/user_missions", MissionController.getUserCompletedMissions);
   app.get("/api/missions/with-completion", MissionController.getMissionsWithCompletion);
   app.get("/api/missions/check/:userId/:missionId", MissionController.checkMissionCompletion);
   app.post("/api/missions/complete", MissionControllerFallback.completeMission);
-  
+
   // Маршруты для фарминг-депозитов
   app.get("/api/farming-deposits", FarmingController.getUserFarmingDeposits);
   app.post("/api/deposit", FarmingController.createDeposit);
-  
+
   // Маршруты для реферальной системы
   app.get("/api/referrals", ReferralControllerFallback.getReferralStats);
   app.get("/api/referrals/inviter/:id", ReferralController.getUserInviter);
   app.post("/api/referral/register-start-param", ReferralController.registerStartParam);
-  
+
   // Маршруты для реферальной системы с fallback
   app.get("/api/referrals/tree", ReferralControllerFallback.getReferralTree);
   app.get("/api/referrals/stats", ReferralControllerFallback.getReferralStats);
-  
+
   // Маршруты для оптимизированной реферальной системы
   app.get("/api/referrals/tree/optimized", ReferralSystemController.getReferralStructure);
   app.get("/api/referrals/structure", ReferralSystemController.getReferralStructure);
   app.post("/api/system/referrals/toggle-optimized", ReferralSystemController.toggleOptimizedReferralSystem);
   app.get("/api/system/referrals/metrics", ReferralSystemController.getReferralSystemMetrics);
-  
+
   // Маршруты для ежедневного бонуса
   // app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);
   // app.post("/api/daily-bonus/claim", DailyBonusController.claimDailyBonus);
-  
+
   // Используем fallback контроллер для ежедневных бонусов
   app.get("/api/daily-bonus/status", DailyBonusControllerFallback.checkDailyBonusStatus);
   app.post("/api/daily-bonus/claim", DailyBonusControllerFallback.claimDailyBonus);
-  
+
   // Маршруты для UNI фарминга (с поддержкой fallback)
   // Основные маршруты для UNI фарминга (используем новый контроллер)
   app.get("/api/uni-farming/info", NewUniFarmingController.getUserFarmingInfo);
@@ -1477,7 +1477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/uni-farming/deposits", NewUniFarmingController.getUserDeposits);
   app.post("/api/uni-farming/harvest", NewUniFarmingController.harvestFarming);
   app.post("/api/uni-farming/simulate-reward", NewUniFarmingController.simulateReward);
-  
+
   // Маршруты для множественного UNI фарминга (для совместимости)
   // Перенаправляем на основные маршруты
   app.get("/api/new-uni-farming/info", (req, res) => {
@@ -1493,13 +1493,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[ROUTES] ⚠️ Устаревший маршрут: /api/new-uni-farming/deposits, рекомендуется использовать /api/uni-farming/deposits');
     return NewUniFarmingController.getUserDeposits(req, res);
   });
-  
+
   // Маршруты для буст-пакетов (с поддержкой fallback)
   app.get("/api/boosts", (req, res, next) => BoostControllerFallback.getBoostPackages(req, res, next));
   app.get("/api/boosts/active", (req, res, next) => BoostControllerFallback.getUserActiveBoosts(req, res, next));
   app.post("/api/boosts/purchase", (req, res, next) => BoostControllerFallback.purchaseBoost(req, res, next));
-  
-  // Маршруты для TON Boost-пакетов
+
+  //  // Маршруты для TON Boost-пакетов
   app.get("/api/ton-boosts", TonBoostController.getTonBoostPackages);
   app.get("/api/ton-boosts/active", TonBoostController.getUserTonBoosts);
   app.post("/api/ton-boosts/purchase", TonBoostController.purchaseTonBoost);
@@ -1512,27 +1512,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       amount: req.body.amount,
       amountType: typeof req.body.amount
     });
-    
+
     return await TonBoostController.processIncomingTransaction(req, res);
   });
-  
+
   // TON фарминг с поддержкой fallback
   app.get("/api/ton-farming/info", TonBoostControllerFallback.getUserTonFarmingInfo);
   app.get("/api/ton-farming/update-balance", TonBoostControllerFallback.calculateAndUpdateTonFarming);
   // Перенаправление на основной эндпоинт
   app.get("/api/ton-farming/active", TonBoostController.getUserTonBoosts);
-  
+
   // Добавляем эндпоинт для тестирования обновления TON фарминга
   app.post("/api/ton-farming/update", async (req: Request, res: Response) => {
     try {
       const userId = req.body.user_id || (req.headers['x-development-user-id'] as string) || '1';
       const userIdNum = parseInt(userId);
-      
+
       console.log(`[DEBUG] Ручное обновление TON фарминга для пользователя ${userIdNum}`);
-      
+
       const { tonBoostServiceInstance } = require('./services/tonBoostServiceInstance');
       const result = await tonBoostServiceInstance.calculateAndUpdateUserTonFarming(userIdNum);
-      
+
       return res.json({
         success: true,
         data: result
@@ -1546,15 +1546,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Добавляем эндпоинт для обновления TON фарминга всех пользователей
   app.post("/api/ton-farming/update-all", async (req: Request, res: Response) => {
     try {
       console.log(`[DEBUG] Запуск обновления TON фарминга для всех пользователей`);
-      
+
       const { TonBoostService } = require('./services/tonBoostService');
       const result = await TonBoostService.updateAllUsersTonFarming();
-      
+
       return res.json({
         success: true,
         data: result
@@ -1568,18 +1568,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Добавляем эндпоинт для тестирования харвеста TON фарминга
   app.post("/api/ton-farming/harvest", async (req: Request, res: Response) => {
     try {
       const userId = req.body.user_id || (req.headers['x-development-user-id'] as string) || '1';
       const userIdNum = parseInt(userId);
-      
+
       console.log(`[DEBUG] Ручной сбор TON фарминга для пользователя ${userIdNum}`);
-      
+
       const { tonBoostServiceInstance } = require('./services/tonBoostServiceInstance');
       const result = await tonBoostServiceInstance.harvestTonFarming(userIdNum);
-      
+
       return res.json({
         success: true,
         data: result
@@ -1593,7 +1593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Добавляем эндпоинт для выполнения SQL-запросов в режиме разработки
   app.post("/api/db/query", async (req: Request, res: Response) => {
     // Проверяем, что это режим разработки
@@ -1603,19 +1603,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Доступно только в режиме разработки'
       });
     }
-    
+
     try {
       const { query } = req.body;
-      
+
       if (!query) {
         return res.status(400).json({
           success: false,
           message: 'Запрос не указан'
         });
       }
-      
+
       console.log(`[DEBUG] Выполнение SQL-запроса: ${query}`);
-      
+
       // Разрешаем только SELECT-запросы
       if (!query.trim().toLowerCase().startsWith('select')) {
         return res.status(403).json({
@@ -1623,9 +1623,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'Разрешены только SELECT-запросы'
         });
       }
-      
+
       const result = await db.execute(query);
-      
+
       return res.json({
         success: true,
         data: result.rows || []
@@ -1639,10 +1639,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Эндпоинты для получения активных бустов фарминга
   app.get("/api/farming/boosts/active", TonBoostController.getUserTonBoosts);
-  
+
   // Эндпоинты для управления реферальной системой
   app.get("/api/system/referrals/mode", ReferralSystemController.getReferralSystemMode);
   app.post("/api/system/referrals/toggle-optimized", ReferralSystemController.toggleOptimizedReferralSystem);
@@ -1662,11 +1662,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   });
-  
+
   // Специальные маршруты для Telegram Mini App
   app.get(['/UniFarm', '/UniFarm/', '/app', '/app/', '/unifarm', '/unifarm/'], (req: Request, res: Response, next: NextFunction) => {
     console.log('[TelegramMiniApp] Запрос к специальному пути Telegram Mini App:', req.path);
-    
+
     // В продакшн режиме отдаем index.html
     if (process.env.NODE_ENV === 'production') {
       const indexPath = path.resolve('dist/public/index.html');
@@ -1675,7 +1675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.sendFile(indexPath);
       }
     }
-    
+
     // В режиме разработки передаем управление дальше (в Vite middleware)
     next();
   });
@@ -1687,26 +1687,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[Route] API-запрос со слэшем в конце - не редиректим:', req.path);
       return next();
     }
-    
+
     // Для отладки (только если это не API-запрос)
     console.log('[Route] Обнаружен путь со слэшем на конце:', req.path, {
       userAgent: req.headers['user-agent']?.substring(0, 30) + '...',
       isAPI: req.path.startsWith('/api/'),
       referrer: req.headers['referer'],
     });
-    
+
     // Проверяем, является ли запрос от Telegram Mini App
     const isTelegramUserAgent = req.headers['user-agent']?.includes('TelegramWebApp') || 
                                req.headers['user-agent']?.includes('Telegram');
     const hasTelegramData = !!(req.headers['telegram-data'] || req.headers['x-telegram-data'] || 
                           req.headers['telegram-init-data'] || req.headers['x-telegram-init-data']);
-    
+
     // Для корневого пути с завершающим слэшем (который BotFather добавляет автоматически)
     if (req.path === '/') {
       console.log('[Route] Корневой путь с завершающим слэшем - не редиректим');
       return next();
     }
-    
+
     // Если запрос от Telegram и запрашивается путь с завершающим слэшем
     if ((isTelegramUserAgent || hasTelegramData) && req.path.endsWith('/')) {
       // Для путей, которые используются в Telegram Mini App, не делаем редирект
@@ -1715,17 +1715,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return next();
       }
     }
-    
+
     // Проверяем Content-Type запроса и Accept заголовок
     const contentType = req.headers['content-type'] || '';
     const acceptHeader = req.headers['accept'] || '';
-    
+
     // Не делаем редирект для запросов, ожидающих JSON или отправляющих JSON
     if (contentType.includes('application/json') || acceptHeader.includes('application/json')) {
       console.log('[Route] Запрос JSON с завершающим слэшем - не редиректим:', req.path);
       return next();
     }
-    
+
     // Обычная обработка - удаляем слеш в конце URL для всех остальных случаев
     if (req.path.endsWith('/') && req.path !== '/') {
       console.log('[Route] Редирект URL со слешем в конце:', req.url);
@@ -1734,13 +1734,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next();
     }
   });
-  
+
   // Корневой URL всегда обрабатываем обычным образом
   app.get('/', (req: Request, res: Response, next: NextFunction) => {
     // Проверяем, содержит ли URL параметр ref_code, который используется для реферальных ссылок
     if (req.query.ref_code !== undefined) {
       console.log('[TelegramWebApp] Обнаружен запуск через ?ref_code параметр:', req.url);
-      
+
       // Для продакшн-окружения возвращаем index.html
       if (process.env.NODE_ENV === 'production') {
         const indexPath = path.resolve('dist/public/index.html');
@@ -1755,7 +1755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             path.resolve('public/index.html'),
             path.resolve('client/dist/index.html')
           ];
-          
+
           for (const altPath of altPaths) {
             if (fs.existsSync(altPath)) {
               console.log('[TelegramWebApp] Отправляем index.html из альтернативного пути:', altPath);
@@ -1767,7 +1767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   });
-  
+
   // Обработчик для всех остальных маршрутов - перенаправляем на React SPA
   // Важно: этот обработчик должен быть определен ПОСЛЕ всех API-маршрутов
   app.get(/^\/(?!api\/).*$/, (req: Request, res: Response, next: NextFunction) => {
@@ -1777,43 +1777,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
-      
+
       // Проверка на наличие параметров Telegram WebApp в URL
       const hasTelegramParams = req.query.tgWebAppStartParam || 
                                 req.query.tgWebAppData || 
                                 req.query.tgWebAppVersion;
-                                
+
       // Логирование для отладки
       if (hasTelegramParams) {
         console.log('[TelegramWebApp] Обнаружены параметры в URL:', req.url);
       }
-      
+
       // В режиме разработки отправляем на клиентский маршрут
       if (process.env.NODE_ENV === 'development') {
         console.log(`[SPA] Режим разработки, перенаправляем запрос ${req.path} на клиентский маршрут`);
-        
+
         // Для source-map и модулей проксируем на Vite
         if (req.path.startsWith('/src/') || req.path.startsWith('/@') || req.path.includes('.map')) {
           console.log(`[SPA] Vite dev path: ${req.path}`);
           next();
           return;
         }
-        
+
         // Для других маршрутов используем index.html напрямую
         console.log(`[SPA] Обслуживаем клиентский маршрут: ${req.path}`);
-        
+
         // В режиме разработки не генерируем HTML, а просто передаем управление в middleware
         // Это позволит Vite самостоятельно обработать запрос
         console.log(`[SPA] Передаем запрос Vite middleware: ${req.path}`);
         return next();
       }
-      
+
       // В production находим готовый index.html
       const indexPath = path.join(projectRoot, 'dist', 'public', 'index.html');
       if (fs.existsSync(indexPath)) {
         return res.sendFile(indexPath);
       }
-      
+
       // Если нет файла, передаем управление дальше
       next();
     } catch (error) {
@@ -1833,7 +1833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(errorHandler);
 
   const httpServer = createServer(app);
-  
+
   // Создаем WebSocket сервер на отдельном пути, чтобы не конфликтовать с Vite HMR
   // Конфигурация оптимизирована для максимальной надежности и стабильности
   const wss = new WebSocketServer({ 
@@ -1852,15 +1852,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Увеличиваем максимальный размер сообщения
     maxPayload: 1024 * 1024 // 1MB
   });
-  
+
   // Отслеживание активных подключений
   const clients = new Map<string, ExtendedWebSocket>();
-  
+
   // Функция для поддержания соединений активными
   function heartbeat(this: ExtendedWebSocket) {
     this.isAlive = true;
   }
-  
+
   // Расширяем тип для отслеживания состояния
   interface ExtendedWebSocket extends WebSocket {
     userId?: number;
@@ -1870,16 +1870,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       remoteAddress?: string;
     };
   }
-  
+
   // Интервал проверки активности клиентов
   // Увеличиваем интервал до 30 секунд для более стабильного соединения
   const pingInterval = setInterval(() => {
     let activeClients = 0;
     let terminatedClients = 0;
-    
+
     wss.clients.forEach((ws: WebSocket) => {
       const client = ws as ExtendedWebSocket;
-      
+
       // Проверяем, отвечал ли клиент на предыдущий ping
       if (client.isAlive === false) {
         // Дополнительная проверка состояния соединения перед закрытием
@@ -1891,7 +1891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           terminatedClients++;
           return;
         }
-        
+
         // Если клиент не ответил на ping, закрываем соединение
         if (client.clientId) {
           clients.delete(client.clientId);
@@ -1903,18 +1903,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         terminatedClients++;
         return client.terminate();
       }
-      
+
       // Отмечаем клиент как неактивный перед отправкой ping
       // Клиент должен ответить на ping нашего типа или на стандартный WebSocket ping 
       client.isAlive = false;
       activeClients++;
-      
+
       // Отправляем стандартный WebSocket ping вместо JSON
       try {
         if (client.readyState === WebSocket.OPEN) {
           // Используем нативный ping WebSocket протокола
           client.ping();
-          
+
           // И дополнительно пользовательский ping для совместимости
           if (Math.random() < 0.3) { // Отправляем пользовательский ping только в 30% случаев
             client.send(JSON.stringify({ 
@@ -1933,7 +1933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         client.terminate();
       }
     });
-    
+
     // Логирование статистики каждые 5 минут (или при изменениях)
     if (terminatedClients > 0 || new Date().getMinutes() % 5 === 0) {
       console.log('[WebSocket] Статистика соединений:', { 
@@ -1943,38 +1943,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   }, 45000); // проверяем каждые 45 секунд для более стабильного соединения
-  
+
   // Обработка подключений WebSocket
   wss.on('connection', (ws: ExtendedWebSocket, request) => {
     // Назначаем уникальный ID клиенту
     const clientId = Date.now() + Math.random().toString(36).substr(2, 9);
     ws.clientId = clientId;
     ws.isAlive = true; // помечаем клиент как активный
-    
+
     // Добавляем клиент в Map
     clients.set(clientId, ws);
-    
+
     console.log('[WebSocket] Новое подключение установлено', { 
       clientId,
       urlParams: request.url ? `${request.url.slice(0, 50)}${request.url.length > 50 ? '...' : ''}` : 'нет',
       headers: Object.keys(request.headers).filter(h => h.toLowerCase().includes('user') || h.toLowerCase().includes('auth')).join(', ')
     });
-    
+
     // Попытка получить user_id из URL-параметров
     let userId = null;
     if (request.url && request.url.includes('?')) {
       const params = new URLSearchParams(request.url.split('?')[1]);
       userId = params.get('user_id');
-      
+
       if (userId) {
         ws.userId = parseInt(userId, 10);
         console.log(`[WebSocket] Пользователь идентифицирован из URL: user_id=${userId}`);
       }
     }
-    
+
     // Устанавливаем обработчик heartbeat
     ws.on('pong', heartbeat);
-    
+
     // Отправляем приветственное сообщение
     try {
       ws.send(JSON.stringify({ 
@@ -1987,19 +1987,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (e) {
       console.error('[WebSocket] Ошибка при отправке приветствия:', e);
     }
-    
+
     // Обработка сообщений от клиента
     ws.on('message', (message: Buffer | string) => {
       ws.isAlive = true; // обновляем статус активности при получении сообщения
-      
+
       try {
         const data = JSON.parse(message.toString());
-        
+
         // Ограничиваем логирование, только если это не ping/pong сообщение
         if (data.type !== 'ping' && data.type !== 'pong') {
           console.log('[WebSocket] Получено сообщение:', data);
         }
-        
+
         // Обработка различных типов сообщений
         if (data.type === 'ping') {
           // Клиент прислал ping, отвечаем pong
@@ -2036,7 +2036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('[WebSocket] Ошибка обработки сообщения:', error);
       }
     });
-    
+
     // Обработка закрытия соединения
     ws.on('close', () => {
       console.log('[WebSocket] Соединение закрыто', { clientId });
@@ -2045,7 +2045,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clients.delete(ws.clientId);
       }
     });
-    
+
     // Обработка ошибок
     ws.on('error', (error: Error) => {
       // Структурированное логирование ошибки соединения
@@ -2055,24 +2055,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clientId,
         timestamp: new Date().toISOString()
       });
-      
+
       // В режиме разработки выводим полный стек ошибки
       if (process.env.NODE_ENV === 'development') {
         console.error('[WebSocket] [Стек ошибки]:', error);
       }
-      
+
       // Удаляем клиент из Map при ошибке
       if (ws.clientId) {
         clients.delete(ws.clientId);
       }
     });
   });
-  
+
   // Обработка закрытия сервера
   wss.on('close', () => {
     clearInterval(pingInterval);
   });
-  
+
   /**
    * Функция для отправки обновлений всем подключенным пользователям
    * Можно использовать из других модулей, например из сервисов
@@ -2081,7 +2081,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
    */
   (global as any).broadcastUserUpdate = (userId: number, data: Record<string, unknown>): void => {
     let sentCount = 0;
-    
+
     // Используем Array.from для совместимости с TypeScript без downlevelIteration
     Array.from(clients.entries()).forEach(([clientId, extClient]) => {
       if (extClient.readyState === WebSocket.OPEN && extClient.userId === userId) {
@@ -2100,29 +2100,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: error instanceof Error ? error.message : 'Неизвестная ошибка',
             timestamp: new Date().toISOString()
           });
-          
+
           // В производственной среде не выводим полный стек ошибки
           if (process.env.NODE_ENV === 'development') {
             console.error('[WebSocket] [Стек ошибки]:', error);
           }
-          
+
           // Если соединение в ошибке, удаляем его из Map
           clients.delete(clientId);
         }
       }
     });
-    
+
     if (sentCount > 0) {
       console.log(`[WebSocket] Отправлены обновления для пользователя ${userId} на ${sentCount} устройств`);
     }
   };
-  
+
   // Добавляем глобальную функцию для отправки тестовых сообщений всем клиентам
   // Используется для проверки стабильности WebSocket соединений
   (global as any).broadcastAll = (message: string): void => {
     let sentCount = 0;
     const timestamp = new Date().toISOString();
-    
+
     // Используем безопасную итерацию по Map
     Array.from(clients.entries()).forEach(([clientId, extClient]) => {
       if (extClient.readyState === WebSocket.OPEN) {
@@ -2142,15 +2142,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
     });
-    
+
     console.log(`[WebSocket] Широковещательное сообщение отправлено ${sentCount} клиентам`);
   };
-  
+
   // Добавляем диагностический API-маршрут для проверки WebSocket соединений
   app.get('/api/websocket/status', (req: Request, res: Response) => {
     const clientsCount = clients.size;
     const activeClients = Array.from(clients.values()).filter(c => c.isAlive && c.readyState === WebSocket.OPEN).length;
-    
+
     res.json({
       success: true,
       data: {
@@ -2160,10 +2160,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
-  
+
   // Для успешного прохождения Replit делпоя
   // Мы временно удаляем обработчик маршрута UniFarm
   // Этот обработчик будет добавлен после успешного деплоя
-  
+
   return httpServer;
 }
