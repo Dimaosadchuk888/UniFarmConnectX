@@ -109,9 +109,12 @@ class AuthServiceImpl implements IAuthService {
       }
 
       if (!user && telegramUserId) {
-        // Метод getUserByTelegramId не существует в текущем сервисе
-        // TODO: добавить этот метод в userService
-        user = undefined; // Временная заглушка
+        // Используем метод getUserByTelegramId из storage
+        const numericTelegramId = typeof telegramUserId === 'string' 
+          ? parseInt(telegramUserId, 10) 
+          : telegramUserId;
+        
+        user = await storage.getUserByTelegramId(numericTelegramId);
       }
 
       // 4. Если пользователь найден, обновим его данные
@@ -140,8 +143,19 @@ class AuthServiceImpl implements IAuthService {
       const parent_ref_code = authData.startParam || authData.refCode || null;
 
       // Создаем пользователя
+      // Преобразуем строковый telegramUserId в число (или null если отсутствует)
+      let numericTelegramId: number | null = null;
+      
+      if (telegramUserId) {
+        if (typeof telegramUserId === 'string') {
+          numericTelegramId = parseInt(telegramUserId, 10);
+        } else if (typeof telegramUserId === 'number') {
+          numericTelegramId = telegramUserId;
+        }
+      }
+        
       const newUser: InsertUser = {
-        telegram_id: telegramUserId || null,
+        telegram_id: numericTelegramId,
         guest_id: authData.guest_id || null,
         username,
         wallet: null,
@@ -215,11 +229,12 @@ class AuthServiceImpl implements IAuthService {
       }
 
       // Если указан telegram_id, проверяем, есть ли уже такой пользователь
-      // Метод getUserByTelegramId не существует в текущем сервисе
-      // TODO: добавить этот метод в userService
       if (data.telegram_id) {
-        // Временная заглушка, пропускаем проверку по telegram_id
-        console.log(`[AuthService] Пропускаем проверку по telegram_id: ${data.telegram_id}`);
+        const existingUserByTelegramId = await storage.getUserByTelegramId(data.telegram_id);
+        if (existingUserByTelegramId) {
+          console.log(`[AuthService] Пользователь с telegram_id ${data.telegram_id} уже существует`);
+          return existingUserByTelegramId;
+        }
       }
 
       // Создаем уникальный реферальный код
