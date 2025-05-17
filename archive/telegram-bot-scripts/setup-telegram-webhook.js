@@ -3,7 +3,11 @@
  */
 import fetch from 'node-fetch';
 
-const BOT_TOKEN = '7980427501:AAHdia3LusU9dk2aRvhXgmj9Ozo08nR0Gug';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+if (!BOT_TOKEN) {
+  console.error('Error: TELEGRAM_BOT_TOKEN environment variable is not set');
+  process.exit(1);
+}
 const WEBHOOK_URL = 'https://uni-farm-connect-2-misterxuniverse.replit.app/api/telegram/webhook';
 
 async function callTelegramApi(method, data = {}) {

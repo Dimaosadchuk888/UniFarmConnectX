@@ -10,8 +10,8 @@ BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
 
 if [ -z "$BOT_TOKEN" ]; then
   echo "⚠️ Telegram Bot Token не найден в переменных окружения"
-  echo "Используем токен @UniFarming_Bot"
-  BOT_TOKEN="7980427501:AAHdia3LusU9dk2aRvhXgmj9Ozo08nR0Gug"
+  echo "Пожалуйста, установите переменную окружения TELEGRAM_BOT_TOKEN"
+  exit 1
 fi
 
 # Устанавливаем webhook
