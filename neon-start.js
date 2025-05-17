@@ -47,9 +47,19 @@ function loadNeonEnvironment() {
     log(`📝 Загрузка переменных из .env.neon...`, colors.blue);
     const envConfig = dotenv.parse(fs.readFileSync(neonEnvPath));
     
-    // Применяем переменные окружения
+    // Применяем переменные окружения с заменой ${VAR}
     for (const key in envConfig) {
-      process.env[key] = envConfig[key];
+      let value = envConfig[key];
+      
+      // Обработка переменных окружения в формате ${VAR_NAME}
+      if (value.includes('${') && value.includes('}')) {
+        // Заменяем ${VAR_NAME} на значение переменной окружения
+        value = value.replace(/\${([^}]+)}/g, (match, varName) => {
+          return process.env[varName] || '';
+        });
+      }
+      
+      process.env[key] = value;
     }
     
     log(`✅ Переменные окружения из .env.neon успешно загружены`, colors.green);

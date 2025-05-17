@@ -15,7 +15,17 @@ if (fs.existsSync('.env.neon')) {
     if (line && !line.startsWith('#')) {
       const [key, ...valueParts] = line.split('=');
       if (key && valueParts.length) {
-        process.env[key.trim()] = valueParts.join('=').trim();
+        let value = valueParts.join('=').trim();
+        
+        // Обработка переменных окружения в формате ${VAR_NAME}
+        if (value.includes('${') && value.includes('}')) {
+          // Заменяем ${VAR_NAME} на значение переменной окружения
+          value = value.replace(/\${([^}]+)}/g, (match, varName) => {
+            return process.env[varName] || '';
+          });
+        }
+        
+        process.env[key.trim()] = value;
       }
     }
   });

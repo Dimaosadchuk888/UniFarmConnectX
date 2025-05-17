@@ -1,97 +1,115 @@
 /**
- * Скрипт для проверки подключения к обновленной базе данных Neon
+ * Test script to verify Neon DB connection with environment variable
  */
 
+import dotenv from 'dotenv';
 import { Pool } from 'pg';
+import fs from 'fs';
 
-console.log('🚀 Проверка соединения с Neon DB (новый тариф)...');
-console.log(`Используем DATABASE_URL: ${process.env.DATABASE_URL.replace(/:[^:]*@/, ':****@/')}`);
+// Colors for console output
+const colors = {
+  reset: '\x1b[0m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+};
 
-// Создание пула соединений с оптимальными настройками
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  },
-  connectionTimeoutMillis: 10000,
-  query_timeout: 10000
-});
+// Log message with color
+function log(message, color = colors.reset) {
+  console.log(`${color}${message}${colors.reset}`);
+}
 
 async function testConnection() {
-  try {
-    console.log('Подключение к базе данных...');
+  log('\n=== TESTING NEON DB CONNECTION WITH ENVIRONMENT VARIABLE ===', colors.blue);
+  
+  // Load environment variables
+  if (fs.existsSync('.env.neon')) {
+    log('Loading variables from .env.neon...', colors.cyan);
+    const envContent = fs.readFileSync('.env.neon', 'utf-8');
+    const envLines = envContent.split('\n');
     
-    // Запрос базовой информации
-    const dbInfoResult = await pool.query('SELECT current_database() as db, current_schema() as schema, version() as version');
-    
-    console.log('\n✅ Успешное соединение с базой данных!');
-    console.log('📊 Информация о базе данных:');
-    console.log(`База данных: ${dbInfoResult.rows[0].db}`);
-    console.log(`Схема: ${dbInfoResult.rows[0].schema}`);
-    console.log(`Версия PostgreSQL: ${dbInfoResult.rows[0].version}`);
-    
-    // Проверка доступности таблицы users
-    console.log('\n📋 Проверка таблицы users...');
-    const tableCheckResult = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'users'
-      ) as exists
-    `);
-    
-    if (tableCheckResult.rows[0].exists) {
-      console.log('✅ Таблица users существует');
-      
-      // Выполнение запроса к таблице users
-      console.log('\n📊 Получение данных из таблицы users...');
-      const usersResult = await pool.query('SELECT * FROM users ORDER BY id DESC LIMIT 10');
-      
-      console.log(`Найдено ${usersResult.rows.length} пользователей`);
-      
-      if (usersResult.rows.length > 0) {
-        console.log('\n📋 Последние 10 пользователей:');
-        usersResult.rows.forEach((user, index) => {
-          console.log(`\n--- Пользователь ${index + 1} ---`);
-          for (const [key, value] of Object.entries(user)) {
-            if (key === 'password' || key === 'password_hash') {
-              console.log(`${key}: [СКРЫТО]`);
-            } else {
-              console.log(`${key}: ${value}`);
-            }
+    envLines.forEach(line => {
+      if (line && !line.startsWith('#')) {
+        const [key, ...valueParts] = line.split('=');
+        if (key && valueParts.length) {
+          let value = valueParts.join('=').trim();
+          
+          // Process environment variables in the format ${VAR_NAME}
+          if (value.includes('${') && value.includes('}')) {
+            // Replace ${VAR_NAME} with the environment variable value
+            value = value.replace(/\${([^}]+)}/g, (match, varName) => {
+              const replacement = process.env[varName];
+              if (!replacement) {
+                log(`Warning: Environment variable ${varName} not found`, colors.yellow);
+                return '';
+              }
+              return replacement;
+            });
           }
-        });
+          
+          process.env[key.trim()] = value;
+        }
       }
-    } else {
-      console.log('❌ Таблица users не существует');
-    }
-    
-    // Проверяем другие ключевые таблицы
-    console.log('\n📋 Проверка других таблиц...');
-    const allTablesResult = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      AND table_type = 'BASE TABLE'
-      ORDER BY table_name
-    `);
-    
-    console.log('Доступные таблицы:');
-    allTablesResult.rows.forEach((row, i) => {
-      console.log(`${i+1}. ${row.table_name}`);
+    });
+  } else {
+    log('Warning: .env.neon file not found', colors.yellow);
+  }
+  
+  // Check for DATABASE_URL
+  if (!process.env.DATABASE_URL) {
+    log('Error: DATABASE_URL is not set!', colors.red);
+    log('Make sure NEON_DB_URL is set in your environment', colors.yellow);
+    return false;
+  }
+  
+  // Mask the connection string for security
+  const maskedUrl = process.env.DATABASE_URL.replace(/:[^:]*@/, ':***@');
+  log(`DATABASE_URL: ${maskedUrl}`, colors.blue);
+  
+  // Try to connect to the database
+  log('\nAttempting to connect to the database...', colors.cyan);
+  
+  try {
+    // Create a pool with the connection string
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
     });
     
-  } catch (error) {
-    console.error('\n❌ Ошибка при подключении к базе данных:', error.message);
-    console.error('Детали ошибки:', error);
-  } finally {
-    // Закрытие соединения
+    // Test the connection
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW() as now');
+    const now = result.rows[0].now;
+    client.release();
+    
+    log(`✅ Successfully connected to the database!`, colors.green);
+    log(`Server time: ${now}`, colors.green);
+    
+    // Clean up
     await pool.end();
-    console.log('\n🔄 Соединение закрыто');
+    return true;
+  } catch (error) {
+    log(`❌ Failed to connect to the database:`, colors.red);
+    log(`${error.message}`, colors.red);
+    return false;
   }
 }
 
-// Запуск проверки
-testConnection().catch(error => {
-  console.error('Неперехваченная ошибка:', error);
-});
+// Run the test
+testConnection()
+  .then(success => {
+    if (success) {
+      log('\n✅ Connection test successful', colors.green);
+      process.exit(0);
+    } else {
+      log('\n❌ Connection test failed', colors.red);
+      process.exit(1);
+    }
+  })
+  .catch(error => {
+    log(`\n❌ Error running test: ${error.message}`, colors.red);
+    process.exit(1);
+  });
