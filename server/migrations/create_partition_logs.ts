@@ -46,19 +46,19 @@ async function createPartitionLogs() {
 export async function runMigration() {
   try {
     log('Starting migration: Creating partition_logs table');
-    
+
     const tableExistsResult = await executeQuery(
       "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'partition_logs')"
     );
-    
+
     const tableExists = tableExistsResult.rows[0].exists;
     if (tableExists) {
       log('Table partition_logs already exists. Adding error_message column if missing...');
-      
+
       const columnExistsResult = await executeQuery(
         "SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'partition_logs' AND column_name = 'error_message')"
       );
-      
+
       if (!columnExistsResult.rows[0].exists) {
         await executeQuery('ALTER TABLE partition_logs ADD COLUMN IF NOT EXISTS error_message TEXT');
         log('Added error_message column');
@@ -67,11 +67,11 @@ export async function runMigration() {
     }
 
     await executeQuery('BEGIN');
-    
+
     try {
       log('Creating partition_logs table');
       await createPartitionLogs();
-      
+
       await executeQuery('COMMIT');
       log('Migration completed successfully');
     } catch (error) {

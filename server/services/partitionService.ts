@@ -61,9 +61,9 @@ export class PartitionService {
           error: 'Cannot create partition that overlaps with future partition'
         };
       }
-      
+
       const partitionName = `transactions_${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}`;
-      
+
       // Оптимизированная проверка для Neon
       const partitionExists = await this.isPartitionExists(partitionName);
       if (partitionExists) {
@@ -76,8 +76,13 @@ export class PartitionService {
 
       // Создаем новую партицию напрямую
       await this.createPartitionDirect(date, partitionName);
-  }> {
-    return partitionServiceInstance.createPartitionForDate(date);
+    } catch (error) {
+      console.error('Error creating partition:', error);
+      return {
+        success: false,
+        error: error.message || 'Unknown error'
+      };
+    }
   }
 
   /**
@@ -90,6 +95,22 @@ export class PartitionService {
     partitions: string[];
     errors: string[];
   }> {
+    // Сначала проверяем и удаляем конфликтующую future партицию
+    try {
+      await db.execute(sql`
+        ALTER TABLE transactions DETACH PARTITION transactions_future;
+        DROP TABLE IF EXISTS transactions_future;
+      `);
+    } catch (error) {
+      console.log('[Partition Service] Future partition не существует или уже удалена');
+    }
+
+    const result = {
+      success: true,
+      createdCount: 0,
+      errors: [] as string[]
+    };
+
     return partitionServiceInstance.createFuturePartitions(daysAhead);
   }
 
