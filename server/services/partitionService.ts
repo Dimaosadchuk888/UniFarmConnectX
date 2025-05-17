@@ -52,6 +52,13 @@ export class PartitionService {
     partition_name?: string;
     error?: string;
   }> {
+    try {
+      // Check for future partition
+      const futurePartitionExists = await this.checkFuturePartition();
+      if (futurePartitionExists) {
+        await this.handleFuturePartition(date);
+      }
+  }> {
     return partitionServiceInstance.createPartitionForDate(date);
   }
   

@@ -7,26 +7,19 @@
  * - Перенос данных между партициями
  * - Создание снимков для архивации
  */
-
 import { Pool } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
 
-// Загружаем переменные окружения
 dotenv.config();
 
-// Подключаемся к базе данных
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Логирование
 function log(message: string) {
   console.log(`[Migration] ${message}`);
 }
 
-/**
- * Выполнение SQL запроса
- */
 async function executeQuery(query: string, params: any[] = []) {
   try {
     const result = await pool.query(query, params);
@@ -39,27 +32,31 @@ async function executeQuery(query: string, params: any[] = []) {
   }
 }
 
-/**
- * Основная функция миграции
- */
 export async function runMigration() {
   try {
     log('Starting migration: Creating partition_logs table');
-    
-    // Проверяем, существует ли таблица partition_logs
+
     const tableExistsResult = await executeQuery(
       "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'partition_logs')"
     );
-    
+
     const tableExists = tableExistsResult.rows[0].exists;
     if (tableExists) {
-      log('Table partition_logs already exists. Skipping migration.');
+      log('Table partition_logs already exists. Adding error_message column if missing...');
+
+      const columnExistsResult = await executeQuery(
+        "SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'partition_logs' AND column_name = 'error_message')"
+      );
+
+      if (!columnExistsResult.rows[0].exists) {
+        await executeQuery('ALTER TABLE partition_logs ADD COLUMN error_message TEXT');
+        log('Added error_message column');
+      }
       return;
     }
-    
-    // Начинаем транзакцию
+
     await executeQuery('BEGIN');
-    
+
     try {
       log('Creating partition_logs table');
       await executeQuery(`
@@ -73,29 +70,27 @@ export async function runMigration() {
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )
       `);
-      
+
       log('Creating indexes on partition_logs table');
       await executeQuery('CREATE INDEX partition_logs_operation_idx ON partition_logs (operation)');
       await executeQuery('CREATE INDEX partition_logs_partition_name_idx ON partition_logs (partition_name)');
       await executeQuery('CREATE INDEX partition_logs_status_idx ON partition_logs (status)');
       await executeQuery('CREATE INDEX partition_logs_created_at_idx ON partition_logs (created_at)');
-      
-      log('Committing transaction');
+
       await executeQuery('COMMIT');
-      
+
       log('Migration completed successfully');
     } catch (error) {
       log('Error during migration. Rolling back.');
       await executeQuery('ROLLBACK');
       throw error;
-    } finally {
-      // Закрываем соединение с базой данных
-      await pool.end();
     }
   } catch (error: any) {
     log(`Migration failed: ${error.message}`);
     console.error(error);
     throw error;
+  } finally {
+    await pool.end();
   }
 }
 
