@@ -58,17 +58,14 @@ document.addEventListener("DOMContentLoaded", () => {
   initTelegramWebApp();
 });
 
-// Выбираем компонент для рендеринга в зависимости от результата проверки
-let ComponentToRender;
+// Всегда используем основное приложение независимо от того, откуда оно запущено
+let ComponentToRender = App;
 
-// ЭТАП 1.3: В режиме разработки всегда рендерим приложение
-if (process.env.NODE_ENV === 'development' || isTelegramEnvironment) {
-  console.log('[TG CHECK] Рендеринг основного приложения: работа в Telegram или режим разработки');
-  ComponentToRender = App;
+// Для отладки записываем информацию о среде
+if (isTelegramEnvironment) {
+  console.log('[TG CHECK] Приложение запущено из Telegram');
 } else {
-  // В production, если не в Telegram - показываем блокировочный экран
-  console.log('[TG CHECK] Блокировка: приложение запущено вне Telegram');
-  ComponentToRender = NotInTelegramWarning;
+  console.log('[TG CHECK] Приложение запущено не из Telegram');
 }
 
 // Рендеринг выбранного компонента
