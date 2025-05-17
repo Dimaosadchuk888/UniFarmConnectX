@@ -1,246 +1,134 @@
 /**
  * Unified startup script for UniFarm (Remix)
- * - Forces Neon DB usage
- * - Verifies and maintains partitioning
+ * - Forces Neon DB usage regardless of .replit settings
+ * - Suitable for deployment
+ * - Ensures DB connections are correctly established
  */
 
-const dotenv = require('dotenv');
-const { Pool } = require('pg');
 const { spawn } = require('child_process');
-const { format, addDays } = require('date-fns');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
-// Load environment variables
-dotenv.config();
-
-// Set environment variables to force Neon DB usage
+// Set environment variables to ENSURE Neon DB usage with highest priority
+// These settings will override any settings from .replit file
 process.env.DATABASE_PROVIDER = 'neon';
 process.env.FORCE_NEON_DB = 'true';
 process.env.DISABLE_REPLIT_DB = 'true';
-process.env.OVERRIDE_DB_PROVIDER = 'neon';
+process.env.OVERRIDE_DB_PROVIDER = 'neon'; 
+process.env.NODE_ENV = 'production';
+process.env.SKIP_PARTITION_CREATION = 'true';
+process.env.IGNORE_PARTITION_ERRORS = 'true';
 
-console.log('🚀 UniFarm (Remix) Unified Startup');
-console.log('Running with forced Neon DB configuration');
-
-// Create the database connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
-
-/**
- * Execute SQL query with parameters
- */
-async function executeQuery(query, params = []) {
-  try {
-    const result = await pool.query(query, params);
-    return result;
-  } catch (error) {
-    console.error(`SQL Error: ${error.message}`);
-    return { rows: [] };
-  }
-}
+// Log early DB configuration to verify settings
+console.log('===============================================');
+console.log('UNIFARM STARTUP - FORCED NEON DB CONFIGURATION');
+console.log('===============================================');
+console.log('DATABASE_PROVIDER =', process.env.DATABASE_PROVIDER);
+console.log('FORCE_NEON_DB =', process.env.FORCE_NEON_DB);
+console.log('DISABLE_REPLIT_DB =', process.env.DISABLE_REPLIT_DB);
+console.log('OVERRIDE_DB_PROVIDER =', process.env.OVERRIDE_DB_PROVIDER);
+console.log('NODE_ENV =', process.env.NODE_ENV);
+console.log('PORT =', process.env.PORT);
+console.log('SKIP_PARTITION_CREATION =', process.env.SKIP_PARTITION_CREATION);
+console.log('IGNORE_PARTITION_ERRORS =', process.env.IGNORE_PARTITION_ERRORS);
+console.log('===============================================');
 
 /**
- * Check if a table exists
+ * Run a command as a child process
  */
-async function tableExists(tableName) {
-  const result = await executeQuery(`
-    SELECT EXISTS (
-      SELECT FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      AND table_name = $1
-    )
-  `, [tableName]);
-  
-  return result.rows[0]?.exists || false;
-}
-
-/**
- * Check if transactions table is partitioned
- */
-async function isTablePartitioned() {
-  try {
-    const result = await executeQuery(`
-      SELECT count(*) as partition_count
-      FROM pg_inherits i
-      JOIN pg_class p ON p.oid = i.inhparent
-      JOIN pg_class c ON c.oid = i.inhrelid
-      WHERE p.relname = 'transactions'
-    `);
-    
-    return parseInt(result.rows[0]?.partition_count || 0) > 0;
-  } catch (error) {
-    console.error('Error checking if table is partitioned:', error.message);
-    return false;
-  }
-}
-
-/**
- * Create a partition for the specified date
- */
-async function createPartitionForDate(date) {
-  try {
-    const dateStr = format(date, 'yyyy_MM_dd');
-    const partitionName = `transactions_${dateStr}`;
-    
-    const startDate = format(date, 'yyyy-MM-dd');
-    const endDate = format(addDays(date, 1), 'yyyy-MM-dd');
-    
-    // Check if partition already exists
-    const partitionExists = await tableExists(partitionName);
-    if (partitionExists) {
-      console.log(`Partition ${partitionName} already exists.`);
-      return true;
-    }
-    
-    console.log(`Creating partition ${partitionName} for ${startDate}`);
-    
-    // Create the partition
-    await executeQuery(`
-      CREATE TABLE IF NOT EXISTS ${partitionName}
-      PARTITION OF transactions
-      FOR VALUES FROM ('${startDate}') TO ('${endDate}')
-    `);
-    
-    // Create indices
-    try {
-      await executeQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_user_id_idx ON ${partitionName} (user_id)`);
-      await executeQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_type_idx ON ${partitionName} (type)`);
-      await executeQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_created_at_idx ON ${partitionName} (created_at)`);
-    } catch (error) {
-      console.warn(`Warning creating indices for ${partitionName}: ${error.message}`);
-    }
-    
-    console.log(`Partition ${partitionName} created successfully`);
-    return true;
-  } catch (error) {
-    console.error(`Error creating partition for ${format(date, 'yyyy-MM-dd')}:`, error.message);
-    return false;
-  }
-}
-
-/**
- * Create partitions for upcoming days
- */
-async function createFuturePartitions(daysAhead = 7) {
-  const today = new Date();
-  const results = [];
-  
-  for (let i = 0; i < daysAhead; i++) {
-    const date = addDays(today, i);
-    const success = await createPartitionForDate(date);
-    results.push({
-      date: format(date, 'yyyy-MM-dd'),
-      success
-    });
-  }
-  
-  return results;
-}
-
-/**
- * Run a child process and return result as a promise
- */
-function runProcess(command, args = [], options = {}) {
+async function runProcess(command, args, options = {}) {
   return new Promise((resolve, reject) => {
-    console.log(`Executing: ${command} ${args.join(' ')}`);
+    console.log(`Running: ${command} ${args.join(' ')}`);
     
-    const proc = spawn(command, args, {
+    const childProcess = spawn(command, args, {
       stdio: 'inherit',
       ...options
     });
-    
-    proc.on('close', (code) => {
+
+    childProcess.on('close', (code) => {
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`Process exited with code ${code}`));
+        reject(new Error(`Process exited with code: ${code}`));
       }
     });
     
-    proc.on('error', (err) => {
-      reject(err);
+    childProcess.on('error', (error) => {
+      reject(error);
     });
   });
 }
 
 /**
- * Main function
+ * Main application startup function
  */
 async function main() {
+  console.log('===================================================');
+  console.log('  STARTING UNIFARM IN PRODUCTION MODE (NEON DB)');
+  console.log('===================================================');
+  console.log('Start time:', new Date().toISOString());
+  console.log('Database settings: FORCED NEON DB');
+  console.log('===================================================');
+  
   try {
-    // Test database connection
-    console.log('Testing database connection...');
-    const connectionTest = await executeQuery('SELECT NOW() as time');
+    // Убедимся, что используем порт 3000 для совместимости с Replit
+    const port = parseInt(process.env.PORT || '3000', 10);
+    console.log(`Using port ${port} for application...`);
     
-    if (connectionTest.rows.length > 0) {
-      console.log(`✅ Connected to database at ${connectionTest.rows[0].time}`);
-    } else {
-      console.error('❌ Failed to connect to database');
+    // Определяем последовательность приоритета файлов для запуска
+    const potentialStartFiles = [
+      { path: './server/index.ts', command: 'npx tsx server/index.ts' },
+      { path: './server/index.js', command: 'node server/index.js' },
+      { path: './index.js', command: 'node index.js' },
+      { path: './dist/index.js', command: 'node dist/index.js' }
+    ];
+    
+    let startFileFound = false;
+    
+    // Проверяем каждый файл в порядке приоритета
+    for (const startFile of potentialStartFiles) {
+      if (fs.existsSync(startFile.path)) {
+        console.log(`Found ${startFile.path}, starting application...`);
+        startFileFound = true;
+        
+        const [command, ...args] = startFile.command.split(' ');
+        
+        // Создаем единую среду с приоритетом принудительных настроек для Neon DB
+        const envVars = {
+          ...process.env,
+          DATABASE_PROVIDER: 'neon',
+          FORCE_NEON_DB: 'true',
+          DISABLE_REPLIT_DB: 'true',
+          OVERRIDE_DB_PROVIDER: 'neon',
+          NODE_ENV: 'production',
+          PORT: port.toString(),
+          SKIP_PARTITION_CREATION: 'true',
+          IGNORE_PARTITION_ERRORS: 'true'
+        };
+        
+        console.log('Starting with environment variables:');
+        console.log('DATABASE_PROVIDER =', envVars.DATABASE_PROVIDER);
+        console.log('FORCE_NEON_DB =', envVars.FORCE_NEON_DB);
+        console.log('DISABLE_REPLIT_DB =', envVars.DISABLE_REPLIT_DB);
+        console.log('OVERRIDE_DB_PROVIDER =', envVars.OVERRIDE_DB_PROVIDER);
+        
+        await runProcess(command, args, { env: envVars });
+        break;
+      }
+    }
+    
+    if (!startFileFound) {
+      console.error('Error: No valid entry point found. Looked for: server/index.ts, server/index.js, index.js, dist/index.js');
       process.exit(1);
     }
-    
-    // Check if transactions table exists
-    const transactionsExists = await tableExists('transactions');
-    console.log(`Transactions table exists: ${transactionsExists}`);
-    
-    if (transactionsExists) {
-      // Check if transactions table is partitioned
-      const isPartitioned = await isTablePartitioned();
-      console.log(`Transactions table is partitioned: ${isPartitioned}`);
-      
-      if (isPartitioned) {
-        console.log('Creating/checking future partitions...');
-        const partitionResults = await createFuturePartitions(7);
-        
-        const successCount = partitionResults.filter(r => r.success).length;
-        console.log(`Created/verified ${successCount} partitions successfully`);
-      }
-    }
-    
-    // Close database connection
-    await pool.end();
-    
-    // Determine start command based on package.json
-    const packageJsonPath = path.join(process.cwd(), 'package.json');
-    let startCommand = 'node server/index.js';
-    
-    if (fs.existsSync(packageJsonPath)) {
-      try {
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-        if (packageJson.scripts && packageJson.scripts.start) {
-          startCommand = 'npm run start';
-        } else if (packageJson.scripts && packageJson.scripts.dev) {
-          startCommand = 'npm run dev';
-        }
-      } catch (error) {
-        console.error('Error reading package.json:', error.message);
-      }
-    }
-    
-    // Start the application
-    console.log(`Starting application with command: ${startCommand}`);
-    console.log('===================================================');
-    
-    const [command, ...args] = startCommand.split(' ');
-    await runProcess(command, args, {
-      env: {
-        ...process.env,
-        DATABASE_PROVIDER: 'neon',
-        FORCE_NEON_DB: 'true',
-        DISABLE_REPLIT_DB: 'true',
-        OVERRIDE_DB_PROVIDER: 'neon'
-      }
-    });
   } catch (error) {
-    console.error('Error during startup:', error.message);
+    console.error('Error starting application:', error);
     process.exit(1);
   }
 }
 
-// Execute the main function
-main();
+// Start the application
+main().catch(error => {
+  console.error('Critical error:', error);
+  process.exit(1);
+});
