@@ -1868,6 +1868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   // Интервал проверки активности клиентов
+  // Увеличиваем интервал до 30 секунд для более стабильного соединения
   const pingInterval = setInterval(() => {
     let activeClients = 0;
     let terminatedClients = 0;
@@ -1875,6 +1876,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     wss.clients.forEach((ws: WebSocket) => {
       const client = ws as ExtendedWebSocket;
       
+      // Проверяем, отвечал ли клиент на предыдущий ping
       if (client.isAlive === false) {
         // Дополнительная проверка состояния соединения перед закрытием
         if (client.readyState !== WebSocket.OPEN && client.readyState !== WebSocket.CONNECTING) {
@@ -1889,24 +1891,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Если клиент не ответил на ping, закрываем соединение
         if (client.clientId) {
           clients.delete(client.clientId);
-          console.log('[WebSocket] Клиент не отвечает, закрываем соединение', { clientId: client.clientId });
+          // Только логируем в режиме разработки
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[WebSocket] Клиент не отвечает, закрываем соединение', { clientId: client.clientId });
+          }
         }
         terminatedClients++;
         return client.terminate();
       }
       
       // Отмечаем клиент как неактивный перед отправкой ping
+      // Клиент должен ответить на ping нашего типа или на стандартный WebSocket ping 
       client.isAlive = false;
       activeClients++;
       
-      // Отправляем ping
+      // Отправляем стандартный WebSocket ping вместо JSON
       try {
         if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({ 
-            type: 'ping', 
-            timestamp: new Date().toISOString(),
-            clientId: client.clientId
-          }));
+          // Используем нативный ping WebSocket протокола
+          client.ping();
+          
+          // И дополнительно пользовательский ping для совместимости
+          if (Math.random() < 0.3) { // Отправляем пользовательский ping только в 30% случаев
+            client.send(JSON.stringify({ 
+              type: 'ping', 
+              timestamp: new Date().toISOString(),
+              clientId: client.clientId
+            }));
+          }
         }
       } catch (e) {
         console.error('[WebSocket] Ошибка при отправке ping:', e);
@@ -1926,7 +1938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalTracked: clients.size
       });
     }
-  }, 30000); // проверяем каждые 30 секунд вместо 15
+  }, 45000); // проверяем каждые 45 секунд для более стабильного соединения
   
   // Обработка подключений WebSocket
   wss.on('connection', (ws: ExtendedWebSocket) => {
