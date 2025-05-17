@@ -392,7 +392,26 @@ class StorageAdapter implements IExtendedStorage {
   }
 
   // Реализация методов из IExtendedStorage
-
+  
+  async getUserByTelegramId(telegramId: number): Promise<User | undefined> {
+    try {
+      if (this.useMemory) {
+        return await this.memStorage.getUserByTelegramId(telegramId);
+      }
+      
+      const query = 'SELECT * FROM users WHERE telegram_id = $1';
+      const result = await queryWithRetry(query, [telegramId]);
+      const user = result.rows[0] as User | undefined;
+      
+      console.log(`[StorageAdapter] Получен пользователь по telegram_id ${telegramId}:`, user ? `ID: ${user.id}` : 'не найден');
+      return user;
+    } catch (error) {
+      console.error(`[StorageAdapter] Ошибка при получении пользователя по telegram_id ${telegramId}, переключаемся на хранилище в памяти:`, error);
+      this.useMemory = true;
+      return await this.memStorage.getUserByTelegramId(telegramId);
+    }
+  }
+  
   // Транзакции
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     console.log('[StorageAdapter] Создание транзакции');
