@@ -11,8 +11,16 @@ let API_BASE_URL = '';
 
 // Устанавливаем абсолютный URL только для production
 if (process.env.NODE_ENV === 'production') {
-  // Используем URL продакшн-версии
-  API_BASE_URL = 'https://uni-farm-connect-2-misterxuniverse.replit.app';
+  // Получаем текущий домен, чтобы избежать хардкодирования
+  const currentDomain = window.location.origin;
+  
+  // Если страница загружена с replit.app, используем текущий домен
+  if (currentDomain.includes('replit.app')) {
+    API_BASE_URL = currentDomain;
+  } else {
+    // Резервный вариант для деплоя
+    API_BASE_URL = 'https://uni-farm-connect-2-osadchukdmitro2.replit.app';
+  }
 } else {
   // В режиме разработки используем относительные URL
   // Это позволяет работать через Vite DevServer
