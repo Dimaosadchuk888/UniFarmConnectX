@@ -29,8 +29,8 @@ export async function createPartitionLogs() {
   await executeQuery(`
     CREATE TABLE IF NOT EXISTS partition_logs (
       id SERIAL PRIMARY KEY,
-      operation_type VARCHAR(50) NOT NULL,
       partition_name VARCHAR(100) NOT NULL,
+      operation_type VARCHAR(50) NOT NULL,
       status VARCHAR(20) NOT NULL,
       details TEXT,
       error_message TEXT,

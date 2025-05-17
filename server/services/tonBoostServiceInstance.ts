@@ -190,15 +190,15 @@ class TonBoostService implements ITonBoostService {
       console.log(`[TonBoostService] Недопустимый ID буст-пакета: ${boostId}`);
       return undefined;
     }
-    
+
     const pkg = boostPackages.find(pkg => pkg.id === boostId);
-    
+
     // Проверка, что у пакета есть цена в TON
     if (!pkg || !pkg.priceTon || pkg.priceTon === 'null') {
       console.log(`[TonBoostService] Пакет найден, но цена отсутствует: ${JSON.stringify(pkg)}`);
       return undefined;
     }
-    
+
     return pkg;
   }
 
@@ -231,7 +231,7 @@ class TonBoostService implements ITonBoostService {
       .insert(tonBoostDeposits)
       .values(depositData)
       .returning();
-    
+
     return deposit;
   }
 
@@ -270,7 +270,7 @@ class TonBoostService implements ITonBoostService {
     try {
       // Получаем активные TON Boost-депозиты пользователя
       const activeDeposits = await this.getUserActiveBoosts(userId);
-      
+
       if (activeDeposits.length === 0) {
         return {
           success: true,
@@ -294,19 +294,19 @@ class TonBoostService implements ITonBoostService {
       // Рассчитываем заработанные средства для каждого депозита
       let totalEarnedTon = new BigNumber(0);
       let totalEarnedUni = new BigNumber(0);
-      
+
       const currentTimestamp = Math.floor(Date.now() / 1000);
       // Явное приведение к расширенному типу для работы со старым кодом
       const extendedUser = user as ExtendedUser;
-      
+
       // Используем uni_farming_last_update вместо farming_last_update (если такое свойство есть)
       const lastUpdateTimestamp = user.uni_farming_last_update 
         ? Math.floor(new Date(user.uni_farming_last_update).getTime() / 1000)
         : currentTimestamp;
-      
+
       // Время в секундах с последнего обновления
       const elapsedSeconds = Math.max(0, currentTimestamp - lastUpdateTimestamp);
-      
+
       if (elapsedSeconds <= 0) {
         return {
           success: true,
@@ -322,21 +322,21 @@ class TonBoostService implements ITonBoostService {
         // Начисления TON: rate_ton_per_second * elapsed_time
         const earnedTon = new BigNumber(deposit.rate_ton_per_second || "0")
           .multipliedBy(elapsedSeconds);
-          
+
         // Начисления UNI: rate_uni_per_second * elapsed_time
         const earnedUni = new BigNumber(deposit.rate_uni_per_second || "0")
           .multipliedBy(elapsedSeconds);
-          
+
         totalEarnedTon = totalEarnedTon.plus(earnedTon);
         totalEarnedUni = totalEarnedUni.plus(earnedUni);
-        
+
         // Обновляем накопленные значения и время последнего обновления для каждого депозита
         if (earnedTon.isGreaterThan(0)) {
           const currentAccumulatedTon = new BigNumber(deposit.accumulated_ton || "0");
           const newAccumulatedTon = currentAccumulatedTon.plus(earnedTon);
-          
+
           console.log(`[TonBoostService] Обновление депозита ID ${deposit.id}: добавлено ${earnedTon} TON, всего накоплено: ${newAccumulatedTon} TON`);
-          
+
           // Обновляем депозит
           await db
             .update(tonBoostDeposits)
@@ -357,7 +357,7 @@ class TonBoostService implements ITonBoostService {
             uni_farming_last_update: new Date(currentTimestamp * 1000)
           })
           .where(eq(users.id, userId));
-          
+
         // Создаем транзакцию для начисления TON фарминга, если было начисление
         if (totalEarnedTon.isGreaterThan(TON_MIN_CHANGE_THRESHOLD)) {
           try {
@@ -372,7 +372,7 @@ class TonBoostService implements ITonBoostService {
                 source: "TON Boost фарминг",
                 category: "farming"
               });
-            
+
             console.log(`[TonBoostService] Создана транзакция начисления TON фарминга: ${totalEarnedTon} TON для пользователя ${userId}`);
           } catch (txError) {
             console.error(`[TonBoostService] Ошибка при создании транзакции начисления TON фарминга: ${txError}`);
@@ -408,20 +408,20 @@ class TonBoostService implements ITonBoostService {
   async getUserTonFarmingInfo(userId: number): Promise<TonFarmingInfo> {
     // Получаем активные TON Boost-депозиты пользователя
     const activeDeposits = await this.getUserActiveBoosts(userId);
-    
+
     // Рассчитываем общую скорость начисления TON и UNI
     let totalTonRatePerSecond = new BigNumber(0);
     let totalUniRatePerSecond = new BigNumber(0);
-    
+
     for (const deposit of activeDeposits) {
       totalTonRatePerSecond = totalTonRatePerSecond.plus(deposit.rate_ton_per_second || "0");
       totalUniRatePerSecond = totalUniRatePerSecond.plus(deposit.rate_uni_per_second || "0");
     }
-    
+
     // Рассчитываем дневной доход
     const dailyIncomeTon = totalTonRatePerSecond.multipliedBy(SECONDS_IN_DAY);
     const dailyIncomeUni = totalUniRatePerSecond.multipliedBy(SECONDS_IN_DAY);
-    
+
     return {
       totalTonRatePerSecond: totalTonRatePerSecond.toString(),
       totalUniRatePerSecond: totalUniRatePerSecond.toString(),
@@ -442,7 +442,7 @@ class TonBoostService implements ITonBoostService {
   }> {
     try {
       console.log('[TonBoostService] Запуск обновления TON фарминга для всех пользователей');
-      
+
       // Получаем уникальные user_id из активных депозитов
       const activeDepositsQuery = await db
         .select({ userId: tonBoostDeposits.user_id })
@@ -453,13 +453,13 @@ class TonBoostService implements ITonBoostService {
           )
         )
         .groupBy(tonBoostDeposits.user_id);
-        
+
       const userIds = activeDepositsQuery.map(row => row.userId);
       console.log(`[TonBoostService] Найдено ${userIds.length} пользователей с активными TON депозитами`);
-      
+
       let successCount = 0;
       let errorCount = 0;
-      
+
       // Обновляем каждого пользователя
       for (const userId of userIds) {
         try {
@@ -479,15 +479,15 @@ class TonBoostService implements ITonBoostService {
           console.error(`[TonBoostService] Исключение при обновлении пользователя ${userId}: ${userError}`);
         }
       }
-      
+
       console.log(`[TonBoostService] Обновление TON фарминга завершено: успешно=${successCount}, ошибок=${errorCount}`);
-      
+
       return {
         success: true,
         usersUpdated: successCount,
         errors: errorCount
       };
-      
+
     } catch (error) {
       console.error(`[TonBoostService] Критическая ошибка при обновлении TON фарминга для всех пользователей: ${error}`);
       return {
@@ -512,7 +512,7 @@ class TonBoostService implements ITonBoostService {
     try {
       // Обновляем баланс фарминга пользователя
       const updateResult = await this.calculateAndUpdateUserTonFarming(userId);
-      
+
       if (!updateResult.success) {
         return {
           success: false,
@@ -520,7 +520,7 @@ class TonBoostService implements ITonBoostService {
           harvestedTon: "0"
         };
       }
-      
+
       // Если нет средств для вывода
       if (new BigNumber(updateResult.earnedTon).isLessThanOrEqualTo(0)) {
         return {
@@ -529,13 +529,13 @@ class TonBoostService implements ITonBoostService {
           harvestedTon: "0"
         };
       }
-      
+
       // Получаем пользователя
       const [user] = await db
         .select()
         .from(users)
         .where(eq(users.id, userId));
-        
+
       if (!user) {
         return {
           success: false,
@@ -543,21 +543,21 @@ class TonBoostService implements ITonBoostService {
           harvestedTon: "0"
         };
       }
-      
+
       // Текущий баланс пользователя
       const userBalanceTon = new BigNumber(user.balance_ton || "0");
       const harvestedTon = new BigNumber(updateResult.earnedTon);
-      
+
       // Обновляем баланс пользователя
       const newBalanceTon = userBalanceTon.plus(harvestedTon);
-      
+
       await db
         .update(users)
         .set({
           balance_ton: newBalanceTon.toString(),
         })
         .where(eq(users.id, userId));
-        
+
       // Создаем транзакцию для начисления TON
       const [transaction] = await db
         .insert(transactions)
@@ -571,15 +571,15 @@ class TonBoostService implements ITonBoostService {
           category: "farming"  // Категория - фарминг
         })
         .returning();
-      
+
       // Сбрасываем accumulated_ton до 0 для всех активных депозитов пользователя
       // Получаем активные депозиты пользователя
       const activeDeposits = await this.getUserActiveBoosts(userId);
-      
+
       // Сбрасываем накопленное значение для каждого депозита
       for (const deposit of activeDeposits) {
         console.log(`[TonBoostService] Сброс накопленного TON для депозита ID ${deposit.id}: сброшено ${deposit.accumulated_ton} TON`);
-        
+
         await db
           .update(tonBoostDeposits)
           .set({
@@ -588,7 +588,7 @@ class TonBoostService implements ITonBoostService {
           })
           .where(eq(tonBoostDeposits.id, deposit.id));
       }
-        
+
       // Обрабатываем реферальное вознаграждение от фарминга
       try {
         await this.referralBonusService.processFarmingReferralReward(
@@ -600,7 +600,7 @@ class TonBoostService implements ITonBoostService {
         console.error(`[TonBoostService] Ошибка при обработке реферального вознаграждения от фарминга: ${refError}`);
         // Не прерываем основной процесс, если реферальное вознаграждение не удалось начислить
       }
-        
+
       return {
         success: true,
         message: "Средства успешно выведены на баланс",
@@ -644,7 +644,7 @@ class TonBoostService implements ITonBoostService {
         .select()
         .from(users)
         .where(eq(users.id, userId));
-      
+
       if (!user) {
         return {
           success: false,
@@ -657,7 +657,7 @@ class TonBoostService implements ITonBoostService {
         // Проверка баланса пользователя
         const userBalance = new BigNumber(user.balance_ton || "0");
         const packagePrice = new BigNumber(boostPackage.priceTon);
-        
+
         if (userBalance.isLessThan(packagePrice)) {
           return {
             success: false,
@@ -665,17 +665,17 @@ class TonBoostService implements ITonBoostService {
             boostPackage
           };
         }
-        
+
         // Списываем средства с баланса пользователя
         const newBalance = userBalance.minus(packagePrice);
-        
+
         await db
           .update(users)
           .set({
             balance_ton: newBalance.toString()
           })
           .where(eq(users.id, userId));
-          
+
         // Создаем транзакцию списания TON
         const [purchaseTransaction] = await db
           .insert(transactions)
@@ -690,19 +690,19 @@ class TonBoostService implements ITonBoostService {
             description: `Покупка TON Boost (${boostPackage.name})`
           })
           .returning();
-          
+
         // Начисляем бонусные UNI
         const bonusUni = new BigNumber(boostPackage.bonusUni);
         const currentUniBalance = new BigNumber(user.balance_uni || "0");
         const newUniBalance = currentUniBalance.plus(bonusUni);
-        
+
         await db
           .update(users)
           .set({
             balance_uni: newUniBalance.toString()
           })
           .where(eq(users.id, userId));
-          
+
         // Создаем транзакцию начисления UNI
         const [bonusTransaction] = await db
           .insert(transactions)
@@ -717,14 +717,14 @@ class TonBoostService implements ITonBoostService {
             description: `Бонус за покупку TON Boost (${boostPackage.name})`
           })
           .returning();
-          
+
         // Рассчитываем скорость начисления TON и UNI в секунду
         const { tonRatePerSecond, uniRatePerSecond } = this.calculateRatesPerSecond(
           boostPackage.priceTon,
           boostPackage.rateTon,
           boostPackage.rateUni
         );
-        
+
         // Создаем запись о депозите TON Boost
         const deposit = await this.createTonBoostDeposit({
           user_id: userId,
@@ -734,7 +734,7 @@ class TonBoostService implements ITonBoostService {
           rate_uni_per_second: uniRatePerSecond,
           is_active: true
         });
-        
+
         // Обрабатываем реферальное вознаграждение
         try {
           // Если метод processBoostReferralReward определен в интерфейсе IReferralBonusService
@@ -759,7 +759,7 @@ class TonBoostService implements ITonBoostService {
           console.error(`[TonBoostService] Ошибка при обработке реферального вознаграждения: ${refError}`);
           // Не прерываем основной процесс, если реферальное вознаграждение не удалось начислить
         }
-        
+
         return {
           success: true,
           message: "TON Boost успешно активирован",
