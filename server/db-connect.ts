@@ -62,7 +62,7 @@ const poolConfig = process.env.DATABASE_URL
     };
 
 // Создаем пул соединений
-const pool = new Pool(poolConfig);
+let pool = new Pool(poolConfig);
 
 // Настраиваем обработчик ошибок соединения
 pool.on('error', (err: Error) => {
@@ -73,6 +73,9 @@ pool.on('error', (err: Error) => {
   
   // Не завершаем процесс, чтобы дать возможность восстановиться
 });
+
+// Экспортируем пул подключений и функцию queryWithRetry для использования в других модулях
+export { pool, queryWithRetry };
 
 // Создаем экземпляр Drizzle ORM
 export const db = drizzle(pool, { schema });

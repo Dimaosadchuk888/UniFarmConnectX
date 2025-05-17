@@ -11,10 +11,10 @@ NODE_ENV = "production"
 PORT = "3000"
 
 [deployment]
-run = ["sh", "-c", "PORT=3000 NODE_ENV=production DATABASE_PROVIDER=neon node start-unified.cjs"]
+run = ["sh", "-c", "node deploy-launcher.cjs"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
-build = ["sh", "-c", "node start-unified.cjs"]
+build = ["sh", "-c", "npm run build"]
 
 [[ports]]
 localPort = 80
