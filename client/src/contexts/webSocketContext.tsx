@@ -32,12 +32,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       try {
         // Сначала проверяем в sessionStorage
         userId = sessionStorage.getItem('user_id');
-        
+
         // Если нет в sessionStorage, пробуем localStorage
         if (!userId) {
           userId = localStorage.getItem('user_id');
         }
-        
+
         // Если всё еще нет, проверяем другие возможные ключи
         if (!userId) {
           // Проверяем другие возможные ключи хранилища
@@ -50,18 +50,19 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
             }
           }
         }
-        
+
         console.log('[WebSocket] Retrieved user_id for connection:', userId ? userId : 'not found');
       } catch (e) {
         console.error('[WebSocket] Error retrieving user_id from storage:', e);
       }
-      
-      // Получаем корректный URL для WebSocket, добавляем user_id если он найден
+
+      // Получаем корректный URL для WebSocket с учетом Replit
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws${userId ? `?user_id=${userId}` : ''}`;
-      
-      console.log('[WebSocket] Connecting to:', wsUrl);
-      
+      const host = window.location.host.includes('replit.dev') ? window.location.host : '0.0.0.0:3000';
+      const wsUrl = `${protocol}//${host}/ws${userId ? `?user_id=${userId}` : ''}`;
+
+      console.log('[WebSocket] Attempting connection to:', wsUrl);
+
       const newSocket = new WebSocket(wsUrl);
       setSocket(newSocket);
       setConnectionStatus('connecting');
@@ -70,7 +71,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       newSocket.onopen = (event) => {
         console.log('[WebSocket] Connection established');
         setConnectionStatus('connected');
-        
+
         // Отправляем пинг сразу после подключения
         try {
           newSocket.send(JSON.stringify({ 
@@ -107,15 +108,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       newSocket.onclose = (event) => {
         console.log('[WebSocket] Connection closed:', event.code, event.reason);
         setConnectionStatus('disconnected');
-        
+
         // Запускаем переподключение с небольшой задержкой
         const randomDelay = 3000 + Math.random() * 1000;
         console.log(`[WebSocket] Reconnecting in ${Math.round(randomDelay)}ms...`);
-        
+
         const timeout = window.setTimeout(() => {
           createWebSocket();
         }, randomDelay);
-        
+
         setReconnectTimeout(timeout);
       };
 
@@ -127,12 +128,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     } catch (error) {
       console.error('[WebSocket] Error creating connection:', error);
       setConnectionStatus('disconnected');
-      
+
       // Пытаемся переподключиться при ошибке создания
       const timeout = window.setTimeout(() => {
         createWebSocket();
       }, 5000);
-      
+
       setReconnectTimeout(timeout);
     }
   };
@@ -173,11 +174,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       if (socket) {
         socket.close();
       }
-      
+
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
       }
-      
+
       clearInterval(pingInterval);
     };
   }, []); // Пустой массив зависимостей для выполнения только при монтировании
