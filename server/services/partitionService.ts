@@ -53,10 +53,14 @@ export class PartitionService {
     error?: string;
   }> {
     try {
-      // Check for future partition
-      const futurePartitionExists = await this.checkFuturePartition();
+      const partitionName = `transactions_${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      // Проверяем существование будущей партиции
+      const futurePartitionExists = await this.isPartitionExists('transactions_future');
+      
       if (futurePartitionExists) {
-        await this.handleFuturePartition(date);
+        // Если будущая партиция существует, перемещаем данные перед созданием новой
+        await this.moveDataFromFuturePartition(date);
       }
   }> {
     return partitionServiceInstance.createPartitionForDate(date);
