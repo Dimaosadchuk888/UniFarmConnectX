@@ -30,6 +30,7 @@ externalPort = 3000
 exposeLocalhost = true
 
 [workflows]
+runButton = "Run"
 
 [[workflows.workflow]]
 name = "Neon DB Server"
@@ -48,3 +49,12 @@ author = 42521392
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node neon-workflow.js"
+
+[[workflows.workflow]]
+name = "Run"
+author = 42521392
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production DATABASE_PROVIDER=neon node start-unified.js"
