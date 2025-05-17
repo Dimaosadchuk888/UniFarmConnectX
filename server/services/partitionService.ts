@@ -142,15 +142,14 @@ export class PartitionService {
     partitions: string[];
     errors: string[];
   }> {
-    // Сначала проверяем и удаляем конфликтующую future партицию
-    try {
-      await db.execute(sql`
-        ALTER TABLE transactions DETACH PARTITION transactions_future;
-        DROP TABLE IF EXISTS transactions_future;
-      `);
-    } catch (error) {
-      console.log('[Partition Service] Future partition не существует или уже удалена');
-    }
+    // Временно отключаем создание новых партиций
+    console.log('[Partition Service] Создание новых партиций временно отключено');
+    return {
+      success: true,
+      createdCount: 0,
+      partitions: [],
+      errors: []
+    };
 
     const result = {
       success: true,
