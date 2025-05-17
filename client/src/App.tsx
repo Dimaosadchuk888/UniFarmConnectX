@@ -40,7 +40,7 @@ import Wallet from "@/pages/Wallet";
 import AdminPage from "./pages/AdminPage";
 import TelegramSetupGuide from "./pages/TelegramSetupGuide";
 import TelegramMiniApp from "./pages/TelegramMiniApp";
-import { TelegramInitializer } from "@/components/telegram/TelegramInitializer";
+import TelegramInitializer from "@/components/telegram/TelegramInitializer";
 // Используем только стандартный компонент MissionsList
 
 // Дополнительные определения для глобальных объектов

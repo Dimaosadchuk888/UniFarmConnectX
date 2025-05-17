@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
-import { TelegramInitializer } from '@/components/telegram/TelegramInitializer';
+import TelegramInitializer from '@/components/telegram/TelegramInitializer';
 
 /**
  * Специальная страница для запуска приложения в режиме Telegram Mini App
