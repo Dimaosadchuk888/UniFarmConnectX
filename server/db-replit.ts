@@ -41,7 +41,7 @@ pool.on('connect', () => {
 // Создаем экземпляр Drizzle с нашей схемой
 export const db = drizzle(pool, { schema });
 
-// Экспортируем пул и состояние для совместимости с db-selector-new.ts
+// Экспортируем пул и состояние для совместимости с db-selector.ts
 export { pool };
 export const dbState = {
   pool: pool,

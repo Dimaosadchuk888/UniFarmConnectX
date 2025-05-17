@@ -1,6 +1,6 @@
 // Импортируем улучшенный модуль подключения к базе данных
 // Важно: мы проверим соединение с БД перед запуском сервера
-import { testDatabaseConnection, db, queryWithRetry } from './db-connect';
+import { testDatabaseConnection, db, queryWithRetry } from './db-selector';
 import { databaseErrorHandler } from './middleware/databaseErrorHandler';
 
 // Устанавливаем переменные окружения для SSL
@@ -18,7 +18,7 @@ import { setupProductionStatic } from "./productionStatic";
 import { responseFormatter } from "./middleware/responseFormatter";
 import { errorHandler } from "./middleware/errorHandler";
 // Импортируем селектор базы данных и принудительно устанавливаем Neon DB
-import { setDatabaseProvider } from "./db-selector-new";
+import { dbType, DatabaseType } from "./db-selector";
 
 // Принудительно устанавливаем Neon DB как провайдер базы данных
 // Это переопределит любые настройки из файлов окружения
@@ -141,51 +141,19 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   const isProduction = process.env.NODE_ENV === 'production';
   const hasReplitPgEnv = process.env.PGHOST === 'localhost' && process.env.PGUSER === 'runner';
   
-  if (forceNeonDb || disableReplitDb || overrideDbProvider) {
-    // Принудительно используем Neon DB
-    setDatabaseProvider('neon');
-    console.log('[DB] 🚀 ПРИНУДИТЕЛЬНОЕ ИСПОЛЬЗОВАНИЕ NEON DB (флаги)');
-    
-    // Проверяем наличие строки подключения к Neon DB
-    if (!hasNeonDbUrl) {
-      console.error(`
+  // Используем Neon DB по умолчанию согласно переменным окружения, 
+  // установленным в начале файла
+  console.log(`[DB] 🚀 ПРИНУДИТЕЛЬНОЕ ИСПОЛЬЗОВАНИЕ NEON DB (переменные окружения)`);
+  
+  // Выводим информацию о текущем провайдере базы данных
+  console.log(`[DB] Текущий провайдер базы данных: ${dbType}`);
+  
+  // Проверяем наличие строки подключения к Neon DB
+  if (!hasNeonDbUrl) {
+    console.error(`
 ⚠️ КРИТИЧЕСКАЯ ОШИБКА: Принудительное использование Neon DB, но переменная DATABASE_URL не указывает на Neon DB!
 Проверьте настройки или запустите приложение через start-with-neon.sh
-      `);
-    }
-  } else if (useLocalDbOnly) {
-    // Принудительно используем Replit PostgreSQL
-    setDatabaseProvider('replit');
-    console.log('[DB] ✅ Принудительно используем Replit PostgreSQL (USE_LOCAL_DB_ONLY=true)');
-    
-    // Проверяем, установлены ли правильные переменные окружения
-    if (!hasReplitPgEnv) {
-      console.error(`
-⚠️ КРИТИЧЕСКАЯ ОШИБКА: USE_LOCAL_DB_ONLY=true, но переменные окружения Replit PostgreSQL не настроены!
-Проверьте настройки или запустите приложение через start-with-replit-db.js
-      `);
-    }
-    
-    // Проверяем, нет ли конфликта с Neon DB
-    if (hasNeonDbUrl) {
-      console.warn(`
-⚠️ ПРЕДУПРЕЖДЕНИЕ: Обнаружен конфликт настроек:
-- USE_LOCAL_DB_ONLY=true указывает на использование Replit PostgreSQL
-- DATABASE_URL указывает на Neon DB (${process.env.DATABASE_URL})
-
-Для предотвращения потери данных будет использована локальная база Replit PostgreSQL.
-      `);
-    }
-  } else if (isProduction && hasNeonDbUrl) {
-    // В продакшен-режиме по умолчанию используем Neon DB, если есть URL
-    setDatabaseProvider('neon');
-    console.log('[DB] 🚀 ИСПОЛЬЗОВАНИЕ NEON DB ДЛЯ PRODUCTION РЕЖИМА');
-  } else {
-    // Используем указанный провайдер или по умолчанию Neon для продакшена, Replit для разработки
-    const defaultProvider = isProduction ? 'neon' : 'replit';
-    const provider = (process.env.DATABASE_PROVIDER as any) || defaultProvider;
-    setDatabaseProvider(provider);
-    console.log(`[DB] Инициализировано подключение к базе данных: ${provider}`);
+    `);
   }
   
   /**
