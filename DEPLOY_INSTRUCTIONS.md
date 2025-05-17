@@ -1,42 +1,43 @@
-# Инструкция по деплою UniFarm через Replit Deployments
+# Инструкции по деплою приложения на Replit
 
-## Шаг 1: Подготовка проекта
-1. Соберите production-версию приложения:
-   ```bash
-   npm run build
-   ```
-2. Остановите текущий workflow "Start application" (если он запущен)
+## Настройки для деплоя
 
-## Шаг 2: Настройка деплоя
-1. Нажмите кнопку **Deploy** в правом верхнем углу интерфейса Replit
-2. Выберите **"Configure"** и настройте следующие параметры:
-   - **Run Command**: `NODE_ENV=production node dist/index.js` 
-   - **Always On**: ✅ Включено
-   - **Autoscale**: ✅ Включено
-   - **Domain**: uni-farm-connect-2-misterxuniverse.replit.app
+При настройке деплоя в Replit используйте следующие параметры:
 
-## Шаг 3: Запустите деплой
-Нажмите кнопку **Deploy** для запуска процесса деплоя.
-
-## Шаг 4: Проверка успешности деплоя
-После деплоя проверьте следующие URL:
-- Основной сайт: https://uni-farm-connect-2-misterxuniverse.replit.app
-- Mini App URL: https://uni-farm-connect-2-misterxuniverse.replit.app/UniFarm
-
-## Настройка Telegram бота (после успешного деплоя)
+### Команда запуска
 
 ```bash
-# Обновите webhook
-node setup-telegram-webhook.js
-
-# Обновите настройки Mini App
-node setup-telegram-mini-app.js
-
-# Проверьте API через production-домен
-node test-production-api.mjs
+PORT=3000 NODE_ENV=production DATABASE_PROVIDER=neon node start-unified.cjs
 ```
 
-## Если нужно перезапустить деплой
-1. Зайдите в раздел **Deployments** в Replit
-2. Найдите текущий активный деплой
-3. Нажмите на три точки справа и выберите **Restart**
+### Переменные окружения
+
+- `NODE_ENV`: `production`
+- `DATABASE_PROVIDER`: `neon`
+- `FORCE_NEON_DB`: `true`
+- `DISABLE_REPLIT_DB`: `true`
+- `OVERRIDE_DB_PROVIDER`: `neon`
+
+## Проверка перед деплоем
+
+1. Убедитесь, что переменная `DATABASE_URL` корректно настроена для Neon DB
+2. Проверьте, что все необходимые экспорты присутствуют в файлах db.ts и db-selector.ts
+3. Убедитесь, что скрипт start-unified.cjs использует CommonJS модули
+
+## Решение проблем при деплое
+
+### Если возникают ошибки с отсутствующими экспортами
+
+Убедитесь, что в файле `server/db.ts` экспортируются следующие объекты:
+- pool
+- db
+- wrappedPool
+- testDatabaseConnection
+- dbType
+- DatabaseType
+- dbConnectionStatus
+- isTablePartitioned
+
+### Если возникают ошибки с модулями
+
+Используйте CommonJS скрипт `start-unified.cjs` вместо ESM скрипта `start-unified.js`
