@@ -5,5 +5,7 @@ export {
   wrappedPool,
   testDatabaseConnection,
   dbType,
-  DatabaseType
+  DatabaseType,
+  dbConnectionStatus,
+  isTablePartitioned
 } from './db-selector';

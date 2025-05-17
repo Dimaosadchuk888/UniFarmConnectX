@@ -8,6 +8,32 @@ export enum DatabaseType {
   NEON = 'neon'
 }
 
+// Объект для отслеживания состояния подключения к базе данных
+export const dbConnectionStatus = {
+  lastSuccessful: null as Date | null,
+  lastFailed: null as Date | null,
+  lastError: null as Error | null,
+  isConnected: false,
+  consecutiveFailures: 0,
+
+  // Метод для обновления статуса соединения
+  async update() {
+    try {
+      const result = await pool.query('SELECT 1');
+      this.isConnected = true;
+      this.lastSuccessful = new Date();
+      this.consecutiveFailures = 0;
+      return true;
+    } catch (error) {
+      this.isConnected = false;
+      this.lastFailed = new Date();
+      this.lastError = error as Error;
+      this.consecutiveFailures++;
+      return false;
+    }
+  }
+};
+
 // Определяем тип базы данных на основе переменных окружения
 function getDatabaseType(): DatabaseType {
   // Если указана переменная DB_TYPE, используем её
@@ -101,5 +127,26 @@ export async function testDatabaseConnection() {
   } catch (error) {
     console.error(`[DB] Connection test failed:`, error);
     return { success: false, error, dbType };
+  }
+}
+
+// Проверка партиционирования таблицы транзакций
+export async function isTablePartitioned() {
+  try {
+    const result = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1
+        FROM pg_catalog.pg_class c
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'p' 
+        AND n.nspname = 'public' 
+        AND c.relname = 'transactions'
+      ) as is_partitioned;
+    `);
+    
+    return result.rows[0]?.is_partitioned || false;
+  } catch (error) {
+    console.error("[DB] Error checking partitioning:", error);
+    return false;
   }
 }
