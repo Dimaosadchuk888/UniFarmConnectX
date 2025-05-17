@@ -23,6 +23,9 @@ process.env.OVERRIDE_DB_PROVIDER = 'neon';
 process.env.NODE_ENV = 'production';
 process.env.SKIP_PARTITION_CREATION = 'true';
 process.env.IGNORE_PARTITION_ERRORS = 'true';
+// Добавляем отключение проверки Telegram для доступа через браузер
+process.env.SKIP_TELEGRAM_CHECK = 'true';
+process.env.ALLOW_BROWSER_ACCESS = 'true';
 
 // Log early DB configuration to verify settings
 console.log('===============================================');
@@ -125,7 +128,9 @@ async function main() {
           NODE_ENV: 'production',
           PORT: port.toString(),
           SKIP_PARTITION_CREATION: 'true',
-          IGNORE_PARTITION_ERRORS: 'true'
+          IGNORE_PARTITION_ERRORS: 'true',
+          SKIP_TELEGRAM_CHECK: 'true',
+          ALLOW_BROWSER_ACCESS: 'true'
         };
         
         console.log('Starting with environment variables:');
