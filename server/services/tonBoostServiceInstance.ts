@@ -246,15 +246,18 @@ class TonBoostService implements ITonBoostService {
     tonRatePerSecond: string, 
     uniRatePerSecond: string 
   } {
-    // Расчет для TON: amount * (rateTonPerDay / 100) / SECONDS_IN_DAY
-    const tonRatePerSecond = new BigNumber(amount)
-      .multipliedBy(new BigNumber(rateTonPerDay).dividedBy(100))
+    // Защита от null значений
+    const safeAmount = amount || "0";
+    const safeTonRate = rateTonPerDay || "0";
+    const safeUniRate = rateUniPerDay || "0";
+
+    const tonRatePerSecond = new BigNumber(safeAmount)
+      .multipliedBy(new BigNumber(safeTonRate).dividedBy(100))
       .dividedBy(SECONDS_IN_DAY)
       .toString();
 
-    // Расчет для UNI (может быть 0): amount * (rateUniPerDay / 100) / SECONDS_IN_DAY
-    const uniRatePerSecond = new BigNumber(amount)
-      .multipliedBy(new BigNumber(rateUniPerDay).dividedBy(100))
+    const uniRatePerSecond = new BigNumber(safeAmount)
+      .multipliedBy(new BigNumber(safeUniRate).dividedBy(100))
       .dividedBy(SECONDS_IN_DAY)
       .toString();
 

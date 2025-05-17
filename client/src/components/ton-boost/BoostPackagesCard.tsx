@@ -58,9 +58,22 @@ const BoostPackagesCard: React.FC = () => {
   const { data, isLoading: isLoadingPackages } = useQuery({
     queryKey: ['/api/ton-boosts'],
     queryFn: async () => {
-      const response = await fetch('/api/ton-boosts');
-      const data = await response.json();
-      return data.success ? data.data as TonBoostPackage[] : [];
+      try {
+        const response = await fetch('/api/ton-boosts');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data.success ? data.data as TonBoostPackage[] : [];
+      } catch (error) {
+        console.error("Failed to fetch TON Boost packages:", error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить TON Boost-пакеты",
+          variant: "destructive",
+        });
+        return [];
+      }
     }
   });
 
@@ -74,13 +87,13 @@ const BoostPackagesCard: React.FC = () => {
       tonConnectUIWallet: tonConnectUI?.wallet,
       isConnected: isTonWalletConnected(tonConnectUI)
     });
-    
+
     // Проверяем статус подключения кошелька и отображаем соответствующее действие
     const walletConnected = isTonWalletConnected(tonConnectUI);
-    
+
     // Сохраняем ID буста в любом случае
     setSelectedBoostId(boostId);
-    
+
     if (!walletConnected) {
       // Если кошелек не подключен, показываем уведомление вместо диалога
       toast({
@@ -117,36 +130,36 @@ const BoostPackagesCard: React.FC = () => {
       tonConnectUIWallet: tonConnectUI?.wallet,
       connected: isTonWalletConnected(tonConnectUI)
     });
-    
+
     // ВАЖНО: Сначала закрываем диалог выбора метода оплаты
     // Это позволит пользователю увидеть Tonkeeper без перекрытия нашим UI
     setPaymentMethodDialogOpen(false);
-    
+
     // Только после закрытия диалога включаем лоадер
     setIsLoading(true);
-    
+
     try {
       // Получаем ID пользователя из useUser (добавлено для исправления ошибки)
       let userId = user?.id?.toString();
       console.log("[DEBUG] BoostPackagesCard - handleSelectPaymentMethod: ID из useUser =", userId);
-      
+
       // Если useUser не сработал, пробуем получить из URL
       if (!userId) {
         userId = getUserIdFromURL();
         console.log("[DEBUG] BoostPackagesCard - handleSelectPaymentMethod: ID из URL =", userId);
       }
-      
+
       // Для разработки используем фиксированный ID, если не удалось получить из других источников
       if (!userId && process.env.NODE_ENV !== 'production') {
         console.log("[DEBUG] BoostPackagesCard - handleSelectPaymentMethod: Используем резервный ID для разработки");
         userId = '1';
       }
-      
+
       // Выдаем предупреждение для отладки
       if (!userId) {
         console.warn("[WARNING] BoostPackagesCard - handleSelectPaymentMethod: userId отсутствует");
       }
-      
+
       if (!userId) {
         console.error("[ERROR] BoostPackagesCard - Не удалось получить userId из URL или других источников");
         toast({
@@ -156,7 +169,7 @@ const BoostPackagesCard: React.FC = () => {
         });
         return;
       }
-      
+
       console.log("[DEBUG] BoostPackagesCard - Используем userId:", userId);
 
       // Находим выбранный буст-пакет
@@ -171,7 +184,7 @@ const BoostPackagesCard: React.FC = () => {
           console.log("[DEBUG] Начинаем внешний платеж через TonConnect!");
           const userIdInt = parseInt(userId);
           const comment = createTonTransactionComment(userIdInt, boostId);
-          
+
           // Покажем этот лог обязательно, чтобы видеть, что до сюда доходим
           console.log("[DEBUG] СТАРТУЕМ ВНЕШНИЙ ПЛАТЕЖ", {
             userId: userIdInt,
@@ -179,7 +192,7 @@ const BoostPackagesCard: React.FC = () => {
             comment,
             boostPrice: selectedBoost.priceTon
           });
-          
+
           console.log('[DEBUG] Начинаем процесс оплаты через внешний кошелек', {
             tonConnectUI: !!tonConnectUI,
             boostId,
@@ -187,30 +200,30 @@ const BoostPackagesCard: React.FC = () => {
             priceTon: selectedBoost.priceTon,
             comment
           });
-          
+
           console.log("==========================================================");
           console.log("[DEBUG] Executing sendTransaction for Boost", {
             connected: tonConnectUI?.connected,
             wallet: tonConnectUI?.wallet,
             ready: tonConnectUI ? isTonPaymentReady(tonConnectUI) : false,
           });
-          
+
           // Добавляем подробное логирование состояния tonConnectUI по ТЗ
           console.log("[DEBUG] tonConnectUI.connected =", tonConnectUI?.connected);
           console.log("[DEBUG] tonConnectUI.account =", tonConnectUI?.account);
           console.log("[DEBUG] tonConnectUI.wallet =", tonConnectUI?.wallet);
           console.log("==========================================================");
-          
+
           // Выполняем комплексную проверку готовности к транзакции
           if (!checkWalletConnection()) {
             console.log("[DEBUG] CRITICAL! checkWalletConnection() вернул false");
             setIsLoading(false);
             return;
           }
-          
+
           // Еще одна проверка - дополнительный лог
           console.log("[DEBUG] !!! ПРОШЛИ checkWalletConnection !!!");
-          
+
           // Проверяем наличие функции sendTransaction (дополнительная проверка)
           if (!tonConnectUI || typeof tonConnectUI.sendTransaction !== 'function') {
             console.error('[ERROR] tonConnectUI.sendTransaction is not a function');
@@ -223,11 +236,11 @@ const BoostPackagesCard: React.FC = () => {
             setIsLoading(false);
             return;
           }
-          
+
           // ВАЖНО: Сначала отправляем транзакцию через TonConnect SDK
           // Это откроет Tonkeeper автоматически и пользователь сможет подтвердить транзакцию
           console.log('[DEBUG] Вызываем sendTonTransaction...');
-          
+
           // Добавляем лог перед sendTransaction согласно ТЗ 
           console.log("[TON] Sending transaction via TonConnect...");
           const result = await sendTonTransaction(
@@ -235,9 +248,9 @@ const BoostPackagesCard: React.FC = () => {
             selectedBoost.priceTon, // Сумма в TON
             comment // Комментарий в формате "UniFarmBoost:userId:boostId"
           );
-          
+
           console.log('[DEBUG] Результат sendTonTransaction:', result);
-          
+
           if (result) {
             console.log('[DEBUG] Транзакция успешно отправлена, регистрируем на сервере...');
             // Если пользователь подтвердил транзакцию в Tonkeeper, регистрируем её на сервере
@@ -247,29 +260,29 @@ const BoostPackagesCard: React.FC = () => {
                 payment_method: 'external_wallet',
                 tx_hash: result.txHash // Передаем хеш транзакции
             });
-            
+
             if (!registerResponse.ok) {
               console.error('[ERROR] Failed to register transaction on server', registerResponse);
               throw new Error("Failed to register transaction on server");
             }
-            
+
             const registerData = await registerResponse.json();
             console.log('[DEBUG] registerData:', registerData);
-            
+
             if (!registerData.success) {
               console.error('[ERROR] Server returned error:', registerData);
               throw new Error(registerData.message || "Failed to register transaction");
             }
-            
+
             const transactionId = registerData.data.transactionId;
-            
+
             // Теперь отправляем запрос на подтверждение платежа
             // Это нужно, чтобы система знала, что транзакция подтверждена пользователем
             await correctApiRequest('/api/ton-boosts/confirm-payment', 'POST', {
                 user_id: userIdInt,
                 transaction_id: transactionId
             });
-            
+
             // Теперь показываем диалог ожидания только ПОСЛЕ того, как пользователь подтвердил транзакцию
             setExternalPaymentData({
               userId: userIdInt,
@@ -278,7 +291,7 @@ const BoostPackagesCard: React.FC = () => {
               boostName: selectedBoost.name || 'TON Boost'
             });
             setExternalPaymentDialogOpen(true);
-            
+
             // Обновляем кэш запросов
             await queryClient.invalidateQueries({ queryKey: ['/api/ton-farming/info'] });
             await queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts/active'] });
@@ -294,7 +307,7 @@ const BoostPackagesCard: React.FC = () => {
           }
         } catch (error) {
           console.error("Error sending TON transaction:", error);
-          
+
           // Если ошибка связана с неподключенным кошельком, показываем сообщение
           if (error instanceof WalletNotConnectedError) {
             toast({
@@ -318,33 +331,33 @@ const BoostPackagesCard: React.FC = () => {
           boost_id: boostId,
           payment_method: paymentMethod
         });
-        
+
         try {
           const response = await correctApiRequest('/api/ton-boosts/purchase', 'POST', {
               user_id: userId,
               boost_id: boostId,
               payment_method: paymentMethod
           });
-          
+
           console.log('[DEBUG] Ответ сервера на запрос покупки TON Boost:', response);
-          
+
           if (!response.success) {
             console.error('[ERROR] Неуспешный ответ на покупку TON Boost:', response);
             throw new Error(response.error || response.message || "Failed to purchase boost package");
           }
-          
+
           const data = response;
         } catch (purchaseError) {
           console.error('[ERROR] Ошибка при покупке TON Boost:', purchaseError);
           throw purchaseError;
         }
-        
+
         if (data.success) {
           toast({
             title: "Успех!",
             description: data.message || "Буст-пакет успешно активирован!",
           });
-          
+
           // Обновляем кэш запросов чтобы обновить баланс и другие данные
           await queryClient.invalidateQueries({ queryKey: ['/api/ton-farming/info'] });
           await queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts/active'] });
@@ -369,16 +382,16 @@ const BoostPackagesCard: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
+
   // Функция для проверки подключения TON-кошелька и показа уведомления, если не подключен
   const checkWalletConnection = (): boolean => {
     console.log('[WALLET_DEBUG] Проверка подключения кошелька. Начало проверки');
-    
+
     // ЯВНО ЛОГИРУЕМ ТЕКУЩИЙ СТАТУС
     console.log("[DEBUG] isTonPaymentReady:", isTonPaymentReady(tonConnectUI));
     console.log("[DEBUG] tonConnectUI.connected:", tonConnectUI?.connected);
     console.log("[DEBUG] tonConnectUI.wallet:", tonConnectUI?.wallet);
-    
+
     // Проверяем наличие tonConnectUI
     if (!tonConnectUI) {
       console.error('[ERROR] tonConnectUI not initialized');
@@ -390,7 +403,7 @@ const BoostPackagesCard: React.FC = () => {
       });
       return false;
     }
-    
+
     // Более детальное логирование состояния кошелька
     console.log('[WALLET_DEBUG] Статус tonConnectUI:', {
       connected: tonConnectUI.connected,
@@ -402,15 +415,15 @@ const BoostPackagesCard: React.FC = () => {
         : 'no-address',
       hasSendTransaction: typeof tonConnectUI.sendTransaction === 'function',
     });
-    
+
     // Используем более строгую проверку, которая проверяет не только подключение, но и готовность к транзакциям
     const isReady = isTonPaymentReady(tonConnectUI);
     console.log('[WALLET_DEBUG] Результат проверки isTonPaymentReady:', isReady);
-    
+
     if (!isReady) {
       const isConnected = isTonWalletConnected(tonConnectUI);
       console.log('[WALLET_DEBUG] Результат проверки isTonWalletConnected:', isConnected);
-      
+
       if (isConnected) {
         // Подключен, но не готов к транзакциям
         console.error('[ERROR] Wallet connected but not ready for transactions');
@@ -420,7 +433,7 @@ const BoostPackagesCard: React.FC = () => {
           accountChain: tonConnectUI.account?.chain,
           hasSendTransaction: typeof tonConnectUI.sendTransaction === 'function',
         });
-        
+
         // Пытаемся автоматически переподключить кошелек
         console.log('[WALLET_DEBUG] Попытка автоматического переподключения кошелька...');
         // Делаем таймаут, чтобы пользователь увидел сообщение
@@ -436,7 +449,7 @@ const BoostPackagesCard: React.FC = () => {
                 description: "Пожалуйста, подтвердите подключение в открывшемся окне Tonkeeper",
                 variant: "default"
               });
-              
+
               // Подключаем снова через 1 секунду
               setTimeout(() => {
                 if (tonConnectUI && typeof tonConnectUI.connectWallet === 'function') {
@@ -447,7 +460,7 @@ const BoostPackagesCard: React.FC = () => {
             });
           }
         }, 2000);
-        
+
         // Показываем уведомление
         toast({
           title: "Ошибка кошелька",
@@ -484,7 +497,7 @@ const BoostPackagesCard: React.FC = () => {
       }
       return false;
     }
-    
+
     console.log('[WALLET_DEBUG] Проверка подключения успешна, кошелек готов к платежам');
     return true;
   };
@@ -492,18 +505,20 @@ const BoostPackagesCard: React.FC = () => {
   // Обработчик завершения внешнего платежа
   const handleExternalPaymentComplete = async () => {
     setExternalPaymentDialogOpen(false);
-    
+
     // Обновляем данные после успешного платежа
     await queryClient.invalidateQueries({ queryKey: ['/api/ton-farming/info'] });
     await queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts/active'] });
     await queryClient.invalidateQueries({ queryKey: ['/api/transactions/user'] });
     await queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-    
+
     toast({
       title: "Успех!",
       description: "TON Boost успешно активирован!",
     });
   };
+
+  
 
   return (
     <>
@@ -561,10 +576,10 @@ const BoostPackagesCard: React.FC = () => {
                           const priceTon = parseFloat(boost.priceTon);
                           const ratePercent = parseFloat(boost.rateTon);
                           const dailyIncome = priceTon * (ratePercent / 100);
-                          
+
                           // Добавляем логирование для отладки
                           console.log(`[TON Boost доход по пакету] id=${boost.id}, price=${priceTon}, rate=${ratePercent}%, daily=${dailyIncome}`);
-                          
+
                           return formatNumberWithPrecision(dailyIncome, 5) + ' TON';
                         })()}
                       </span>
@@ -578,10 +593,10 @@ const BoostPackagesCard: React.FC = () => {
                           const ratePercent = parseFloat(boost.rateTon);
                           const secondsInDay = 24 * 60 * 60;
                           const incomePerSecond = priceTon * (ratePercent / 100) / secondsInDay;
-                          
+
                           // Добавляем логирование для отладки
                           console.log(`[TON Boost доход по пакету] id=${boost.id}, perSecond=${incomePerSecond}`);
-                          
+
                           return formatNumberWithPrecision(incomePerSecond, 8) + ' TON';
                         })()}
                       </span>
@@ -592,7 +607,28 @@ const BoostPackagesCard: React.FC = () => {
                     </div>
                   </div>
                   <Button
-                    onClick={() => handleBoostClick(boost.id)}
+                    onClick={() => {
+                        try {
+                          if (!user?.id) {
+                            toast({
+                              title: "Ошибка",
+                              description: "Пользователь не авторизован",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                    
+                          handleBoostClick(boost.id)
+                        } catch (error) {
+                          console.error("[BoostPackagesCard] Error handling purchase:", error);
+                          toast({
+                            title: "Ошибка",
+                            description: "Не удалось обработать покупку буста",
+                            variant: "destructive"
+                          });
+                        }
+                      }
+                    }
                     disabled={isLoading}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white relative overflow-hidden group animate-pulse hover:animate-none"
                   >
