@@ -74,8 +74,8 @@ pool.on('error', (err: Error) => {
   // Не завершаем процесс, чтобы дать возможность восстановиться
 });
 
-// Экспортируем пул подключений и функцию queryWithRetry для использования в других модулях
-export { pool, queryWithRetry };
+// Экспортируем пул подключений для использования в других модулях
+export { pool };
 
 // Создаем экземпляр Drizzle ORM
 export const db = drizzle(pool, { schema });
@@ -157,7 +157,8 @@ export async function reconnect(attempts = 3): Promise<boolean> {
  * @param delayMs Задержка между попытками в мс
  * @returns Promise<QueryResult<any>> Результат запроса
  */
-export async function queryWithRetry(
+// Переименовываем функцию, чтобы избежать конфликта с экспортом
+async function executeQueryWithRetry(
   query: string,
   params: any[] = [],
   retries = 3,
@@ -202,6 +203,9 @@ export async function queryWithRetry(
   
   throw new Error(`Не удалось выполнить запрос после ${retries} попыток`);
 }
+
+// Экспортируем функцию для использования в других модулях
+export const queryWithRetry = executeQueryWithRetry;
 
 /**
  * Тестирует подключение к базе данных для использования при запуске сервера
