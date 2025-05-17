@@ -90,15 +90,23 @@ export class PartitionService {
 
   static async createPartitionDirect(date: Date, partitionName: string): Promise<void> {
     try {
-      // First try to detach and drop the future partition
-      await db.execute(sql`
-        ALTER TABLE transactions DETACH PARTITION transactions_future;
-        DROP TABLE IF EXISTS transactions_future;
+      // Safely detach future partition
+      const futureExists = await db.execute(sql`
+        SELECT EXISTS (
+          SELECT 1 FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE n.nspname = 'public' AND c.relname = 'transactions_future'
+        );
       `);
-    } catch (error) {
-      // Ignore error if future partition doesn't exist
-      console.log('Future partition not found or already detached');
-    }
+      
+      if (futureExists.rows[0].exists) {
+        await db.execute(sql`
+          BEGIN;
+          ALTER TABLE transactions DETACH PARTITION transactions_future;
+          DROP TABLE IF EXISTS transactions_future;
+          COMMIT;
+        `);
+      }
 
     // Create new partition
     await db.execute(sql`

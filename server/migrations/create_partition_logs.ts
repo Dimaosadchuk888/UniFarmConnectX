@@ -27,7 +27,9 @@ async function executeQuery(query: string, params: any[] = []) {
 
 export async function createPartitionLogs() {
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS partition_logs (
+    DROP TABLE IF EXISTS partition_logs;
+    
+    CREATE TABLE partition_logs (
       id SERIAL PRIMARY KEY,
       partition_name VARCHAR(100) NOT NULL,
       operation_type VARCHAR(50) NOT NULL,
@@ -37,10 +39,11 @@ export async function createPartitionLogs() {
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE INDEX IF NOT EXISTS idx_partition_logs_status ON partition_logs(status);
-    CREATE INDEX IF NOT EXISTS idx_partition_logs_name ON partition_logs(partition_name);
+    CREATE INDEX idx_partition_logs_status ON partition_logs(status);
+    CREATE INDEX idx_partition_logs_name ON partition_logs(partition_name);
+    CREATE INDEX idx_partition_logs_date ON partition_logs(created_at);
   `);
-  log('Created/Updated partition_logs table');
+  log('Recreated partition_logs table with error_message column');
 }
 
 export async function runMigration() {
