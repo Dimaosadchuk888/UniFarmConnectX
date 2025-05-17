@@ -238,11 +238,37 @@ class StorageAdapter implements IExtendedStorage {
     }
   }
   
+  // Функция для выполнения запроса с повторными попытками
+  private async queryWithRetry(query: string, params: any[] = [], maxRetries: number = 3): Promise<any> {
+    let retries = 0;
+    let lastError;
+    
+    while (retries < maxRetries) {
+      try {
+        // Используем pool из импортированного модуля db
+        const { pool } = require('./db');
+        const result = await pool.query(query, params);
+        return result;
+      } catch (error) {
+        lastError = error;
+        retries++;
+        if (retries < maxRetries) {
+          // Ждем перед следующей попыткой (увеличиваем время ожидания с каждой попыткой)
+          const delay = 500 * retries;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          console.log(`[StorageAdapter] Повторная попытка запроса ${retries}/${maxRetries}...`);
+        }
+      }
+    }
+    
+    throw lastError;
+  }
+  
   // Проверка подключения к базе данных с возвратом статуса
   private async checkDatabaseConnection(): Promise<boolean> {
     try {
       // Выполняем простой запрос к базе данных
-      await queryWithRetry('SELECT 1', [], 1); // Только 1 попытка для проверки
+      await this.queryWithRetry('SELECT 1', [], 1); // Только 1 попытка для проверки
       console.log('[StorageAdapter] Соединение с базой данных установлено');
       this.useMemory = false;
       return true;
