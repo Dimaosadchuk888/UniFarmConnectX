@@ -132,18 +132,20 @@
             window.open('https://t.me/UniFarming_Bot', '_blank');
         }
         
-        // Проверяем запуск из Telegram
+        // Автоматически перенаправляем на приложение, независимо от среды запуска
         document.addEventListener('DOMContentLoaded', function() {
             if (window.Telegram && window.Telegram.WebApp) {
                 console.log('Приложение запущено из Telegram WebApp');
                 document.getElementById('telegramStatus').textContent = 'Приложение запущено из Telegram WebApp ✓';
                 document.getElementById('telegramStatus').style.color = '#4ADE80';
-                
-                // Если приложение запущено из Telegram, перенаправляем на основное приложение
-                setTimeout(redirectToApp, 2000);
             } else {
                 console.log('Приложение открыто напрямую (не из Telegram)');
+                document.getElementById('telegramStatus').textContent = 'Приложение запущено напрямую ✓';
+                document.getElementById('telegramStatus').style.color = '#4ADE80';
             }
+            
+            // Перенаправляем на основное приложение в любом случае
+            setTimeout(redirectToApp, 1000);
         });
     </script>
 </head>
