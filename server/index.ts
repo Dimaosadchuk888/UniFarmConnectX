@@ -339,12 +339,13 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
     }, 100); // Небольшая задержка для приоритета открытия порта
   }
   
-  // Добавляем обработчик catch-all для health check
+  // Отдельный обработчик для корневого пути (health check)
+  app.get('/', (req: Request, res: Response) => {
+    return res.status(200).json({ status: 'ok', message: 'UniFarm API server is running' });
+  });
+
+  // Добавляем обработчик catch-all для остальных путей
   app.use('*', ((req: Request, res: Response) => {
-    // Проверяем, является ли запрос с корневого пути
-    if (req.originalUrl === '/' || req.originalUrl === '') {
-      return res.status(200).json({ status: 'ok', message: 'UniFarm API server is running' });
-    }
     // Иначе статус 404
     return res.status(404).json({ status: 'error', message: 'Not found' });
   }) as any);
