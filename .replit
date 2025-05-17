@@ -30,7 +30,7 @@ externalPort = 3000
 exposeLocalhost = true
 
 [workflows]
-runButton = "Run"
+runButton = "Run Safe"
 
 [[workflows.workflow]]
 name = "Neon DB Server"
@@ -58,3 +58,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true OVERRIDE_DB_PROVIDER=neon node start-unified.js"
+
+[[workflows.workflow]]
+name = "Run Safe"
+author = 42521392
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true OVERRIDE_DB_PROVIDER=neon SKIP_PARTITION_CREATION=true IGNORE_PARTITION_ERRORS=true node start-unified.js"
