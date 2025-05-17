@@ -10,6 +10,9 @@ import {
   PartitionLog, 
   IPartitionService 
 } from './partitionServiceInstance';
+import { format, addDays } from 'date-fns';
+import { sql } from '@vercel/postgres';
+import { db } from '../db';
 
 // Реэкспортируем типы для удобства
 export { 
@@ -83,6 +86,42 @@ export class PartitionService {
         error: error.message || 'Unknown error'
       };
     }
+  }
+
+  static async createPartitionDirect(date: Date, partitionName: string): Promise<void> {
+    try {
+      // First try to detach and drop the future partition
+      await db.execute(sql`
+        ALTER TABLE transactions DETACH PARTITION transactions_future;
+        DROP TABLE IF EXISTS transactions_future;
+      `);
+    } catch (error) {
+      // Ignore error if future partition doesn't exist
+      console.log('Future partition not found or already detached');
+    }
+
+    // Create new partition
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS ${sql.identifier(partitionName)} (
+        LIKE transactions INCLUDING ALL
+      );
+
+      ALTER TABLE ${sql.identifier(partitionName)} ADD CONSTRAINT ${sql.identifier(`${partitionName}_date_check`)} 
+      CHECK (created_at >= ${format(date, 'yyyy-MM-dd')}::timestamp AND created_at < ${format(addDays(date, 1), 'yyyy-MM-dd')}::timestamp);
+
+      ALTER TABLE transactions ATTACH PARTITION ${sql.identifier(partitionName)}
+      FOR VALUES FROM (${format(date, 'yyyy-MM-dd')}) TO (${format(addDays(date, 1), 'yyyy-MM-dd')});
+    `);
+
+    // Recreate future partition
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS transactions_future (
+        LIKE transactions INCLUDING ALL
+      );
+
+      ALTER TABLE transactions ATTACH PARTITION transactions_future
+      FOR VALUES FROM (${format(addDays(date, 1), 'yyyy-MM-dd')}) TO (MAXVALUE);
+    `);
   }
 
   /**
