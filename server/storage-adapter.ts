@@ -268,8 +268,8 @@ class StorageAdapter implements IExtendedStorage {
   private async checkDatabaseConnection(): Promise<boolean> {
     try {
       // Выполняем простой запрос к базе данных с использованием импортированной функции
-      await queryWithRetry('SELECT 1', [], 1); // Используем импортированную функцию
-      console.log('[StorageAdapter] Соединение с базой данных установлено');
+      const result = await queryWithRetry('SELECT 1', [], 1); // Импортированная функция из db-selector
+      console.log('[StorageAdapter] Соединение с базой данных установлено', result?.rows ? 'успешно' : 'с предупреждением');
       this.useMemory = false;
       return true;
     } catch (error) {

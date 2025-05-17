@@ -18,7 +18,11 @@ import { setupProductionStatic } from "./productionStatic";
 import { responseFormatter } from "./middleware/responseFormatter";
 import { errorHandler } from "./middleware/errorHandler";
 // Импортируем селектор базы данных и принудительно устанавливаем Neon DB
-import { dbType, DatabaseType } from "./db-selector";
+import { dbType, DatabaseType, pool } from "./db-selector";
+// Импортируем модули для работы с сессиями
+import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
+import memoryStore from 'memorystore';
 
 // Принудительно устанавливаем Neon DB как провайдер базы данных
 // Это переопределит любые настройки из файлов окружения
@@ -48,6 +52,33 @@ process.on('uncaughtException', (error: Error) => {
 
 const app = express();
 app.use(express.json());
+
+// Создаем хранилище сессий
+const MemoryStore = memoryStore(session);
+// Настройка сессии с поддержкой PostgreSQL
+const PgStore = connectPgSimple(session);
+
+// Настраиваем сессионный middleware
+app.use(session({
+  store: process.env.USE_MEMORY_SESSION === 'true' 
+    ? new MemoryStore({
+        checkPeriod: 86400000 // Очистка устаревших сессий каждые 24 часа
+      }) 
+    : new PgStore({
+        pool,
+        tableName: 'session', // Имя таблицы для хранения сессий
+        createTableIfMissing: true // Создаем таблицу, если она отсутствует
+      }),
+  secret: process.env.SESSION_SECRET || 'UniFarm_secret_key_change_in_production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 дней
+    httpOnly: true,
+    sameSite: 'lax'
+  }
+}));
 
 // Регистрируем middleware для проверки подключения к БД
 app.use(databaseErrorHandler);
