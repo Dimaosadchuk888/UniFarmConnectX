@@ -11,7 +11,7 @@ NODE_ENV = "production"
 PORT = "3000"
 
 [deployment]
-run = ["sh", "-c", "node start-unified.cjs"]
+run = ["sh", "-c", "PORT=3000 NODE_ENV=production node start-unified.js"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 build = ["sh", "-c", "npm run build"]
