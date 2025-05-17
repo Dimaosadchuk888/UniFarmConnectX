@@ -26,27 +26,19 @@ async function executeQuery(query: string, params: any[] = []) {
 }
 
 export async function createPartitionLogs() {
-  await executeQuery(`
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS partition_logs (
       id SERIAL PRIMARY KEY,
       partition_name VARCHAR(100) NOT NULL,
       operation_type VARCHAR(50) NOT NULL,
       status VARCHAR(20) NOT NULL,
-      details TEXT,
+      notes TEXT,
       error_message TEXT,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 
-    DO $$ 
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'partition_logs' 
-        AND column_name = 'error_message'
-      ) THEN
-        ALTER TABLE partition_logs ADD COLUMN error_message TEXT;
-      END IF;
-    END $$;
+    CREATE INDEX IF NOT EXISTS idx_partition_logs_status ON partition_logs(status);
+    CREATE INDEX IF NOT EXISTS idx_partition_logs_name ON partition_logs(partition_name);
   `);
   log('Created/Updated partition_logs table');
 }
