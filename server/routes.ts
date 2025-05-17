@@ -1945,7 +1945,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }, 45000); // проверяем каждые 45 секунд для более стабильного соединения
   
   // Обработка подключений WebSocket
-  wss.on('connection', (ws: ExtendedWebSocket) => {
+  wss.on('connection', (ws: ExtendedWebSocket, request) => {
     // Назначаем уникальный ID клиенту
     const clientId = Date.now() + Math.random().toString(36).substr(2, 9);
     ws.clientId = clientId;
@@ -1954,7 +1954,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Добавляем клиент в Map
     clients.set(clientId, ws);
     
-    console.log('[WebSocket] Новое подключение установлено', { clientId });
+    console.log('[WebSocket] Новое подключение установлено', { 
+      clientId,
+      urlParams: request.url ? `${request.url.slice(0, 50)}${request.url.length > 50 ? '...' : ''}` : 'нет',
+      headers: Object.keys(request.headers).filter(h => h.toLowerCase().includes('user') || h.toLowerCase().includes('auth')).join(', ')
+    });
+    
+    // Попытка получить user_id из URL-параметров
+    let userId = null;
+    if (request.url && request.url.includes('?')) {
+      const params = new URLSearchParams(request.url.split('?')[1]);
+      userId = params.get('user_id');
+      
+      if (userId) {
+        ws.userId = parseInt(userId, 10);
+        console.log(`[WebSocket] Пользователь идентифицирован из URL: user_id=${userId}`);
+      }
+    }
     
     // Устанавливаем обработчик heartbeat
     ws.on('pong', heartbeat);
@@ -1964,7 +1980,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ws.send(JSON.stringify({ 
         type: 'connected', 
         message: 'Соединение с сервером успешно установлено',
-        clientId
+        clientId,
+        authenticated: !!ws.userId,
+        userId: ws.userId || null
       }));
     } catch (e) {
       console.error('[WebSocket] Ошибка при отправке приветствия:', e);

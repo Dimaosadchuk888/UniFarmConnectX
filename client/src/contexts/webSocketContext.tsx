@@ -27,9 +27,38 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   // Функция для создания WebSocket соединения
   const createWebSocket = () => {
     try {
-      // Получаем корректный URL для WebSocket
+      // Получаем user_id из localStorage или sessionStorage
+      let userId = null;
+      try {
+        // Сначала проверяем в sessionStorage
+        userId = sessionStorage.getItem('user_id');
+        
+        // Если нет в sessionStorage, пробуем localStorage
+        if (!userId) {
+          userId = localStorage.getItem('user_id');
+        }
+        
+        // Если всё еще нет, проверяем другие возможные ключи
+        if (!userId) {
+          // Проверяем другие возможные ключи хранилища
+          const possibleKeys = ['userId', 'currentUserId', 'authUserId'];
+          for (const key of possibleKeys) {
+            const value = localStorage.getItem(key) || sessionStorage.getItem(key);
+            if (value) {
+              userId = value;
+              break;
+            }
+          }
+        }
+        
+        console.log('[WebSocket] Retrieved user_id for connection:', userId ? userId : 'not found');
+      } catch (e) {
+        console.error('[WebSocket] Error retrieving user_id from storage:', e);
+      }
+      
+      // Получаем корректный URL для WebSocket, добавляем user_id если он найден
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const wsUrl = `${protocol}//${window.location.host}/ws${userId ? `?user_id=${userId}` : ''}`;
       
       console.log('[WebSocket] Connecting to:', wsUrl);
       
