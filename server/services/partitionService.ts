@@ -28,14 +28,14 @@ export class PartitionService {
   static async isTablePartitioned(tableName?: string): Promise<boolean> {
     return partitionServiceInstance.isTablePartitioned(tableName);
   }
-  
+
   /**
    * Получает список всех партиций с информацией о них
    */
   static async getPartitionsList(): Promise<PartitionInfo[]> {
     return partitionServiceInstance.getPartitionsList();
   }
-  
+
   /**
    * Получает логи операций с партициями
    * @param limit максимальное количество записей
@@ -43,7 +43,7 @@ export class PartitionService {
   static async getPartitionLogs(limit?: number): Promise<PartitionLog[]> {
     return partitionServiceInstance.getPartitionLogs(limit);
   }
-  
+
   /**
    * Создаёт партицию для указанной даты
    */
@@ -61,7 +61,7 @@ export class PartitionService {
   }> {
     return partitionServiceInstance.createPartitionForDate(date);
   }
-  
+
   /**
    * Создаёт партиции на будущие даты
    * @param daysAhead на сколько дней вперед создавать партиции
@@ -74,7 +74,7 @@ export class PartitionService {
   }> {
     return partitionServiceInstance.createFuturePartitions(daysAhead);
   }
-  
+
   /**
    * Добавляет запись в лог операций с партициями
    */

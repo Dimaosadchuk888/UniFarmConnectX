@@ -9,6 +9,8 @@
  */
 import { Pool } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
+import { sql } from 'drizzle-orm';
+import { db } from '../db';
 
 dotenv.config();
 
@@ -30,6 +32,20 @@ async function executeQuery(query: string, params: any[] = []) {
     console.error(`Params: ${JSON.stringify(params)}`);
     throw error;
   }
+}
+
+async function createPartitionLogs() {
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS partition_logs (
+      id SERIAL PRIMARY KEY,
+      partition_name VARCHAR(100) NOT NULL,
+      partition_date DATE NOT NULL,
+      status VARCHAR(20) NOT NULL,
+      details TEXT,
+      error_message TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }
 
 export async function runMigration() {
@@ -59,17 +75,7 @@ export async function runMigration() {
 
     try {
       log('Creating partition_logs table');
-      await executeQuery(`
-        CREATE TABLE partition_logs (
-          id SERIAL PRIMARY KEY,
-          operation VARCHAR(50) NOT NULL,
-          partition_name VARCHAR(100) NOT NULL,
-          status VARCHAR(20) NOT NULL,
-          notes TEXT,
-          error_message TEXT,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        )
-      `);
+      await createPartitionLogs();
 
       log('Creating indexes on partition_logs table');
       await executeQuery('CREATE INDEX partition_logs_operation_idx ON partition_logs (operation)');
