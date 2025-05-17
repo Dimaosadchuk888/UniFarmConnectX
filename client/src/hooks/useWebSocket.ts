@@ -238,7 +238,10 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
       
       // Обработчик закрытия соединения с оптимизированной логикой переподключения
       socket.onclose = (event) => {
-        console.log('[WebSocket] Connection closed:', event.code, event.reason);
+        // Только для отладки, не показываем пользователю
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[WebSocket] Connection closed:', event.code, event.reason);
+        }
         setIsConnected(false);
         
         // Очищаем ресурсы при закрытии соединения
@@ -255,7 +258,10 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
           const randomDelay = Math.floor(Math.random() * 1000); // 0-1000ms случайная задержка
           const delay = reconnectInterval + randomDelay;
           
-          console.log(`[WebSocket] Reconnecting in ${delay}ms...`);
+          // Скрываем сообщение о переподключении от пользователей
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[WebSocket] Reconnecting in ${delay}ms...`);
+          }
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, delay);
@@ -264,7 +270,10 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
       
       // Обработчик ошибок
       socket.onerror = (event) => {
-        console.error('[WebSocket] Error occurred');
+        // Скрываем сообщение об ошибке от пользователей в production
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[WebSocket] Error occurred');
+        }
         setErrorCount(prev => prev + 1);
         
         // Вызываем пользовательский обработчик

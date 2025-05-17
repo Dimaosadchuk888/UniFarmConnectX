@@ -87,33 +87,27 @@ const BalanceCard: React.FC = () => {
   
   // Обработчик закрытия соединения
   const handleClose = useCallback((event: CloseEvent) => {
-    console.log('[BalanceCard] WebSocket connection closed', event);
-    setWsStatus('Соединение закрыто');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[BalanceCard] WebSocket connection closed', event);
+    }
+    setWsStatus('Ожидание соединения');
     isSubscribedRef.current = false;
     
-    if (!wsErrorNotificationShown && wsConnectedOnce) {
-      setWsErrorNotificationShown(true);
-      showNotification('error', {
-        message: 'WebSocket соединение закрыто',
-        duration: 3000
-      });
-    }
-  }, [wsErrorNotificationShown, wsConnectedOnce, showNotification]);
+    // Скрываем уведомление об ошибке WebSocket от пользователей
+    // Это не критическая ошибка, которая не должна прерывать работу пользователя
+  }, []);
   
   // Обработчик ошибки соединения
   const handleError = useCallback((event: Event) => {
-    console.error('[BalanceCard] WebSocket error', event);
-    setWsStatus('Ошибка соединения');
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[BalanceCard] WebSocket error', event);
+    }
+    setWsStatus('Ожидание соединения');
     isSubscribedRef.current = false;
     
-    if (!wsErrorNotificationShown) {
-      setWsErrorNotificationShown(true);
-      showNotification('error', {
-        message: 'Ошибка WebSocket соединения',
-        duration: 3000
-      });
-    }
-  }, [wsErrorNotificationShown, showNotification]);
+    // Скрываем уведомления об ошибках WebSocket от пользователей
+    // Эти ошибки не критичны и не должны прерывать работу пользователя
+  }, []);
   
   // Инициализируем WebSocket соединение
   const { 
