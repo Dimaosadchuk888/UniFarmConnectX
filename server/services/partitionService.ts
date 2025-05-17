@@ -55,13 +55,18 @@ export class PartitionService {
     try {
       const partitionName = `transactions_${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}`;
       
-      // Проверяем существование будущей партиции
-      const futurePartitionExists = await this.isPartitionExists('transactions_future');
-      
-      if (futurePartitionExists) {
-        // Если будущая партиция существует, перемещаем данные перед созданием новой
-        await this.moveDataFromFuturePartition(date);
+      // Оптимизированная проверка для Neon
+      const partitionExists = await this.isPartitionExists(partitionName);
+      if (partitionExists) {
+        return {
+          success: true,
+          partition_name: partitionName,
+          message: 'Partition already exists'
+        };
       }
+
+      // Создаем новую партицию напрямую
+      await this.createPartitionDirect(date, partitionName);
   }> {
     return partitionServiceInstance.createPartitionForDate(date);
   }
