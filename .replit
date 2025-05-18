@@ -11,7 +11,7 @@ NODE_ENV = "production"
 PORT = "3000"
 
 [deployment]
-run = ["sh", "-c", "NODE_ENV=production node start-unified.js"]
+run = ["sh", "-c", "NODE_ENV=production PORT=3000 node start-unified.js"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 build = ["sh", "-c", "npm run build"]
@@ -19,7 +19,6 @@ build = ["sh", "-c", "npm run build"]
 [[ports]]
 localPort = 3000
 externalPort = 80
-exposeLocalhost = true
 
 [workflows]
 runButton = "Run Safe"
