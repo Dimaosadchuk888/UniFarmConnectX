@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import path from "path";
 import fs from "fs";
 import cors from 'cors';
-import * * as healthApi from './api/health'; // Импорт контроллера health API
+import * as healthApi from './api/health'; // Импорт контроллера health API
 
 // Расширяем тип WebSocket для поддержки пользовательских свойств
 interface ExtendedWebSocket extends WebSocket {
@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`✅ [HEALTH] Используем файл: ${healthHtmlPath}`);
   }
 
-  app.get('/', (req: Request, res: Response) => {
+  app.get('/', (req: Request, res: Response, next: NextFunction) => {
     try {
         console.log('[Root Route] Request to root URL');
 
@@ -188,8 +188,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </html>
         `);
       }
-    } finally {
-      next();
+    } catch (error) {
+      console.error('[Root Route] Error:', error);
+      next(error);
     }
   });
 
