@@ -58,8 +58,12 @@ import { WalletController } from './controllers/walletController';
 import { AdminController } from './controllers/adminController';
 import * as PartitionController from './controllers/partition-controller'; // Контроллер для управления партициями
 
-// Импортируем маршруты для партиционирования
-import { registerPartitionRoutes } from './api/partition-routes';
+// Создаем временную заглушку для функции registerPartitionRoutes
+// Это позволит избежать ошибки при деплое
+function registerPartitionRoutes(app: any) {
+  console.log('[Server] Функция registerPartitionRoutes вызвана в виде заглушки');
+  return;
+}
 
 // Импортируем миграцию для реферальных кодов
 import { migrateRefCodes, checkAndUpdateUserRefCode, setRefCodeForUser } from './migrations/refCodeMigration';
@@ -1831,8 +1835,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Регистрируем маршруты для управления партициями таблиц
   // Важно: эти маршруты доступны только администраторам
   if (process.env.NODE_ENV !== 'test') {
-    registerPartitionRoutes(app);
-    console.log('[Server] Маршруты для управления партициями базы данных зарегистрированы');
+    // Временно отключаем для исправления ошибки деплоя
+    // registerPartitionRoutes(app);
+    console.log('[Server] Маршруты для управления партициями базы данных временно отключены');
   }
 
   // Использование централизованного обработчика ошибок из middleware/errorHandler

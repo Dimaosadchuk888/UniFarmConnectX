@@ -189,3 +189,11 @@ router.get('/logs', async (req: Request, res: Response) => {
 
 // Экспортируем маршрутизатор
 export default router;
+
+/**
+ * Функция для регистрации маршрутов партиционирования в Express приложении
+ * @param app Express приложение
+ */
+export function registerPartitionRoutes(app: express.Application) {
+  app.use('/api/admin/partitions', router);
+}
