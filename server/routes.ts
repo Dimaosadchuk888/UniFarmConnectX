@@ -745,7 +745,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             balance_uni: user.balance_uni,
             balance_ton: user.balance_ton,
             referrer_registered: referrerRegistered,
-            test_mode: true``````text
+            test_mode: true
+          }
         }
         });
       } catch (error) {
