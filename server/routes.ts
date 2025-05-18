@@ -755,7 +755,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             balance_uni: user.balance_uni,
             balance_ton: user.balance_ton,
             referrer_registered: referrerRegistered,
-```text
             test_mode: true
         }
       });
@@ -1508,7 +1507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Маршруты для буст-пакетов (с поддержкой fallback)
   app.get("/api/boosts", (req, res, next) => BoostControllerFallback.getBoostPackages(req, res, next));
   app.get("/api/boosts/active", (req, res, next) => BoostControllerFallback.getUserActiveBoosts(req, res, next));
-  app.post("/api/boosts/purchase", (req, res, next) => BoostControllerFallback.purchaseBoost(req, res, next));
+  app.post("/api/boosts/purchase", (req, res, res, next) => BoostControllerFallback.purchaseBoost(req, res, next));
 
   //  // Маршруты для TON Boost-пакетов
   app.get("/api/ton-boosts", TonBoostController.getTonBoostPackages);
