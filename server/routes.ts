@@ -746,18 +746,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             balance_ton: user.balance_ton,
             referrer_registered: referrerRegistered,
             test_mode: true
-          }```text
         }
-        });
-      } catch (error) {
-        console.error('[TEST API] Ошибка тестирования реферальной системы:', error);
-        return res.status(500).json({
-          success: false,
-          message: 'Ошибка при тестировании реферальной системы'
-        });
-      }
-    });
-  }
+      });
+    } catch (error) {
+      console.error('[TEST API] Ошибка тестирования реферальной системы:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Ошибка при тестировании реферальной системы'
+      });
+    }
+  });
+}
 
   // Маршруты для пользователей
   // ВАЖНО: Сначала размещаем более специфичные маршруты, потом общие с параметрами
