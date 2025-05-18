@@ -746,7 +746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             balance_ton: user.balance_ton,
             referrer_registered: referrerRegistered,
             test_mode: true
-          }
+          }```text
         }
         });
       } catch (error) {
@@ -1840,18 +1840,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws',
-    // Установка основных параметров для оптимальной производительности
     clientTracking: true,
-    // Включаем сжатие для экономии трафика и лучшей совместимости с современными клиентами
     perMessageDeflate: {
-      zlibDeflateOptions: { level: 1 }, // Минимальное сжатие для низкой нагрузки на CPU
-      zlibInflateOptions: { chunkSize: 10 * 1024 }, // 10KB в буфере для инфляции
-      clientNoContextTakeover: true, // Снижает использование памяти
-      serverNoContextTakeover: true, // Снижает использование памяти
-      threshold: 1024 // Сжимать только сообщения > 1KB
+      zlibDeflateOptions: { level: 2 }, // Better compression
+      zlibInflateOptions: { chunkSize: 16 * 1024 }, // Larger chunks for throughput
+      clientNoContextTakeover: true,
+      serverNoContextTakeover: true,
+      threshold: 512 // Compress more messages
     },
-    // Увеличиваем максимальный размер сообщения
-    maxPayload: 1024 * 1024 // 1MB
+    maxPayload: 512 * 1024 // Reduced for security
   });
 
   // Отслеживание активных подключений
