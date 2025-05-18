@@ -17,16 +17,8 @@ ignorePorts = false
 build = ["sh", "-c", "npm run build"]
 
 [[ports]]
-localPort = 80
-externalPort = 3001
-
-[[ports]]
 localPort = 3000
 externalPort = 80
-
-[[ports]]
-localPort = 5432
-externalPort = 3000
 exposeLocalhost = true
 
 [workflows]

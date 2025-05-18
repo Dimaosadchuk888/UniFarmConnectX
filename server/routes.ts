@@ -930,7 +930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         error: 'Internal Server Error',
-        message: `${error}`
+        message: error instanceof Error ? error.message : String(error)
       });
     }
   });
