@@ -90,33 +90,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Обработчик корневого маршрута для проверки здоровья при деплое
-  app.get('/', (req, res) => {
+  app.get('/', (req: Request, res: Response) => {
     console.log('[Root Route] Запрос к корневому URL - быстрый ответ для проверки здоровья');
-    // Возвращаем простой HTML-ответ для проверки здоровья
-    return res.status(200).send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>UniFarm API</title>
-          <meta charset="utf-8">
-        </head>
-        <body>
-          <h1>UniFarm API</h1>
-          <p>API сервер работает. Используйте Telegram для доступа к UniFarm.</p>
-          <p>Время сервера: ${new Date().toISOString()}</p>
-        </body>
-      </html>
-    `);
-    const projectRoot = process.cwd();
-    const indexHtmlPath = path.join(projectRoot, 'dist', 'public', 'index.html');
     
-    if (fs.existsSync(indexHtmlPath)) {
-      console.log('[Root Route] Используем файл:', indexHtmlPath);
-      return res.status(200).sendFile(indexHtmlPath);
-    }
-    
-    // Fallback для случаев, когда файл не найден
-    return res.status(200).send(`<!DOCTYPE html>
+    try {
+      // Проверяем, является ли это запросом проверки здоровья
+      const isHealthCheck = req.query.health === 'check' || 
+        req.headers['user-agent']?.includes('Replit') || 
+        req.headers['x-replit-deployment-check'] !== undefined;
+      
+      if (isHealthCheck) {
+        console.log('[Root Route] Обнаружен запрос проверки здоровья');
+        return res.status(200).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>UniFarm API</title>
+              <meta charset="utf-8">
+            </head>
+            <body>
+              <h1>UniFarm API</h1>
+              <p>API сервер работает. Используйте Telegram для доступа к UniFarm.</p>
+              <p>Время сервера: ${new Date().toISOString()}</p>
+            </body>
+          </html>
+        `);
+      }
+      
+      // Если это не запрос проверки здоровья, пытаемся найти и отправить index.html
+      const projectRoot = process.cwd();
+      const indexHtmlPath = path.join(projectRoot, 'dist', 'public', 'index.html');
+      
+      if (fs.existsSync(indexHtmlPath)) {
+        console.log('[Root Route] Используем файл:', indexHtmlPath);
+        return res.status(200).sendFile(indexHtmlPath);
+      }
+      
+      // Fallback для случаев, когда файл не найден
+      return res.status(200).send(`<!DOCTYPE html>
 <html>
 <head>
     <title>UniFarm</title>
@@ -134,6 +145,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <p>Server time: ${new Date().toISOString()}</p>
 </body>
 </html>`);
+    } catch (error) {
+      console.error('[Root Route] Ошибка:', error);
+      // В случае ошибки возвращаем базовый ответ для проверки здоровья
+      return res.status(200).send('UniFarm API Server is running');
+    }
   });
 
   // Установка порта и привязка к внешнему IP для корректной работы в Replit
@@ -160,15 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`✅ [HEALTH] Используем файл: ${healthHtmlPath}`);
   }
 
-  /* Корневой маршрут уже определен в начале файла
-  app.get('/', (req: Request, res: Response, next: NextFunction) => {
-    try {
-        console.log('[Root Route] Маршрут отключен');
-        
-        // Health check logic - отключено */
-        if (req.query.health === 'check' || req.headers['user-agent']?.includes('Replit') || req.headers['x-replit-deployment-check']) {
-            console.log('[Root Route] Detected health check request, returning immediate 200 response');
-            return res.status(200).send(`<!DOCTYPE html>
+  // Корневой маршрут уже определен в начале файла
 <html>
 <head>
     <title>UniFarm API Server - Health Check</title>
@@ -280,12 +288,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     </div>
 </body>
 </html>`);
-    } catch (error) {
-        console.error('[Root Route] Error:', error);
-        // Even on error, return a 200 response for health checks
-        return res.status(200).send('UniFarm API Server: Online (Error recovery mode)');
-    }
-});
 
   app.get('/health', (req: Request, res: Response) => {
     if (req.accepts('html')) {
@@ -1839,37 +1841,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Корневой URL всегда обрабатываем обычным образом
-  /* Корневой маршрут уже определен в начале файла
-  app.get('/', (req: Request, res: Response, next: NextFunction) => {
-    // Проверяем, содержит ли URL параметр ref_code, который используется для реферальных ссылок
-    if (req.query.ref_code !== undefined) {
-      console.log('[TelegramWebApp] Обнаружен запуск через ?ref_code параметр:', req.url);
-
-      // Для продакшн-окружения возвращаем index.html */
-      if (process.env.NODE_ENV === 'production') {
-        const indexPath = path.resolve('dist/public/index.html');
-        if (fs.existsSync(indexPath)) {
-          console.log('[TelegramWebApp] Отправляем index.html из', indexPath);
-          return res.sendFile(indexPath);
-        } else {
-          console.warn('[TelegramWebApp] Файл index.html не найден по пути:', indexPath);
-          // Пробуем альтернативные пути
-          const altPaths = [
-            path.resolve('dist/index.html'),
-            path.resolve('public/index.html'),
-            path.resolve('client/dist/index.html')
-          ];
-
-          for (const altPath of altPaths) {
-            if (fs.existsSync(altPath)) {
-              console.log('[TelegramWebApp] Отправляем index.html из альтернативного пути:', altPath);
-              return res.sendFile(altPath);
-            }
-          }
-        }
+  /* Корневой маршрут уже определен в начале файла - этот блок закомментирован
+  Ранее тут был дублирующий код для обработки маршрута /, который вызывал конфликты
+  Весь функционал переехал в единый обработчик в начале файла
+  
+  Пример кода, который был здесь ранее:
+  app.get('/', (req: Request, res: Response) => {
+    // Логика обработки корневого маршрута
+    if (process.env.NODE_ENV === 'production') {
+      const indexPath = path.resolve('dist/public/index.html');
+      if (fs.existsSync(indexPath)) {
+        return res.sendFile(indexPath);
       }
     }
-    next();
+    return res.send('UniFarm API Server');
+  });
+  */
+  
+  // Настраиваем обработку статических файлов из build директории 
+  app.use(express.static(path.join(process.cwd(), 'dist', 'public')));
+  
+  // Обработка маршрутов для Telegram WebApp
+  app.get('/UniFarm*', (req: Request, res: Response) => {
+    // Для всех запросов к /UniFarm отправляем index.html
+    const projectRoot = process.cwd();
+    const indexHtmlPath = path.join(projectRoot, 'dist', 'public', 'index.html');
+    
+    if (fs.existsSync(indexHtmlPath)) {
+      return res.sendFile(indexHtmlPath);
+    }
+    
+    // Проверяем альтернативные пути
+    const altPaths = [
+      path.resolve('dist/index.html'),
+      path.resolve('public/index.html'),
+      path.resolve('client/dist/index.html')
+    ];
+
+    for (const altPath of altPaths) {
+      if (fs.existsSync(altPath)) {
+        console.log('[TelegramWebApp] Отправляем index.html из альтернативного пути:', altPath);
+        return res.sendFile(altPath);
+      }
+    }
+    
+    // Если файл не найден, возвращаем простой HTML
+    return res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>UniFarm</title>
+          <meta charset="utf-8">
+        </head>
+        <body>
+          <h1>UniFarm</h1>
+          <p>API сервер работает. Используйте Telegram для доступа к UniFarm.</p>
+          <p>Время сервера: ${new Date().toISOString()}</p>
+        </body>
+      </html>
+    `);
   });
 
   // Обработчик для всех остальных маршрутов - перенаправляем на React SPA

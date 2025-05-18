@@ -8,7 +8,7 @@ import { healthCheckMiddleware } from './middleware/health-check';
 process.env.PGSSLMODE = 'require';
 
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes-fixed";
 import { registerNewRoutes } from "./routes-new"; // Импортируем новые маршруты
 import { setupVite, serveStatic, log } from "./vite";
 import { startBackgroundTasks } from "./background-tasks";
@@ -254,6 +254,17 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
       stack: reason instanceof Error ? reason.stack : undefined,
       timestamp: new Date().toISOString()
     });
+    
+    // Логируем более подробную информацию для отладки
+    if (reason instanceof Error) {
+      console.error('[SERVER] Детали ошибки:', {
+        name: reason.name,
+        message: reason.message,
+        stack: reason.stack,
+        time: new Date().toISOString()
+      });
+    }
+    
     // Не завершаем процесс, чтобы сервер продолжил работу
   });
 
