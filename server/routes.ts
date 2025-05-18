@@ -84,10 +84,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     credentials: true
   }));
   
-  // Обработчик корневого маршрута для проверки здоровья
+  // Специальный обработчик для проверки здоровья
+  app.get('/health', (req, res) => {
+    return res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+  
+  // Обработчик корневого маршрута для проверки здоровья при деплое
   app.get('/', (req, res) => {
-    console.log('[Root Route] Запрос к корневому URL - возвращаем приложение');
-    // Отправляем HTML-версию для корневого URL, ключевой элемент для здоровья деплоя
+    console.log('[Root Route] Запрос к корневому URL - быстрый ответ для проверки здоровья');
+    // Возвращаем простой HTML-ответ для проверки здоровья
+    return res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>UniFarm API</title>
+          <meta charset="utf-8">
+        </head>
+        <body>
+          <h1>UniFarm API</h1>
+          <p>API сервер работает. Используйте Telegram для доступа к UniFarm.</p>
+          <p>Время сервера: ${new Date().toISOString()}</p>
+        </body>
+      </html>
+    `);
     const projectRoot = process.cwd();
     const indexHtmlPath = path.join(projectRoot, 'dist', 'public', 'index.html');
     
@@ -141,11 +160,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`✅ [HEALTH] Используем файл: ${healthHtmlPath}`);
   }
 
+  /* Корневой маршрут уже определен в начале файла
   app.get('/', (req: Request, res: Response, next: NextFunction) => {
     try {
-        console.log('[Root Route] Запрос к корневому URL - возвращаем приложение');
+        console.log('[Root Route] Маршрут отключен');
         
-        // Health check logic - prioritize responding with success for deployment health checks
+        // Health check logic - отключено */
         if (req.query.health === 'check' || req.headers['user-agent']?.includes('Replit') || req.headers['x-replit-deployment-check']) {
             console.log('[Root Route] Detected health check request, returning immediate 200 response');
             return res.status(200).send(`<!DOCTYPE html>
@@ -1819,12 +1839,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Корневой URL всегда обрабатываем обычным образом
+  /* Корневой маршрут уже определен в начале файла
   app.get('/', (req: Request, res: Response, next: NextFunction) => {
     // Проверяем, содержит ли URL параметр ref_code, который используется для реферальных ссылок
     if (req.query.ref_code !== undefined) {
       console.log('[TelegramWebApp] Обнаружен запуск через ?ref_code параметр:', req.url);
 
-      // Для продакшн-окружения возвращаем index.html
+      // Для продакшн-окружения возвращаем index.html */
       if (process.env.NODE_ENV === 'production') {
         const indexPath = path.resolve('dist/public/index.html');
         if (fs.existsSync(indexPath)) {

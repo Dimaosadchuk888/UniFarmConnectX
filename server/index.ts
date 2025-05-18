@@ -2,6 +2,7 @@
 // Важно: мы проверим соединение с БД перед запуском сервера
 import { testDatabaseConnection, db, queryWithRetry } from './db-selector';
 import { databaseErrorHandler } from './middleware/databaseErrorHandler';
+import { healthCheckMiddleware } from './middleware/health-check';
 
 // Устанавливаем переменные окружения для SSL
 process.env.PGSSLMODE = 'require';

@@ -1,0 +1,49 @@
+/**
+ * Middleware для проверки здоровья приложения
+ * Обеспечивает быстрый ответ на запросы к корневому маршруту для проверок при деплое
+ */
+
+import { Request, Response, NextFunction } from 'express';
+
+/**
+ * Middleware для проверки здоровья на корневом маршруте
+ * Возвращает HTTP 200 и простую HTML-страницу для проверок при деплое
+ */
+export function healthCheckMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Проверяем, является ли это запросом для проверки здоровья
+  const isHealthCheck = req.path === '/' && (
+    req.query.health === 'check' || 
+    req.headers['user-agent']?.includes('Replit') || 
+    req.headers['x-replit-deployment-check'] !== undefined ||
+    req.method === 'HEAD'
+  );
+  
+  // Если это запрос для проверки здоровья, возвращаем быстрый ответ
+  if (isHealthCheck) {
+    console.log('[Health Check] Запрос проверки здоровья обнаружен, отвечаем статусом 200');
+    
+    // Для HEAD-запросов просто возвращаем 200 без тела
+    if (req.method === 'HEAD') {
+      return res.status(200).end();
+    }
+    
+    // Для GET-запросов возвращаем простую HTML-страницу
+    return res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>UniFarm API</title>
+          <meta charset="utf-8">
+        </head>
+        <body>
+          <h1>UniFarm API</h1>
+          <p>API сервер работает. Используйте Telegram для доступа к UniFarm.</p>
+          <p>Время сервера: ${new Date().toISOString()}</p>
+        </body>
+      </html>
+    `);
+  }
+  
+  // Иначе продолжаем обработку запроса
+  next();
+}
