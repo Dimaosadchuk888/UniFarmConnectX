@@ -85,6 +85,50 @@ app.use(session({
 
 // Регистрируем middleware для проверки подключения к БД
 app.use(databaseErrorHandler);
+
+// Регистрируем middleware для проверки здоровья приложения
+// Это должно быть ПЕРЕД регистрацией других маршрутов
+app.use(healthCheckMiddleware);
+
+// Добавляем специальный маршрут для проверки здоровья
+app.get('/health', (req: Request, res: Response) => {
+  console.log('[Health Check] Запрос к /health эндпоинту');
+  res.status(200).send({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Добавляем обработчик корневого маршрута для проверки здоровья
+app.get('/', (req: Request, res: Response) => {
+  console.log('[Health Check] Запрос к корневому маршруту');
+  
+  // Если это запрос для проверки здоровья от Replit
+  if (req.query.health === 'check' || 
+      req.headers['user-agent']?.includes('Replit') || 
+      req.headers['x-replit-deployment-check']) {
+    console.log('[Health Check] Replit проверка здоровья обнаружена');
+    return res.status(200).send('OK');
+  }
+  
+  // Иначе, для обычных запросов возвращаем HTML страницу
+  res.status(200).send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>UniFarm API</title>
+        <meta charset="utf-8">
+      </head>
+      <body>
+        <h1>UniFarm API</h1>
+        <p>API сервер работает. Используйте Telegram для доступа к UniFarm.</p>
+        <p>Время сервера: ${new Date().toISOString()}</p>
+      </body>
+    </html>
+  `);
+});
+
 app.use(express.urlencoded({ extended: false }));
 // Регистрируем middleware для стандартизации ответов API
 app.use(responseFormatter as any);
