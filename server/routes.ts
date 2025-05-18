@@ -110,8 +110,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/', (req: Request, res: Response, next: NextFunction) => {
     try {
-        console.log('[Root Route] Request to root URL');
-
+        console.log('[Root Route] Запрос к корневому URL - возвращаем приложение');
+        
         // Define possible paths for index.html in different modes
         const possiblePaths = [
             path.join(projectRoot, 'dist', 'public', 'index.html'),
@@ -125,7 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const indexHtmlPath = possiblePaths.find(p => fs.existsSync(p));
 
         if (indexHtmlPath) {
-            console.log(`[Root Route] Using file: ${indexHtmlPath}`);
+            console.log(`[Root Route] Используем файл: ${indexHtmlPath}`);
             // Add cache prevention headers
             res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
             res.setHeader('Pragma', 'no-cache');
@@ -136,7 +136,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // If no index.html is found, return a simple health check response
         console.log('[Root Route] No index.html found, returning health check response');
-        return res.status(200).send(`<!DOCTYPE html>...`);
+        return res.status(200).send(`<!DOCTYPE html>
+<html>
+<head>
+    <title>UniFarm API Server</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .status {
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        .success {
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UniFarm API Server</h1>
+        <p class="status success">Status: <strong>Online</strong></p>
+        <p>The API server is running correctly.</p>
+    </div>
+</body>
+</html>`);
     } catch (error) {
         console.error('[Root Route] Error:', error);
         next(error);

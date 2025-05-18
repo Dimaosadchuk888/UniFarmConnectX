@@ -364,8 +364,10 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   // Централизованный обработчик ошибок
   app.use(((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next)) as any);
 
-  // Запускаем сервер
-  server.listen(port, "0.0.0.0", () => {    log(`serving on port ${port}`);
+  // Explicit bind to 0.0.0.0 to ensure Replit deployment works correctly
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`[Server] Server running at http://0.0.0.0:${port} in ${process.env.NODE_ENV || 'development'} mode`);
+    log(`serving on port ${port}`);
     // Инициализируем фоновые сервисы после открытия порта
     initBackgroundServices();
   });
