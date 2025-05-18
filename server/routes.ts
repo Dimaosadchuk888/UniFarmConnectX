@@ -84,6 +84,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     credentials: true
   }));
   
+  // Обработчик корневого маршрута для проверки здоровья
+  app.get('/', (req, res) => {
+    console.log('[Root Route] Запрос к корневому URL - возвращаем приложение');
+    // Отправляем HTML-версию для корневого URL, ключевой элемент для здоровья деплоя
+    const projectRoot = process.cwd();
+    const indexHtmlPath = path.join(projectRoot, 'dist', 'public', 'index.html');
+    
+    if (fs.existsSync(indexHtmlPath)) {
+      console.log('[Root Route] Используем файл:', indexHtmlPath);
+      return res.status(200).sendFile(indexHtmlPath);
+    }
+    
+    // Fallback для случаев, когда файл не найден
+    return res.status(200).send(`<!DOCTYPE html>
+<html>
+<head>
+    <title>UniFarm</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>UniFarm API Server</h1>
+    <p>Server is running.</p>
+    <p>Server time: ${new Date().toISOString()}</p>
+</body>
+</html>`);
+  });
+
   // Установка порта и привязка к внешнему IP для корректной работы в Replit
   const PORT = process.env.PORT || 3000;
   process.env.PORT = PORT.toString();
