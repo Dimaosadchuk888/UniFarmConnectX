@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import path from "path";
 import fs from "fs";
 import cors from 'cors';
-import * as healthApi from './api/health'; // Импорт контроллера health API
+import * * as healthApi from './api/health'; // Импорт контроллера health API
 
 // Расширяем тип WebSocket для поддержки пользовательских свойств
 interface ExtendedWebSocket extends WebSocket {
@@ -188,6 +188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </html>
         `);
       }
+    } finally {
+      next();
     }
   });
 
@@ -363,7 +365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Эндпоинт для проверки статуса БД (для мониторинга)
   app.get("/api/admin/db-status", DbStatusController.getDatabaseStatus);
-  
+
   // Регистрируем маршруты для управления партициями
   app.use("/api/admin/partitions", partitionRoutes);
 
@@ -752,6 +754,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             balance_uni: user.balance_uni,
             balance_ton: user.balance_ton,
             referrer_registered: referrerRegistered,
+```text
             test_mode: true
         }
       });
