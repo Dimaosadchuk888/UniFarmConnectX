@@ -325,7 +325,7 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
       } catch (error) {
         console.error('[Server] Ошибка при импорте модуля cron-задач:', error);
       }
-      
+
       // Запуск планировщика партиций
       try {
         console.log('[Server] Инициализация планировщика партиций...');
