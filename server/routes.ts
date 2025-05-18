@@ -104,36 +104,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   app.get('/', (req: Request, res: Response) => {
-    console.log('[Root Route] Запрос к корневому URL - возвращаем приложение');
+    try {
+        console.log('[Root Route] Request to root URL');
 
-    // Определяем возможные пути к index.html в разных режимах работы
-    const possiblePaths = [
-      path.join(projectRoot, 'dist', 'public', 'index.html'),   // режим production (после сборки)
-      path.join(projectRoot, 'client', 'dist', 'index.html'),   // режим разработки
-      path.join(projectRoot, 'client', 'public', 'index.html'), // публичная версия клиента
-      path.join(projectRoot, 'client', 'index.html'),         // клиентский исходник
-      path.join(projectRoot, 'server', 'public', 'index.html'), // серверная публичная версия
-    ];
+        // Define possible paths for index.html in different modes
+        const possiblePaths = [
+            path.join(projectRoot, 'dist', 'public', 'index.html'),
+            path.join(projectRoot, 'client', 'dist', 'index.html'),
+            path.join(projectRoot, 'client', 'public', 'index.html'),
+            path.join(projectRoot, 'client', 'index.html'),
+            path.join(projectRoot, 'server', 'public', 'index.html'),
+        ];
 
-    // Ищем существующий файл среди возможных путей
-    const indexHtmlPath = possiblePaths.find(p => fs.existsSync(p));
+        // Find existing file among possible paths
+        const indexHtmlPath = possiblePaths.find(p => fs.existsSync(p));
 
-    if (indexHtmlPath) {
-      // Отправляем найденный index.html
-      console.log(`[Root Route] Используем файл: ${indexHtmlPath}`);
-      // Добавляем заголовки против кеширования
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('Surrogate-Control', 'no-store');
-      return res.sendFile(indexHtmlPath);
-    } else {
-      console.log('[Root Route] Файл index.html не найден, возвращаем health.html');
-      // Если index.html не найден, отдаем health.html как запасной вариант
-      if (healthHtmlPath) {
-        return res.sendFile(healthHtmlPath);
-      } else {
-        // Возвращаем базовый HTML, если файл не найден
+        if (indexHtmlPath) {
+            console.log(`[Root Route] Using file: ${indexHtmlPath}`);
+            // Add cache prevention headers
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.setHeader('Surrogate-Control', 'no-store');
+            return res.sendFile(indexHtmlPath);
+        }
+
+        // If no index.html is found, return a simple health check response
+        console.log('[Root Route] No index.html found, returning health check response');
         return res.status(200).send(`
           <!DOCTYPE html>
           <html lang="en">
