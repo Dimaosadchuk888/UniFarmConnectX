@@ -70,6 +70,9 @@ import { telegramInitDataLogger } from './middleware/telegramInitDataLogger';
 // Импортируем централизованный обработчик ошибок
 import { errorHandler } from './middleware/errorHandler';
 
+// Импортируем маршруты для управления партициями
+import partitionRoutes from './api/partition-routes';
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Базовые настройки CORS для разрешения куки
   app.use(cors({
@@ -359,6 +362,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Эндпоинт для проверки статуса БД (для мониторинга)
   app.get("/api/admin/db-status", DbStatusController.getDatabaseStatus);
+  
+  // Регистрируем маршруты для управления партициями
+  app.use("/api/admin/partitions", partitionRoutes);
 
   // Новый эндпоинт для проверки гибкого подключения к БД (Replit PostgreSQL или Neon DB)
   app.get("/api/db-selector/status", DbSelectorStatusController.getDatabaseStatus);

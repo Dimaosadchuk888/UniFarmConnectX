@@ -15,6 +15,7 @@ import { format, addDays } from 'date-fns';
  */
 export interface PartitionInfo {
   partition_name: string;
+  partition_expression?: string;
   record_count?: number;
   size?: string;
   start_date?: string;
@@ -26,7 +27,7 @@ export interface PartitionInfo {
  */
 export interface PartitionLog {
   id: number;
-  operation: string; // Исправлено с operation_type
+  operation_type: string; // Используем operation_type согласно ТЗ
   partition_name: string;
   status: string;
   notes?: string;
@@ -199,9 +200,31 @@ class PartitionServiceImpl implements IPartitionService {
         return [];
       }
       
+      // Проверим структуру таблицы, чтобы использовать правильные имена колонок
+      const columnsQuery = `
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'partition_logs'
+      `;
+      
+      const columnsResult = await dbQuery(columnsQuery, []);
+      const columns = columnsResult.rows.map((row: any) => row.column_name);
+      
+      // Формируем запрос с учетом актуальных имен колонок
+      const createdAtField = columns.includes('created_at') ? 'created_at' : 'timestamp';
+      
       const sqlQuery = `
-        SELECT * FROM partition_logs
-        ORDER BY created_at DESC
+        SELECT 
+          id,
+          ${columns.includes('operation_type') ? 'operation_type' : 'operation'} as operation_type,
+          partition_name,
+          status,
+          ${columns.includes('notes') ? 'notes' : 'null as notes'},
+          ${columns.includes('error_message') ? 'error_message' : 
+            (columns.includes('error_details') ? 'error_details' : 'null')} as error_message,
+          ${createdAtField} as created_at
+        FROM partition_logs
+        ORDER BY ${createdAtField} DESC
         LIMIT $1
       `;
       
@@ -269,7 +292,7 @@ class PartitionServiceImpl implements IPartitionService {
       console.log(`[PartitionService] Creating indexes for partition ${partitionName}`);
       
       await dbQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_user_id_idx ON ${partitionName} (user_id)`, []);
-      await dbQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_transaction_type_idx ON ${partitionName} (transaction_type)`, []);
+      await dbQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_type_idx ON ${partitionName} (type)`, []);
       await dbQuery(`CREATE INDEX IF NOT EXISTS ${partitionName}_created_at_idx ON ${partitionName} (created_at)`, []);
       
       // Добавляем запись в логи
@@ -396,7 +419,7 @@ class PartitionServiceImpl implements IPartitionService {
         const createTableQuery = `
           CREATE TABLE partition_logs (
             id SERIAL PRIMARY KEY,
-            operation VARCHAR(50) NOT NULL,
+            operation_type VARCHAR(50) NOT NULL,
             partition_name VARCHAR(100) NOT NULL,
             status VARCHAR(20) NOT NULL,
             notes TEXT,
@@ -408,22 +431,70 @@ class PartitionServiceImpl implements IPartitionService {
         await dbQuery(createTableQuery, []);
         
         // Создаем индексы для таблицы
-        await dbQuery('CREATE INDEX partition_logs_operation_idx ON partition_logs (operation)', []);
+        await dbQuery('CREATE INDEX partition_logs_operation_type_idx ON partition_logs (operation_type)', []);
         await dbQuery('CREATE INDEX partition_logs_partition_name_idx ON partition_logs (partition_name)', []);
         await dbQuery('CREATE INDEX partition_logs_status_idx ON partition_logs (status)', []);
         await dbQuery('CREATE INDEX partition_logs_created_at_idx ON partition_logs (created_at)', []);
+      } else {
+        // Проверим структуру таблицы
+        const columnsQuery = `
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'partition_logs'
+        `;
+        
+        const columnsResult = await dbQuery(columnsQuery, []);
+        const columns = columnsResult.rows.map((row: any) => row.column_name);
+        
+        // Проверяем и добавляем недостающие поля
+        if (!columns.includes('notes')) {
+          console.log('[PartitionService] Adding missing notes column to partition_logs');
+          await dbQuery('ALTER TABLE partition_logs ADD COLUMN notes TEXT', []);
+        }
+        
+        if (!columns.includes('error_message') && !columns.includes('error_details')) {
+          console.log('[PartitionService] Adding missing error_message column to partition_logs');
+          await dbQuery('ALTER TABLE partition_logs ADD COLUMN error_message TEXT', []);
+        }
       }
       
-      // Добавляем запись в лог
-      const sqlQuery = `
-        INSERT INTO partition_logs 
-        (operation, partition_name, status, notes, error_message) 
-        VALUES 
-        ($1, $2, $3, $4, $5)
+      // Проверяем структуру таблицы для формирования правильного запроса
+      const columnsQuery = `
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'partition_logs'
       `;
       
-      await dbQuery(sqlQuery, [operationType, partitionName, status, notes, errorMessage]);
+      const columnsResult = await dbQuery(columnsQuery, []);
+      const columns = columnsResult.rows.map((row: any) => row.column_name);
       
+      // Используем операцию в зависимости от имени колонки
+      const operationField = columns.includes('operation_type') ? 'operation_type' : 'operation';
+      const errorField = columns.includes('error_message') ? 'error_message' : 
+                        (columns.includes('error_details') ? 'error_details' : 'null');
+      const timestampField = columns.includes('created_at') ? 'created_at' : 'timestamp';
+      
+      // Добавляем запись в лог
+      const messageField = columns.includes('message') ? ', message' : '';
+      
+      const sqlQuery = `
+        INSERT INTO partition_logs 
+        (${operationField}, partition_name, status, notes, ${errorField}${messageField}) 
+        VALUES 
+        ($1, $2, $3, $4, $5${messageField ? ', $6' : ''})
+      `;
+      
+      // Сообщение для лога, используем notes если оно доступно или создаем новое сообщение
+      const logMessage = notes || `Operation ${operationType} for partition ${partitionName} with status ${status}`;
+      
+      // Параметры запроса
+      const queryParams = messageField 
+        ? [operationType, partitionName, status, notes, errorMessage, logMessage]
+        : [operationType, partitionName, status, notes, errorMessage];
+      
+      await dbQuery(sqlQuery, queryParams);
+      
+      console.log(`[PartitionService] Logged partition operation: ${operationType} for ${partitionName} with status ${status}`);
       return true;
     } catch (error) {
       console.error('[PartitionService] Error logging partition operation:', error);

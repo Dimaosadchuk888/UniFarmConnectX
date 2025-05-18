@@ -11,6 +11,8 @@ import { registerRoutes } from "./routes";
 import { registerNewRoutes } from "./routes-new"; // Импортируем новые маршруты
 import { setupVite, serveStatic, log } from "./vite";
 import { startBackgroundTasks } from "./background-tasks";
+// Импортируем планировщик партиций
+import { schedulePartitionCreation } from "./cron/partition-scheduler";
 import { migrateRefCodes } from "./migrations/refCodeMigration";
 // Импортируем наш новый модуль для обслуживания статических файлов в production
 import { setupProductionStatic } from "./productionStatic";
@@ -322,6 +324,15 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
           });
       } catch (error) {
         console.error('[Server] Ошибка при импорте модуля cron-задач:', error);
+      }
+      
+      // Запуск планировщика партиций
+      try {
+        console.log('[Server] Инициализация планировщика партиций...');
+        schedulePartitionCreation();
+        console.log('[Server] Планировщик партиций успешно инициализирован');
+      } catch (error) {
+        console.error('[Server] Ошибка при инициализации планировщика партиций:', error);
       }
 
       // Обновление реферальных кодов

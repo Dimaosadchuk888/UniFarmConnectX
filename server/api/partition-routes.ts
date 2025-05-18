@@ -1,199 +1,191 @@
 /**
- * API маршруты для управления партиционированием таблицы transactions
- * 
- * Добавляет следующие API эндпоинты:
- * - GET /api/partitions - Получение списка партиций 
- * - GET /api/partitions/status - Получение статуса партиционирования
- * - GET /api/partitions/logs - Получение логов партиционирования
- * - POST /api/partitions - Создание новых партиций
- * - DELETE /api/partitions/:id - Удаление партиции
+ * API-маршруты для управления системой партиционирования
  */
 
-import { Express, Request, Response, NextFunction } from 'express';
-import { adminAuthMiddleware } from '../middleware/adminAuthMiddleware.js';
-import { db, pool } from '../db.js';
+import express, { Request, Response } from 'express';
+import { partitionServiceInstance } from '../services/partitionServiceInstance';
+import { manualRunPartitionCreator } from '../cron/partition-scheduler';
+import { runPartitionLifecycleManagement } from '../scripts/partition_lifecycle_manager';
 
-// Импортируем контроллер партиционирования
-import * as partitionController from '../controllers/partition-controller.js';
+// Создаем маршрутизатор
+const router = express.Router();
 
 /**
- * Вспомогательная функция для выполнения SQL запросов
+ * Получить информацию о системе партиционирования
+ * GET /api/admin/partitions/status
  */
-async function executeQuery(query: string, params: any[] = []) {
-  const client = await pool.connect();
+router.get('/status', async (req: Request, res: Response) => {
   try {
-    const result = await client.query(query, params);
-    return result.rows;
-  } finally {
-    client.release();
+    // Проверяем, партиционирована ли таблица
+    const isPartitioned = await partitionServiceInstance.isTablePartitioned();
+    
+    if (!isPartitioned) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          isPartitioned: false,
+          message: 'Таблица transactions не является партиционированной'
+        }
+      });
+    }
+    
+    // Получаем список партиций
+    const partitions = await partitionServiceInstance.getPartitionsList();
+    
+    // Получаем последние логи партиций
+    const logs = await partitionServiceInstance.getPartitionLogs(10);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        isPartitioned: true,
+        partitionsCount: partitions.length,
+        partitions,
+        recentLogs: logs
+      }
+    });
+  } catch (error: any) {
+    console.error('[PartitionAPI] Ошибка при получении статуса партиционирования:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: `Ошибка при получении статуса партиционирования: ${error.message}`
+    });
   }
-}
-
-// Определяем интерфейс для типизации расширенного объекта запроса
-interface RequestWithUser extends Request {
-  user?: {
-    id: number;
-    [key: string]: any;
-  };
-}
+});
 
 /**
- * Регистрирует все маршруты для управления партиционированием
+ * Создать партиции на несколько дней вперед
+ * POST /api/admin/partitions/create-future
+ * Body: { daysAhead: number }
  */
-export function registerPartitionRoutes(app: Express): void {
-  // Префикс для всех API маршрутов партиционирования
-  const baseUrl = '/api/partitions';
-  
-  console.log('[PartitionRoutes] Начинаем регистрацию маршрутов партиционирования');
-  
-  // GET /api/partitions - Получение списка всех партиций
-  app.get(baseUrl, adminAuthMiddleware, (req: Request, res: Response, next: NextFunction) => {
-    console.log('[PartitionRoutes] Обрабатываем GET запрос на получение списка партиций');
-    try {
-      console.log('[PartitionRoutes] Доступные методы в контроллере:', 
-        Object.keys(partitionController).filter(key => typeof partitionController[key] === 'function'));
-      
-      // Правильное имя функции - listPartitions в маршрутах, getPartitionsList в контроллере
-      console.log('[PartitionRoutes] Вызываем метод getPartitionsList');
-      partitionController.getPartitionsList(req, res);
-    } catch (error: any) {
-      console.error('[PartitionRoutes] Ошибка в GET /api/partitions:', error);
-      res.status(500).json({
+router.post('/create-future', async (req: Request, res: Response) => {
+  try {
+    const { daysAhead = 7 } = req.body;
+    
+    // Проверяем корректность параметра
+    const days = parseInt(daysAhead);
+    if (isNaN(days) || days < 1 || days > 30) {
+      return res.status(400).json({
         success: false,
-        message: 'Внутренняя ошибка сервера',
-        errors: error.message
+        error: 'Bad Request',
+        message: 'Параметр daysAhead должен быть числом от 1 до 30'
       });
     }
-  });
-  
-  // GET /api/partitions/status - Получение статуса партиционирования
-  app.get(`${baseUrl}/status`, adminAuthMiddleware, (req: Request, res: Response, next: NextFunction) => {
-    console.log('[PartitionRoutes] Обрабатываем GET запрос на получение статуса партиционирования');
-    try {
-      // Используем правильное имя функции - checkPartitioningStatus
-      console.log('[PartitionRoutes] Вызываем метод checkPartitioningStatus');
-      partitionController.checkPartitioningStatus(req, res);
-    } catch (error: any) {
-      console.error('[PartitionRoutes] Ошибка в GET /api/partitions/status:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера',
-        errors: error.message
-      });
-    }
-  });
-  
-  // GET /api/partitions/logs - Получение логов партиционирования
-  app.get(`${baseUrl}/logs`, adminAuthMiddleware, (req: Request, res: Response, next: NextFunction) => {
-    console.log('[PartitionRoutes] Обрабатываем GET запрос на получение логов партиционирования');
-    try {
-      partitionController.getPartitionLogs(req, res);
-    } catch (error: any) {
-      console.error('[PartitionRoutes] Ошибка в GET /api/partitions/logs:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера',
-        errors: null
-      });
-    }
-  });
-  
-  // POST /api/partitions - Создание новых партиций
-  app.post(baseUrl, adminAuthMiddleware, (req: Request, res: Response, next: NextFunction) => {
-    console.log('[PartitionRoutes] Обрабатываем POST запрос на создание партиций');
-    try {
-      console.log('[PartitionRoutes] Доступные методы в контроллере:', 
-        Object.keys(partitionController).filter(key => typeof partitionController[key] === 'function'));
-      
-      // Правильное имя функции в контроллере - createFuturePartitions
-      console.log('[PartitionRoutes] Вызываем метод createFuturePartitions');
-      partitionController.createFuturePartitions(req, res);
-    } catch (error: any) {
-      console.error('[PartitionRoutes] Ошибка в POST /api/partitions:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера',
-        errors: error.message
-      });
-    }
-  });
-  
-  // DELETE /api/partitions/:id - Удаление указанной партиции
-  app.delete(`${baseUrl}/:id`, adminAuthMiddleware, async (req: Request, res: Response) => {
-    // Используем безопасный вывод в лог (без прямой вставки параметра запроса)
-    console.log('[PartitionRoutes] Обрабатываем DELETE запрос на удаление партиции');
-    try {
-      // Получаем id из URL-параметра и преобразуем в имя партиции
-      const partitionName = `transactions_${req.params.id}`;
-      
-      console.log('[PartitionRoutes] Проверка партиции на соответствие формату');
-      
-      // Проверяем формат имени партиции для безопасности
-      if (!partitionName.match(/^transactions_\d{4}_\d{2}_\d{2}$/)) {
-        return res.status(400).json({
-          success: false,
-          error: 'Bad Request',
-          message: 'Неверный формат имени партиции. Ожидается формат: transactions_YYYY_MM_DD'
-        });
+    
+    // Создаем партиции
+    const result = await partitionServiceInstance.createFuturePartitions(days);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        created: result.createdCount,
+        total: days + 1,
+        partitions: result.partitions,
+        errors: result.errors
       }
-      
-      console.log('[PartitionRoutes] Начинаем процесс удаления партиции');
-      
-      // Используем executeQuery из сервиса для проверки существования партиции
-      try {
-        // Проверяем существование партиции с использованием параметризованного SQL запроса
-        const query = `
-          SELECT EXISTS (
-            SELECT 1 FROM pg_catalog.pg_class
-            WHERE relname = $1
-          ) as exists;
-        `;
-        
-        const result = await executeQuery(query, [partitionName]);
-        const exists = result[0]?.exists || false;
-        
-        if (!exists) {
-          return res.status(404).json({
-            success: false,
-            error: 'Not Found',
-            message: `Партиция не найдена`
-          });
-        }
-        
-        // Удаляем партицию используя параметризованный запрос
-        const dropQuery = 'DROP TABLE IF EXISTS $1:name;';
-        await executeQuery(dropQuery, [partitionName]);
-        
-        // Логируем операцию удаления без упоминания точного имени партиции в логах
-        console.log('[PartitionRoutes] Партиция успешно удалена');
-        
-        // Формируем ответ с безопасным сообщением
-        return res.status(200).json({
-          success: true,
-          data: {
-            message: 'Партиция успешно удалена',
-            partitionName
-          }
-        });
-      } catch (queryError: any) {
-        console.error('[PartitionRoutes] Ошибка при выполнении SQL запроса:', queryError);
-        return res.status(500).json({
-          success: false,
-          error: 'Database Error',
-          message: 'Ошибка при работе с базой данных',
-          details: process.env.NODE_ENV === 'development' ? queryError.message : undefined
-        });
+    });
+  } catch (error: any) {
+    console.error('[PartitionAPI] Ошибка при создании партиций:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: `Ошибка при создании партиций: ${error.message}`
+    });
+  }
+});
+
+/**
+ * Запустить полное обслуживание партиций (традиционный метод)
+ * POST /api/admin/partitions/maintenance
+ */
+router.post('/maintenance', async (req: Request, res: Response) => {
+  try {
+    // Запускаем скрипт обслуживания партиций асинхронно
+    // Возвращаем немедленный ответ, так как операция может быть длительной
+    manualRunPartitionCreator();
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        message: 'Запущено полное обслуживание партиций. Процесс выполняется в фоновом режиме.',
+        startedAt: new Date().toISOString()
       }
-    } catch (error: any) {
-      console.error('[PartitionRoutes] Ошибка в DELETE /api/partitions/:id:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера',
-        errors: error.message
-      });
-    }
-  });
-  
-  // Логируем информацию об активации маршрутов
-  console.log(`[PartitionRoutes] Зарегистрированы маршруты для управления партиционированием: ${baseUrl}/*`);
-}
+    });
+  } catch (error: any) {
+    console.error('[PartitionAPI] Ошибка при запуске обслуживания партиций:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: `Ошибка при запуске обслуживания партиций: ${error.message}`
+    });
+  }
+});
+
+/**
+ * Запустить управление жизненным циклом партиций (улучшенный метод)
+ * POST /api/admin/partitions/lifecycle
+ * Query: dryRun - запуск в режиме симуляции (по умолчанию false)
+ */
+router.post('/lifecycle', async (req: Request, res: Response) => {
+  try {
+    // Проверяем, запущено ли в режиме симуляции
+    const dryRun = req.query.dryRun === 'true' || req.body.dryRun === true;
+    
+    // Запускаем процесс управления жизненным циклом партиций
+    // Возвращаем результат немедленно, так как мы дожидаемся завершения
+    const result = await runPartitionLifecycleManagement(dryRun);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        dryRun,
+        result,
+        message: `Управление жизненным циклом партиций ${dryRun ? 'выполнено в режиме симуляции' : 'успешно выполнено'}.`,
+        completedAt: new Date().toISOString()
+      }
+    });
+  } catch (error: any) {
+    console.error('[PartitionAPI] Ошибка при управлении жизненным циклом партиций:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: `Ошибка при управлении жизненным циклом партиций: ${error.message}`
+    });
+  }
+});
+
+/**
+ * Получить последние логи работы с партициями
+ * GET /api/admin/partitions/logs
+ * Query: limit - количество записей (по умолчанию 50)
+ */
+router.get('/logs', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 50;
+    
+    // Ограничиваем максимальное количество возвращаемых логов
+    const safeLimit = Math.min(limit, 200);
+    
+    // Получаем логи
+    const logs = await partitionServiceInstance.getPartitionLogs(safeLimit);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        count: logs.length,
+        logs
+      }
+    });
+  } catch (error: any) {
+    console.error('[PartitionAPI] Ошибка при получении логов партиций:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: `Ошибка при получении логов партиций: ${error.message}`
+    });
+  }
+});
+
+// Экспортируем маршрутизатор
+export default router;
