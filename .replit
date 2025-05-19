@@ -21,7 +21,7 @@ localPort = 3000
 externalPort = 80
 
 [workflows]
-runButton = "Run Safe"
+runButton = "Run"
 
 [[workflows.workflow]]
 name = "Neon DB Server"
