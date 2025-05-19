@@ -21,6 +21,7 @@ import { referralService } from './services';
 import { referralBonusService } from './services';
 import { launchLogService } from './services'; // Импорт из централизованного экспорта
 import { db } from './db';
+import { dbMonitor } from './db-connect'; // Импортируем монитор базы данных
 import { referrals, type InsertLaunchLog } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
@@ -76,6 +77,9 @@ import { errorHandler } from './middleware/errorHandler';
 
 // Импортируем маршруты для управления партициями
 import partitionRoutes from './api/partition-routes';
+
+// Импортируем маршруты для мониторинга базы данных
+import dbMonitorRoutes from './api/db-monitor';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Базовые настройки CORS для разрешения куки
@@ -403,6 +407,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Простой ping эндпоинт
   app.get("/api/ping", healthApi.ping);
+  
+  // Регистрируем маршруты для мониторинга базы данных
+  app.use("/api/db-monitor", dbMonitorRoutes);
 
   // Примечание: корневой маршрут уже определен выше
 
@@ -1290,6 +1297,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Административные маршруты для управления вебхуком Telegram
   // Эти маршруты должны быть защищены (например, доступны только в режиме разработки)
   if (process.env.NODE_ENV === 'development') {
+    
+    // Маршрут для мониторинга состояния базы данных
+    app.get("/api/admin/db-monitor", async (req, res) => {
+      try {
+        // Получаем статус подключения к базе данных
+        const dbStatus = dbMonitor.getStatus();
+        // Получаем журнал событий подключения
+        const connectionLogs = dbMonitor.getConnectionLogs();
+        
+        return res.json({
+          success: true,
+          data: {
+            status: dbStatus,
+            connectionLogs: connectionLogs.slice(-20) // Последние 20 записей
+          }
+        });
+      } catch (error: any) {
+        console.error('[Admin API] Ошибка при получении статуса базы данных:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Внутренняя ошибка сервера',
+          error: error.message
+        });
+      }
+    });
 
     // Маршрут для запуска миграции реферальных кодов
     app.post("/api/admin/migrate-ref-codes", async (req, res) => {
