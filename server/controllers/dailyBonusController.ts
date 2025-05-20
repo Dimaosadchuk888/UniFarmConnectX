@@ -55,9 +55,9 @@ export class DailyBonusController {
       const getDailyBonusStatusWithFallback = wrapServiceFunction(
         dailyBonusService.getDailyBonusStatus.bind(dailyBonusService),
         async (error, userId) => {
-          console.log(`[DailyBonusController] Возвращаем заглушку для статуса бонуса по ID: ${userId}`);
+          console.log(`[DailyBonusController] Fallback: Ошибка БД при получении статуса бонуса для пользователя ${userId}`);
           
-          // Возвращаем данные-заглушки при отсутствии соединения с БД
+          // Возвращаем данные-заглушки при отсутствии соединения с БД с маркером is_fallback
           return {
             available: false,
             hours_until_next: 24,
@@ -65,7 +65,8 @@ export class DailyBonusController {
             streak_days: 0,
             current_bonus_amount: "0",
             next_bonus_amount: "0",
-            message: "Недоступно при отсутствии соединения"
+            message: "База данных недоступна, информация о бонусе временно недоступна",
+            is_fallback: true
           };
         }
       );
@@ -106,9 +107,9 @@ export class DailyBonusController {
       const claimDailyBonusWithFallback = wrapServiceFunction(
         dailyBonusService.claimDailyBonus.bind(dailyBonusService),
         async (error, userId) => {
-          console.log(`[DailyBonusController] Возвращаем заглушку для получения бонуса по ID: ${userId}`);
+          console.log(`[DailyBonusController] Fallback: Ошибка БД при получении бонуса для пользователя ${userId}`);
           
-          // Возвращаем данные-заглушки при отсутствии соединения с БД
+          // Возвращаем данные-заглушки при отсутствии соединения с БД с маркером is_fallback
           return {
             success: false,
             received_amount: "0",
@@ -116,7 +117,8 @@ export class DailyBonusController {
             streak_days: 0,
             next_bonus_amount: "0",
             hours_until_next: 24,
-            message: "Получение бонуса невозможно при отсутствии соединения с базой данных"
+            message: "База данных недоступна, получение бонуса временно невозможно",
+            is_fallback: true
           };
         }
       );
