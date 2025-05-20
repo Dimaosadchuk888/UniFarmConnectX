@@ -30,13 +30,30 @@ export class ReferralController {
       console.log(`[ReferralController] Запрос реферального дерева для пользователя: ${userId}`);
       
       try {
-        // Пробуем получить дерево через основной сервис
-        const referralTree = await referralService.getReferralTree(userId);
+        // Получаем все реферальные связи пользователя
+        const referrals = await referralService.getUserReferrals(userId);
+        
+        // В таблице referrals user_id - тот, кто был приглашен, а inviter_id - кто пригласил
+        // Для дерева рефералов нам нужны те, кого пригласил текущий пользователь (где наш userId - это inviter_id)
+        const invitees = referrals.filter(ref => ref.inviter_id === userId)
+          .map(ref => ({
+            id: ref.user_id, // Тот, кого пригласил текущий пользователь
+            username: null, // Будет заполнено в отдельном запросе, если нужно
+            level: ref.level || 1
+          }));
+        
+        // Формируем реферальное дерево
+        const referralTree = {
+          user_id: userId,
+          invitees: invitees,
+          total_invitees: invitees.length,
+          levels_data: []
+        };
         
         // Форматируем и отправляем ответ
         sendSuccess(res, referralTree);
-      } catch (serviceError) {
-        console.log(`[ReferralController] Ошибка при получении реферального дерева: ${serviceError.message}`);
+      } catch (error) {
+        console.log(`[ReferralController] Ошибка при получении реферального дерева: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
         
         // В случае ошибки возвращаем упрощенную структуру
         sendSuccess(res, {
@@ -68,13 +85,31 @@ export class ReferralController {
       console.log(`[ReferralController] Запрос статистики рефералов для пользователя: ${userId}`);
       
       try {
-        // Пробуем получить статистику через основной сервис
-        const stats = await referralService.getUserReferralStats(userId);
+        // Получаем все реферальные связи пользователя
+        const referrals = await referralService.getUserReferrals(userId);
+        
+        // Группируем рефералов по уровням
+        const levelCounts: Record<number, number> = {};
+        referrals.forEach(ref => {
+          const level = ref.level || 1;
+          levelCounts[level] = (levelCounts[level] || 0) + 1;
+        });
+        
+        // Формируем объект статистики
+        const stats = {
+          user_id: userId,
+          total_invitees: referrals.length,
+          levels: levelCounts,
+          total_earned: {
+            amount: "0", // Это значение должно быть получено из сервиса балансов
+            currency: "TON"
+          }
+        };
         
         // Форматируем и отправляем ответ
         sendSuccess(res, stats);
-      } catch (serviceError) {
-        console.log(`[ReferralController] Ошибка при получении статистики рефералов: ${serviceError.message}`);
+      } catch (error) {
+        console.log(`[ReferralController] Ошибка при получении статистики рефералов: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
         
         // В случае ошибки возвращаем базовую статистику
         sendSuccess(res, {
