@@ -102,8 +102,19 @@ export class TonBoostController {
         });
       }
 
-      const boosts = await tonBoostService.getUserActiveBoosts(userId);
-      res.json({ success: true, data: boosts });
+      try {
+        const boosts = await tonBoostService.getUserActiveBoosts(userId);
+        res.json({ success: true, data: boosts });
+      } catch (dbError) {
+        // Обработка ошибки БД
+        console.log(`[TonBoostController] Fallback: Ошибка БД при получении TON буст-депозитов для ID: ${userId}`);
+        res.json({ 
+          success: true, 
+          data: [],
+          is_fallback: true,
+          message: "База данных недоступна, информация о TON бустах временно недоступна"
+        });
+      }
     } catch (error) {
       console.error("[TonBoostController] Error in getUserTonBoosts:", error);
       res.status(500).json({ 
@@ -143,38 +154,52 @@ export class TonBoostController {
         paymentMethodEnum = TonBoostPaymentMethod.EXTERNAL_WALLET;
       }
 
-      const result = await tonBoostService.purchaseTonBoost(userId, boostId, paymentMethodEnum);
-      
-      if (result.success) {
-        const responseData: any = {
-          depositId: result.depositId,
-          transactionId: result.transactionId,
-          boostPackage: result.boostPackage,
-          paymentMethod: result.paymentMethod
-        };
-
-        // Добавляем дополнительные данные для внешнего платежа
-        if (result.paymentMethod === TonBoostPaymentMethod.EXTERNAL_WALLET) {
-          responseData.paymentStatus = result.paymentStatus;
-          responseData.paymentLink = result.paymentLink;
+      try {
+        const result = await tonBoostService.purchaseTonBoost(userId, boostId, paymentMethodEnum);
+        
+        if (result.success) {
+          const responseData: any = {
+            depositId: result.depositId,
+            transactionId: result.transactionId,
+            boostPackage: result.boostPackage,
+            paymentMethod: result.paymentMethod
+          };
+  
+          // Добавляем дополнительные данные для внешнего платежа
+          if (result.paymentMethod === TonBoostPaymentMethod.EXTERNAL_WALLET) {
+            responseData.paymentStatus = result.paymentStatus;
+            responseData.paymentLink = result.paymentLink;
+          }
+  
+          res.json({
+            success: true,
+            message: result.message,
+            data: responseData
+          });
+        } else {
+          res.status(400).json({
+            success: false,
+            message: result.message
+          });
         }
-
-        res.json({
-          success: true,
-          message: result.message,
-          data: responseData
-        });
-      } else {
-        res.status(400).json({
-          success: false,
-          message: result.message
+      } catch (dbError) {
+        // Обработка ошибок подключения к БД
+        console.log(`[TonBoostController] Fallback: Ошибка БД при покупке TON буста ${boostId} для пользователя: ${userId}`);
+        res.json({ 
+          success: false, 
+          message: 'База данных недоступна, покупка TON буста временно невозможна',
+          error: 'database_unavailable',
+          is_fallback: true,
+          user_id: userId,
+          boost_id: boostId
         });
       }
     } catch (error) {
       console.error("[TonBoostController] Error in purchaseTonBoost:", error);
       res.status(500).json({ 
         success: false, 
-        message: "Ошибка при покупке TON Boost-пакета"
+        message: "Ошибка при покупке TON Boost-пакета",
+        is_fallback: true
       });
     }
   }
@@ -208,7 +233,9 @@ export class TonBoostController {
             ton_farming_rate: "0",
             ton_farming_last_update: null,
             boost_deposits: [],
-            has_active_boosts: false
+            has_active_boosts: false,
+            is_fallback: true,
+            message: "База данных недоступна, информация о TON фарминге временно недоступна"
           };
         }
       );
@@ -250,7 +277,9 @@ export class TonBoostController {
             updated: false,
             new_balance: "0",
             earned: "0",
-            message: "База данных недоступна, расчет фарминга невозможен"
+            message: "База данных недоступна, расчет фарминга невозможен",
+            is_fallback: true,
+            user_id: userId
           };
         }
       );
@@ -290,31 +319,57 @@ export class TonBoostController {
         });
       }
 
-      const result = await tonBoostService.confirmExternalPayment(userId, transactionId);
-      
-      if (result.success) {
-        res.json({
-          success: true,
-          message: result.message,
-          data: {
-            depositId: result.depositId,
-            transactionId: result.transactionId,
-            boostPackage: result.boostPackage,
-            paymentMethod: result.paymentMethod,
-            paymentStatus: result.paymentStatus
+      try {
+        // Проверяем существует ли метод confirmExternalPayment в сервисе
+        if (typeof tonBoostService.confirmExternalPayment === 'function') {
+          const result = await tonBoostService.confirmExternalPayment(userId, transactionId);
+          
+          if (result.success) {
+            res.json({
+              success: true,
+              message: result.message,
+              data: {
+                depositId: result.depositId,
+                transactionId: result.transactionId,
+                boostPackage: result.boostPackage,
+                paymentMethod: result.paymentMethod,
+                paymentStatus: result.paymentStatus
+              }
+            });
+          } else {
+            res.status(400).json({
+              success: false,
+              message: result.message
+            });
           }
-        });
-      } else {
-        res.status(400).json({
+        } else {
+          // Если метод не реализован, возвращаем заглушку
+          console.log(`[TonBoostController] Метод confirmExternalPayment не реализован`);
+          res.json({
+            success: false,
+            message: "Функция подтверждения внешнего платежа в разработке",
+            is_fallback: true,
+            user_id: userId,
+            transaction_id: transactionId
+          });
+        }
+      } catch (dbError) {
+        // Обработка ошибки БД
+        console.log(`[TonBoostController] Fallback: Ошибка БД при подтверждении платежа, userId: ${userId}, transactionId: ${transactionId}`);
+        res.json({
           success: false,
-          message: result.message
+          message: "База данных недоступна, подтверждение платежа временно невозможно",
+          is_fallback: true,
+          user_id: userId,
+          transaction_id: transactionId
         });
       }
     } catch (error) {
       console.error("[TonBoostController] Error in confirmExternalPayment:", error);
       res.status(500).json({ 
         success: false, 
-        message: "Ошибка при подтверждении внешнего платежа"
+        message: "Ошибка при подтверждении внешнего платежа",
+        is_fallback: true
       });
     }
   }
