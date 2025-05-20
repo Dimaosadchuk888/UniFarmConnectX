@@ -497,15 +497,16 @@ class StorageAdapter implements IExtendedStorage {
         guest_id: users.guest_id,
         wallet: users.wallet,
         ton_wallet_address: users.ton_wallet_address,
-        uni_balance: users.uni_balance,
-        ton_balance: users.ton_balance,
-        created_at: users.created_at,
-        updated_at: users.updated_at,
         ref_code: users.ref_code,
-        admin: users.admin,
-        settings: users.settings,
-        telegram_data: users.telegram_data,
-        last_ref_update: users.last_ref_update,
+        parent_ref_code: users.parent_ref_code,
+        balance_uni: users.balance_uni,
+        balance_ton: users.balance_ton,
+        uni_deposit_amount: users.uni_deposit_amount,
+        uni_farming_start_timestamp: users.uni_farming_start_timestamp,
+        uni_farming_balance: users.uni_farming_balance,
+        uni_farming_rate: users.uni_farming_rate,
+        uni_farming_last_update: users.uni_farming_last_update,
+        created_at: users.created_at,
         checkin_streak: users.checkin_streak
       }).from(referrals)
         .innerJoin(users, eq(referrals.user_id, users.id))
@@ -517,7 +518,7 @@ class StorageAdapter implements IExtendedStorage {
       const total = Number(countQuery[0]?.count || 0);
       
       return { 
-        referrals: userReferralsQuery,
+        referrals: userReferralsQuery as User[],
         total
       };
     } catch (error) {
