@@ -1,6 +1,6 @@
-// Импортируем улучшенный модуль подключения к базе данных
-// Важно: мы проверим соединение с БД перед запуском сервера
-import { testDatabaseConnection, db, queryWithRetry } from './db-selector';
+// Импортируем улучшенный модуль подключения к базе данных через адаптер
+// Адаптер обеспечивает совместимость нового интерфейса с существующим кодом
+import { testDatabaseConnection, db, queryWithRetry } from './db-adapter';
 import { databaseErrorHandler } from './middleware/databaseErrorHandler';
 import { healthCheckMiddleware } from './middleware/health-check';
 
@@ -20,8 +20,8 @@ import { setupProductionStatic } from "./productionStatic";
 // Импортируем middleware для стандартизации API ответов и обработки ошибок
 import { responseFormatter } from "./middleware/responseFormatter";
 import { errorHandler } from "./middleware/errorHandler";
-// Импортируем селектор базы данных и принудительно устанавливаем Neon DB
-import { dbType, DatabaseType, pool } from "./db-selector";
+// Импортируем базу данных через адаптер и принудительно устанавливаем Neon DB
+import { dbType, DatabaseType, pool } from "./db-adapter";
 // Импортируем модули для работы с сессиями
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
@@ -168,7 +168,8 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
 
   // Проверяем подключение к базе данных перед запуском сервера
   console.log('[Server] 🔄 Проверка подключения к базе данных...');
-  const isDbConnected = await testDatabaseConnection();
+  const dbConnectionResult = await testDatabaseConnection();
+  const isDbConnected = dbConnectionResult.success;
 
   if (!isDbConnected) {
     console.error('[Server] ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных!');
@@ -179,7 +180,7 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
       setTimeout(async () => {
         try {
           const result = await testDatabaseConnection();
-          resolve(result);
+          resolve(result.success);
         } catch (error) {
           console.error('[Server] ❌ Ошибка при повторном подключении:', error);
           resolve(false);

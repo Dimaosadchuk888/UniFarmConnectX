@@ -4,7 +4,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { testDatabaseConnection, reconnect } from '../db-connect';
+import { testDatabaseConnection } from '../db-adapter';
+import { testConnection as reconnect } from '../db-connect-unified';
 
 let lastConnectionCheck = 0;
 let isReconnecting = false;
