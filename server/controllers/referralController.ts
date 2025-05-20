@@ -150,8 +150,24 @@ export class ReferralController {
         return sendError(res, 'Отсутствует параметр start', 400);
       }
       
-      // Используем метод из сервиса для обработки startParam
-      const { inviterId, refCode } = await referralService.processStartParam(startParam);
+      // Логика для поиска пользователя по реферальному коду
+      let inviterId = null;
+      let refCode = startParam;
+      
+      try {
+        // Ищем пользователя по ref_code в базе
+        // Мы используем базовый метод getReferrals и фильтруем результаты
+        const allUsers = await userService.getAllUsers();
+        const users = allUsers.filter(user => user.ref_code === refCode);
+        if (users && users.length > 0) {
+          inviterId = users[0].id;
+          console.log(`[ReferralController] Найден пригласитель: ${inviterId} по реферальному коду: ${refCode}`);
+        } else {
+          console.warn(`[ReferralController] [StartParam] Пригласитель не найден для кода: ${refCode}`);
+        }
+      } catch (error) {
+        console.error(`[ReferralController] Ошибка при поиске пригласителя:`, error);
+      }
       
       // Если пригласитель не найден, возвращаем ошибку
       if (!inviterId) {
@@ -210,8 +226,19 @@ export class ReferralController {
       console.log(`[ReferralController] Запрос данных для пользователя: ${userId}`);
 
       try {
-        // Получаем все данные из сервиса одним вызовом
-        const referralData = await referralService.getUserReferralData(userId);
+        // Получаем список рефералов пользователя
+        const referrals = await referralService.getUserReferrals(userId);
+        
+        // Формируем структуру ответа
+        const referralData = {
+          user_id: userId,
+          username: null, // Будет заполнено при необходимости
+          ref_code: null, // Будет заполнено при необходимости
+          total_referrals: referrals.length,
+          referral_counts: {}, // Подсчёт рефералов по уровням
+          level_income: {},    // Доход по уровням
+          referrals: referrals
+        };
         
         // Отправляем успешный ответ
         sendSuccess(res, referralData);
