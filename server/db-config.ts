@@ -6,7 +6,22 @@
  * Модуль не содержит активного подключения к БД, что предотвращает циклические зависимости.
  */
 
-import { PoolConfig, SSL } from 'pg';
+import { PoolConfig, PoolClient } from 'pg';
+
+// Определяем тип для SSL конфигурации
+export type SSLConfig = {
+  rejectUnauthorized?: boolean;
+  ca?: string;
+  cert?: string;
+  key?: string;
+}
+
+// Определяем собственный тип для настроек пула соединений
+export interface DbPoolConfig extends Omit<PoolConfig, 'statement_timeout'> {
+  // Добавляем дополнительные настройки, которые могут отсутствовать в стандартном типе
+  keepAliveInitialDelayMillis?: number;
+  statement_timeout?: number;
+}
 
 // Определяет тип базы данных
 export enum DatabaseType {
@@ -51,7 +66,7 @@ export function getDatabaseType(): DatabaseType {
  * @param mode - режим SSL
  * @returns SSL конфигурация
  */
-export function getSSLConfig(mode: SSLMode = SSLMode.REQUIRE): false | SSL {
+export function getSSLConfig(mode: SSLMode = SSLMode.REQUIRE): false | SSLConfig {
   if (mode === SSLMode.DISABLE) {
     return false;
   }
@@ -66,16 +81,14 @@ export function getSSLConfig(mode: SSLMode = SSLMode.REQUIRE): false | SSL {
  * @param type - тип базы данных
  * @returns Оптимальные настройки пула
  */
-export function getPoolOptions(type: DatabaseType): Partial<PoolConfig> {
+export function getPoolOptions(type: DatabaseType): Partial<DbPoolConfig> {
   // Базовые опции для любого типа БД
-  const baseOptions = {
+  const baseOptions: Partial<DbPoolConfig> = {
     max: 15,                    // Максимальное количество соединений
-    min: 2,                     // Минимальное количество соединений
     idleTimeoutMillis: 60000,   // Таймаут простоя (1 минута)
     connectionTimeoutMillis: 10000, // Таймаут подключения (10 секунд)
     allowExitOnIdle: false,     // Не выходить при простое
     keepAlive: true,            // Поддерживать соединение активным
-    keepAliveInitialDelayMillis: 10000, // Начальная задержка (10 секунд)
     statement_timeout: 30000    // Таймаут запроса (30 секунд)
   };
   
@@ -85,7 +98,6 @@ export function getPoolOptions(type: DatabaseType): Partial<PoolConfig> {
       ...baseOptions,
       // С Neon эффективнее меньший пул из-за ограничений пула соединений
       max: 10,
-      min: 1,
       // Больший таймаут для Neon из-за возможных задержек
       connectionTimeoutMillis: 15000,
     };
