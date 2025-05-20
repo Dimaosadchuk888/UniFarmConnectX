@@ -1,11 +1,13 @@
 /**
- * Контроллер для обработки запросов, связанных с пользователями
+ * Консолидированный контроллер для обработки запросов, связанных с пользователями
  * 
  * Этот контроллер отвечает за обработку API-запросов, связанных с пользователями:
  * - получение данных пользователя
  * - создание нового пользователя
  * - обновление данных пользователя
  * - управление реферальными кодами
+ * 
+ * Поддерживает работу в fallback режиме при отсутствии соединения с БД
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -76,6 +78,130 @@ function handleZodError(err: ZodError): ApiResponse<any> {
  * с поддержкой работы в fallback режиме при отсутствии соединения с БД
  */
 export const UserController = {
+  /**
+   * Получает информацию о пользователе по ID
+   * @route GET /api/users/:id
+   */
+  async getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      if (isNaN(userId)) {
+        throw new ValidationError('Некорректный ID пользователя', { id: 'Должен быть числом' });
+      }
+      
+      // Заворачиваем вызов сервиса в обработчик ошибок // from fallback logic
+      const getUserByIdWithFallback = wrapServiceFunction(
+        userService.getUserById.bind(userService),
+        async (error, id) => {
+          console.log(`[UserController] Возвращаем заглушку для пользователя по ID: ${id}`, error);
+          
+          // Возвращаем данные по умолчанию при отсутствии соединения с БД
+          return {
+            id: id,
+            username: `user_${id}`,
+            ref_code: `REF${id}${Math.floor(Math.random() * 1000)}`,
+            telegram_id: null,
+            telegram_username: null,
+            guest_id: null,
+            created_at: new Date().toISOString(),
+            is_fallback: true
+          };
+        }
+      );
+      
+      const user = await getUserByIdWithFallback(userId);
+      sendSuccess(res, user);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Получает информацию о пользователе по guest_id
+   * @route GET /api/users/guest/:guest_id
+   */
+  async getUserByGuestId(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const guestId = req.params.guest_id;
+      
+      if (!guestId) {
+        throw new ValidationError('Не указан guest_id пользователя', { guest_id: 'Обязательный параметр' });
+      }
+      
+      // Заворачиваем вызов сервиса в обработчик ошибок // from fallback logic
+      const getUserByGuestIdWithFallback = wrapServiceFunction(
+        userService.getUserByGuestId.bind(userService),
+        async (error, guestId) => {
+          console.log(`[UserController] Возвращаем заглушку для пользователя по guest_id: ${guestId}`, error);
+          
+          // Возвращаем данные по умолчанию при отсутствии соединения с БД
+          return {
+            id: Math.floor(Math.random() * 1000),
+            username: `guest_${guestId.substring(0, 6)}`,
+            ref_code: `REF${guestId.substring(0, 6)}`,
+            telegram_id: null,
+            telegram_username: null,
+            guest_id: guestId,
+            created_at: new Date().toISOString(),
+            is_fallback: true
+          };
+        }
+      );
+      
+      const user = await getUserByGuestIdWithFallback(guestId);
+      sendSuccess(res, user);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Регистрирует гостевого пользователя
+   * @route POST /api/auth/guest/register
+   */
+  async registerGuestUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Валидация входных данных
+      const validationResult = guestRegistrationSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        throw new ValidationError('Ошибка валидации данных', formatZodErrors(validationResult.error));
+      }
+      
+      const { username, parent_ref_code } = validationResult.data;
+      
+      // Генерируем уникальный guest_id если не передан
+      const guest_id = req.body.guest_id || uuidv4();
+      
+      // Заворачиваем вызов сервиса в обработчик ошибок // from fallback logic
+      const registerGuestUserWithFallback = wrapServiceFunction(
+        userService.registerGuestUser.bind(userService),
+        async (error, guestId, username, parentRefCode) => {
+          console.log(`[UserController] Возвращаем заглушку для регистрации гостя: ${guestId}`, error);
+          
+          // Генерируем случайный ID для гостевого пользователя
+          const randomId = Math.floor(10000 + Math.random() * 90000);
+          
+          // Возвращаем заглушку при отсутствии соединения с БД
+          return {
+            id: randomId,
+            username: username || `guest_${randomId}`,
+            guest_id: guestId,
+            ref_code: `REF${randomId}`,
+            parent_ref_code: parentRefCode,
+            created_at: new Date().toISOString(),
+            is_fallback: true
+          };
+        }
+      );
+      
+      const newUser = await registerGuestUserWithFallback(guest_id, username, parent_ref_code);
+      sendSuccess(res, newUser);
+    } catch (error) {
+      next(error);
+    }
+  },
   /**
    * Генерирует временный реферальный код для аварийного режима
    */

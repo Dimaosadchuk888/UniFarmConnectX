@@ -50,7 +50,7 @@ import { BoostController } from './controllers/boostController'; // Контро
 import { TonBoostController } from './controllers/tonBoostController'; // Контроллер для TON фарминга с поддержкой fallback режима
 // Импорт DailyBonusControllerFallback удален (консолидирован в DailyBonusController)
 // Импорт WalletControllerFallback удален (частично консолидирован в WalletController)
-import { UserControllerFallback } from './controllers/userControllerFallback'; // Fallback контроллер для пользователей
+// import { UserControllerFallback } from './controllers/userControllerFallback'; // Объединен в UserController
 import { AuthController } from './controllers/authController'; // Обновленный контроллер (SOLID)
 import { SecurityController } from './controllers/securityController'; // Новый контроллер безопасности (SOLID)
 import { WalletController } from './controllers/walletController';
@@ -665,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/register", AuthController.registerUser);
 
   // Маршрут для регистрации пользователя в режиме AirDrop (Этап 4)
-  app.post("/api/auth/guest/register", UserControllerFallback.registerGuestUser);
+  app.post("/api/auth/guest/register", UserController.registerGuestUser);
 
   // Новые маршруты безопасности (SOLID)
   app.post("/api/security/validate-telegram", SecurityController.validateTelegramInitData);
@@ -901,12 +901,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Маршрут для получения пользователя по guest_id с поддержкой fallback
   // Этот маршрут необходим для поддержки метода getUserByGuestId из клиентского сервиса
-  // app.get("/api/users/guest/:guestId", UserController.getUserByGuestId);
-  app.get("/api/users/guest/:guest_id", UserControllerFallback.getUserByGuestId);
+  // Консолідований маршрут для отримання користувача за guest_id
+  app.get("/api/users/guest/:guest_id", UserController.getUserByGuestId);
 
   // Более общий маршрут для получения пользователя по ID с поддержкой fallback
-  // app.get("/api/users/:id", UserController.getUserById);
-  app.get("/api/users/:id", UserControllerFallback.getUserById);
+  // Консолідований маршрут для отримання користувача за ID
+  app.get("/api/users/:id", UserController.getUserById);
   app.post("/api/users/generate-refcode", UserController.generateRefCode);
 
   // Маршрут для получения баланса кошелька с поддержкой fallback
