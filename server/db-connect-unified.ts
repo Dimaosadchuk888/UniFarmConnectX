@@ -13,10 +13,10 @@ import { getDbConfig, getDatabaseType, DatabaseType } from './db-config';
 import { DatabaseMonitor, ConnectionStatus } from './db-health-monitor';
 
 // Создаем пул подключений к базе данных с настройками из db-config
-export const pool = new Pool(getDbConfig());
+export let pool = new Pool(getDbConfig());
 
 // Создаем экземпляр Drizzle ORM с пулом подключений
-export const db = drizzle(pool, { schema });
+export let db = drizzle(pool, { schema });
 
 // Определяем тип базы данных для информации
 export const dbType = getDatabaseType();
@@ -32,11 +32,9 @@ dbMonitor.onReconnect((newPool) => {
   console.log('[DB Connect] Обновляем пул и Drizzle после переподключения');
   
   // Обновляем глобальную переменную pool
-  // @ts-ignore: неизбежное прямое присвоение переменной
   pool = newPool;
   
   // Обновляем экземпляр Drizzle ORM
-  // @ts-ignore: неизбежное прямое присвоение переменной
   db = drizzle(newPool, { schema });
 });
 
