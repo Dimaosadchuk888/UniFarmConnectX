@@ -407,7 +407,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ping", healthApi.ping);
   
   // Регистрируем маршруты для мониторинга базы данных
-  app.use("/api/db-monitor", dbMonitorRoutes);
+  // Используем функции из встроенного монитора db-health-monitor
+  app.get("/api/db-monitor/status", (req, res) => {
+    res.json({
+      status: dbMonitor.getStatus(),
+      stats: dbMonitor.getStats(),
+      lastCheck: dbMonitor.getLastCheckResult(),
+      lastReconnect: dbMonitor.getLastReconnectResult()
+    });
+  });
+
+  app.post("/api/db-monitor/reconnect", async (req, res) => {
+    try {
+      const result = await dbMonitor.attemptReconnect();
+      res.json({ success: result, message: result ? "Переподключение успешно" : "Переподключение не удалось" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
+  app.post("/api/db-monitor/check", async (req, res) => {
+    try {
+      const result = await dbMonitor.forceCheck();
+      res.json({ success: result, message: result ? "Проверка успешна" : "Проверка не удалась" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
 
   // Примечание: корневой маршрут уже определен выше
 
