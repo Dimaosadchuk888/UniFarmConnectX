@@ -107,6 +107,24 @@ export interface IBoostService {
   getUserActiveBoosts(userId: number): Promise<BoostDepositWithPackage[]>;
 
   /**
+   * Получает активные фарминг-буст пакеты пользователя
+   * @param userId ID пользователя
+   * @returns Массив буст-депозитов для фарминга
+   * @throws {NotFoundError} Если пользователь не найден
+   * @throws {DatabaseError} При ошибке запроса к БД
+   */
+  getUserFarmingBoosts(userId: number): Promise<any[]>;
+
+  /**
+   * Получает историю покупки буст-пакетов пользователя
+   * @param userId ID пользователя
+   * @returns История покупок буст-пакетов
+   * @throws {NotFoundError} Если пользователь не найден
+   * @throws {DatabaseError} При ошибке запроса к БД
+   */
+  getUserBoostHistory(userId: number): Promise<any[]>;
+
+  /**
    * Проверяет достаточность средств для покупки
    * @param balanceUni Текущий баланс UNI пользователя
    * @param priceUni Стоимость пакета в UNI
@@ -403,6 +421,86 @@ class BoostServiceImpl implements IBoostService {
     } catch (error) {
       const err = error as ErrorWithMessage;
       throw new DatabaseError(`Failed to update user balance: ${err.message}`);
+    }
+  }
+
+  /**
+   * Получает активные фарминг-буст пакеты пользователя
+   * @param userId ID пользователя
+   * @returns Массив буст-депозитов для фарминга
+   * @throws {NotFoundError} Если пользователь не найден
+   * @throws {DatabaseError} При ошибке запроса к БД
+   */
+  async getUserFarmingBoosts(userId: number): Promise<any[]> {
+    try {
+      // Получаем активные буст-депозиты пользователя
+      const activeBoosts = await this.getUserActiveBoosts(userId);
+      
+      // Преобразуем их в формат для API
+      return activeBoosts.map(boost => ({
+        id: boost.id,
+        userId: boost.userId,
+        boostId: boost.boostId,
+        packageName: boost.packageInfo.name,
+        startDate: boost.startDate,
+        endDate: boost.endDate,
+        rateUni: boost.packageInfo.rateUni,
+        rateTon: boost.packageInfo.rateTon
+      }));
+    } catch (error) {
+      console.error('[BoostService] Ошибка при получении фарминг-бустов пользователя:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Получает историю покупки буст-пакетов пользователя
+   * @param userId ID пользователя
+   * @returns История покупок буст-пакетов
+   * @throws {NotFoundError} Если пользователь не найден
+   * @throws {DatabaseError} При ошибке запроса к БД
+   */
+  async getUserBoostHistory(userId: number): Promise<any[]> {
+    try {
+      // Запрос к БД для получения истории покупок буст-пакетов
+      const result = await db.execute(sql`
+        SELECT 
+          bd.id, 
+          bd.user_id, 
+          bd.boost_id, 
+          bd.start_date, 
+          bd.end_date,
+          t.amount,
+          t.created_at as purchase_date
+        FROM 
+          boost_deposits bd
+        JOIN 
+          transactions t ON t.deposit_id = bd.id
+        WHERE 
+          bd.user_id = ${userId}
+        ORDER BY 
+          t.created_at DESC
+      `);
+      
+      // Обогащаем данные информацией о буст-пакетах
+      return result.rows.map((row: any) => {
+        const boostPackage = this.getBoostPackageById(row.boost_id);
+        return {
+          id: row.id,
+          userId: row.user_id,
+          boostId: row.boost_id,
+          packageName: boostPackage.name,
+          startDate: row.start_date,
+          endDate: row.end_date,
+          purchaseDate: row.purchase_date,
+          amount: row.amount,
+          price: boostPackage.priceUni,
+          bonus: boostPackage.bonusUni
+        };
+      });
+    } catch (error) {
+      console.error('[BoostService] Ошибка при получении истории буст-пакетов пользователя:', error);
+      throw error;
     }
   }
 
