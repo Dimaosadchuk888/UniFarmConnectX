@@ -8,10 +8,17 @@
  * - управление реферальными кодами
  */
 
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { userService } from '../services';
 import { insertUserSchema } from '@shared/schema';
 import { ZodError } from 'zod';
+import { sendSuccess } from '../utils/responseUtils';
+import { ValidationError } from '../middleware/errorHandler';
+import { userIdSchema, createUserSchema, guestRegistrationSchema } from '../validators/schemas';
+import { formatZodErrors } from '../utils/validationUtils';
+import { wrapServiceFunction } from '../db-service-wrapper';
+import { v4 as uuidv4 } from 'uuid';
+import { storage } from '../storage-adapter';
 
 /**
  * Стандартизированная структура ответа API
@@ -66,8 +73,145 @@ function handleZodError(err: ZodError): ApiResponse<any> {
 
 /**
  * Предоставляет методы контроллера в виде объекта
+ * с поддержкой работы в fallback режиме при отсутствии соединения с БД
  */
 export const UserController = {
+  /**
+   * Регистрирует гостевого пользователя
+   * с поддержкой работы при отсутствии соединения с БД
+   * @route POST /api/users/register-guest
+   */
+  async registerGuestUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Валидация входных данных
+      const validationResult = guestRegistrationSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        throw new ValidationError('Ошибка валидации данных', formatZodErrors(validationResult.error));
+      }
+
+      const { guest_id, referrer_code, airdrop_mode } = validationResult.data;
+
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const registerGuestUserWithFallback = wrapServiceFunction(
+        userService.createUser.bind(userService),
+        async (error, guestId, referrerCode, airdropMode) => {
+          console.log(`[UserController] Создаем временного пользователя с guest_id: ${guestId}`, error);
+          
+          try {
+            // Проверяем, существует ли пользователь в MemStorage
+            const memStorage = storage.memStorage;
+            const existingUser = await memStorage.getUserByGuestId(guestId);
+            
+            if (existingUser) {
+              console.log(`[UserController] Пользователь с guest_id: ${guestId} уже существует в MemStorage`);
+              return existingUser;
+            }
+            
+            // Попытка найти реферала если передан код
+            let parentRefCode = null;
+            console.log(`[UserController] Ищем реферала по коду: ${referrerCode}`);
+            if (referrerCode) {
+              const referrer = await memStorage.getUserByRefCode(referrerCode);
+              console.log(`[UserController] Результат поиска реферала:`, referrer);
+              if (referrer) {
+                parentRefCode = referrer.ref_code;
+                console.log(`[UserController] Найден реферал с кодом ${referrerCode}, ID: ${referrer.id}, устанавливаем parent_ref_code=${parentRefCode}`);
+              } else {
+                console.log(`[UserController] Реферал с кодом ${referrerCode} не найден`);
+              }
+            }
+            
+            // Создаем временного пользователя в MemStorage
+            const newUser = await memStorage.createUser({
+              guest_id: guestId,
+              username: `guest_${Date.now()}`,
+              ref_code: null, // Будет сгенерирован автоматически
+              telegram_id: null,
+              parent_ref_code: parentRefCode
+            });
+            
+            return {
+              ...newUser,
+              is_fallback: true,
+              message: 'Временный аккаунт создан'
+            };
+          } catch (memError) {
+            console.error(`[UserController] Ошибка создания пользователя в MemStorage:`, memError);
+            
+            // Если не удалось создать в MemStorage, возвращаем объект напрямую
+            const temporaryId = Math.floor(Math.random() * 1000000) + 1;
+            return {
+              id: temporaryId,
+              username: `guest_${temporaryId}`,
+              ref_code: `REF${temporaryId}`,
+              telegram_id: null,
+              telegram_username: null,
+              guest_id: guestId,
+              created_at: new Date().toISOString(),
+              referrer_id: null,
+              is_fallback: true,
+              message: 'Временный аккаунт создан (аварийный режим)'
+            };
+          }
+        }
+      );
+      
+      const result = await registerGuestUserWithFallback(guest_id, referrer_code, airdrop_mode);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  /**
+   * Восстанавливает сессию пользователя по guest_id или telegram_data
+   * с поддержкой работы при отсутствии соединения с БД
+   * @route POST /api/users/restore-session
+   */
+  async restoreSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { guest_id, telegram_data } = req.body;
+      
+      if (!guest_id && !telegram_data) {
+        throw new ValidationError('Не предоставлены данные для восстановления сессии', { 
+          data: 'Необходимо предоставить guest_id или telegram_data' 
+        });
+      }
+      
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const restoreSessionWithFallback = wrapServiceFunction(
+        userService.getUserByGuestId.bind(userService),
+        async (error, guestId, telegramData) => {
+          console.log(`[UserController] Возвращаем заглушку для восстановления сессии`, error);
+          
+          // Создаем временную сессию
+          const temporaryId = Math.floor(Math.random() * 1000000) + 1;
+          return {
+            user: {
+              id: temporaryId,
+              username: `temp_${temporaryId}`,
+              ref_code: `REF${temporaryId}`,
+              telegram_id: telegramData ? 12345678 : null,
+              telegram_username: telegramData ? 'temp_user' : null,
+              guest_id: guestId || uuidv4(),
+              created_at: new Date().toISOString(),
+              referrer_id: null,
+              is_fallback: true
+            },
+            session_id: `sess_${uuidv4()}`,
+            is_new_user: false,
+            message: 'Временная сессия создана из-за недоступности базы данных'
+          };
+        }
+      );
+      
+      const sessionData = await restoreSessionWithFallback(guest_id, telegram_data);
+      sendSuccess(res, sessionData);
+    } catch (error) {
+      next(error);
+    }
+  },
   /**
    * Получает информацию о пользователе по ID
    */
