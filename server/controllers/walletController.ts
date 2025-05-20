@@ -348,19 +348,46 @@ export class WalletController {
       
       console.log(`[WalletController] Получение информации о кошельке для пользователя ${userId}`);
       
-      // Получаем полную информацию о кошельке
-      const walletInfo = await walletService.getWalletInfo(userId);
-      
-      // Возвращаем успешный ответ через responseFormatter
-      res.success({
-        user_id: walletInfo.userId,
-        balance_uni: walletInfo.balanceUni,
-        balance_ton: walletInfo.balanceTon,
-        wallet_address: walletInfo.walletAddress
-      });
+      try {
+        // Получаем полную информацию о кошельке
+        const walletInfo = await walletService.getWalletInfo(userId);
+        
+        // Возвращаем успешный ответ через responseFormatter
+        res.success({
+          user_id: walletInfo.userId,
+          balance_uni: walletInfo.balanceUni,
+          balance_ton: walletInfo.balanceTon,
+          wallet_address: walletInfo.walletAddress
+        });
+      } catch (dbError) {
+        // Обработка ошибок подключения к БД
+        console.log(`[WalletController] Fallback: Ошибка БД при получении информации о кошельке пользователя: ${userId}`);
+        
+        // Возвращаем информативный ответ в аварийном режиме
+        res.success({
+          user_id: userId,
+          balance_uni: "0.00",
+          balance_ton: "0.00",
+          wallet_address: null,
+          message: 'База данных недоступна, отображена базовая информация о кошельке',
+          is_fallback: true
+        });
+      }
     } catch (error) {
       console.error('[WalletController] Ошибка при получении информации о кошельке:', error);
-      next(error); // Передаем ошибку централизованному обработчику
+      
+      // В случае ошибки валидации просто передаем ошибку обработчику
+      if (error instanceof ValidationError) {
+        next(error);
+      } else {
+        // Для других ошибок возвращаем ответ с флагом is_fallback
+        res.success({
+          success: false,
+          message: 'Произошла ошибка при получении информации о кошельке',
+          error: 'request_error',
+          is_fallback: true
+        });
+      }
     }
   }
   
@@ -425,38 +452,66 @@ export class WalletController {
       // Преобразуем параметры запроса в формат, понятный WalletService
       const { limit, offset, currency, status } = validation.data;
       
-      // Получаем транзакции через WalletService
-      const result = await walletService.getUserTransactions({
-        userId,
-        limit,
-        offset,
-        currency: currency as WalletCurrency,
-        status: status as TransactionStatusType
-      });
-      
-      // Преобразуем ответ в понятный клиенту формат (camelCase -> snake_case)
-      const formattedTransactions = result.transactions.map(tx => ({
-        id: tx.id,
-        user_id: tx.userId,
-        type: tx.type,
-        amount: tx.amount,
-        currency: tx.currency,
-        created_at: tx.createdAt,
-        status: tx.status,
-        wallet_address: tx.walletAddress,
-        source: tx.source,
-        category: tx.category,
-        tx_hash: tx.txHash
-      }));
-      
-      // Возвращаем успешный ответ через responseFormatter
-      res.success({
-        total: result.total,
-        transactions: formattedTransactions
-      });
+      try {
+        // Получаем транзакции через WalletService
+        const result = await walletService.getUserTransactions({
+          userId,
+          limit,
+          offset,
+          currency: currency as WalletCurrency,
+          status: status as TransactionStatusType
+        });
+        
+        // Преобразуем ответ в понятный клиенту формат (camelCase -> snake_case)
+        const formattedTransactions = result.transactions.map(tx => ({
+          id: tx.id,
+          user_id: tx.userId,
+          type: tx.type,
+          amount: tx.amount,
+          currency: tx.currency,
+          created_at: tx.createdAt,
+          status: tx.status,
+          wallet_address: tx.walletAddress,
+          source: tx.source,
+          category: tx.category,
+          tx_hash: tx.txHash
+        }));
+        
+        // Возвращаем успешный ответ через responseFormatter
+        res.success({
+          total: result.total,
+          transactions: formattedTransactions
+        });
+      } catch (dbError) {
+        // Обработка ошибок подключения к БД
+        console.log(`[WalletController] Fallback: Ошибка БД при получении транзакций для пользователя: ${userId}`);
+        
+        // Возвращаем пустой список транзакций с маркером is_fallback
+        res.success({
+          total: 0,
+          transactions: [],
+          message: 'База данных недоступна, история транзакций временно недоступна',
+          is_fallback: true,
+          user_id: userId
+        });
+      }
     } catch (error) {
       console.error('[WalletController] Ошибка при получении транзакций:', error);
-      next(error); // Передаем ошибку централизованному обработчику
+      
+      // В случае ошибки валидации просто передаем ошибку обработчику
+      if (error instanceof ValidationError) {
+        next(error);
+      } else {
+        // Для других ошибок возвращаем ответ с флагом is_fallback
+        res.success({
+          success: false,
+          message: 'Произошла ошибка при получении истории транзакций',
+          error: 'request_error',
+          is_fallback: true,
+          total: 0,
+          transactions: []
+        });
+      }
     }
   }
   
