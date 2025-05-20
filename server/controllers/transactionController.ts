@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
 import { transactions, User } from '@shared/schema';
@@ -45,7 +45,7 @@ export class TransactionController {
    * Получает историю транзакций пользователя
    * Поддерживает поиск по user_id или wallet_address
    */
-  static async getUserTransactions(req: Request, res: Response): Promise<void> {
+  static async getUserTransactions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация параметров запроса
       const querySchema = z.object({

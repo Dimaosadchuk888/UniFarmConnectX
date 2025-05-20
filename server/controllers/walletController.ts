@@ -217,19 +217,8 @@ export class WalletController {
     } catch (error) {
       console.error('[WalletController] Ошибка при привязке адреса кошелька:', error);
       
-      // В случае непредвиденной ошибки также добавляем флаг is_fallback
-      if (error instanceof ValidationError) {
-        // Для валидационных ошибок просто передаем их обработчику
-        next(error);
-      } else {
-        // Для других ошибок возвращаем ответ с флагом is_fallback
-        res.success({
-          success: false,
-          message: 'Произошла ошибка при привязке адреса кошелька',
-          error: 'request_error',
-          is_fallback: true
-        });
-      }
+      // Передаем ошибку централизованному обработчику
+      next(error);
     }
   }
   
