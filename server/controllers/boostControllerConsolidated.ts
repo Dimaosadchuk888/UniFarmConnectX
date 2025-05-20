@@ -130,20 +130,9 @@ export class BoostController {
       const { user_id } = validationResult.data;
       
       try {
-        // Вызов сервиса для получения истории бустов, если такой метод существует
-        if (typeof boostService.getUserBoostHistory === 'function') {
-          const history = await boostService.getUserBoostHistory(user_id);
-          sendSuccess(res, { history, success: true });
-        } else {
-          // Если метод не реализован, возвращаем пустую историю
-          console.log(`[BoostController] Метод getUserBoostHistory не реализован`);
-          sendSuccess(res, { 
-            history: [], 
-            success: true,
-            is_fallback: true,
-            message: "Функция получения истории бустов в разработке"
-          });
-        }
+        // Вызов сервиса для получения истории бустов
+        const history = await boostService.getUserBoostHistory(user_id);
+        sendSuccess(res, { history, success: true });
       } catch (dbError) {
         // Обработка ошибок при обращении к базе данных
         console.log(`[BoostController] Fallback: Ошибка БД, возвращаем пустую историю бустов для ID: ${user_id}`);
