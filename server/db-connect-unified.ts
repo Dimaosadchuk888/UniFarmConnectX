@@ -12,6 +12,13 @@ import * as schema from '../shared/schema';
 import { getDbConfig, getDatabaseType, DatabaseType } from './db-config';
 import { DatabaseMonitor, ConnectionStatus } from './db-health-monitor';
 
+// Состояние подключения к БД
+export const dbState = {
+  usingInMemoryStorage: false,
+  lastConnectionAttempt: 0,
+  connectionErrorCount: 0
+};
+
 // Создаем пул подключений к базе данных с настройками из db-config
 export let pool = new Pool(getDbConfig());
 

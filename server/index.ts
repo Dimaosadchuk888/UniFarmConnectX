@@ -1,6 +1,6 @@
-// Импортируем улучшенный модуль подключения к базе данных через адаптер
-// Адаптер обеспечивает совместимость нового интерфейса с существующим кодом
-import { testDatabaseConnection, db, queryWithRetry } from './db-adapter';
+// Импортируем улучшенный модуль подключения к базе данных
+// Используем консолидированный модуль db-connect-unified
+import { testConnection, db, queryWithRetry } from './db-connect-unified';
 import { databaseErrorHandler } from './middleware/databaseErrorHandler';
 import { healthCheckMiddleware } from './middleware/health-check';
 
@@ -20,8 +20,9 @@ import { setupProductionStatic } from "./productionStatic";
 // Импортируем middleware для стандартизации API ответов и обработки ошибок
 import { responseFormatter } from "./middleware/responseFormatter";
 import { errorHandler } from "./middleware/errorHandler";
-// Импортируем базу данных через адаптер и принудительно устанавливаем Neon DB
-import { dbType, DatabaseType, pool } from "./db-adapter";
+// Импортируем базу данных через единый модуль
+import { dbType, pool } from "./db-connect-unified";
+import { DatabaseType } from "./db-config";
 // Импортируем модули для работы с сессиями
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';

@@ -22,7 +22,7 @@ import {
   type InsertUserMission
 } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
-import { db, pool, dbConnectionStatus, queryWithRetry } from "./db-selector";
+import { db, pool, dbState, queryWithRetry } from "./db-connect-unified";
 import { IStorage, IExtendedStorage } from './storage-interface';
 import { MemStorage } from './storage-memory';
 import { createInsertSchema } from "drizzle-zod";
