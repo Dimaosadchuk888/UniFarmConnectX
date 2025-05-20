@@ -186,22 +186,50 @@ export class WalletController {
       
       console.log(`[WalletController] Привязка адреса ${wallet_address} к пользователю ${userId}`);
       
-      // Делегируем всю логику валидации и обновления адреса кошелька WalletService
-      const updatedWallet = await walletService.updateWalletAddress(userId, wallet_address);
-      
-      // Для аудита логируем результат
-      console.log(`[WalletController] Успешно обновлен адрес кошелька для пользователя ${userId}`);
-      console.log(`[WalletController] Новое значение в БД: ${updatedWallet.walletAddress}`);
-      
-      // Возвращаем успешный ответ через responseFormatter
-      res.success({
-        user_id: updatedWallet.userId,
-        wallet_address: updatedWallet.walletAddress,
-        message: 'Адрес кошелька успешно привязан к аккаунту'
-      });
+      try {
+        // Делегируем всю логику валидации и обновления адреса кошелька WalletService
+        const updatedWallet = await walletService.updateWalletAddress(userId, wallet_address);
+        
+        // Для аудита логируем результат
+        console.log(`[WalletController] Успешно обновлен адрес кошелька для пользователя ${userId}`);
+        console.log(`[WalletController] Новое значение в БД: ${updatedWallet.walletAddress}`);
+        
+        // Возвращаем успешный ответ через responseFormatter
+        res.success({
+          user_id: updatedWallet.userId,
+          wallet_address: updatedWallet.walletAddress,
+          message: 'Адрес кошелька успешно привязан к аккаунту'
+        });
+      } catch (dbError) {
+        // Обработка ошибок подключения к БД
+        console.log(`[WalletController] Fallback: Ошибка БД при привязке адреса ${wallet_address} к пользователю: ${userId}`);
+        
+        // Возвращаем информативный ответ об ошибке с флагом is_fallback
+        res.success({
+          success: false,
+          message: 'База данных недоступна, привязка адреса кошелька временно невозможна',
+          error: 'database_unavailable',
+          is_fallback: true,
+          user_id: userId,
+          wallet_address: wallet_address
+        });
+      }
     } catch (error) {
       console.error('[WalletController] Ошибка при привязке адреса кошелька:', error);
-      next(error); // Передаем ошибку централизованному обработчику
+      
+      // В случае непредвиденной ошибки также добавляем флаг is_fallback
+      if (error instanceof ValidationError) {
+        // Для валидационных ошибок просто передаем их обработчику
+        next(error);
+      } else {
+        // Для других ошибок возвращаем ответ с флагом is_fallback
+        res.success({
+          success: false,
+          message: 'Произошла ошибка при привязке адреса кошелька',
+          error: 'request_error',
+          is_fallback: true
+        });
+      }
     }
   }
   
@@ -232,17 +260,43 @@ export class WalletController {
       
       console.log(`[WalletController] Получение адреса кошелька для пользователя ${userId}`);
       
-      // Делегируем получение адреса кошелька WalletService
-      const walletData = await walletService.getWalletAddress(userId);
-      
-      // Возвращаем успешный ответ через responseFormatter
-      res.success({
-        user_id: walletData.userId,
-        wallet_address: walletData.walletAddress
-      });
+      try {
+        // Делегируем получение адреса кошелька WalletService
+        const walletData = await walletService.getWalletAddress(userId);
+        
+        // Возвращаем успешный ответ через responseFormatter
+        res.success({
+          user_id: walletData.userId,
+          wallet_address: walletData.walletAddress
+        });
+      } catch (dbError) {
+        // Обработка ошибок подключения к БД
+        console.log(`[WalletController] Fallback: Ошибка БД при получении адреса кошелька пользователя: ${userId}`);
+        
+        // Возвращаем фиктивный адрес кошелька с флагом is_fallback
+        // Обратите внимание: адрес не указывается, чтобы избежать случайных транзакций
+        res.success({
+          user_id: userId,
+          wallet_address: null,
+          message: 'База данных недоступна, невозможно получить адрес кошелька',
+          is_fallback: true
+        });
+      }
     } catch (error) {
       console.error('[WalletController] Ошибка при получении адреса кошелька:', error);
-      next(error); // Передаем ошибку централизованному обработчику
+      
+      // В случае ошибки валидации просто передаем ошибку обработчику
+      if (error instanceof ValidationError) {
+        next(error);
+      } else {
+        // Для других ошибок возвращаем ответ с флагом is_fallback
+        res.success({
+          success: false,
+          message: 'Произошла ошибка при получении адреса кошелька',
+          error: 'request_error',
+          is_fallback: true
+        });
+      }
     }
   }
   
@@ -513,30 +567,60 @@ export class WalletController {
         precision: currency === 'UNI' ? 6 : 6  // Точность для UNI - 6 знаков, для TON - 6 знаков
       });
       
-      // Делегируем операцию вывода средств WalletService с валидированной суммой
-      const result = await walletService.withdrawFunds({
-        userId,
-        amount: validatedAmount,
-        currency: currency as WalletCurrency,
-        walletAddress: wallet_address
-      });
-      
-      // Если предоставлен ключ идемпотентности, регистрируем завершенную операцию
-      if (idempotencyKey) {
-        validationService.registerCompletedOperation(idempotencyKey, result);
+      try {
+        // Делегируем операцию вывода средств WalletService с валидированной суммой
+        const result = await walletService.withdrawFunds({
+          userId,
+          amount: validatedAmount,
+          currency: currency as WalletCurrency,
+          walletAddress: wallet_address
+        });
+        
+        // Если предоставлен ключ идемпотентности, регистрируем завершенную операцию
+        if (idempotencyKey) {
+          validationService.registerCompletedOperation(idempotencyKey, result);
+        }
+        
+        // Возвращаем успешный ответ через responseFormatter
+        res.success({
+          transaction_id: result.transactionId,
+          new_balance: result.newBalance,
+          user_id: result.userId,
+          message: result.message || `Вывод ${validatedAmount} ${currency} успешно инициирован`,
+          wallet_address: result.walletAddress
+        });
+      } catch (dbError) {
+        // Обработка ошибок подключения к БД
+        console.log(`[WalletController] Fallback: Ошибка БД при выводе средств для пользователя: ${userId}`);
+        
+        // Возвращаем информативный ответ об ошибке с флагом is_fallback
+        res.success({
+          success: false,
+          message: 'База данных недоступна, вывод средств временно невозможен',
+          error: 'database_unavailable',
+          is_fallback: true,
+          user_id: userId,
+          amount: validatedAmount,
+          currency: currency,
+          wallet_address: wallet_address
+        });
       }
-      
-      // Возвращаем успешный ответ через responseFormatter
-      res.success({
-        transaction_id: result.transactionId,
-        new_balance: result.newBalance,
-        user_id: result.userId,
-        message: result.message || `Вывод ${validatedAmount} ${currency} успешно инициирован`,
-        wallet_address: result.walletAddress
-      });
     } catch (error) {
       console.error('[WalletController] Ошибка при выводе средств:', error);
-      next(error); // Передаем ошибку централизованному обработчику
+      
+      // В случае непредвиденной ошибки также добавляем флаг is_fallback
+      if (error instanceof ValidationError) {
+        // Для валидационных ошибок просто передаем их обработчику
+        next(error);
+      } else {
+        // Для других ошибок возвращаем ответ с флагом is_fallback
+        res.success({
+          success: false,
+          message: 'Произошла ошибка при запросе вывода средств',
+          error: 'request_error',
+          is_fallback: true
+        });
+      }
     }
   }
 }
