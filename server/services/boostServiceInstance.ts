@@ -542,11 +542,8 @@ class BoostServiceImpl implements IBoostService {
     if (bnBalance.isLessThan(bnPrice)) {
       throw new InsufficientFundsError(
         'Недостаточно средств на балансе',
-        {
-          balance: balanceUni,
-          required: priceUni,
-          deficit: bnPrice.minus(bnBalance).toString()
-        }
+        balanceUni,
+        'UNI'
       );
     }
   }

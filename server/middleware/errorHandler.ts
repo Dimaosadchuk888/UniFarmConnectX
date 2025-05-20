@@ -112,13 +112,20 @@ export class ForbiddenError extends Error {
  */
 export class InsufficientFundsError extends Error {
   name = 'InsufficientFundsError';
-  errors: Record<string, string>;
+  errors: Record<string, string> | Record<string, any>;
 
-  constructor(message: string, balance: number | string, currency: string) {
+  constructor(message: string, balanceOrDetails: number | string | Record<string, any>, currency?: string) {
     super(message);
-    this.errors = {
-      amount: `Недостаточно средств для операции. Доступный баланс: ${balance} ${currency}`
-    };
+    
+    if (typeof balanceOrDetails === 'object') {
+      // Поддержка старого формата для обратной совместимости
+      this.errors = balanceOrDetails;
+    } else {
+      // Новый формат с балансом и валютой
+      this.errors = {
+        amount: `Недостаточно средств для операции. Доступный баланс: ${balanceOrDetails} ${currency || 'UNI'}`
+      };
+    }
   }
 }
 

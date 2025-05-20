@@ -740,25 +740,14 @@ class TonBoostService implements ITonBoostService {
 
         // Обрабатываем реферальное вознаграждение
         try {
-          // Если метод processBoostReferralReward определен в интерфейсе IReferralBonusService
-          // в версии компонента, с которым вы работаете, вы можете использовать его.
-          // В противном случае для совместимости используем processFarmingReferralReward
-          if (typeof this.referralBonusService.processBoostReferralReward === 'function') {
-            await (this.referralBonusService as any).processBoostReferralReward(
-              userId,
-              boostId,
-              parseFloat(boostPackage.priceTon),
-              Currency.TON
-            );
-          } else {
-            // Используем метод processFarmingReferralReward, если метод processBoostReferralReward не определён
-            console.log(`[TonBoostService] Используем альтернативный метод для обработки реферального вознаграждения`);
-            await this.referralBonusService.processFarmingReferralReward(
-              userId,
-              parseFloat(boostPackage.priceTon),
-              Currency.TON
-            );
-          }
+          // Используем метод processFarmingReferralReward для обработки реферального вознаграждения
+          // так как он универсальный для разных типов тарнзакций
+          console.log(`[TonBoostService] Обрабатываем реферальное вознаграждение от покупки TON Boost`);
+          await this.referralBonusService.processFarmingReferralReward(
+            userId,
+            parseFloat(boostPackage.priceTon),
+            Currency.TON
+          );
         } catch (refError) {
           console.error(`[TonBoostService] Ошибка при обработке реферального вознаграждения: ${refError}`);
           // Не прерываем основной процесс, если реферальное вознаграждение не удалось начислить
