@@ -246,6 +246,29 @@ export const insertUniFarmingDepositSchema = createInsertSchema(uniFarmingDeposi
 export type InsertUniFarmingDeposit = z.infer<typeof insertUniFarmingDepositSchema>;
 export type UniFarmingDeposit = typeof uniFarmingDeposits.$inferSelect;
 
+// Таблица для хранения UNI Boost-депозитов
+export const boostDeposits = pgTable("boost_deposits", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").notNull().references(() => users.id),
+  boost_id: integer("boost_id").notNull(), // ID буст-пакета
+  start_date: timestamp("start_date").notNull(), // Дата начала срока действия буста
+  end_date: timestamp("end_date").notNull(), // Дата окончания срока действия буста
+  bonus_uni: numeric("bonus_uni", { precision: 18, scale: 6 }).notNull(), // Единоразовый бонус UNI
+  created_at: timestamp("created_at").defaultNow().notNull() // Дата создания записи
+});
+
+// Схемы для таблицы boost_deposits
+export const insertBoostDepositSchema = createInsertSchema(boostDeposits).pick({
+  user_id: true,
+  boost_id: true,
+  start_date: true,
+  end_date: true,
+  bonus_uni: true
+});
+
+export type InsertBoostDeposit = z.infer<typeof insertBoostDepositSchema>;
+export type BoostDeposit = typeof boostDeposits.$inferSelect;
+
 // Таблица для хранения TON Boost-депозитов
 export const tonBoostDeposits = pgTable("ton_boost_deposits", {
   id: serial("id").primaryKey(),
