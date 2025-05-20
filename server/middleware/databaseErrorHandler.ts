@@ -4,9 +4,9 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { testDatabaseConnection } from '../db-adapter';
-import { testConnection as reconnect } from '../db-connect-unified';
+import { testDatabaseConnection, reconnect } from '../db';
 
+// Змінні для контролю стану перевірки підключення
 let lastConnectionCheck = 0;
 let isReconnecting = false;
 const CONNECTION_CHECK_INTERVAL = 60000; // Проверяем соединение не чаще чем раз в минуту

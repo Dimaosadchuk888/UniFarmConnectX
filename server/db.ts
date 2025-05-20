@@ -3,6 +3,21 @@
  * Консолидирует экспорты из db-config.ts, db-connect-unified.ts, db-health-monitor.ts
  */
 
+import { testConnection as testConn } from './db-connect-unified';
+import { DatabaseType, getDatabaseType } from './db-config';
+
+/**
+ * Функция совместимости для поддержки старого формата проверки соединения
+ * @returns Promise<{success: boolean, dbType: string}>
+ */
+export async function testDatabaseConnection() {
+  const isConnected = await testConn();
+  return { 
+    success: isConnected, 
+    dbType: getDatabaseType() 
+  };
+}
+
 // Экспортируем компоненты подключения
 export {
   pool,
