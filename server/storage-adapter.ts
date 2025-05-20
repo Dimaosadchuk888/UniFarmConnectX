@@ -416,25 +416,20 @@ class StorageAdapter implements IExtendedStorage {
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     console.log('[StorageAdapter] Создание транзакции');
     try {
-      const columns = Object.keys(transaction).join(', ');
-      const values = Object.keys(transaction).map((_, i) => `$${i + 1}`).join(', ');
-      const placeholders = Object.values(transaction);
+      if (this.useMemory) {
+        return await this.memStorage.createTransaction(transaction);
+      }
       
-      const query = `
-        INSERT INTO transactions (${columns})
-        VALUES (${values})
-        RETURNING *
-      `;
-      
-      const result = await queryWithRetry(query, placeholders);
-      if (result.rows.length === 0) {
+      const [newTransaction] = await db.insert(transactions).values(transaction).returning();
+      if (!newTransaction) {
         throw new Error('Не удалось создать транзакцию');
       }
       
-      return result.rows[0] as Transaction;
+      return newTransaction;
     } catch (error) {
-      console.error('[StorageAdapter] Ошибка при создании транзакции:', error);
-      throw error;
+      console.error('[StorageAdapter] Ошибка при создании транзакции, переключаемся на хранилище в памяти:', error);
+      this.useMemory = true;
+      return await this.memStorage.createTransaction(transaction);
     }
   }
 
