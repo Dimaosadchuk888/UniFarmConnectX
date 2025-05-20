@@ -331,25 +331,7 @@ export class NewUniFarmingController {
       });
     } catch (error) {
       console.error('Ошибка в harvestFarming:', error);
-      
-      // Обрабатываем различные типы ошибок
-      if (error instanceof ValidationError) {
-        res.status(400).json({
-          success: false,
-          message: error.message,
-          errors: error.errors || null
-        });
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          success: false,
-          message: error.message
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          message: 'Внутренняя ошибка сервера при сборе фарминга'
-        });
-      }
+      next(error);
     }
   }
 
@@ -385,25 +367,7 @@ export class NewUniFarmingController {
       });
     } catch (error) {
       console.error('Ошибка в simulateReward:', error);
-      
-      // Обрабатываем различные типы ошибок
-      if (error instanceof ValidationError) {
-        res.status(400).json({
-          success: false,
-          message: error.message,
-          errors: error.errors || null
-        });
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          success: false,
-          message: error.message
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          message: 'Внутренняя ошибка сервера при симуляции вознаграждения'
-        });
-      }
+      next(error);
     }
   }
 }
