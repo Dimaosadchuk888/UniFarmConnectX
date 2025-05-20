@@ -21,7 +21,7 @@ import { referralService } from './services';
 import { referralBonusService } from './services';
 import { launchLogService } from './services'; // Импорт из централизованного экспорта
 import { db } from './db';
-import { dbMonitor } from './db-connect'; // Импортируем монитор базы данных
+import { dbMonitor } from './db-connect-unified'; // Импортируем монитор базы данных
 import { referrals, type InsertLaunchLog } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
@@ -76,8 +76,8 @@ import { errorHandler } from './middleware/errorHandler';
 // Импортируем маршруты для управления партициями
 import partitionRoutes from './api/partition-routes';
 
-// Импортируем маршруты для мониторинга базы данных
-import dbMonitorRoutes from './api/db-monitor';
+// Используем встроенный монитор базы данных из db-health-monitor
+// Модуль больше не требует отдельного импорта маршрутов
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Базовые настройки CORS для разрешения куки

@@ -6,7 +6,7 @@
  */
 
 import { Pool } from 'pg';
-import { getDbConfig } from './db-connect';
+import { getDbConfig } from './db-config';
 
 // Статусы соединения
 export type ConnectionStatus = 'ok' | 'error' | 'reconnecting';
