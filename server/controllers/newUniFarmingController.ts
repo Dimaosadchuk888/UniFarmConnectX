@@ -40,7 +40,7 @@ export class NewUniFarmingController {
    * Получает информацию о всех UNI фарминг-депозитах пользователя
    * @route GET /api/new-uni-farming/info
    */
-  static async getUserFarmingInfo(req: Request, res: Response): Promise<void> {
+  static async getUserFarmingInfo(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация параметров запроса
       const validationResult = userIdSchema.safeParse(req.query);
@@ -98,7 +98,7 @@ export class NewUniFarmingController {
    * Создает новый UNI фарминг-депозит
    * @route POST /api/new-uni-farming/deposit
    */
-  static async createDeposit(req: Request, res: Response): Promise<void> {
+  static async createDeposit(req: Request, res: Response, next: NextFunction): Promise<void> {
     console.log('[NewUniFarmingController] 🔎 createDeposit - Запрос на создание депозита:', {
       path: req.path,
       body: JSON.stringify(req.body)
