@@ -1650,8 +1650,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // TON фарминг с поддержкой fallback
-  app.get("/api/ton-farming/info", TonBoostControllerFallback.getUserTonFarmingInfo);
-  app.get("/api/ton-farming/update-balance", TonBoostControllerFallback.calculateAndUpdateTonFarming);
+  app.get("/api/ton-farming/info", TonBoostController.getUserTonFarmingInfo);
+  app.get("/api/ton-farming/update-balance", TonBoostController.calculateAndUpdateTonFarming);
   // Перенаправление на основной эндпоинт
   app.get("/api/ton-farming/active", TonBoostController.getUserTonBoosts);
 

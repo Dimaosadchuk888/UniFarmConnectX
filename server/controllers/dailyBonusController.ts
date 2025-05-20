@@ -9,6 +9,7 @@ import { ValidationError } from '../middleware/errorHandler';
 import { userIdSchema, userMissionsQuerySchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
 import { z } from 'zod';
+import { wrapServiceFunction } from '../db-service-wrapper';
 
 // Создаем схему для валидации query-параметров (поддерживает user_id как строку)
 const dailyBonusQuerySchema = z.object({
@@ -26,10 +27,12 @@ const dailyBonusQuerySchema = z.object({
  * Контроллер для работы с ежедневными бонусами
  * Отвечает за обработку HTTP-запросов, валидацию входных данных,
  * вызов соответствующих методов сервиса и формирование ответов
+ * Включает механизмы fallback для работы при отсутствии соединения с БД
  */
 export class DailyBonusController {
   /**
    * Проверяет доступность бонуса для пользователя
+   * с поддержкой работы при отсутствии соединения с БД
    * @route GET /api/daily-bonus/status
    */
   static async checkDailyBonusStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -48,9 +51,27 @@ export class DailyBonusController {
       // Получаем ID пользователя из валидированных данных
       const { user_id } = validationResult.data;
       
-      // Вызываем метод сервиса для получения статуса бонуса
-      const bonusStatus: DailyBonusStatusResponse = 
-        await dailyBonusService.getDailyBonusStatus(user_id);
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const getDailyBonusStatusWithFallback = wrapServiceFunction(
+        dailyBonusService.getDailyBonusStatus.bind(dailyBonusService),
+        async (error, userId) => {
+          console.log(`[DailyBonusController] Возвращаем заглушку для статуса бонуса по ID: ${userId}`);
+          
+          // Возвращаем данные-заглушки при отсутствии соединения с БД
+          return {
+            available: false,
+            hours_until_next: 24,
+            last_claimed_at: null,
+            streak_days: 0,
+            current_bonus_amount: "0",
+            next_bonus_amount: "0",
+            message: "Недоступно при отсутствии соединения"
+          };
+        }
+      );
+      
+      // Вызываем сервис с обработкой ошибок
+      const bonusStatus = await getDailyBonusStatusWithFallback(user_id);
       
       // Отправляем успешный ответ
       sendSuccess(res, bonusStatus);
