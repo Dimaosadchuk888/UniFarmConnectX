@@ -416,11 +416,25 @@ export class MissionController {
 
       const { user_id, mission_id } = validationResult.data;
       
-      // Получаем награду через сервис
-      const result = await missionService.claimMissionReward(user_id, mission_id);
-      
-      // Отправляем результат
-      sendSuccess(res, result);
+      try {
+        // Получаем награду через сервис
+        const result = await missionService.claimMissionReward(user_id, mission_id);
+        
+        // Отправляем результат
+        sendSuccess(res, result);
+      } catch (dbError) {
+        // В случае ошибки БД, возвращаем информативное сообщение
+        console.log(`[MissionController] Fallback: Ошибка БД при получении награды за задание ${mission_id} пользователем: ${user_id}`);
+        
+        // Возвращаем сообщение об ошибке при проблемах с БД
+        sendSuccess(res, {
+          success: false,
+          message: "База данных недоступна, получение награды временно невозможно",
+          user_id: user_id,
+          mission_id: mission_id,
+          is_fallback: true
+        });
+      }
     } catch (error) {
       next(error);
     }
