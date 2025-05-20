@@ -45,6 +45,18 @@ export interface IReferralBonusService {
   processFarmingReferralReward(userId: number, earnedAmount: number, currency: Currency): Promise<{
     totalRewardsDistributed: number
   }>;
+  
+  /**
+   * Начисляет реферальное вознаграждение от покупки буст-пакета
+   * @param userId ID пользователя, который купил буст
+   * @param boostId ID буст-пакета
+   * @param amount Сумма покупки
+   * @param currency Валюта (UNI/TON)
+   * @returns Объект с информацией о начисленных бонусах
+   */
+  processBoostReferralReward(userId: number, boostId: number, amount: number, currency: Currency): Promise<{
+    totalRewardsDistributed: number
+  }>;
 
   /**
    * Помещает реферальное вознаграждение в очередь на асинхронную обработку

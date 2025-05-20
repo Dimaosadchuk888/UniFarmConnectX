@@ -746,6 +746,7 @@ class TonBoostService implements ITonBoostService {
           if (typeof this.referralBonusService.processBoostReferralReward === 'function') {
             await (this.referralBonusService as any).processBoostReferralReward(
               userId,
+              boostId,
               parseFloat(boostPackage.priceTon),
               Currency.TON
             );

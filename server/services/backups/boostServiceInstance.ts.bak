@@ -208,7 +208,7 @@ class BoostServiceImpl implements IBoostService {
   getBoostPackageById(boostId: number): BoostPackage {
     const boostPackage = this.boostPackages.find(p => p.id === boostId);
     if (!boostPackage) {
-      throw new NotFoundError(`Буст-пакет с ID ${boostId} не найден`);
+      throw new NotFoundError(`Boost package with ID ${boostId} not found`);
     }
     return boostPackage;
   }
@@ -222,28 +222,25 @@ class BoostServiceImpl implements IBoostService {
    */
   async getUserBalances(userId: number): Promise<UserBalance> {
     try {
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, userId),
-        columns: {
-          balance_uni: true,
-          balance_ton: true
-        }
-      });
+      const [user] = await db.select({
+        balance_uni: users.balance_uni,
+        balance_ton: users.balance_ton
+      }).from(users).where(eq(users.id, userId));
 
       if (!user) {
-        throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+        throw new NotFoundError(`User with ID ${userId} not found`);
       }
 
       return {
-        uniBalance: user.balance_uni ?? '0',
-        tonBalance: user.balance_ton ?? '0'
+        uniBalance: user.balance_uni || '0',
+        tonBalance: user.balance_ton || '0'
       };
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw error;
       }
       const err = error as ErrorWithMessage;
-      throw new DatabaseError(`Ошибка при получении балансов пользователя: ${err.message}`);
+      throw new DatabaseError(`Failed to get user balances: ${err.message}`);
     }
   }
 
@@ -255,12 +252,8 @@ class BoostServiceImpl implements IBoostService {
    * @throws {DatabaseError} При ошибке запроса к БД
    */
   async getUserUniBalance(userId: number): Promise<string> {
-    try {
-      const balances = await this.getUserBalances(userId);
-      return balances.uniBalance;
-    } catch (error) {
-      throw error; // Пробрасываем ошибку дальше
-    }
+    const { uniBalance } = await this.getUserBalances(userId);
+    return uniBalance;
   }
 
   /**
@@ -272,71 +265,64 @@ class BoostServiceImpl implements IBoostService {
    */
   async getUserActiveBoosts(userId: number): Promise<BoostDepositWithPackage[]> {
     try {
-      // Проверяем существование пользователя
-      const userExists = await db.query.users.findFirst({
-        where: eq(users.id, userId),
-        columns: {
-          id: true
-        }
-      });
-
-      if (!userExists) {
-        throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+      // Сначала проверяем, существует ли пользователь
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) {
+        throw new NotFoundError(`User with ID ${userId} not found`);
       }
 
-      // Текущая дата для сравнения с датой окончания
+      // Получаем активные депозиты
       const currentDate = new Date();
-      
-      // Получаем активные буст-депозиты (действующие на текущий момент)
-      const result = await db.execute(sql`
-        SELECT id, user_id, boost_id, start_date, end_date
-        FROM boost_deposits
-        WHERE user_id = ${userId}
-          AND end_date > ${currentDate}
-        ORDER BY end_date DESC
-      `);
+      const deposits = await db.select()
+        .from(farmingDeposits)
+        .where(
+          sql`${farmingDeposits.user_id} = ${userId} AND 
+              ${farmingDeposits.deposit_type} LIKE 'boost_%' AND 
+              (${farmingDeposits.expires_at} IS NULL OR ${farmingDeposits.expires_at} > ${currentDate})`
+        )
+        .orderBy(desc(farmingDeposits.created_at));
 
-      // Обогащаем данные информацией о пакетах
-      return result.rows.map((row: any) => {
-        try {
-          const boostPackage = this.getBoostPackageById(Number(row.boost_id));
-          return {
-            id: Number(row.id),
-            userId: Number(row.user_id),
-            boostId: Number(row.boost_id),
-            startDate: new Date(row.start_date),
-            endDate: new Date(row.end_date),
-            packageInfo: boostPackage
-          };
-        } catch (error) {
-          console.error(`[BoostService] Ошибка при обработке буст-депозита ${row.id}:`, error);
-          // Если пакет не найден, возвращаем информацию без деталей пакета
-          const fallbackPackage: BoostPackage = {
-            id: Number(row.boost_id),
-            name: 'Неизвестный буст',
-            priceUni: '0',
-            priceTon: '0',
-            bonusUni: '0',
-            rateUni: '0',
-            rateTon: '0'
-          };
-          
-          return {
-            id: Number(row.id),
-            userId: Number(row.user_id),
-            boostId: Number(row.boost_id),
-            startDate: new Date(row.start_date),
-            endDate: new Date(row.end_date),
-            packageInfo: fallbackPackage
-          };
-        }
+      // Преобразуем результаты запроса в нужный формат
+      const boostedDeposits: BoostDepositWithPackage[] = deposits.map(deposit => {
+        const boostId = Number(deposit.boost_id) || 1;
+        const packageInfo = this.getBoostPackageById(boostId);
+
+        return {
+          id: deposit.id,
+          userId: deposit.user_id || 0,
+          boostId: boostId,
+          startDate: deposit.created_at || new Date(),
+          endDate: deposit.expires_at || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          packageInfo
+        };
       });
+
+      return boostedDeposits;
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw error;
       }
       const err = error as ErrorWithMessage;
-      throw new DatabaseError(`Ошибка при получении активных буст-депозитов: ${err.message}`);
+      throw new DatabaseError(`Failed to get user active boosts: ${err.message}`);
+    }
+  }
+
+  /**
+   * Проверяет достаточность средств для покупки
+   * @param balanceUni Текущий баланс UNI пользователя
+   * @param priceUni Стоимость пакета в UNI
+   * @throws {InsufficientFundsError} Если баланса недостаточно
+   */
+  validateSufficientFunds(balanceUni: string, priceUni: string): void {
+    const balance = new BigNumber(balanceUni);
+    const price = new BigNumber(priceUni);
+
+    if (balance.isLessThan(price)) {
+      throw new InsufficientFundsError(
+        `Insufficient UNI balance. Required: ${priceUni}, Available: ${balanceUni}`,
+        balanceUni,
+        'UNI'
+      );
     }
   }
 
@@ -358,17 +344,20 @@ class BoostServiceImpl implements IBoostService {
     bonusUni: string
   ): Promise<number> {
     try {
-      const result = await db.execute(sql`
-        INSERT INTO boost_deposits (user_id, boost_id, start_date, end_date, bonus_uni)
-        VALUES (${userId}, ${boostId}, ${startDate}, ${endDate}, ${bonusUni})
-        RETURNING id
-      `);
-      
-      if (result.rows.length === 0) {
-        throw new Error('Insert did not return ID');
-      }
-      
-      return Number(result.rows[0].id);
+      const depositType = `boost_${boostId}`;
+      const [deposit] = await db.insert(farmingDeposits).values({
+        user_id: userId,
+        amount_uni: bonusUni,
+        rate_uni: '0',
+        rate_ton: this.getBoostPackageById(boostId).rateTon,
+        last_claim: startDate,
+        is_boosted: true,
+        deposit_type: depositType,
+        boost_id: boostId,
+        expires_at: endDate
+      }).returning({ id: farmingDeposits.id });
+
+      return deposit.id;
     } catch (error) {
       const err = error as ErrorWithMessage;
       throw new DatabaseError(`Failed to create boost deposit: ${err.message}`);
@@ -391,20 +380,22 @@ class BoostServiceImpl implements IBoostService {
     depositId: number
   ): Promise<number> {
     try {
-      const result = await db.execute(sql`
-        INSERT INTO transactions 
-        (user_id, amount, type, status, category, description, deposit_id)
-        VALUES 
-        (${userId}, ${amount}, 'purchase', 'completed', 'boost', 
-         ${`Покупка буст-пакета #${boostId}`}, ${depositId})
-        RETURNING id
-      `);
-      
-      if (result.rows.length === 0) {
-        throw new Error('Insert did not return ID');
-      }
-      
-      return Number(result.rows[0].id);
+      const [transaction] = await db.insert(transactions).values({
+        user_id: userId,
+        type: 'boost_purchase',
+        currency: 'UNI',
+        amount: amount,
+        status: 'confirmed',
+        description: `Boost package purchase (ID: ${boostId})`,
+        category: 'boost',
+        source: 'boost_purchase',
+        data: JSON.stringify({
+          boost_id: boostId,
+          deposit_id: depositId
+        })
+      }).returning({ id: transactions.id });
+
+      return transaction.id;
     } catch (error) {
       const err = error as ErrorWithMessage;
       throw new DatabaseError(`Failed to create boost transaction: ${err.message}`);
@@ -493,61 +484,23 @@ class BoostServiceImpl implements IBoostService {
       
       // Обогащаем данные информацией о буст-пакетах
       return result.rows.map((row: any) => {
-        try {
-          const boostPackage = this.getBoostPackageById(Number(row.boost_id));
-          return {
-            id: Number(row.id),
-            userId: Number(row.user_id),
-            boostId: Number(row.boost_id),
-            packageName: boostPackage.name,
-            startDate: row.start_date ? new Date(row.start_date) : null,
-            endDate: row.end_date ? new Date(row.end_date) : null,
-            purchaseDate: row.purchase_date ? new Date(row.purchase_date) : null,
-            amount: row.amount,
-            price: boostPackage.priceUni,
-            bonus: boostPackage.bonusUni
-          };
-        } catch (error) {
-          console.warn(`[BoostService] Не найден пакет буста ${row.boost_id} при получении истории:`, error);
-          return {
-            id: Number(row.id),
-            userId: Number(row.user_id),
-            boostId: Number(row.boost_id),
-            packageName: 'Неизвестный буст',
-            startDate: row.start_date ? new Date(row.start_date) : null,
-            endDate: row.end_date ? new Date(row.end_date) : null,
-            purchaseDate: row.purchase_date ? new Date(row.purchase_date) : null,
-            amount: row.amount,
-            price: '0',
-            bonus: '0'
-          };
-        }
+        const boostPackage = this.getBoostPackageById(row.boost_id);
+        return {
+          id: row.id,
+          userId: row.user_id,
+          boostId: row.boost_id,
+          packageName: boostPackage.name,
+          startDate: row.start_date,
+          endDate: row.end_date,
+          purchaseDate: row.purchase_date,
+          amount: row.amount,
+          price: boostPackage.priceUni,
+          bonus: boostPackage.bonusUni
+        };
       });
     } catch (error) {
       console.error('[BoostService] Ошибка при получении истории буст-пакетов пользователя:', error);
       throw error;
-    }
-  }
-
-  /**
-   * Проверяет достаточность средств для покупки
-   * @param balanceUni Текущий баланс UNI пользователя
-   * @param priceUni Стоимость пакета в UNI
-   * @throws {InsufficientFundsError} Если баланса недостаточно
-   */
-  validateSufficientFunds(balanceUni: string, priceUni: string): void {
-    const bnBalance = new BigNumber(balanceUni);
-    const bnPrice = new BigNumber(priceUni);
-    
-    if (bnBalance.isLessThan(bnPrice)) {
-      throw new InsufficientFundsError(
-        'Недостаточно средств на балансе',
-        {
-          balance: balanceUni,
-          required: priceUni,
-          deficit: bnPrice.minus(bnBalance).toString()
-        }
-      );
     }
   }
 
@@ -564,58 +517,80 @@ class BoostServiceImpl implements IBoostService {
     try {
       // 1. Получаем информацию о пакете
       const boostPackage = this.getBoostPackageById(boostId);
-      
+
       // 2. Получаем баланс пользователя
-      const balanceUni = await this.getUserUniBalance(userId);
-      
+      const uniBalance = await this.getUserUniBalance(userId);
+
       // 3. Проверяем достаточность средств
-      this.validateSufficientFunds(balanceUni, boostPackage.priceUni);
-      
-      // 4. Рассчитываем даты начала и окончания
+      this.validateSufficientFunds(uniBalance, boostPackage.priceUni);
+
+      // 4. Вычисляем даты начала и окончания буста (30 дней)
       const startDate = new Date();
-      const endDate = add(startDate, { days: 30 }); // Срок действия буста - 30 дней
-      
-      // 5. Создаем запись о депозите
-      const depositId = await this.createBoostDeposit(
-        userId, 
-        boostId, 
-        startDate, 
-        endDate,
-        boostPackage.bonusUni
-      );
-      
-      // 6. Списываем средства с баланса пользователя
-      const negativeAmount = new BigNumber(boostPackage.priceUni).negated().toString();
-      await this.updateUserBalance(userId, negativeAmount);
-      
-      // 7. Создаем запись о транзакции
-      const transactionId = await this.createBoostTransaction(
-        userId,
-        negativeAmount,
-        boostId,
-        depositId
-      );
-      
-      // 8. Насчитываем бонус UNI
-      await this.updateUserBalance(userId, boostPackage.bonusUni);
-      
-      // 9. Возвращаем результат
-      return {
-        success: true,
-        message: `Успешная покупка буст-пакета "${boostPackage.name}"`,
-        transactionId,
-        depositId,
-        package: boostPackage,
-        startDate,
-        endDate
-      };
+      const endDate = add(startDate, { days: 30 });
+
+      // 5. Сумма для списания с баланса (отрицательная)
+      const debitAmount = `-${boostPackage.priceUni}`;
+
+      // 6. Сумма бонуса для зачисления
+      const bonusAmount = boostPackage.bonusUni;
+
+      // Выполняем операции в транзакции
+      let depositId: number;
+      let transactionId: number;
+
+      try {
+        // 7. Создаем запись о депозите
+        depositId = await this.createBoostDeposit(
+          userId,
+          boostId,
+          startDate,
+          endDate,
+          bonusAmount
+        );
+
+        // 8. Создаем запись о транзакции
+        transactionId = await this.createBoostTransaction(
+          userId,
+          debitAmount,
+          boostId,
+          depositId
+        );
+
+        // 9. Обновляем баланс пользователя
+        await this.updateUserBalance(userId, debitAmount);
+
+        // 10. Зачисляем бонус
+        await this.updateUserBalance(userId, bonusAmount);
+
+        return {
+          success: true,
+          message: `Successfully purchased ${boostPackage.name}`,
+          transactionId,
+          depositId,
+          package: boostPackage,
+          startDate,
+          endDate
+        };
+      } catch (error) {
+        const err = error as ErrorWithMessage;
+        throw new DatabaseError(`Failed to complete boost purchase: ${err.message}`);
+      }
     } catch (error) {
-      if (error instanceof NotFoundError || 
-          error instanceof InsufficientFundsError) {
-        throw error;
+      if (
+        error instanceof NotFoundError ||
+        error instanceof InsufficientFundsError ||
+        error instanceof DatabaseError
+      ) {
+        return {
+          success: false,
+          message: error.message
+        };
       }
       const err = error as ErrorWithMessage;
-      throw new DatabaseError(`Ошибка при покупке буст-пакета: ${err.message}`);
+      return {
+        success: false,
+        message: `Unexpected error: ${err.message}`
+      };
     }
   }
 }
