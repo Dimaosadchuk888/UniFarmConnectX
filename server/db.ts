@@ -1,12 +1,29 @@
-// Экспортируем все необходимые компоненты из db-selector.ts
+/**
+ * Централизованный экспорт всех компонентов для работы с базой данных
+ * Консолидирует экспорты из db-config.ts, db-connect-unified.ts, db-health-monitor.ts
+ */
+
+// Экспортируем компоненты подключения
 export {
   pool,
   db,
-  wrappedPool,
-  testDatabaseConnection,
   dbType,
+  reconnect,
+  testConnection,
+  getConnectionStatus,
+  getMonitorStats,
+  queryWithRetry
+} from './db-connect-unified';
+
+// Экспортируем типы и конфигурацию
+export {
   DatabaseType,
-  dbConnectionStatus,
-  isTablePartitioned,
-  queryWithRetry // Экспортируем queryWithRetry из db-selector.ts
-} from './db-selector';
+  SSLMode,
+  getDbConfig,
+  getDatabaseType
+} from './db-config';
+
+// Экспортируем компоненты мониторинга
+export {
+  ConnectionStatus
+} from './db-health-monitor';

@@ -6,8 +6,15 @@
  */
 
 import { Pool, QueryResult } from 'pg';
-import { pool, db, dbType, testConnection, queryWithRetry, getConnectionStatus } from './db-connect-unified';
-import { DatabaseType } from './db-config';
+import { 
+  pool, 
+  db, 
+  dbType, 
+  testConnection, 
+  queryWithRetry, 
+  getConnectionStatus,
+  DatabaseType 
+} from './db';
 
 // Объект для отслеживания состояния подключения к базе данных (совместимость)
 export const dbConnectionStatus = {
