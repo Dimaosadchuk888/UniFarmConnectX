@@ -140,12 +140,7 @@ export class BoostController {
     } catch (error) {
       // Обработка всех остальных ошибок (включая валидацию)
       console.error('[BoostController] Ошибка покупки буста:', error);
-      sendSuccess(res, { 
-        success: false, 
-        message: 'Не удалось выполнить покупку буста из-за ошибки в запросе',
-        error: 'request_error',
-        is_fallback: true
-      });
+      next(error);
     }
   }
 
