@@ -1,19 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
 import { missionService } from '../services';
-import { MissionStatus } from '../services/missionServiceInstance'; // Импортируем только константу из файла с интерфейсом
+import { MissionStatus, MissionWithCompletion } from '../services/missionServiceInstance'; // Импортируем константы из файла с интерфейсом
 import { sendSuccess, sendSuccessArray } from '../utils/responseUtils';
 import { 
   completeMissionSchema, 
   userMissionsQuerySchema, 
   userMissionsWithCompletionSchema,
   missionStatusSchema,
-  submitMissionSchema
+  submitMissionSchema,
+  userIdSchema
 } from '../validators/schemas';
 import { NotFoundError, ValidationError } from '../middleware/errorHandler';
+import { formatZodErrors } from '../utils/validationUtils';
 
 /**
  * Контроллер для работы с миссиями
  * Отвечает за обработку HTTP-запросов связанных с миссиями
+ * Включает функциональность для работы в режиме fallback при проблемах с БД
  */
 export class MissionController {
   /**
@@ -193,11 +196,24 @@ export class MissionController {
 
       const { user_id, mission_id } = validationResult.data;
       
-      // Выполняем миссию через сервис
-      const result = await missionService.completeMission(user_id, mission_id);
-      
-      // Отправляем результат
-      sendSuccess(res, result);
+      try {
+        // Сначала пробуем выполнить через БД
+        const result = await missionService.completeMission(user_id, mission_id);
+        
+        // Отправляем ответ
+        sendSuccess(res, result);
+      } catch (dbError) {
+        // В случае ошибки БД, возвращаем информативное сообщение
+        console.log(`[MissionController] Ошибка БД при выполнении задания ${mission_id} пользователем: ${user_id}`);
+        
+        // Возвращаем сообщение об ошибке при проблемах с БД
+        sendSuccess(res, {
+          success: false,
+          message: "Проблема с базой данных, выполнение задания временно невозможно",
+          user_id: user_id,
+          mission_id: mission_id
+        });
+      }
     } catch (error) {
       // Пропускаем ошибку в централизованный обработчик
       next(error);

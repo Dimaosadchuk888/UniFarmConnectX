@@ -1573,7 +1573,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user_missions", MissionController.getUserCompletedMissions);
   app.get("/api/missions/with-completion", MissionController.getMissionsWithCompletion);
   app.get("/api/missions/check/:userId/:missionId", MissionController.checkMissionCompletion);
-  app.post("/api/missions/complete", MissionControllerFallback.completeMission);
+  app.post("/api/missions/complete", MissionController.completeMission);
 
   // Маршруты для фарминг-депозитов
   app.get("/api/farming-deposits", FarmingController.getUserFarmingDeposits);
