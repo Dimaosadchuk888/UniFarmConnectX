@@ -436,23 +436,29 @@ class StorageAdapter implements IExtendedStorage {
   async getUserTransactions(userId: number, limit: number = 10, offset: number = 0): Promise<{transactions: Transaction[], total: number}> {
     console.log(`[StorageAdapter] Получение транзакций пользователя с ID: ${userId}`);
     try {
-      const countResult = await queryWithRetry(
-        'SELECT COUNT(*) as total FROM transactions WHERE user_id = $1',
-        [userId]
-      );
+      if (this.useMemory) {
+        return await this.memStorage.getUserTransactions(userId, limit, offset);
+      }
       
-      const result = await queryWithRetry(
-        'SELECT * FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
-        [userId, limit, offset]
-      );
+      const transactionsQuery = await db.select().from(transactions)
+        .where(eq(transactions.user_id, userId))
+        .orderBy(sql`${transactions.created_at} DESC`)
+        .limit(limit)
+        .offset(offset);
+      
+      const countQuery = await db.select({ count: sql`count(*)` }).from(transactions)
+        .where(eq(transactions.user_id, userId));
+      
+      const total = Number(countQuery[0]?.count || 0);
       
       return {
-        transactions: result.rows as Transaction[],
-        total: parseInt(countResult.rows[0].total, 10)
+        transactions: transactionsQuery as Transaction[],
+        total
       };
     } catch (error) {
-      console.error(`[StorageAdapter] Ошибка при получении транзакций пользователя ${userId}:`, error);
-      throw error;
+      console.error(`[StorageAdapter] Ошибка при получении транзакций пользователя ${userId}, переключаемся на хранилище в памяти:`, error);
+      this.useMemory = true;
+      return await this.memStorage.getUserTransactions(userId, limit, offset);
     }
   }
 
@@ -460,66 +466,84 @@ class StorageAdapter implements IExtendedStorage {
   async createReferral(referral: InsertReferral): Promise<Referral> {
     console.log('[StorageAdapter] Создание реферального приглашения');
     try {
-      const columns = Object.keys(referral).join(', ');
-      const values = Object.keys(referral).map((_, i) => `$${i + 1}`).join(', ');
-      const placeholders = Object.values(referral);
+      if (this.useMemory) {
+        return await this.memStorage.createReferral(referral);
+      }
       
-      const query = `
-        INSERT INTO referrals (${columns})
-        VALUES (${values})
-        RETURNING *
-      `;
-      
-      const result = await queryWithRetry(query, placeholders);
-      if (result.rows.length === 0) {
+      const [newReferral] = await db.insert(referrals).values(referral).returning();
+      if (!newReferral) {
         throw new Error('Не удалось создать реферальное приглашение');
       }
       
-      return result.rows[0] as Referral;
+      return newReferral;
     } catch (error) {
-      console.error('[StorageAdapter] Ошибка при создании реферального приглашения:', error);
-      throw error;
+      console.error('[StorageAdapter] Ошибка при создании реферального приглашения, переключаемся на хранилище в памяти:', error);
+      this.useMemory = true;
+      return await this.memStorage.createReferral(referral);
     }
   }
 
   async getUserReferrals(userId: number): Promise<{referrals: User[], total: number}> {
     console.log(`[StorageAdapter] Получение рефералов пользователя с ID: ${userId}`);
     try {
-      const countResult = await queryWithRetry(
-        'SELECT COUNT(*) as total FROM referrals WHERE inviter_id = $1',
-        [userId]
-      );
+      if (this.useMemory) {
+        return await this.memStorage.getUserReferrals(userId);
+      }
       
-      const result = await queryWithRetry(
-        `SELECT u.* FROM users u
-         JOIN referrals r ON u.id = r.user_id
-         WHERE r.inviter_id = $1
-         ORDER BY r.created_at DESC`,
-        [userId]
-      );
+      const userReferralsQuery = await db.select({
+        id: users.id,
+        username: users.username,
+        telegram_id: users.telegram_id,
+        guest_id: users.guest_id,
+        wallet: users.wallet,
+        ton_wallet_address: users.ton_wallet_address,
+        uni_balance: users.uni_balance,
+        ton_balance: users.ton_balance,
+        created_at: users.created_at,
+        updated_at: users.updated_at,
+        ref_code: users.ref_code,
+        admin: users.admin,
+        settings: users.settings,
+        telegram_data: users.telegram_data,
+        last_ref_update: users.last_ref_update,
+        checkin_streak: users.checkin_streak
+      }).from(referrals)
+        .innerJoin(users, eq(referrals.user_id, users.id))
+        .where(eq(referrals.inviter_id, userId));
       
-      return {
-        referrals: result.rows as User[],
-        total: parseInt(countResult.rows[0].total, 10)
+      const countQuery = await db.select({ count: sql`count(*)` }).from(referrals)
+        .where(eq(referrals.inviter_id, userId));
+      
+      const total = Number(countQuery[0]?.count || 0);
+      
+      return { 
+        referrals: userReferralsQuery,
+        total
       };
     } catch (error) {
-      console.error(`[StorageAdapter] Ошибка при получении рефералов пользователя ${userId}:`, error);
-      throw error;
+      console.error(`[StorageAdapter] Ошибка при получении рефералов пользователя ${userId}, переключаемся на хранилище в памяти:`, error);
+      this.useMemory = true;
+      return await this.memStorage.getUserReferrals(userId);
     }
   }
 
   async getReferralByUserIdAndInviterId(userId: number, inviterId: number): Promise<Referral | undefined> {
     console.log(`[StorageAdapter] Получение реферального приглашения для user_id: ${userId}, inviter_id: ${inviterId}`);
     try {
-      const [referral] = await queryWithRetry(
-        'SELECT * FROM referrals WHERE user_id = $1 AND inviter_id = $2',
-        [userId, inviterId]
-      ).then(result => result.rows as Referral[]);
+      if (this.useMemory) {
+        return await this.memStorage.getReferralByUserIdAndInviterId(userId, inviterId);
+      }
       
-      return referral || undefined;
+      const [referral] = await db.select().from(referrals)
+        .where(eq(referrals.user_id, userId))
+        .where(eq(referrals.inviter_id, inviterId))
+        .limit(1);
+      
+      return referral;
     } catch (error) {
-      console.error(`[StorageAdapter] Ошибка при получении реферального приглашения для user_id ${userId}, inviter_id ${inviterId}:`, error);
-      throw error;
+      console.error(`[StorageAdapter] Ошибка при получении реферального приглашения для user_id ${userId}, inviter_id ${inviterId}, переключаемся на хранилище в памяти:`, error);
+      this.useMemory = true;
+      return await this.memStorage.getReferralByUserIdAndInviterId(userId, inviterId);
     }
   }
 
