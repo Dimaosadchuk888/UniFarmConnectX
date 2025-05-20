@@ -1,15 +1,15 @@
 /**
- * Утиліта для обробки помилок бази даних в контролерах
+ * Utility for handling database errors in controllers
  * 
- * Цей модуль забезпечує стандартизований підхід до обробки помилок бази даних
- * для всіх контролерів API. Він класифікує помилки за типом та пропонує
- * відповідні повідомлення про помилки та коди HTTP статусу.
+ * This module provides a standardized approach to handling database errors
+ * for all API controllers. It classifies errors by type and suggests
+ * appropriate error messages and HTTP status codes.
  */
 
 import { Response } from 'express';
 import { db, testConnection, reconnect } from '../db-connect-unified';
 
-// Типи помилок бази даних
+// Database error types
 export enum DbErrorType {
   CONNECTION = 'connection',
   CONSTRAINT = 'constraint',
@@ -19,7 +19,7 @@ export enum DbErrorType {
   UNKNOWN = 'unknown'
 }
 
-// Інтерфейс для стандартизованої відповіді з помилкою
+// Interface for standardized error response
 export interface ErrorResponse {
   success: false;
   error: {
@@ -30,18 +30,18 @@ export interface ErrorResponse {
 }
 
 /**
- * Клас для обробки помилок бази даних
+ * Class for handling database errors
  */
 export class DbErrorHandler {
   /**
-   * Визначає тип помилки БД на основі повідомлення про помилку
-   * @param error Об'єкт помилки
-   * @returns Тип помилки БД
+   * Determines the type of DB error based on the error message
+   * @param error Error object
+   * @returns Type of DB error
    */
   static detectErrorType(error: any): DbErrorType {
     const errorMessage = error?.message || error?.toString() || '';
     
-    // Перевіряємо тип помилки за ключовими словами
+    // Check error type by keywords
     if (
       errorMessage.includes('connection') || 
       errorMessage.includes('connect') || 
@@ -89,11 +89,11 @@ export class DbErrorHandler {
   }
   
   /**
-   * Формує стандартизовану відповідь з помилкою
-   * @param message Повідомлення про помилку
-   * @param code Код помилки
-   * @param details Додаткові деталі (опціонально)
-   * @returns Об'єкт відповіді з помилкою
+   * Creates a standardized error response
+   * @param message Error message
+   * @param code Error code
+   * @param details Additional details (optional)
+   * @returns Error response object
    */
   static createErrorResponse(message: string, code: string, details?: any): ErrorResponse {
     return {
@@ -107,36 +107,36 @@ export class DbErrorHandler {
   }
   
   /**
-   * Обробляє помилки БД та відправляє відповідь
-   * @param error Об'єкт помилки
-   * @param res Об'єкт відповіді Express
-   * @param contextInfo Додаткова інформація про контекст помилки
+   * Handles DB errors and sends a response
+   * @param error Error object
+   * @param res Express response object
+   * @param contextInfo Additional context information
    */
   static async handleDbError(error: any, res: Response, contextInfo: string = ''): Promise<void> {
-    console.error(`[DB Error Handler] Помилка в контексті ${contextInfo}:`, error);
+    console.error(`[DB Error Handler] Error in context ${contextInfo}:`, error);
     
     const errorType = this.detectErrorType(error);
     let statusCode = 500;
     let errorResponse: ErrorResponse;
     
-    // Визначаємо статус код та повідомлення на основі типу помилки
+    // Determine status code and message based on error type
     switch (errorType) {
       case DbErrorType.CONNECTION:
-        // При помилці з'єднання, спробуємо переконектитись
+        // For connection errors, try to reconnect
         try {
           const reconnected = await reconnect();
           if (reconnected) {
-            console.log('[DB Error Handler] З\'єднання з БД успішно відновлено');
+            console.log('[DB Error Handler] Database connection successfully restored');
           } else {
-            console.error('[DB Error Handler] Не вдалося відновити з\'єднання з БД');
+            console.error('[DB Error Handler] Failed to restore database connection');
           }
         } catch (reconnectError) {
-          console.error('[DB Error Handler] Помилка при спробі переконектитись:', reconnectError);
+          console.error('[DB Error Handler] Error when trying to reconnect:', reconnectError);
         }
         
         statusCode = 503; // Service Unavailable
         errorResponse = this.createErrorResponse(
-          'Проблема з\'єднання з базою даних. Спробуйте пізніше.',
+          'Database connection issue. Please try again later.',
           'DB_CONNECTION_ERROR',
           { shouldRetry: true }
         );
@@ -145,7 +145,7 @@ export class DbErrorHandler {
       case DbErrorType.CONSTRAINT:
         statusCode = 400; // Bad Request
         errorResponse = this.createErrorResponse(
-          'Порушення обмежень бази даних. Перевірте введені дані.',
+          'Database constraint violation. Please check your input data.',
           'DB_CONSTRAINT_ERROR',
           { originalError: error.message }
         );
@@ -154,7 +154,7 @@ export class DbErrorHandler {
       case DbErrorType.TRANSACTION:
         statusCode = 500; // Internal Server Error
         errorResponse = this.createErrorResponse(
-          'Помилка транзакції бази даних. Спробуйте ще раз.',
+          'Database transaction error. Please try again.',
           'DB_TRANSACTION_ERROR'
         );
         break;
@@ -162,7 +162,7 @@ export class DbErrorHandler {
       case DbErrorType.TIMEOUT:
         statusCode = 504; // Gateway Timeout
         errorResponse = this.createErrorResponse(
-          'Запит до бази даних зайняв занадто багато часу. Спробуйте пізніше.',
+          'Database request took too long to complete. Please try again later.',
           'DB_TIMEOUT_ERROR',
           { shouldRetry: true }
         );
@@ -171,7 +171,7 @@ export class DbErrorHandler {
       case DbErrorType.QUERY:
         statusCode = 400; // Bad Request
         errorResponse = this.createErrorResponse(
-          'Помилка в запиті до бази даних.',
+          'Error in database query.',
           'DB_QUERY_ERROR'
         );
         break;
@@ -179,25 +179,25 @@ export class DbErrorHandler {
       default:
         statusCode = 500; // Internal Server Error
         errorResponse = this.createErrorResponse(
-          'Внутрішня помилка сервера при роботі з базою даних.',
+          'Internal server error while working with the database.',
           'DB_UNKNOWN_ERROR'
         );
     }
     
-    // Відправляємо відповідь
+    // Send the response
     res.status(statusCode).json(errorResponse);
   }
   
   /**
-   * Перевіряє, чи є помилка помилкою бази даних
-   * @param error Об'єкт помилки
-   * @returns true, якщо це помилка БД, інакше false
+   * Checks if an error is a database error
+   * @param error Error object
+   * @returns true if it's a DB error, otherwise false
    */
   static isDbError(error: any): boolean {
-    // Перевіряємо за повідомленням
+    // Check by message
     const errorMessage = error?.message || error?.toString() || '';
     
-    // Ключові слова, які можуть вказувати на помилку БД
+    // Keywords that may indicate a DB error
     const dbErrorKeywords = [
       'database', 'db', 'sql', 'query', 'transaction', 
       'connection', 'constraint', 'postgres', 'pg', 
@@ -211,20 +211,20 @@ export class DbErrorHandler {
   }
   
   /**
-   * Перехоплює та обробляє помилки в асинхронних контролерах
-   * @param fn Функція контролера
-   * @returns Функція-обгортка з обробкою помилок
+   * Catches and handles errors in asynchronous controllers
+   * @param fn Controller function
+   * @returns Wrapper function with error handling
    */
   static catchDbErrors(fn: Function) {
     return async (req: any, res: Response, next: any) => {
       try {
         await fn(req, res, next);
       } catch (error) {
-        // Перевіряємо, чи це помилка БД
+        // Check if it's a DB error
         if (this.isDbError(error)) {
           await this.handleDbError(error, res, fn.name);
         } else {
-          // Якщо це не помилка БД, передаємо наступному обробнику
+          // If it's not a DB error, pass to the next handler
           next(error);
         }
       }
