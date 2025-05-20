@@ -1,9 +1,11 @@
 import { Request, Response } from "express";
 import { tonBoostService } from "../services";
 import { TonBoostPaymentMethod } from "../services/tonBoostService";
+import { wrapServiceFunction } from '../db-service-wrapper';
 
 /**
- * Контроллер для работы с TON Boost-пакетами
+ * Контроллер для работы с TON Boost-пакетами и TON фармингом
+ * Включает механизмы fallback для работы при отсутствии соединения с БД
  */
 export class TonBoostController {
   /**
@@ -179,6 +181,7 @@ export class TonBoostController {
 
   /**
    * Получает информацию о TON фарминге пользователя
+   * с поддержкой работы при отсутствии соединения с базой данных
    */
   static async getUserTonFarmingInfo(req: Request, res: Response): Promise<void> {
     try {
@@ -191,7 +194,26 @@ export class TonBoostController {
         });
       }
 
-      const farmingInfo = await tonBoostService.getUserTonFarmingInfo(userId);
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const getFarmingInfoWithFallback = wrapServiceFunction(
+        tonBoostService.getUserTonFarmingInfo.bind(tonBoostService), 
+        async (error, userId) => {
+          console.log(`[TonBoostController] Возвращаем заглушку для TON фарминга по ID: ${userId}`);
+          
+          // Возвращаем данные-заглушки при отсутствии соединения с БД
+          return {
+            is_active: false,
+            ton_deposit_amount: "0",
+            ton_farming_balance: "0",
+            ton_farming_rate: "0",
+            ton_farming_last_update: null,
+            boost_deposits: [],
+            has_active_boosts: false
+          };
+        }
+      );
+
+      const farmingInfo = await getFarmingInfoWithFallback(userId);
       res.json({ success: true, data: farmingInfo });
     } catch (error) {
       console.error("[TonBoostController] Error in getUserTonFarmingInfo:", error);
@@ -204,6 +226,7 @@ export class TonBoostController {
 
   /**
    * Обновляет и возвращает текущий баланс TON фарминга
+   * с поддержкой работы при отсутствии соединения с БД
    */
   static async calculateAndUpdateTonFarming(req: Request, res: Response): Promise<void> {
     try {
@@ -216,7 +239,23 @@ export class TonBoostController {
         });
       }
 
-      const result = await tonBoostService.calculateAndUpdateUserTonFarming(userId);
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const updateFarmingWithFallback = wrapServiceFunction(
+        tonBoostService.calculateAndUpdateUserTonFarming.bind(tonBoostService), 
+        async (error, userId) => {
+          console.log(`[TonBoostController] Возвращаем заглушку для расчета TON фарминга по ID: ${userId}`);
+          
+          // Возвращаем данные-заглушки при отсутствии соединения с БД
+          return {
+            updated: false,
+            new_balance: "0",
+            earned: "0",
+            message: "База данных недоступна, расчет фарминга невозможен"
+          };
+        }
+      );
+
+      const result = await updateFarmingWithFallback(userId);
       res.json({ success: true, data: result });
     } catch (error) {
       console.error("[TonBoostController] Error in calculateAndUpdateTonFarming:", error);

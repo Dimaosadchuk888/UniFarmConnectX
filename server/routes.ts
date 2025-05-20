@@ -47,8 +47,7 @@ import * as DbSelectorStatusController from './api/db-selector-status'; // Но�
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { NewUniFarmingController } from './controllers/newUniFarmingController'; // Основной контроллер для UNI фарминга
 import { BoostController } from './controllers/boostController'; // Контроллер для бустов
-import { TonBoostController } from './controllers/tonBoostController';
-import { TonBoostControllerFallback } from './controllers/tonBoostControllerFallback'; // Fallback контроллер для TON фарминга
+import { TonBoostController } from './controllers/tonBoostController'; // Контроллер для TON фарминга с поддержкой fallback режима
 import { DailyBonusControllerFallback } from './controllers/dailyBonusControllerFallback'; // Fallback контроллер для ежедневных бонусов
 import { WalletControllerFallback } from './controllers/walletControllerFallback'; // Fallback контроллер для кошелька
 import { UserControllerFallback } from './controllers/userControllerFallback'; // Fallback контроллер для пользователей
