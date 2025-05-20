@@ -49,7 +49,7 @@ import { NewUniFarmingController } from './controllers/newUniFarmingController';
 import { BoostController } from './controllers/boostController'; // Контроллер для бустов
 import { TonBoostController } from './controllers/tonBoostController'; // Контроллер для TON фарминга с поддержкой fallback режима
 // Импорт DailyBonusControllerFallback удален (консолидирован в DailyBonusController)
-import { WalletControllerFallback } from './controllers/walletControllerFallback'; // Fallback контроллер для кошелька
+// Импорт WalletControllerFallback удален (частично консолидирован в WalletController)
 import { UserControllerFallback } from './controllers/userControllerFallback'; // Fallback контроллер для пользователей
 import { AuthController } from './controllers/authController'; // Обновленный контроллер (SOLID)
 import { SecurityController } from './controllers/securityController'; // Новый контроллер безопасности (SOLID)
@@ -885,7 +885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Маршрут для получения баланса кошелька с поддержкой fallback
   // Маршрут для получения баланса кошелька
-  app.get("/api/wallet/balance", WalletControllerFallback.getWalletBalance);
+  app.get("/api/wallet/balance", WalletController.getWalletBalance);
 
   app.get("/api/me", UserController.getCurrentUser);
 
@@ -1557,7 +1557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user/wallet-address", WalletController.getUserWalletAddress);
   app.get("/api/user/wallet-info", WalletController.getWalletInfo);
   // Маршрут для получения транзакций пользователя
-  app.get("/api/user/transactions", WalletControllerFallback.getTransactionHistory);
+  app.get("/api/user/transactions", WalletController.getTransactionHistory);
   app.post("/api/user/withdraw", WalletController.withdrawFunds);
 
   // Маршруты для транзакций

@@ -98,6 +98,67 @@ export class WalletController {
   }
   
   /**
+   * Получает историю транзакций пользователя
+   * с поддержкой работы при отсутствии соединения с БД
+   * @route GET /api/wallet/history
+   */
+  static async getTransactionHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Валидация параметров запроса
+      const validationResult = userIdSchema.safeParse(req.query);
+      
+      if (!validationResult.success) {
+        throw new ValidationError('Ошибка валидации', formatZodErrors(validationResult.error));
+      }
+      
+      const { user_id } = validationResult.data;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      const currency = req.query.currency as string;
+      const status = req.query.status as string;
+      
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const getTransactionHistoryWithFallback = wrapServiceFunction(
+        walletService.getUserTransactions.bind(walletService),
+        async (error, params) => {
+          console.log(`[WalletController] Возвращаем заглушку для истории транзакций по ID: ${params.userId}`, error);
+          
+          // Возвращаем пустой массив при отсутствии соединения с БД
+          // Формат должен соответствовать интерфейсу IWalletService.getUserTransactions
+          return {
+            transactions: [],
+            total: 0
+          };
+        }
+      );
+      
+      // Получаем транзакции через сервис
+      const result = await getTransactionHistoryWithFallback({
+        userId: user_id,
+        limit,
+        offset,
+        currency: currency as any,
+        status: status as any
+      });
+      
+      // Преобразуем ответ в формат, ожидаемый клиентом
+      const history = {
+        transactions: result.transactions || [],
+        has_more: result.total > (offset + limit),
+        total_count: result.total || 0,
+        current_offset: offset,
+        current_limit: limit
+      };
+      
+      // Отправляем успешный ответ
+      sendSuccess(res, history);
+    } catch (error) {
+      // Передаем ошибку централизованному обработчику
+      next(error);
+    }
+  }
+  
+  /**
    * Привязывает TON-адрес кошелька к пользователю
    */
   static async linkWalletAddress(req: Request, res: Response, next: NextFunction): Promise<void> {
