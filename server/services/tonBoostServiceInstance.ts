@@ -43,39 +43,39 @@ const TON_MIN_CHANGE_THRESHOLD = 0.000001; // Минимальный порог 
 // Адрес TON кошелька проекта для приема платежей
 const TON_WALLET_ADDRESS = "UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8";
 
-// Каталог буст-пакетов
+// Каталог буст-пакетов (унифицирован с фронтендом)
 const boostPackages = [
   {
     id: 1,
-    name: "Small Boost",
+    name: "Starter Boost", // Унифицировано с фронтендом
     priceTon: "1.0",
     bonusUni: "10000.0",    // Бонус UNI при покупке
-    rateTon: "0.5",         // 0.5% в день для TON (обновлено)
-    rateUni: "0.0"          // Нет дополнительного бонуса в UNI
+    rateTon: "0.5",         // 0.5% в день для TON
+    rateUni: "0.0"          // Нет дополнительной доходности в UNI
   },
   {
     id: 2,
-    name: "Medium Boost",
+    name: "Standard Boost", // Унифицировано с фронтендом
     priceTon: "5.0",
     bonusUni: "75000.0",    // Бонус UNI при покупке
-    rateTon: "1.0",         // 1.0% в день для TON (обновлено)
-    rateUni: "0.05"         // 0.05% в день для UNI
+    rateTon: "1.0",         // 1.0% в день для TON
+    rateUni: "0.0"          // Нет дополнительной доходности в UNI
   },
   {
     id: 3,
-    name: "Large Boost",
-    priceTon: "15.0",       // Обновлена цена на 15 TON
+    name: "Advanced Boost", // Унифицировано с фронтендом
+    priceTon: "15.0",
     bonusUni: "250000.0",   // Бонус UNI при покупке
-    rateTon: "2.0",         // 2.0% в день для TON (обновлено)
-    rateUni: "0.1"          // 0.1% в день для UNI
+    rateTon: "2.0",         // 2.0% в день для TON
+    rateUni: "0.0"          // Нет дополнительной доходности в UNI
   },
   {
     id: 4,
-    name: "Mega Boost",
+    name: "Premium Boost", // Унифицировано с фронтендом
     priceTon: "25.0",
     bonusUni: "500000.0",   // Бонус UNI при покупке
-    rateTon: "2.5",         // 2.5% в день для TON (обновлено)
-    rateUni: "0.2"          // 0.2% в день для UNI
+    rateTon: "2.5",         // 2.5% в день для TON
+    rateUni: "0.0"          // Нет дополнительной доходности в UNI
   }
 ];
 

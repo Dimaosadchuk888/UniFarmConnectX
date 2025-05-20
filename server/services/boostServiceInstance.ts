@@ -131,54 +131,45 @@ export interface IBoostService {
  */
 class BoostServiceImpl implements IBoostService {
   /**
-   * Список доступных буст-пакетов
+   * Список доступных буст-пакетов (унифицировано с фронтендом)
    * @private
    */
   private readonly boostPackages: BoostPackage[] = [
     {
       id: 1,
-      name: 'Starter Package',
-      priceUni: '100',
+      name: 'Starter Boost',
+      priceUni: '100000',
       priceTon: '1',
-      bonusUni: '20',
-      rateUni: '1.0',
-      rateTon: '0.2'
-    },
-    {
-      id: 2,
-      name: 'Basic Package',
-      priceUni: '500',
-      priceTon: '5',
-      bonusUni: '125',
-      rateUni: '1.2',
-      rateTon: '0.3'
-    },
-    {
-      id: 3,
-      name: 'Standard Package',
-      priceUni: '1000',
-      priceTon: '10',
-      bonusUni: '300',
-      rateUni: '1.5',
+      bonusUni: '10000',
+      rateUni: '0.0', // Доходность только в TON
       rateTon: '0.5'
     },
     {
-      id: 4,
-      name: 'Advanced Package',
-      priceUni: '5000',
-      priceTon: '50',
-      bonusUni: '2000',
-      rateUni: '2.0',
-      rateTon: '0.7'
+      id: 2,
+      name: 'Standard Boost',
+      priceUni: '500000',
+      priceTon: '5',
+      bonusUni: '75000',
+      rateUni: '0.0', // Доходность только в TON
+      rateTon: '1.0'
     },
     {
-      id: 5,
-      name: 'Pro Package',
-      priceUni: '10000',
-      priceTon: '100',
-      bonusUni: '5000',
-      rateUni: '2.5',
-      rateTon: '1.0'
+      id: 3,
+      name: 'Advanced Boost',
+      priceUni: '1500000',
+      priceTon: '15',
+      bonusUni: '250000',
+      rateUni: '0.0', // Доходность только в TON
+      rateTon: '2.0'
+    },
+    {
+      id: 4,
+      name: 'Premium Boost',
+      priceUni: '2500000',
+      priceTon: '25',
+      bonusUni: '500000',
+      rateUni: '0.0', // Доходность только в TON
+      rateTon: '2.5'
     }
   ];
 
