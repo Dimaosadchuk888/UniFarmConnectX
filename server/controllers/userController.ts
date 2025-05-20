@@ -10,7 +10,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { userService } from '../services';
-import { insertUserSchema } from '@shared/schema';
+import { insertUserSchema, InsertUser } from '@shared/schema';
 import { ZodError } from 'zod';
 import { sendSuccess } from '../utils/responseUtils';
 import { ValidationError } from '../middleware/errorHandler';
@@ -102,14 +102,14 @@ export const UserController = {
       
       // Создаем нового пользователя
       const newUser = await userService.createUser({
-        guest_id: guestId,
+        guest_id: guestId || null,
         username: `guest_${Date.now()}`,
         ref_code: await userService.generateRefCode(),
         telegram_id: null,
         wallet: null,
         ton_wallet_address: null,
         parent_ref_code: referrerCode
-      });
+      } as InsertUser);
       
       return newUser;
     } catch (error) {
@@ -118,7 +118,7 @@ export const UserController = {
       try {
         // Проверяем, существует ли пользователь в MemStorage
         const memStorage = storage.memStorage;
-        const existingUser = await memStorage.getUserByGuestId(guestId);
+        const existingUser = guestId ? await memStorage.getUserByGuestId(guestId) : undefined;
         
         if (existingUser) {
           console.log(`[UserController] Пользователь с guest_id: ${guestId} уже существует в MemStorage`);
