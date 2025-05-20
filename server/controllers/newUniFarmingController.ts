@@ -67,30 +67,7 @@ export class NewUniFarmingController {
       });
     } catch (error) {
       console.error('Ошибка в getUserFarmingInfo:', error);
-      
-      // Обрабатываем ошибки валидации и Not Found непосредственно здесь
-      if (error instanceof ValidationError) {
-        res.status(400).json({
-          success: false,
-          message: error.message,
-          errors: error.errors || null
-        });
-        return;
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          success: false,
-          message: error.message
-        });
-        return;
-      } else if (error instanceof Error) {
-        console.error(error.stack);
-      }
-      
-      // Если это какая-то другая ошибка
-      res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера при получении информации о фарминге'
-      });
+      next(error);
     }
   }
 
@@ -180,30 +157,7 @@ export class NewUniFarmingController {
       }
     } catch (error) {
       console.error('Ошибка в createDeposit:', error);
-      
-      // Обрабатываем ошибки валидации и Not Found непосредственно здесь
-      if (error instanceof ValidationError) {
-        res.status(400).json({
-          success: false,
-          message: error.message,
-          errors: error.errors || null
-        });
-        return;
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          success: false,
-          message: error.message
-        });
-        return;
-      } else if (error instanceof Error) {
-        console.error(error.stack);
-      }
-      
-      // Если это какая-то другая ошибка
-      res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера при создании депозита'
-      });
+      next(error);
     }
   }
 
@@ -211,7 +165,7 @@ export class NewUniFarmingController {
    * Получает список активных депозитов пользователя
    * @route GET /api/new-uni-farming/deposits
    */
-  static async getUserDeposits(req: Request, res: Response): Promise<void> {
+  static async getUserDeposits(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация параметров запроса
       const validationResult = userIdSchema.safeParse(req.query);
@@ -231,30 +185,7 @@ export class NewUniFarmingController {
       });
     } catch (error) {
       console.error('Ошибка в getUserDeposits:', error);
-      
-      // Обрабатываем ошибки валидации и Not Found непосредственно здесь
-      if (error instanceof ValidationError) {
-        res.status(400).json({
-          success: false,
-          message: error.message,
-          errors: error.errors || null
-        });
-        return;
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          success: false,
-          message: error.message
-        });
-        return;
-      } else if (error instanceof Error) {
-        console.error(error.stack);
-      }
-      
-      // Если это какая-то другая ошибка
-      res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера при получении депозитов'
-      });
+      next(error);
     }
   }
 
@@ -262,7 +193,7 @@ export class NewUniFarmingController {
    * Обновляет и рассчитывает накопленную прибыль пользователя
    * @route GET /api/new-uni-farming/update-balance
    */
-  static async updateUserFarmingBalance(req: Request, res: Response): Promise<void> {
+  static async updateUserFarmingBalance(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация параметров запроса
       const validationResult = userIdSchema.safeParse(req.query);
@@ -318,30 +249,7 @@ export class NewUniFarmingController {
       });
     } catch (error) {
       console.error('Ошибка в updateUserFarmingBalance:', error);
-      
-      // Обрабатываем ошибки валидации и Not Found непосредственно здесь
-      if (error instanceof ValidationError) {
-        res.status(400).json({
-          success: false,
-          message: error.message,
-          errors: error.errors || null
-        });
-        return;
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          success: false,
-          message: error.message
-        });
-        return;
-      } else if (error instanceof Error) {
-        console.error(error.stack);
-      }
-      
-      // Если это какая-то другая ошибка
-      res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера при обновлении баланса фарминга'
-      });
+      next(error);
     }
   }
 
@@ -349,7 +257,7 @@ export class NewUniFarmingController {
    * Получает статус фарминга пользователя
    * @route GET /api/uni-farming/status
    */
-  static async getUserFarmingStatus(req: Request, res: Response): Promise<void> {
+  static async getUserFarmingStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация параметров запроса
       const validationResult = userIdSchema.safeParse(req.query);
@@ -369,25 +277,7 @@ export class NewUniFarmingController {
       });
     } catch (error) {
       console.error('Ошибка в getUserFarmingStatus:', error);
-      
-      // Обрабатываем ошибки валидации и Not Found
-      if (error instanceof ValidationError) {
-        res.status(400).json({
-          success: false,
-          message: error.message,
-          errors: error.errors || null
-        });
-      } else if (error instanceof NotFoundError) {
-        res.status(404).json({
-          success: false,
-          message: error.message
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          message: 'Внутренняя ошибка сервера при получении статуса фарминга'
-        });
-      }
+      next(error);
     }
   }
 
@@ -395,7 +285,7 @@ export class NewUniFarmingController {
    * Собирает накопленную прибыль от фарминга
    * @route POST /api/uni-farming/harvest
    */
-  static async harvestFarming(req: Request, res: Response): Promise<void> {
+  static async harvestFarming(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация входных данных
       const validationResult = userIdSchema.safeParse(req.body);
@@ -467,7 +357,7 @@ export class NewUniFarmingController {
    * Симулирует расчет вознаграждения для заданной суммы депозита
    * @route POST /api/uni-farming/simulate-reward
    */
-  static async simulateReward(req: Request, res: Response): Promise<void> {
+  static async simulateReward(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация входных данных
       const validationResult = simulateRewardSchema.safeParse(req.body);
