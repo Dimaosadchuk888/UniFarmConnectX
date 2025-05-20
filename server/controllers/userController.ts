@@ -77,6 +77,13 @@ function handleZodError(err: ZodError): ApiResponse<any> {
  */
 export const UserController = {
   /**
+   * Генерирует временный реферальный код для аварийного режима
+   */
+  generateTempRefCode(): Promise<string> {
+    const randomNum = Math.floor(Math.random() * 1000000);
+    return Promise.resolve(`REF${randomNum}`);
+  },
+  /**
    * Функция регистрации гостевого пользователя с поддержкой fallback
    */
   async _registerGuestUserWithFallback(guestId: string | null, referrerCode: string | null, airdropMode: boolean): Promise<any> {
@@ -125,19 +132,9 @@ export const UserController = {
           return existingUser;
         }
         
-        // Попытка найти реферала если передан код
-        let parentRefCode = null;
-        console.log(`[UserController] Ищем реферала по коду: ${referrerCode}`);
-        if (referrerCode) {
-          const referrer = await memStorage.getUserByRefCode(referrerCode);
-          console.log(`[UserController] Результат поиска реферала:`, referrer);
-          if (referrer) {
-            parentRefCode = referrer.ref_code;
-            console.log(`[UserController] Найден реферал с кодом ${referrerCode}, ID: ${referrer.id}, устанавливаем parent_ref_code=${parentRefCode}`);
-          } else {
-            console.log(`[UserController] Реферал с кодом ${referrerCode} не найден`);
-          }
-        }
+        // Для fallback режима просто используем referrerCode напрямую,
+        // так как мы не можем проверить его валидность в БД
+        console.log(`[UserController] Используем referrerCode=${referrerCode} напрямую в fallback режиме`);
         
         // Создаем временного пользователя в MemStorage
         const newUser = await memStorage.createUser({
@@ -145,7 +142,7 @@ export const UserController = {
           username: `guest_${Date.now()}`,
           ref_code: null, // Будет сгенерирован автоматически
           telegram_id: null,
-          parent_ref_code: parentRefCode
+          parent_ref_code: referrerCode
         });
         
         return {
@@ -163,10 +160,11 @@ export const UserController = {
           username: `guest_${temporaryId}`,
           ref_code: `REF${temporaryId}`,
           telegram_id: null,
-          telegram_username: null,
-          guest_id: guestId,
+          wallet: null,
+          ton_wallet_address: null,
+          guest_id: guestId || `temp_${temporaryId}`,
           created_at: new Date().toISOString(),
-          referrer_id: null,
+          parent_ref_code: referrerCode,
           is_fallback: true,
           message: 'Временный аккаунт создан (аварийный режим)'
         };
