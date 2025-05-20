@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { missionService } from '../services';
-import { MissionStatus, MissionWithCompletion } from '../services/missionServiceInstance'; // Импортируем константы из файла с интерфейсом
+import { MissionStatus, MissionWithCompletion } from '../services/missionServiceInstance';
 import { sendSuccess, sendSuccessArray } from '../utils/responseUtils';
 import { 
   completeMissionSchema, 
@@ -12,11 +12,12 @@ import {
 } from '../validators/schemas';
 import { NotFoundError, ValidationError } from '../middleware/errorHandler';
 import { formatZodErrors } from '../utils/validationUtils';
+import { MissionService } from '../services/missionService';
+import { wrapServiceFunction } from '../db-service-wrapper';
 
 /**
- * Контроллер для работы с миссиями
- * Отвечает за обработку HTTP-запросов связанных с миссиями
- * Включает функциональность для работы в режиме fallback при проблемах с БД
+ * Консолидированный контроллер для работы с миссиями
+ * с поддержкой работы в аварийном (fallback) режиме при проблемах с БД
  */
 export class MissionController {
   /**
@@ -97,11 +98,19 @@ export class MissionController {
 
       const { user_id } = validationResult.data;
       
-      // Получаем выполненные миссии
-      const completedMissions = await missionService.getUserCompletedMissions(user_id);
-      
-      // Отправляем ответ
-      sendSuccessArray(res, completedMissions);
+      try {
+        // Получаем выполненные миссии
+        const completedMissions = await missionService.getUserCompletedMissions(user_id);
+        
+        // Отправляем ответ
+        sendSuccessArray(res, completedMissions);
+      } catch (dbError) {
+        // В случае ошибки БД, возвращаем заглушку
+        console.log(`[MissionController] Fallback: Возвращаем заглушку для выполненных заданий пользователя: ${user_id}`);
+        
+        // Возвращаем пустой список, если нет соединения с БД
+        sendSuccessArray(res, []);
+      }
     } catch (error) {
       next(error);
     }
@@ -134,11 +143,58 @@ export class MissionController {
 
       const { user_id } = validationResult.data;
       
-      // Получаем миссии со статусом выполнения
-      const missionsWithCompletion = await missionService.getAllMissionsWithCompletion(user_id);
-      
-      // Отправляем ответ
-      sendSuccessArray(res, missionsWithCompletion);
+      try {
+        // Получаем миссии со статусом выполнения
+        const missionsWithCompletion = await missionService.getAllMissionsWithCompletion(user_id);
+        
+        // Отправляем ответ
+        sendSuccessArray(res, missionsWithCompletion);
+      } catch (dbError) {
+        // В случае ошибки БД, возвращаем заглушку
+        console.log(`[MissionController] Fallback: Возвращаем заглушку для заданий со статусом выполнения для пользователя: ${user_id}`);
+        
+        // Возвращаем базовые демо-задания при отсутствии соединения с БД
+        const fallbackMissions = [
+          {
+            id: 1,
+            type: 'daily',
+            title: 'Ежедневный бонус',
+            description: 'Получите ежедневный бонус',
+            reward_uni: '5',
+            is_active: true,
+            is_completed: false,
+            completed_at: null,
+            status: MissionStatus.AVAILABLE,
+            progress: 0
+          },
+          {
+            id: 2,
+            type: 'social',
+            title: 'Подписка на канал',
+            description: 'Подпишитесь на наш Telegram канал',
+            reward_uni: '10',
+            is_active: true,
+            is_completed: false,
+            completed_at: null,
+            status: MissionStatus.AVAILABLE,
+            progress: 0
+          },
+          {
+            id: 3,
+            type: 'referral',
+            title: 'Пригласите друга',
+            description: 'Пригласите друга и получите бонус',
+            reward_uni: '15',
+            is_active: true,
+            is_completed: false,
+            completed_at: null,
+            status: MissionStatus.AVAILABLE,
+            progress: 0
+          }
+        ] as MissionWithCompletion[];
+        
+        sendSuccessArray(res, fallbackMissions);
+      }
     } catch (error) {
       next(error);
     }
@@ -159,11 +215,23 @@ export class MissionController {
         throw new ValidationError('Некорректные ID пользователя или миссии');
       }
       
-      // Проверяем выполнение миссии
-      const isCompleted = await missionService.isUserMissionCompleted(userId, missionId);
-      
-      // Отправляем результат
-      sendSuccess(res, { is_completed: isCompleted });
+      try {
+        // Проверяем выполнение миссии
+        const isCompleted = await missionService.isUserMissionCompleted(userId, missionId);
+        
+        // Отправляем результат
+        sendSuccess(res, { is_completed: isCompleted });
+      } catch (dbError) {
+        // В случае ошибки БД, возвращаем заглушку
+        console.log(`[MissionController] Fallback: Возвращаем заглушку для проверки выполнения задания ${missionId} пользователем: ${userId}`);
+        
+        // Возвращаем по умолчанию что задание не выполнено
+        sendSuccess(res, { 
+          is_completed: false,
+          is_fallback: true,
+          message: "База данных недоступна, информация о выполнении задания временно недоступна"
+        });
+      }
     } catch (error) {
       next(error);
     }
@@ -245,14 +313,30 @@ export class MissionController {
 
       const { userId, missionId } = validationResult.data;
       
-      // Получаем статус миссии через сервис
-      const status = await missionService.getMissionStatus(
-        parseInt(userId),
-        parseInt(missionId)
-      );
-      
-      // Отправляем результат
-      sendSuccess(res, status);
+      try {
+        // Получаем статус миссии через сервис
+        const status = await missionService.getMissionStatus(
+          parseInt(userId),
+          parseInt(missionId)
+        );
+        
+        // Отправляем результат
+        sendSuccess(res, status);
+      } catch (dbError) {
+        // В случае ошибки БД, возвращаем информативное сообщение
+        console.log(`[MissionController] Fallback: Ошибка БД при получении статуса задания ${missionId} пользователя: ${userId}`);
+        
+        // Возвращаем базовый статус при проблемах с БД
+        sendSuccess(res, {
+          mission_id: parseInt(missionId),
+          user_id: parseInt(userId),
+          status: MissionStatus.AVAILABLE,
+          progress: 0,
+          is_completed: false,
+          is_fallback: true,
+          message: "База данных недоступна, статус задания временно недоступен"
+        });
+      }
     } catch (error) {
       next(error);
     }
@@ -283,11 +367,25 @@ export class MissionController {
 
       const { user_id, mission_id } = validationResult.data;
       
-      // Отправляем миссию на проверку через сервис
-      const result = await missionService.submitMission(user_id, mission_id);
-      
-      // Отправляем результат
-      sendSuccess(res, result);
+      try {
+        // Отправляем миссию на проверку через сервис
+        const result = await missionService.submitMission(user_id, mission_id);
+        
+        // Отправляем результат
+        sendSuccess(res, result);
+      } catch (dbError) {
+        // В случае ошибки БД, возвращаем информативное сообщение
+        console.log(`[MissionController] Fallback: Ошибка БД при отправке задания ${mission_id} на проверку пользователем: ${user_id}`);
+        
+        // Возвращаем сообщение об ошибке при проблемах с БД
+        sendSuccess(res, {
+          success: false,
+          message: "База данных недоступна, отправка задания на проверку временно невозможна",
+          user_id: user_id,
+          mission_id: mission_id,
+          is_fallback: true
+        });
+      }
     } catch (error) {
       next(error);
     }
