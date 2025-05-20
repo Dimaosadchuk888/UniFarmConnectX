@@ -35,9 +35,9 @@ export const databaseErrorHandler = async (req: Request, res: Response, next: Ne
     
     // Проверяем соединение с БД только если не происходит переподключение
     if (!isReconnecting) {
-      const isConnected = await testDatabaseConnection().catch(() => false);
+      const connectionResult = await testDatabaseConnection().catch(() => ({ success: false, dbType: 'unknown' }));
       
-      if (!isConnected) {
+      if (!connectionResult.success) {
         console.log('[DB] ⚠️ Потеряно соединение с базой данных. Попытка переподключения...');
         
         isReconnecting = true;
