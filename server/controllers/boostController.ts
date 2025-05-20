@@ -34,15 +34,12 @@ export class BoostController {
    * Получает активные буст-пакеты фарминга для пользователя
    * @route GET /api/farming/boosts/active?user_id=123
    */
-  static async getUserFarmingBoosts(req: Request, res: Response): Promise<void> {
+  static async getUserFarmingBoosts(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = Number(req.query.user_id);
       
       if (isNaN(userId)) {
-        return res.json({ 
-          success: false, 
-          message: "Не указан или некорректный ID пользователя"
-        });
+        throw new ValidationError("Не указан или некорректный ID пользователя", { user_id: String(req.query.user_id) });
       }
       
       // Заворачиваем вызов сервиса в обработчик ошибок
@@ -69,12 +66,7 @@ export class BoostController {
       }
     } catch (error) {
       console.error('[BoostController] Ошибка в getUserFarmingBoosts:', error);
-      res.json({ 
-        success: true, 
-        data: [],
-        is_fallback: true,
-        message: "Произошла ошибка при обработке запроса бустов фарминга"
-      });
+      next(error);
     }
   }
   
@@ -110,12 +102,7 @@ export class BoostController {
     } catch (error) {
       // Обработка всех остальных ошибок (включая валидацию)
       console.error('[BoostController] Ошибка:', error);
-      sendSuccess(res, { 
-        boosts: [], 
-        has_active_boosts: false,
-        is_fallback: true,
-        message: "Произошла ошибка при запросе бустов"
-      });
+      next(error);
     }
   }
 
