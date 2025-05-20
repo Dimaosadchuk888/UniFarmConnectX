@@ -1579,14 +1579,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/farming-deposits", FarmingController.getUserFarmingDeposits);
   app.post("/api/deposit", FarmingController.createDeposit);
 
-  // Маршруты для реферальной системы
-  app.get("/api/referrals", ReferralControllerFallback.getReferralStats);
+  // Маршруты для реферальной системы (объединенные)
+  app.get("/api/referrals", ReferralController.getReferralStats);
   app.get("/api/referrals/inviter/:id", ReferralController.getUserInviter);
   app.post("/api/referral/register-start-param", ReferralController.registerStartParam);
-
-  // Маршруты для реферальной системы с fallback
-  app.get("/api/referrals/tree", ReferralControllerFallback.getReferralTree);
-  app.get("/api/referrals/stats", ReferralControllerFallback.getReferralStats);
+  app.get("/api/referrals/tree", ReferralController.getReferralTree);
+  app.get("/api/referrals/stats", ReferralController.getReferralStats);
 
   // Маршруты для оптимизированной реферальной системы
   app.get("/api/referrals/tree/optimized", ReferralSystemController.getReferralStructure);

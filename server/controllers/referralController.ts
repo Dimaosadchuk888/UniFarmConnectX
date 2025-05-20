@@ -15,6 +15,84 @@ import { ValidationError } from '../middleware/errorHandler';
  */
 export class ReferralController {
   /**
+   * Получает реферальное дерево для пользователя 
+   * @route GET /api/referrals/tree
+   */
+  static async getReferralTree(req: Request, res: Response): Promise<void> {
+    try {
+      // Извлекаем ID пользователя
+      const userIdRaw = extractUserId(req);
+      if (!userIdRaw || isNaN(userIdRaw) || userIdRaw <= 0) {
+        return sendError(res, 'Некорректный идентификатор пользователя', 400);
+      }
+      
+      const userId = Number(userIdRaw);
+      console.log(`[ReferralController] Запрос реферального дерева для пользователя: ${userId}`);
+      
+      try {
+        // Пробуем получить дерево через основной сервис
+        const referralTree = await referralService.getReferralTree(userId);
+        
+        // Форматируем и отправляем ответ
+        sendSuccess(res, referralTree);
+      } catch (serviceError) {
+        console.log(`[ReferralController] Ошибка при получении реферального дерева: ${serviceError.message}`);
+        
+        // В случае ошибки возвращаем упрощенную структуру
+        sendSuccess(res, {
+          user_id: userId,
+          invitees: [],
+          total_invitees: 0,
+          levels_data: []
+        });
+      }
+    } catch (error) {
+      console.error('[ReferralController] Ошибка при обработке запроса реферального дерева:', error);
+      sendServerError(res, 'Ошибка при получении реферального дерева');
+    }
+  }
+  
+  /**
+   * Получает статистику рефералов для пользователя
+   * @route GET /api/referrals/stats
+   */
+  static async getReferralStats(req: Request, res: Response): Promise<void> {
+    try {
+      // Извлекаем ID пользователя
+      const userIdRaw = extractUserId(req);
+      if (!userIdRaw || isNaN(userIdRaw) || userIdRaw <= 0) {
+        return sendError(res, 'Некорректный идентификатор пользователя', 400);
+      }
+      
+      const userId = Number(userIdRaw);
+      console.log(`[ReferralController] Запрос статистики рефералов для пользователя: ${userId}`);
+      
+      try {
+        // Пробуем получить статистику через основной сервис
+        const stats = await referralService.getUserReferralStats(userId);
+        
+        // Форматируем и отправляем ответ
+        sendSuccess(res, stats);
+      } catch (serviceError) {
+        console.log(`[ReferralController] Ошибка при получении статистики рефералов: ${serviceError.message}`);
+        
+        // В случае ошибки возвращаем базовую статистику
+        sendSuccess(res, {
+          user_id: userId,
+          total_invitees: 0,
+          levels: {},
+          total_earned: {
+            amount: "0",
+            currency: "TON"
+          }
+        });
+      }
+    } catch (error) {
+      console.error('[ReferralController] Ошибка при обработке запроса статистики рефералов:', error);
+      sendServerError(res, 'Ошибка при получении статистики рефералов');
+    }
+  }
+  /**
    * Обрабатывает запрос на регистрацию параметра start
    * Этот параметр получается из Telegram WebApp.startParam и используется для
    * отслеживания реферальных приглашений
