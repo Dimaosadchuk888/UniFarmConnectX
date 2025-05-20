@@ -48,7 +48,7 @@ import { DailyBonusController } from './controllers/dailyBonusController';
 import { NewUniFarmingController } from './controllers/newUniFarmingController'; // Основной контроллер для UNI фарминга
 import { BoostController } from './controllers/boostController'; // Контроллер для бустов
 import { TonBoostController } from './controllers/tonBoostController'; // Контроллер для TON фарминга с поддержкой fallback режима
-import { DailyBonusControllerFallback } from './controllers/dailyBonusControllerFallback'; // Fallback контроллер для ежедневных бонусов
+// Импорт DailyBonusControllerFallback удален (консолидирован в DailyBonusController)
 import { WalletControllerFallback } from './controllers/walletControllerFallback'; // Fallback контроллер для кошелька
 import { UserControllerFallback } from './controllers/userControllerFallback'; // Fallback контроллер для пользователей
 import { AuthController } from './controllers/authController'; // Обновленный контроллер (SOLID)
@@ -1595,8 +1595,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // app.post("/api/daily-bonus/claim", DailyBonusController.claimDailyBonus);
 
   // Используем fallback контроллер для ежедневных бонусов
-  app.get("/api/daily-bonus/status", DailyBonusControllerFallback.checkDailyBonusStatus);
-  app.post("/api/daily-bonus/claim", DailyBonusControllerFallback.claimDailyBonus);
+  app.get("/api/daily-bonus/status", DailyBonusController.checkDailyBonusStatus);
+  app.post("/api/daily-bonus/claim", DailyBonusController.claimDailyBonus);
 
   // Маршруты для UNI фарминга (с поддержкой fallback)
   // Основные маршруты для UNI фарминга (используем новый контроллер)

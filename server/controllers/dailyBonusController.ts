@@ -83,6 +83,7 @@ export class DailyBonusController {
   
   /**
    * Выдает пользователю ежедневный бонус
+   * с поддержкой работы при отсутствии соединения с БД
    * @route POST /api/daily-bonus/claim
    */
   static async claimDailyBonus(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -101,9 +102,27 @@ export class DailyBonusController {
       // Получаем ID пользователя из валидированных данных
       const { user_id } = validationResult.data;
       
-      // Вызываем метод сервиса для получения бонуса
-      const result: DailyBonusClaimResponse = 
-        await dailyBonusService.claimDailyBonus(user_id);
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const claimDailyBonusWithFallback = wrapServiceFunction(
+        dailyBonusService.claimDailyBonus.bind(dailyBonusService),
+        async (error, userId) => {
+          console.log(`[DailyBonusController] Возвращаем заглушку для получения бонуса по ID: ${userId}`);
+          
+          // Возвращаем данные-заглушки при отсутствии соединения с БД
+          return {
+            success: false,
+            received_amount: "0",
+            new_balance: "0",
+            streak_days: 0,
+            next_bonus_amount: "0",
+            hours_until_next: 24,
+            message: "Получение бонуса невозможно при отсутствии соединения с базой данных"
+          };
+        }
+      );
+      
+      // Вызываем сервис с обработкой ошибок
+      const result = await claimDailyBonusWithFallback(user_id);
       
       // Даже если бонус не получен (уже забран сегодня), 
       // используем стандартный формат ответа с полем success
