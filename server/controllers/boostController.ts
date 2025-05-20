@@ -31,6 +31,54 @@ export class BoostController {
   }
   
   /**
+   * Получает активные буст-пакеты фарминга для пользователя
+   * @route GET /api/farming/boosts/active?user_id=123
+   */
+  static async getUserFarmingBoosts(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = Number(req.query.user_id);
+      
+      if (isNaN(userId)) {
+        return res.json({ 
+          success: false, 
+          message: "Не указан или некорректный ID пользователя"
+        });
+      }
+      
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const getActiveBoostsWithFallback = wrapServiceFunction(
+        boostService.getUserFarmingBoosts.bind(boostService),
+        async (error, userId) => {
+          console.log(`[BoostController] Возвращаем заглушку для активных бустов фарминга по ID: ${userId}`);
+          // Возвращаем пустой массив при отсутствии соединения с БД
+          return [];
+        }
+      );
+      
+      try {
+        const farmingBoosts = await getActiveBoostsWithFallback(userId);
+        res.json({ success: true, data: farmingBoosts });
+      } catch (dbError) {
+        console.error("[BoostController] Ошибка БД при получении бустов фарминга:", dbError);
+        res.json({ 
+          success: true, 
+          data: [],
+          is_fallback: true,
+          message: "База данных недоступна, информация о бустах фарминга временно недоступна"
+        });
+      }
+    } catch (error) {
+      console.error('[BoostController] Ошибка в getUserFarmingBoosts:', error);
+      res.json({ 
+        success: true, 
+        data: [],
+        is_fallback: true,
+        message: "Произошла ошибка при обработке запроса бустов фарминга"
+      });
+    }
+  }
+  
+  /**
    * Получает список активных буст-пакетов пользователя
    * @route GET /api/boosts/active?user_id=123
    */
