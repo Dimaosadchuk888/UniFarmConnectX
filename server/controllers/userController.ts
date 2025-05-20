@@ -79,7 +79,7 @@ export const UserController = {
   /**
    * Функция регистрации гостевого пользователя с поддержкой fallback
    */
-  async _registerGuestUserWithFallback(guestId: string, referrerCode: string | null, airdropMode: boolean): Promise<any> {
+  async _registerGuestUserWithFallback(guestId: string | null, referrerCode: string | null, airdropMode: boolean): Promise<any> {
     try {
       // Сначала проверяем, существует ли уже пользователь с таким guest_id
       if (guestId) {
@@ -106,8 +106,9 @@ export const UserController = {
         username: `guest_${Date.now()}`,
         ref_code: await userService.generateRefCode(),
         telegram_id: null,
-        telegram_username: null,
-        referrer_id: referrerId
+        wallet: null,
+        ton_wallet_address: null,
+        parent_ref_code: referrerCode
       });
       
       return newUser;
@@ -189,10 +190,62 @@ export const UserController = {
 
       const { guest_id, referrer_code, airdrop_mode } = validationResult.data;
       
-      const result = await this._registerGuestUserWithFallback(guest_id, referrer_code, airdrop_mode);
+      // Переконвертуємо типи, щоб уникнути помилок типізації
+      const guestId = guest_id || null;
+      const refCode = referrer_code || null;
+      const airdropMode = !!airdrop_mode; // Конвертуємо до boolean
+      
+      const result = await this._registerGuestUserWithFallback(guestId, refCode, airdropMode);
       sendSuccess(res, result);
     } catch (error) {
       next(error);
+    }
+  },
+
+  /**
+   * Функция восстановления сессии с поддержкой fallback
+   */
+  async _restoreSessionWithFallback(guestId: string | null, telegramData: any): Promise<any> {
+    try {
+      let user;
+      
+      if (guestId) {
+        user = await userService.getUserByGuestId(guestId);
+      } else if (telegramData && telegramData.id) {
+        user = await userService.getUserByTelegramId(telegramData.id);
+      }
+      
+      if (!user) {
+        throw new Error('Пользователь не найден');
+      }
+      
+      return {
+        user,
+        session_id: `sess_${uuidv4()}`,
+        is_new_user: false
+      };
+    } catch (error) {
+      console.log(`[UserController] Возвращаем заглушку для восстановления сессии`, error);
+      
+      // Создаем временную сессию
+      const temporaryId = Math.floor(Math.random() * 1000000) + 1;
+      return {
+        user: {
+          id: temporaryId,
+          username: `temp_${temporaryId}`,
+          ref_code: `REF${temporaryId}`,
+          telegram_id: telegramData ? 12345678 : null,
+          wallet: null,
+          ton_wallet_address: null,
+          guest_id: guestId || uuidv4(),
+          created_at: new Date().toISOString(),
+          parent_ref_code: null,
+          is_fallback: true
+        },
+        session_id: `sess_${uuidv4()}`,
+        is_new_user: false,
+        message: 'Временная сессия создана из-за недоступности базы данных'
+      };
     }
   },
 
@@ -211,51 +264,10 @@ export const UserController = {
         });
       }
       
-      // Создаем собственную функцию для обработки сессии с поддержкой fallback
-      async function restoreSessionWithFallback(guestId: string, telegramData: any): Promise<any> {
-        try {
-          let user;
-          
-          if (guestId) {
-            user = await userService.getUserByGuestId(guestId);
-          } else if (telegramData && telegramData.id) {
-            user = await userService.getUserByTelegramId(telegramData.id);
-          }
-          
-          if (!user) {
-            throw new Error('Пользователь не найден');
-          }
-          
-          return {
-            user,
-            session_id: `sess_${uuidv4()}`,
-            is_new_user: false
-          };
-        } catch (error) {
-          console.log(`[UserController] Возвращаем заглушку для восстановления сессии`, error);
-          
-          // Создаем временную сессию
-          const temporaryId = Math.floor(Math.random() * 1000000) + 1;
-          return {
-            user: {
-              id: temporaryId,
-              username: `temp_${temporaryId}`,
-              ref_code: `REF${temporaryId}`,
-              telegram_id: telegramData ? 12345678 : null,
-              telegram_username: telegramData ? 'temp_user' : null,
-              guest_id: guestId || uuidv4(),
-              created_at: new Date().toISOString(),
-              referrer_id: null,
-              is_fallback: true
-            },
-            session_id: `sess_${uuidv4()}`,
-            is_new_user: false,
-            message: 'Временная сессия создана из-за недоступности базы данных'
-          };
-        }
-      }
+      // Переконвертуємо типи для уникнення помилок типізації
+      const guestId = guest_id || null;
       
-      const sessionData = await restoreSessionWithFallback(guest_id, telegram_data);
+      const sessionData = await this._restoreSessionWithFallback(guestId, telegram_data);
       sendSuccess(res, sessionData);
     } catch (error) {
       next(error);
