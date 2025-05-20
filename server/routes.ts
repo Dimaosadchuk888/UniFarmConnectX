@@ -46,8 +46,7 @@ import * as DbStatusController from './api/admin/db-status'; // Контролл
 import * as DbSelectorStatusController from './api/db-selector-status'; // Новый контроллер для гибкого подключения к БД
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { NewUniFarmingController } from './controllers/newUniFarmingController'; // Основной контроллер для UNI фарминга
-import { BoostController } from './controllers/boostController';
-import { BoostControllerFallback } from './controllers/boostControllerFallback'; // Fallback контроллер для бустов
+import { BoostController } from './controllers/boostController'; // Контроллер для бустов
 import { TonBoostController } from './controllers/tonBoostController';
 import { TonBoostControllerFallback } from './controllers/tonBoostControllerFallback'; // Fallback контроллер для TON фарминга
 import { DailyBonusControllerFallback } from './controllers/dailyBonusControllerFallback'; // Fallback контроллер для ежедневных бонусов
@@ -1630,9 +1629,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Маршруты для буст-пакетов (с поддержкой fallback)
-  app.get("/api/boosts", (req, res, next) => BoostControllerFallback.getBoostPackages(req, res, next));
-  app.get("/api/boosts/active", (req, res, next) => BoostControllerFallback.getUserActiveBoosts(req, res, next));
-  app.post("/api/boosts/purchase", (req, res, next) => BoostControllerFallback.purchaseBoost(req, res, next));
+  app.get("/api/boosts", (req, res, next) => BoostController.getBoostPackages(req, res, next));
+  app.get("/api/boosts/active", (req, res, next) => BoostController.getUserActiveBoosts(req, res, next));
+  app.post("/api/boosts/purchase", (req, res, next) => BoostController.purchaseBoost(req, res, next));
 
   //  // Маршруты для TON Boost-пакетов
   app.get("/api/ton-boosts", TonBoostController.getTonBoostPackages);
