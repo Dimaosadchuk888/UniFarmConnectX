@@ -169,8 +169,7 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
 
   // Проверяем подключение к базе данных перед запуском сервера
   console.log('[Server] 🔄 Проверка подключения к базе данных...');
-  const dbConnectionResult = await testDatabaseConnection();
-  const isDbConnected = dbConnectionResult.success;
+  const isDbConnected = await testConnection();
 
   if (!isDbConnected) {
     console.error('[Server] ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных!');
@@ -180,8 +179,8 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
     const reconnected = await new Promise<boolean>(resolve => {
       setTimeout(async () => {
         try {
-          const result = await testDatabaseConnection();
-          resolve(result.success);
+          const result = await testConnection();
+          resolve(result);
         } catch (error) {
           console.error('[Server] ❌ Ошибка при повторном подключении:', error);
           resolve(false);
