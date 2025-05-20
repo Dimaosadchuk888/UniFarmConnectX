@@ -10,7 +10,7 @@
  */
 
 import { PoolClient } from 'pg';
-import { db, pool, queryWithRetry } from '../db-connect-unified';
+import { db, pool, queryWithRetry } from '../db';
 import { withTransaction } from '../utils/transaction-manager';
 
 /**

@@ -7,7 +7,7 @@
  */
 
 import { PoolClient } from 'pg';
-import { pool } from '../db-connect-unified';
+import { pool } from '../db';
 
 /**
  * Опції для виконання транзакції

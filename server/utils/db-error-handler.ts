@@ -7,7 +7,7 @@
  */
 
 import { Response } from 'express';
-import { db, testConnection, reconnect } from '../db-connect-unified';
+import { db, testConnection, reconnect } from '../db';
 
 // Database error types
 export enum DbErrorType {
