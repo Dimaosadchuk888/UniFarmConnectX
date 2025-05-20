@@ -85,58 +85,70 @@ export class ReferralController {
       const userId = Number(userIdRaw);
       console.log(`[ReferralController] Fallback: Запрос реферального дерева для пользователя: ${userId}`);
       
-      try {
-        // Проверяем существование пользователя
-        const user = await memStorage.getUser(userId);
-        if (!user) {
-          console.log(`[ReferralController] Fallback: Пользователь с ID ${userId} не найден в MemStorage`);
-          return sendSuccess(res, {
-            user_id: userId,
-            invitees: [],
-            total_invitees: 0,
-            levels_data: [],
-            is_fallback: true,
-            message: 'Данные в режиме fallback'
-          });
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const getReferralTreeFallback = wrapServiceFunction(
+        ReferralService.getReferralTree.bind(ReferralService),
+        async (error, userId) => {
+          console.log(`[ReferralController] Используем fallback для получения реферального дерева для пользователя: ${userId}`, error);
+          
+          try {
+            // Проверяем существование пользователя
+            const user = await memStorage.getUser(userId);
+            if (!user) {
+              console.log(`[ReferralController] Fallback: Пользователь с ID ${userId} не найден в MemStorage`);
+              return {
+                user_id: userId,
+                invitees: [],
+                total_invitees: 0,
+                levels_data: [],
+                is_fallback: true,
+                message: 'Данные в режиме fallback'
+              };
+            }
+            
+            // Получаем всех пользователей из MemStorage
+            const allUsers = memStorage['users'];
+            console.log(`[ReferralController] Fallback: Получено ${allUsers.length} пользователей из MemStorage`);
+            
+            // Фильтруем пользователей, чтобы получить рефералов
+            const invitees = allUsers.filter(refUser => 
+              refUser.parent_ref_code === user.ref_code
+            ).map(refUser => ({
+              id: refUser.id,
+              username: refUser.username || 'user',
+              level: 1
+            }));
+            
+            console.log(`[ReferralController] Fallback: Найдено ${invitees.length} прямых рефералов`);
+            
+            // Формируем результат
+            return {
+              user_id: userId,
+              invitees: invitees,
+              total_invitees: invitees.length,
+              levels_data: [],
+              is_fallback: true,
+              message: 'Данные получены из резервного хранилища'
+            };
+          } catch (memError) {
+            console.error(`[ReferralController] Fallback: Ошибка при получении данных из MemStorage:`, memError);
+            
+            // Возвращаем пустые данные при ошибке
+            return {
+              user_id: userId,
+              invitees: [],
+              total_invitees: 0,
+              levels_data: [],
+              is_fallback: true,
+              message: 'Недоступно из-за ошибки в резервном хранилище'
+            };
+          }
         }
-        
-        // Получаем всех пользователей из MemStorage
-        const allUsers = memStorage['users'];
-        console.log(`[ReferralController] Fallback: Получено ${allUsers.length} пользователей из MemStorage`);
-        
-        // Фильтруем пользователей, чтобы получить рефералов
-        const invitees = allUsers.filter(refUser => 
-          refUser.parent_ref_code === user.ref_code
-        ).map(refUser => ({
-          id: refUser.id,
-          username: refUser.username || 'user',
-          level: 1
-        }));
-        
-        console.log(`[ReferralController] Fallback: Найдено ${invitees.length} прямых рефералов`);
-        
-        // Формируем результат
-        return sendSuccess(res, {
-          user_id: userId,
-          invitees: invitees,
-          total_invitees: invitees.length,
-          levels_data: [],
-          is_fallback: true,
-          message: 'Данные получены из резервного хранилища'
-        });
-      } catch (memError) {
-        console.error(`[ReferralController] Fallback: Ошибка при получении данных из MemStorage:`, memError);
-        
-        // Возвращаем пустые данные при ошибке
-        return sendSuccess(res, {
-          user_id: userId,
-          invitees: [],
-          total_invitees: 0,
-          levels_data: [],
-          is_fallback: true,
-          message: 'Недоступно из-за ошибки в резервном хранилище'
-        });
-      }
+      );
+      
+      // Получаем данные через обёртку
+      const treeData = await getReferralTreeFallback(userId);
+      sendSuccess(res, treeData);
     } catch (error) {
       console.error('[ReferralController] Fallback: Критическая ошибка:', error);
       
@@ -219,63 +231,75 @@ export class ReferralController {
       const userId = Number(userIdRaw);
       console.log(`[ReferralController] Fallback: Запрос реферальной статистики для пользователя: ${userId}`);
       
-      try {
-        // Проверяем существование пользователя
-        const user = await memStorage.getUser(userId);
-        if (!user) {
-          console.log(`[ReferralController] Fallback: Пользователь с ID ${userId} не найден в MemStorage`);
-          return sendSuccess(res, {
-            user_id: userId,
-            total_invitees: 0,
-            levels: {},
-            total_earned: {
-              amount: "0",
-              currency: "TON"
-            },
-            is_fallback: true,
-            message: 'Данные в режиме fallback'
-          });
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const getReferralStatsFallback = wrapServiceFunction(
+        ReferralService.getReferralStats.bind(ReferralService),
+        async (error, userId) => {
+          console.log(`[ReferralController] Fallback: Используем fallback для получения реферальной статистики:`, error);
+          
+          try {
+            // Проверяем существование пользователя
+            const user = await memStorage.getUser(userId);
+            if (!user) {
+              console.log(`[ReferralController] Fallback: Пользователь с ID ${userId} не найден в MemStorage`);
+              return {
+                user_id: userId,
+                total_invitees: 0,
+                levels: {},
+                total_earned: {
+                  amount: "0",
+                  currency: "TON"
+                },
+                is_fallback: true,
+                message: 'Данные в режиме fallback'
+              };
+            }
+            
+            // Получаем всех пользователей из MemStorage
+            const allUsers = memStorage['users'];
+            
+            // Фильтруем пользователей, чтобы получить рефералов
+            const referrals = allUsers.filter(refUser => 
+              refUser.parent_ref_code === user.ref_code
+            );
+            
+            // В режиме fallback все рефералы считаются уровня 1
+            const levels = { 1: referrals.length };
+            
+            // Формируем результат
+            return {
+              user_id: userId,
+              total_invitees: referrals.length,
+              levels: levels,
+              total_earned: {
+                amount: "0",
+                currency: "TON"
+              },
+              is_fallback: true,
+              message: 'Статистика получена из резервного хранилища'
+            };
+          } catch (memError) {
+            console.error(`[ReferralController] Fallback: Ошибка при получении данных из MemStorage:`, memError);
+            
+            // Возвращаем пустые данные при ошибке
+            return {
+              user_id: userId,
+              total_invitees: 0,
+              levels: {},
+              total_earned: {
+                amount: "0",
+                currency: "TON"
+              },
+              is_fallback: true,
+              message: 'Недоступно из-за ошибки в резервном хранилище'
+            };
+          }
         }
-        
-        // Получаем всех пользователей из MemStorage
-        const allUsers = memStorage['users'];
-        
-        // Фильтруем пользователей, чтобы получить рефералов
-        const referrals = allUsers.filter(refUser => 
-          refUser.parent_ref_code === user.ref_code
-        );
-        
-        // В режиме fallback все рефералы считаются уровня 1
-        const levels = { 1: referrals.length };
-        
-        // Формируем результат
-        return sendSuccess(res, {
-          user_id: userId,
-          total_invitees: referrals.length,
-          levels: levels,
-          total_earned: {
-            amount: "0",
-            currency: "TON"
-          },
-          is_fallback: true,
-          message: 'Статистика получена из резервного хранилища'
-        });
-      } catch (memError) {
-        console.error(`[ReferralController] Fallback: Ошибка при получении данных из MemStorage:`, memError);
-        
-        // Возвращаем пустые данные при ошибке
-        return sendSuccess(res, {
-          user_id: userId,
-          total_invitees: 0,
-          levels: {},
-          total_earned: {
-            amount: "0",
-            currency: "TON"
-          },
-          is_fallback: true,
-          message: 'Недоступно из-за ошибки в резервном хранилище'
-        });
-      }
+      );
+      
+      // Получаем данные через обёртку
+      const statsData = await getReferralStatsFallback(userId);
+      sendSuccess(res, statsData);
     } catch (error) {
       console.error('[ReferralController] Fallback: Критическая ошибка:', error);
       
@@ -492,72 +516,62 @@ export class ReferralController {
       const userId = Number(userIdRaw);
       console.log(`[ReferralController] Fallback: Запрос данных для пользователя: ${userId}`);
       
-      try {
-        // Проверяем существование пользователя
-        const user = await memStorage.getUser(userId);
-        if (!user) {
-          console.log(`[ReferralController] Fallback: Пользователь с ID ${userId} не найден в MemStorage`);
-          return sendSuccess(res, {
-            user_id: userId,
-            username: null,
-            ref_code: null,
-            total_referrals: 0,
-            referral_counts: {},
-            level_income: {},
-            referrals: [],
-            is_fallback: true,
-            message: 'Пользователь не найден в резервном хранилище'
-          });
+      // Заворачиваем вызов сервиса в обработчик ошибок
+      const getUserReferralsFallback = wrapServiceFunction(
+        referralService.getUserReferrals.bind(referralService),
+        async (error, userId) => {
+          console.log(`[ReferralController] Fallback: Используем fallback для получения данных рефералов:`, error);
+          
+          try {
+            // Проверяем существование пользователя
+            const user = await memStorage.getUser(userId);
+            if (!user) {
+              console.log(`[ReferralController] Fallback: Пользователь с ID ${userId} не найден в MemStorage`);
+              return [];
+            }
+            
+            // Получаем всех пользователей из MemStorage
+            const allUsers = memStorage['users'];
+            
+            // Фильтруем пользователей, чтобы получить рефералов
+            const referrals = allUsers.filter(refUser => 
+              refUser.parent_ref_code === user.ref_code
+            ).map(refUser => ({
+              user_id: refUser.id,
+              inviter_id: userId,
+              username: refUser.username || 'user',
+              level: 1,
+              created_at: refUser.created_at || new Date(),
+              is_fallback: true
+            }));
+            
+            console.log(`[ReferralController] Fallback: Найдено ${referrals.length} рефералов`);
+            return referrals;
+          } catch (memError) {
+            console.error(`[ReferralController] Fallback: Ошибка при получении данных из MemStorage:`, memError);
+            return [];
+          }
         }
-        
-        // Получаем всех пользователей из MemStorage
-        const allUsers = memStorage['users'];
-        
-        // Фильтруем пользователей, чтобы получить рефералов
-        const referrals = allUsers.filter(refUser => 
-          refUser.parent_ref_code === user.ref_code
-        ).map(refUser => ({
-          user_id: refUser.id,
-          inviter_id: userId,
-          username: refUser.username || 'user',
-          level: 1,
-          created_at: refUser.created_at || new Date(),
-          is_fallback: true
-        }));
-        
-        console.log(`[ReferralController] Fallback: Найдено ${referrals.length} рефералов`);
-        
-        // Формируем структуру ответа
-        const referralData = {
-          user_id: userId,
-          username: user.username || null,
-          ref_code: user.ref_code || null,
-          total_referrals: referrals.length,
-          referral_counts: { 1: referrals.length },
-          level_income: {},
-          referrals: referrals,
-          is_fallback: true,
-          message: 'Данные получены из резервного хранилища'
-        };
-        
-        // Отправляем успешный ответ
-        sendSuccess(res, referralData);
-      } catch (memError) {
-        console.error(`[ReferralController] Fallback: Ошибка при получении данных из MemStorage:`, memError);
-        
-        // Возвращаем пустые данные при ошибке
-        return sendSuccess(res, {
-          user_id: userId,
-          username: null,
-          ref_code: null,
-          total_referrals: 0,
-          referral_counts: {},
-          level_income: {},
-          referrals: [],
-          is_fallback: true,
-          message: 'Недоступно из-за ошибки в резервном хранилище'
-        });
-      }
+      );
+      
+      // Получаем данные через обёртку
+      const referrals = await getUserReferralsFallback(userId);
+      
+      // Формируем структуру ответа
+      const referralData = {
+        user_id: userId,
+        username: null,
+        ref_code: null,
+        total_referrals: referrals.length,
+        referral_counts: { 1: referrals.length },
+        level_income: {},
+        referrals: referrals,
+        is_fallback: true,
+        message: 'Данные получены из резервного хранилища'
+      };
+      
+      // Отправляем успешный ответ
+      sendSuccess(res, referralData);
     } catch (error) {
       console.error('[ReferralController] Fallback: Критическая ошибка:', error);
       
@@ -714,5 +728,4 @@ export class ReferralController {
       }
     }
   }
-}
 }
