@@ -77,6 +77,103 @@ function handleZodError(err: ZodError): ApiResponse<any> {
  */
 export const UserController = {
   /**
+   * Функция регистрации гостевого пользователя с поддержкой fallback
+   */
+  async _registerGuestUserWithFallback(guestId: string, referrerCode: string | null, airdropMode: boolean): Promise<any> {
+    try {
+      // Сначала проверяем, существует ли уже пользователь с таким guest_id
+      if (guestId) {
+        const existingUser = await userService.getUserByGuestId(guestId);
+        if (existingUser) {
+          console.log(`[UserController] Пользователь с guest_id: ${guestId} уже существует`);
+          return existingUser;
+        }
+      }
+      
+      // Находим реферера, если указан код
+      let referrerId = null;
+      if (referrerCode) {
+        const referrer = await userService.getUserByRefCode(referrerCode);
+        if (referrer) {
+          referrerId = referrer.id;
+          console.log(`[UserController] Найден реферал с кодом ${referrerCode}, ID: ${referrerId}`);
+        }
+      }
+      
+      // Создаем нового пользователя
+      const newUser = await userService.createUser({
+        guest_id: guestId,
+        username: `guest_${Date.now()}`,
+        ref_code: await userService.generateRefCode(),
+        telegram_id: null,
+        telegram_username: null,
+        referrer_id: referrerId
+      });
+      
+      return newUser;
+    } catch (error) {
+      console.log(`[UserController] Создаем временного пользователя с guest_id: ${guestId}`, error);
+      
+      try {
+        // Проверяем, существует ли пользователь в MemStorage
+        const memStorage = storage.memStorage;
+        const existingUser = await memStorage.getUserByGuestId(guestId);
+        
+        if (existingUser) {
+          console.log(`[UserController] Пользователь с guest_id: ${guestId} уже существует в MemStorage`);
+          return existingUser;
+        }
+        
+        // Попытка найти реферала если передан код
+        let parentRefCode = null;
+        console.log(`[UserController] Ищем реферала по коду: ${referrerCode}`);
+        if (referrerCode) {
+          const referrer = await memStorage.getUserByRefCode(referrerCode);
+          console.log(`[UserController] Результат поиска реферала:`, referrer);
+          if (referrer) {
+            parentRefCode = referrer.ref_code;
+            console.log(`[UserController] Найден реферал с кодом ${referrerCode}, ID: ${referrer.id}, устанавливаем parent_ref_code=${parentRefCode}`);
+          } else {
+            console.log(`[UserController] Реферал с кодом ${referrerCode} не найден`);
+          }
+        }
+        
+        // Создаем временного пользователя в MemStorage
+        const newUser = await memStorage.createUser({
+          guest_id: guestId,
+          username: `guest_${Date.now()}`,
+          ref_code: null, // Будет сгенерирован автоматически
+          telegram_id: null,
+          parent_ref_code: parentRefCode
+        });
+        
+        return {
+          ...newUser,
+          is_fallback: true,
+          message: 'Временный аккаунт создан'
+        };
+      } catch (memError) {
+        console.error(`[UserController] Ошибка создания пользователя в MemStorage:`, memError);
+        
+        // Если не удалось создать в MemStorage, возвращаем объект напрямую
+        const temporaryId = Math.floor(Math.random() * 1000000) + 1;
+        return {
+          id: temporaryId,
+          username: `guest_${temporaryId}`,
+          ref_code: `REF${temporaryId}`,
+          telegram_id: null,
+          telegram_username: null,
+          guest_id: guestId,
+          created_at: new Date().toISOString(),
+          referrer_id: null,
+          is_fallback: true,
+          message: 'Временный аккаунт создан (аварийный режим)'
+        };
+      }
+    }
+  },
+
+  /**
    * Регистрирует гостевого пользователя
    * с поддержкой работы при отсутствии соединения с БД
    * @route POST /api/users/register-guest
@@ -91,73 +188,8 @@ export const UserController = {
       }
 
       const { guest_id, referrer_code, airdrop_mode } = validationResult.data;
-
-      // Заворачиваем вызов сервиса в обработчик ошибок
-      const registerGuestUserWithFallback = wrapServiceFunction(
-        userService.createUser.bind(userService),
-        async (error, guestId, referrerCode, airdropMode) => {
-          console.log(`[UserController] Создаем временного пользователя с guest_id: ${guestId}`, error);
-          
-          try {
-            // Проверяем, существует ли пользователь в MemStorage
-            const memStorage = storage.memStorage;
-            const existingUser = await memStorage.getUserByGuestId(guestId);
-            
-            if (existingUser) {
-              console.log(`[UserController] Пользователь с guest_id: ${guestId} уже существует в MemStorage`);
-              return existingUser;
-            }
-            
-            // Попытка найти реферала если передан код
-            let parentRefCode = null;
-            console.log(`[UserController] Ищем реферала по коду: ${referrerCode}`);
-            if (referrerCode) {
-              const referrer = await memStorage.getUserByRefCode(referrerCode);
-              console.log(`[UserController] Результат поиска реферала:`, referrer);
-              if (referrer) {
-                parentRefCode = referrer.ref_code;
-                console.log(`[UserController] Найден реферал с кодом ${referrerCode}, ID: ${referrer.id}, устанавливаем parent_ref_code=${parentRefCode}`);
-              } else {
-                console.log(`[UserController] Реферал с кодом ${referrerCode} не найден`);
-              }
-            }
-            
-            // Создаем временного пользователя в MemStorage
-            const newUser = await memStorage.createUser({
-              guest_id: guestId,
-              username: `guest_${Date.now()}`,
-              ref_code: null, // Будет сгенерирован автоматически
-              telegram_id: null,
-              parent_ref_code: parentRefCode
-            });
-            
-            return {
-              ...newUser,
-              is_fallback: true,
-              message: 'Временный аккаунт создан'
-            };
-          } catch (memError) {
-            console.error(`[UserController] Ошибка создания пользователя в MemStorage:`, memError);
-            
-            // Если не удалось создать в MemStorage, возвращаем объект напрямую
-            const temporaryId = Math.floor(Math.random() * 1000000) + 1;
-            return {
-              id: temporaryId,
-              username: `guest_${temporaryId}`,
-              ref_code: `REF${temporaryId}`,
-              telegram_id: null,
-              telegram_username: null,
-              guest_id: guestId,
-              created_at: new Date().toISOString(),
-              referrer_id: null,
-              is_fallback: true,
-              message: 'Временный аккаунт создан (аварийный режим)'
-            };
-          }
-        }
-      );
       
-      const result = await registerGuestUserWithFallback(guest_id, referrer_code, airdrop_mode);
+      const result = await this._registerGuestUserWithFallback(guest_id, referrer_code, airdrop_mode);
       sendSuccess(res, result);
     } catch (error) {
       next(error);
@@ -179,10 +211,27 @@ export const UserController = {
         });
       }
       
-      // Заворачиваем вызов сервиса в обработчик ошибок
-      const restoreSessionWithFallback = wrapServiceFunction(
-        userService.getUserByGuestId.bind(userService),
-        async (error, guestId, telegramData) => {
+      // Создаем собственную функцию для обработки сессии с поддержкой fallback
+      async function restoreSessionWithFallback(guestId: string, telegramData: any): Promise<any> {
+        try {
+          let user;
+          
+          if (guestId) {
+            user = await userService.getUserByGuestId(guestId);
+          } else if (telegramData && telegramData.id) {
+            user = await userService.getUserByTelegramId(telegramData.id);
+          }
+          
+          if (!user) {
+            throw new Error('Пользователь не найден');
+          }
+          
+          return {
+            user,
+            session_id: `sess_${uuidv4()}`,
+            is_new_user: false
+          };
+        } catch (error) {
           console.log(`[UserController] Возвращаем заглушку для восстановления сессии`, error);
           
           // Создаем временную сессию
@@ -204,7 +253,7 @@ export const UserController = {
             message: 'Временная сессия создана из-за недоступности базы данных'
           };
         }
-      );
+      }
       
       const sessionData = await restoreSessionWithFallback(guest_id, telegram_data);
       sendSuccess(res, sessionData);
