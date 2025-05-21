@@ -101,18 +101,9 @@ export const UserController = {
           // Возвращаем данные по умолчанию при отсутствии соединения с БД
           const user = createUserFallback(id);
           
-          // Перетворюємо timestamp-поля через ensureDate для стандартизації типів
-          return {
-            ...user,
-            created_at: ensureDate(user.created_at),
-            uni_farming_start_timestamp: ensureDate(user.uni_farming_start_timestamp),
-            ton_farming_start_timestamp: ensureDate(user.ton_farming_start_timestamp),
-            uni_farming_last_update: ensureDate(user.uni_farming_last_update),
-            uni_farming_activated_at: ensureDate(user.uni_farming_activated_at),
-            checkin_last_date: ensureDate(user.checkin_last_date),
-            last_login_at: ensureDate(user.last_login_at),
-            last_claim_at: ensureDate(user.last_claim_at)
-          };
+          // Просто возвращаем данные пользователя из функции заглушки без дополнительных преобразований,
+          // так как createUserFallback уже возвращает объекты Date для этих полей
+          return user;
         }
       );
       
@@ -154,18 +145,9 @@ export const UserController = {
           // Возвращаем данные по умолчанию при отсутствии соединения с БД
           const user = createGuestUserFallback(guestId);
           
-          // Перетворюємо timestamp-поля через ensureDate для стандартизації типів
-          return {
-            ...user,
-            created_at: ensureDate(user.created_at),
-            uni_farming_start_timestamp: ensureDate(user.uni_farming_start_timestamp),
-            ton_farming_start_timestamp: ensureDate(user.ton_farming_start_timestamp),
-            uni_farming_last_update: ensureDate(user.uni_farming_last_update),
-            uni_farming_activated_at: ensureDate(user.uni_farming_activated_at),
-            checkin_last_date: ensureDate(user.checkin_last_date),
-            last_login_at: ensureDate(user.last_login_at),
-            last_claim_at: ensureDate(user.last_claim_at)
-          };
+          // Просто возвращаем данные пользователя из функции заглушки без дополнительных преобразований,
+          // так как createGuestUserFallback уже возвращает объекты Date для этих полей
+          return user;
         }
       );
       
