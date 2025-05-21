@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { extendedStorage } from "../storage-adapter-extended";
 import { userService } from "../services";
 import 'express-session';
+import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
+import { wrapServiceFunction } from '../db-service-wrapper';
 
 // Для корректной работы с сессией расширяем интерфейс Request
 // Это временное решение, обходящее проблему с типизацией express-session

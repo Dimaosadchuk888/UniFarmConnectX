@@ -273,11 +273,7 @@ export class TransactionController {
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
         console.error("[TransactionController] Ошибка валидации запроса:", validation.error);
-        res.status(400).json({
-          success: false,
-          message: "Некорректные параметры запроса",
-          errors: validation.error.format()
-        });
+        sendError(res, "Некорректные параметры запроса", 400, validation.error.format());
         return;
       }
 
@@ -295,17 +291,10 @@ export class TransactionController {
         txHash: tx_hash
       });
 
-      res.status(200).json({
-        success: true,
-        message: "Транзакция создана",
-        data: { transaction }
-      });
+      sendSuccess(res, { transaction });
     } catch (error) {
       console.error("[TransactionController] Ошибка при создании транзакции:", error);
-      res.status(500).json({
-        success: false,
-        message: "Произошла ошибка при создании транзакции"
-      });
+      sendServerError(res, "Произошла ошибка при создании транзакции");
     }
   }
 }
