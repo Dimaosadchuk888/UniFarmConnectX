@@ -41,7 +41,9 @@ import * as ReferralSystemController from './controllers/referralSystemControlle
 
 // Импорт обработчика команд для Telegram-бота
 import * as telegramBot from './telegramBot';
+import * as telegramAdminBot from './telegramAdminBot'; // Импорт админ-бота для Telegram
 import { TelegramController } from './controllers/telegramController'; // Новый TypeScript контроллер для Telegram
+import adminBotWebhook from './api/admin/bot-webhook'; // Импорт маршрута для вебхука админ-бота
 import * as DbStatusController from './api/admin/db-status'; // Контроллер для проверки статуса базы данных
 import * as DbSelectorStatusController from './api/db-selector-status'; // Новый контроллер для гибкого подключения к БД
 import { DailyBonusController } from './controllers/dailyBonusController';
