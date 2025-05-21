@@ -153,13 +153,19 @@ export class TransactionController {
       }
       
       // Получаем транзакции из базы данных
-      let userTransactions = await db
-        .select()
-        .from(transactions)
-        .where(eq(transactions.user_id, userId))
-        .orderBy(desc(transactions.created_at))
-        .limit(parseInt(limit))
-        .offset(parseInt(offset));
+      // Явно визначаємо тип для транзакцій
+      type TransactionType = typeof transactions.$inferSelect;
+      let userTransactions: TransactionType[] = [];
+      
+      if (userId !== undefined) {
+        userTransactions = await db
+          .select()
+          .from(transactions)
+          .where(userId ? eq(transactions.user_id, userId) : undefined)
+          .orderBy(desc(transactions.created_at))
+          .limit(parseInt(limit))
+          .offset(parseInt(offset));
+      }
       
       console.log(`[TransactionController] Найдено ${userTransactions.length} транзакций для пользователя ${userId} в БД`);
       
@@ -322,18 +328,18 @@ export class TransactionController {
         return;
       }
 
-      const { user_id, type, currency, amount, status, source, category, tx_hash } = validation.data;
+      const { user_id, type, currency, amount, status = 'pending', source = 'api', category = 'system', tx_hash = null } = validation.data;
 
       // Создаем транзакцию через сервис
       const transaction = await transactionService.logTransaction({
         userId: user_id,
-        type: type.toString(), // Гарантуємо тип string
-        currency: currency.toString(), // Гарантуємо тип string
-        amount: amount.toString(), // Гарантуємо тип string
-        status: status.toString(), // Гарантуємо тип string
-        source: source || 'api', // За замовчуванням 'api', якщо source не вказано
-        category: category.toString(), // Гарантуємо тип string
-        txHash: tx_hash || undefined // Опціональне поле
+        type: String(type), // Гарантуємо тип string
+        currency: String(currency), // Гарантуємо тип string
+        amount: String(amount), // Гарантуємо тип string
+        status: String(status), // Гарантуємо тип string
+        source: String(source), // Гарантуємо тип string
+        category: String(category), // Гарантуємо тип string
+        tx_hash: tx_hash // Опціональне поле
       });
 
       sendSuccess(res, { transaction });
