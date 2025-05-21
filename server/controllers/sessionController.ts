@@ -3,6 +3,7 @@ import { extendedStorage } from "../storage-adapter-extended";
 import { userService } from "../services";
 import 'express-session';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
+import { dbUserToApiUser } from '../utils/userAdapter';
 import { wrapServiceFunction } from '../db-service-wrapper';
 
 // Для корректной работы с сессией расширяем интерфейс Request
