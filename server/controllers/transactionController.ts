@@ -7,7 +7,7 @@ import { eq, desc } from 'drizzle-orm';
 import { transactionService, userService } from '../services';
 
 // Визначення необхідних перерахувань
-enum TransactionType {
+export enum TransactionType {
   DEPOSIT = 'deposit',
   WITHDRAWAL = 'withdrawal',
   REWARD = 'reward',
@@ -15,19 +15,19 @@ enum TransactionType {
   FEE = 'fee'
 }
 
-enum Currency {
+export enum Currency {
   UNI = 'uni',
   TON = 'ton'
 }
 
-enum TransactionStatus {
+export enum TransactionStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
   DECLINED = 'declined',
   FAILED = 'failed'
 }
 
-enum TransactionCategory {
+export enum TransactionCategory {
   FARMING = 'farming',
   REFERRAL = 'referral',
   BONUS = 'bonus',

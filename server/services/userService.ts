@@ -44,6 +44,22 @@ export interface IUserService {
   getUserByGuestId(guestId: string): Promise<User | undefined>;
   
   /**
+   * Получает пользователя по адресу кошелька
+   * @param walletAddress Адрес кошелька
+   * @returns Объект пользователя или undefined, если пользователь не найден
+   */
+  getUserByWalletAddress(walletAddress: string): Promise<User | undefined>;
+  
+  /**
+   * Регистрирует нового гостевого пользователя
+   * @param guestId Гостевой ID
+   * @param referrerCode Реферальный код пригласившего пользователя (опционально)
+   * @param airdropMode Режим airdrop (опционально)
+   * @returns Объект созданного пользователя
+   */
+  registerGuestUser(guestId: string, referrerCode?: string | null, airdropMode?: boolean): Promise<User>;
+  
+  /**
    * Получает пользователя по реферальному коду
    * @param refCode Реферальный код
    * @returns Объект пользователя или undefined, если пользователь не найден
