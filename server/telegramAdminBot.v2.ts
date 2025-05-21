@@ -7,7 +7,7 @@
 
 import fetch from 'node-fetch';
 import { db } from './db';
-import { users, transactions, missions } from '../shared/schema';
+import { users, transactions, missions, InsertMission } from '../shared/schema';
 import { eq, desc, and, gte, lte } from 'drizzle-orm';
 
 // Константи для роботи бота
@@ -861,15 +861,18 @@ ${result.error}
 async function createMission(name: string, description: string, reward: number, link: string): Promise<any> {
   try {
     // В реальному проекті тут має бути виклик API, а не пряма зміна БД
+    // Скористаємося готовою схемою для вставки даних
+    const missionData: InsertMission = {
+      type: 'custom',
+      title: name,
+      description: description,
+      reward_uni: reward.toString(),
+      is_active: true
+    };
+    
     const [mission] = await db
       .insert(missions)
-      .values({
-        type: 'custom',
-        title: name,
-        description: description,
-        reward_uni: reward.toString(),
-        is_active: true
-      })
+      .values(missionData)
       .returning();
 
     return { 
@@ -896,14 +899,14 @@ async function getPlatformStats(): Promise<any> {
       .from(users)
       .then(users => users.length);
     
-    // Отримуємо загальну суму фармінгу
+    // Отримуємо загальну суму фармінгу (використовуємо uni_farming_deposit)
     const farmingTotal = await db
       .select()
       .from(users)
       .then(users => {
         let total = 0;
         for (const user of users) {
-          total += parseFloat(user.uni_farming_deposit || '0');
+          total += parseFloat(user.uni_farming_deposit?.toString() || '0');
         }
         return total;
       });
@@ -927,7 +930,7 @@ async function getPlatformStats(): Promise<any> {
         let total = 0;
         for (const tx of transactions) {
           if (tx.amount) {
-            total += parseFloat(tx.amount);
+            total += parseFloat(tx.amount.toString());
           }
         }
         return total;
@@ -1100,9 +1103,9 @@ ID: <code>${user.id}</code>
 Telegram ID: ${user.telegram_id || 'Не прив\'язаний'}
 Реф. код: ${user.ref_code || 'Не вказано'}
 Запрошений: ${user.parent_ref_code || 'Немає'}
-Баланс UNI: ${parseFloat(user.balance_uni || '0').toFixed(2)} UNI
-Баланс TON: ${parseFloat(user.balance_ton || '0').toFixed(6)} TON
-Депозит UNI: ${parseFloat(user.uni_farming_deposit || '0').toFixed(2)} UNI
+Баланс UNI: ${parseFloat(user.balance_uni?.toString() || '0').toFixed(2)} UNI
+Баланс TON: ${parseFloat(user.balance_ton?.toString() || '0').toFixed(6)} TON
+Депозит UNI: ${parseFloat(user.uni_farming_deposit?.toString() || '0').toFixed(2)} UNI
 Дата реєстрації: ${user.created_at ? new Date(user.created_at).toLocaleString() : 'Невідомо'}
     `;
     
