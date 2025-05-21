@@ -36,10 +36,7 @@ export class SessionController {
     try {
       // Проверяем, что мы в режиме разработки
       if (process.env.NODE_ENV !== 'development') {
-        res.status(403).json({
-          success: false,
-          message: 'Доступно только в режиме разработки'
-        });
+        sendError(res, 'Доступно только в режиме разработки', 403);
         return;
       }
       
@@ -163,11 +160,7 @@ export class SessionController {
       // Проверяем наличие guest_id (только если не в режиме разработки или не удалось получить тестового пользователя)
       if (!guest_id) {
         console.error('[SessionController] Отсутствует guest_id в запросе');
-        return res.status(400).json({
-          success: false,
-          message: 'Отсутствует guest_id в запросе',
-          error_code: 'MISSING_GUEST_ID'
-        });
+        return sendError(res, 'Отсутствует guest_id в запросе', 400, { error_code: 'MISSING_GUEST_ID' });
       }
       
       console.log(`[SessionController] Этап 5: Попытка безопасного восстановления сессии для guest_id: ${guest_id}`);
