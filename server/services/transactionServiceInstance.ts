@@ -12,6 +12,7 @@ import {
   InsertTransaction
 } from '@shared/schema';
 import { eq, desc } from 'drizzle-orm';
+import { ensureDate, ensureDateObject } from '../utils/typeFixers';
 
 /**
  * Типы транзакций в системе
@@ -167,6 +168,7 @@ class TransactionServiceImpl implements ITransactionService {
    */
   async logTransaction(data: TransactionData): Promise<Transaction> {
     try {
+      // Забезпечуємо коректні типи даних для всіх полів
       const transactionData: InsertTransaction = {
         user_id: data.userId,
         type: data.type,
@@ -175,7 +177,9 @@ class TransactionServiceImpl implements ITransactionService {
         status: data.status,
         source: data.source,
         category: data.category,
-        tx_hash: data.tx_hash || null
+        tx_hash: data.tx_hash || null,
+        // Додаємо поточний час як created_at, якщо це необхідно
+        created_at: new Date()
       };
 
       const [transaction] = await db
