@@ -119,15 +119,39 @@ class AuthServiceImpl implements IAuthService {
 
       // 4. Если пользователь найден, обновим его данные
       if (user) {
-        // TODO: Метод updateUser отсутствует в текущем сервисе 
-        // Необходимо его добавить в userService
+        console.log(`[AuthService] Обновляем данные пользователя ${user.id}`);
         
-        // Вместо этого пока что просто логируем информацию
-        console.log(`[AuthService] Необходимо обновить данные пользователя ${user.id}`);
-        console.log(`  - Новое имя пользователя: ${authData.username}`);
-        console.log(`  - Привязка guest_id: ${authData.guest_id}`);
+        // Собираем данные для обновления
+        const updateData: Partial<User> = {};
         
-        // Не выполняем обновление, так как метод отсутствует
+        // Обновляем guest_id только если он не установлен и передан в authData
+        if (!user.guest_id && authData.guest_id) {
+          console.log(`  - Привязка guest_id: ${authData.guest_id}`);
+          updateData.guest_id = authData.guest_id;
+        }
+        
+        // Обновляем telegram_id, если он не установлен и доступен
+        if (!user.telegram_id && telegramUserId) {
+          const numericTelegramId = typeof telegramUserId === 'string' 
+            ? parseInt(telegramUserId, 10) 
+            : telegramUserId;
+            
+          console.log(`  - Привязка telegram_id: ${numericTelegramId}`);
+          updateData.telegram_id = numericTelegramId;
+        }
+        
+        // Если есть данные для обновления, выполняем запрос к БД
+        if (Object.keys(updateData).length > 0) {
+          try {
+            await storage.updateUser(user.id, updateData);
+            
+            // Обновляем локальный объект пользователя
+            user = {...user, ...updateData};
+            console.log(`[AuthService] ✅ Данные пользователя ${user.id} успешно обновлены`);
+          } catch (error) {
+            console.error(`[AuthService] ❌ Ошибка обновления пользователя:`, error);
+          }
+        }
 
         return user;
       }

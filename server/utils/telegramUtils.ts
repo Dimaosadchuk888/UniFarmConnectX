@@ -65,6 +65,20 @@ export function validateTelegramInitData(
       };
     }
     
+    // Проверяем время инициализации (auth_date)
+    const authDate = params.get('auth_date');
+    if (!isDevelopment && authDate) {
+      const authTimestamp = parseInt(authDate, 10);
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      
+      // Допустимое время жизни данных - 24 часа (86400 секунд)
+      const maxLifetime = 86400;
+      
+      if (currentTimestamp - authTimestamp > maxLifetime) {
+        return { isValid: false, errors: ['Истек срок действия данных авторизации Telegram'] };
+      }
+    }
+    
     // Проверяем, что у нас есть токен бота для проверки
     if (!botToken) {
       return { isValid: false, errors: ['Отсутствует токен бота для валидации'] };

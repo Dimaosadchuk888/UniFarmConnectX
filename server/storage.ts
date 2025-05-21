@@ -76,6 +76,43 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return user || undefined;
   }
+  
+  /**
+   * Обновление данных пользователя
+   * @param userId ID пользователя
+   * @param updateData Данные для обновления
+   * @throws {NotFoundError} Если пользователь не найден
+   * @throws {DatabaseError} При ошибке в базе данных
+   */
+  async updateUser(userId: number, updateData: Partial<User>): Promise<User | undefined> {
+    try {
+      // Проверка существования пользователя
+      const existingUser = await this.getUser(userId);
+      if (!existingUser) {
+        throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+      }
+      
+      // Выполняем обновление
+      const [user] = await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!user) {
+        throw new NotFoundError(`Не удалось обновить данные для пользователя с ID ${userId}`);
+      }
+      
+      return user;
+    } catch (error) {
+      // Если это не наши специальные ошибки, оборачиваем в DatabaseError
+      if (!(error instanceof NotFoundError)) {
+        const err = error as ErrorWithMessage;
+        throw new DatabaseError(`Ошибка при обновлении данных пользователя: ${err.message}`, error);
+      }
+      throw error;
+    }
+  }
 
   /**
    * Обновление баланса пользователя

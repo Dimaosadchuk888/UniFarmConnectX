@@ -46,7 +46,7 @@ export type { ConnectionStatus } from './db-health-monitor';
 import { dbMonitor as monitor } from './db-connect-unified';
 
 export const dbConnectionStatus = {
-  status: 'ok' as const,
+  status: 'ok' as 'ok' | 'error' | 'reconnecting',
   error: null as Error | null,
   lastCheckedAt: new Date(),
   
@@ -58,7 +58,7 @@ export const dbConnectionStatus = {
       return result;
     } catch (error) {
       this.error = error instanceof Error ? error : new Error(String(error));
-      this.status = 'error';
+      this.status = 'error' as 'ok' | 'error' | 'reconnecting';
       return false;
     }
   }
