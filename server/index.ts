@@ -11,6 +11,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes-fixed";
 import { registerNewRoutes } from "./routes-new"; // Импортируем новые маршруты
 import { setupAdminBotRoutes } from "./admin-bot-routes"; // Импортируем маршруты админ-бота
+import telegramBotTestRouter, { setupBotWebhook } from "./telegram-bot-test"; // Импортируем тестовый маршрут для Telegram бота
 import { setupVite, serveStatic, log } from "./vite";
 import { startBackgroundTasks } from "./background-tasks";
 // Импортируем планировщик партиций
@@ -292,13 +293,35 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
         module.registerNewRoutes(app);
         console.log('[Server] ✅ Новые маршруты API v2 успешно зарегистрированы');
         
-        // Настраиваем маршруты для админ-бота Telegram
-        console.log('[Server] Начинаем настройку Telegram админ-бота...');
+        // Налаштовуємо маршрут для тестового Telegram бота
+        console.log('[Server] Додаємо тестовий маршрут для Telegram бота...');
+        app.use('/api/telegram/test', telegramBotTestRouter);
+        console.log('[Server] ✅ Тестовий маршрут для Telegram бота успішно додано');
+        
+        // Налаштовуємо вебхук для тестового Telegram бота
         const baseUrl = process.env.NODE_ENV === 'production' 
           ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 
           : 'https://uni-farm-connect-2.osadchukdmitro2.replit.app';
+        
+        // Налаштовуємо маршрути для адмін-бота Telegram
+        console.log('[Server] Починаємо налаштування Telegram адмін-бота...');
         setupAdminBotRoutes(app, baseUrl);
-        console.log('[Server] ✅ Telegram админ-бот успешно настроен');
+        console.log('[Server] ✅ Telegram адмін-бот успішно налаштований');
+        
+        // Налаштовуємо тестовий вебхук для Telegram бота
+        const adminBotToken = '7662298323:AAFLgX05fWtgNYJfT_VeZ_kRZhIBixoseIY';
+        const webhookUrl = `${baseUrl}/api/telegram/test`;
+        setupBotWebhook(adminBotToken, webhookUrl)
+          .then(success => {
+            if (success) {
+              console.log('[Server] ✅ Тестовий вебхук для Telegram бота успішно налаштовано');
+            } else {
+              console.error('[Server] ❌ Помилка при налаштуванні тестового вебхука для Telegram бота');
+            }
+          })
+          .catch(error => {
+            console.error('[Server] ❌ Помилка при налаштуванні тестового вебхука для Telegram бота:', error);
+          });
       })
       .catch(error => {
         console.error('[Server] Ошибка при регистрации новых маршрутов API:', error);
