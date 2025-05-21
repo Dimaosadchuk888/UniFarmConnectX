@@ -184,16 +184,22 @@ export class TransactionController {
             status: tx.status ?? 'unknown',
             source: tx.source ?? 'unknown',
             category: tx.category ?? 'unknown',
-            created_at: tx.created_at
+            created_at: ensureDate(tx.created_at) // Обеспечиваем стабильный формат даты
           }))
         );
       } else {
         console.log(`[TransactionController] Транзакции не найдены для пользователя ${userId}`);
       }
       
+      // Стабілізуємо формат timestamp-полів для відповіді API
+      const formattedTransactions = userTransactions.map(tx => ({
+        ...tx,
+        created_at: ensureDate(tx.created_at) // Забезпечуємо стабільний формат дати
+      }));
+
       sendSuccess(res, {
         total: userTransactions.length, // В реальном приложении здесь должен быть отдельный запрос для подсчета общего количества
-        transactions: userTransactions
+        transactions: formattedTransactions
       });
 
     } catch (error) {
@@ -299,12 +305,19 @@ export class TransactionController {
       // Здесь должен быть код для обработки запроса на вывод средств
       // Обновление баланса пользователя будет выполняться после подтверждения вывода
       
+      // Форматируем дату для ответа API
+      const formattedTransaction = {
+        ...transaction,
+        created_at: ensureDate(transaction.created_at)
+      };
+      
       sendSuccess(res, {
         message: "Запрос на вывод средств принят",
-        transaction_id: transaction.id,
-        status: transaction.status,
+        transaction_id: formattedTransaction.id,
+        status: formattedTransaction.status,
         amount: numAmount,
-        currency: formattedCurrency
+        currency: formattedCurrency,
+        created_at: formattedTransaction.created_at // Добавляем отформатированную дату в ответ
       });
     } catch (error) {
       console.error("[TransactionController] Ошибка при запросе на вывод средств:", error);
