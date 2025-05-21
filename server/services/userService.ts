@@ -39,6 +39,14 @@ export interface IUserService {
   getUserByUsername(username: string): Promise<User | undefined>;
   
   /**
+   * Обновляет данные пользователя
+   * @param userId ID пользователя
+   * @param data Данные для обновления
+   * @returns Обновленный объект пользователя
+   */
+  updateUser(userId: number, data: Partial<User>): Promise<User>;
+  
+  /**
    * Получает пользователя по гостевому ID
    * @param guestId Гостевой ID
    * @returns Объект пользователя или undefined, если пользователь не найден
