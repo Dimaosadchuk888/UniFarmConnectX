@@ -1,31 +1,35 @@
-// Импортируем улучшенный модуль подключения к базе данных
-// Используем консолидированный модуль db-connect-unified
-import { testConnection, db, queryWithRetry } from './db-connect-unified';
-import { databaseErrorHandler } from './middleware/databaseErrorHandler';
-import { healthCheckMiddleware } from './middleware/health-check';
-
 // Устанавливаем переменные окружения для SSL
 process.env.PGSSLMODE = 'require';
 
-import express, { type Request, Response, NextFunction } from "express";
-import { registerNewRoutes } from "./routes-new"; // Используем единый файл маршрутов
-import { setupAdminBotRoutes } from "./admin-bot-routes"; // Импортируем маршруты админ-бота
-import telegramBotTestRouter, { setupBotWebhook } from "./telegram-bot-test"; // Импортируем тестовый маршрут для Telegram бота
-import { setupVite, serveStatic, log } from "./vite";
-import logger from './utils/logger';
-import { startBackgroundTasks } from "./background-tasks";
-// Импортируем планировщик партиций
-import { schedulePartitionCreation } from "./cron/partition-scheduler";
-import { migrateRefCodes } from "./migrations/refCodeMigration";
-// Импортируем наш новый модуль для обслуживания статических файлов в production
-import { setupProductionStatic } from "./productionStatic";
-// Импортируем middleware для стандартизации API ответов и обработки ошибок
+// Импорты для работы с Express и базовыми модулями
+import express, { type Request, Response, NextFunction, Router } from "express";
+import http from 'http';
+import { WebSocketServer } from 'ws';
+
+// Импорты для работы с базой данных
+import { testConnection, db, queryWithRetry, dbType, pool } from './db-connect-unified';
+import { DatabaseType } from "./db-config";
+
+// Импорты middleware и обработчиков
+import { databaseErrorHandler } from './middleware/databaseErrorHandler';
+import { healthCheckMiddleware } from './middleware/health-check';
 import { responseFormatter } from "./middleware/responseFormatter";
 import { errorHandler } from "./middleware/errorHandler";
-// Импортируем базу данных через единый модуль
-import { dbType, pool } from "./db-connect-unified";
-import { DatabaseType } from "./db-config";
-// Импортируем модули для работы с сессиями
+
+// Импорты для маршрутизации и статических файлов
+import { registerNewRoutes } from "./routes-new";
+import { setupVite, serveStatic, log } from "./vite";
+import { setupProductionStatic } from "./productionStatic";
+
+// Импорты для фоновых задач и миграций
+import { startBackgroundTasks } from "./background-tasks";
+import { schedulePartitionCreation } from "./cron/partition-scheduler";
+import { migrateRefCodes } from "./migrations/refCodeMigration";
+
+// Импорты для логирования
+import logger from './utils/logger';
+
+// Импорты для сессий
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import memoryStore from 'memorystore';
@@ -94,8 +98,11 @@ app.use(databaseErrorHandler);
 // Это должно быть ПЕРЕД регистрацией других маршрутов
 app.use(healthCheckMiddleware);
 
+// Создаем отдельный роутер для маршрутов здоровья
+const healthRouter = Router();
+
 // Добавляем специальный маршрут для проверки здоровья
-app.get('/health', (req: Request, res: Response) => {
+healthRouter.get('/health', (req: Request, res: Response) => {
   logger.debug('[Health Check] Запрос к /health эндпоинту');
   res.status(200).send({
     status: 'ok',
@@ -105,7 +112,7 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Добавляем обработчик корневого маршрута для проверки здоровья
-app.get('/', (req: Request, res: Response) => {
+healthRouter.get('/', (req: Request, res: Response) => {
   logger.debug('[Health Check] Запрос к корневому маршруту');
   
   // Если это запрос для проверки здоровья от Replit
@@ -308,25 +315,6 @@ void (async function startServerInternal() {
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 
       : 'https://uni-farm-connect-2.osadchukdmitro2.replit.app';
-    
-    // Налаштовуємо маршрути для Telegram адміністративного бота
-    setupAdminBotRoutes(app, baseUrl);
-    
-    // Додаємо маршрути тестового Telegram бота
-    app.use('/api/telegram/test', telegramBotTestRouter);
-    
-    // Налаштовуємо вебхук для Telegram бота
-    const adminBotToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
-    if (adminBotToken) {
-      const webhookUrl = `${baseUrl}/api/telegram/test`;
-      setupBotWebhook(adminBotToken, webhookUrl)
-        .then(success => {
-          if (!success) {
-            console.error('[Server] Помилка при налаштуванні вебхука для Telegram бота');
-          }
-        })
-        .catch(err => {
-          console.error('[Server] Помилка при налаштуванні вебхука для Telegram бота:', 
             err instanceof Error ? err.message : String(err));
         });
     } else {
