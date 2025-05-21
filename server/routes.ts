@@ -46,7 +46,7 @@ import * as DbStatusController from './api/admin/db-status'; // Контролл
 import * as DbSelectorStatusController from './api/db-selector-status'; // Новый контроллер для гибкого подключения к БД
 import { DailyBonusController } from './controllers/dailyBonusController';
 import { NewUniFarmingController } from './controllers/newUniFarmingController'; // Основной контроллер для UNI фарминга
-import { BoostController } from './controllers/boostController'; // Контроллер для бустов
+import { BoostController } from './controllers/boostControllerConsolidated'; // Консолідований контролер для бустів
 import { TonBoostController } from './controllers/tonBoostController'; // Контроллер для TON фарминга с поддержкой fallback режима
 // Импорт DailyBonusControllerFallback удален (консолидирован в DailyBonusController)
 // Импорт WalletControllerFallback удален (частично консолидирован в WalletController)
