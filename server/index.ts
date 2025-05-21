@@ -495,4 +495,5 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
     // Инициализируем фоновые сервисы после открытия порта
     initBackgroundServices();
   });
-})();
+// Кінець головної функції
+});
