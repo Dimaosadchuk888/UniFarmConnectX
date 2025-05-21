@@ -14,7 +14,7 @@ interface TelegramApiResponse {
 export class TelegramBot {
   private token: string;
   private baseUrl: string;
-  private botUsername: string | null = null;
+  private botUsername: string | undefined = undefined;
 
   constructor() {
     // Получаем токен из переменных окружения
@@ -37,7 +37,7 @@ export class TelegramBot {
       
       if (botInfo && botInfo.ok && botInfo.result) {
         this.botUsername = botInfo.result.username;
-        logger.info(`[TelegramBot] Бот успешно инициализирован: @${this.botUsername}`);
+        logger.log(`[TelegramBot] Бот успешно инициализирован: @${this.botUsername}`);
         
         // Сохраняем имя пользователя бота в переменных окружения
         process.env.TELEGRAM_BOT_USERNAME = this.botUsername;
@@ -102,7 +102,7 @@ export class TelegramBot {
    */
   async setupMiniApp(appUrl: string): Promise<boolean> {
     try {
-      logger.info('[TelegramBot] Начинаем настройку Mini App...');
+      logger.log('[TelegramBot] Начинаем настройку Mini App...');
       
       // Проверка работоспособности бота
       const botInfo = await this.getMe();
@@ -124,7 +124,7 @@ export class TelegramBot {
       if (!commandsResult.ok) {
         logger.error(`[TelegramBot] Ошибка при установке команд: ${commandsResult.description}`);
       } else {
-        logger.info('[TelegramBot] Команды успешно установлены');
+        logger.log('[TelegramBot] Команды успешно установлены');
       }
       
       // Устанавливаем кнопку меню с Mini App
@@ -140,7 +140,7 @@ export class TelegramBot {
       if (!menuResult.ok) {
         logger.error(`[TelegramBot] Ошибка при установке кнопки меню: ${menuResult.description}`);
       } else {
-        logger.info('[TelegramBot] Кнопка меню успешно установлена');
+        logger.log('[TelegramBot] Кнопка меню успешно установлена');
       }
       
       // Если есть URL для вебхука, устанавливаем его
@@ -150,24 +150,24 @@ export class TelegramBot {
         if (!webhookResult.ok) {
           logger.error(`[TelegramBot] Ошибка при установке вебхука: ${webhookResult.description}`);
         } else {
-          logger.info(`[TelegramBot] Вебхук успешно установлен: ${webhookUrl}/api/telegram/webhook`);
+          logger.log(`[TelegramBot] Вебхук успешно установлен: ${webhookUrl}/api/telegram/webhook`);
         }
       } else {
         logger.warn('[TelegramBot] TELEGRAM_WEBHOOK_URL не указан, вебхук не установлен');
       }
       
-      logger.info('[TelegramBot] Настройка Mini App завершена успешно');
+      logger.log('[TelegramBot] Настройка Mini App завершена успешно');
       return true;
     } catch (error) {
       logger.error('[TelegramBot] Ошибка при настройке Mini App:', error);
       return false;
     }
   }
-
+  
   /**
    * Выполняет запрос к Telegram API
    */
-  private async callApi(method: string, params: any = {}): Promise<TelegramApiResponse> {
+  async callApi(method: string, params: any = {}): Promise<TelegramApiResponse> {
     try {
       const url = `${this.baseUrl}/${method}`;
       

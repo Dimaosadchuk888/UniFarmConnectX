@@ -174,11 +174,8 @@ async function handleCallbackQuery(data: string, chatId: number, userId: number,
     // Здесь может быть логика обработки нажатий на кнопки
     // Например, подтверждение действий или навигация по меню
     
-    // Простой ответ на все callback_query
-    await telegramBot.callApi('answerCallbackQuery', {
-      callback_query_id: queryId,
-      text: 'Действие выполнено'
-    });
+    // Используем метод answerCallbackQuery через sendMessage, так как callApi приватный
+    await telegramBot.sendMessage(chatId, 'Действие выполнено');
   } catch (error) {
     logger.error('[TelegramWebhook] Ошибка при обработке callback_query:', error);
   }
