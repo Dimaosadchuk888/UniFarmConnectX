@@ -14,7 +14,7 @@ import { eq, desc } from 'drizzle-orm';
 import { transactionService, userService } from '../services';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
 import { wrapServiceFunction } from '../db-service-wrapper';
-import { ensureNumber, ensureDate } from '../utils/typeFixers';
+import { ensureNumber, ensureDate, ensureDateObject } from '../utils/typeFixers';
 
 // Визначення необхідних перерахувань
 export enum TransactionType {
@@ -122,12 +122,8 @@ export class TransactionController {
         const dbUser = await getUserByWallet(wallet_address);
         if (dbUser) {
           // Адаптуємо об'єкт користувача, щоб уникнути помилок LSP з типами даних
-          const user = {
-            ...dbUser,
-            // Безпечно перетворюємо timestamp-поля з вказівкою "date" для внутрішнього використання
-            created_at: ensureDate(dbUser.created_at, "date"),
-            uni_farming_start_timestamp: ensureDate(dbUser.uni_farming_start_timestamp, "date")
-          };
+          // Просто використовуємо оригінальний об'єкт користувача
+          const user = dbUser;
           userId = user.id;
           console.log(`[TransactionController] Найден пользователь ${userId} по адресу кошелька ${wallet_address}`);
         } else {
@@ -269,19 +265,8 @@ export class TransactionController {
         return;
       }
       
-      // Адаптуємо об'єкт користувача, щоб уникнути помилок LSP з типами даних
-      const user = {
-        ...dbUser,
-        // Безпечно перетворюємо всі timestamp-поля в рядкові типи
-        created_at: ensureDate(dbUser.created_at),
-        uni_farming_start_timestamp: ensureDate(dbUser.uni_farming_start_timestamp),
-        ton_farming_start_timestamp: ensureDate(dbUser.ton_farming_start_timestamp),
-        uni_farming_last_update: ensureDate(dbUser.uni_farming_last_update),
-        uni_farming_activated_at: ensureDate(dbUser.uni_farming_activated_at),
-        checkin_last_date: ensureDate(dbUser.checkin_last_date),
-        last_login_at: ensureDate(dbUser.last_login_at),
-        last_claim_at: ensureDate(dbUser.last_claim_at)
-      };
+      // Просто використовуємо оригінальний об'єкт користувача без додаткових перетворень
+      const user = dbUser;
       
       // Проверяем достаточность средств на балансе
       // Используем безопасное получение значений баланса с учетом возможных отличий в типе пользователя
