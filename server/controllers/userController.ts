@@ -101,17 +101,17 @@ export const UserController = {
           // Возвращаем данные по умолчанию при отсутствии соединения с БД
           const user = createUserFallback(id);
           
-          // Перетворюємо строкові timestamp в об'єкти Date для сумісності типів
+          // Перетворюємо timestamp-поля через ensureDate для стандартизації типів
           return {
             ...user,
-            created_at: new Date(user.created_at) as Date,
-            uni_farming_start_timestamp: user.uni_farming_start_timestamp as unknown as Date,
-            ton_farming_start_timestamp: user.ton_farming_start_timestamp as unknown as Date,
-            uni_farming_last_update: user.uni_farming_last_update as unknown as Date,
-            uni_farming_activated_at: user.uni_farming_activated_at as unknown as Date,
-            checkin_last_date: user.checkin_last_date as unknown as Date,
-            last_login_at: user.last_login_at as unknown as Date,
-            last_claim_at: user.last_claim_at as unknown as Date
+            created_at: ensureDate(user.created_at),
+            uni_farming_start_timestamp: ensureDate(user.uni_farming_start_timestamp),
+            ton_farming_start_timestamp: ensureDate(user.ton_farming_start_timestamp),
+            uni_farming_last_update: ensureDate(user.uni_farming_last_update),
+            uni_farming_activated_at: ensureDate(user.uni_farming_activated_at),
+            checkin_last_date: ensureDate(user.checkin_last_date),
+            last_login_at: ensureDate(user.last_login_at),
+            last_claim_at: ensureDate(user.last_claim_at)
           };
         }
       );
@@ -154,17 +154,17 @@ export const UserController = {
           // Возвращаем данные по умолчанию при отсутствии соединения с БД
           const user = createGuestUserFallback(guestId);
           
-          // Перетворюємо строкові timestamp в об'єкти Date для сумісності типів
+          // Перетворюємо timestamp-поля через ensureDate для стандартизації типів
           return {
             ...user,
-            created_at: new Date(user.created_at) as Date,
-            uni_farming_start_timestamp: user.uni_farming_start_timestamp as unknown as Date,
-            ton_farming_start_timestamp: user.ton_farming_start_timestamp as unknown as Date,
-            uni_farming_last_update: user.uni_farming_last_update as unknown as Date,
-            uni_farming_activated_at: user.uni_farming_activated_at as unknown as Date,
-            checkin_last_date: user.checkin_last_date as unknown as Date,
-            last_login_at: user.last_login_at as unknown as Date,
-            last_claim_at: user.last_claim_at as unknown as Date
+            created_at: ensureDate(user.created_at),
+            uni_farming_start_timestamp: ensureDate(user.uni_farming_start_timestamp),
+            ton_farming_start_timestamp: ensureDate(user.ton_farming_start_timestamp),
+            uni_farming_last_update: ensureDate(user.uni_farming_last_update),
+            uni_farming_activated_at: ensureDate(user.uni_farming_activated_at),
+            checkin_last_date: ensureDate(user.checkin_last_date),
+            last_login_at: ensureDate(user.last_login_at),
+            last_claim_at: ensureDate(user.last_claim_at)
           };
         }
       );
@@ -207,17 +207,17 @@ export const UserController = {
           // Возвращаем заглушку при отсутствии соединения с БД
           const user = createRegisteredGuestFallback(guestId, username, parentRefCode);
           
-          // Перетворюємо строкові timestamp в об'єкти Date для сумісності типів
+          // Перетворюємо timestamp-поля через ensureDate для стандартизації типів
           return {
             ...user,
-            created_at: new Date(user.created_at) as Date,
-            uni_farming_start_timestamp: user.uni_farming_start_timestamp as unknown as Date,
-            ton_farming_start_timestamp: user.ton_farming_start_timestamp as unknown as Date,
-            uni_farming_last_update: user.uni_farming_last_update as unknown as Date,
-            uni_farming_activated_at: user.uni_farming_activated_at as unknown as Date,
-            checkin_last_date: user.checkin_last_date as unknown as Date,
-            last_login_at: user.last_login_at as unknown as Date,
-            last_claim_at: user.last_claim_at as unknown as Date
+            created_at: ensureDate(user.created_at),
+            uni_farming_start_timestamp: ensureDate(user.uni_farming_start_timestamp),
+            ton_farming_start_timestamp: ensureDate(user.ton_farming_start_timestamp),
+            uni_farming_last_update: ensureDate(user.uni_farming_last_update),
+            uni_farming_activated_at: ensureDate(user.uni_farming_activated_at),
+            checkin_last_date: ensureDate(user.checkin_last_date),
+            last_login_at: ensureDate(user.last_login_at),
+            last_claim_at: ensureDate(user.last_claim_at)
           };
         }
       );
@@ -315,7 +315,7 @@ export const UserController = {
           wallet: null,
           ton_wallet_address: null,
           guest_id: guestId || `temp_${temporaryId}`,
-          created_at: new Date().toISOString(),
+          created_at: ensureDate(new Date().toISOString()),
           parent_ref_code: referrerCode,
           is_fallback: true,
           message: 'Временный аккаунт создан (аварийный режим)'
@@ -388,7 +388,7 @@ export const UserController = {
           wallet: null,
           ton_wallet_address: null,
           guest_id: guestId || uuidv4(),
-          created_at: new Date().toISOString(),
+          created_at: ensureDate(new Date().toISOString()),
           parent_ref_code: null,
           is_fallback: true
         },
@@ -431,135 +431,21 @@ export const UserController = {
       const userId = parseInt(req.params.id, 10);
       
       if (isNaN(userId)) {
-        sendError(res, 'ID пользователя должен быть числом', 400, { error_code: 'INVALID_USER_ID' });
+        sendError(res, 'Некорректный ID пользователя', 400);
         return;
       }
       
-      // Обертка сервісної функції для обробки помилок
-      const getUserById = wrapServiceFunction(
-        userService.getUserById.bind(userService),
-        async (error) => {
-          console.error('[UserController] Ошибка при получении пользователя:', error);
-          throw error;
-        }
-      );
-      
-      const user = await getUserById(userId);
+      const user = await userService.getUserById(userId);
       
       if (!user) {
-        sendError(res, 'Пользователь не найден', 'USER_NOT_FOUND', 404);
+        sendError(res, 'Пользователь не найден', 404);
         return;
       }
       
       sendSuccess(res, user);
-    } catch (err) {
-      console.error('[UserController] Ошибка при получении пользователя:', err);
-      sendServerError(res, 'Внутренняя ошибка сервера');
-    }
-  },
-  
-  /**
-   * Получает информацию о пользователе по имени пользователя
-   */
-  async getUserByUsername(req: Request, res: Response): Promise<void> {
-    try {
-      const { username } = req.params;
-      
-      if (!username) {
-        sendError(res, 'Имя пользователя не указано', 'MISSING_USERNAME', 400);
-        return;
-      }
-      
-      // Обертка сервісної функції для обробки помилок
-      const getUserByUsername = wrapServiceFunction(
-        userService.getUserByUsername.bind(userService),
-        async (error) => {
-          console.error('[UserController] Ошибка при получении пользователя по имени:', error);
-          throw error;
-        }
-      );
-      
-      const user = await getUserByUsername(username);
-      
-      if (!user) {
-        sendError(res, 'Пользователь не найден', 'USER_NOT_FOUND', 404);
-        return;
-      }
-      
-      sendSuccess(res, user);
-    } catch (err) {
-      console.error('[UserController] Ошибка при получении пользователя по имени:', err);
-      sendServerError(res, 'Внутренняя ошибка сервера');
-    }
-  },
-  
-  /**
-   * Получает информацию о пользователе по гостевому ID (расширенная версия)
-   */
-  async getUserByGuestIdExtended(req: Request, res: Response): Promise<void> {
-    try {
-      const { guestId } = req.params;
-      
-      if (!guestId) {
-        sendError(res, 'Гостевой ID не указан', 400, 'MISSING_GUEST_ID');
-        return;
-      }
-      
-      // Обертка сервісної функції для обробки помилок
-      const getUserByGuestId = wrapServiceFunction(
-        userService.getUserByGuestId.bind(userService),
-        async (error) => {
-          console.error('[UserController] Ошибка при получении пользователя по гостевому ID:', error);
-          throw error;
-        }
-      );
-      
-      const user = await getUserByGuestId(guestId);
-      
-      if (!user) {
-        sendError(res, 'Пользователь не найден', 404, 'USER_NOT_FOUND');
-        return;
-      }
-      
-      sendSuccess(res, user);
-    } catch (err) {
-      console.error('[UserController] Ошибка при получении пользователя по гостевому ID:', err);
-      sendServerError(res, 'Внутренняя ошибка сервера');
-    }
-  },
-  
-  /**
-   * Получает информацию о пользователе по реферальному коду
-   */
-  async getUserByRefCode(req: Request, res: Response): Promise<void> {
-    try {
-      const { refCode } = req.params;
-      
-      if (!refCode) {
-        sendError(res, 'Реферальный код не указан', 400, 'MISSING_REF_CODE');
-        return;
-      }
-      
-      // Обертка сервісної функції для обробки помилок
-      const getUserByRefCode = wrapServiceFunction(
-        userService.getUserByRefCode.bind(userService),
-        async (error) => {
-          console.error('[UserController] Ошибка при получении пользователя по реферальному коду:', error);
-          throw error;
-        }
-      );
-      
-      const user = await getUserByRefCode(refCode);
-      
-      if (!user) {
-        sendError(res, 'Пользователь с указанным реферальным кодом не найден', 404, 'USER_NOT_FOUND');
-        return;
-      }
-      
-      sendSuccess(res, user);
-    } catch (err) {
-      console.error('[UserController] Ошибка при получении пользователя по реферальному коду:', err);
-      sendServerError(res, 'Внутренняя ошибка сервера');
+    } catch (error) {
+      console.error('[UserController] Ошибка при получении пользователя:', error);
+      sendServerError(res, 'Ошибка при получении данных пользователя');
     }
   },
   
@@ -568,232 +454,167 @@ export const UserController = {
    */
   async createUser(req: Request, res: Response): Promise<void> {
     try {
-      // Валидируем данные пользователя через Zod
-      const userData = insertUserSchema.parse(req.body);
+      // Валидация входных данных с помощью схемы Zod
+      const validationResult = createUserSchema.safeParse(req.body);
       
-      // Если реферальный код не указан, генерируем новый
-      if (!userData.ref_code) {
-        // Обертка сервисной функции
-        const generateRefCode = wrapServiceFunction(
-          userService.generateRefCode.bind(userService),
-          async (error) => {
-            console.error('[UserController] Ошибка при генерации реферального кода:', error);
-            throw error;
-          }
-        );
-        
-        userData.ref_code = await generateRefCode();
-      }
-      
-      // Обертка сервисной функции для создания пользователя
-      const createUser = wrapServiceFunction(
-        userService.createUser.bind(userService),
-        async (error) => {
-          console.error('[UserController] Ошибка при создании пользователя:', error);
-          throw error;
-        }
-      );
-      
-      const newUser = await createUser(userData);
-      
-      sendSuccess(res, newUser, 201);
-    } catch (err) {
-      console.error('[UserController] Ошибка при создании пользователя:', err);
-      
-      // Обрабатываем ошибки валидации Zod
-      if (err instanceof ZodError) {
-        sendError(res, 'Ошибка валидации данных', 400, handleZodError(err));
+      if (!validationResult.success) {
+        sendError(res, 'Ошибка валидации данных', 400, formatZodErrors(validationResult.error));
         return;
       }
       
-      sendServerError(res, 'Внутренняя ошибка сервера');
+      const userData = validationResult.data;
+      
+      // Проверка уникальности username
+      if (userData.username) {
+        const existingUser = await userService.getUserByUsername(userData.username);
+        if (existingUser) {
+          sendError(res, 'Пользователь с таким username уже существует', 409);
+          return;
+        }
+      }
+      
+      // Если передан Telegram ID, проверяем его уникальность
+      if (userData.telegram_id) {
+        const existingUser = await userService.getUserByTelegramId(userData.telegram_id);
+        if (existingUser) {
+          sendError(res, 'Пользователь с таким Telegram ID уже существует', 409);
+          return;
+        }
+      }
+      
+      // Создаем пользователя
+      const newUser = await userService.createUser(userData);
+      
+      // Генерируем реферальный код, если не был передан
+      if (!newUser.ref_code) {
+        const refCode = await userService.generateRefCode();
+        await userService.updateUser(newUser.id, { ref_code: refCode });
+        newUser.ref_code = refCode;
+      }
+      
+      sendSuccess(res, newUser, 'Пользователь успешно создан', 201);
+    } catch (error) {
+      console.error('[UserController] Ошибка при создании пользователя:', error);
+      sendServerError(res, 'Ошибка при создании пользователя');
     }
   },
   
   /**
-   * Обновляет реферальный код пользователя
+   * Обновляет информацию о пользователе
    */
-  async updateRefCode(req: Request, res: Response): Promise<void> {
+  async updateUser(req: Request, res: Response): Promise<void> {
     try {
       const userId = parseInt(req.params.id, 10);
-      const { refCode } = req.body;
       
       if (isNaN(userId)) {
-        sendError(res, 'ID пользователя должен быть числом', 400, 'INVALID_USER_ID');
+        sendError(res, 'Некорректный ID пользователя', 400);
         return;
       }
       
-      if (!refCode) {
-        sendError(res, 'Реферальный код не указан', 400, 'MISSING_REF_CODE');
-        return;
-      }
-      
-      // Обертка сервисной функции для обновления реферального кода
-      const updateUserRefCode = wrapServiceFunction(
-        userService.updateUserRefCode.bind(userService),
-        async (error) => {
-          console.error('[UserController] Ошибка при обновлении реферального кода:', error);
-          throw error;
-        }
-      );
-      
-      const updatedUser = await updateUserRefCode(userId, refCode);
-      
-      if (!updatedUser) {
-        sendError(res, 'Пользователь не найден', 404, 'USER_NOT_FOUND');
-        return;
-      }
-      
-      sendSuccess(res, updatedUser);
-    } catch (err) {
-      console.error('[UserController] Ошибка при обновлении реферального кода:', err);
-      sendServerError(res, 'Внутренняя ошибка сервера');
-    }
-  },
-  
-  /**
-   * Обновляет баланс пользователя
-   */
-  async updateBalance(req: Request, res: Response): Promise<void> {
-    try {
-      const userId = parseInt(req.params.id, 10);
-      const { currencyType, amount } = req.body;
-      
-      if (isNaN(userId)) {
-        sendError(res, 'ID пользователя должен быть числом', 400, 'INVALID_USER_ID');
-        return;
-      }
-      
-      if (!currencyType || !['uni', 'ton'].includes(currencyType)) {
-        sendError(res, 'Неверный тип валюты. Допустимые значения: uni, ton', 400, 'INVALID_CURRENCY_TYPE');
-        return;
-      }
-      
-      if (!amount || isNaN(parseFloat(amount))) {
-        sendError(res, 'Сумма должна быть числом', 400, 'INVALID_AMOUNT');
-        return;
-      }
-      
-      // Обертка сервисной функции для обновления баланса
-      const updateUserBalance = wrapServiceFunction(
-        userService.updateUserBalance.bind(userService),
-        async (error) => {
-          console.error('[UserController] Ошибка при обновлении баланса:', error);
-          throw error;
-        }
-      );
-      
-      const updatedUser = await updateUserBalance(userId, currencyType, amount);
-      
-      if (!updatedUser) {
-        sendError(res, 'Пользователь не найден', 404, 'USER_NOT_FOUND');
-        return;
-      }
-      
-      sendSuccess(res, updatedUser);
-    } catch (err) {
-      console.error('[UserController] Ошибка при обновлении баланса:', err);
-      sendServerError(res, 'Внутренняя ошибка сервера');
-    }
-  },
-  
-  /**
-   * Генерирует новый реферальный код
-   */
-  async generateRefCode(req: Request, res: Response): Promise<void> {
-    try {
-      // Обертка сервисной функции для генерации реферального кода
-      const generateRefCode = wrapServiceFunction(
-        userService.generateRefCode.bind(userService),
-        async (error) => {
-          console.error('[UserController] Ошибка при генерации реферального кода:', error);
-          throw error;
-        }
-      );
-      
-      const refCode = await generateRefCode();
-      sendSuccess(res, { refCode });
-    } catch (err) {
-      console.error('[UserController] Ошибка при генерации реферального кода:', err);
-      sendServerError(res, 'Внутренняя ошибка сервера');
-    }
-  },
-
-  /**
-   * Получает информацию о текущем пользователе на основе сессии
-   */
-  async getCurrentUser(req: Request, res: Response): Promise<void> {
-    try {
-      // В режиме разработки проверяем несколько источников ID пользователя
-      let userId = null;
-      
-      if (process.env.NODE_ENV === 'development') {
-        // 1. Сначала пробуем получить ID из заголовка x-development-user-id
-        if (req.headers['x-development-user-id']) {
-          userId = parseInt(req.headers['x-development-user-id'] as string, 10);
-          console.log(`[UserController] Получен ID пользователя из заголовка x-development-user-id: ${userId}`);
-        }
-        
-        // 2. Затем проверяем query параметр user_id
-        if (!userId && req.query.user_id) {
-          userId = parseInt(req.query.user_id as string, 10);
-          console.log(`[UserController] Получен ID пользователя из query параметра user_id: ${userId}`);
-        }
-        
-        // 3. Проверяем устаревший заголовок x-user-id для обратной совместимости
-        if (!userId && req.headers['x-user-id']) {
-          userId = parseInt(req.headers['x-user-id'] as string, 10);
-          console.log(`[UserController] Получен ID пользователя из заголовка x-user-id: ${userId}`);
-        }
-      }
-      
-      // Если в режиме разработки не найден ID, или мы не в режиме разработки, 
-      // пробуем стандартный путь через сессию
-      if (!userId) {
-        userId = req.session?.userId || (req as any).user?.id;
-        console.log(`[UserController] Получен ID пользователя из сессии: ${userId}`);
-      }
-      
-      // Проверяем валидность ID
-      if (!userId || isNaN(userId)) {
-        console.log(`[UserController] Ошибка аутентификации - userId: ${userId}, 
-          isNaN: ${isNaN(userId)}, headers: ${JSON.stringify(req.headers)}`);
-          
-        sendError(res, 'Пользователь не аутентифицирован', 401, {
-          code: 'USER_NOT_AUTHENTICATED',
-          details: {
-            session_exists: !!req.session,
-            user_in_session: !!req.session?.userId,
-            development_mode: process.env.NODE_ENV === 'development',
-            dev_headers: {
-              development_mode: !!req.headers['x-development-mode'],
-              development_user_id: req.headers['x-development-user-id']
-            }
-          }
-        });
-        return;
-      }
-      
-      // Обертка сервисной функции для получения пользователя
-      const getUserById = wrapServiceFunction(
-        userService.getUserById.bind(userService),
-        async (error) => {
-          console.error('[UserController] Ошибка при получении пользователя:', error);
-          throw error;
-        }
-      );
-      
-      const user = await getUserById(userId);
+      // Проверяем существование пользователя
+      const user = await userService.getUserById(userId);
       
       if (!user) {
-        sendError(res, 'Пользователь не найден', 404, 'USER_NOT_FOUND');
+        sendError(res, 'Пользователь не найден', 404);
         return;
       }
       
-      sendSuccess(res, user);
-    } catch (err) {
-      console.error('[UserController] Ошибка при получении текущего пользователя:', err);
-      sendServerError(res, 'Внутренняя ошибка сервера');
+      // Обновляем пользователя
+      const updatedUser = await userService.updateUser(userId, req.body);
+      
+      sendSuccess(res, updatedUser, 'Данные пользователя обновлены');
+    } catch (error) {
+      console.error('[UserController] Ошибка при обновлении пользователя:', error);
+      sendServerError(res, 'Ошибка при обновлении данных пользователя');
+    }
+  },
+  
+  /**
+   * Получает реферальный код пользователя
+   */
+  async getRefCode(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = parseInt(req.params.id, 10);
+      
+      if (isNaN(userId)) {
+        sendError(res, 'Некорректный ID пользователя', 400);
+        return;
+      }
+      
+      const user = await userService.getUserById(userId);
+      
+      if (!user) {
+        sendError(res, 'Пользователь не найден', 404);
+        return;
+      }
+      
+      sendSuccess(res, {
+        user_id: user.id,
+        ref_code: user.ref_code
+      });
+    } catch (error) {
+      console.error('[UserController] Ошибка при получении реферального кода:', error);
+      sendServerError(res, 'Ошибка при получении реферального кода');
+    }
+  },
+  
+  /**
+   * Проверяет доступность username
+   */
+  async checkUsername(req: Request, res: Response): Promise<void> {
+    try {
+      const { username } = req.query;
+      
+      if (!username || typeof username !== 'string') {
+        sendError(res, 'Не указан username', 400);
+        return;
+      }
+      
+      const user = await userService.getUserByUsername(username);
+      
+      sendSuccess(res, {
+        username,
+        available: !user
+      });
+    } catch (error) {
+      console.error('[UserController] Ошибка при проверке username:', error);
+      sendServerError(res, 'Ошибка при проверке доступности username');
+    }
+  },
+  
+  /**
+   * Добавляет TON кошелек пользователю
+   */
+  async addTonWallet(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = parseInt(req.params.id, 10);
+      
+      if (isNaN(userId)) {
+        sendError(res, 'Некорректный ID пользователя', 400);
+        return;
+      }
+      
+      const { ton_wallet_address } = req.body;
+      
+      if (!ton_wallet_address) {
+        sendError(res, 'Не указан адрес TON кошелька', 400);
+        return;
+      }
+      
+      // Проверяем формат адреса TON кошелька (примерная валидация)
+      const tonAddressRegex = /^(?:UQ|EQ)[A-Za-z0-9_-]{46,48}$/;
+      if (!tonAddressRegex.test(ton_wallet_address)) {
+        sendError(res, 'Некорректный формат адреса TON кошелька', 400);
+        return;
+      }
+      
+      // Обновляем пользователя
+      const updatedUser = await userService.updateUser(userId, { ton_wallet_address });
+      
+      sendSuccess(res, updatedUser, 'TON кошелек успешно добавлен');
+    } catch (error) {
+      console.error('[UserController] Ошибка при добавлении TON кошелька:', error);
+      sendServerError(res, 'Ошибка при добавлении TON кошелька');
     }
   }
 };
