@@ -11,7 +11,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { userService } from '../services';
+import { userService, authService } from '../services';
 import { insertUserSchema, InsertUser } from '@shared/schema';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
 import { createUserFallback, createGuestUserFallback, createRegisteredGuestFallback } from '../utils/userAdapter';
@@ -185,8 +185,12 @@ export const UserController = {
         }
       );
       
-      // Реєструємо нового гостьового користувача
-      const newUser = await userService.registerGuestUser(guest_id, username, parent_ref_code);
+      // Реєструємо нового гостьового користувача через сервіс авторизації
+      const newUser = await authService.registerGuestUser({
+        guest_id, 
+        username, 
+        parent_ref_code: parent_ref_code || undefined
+      });
       sendSuccess(res, newUser);
     } catch (error) {
       next(error);

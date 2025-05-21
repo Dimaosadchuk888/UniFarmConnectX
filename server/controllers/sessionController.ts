@@ -34,15 +34,8 @@ export class SessionController {
    * @param res Ответ с данными тестового пользователя
    */
   static async devLogin(req: RequestWithSession, res: Response): Promise<any> {
-    try {
-      // В продакшн-версії цей метод недоступний взагалі
-      sendError(res, 'Ця функція недоступна в продакшн-середовищі', 403);
-      return;
-      
-    } catch (error) {
-      console.error('[SessionController] Ошибка при создании тестовой сессии:', error);
-      sendServerError(res, 'Внутренняя ошибка сервера при создании тестовой сессии');
-    }
+    // В продакшн-версії цей метод недоступний взагалі
+    return sendError(res, 'Ця функція недоступна в продакшн-середовищі', 403);
   }
   /**
    * Восстанавливает сессию пользователя по guest_id без создания нового аккаунта
