@@ -18,6 +18,15 @@ export function log(message: any, ...optionalParams: any[]): void {
 }
 
 /**
+ * Логирование информационных сообщений (работает в любом режиме)
+ * @param message Сообщение или объект для логирования
+ * @param optionalParams Дополнительные параметры для логирования
+ */
+export function info(message: any, ...optionalParams: any[]): void {
+  console.log(message, ...optionalParams);
+}
+
+/**
  * Логирование предупреждений (только в режиме разработки)
  * @param message Сообщение или объект для логирования
  * @param optionalParams Дополнительные параметры для логирования
@@ -108,6 +117,7 @@ export function safeLog(importance: number, message: any, ...optionalParams: any
 
 export default {
   log,
+  info,
   debug,
   warn,
   error,
