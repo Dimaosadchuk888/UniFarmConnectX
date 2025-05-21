@@ -185,7 +185,8 @@ export const UserController = {
         }
       );
       
-      const newUser = await registerGuestUserSafe(guest_id, username, parent_ref_code);
+      // Реєструємо нового гостьового користувача
+      const newUser = await userService.registerGuestUser(guest_id, username, parent_ref_code);
       sendSuccess(res, newUser);
     } catch (error) {
       next(error);
