@@ -34,7 +34,7 @@ export enum TransactionCategory {
   DEPOSIT = 'deposit',
   WITHDRAWAL = 'withdrawal'
 }
-import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
+import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
 import { wrapServiceFunction } from '../db-service-wrapper';
 
 /**

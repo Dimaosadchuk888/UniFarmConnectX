@@ -14,7 +14,7 @@ import { Request, Response, NextFunction } from 'express';
 import { userService } from '../services';
 import { insertUserSchema, InsertUser } from '@shared/schema';
 import { ZodError } from 'zod';
-import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
+import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
 import { ValidationError } from '../middleware/errorHandler';
 import { userIdSchema, createUserSchema, guestRegistrationSchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
@@ -157,10 +157,10 @@ export const UserController = {
   },
 
   /**
-   * Регистрирует гостевого пользователя
+   * Регистрирует гостевого пользователя (базовая версия)
    * @route POST /api/auth/guest/register
    */
-  async registerGuestUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async registerGuestUserBase(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация входных данных
       const validationResult = guestRegistrationSchema.safeParse(req.body);
@@ -303,7 +303,7 @@ export const UserController = {
    * с поддержкой работы при отсутствии соединения с БД
    * @route POST /api/users/register-guest
    */
-  async registerGuestUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async registerGuestUserWithFallback(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Валидация входных данных
       const validationResult = guestRegistrationSchema.safeParse(req.body);
@@ -468,9 +468,9 @@ export const UserController = {
   },
   
   /**
-   * Получает информацию о пользователе по гостевому ID
+   * Получает информацию о пользователе по гостевому ID (расширенная версия)
    */
-  async getUserByGuestId(req: Request, res: Response): Promise<void> {
+  async getUserByGuestIdExtended(req: Request, res: Response): Promise<void> {
     try {
       const { guestId } = req.params;
       
