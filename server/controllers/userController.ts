@@ -12,6 +12,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { userService, authService } from '../services';
+import logger from '../utils/logger';
 import { insertUserSchema, InsertUser } from '@shared/schema';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
 import { createUserFallback, createGuestUserFallback, createRegisteredGuestFallback } from '../utils/userAdapter';
@@ -96,7 +97,7 @@ export const UserController = {
       const getUserByIdSafe = wrapServiceFunction(
         userService.getUserById.bind(userService),
         async (error) => {
-          console.error(`[UserController] Помилка при отриманні користувача:`, error);
+          logger.error(`[UserController] Помилка при отриманні користувача:`, error);
           return null; // В продакшн-версії не використовуємо заглушки
         }
       );
@@ -136,7 +137,7 @@ export const UserController = {
       const getUserByGuestIdWithFallback = wrapServiceFunction(
         userService.getUserByGuestId.bind(userService),
         async (error, guestId) => {
-          console.log(`[UserController] Возвращаем заглушку для пользователя по guest_id: ${guestId}`, error);
+          logger.debug(`[UserController] Повернення користувача по guest_id: ${guestId}`, error);
           
           // Возвращаем данные по умолчанию при отсутствии соединения с БД
           const user = createGuestUserFallback(guestId);
@@ -180,7 +181,7 @@ export const UserController = {
       const registerGuestUserSafe = wrapServiceFunction(
         userService.registerGuestUser.bind(userService),
         async (error) => {
-          console.error(`[UserController] Помилка при реєстрації гостьового користувача:`, error);
+          logger.error(`[UserController] Помилка при реєстрації гостьового користувача:`, error);
           throw new Error('Не вдалося зареєструвати гостьового користувача');
         }
       );
@@ -271,7 +272,7 @@ export const UserController = {
           message: 'Временный аккаунт создан'
         };
       } catch (memError) {
-        console.error(`[UserController] Ошибка создания пользователя в MemStorage:`, memError);
+        logger.error(`[UserController] Помилка створення користувача в MemStorage:`, memError);
         
         // Если не удалось создать в MemStorage, возвращаем объект напрямую
         const temporaryId = Math.floor(Math.random() * 1000000) + 1;
@@ -412,7 +413,7 @@ export const UserController = {
       
       sendSuccess(res, user);
     } catch (error) {
-      console.error('[UserController] Ошибка при получении пользователя:', error);
+      logger.error('[UserController] Помилка при отриманні користувача:', error);
       sendServerError(res, 'Ошибка при получении данных пользователя');
     }
   },
@@ -463,7 +464,7 @@ export const UserController = {
       
       sendSuccess(res, newUser, 'Пользователь успешно создан', 201);
     } catch (error) {
-      console.error('[UserController] Ошибка при создании пользователя:', error);
+      logger.error('[UserController] Помилка при створенні користувача:', error);
       sendServerError(res, 'Ошибка при создании пользователя');
     }
   },
@@ -500,7 +501,7 @@ export const UserController = {
       
       sendSuccess(res, updatedUser, 'Данные пользователя обновлены');
     } catch (error) {
-      console.error('[UserController] Ошибка при обновлении пользователя:', error);
+      logger.error('[UserController] Помилка при оновленні користувача:', error);
       sendServerError(res, 'Ошибка при обновлении данных пользователя');
     }
   },

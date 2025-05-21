@@ -58,7 +58,7 @@ export function ensureDateObject(dateValue: string | Date | null | undefined): D
     }
     return new Date(String(dateValue));
   } catch (e) {
-    console.error('Помилка при перетворенні до Date:', e);
+    logger.error('Помилка при перетворенні до Date:', e);
     return null;
   }
 }
