@@ -27,7 +27,8 @@ export {
   testConnection,
   getConnectionStatus,
   getMonitorStats,
-  queryWithRetry
+  queryWithRetry,
+  dbMonitor
 } from './db-connect-unified';
 
 // Экспортируем типы и конфигурацию
@@ -39,4 +40,26 @@ export {
 } from './db-config';
 
 // Экспортируем компоненты мониторинга
-export { ConnectionStatus } from './db-health-monitor';
+export type { ConnectionStatus } from './db-health-monitor';
+
+// Экспортируем интерфейс dbConnectionStatus для совместимости
+import { dbMonitor as monitor } from './db-connect-unified';
+
+export const dbConnectionStatus = {
+  status: 'ok' as const,
+  error: null as Error | null,
+  lastCheckedAt: new Date(),
+  
+  async update() {
+    try {
+      const result = await monitor.checkConnection();
+      this.status = monitor.getStatus();
+      this.lastCheckedAt = new Date();
+      return result;
+    } catch (error) {
+      this.error = error instanceof Error ? error : new Error(String(error));
+      this.status = 'error';
+      return false;
+    }
+  }
+};
