@@ -15,6 +15,7 @@ import { userService } from '../services';
 import { insertUserSchema, InsertUser } from '@shared/schema';
 import { ZodError } from 'zod';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
+import { createUserFallback, createGuestUserFallback, createRegisteredGuestFallback } from '../utils/userAdapter';
 import { ValidationError } from '../middleware/errorHandler';
 import { userIdSchema, createUserSchema, guestRegistrationSchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
@@ -184,7 +185,19 @@ export const UserController = {
             is_fallback: true,
             last_login_at: null,
             last_claim_at: null,
-            checkin_streak: 0
+            checkin_streak: 0,
+            uni_deposit_amount: 0,
+            uni_farming_start_timestamp: null,
+            uni_farming_balance: 0,
+            uni_farming_rate: 0,
+            uni_farming_last_update: null,
+            uni_farming_deposit: 0,
+            uni_farming_activated_at: null,
+            ton_deposit_amount: 0,
+            ton_farming_start_timestamp: null,
+            ton_farming_balance: 0,
+            ton_farming_rate: 0,
+            checkin_last_date: null
           };
         }
       );

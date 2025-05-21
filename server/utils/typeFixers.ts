@@ -96,13 +96,13 @@ export function removeNullValues<T extends object>(obj: T): Partial<T> {
  */
 export function ensureRequiredFields<T extends object>(
   obj: Partial<T>,
-  requiredFields: Record<keyof T, any>
+  requiredFields: Record<string, any>
 ): T {
   const result = { ...obj } as T;
   
   for (const [key, defaultValue] of Object.entries(requiredFields)) {
     if (result[key as keyof T] === undefined || result[key as keyof T] === null) {
-      result[key as keyof T] = defaultValue;
+      result[key as keyof T] = defaultValue as any;
     }
   }
   
