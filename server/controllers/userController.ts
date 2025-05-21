@@ -188,8 +188,8 @@ export const UserController = {
       // Реєструємо нового гостьового користувача через сервіс авторизації
       const newUser = await authService.registerGuestUser({
         guest_id, 
-        username, 
-        parent_ref_code: parent_ref_code || undefined
+        username,
+        parent_ref_code
       });
       sendSuccess(res, newUser);
     } catch (error) {
