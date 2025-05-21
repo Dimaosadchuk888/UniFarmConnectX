@@ -593,26 +593,35 @@ export const UserController = {
       const { refCode } = req.body;
       
       if (isNaN(userId)) {
-        res.status(400).json(error('ID пользователя должен быть числом', 'INVALID_USER_ID'));
+        sendError(res, 'ID пользователя должен быть числом', 400, 'INVALID_USER_ID');
         return;
       }
       
       if (!refCode) {
-        res.status(400).json(error('Реферальный код не указан', 'MISSING_REF_CODE'));
+        sendError(res, 'Реферальный код не указан', 400, 'MISSING_REF_CODE');
         return;
       }
       
-      const updatedUser = await userService.updateUserRefCode(userId, refCode);
+      // Обертка сервисной функции для обновления реферального кода
+      const updateUserRefCode = wrapServiceFunction(
+        userService.updateUserRefCode.bind(userService),
+        async (error) => {
+          console.error('[UserController] Ошибка при обновлении реферального кода:', error);
+          throw error;
+        }
+      );
+      
+      const updatedUser = await updateUserRefCode(userId, refCode);
       
       if (!updatedUser) {
-        res.status(404).json(error('Пользователь не найден', 'USER_NOT_FOUND'));
+        sendError(res, 'Пользователь не найден', 404, 'USER_NOT_FOUND');
         return;
       }
       
-      res.json(success(updatedUser));
+      sendSuccess(res, updatedUser);
     } catch (err) {
       console.error('[UserController] Ошибка при обновлении реферального кода:', err);
-      res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
+      sendServerError(res, 'Внутренняя ошибка сервера');
     }
   },
   
@@ -625,31 +634,40 @@ export const UserController = {
       const { currencyType, amount } = req.body;
       
       if (isNaN(userId)) {
-        res.status(400).json(error('ID пользователя должен быть числом', 'INVALID_USER_ID'));
+        sendError(res, 'ID пользователя должен быть числом', 400, 'INVALID_USER_ID');
         return;
       }
       
       if (!currencyType || !['uni', 'ton'].includes(currencyType)) {
-        res.status(400).json(error('Неверный тип валюты. Допустимые значения: uni, ton', 'INVALID_CURRENCY_TYPE'));
+        sendError(res, 'Неверный тип валюты. Допустимые значения: uni, ton', 400, 'INVALID_CURRENCY_TYPE');
         return;
       }
       
       if (!amount || isNaN(parseFloat(amount))) {
-        res.status(400).json(error('Сумма должна быть числом', 'INVALID_AMOUNT'));
+        sendError(res, 'Сумма должна быть числом', 400, 'INVALID_AMOUNT');
         return;
       }
       
-      const updatedUser = await userService.updateUserBalance(userId, currencyType, amount);
+      // Обертка сервисной функции для обновления баланса
+      const updateUserBalance = wrapServiceFunction(
+        userService.updateUserBalance.bind(userService),
+        async (error) => {
+          console.error('[UserController] Ошибка при обновлении баланса:', error);
+          throw error;
+        }
+      );
+      
+      const updatedUser = await updateUserBalance(userId, currencyType, amount);
       
       if (!updatedUser) {
-        res.status(404).json(error('Пользователь не найден', 'USER_NOT_FOUND'));
+        sendError(res, 'Пользователь не найден', 404, 'USER_NOT_FOUND');
         return;
       }
       
-      res.json(success(updatedUser));
+      sendSuccess(res, updatedUser);
     } catch (err) {
       console.error('[UserController] Ошибка при обновлении баланса:', err);
-      res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
+      sendServerError(res, 'Внутренняя ошибка сервера');
     }
   },
   
@@ -658,11 +676,20 @@ export const UserController = {
    */
   async generateRefCode(req: Request, res: Response): Promise<void> {
     try {
-      const refCode = await userService.generateRefCode();
-      res.json(success({ refCode }));
+      // Обертка сервисной функции для генерации реферального кода
+      const generateRefCode = wrapServiceFunction(
+        userService.generateRefCode.bind(userService),
+        async (error) => {
+          console.error('[UserController] Ошибка при генерации реферального кода:', error);
+          throw error;
+        }
+      );
+      
+      const refCode = await generateRefCode();
+      sendSuccess(res, { refCode });
     } catch (err) {
       console.error('[UserController] Ошибка при генерации реферального кода:', err);
-      res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
+      sendServerError(res, 'Внутренняя ошибка сервера');
     }
   },
 
@@ -706,15 +733,18 @@ export const UserController = {
         console.log(`[UserController] Ошибка аутентификации - userId: ${userId}, 
           isNaN: ${isNaN(userId)}, headers: ${JSON.stringify(req.headers)}`);
           
-        res.status(401).json(error('Пользователь не аутентифицирован', 'USER_NOT_AUTHENTICATED', {
-          session_exists: !!req.session,
-          user_in_session: !!req.session?.userId,
-          development_mode: process.env.NODE_ENV === 'development',
-          dev_headers: {
-            development_mode: !!req.headers['x-development-mode'],
-            development_user_id: req.headers['x-development-user-id']
+        sendError(res, 'Пользователь не аутентифицирован', 401, {
+          code: 'USER_NOT_AUTHENTICATED',
+          details: {
+            session_exists: !!req.session,
+            user_in_session: !!req.session?.userId,
+            development_mode: process.env.NODE_ENV === 'development',
+            dev_headers: {
+              development_mode: !!req.headers['x-development-mode'],
+              development_user_id: req.headers['x-development-user-id']
+            }
           }
-        }));
+        });
         return;
       }
       
