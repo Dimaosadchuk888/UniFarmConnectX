@@ -5,6 +5,7 @@ import 'express-session';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
 import { dbUserToApiUser } from '../utils/userAdapter';
 import { wrapServiceFunction } from '../db-service-wrapper';
+import logger from '../utils/logger';
 
 // Для корректной работы с сессией расширяем интерфейс Request
 // Это временное решение, обходящее проблему с типизацией express-session
@@ -80,7 +81,7 @@ export class SessionController {
           }
         } catch (err) {
           // Обробляємо помилки, але не блокуємо авторизацію
-          console.error(`Помилка при генерації реферального коду:`, err instanceof Error ? err.message : String(err));
+          logger.error(`[SessionController] Помилка при генерації реферального коду:`, err instanceof Error ? err.message : String(err));
         }
       }
       

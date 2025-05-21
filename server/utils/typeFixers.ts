@@ -5,6 +5,8 @@
  * между разными интерфейсами и устранения LSP-ошибок.
  */
 
+import logger from './logger';
+
 /**
  * Преобразует строковую дату в объект Date
  * Используется для приведения данных из БД к ожидаемому типу
@@ -33,7 +35,7 @@ export function ensureDate(dateValue: string | Date | null | undefined): string 
     // Якщо це рядок, просто повертаємо його
     return String(dateValue);
   } catch (e) {
-    console.error('Помилка при обробці значення дати:', e);
+    logger.error('Помилка при обробці значення дати:', e);
     return null;
   }
 }
