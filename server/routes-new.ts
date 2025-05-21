@@ -21,12 +21,38 @@ import { TonBoostController } from './controllers/tonBoostControllerConsolidated
 import { WalletController } from './controllers/walletControllerConsolidated';
 import { DailyBonusController } from './controllers/dailyBonusControllerConsolidated';
 
+// Импортируем маршруты для Telegram бота
+import telegramRouter from './telegram/routes';
+import { telegramBot } from './telegram/bot';
+import logger from './utils/logger';
+
 /**
  * Регистрирует новые маршруты API в указанном приложении Express
  * @param app Экземпляр приложения Express
  */
 export function registerNewRoutes(app: Express): void {
   console.log('[NewRoutes] Регистрация новых маршрутов API');
+
+  // Инициализируем Telegram бота
+  try {
+    telegramBot.initialize()
+      .then((initialized) => {
+        if (initialized) {
+          logger.log('[Telegram] Бот успешно инициализирован');
+        } else {
+          logger.error('[Telegram] Не удалось инициализировать бота');
+        }
+      })
+      .catch((error) => {
+        logger.error('[Telegram] Ошибка при инициализации бота:', error);
+      });
+  } catch (error) {
+    logger.error('[Telegram] Ошибка при инициализации бота:', error);
+  }
+
+  // Регистрируем маршруты для Telegram бота
+  app.use('/api/telegram', telegramRouter);
+  logger.log('[NewRoutes] Маршруты для Telegram бота зарегистрированы');
 
   // Маршруты для сессий
   app.post('/api/v2/session/restore', (req, res) => SessionController.restoreSession(req, res));
