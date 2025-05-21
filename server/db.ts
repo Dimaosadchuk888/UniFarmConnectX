@@ -39,4 +39,4 @@ export {
 } from './db-config';
 
 // Экспортируем компоненты мониторинга
-export type { ConnectionStatus } from './db-health-monitor';
+export { ConnectionStatus } from './db-health-monitor';
