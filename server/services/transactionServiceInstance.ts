@@ -96,9 +96,16 @@ class TransactionServiceImpl implements ITransactionService {
    */
   async createTransaction(data: InsertTransaction): Promise<Transaction> {
     try {
+      // Убедимся, что у нас всегда есть актуальная временная метка
+      const transactionData = {
+        ...data
+      };
+      
+      // Если created_at не указан, будет использовано значение по умолчанию из схемы
+      
       const [transaction] = await db
         .insert(transactions)
-        .values(data)
+        .values(transactionData)
         .returning();
       
       return transaction;
@@ -177,9 +184,8 @@ class TransactionServiceImpl implements ITransactionService {
         status: data.status,
         source: data.source,
         category: data.category,
-        tx_hash: data.tx_hash || null,
-        // Додаємо поточний час як created_at, якщо це необхідно
-        created_at: new Date()
+        tx_hash: data.tx_hash || null
+        // Поле created_at буде автоматично заповнено через defaultNow() в схемі
       };
 
       const [transaction] = await db

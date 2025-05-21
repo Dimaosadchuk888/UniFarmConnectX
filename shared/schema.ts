@@ -142,7 +142,8 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
   description: true,
   source_user_id: true,
   wallet_address: true,
-  data: true
+  data: true,
+  created_at: true
 });
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
