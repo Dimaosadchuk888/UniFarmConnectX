@@ -11,7 +11,7 @@ import { users, transactions, missions, InsertMission } from '../shared/schema';
 import { eq, desc, and, gte, lte } from 'drizzle-orm';
 
 // Константи для роботи бота
-const ADMIN_BOT_TOKEN = '7662298323:AAFLgX05fWtgNYJfT_VeZ_kRZhIBixoseIY';
+const ADMIN_BOT_TOKEN = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
 const AUTHORIZED_ADMINS = ['DimaOsadchuk', 'a888bnd']; // Список дозволених адміністраторів
 
 // API URL
