@@ -53,7 +53,8 @@ export class SessionController {
         ref_code: 'DEV123',
         guest_id: 'dev-guest-id-123',
         created_at: new Date().toISOString(),
-        parent_ref_code: null
+        parent_ref_code: null,
+        checkin_streak: 0
       };
       
       // Сохраняем данные пользователя в Express-сессии для последующих запросов
@@ -71,7 +72,12 @@ export class SessionController {
       }
       
       // Возвращаем данные тестового пользователя
-      sendSuccess(res, testUser, 'Тестовая сессия создана', 200);
+      const adaptedUser = {
+        ...testUser,
+        telegram_id: testUser.telegram_id ? Number(testUser.telegram_id) : null,
+        checkin_streak: testUser.checkin_streak || 0
+      };
+      sendSuccess(res, adaptedUser, 'Тестовая сессия создана', 200);
       
     } catch (error) {
       console.error('[SessionController] Ошибка при создании тестовой сессии:', error);

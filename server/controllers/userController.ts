@@ -102,8 +102,17 @@ export const UserController = {
         }
       );
       
-      const user = await getUserByIdWithFallback(userId);
-      sendSuccess(res, user, 'Користувач успішно знайдений', 200);
+      const dbUser = await getUserByIdWithFallback(userId);
+      
+      // Адаптуємо користувача для відповіді API
+      const apiUser = dbUser ? {
+        ...dbUser,
+        telegram_id: dbUser.telegram_id ? Number(dbUser.telegram_id) : null,
+        checkin_streak: dbUser.checkin_streak !== undefined && dbUser.checkin_streak !== null ? 
+          Number(dbUser.checkin_streak) : 0
+      } : null;
+      
+      sendSuccess(res, apiUser, 'Користувач успішно знайдений', 200);
     } catch (error) {
       next(error);
     }

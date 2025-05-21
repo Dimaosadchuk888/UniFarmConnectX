@@ -6,6 +6,26 @@
  */
 
 /**
+ * Преобразует строковую дату в объект Date
+ * Используется для приведения данных из БД к ожидаемому типу
+ * 
+ * @param dateString Строковое представление даты или null
+ * @returns Объект Date или null
+ */
+export function ensureDate(dateString: string | null | undefined): Date | null {
+  if (!dateString) {
+    return null;
+  }
+  
+  try {
+    return new Date(dateString);
+  } catch (e) {
+    console.error('Ошибка при преобразовании строки в дату:', e);
+    return null;
+  }
+}
+
+/**
  * Приводит числовые строки к числовому типу
  * для корректной работы с базой данных
  * 
