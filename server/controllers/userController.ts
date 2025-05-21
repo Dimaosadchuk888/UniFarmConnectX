@@ -99,13 +99,27 @@ export const UserController = {
           console.log(`[UserController] Возвращаем заглушку для пользователя по ID: ${id}`, error);
           
           // Возвращаем данные по умолчанию при отсутствии соединения с БД
-          return createUserFallback(id);
+          const user = createUserFallback(id);
+          
+          // Перетворюємо строкові timestamp в об'єкти Date для сумісності типів
+          return {
+            ...user,
+            created_at: new Date(user.created_at) as Date,
+            uni_farming_start_timestamp: user.uni_farming_start_timestamp as unknown as Date,
+            ton_farming_start_timestamp: user.ton_farming_start_timestamp as unknown as Date,
+            uni_farming_last_update: user.uni_farming_last_update as unknown as Date,
+            uni_farming_activated_at: user.uni_farming_activated_at as unknown as Date,
+            checkin_last_date: user.checkin_last_date as unknown as Date,
+            last_login_at: user.last_login_at as unknown as Date,
+            last_claim_at: user.last_claim_at as unknown as Date
+          };
         }
       );
       
       const dbUser = await getUserByIdWithFallback(userId);
       
       // Адаптуємо користувача для відповіді API
+      // Адаптуємо користувача для відповіді API без неправильних конвертацій
       const apiUser = dbUser ? {
         ...dbUser,
         telegram_id: dbUser.telegram_id ? Number(dbUser.telegram_id) : null,
@@ -138,7 +152,20 @@ export const UserController = {
           console.log(`[UserController] Возвращаем заглушку для пользователя по guest_id: ${guestId}`, error);
           
           // Возвращаем данные по умолчанию при отсутствии соединения с БД
-          return createGuestUserFallback(guestId);
+          const user = createGuestUserFallback(guestId);
+          
+          // Перетворюємо строкові timestamp в об'єкти Date для сумісності типів
+          return {
+            ...user,
+            created_at: new Date(user.created_at) as Date,
+            uni_farming_start_timestamp: user.uni_farming_start_timestamp as unknown as Date,
+            ton_farming_start_timestamp: user.ton_farming_start_timestamp as unknown as Date,
+            uni_farming_last_update: user.uni_farming_last_update as unknown as Date,
+            uni_farming_activated_at: user.uni_farming_activated_at as unknown as Date,
+            checkin_last_date: user.checkin_last_date as unknown as Date,
+            last_login_at: user.last_login_at as unknown as Date,
+            last_claim_at: user.last_claim_at as unknown as Date
+          };
         }
       );
       
