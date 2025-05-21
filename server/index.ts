@@ -34,6 +34,9 @@ import { startBackgroundTasks } from "./background-tasks";
 import { schedulePartitionCreation } from "./cron/partition-scheduler";
 import { migrateRefCodes } from "./migrations/refCodeMigration";
 
+// Импорт для настройки Telegram
+import { setupTelegramHook } from './telegram/setup-hook';
+
 // Импорты для логирования
 import logger from './utils/logger';
 
@@ -372,6 +375,17 @@ async function startServer(): Promise<void> {
   // Запускаем сервер
   server.listen(port, "0.0.0.0", () => {
     logger.info(`[Server] 🚀 Сервер успешно запущен на порту ${port}`);
+    
+    // После запуска сервера автоматически настраиваем Telegram вебхук
+    if (process.env.TELEGRAM_BOT_TOKEN) {
+      logger.info('[Server] Запуск автоматической настройки Telegram бота...');
+      setupTelegramHook().catch(error => {
+        logger.error('[Server] Ошибка при настройке Telegram вебхука:', error);
+        logger.info('[Server] Настройку Telegram бота можно выполнить вручную через /api/telegram/setup');
+      });
+    } else {
+      logger.warn('[Server] TELEGRAM_BOT_TOKEN не найден, автоматическая настройка вебхука пропущена');
+    }
     
     // Инициализируем фоновые сервисы
     initBackgroundServices();
