@@ -405,21 +405,30 @@ export const UserController = {
       const userId = parseInt(req.params.id, 10);
       
       if (isNaN(userId)) {
-        res.status(400).json(error('ID пользователя должен быть числом', 'INVALID_USER_ID'));
+        sendError(res, 'ID пользователя должен быть числом', 'INVALID_USER_ID', 400);
         return;
       }
       
-      const user = await userService.getUserById(userId);
+      // Обертка сервісної функції для обробки помилок
+      const getUserById = wrapServiceFunction(
+        userService.getUserById.bind(userService),
+        async (error) => {
+          console.error('[UserController] Ошибка при получении пользователя:', error);
+          throw error;
+        }
+      );
+      
+      const user = await getUserById(userId);
       
       if (!user) {
-        res.status(404).json(error('Пользователь не найден', 'USER_NOT_FOUND'));
+        sendError(res, 'Пользователь не найден', 'USER_NOT_FOUND', 404);
         return;
       }
       
-      res.json(success(user));
+      sendSuccess(res, user);
     } catch (err) {
       console.error('[UserController] Ошибка при получении пользователя:', err);
-      res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
+      sendServerError(res, 'Внутренняя ошибка сервера');
     }
   },
   
@@ -431,21 +440,30 @@ export const UserController = {
       const { username } = req.params;
       
       if (!username) {
-        res.status(400).json(error('Имя пользователя не указано', 'MISSING_USERNAME'));
+        sendError(res, 'Имя пользователя не указано', 'MISSING_USERNAME', 400);
         return;
       }
       
-      const user = await userService.getUserByUsername(username);
+      // Обертка сервісної функції для обробки помилок
+      const getUserByUsername = wrapServiceFunction(
+        userService.getUserByUsername.bind(userService),
+        async (error) => {
+          console.error('[UserController] Ошибка при получении пользователя по имени:', error);
+          throw error;
+        }
+      );
+      
+      const user = await getUserByUsername(username);
       
       if (!user) {
-        res.status(404).json(error('Пользователь не найден', 'USER_NOT_FOUND'));
+        sendError(res, 'Пользователь не найден', 'USER_NOT_FOUND', 404);
         return;
       }
       
-      res.json(success(user));
+      sendSuccess(res, user);
     } catch (err) {
       console.error('[UserController] Ошибка при получении пользователя по имени:', err);
-      res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
+      sendServerError(res, 'Внутренняя ошибка сервера');
     }
   },
   

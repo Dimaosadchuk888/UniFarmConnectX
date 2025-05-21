@@ -73,18 +73,11 @@ export class SessionController {
       }
       
       // Возвращаем данные тестового пользователя
-      res.status(200).json({
-        success: true,
-        message: 'Тестовая сессия создана',
-        data: testUser
-      });
+      sendSuccess(res, testUser, 'Тестовая сессия создана');
       
     } catch (error) {
       console.error('[SessionController] Ошибка при создании тестовой сессии:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера при создании тестовой сессии'
-      });
+      sendServerError(res, 'Внутренняя ошибка сервера при создании тестовой сессии');
     }
   }
   /**
@@ -144,10 +137,7 @@ export class SessionController {
             }
             
             // Возвращаем данные пользователя
-            return res.status(200).json({
-              success: true,
-              message: 'Сессия успешно восстановлена (режим разработки)',
-              data: {
+            const userData = {
                 user_id: devUser.id,
                 username: devUser.username,
                 telegram_id: devUser.telegram_id, 
