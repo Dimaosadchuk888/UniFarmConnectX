@@ -748,17 +748,26 @@ export const UserController = {
         return;
       }
       
-      const user = await userService.getUserById(userId);
+      // Обертка сервисной функции для получения пользователя
+      const getUserById = wrapServiceFunction(
+        userService.getUserById.bind(userService),
+        async (error) => {
+          console.error('[UserController] Ошибка при получении пользователя:', error);
+          throw error;
+        }
+      );
+      
+      const user = await getUserById(userId);
       
       if (!user) {
-        res.status(404).json(error('Пользователь не найден', 'USER_NOT_FOUND'));
+        sendError(res, 'Пользователь не найден', 404, 'USER_NOT_FOUND');
         return;
       }
       
-      res.json(success(user));
+      sendSuccess(res, user);
     } catch (err) {
       console.error('[UserController] Ошибка при получении текущего пользователя:', err);
-      res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
+      sendServerError(res, 'Внутренняя ошибка сервера');
     }
   }
 };
