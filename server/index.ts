@@ -10,6 +10,7 @@ process.env.PGSSLMODE = 'require';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes-fixed";
 import { registerNewRoutes } from "./routes-new"; // Импортируем новые маршруты
+import { setupAdminBotRoutes } from "./admin-bot-routes"; // Импортируем маршруты админ-бота
 import { setupVite, serveStatic, log } from "./vite";
 import { startBackgroundTasks } from "./background-tasks";
 // Импортируем планировщик партиций
@@ -290,6 +291,14 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
         console.log('[Server] Начинаем регистрацию новых маршрутов API v2...');
         module.registerNewRoutes(app);
         console.log('[Server] ✅ Новые маршруты API v2 успешно зарегистрированы');
+        
+        // Настраиваем маршруты для админ-бота Telegram
+        console.log('[Server] Начинаем настройку Telegram админ-бота...');
+        const baseUrl = process.env.NODE_ENV === 'production' 
+          ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 
+          : 'https://uni-farm-connect-2.osadchukdmitro2.replit.app';
+        setupAdminBotRoutes(app, baseUrl);
+        console.log('[Server] ✅ Telegram админ-бот успешно настроен');
       })
       .catch(error => {
         console.error('[Server] Ошибка при регистрации новых маршрутов API:', error);

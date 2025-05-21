@@ -4,7 +4,7 @@
  * Получает обновления от Telegram API и передает их на обработку в telegramAdminBot.ts
  */
 
-import { Router, Request, Response } from 'express';
+import express, { Router, Request, Response } from 'express';
 import { processAdminBotUpdate } from '../../telegramAdminBot.v2';
 
 const router = Router();
@@ -15,6 +15,7 @@ const router = Router();
  * Получает обновления от Telegram API и передает их на обработку
  * Этот URL должен быть зарегистрирован как webhook в Telegram API
  */
+// Обробляємо HTTP POST запити від Telegram API
 router.post('/', async (req: Request, res: Response) => {
   try {
     // Проверяем, что в теле запроса есть данные обновления
