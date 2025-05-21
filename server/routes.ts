@@ -31,8 +31,7 @@ import { UserController } from './controllers/userController';
 import { TransactionController } from './controllers/transactionController';
 import { MissionController } from './controllers/missionControllerConsolidated';
 import { FarmingController } from './controllers/farmingController';
-import { ReferralController } from './controllers/referralController';
-import { ReferralControllerFallback } from './controllers/referralControllerFallback';
+import { ReferralController } from './controllers/referralControllerConsolidated';
 import { SessionController } from './controllers/sessionController';
 import { migrateFarmingData, checkUserFarmingStatus } from './controllers/migrationController';
 import * as DatabaseController from './controllers/databaseController';
@@ -179,7 +178,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`✅ [HEALTH] Используем файл: ${healthHtmlPath}`);
   }
 
-  // Корневой маршрут уже определен в начале файла
+  // Returning health check HTML response
+          const healthHtml = `<!DOCTYPE html>
 <html>
 <head>
     <title>UniFarm API Server - Health Check</title>
@@ -221,7 +221,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <p>Server time: ${new Date().toISOString()}</p>
     </div>
 </body>
-</html>`);
+</html>`;
+          return res.send(healthHtml);
         }
         
         // Define possible paths for index.html in different modes
