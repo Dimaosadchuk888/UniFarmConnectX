@@ -43,11 +43,11 @@ const TON_MIN_CHANGE_THRESHOLD = 0.000001; // Минимальный порог 
 // Адрес TON кошелька проекта для приема платежей
 const TON_WALLET_ADDRESS = "UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8";
 
-// Каталог буст-пакетов (унифицирован с фронтендом)
+// Каталог буст-пакетов (стандартизирован по утвержденной структуре)
 const boostPackages = [
   {
     id: 1,
-    name: "Starter Boost", // Унифицировано с фронтендом
+    name: "Starter Boost",
     priceTon: "1.0",
     bonusUni: "10000.0",    // Бонус UNI при покупке
     rateTon: "0.5",         // 0.5% в день для TON
@@ -55,7 +55,7 @@ const boostPackages = [
   },
   {
     id: 2,
-    name: "Standard Boost", // Унифицировано с фронтендом
+    name: "Standard Boost",
     priceTon: "5.0",
     bonusUni: "75000.0",    // Бонус UNI при покупке
     rateTon: "1.0",         // 1.0% в день для TON
@@ -63,7 +63,7 @@ const boostPackages = [
   },
   {
     id: 3,
-    name: "Advanced Boost", // Унифицировано с фронтендом
+    name: "Advanced Boost",
     priceTon: "15.0",
     bonusUni: "250000.0",   // Бонус UNI при покупке
     rateTon: "2.0",         // 2.0% в день для TON
@@ -71,7 +71,7 @@ const boostPackages = [
   },
   {
     id: 4,
-    name: "Premium Boost", // Унифицировано с фронтендом
+    name: "Premium Boost",
     priceTon: "25.0",
     bonusUni: "500000.0",   // Бонус UNI при покупке
     rateTon: "2.5",         // 2.5% в день для TON
