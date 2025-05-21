@@ -29,8 +29,7 @@ import crypto from 'crypto';
 // Импортируем контроллеры
 import { UserController } from './controllers/userController';
 import { TransactionController } from './controllers/transactionController';
-import { MissionController } from './controllers/missionController';
-import { MissionControllerFallback } from './controllers/missionControllerFallback'; // Fallback контроллер для заданий
+import { MissionController } from './controllers/missionControllerConsolidated';
 import { FarmingController } from './controllers/farmingController';
 import { ReferralController } from './controllers/referralController';
 import { ReferralControllerFallback } from './controllers/referralControllerFallback';
