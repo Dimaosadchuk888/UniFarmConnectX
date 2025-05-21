@@ -2,10 +2,15 @@ import { Response } from 'express';
 
 /**
  * Отправляет успешный ответ API
+ * @param res Объект ответа Express
+ * @param data Данные для отправки
+ * @param message Опциональное сообщение об успехе
+ * @param status HTTP статус код (по умолчанию 200)
  */
-export function sendSuccess(res: Response, data: any, status: number = 200): void {
+export function sendSuccess(res: Response, data: any, message?: string, status: number = 200): void {
   res.status(status).json({
     success: true,
+    message,
     data
   });
 }

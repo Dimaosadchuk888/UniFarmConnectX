@@ -70,7 +70,7 @@ export class SessionController {
       }
       
       // Возвращаем данные тестового пользователя
-      sendSuccess(res, testUser, 'Тестовая сессия создана');
+      sendSuccess(res, testUser, 'Тестовая сессия создана', 200);
       
     } catch (error) {
       console.error('[SessionController] Ошибка при создании тестовой сессии:', error);
@@ -146,7 +146,7 @@ export class SessionController {
                 parent_ref_code: devUser.parent_ref_code
               };
               
-              return sendSuccess(res, userData, 'Сессия успешно восстановлена (режим разработки)');
+              return sendSuccess(res, userData, 'Сессия успешно восстановлена (режим разработки)', 200);
           } else {
             console.warn(`[SessionController] ⚠️ Тестовый пользователь с ID ${developmentUserId} не найден, продолжаем обычное восстановление`);
             // Если тестовый пользователь не найден, продолжаем обычное восстановление по guest_id
@@ -174,11 +174,7 @@ export class SessionController {
       // Проверяем, найден ли пользователь
       if (!user) {
         console.log(`[SessionController] Пользователь с guest_id ${guest_id} не найден`);
-        return res.status(404).json({
-          success: false,
-          message: 'Пользователь не найден',
-          error_code: 'USER_NOT_FOUND'
-        });
+        return sendError(res, 'Пользователь не найден', 404, { error_code: 'USER_NOT_FOUND' });
       }
       
       // Если передан telegram_id и он отличается от сохраненного, логируем этот факт
@@ -233,28 +229,20 @@ export class SessionController {
       
       // Возвращаем данные пользователя (без конфиденциальной информации)
       // Используем updatedUser, чтобы вернуть актуальный ref_code
-      res.status(200).json({
-        success: true,
-        message: 'Сессия успешно восстановлена',
-        data: {
-          user_id: updatedUser.id,
-          username: updatedUser.username,
-          telegram_id: updatedUser.telegram_id, 
-          balance_uni: updatedUser.balance_uni,
-          balance_ton: updatedUser.balance_ton,
-          ref_code: updatedUser.ref_code,
-          guest_id: updatedUser.guest_id,
-          created_at: updatedUser.created_at,
-          parent_ref_code: updatedUser.parent_ref_code
-        }
-      });
+      sendSuccess(res, {
+        user_id: updatedUser.id,
+        username: updatedUser.username,
+        telegram_id: updatedUser.telegram_id, 
+        balance_uni: updatedUser.balance_uni,
+        balance_ton: updatedUser.balance_ton,
+        ref_code: updatedUser.ref_code,
+        guest_id: updatedUser.guest_id,
+        created_at: updatedUser.created_at,
+        parent_ref_code: updatedUser.parent_ref_code
+      }, 'Сессия успешно восстановлена');
     } catch (error) {
       console.error('[SessionController] Ошибка при восстановлении сессии:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Внутренняя ошибка сервера при восстановлении сессии',
-        error_code: 'SESSION_RESTORE_FAILED'
-      });
+      sendServerError(res, 'Внутренняя ошибка сервера при восстановлении сессии', { error_code: 'SESSION_RESTORE_FAILED' });
     }
   }
 }
