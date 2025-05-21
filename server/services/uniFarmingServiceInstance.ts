@@ -405,16 +405,15 @@ class UniFarmingService implements IUniFarmingService {
       }
       
       // Проверяем наличие депозита в таблице uni_farming_deposits
-      // Використовуємо альтернативний синтаксис для запобігання помилок типізації
-      // Використовуємо прагматичний підхід для найбільш стабільного запиту
-      const deposits = await queryWithRetry(`
+      // Використовуємо прагматичний підхід з SQL-запитом для уникнення помилок типізації
+      const depositsResult = await queryWithRetry(`
         SELECT * FROM uni_farming_deposits 
         WHERE user_id = $1 AND is_active = true 
         ORDER BY created_at DESC 
         LIMIT 1
       `, [userId]);
       
-      const [deposit] = deposits;
+      const deposit = depositsResult.rows[0];
       
       let depositAmount = user.uni_deposit_amount?.toString() || '0';
       let ratePerSecond = '0';
@@ -515,11 +514,13 @@ class UniFarmingService implements IUniFarmingService {
     try {
       // Находим всех пользователей с активными депозитами в таблице users
       // Використовуємо прагматичний підхід з SQL-запитом для уникнення помилок типізації
-      const usersWithDeposits = await queryWithRetry(`
+      const usersWithDepositsResult = await queryWithRetry(`
         SELECT id, uni_deposit_amount, uni_farming_start_timestamp, uni_farming_last_update 
         FROM users 
         WHERE uni_deposit_amount > 0
       `);
+      
+      const usersWithDeposits = usersWithDepositsResult.rows;
       
       if (usersWithDeposits.length === 0) {
         return {
@@ -536,13 +537,13 @@ class UniFarmingService implements IUniFarmingService {
       for (const user of usersWithDeposits) {
         // Проверяем, есть ли уже запись в таблице uni_farming_deposits
         // Використовуємо прагматичний підхід з прямим SQL-запитом
-        const existingDeposits = await queryWithRetry(`
+        const existingDepositsResult = await queryWithRetry(`
           SELECT * FROM uni_farming_deposits 
           WHERE user_id = $1 AND is_active = true 
           LIMIT 1
         `, [user.id]);
         
-        const existingDeposit = existingDeposits[0];
+        const existingDeposit = existingDepositsResult.rows[0];
         
         // Если депозит уже есть, пропускаем пользователя
         if (existingDeposit) {
