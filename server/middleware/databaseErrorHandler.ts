@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { testDatabaseConnection, reconnect } from '../db';
+import logger from '../utils/logger';
 
 // Змінні для контролю стану перевірки підключення
 let lastConnectionCheck = 0;
@@ -38,7 +39,7 @@ export const databaseErrorHandler = async (req: Request, res: Response, next: Ne
       const connectionResult = await testDatabaseConnection().catch(() => ({ success: false, dbType: 'unknown' }));
       
       if (!connectionResult.success) {
-        console.log('[DB] ⚠️ Потеряно соединение с базой данных. Попытка переподключения...');
+        logger.warn('[DB] Потеряно соединение с базой данных. Попытка переподключения...');
         
         isReconnecting = true;
         
@@ -46,9 +47,9 @@ export const databaseErrorHandler = async (req: Request, res: Response, next: Ne
           const reconnected = await reconnect();
           
           if (reconnected) {
-            console.log('[DB] ✅ Соединение с базой данных восстановлено');
+            logger.debug('[DB] Соединение с базой данных восстановлено');
           } else {
-            console.error('[DB] ❌ Не удалось восстановить соединение с базой данных');
+            logger.error('[DB] Не удалось восстановить соединение с базой данных');
             
             // Если запрос требует БД, но соединение не восстановлено, возвращаем ошибку
             return res.status(503).json({

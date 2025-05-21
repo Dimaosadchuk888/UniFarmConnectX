@@ -447,7 +447,7 @@ void (async function startServerInternal() {
   // Отдельный обработчик для корневого пути (health check) - с приоритетным ответом для деплоя
   app.get('/', (req: Request, res: Response) => {
     // Быстрый ответ на проверку здоровья для деплоя
-    console.log('[Root] Health check request to root path');
+    logger.debug('[Root] Health check request to root path');
     return res.status(200).send(`<!DOCTYPE html>
 <html>
 <head>
