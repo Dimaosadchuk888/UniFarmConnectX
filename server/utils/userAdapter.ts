@@ -6,9 +6,17 @@
  */
 
 import { insertUserSchema } from '@shared/schema';
+import { format } from 'date-fns';
 
 /**
- * Тип користувача з бази даних
+ * Адаптер для конвертації даних користувача між різними форматами
+ * 
+ * Ці утиліти допомагають працювати з даними користувача у різних
+ * контекстах (API, БД, контролери) та забезпечують коректну типізацію
+ */
+/**
+ * Інтерфейс для представлення користувача в базі даних
+ * Містить всі поля з 'users' таблиці та додаткові поля для сумісності
  */
 export type DbUser = {
   id: number;
@@ -44,6 +52,47 @@ export type DbUser = {
   ton_farming_rate: string | null;
   checkin_last_date: string | null;
   // Додаткові поля для сумісності
+  telegram_username?: string | null;
+  is_fallback?: boolean;
+};
+
+/**
+ * Інтерфейс для представлення користувача в API
+ * Містить всі поля і використовується для типізації відповідей API
+ */
+export type ApiUser = {
+  id: number;
+  telegram_id: number | null;
+  guest_id: string | null;
+  username: string | null;
+  wallet: string | null;
+  ton_wallet_address: string | null;
+  ref_code: string | null;
+  parent_ref_code: string | null;
+  balance_uni: string;
+  balance_ton: string;
+  farming_amount: string;
+  farming_rewards: string;
+  boost_level: string;
+  ton_boost_level: string;
+  is_verified: boolean;
+  is_blocked: boolean;
+  created_at: string;
+  last_login_at: string | null;
+  last_claim_at: string | null;
+  checkin_streak: number | null;
+  uni_deposit_amount: string | null;
+  uni_farming_start_timestamp: string | null;
+  uni_farming_balance: string | null;
+  uni_farming_rate: string | null;
+  uni_farming_last_update: string | null;
+  uni_farming_deposit: string | null;
+  uni_farming_activated_at: string | null;
+  ton_deposit_amount: string | null;
+  ton_farming_start_timestamp: string | null;
+  ton_farming_balance: string | null;
+  ton_farming_rate: string | null;
+  checkin_last_date: string | null;
   telegram_username?: string | null;
   is_fallback?: boolean;
 };
