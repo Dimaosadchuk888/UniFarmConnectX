@@ -55,22 +55,22 @@ export type DbUser = {
   ton_boost_level: string;
   is_verified: boolean;
   is_blocked: boolean;
-  created_at: string;
-  last_login_at: string | null;
-  last_claim_at: string | null;
+  created_at: Date | string;
+  last_login_at: Date | string | null;
+  last_claim_at: Date | string | null;
   checkin_streak: number | null;
   uni_deposit_amount: string | null;
-  uni_farming_start_timestamp: string | null;
+  uni_farming_start_timestamp: Date | string | null;
   uni_farming_balance: string | null;
   uni_farming_rate: string | null;
-  uni_farming_last_update: string | null;
+  uni_farming_last_update: Date | string | null;
   uni_farming_deposit: string | null;
-  uni_farming_activated_at: string | null;
+  uni_farming_activated_at: Date | string | null;
   ton_deposit_amount: string | null;
-  ton_farming_start_timestamp: string | null;
+  ton_farming_start_timestamp: Date | string | null;
   ton_farming_balance: string | null;
   ton_farming_rate: string | null;
-  checkin_last_date: string | null;
+  checkin_last_date: Date | string | null;
   // Додаткові поля для сумісності
   telegram_username?: string | null;
   is_fallback?: boolean;
@@ -124,6 +124,7 @@ export type ApiUser = {
  */
 export function createUserFallback(userId: number | string): DbUser {
   const id = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+  const now = new Date(); // Використовуємо об'єкт Date замість рядка
 
   return {
     id,
@@ -141,7 +142,7 @@ export function createUserFallback(userId: number | string): DbUser {
     farming_rewards: "0",
     boost_level: "0",
     ton_boost_level: "0",
-    created_at: new Date().toISOString(),
+    created_at: now, // Використовуємо об'єкт Date замість рядка
     is_verified: false,
     is_blocked: false,
     last_login_at: null,
@@ -170,6 +171,7 @@ export function createUserFallback(userId: number | string): DbUser {
  */
 export function createGuestUserFallback(guestId: string): DbUser {
   const randomId = Math.floor(10000 + Math.random() * 90000);
+  const now = new Date(); // Використовуємо об'єкт Date замість рядка
   
   return {
     id: randomId,
@@ -187,7 +189,7 @@ export function createGuestUserFallback(guestId: string): DbUser {
     farming_rewards: "0",
     boost_level: "0",
     ton_boost_level: "0",
-    created_at: new Date().toISOString(),
+    created_at: now, // Використовуємо об'єкт Date замість рядка
     is_verified: false,
     is_blocked: false,
     last_login_at: null,
@@ -222,6 +224,7 @@ export function createRegisteredGuestFallback(
   parentRefCode?: string | null
 ): DbUser {
   const randomId = Math.floor(10000 + Math.random() * 90000);
+  const now = new Date(); // Використовуємо об'єкт Date замість рядка
   
   return {
     id: randomId,
@@ -239,7 +242,7 @@ export function createRegisteredGuestFallback(
     farming_rewards: "0",
     boost_level: "0",
     ton_boost_level: "0",
-    created_at: new Date().toISOString(),
+    created_at: now, // Використовуємо об'єкт Date замість рядка
     is_verified: false,
     is_blocked: false,
     last_login_at: null,
