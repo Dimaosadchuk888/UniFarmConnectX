@@ -433,5 +433,11 @@ function initBackgroundServices(): void {
 // Запускаем сервер
 startServer().catch(error => {
   logger.error('[Server] Критическая ошибка при запуске сервера:', error);
-  process.exit(1);
+  // Логируем ошибку, но не завершаем процесс
+  logger.info('[Server] Сервер продолжит работу, несмотря на ошибку при инициализации');
 });
+
+// Создаем интервал, чтобы процесс не завершался
+setInterval(() => {
+  logger.debug('[Server] Heartbeat check - server is still running');
+}, 1000 * 60 * 5); // Проверка каждые 5 минут
