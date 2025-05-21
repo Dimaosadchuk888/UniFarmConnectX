@@ -1659,10 +1659,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/boosts/purchase", (req, res, next) => BoostController.purchaseBoost(req, res, next));
 
   //  // Маршруты для TON Boost-пакетов
-  app.get("/api/ton-boosts", TonBoostController.getTonBoostPackages);
-  app.get("/api/ton-boosts/active", TonBoostController.getUserTonBoosts);
-  app.post("/api/ton-boosts/purchase", TonBoostController.purchaseTonBoost);
-  app.post("/api/ton-boosts/confirm-payment", TonBoostController.confirmExternalPayment);
+  // TON Boost маршруты с централизованной обработкой ошибок
+  app.get("/api/ton-boosts", (req, res, next) => {
+    try {
+      TonBoostController.getTonBoostPackages(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/ton-boosts/active", (req, res, next) => {
+    try {
+      TonBoostController.getUserTonBoosts(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.post("/api/ton-boosts/purchase", (req, res, next) => {
+    try {
+      TonBoostController.purchaseTonBoost(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.post("/api/ton-boosts/confirm-payment", (req, res, next) => {
+    try {
+      TonBoostController.confirmExternalPayment(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  });
   app.post("/api/ton-boosts/process-incoming-transaction", async (req, res) => {
     // [АУДИТ ПЛАТЕЖЕЙ - УБРАТЬ ПОСЛЕ ТЕСТИРОВАНИЯ]
     console.log("[TON AUDIT] Входящий API запрос processIncomingTransaction:", { 

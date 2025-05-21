@@ -1,7 +1,8 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { tonBoostService } from "../services";
 import { TonBoostPaymentMethod } from "../services/tonBoostService";
 import { wrapServiceFunction } from '../db-service-wrapper';
+import { ValidationError, NotFoundError, UnauthorizedError, ForbiddenError, DatabaseError } from '../middleware/errorHandler';
 
 /**
  * Контроллер для работы с TON Boost-пакетами и TON фармингом
@@ -11,7 +12,7 @@ export class TonBoostController {
   /**
    * Обрабатывает входящую TON транзакцию для активации буст-пакета
    */
-  static async processIncomingTransaction(req: Request, res: Response): Promise<void> {
+  static async processIncomingTransaction(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { sender_address, amount, comment, boost_id } = req.body;
       
@@ -26,10 +27,7 @@ export class TonBoostController {
       });
       
       if (!sender_address || !amount) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Не указаны обязательные параметры: sender_address, amount" 
-        });
+        return next(new ValidationError("Не указаны обязательные параметры: sender_address, amount"));
       }
       
       // Если boost_id передан, используем его напрямую вместо извлечения из комментария
@@ -39,10 +37,7 @@ export class TonBoostController {
         
         // Проверяем, что boostId валидный
         if (isNaN(boostIdNum) || boostIdNum < 1) {
-          return res.status(400).json({
-            success: false,
-            message: 'Некорректный ID буст-пакета'
-          });
+          return next(new ValidationError("Некорректный ID буст-пакета"));
         }
         
         const result = await tonBoostService.processIncomingTonTransaction(
@@ -55,10 +50,7 @@ export class TonBoostController {
       } else {
         // Если boost_id не передан, то комментарий обязателен
         if (!comment) {
-          return res.status(400).json({ 
-            success: false, 
-            message: "Не указан комментарий или boost_id для транзакции" 
-          });
+          return next(new ValidationError("Не указан комментарий или boost_id для транзакции"));
         }
         
         const result = await tonBoostService.processIncomingTonTransaction(sender_address, amount, comment);
@@ -66,25 +58,19 @@ export class TonBoostController {
       }
     } catch (error) {
       console.error("[TonBoostController] Error in processIncomingTransaction:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Ошибка при обработке входящей транзакции" 
-      });
+      next(error);
     }
   }
   /**
    * Получает список всех доступных TON Boost-пакетов
    */
-  static async getTonBoostPackages(req: Request, res: Response): Promise<void> {
+  static async getTonBoostPackages(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const packages = tonBoostService.getBoostPackages();
       res.json({ success: true, data: packages });
     } catch (error) {
       console.error("[TonBoostController] Error in getTonBoostPackages:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Ошибка при получении TON Boost-пакетов"
-      });
+      next(error);
     }
   }
 
