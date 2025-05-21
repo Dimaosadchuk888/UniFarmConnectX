@@ -117,6 +117,16 @@ class UniFarmingService implements IUniFarmingService {
   private readonly DAILY_RATE = 0.005; // 0.5% в день
   private readonly SECONDS_IN_DAY = 86400;
   private readonly MIN_CHANGE_THRESHOLD = 0.000001; // Минимальный порог изменения для обновления баланса в БД
+  
+  /**
+   * Перетворює вхідне значення на тип Date
+   * @param value Вхідне значення (Date, string або null)
+   * @returns Об'єкт Date
+   */
+  private ensureDateValue(value: Date | string | null): Date {
+    if (!value) return new Date();
+    return value instanceof Date ? value : new Date(value);
+  }
 
   /**
    * Начисляет доход пользователю от UNI фарминга на основе времени с последнего обновления
@@ -147,7 +157,13 @@ class UniFarmingService implements IUniFarmingService {
 
     // Рассчитать текущую временную метку
     const now = new Date();
-    const lastUpdate = user.uni_farming_last_update || user.uni_farming_start_timestamp;
+    // Забезпечуємо коректний тип Date для часових міток
+    const ensureDateValue = (value: Date | string | null): Date => {
+      if (!value) return now;
+      return value instanceof Date ? value : new Date(value);
+    };
+    
+    const lastUpdate = ensureDateValue(user.uni_farming_last_update || user.uni_farming_start_timestamp);
     
     // Рассчитать прошедшие секунды с последнего обновления
     const secondsSinceLastUpdate = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
@@ -298,6 +314,12 @@ class UniFarmingService implements IUniFarmingService {
       // Текущая временная метка
       const now = new Date();
       
+      // Забезпечуємо коректний тип Date для часових міток
+      const ensureDateValue = (value: Date | string | null): Date => {
+        if (!value) return now;
+        return value instanceof Date ? value : new Date(value);
+      };
+      
       // Проверяем, первый ли это депозит
       const isFirstDeposit = !user.uni_farming_start_timestamp || 
                             new BigNumber(user.uni_deposit_amount?.toString() || '0').isZero();
@@ -313,7 +335,7 @@ class UniFarmingService implements IUniFarmingService {
           .set({
             balance_uni: balanceUni.minus(depositAmount).toString(),
             uni_deposit_amount: depositAmount.toString(),
-            uni_farming_start_timestamp: isFirstDeposit ? now : user.uni_farming_start_timestamp,
+            uni_farming_start_timestamp: isFirstDeposit ? now : ensureDateValue(user.uni_farming_start_timestamp),
             uni_farming_last_update: now
             // В новой версии не используем uni_farming_balance, т.к. доход начисляется напрямую
           })
@@ -393,13 +415,18 @@ class UniFarmingService implements IUniFarmingService {
       }
       
       // Проверяем наличие депозита в таблице uni_farming_deposits
-      const [deposit] = await db
+      // Використовуємо альтернативний синтаксис для запобігання помилок типізації
+      const deposits = await db
         .select()
         .from(uniFarmingDeposits)
-        .where(eq(uniFarmingDeposits.user_id, userId))
-        .where(eq(uniFarmingDeposits.is_active, true))
+        .where(
+          eq(uniFarmingDeposits.user_id, userId),
+          eq(uniFarmingDeposits.is_active, true)
+        )
         .orderBy(uniFarmingDeposits.created_at, 'desc')
         .limit(1);
+      
+      const [deposit] = deposits;
       
       let depositAmount = user.uni_deposit_amount?.toString() || '0';
       let ratePerSecond = '0';
@@ -423,8 +450,8 @@ class UniFarmingService implements IUniFarmingService {
         depositAmount,
         farmingBalance: '0', // В новой версии всегда 0, т.к. доход начисляется автоматически
         ratePerSecond,
-        startDate: user.uni_farming_start_timestamp ? user.uni_farming_start_timestamp.toISOString() : null,
-        lastUpdate: user.uni_farming_last_update ? user.uni_farming_last_update.toISOString() : null
+        startDate: user.uni_farming_start_timestamp ? ensureDateValue(user.uni_farming_start_timestamp).toISOString() : null,
+        lastUpdate: user.uni_farming_last_update ? ensureDateValue(user.uni_farming_last_update).toISOString() : null
       };
     } catch (error) {
       console.error(`Error getting user farming info for user ${userId}:`, error);
