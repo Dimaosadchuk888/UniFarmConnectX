@@ -45,6 +45,43 @@ export function registerNewRoutes(app: Express): void {
   app.post('/api/v2/users/:userId/deposit', (req, res) => TransactionController.depositFunds(req, res));
   app.post('/api/v2/users/:userId/withdraw', (req, res) => TransactionController.withdrawFunds(req, res));
   app.post('/api/v2/transactions', (req, res) => TransactionController.createTransaction(req, res));
+
+  // Маршруты для заданий с использованием консолидированного контроллера
+  app.get('/api/v2/missions/active', MissionController.getActiveMissions);
+  app.get('/api/v2/user-missions', MissionController.getUserCompletedMissions);
+  app.get('/api/v2/missions/with-completion', MissionController.getMissionsWithCompletion);
+  app.get('/api/v2/missions/check/:userId/:missionId', MissionController.checkMissionCompletion);
+  app.post('/api/v2/missions/complete', MissionController.completeMission);
+  
+  // Маршруты для реферальной системы с использованием консолидированного контроллера
+  app.get('/api/v2/referrals/tree', ReferralController.getReferralTree);
+  app.get('/api/v2/referrals/stats', ReferralController.getUserReferralStats);
+  app.post('/api/v2/referrals/apply', ReferralController.applyReferralCode);
+  
+  // Маршруты для бонусов с использованием консолидированного контроллера
+  app.get('/api/v2/daily-bonus/status', DailyBonusController.getDailyBonusStatus);
+  app.post('/api/v2/daily-bonus/claim', DailyBonusController.claimDailyBonus);
+  app.get('/api/v2/daily-bonus/streak-info', DailyBonusController.getStreakInfo);
+  
+  // Маршруты для кошелька с использованием консолидированного контроллера
+  app.get('/api/v2/wallet/balance', WalletController.getWalletBalance);
+  app.post('/api/v2/wallet/connect', WalletController.connectWallet);
+  app.post('/api/v2/wallet/disconnect', WalletController.disconnectWallet);
+  app.get('/api/v2/wallet/transactions', WalletController.getTransactions);
+  app.post('/api/v2/wallet/withdraw', WalletController.withdrawUni);
+  
+  // Маршруты для TON бустов с использованием консолидированного контроллера
+  app.get('/api/v2/ton-farming/boosts', TonBoostController.getTonBoostPackages);
+  app.get('/api/v2/ton-farming/active', TonBoostController.getUserTonBoosts);
+  app.post('/api/v2/ton-farming/purchase', TonBoostController.purchaseTonBoost);
+  app.post('/api/v2/ton-farming/confirm-payment', TonBoostController.confirmExternalPayment);
+  app.get('/api/v2/ton-farming/info', TonBoostController.getUserTonFarmingInfo);
+  app.post('/api/v2/ton-farming/update', TonBoostController.calculateAndUpdateTonFarming);
+  
+  // Маршруты для обычных бустов с использованием консолидированного контроллера
+  app.get('/api/v2/boosts', BoostController.getBoostPackages);
+  app.get('/api/v2/boosts/active', BoostController.getUserActiveBoosts);
+  app.post('/api/v2/boosts/purchase', BoostController.purchaseBoost);
   
   console.log('[NewRoutes] ✓ Новые маршруты API зарегистрированы успешно');
 }
