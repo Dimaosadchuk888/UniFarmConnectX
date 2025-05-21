@@ -44,7 +44,7 @@ import { TelegramController } from './controllers/telegramController'; // Нов
 import adminBotWebhook from './api/admin/bot-webhook'; // Импорт маршрута для вебхука админ-бота
 import * as DbStatusController from './api/admin/db-status'; // Контроллер для проверки статуса базы данных
 import * as DbSelectorStatusController from './api/db-selector-status'; // Новый контроллер для гибкого подключения к БД
-import { DailyBonusController } from './controllers/dailyBonusController';
+import { DailyBonusController } from './controllers/dailyBonusControllerConsolidated';
 import { NewUniFarmingController } from './controllers/newUniFarmingController'; // Основной контроллер для UNI фарминга
 import { BoostController } from './controllers/boostControllerConsolidated'; // Консолідований контролер для бустів
 import { TonBoostController } from './controllers/tonBoostControllerConsolidated'; // Консолидированный контроллер для TON фарминга
@@ -53,7 +53,7 @@ import { TonBoostController } from './controllers/tonBoostControllerConsolidated
 // import { UserControllerFallback } from './controllers/userControllerFallback'; // Объединен в UserController
 import { AuthController } from './controllers/authController'; // Обновленный контроллер (SOLID)
 import { SecurityController } from './controllers/securityController'; // Новый контроллер безопасности (SOLID)
-import { WalletController } from './controllers/walletController';
+import { WalletController } from './controllers/walletControllerConsolidated';
 import { AdminController } from './controllers/adminController';
 import * as PartitionController from './controllers/partition-controller'; // Контроллер для управления партициями
 
