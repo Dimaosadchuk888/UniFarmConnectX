@@ -142,21 +142,7 @@ export class PartitionService {
     partitions: string[];
     errors: string[];
   }> {
-    // Временно отключаем создание новых партиций
-    console.log('[Partition Service] Создание новых партиций временно отключено');
-    return {
-      success: true,
-      createdCount: 0,
-      partitions: [],
-      errors: []
-    };
-
-    const result = {
-      success: true,
-      createdCount: 0,
-      errors: [] as string[]
-    };
-
+    // Партиції створюються через сервісний екземпляр
     return partitionServiceInstance.createFuturePartitions(daysAhead);
   }
 

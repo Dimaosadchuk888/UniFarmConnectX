@@ -35,49 +35,9 @@ export class SessionController {
    */
   static async devLogin(req: RequestWithSession, res: Response): Promise<any> {
     try {
-      // Проверяем, что мы в режиме разработки
-      if (process.env.NODE_ENV !== 'development') {
-        sendError(res, 'Доступно только в режиме разработки', 403);
-        return;
-      }
-      
-      console.log('[SessionController] Создание тестовой сессии для режима разработки');
-      
-      // Создаем фиктивный тестовый аккаунт
-      const testUser = {
-        id: 1,
-        username: 'dev_user',
-        telegram_id: 123456789,
-        balance_uni: '1000000',
-        balance_ton: '25.5',
-        ref_code: 'DEV123',
-        guest_id: 'dev-guest-id-123',
-        created_at: new Date().toISOString(),
-        parent_ref_code: null,
-        checkin_streak: 0
-      };
-      
-      // Сохраняем данные пользователя в Express-сессии для последующих запросов
-      if (req.session) {
-        req.session.userId = testUser.id;
-        req.session.user = {
-          id: testUser.id,
-          username: testUser.username,
-          ref_code: testUser.ref_code,
-          guest_id: testUser.guest_id
-        };
-        console.log(`[SessionController] ✅ Тестовые данные пользователя сохранены в Express-сессии: userId=${testUser.id}`);
-      } else {
-        console.warn(`[SessionController] ⚠️ Express-сессия недоступна, нельзя сохранить данные пользователя`);
-      }
-      
-      // Возвращаем данные тестового пользователя
-      const adaptedUser = {
-        ...testUser,
-        telegram_id: testUser.telegram_id ? Number(testUser.telegram_id) : null,
-        checkin_streak: testUser.checkin_streak || 0
-      };
-      sendSuccess(res, adaptedUser, 'Тестовая сессия создана', 200);
+      // В продакшн-версії цей метод недоступний взагалі
+      sendError(res, 'Ця функція недоступна в продакшн-середовищі', 403);
+      return;
       
     } catch (error) {
       console.error('[SessionController] Ошибка при создании тестовой сессии:', error);
@@ -117,52 +77,7 @@ export class SessionController {
         console.log('[SessionController] Session userId:', req.session.userId);
       }
       
-      // В режиме разработки с указанным ID пользователя используем его вместо guest_id
-      if (isDevelopmentMode && developmentUserId) {
-        console.log(`[SessionController] Режим разработки: используем ID пользователя ${developmentUserId} вместо guest_id`);
-        
-        try {
-          // Получаем пользователя по ID
-          const devUser = await extendedStorage.getUser(developmentUserId);
-          
-          if (devUser) {
-            console.log(`[SessionController] ✅ Тестовый пользователь найден с ID: ${devUser.id}`);
-            
-            // Сохраняем данные пользователя в Express-сессии для последующих запросов
-            if (req.session) {
-              req.session.userId = devUser.id;
-              req.session.user = {
-                id: devUser.id,
-                username: devUser.username || '',
-                ref_code: devUser.ref_code || undefined,
-                guest_id: devUser.guest_id || undefined
-              };
-              console.log(`[SessionController] ✅ Данные тестового пользователя сохранены в сессии`);
-            }
-            
-            // Возвращаем данные пользователя
-            const userData = {
-                user_id: devUser.id,
-                username: devUser.username,
-                telegram_id: devUser.telegram_id, 
-                balance_uni: devUser.balance_uni,
-                balance_ton: devUser.balance_ton,
-                ref_code: devUser.ref_code,
-                guest_id: devUser.guest_id,
-                created_at: devUser.created_at,
-                parent_ref_code: devUser.parent_ref_code
-              };
-              
-              return sendSuccess(res, userData, 'Сессия успешно восстановлена (режим разработки)', 200);
-          } else {
-            console.warn(`[SessionController] ⚠️ Тестовый пользователь с ID ${developmentUserId} не найден, продолжаем обычное восстановление`);
-            // Если тестовый пользователь не найден, продолжаем обычное восстановление по guest_id
-          }
-        } catch (devError) {
-          console.error(`[SessionController] Ошибка при получении тестового пользователя:`, devError);
-          // В случае ошибки продолжаем обычное восстановление по guest_id
-        }
-      }
+      // В продакшн-версії не використовуємо тестових користувачів
       
       // Проверяем наличие guest_id (только если не в режиме разработки или не удалось получить тестового пользователя)
       if (!guest_id) {

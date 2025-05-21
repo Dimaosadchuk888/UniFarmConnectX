@@ -332,8 +332,7 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
           .catch(error => {
             console.error('[Server] ❌ Помилка при налаштуванні тестового вебхука для Telegram бота:', error);
           });
-      })
-      .catch(error => {
+      }).catch(error => {
         console.error('[Server] Ошибка при регистрации новых маршрутов API:', error);
         console.log('[Server] Новые маршруты API v2 временно отключены из-за ошибки:', error.message);
       });
