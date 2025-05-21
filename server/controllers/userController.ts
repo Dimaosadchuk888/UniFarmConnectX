@@ -104,8 +104,34 @@ export const UserController = {
             telegram_id: null,
             telegram_username: null,
             guest_id: null,
+            wallet: null,
+            ton_wallet_address: null,
+            parent_ref_code: null,
+            balance_uni: 0,
+            balance_ton: 0,
+            farming_amount: 0,
+            farming_rewards: 0,
+            boost_level: 0,
+            ton_boost_level: 0,
             created_at: new Date().toISOString(),
-            is_fallback: true
+            is_verified: false,
+            is_blocked: false,
+            is_fallback: true,
+            last_login_at: null,
+            last_claim_at: null,
+            checkin_streak: 0,
+            uni_deposit_amount: 0,
+            uni_farming_start_timestamp: null,
+            uni_farming_balance: 0,
+            uni_farming_rate: 0,
+            uni_farming_last_update: null,
+            uni_farming_deposit: 0,
+            uni_farming_activated_at: null,
+            ton_deposit_amount: 0,
+            ton_farming_start_timestamp: null,
+            ton_farming_balance: 0,
+            ton_farming_rate: 0,
+            checkin_last_date: null
           };
         }
       );
@@ -143,8 +169,22 @@ export const UserController = {
             telegram_id: null,
             telegram_username: null,
             guest_id: guestId,
+            wallet: null,
+            ton_wallet_address: null,
+            parent_ref_code: null,
+            balance_uni: 0,
+            balance_ton: 0,
+            farming_amount: 0,
+            farming_rewards: 0,
+            boost_level: 0,
+            ton_boost_level: 0,
             created_at: new Date().toISOString(),
-            is_fallback: true
+            is_verified: false,
+            is_blocked: false,
+            is_fallback: true,
+            last_login_at: null,
+            last_claim_at: null,
+            checkin_streak: 0
           };
         }
       );
@@ -169,7 +209,11 @@ export const UserController = {
         throw new ValidationError('Ошибка валидации данных', formatZodErrors(validationResult.error));
       }
       
-      const { username, parent_ref_code } = validationResult.data;
+      // Готуємо дані з валідованої схеми
+      const { guest_id: validatedGuestId, referrer_code } = validationResult.data;
+      // Використовуємо дані з запиту для зворотної сумісності (username може передаватися поза схемою)
+      const username = req.body.username || `guest_${Math.floor(1000 + Math.random() * 9000)}`;
+      const parent_ref_code = referrer_code;
       
       // Генерируем уникальный guest_id если не передан
       const guest_id = req.body.guest_id || uuidv4();
@@ -190,8 +234,31 @@ export const UserController = {
             guest_id: guestId,
             ref_code: `REF${randomId}`,
             parent_ref_code: parentRefCode,
+            telegram_id: null,
+            telegram_username: null,
+            wallet: null,
+            ton_wallet_address: null,
+            balance_uni: 0,
+            balance_ton: 0,
+            farming_amount: 0,
+            farming_rewards: 0,
+            boost_level: 0,
+            ton_boost_level: 0,
             created_at: new Date().toISOString(),
-            is_fallback: true
+            is_verified: false,
+            is_blocked: false,
+            is_fallback: true,
+            last_login_at: null,
+            last_claim_at: null,
+            checkin_streak: 0,
+            uni_deposit_amount: 0,
+            uni_farming_start_timestamp: null,
+            uni_farming_balance: 0,
+            uni_farming_rate: 0,
+            ton_deposit_amount: 0,
+            ton_farming_start_timestamp: null, 
+            ton_farming_balance: 0,
+            ton_farming_rate: 0
           };
         }
       );
