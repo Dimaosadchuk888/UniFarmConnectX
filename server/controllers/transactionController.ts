@@ -4,7 +4,36 @@ import { storage } from '../storage';
 import { transactions, User } from '@shared/schema';
 import { db } from '../db';
 import { eq, desc } from 'drizzle-orm';
-import { transactionService, TransactionType, Currency, TransactionStatus, TransactionCategory } from '../services';
+import { transactionService, userService } from '../services';
+
+// Визначення необхідних перерахувань
+enum TransactionType {
+  DEPOSIT = 'deposit',
+  WITHDRAWAL = 'withdrawal',
+  REWARD = 'reward',
+  TRANSFER = 'transfer',
+  FEE = 'fee'
+}
+
+enum Currency {
+  UNI = 'uni',
+  TON = 'ton'
+}
+
+enum TransactionStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  DECLINED = 'declined',
+  FAILED = 'failed'
+}
+
+enum TransactionCategory {
+  FARMING = 'farming',
+  REFERRAL = 'referral',
+  BONUS = 'bonus',
+  DEPOSIT = 'deposit',
+  WITHDRAWAL = 'withdrawal'
+}
 import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
 import { wrapServiceFunction } from '../db-service-wrapper';
 
@@ -81,7 +110,15 @@ export class TransactionController {
       
       // Если указан wallet_address, находим пользователя по адресу кошелька
       if (wallet_address) {
-        const user = await storage.getUserByWalletAddress(wallet_address);
+        const getUserByWallet = wrapServiceFunction(
+          userService.getUserByWalletAddress.bind(userService),
+          async (error) => {
+            console.error('[TransactionController] Ошибка при поиске пользователя по адресу кошелька:', error);
+            return null;
+          }
+        );
+        
+        const user = await getUserByWallet(wallet_address);
         if (user) {
           userId = user.id;
           console.log(`[TransactionController] Найден пользователь ${userId} по адресу кошелька ${wallet_address}`);
