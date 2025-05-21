@@ -55,8 +55,10 @@ process.on('uncaughtException', (error: Error) => {
   console.error(error.stack);
 });
 
-const app = express();
-app.use(express.json());
+// Оголошуємо функцію для запуску серверу
+async function startServer() {
+  const app = express();
+  app.use(express.json());
 
 // Создаем хранилище сессий
 const MemoryStore = memoryStore(session);
@@ -289,9 +291,8 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   // Настройка WebSocket сервера
   const { WebSocketServer } = WebSocket;
   const wss = new WebSocketServer({ server });
-  wss.on('connection', (ws) => {
-    // Лише критичне логування у продакшн-версії
-    
+  wss.on('connection', (ws: any) => {
+    // Обробляємо лише критичні помилки з'єднання
     ws.on('error', (error: Error) => {
       console.error(`[WebSocket] Помилка з'єднання:`, error.message);
     });
@@ -299,49 +300,40 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   
   // Регистрируем консолидированные маршруты API
   try {
-    // Подготавливаем консолидированные контроллеры и маршруты
-    console.log('[Server] Подготовка консолидированных контроллеров и маршрутов...');
-    
-    // Регистрируем все маршруты через консолидированный метод
+    // Реєструємо консолідовані маршрути
     registerNewRoutes(app);
-    console.log('[Server] ✅ Консолидированные маршруты API успешно зарегистрированы');
-        
-        // Налаштовуємо маршрут для тестового Telegram бота
-        console.log('[Server] Додаємо тестовий маршрут для Telegram бота...');
-        app.use('/api/telegram/test', telegramBotTestRouter);
-        console.log('[Server] ✅ Тестовий маршрут для Telegram бота успішно додано');
-        
-        // Налаштовуємо вебхук для тестового Telegram бота
-        const baseUrl = process.env.NODE_ENV === 'production' 
-          ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 
-          : 'https://uni-farm-connect-2.osadchukdmitro2.replit.app';
-        
-        // Налаштовуємо маршрути для адмін-бота Telegram
-        console.log('[Server] Починаємо налаштування Telegram адмін-бота...');
-        setupAdminBotRoutes(app, baseUrl);
-        console.log('[Server] ✅ Telegram адмін-бот успішно налаштований');
-        
-        // Налаштовуємо тестовий вебхук для Telegram бота
-        const adminBotToken = '7662298323:AAFLgX05fWtgNYJfT_VeZ_kRZhIBixoseIY';
-        const webhookUrl = `${baseUrl}/api/telegram/test`;
-        setupBotWebhook(adminBotToken, webhookUrl)
-          .then(success => {
-            if (success) {
-              console.log('[Server] ✅ Тестовий вебхук для Telegram бота успішно налаштовано');
-            } else {
-              console.error('[Server] ❌ Помилка при налаштуванні тестового вебхука для Telegram бота');
-            }
-          })
-          .catch(error => {
-            console.error('[Server] ❌ Помилка при налаштуванні тестового вебхука для Telegram бота:', error);
-          });
-      }).catch(error => {
-        console.error('[Server] Ошибка при регистрации новых маршрутов API:', error);
-        console.log('[Server] Новые маршруты API v2 временно отключены из-за ошибки:', error.message);
-      });
-  } catch (error) {
-    console.error('[Server] Ошибка при импорте новых маршрутов API:', error);
-    console.log('[Server] Новые маршруты API v2 временно отключены из-за ошибки импорта');
+    
+    // Налаштовуємо базовий URL для API
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 
+      : 'https://uni-farm-connect-2.osadchukdmitro2.replit.app';
+    
+    // Налаштовуємо маршрути для Telegram адміністративного бота
+    setupAdminBotRoutes(app, baseUrl);
+    
+    // Додаємо маршрути тестового Telegram бота
+    app.use('/api/telegram/test', telegramBotTestRouter);
+    
+    // Налаштовуємо вебхук для Telegram бота
+    const adminBotToken = process.env.TELEGRAM_ADMIN_BOT_TOKEN;
+    if (adminBotToken) {
+      const webhookUrl = `${baseUrl}/api/telegram/test`;
+      setupBotWebhook(adminBotToken, webhookUrl)
+        .then(success => {
+          if (!success) {
+            console.error('[Server] Помилка при налаштуванні вебхука для Telegram бота');
+          }
+        })
+        .catch(err => {
+          console.error('[Server] Помилка при налаштуванні вебхука для Telegram бота:', 
+            err instanceof Error ? err.message : String(err));
+        });
+    } else {
+      console.error('[Server] Відсутній токен для Telegram бота - вебхук не налаштовано');
+    }
+  } catch (err) {
+    console.error('[Server] Помилка при налаштуванні маршрутів API:', 
+      err instanceof Error ? err.message : String(err));
   }
 
   // Регистрируем централизованный обработчик ошибок
@@ -493,10 +485,21 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
 
   // Explicit bind to 0.0.0.0 to ensure Replit deployment works correctly
   server.listen(port, "0.0.0.0", () => {
-    console.log(`[Server] Server running at http://0.0.0.0:${port} in ${process.env.NODE_ENV || 'development'} mode`);
+    console.log(`[Server] Сервер запущено на порту ${port} в режимі ${process.env.NODE_ENV || 'development'}`);
     log(`serving on port ${port}`);
-    // Инициализируем фоновые сервисы после открытия порта
+    
+    // Ініціалізуємо фонові сервіси
     initBackgroundServices();
   });
-// Кінець головної функції
-});
+}
+
+// Запуск серверу
+(async function() {
+  try {
+    await startServer();
+  } catch (err) {
+    console.error("[Server] Помилка при запуску серверу:", 
+      err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
+})();
