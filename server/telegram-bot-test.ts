@@ -3,6 +3,7 @@
  */
 
 import express, { Request, Response } from 'express';
+import fetch from 'node-fetch';
 
 // Створюємо роутер Express
 const router = express.Router();
@@ -12,6 +13,23 @@ router.post('/', (req: Request, res: Response) => {
   try {
     // Логуємо отримане повідомлення для відладки
     console.log('[Telegram Bot] Отримано повідомлення:', JSON.stringify(req.body, null, 2));
+    
+    // Перевіряємо наявність повідомлення в запиті
+    if (req.body && req.body.message) {
+      const { message } = req.body;
+      const chatId = message.chat?.id;
+      const text = message.text;
+      
+      // Якщо отримали текст і ID чату, спробуємо відправити відповідь
+      if (chatId && text) {
+        console.log(`[Telegram Bot] Отримано повідомлення від ${message.from?.username || 'користувача'}: ${text}`);
+        
+        // Відправляємо ехо-відповідь на тестове повідомлення
+        sendTestMessage(chatId, `Ви написали: ${text}`).catch(error => {
+          console.error('[Telegram Bot] Помилка при відправці відповіді:', error);
+        });
+      }
+    }
     
     // Відправляємо відповідь Telegram серверу
     res.status(200).send({ ok: true });
