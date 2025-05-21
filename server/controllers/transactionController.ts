@@ -121,8 +121,15 @@ export class TransactionController {
         
         const dbUser = await getUserByWallet(wallet_address);
         if (dbUser) {
-          // Взяття базових даних із користувача, без типів, що викликають помилки LSP
-          const user = dbUser;
+          // Адаптуємо об'єкт користувача, щоб уникнути помилок LSP з типами даних
+          const user = {
+            ...dbUser,
+            // Безпечно перетворюємо всі timestamp-поля в рядкові типи
+            created_at: ensureDate(dbUser.created_at),
+            uni_farming_start_timestamp: ensureDate(dbUser.uni_farming_start_timestamp),
+            uni_farming_last_update: ensureDate(dbUser.uni_farming_last_update),
+            uni_farming_activated_at: ensureDate(dbUser.uni_farming_activated_at)
+          };
           userId = user.id;
           console.log(`[TransactionController] Найден пользователь ${userId} по адресу кошелька ${wallet_address}`);
         } else {
