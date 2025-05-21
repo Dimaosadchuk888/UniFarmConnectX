@@ -8,7 +8,7 @@ import { healthCheckMiddleware } from './middleware/health-check';
 process.env.PGSSLMODE = 'require';
 
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes"; // Используем консолидированный файл маршрутов
+import { registerNewRoutes } from "./routes-new"; // Используем единый файл маршрутов
 import { setupAdminBotRoutes } from "./admin-bot-routes"; // Импортируем маршруты админ-бота
 import telegramBotTestRouter, { setupBotWebhook } from "./telegram-bot-test"; // Импортируем тестовый маршрут для Telegram бота
 import { setupVite, serveStatic, log } from "./vite";
