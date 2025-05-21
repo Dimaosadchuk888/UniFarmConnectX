@@ -865,9 +865,9 @@ async function createMission(name: string, description: string, reward: number, 
       .insert(missions)
       .values({
         type: 'custom',
+        title: name,
         description: description,
         reward_uni: reward.toString(),
-        title: name,
         is_active: true
       })
       .returning();
