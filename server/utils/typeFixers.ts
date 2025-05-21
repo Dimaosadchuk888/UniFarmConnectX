@@ -12,21 +12,51 @@
  * @param dateString Строковое представление даты или null
  * @returns Объект Date или null
  */
+/**
+ * Перетворює вхідне значення дати у рядковий формат для API
+ * Стандартизує усі timestamp-поля для безпечного використання в API
+ * 
+ * @param dateValue Дата у будь-якому форматі
+ * @returns Рядкове представлення дати або null
+ */
 export function ensureDate(dateValue: string | Date | null | undefined): string | null {
   if (!dateValue) {
     return null;
   }
   
   try {
-    // Якщо це вже об'єкт Date, перетворюємо його в рядок
+    // Якщо це вже об'єкт Date, перетворюємо його у рядок
     if (dateValue instanceof Date) {
       return dateValue.toISOString();
     }
     
-    // Якщо це рядок, просто повертаємо його (не намагаємося конвертувати)
+    // Якщо це рядок, просто повертаємо його
     return String(dateValue);
   } catch (e) {
-    console.error('Ошибка при обработке значения даты:', e);
+    console.error('Помилка при обробці значення дати:', e);
+    return null;
+  }
+}
+
+/**
+ * Для внутрішнього використання - перетворює string у Date
+ * Використовується коли потрібен саме об'єкт Date
+ * 
+ * @param dateValue Дата у рядковому форматі або об'єкт Date
+ * @returns Об'єкт Date або null
+ */
+export function ensureDateObject(dateValue: string | Date | null | undefined): Date | null {
+  if (!dateValue) {
+    return null;
+  }
+  
+  try {
+    if (dateValue instanceof Date) {
+      return dateValue;
+    }
+    return new Date(String(dateValue));
+  } catch (e) {
+    console.error('Помилка при перетворенні до Date:', e);
     return null;
   }
 }
