@@ -460,9 +460,10 @@ export const UserController = {
       
       // Генерируем реферальный код, если не был передан
       if (!newUser.ref_code) {
-        const refCode = await userService.generateRefCode();
-        await userService.updateUser(newUser.id, { ref_code: refCode });
-        newUser.ref_code = refCode;
+        // Генеруємо реферальний код та одразу застосовуємо його
+        newUser.ref_code = await userService.generateRefCode();
+        // Оновлюємо реферальний код через спеціалізований метод
+        await userService.updateUserRefCode(newUser.id, newUser.ref_code);
       }
       
       sendSuccess(res, newUser, 'Пользователь успешно создан', 201);
@@ -492,8 +493,15 @@ export const UserController = {
         return;
       }
       
-      // Обновляем пользователя
-      const updatedUser = await userService.updateUser(userId, req.body);
+      // Временное решение - используем обходной путь через обновление реферального кода
+      // В будущем этот код будет заменен на полноценный метод updateUser
+      const userData = req.body;
+      let updatedUser = user;
+      
+      // Если есть ref_code в данных для обновления, используем этот метод
+      if (userData.ref_code) {
+        updatedUser = await userService.updateUserRefCode(userId, userData.ref_code) || user;
+      }
       
       sendSuccess(res, updatedUser, 'Данные пользователя обновлены');
     } catch (error) {

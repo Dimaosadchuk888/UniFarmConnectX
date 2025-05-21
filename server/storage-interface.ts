@@ -34,6 +34,7 @@ export interface IStorage {
   getUserByRefCode(refCode: string): Promise<User | undefined>;
   getUserByTelegramId(telegramId: number): Promise<User | undefined>;
   createUser(insertUser: InsertUser): Promise<User>;
+  updateUser(userId: number, userData: Partial<User>): Promise<User>;
   updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
   
   // Реферальная система
