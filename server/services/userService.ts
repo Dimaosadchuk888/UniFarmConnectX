@@ -304,6 +304,39 @@ export function createUserService(storage: IExtendedStorage): IUserService {
      * @throws {NotFoundError} Если пользователь не найден
      * @throws {DatabaseError} При ошибке в базе данных
      */
+    /**
+     * Обновляет данные пользователя
+     * @param userId ID пользователя
+     * @param userData Данные для обновления
+     * @returns Обновленный объект пользователя
+     */
+    async updateUser(userId: number, userData: Partial<User>): Promise<User> {
+      if (!userId) {
+        throw new ValidationError('ID пользователя обязателен для обновления');
+      }
+      
+      try {
+        const updatedUser = await storage.updateUser(userId, userData);
+        
+        if (!updatedUser) {
+          throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+        }
+        
+        return updatedUser;
+      } catch (error) {
+        const err = error as ErrorWithMessage;
+        console.error('[UserService] Error in updateUser:', err.message);
+        
+        // Если это наша ошибка NotFoundError, пробрасываем её дальше
+        if (error instanceof NotFoundError) {
+          throw error;
+        }
+        
+        // Иначе оборачиваем в DatabaseError
+        throw new DatabaseError(`Ошибка при обновлении пользователя: ${err.message}`, error);
+      }
+    },
+    
     async updateUserRefCode(userId: number, refCode: string): Promise<User | undefined> {
       try {
         // Проверяем существование пользователя
@@ -377,6 +410,7 @@ export const getUserByGuestId = (guestId: string): Promise<User | undefined> => 
 export const getUserByRefCode = (refCode: string): Promise<User | undefined> => userServiceInstance.getUserByRefCode(refCode);
 export const getUserByTelegramId = (telegramId: number): Promise<User | undefined> => userServiceInstance.getUserByTelegramId(telegramId);
 export const createUser = (userData: InsertUser): Promise<User> => userServiceInstance.createUser(userData);
+export const updateUser = (userId: number, userData: Partial<User>): Promise<User> => userServiceInstance.updateUser(userId, userData);
 export const updateUserBalance = (userId: number, currencyType: 'uni' | 'ton', amount: string): Promise<User | undefined> => userServiceInstance.updateUserBalance(userId, currencyType, amount);
 export const updateUserRefCode = (userId: number, refCode: string): Promise<User | undefined> => userServiceInstance.updateUserRefCode(userId, refCode);
 export const generateRefCode = (): Promise<string> => userServiceInstance.generateRefCode();
