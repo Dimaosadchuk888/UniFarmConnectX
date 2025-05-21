@@ -1,6 +1,14 @@
 // Устанавливаем переменные окружения для SSL
 process.env.PGSSLMODE = 'require';
 
+// Принудительно устанавливаем Neon DB как провайдер базы данных
+process.env.DATABASE_PROVIDER = 'neon';
+process.env.FORCE_NEON_DB = 'true';
+process.env.DISABLE_REPLIT_DB = 'true';
+process.env.OVERRIDE_DB_PROVIDER = 'neon';
+process.env.SKIP_PARTITION_CREATION = 'true';
+process.env.IGNORE_PARTITION_ERRORS = 'true';
+
 // Импорты для работы с Express и базовыми модулями
 import express, { type Request, Response, NextFunction, Router } from "express";
 import http from 'http';
@@ -34,15 +42,6 @@ import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import memoryStore from 'memorystore';
 
-// Принудительно устанавливаем Neon DB как провайдер базы данных
-// Это переопределит любые настройки из файлов окружения
-process.env.DATABASE_PROVIDER = 'neon';
-process.env.FORCE_NEON_DB = 'true';
-process.env.DISABLE_REPLIT_DB = 'true';
-process.env.OVERRIDE_DB_PROVIDER = 'neon';
-process.env.SKIP_PARTITION_CREATION = 'true';
-process.env.IGNORE_PARTITION_ERRORS = 'true';
-
 // Переопределяем обработчик необработанных исключений
 process.on('uncaughtException', (error: Error) => {
   // Игнорируем ошибки партиционирования
@@ -56,135 +55,40 @@ process.on('uncaughtException', (error: Error) => {
   }
 
   logger.error('[Server] Необработанное исключение:', error);
-  // Для других ошибок логер сам сохранит стек в режиме разработки
 });
 
-// Оголошуємо функцію для запуску серверу
-async function startServer() {
-  const app = express();
-  app.use(express.json());
-
-// Создаем хранилище сессий
-const MemoryStore = memoryStore(session);
-// Настройка сессии с поддержкой PostgreSQL
-const PgStore = connectPgSimple(session);
-
-// Настраиваем сессионный middleware
-app.use(session({
-  store: process.env.USE_MEMORY_SESSION === 'true' 
-    ? new MemoryStore({
-        checkPeriod: 86400000 // Очистка устаревших сессий каждые 24 часа
-      }) 
-    : new PgStore({
-        pool,
-        tableName: 'session', // Имя таблицы для хранения сессий
-        createTableIfMissing: true // Создаем таблицу, если она отсутствует
-      }),
-  secret: process.env.SESSION_SECRET || 'UniFarm_secret_key_change_in_production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 дней
-    httpOnly: true,
-    sameSite: 'lax'
-  }
-}));
-
-// Регистрируем middleware для проверки подключения к БД
-app.use(databaseErrorHandler);
-
-// Регистрируем middleware для проверки здоровья приложения
-// Это должно быть ПЕРЕД регистрацией других маршрутов
-app.use(healthCheckMiddleware);
-
-// Создаем отдельный роутер для маршрутов здоровья
-const healthRouter = Router();
-
-// Добавляем специальный маршрут для проверки здоровья
-healthRouter.get('/health', (req: Request, res: Response) => {
-  logger.debug('[Health Check] Запрос к /health эндпоинту');
-  res.status(200).send({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+// Глобальный обработчик необработанных отказов промисов
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+  logger.error('[SERVER] Необработанный отказ промиса:', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+    timestamp: new Date().toISOString()
   });
-});
-
-// Добавляем обработчик корневого маршрута для проверки здоровья
-healthRouter.get('/', (req: Request, res: Response) => {
-  logger.debug('[Health Check] Запрос к корневому маршруту');
   
-  // Если это запрос для проверки здоровья от Replit
-  if (req.query.health === 'check' || 
-      req.headers['user-agent']?.includes('Replit') || 
-      req.headers['x-replit-deployment-check']) {
-    console.log('[Health Check] Replit проверка здоровья обнаружена');
-    return res.status(200).send('OK');
+  // Логируем более подробную информацию для отладки
+  if (reason instanceof Error) {
+    logger.error('[SERVER] Детали ошибки:', {
+      name: reason.name,
+      message: reason.message,
+      stack: reason.stack,
+      time: new Date().toISOString()
+    });
   }
-  
-  // Иначе, для обычных запросов возвращаем HTML страницу
-  res.status(200).send(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>UniFarm API</title>
-        <meta charset="utf-8">
-      </head>
-      <body>
-        <h1>UniFarm API</h1>
-        <p>API сервер работает. Используйте Telegram для доступа к UniFarm.</p>
-        <p>Время сервера: ${new Date().toISOString()}</p>
-      </body>
-    </html>
-  `);
 });
 
-app.use(express.urlencoded({ extended: false }));
-// Регистрируем middleware для стандартизации ответов API
-app.use(responseFormatter as any);
-
-app.use(((req: Request, res: Response, next: NextFunction) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-}) as any);
-
-// Запускаємо сервер асинхронно
-void (async function startServerInternal() {
-  console.log('[Server] 🔄 Запуск сервера...');
+/**
+ * Основная функция для запуска сервера
+ */
+async function startServer(): Promise<void> {
+  logger.info('[Server] 🔄 Запуск сервера...');
 
   // Проверяем подключение к базе данных перед запуском сервера
-  console.log('[Server] 🔄 Проверка подключения к базе данных...');
+  logger.info('[Server] 🔄 Проверка подключения к базе данных...');
   const isDbConnected = await testConnection();
 
   if (!isDbConnected) {
-    console.error('[Server] ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных!');
-    console.error('[Server] 🔄 Попытка переподключения...');
+    logger.error('[Server] ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных!');
+    logger.info('[Server] 🔄 Попытка переподключения...');
 
     // Пробуем повторно подключиться с ожиданием
     const reconnected = await new Promise<boolean>(resolve => {
@@ -193,143 +97,151 @@ void (async function startServerInternal() {
           const result = await testConnection();
           resolve(result);
         } catch (error) {
-          console.error('[Server] ❌ Ошибка при повторном подключении:', error);
+          logger.error('[Server] ❌ Ошибка при повторном подключении:', error);
           resolve(false);
         }
       }, 3000);
     });
 
     if (!reconnected) {
-      console.error('[Server] ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных после повторных попыток!');
-      console.error('[Server] ⚠️ Сервер продолжит запуск, но возможны ошибки в работе API!');
+      logger.error('[Server] ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к базе данных после повторных попыток!');
+      logger.warn('[Server] ⚠️ Сервер продолжит запуск, но возможны ошибки в работе API!');
     } else {
-      console.log('[Server] ✅ Подключение к базе данных восстановлено');
+      logger.info('[Server] ✅ Подключение к базе данных восстановлено');
     }
   } else {
-    console.log('[Server] ✅ Подключение к базе данных успешно установлено');
+    logger.info('[Server] ✅ Подключение к базе данных успешно установлено');
   }
 
-  /**
-   * Проверяем и применяем настройки базы данных.
-   * Приоритеты выбора провайдера:
-   * 1. FORCE_NEON_DB=true принудительно использует Neon DB
-   * 2. USE_LOCAL_DB_ONLY=true принудительно использует Replit PostgreSQL
-   * 3. В production режиме по умолчанию используется Neon DB
-   * 4. В остальных случаях используется указанный DATABASE_PROVIDER или 'neon' по умолчанию
-   */
+  // Создаем Express приложение
+  const app = express();
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
 
-  // Проверка явных флагов принудительного использования Neon DB
-  const forceNeonDb = process.env.FORCE_NEON_DB === 'true';
-  const disableReplitDb = process.env.DISABLE_REPLIT_DB === 'true';
-  const overrideDbProvider = process.env.OVERRIDE_DB_PROVIDER === 'neon';
-  const hasNeonDbUrl = process.env.DATABASE_URL?.includes('neon.tech');
-
-  // Проверка явных флагов принудительного использования Replit DB
-  const useLocalDbOnly = process.env.USE_LOCAL_DB_ONLY === 'true';
-
-  // Проверка режима работы (продакшен или разработка)
-  const isProduction = process.env.NODE_ENV === 'production';
-  const hasReplitPgEnv = process.env.PGHOST === 'localhost' && process.env.PGUSER === 'runner';
-
-  // Используем Neon DB по умолчанию согласно переменным окружения, 
-  // установленным в начале файла
-  console.log(`[DB] 🚀 ПРИНУДИТЕЛЬНОЕ ИСПОЛЬЗОВАНИЕ NEON DB (переменные окружения)`);
-
-  // Выводим информацию о текущем провайдере базы данных
-  console.log(`[DB] Текущий провайдер базы данных: ${dbType}`);
-
-  // Проверяем наличие строки подключения к Neon DB
-  if (!hasNeonDbUrl) {
-    console.error(`
-⚠️ КРИТИЧЕСКАЯ ОШИБКА: Принудительное использование Neon DB, но переменная DATABASE_URL не указывает на Neon DB!
-Проверьте настройки или запустите приложение через start-with-neon.sh
-    `);
-  }
-
-  /**
-   * Глобальный обработчик необработанных исключений и отказов промисов
-   * Это важно для предотвращения аварийного завершения приложения
-   * при возникновении непредвиденных ошибок, что может привести к 502 ошибкам
-   */
-  process.on('uncaughtException', (error) => {
-    console.error('[SERVER] ⚠️ Непойманное исключение:', {
-      error: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString()
-    });
-    // Не завершаем процесс, чтобы сервер продолжил работу
-  });
-
-  process.on('unhandledRejection', (reason, promise) => {
-    console.error('[SERVER] ⚠️ Необработанный отказ промиса:', {
-      reason: reason instanceof Error ? reason.message : String(reason),
-      stack: reason instanceof Error ? reason.stack : undefined,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Логируем более подробную информацию для отладки
-    if (reason instanceof Error) {
-      console.error('[SERVER] Детали ошибки:', {
-        name: reason.name,
-        message: reason.message,
-        stack: reason.stack,
-        time: new Date().toISOString()
-      });
+  // Создаем хранилище сессий
+  const MemoryStore = memoryStore(session);
+  const PgStore = connectPgSimple(session);
+  
+  // Настраиваем сессионный middleware
+  app.use(session({
+    store: process.env.USE_MEMORY_SESSION === 'true' 
+      ? new MemoryStore({
+          checkPeriod: 86400000 // Очистка устаревших сессий каждые 24 часа
+        }) 
+      : new PgStore({
+          pool,
+          tableName: 'session', // Имя таблицы для хранения сессий
+          createTableIfMissing: true // Создаем таблицу, если она отсутствует
+        }),
+    secret: process.env.SESSION_SECRET || 'UniFarm_secret_key_change_in_production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 дней
+      httpOnly: true,
+      sameSite: 'lax'
     }
-    
-    // Не завершаем процесс, чтобы сервер продолжил работу
-  });
+  }));
 
-  /**
-   * Дополнительные логи отладки запросов для изучения причин проблем 502
-   */
-  app.use(((req: Request, _res: Response, next: NextFunction) => {
-    if (req.path.startsWith('/api/')) {
-      console.log('[АУДИТ] [' + new Date().toISOString() + '] Request to ' + req.method + ' ' + req.url);
-      console.log('[АУДИТ] Headers:', JSON.stringify(req.headers, null, 2));
-    }
+  // Регистрируем middleware для проверки подключения к БД
+  app.use(databaseErrorHandler);
+  
+  // Регистрируем middleware для проверки здоровья приложения
+  app.use(healthCheckMiddleware);
+  
+  // Регистрируем middleware для стандартизации ответов API
+  app.use(responseFormatter as any);
+
+  // Middleware для логирования API запросов
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const start = Date.now();
+    const path = req.path;
+    let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+    const originalResJson = res.json;
+    res.json = function (bodyJson: any, ...args: any[]) {
+      capturedJsonResponse = bodyJson;
+      return originalResJson.apply(res, [bodyJson, ...args]);
+    };
+
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      if (path.startsWith("/api")) {
+        let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+        if (capturedJsonResponse) {
+          logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        }
+
+        if (logLine.length > 80) {
+          logLine = logLine.slice(0, 79) + "…";
+        }
+
+        log(logLine);
+      }
+    });
+
     next();
-  }) as any);
-
-  // Создаем сервер на основе Express приложения
-  const http = require('http');
-  const WebSocket = require('ws');
-  const server = http.createServer(app);
-  
-  // Настройка WebSocket сервера
-  const { WebSocketServer } = WebSocket;
-  const wss = new WebSocketServer({ server });
-  wss.on('connection', (ws: any) => {
-    // Обробляємо лише критичні помилки з'єднання
-    ws.on('error', (error: Error) => {
-      console.error(`[WebSocket] Помилка з'єднання:`, error.message);
-    });
   });
-  
-  // Регистрируем консолидированные маршруты API
-  try {
-    // Реєструємо консолідовані маршрути
-    registerNewRoutes(app);
-    
-    // Налаштовуємо базовий URL для API
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 
-      : 'https://uni-farm-connect-2.osadchukdmitro2.replit.app';
-            err instanceof Error ? err.message : String(err));
-        });
-    } else {
-      console.error('[Server] Відсутній токен для Telegram бота - вебхук не налаштовано');
-    }
-  } catch (err) {
-    console.error('[Server] Помилка при налаштуванні маршрутів API:', 
-      err instanceof Error ? err.message : String(err));
+
+  // Дополнительные логи отладки запросов
+  if (process.env.DEBUG_API_REQUESTS === 'true') {
+    app.use((req: Request, _res: Response, next: NextFunction) => {
+      if (req.path.startsWith('/api/')) {
+        logger.debug('[АУДИТ] [' + new Date().toISOString() + '] Request to ' + req.method + ' ' + req.url);
+        logger.debug('[АУДИТ] Headers:', JSON.stringify(req.headers, null, 2));
+      }
+      next();
+    });
   }
 
-  // Регистрируем централизованный обработчик ошибок
-  app.use(((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next)) as any);
+  // Создаем отдельный роутер для маршрутов здоровья
+  const healthRouter = Router();
+
+  // Добавляем специальный маршрут для проверки здоровья
+  healthRouter.get('/health', (req: Request, res: Response) => {
+    logger.debug('[Health Check] Запрос к /health эндпоинту');
+    res.status(200).send({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+
+  // Добавляем обработчик корневого маршрута для проверки здоровья
+  healthRouter.get('/', (req: Request, res: Response) => {
+    logger.debug('[Health Check] Запрос к корневому маршруту');
+    
+    // Если это запрос для проверки здоровья от Replit
+    if (req.query.health === 'check' || 
+        req.headers['user-agent']?.includes('Replit') || 
+        req.headers['x-replit-deployment-check']) {
+      logger.info('[Health Check] Replit проверка здоровья обнаружена');
+      return res.status(200).send('OK');
+    }
+    
+    // Иначе, для обычных запросов возвращаем HTML страницу
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>UniFarm API</title>
+          <meta charset="utf-8">
+        </head>
+        <body>
+          <h1>UniFarm API</h1>
+          <p>API сервер работает. Используйте Telegram для доступа к UniFarm.</p>
+          <p>Время сервера: ${new Date().toISOString()}</p>
+        </body>
+      </html>
+    `);
+  });
+
+  // Подключаем роутер с маршрутами здоровья
+  app.use('/', healthRouter);
 
   // Добавление обработчика для Telegram WebApp параметров
-  app.use(((req: Request, res: Response, next: NextFunction) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     // Получаем источник запроса
     const origin = req.headers.origin || '*';
 
@@ -356,134 +268,170 @@ void (async function startServerInternal() {
       }, {} as Record<string, any>);
 
     if (Object.keys(telegramParams).length > 0) {
-      console.log('[TelegramWebApp] Параметры в URL:', telegramParams);
+      logger.debug('[TelegramWebApp] Параметры в URL:', telegramParams);
     }
 
     next();
-  }) as any);
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    console.log('[Server] Запуск в режиме разработки (development), используем Vite middleware');
-    await setupVite(app, server);
-  } else {
-    console.log('[Server] Запуск в production режиме, используем оптимизированную обработку статических файлов');
-    // Используем улучшенную версию обработки статических файлов для production
-    setupProductionStatic(app);
-
-    // Оригинальный метод остается закомментированным на случай проблем
-    // serveStatic(app);
-  }
-
-  // В Replit при деплое необходимо слушать порт, указанный в переменной окружения PORT
-  // В настройках .replit внешний порт 80 маппится на внутренний порт 3000
-  const port = parseInt(process.env.PORT || "3000", 10);
-  console.log(`[Server] Starting on port ${port} in ${process.env.NODE_ENV || 'development'} mode`);
-
-  // Настройки для подключения уже установлены в db-connect-fix.js
-  // и дополнительно не нужны здесь, так как уже применены при старте
-
-  // Для быстрого запуска сервера, переносим "тяжелые" операции в отдельные асинхронные процессы
-  // Эти задачи будут выполняться после открытия порта
-  function initBackgroundServices() {
-    // Задержка инициализации тяжелых сервисов для обеспечения быстрого запуска
-    setTimeout(() => {
-      // Запуск фоновых задач
-      startBackgroundTasks();
-
-      // Запуск cron-задач для обслуживания базы данных
-      try {
-        // Импортируем и инициализируем модуль cron-задач после старта сервера
-        import('./scripts/cron_scheduler.js')
-          .then(module => {
-            module.setupCronJobs();
-            console.log('[Server] Cron-задачи успешно инициализированы');
-          })
-          .catch(error => {
-            console.error('[Server] Ошибка при инициализации cron-задач:', error);
-          });
-      } catch (error) {
-        console.error('[Server] Ошибка при импорте модуля cron-задач:', error);
-      }
-
-      // Запуск планировщика партиций
-      try {
-        console.log('[Server] Инициализация планировщика партиций...');
-        schedulePartitionCreation();
-        console.log('[Server] Планировщик партиций успешно инициализирован');
-      } catch (error) {
-        console.error('[Server] Ошибка при инициализации планировщика партиций:', error);
-      }
-
-      // Обновление реферальных кодов
-      try {
-        migrateRefCodes()
-          .then((result) => {
-            console.log(`[Server] Миграция реферальных кодов успешно выполнена. Обновлено ${result.updated} из ${result.total} пользователей`);
-          })
-          .catch((error: Error) => {
-            console.error('[Server] Ошибка при выполнении миграции реферальных кодов:', error);
-          });
-      } catch (error) {
-        console.error('[Server] Ошибка при запуске миграции реферальных кодов:', error);
-      }
-    }, 100); // Небольшая задержка для приоритета открытия порта
-  }
-
-  // Отдельный обработчик для корневого пути (health check) - с приоритетным ответом для деплоя
-  app.get('/', (req: Request, res: Response) => {
-    // Быстрый ответ на проверку здоровья для деплоя
-    logger.debug('[Root] Health check request to root path');
-    return res.status(200).send(`<!DOCTYPE html>
-<html>
-<head>
-    <title>UniFarm API Server</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-        }
-        h1 { color: #4CAF50; }
-    </style>
-</head>
-<body>
-    <h1>UniFarm API Server</h1>
-    <p>Status: Online</p>
-    <p>Server Time: ${new Date().toISOString()}</p>
-</body>
-</html>`);
   });
 
-  // Добавляем обработчик catch-all для остальных путей
-  app.use('*', ((req: Request, res: Response) => {
-    // Если это похоже на проверку здоровья - возвращаем 200
-    if (req.headers['user-agent']?.includes('deployment') || 
-        req.headers['x-replit-deployment-check'] || 
-        req.originalUrl === '/') {
-      return res.status(200).json({ status: 'ok', message: 'Health check passed' });
-    }
-    // Иначе статус 404
-    return res.status(404).json({ status: 'error', message: 'Not found' });
-  }) as any);
-
-  // Централизованный обработчик ошибок
-  app.use(((err: any, req: Request, res: Response, next: NextFunction) => errorHandler(err, req, res, next)) as any);
-
-  // Explicit bind to 0.0.0.0 to ensure Replit deployment works correctly
-  server.listen(port, "0.0.0.0", () => {
-    console.log(`[Server] Сервер запущено на порту ${port} в режимі ${process.env.NODE_ENV || 'development'}`);
-    log(`serving on port ${port}`);
+  // Создаем HTTP сервер на основе Express приложения
+  const server = http.createServer(app);
+  
+  // Настройка WebSocket сервера
+  const wss = new WebSocketServer({ server });
+  wss.on('connection', (ws) => {
+    // Обрабатываем только критические ошибки соединения
+    ws.on('error', (error: Error) => {
+      logger.error(`[WebSocket] Ошибка соединения:`, error.message);
+    });
+  });
+  
+  // Регистрируем консолидированные маршруты API
+  try {
+    // Регистрируем консолидированные маршруты
+    registerNewRoutes(app);
     
-    // Ініціалізуємо фонові сервіси
+    // Настраиваем базовый URL для API
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 
+      : 'https://uni-farm-connect-2.osadchukdmitro2.replit.app';
+      
+    logger.info('[Server] ✅ API маршруты успешно настроены');
+  } catch (error) {
+    logger.error('[Server] ❌ Ошибка при настройке маршрутов API:', 
+      error instanceof Error ? error.message : String(error));
+  }
+
+  // Регистрируем централизованный обработчик ошибок
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => 
+    errorHandler(err, req, res, next));
+
+  // Настраиваем обработку статических файлов в зависимости от окружения
+  if (app.get("env") === "development") {
+    logger.info('[Server] Запуск в режиме разработки (development), используем Vite middleware');
+    await setupVite(app, server);
+  } else {
+    logger.info('[Server] Запуск в production режиме, используем оптимизированную обработку статических файлов');
+    setupProductionStatic(app);
+  }
+
+  // Добавляем обработчик корневого маршрута для проверки здоровья
+  app.get('/', (req: Request, res: Response) => {
+    logger.debug('[Health Check] Запрос к корневому маршруту');
+    
+    // Если это запрос для проверки здоровья от Replit
+    if (req.query.health === 'check' || 
+        req.headers['user-agent']?.includes('Replit') || 
+        req.headers['x-replit-deployment-check']) {
+      return res.status(200).send('OK');
+    }
+    
+    // Иначе, перенаправляем на Telegram Mini App
+    if (process.env.TELEGRAM_BOT_USERNAME) {
+      return res.redirect(`https://t.me/${process.env.TELEGRAM_BOT_USERNAME}`);
+    }
+    
+    // Если бот не настроен, показываем стандартную страницу
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>UniFarm API</title>
+          <meta charset="utf-8">
+        </head>
+        <body>
+          <h1>UniFarm API</h1>
+          <p>API сервер работает. Перейдите в Telegram для доступа к UniFarm.</p>
+        </body>
+      </html>
+    `);
+  });
+  
+  // Добавляем обработчик для всех остальных запросов к API
+  app.use('*', (req: Request, res: Response) => {
+    // Проверяем, является ли запрос API запросом
+    if (req.originalUrl.startsWith('/api/')) {
+      return res.status(404).json({
+        success: false,
+        error: 'API endpoint not found'
+      });
+    }
+    
+    // Для не-API запросов перенаправляем на корневой маршрут
+    return res.redirect('/');
+  });
+  
+  // Еще раз регистрируем централизованный обработчик ошибок
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => 
+    errorHandler(err, req, res, next));
+
+  // В Replit при деплое необходимо слушать порт, указанный в переменной окружения PORT
+  const port = parseInt(process.env.PORT || "3000", 10);
+  logger.info(`[Server] Starting on port ${port} in ${process.env.NODE_ENV || 'development'} mode`);
+
+  // Запускаем сервер
+  server.listen(port, "0.0.0.0", () => {
+    logger.info(`[Server] 🚀 Сервер успешно запущен на порту ${port}`);
+    
+    // Инициализируем фоновые сервисы
     initBackgroundServices();
   });
 }
 
-// Закриваємо асинхронну функцію запуску сервера
-})();
+/**
+ * Инициализирует фоновые сервисы
+ */
+function initBackgroundServices(): void {
+  // Задержка инициализации тяжелых сервисов для обеспечения быстрого запуска
+  setTimeout(() => {
+    // Запуск фоновых задач
+    startBackgroundTasks();
 
-// Викликаємо основну функцію запуску сервера
-void startServer();
+    // Запуск cron-задач для обслуживания базы данных
+    try {
+      // Импортируем и инициализируем модуль cron-задач после старта сервера
+      import('./scripts/cron_scheduler.js')
+        .then(module => {
+          module.setupCronJobs();
+          logger.info('[Server] Cron-задачи успешно инициализированы');
+        })
+        .catch(error => {
+          logger.error('[Server] Ошибка при инициализации cron-задач:', error);
+        });
+    } catch (error) {
+      logger.error('[Server] Ошибка при импорте модуля cron-задач:', error);
+    }
+
+    // Запуск планировщика партиций
+    try {
+      if (process.env.SKIP_PARTITION_CREATION !== 'true') {
+        logger.info('[Server] Инициализация планировщика партиций...');
+        schedulePartitionCreation();
+        logger.info('[Server] Планировщик партиций успешно инициализирован');
+      } else {
+        logger.info('[Server] Планировщик партиций пропущен (SKIP_PARTITION_CREATION=true)');
+      }
+    } catch (error) {
+      logger.error('[Server] Ошибка при инициализации планировщика партиций:', error);
+    }
+
+    // Обновление реферальных кодов
+    try {
+      migrateRefCodes()
+        .then((result) => {
+          logger.info(`[Server] Миграция реферальных кодов завершена: ${result.processed} обработано, ${result.updated} обновлено`);
+        })
+        .catch((error) => {
+          logger.error('[Server] Ошибка при миграции реферальных кодов:', error);
+        });
+    } catch (error) {
+      logger.error('[Server] Ошибка при запуске миграции реферальных кодов:', error);
+    }
+  }, 5000);
+}
+
+// Запускаем сервер
+startServer().catch(error => {
+  logger.error('[Server] Критическая ошибка при запуске сервера:', error);
+  process.exit(1);
+});
