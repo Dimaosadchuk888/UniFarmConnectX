@@ -25,7 +25,7 @@ import { DailyBonusController } from './controllers/dailyBonusControllerConsolid
  * Регистрирует новые маршруты API в указанном приложении Express
  * @param app Экземпляр приложения Express
  */
-export function registerRoutes(app: Express): void {
+export function registerNewRoutes(app: Express): void {
   console.log('[NewRoutes] Регистрация новых маршрутов API');
 
   // Маршруты для сессий
