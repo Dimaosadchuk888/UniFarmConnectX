@@ -475,21 +475,30 @@ export const UserController = {
       const { guestId } = req.params;
       
       if (!guestId) {
-        res.status(400).json(error('Гостевой ID не указан', 'MISSING_GUEST_ID'));
+        sendError(res, 'Гостевой ID не указан', 400, 'MISSING_GUEST_ID');
         return;
       }
       
-      const user = await userService.getUserByGuestId(guestId);
+      // Обертка сервісної функції для обробки помилок
+      const getUserByGuestId = wrapServiceFunction(
+        userService.getUserByGuestId.bind(userService),
+        async (error) => {
+          console.error('[UserController] Ошибка при получении пользователя по гостевому ID:', error);
+          throw error;
+        }
+      );
+      
+      const user = await getUserByGuestId(guestId);
       
       if (!user) {
-        res.status(404).json(error('Пользователь не найден', 'USER_NOT_FOUND'));
+        sendError(res, 'Пользователь не найден', 404, 'USER_NOT_FOUND');
         return;
       }
       
-      res.json(success(user));
+      sendSuccess(res, user);
     } catch (err) {
       console.error('[UserController] Ошибка при получении пользователя по гостевому ID:', err);
-      res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
+      sendServerError(res, 'Внутренняя ошибка сервера');
     }
   },
   
@@ -501,21 +510,30 @@ export const UserController = {
       const { refCode } = req.params;
       
       if (!refCode) {
-        res.status(400).json(error('Реферальный код не указан', 'MISSING_REF_CODE'));
+        sendError(res, 'Реферальный код не указан', 400, 'MISSING_REF_CODE');
         return;
       }
       
-      const user = await userService.getUserByRefCode(refCode);
+      // Обертка сервісної функції для обробки помилок
+      const getUserByRefCode = wrapServiceFunction(
+        userService.getUserByRefCode.bind(userService),
+        async (error) => {
+          console.error('[UserController] Ошибка при получении пользователя по реферальному коду:', error);
+          throw error;
+        }
+      );
+      
+      const user = await getUserByRefCode(refCode);
       
       if (!user) {
-        res.status(404).json(error('Пользователь с указанным реферальным кодом не найден', 'USER_NOT_FOUND'));
+        sendError(res, 'Пользователь с указанным реферальным кодом не найден', 404, 'USER_NOT_FOUND');
         return;
       }
       
-      res.json(success(user));
+      sendSuccess(res, user);
     } catch (err) {
       console.error('[UserController] Ошибка при получении пользователя по реферальному коду:', err);
-      res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
+      sendServerError(res, 'Внутренняя ошибка сервера');
     }
   },
   
@@ -529,22 +547,40 @@ export const UserController = {
       
       // Если реферальный код не указан, генерируем новый
       if (!userData.ref_code) {
-        userData.ref_code = await userService.generateRefCode();
+        // Обертка сервисной функции
+        const generateRefCode = wrapServiceFunction(
+          userService.generateRefCode.bind(userService),
+          async (error) => {
+            console.error('[UserController] Ошибка при генерации реферального кода:', error);
+            throw error;
+          }
+        );
+        
+        userData.ref_code = await generateRefCode();
       }
       
-      const newUser = await userService.createUser(userData);
+      // Обертка сервисной функции для создания пользователя
+      const createUser = wrapServiceFunction(
+        userService.createUser.bind(userService),
+        async (error) => {
+          console.error('[UserController] Ошибка при создании пользователя:', error);
+          throw error;
+        }
+      );
       
-      res.status(201).json(success(newUser));
+      const newUser = await createUser(userData);
+      
+      sendSuccess(res, newUser, 201);
     } catch (err) {
       console.error('[UserController] Ошибка при создании пользователя:', err);
       
       // Обрабатываем ошибки валидации Zod
       if (err instanceof ZodError) {
-        res.status(400).json(handleZodError(err));
+        sendError(res, 'Ошибка валидации данных', 400, handleZodError(err));
         return;
       }
       
-      res.status(500).json(error('Внутренняя ошибка сервера', 'SERVER_ERROR'));
+      sendServerError(res, 'Внутренняя ошибка сервера');
     }
   },
   
