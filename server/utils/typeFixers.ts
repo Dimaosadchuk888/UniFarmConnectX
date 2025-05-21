@@ -12,15 +12,21 @@
  * @param dateString Строковое представление даты или null
  * @returns Объект Date или null
  */
-export function ensureDate(dateString: string | null | undefined): Date | null {
-  if (!dateString) {
+export function ensureDate(dateValue: string | Date | null | undefined): string | null {
+  if (!dateValue) {
     return null;
   }
   
   try {
-    return new Date(dateString);
+    // Якщо це вже об'єкт Date, перетворюємо його в рядок
+    if (dateValue instanceof Date) {
+      return dateValue.toISOString();
+    }
+    
+    // Якщо це рядок, просто повертаємо його (не намагаємося конвертувати)
+    return String(dateValue);
   } catch (e) {
-    console.error('Ошибка при преобразовании строки в дату:', e);
+    console.error('Ошибка при обработке значения даты:', e);
     return null;
   }
 }
