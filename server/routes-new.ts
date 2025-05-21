@@ -8,7 +8,7 @@
  * основной файл routes.ts
  */
 
-import express, { Express, Request, Response } from "express";
+import express, { Express, Request, Response, NextFunction } from "express";
 
 // Явно импортируем контроллеры для новых маршрутов API
 import { SessionController } from './controllers/sessionController';
@@ -31,14 +31,14 @@ import logger from './utils/logger';
  * @param app Экземпляр приложения Express
  */
 export function registerNewRoutes(app: Express): void {
-  console.log('[NewRoutes] Регистрация новых маршрутов API');
+  logger.info('[NewRoutes] Регистрация новых маршрутов API');
 
   // Инициализируем Telegram бота
   try {
     telegramBot.initialize()
       .then((initialized) => {
         if (initialized) {
-          logger.log('[Telegram] Бот успешно инициализирован');
+          logger.info('[Telegram] Бот успешно инициализирован');
         } else {
           logger.error('[Telegram] Не удалось инициализировать бота');
         }
@@ -52,83 +52,167 @@ export function registerNewRoutes(app: Express): void {
 
   // Регистрируем маршруты для Telegram бота
   app.use('/api/telegram', telegramRouter);
-  logger.log('[NewRoutes] Маршруты для Telegram бота зарегистрированы');
+  logger.info('[NewRoutes] Маршруты для Telegram бота зарегистрированы');
+
+  // Централизованный обработчик маршрутов с обработкой ошибок
+  const safeHandler = (handler: Function) => async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (typeof handler === 'function') {
+        return await handler(req, res, next);
+      } else {
+        logger.error('[Routes] Обработчик не является функцией:', handler);
+        return res.status(500).json({
+          success: false,
+          error: 'Внутренняя ошибка сервера: неверный обработчик'
+        });
+      }
+    } catch (error) {
+      logger.error('[Routes] Ошибка в обработчике маршрута:', error);
+      
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          error: 'Внутренняя ошибка сервера',
+          message: error instanceof Error ? error.message : String(error)
+        });
+      }
+      
+      next(error);
+    }
+  };
 
   // Маршруты для сессий
-  app.post('/api/v2/session/restore', (req, res, next) => {
-    if (SessionController.restoreSession) {
-      return SessionController.restoreSession(req, res, next);
-    } else {
-      logger.error('[Routes] Метод restoreSession не найден в SessionController');
-      return res.status(500).json({
-        success: false,
-        error: 'Внутренняя ошибка сервера: метод не реализован'
-      });
-    }
-  });
+  if (typeof SessionController.restoreSession === 'function') {
+    app.post('/api/v2/session/restore', safeHandler(SessionController.restoreSession));
+  }
   
   // Маршруты для пользователей
-  app.get('/api/v2/users/:id', (req, res, next) => {
-    if (UserController.getUserById) {
-      return UserController.getUserById(req, res, next);
-    } else {
-      logger.error('[Routes] Метод getUserById не найден в UserController');
-      return res.status(500).json({
-        success: false,
-        error: 'Внутренняя ошибка сервера: метод не реализован'
-      });
-    }
-  });
+  if (typeof UserController.getUserById === 'function') {
+    app.get('/api/v2/users/:id', safeHandler(UserController.getUserById));
+  }
   
   // Маршруты для транзакций
-  app.get('/api/v2/users/:userId/transactions', (req, res, next) => {
-    if (TransactionController.getUserTransactions) {
-      return TransactionController.getUserTransactions(req, res, next);
-    } else {
-      logger.error('[Routes] Метод getUserTransactions не найден в TransactionController');
-      return res.status(500).json({
-        success: false,
-        error: 'Внутренняя ошибка сервера: метод не реализован'
-      });
-    }
-  });
-
+  if (typeof TransactionController.getUserTransactions === 'function') {
+    app.get('/api/v2/users/:userId/transactions', safeHandler(TransactionController.getUserTransactions));
+  }
+  
   // Маршруты для заданий с использованием консолидированного контроллера
-  app.get('/api/v2/missions/active', (req, res) => MissionController.getActiveMissions(req, res));
-  app.get('/api/v2/user-missions', (req, res) => MissionController.getUserCompletedMissions(req, res));
-  app.get('/api/v2/missions/with-completion', (req, res) => MissionController.getMissionsWithCompletion(req, res));
-  app.get('/api/v2/missions/check/:userId/:missionId', (req, res) => MissionController.checkMissionCompletion(req, res));
-  app.post('/api/v2/missions/complete', (req, res) => MissionController.completeMission(req, res));
+  if (MissionController) {
+    if (typeof MissionController.getActiveMissions === 'function') {
+      app.get('/api/v2/missions/active', safeHandler(MissionController.getActiveMissions));
+    }
+    
+    if (typeof MissionController.getUserCompletedMissions === 'function') {
+      app.get('/api/v2/user-missions', safeHandler(MissionController.getUserCompletedMissions));
+    }
+    
+    if (typeof MissionController.getMissionsWithCompletion === 'function') {
+      app.get('/api/v2/missions/with-completion', safeHandler(MissionController.getMissionsWithCompletion));
+    }
+    
+    if (typeof MissionController.checkMissionCompletion === 'function') {
+      app.get('/api/v2/missions/check/:userId/:missionId', safeHandler(MissionController.checkMissionCompletion));
+    }
+    
+    if (typeof MissionController.completeMission === 'function') {
+      app.post('/api/v2/missions/complete', safeHandler(MissionController.completeMission));
+    }
+  }
   
   // Маршруты для реферальной системы с использованием консолидированного контроллера
-  app.get('/api/v2/referrals/tree', (req, res) => ReferralController.getReferralTree(req, res));
-  app.get('/api/v2/referrals/stats', (req, res) => ReferralController.getReferralStats(req, res));
-  app.post('/api/v2/referrals/apply', (req, res) => ReferralController.applyReferralCode(req, res));
+  if (ReferralController) {
+    if (typeof ReferralController.getReferralTree === 'function') {
+      app.get('/api/v2/referrals/tree', safeHandler(ReferralController.getReferralTree));
+    }
+    
+    if (typeof ReferralController.getReferralStats === 'function') {
+      app.get('/api/v2/referrals/stats', safeHandler(ReferralController.getReferralStats));
+    }
+    
+    if (typeof ReferralController.applyReferralCode === 'function') {
+      app.post('/api/v2/referrals/apply', safeHandler(ReferralController.applyReferralCode));
+    }
+  }
   
   // Маршруты для бонусов с использованием консолидированного контроллера
-  app.get('/api/v2/daily-bonus/status', (req, res) => DailyBonusController.getDailyBonusStatus(req, res));
-  app.post('/api/v2/daily-bonus/claim', (req, res) => DailyBonusController.claimDailyBonus(req, res));
-  app.get('/api/v2/daily-bonus/streak-info', (req, res) => DailyBonusController.getStreakInfo(req, res));
+  if (DailyBonusController) {
+    if (typeof DailyBonusController.getDailyBonusStatus === 'function') {
+      app.get('/api/v2/daily-bonus/status', safeHandler(DailyBonusController.getDailyBonusStatus));
+    }
+    
+    if (typeof DailyBonusController.claimDailyBonus === 'function') {
+      app.post('/api/v2/daily-bonus/claim', safeHandler(DailyBonusController.claimDailyBonus));
+    }
+    
+    if (typeof DailyBonusController.getStreakInfo === 'function') {
+      app.get('/api/v2/daily-bonus/streak-info', safeHandler(DailyBonusController.getStreakInfo));
+    }
+  }
   
   // Маршруты для кошелька с использованием консолидированного контроллера
-  app.get('/api/v2/wallet/balance', (req, res) => WalletController.getWalletBalance(req, res));
-  app.post('/api/v2/wallet/connect', (req, res) => WalletController.connectWallet(req, res));
-  app.post('/api/v2/wallet/disconnect', (req, res) => WalletController.disconnectWallet(req, res));
-  app.get('/api/v2/wallet/transactions', (req, res) => WalletController.getTransactions(req, res));
-  app.post('/api/v2/wallet/withdraw', (req, res) => WalletController.withdrawUni(req, res));
+  if (WalletController) {
+    if (typeof WalletController.getWalletBalance === 'function') {
+      app.get('/api/v2/wallet/balance', safeHandler(WalletController.getWalletBalance));
+    }
+    
+    if (typeof WalletController.connectWallet === 'function') {
+      app.post('/api/v2/wallet/connect', safeHandler(WalletController.connectWallet));
+    }
+    
+    if (typeof WalletController.disconnectWallet === 'function') {
+      app.post('/api/v2/wallet/disconnect', safeHandler(WalletController.disconnectWallet));
+    }
+    
+    if (typeof WalletController.getTransactions === 'function') {
+      app.get('/api/v2/wallet/transactions', safeHandler(WalletController.getTransactions));
+    }
+    
+    if (typeof WalletController.withdrawUni === 'function') {
+      app.post('/api/v2/wallet/withdraw', safeHandler(WalletController.withdrawUni));
+    }
+  }
   
   // Маршруты для TON бустов с использованием консолидированного контроллера
-  app.get('/api/v2/ton-farming/boosts', (req, res) => TonBoostController.getTonBoostPackages(req, res));
-  app.get('/api/v2/ton-farming/active', (req, res) => TonBoostController.getUserTonBoosts(req, res));
-  app.post('/api/v2/ton-farming/purchase', (req, res) => TonBoostController.purchaseTonBoost(req, res));
-  app.post('/api/v2/ton-farming/confirm-payment', (req, res) => TonBoostController.confirmExternalPayment(req, res));
-  app.get('/api/v2/ton-farming/info', (req, res) => TonBoostController.getUserTonFarmingInfo(req, res));
-  app.post('/api/v2/ton-farming/update', (req, res) => TonBoostController.calculateAndUpdateTonFarming(req, res));
+  if (TonBoostController) {
+    if (typeof TonBoostController.getTonBoostPackages === 'function') {
+      app.get('/api/v2/ton-farming/boosts', safeHandler(TonBoostController.getTonBoostPackages));
+    }
+    
+    if (typeof TonBoostController.getUserTonBoosts === 'function') {
+      app.get('/api/v2/ton-farming/active', safeHandler(TonBoostController.getUserTonBoosts));
+    }
+    
+    if (typeof TonBoostController.purchaseTonBoost === 'function') {
+      app.post('/api/v2/ton-farming/purchase', safeHandler(TonBoostController.purchaseTonBoost));
+    }
+    
+    if (typeof TonBoostController.confirmExternalPayment === 'function') {
+      app.post('/api/v2/ton-farming/confirm-payment', safeHandler(TonBoostController.confirmExternalPayment));
+    }
+    
+    if (typeof TonBoostController.getUserTonFarmingInfo === 'function') {
+      app.get('/api/v2/ton-farming/info', safeHandler(TonBoostController.getUserTonFarmingInfo));
+    }
+    
+    if (typeof TonBoostController.calculateAndUpdateTonFarming === 'function') {
+      app.post('/api/v2/ton-farming/update', safeHandler(TonBoostController.calculateAndUpdateTonFarming));
+    }
+  }
   
   // Маршруты для обычных бустов с использованием консолидированного контроллера
-  app.get('/api/v2/boosts', (req, res) => BoostController.getBoostPackages(req, res));
-  app.get('/api/v2/boosts/active', (req, res) => BoostController.getUserActiveBoosts(req, res));
-  app.post('/api/v2/boosts/purchase', (req, res) => BoostController.purchaseBoost(req, res));
+  if (BoostController) {
+    if (typeof BoostController.getBoostPackages === 'function') {
+      app.get('/api/v2/boosts', safeHandler(BoostController.getBoostPackages));
+    }
+    
+    if (typeof BoostController.getUserActiveBoosts === 'function') {
+      app.get('/api/v2/boosts/active', safeHandler(BoostController.getUserActiveBoosts));
+    }
+    
+    if (typeof BoostController.purchaseBoost === 'function') {
+      app.post('/api/v2/boosts/purchase', safeHandler(BoostController.purchaseBoost));
+    }
+  }
   
-  console.log('[NewRoutes] ✓ Новые маршруты API зарегистрированы успешно');
+  logger.info('[NewRoutes] ✓ Новые маршруты API зарегистрированы успешно');
 }

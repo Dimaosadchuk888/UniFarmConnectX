@@ -6,7 +6,7 @@ import logger from '../utils/logger';
 const telegramRouter = Router();
 
 // Вебхук для получения обновлений от Telegram
-telegramRouter.post('/webhook', handleTelegramWebhook);
+telegramRouter.post('/webhook', (req, res) => handleTelegramWebhook(req, res));
 
 // Эндпоинт для проверки статуса бота
 telegramRouter.get('/status', async (req, res) => {
