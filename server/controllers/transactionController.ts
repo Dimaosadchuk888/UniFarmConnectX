@@ -1,3 +1,10 @@
+/**
+ * Контролер для роботи з транзакціями користувачів
+ * 
+ * Цей файл містить всі операції, пов'язані з історією транзакцій,
+ * створенням нових транзакцій та обробкою виведення коштів
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
@@ -37,9 +44,7 @@ export enum TransactionCategory {
   DEPOSIT = 'deposit',
   WITHDRAWAL = 'withdrawal'
 }
-/**
- * Контроллер для работы с транзакциями
- */
+// Контролер для роботи з транзакціями
 export class TransactionController {
   // Тестовый массив транзакций для демонстрации
   static testTransactions = [
