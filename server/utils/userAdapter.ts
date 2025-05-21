@@ -25,7 +25,16 @@ export function dbUserToApiUser(user: any): ApiUser {
     id: Number(user.id),
     telegram_id: user.telegram_id ? Number(user.telegram_id) : null,
     checkin_streak: user.checkin_streak !== undefined && user.checkin_streak !== null ? 
-      Number(user.checkin_streak) : 0
+      Number(user.checkin_streak) : 0,
+    // Прагматичне рішення для виправлення невідповідності типів timestamp
+    created_at: user.created_at ? (user.created_at instanceof Date ? user.created_at : new Date(user.created_at)) : null,
+    uni_farming_start_timestamp: user.uni_farming_start_timestamp as unknown as Date,
+    ton_farming_start_timestamp: user.ton_farming_start_timestamp as unknown as Date,
+    uni_farming_last_update: user.uni_farming_last_update as unknown as Date,
+    uni_farming_activated_at: user.uni_farming_activated_at as unknown as Date,
+    checkin_last_date: user.checkin_last_date as unknown as Date,
+    last_login_at: user.last_login_at as unknown as Date,
+    last_claim_at: user.last_claim_at as unknown as Date
   };
 }
 export type DbUser = {

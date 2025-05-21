@@ -5,6 +5,9 @@ import { transactions, User } from '@shared/schema';
 import { db } from '../db';
 import { eq, desc } from 'drizzle-orm';
 import { transactionService, userService } from '../services';
+import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
+import { wrapServiceFunction } from '../db-service-wrapper';
+import { ensureNumber, ensureDate } from '../utils/typeFixers';
 
 // Визначення необхідних перерахувань
 export enum TransactionType {
@@ -34,9 +37,6 @@ export enum TransactionCategory {
   DEPOSIT = 'deposit',
   WITHDRAWAL = 'withdrawal'
 }
-import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
-import { wrapServiceFunction } from '../db-service-wrapper';
-
 /**
  * Контроллер для работы с транзакциями
  */
@@ -89,11 +89,7 @@ export class TransactionController {
       const validation = querySchema.safeParse(req.query);
       if (!validation.success) {
         console.error("[TransactionController] Ошибка валидации запроса:", validation.error);
-        res.status(400).json({
-          success: false,
-          message: "Некорректные параметры запроса",
-          errors: validation.error.format()
-        });
+        sendError(res, "Некорректные параметры запроса", 400, validation.error.format());
         return;
       }
 
