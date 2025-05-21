@@ -213,7 +213,7 @@ export const UserController = {
       if (guestId) {
         const existingUser = await userService.getUserByGuestId(guestId);
         if (existingUser) {
-          console.log(`[UserController] Пользователь с guest_id: ${guestId} уже существует`);
+          logger.debug(`[UserController] Користувач з guest_id: ${guestId} вже існує`);
           return existingUser;
         }
       }
@@ -224,7 +224,7 @@ export const UserController = {
         const referrer = await userService.getUserByRefCode(referrerCode);
         if (referrer) {
           referrerId = referrer.id;
-          console.log(`[UserController] Найден реферал с кодом ${referrerCode}, ID: ${referrerId}`);
+          logger.debug(`[UserController] Знайдено реферала з кодом ${referrerCode}, ID: ${referrerId}`);
         }
       }
       
@@ -241,7 +241,7 @@ export const UserController = {
       
       return newUser;
     } catch (error) {
-      console.log(`[UserController] Создаем временного пользователя с guest_id: ${guestId}`, error);
+      logger.debug(`[UserController] Створюємо тимчасового користувача з guest_id: ${guestId}`, error);
       
       try {
         // Проверяем, существует ли пользователь в MemStorage
@@ -249,13 +249,13 @@ export const UserController = {
         const existingUser = guestId ? await memStorage.getUserByGuestId(guestId) : undefined;
         
         if (existingUser) {
-          console.log(`[UserController] Пользователь с guest_id: ${guestId} уже существует в MemStorage`);
+          logger.debug(`[UserController] Користувач з guest_id: ${guestId} вже існує в MemStorage`);
           return existingUser;
         }
         
         // Для fallback режима просто используем referrerCode напрямую,
         // так как мы не можем проверить его валидность в БД
-        console.log(`[UserController] Используем referrerCode=${referrerCode} напрямую в fallback режиме`);
+        logger.debug(`[UserController] Використовуємо referrerCode=${referrerCode} напряму в fallback режимі`);
         
         // Создаем временного пользователя в MemStorage
         const newUser = await memStorage.createUser({
@@ -344,7 +344,7 @@ export const UserController = {
         is_new_user: false
       };
     } catch (error) {
-      console.log(`[UserController] Возвращаем заглушку для восстановления сессии`, error);
+      logger.debug(`[UserController] Відновлення сесії з помилкою:`, error);
       
       // Создаем временную сессию
       const temporaryId = Math.floor(Math.random() * 1000000) + 1;
@@ -530,7 +530,7 @@ export const UserController = {
         ref_code: user.ref_code
       });
     } catch (error) {
-      console.error('[UserController] Ошибка при получении реферального кода:', error);
+      logger.error('[UserController] Помилка при отриманні реферального коду:', error);
       sendServerError(res, 'Ошибка при получении реферального кода');
     }
   },
@@ -554,7 +554,7 @@ export const UserController = {
         available: !user
       });
     } catch (error) {
-      console.error('[UserController] Ошибка при проверке username:', error);
+      logger.error('[UserController] Помилка при перевірці username:', error);
       sendServerError(res, 'Ошибка при проверке доступности username');
     }
   },
@@ -590,7 +590,7 @@ export const UserController = {
       
       sendSuccess(res, updatedUser, 'TON кошелек успешно добавлен');
     } catch (error) {
-      console.error('[UserController] Ошибка при добавлении TON кошелька:', error);
+      logger.error('[UserController] Помилка при додаванні TON гаманця:', error);
       sendServerError(res, 'Ошибка при добавлении TON кошелька');
     }
   }
