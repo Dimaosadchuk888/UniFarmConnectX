@@ -4,12 +4,8 @@
  * предотвращая автоматическое завершение процесса
  */
 
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { spawn } = require('child_process');
+const path = require('path');
 
 console.log('⚙️ Запуск сервера UniFarm...');
 console.log('🕙 Время запуска:', new Date().toISOString());
@@ -18,7 +14,7 @@ console.log('🕙 Время запуска:', new Date().toISOString());
 const startTime = new Date();
 
 // Используем переменные окружения
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const NODE_ENV = process.env.NODE_ENV || 'production';
 console.log(`🌐 Режим окружения: ${NODE_ENV}`);
 
 // Команда для запуска сервера через tsx (TypeScript Execute)
