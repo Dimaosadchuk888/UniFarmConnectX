@@ -50,17 +50,17 @@ export type DbUser = {
   last_claim_at: string | null;
   checkin_streak: number | null;
   uni_deposit_amount: string | null;
-  uni_farming_start_timestamp: string | null;
+  uni_farming_start_timestamp: Date | null; // Changed from string | null to Date | null
   uni_farming_balance: string | null;
   uni_farming_rate: string | null;
   uni_farming_last_update: string | null;
   uni_farming_deposit: string | null;
   uni_farming_activated_at: string | null;
   ton_deposit_amount: string | null;
-  ton_farming_start_timestamp: string | null;
+  ton_farming_start_timestamp: Date | null; // Changed from string | null to Date | null
   ton_farming_balance: string | null;
   ton_farming_rate: string | null;
-  checkin_last_date: string | null;
+  checkin_last_date: Date | null; // Changed from string | null to Date | null
   // Додаткові поля для сумісності
   telegram_username?: string | null;
   is_fallback?: boolean;

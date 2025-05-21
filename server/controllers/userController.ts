@@ -13,13 +13,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { userService } from '../services';
 import { insertUserSchema, InsertUser } from '@shared/schema';
-import { ZodError } from 'zod';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
 import { createUserFallback, createGuestUserFallback, createRegisteredGuestFallback } from '../utils/userAdapter';
+import { wrapServiceFunction } from '../db-service-wrapper';
+import { ensureNumber, ensureDate } from '../utils/typeFixers';
+import { ZodError } from 'zod';
 import { ValidationError } from '../middleware/errorHandler';
 import { userIdSchema, createUserSchema, guestRegistrationSchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
-import { wrapServiceFunction } from '../db-service-wrapper';
 import { v4 as uuidv4 } from 'uuid';
 import { storage } from '../storage-adapter';
 
