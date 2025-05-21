@@ -147,8 +147,9 @@ export class SessionController {
                 guest_id: devUser.guest_id,
                 created_at: devUser.created_at,
                 parent_ref_code: devUser.parent_ref_code
-              }
-            });
+              };
+              
+              return sendSuccess(res, userData, 'Сессия успешно восстановлена (режим разработки)');
           } else {
             console.warn(`[SessionController] ⚠️ Тестовый пользователь с ID ${developmentUserId} не найден, продолжаем обычное восстановление`);
             // Если тестовый пользователь не найден, продолжаем обычное восстановление по guest_id
