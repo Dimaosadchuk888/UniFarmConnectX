@@ -111,7 +111,7 @@ export const UserController = {
       );
       
       const user = await getUserByIdWithFallback(userId);
-      sendSuccess(res, user);
+      sendSuccess(res, user, 'Користувач успішно знайдений', 200);
     } catch (error) {
       next(error);
     }
@@ -150,7 +150,7 @@ export const UserController = {
       );
       
       const user = await getUserByGuestIdWithFallback(guestId);
-      sendSuccess(res, user);
+      sendSuccess(res, user, 'Користувач за guest_id успішно знайдений', 200);
     } catch (error) {
       next(error);
     }
@@ -405,7 +405,7 @@ export const UserController = {
       const userId = parseInt(req.params.id, 10);
       
       if (isNaN(userId)) {
-        sendError(res, 'ID пользователя должен быть числом', 'INVALID_USER_ID', 400);
+        sendError(res, 'ID пользователя должен быть числом', 400, { error_code: 'INVALID_USER_ID' });
         return;
       }
       
