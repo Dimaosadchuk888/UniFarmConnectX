@@ -50,3 +50,11 @@ author = 42521392
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node neon-workflow.js"
+
+[[workflows.workflow]]
+name = "Start application"
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
