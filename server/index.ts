@@ -282,15 +282,18 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   }) as any);
 
   // Создаем сервер на основе Express приложения
-  const server = createServer(app);
+  const http = require('http');
+  const WebSocket = require('ws');
+  const server = http.createServer(app);
   
   // Настройка WebSocket сервера
+  const { WebSocketServer } = WebSocket;
   const wss = new WebSocketServer({ server });
-  wss.on('connection', (ws: WebSocket) => {
-    console.log('[WebSocket] Новое подключение установлено');
+  wss.on('connection', (ws) => {
+    // Лише критичне логування у продакшн-версії
     
-    ws.on('error', (error) => {
-      console.error(`[WebSocket] Ошибка соединения:`, error);
+    ws.on('error', (error: Error) => {
+      console.error(`[WebSocket] Помилка з'єднання:`, error.message);
     });
   });
   
