@@ -92,30 +92,26 @@ export const UserController = {
         throw new ValidationError('Некорректный ID пользователя', { id: 'Должен быть числом' });
       }
       
-      // Заворачиваем вызов сервиса в обработчик ошибок // from fallback logic
-      const getUserByIdWithFallback = wrapServiceFunction(
+      // Використовуємо сервіс для отримання даних користувача
+      const getUserByIdSafe = wrapServiceFunction(
         userService.getUserById.bind(userService),
-        async (error, id) => {
-          console.log(`[UserController] Возвращаем заглушку для пользователя по ID: ${id}`, error);
-          
-          // Возвращаем данные по умолчанию при отсутствии соединения с БД
-          const user = createUserFallback(id);
-          
-          // Согласно комментарию в db-service-wrapper.ts используем прагматичный подход с "as unknown as"
-          // для обеспечения совместимости типов между сервисами и контроллерами
-          return user as unknown as any;
+        async (error) => {
+          console.error(`[UserController] Помилка при отриманні користувача:`, error);
+          return null; // В продакшн-версії не використовуємо заглушки
         }
       );
       
-      const dbUser = await getUserByIdWithFallback(userId);
+      // Отримуємо дані користувача з бази даних
+      const dbUser = await userService.getUserById(userId);
       
-      // Адаптуємо користувача для відповіді API
-      // Адаптуємо користувача для відповіді API без неправильних конвертацій
+      // Адаптуємо користувача для відповіді API з належним форматуванням дат
       const apiUser = dbUser ? {
         ...dbUser,
         telegram_id: dbUser.telegram_id ? Number(dbUser.telegram_id) : null,
         checkin_streak: dbUser.checkin_streak !== undefined && dbUser.checkin_streak !== null ? 
-          Number(dbUser.checkin_streak) : 0
+          Number(dbUser.checkin_streak) : 0,
+        created_at: ensureDate(dbUser.created_at)
+        // Додаткові поля оброблюються, якщо вони присутні
       } : null;
       
       sendSuccess(res, apiUser, 'Користувач успішно знайдений', 200);
@@ -180,22 +176,16 @@ export const UserController = {
       // Генерируем уникальный guest_id если не передан
       const guest_id = req.body.guest_id || uuidv4();
       
-      // Заворачиваем вызов сервиса в обработчик ошибок // from fallback logic
-      const registerGuestUserWithFallback = wrapServiceFunction(
+      // Використовуємо сервіс для реєстрації гостьового користувача
+      const registerGuestUserSafe = wrapServiceFunction(
         userService.registerGuestUser.bind(userService),
-        async (error, guestId, username, parentRefCode) => {
-          console.log(`[UserController] Возвращаем заглушку для регистрации гостя: ${guestId}`, error);
-          
-          // Возвращаем заглушку при отсутствии соединения с БД
-          const user = createRegisteredGuestFallback(guestId, username, parentRefCode);
-          
-          // Согласно комментарию в db-service-wrapper.ts используем прагматичный подход с "as unknown as"
-          // для обеспечения совместимости типов между сервисами и контроллерами
-          return user as unknown as any;
+        async (error) => {
+          console.error(`[UserController] Помилка при реєстрації гостьового користувача:`, error);
+          throw new Error('Не вдалося зареєструвати гостьового користувача');
         }
       );
       
-      const newUser = await registerGuestUserWithFallback(guest_id, username, parent_ref_code);
+      const newUser = await registerGuestUserSafe(guest_id, username, parent_ref_code);
       sendSuccess(res, newUser);
     } catch (error) {
       next(error);
