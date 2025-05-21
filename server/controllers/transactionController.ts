@@ -5,6 +5,8 @@ import { transactions, User } from '@shared/schema';
 import { db } from '../db';
 import { eq, desc } from 'drizzle-orm';
 import { transactionService, TransactionType, Currency, TransactionStatus, TransactionCategory } from '../services';
+import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
+import { wrapServiceFunction } from '../db-service-wrapper';
 
 /**
  * Контроллер для работы с транзакциями
@@ -98,7 +100,10 @@ export class TransactionController {
           console.log(`[TransactionController AUDIT] Возвращаемый ответ:`, JSON.stringify(emptyResponse));
           
           // Если пользователь не найден по адресу кошелька, возвращаем пустой список
-          res.status(200).json(emptyResponse);
+          sendSuccess(res, {
+            total: 0,
+            transactions: []
+          });
           return;
         }
       } else if (user_id) {
