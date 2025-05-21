@@ -135,7 +135,8 @@ export function createGuestUserFallback(guestId: string): DbUser {
     ton_farming_start_timestamp: null,
     ton_farming_balance: "0",
     ton_farming_rate: "0",
-    checkin_last_date: null
+    checkin_last_date: null,
+    is_fallback: true
   };
 }
 
@@ -186,6 +187,7 @@ export function createRegisteredGuestFallback(
     ton_farming_start_timestamp: null,
     ton_farming_balance: "0",
     ton_farming_rate: "0",
-    checkin_last_date: null
+    checkin_last_date: null,
+    is_fallback: true
   };
 }

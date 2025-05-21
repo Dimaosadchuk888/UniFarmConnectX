@@ -98,42 +98,7 @@ export const UserController = {
           console.log(`[UserController] Возвращаем заглушку для пользователя по ID: ${id}`, error);
           
           // Возвращаем данные по умолчанию при отсутствии соединения с БД
-          return {
-            id: id,
-            username: `user_${id}`,
-            ref_code: `REF${id}${Math.floor(Math.random() * 1000)}`,
-            telegram_id: null,
-            telegram_username: null,
-            guest_id: null,
-            wallet: null,
-            ton_wallet_address: null,
-            parent_ref_code: null,
-            balance_uni: 0,
-            balance_ton: 0,
-            farming_amount: 0,
-            farming_rewards: 0,
-            boost_level: 0,
-            ton_boost_level: 0,
-            created_at: new Date().toISOString(),
-            is_verified: false,
-            is_blocked: false,
-            is_fallback: true,
-            last_login_at: null,
-            last_claim_at: null,
-            checkin_streak: 0,
-            uni_deposit_amount: 0,
-            uni_farming_start_timestamp: null,
-            uni_farming_balance: 0,
-            uni_farming_rate: 0,
-            uni_farming_last_update: null,
-            uni_farming_deposit: 0,
-            uni_farming_activated_at: null,
-            ton_deposit_amount: 0,
-            ton_farming_start_timestamp: null,
-            ton_farming_balance: 0,
-            ton_farming_rate: 0,
-            checkin_last_date: null
-          };
+          return createUserFallback(id);
         }
       );
       
@@ -163,42 +128,7 @@ export const UserController = {
           console.log(`[UserController] Возвращаем заглушку для пользователя по guest_id: ${guestId}`, error);
           
           // Возвращаем данные по умолчанию при отсутствии соединения с БД
-          return {
-            id: Math.floor(Math.random() * 1000),
-            username: `guest_${guestId.substring(0, 6)}`,
-            ref_code: `REF${guestId.substring(0, 6)}`,
-            telegram_id: null,
-            telegram_username: null,
-            guest_id: guestId,
-            wallet: null,
-            ton_wallet_address: null,
-            parent_ref_code: null,
-            balance_uni: 0,
-            balance_ton: 0,
-            farming_amount: 0,
-            farming_rewards: 0,
-            boost_level: 0,
-            ton_boost_level: 0,
-            created_at: new Date().toISOString(),
-            is_verified: false,
-            is_blocked: false,
-            is_fallback: true,
-            last_login_at: null,
-            last_claim_at: null,
-            checkin_streak: 0,
-            uni_deposit_amount: 0,
-            uni_farming_start_timestamp: null,
-            uni_farming_balance: 0,
-            uni_farming_rate: 0,
-            uni_farming_last_update: null,
-            uni_farming_deposit: 0,
-            uni_farming_activated_at: null,
-            ton_deposit_amount: 0,
-            ton_farming_start_timestamp: null,
-            ton_farming_balance: 0,
-            ton_farming_rate: 0,
-            checkin_last_date: null
-          };
+          return createGuestUserFallback(guestId);
         }
       );
       
@@ -241,38 +171,7 @@ export const UserController = {
           const randomId = Math.floor(10000 + Math.random() * 90000);
           
           // Возвращаем заглушку при отсутствии соединения с БД
-          return {
-            id: randomId,
-            username: username || `guest_${randomId}`,
-            guest_id: guestId,
-            ref_code: `REF${randomId}`,
-            parent_ref_code: parentRefCode,
-            telegram_id: null,
-            telegram_username: null,
-            wallet: null,
-            ton_wallet_address: null,
-            balance_uni: 0,
-            balance_ton: 0,
-            farming_amount: 0,
-            farming_rewards: 0,
-            boost_level: 0,
-            ton_boost_level: 0,
-            created_at: new Date().toISOString(),
-            is_verified: false,
-            is_blocked: false,
-            is_fallback: true,
-            last_login_at: null,
-            last_claim_at: null,
-            checkin_streak: 0,
-            uni_deposit_amount: 0,
-            uni_farming_start_timestamp: null,
-            uni_farming_balance: 0,
-            uni_farming_rate: 0,
-            ton_deposit_amount: 0,
-            ton_farming_start_timestamp: null, 
-            ton_farming_balance: 0,
-            ton_farming_rate: 0
-          };
+          return createRegisteredGuestFallback(guestId, username, parentRefCode);
         }
       );
       
