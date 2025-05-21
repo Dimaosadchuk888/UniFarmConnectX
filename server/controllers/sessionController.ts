@@ -239,7 +239,7 @@ export class SessionController {
         guest_id: updatedUser.guest_id,
         created_at: updatedUser.created_at,
         parent_ref_code: updatedUser.parent_ref_code
-      }, 'Сессия успешно восстановлена');
+      }, 'Сессия успешно восстановлена', 200);
     } catch (error) {
       console.error('[SessionController] Ошибка при восстановлении сессии:', error);
       sendServerError(res, 'Внутренняя ошибка сервера при восстановлении сессии', { error_code: 'SESSION_RESTORE_FAILED' });
