@@ -12,6 +12,7 @@ import { registerNewRoutes } from "./routes-new"; // Используем еди
 import { setupAdminBotRoutes } from "./admin-bot-routes"; // Импортируем маршруты админ-бота
 import telegramBotTestRouter, { setupBotWebhook } from "./telegram-bot-test"; // Импортируем тестовый маршрут для Telegram бота
 import { setupVite, serveStatic, log } from "./vite";
+import logger from './utils/logger';
 import { startBackgroundTasks } from "./background-tasks";
 // Импортируем планировщик партиций
 import { schedulePartitionCreation } from "./cron/partition-scheduler";
@@ -46,13 +47,12 @@ process.on('uncaughtException', (error: Error) => {
       error.message.includes('partition') ||
       error.message.includes('Failed to create partitions')
     )) {
-    console.log('[Server] ⚠️ Игнорируем ошибку партиционирования:', error.message);
+    logger.warn('[Server] Игнорируем ошибку партиционирования:', error.message);
     return; // Не завершаем процесс при ошибке партиционирования
   }
 
-  console.error('[Server] ❌ Необработанное исключение:', error);
-  // Для других ошибок сохраняем стандартное поведение
-  console.error(error.stack);
+  logger.error('[Server] Необработанное исключение:', error);
+  // Для других ошибок логер сам сохранит стек в режиме разработки
 });
 
 // Оголошуємо функцію для запуску серверу
@@ -95,8 +95,8 @@ app.use(databaseErrorHandler);
 app.use(healthCheckMiddleware);
 
 // Добавляем специальный маршрут для проверки здоровья
-app.get('/health', function(req: Request, res: Response) {
-  console.log('[Health Check] Запрос к /health эндпоинту');
+app.get('/health', (req: Request, res: Response) => {
+  logger.debug('[Health Check] Запрос к /health эндпоинту');
   res.status(200).send({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -105,8 +105,8 @@ app.get('/health', function(req: Request, res: Response) {
 });
 
 // Добавляем обработчик корневого маршрута для проверки здоровья
-app.get('/', function(req: Request, res: Response) {
-  console.log('[Health Check] Запрос к корневому маршруту');
+app.get('/', (req: Request, res: Response) => {
+  logger.debug('[Health Check] Запрос к корневому маршруту');
   
   // Если это запрос для проверки здоровья от Replit
   if (req.query.health === 'check' || 
