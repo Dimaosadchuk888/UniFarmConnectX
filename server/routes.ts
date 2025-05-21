@@ -1691,7 +1691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
-  app.post("/api/ton-boosts/process-incoming-transaction", async (req, res) => {
+  app.post("/api/ton-boosts/process-incoming-transaction", (req, res, next) => {
     // [АУДИТ ПЛАТЕЖЕЙ - УБРАТЬ ПОСЛЕ ТЕСТИРОВАНИЯ]
     console.log("[TON AUDIT] Входящий API запрос processIncomingTransaction:", { 
       body: req.body,
@@ -1700,12 +1700,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       amountType: typeof req.body.amount
     });
 
-    return await TonBoostController.processIncomingTransaction(req, res);
+    try {
+      TonBoostController.processIncomingTransaction(req, res, next);
+    } catch (error) {
+      next(error);
+    }
   });
 
-  // TON фарминг с поддержкой fallback
-  app.get("/api/ton-farming/info", TonBoostController.getUserTonFarmingInfo);
-  app.get("/api/ton-farming/update-balance", TonBoostController.calculateAndUpdateTonFarming);
+  // TON фарминг с поддержкой fallback и стандартизованной обработкой ошибок
+  app.get("/api/ton-farming/info", (req, res, next) => {
+    try {
+      TonBoostController.getUserTonFarmingInfo(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/ton-farming/update-balance", (req, res, next) => {
+    try {
+      TonBoostController.calculateAndUpdateTonFarming(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  });
   // Перенаправление на основной эндпоинт
   app.get("/api/ton-farming/active", TonBoostController.getUserTonBoosts);
 
