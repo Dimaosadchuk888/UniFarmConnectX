@@ -24,37 +24,10 @@ externalPort = 80
 runButton = "Run"
 
 [[workflows.workflow]]
-name = "Neon DB Server"
-mode = "sequential"
-author = 42521392
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node start-unified.js"
-
-[[workflows.workflow]]
-name = "Neon"
-mode = "sequential"
-author = 42521392
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node neon-workflow.js"
-
-[[workflows.workflow]]
 name = "Run"
 author = 42521392
 mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node no-exit.mjs"
-
-[[workflows.workflow]]
-name = "Run Safe"
-author = 42521392
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true OVERRIDE_DB_PROVIDER=neon SKIP_PARTITION_CREATION=true IGNORE_PARTITION_ERRORS=true node start-unified.js"
+args = "start.sh"
