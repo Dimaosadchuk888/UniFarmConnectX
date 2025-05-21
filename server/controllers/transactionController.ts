@@ -111,10 +111,7 @@ export class TransactionController {
         userId = parseInt(user_id);
       } else {
         // Если не указаны ни user_id, ни wallet_address, возвращаем ошибку
-        res.status(400).json({
-          success: false,
-          message: "Необходимо указать user_id или wallet_address"
-        });
+        sendError(res, "Необходимо указать user_id или wallet_address", 400);
         return;
       }
       
@@ -147,20 +144,14 @@ export class TransactionController {
         console.log(`[TransactionController] Транзакции не найдены для пользователя ${userId}`);
       }
       
-      res.status(200).json({
-        success: true,
-        data: {
-          total: userTransactions.length, // В реальном приложении здесь должен быть отдельный запрос для подсчета общего количества
-          transactions: userTransactions
-        }
+      sendSuccess(res, {
+        total: userTransactions.length, // В реальном приложении здесь должен быть отдельный запрос для подсчета общего количества
+        transactions: userTransactions
       });
 
     } catch (error) {
       console.error("[TransactionController] Ошибка при получении транзакций:", error);
-      res.status(500).json({
-        success: false,
-        message: "Произошла ошибка при обработке запроса"
-      });
+      sendServerError(res, "Произошла ошибка при обработке запроса");
     }
   }
 
@@ -187,11 +178,7 @@ export class TransactionController {
       
       if (!validation.success) {
         console.error("[TransactionController] Ошибка валидации запроса:", validation.error.format());
-        res.status(400).json({
-          success: false,
-          message: "Некорректные параметры запроса",
-          errors: validation.error.format()
-        });
+        sendError(res, "Некорректные параметры запроса", 400, validation.error.format());
         return;
       }
       
@@ -210,10 +197,7 @@ export class TransactionController {
         const tonAddressRegex = /^(?:UQ|EQ)[A-Za-z0-9_-]{46,48}$/;
         if (!tonAddressRegex.test(address)) {
           console.error(`[TransactionController] Некорректный формат TON-адреса: ${address}`);
-          res.status(400).json({
-            success: false,
-            message: "Некорректный формат TON-адреса"
-          });
+          sendError(res, "Некорректный формат TON-адреса", 400);
           return;
         }
       }
@@ -222,10 +206,7 @@ export class TransactionController {
       const user = await storage.getUserById(user_id);
       if (!user) {
         console.error(`[TransactionController] Пользователь не найден: ${user_id}`);
-        res.status(404).json({
-          success: false,
-          message: "Пользователь не найден"
-        });
+        sendError(res, "Пользователь не найден", 404);
         return;
       }
       
@@ -240,10 +221,7 @@ export class TransactionController {
         
       if (balance < numAmount) {
         console.error(`[TransactionController] Недостаточно средств для вывода: на балансе ${balance} ${formattedCurrency}, запрошено ${numAmount}`);
-        res.status(400).json({
-          success: false,
-          message: `Недостаточно средств для вывода. Доступный баланс: ${balance} ${formattedCurrency}`
-        });
+        sendError(res, `Недостаточно средств для вывода. Доступный баланс: ${balance} ${formattedCurrency}`, 400);
         return;
       }
       
@@ -263,22 +241,16 @@ export class TransactionController {
       // Здесь должен быть код для обработки запроса на вывод средств
       // Обновление баланса пользователя будет выполняться после подтверждения вывода
       
-      res.status(200).json({
-        success: true,
-        data: {
-          message: "Запрос на вывод средств принят",
-          transaction_id: transaction.id,
-          status: transaction.status,
-          amount: numAmount,
-          currency: formattedCurrency
-        }
+      sendSuccess(res, {
+        message: "Запрос на вывод средств принят",
+        transaction_id: transaction.id,
+        status: transaction.status,
+        amount: numAmount,
+        currency: formattedCurrency
       });
     } catch (error) {
       console.error("[TransactionController] Ошибка при запросе на вывод средств:", error);
-      res.status(500).json({
-        success: false,
-        message: "Произошла ошибка при обработке запроса на вывод средств"
-      });
+      sendServerError(res, "Произошла ошибка при обработке запроса на вывод средств");
     }
   }
 
