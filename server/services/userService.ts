@@ -6,9 +6,11 @@
  * менять его без изменения логики сервиса.
  */
 
-import { User, InsertUser } from '@shared/schema';
+import { User, InsertUser, users } from '@shared/schema';
 import { IExtendedStorage, StorageErrors } from '../storage-interface';
-import { NotFoundError, DatabaseError } from '../middleware/errorHandler';
+import { NotFoundError, DatabaseError, ValidationError } from '../middleware/errorHandler';
+import { db } from '../db';
+import { eq } from 'drizzle-orm';
 
 // Тип для безопасного доступа к свойству message у ошибок
 type ErrorWithMessage = { message: string };
@@ -170,6 +172,63 @@ export function createUserService(storage: IExtendedStorage): IUserService {
       } catch (error) {
         console.error('[UserService] Error in getUserByRefCode:', error);
         return undefined;
+      }
+    },
+    
+    /**
+     * Получает пользователя по адресу кошелька
+     * @param walletAddress Адрес кошелька TON
+     * @returns Пользователь или undefined, если не найден
+     */
+    async getUserByWalletAddress(walletAddress: string): Promise<User | undefined> {
+      if (!walletAddress) return undefined;
+      
+      try {
+        // Ищем по полю ton_wallet_address
+        const [user] = await db.select().from(users).where(eq(users.ton_wallet_address, walletAddress)).limit(1);
+        return user || undefined;
+      } catch (error) {
+        console.error('[UserService] Error in getUserByWalletAddress:', error);
+        return undefined;
+      }
+    },
+    
+    /**
+     * Регистрирует нового гостевого пользователя
+     * @param guestId Гостевой ID
+     * @param referrerCode Реферальный код пригласившего пользователя (опционально)
+     * @param airdropMode Режим airdrop (опционально)
+     * @returns Объект созданного пользователя
+     */
+    async registerGuestUser(guestId: string, referrerCode?: string | null, airdropMode?: boolean): Promise<User> {
+      if (!guestId) {
+        throw new ValidationError('Гостевой ID обязателен для регистрации пользователя');
+      }
+      
+      try {
+        // Сначала проверяем, не существует ли уже такой пользователь
+        const existingUser = await this.getUserByGuestId(guestId);
+        if (existingUser) {
+          return existingUser;
+        }
+        
+        // Генерируем уникальный реферальный код
+        const refCode = await this.generateRefCode();
+        
+        // Создаем нового пользователя
+        const userData = {
+          guest_id: guestId,
+          ref_code: refCode,
+          parent_ref_code: referrerCode || null,
+          // Используем правильный формат для баланса
+          // balance_uni обрабатывается в createUser
+        };
+        
+        return await this.createUser(userData);
+      } catch (error) {
+        const err = error as ErrorWithMessage;
+        console.error('[UserService] Error in registerGuestUser:', err.message);
+        throw new DatabaseError(`Ошибка при регистрации гостевого пользователя: ${err.message}`, error);
       }
     },
 
