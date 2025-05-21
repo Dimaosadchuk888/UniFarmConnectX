@@ -14,6 +14,12 @@ import express, { Express, Request, Response } from "express";
 import { SessionController } from './controllers/sessionController';
 import { UserController } from './controllers/userController';
 import { TransactionController } from './controllers/transactionController';
+import { MissionController } from './controllers/missionControllerConsolidated';
+import { ReferralController } from './controllers/referralControllerConsolidated';
+import { BoostController } from './controllers/boostControllerConsolidated';
+import { TonBoostController } from './controllers/tonBoostControllerConsolidated';
+import { WalletController } from './controllers/walletControllerConsolidated';
+import { DailyBonusController } from './controllers/dailyBonusControllerConsolidated';
 
 /**
  * Регистрирует новые маршруты API в указанном приложении Express
