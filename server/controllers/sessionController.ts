@@ -47,7 +47,7 @@ export class SessionController {
       const testUser = {
         id: 1,
         username: 'dev_user',
-        telegram_id: '123456789',
+        telegram_id: 123456789,
         balance_uni: '1000000',
         balance_ton: '25.5',
         ref_code: 'DEV123',

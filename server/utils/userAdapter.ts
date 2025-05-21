@@ -7,17 +7,27 @@
 
 import { insertUserSchema } from '@shared/schema';
 import { format } from 'date-fns';
-
-/**
- * Адаптер для конвертації даних користувача між різними форматами
- * 
- * Ці утиліти допомагають працювати з даними користувача у різних
- * контекстах (API, БД, контролери) та забезпечують коректну типізацію
- */
 /**
  * Інтерфейс для представлення користувача в базі даних
  * Містить всі поля з 'users' таблиці та додаткові поля для сумісності
  */
+
+/**
+ * Адаптує користувача з БД до формату API-відповіді
+ * @param user Користувач з бази даних
+ * @returns Адаптований об'єкт користувача для API-відповіді
+ */
+export function dbUserToApiUser(user: any): ApiUser {
+  if (!user) return null as any;
+  
+  return {
+    ...user,
+    id: Number(user.id),
+    telegram_id: user.telegram_id ? Number(user.telegram_id) : null,
+    checkin_streak: user.checkin_streak !== undefined && user.checkin_streak !== null ? 
+      Number(user.checkin_streak) : 0
+  };
+}
 export type DbUser = {
   id: number;
   telegram_id: number | null;
