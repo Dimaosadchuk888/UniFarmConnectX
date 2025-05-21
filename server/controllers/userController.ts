@@ -14,7 +14,7 @@ import { Request, Response, NextFunction } from 'express';
 import { userService } from '../services';
 import { insertUserSchema, InsertUser } from '@shared/schema';
 import { ZodError } from 'zod';
-import { sendSuccess } from '../utils/responseUtils';
+import { sendSuccess, sendError, sendServerError } from '../utils/responseUtils';
 import { ValidationError } from '../middleware/errorHandler';
 import { userIdSchema, createUserSchema, guestRegistrationSchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
