@@ -10,6 +10,7 @@ import { users, uniFarmingDeposits, transactions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { BigNumber } from 'bignumber.js';
 import { transactionService } from './index';
+import { ensureDate, ensureDateObject } from '../utils/typeFixers';
 
 // Используем BigNumber для точных вычислений с плавающей точкой
 BigNumber.config({
@@ -123,9 +124,9 @@ class UniFarmingService implements IUniFarmingService {
    * @param value Вхідне значення (Date, string або null)
    * @returns Об'єкт Date
    */
-  private ensureDateValue(value: Date | string | null): Date {
-    if (!value) return new Date();
-    return value instanceof Date ? value : new Date(value);
+  private ensureTimestamp(value: Date | string | null): Date {
+    // Використовуємо нашу утиліту для уніфікованої обробки дат
+    return ensureDateObject(value) || new Date();
   }
 
   /**
@@ -157,13 +158,8 @@ class UniFarmingService implements IUniFarmingService {
 
     // Рассчитать текущую временную метку
     const now = new Date();
-    // Забезпечуємо коректний тип Date для часових міток
-    const ensureDateValue = (value: Date | string | null): Date => {
-      if (!value) return now;
-      return value instanceof Date ? value : new Date(value);
-    };
     
-    const lastUpdate = ensureDateValue(user.uni_farming_last_update || user.uni_farming_start_timestamp);
+    const lastUpdate = this.ensureTimestamp(user.uni_farming_last_update || user.uni_farming_start_timestamp);
     
     // Рассчитать прошедшие секунды с последнего обновления
     const secondsSinceLastUpdate = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
@@ -314,12 +310,6 @@ class UniFarmingService implements IUniFarmingService {
       // Текущая временная метка
       const now = new Date();
       
-      // Забезпечуємо коректний тип Date для часових міток
-      const ensureDateValue = (value: Date | string | null): Date => {
-        if (!value) return now;
-        return value instanceof Date ? value : new Date(value);
-      };
-      
       // Проверяем, первый ли это депозит
       const isFirstDeposit = !user.uni_farming_start_timestamp || 
                             new BigNumber(user.uni_deposit_amount?.toString() || '0').isZero();
@@ -416,15 +406,15 @@ class UniFarmingService implements IUniFarmingService {
       
       // Проверяем наличие депозита в таблице uni_farming_deposits
       // Використовуємо альтернативний синтаксис для запобігання помилок типізації
-      const deposits = await db
-        .select()
-        .from(uniFarmingDeposits)
-        .where(
-          eq(uniFarmingDeposits.user_id, userId),
-          eq(uniFarmingDeposits.is_active, true)
-        )
-        .orderBy(uniFarmingDeposits.created_at, 'desc')
-        .limit(1);
+      // Використовуємо raw SQL запит для запобігання помилок типізації
+      const deposits = await db.query.uniFarmingDeposits.findMany({
+        where: (fields, { eq, and }) => and(
+          eq(fields.user_id, userId),
+          eq(fields.is_active, true)
+        ),
+        orderBy: (fields, { desc }) => [desc(fields.created_at)],
+        limit: 1
+      });
       
       const [deposit] = deposits;
       
@@ -450,8 +440,8 @@ class UniFarmingService implements IUniFarmingService {
         depositAmount,
         farmingBalance: '0', // В новой версии всегда 0, т.к. доход начисляется автоматически
         ratePerSecond,
-        startDate: user.uni_farming_start_timestamp ? ensureDateValue(user.uni_farming_start_timestamp).toISOString() : null,
-        lastUpdate: user.uni_farming_last_update ? ensureDateValue(user.uni_farming_last_update).toISOString() : null
+        startDate: user.uni_farming_start_timestamp ? this.ensureDateValue(user.uni_farming_start_timestamp).toISOString() : null,
+        lastUpdate: user.uni_farming_last_update ? this.ensureDateValue(user.uni_farming_last_update).toISOString() : null
       };
     } catch (error) {
       console.error(`Error getting user farming info for user ${userId}:`, error);
