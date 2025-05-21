@@ -239,8 +239,16 @@ export class TransactionController {
         }
       }
       
-      // Проверяем существование пользователя
-      const user = await storage.getUserById(user_id);
+      // Проверяем существование пользователя через сервис пользователей
+      const getUserById = wrapServiceFunction(
+        userService.getUserById.bind(userService),
+        async (error) => {
+          console.error('[TransactionController] Ошибка при поиске пользователя по ID:', error);
+          return null;
+        }
+      );
+      
+      const user = await getUserById(user_id);
       if (!user) {
         console.error(`[TransactionController] Пользователь не найден: ${user_id}`);
         sendError(res, "Пользователь не найден", 404);
@@ -319,13 +327,13 @@ export class TransactionController {
       // Создаем транзакцию через сервис
       const transaction = await transactionService.logTransaction({
         userId: user_id,
-        type,
-        currency,
-        amount,
-        status,
-        source,
-        category,
-        txHash: tx_hash
+        type: type.toString(), // Гарантуємо тип string
+        currency: currency.toString(), // Гарантуємо тип string
+        amount: amount.toString(), // Гарантуємо тип string
+        status: status.toString(), // Гарантуємо тип string
+        source: source || 'api', // За замовчуванням 'api', якщо source не вказано
+        category: category.toString(), // Гарантуємо тип string
+        txHash: tx_hash || undefined // Опціональне поле
       });
 
       sendSuccess(res, { transaction });
