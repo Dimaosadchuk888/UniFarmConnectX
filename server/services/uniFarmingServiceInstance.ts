@@ -5,7 +5,7 @@
  * который работает на базе конкретного инстанса
  */
 
-import { db } from '../db';
+import { db, queryWithRetry } from '../db-connect-unified';
 import { users, uniFarmingDeposits, transactions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { BigNumber } from 'bignumber.js';
@@ -325,7 +325,7 @@ class UniFarmingService implements IUniFarmingService {
           .set({
             balance_uni: balanceUni.minus(depositAmount).toString(),
             uni_deposit_amount: depositAmount.toString(),
-            uni_farming_start_timestamp: isFirstDeposit ? now : ensureDateValue(user.uni_farming_start_timestamp),
+            uni_farming_start_timestamp: isFirstDeposit ? now : this.ensureTimestamp(user.uni_farming_start_timestamp),
             uni_farming_last_update: now
             // В новой версии не используем uni_farming_balance, т.к. доход начисляется напрямую
           })
@@ -406,15 +406,13 @@ class UniFarmingService implements IUniFarmingService {
       
       // Проверяем наличие депозита в таблице uni_farming_deposits
       // Використовуємо альтернативний синтаксис для запобігання помилок типізації
-      // Використовуємо raw SQL запит для запобігання помилок типізації
-      const deposits = await db.query.uniFarmingDeposits.findMany({
-        where: (fields, { eq, and }) => and(
-          eq(fields.user_id, userId),
-          eq(fields.is_active, true)
-        ),
-        orderBy: (fields, { desc }) => [desc(fields.created_at)],
-        limit: 1
-      });
+      // Використовуємо прагматичний підхід для найбільш стабільного запиту
+      const deposits = await queryWithRetry(`
+        SELECT * FROM uni_farming_deposits 
+        WHERE user_id = $1 AND is_active = true 
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `, [userId]);
       
       const [deposit] = deposits;
       
@@ -440,8 +438,8 @@ class UniFarmingService implements IUniFarmingService {
         depositAmount,
         farmingBalance: '0', // В новой версии всегда 0, т.к. доход начисляется автоматически
         ratePerSecond,
-        startDate: user.uni_farming_start_timestamp ? this.ensureDateValue(user.uni_farming_start_timestamp).toISOString() : null,
-        lastUpdate: user.uni_farming_last_update ? this.ensureDateValue(user.uni_farming_last_update).toISOString() : null
+        startDate: user.uni_farming_start_timestamp ? this.ensureTimestamp(user.uni_farming_start_timestamp).toISOString() : null,
+        lastUpdate: user.uni_farming_last_update ? this.ensureTimestamp(user.uni_farming_last_update).toISOString() : null
       };
     } catch (error) {
       console.error(`Error getting user farming info for user ${userId}:`, error);
@@ -516,15 +514,12 @@ class UniFarmingService implements IUniFarmingService {
   async migrateExistingDeposits(): Promise<{ success: boolean, count: number, message: string }> {
     try {
       // Находим всех пользователей с активными депозитами в таблице users
-      const usersWithDeposits = await db
-        .select({
-          id: users.id,
-          uni_deposit_amount: users.uni_deposit_amount,
-          uni_farming_start_timestamp: users.uni_farming_start_timestamp,
-          uni_farming_last_update: users.uni_farming_last_update
-        })
-        .from(users)
-        .where(db.sql`${users.uni_deposit_amount} > 0`);
+      // Використовуємо прагматичний підхід з SQL-запитом для уникнення помилок типізації
+      const usersWithDeposits = await queryWithRetry(`
+        SELECT id, uni_deposit_amount, uni_farming_start_timestamp, uni_farming_last_update 
+        FROM users 
+        WHERE uni_deposit_amount > 0
+      `);
       
       if (usersWithDeposits.length === 0) {
         return {
@@ -540,12 +535,14 @@ class UniFarmingService implements IUniFarmingService {
       // Для каждого пользователя с депозитом
       for (const user of usersWithDeposits) {
         // Проверяем, есть ли уже запись в таблице uni_farming_deposits
-        const [existingDeposit] = await db
-          .select()
-          .from(uniFarmingDeposits)
-          .where(eq(uniFarmingDeposits.user_id, user.id))
-          .where(eq(uniFarmingDeposits.is_active, true))
-          .limit(1);
+        // Використовуємо прагматичний підхід з прямим SQL-запитом
+        const existingDeposits = await queryWithRetry(`
+          SELECT * FROM uni_farming_deposits 
+          WHERE user_id = $1 AND is_active = true 
+          LIMIT 1
+        `, [user.id]);
+        
+        const existingDeposit = existingDeposits[0];
         
         // Если депозит уже есть, пропускаем пользователя
         if (existingDeposit) {
