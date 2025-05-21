@@ -95,7 +95,7 @@ app.use(databaseErrorHandler);
 app.use(healthCheckMiddleware);
 
 // Добавляем специальный маршрут для проверки здоровья
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', function(req: Request, res: Response) {
   console.log('[Health Check] Запрос к /health эндпоинту');
   res.status(200).send({
     status: 'ok',
@@ -105,7 +105,7 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Добавляем обработчик корневого маршрута для проверки здоровья
-app.get('/', (req: Request, res: Response) => {
+app.get('/', function(req: Request, res: Response) {
   console.log('[Health Check] Запрос к корневому маршруту');
   
   // Если это запрос для проверки здоровья от Replit
@@ -167,7 +167,8 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   next();
 }) as any);
 
-(async () => {
+// Запускаємо сервер асинхронно
+void (async function startServerInternal() {
   console.log('[Server] 🔄 Запуск сервера...');
 
   // Проверяем подключение к базе данных перед запуском сервера
@@ -493,13 +494,8 @@ app.use(((req: Request, res: Response, next: NextFunction) => {
   });
 }
 
-// Запуск серверу
-(async function() {
-  try {
-    await startServer();
-  } catch (err) {
-    console.error("[Server] Помилка при запуску серверу:", 
-      err instanceof Error ? err.message : String(err));
-    process.exit(1);
-  }
+// Закриваємо асинхронну функцію запуску сервера
 })();
+
+// Викликаємо основну функцію запуску сервера
+void startServer();
