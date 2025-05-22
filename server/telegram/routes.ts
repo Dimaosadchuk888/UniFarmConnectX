@@ -73,7 +73,35 @@ telegramRouter.post('/setup', async (req, res) => {
     }
     
     // Налаштовуємо webhook
-    const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL || `${process.env.APP_URL || appUrl}/api/telegram/webhook`;
+    // Визначаємо базовий URL для вебхука
+    let baseUrl = process.env.APP_URL;
+    
+    // Якщо APP_URL не визначено, спробуємо використати автовизначення з поточного хоста
+    if (!baseUrl) {
+      // Отримуємо доменне ім'я з request headers (якщо запит прийшов через веб)
+      const host = req.headers.host;
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      
+      if (host) {
+        baseUrl = `${protocol}://${host}`;
+        logger.info(`[TelegramRoutes] Автовизначено базовий URL: ${baseUrl}`);
+      } else {
+        // Якщо не можемо визначити з запиту, використовуємо поточний налаштований URL вебхука
+        const currentHook = await getWebhookInfo();
+        if (currentHook.success && currentHook.info?.url) {
+          const hookUrl = new URL(currentHook.info.url);
+          baseUrl = `${hookUrl.protocol}//${hookUrl.host}`;
+          logger.info(`[TelegramRoutes] Використовуємо базовий URL з поточного вебхука: ${baseUrl}`);
+        } else {
+          baseUrl = appUrl;
+          logger.warn(`[TelegramRoutes] Не вдалося визначити базовий URL, використовуємо резервний: ${baseUrl}`);
+        }
+      }
+    }
+    
+    // Формуємо остаточний URL для вебхука
+    const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL || `${baseUrl}/api/telegram/webhook`;
+    logger.info(`[TelegramRoutes] Налаштовуємо вебхук на URL: ${webhookUrl}`);
     const webhookResult = await setupWebhook(webhookUrl);
     
     if (!webhookResult.success) {
