@@ -1,166 +1,268 @@
 /**
- * Модуль подключения к базе данных PostgreSQL
+ * Модуль для підключення до бази даних з підтримкою fallback режимів
  * 
- * Этот модуль обеспечивает надежное подключение к PostgreSQL с 
- * возможностью автоматического восстановления соединения.
- * Устранены циклические зависимости между модулями мониторинга и подключения.
+ * Цей модуль забезпечує стабільну роботу додатку навіть при недоступності
+ * основної бази даних, використовуючи резервні підключення або in-memory сховище.
  */
 
-import { Pool, QueryResult } from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import * as schema from '../shared/schema';
-import { getDbConfig, getDatabaseType, DatabaseType } from './db-config';
-import { DatabaseMonitor, ConnectionStatus } from './db-health-monitor';
+import { Pool, PoolClient } from 'pg';
+import fs from 'fs';
+import path from 'path';
 
-// Состояние подключения к БД
-export const dbState = {
-  usingInMemoryStorage: false,
-  lastConnectionAttempt: 0,
-  connectionErrorCount: 0
-};
+// Логи
+const logEnabled = process.env.DB_DEBUG === 'true';
+const logFile = path.join(process.cwd(), 'logs', 'db-connect.log');
 
-// Создаем пул подключений к базе данных с настройками из db-config
-export let pool = new Pool(getDbConfig());
+// Інтерфейс для конфігурації підключення
+interface DBConfig {
+  connectionString: string;
+  name: string;
+  priority: number;
+}
 
-// Создаем экземпляр Drizzle ORM с пулом подключений
-export let db = drizzle(pool, { schema });
-
-// Определяем тип базы данных для информации
-export const dbType = getDatabaseType();
-
-// Создаем экземпляр мониторинга с пулом подключений
-export const dbMonitor = new DatabaseMonitor(pool);
-
-// Запускаем мониторинг
-dbMonitor.start();
-
-// Регистрируем обработчик события переподключения
-dbMonitor.onReconnect((newPool) => {
-  console.log('[DB Connect] Обновляем пул и Drizzle после переподключения');
+// Клас для керування підключеннями до бази даних
+class DatabaseConnectionManager {
+  private static instance: DatabaseConnectionManager;
+  private dbConfigs: DBConfig[] = [];
+  private currentPool: Pool | null = null;
+  private currentConfig: DBConfig | null = null;
+  private isMemoryMode = false;
+  private memoryStorage: Map<string, any[]> = new Map();
   
-  // Обновляем глобальную переменную pool
-  pool = newPool;
-  
-  // Обновляем экземпляр Drizzle ORM
-  db = drizzle(newPool, { schema });
-});
-
-/**
- * Проверяет соединение с базой данных
- * @returns Promise<boolean> Результат проверки
- */
-export async function testConnection(): Promise<boolean> {
-  return await dbMonitor.checkConnection();
-}
-
-/**
- * Инициирует процесс переподключения к базе данных
- * @param alternateNumber - номер альтернативной строки подключения (0 - основная, >0 - альтернативные)
- * @returns Promise<boolean> Результат переподключения
- */
-export async function reconnect(alternateNumber: number = 0): Promise<boolean> {
-  console.log(`[DB Connect] Попытка переподключения со строкой подключения #${alternateNumber}`);
-  
-  try {
-    // Создаем новый пул с нужной конфигурацией
-    const newPool = new Pool(getDbConfig(alternateNumber));
-    
-    // Пробуем подключиться
-    const client = await newPool.connect();
-    client.release();
-    
-    // Если подключение успешно, обновляем глобальные переменные
-    pool = newPool;
-    db = drizzle(newPool, { schema });
-    
-    // Обновляем мониторинг
-    dbMonitor.updatePool(newPool);
-    
-    console.log(`[DB Connect] Успешное переподключение со строкой подключения #${alternateNumber}`);
-    return true;
-  } catch (error) {
-    console.error(`[DB Connect] Ошибка переподключения со строкой подключения #${alternateNumber}:`, error);
-    
-    // Проверяем наличие следующих альтернативных строк подключения
-    const maxAlternatives = 5; // Максимальное количество альтернатив
-    
-    // Если у нас еще есть альтернативы, пробуем следующую
-    if (alternateNumber < maxAlternatives) {
-      console.log(`[DB Connect] Пробуем следующую альтернативную строку подключения #${alternateNumber + 1}`);
-      return await reconnect(alternateNumber + 1);
-    }
-    
-    return false;
-  }
-}
-
-/**
- * Получает текущий статус соединения с базой данных
- * @returns ConnectionStatus Текущий статус соединения
- */
-export function getConnectionStatus(): ConnectionStatus {
-  return dbMonitor.getStatus();
-}
-
-/**
- * Получает статистику мониторинга соединения
- * @returns Объект со статистикой
- */
-export function getMonitorStats() {
-  return dbMonitor.getStats();
-}
-
-/**
- * Выполняет SQL-запрос с автоматическим повторением при ошибках соединения
- * 
- * @param query SQL-запрос
- * @param params Параметры запроса
- * @param retries Количество попыток при ошибке
- * @param delayMs Задержка между попытками в мс
- * @returns Promise<QueryResult<any>> Результат запроса
- */
-export async function queryWithRetry(
-  query: string,
-  params: any[] = [],
-  retries = 3,
-  delayMs = 1000
-): Promise<QueryResult<any>> {
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const client = await pool.connect();
+  private constructor() {
+    // Створюємо директорію для логів, якщо потрібно
+    if (logEnabled && !fs.existsSync(path.dirname(logFile))) {
       try {
-        const result = await client.query(query, params);
-        return result;
-      } finally {
-        client.release();
+        fs.mkdirSync(path.dirname(logFile), { recursive: true });
+      } catch (err) {
+        console.error('[DB] Помилка створення директорії для логів:', err);
       }
-    } catch (error: any) {
-      // Проверка на ошибки соединения
-      const isConnectionError = error.message.includes('connection') || 
-                             error.message.includes('socket') ||
-                             error.message.includes('timeout') ||
-                             error.code === 'ECONNREFUSED' ||
-                             error.code === 'ETIMEDOUT' ||
-                             error.code === '57P01'; // SQL state code for admin shutdown
-      
-      if (isConnectionError && attempt < retries) {
-        console.warn(`[DB] ⚠️ Ошибка соединения при выполнении запроса (попытка ${attempt + 1}/${retries}): ${error.message}`);
-        
-        // Пробуем переподключиться при первой ошибке
-        if (attempt === 0) {
-          await reconnect();
-        }
-        
-        // Ждем перед следующей попыткой (экспоненциальная задержка)
-        const waitTime = delayMs * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
+    }
+    
+    this.log('Ініціалізація менеджера підключень до бази даних');
+  }
+  
+  public static getInstance(): DatabaseConnectionManager {
+    if (!DatabaseConnectionManager.instance) {
+      DatabaseConnectionManager.instance = new DatabaseConnectionManager();
+    }
+    return DatabaseConnectionManager.instance;
+  }
+  
+  private log(message: string, isError = false): void {
+    if (!logEnabled) return;
+    
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] ${message}\n`;
+    
+    console[isError ? 'error' : 'log'](message);
+    
+    if (logEnabled) {
+      try {
+        fs.appendFileSync(logFile, logMessage);
+      } catch (err) {
+        console.error('[DB] Помилка запису в лог-файл:', err);
       }
-      
-      // Другие ошибки или исчерпаны попытки
-      throw error;
     }
   }
   
-  throw new Error(`Не удалось выполнить запрос после ${retries} попыток`);
+  // Додати конфігурацію підключення
+  public addConfig(config: DBConfig): void {
+    // Перевіряємо, чи не додана вже така конфігурація
+    if (this.dbConfigs.some(c => c.name === config.name)) {
+      this.log(`Конфігурація з іменем "${config.name}" вже існує`);
+      return;
+    }
+    
+    this.dbConfigs.push(config);
+    this.log(`Додано конфігурацію: ${config.name} (пріоритет: ${config.priority})`);
+    
+    // Сортуємо за пріоритетом (вищий пріоритет - менше число)
+    this.dbConfigs.sort((a, b) => a.priority - b.priority);
+  }
+  
+  // Отримати пул підключень
+  public async getPool(): Promise<Pool | null> {
+    // Якщо вже є працюючий пул, повертаємо його
+    if (this.currentPool) {
+      return this.currentPool;
+    }
+    
+    // Якщо ми в режимі in-memory storage, повертаємо null
+    if (this.isMemoryMode) {
+      this.log('Використовуємо in-memory сховище замість бази даних');
+      return null;
+    }
+    
+    // Спробуємо підключитися, перебираючи всі конфігурації за пріоритетом
+    for (const config of this.dbConfigs) {
+      try {
+        this.log(`Спроба підключення до ${config.name}...`);
+        
+        const pool = new Pool({
+          connectionString: config.connectionString,
+          connectionTimeoutMillis: 5000, // Таймаут підключення 5 секунд
+          ssl: {
+            rejectUnauthorized: false
+          }
+        });
+        
+        // Перевіряємо підключення
+        const client = await pool.connect();
+        client.release();
+        
+        this.log(`✅ Успішне підключення до ${config.name}`);
+        this.currentPool = pool;
+        this.currentConfig = config;
+        
+        return pool;
+      } catch (error) {
+        this.log(`❌ Помилка підключення до ${config.name}: ${error instanceof Error ? error.message : String(error)}`, true);
+      }
+    }
+    
+    // Якщо жодне підключення не вдалося, вмикаємо режим in-memory
+    this.log('⚠️ Всі спроби підключення невдалі, переходимо в режим in-memory', true);
+    this.isMemoryMode = true;
+    this.initMemoryStorage();
+    
+    return null;
+  }
+  
+  // Отримати клієнт для запиту
+  public async getClient(): Promise<PoolClient | null> {
+    const pool = await this.getPool();
+    
+    if (!pool) {
+      return null;
+    }
+    
+    try {
+      return await pool.connect();
+    } catch (error) {
+      this.log(`Помилка отримання клієнта: ${error instanceof Error ? error.message : String(error)}`, true);
+      return null;
+    }
+  }
+  
+  // Ініціалізація in-memory сховища
+  private initMemoryStorage(): void {
+    // Створюємо таблиці, які потрібні для роботи
+    this.memoryStorage.set('users', []);
+    this.memoryStorage.set('balances', []);
+    this.memoryStorage.set('farming_deposits', []);
+    this.memoryStorage.set('transactions', []);
+    this.memoryStorage.set('referrals', []);
+    this.memoryStorage.set('daily_bonuses', []);
+    this.memoryStorage.set('partition_logs', []);
+    
+    this.log('Ініціалізовано in-memory сховище');
+  }
+  
+  // Доступ до in-memory сховища
+  public getMemoryStorage(tableName: string): any[] {
+    if (!this.isMemoryMode) {
+      this.log('Спроба доступу до in-memory сховища, але режим не активовано', true);
+      return [];
+    }
+    
+    if (!this.memoryStorage.has(tableName)) {
+      this.log(`Створення нової таблиці "${tableName}" в in-memory сховищі`);
+      this.memoryStorage.set(tableName, []);
+    }
+    
+    return this.memoryStorage.get(tableName) || [];
+  }
+  
+  // Перевірка, чи ми в режимі in-memory
+  public isInMemoryMode(): boolean {
+    return this.isMemoryMode;
+  }
+  
+  // Отримати інформацію про поточне підключення
+  public getCurrentConnectionInfo(): { isConnected: boolean; connectionName: string | null; isMemoryMode: boolean } {
+    return {
+      isConnected: !!this.currentPool,
+      connectionName: this.currentConfig?.name || null,
+      isMemoryMode: this.isMemoryMode
+    };
+  }
+  
+  // Вимкнути режим in-memory і спробувати підключитися знову
+  public async resetConnection(): Promise<boolean> {
+    this.log('Скидання підключення та спроба перепідключення');
+    
+    // Закриваємо поточний пул, якщо він є
+    if (this.currentPool) {
+      try {
+        await this.currentPool.end();
+      } catch (error) {
+        this.log(`Помилка закриття пулу: ${error instanceof Error ? error.message : String(error)}`, true);
+      }
+    }
+    
+    this.currentPool = null;
+    this.currentConfig = null;
+    this.isMemoryMode = false;
+    
+    // Пробуємо підключитися знову
+    const pool = await this.getPool();
+    return !!pool || this.isMemoryMode; // Успішно, якщо отримали пул або перейшли в режим in-memory
+  }
 }
+
+// Функція для отримання екземпляра менеджера підключень
+export function getConnectionManager(): DatabaseConnectionManager {
+  return DatabaseConnectionManager.getInstance();
+}
+
+// Функція для ініціалізації підключень з усіх доступних джерел
+export function initDatabaseConnections(): void {
+  const manager = getConnectionManager();
+  
+  // Додаємо всі можливі джерела підключення за пріоритетом
+  
+  // 1. Основне підключення з DATABASE_URL (найвищий пріоритет)
+  if (process.env.DATABASE_URL) {
+    manager.addConfig({
+      connectionString: process.env.DATABASE_URL,
+      name: 'Replit PostgreSQL',
+      priority: 1
+    });
+  }
+  
+  // 2. Neon.tech підключення
+  if (process.env.NEON_DATABASE_URL) {
+    manager.addConfig({
+      connectionString: process.env.NEON_DATABASE_URL,
+      name: 'Neon.tech',
+      priority: 2
+    });
+  }
+  
+  // 3. Резервне підключення
+  if (process.env.BACKUP_DATABASE_URL) {
+    manager.addConfig({
+      connectionString: process.env.BACKUP_DATABASE_URL,
+      name: 'Backup DB',
+      priority: 3
+    });
+  }
+  
+  // 4. Альтернативне підключення для розробки
+  if (process.env.DEV_DATABASE_URL) {
+    manager.addConfig({
+      connectionString: process.env.DEV_DATABASE_URL,
+      name: 'Development DB',
+      priority: 4
+    });
+  }
+  
+  // Примусово увімкнути режим in-memory, якщо вказано
+  if (process.env.FORCE_MEMORY_STORAGE === 'true') {
+    manager.getPool(); // Запускаємо перехід в режим in-memory
+  }
+}
+
+// Ініціалізуємо підключення при імпорті модуля
+initDatabaseConnections();

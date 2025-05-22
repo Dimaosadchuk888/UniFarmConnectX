@@ -1,69 +1,324 @@
 /**
- * Утилита для автоматической настройки Telegram вебхука при запуске сервера
+ * Модуль для налаштування Telegram webhook
+ * 
+ * Цей модуль відповідає за правильне налаштування webhook для бота,
+ * що дозволяє отримувати повідомлення від користувачів Telegram.
  */
-import { telegramBot } from './bot';
-import logger from '../utils/logger';
 
-/**
- * Получает URL текущего приложения в Replit
- */
-function getAppUrl(): string | null {
-  // Приоритет - заданный вручную URL из переменных окружения
-  if (process.env.MINI_APP_URL) {
-    return process.env.MINI_APP_URL;
+import fetch from 'node-fetch';
+import fs from 'fs';
+import path from 'path';
+
+// Налаштування для логування
+const logEnabled = process.env.TELEGRAM_DEBUG === 'true';
+const logDir = path.join(process.cwd(), 'logs');
+
+// Створюємо директорію для логів, якщо потрібно
+if (logEnabled && !fs.existsSync(logDir)) {
+  try {
+    fs.mkdirSync(logDir, { recursive: true });
+  } catch (err) {
+    console.error('[Telegram] Помилка створення директорії для логів:', err);
   }
-  
-  // Затем проверяем переменные деплоя Replit
-  const replSlug = process.env.REPL_SLUG;
-  const replOwner = process.env.REPL_OWNER;
-  const replitId = process.env.REPLIT_DEPLOYMENT_ID; // новый формат URL для Deployment
+}
 
-  if (replitId) {
-    // Для Replit Deployments формат URL отличается
-    return `https://${replitId}.replit.app`;
-  } else if (replSlug && replOwner) {
-    // Для Replit стандартный формат URL
-    return `https://${replSlug}.${replOwner}.repl.co`;
-  } 
+// Функція для логування
+function log(message: string, isError = false): void {
+  const timestamp = new Date().toISOString();
+  const logPrefix = isError ? '[Telegram ERROR]' : '[Telegram]';
+  const logMessage = `${logPrefix} ${message}`;
   
-  // Если ничего не нашли, используем хардкод для целевого URL
-  return 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+  console[isError ? 'error' : 'log'](logMessage);
+  
+  if (logEnabled) {
+    try {
+      const logFile = path.join(logDir, isError ? 'telegram-errors.log' : 'telegram-webhook.log');
+      fs.appendFileSync(logFile, `[${timestamp}] ${logMessage}\n`);
+    } catch (err) {
+      console.error('[Telegram] Помилка запису в лог-файл:', err);
+    }
+  }
 }
 
 /**
- * Настраивает вебхук и Mini App URL автоматически
+ * Налаштовує webhook для бота на вказаний URL
  */
-export async function setupTelegramHook(): Promise<void> {
+export async function setupWebhook(webhookUrl: string): Promise<{ success: boolean; info?: any; error?: string }> {
   try {
-    // Получаем URL приложения
-    const appUrl = getAppUrl();
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
     
-    if (!appUrl) {
-      logger.warn('[TelegramSetup] Не удалось определить URL приложения автоматически');
-      return;
+    if (!botToken) {
+      log('TELEGRAM_BOT_TOKEN не встановлено в змінних середовища', true);
+      return {
+        success: false,
+        error: 'Відсутній токен бота'
+      };
     }
     
-    logger.info(`[TelegramSetup] Определен URL приложения: ${appUrl}`);
-    
-    // Сохраняем URL в переменные окружения для последующего использования
-    process.env.MINI_APP_URL = appUrl;
-    process.env.TELEGRAM_WEBHOOK_URL = appUrl;
-    
-    // Настраиваем Telegram бота
-    logger.info('[TelegramSetup] Начинаем автоматическую настройку Telegram бота...');
-    
-    // Инициализируем бота
-    await telegramBot.initialize();
-    
-    // Настраиваем Mini App и вебхук
-    const result = await telegramBot.setupMiniApp(appUrl);
-    
-    if (result) {
-      logger.info('[TelegramSetup] Telegram бот успешно настроен автоматически');
-    } else {
-      logger.warn('[TelegramSetup] Не удалось полностью настроить Telegram бота автоматически');
+    if (!webhookUrl) {
+      log('Не вказано URL для webhook', true);
+      return {
+        success: false,
+        error: 'Не вказано URL для webhook'
+      };
     }
+    
+    // Перевіряємо, що URL використовує HTTPS
+    if (!webhookUrl.startsWith('https://')) {
+      log(`URL "${webhookUrl}" не використовує HTTPS, що вимагається для webhook`, true);
+      return {
+        success: false,
+        error: 'URL повинен використовувати HTTPS'
+      };
+    }
+    
+    log(`Налаштування webhook на URL: ${webhookUrl}`);
+    
+    // Формуємо URL для API запиту
+    const apiUrl = `https://api.telegram.org/bot${botToken}/setWebhook`;
+    
+    // Виконуємо запит до Telegram API
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        url: webhookUrl,
+        drop_pending_updates: true,
+        allowed_updates: ['message', 'callback_query']
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      log(`Помилка налаштування webhook: ${response.status} - ${errorText}`, true);
+      return {
+        success: false,
+        error: `Помилка налаштування webhook: ${response.status} - ${errorText}`
+      };
+    }
+    
+    const result = await response.json();
+    
+    if (!result.ok) {
+      log(`Telegram API повернув помилку: ${result.description}`, true);
+      return {
+        success: false,
+        error: result.description
+      };
+    }
+    
+    log('Webhook успішно налаштовано');
+    
+    // Отримуємо інформацію про поточний webhook
+    return getWebhookInfo();
   } catch (error) {
-    logger.error('[TelegramSetup] Ошибка при автоматической настройке Telegram бота:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log(`Виникла помилка при налаштуванні webhook: ${errorMessage}`, true);
+    return {
+      success: false,
+      error: `Виникла помилка: ${errorMessage}`
+    };
+  }
+}
+
+/**
+ * Отримує інформацію про поточний webhook
+ */
+export async function getWebhookInfo(): Promise<{ success: boolean; info?: any; error?: string }> {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    
+    if (!botToken) {
+      log('TELEGRAM_BOT_TOKEN не встановлено в змінних середовища', true);
+      return {
+        success: false,
+        error: 'Відсутній токен бота'
+      };
+    }
+    
+    // Формуємо URL для API запиту
+    const apiUrl = `https://api.telegram.org/bot${botToken}/getWebhookInfo`;
+    
+    // Виконуємо запит до Telegram API
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      log(`Помилка отримання інформації про webhook: ${response.status} - ${errorText}`, true);
+      return {
+        success: false,
+        error: `Помилка отримання інформації про webhook: ${response.status} - ${errorText}`
+      };
+    }
+    
+    const result = await response.json();
+    
+    if (!result.ok) {
+      log(`Telegram API повернув помилку: ${result.description}`, true);
+      return {
+        success: false,
+        error: result.description
+      };
+    }
+    
+    log(`Отримано інформацію про webhook: ${JSON.stringify(result.result)}`);
+    
+    return {
+      success: true,
+      info: result.result
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log(`Виникла помилка при отриманні інформації про webhook: ${errorMessage}`, true);
+    return {
+      success: false,
+      error: `Виникла помилка: ${errorMessage}`
+    };
+  }
+}
+
+/**
+ * Видаляє поточний webhook
+ */
+export async function deleteWebhook(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    
+    if (!botToken) {
+      log('TELEGRAM_BOT_TOKEN не встановлено в змінних середовища', true);
+      return {
+        success: false,
+        error: 'Відсутній токен бота'
+      };
+    }
+    
+    log('Видалення поточного webhook');
+    
+    // Формуємо URL для API запиту
+    const apiUrl = `https://api.telegram.org/bot${botToken}/deleteWebhook`;
+    
+    // Виконуємо запит до Telegram API
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        drop_pending_updates: true
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      log(`Помилка видалення webhook: ${response.status} - ${errorText}`, true);
+      return {
+        success: false,
+        error: `Помилка видалення webhook: ${response.status} - ${errorText}`
+      };
+    }
+    
+    const result = await response.json();
+    
+    if (!result.ok) {
+      log(`Telegram API повернув помилку: ${result.description}`, true);
+      return {
+        success: false,
+        error: result.description
+      };
+    }
+    
+    log('Webhook успішно видалено');
+    
+    return {
+      success: true
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log(`Виникла помилка при видаленні webhook: ${errorMessage}`, true);
+    return {
+      success: false,
+      error: `Виникла помилка: ${errorMessage}`
+    };
+  }
+}
+
+/**
+ * Встановлює текст та URL для кнопки меню бота
+ */
+export async function setMenuButton(text: string, url: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    
+    if (!botToken) {
+      log('TELEGRAM_BOT_TOKEN не встановлено в змінних середовища', true);
+      return {
+        success: false,
+        error: 'Відсутній токен бота'
+      };
+    }
+    
+    if (!text || !url) {
+      log('Не вказано текст або URL для кнопки меню', true);
+      return {
+        success: false,
+        error: 'Не вказано текст або URL для кнопки меню'
+      };
+    }
+    
+    log(`Налаштування кнопки меню з текстом "${text}" та URL "${url}"`);
+    
+    // Формуємо URL для API запиту
+    const apiUrl = `https://api.telegram.org/bot${botToken}/setChatMenuButton`;
+    
+    // Виконуємо запит до Telegram API
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        menu_button: {
+          type: 'web_app',
+          text: text,
+          web_app: {
+            url: url
+          }
+        }
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      log(`Помилка налаштування кнопки меню: ${response.status} - ${errorText}`, true);
+      return {
+        success: false,
+        error: `Помилка налаштування кнопки меню: ${response.status} - ${errorText}`
+      };
+    }
+    
+    const result = await response.json();
+    
+    if (!result.ok) {
+      log(`Telegram API повернув помилку: ${result.description}`, true);
+      return {
+        success: false,
+        error: result.description
+      };
+    }
+    
+    log('Кнопка меню успішно налаштована');
+    
+    return {
+      success: true
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log(`Виникла помилка при налаштуванні кнопки меню: ${errorMessage}`, true);
+    return {
+      success: false,
+      error: `Виникла помилка: ${errorMessage}`
+    };
   }
 }
