@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import logger from '../utils/logger';
-import { telegramBot } from './bot';
+import fetch from 'node-fetch';
 
 interface TelegramUpdate {
   update_id: number;
@@ -121,6 +121,45 @@ async function processUpdate(update: TelegramUpdate): Promise<void> {
 /**
  * Обрабатывает команду бота
  */
+/**
+ * Відправляє повідомлення в Telegram
+ */
+async function sendMessage(chatId: number, text: string, options: any = {}): Promise<boolean> {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    
+    if (!botToken) {
+      logger.error('[TelegramWebhook] TELEGRAM_BOT_TOKEN не встановлено');
+      return false;
+    }
+    
+    const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        ...options
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`[TelegramWebhook] Помилка при відправці повідомлення: ${response.status} - ${errorText}`);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    logger.error('[TelegramWebhook] Помилка при відправці повідомлення:', error);
+    return false;
+  }
+}
+
 async function handleCommand(text: string, chatId: number, userId: number): Promise<void> {
   try {
     // Получаем имя команды (убираем символ / и все параметры после пробела)
@@ -145,7 +184,7 @@ async function handleCommand(text: string, chatId: number, userId: number): Prom
         await handleReferralCommand(chatId);
         break;
       default:
-        await telegramBot.sendMessage(chatId, 'Неизвестная команда. Используйте /help для получения списка доступных команд.');
+        await sendMessage(chatId, 'Неизвестная команда. Используйте /help для получения списка доступных команд.');
     }
   } catch (error) {
     logger.error('[TelegramWebhook] Ошибка при обработке команды:', error);
@@ -160,7 +199,7 @@ async function handleTextMessage(text: string, chatId: number, userId: number): 
     // Здесь может быть логика обработки текстовых сообщений
     // Например, ответы на часто задаваемые вопросы или помощь пользователю
     
-    await telegramBot.sendMessage(chatId, 'Спасибо за ваше сообщение! Используйте команду /help, чтобы узнать о доступных функциях бота.');
+    await sendMessage(chatId, `Спасибо за ваше сообщение! Используйте команду /help, чтобы узнать о доступных функциях бота.`);
   } catch (error) {
     logger.error('[TelegramWebhook] Ошибка при обработке текстового сообщения:', error);
   }
@@ -174,10 +213,51 @@ async function handleCallbackQuery(data: string, chatId: number, userId: number,
     // Здесь может быть логика обработки нажатий на кнопки
     // Например, подтверждение действий или навигация по меню
     
-    // Используем метод answerCallbackQuery через sendMessage, так как callApi приватный
-    await telegramBot.sendMessage(chatId, 'Действие выполнено');
+    // Отправляем ответ пользователю
+    await sendMessage(chatId, 'Действие выполнено');
+    
+    // Отвечаем на callback_query
+    await answerCallbackQuery(queryId, 'Успешно');
   } catch (error) {
     logger.error('[TelegramWebhook] Ошибка при обработке callback_query:', error);
+  }
+}
+
+/**
+ * Відправляє відповідь на callback_query
+ */
+async function answerCallbackQuery(callbackQueryId: string, text: string = ''): Promise<boolean> {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    
+    if (!botToken) {
+      logger.error('[TelegramWebhook] TELEGRAM_BOT_TOKEN не встановлено');
+      return false;
+    }
+    
+    const apiUrl = `https://api.telegram.org/bot${botToken}/answerCallbackQuery`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text: text
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`[TelegramWebhook] Помилка при відповіді на callback query: ${response.status} - ${errorText}`);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    logger.error('[TelegramWebhook] Помилка при відповіді на callback query:', error);
+    return false;
   }
 }
 
@@ -196,7 +276,7 @@ UniFarm - это платформа для фарминга и заработк�
 
 Для начала работы нажмите кнопку "Открыть UniFarm" ниже.`;
     
-    await telegramBot.sendMessage(chatId, welcomeText, {
+    await sendMessage(chatId, welcomeText, {
       parse_mode: 'Markdown',
       reply_markup: JSON.stringify({
         inline_keyboard: [
@@ -225,7 +305,7 @@ async function handleHelpCommand(chatId: number): Promise<void> {
 
 Для более удобного взаимодействия используйте мини-приложение, доступное по кнопке меню.`;
     
-    await telegramBot.sendMessage(chatId, helpText, {
+    await sendMessage(chatId, helpText, {
       parse_mode: 'Markdown'
     });
   } catch (error) {
@@ -250,7 +330,7 @@ async function handleDepositCommand(chatId: number): Promise<void> {
 
 Минимальная сумма депозита: 10 UNI`;
     
-    await telegramBot.sendMessage(chatId, depositText, {
+    await sendMessage(chatId, depositText, {
       parse_mode: 'Markdown'
     });
   } catch (error) {
@@ -276,7 +356,7 @@ async function handleWithdrawCommand(chatId: number): Promise<void> {
 
 Минимальная сумма вывода: 1 UNI`;
     
-    await telegramBot.sendMessage(chatId, withdrawText, {
+    await sendMessage(chatId, withdrawText, {
       parse_mode: 'Markdown'
     });
   } catch (error) {
@@ -303,7 +383,7 @@ async function handleReferralCommand(chatId: number): Promise<void> {
 2. Перейдите в раздел "Рефералы"
 3. Скопируйте вашу реферальную ссылку и поделитесь ею с друзьями`;
     
-    await telegramBot.sendMessage(chatId, referralText, {
+    await sendMessage(chatId, referralText, {
       parse_mode: 'Markdown'
     });
   } catch (error) {

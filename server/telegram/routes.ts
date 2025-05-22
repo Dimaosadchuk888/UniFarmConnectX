@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { handleTelegramWebhook } from './webhook';
-import { telegramBot } from './bot';
+import { initializeBot } from './bot';
 import logger from '../utils/logger';
+import { setupWebhook, getWebhookInfo, setMenuButton } from './setup-hook';
 
 const telegramRouter = Router();
 
@@ -11,22 +12,34 @@ telegramRouter.post('/webhook', (req, res) => handleTelegramWebhook(req, res));
 // Эндпоинт для проверки статуса бота
 telegramRouter.get('/status', async (req, res) => {
   try {
-    const botInfo = await telegramBot.getMe();
+    // Отримуємо інформацію про webhook замість прямого виклику API бота
+    const webhookInfo = await getWebhookInfo();
     
-    if (botInfo && botInfo.ok) {
+    // Перевіряємо наявність токену бота
+    const hasBotToken = Boolean(process.env.TELEGRAM_BOT_TOKEN);
+    
+    if (hasBotToken && webhookInfo.success) {
       return res.json({
         success: true,
         data: {
-          botName: botInfo.result?.username,
+          hasToken: true,
           status: 'online',
+          webhookStatus: webhookInfo.info?.url ? 'configured' : 'not_configured',
+          webhookUrl: webhookInfo.info?.url,
           timestamp: new Date().toISOString()
         }
+      });
+    } else if (!hasBotToken) {
+      return res.status(503).json({
+        success: false,
+        error: 'TELEGRAM_BOT_TOKEN не налаштовано',
+        details: 'Токен бота відсутній у змінних середовища'
       });
     } else {
       return res.status(503).json({
         success: false,
-        error: 'Telegram Bot API недоступен',
-        details: botInfo.description
+        error: 'Telegram Bot API недоступний',
+        details: webhookInfo.error || 'Неможливо отримати інформацію про webhook'
       });
     }
   } catch (error) {
@@ -51,25 +64,110 @@ telegramRouter.post('/setup', async (req, res) => {
       });
     }
     
-    const result = await telegramBot.setupMiniApp(appUrl);
+    // Налаштовуємо кнопку меню для бота
+    const menuText = 'Открыть UniFarm';
+    const menuResult = await setMenuButton(menuText, appUrl);
     
-    if (result) {
-      return res.json({
-        success: true,
-        message: 'Настройка бота успешно выполнена',
-        appUrl
-      });
-    } else {
+    if (!menuResult.success) {
+      logger.warn(`[TelegramRoutes] Попередження при налаштуванні кнопки меню: ${menuResult.error}`);
+    }
+    
+    // Налаштовуємо webhook
+    const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL || `${process.env.APP_URL || appUrl}/api/telegram/webhook`;
+    const webhookResult = await setupWebhook(webhookUrl);
+    
+    if (!webhookResult.success) {
       return res.status(500).json({
         success: false,
-        error: 'Ошибка при настройке бота'
+        error: 'Помилка при налаштуванні webhook',
+        details: webhookResult.error
       });
     }
+    
+    // Ініціалізуємо бота
+    const initialized = await initializeBot();
+    
+    return res.json({
+      success: true,
+      message: 'Налаштування бота успішно виконано',
+      appUrl,
+      webhook: {
+        url: webhookUrl,
+        configured: webhookResult.success
+      },
+      menuConfigured: menuResult.success,
+      botInitialized: initialized
+    });
   } catch (error) {
     logger.error('[TelegramRoutes] Ошибка при настройке бота:', error);
     return res.status(500).json({
       success: false,
       error: 'Внутренняя ошибка сервера',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// Endpoint для налаштування webhook
+telegramRouter.get('/setup-webhook', async (req, res) => {
+  try {
+    const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL || `${process.env.APP_URL}/api/telegram/webhook`;
+    
+    // Якщо передали параметр force=true, примусово оновлюємо webhook
+    const forceUpdate = req.query.force === 'true';
+    
+    // Отримуємо поточну інформацію про webhook
+    const currentInfo = await getWebhookInfo();
+    
+    // Якщо webhook вже налаштований правильно і не вимагається примусове оновлення, не змінюємо його
+    if (!forceUpdate && currentInfo.success && currentInfo.info?.url === webhookUrl) {
+      return res.json({
+        success: true,
+        message: 'Webhook вже налаштований правильно',
+        webhookInfo: currentInfo.info
+      });
+    }
+    
+    // Налаштовуємо webhook
+    const result = await setupWebhook(webhookUrl);
+    
+    if (result.success) {
+      return res.json({
+        success: true,
+        message: 'Webhook успішно налаштований',
+        webhookInfo: result.info
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: result.error || 'Помилка при налаштуванні webhook'
+      });
+    }
+  } catch (error) {
+    logger.error('[Telegram Setup] Помилка:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Внутрішня помилка сервера',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// Endpoint для отримання інформації про поточний webhook
+telegramRouter.get('/webhook-info', async (req, res) => {
+  try {
+    const info = await getWebhookInfo();
+    
+    return res.json({
+      success: info.success,
+      webhookInfo: info.info,
+      error: info.error
+    });
+  } catch (error) {
+    logger.error('[Telegram Info] Помилка:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Внутрішня помилка сервера',
       details: error instanceof Error ? error.message : String(error)
     });
   }
