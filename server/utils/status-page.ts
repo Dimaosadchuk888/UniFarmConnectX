@@ -12,7 +12,12 @@ import { isTelegramBotInitialized } from '../telegram/globalState';
 /**
  * Обработчик для отображения страницы статуса
  */
-export function statusPageHandler(req: Request, res: Response): void {
+/**
+ * Обработчик для отображения страницы статуса
+ * @param req Запрос Express
+ * @param res Ответ Express
+ */
+export function statusPageHandler(req: Request, res: any): void {
   try {
     // Получаем текущую информацию о состоянии приложения
     const dbEvents = getDbEventManager().getHistory(10);
@@ -125,18 +130,29 @@ interface StatusPageParams {
  * Генерирует HTML страницу статуса
  */
 function generateStatusHtml(params: StatusPageParams): string {
-  type StatusStyleKey = 'connected' | 'disconnected' | 'reconnecting' | 'memory_fallback' | 
-    'connection_failed' | 'unknown' | 'online' | 'offline';
-    
-  const statusStyles: Record<StatusStyleKey, string> = {
-    connected: 'background-color: #4CAF50; color: white;',
-    disconnected: 'background-color: #F44336; color: white;',
-    reconnecting: 'background-color: #FF9800; color: black;',
-    memory_fallback: 'background-color: #9C27B0; color: white;',
-    connection_failed: 'background-color: #F44336; color: white;',
-    unknown: 'background-color: #9E9E9E; color: white;',
-    online: 'background-color: #4CAF50; color: white;',
-    offline: 'background-color: #F44336; color: white;'
+  // Определяем типы возможных статусов для правильной типизации
+  const statusMap = {
+    // Статусы базы данных
+    'connected': 'background-color: #4CAF50; color: white;',
+    'disconnected': 'background-color: #F44336; color: white;',
+    'reconnecting': 'background-color: #FF9800; color: black;',
+    'memory_fallback': 'background-color: #9C27B0; color: white;',
+    'connection_failed': 'background-color: #F44336; color: white;',
+    'unknown': 'background-color: #9E9E9E; color: white;',
+    // Статусы телеграм бота
+    'online': 'background-color: #4CAF50; color: white;',
+    'offline': 'background-color: #F44336; color: white;',
+  } as const;
+
+  // Типы статусов на основе ключей объекта statusMap
+  type StatusStyleKey = keyof typeof statusMap;
+  
+  // Функция получения стиля по статусу с проверкой существования
+  const getStatusStyle = (status: string): string => {
+    // Проверяем наличие статуса в нашей карте
+    return (status in statusMap) 
+      ? statusMap[status as StatusStyleKey] 
+      : statusMap.unknown;
   };
 
   // Генерация HTML таблицы событий БД
@@ -260,13 +276,13 @@ function generateStatusHtml(params: StatusPageParams): string {
             <h2>Services</h2>
             <p>
               <strong>Database:</strong>
-              <span class="status-badge" style="${statusStyles[params.dbStatus as StatusStyleKey] || statusStyles.unknown}">
+              <span class="status-badge" style="${getStatusStyle(params.dbStatus)}">
                 ${params.dbStatus}
               </span>
             </p>
             <p>
               <strong>Telegram Bot:</strong>
-              <span class="status-badge" style="${statusStyles[params.telegramStatus as StatusStyleKey] || statusStyles.unknown}">
+              <span class="status-badge" style="${getStatusStyle(params.telegramStatus)}">
                 ${params.telegramStatus}
               </span>
             </p>

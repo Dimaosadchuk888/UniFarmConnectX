@@ -28,9 +28,13 @@ import telegramRouter from './telegram/routes';
 import { telegramBot } from './telegram/bot';
 import { isTelegramBotInitialized } from './telegram/globalState';
 import logger from './utils/logger';
+import { createSafeHandler, createRouteSafely } from './utils/express-helpers';
 
 // Імпортуємо адміністративні маршрути
 import adminRouter from './api/admin/index';
+
+// Импортируем маршрут для страницы статуса
+import statusRouter from './routes/status';
 
 /**
  * Регистрирует новые маршруты API в указанном приложении Express
@@ -289,8 +293,8 @@ export function registerNewRoutes(app: Express): void {
     }
   });
   
-  // Endpoint для отображения страницы статуса
-  app.get('/status', statusPageHandler);
+  // Используем маршрутизатор для страницы статуса
+  app.use('/status', statusRouter);
 
   // Типы для обработчиков маршрутов
   type RouteHandler = (req: Request, res: Response, next: NextFunction) => Promise<any> | any;
