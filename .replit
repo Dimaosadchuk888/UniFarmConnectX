@@ -11,7 +11,7 @@ NODE_ENV = "production"
 PORT = "3000"
 
 [deployment]
-run = ["sh", "-c", "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true OVERRIDE_DB_PROVIDER=neon SKIP_PARTITION_CREATION=true IGNORE_PARTITION_ERRORS=true node start-unified.js"]
+run = ["sh", "-c", "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true OVERRIDE_DB_PROVIDER=neon node start-unified.js"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 build = ["sh", "-c", "npm run build"]
@@ -25,6 +25,7 @@ localPort = 3001
 externalPort = 3001
 
 [workflows]
+runButton = "Start Production Server"
 
 [[workflows.workflow]]
 name = "run.js"
@@ -34,3 +35,16 @@ author = 42563681
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "run.js → start-app.cjs → start.cjs → server/index.ts"
+
+[[workflows.workflow]]
+name = "Start Production Server"
+author = 42563681
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true node start-unified.js"

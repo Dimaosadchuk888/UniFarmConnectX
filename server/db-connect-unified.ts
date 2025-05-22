@@ -5,9 +5,15 @@
  * основної бази даних, використовуючи резервні підключення або in-memory сховище.
  */
 
+// Импорты для работы с базой данных
 import { Pool, PoolClient } from 'pg';
 import fs from 'fs';
 import path from 'path';
+
+// Force SSL for Neon DB
+process.env.PGSSLMODE = 'require';
+process.env.DATABASE_PROVIDER = 'neon';
+process.env.FORCE_NEON_DB = 'true';
 
 // Логи
 const logEnabled = process.env.DB_DEBUG === 'true';
@@ -28,7 +34,7 @@ class DatabaseConnectionManager {
   private currentConfig: DBConfig | null = null;
   private isMemoryMode = false;
   private memoryStorage: Map<string, any[]> = new Map();
-  
+
   private constructor() {
     // Створюємо директорію для логів, якщо потрібно
     if (logEnabled && !fs.existsSync(path.dirname(logFile))) {
@@ -38,25 +44,25 @@ class DatabaseConnectionManager {
         console.error('[DB] Помилка створення директорії для логів:', err);
       }
     }
-    
+
     this.log('Ініціалізація менеджера підключень до бази даних');
   }
-  
+
   public static getInstance(): DatabaseConnectionManager {
     if (!DatabaseConnectionManager.instance) {
       DatabaseConnectionManager.instance = new DatabaseConnectionManager();
     }
     return DatabaseConnectionManager.instance;
   }
-  
+
   private log(message: string, isError = false): void {
     if (!logEnabled) return;
-    
+
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] ${message}\n`;
-    
+
     console[isError ? 'error' : 'log'](message);
-    
+
     if (logEnabled) {
       try {
         fs.appendFileSync(logFile, logMessage);
@@ -65,7 +71,7 @@ class DatabaseConnectionManager {
       }
     }
   }
-  
+
   // Додати конфігурацію підключення
   public addConfig(config: DBConfig): void {
     // Перевіряємо, чи не додана вже така конфігурація
@@ -73,14 +79,14 @@ class DatabaseConnectionManager {
       this.log(`Конфігурація з іменем "${config.name}" вже існує`);
       return;
     }
-    
+
     this.dbConfigs.push(config);
     this.log(`Додано конфігурацію: ${config.name} (пріоритет: ${config.priority})`);
-    
+
     // Сортуємо за пріоритетом (вищий пріоритет - менше число)
     this.dbConfigs.sort((a, b) => a.priority - b.priority);
   }
-  
+
   // Отримати пул підключень з покращеним механізмом відновлення
   public async getPool(): Promise<Pool | null> {
     // Якщо вже є працюючий пул, перевіряємо його стан та повертаємо
@@ -99,18 +105,18 @@ class DatabaseConnectionManager {
         // Продовжуємо спробу перепідключення
       }
     }
-    
+
     // Якщо ми в режимі in-memory storage, повертаємо null
     if (this.isMemoryMode) {
       this.log('Використовуємо in-memory сховище замість бази даних');
       return null;
     }
-    
+
     // Спробуємо підключитися, перебираючи всі конфігурації за пріоритетом
     for (const config of this.dbConfigs) {
       try {
         this.log(`Спроба підключення до ${config.name}...`);
-        
+
         // Розширені опції для підключення з кращою стійкістю
         const pool = new Pool({
           connectionString: config.connectionString,
@@ -122,11 +128,11 @@ class DatabaseConnectionManager {
             rejectUnauthorized: false        // Дозволяємо самопідписані сертифікати
           }
         });
-        
+
         // Додаємо обробники подій для моніторингу стану пулу
         pool.on('error', (err) => {
           this.log(`Помилка пулу з'єднань ${config.name}: ${err.message}`, true);
-          
+
           // Якщо помилка фатальна, скидаємо пул
           if (err.message.includes('connection terminated') || 
               err.message.includes('terminating') ||
@@ -138,7 +144,7 @@ class DatabaseConnectionManager {
             }
           }
         });
-        
+
         // Перевіряємо підключення з фактичним простим запитом
         const client = await pool.connect();
         try {
@@ -147,9 +153,9 @@ class DatabaseConnectionManager {
         } finally {
           client.release();
         }
-        
+
         this.log(`✅ Підключення до ${config.name} налаштовано успішно`);
-        
+
         // Якщо був попередній пул, закриваємо його
         if (this.currentPool && this.currentPool !== pool) {
           try {
@@ -159,16 +165,16 @@ class DatabaseConnectionManager {
             this.log(`Помилка при закритті попереднього пулу: ${err instanceof Error ? err.message : String(err)}`, true);
           }
         }
-        
+
         // Зберігаємо новий пул як поточний
         this.currentPool = pool;
         this.currentConfig = config;
-        
+
         return pool;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         this.log(`❌ Помилка підключення до ${config.name}: ${errorMessage}`, true);
-        
+
         // Додатковий лог для аналізу специфічних помилок
         if (errorMessage.includes('endpoint is disabled')) {
           this.log(`Neon DB endpoint вимкнено. Переходимо до наступного варіанту.`, true);
@@ -177,7 +183,7 @@ class DatabaseConnectionManager {
         }
       }
     }
-    
+
     // Якщо жодне підключення не вдалося і дозволено in-memory режим
     const allowMemoryFallback = process.env.ALLOW_MEMORY_FALLBACK === 'true';
     if (allowMemoryFallback) {
@@ -187,18 +193,18 @@ class DatabaseConnectionManager {
     } else {
       this.log('❌ Всі спроби підключення невдалі, in-memory режим вимкнено', true);
     }
-    
+
     return null;
   }
-  
+
   // Отримати клієнт для запиту
   public async getClient(): Promise<PoolClient | null> {
     const pool = await this.getPool();
-    
+
     if (!pool) {
       return null;
     }
-    
+
     try {
       return await pool.connect();
     } catch (error) {
@@ -206,7 +212,7 @@ class DatabaseConnectionManager {
       return null;
     }
   }
-  
+
   // Ініціалізація in-memory сховища
   private initMemoryStorage(): void {
     // Створюємо таблиці, які потрібні для роботи
@@ -217,30 +223,30 @@ class DatabaseConnectionManager {
     this.memoryStorage.set('referrals', []);
     this.memoryStorage.set('daily_bonuses', []);
     this.memoryStorage.set('partition_logs', []);
-    
+
     this.log('Ініціалізовано in-memory сховище');
   }
-  
+
   // Доступ до in-memory сховища
   public getMemoryStorage(tableName: string): any[] {
     if (!this.isMemoryMode) {
       this.log('Спроба доступу до in-memory сховища, але режим не активовано', true);
       return [];
     }
-    
+
     if (!this.memoryStorage.has(tableName)) {
       this.log(`Створення нової таблиці "${tableName}" в in-memory сховищі`);
       this.memoryStorage.set(tableName, []);
     }
-    
+
     return this.memoryStorage.get(tableName) || [];
   }
-  
+
   // Перевірка, чи ми в режимі in-memory
   public isInMemoryMode(): boolean {
     return this.isMemoryMode;
   }
-  
+
   // Отримати інформацію про поточне підключення
   public getCurrentConnectionInfo(): { isConnected: boolean; connectionName: string | null; isMemoryMode: boolean } {
     return {
@@ -249,11 +255,11 @@ class DatabaseConnectionManager {
       isMemoryMode: this.isMemoryMode
     };
   }
-  
+
   // Вимкнути режим in-memory і спробувати підключитися знову
   public async resetConnection(): Promise<boolean> {
     this.log('Скидання підключення та спроба перепідключення');
-    
+
     // Закриваємо поточний пул, якщо він є
     if (this.currentPool) {
       try {
@@ -262,11 +268,11 @@ class DatabaseConnectionManager {
         this.log(`Помилка закриття пулу: ${error instanceof Error ? error.message : String(error)}`, true);
       }
     }
-    
+
     this.currentPool = null;
     this.currentConfig = null;
     this.isMemoryMode = false;
-    
+
     // Пробуємо підключитися знову
     const pool = await this.getPool();
     return !!pool || this.isMemoryMode; // Успішно, якщо отримали пул або перейшли в режим in-memory
@@ -281,19 +287,19 @@ export function getConnectionManager(): DatabaseConnectionManager {
 // Функція для ініціалізації підключень з усіх доступних джерел
 export function initDatabaseConnections(): void {
   const manager = getConnectionManager();
-  
+
   // Визначаємо пріоритети на основі змінних середовища
   const useNeonDb = process.env.USE_NEON_DB === 'true';
   const useLocalDb = process.env.USE_LOCAL_DB === 'true';
   const dbProvider = process.env.DATABASE_PROVIDER?.toLowerCase() || 'auto';
-  
+
   console.log(`[Database] Configuration: useNeonDb=${useNeonDb}, useLocalDb=${useLocalDb}, dbProvider=${dbProvider}`);
-  
+
   // Автоматичне визначення пріоритетів на основі dbProvider
   if (dbProvider === 'neon') {
     // Пріоритет: 1) Neon DB, 2) Локальний PostgreSQL, 3) In-memory
     console.log('[Database] Using Neon DB as primary database');
-    
+
     // 1. Neon.tech підключення (найвищий пріоритет)
     if (process.env.NEON_DATABASE_URL) {
       manager.addConfig({
@@ -302,7 +308,7 @@ export function initDatabaseConnections(): void {
         priority: 1
       });
     }
-    
+
     // 2. Основне підключення Replit PostgreSQL
     if (process.env.DATABASE_URL) {
       manager.addConfig({
@@ -311,11 +317,11 @@ export function initDatabaseConnections(): void {
         priority: 2
       });
     }
-    
+
   } else if (dbProvider === 'replit') {
     // Пріоритет: 1) Локальний PostgreSQL, 2) Neon DB, 3) In-memory
     console.log('[Database] Using Replit PostgreSQL as primary database');
-    
+
     // 1. Основне підключення Replit PostgreSQL (найвищий пріоритет)
     if (process.env.DATABASE_URL) {
       manager.addConfig({
@@ -324,7 +330,7 @@ export function initDatabaseConnections(): void {
         priority: 1
       });
     }
-    
+
     // 2. Neon.tech підключення
     if (process.env.NEON_DATABASE_URL) {
       manager.addConfig({
@@ -336,7 +342,7 @@ export function initDatabaseConnections(): void {
   } else {
     // Автоматичний режим - спробуємо обидва варіанти в оптимальному порядку
     console.log('[Database] Auto mode: will try all available database connections');
-    
+
     // 1. Neon.tech підключення, якщо USE_NEON_DB=true
     if (useNeonDb && process.env.NEON_DATABASE_URL) {
       manager.addConfig({
@@ -345,7 +351,7 @@ export function initDatabaseConnections(): void {
         priority: 1
       });
     }
-    
+
     // 2. Replit PostgreSQL, якщо USE_LOCAL_DB=true
     if (useLocalDb && process.env.BACKUP_DATABASE_URL) {
       manager.addConfig({
@@ -354,11 +360,11 @@ export function initDatabaseConnections(): void {
         priority: useNeonDb ? 2 : 1  // Якщо Neon не використовується, це буде пріоритет 1
       });
     }
-    
+
     // Якщо не вказано жодних пріоритетів, використовуємо стандартний порядок
     if (!useNeonDb && !useLocalDb) {
       console.log('[Database] No specific preferences set, using default order');
-      
+
       // 1. Neon.tech підключення
       if (process.env.NEON_DATABASE_URL) {
         manager.addConfig({
@@ -367,7 +373,7 @@ export function initDatabaseConnections(): void {
           priority: 1
         });
       }
-      
+
       // 2. Replit PostgreSQL
       if (process.env.BACKUP_DATABASE_URL) {
         manager.addConfig({
@@ -378,7 +384,7 @@ export function initDatabaseConnections(): void {
       }
     }
   }
-  
+
   // Додаємо додаткові резервні підключення, якщо є
   if (process.env.ALTERNATE_DB_URL) {
     manager.addConfig({
@@ -387,7 +393,7 @@ export function initDatabaseConnections(): void {
       priority: 50  // Низький пріоритет
     });
   }
-  
+
   // Альтернативне підключення для розробки
   if (process.env.DEV_DATABASE_URL) {
     manager.addConfig({
@@ -396,7 +402,7 @@ export function initDatabaseConnections(): void {
       priority: 100  // Найнижчий пріоритет
     });
   }
-  
+
   // Примусово увімкнути режим in-memory, якщо вказано
   if (process.env.FORCE_MEMORY_STORAGE === 'true') {
     console.log('[Database] FORCE_MEMORY_STORAGE=true, forcing in-memory mode');
