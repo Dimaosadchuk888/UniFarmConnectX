@@ -490,7 +490,7 @@ function initBackgroundServices(): void {
     try {
       migrateRefCodes()
         .then((result) => {
-          logger.info(`[Server] Миграция реферальных кодов завершена: ${result.processed} обработано, ${result.updated} обновлено`);
+          logger.info(`[Server] Миграция реферальных кодов завершена: ${result.total} обработано, ${result.updated} обновлено`);
         })
         .catch((error) => {
           logger.error('[Server] Ошибка при миграции реферальных кодов:', error);

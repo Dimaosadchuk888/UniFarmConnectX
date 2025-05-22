@@ -13,21 +13,38 @@ import { referralSystem } from './services/referralSystemIntegrator';
  * Запускает фоновые задачи, которые выполняются периодически
  */
 export function startBackgroundTasks(): void {
-  console.log('[Background Tasks] Starting background tasks');
-  
-  // Запуск задачи обновления фарминга (каждый час)
-  const ONE_HOUR_MS = 60 * 60 * 1000;
-  setInterval(updateAllUsersFarming, ONE_HOUR_MS);
-  
-  // Запускаем первое начисление через 5 секунд после старта сервера,
-  // но только для инициализации системы, без реальных начислений
-  setTimeout(() => {
-    console.log('[Background Tasks] Initial system check after server start');
-    systemInitialized = true;
-  }, 5000);
-  
-  // Инициализация обработчика реферальных начислений
-  initializeReferralProcessor();
+  try {
+    console.log('[Background Tasks] ✅ Starting background tasks');
+    
+    // Запуск задачи обновления фарминга (каждый час)
+    const ONE_HOUR_MS = 60 * 60 * 1000;
+    setInterval(async () => {
+      try {
+        console.log('[Background Tasks] 🔄 Starting farming update cycle');
+        await updateAllUsersFarming();
+        console.log('[Background Tasks] ✅ Farming update cycle completed successfully');
+      } catch (error) {
+        console.error('[Background Tasks] ❌ Error in farming update cycle:', error);
+      }
+    }, ONE_HOUR_MS);
+    
+    // Запускаем первое начисление через 5 секунд после старта сервера,
+    // но только для инициализации системы, без реальных начислений
+    setTimeout(() => {
+      try {
+        console.log('[Background Tasks] ✅ Initial system check after server start');
+        systemInitialized = true;
+      } catch (error) {
+        console.error('[Background Tasks] ❌ Error in system initialization:', error);
+      }
+    }, 5000);
+    
+    // Инициализация обработчика реферальных начислений
+    initializeReferralProcessor();
+    console.log('[Background Tasks] ✅ Background tasks initialization completed');
+  } catch (error) {
+    console.error('[Background Tasks] ❌ Critical error starting background tasks:', error);
+  }
 }
 
 /**
