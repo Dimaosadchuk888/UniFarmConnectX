@@ -21,13 +21,12 @@ localPort = 3000
 externalPort = 80
 
 [workflows]
-runButton = "Run"
 
 [[workflows.workflow]]
-name = "Run"
-author = 42521392
+name = "run.js"
 mode = "sequential"
+author = 42563681
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "start.sh"
+args = "run.js → start-app.cjs → start.cjs → server/index.ts"
