@@ -26,6 +26,9 @@ import telegramRouter from './telegram/routes';
 import { telegramBot } from './telegram/bot';
 import logger from './utils/logger';
 
+// Імпортуємо адміністративні маршрути
+import adminRouter from './api/admin/index';
+
 /**
  * Регистрирует новые маршруты API в указанном приложении Express
  * @param app Экземпляр приложения Express
@@ -53,6 +56,10 @@ export function registerNewRoutes(app: Express): void {
   // Регистрируем маршруты для Telegram бота
   app.use('/api/telegram', telegramRouter);
   logger.info('[NewRoutes] Маршруты для Telegram бота зарегистрированы');
+  
+  // Регистрируем администативные маршруты
+  app.use('/api/admin', adminRouter);
+  logger.info('[NewRoutes] Административные маршруты зарегистрированы');
 
   // Централизованный обработчик маршрутов с обработкой ошибок
   const safeHandler = (handler: Function) => async (req: Request, res: Response, next: NextFunction) => {
