@@ -1,3 +1,44 @@
+// Загружаем переменные окружения из файла .env
+import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+
+// Проверяем, существует ли файл .env
+const envPath = path.resolve(process.cwd(), '.env');
+if (fs.existsSync(envPath)) {
+  console.log('[Config] Loading environment variables from:', envPath);
+  const result = dotenv.config({ path: envPath });
+  
+  if (result.error) {
+    console.error('[Config] Error loading .env file:', result.error);
+  } else {
+    console.log('[Config] Environment variables loaded successfully');
+  }
+} else {
+  console.error('[Config] .env file not found at:', envPath);
+}
+
+// Добавим URL-ы для Telegram бота напрямую
+if (!process.env.APP_URL) {
+  process.env.APP_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+  console.log('[Config] Setting APP_URL manually:', process.env.APP_URL);
+}
+
+if (!process.env.MINI_APP_URL) {
+  process.env.MINI_APP_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+  console.log('[Config] Setting MINI_APP_URL manually:', process.env.MINI_APP_URL);
+}
+
+if (!process.env.TELEGRAM_WEBHOOK_URL) {
+  process.env.TELEGRAM_WEBHOOK_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook';
+  console.log('[Config] Setting TELEGRAM_WEBHOOK_URL manually:', process.env.TELEGRAM_WEBHOOK_URL);
+}
+
+// Логируем важные настройки Telegram для отладки
+console.log('[Telegram Config] APP_URL:', process.env.APP_URL);
+console.log('[Telegram Config] MINI_APP_URL:', process.env.MINI_APP_URL);
+console.log('[Telegram Config] TELEGRAM_WEBHOOK_URL:', process.env.TELEGRAM_WEBHOOK_URL);
+
 // Устанавливаем переменные окружения для SSL
 process.env.PGSSLMODE = 'require';
 
