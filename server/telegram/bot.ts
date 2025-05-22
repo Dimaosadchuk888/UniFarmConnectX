@@ -84,6 +84,14 @@ export function setupBotRoutes(app: Express): void {
   // Маршрут для перевірки стану бота
   app.get('/api/telegram/status', handleBotStatus);
   
+  // Маршрут для перевірки та оновлення webhook
+  import('../check-webhook').then(module => {
+    app.get('/api/telegram/check-webhook', module.checkWebhookHandler);
+    console.log('[Telegram Bot] Додано маршрут для перевірки webhook');
+  }).catch(error => {
+    console.error('[Telegram Bot] Помилка імпорту модуля check-webhook:', error);
+  });
+  
   console.log('[Telegram Bot] Маршрути для бота налаштовано');
 }
 
