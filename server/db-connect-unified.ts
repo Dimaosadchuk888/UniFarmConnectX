@@ -9,6 +9,7 @@
 import { Pool, PoolClient } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
+import { DatabaseEventType, emitDbEvent } from './utils/db-events';
 
 // Force SSL for Neon DB
 process.env.PGSSLMODE = 'require';
@@ -99,9 +100,26 @@ class DatabaseConnectionManager {
           return this.currentPool;
         } else {
           this.log('Існуючий пул в неробочому стані, спробуємо перепідключитися');
+          // Отправляем событие о начале переподключения
+          emitDbEvent(
+            DatabaseEventType.RECONNECTING,
+            'Существующий пул соединений в нерабочем состоянии',
+            undefined,
+            { previousPool: this.currentConfig?.name || 'unknown' }
+          );
         }
       } catch (e) {
-        this.log(`Помилка при перевірці стану пулу: ${e instanceof Error ? e.message : String(e)}`, true);
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        this.log(`Помилка при перевірці стану пулу: ${errorMessage}`, true);
+        
+        // Отправляем событие об ошибке при проверке пула
+        emitDbEvent(
+          DatabaseEventType.QUERY_ERROR,
+          'Ошибка при проверке состояния пула соединений',
+          errorMessage,
+          { connectionName: this.currentConfig?.name || 'unknown' }
+        );
+        
         // Продовжуємо спробу перепідключення
       }
     }
@@ -148,8 +166,23 @@ class DatabaseConnectionManager {
         // Перевіряємо підключення з фактичним простим запитом
         const client = await pool.connect();
         try {
+          const startTime = Date.now();
           await client.query('SELECT 1 as result');
+          const queryTime = Date.now() - startTime;
+          
           this.log(`✅ Успішне підключення до ${config.name} та виконано тестовий запит`);
+          
+          // Отправляем событие об успешном подключении
+          emitDbEvent(
+            DatabaseEventType.CONNECTED,
+            `Успешное подключение к ${config.name}`,
+            undefined,
+            { 
+              connectionName: config.name,
+              responseTime: queryTime,
+              priority: config.priority
+            }
+          );
         } finally {
           client.release();
         }
@@ -161,19 +194,53 @@ class DatabaseConnectionManager {
           try {
             await this.currentPool.end();
             this.log(`Закрито попередній пул підключень до ${this.currentConfig?.name || 'невідомо'}`);
+            
+            // Отправляем событие о закрытии предыдущего пула
+            emitDbEvent(
+              DatabaseEventType.DISCONNECTED,
+              `Закрыто предыдущее соединение с ${this.currentConfig?.name || 'неизвестно'}`,
+              undefined,
+              { previousConnection: this.currentConfig?.name || 'unknown' }
+            );
           } catch (err) {
-            this.log(`Помилка при закритті попереднього пулу: ${err instanceof Error ? err.message : String(err)}`, true);
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            this.log(`Помилка при закритті попереднього пулу: ${errorMessage}`, true);
           }
         }
 
         // Зберігаємо новий пул як поточний
         this.currentPool = pool;
         this.currentConfig = config;
+        
+        // Если это было переподключение после ошибки, отправляем событие о восстановлении
+        if (this.isMemoryMode) {
+          emitDbEvent(
+            DatabaseEventType.RECOVERY_SUCCESS,
+            `Восстановлено подключение к базе данных ${config.name} после режима in-memory`,
+            undefined,
+            { connectionName: config.name }
+          );
+          
+          // Сбрасываем флаг in-memory режима
+          this.isMemoryMode = false;
+        }
 
         return pool;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         this.log(`❌ Помилка підключення до ${config.name}: ${errorMessage}`, true);
+
+        // Отправляем событие о неудачной попытке подключения
+        emitDbEvent(
+          DatabaseEventType.RECONNECT_FAILED,
+          `Ошибка подключения к ${config.name}`,
+          errorMessage,
+          { 
+            connectionName: config.name,
+            priority: config.priority,
+            remainingAttempts: this.dbConfigs.length - this.dbConfigs.indexOf(config) - 1
+          }
+        );
 
         // Додатковий лог для аналізу специфічних помилок
         if (errorMessage.includes('endpoint is disabled')) {
@@ -190,8 +257,30 @@ class DatabaseConnectionManager {
       this.log('⚠️ Всі спроби підключення невдалі, переходимо в режим in-memory', true);
       this.isMemoryMode = true;
       this.initMemoryStorage();
+      
+      // Отправляем событие о переходе в режим in-memory
+      emitDbEvent(
+        DatabaseEventType.FALLBACK_MEMORY,
+        'Все попытки подключения к базе данных неудачны, переход в режим in-memory',
+        undefined,
+        {
+          triedConnections: this.dbConfigs.map(config => config.name),
+          tablesInitialized: Array.from(this.memoryStorage.keys())
+        }
+      );
     } else {
       this.log('❌ Всі спроби підключення невдалі, in-memory режим вимкнено', true);
+      
+      // Отправляем событие о полном отказе подключения
+      emitDbEvent(
+        DatabaseEventType.DISCONNECTED,
+        'Все попытки подключения к базе данных неудачны, режим in-memory отключен',
+        'Критическая ошибка подключения к базе данных',
+        {
+          triedConnections: this.dbConfigs.map(config => config.name),
+          allowMemoryFallback: false
+        }
+      );
     }
 
     return null;

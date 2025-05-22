@@ -8,11 +8,13 @@
  * основной файл routes.ts
  */
 
-import express, { Express, Request, Response, NextFunction } from "express";
+import express, { Express, Request, Response, NextFunction, RequestHandler } from "express";
 
 // Явно импортируем контроллеры для новых маршрутов API
 import { SessionController } from './controllers/sessionController';
 import { UserController } from './controllers/userController';
+import { getDbEventManager } from './utils/db-events';
+import { statusPageHandler } from './utils/status-page';
 import { TransactionController } from './controllers/transactionController';
 import { MissionController } from './controllers/missionControllerConsolidated';
 import { ReferralController } from './controllers/referralControllerConsolidated';
@@ -24,6 +26,7 @@ import { DailyBonusController } from './controllers/dailyBonusControllerConsolid
 // Импортируем маршруты для Telegram бота
 import telegramRouter from './telegram/routes';
 import { telegramBot } from './telegram/bot';
+import { isTelegramBotInitialized } from './telegram/globalState';
 import logger from './utils/logger';
 
 // Імпортуємо адміністративні маршрути
@@ -62,31 +65,98 @@ export function registerNewRoutes(app: Express): void {
   logger.info('[NewRoutes] Административные маршруты зарегистрированы');
 
   // Endpoint для перевірки здоров'я сервера (health check)
-  app.get('/api/health', async (req: Request, res: Response) => {
+  const healthCheckHandler: RequestHandler = async (req, res) => {
     // Перевіряємо стан бази даних
     let dbStatus = 'unknown';
+    let dbDetails = {};
+    
     try {
+      // Получаем информацию о текущем подключении через глобальный объект
+      // Используем app.locals.db для доступа к соединению
+      const connectionManager = app.locals.db ? app.locals.db.connectionManager : null;
+      const connectionInfo = connectionManager ? connectionManager.getCurrentConnectionInfo() : { 
+        isConnected: false, 
+        connectionName: null, 
+        isMemoryMode: false 
+      };
+      
       // Проста перевірка підключення до БД
       const db = app.locals.storage;
-      if (db && typeof db.executeRawQuery === 'function') {
-        await db.executeRawQuery('SELECT 1');
-        dbStatus = 'connected';
+      
+      if (connectionInfo.isMemoryMode) {
+        dbStatus = 'memory_fallback';
+        dbDetails = {
+          provider: 'memory',
+          reason: 'Database connection failed, using memory fallback',
+          tables: Array.from(connectionManager['memoryStorage']?.keys() || [])
+        };
+      } else if (connectionInfo.isConnected && connectionInfo.connectionName) {
+        // Дополнительная проверка работоспособности
+        if (db && typeof db.executeRawQuery === 'function') {
+          try {
+            const startTime = Date.now();
+            await db.executeRawQuery('SELECT 1');
+            const queryTime = Date.now() - startTime;
+            
+            dbStatus = 'connected';
+            dbDetails = {
+              provider: connectionInfo.connectionName,
+              responseTime: `${queryTime}ms`,
+              poolStatus: 'active'
+            };
+          } catch (queryError) {
+            dbStatus = 'error';
+            dbDetails = {
+              provider: connectionInfo.connectionName,
+              error: queryError instanceof Error ? queryError.message : String(queryError),
+              poolStatus: 'failing'
+            };
+          }
+        } else {
+          dbStatus = 'configured';
+          dbDetails = {
+            provider: connectionInfo.connectionName,
+            warning: 'DB configured but executeRawQuery not available'
+          };
+        }
       } else {
-        dbStatus = 'configured';
+        dbStatus = 'disconnected';
+        dbDetails = {
+          error: 'No active database connection',
+          memoryMode: connectionInfo.isMemoryMode
+        };
       }
     } catch (error) {
       dbStatus = 'error';
+      dbDetails = {
+        error: error instanceof Error ? error.message : String(error)
+      };
       console.error('[HealthCheck] Database connection error:', error);
     }
 
     // Перевіряємо стан Telegram бота
     let telegramStatus = 'not_initialized';
+    let telegramDetails = {};
+    
     try {
-      // @ts-ignore - using global variable set in server initialization
-      if (global.telegramBotInitialized === true) {
+      // Используем типобезопасную функцию для проверки инициализации бота
+      if (isTelegramBotInitialized()) {
         telegramStatus = 'initialized';
+        telegramDetails = {
+          webhookUrl: process.env.TELEGRAM_WEBHOOK_URL || 'not_set',
+          miniAppUrl: process.env.MINI_APP_URL || 'not_set'
+        };
+      } else {
+        telegramDetails = {
+          reason: 'Bot not initialized or initialization failed',
+          webhookConfigured: !!process.env.TELEGRAM_WEBHOOK_URL
+        };
       }
     } catch (error) {
+      telegramStatus = 'error';
+      telegramDetails = {
+        error: error instanceof Error ? error.message : String(error)
+      };
       console.error('[HealthCheck] Telegram status check error:', error);
     }
 
@@ -95,40 +165,166 @@ export function registerNewRoutes(app: Express): void {
       server: 'up',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      db: dbStatus,
-      telegram: telegramStatus,
+      db: {
+        status: dbStatus,
+        ...dbDetails,
+        recentEvents: getDbEventManager().getHistory(5)
+      },
+      telegram: {
+        status: telegramStatus,
+        ...telegramDetails
+      },
+      environment: {
+        nodeEnv: process.env.NODE_ENV || 'not_set',
+        appUrl: process.env.APP_URL || 'not_set'
+      },
       memoryUsage: {
         rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
         heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
         heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB'
       }
     });
+  };
+  
+  app.get('/api/health', healthCheckHandler);
+  
+  // Endpoint для управления подключением к базе данных (только для админов)
+  app.post('/api/db/reconnect', async (req, res) => {
+    try {
+      // Проверка авторизации (в будущем можно добавить middleware)
+      if (req.query.admin_key !== process.env.ADMIN_SECRET) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized access'
+        });
+      }
+      
+      // Получаем текущую информацию о соединении
+      const db = app.locals.db;
+      const connectionInfo = db && typeof db.connectionManager?.getCurrentConnectionInfo === 'function' 
+        ? db.connectionManager.getCurrentConnectionInfo()
+        : { isConnected: false, connectionName: null, isMemoryMode: false };
+      
+      // Получаем историю недавних событий DB для включения в ответ
+      const recentDbEvents = getDbEventManager().getHistory(10);
+      
+      // Попытка сбросить соединение и переподключиться
+      let reconnectResult = false;
+      let errorMessage = '';
+      
+      try {
+        if (db && typeof db.connectionManager?.resetConnection === 'function') {
+          // Попытка переподключения
+          logger.info('[DB Manager] Attempting database reconnection...');
+          reconnectResult = await db.connectionManager.resetConnection();
+        } else {
+          errorMessage = 'Database connection manager not available';
+        }
+      } catch (error) {
+        errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`[DB Manager] Reconnection error: ${errorMessage}`);
+      }
+      
+      // Получаем обновленную информацию о соединении
+      const newConnectionInfo = db && typeof db.connectionManager?.getCurrentConnectionInfo === 'function'
+        ? db.connectionManager.getCurrentConnectionInfo()
+        : { isConnected: false, connectionName: null, isMemoryMode: false };
+      
+      // Получаем новую историю событий после попытки переподключения
+      const newDbEvents = getDbEventManager().getHistory(5);
+      
+      return res.json({
+        success: true,
+        reconnected: reconnectResult,
+        previous: connectionInfo,
+        current: newConnectionInfo,
+        error: errorMessage || undefined,
+        events: {
+          before: recentDbEvents,
+          after: newDbEvents,
+          latest: getDbEventManager().getLastEvent()
+        },
+        diagnostics: {
+          timeOfRequest: new Date().toISOString(),
+          memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024,
+          uptime: process.uptime()
+        }
+      });
+    } catch (error) {
+      logger.error('[DB Manager] Error handling reconnection request:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
   });
+  
+  // Endpoint для получения информации о событиях DB (только для админов)
+  app.get('/api/db/events', async (req, res) => {
+    try {
+      // Проверка авторизации (в будущем можно добавить middleware)
+      if (req.query.admin_key !== process.env.ADMIN_SECRET) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized access'
+        });
+      }
+      
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+      const events = getDbEventManager().getHistory(limit);
+      
+      return res.json({
+        success: true,
+        events,
+        count: events.length,
+        latest: getDbEventManager().getLastEvent(),
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('[DB Events] Error handling events request:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Endpoint для отображения страницы статуса
+  app.get('/status', statusPageHandler);
 
+  // Типы для обработчиков маршрутов
+  type RouteHandler = (req: Request, res: Response, next: NextFunction) => Promise<any> | any;
+  
   // Централизованный обработчик маршрутов с обработкой ошибок
-  const safeHandler = (handler: Function) => async (req: Request, res: Response, next: NextFunction) => {
+  // Улучшенный тип для безопасного вызова обработчиков с надлежащей обработкой ошибок
+  const safeHandler = (handler: any): RequestHandler => async (req, res, next) => {
     try {
       if (typeof handler === 'function') {
-        return await handler(req, res, next);
+        // Явно вызываем функцию обработчика
+        await handler(req, res, next);
+        // Если обработчик не отправил ответ, не делаем ничего
+        // Это позволяет обработчику управлять ответом самостоятельно
       } else {
         logger.error('[Routes] Обработчик не является функцией:', handler);
-        return res.status(500).json({
-          success: false,
-          error: 'Внутренняя ошибка сервера: неверный обработчик'
-        });
+        if (!res.headersSent) {
+          res.status(500).json({
+            success: false,
+            error: 'Внутренняя ошибка сервера: неверный обработчик'
+          });
+        }
       }
     } catch (error) {
       logger.error('[Routes] Ошибка в обработчике маршрута:', error);
       
       if (!res.headersSent) {
-        return res.status(500).json({
+        res.status(500).json({
           success: false,
           error: 'Внутренняя ошибка сервера',
           message: error instanceof Error ? error.message : String(error)
         });
+      } else {
+        next(error);
       }
-      
-      next(error);
     }
   };
 
@@ -180,8 +376,10 @@ export function registerNewRoutes(app: Express): void {
       app.get('/api/v2/referrals/stats', safeHandler(ReferralController.getReferralStats));
     }
     
-    if (typeof ReferralController.applyReferralCode === 'function') {
-      app.post('/api/v2/referrals/apply', safeHandler(ReferralController.applyReferralCode));
+    // Проверка с корректной типизацией
+    if (ReferralController && 'applyReferralCode' in ReferralController && 
+        typeof (ReferralController as any).applyReferralCode === 'function') {
+      app.post('/api/v2/referrals/apply', safeHandler((ReferralController as any).applyReferralCode));
     }
   }
   

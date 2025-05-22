@@ -5,8 +5,10 @@
  * включаючи webhook, обробку повідомлень та інтеграцію з Mini App.
  */
 
-import { Express, Request, Response } from 'express';
+import { Express, Request, Response, RequestHandler } from 'express';
 import { setupWebhook, getWebhookInfo, setMenuButton } from './setup-hook';
+import { setTelegramBotInitialized } from './globalState';
+import { createRouteSafely, createSafeHandler } from '../utils/express-helpers';
 
 // Telegram Bot інстанс
 export const telegramBot = {
@@ -40,6 +42,9 @@ const BOT_MENU_TEXT = 'Открыть UniFarm';
 export async function initializeBot(): Promise<boolean> {
   try {
     console.log('[Telegram Bot] Початок ініціалізації бота');
+    
+    // Сбрасываем состояние инициализации в начале
+    setTelegramBotInitialized(false);
     
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     
@@ -89,10 +94,14 @@ export async function initializeBot(): Promise<boolean> {
       }
     }
     
+    // Установка флага успешной инициализации
+    setTelegramBotInitialized(true);
     console.log('[Telegram Bot] Ініціалізація бота завершена успішно');
     return true;
   } catch (error) {
     console.error('[Telegram Bot] Помилка при ініціалізації бота:', error);
+    // Гарантируем, что флаг не будет установлен в случае ошибки
+    setTelegramBotInitialized(false);
     return false;
   }
 }
@@ -101,15 +110,18 @@ export async function initializeBot(): Promise<boolean> {
  * Налаштовує маршрути для обробки повідомлень від Telegram
  */
 export function setupBotRoutes(app: Express): void {
-  // Маршрут для webhook
-  app.post('/api/telegram/webhook', handleWebhook);
+  // Создаем типобезопасную обертку для маршрутов
+  const route = createRouteSafely(app);
+  
+  // Маршрут для webhook с типобезопасным обработчиком
+  route.post('/api/telegram/webhook', createSafeHandler(handleWebhook));
   
   // Маршрут для перевірки стану бота
-  app.get('/api/telegram/status', handleBotStatus);
+  route.get('/api/telegram/status', createSafeHandler(handleBotStatus));
   
   // Маршрут для перевірки та оновлення webhook
   import('../check-webhook').then(module => {
-    app.get('/api/telegram/check-webhook', module.checkWebhookHandler);
+    route.get('/api/telegram/check-webhook', createSafeHandler(module.checkWebhookHandler));
     console.log('[Telegram Bot] Додано маршрут для перевірки webhook');
   }).catch(error => {
     console.error('[Telegram Bot] Помилка імпорту модуля check-webhook:', error);
