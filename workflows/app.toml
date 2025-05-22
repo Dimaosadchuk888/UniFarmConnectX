@@ -1,7 +1,7 @@
 [workflow]
 onBoot = true
 name = "Start application"
-entrypoint = "npm run dev"
+entrypoint = "node run.js"
 runOnOpen = false
 restartOn = { fileChange = ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"] }
 clearEnv = false

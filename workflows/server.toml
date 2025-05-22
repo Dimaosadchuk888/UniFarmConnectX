@@ -1,18 +1,3 @@
-[workflow]
-onBoot = true
-name = "UniFarm Server"
-entrypoint = "node server/index.ts"
-runOnOpen = true
-clearEnv = false
-
-[env]
-SKIP_TELEGRAM_CHECK = "true"
-ALLOW_BROWSER_ACCESS = "true"
-NODE_ENV = "development"
-PORT = "3000"
-TELEGRAM_DEBUG = "true"
-USE_MEMORY_SESSION = "true"
-ALLOW_MEMORY_FALLBACK = "true"
-DATABASE_PROVIDER = "auto"
-DISABLE_PARTITION_CHECK = "true"
-IGNORE_DB_CONNECTION_ERRORS = "true"
+[command]
+name = "Start UniFarm Server"
+shell = "node start.cjs"

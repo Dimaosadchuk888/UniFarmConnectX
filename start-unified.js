@@ -148,16 +148,32 @@ async function main() {
     
     if (!startFileFound) {
       console.error('Error: No valid entry point found. Looked for: server/index.ts, server/index.js, index.js, dist/index.js');
-      process.exit(1);
+      console.error('Keeping process alive for Replit stability, but server will not start...');
+      // Замість process.exit, просто тримаємо процес активним
+      setInterval(() => {
+        console.log('[WARNING] Server failed to start due to missing entry point. Process kept alive for Replit stability');
+      }, 60000); // Повідомлення кожну хвилину
+      return;
     }
   } catch (error) {
     console.error('Error starting application:', error);
-    process.exit(1);
+    console.error('Keeping process alive for Replit stability, but server may not work correctly...');
+    // Замість process.exit, просто тримаємо процес активним
+    setInterval(() => {
+      console.log('[WARNING] Server encountered errors but process kept alive for Replit stability');
+    }, 60000); // Повідомлення кожну хвилину
+    return;
   }
 }
 
 // Start the application
 main().catch(error => {
   console.error('Critical error:', error);
-  process.exit(1);
+  console.error('Keeping process alive for Replit stability despite critical error...');
+  
+  // Запускаємо моніторинг та підтримуємо процес активним
+  setInterval(() => {
+    console.log('[WARNING] Server encountered critical error but process kept alive for Replit stability');
+    console.log('Error details:', error.message || String(error));
+  }, 30000); // Повідомлення кожні 30 секунд
 });

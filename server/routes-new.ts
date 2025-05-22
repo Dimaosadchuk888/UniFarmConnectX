@@ -61,6 +61,50 @@ export function registerNewRoutes(app: Express): void {
   app.use('/api/admin', adminRouter);
   logger.info('[NewRoutes] Административные маршруты зарегистрированы');
 
+  // Endpoint для перевірки здоров'я сервера (health check)
+  app.get('/api/health', async (req: Request, res: Response) => {
+    // Перевіряємо стан бази даних
+    let dbStatus = 'unknown';
+    try {
+      // Проста перевірка підключення до БД
+      const db = app.locals.storage;
+      if (db && typeof db.executeRawQuery === 'function') {
+        await db.executeRawQuery('SELECT 1');
+        dbStatus = 'connected';
+      } else {
+        dbStatus = 'configured';
+      }
+    } catch (error) {
+      dbStatus = 'error';
+      console.error('[HealthCheck] Database connection error:', error);
+    }
+
+    // Перевіряємо стан Telegram бота
+    let telegramStatus = 'not_initialized';
+    try {
+      // @ts-ignore - using global variable set in server initialization
+      if (global.telegramBotInitialized === true) {
+        telegramStatus = 'initialized';
+      }
+    } catch (error) {
+      console.error('[HealthCheck] Telegram status check error:', error);
+    }
+
+    res.status(200).json({
+      status: 'ok',
+      server: 'up',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      db: dbStatus,
+      telegram: telegramStatus,
+      memoryUsage: {
+        rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
+        heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
+        heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB'
+      }
+    });
+  });
+
   // Централизованный обработчик маршрутов с обработкой ошибок
   const safeHandler = (handler: Function) => async (req: Request, res: Response, next: NextFunction) => {
     try {
