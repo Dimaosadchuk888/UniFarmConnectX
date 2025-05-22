@@ -69,10 +69,10 @@ export function registerNewRoutes(app: Express): void {
   logger.info('[NewRoutes] Административные маршруты зарегистрированы');
 
   // Endpoint для перевірки здоров'я сервера (health check)
-  const healthCheckHandler: RequestHandler = async (req, res) => {
+  const healthCheckHandler: RequestHandler = async (req: Request, res: Response): Promise<void> => {
     // Перевіряємо стан бази даних
-    let dbStatus = 'unknown';
-    let dbDetails = {};
+    let dbStatus: 'unknown' | 'connected' | 'error' | 'memory_fallback' | 'configured' | 'disconnected' = 'unknown';
+    let dbDetails: Record<string, any> = {};
     
     try {
       // Получаем информацию о текущем подключении через глобальный объект

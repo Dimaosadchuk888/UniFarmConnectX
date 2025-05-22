@@ -49,10 +49,11 @@ export async function checkWebhookHandler(req: Request, res: Response): Promise<
       
       if (!webhookUrl) {
         logger.error('[Check Webhook] Неможливо оновити webhook: TELEGRAM_WEBHOOK_URL не встановлено');
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: 'TELEGRAM_WEBHOOK_URL не встановлено в змінних середовища'
         });
+        return;
       }
       
       updateResult = await setupWebhook(webhookUrl);
