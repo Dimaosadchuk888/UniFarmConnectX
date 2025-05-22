@@ -7,8 +7,8 @@
 
 // Импорты для работы с базой данных
 import { Pool, PoolClient } from 'pg';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Force SSL for Neon DB
 process.env.PGSSLMODE = 'require';
@@ -412,3 +412,160 @@ export function initDatabaseConnections(): void {
 
 // Ініціалізуємо підключення при імпорті модуля
 initDatabaseConnections();
+
+/**
+ * Об'єкт для роботи з базою даних через Drizzle ORM
+ * Експортується для використання в інших модулях
+ */
+export const db = {
+  query: async (text: string, params: any[] = []) => {
+    const pool = await DatabaseConnectionManager.getInstance().getPool();
+    if (!pool) {
+      console.error('[DB] Неможливо виконати запит: відсутнє підключення до бази даних');
+      throw new Error('Підключення до бази даних недоступне');
+    }
+    return pool.query(text, params);
+  }
+};
+
+/**
+ * Пул підключень до бази даних
+ * Експортується для використання в інших модулях
+ */
+export const pool = {
+  query: async (text: string, params: any[] = []) => {
+    const poolInstance = await DatabaseConnectionManager.getInstance().getPool();
+    if (!poolInstance) {
+      console.error('[DB] Неможливо виконати запит: відсутнє підключення до бази даних');
+      throw new Error('Підключення до бази даних недоступне');
+    }
+    return poolInstance.query(text, params);
+  },
+  connect: async () => {
+    const poolInstance = await DatabaseConnectionManager.getInstance().getPool();
+    if (!poolInstance) {
+      console.error('[DB] Неможливо отримати клієнта: відсутнє підключення до бази даних');
+      throw new Error('Підключення до бази даних недоступне');
+    }
+    return poolInstance.connect();
+  }
+};
+
+/**
+ * Функція для виконання запиту до бази даних з повторними спробами
+ * @param text SQL запит
+ * @param params параметри запиту
+ * @param maxRetries максимальна кількість спроб
+ * @returns результат запиту
+ */
+export async function queryWithRetry(text: string, params: any[] = [], maxRetries: number = 3): Promise<any> {
+  let lastError;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const poolInstance = await DatabaseConnectionManager.getInstance().getPool();
+      if (!poolInstance) {
+        throw new Error('Підключення до бази даних недоступне');
+      }
+      return await poolInstance.query(text, params);
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxRetries - 1) {
+        // Чекаємо перед наступною спробою (збільшуємо час очікування з кожною спробою)
+        const delay = 500 * (attempt + 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        console.error(`[DB] Помилка запиту, спроба #${attempt + 1}/${maxRetries}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+  console.error(`[DB] Всі спроби запиту невдалі. Остання помилка: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+  throw lastError;
+}
+
+/**
+ * Функція для отримання підключення до бази даних
+ * @returns підключення до бази даних
+ */
+export async function getDbConnection() {
+  return await DatabaseConnectionManager.getInstance().getPool();
+}
+
+/**
+ * Функція для тестування підключення до бази даних
+ * @returns true, якщо підключення працює
+ */
+export async function testConnection(): Promise<boolean> {
+  try {
+    await queryWithRetry('SELECT 1', [], 1);
+    return true;
+  } catch (error) {
+    console.error('[DB] Помилка тестування підключення:', error);
+    return false;
+  }
+}
+
+/**
+ * Функція для скидання та повторної спроби підключення до бази даних
+ * @returns true, якщо вдалося переконектитися
+ */
+export async function reconnect(): Promise<boolean> {
+  return await DatabaseConnectionManager.getInstance().resetConnection();
+}
+
+/**
+ * Тип бази даних, що використовується
+ */
+export const dbType = 'postgres';
+
+/**
+ * Об'єкт для моніторингу стану підключення до бази даних
+ */
+export const dbMonitor = {
+  status: 'unknown' as 'ok' | 'error' | 'reconnecting' | 'unknown',
+  
+  async checkConnection(): Promise<boolean> {
+    try {
+      const result = await testConnection();
+      this.status = result ? 'ok' : 'error';
+      return result;
+    } catch {
+      this.status = 'error';
+      return false;
+    }
+  },
+  
+  getStatus(): 'ok' | 'error' | 'reconnecting' | 'unknown' {
+    return this.status;
+  }
+};
+
+/**
+ * Отримання статистики моніторингу
+ */
+export function getMonitorStats() {
+  return {
+    status: dbMonitor.status,
+    connection: DatabaseConnectionManager.getInstance().getCurrentConnectionInfo()
+  };
+}
+
+/**
+ * Отримання поточного статусу підключення до бази даних
+ * @returns Інформація про поточне підключення
+ */
+export function getConnectionStatus() {
+  return DatabaseConnectionManager.getInstance().getCurrentConnectionInfo();
+}
+
+/**
+ * Стан бази даних
+ */
+export const dbState = {
+  isConnected: false,
+  async update() {
+    this.isConnected = await testConnection();
+    return this.isConnected;
+  }
+};
+
+// Оновлюємо статус при ініціалізації
+dbState.update().catch(console.error);

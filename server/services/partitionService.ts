@@ -48,12 +48,33 @@ export class PartitionService {
   }
 
   /**
+   * Проверяет существование партиции
+   */
+  static async isPartitionExists(partitionName: string): Promise<boolean> {
+    try {
+      const result = await db.execute(sql`
+        SELECT EXISTS (
+          SELECT 1 FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE n.nspname = 'public' AND c.relname = ${partitionName}
+        );
+      `);
+      
+      return result.rows[0].exists;
+    } catch (error) {
+      console.error(`Error checking if partition ${partitionName} exists:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Создаёт партицию для указанной даты
    */
   static async createPartitionForDate(date: Date): Promise<{
     success: boolean;
     partition_name?: string;
     error?: string;
+    message?: string;
   }> {
     try {
       // Проверяем, не пересекается ли дата с future partition
@@ -79,6 +100,12 @@ export class PartitionService {
 
       // Создаем новую партицию напрямую
       await this.createPartitionDirect(date, partitionName);
+      
+      return {
+        success: true,
+        partition_name: partitionName,
+        message: 'Partition created successfully'
+      };
     } catch (error) {
       console.error('Error creating partition:', error);
       return {
@@ -88,6 +115,9 @@ export class PartitionService {
     }
   }
 
+  /**
+   * Создаёт партицию для указанной даты напрямую через SQL
+   */
   static async createPartitionDirect(date: Date, partitionName: string): Promise<void> {
     try {
       // Safely detach future partition
@@ -108,28 +138,32 @@ export class PartitionService {
         `);
       }
 
-    // Create new partition
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS ${sql.identifier(partitionName)} (
-        LIKE transactions INCLUDING ALL
-      );
+      // Create new partition
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS ${sql.identifier(partitionName)} (
+          LIKE transactions INCLUDING ALL
+        );
 
-      ALTER TABLE ${sql.identifier(partitionName)} ADD CONSTRAINT ${sql.identifier(`${partitionName}_date_check`)} 
-      CHECK (created_at >= ${format(date, 'yyyy-MM-dd')}::timestamp AND created_at < ${format(addDays(date, 1), 'yyyy-MM-dd')}::timestamp);
+        ALTER TABLE ${sql.identifier(partitionName)} ADD CONSTRAINT ${sql.identifier(`${partitionName}_date_check`)} 
+        CHECK (created_at >= ${format(date, 'yyyy-MM-dd')}::timestamp AND created_at < ${format(addDays(date, 1), 'yyyy-MM-dd')}::timestamp);
 
-      ALTER TABLE transactions ATTACH PARTITION ${sql.identifier(partitionName)}
-      FOR VALUES FROM (${format(date, 'yyyy-MM-dd')}) TO (${format(addDays(date, 1), 'yyyy-MM-dd')});
-    `);
+        ALTER TABLE transactions ATTACH PARTITION ${sql.identifier(partitionName)}
+        FOR VALUES FROM (${format(date, 'yyyy-MM-dd')}) TO (${format(addDays(date, 1), 'yyyy-MM-dd')});
+      `);
 
-    // Recreate future partition
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS transactions_future (
-        LIKE transactions INCLUDING ALL
-      );
+      // Recreate future partition
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS transactions_future (
+          LIKE transactions INCLUDING ALL
+        );
 
-      ALTER TABLE transactions ATTACH PARTITION transactions_future
-      FOR VALUES FROM (${format(addDays(date, 1), 'yyyy-MM-dd')}) TO (MAXVALUE);
-    `);
+        ALTER TABLE transactions ATTACH PARTITION transactions_future
+        FOR VALUES FROM (${format(addDays(date, 1), 'yyyy-MM-dd')}) TO (MAXVALUE);
+      `);
+    } catch (error) {
+      console.error('Error in createPartitionDirect:', error);
+      throw error;
+    }
   }
 
   /**

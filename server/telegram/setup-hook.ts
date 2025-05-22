@@ -43,6 +43,13 @@ function log(message: string, isError = false): void {
 /**
  * Налаштовує webhook для бота на вказаний URL
  */
+/**
+ * Налаштовує Telegram webhook (експортується під двома назвами для сумісності)
+ */
+export async function setupTelegramHook(webhookUrl: string): Promise<{ success: boolean; info?: any; error?: string }> {
+  return setupWebhook(webhookUrl);
+}
+
 export async function setupWebhook(webhookUrl: string): Promise<{ success: boolean; info?: any; error?: string }> {
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;

@@ -8,6 +8,29 @@
 import { Express, Request, Response } from 'express';
 import { setupWebhook, getWebhookInfo, setMenuButton } from './setup-hook';
 
+// Telegram Bot інстанс
+export const telegramBot = {
+  initialize: async (): Promise<boolean> => {
+    return await initializeBot();
+  },
+  setupRoutes: (app: Express): void => {
+    setupBotRoutes(app);
+  },
+  getStatus: async () => {
+    try {
+      return {
+        hasToken: Boolean(process.env.TELEGRAM_BOT_TOKEN),
+        miniAppUrl: process.env.MINI_APP_URL || process.env.APP_URL,
+        webhookUrl: process.env.TELEGRAM_WEBHOOK_URL,
+        menuText: BOT_MENU_TEXT
+      };
+    } catch (error) {
+      console.error('[Telegram Bot] Помилка при отриманні статусу бота:', error);
+      return { error: 'Помилка при отриманні статусу бота' };
+    }
+  }
+};
+
 // Налаштування для бота
 const BOT_MENU_TEXT = 'Открыть UniFarm';
 
@@ -142,3 +165,4 @@ async function handleBotStatus(req: Request, res: Response): Promise<void> {
     });
   }
 }
+
