@@ -537,8 +537,17 @@ export const pool = {
       throw new Error('Підключення до бази даних недоступне');
     }
     return poolInstance.connect();
+  },
+  end: async () => {
+    const poolInstance = await DatabaseConnectionManager.getInstance().getPool();
+    if (poolInstance) {
+      console.log('[DB] Закриття пулу підключень до бази даних');
+      return poolInstance.end();
+    }
+    console.log('[DB] Спроба закрити неіснуючий пул підключень (ігноруємо)');
+    return Promise.resolve();
   }
-};
+}
 
 /**
  * Функція для виконання запиту до бази даних з повторними спробами
