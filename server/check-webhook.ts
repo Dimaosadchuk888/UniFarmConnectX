@@ -1,214 +1,101 @@
 /**
- * Модуль для перевірки налаштувань webhook Telegram бота
+ * Модуль для перевірки та оновлення webhook Telegram бота
+ * 
+ * Цей модуль пропонує ендпоінт для перевірки стану webhook та його відновлення
+ * в разі потреби. Особливо корисний для діагностики проблем з Mini App.
  */
 
 import { Request, Response } from 'express';
-import fetch from 'node-fetch';
-
-// Інтерфейс для результату перевірки webhook
-interface WebhookCheckResult {
-  success: boolean;
-  botInfo?: {
-    username?: string;
-    first_name?: string;
-    id?: number;
-  };
-  webhookInfo?: {
-    url?: string;
-    has_custom_certificate?: boolean;
-    pending_update_count?: number;
-    last_error_date?: number;
-    last_error_message?: string;
-  };
-  webhookActions?: {
-    current: string;
-    expected: string;
-    needsUpdate: boolean;
-    updated?: boolean;
-    message?: string;
-    error?: string;
-  };
-  error?: string;
-}
+import { setupWebhook, getWebhookInfo } from './telegram/setup-hook';
+import logger from './utils/logger';
 
 /**
- * Обробник для перевірки налаштувань webhook
+ * Обробник запиту для перевірки та відновлення webhook
  */
-export async function checkWebhookHandler(req: Request, res: Response) {
+export async function checkWebhookHandler(req: Request, res: Response): Promise<void> {
   try {
-    const result: WebhookCheckResult = {
-      success: false
-    };
+    // Отримуємо інформацію про поточний стан webhook
+    const webhookInfo = await getWebhookInfo();
     
-    // Логируем запрос для отладки
-    console.log(`[Webhook Check] Received request with query:`, req.query);
+    let status = 'ok';
+    let needUpdate = false;
     
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    
-    if (!botToken) {
-      result.error = 'TELEGRAM_BOT_TOKEN не встановлено в змінних середовища';
-      return res.status(400).json(result);
-    }
-    
-    // Отримуємо інформацію про бота
-    try {
-      const botInfo = await callTelegramApi(botToken, 'getMe');
-      if (botInfo.ok) {
-        result.botInfo = {
-          username: botInfo.result.username,
-          first_name: botInfo.result.first_name,
-          id: botInfo.result.id
-        };
-      } else {
-        result.error = `Помилка отримання інформації про бота: ${botInfo.description || 'Невідома помилка'}`;
-        return res.status(400).json(result);
-      }
-    } catch (botError) {
-      const errorMessage = botError instanceof Error ? botError.message : String(botError);
-      result.error = `Помилка виклику методу getMe: ${errorMessage}`;
-      return res.status(500).json(result);
-    }
-    
-    // Отримуємо інформацію про webhook
-    try {
-      const webhookInfo = await callTelegramApi(botToken, 'getWebhookInfo');
-      if (webhookInfo.ok) {
-        result.webhookInfo = {
-          url: webhookInfo.result.url,
-          has_custom_certificate: webhookInfo.result.has_custom_certificate,
-          pending_update_count: webhookInfo.result.pending_update_count,
-          last_error_date: webhookInfo.result.last_error_date,
-          last_error_message: webhookInfo.result.last_error_message
-        };
-      } else {
-        result.error = `Помилка отримання інформації про webhook: ${webhookInfo.description || 'Невідома помилка'}`;
-        return res.status(400).json(result);
-      }
-    } catch (webhookError) {
-      result.error = `Помилка виклику методу getWebhookInfo: ${(webhookError as Error).message}`;
-      return res.status(500).json(result);
-    }
-    
-    // Перевіряємо URL для webhook
-    const appUrl = process.env.APP_URL || process.env.MINI_APP_URL || 
-      (process.env.REPLIT_SLUG ? `https://${process.env.REPLIT_SLUG}.${process.env.REPL_OWNER}.repl.co` : null);
-    
-    const expectedWebhook = process.env.TELEGRAM_WEBHOOK_URL || 
-      (appUrl ? `${appUrl}/api/telegram/webhook` : null);
-    
-    // Используем объект с настройками вместо функции
-    const webhookActionDefaults: WebhookCheckResult['webhookActions'] = {
-      current: result.webhookInfo?.url || 'не встановлено',
-      expected: expectedWebhook || 'не визначено',
-      needsUpdate: true,
-      updated: false,
-      message: '',
-      error: ''
-    };
-    
-    // Якщо webhook не встановлено або встановлено неправильно, пропонуємо оновити
-    if (!result.webhookInfo?.url || 
-        (expectedWebhook && result.webhookInfo.url !== expectedWebhook)) {
+    // Перевіряємо, чи правильно налаштований webhook
+    if (!webhookInfo.success) {
+      logger.warn('[Check Webhook] Не вдалося отримати інформацію про webhook:', webhookInfo.error);
+      status = 'error';
+      needUpdate = true;
+    } else if (!webhookInfo.info || !webhookInfo.info.url) {
+      logger.warn('[Check Webhook] Webhook URL не налаштований');
+      status = 'not_set';
+      needUpdate = true;
+    } else {
+      const expectedUrl = process.env.TELEGRAM_WEBHOOK_URL;
       
-      // Присваиваем базовый объект для действий с webhook
-      result.webhookActions = webhookActionDefaults;
+      if (expectedUrl && webhookInfo.info.url !== expectedUrl) {
+        logger.warn(`[Check Webhook] Налаштований webhook URL (${webhookInfo.info.url}) не відповідає очікуваному (${expectedUrl})`);
+        status = 'mismatch';
+        needUpdate = true;
+      }
+    }
+    
+    let updateResult = null;
+    
+    // Оновлюємо webhook, якщо потрібно
+    if (needUpdate && req.query.update === 'true') {
+      logger.info('[Check Webhook] Спроба оновлення webhook...');
       
-      // Якщо переданий параметр update=true, оновлюємо webhook
-      if (req.query.update === 'true' && expectedWebhook) {
-        try {
-          // Спочатку видаляємо поточний webhook
-          await callTelegramApi(botToken, 'deleteWebhook', {
-            drop_pending_updates: true
-          });
-          
-          // Потім встановлюємо новий
-          const setResult = await callTelegramApi(botToken, 'setWebhook', {
-            url: expectedWebhook,
-            drop_pending_updates: false,
-            allowed_updates: ['message', 'callback_query']
-          });
-          
-          if (setResult.ok) {
-            // Оновлюємо інформацію про webhook
-            const newWebhookInfo = await callTelegramApi(botToken, 'getWebhookInfo');
-            if (newWebhookInfo.ok) {
-              result.webhookInfo = {
-                url: newWebhookInfo.result.url,
-                has_custom_certificate: newWebhookInfo.result.has_custom_certificate,
-                pending_update_count: newWebhookInfo.result.pending_update_count,
-                last_error_date: newWebhookInfo.result.last_error_date,
-                last_error_message: newWebhookInfo.result.last_error_message
-              };
-            }
-            
-            // Обновляем информацию о действиях с webhook
-            result.webhookActions = {
-              ...webhookActionDefaults,
-              updated: true,
-              message: `Webhook успішно оновлено на ${expectedWebhook}`
-            };
-          } else {
-            // В случае ошибки от Telegram API
-            result.webhookActions = {
-              ...webhookActionDefaults,
-              updated: false,
-              error: setResult.description || 'Не вдалося оновити webhook'
-            };
-          }
-        } catch (updateError) {
-          const errorMessage = updateError instanceof Error ? updateError.message : String(updateError);
-          // В случае исключения при обновлении webhook
-          result.webhookActions = {
-              ...webhookActionDefaults,
-              updated: false,
-              error: errorMessage
-          };
+      const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL;
+      
+      if (!webhookUrl) {
+        logger.error('[Check Webhook] Неможливо оновити webhook: TELEGRAM_WEBHOOK_URL не встановлено');
+        return res.status(400).json({
+          success: false,
+          error: 'TELEGRAM_WEBHOOK_URL не встановлено в змінних середовища'
+        });
+      }
+      
+      updateResult = await setupWebhook(webhookUrl);
+      
+      if (!updateResult.success) {
+        logger.error('[Check Webhook] Не вдалося оновити webhook:', updateResult.error);
+      } else {
+        logger.info('[Check Webhook] Webhook успішно оновлено');
+        status = 'updated';
+        
+        // Отримуємо оновлену інформацію
+        const updatedInfo = await getWebhookInfo();
+        if (updatedInfo.success) {
+          webhookInfo.info = updatedInfo.info;
         }
       }
     }
     
-    result.success = true;
-    return res.json(result);
-    
+    // Формуємо відповідь
+    res.json({
+      success: true,
+      data: {
+        status,
+        needUpdate,
+        webhookInfo: webhookInfo.info,
+        expectedUrl: process.env.TELEGRAM_WEBHOOK_URL,
+        miniAppUrl: process.env.MINI_APP_URL || process.env.APP_URL,
+        updateResult: updateResult ? {
+          success: updateResult.success,
+          error: updateResult.error
+        } : null,
+        allowBrowserAccess: process.env.ALLOW_BROWSER_ACCESS === 'true',
+        timestamp: new Date().toISOString()
+      }
+    });
   } catch (error) {
-    console.error('[Webhook Check] Помилка:', error);
-    return res.status(500).json({
+    logger.error('[Check Webhook] Помилка при перевірці webhook:', 
+      error instanceof Error ? error.message : String(error));
+    
+    res.status(500).json({
       success: false,
-      error: `Внутрішня помилка сервера: ${(error as Error).message}`
+      error: 'Помилка при перевірці webhook',
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 }
-
-/**
- * Інтерфейс для відповіді Telegram API
- */
-interface TelegramResponse {
-  ok: boolean;
-  result?: any;
-  description?: string;
-  error_code?: number;
-}
-
-/**
- * Функція для виклику Telegram API
- */
-async function callTelegramApi(botToken: string, method: string, params: any = {}): Promise<TelegramResponse> {
-  const url = `https://api.telegram.org/bot${botToken}/${method}`;
-  
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(params)
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`HTTP помилка ${response.status}: ${errorText}`);
-  }
-  
-  return await response.json() as TelegramResponse;
-}
-
-export default checkWebhookHandler;

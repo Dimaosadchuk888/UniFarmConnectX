@@ -1,0 +1,63 @@
+Роль:
+Виконуй як Senior DevOps/Backend Engineer з глибоким розумінням PostgreSQL (Neon), Node.js, TypeScript, Telegram Bot API і продакшн-інфраструктури Replit.
+
+⸻
+
+Завдання:
+Мета — стабілізувати запуск UniFarm у продакшн і забезпечити повну працездатність Telegram Mini App.
+
+⸻
+
+1. Відновити таблицю transactions та створити партицію
+
+У базі Neon потрібно переконатися, що:
+ • Таблиця transactions існує
+ • Вона створена з підтримкою партицій за created_at
+ • Є хоча б одна партиція
+
+SQL-запити (можеш виконать через скрипт або вручну):
+
+CREATE TABLE IF NOT EXISTS transactions (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  amount NUMERIC NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+) PARTITION BY RANGE (created_at);
+
+CREATE TABLE IF NOT EXISTS transactions_2025_05_23 PARTITION OF transactions
+FOR VALUES FROM ('2025-05-23') TO ('2025-05-24');
+
+
+⸻
+
+2. Убрати аварійне завершення процесу при проблемах
+ • Перевір server/index.ts та start-unified.ts — замість process.exit() використовуй логування, щоб сервер не завершувався.
+ • Всі критичні помилки повинні логуватися, але не зупиняти Replit процес.
+
+⸻
+
+3. Перевірка webhook і Telegram Mini App
+ • Убедись, що webhook Telegram установлен корректно:
+
+https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook
+
+ • Проверь, что initData от Telegram обрабатывается и Mini App запускается без белого экрана. Проверь через /api/telegram/status и webapp.
+
+⸻
+
+4. Запрет на дублирование и автоматические workflow
+ • Не создавай новых маршрутов, файлов и workflow без крайней необходимости.
+ • Работай строго с текущей структурой .env, .replit, run.js, start.cjs и server/index.ts.
+
+⸻
+
+Дополнительная информация:
+ • Подключение Neon:
+postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
+ • Production URL:
+https://uni-farm-connect-x-lukyanenkolawfa.replit.app
+
+⸻
+
+Цель:
+Запустить стабильный backend-сервер с рабочей Telegram Mini App, которая успешно проходит initData, подключается к БД Neon, обрабатывает команды и запускается через Telegram интерфейс.
