@@ -91,10 +91,12 @@ export class TelegramBot {
   }
 
   /**
-   * Устанавливает URL для мини-приложения
+   * Устанавливает кнопку меню для мини-приложения
+   * @param menuData Данные для кнопки меню
+   * @returns Результат запроса к API
    */
-  async setMenuButton(menuButton: any): Promise<TelegramApiResponse> {
-    return await this.callApi('setMenuButton', menuButton);
+  async setChatMenuButton(menuData: any): Promise<TelegramApiResponse> {
+    return await this.callApi('setChatMenuButton', menuData);
   }
 
   /**
@@ -129,14 +131,15 @@ export class TelegramBot {
       
       // Устанавливаем кнопку меню с Mini App
       const menuButton = {
-        menu_button: {
-          type: 'web_app',
-          text: 'Открыть UniFarm',
-          web_app: { url: appUrl }
-        }
+        type: 'web_app',
+        text: 'Открыть UniFarm',
+        web_app: { url: appUrl }
       };
       
-      const menuResult = await this.setMenuButton(menuButton);
+      // Готовим данные для API запроса
+      const menuData = { menu_button: JSON.stringify(menuButton) };
+      
+      const menuResult = await this.setChatMenuButton(menuData);
       if (!menuResult.ok) {
         logger.error(`[TelegramBot] Ошибка при установке кнопки меню: ${menuResult.description}`);
       } else {

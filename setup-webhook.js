@@ -121,7 +121,8 @@ async function setCommands() {
 async function setMenuButton() {
   console.log('Настройка кнопки меню...');
   
-  const menuButton = {
+  // Використовуємо актуальний метод setChatMenuButton
+  const params = {
     menu_button: JSON.stringify({
       type: 'web_app',
       text: 'Открыть UniFarm',
@@ -129,7 +130,7 @@ async function setMenuButton() {
     })
   };
   
-  return await callTelegramApi('setMenuButton', menuButton);
+  return await callTelegramApi('setChatMenuButton', params);
 }
 
 /**
