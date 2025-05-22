@@ -8,7 +8,12 @@ import logger from '../utils/logger';
  * Получает URL текущего приложения в Replit
  */
 function getAppUrl(): string | null {
-  // В Replit URL приложения доступен через переменную среды REPL_SLUG и имя пользователя REPL_OWNER
+  // Приоритет - заданный вручную URL из переменных окружения
+  if (process.env.MINI_APP_URL) {
+    return process.env.MINI_APP_URL;
+  }
+  
+  // Затем проверяем переменные деплоя Replit
   const replSlug = process.env.REPL_SLUG;
   const replOwner = process.env.REPL_OWNER;
   const replitId = process.env.REPLIT_DEPLOYMENT_ID; // новый формат URL для Deployment
@@ -19,10 +24,10 @@ function getAppUrl(): string | null {
   } else if (replSlug && replOwner) {
     // Для Replit стандартный формат URL
     return `https://${replSlug}.${replOwner}.repl.co`;
-  } else {
-    // URL из переменных окружения
-    return process.env.MINI_APP_URL || null;
-  }
+  } 
+  
+  // Если ничего не нашли, используем хардкод для целевого URL
+  return 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
 }
 
 /**

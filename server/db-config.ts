@@ -109,22 +109,53 @@ export function getPoolOptions(type: DatabaseType): Partial<DbPoolConfig> {
 
 /**
  * Получает полную конфигурацию для подключения к БД
+ * @param alternateNumber - номер альтернативной строки подключения (0 - основная, >0 - альтернативные)
  * @returns Конфигурация пула подключений
  */
-export function getDbConfig(): PoolConfig {
+export function getDbConfig(alternateNumber: number = 0): PoolConfig {
   const dbType = getDatabaseType();
   const isProduction = process.env.NODE_ENV === 'production';
   
-  // Базовая проверка DATABASE_URL
-  if (!process.env.DATABASE_URL) {
+  // Выбираем строку подключения на основе номера альтернативы
+  let connectionString: string | undefined;
+  
+  if (alternateNumber === 0) {
+    // Основная строка подключения
+    connectionString = process.env.DATABASE_URL;
+  } else if (alternateNumber === 1) {
+    // Первая альтернатива - обычно основной Neon URL
+    connectionString = process.env.NEON_DB_URL || process.env.ALTERNATE_DB_URL;
+  } else if (alternateNumber === 2) {
+    // Вторая альтернатива - ALTERNATE_DB_URL_1 если есть
+    connectionString = process.env.ALTERNATE_DB_URL_1 || process.env.ALTERNATE_DB_URL;
+  } else if (alternateNumber === 3) {
+    // Третья альтернатива - ALTERNATE_DB_URL_2 если есть
+    connectionString = process.env.ALTERNATE_DB_URL_2 || process.env.ALTERNATE_DB_URL;
+  } else if (alternateNumber === 4) {
+    // Четвертая альтернатива - ALTERNATE_DB_URL_3 если есть
+    connectionString = process.env.ALTERNATE_DB_URL_3 || process.env.ALTERNATE_DB_URL;
+  } else {
+    // Основная альтернатива - ALTERNATE_DB_URL
+    connectionString = process.env.ALTERNATE_DB_URL;
+  }
+  
+  // Если ничего не нашли, возвращаемся к основной строке
+  if (!connectionString) {
+    connectionString = process.env.DATABASE_URL;
+  }
+  
+  // Базовая проверка строки подключения
+  if (!connectionString) {
     throw new Error(
-      "DATABASE_URL не задан. Возможно, база данных не настроена."
+      "Строка подключения к БД не задана. Возможно, база данных не настроена."
     );
   }
   
+  console.log(`[DB Config] Используем строку подключения #${alternateNumber}`);
+  
   // Основные настройки подключения
   const baseConfig = {
-    connectionString: process.env.DATABASE_URL,
+    connectionString,
     ssl: (dbType === DatabaseType.NEON || isProduction) 
       ? getSSLConfig(SSLMode.REQUIRE)
       : false

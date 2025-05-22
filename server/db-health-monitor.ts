@@ -258,8 +258,13 @@ export class DatabaseMonitor {
         attempts++;
         
         try {
-          // Получаем актуальную конфигурацию
-          const dbConfig = getDbConfig();
+          // Определяем номер альтернативной строки подключения
+          const alternateNumber = retry;
+          
+          // Получаем актуальную конфигурацию с учетом альтернативного URL
+          const dbConfig = getDbConfig(alternateNumber);
+          
+          console.log(`[DB Monitor] Попытка ${retry+1} со строкой подключения #${alternateNumber}`);
           
           // Создаем новый пул
           const newPool = new Pool(dbConfig);
@@ -389,7 +394,7 @@ export class DatabaseMonitor {
    * Обновляет внутренний пул и вызывает колбэки для обновления внешних ссылок
    * @param newPool Новый пул подключений
    */
-  private updatePool(newPool: Pool): void {
+  public updatePool(newPool: Pool): void {
     // Сохраняем предыдущее значение
     const oldPool = this.pool;
     

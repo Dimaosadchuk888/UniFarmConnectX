@@ -55,10 +55,43 @@ export async function testConnection(): Promise<boolean> {
 
 /**
  * Инициирует процесс переподключения к базе данных
+ * @param alternateNumber - номер альтернативной строки подключения (0 - основная, >0 - альтернативные)
  * @returns Promise<boolean> Результат переподключения
  */
-export async function reconnect(): Promise<boolean> {
-  return await dbMonitor.attemptReconnect();
+export async function reconnect(alternateNumber: number = 0): Promise<boolean> {
+  console.log(`[DB Connect] Попытка переподключения со строкой подключения #${alternateNumber}`);
+  
+  try {
+    // Создаем новый пул с нужной конфигурацией
+    const newPool = new Pool(getDbConfig(alternateNumber));
+    
+    // Пробуем подключиться
+    const client = await newPool.connect();
+    client.release();
+    
+    // Если подключение успешно, обновляем глобальные переменные
+    pool = newPool;
+    db = drizzle(newPool, { schema });
+    
+    // Обновляем мониторинг
+    dbMonitor.updatePool(newPool);
+    
+    console.log(`[DB Connect] Успешное переподключение со строкой подключения #${alternateNumber}`);
+    return true;
+  } catch (error) {
+    console.error(`[DB Connect] Ошибка переподключения со строкой подключения #${alternateNumber}:`, error);
+    
+    // Проверяем наличие следующих альтернативных строк подключения
+    const maxAlternatives = 5; // Максимальное количество альтернатив
+    
+    // Если у нас еще есть альтернативы, пробуем следующую
+    if (alternateNumber < maxAlternatives) {
+      console.log(`[DB Connect] Пробуем следующую альтернативную строку подключения #${alternateNumber + 1}`);
+      return await reconnect(alternateNumber + 1);
+    }
+    
+    return false;
+  }
 }
 
 /**
