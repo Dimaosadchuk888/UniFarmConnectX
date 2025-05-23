@@ -418,7 +418,10 @@ async function startServer(): Promise<void> {
   
   app.use(finalErrorHandler);
 
-  // Добавляем SPA fallback для всех остальных маршрутов (после API)
+  // Статичні файли для frontend (CSS, JS, assets)
+  app.use(express.static(path.join(__dirname, '../dist/public')));
+
+  // Добавляем SPA fallback для всех остальных маршрутов (після API та статичних файлів)
   const spaFallbackHandler = (req: Request, res: Response) => {
     const indexPath = path.join(__dirname, '../dist/public/index.html');
     

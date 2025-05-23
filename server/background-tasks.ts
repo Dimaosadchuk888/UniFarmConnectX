@@ -126,23 +126,19 @@ async function updateAllUsersFarming(): Promise<void> {
     
     console.log(`[Background Tasks] Starting hourly farming update - ${new Date().toISOString()}`);
     
-    // Получаем всех пользователей с активными депозитами UNI в новой таблице
-    const usersWithUniDeposits = await db
-      .select({
-        user_id: uniFarmingDeposits.user_id
-      })
-      .from(uniFarmingDeposits)
-      .where(eq(uniFarmingDeposits.is_active, true))
-      .groupBy(uniFarmingDeposits.user_id);
-
-    // Получаем всех пользователей с активными TON Boost-депозитами
-    const usersWithTonBoosts = await db
-      .select({
-        user_id: tonBoostDeposits.user_id
-      })
-      .from(tonBoostDeposits)
-      .where(eq(tonBoostDeposits.is_active, true))
-      .groupBy(tonBoostDeposits.user_id);
+    // Получаем всех пользователей с активными депозитами через сервисы
+    try {
+      const uniFarmingService = new NewUniFarmingService();
+      const tonBoostService = new TonBoostService();
+      
+      const usersWithUniDeposits = await uniFarmingService.getUsersWithActiveDeposits();
+      const usersWithTonBoosts = await tonBoostService.getUsersWithActiveDeposits();
+      
+      console.log(`[Background Tasks] Found ${usersWithUniDeposits.length} users with UNI deposits, ${usersWithTonBoosts.length} users with TON boosts`);
+    } catch (error) {
+      console.error('[Background Tasks] Error fetching users with deposits:', error);
+      return; // Пропускаем обновление при ошибке
+    }
 
     // Объединяем пользователей из обоих источников
     let activeUsers = [...usersWithUniDeposits.map(record => ({ id: record.user_id }))];

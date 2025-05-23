@@ -1,0 +1,89 @@
+PROMPT ДЛЯ АГЕНТА (Mission: UniFarm Recovery v2.0)
+
+Ціль: усунути всі залишкові production-помилки, які блокують завантаження Mini App у Telegram та браузері.
+
+⸻
+
+1. [CRITICAL] Чорний екран Mini App / Порожня сторінка у браузері
+
+Причина: Frontend (React + Vite) не віддається з сервера. Ймовірно:
+ • Немає коректного app.use('*', serveIndexHTML) у server/index.ts
+ • Або неправильно налаштовані шляхи до /dist/index.html у server/productionStatic.ts
+
+Завдання:
+ • Перевірити, що всі не-API маршрути (включно з /) віддають dist/index.html
+ • Якщо frontend route не існує — не має бути відповіді типу “Service Unavailable”
+ • Після фіксу — протестуй Telegram Mini App (повинен запустити клієнт)
+
+⸻
+
+2. [ERROR] __dirname is not defined у ESM
+
+Ймовірно вже частково виправлено, але перевірити всі місця, де __dirname чи __filename ще може бути використано без fileURLToPath.
+
+Рішення:
+
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+
+⸻
+
+3. [ERROR] Telegram Webhook 429 (Too Many Requests)
+
+Проблема:
+ • Telegram блокує надмірні запити на /setWebhook
+
+Рішення:
+ • Додати умову: перед встановленням нового webhook перевірити, чи існуючий вже заданий
+ • Telegram API: getWebhookInfo → не викликати setWebhook, якщо вже заданий
+
+⸻
+
+4. [ERROR] db.select is not a function
+
+Ймовірно, підключено не той інтерфейс БД.
+ • db.ts має експортувати узгоджений об’єкт із методами select, execute, insert, update
+
+Завдання:
+ • Перевірити файли:
+ • background-tasks.ts
+ • ReferralBonusProcessor.ts
+ • OptimizedReferralTreeService.ts
+ • Усі звернення до БД повинні йти через єдиний інтерфейс (не вручну)
+ • Виправити db.select, db.execute згідно з actual methods
+
+⸻
+
+5. [INFO] Partition Manager Errors
+
+Partition transactions_2025_05_27 already exists. Skipping...
+
+Це не критично, але бажано:
+ • Перевірити, чи CREATE PARTITION IF NOT EXISTS реалізований без помилок
+ • Логіку краще винести в safePartitionCreate.ts з try/catch
+
+⸻
+
+6. Після всіх виправлень:
+ 1. Перезібрати фронтенд (npm run build)
+ 2. Перевірити / і /health в браузері
+ 3. Перевірити Mini App через Telegram
+ 4. Пройти всі консолі: Logs → Errors only → перевірити, що немає критичних помилок
+
+⸻
+
+ВАЖЛИВО:
+ • Не змінюй структуру файлів
+ • Не видаляй middleware або production imports
+ • Не оновлюй Telegram token або .env змінні без погодження
+ • Протестуй результат до відповіді
+
+⸻
+
+Очікування: Наприкінці надай короткий звіт:
+ • Що саме було виправлено
+ • Які помилки залишились, якщо є
+ • Підтвердження, що Mini App успішно запускається в Telegram
