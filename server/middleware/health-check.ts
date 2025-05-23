@@ -28,21 +28,8 @@ export function healthCheckMiddleware(req: Request, res: Response, next: NextFun
         return res.status(200).end();
       }
       
-      // Для GET-запросов возвращаем простую HTML-страницу
-      return res.status(200).send(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>UniFarm API</title>
-            <meta charset="utf-8">
-          </head>
-          <body>
-            <h1>UniFarm API</h1>
-            <p>API сервер работает. Используйте Telegram для доступа к UniFarm.</p>
-            <p>Время сервера: ${new Date().toISOString()}</p>
-          </body>
-        </html>
-      `);
+      // Для GET-запросов возвращаем просто OK для проверок здоровья
+      return res.status(200).send('OK');
     }
     
     // Иначе продолжаем обработку запроса

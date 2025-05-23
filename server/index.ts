@@ -277,18 +277,37 @@ async function startServer(): Promise<void> {
       return res.status(200).send('OK');
     }
     
-    // Иначе, для обычных запросов возвращаем HTML страницу
+    // Отдаем фронтенд приложение
+    const indexPath = path.join(__dirname, '../dist/public/index.html');
+    
+    // Проверяем существование файла
+    if (fs.existsSync(indexPath)) {
+      logger.debug('[Frontend] Отдаем index.html фронтенда');
+      return res.sendFile(indexPath);
+    }
+    
+    // Fallback если dist не найден - отдаем базовый HTML для Mini App
+    logger.debug('[Frontend] dist/index.html не найден, возвращаем базовую страницу');
     res.status(200).send(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>UniFarm API</title>
+          <title>UniFarm</title>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+          <meta name="telegram-web-app-ready" content="true" />
+          <meta name="format-detection" content="telephone=no" />
+          <meta name="color-scheme" content="light dark" />
         </head>
         <body>
-          <h1>UniFarm API</h1>
-          <p>API сервер работает. Используйте Telegram для доступа к UniFarm.</p>
-          <p>Время сервера: ${new Date().toISOString()}</p>
+          <div id="root">
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
+              <div style="text-align: center;">
+                <h1>🌾 UniFarm</h1>
+                <p>Загрузка приложения...</p>
+              </div>
+            </div>
+          </div>
         </body>
       </html>
     `);
@@ -393,6 +412,22 @@ async function startServer(): Promise<void> {
   };
   
   app.use(finalErrorHandler);
+
+  // Добавляем SPA fallback для всех остальных маршрутов (после API)
+  const spaFallbackHandler = (req: Request, res: Response) => {
+    const indexPath = path.join(__dirname, '../dist/public/index.html');
+    
+    if (fs.existsSync(indexPath)) {
+      logger.debug('[SPA Fallback] Отдаем index.html для SPA маршрута:', req.originalUrl);
+      return res.sendFile(indexPath);
+    }
+    
+    // Fallback если dist не найден
+    logger.debug('[SPA Fallback] dist/index.html не найден, возвращаем 404');
+    res.status(404).send('Page not found');
+  };
+  
+  app.use('*', spaFallbackHandler as any);
 
   // В Replit при деплое необходимо слушать порт, указанный в переменной окружения PORT
   const port = parseInt(process.env.PORT || "3000", 10);
