@@ -99,11 +99,10 @@ async function main() {
       }
     }
     
-    // Определяем последовательность приоритета файлов для запуска
+    // ВИПРАВЛЕННЯ: Завжди використовуємо tsx для стабільної роботи database imports
     const potentialStartFiles = [
-      { path: './dist/index.js', command: 'node dist/index.js' },
-      { path: './server/index.js', command: 'node server/index.js' },
       { path: './server/index.ts', command: 'npx tsx server/index.ts' },
+      { path: './server/index.js', command: 'node server/index.js' },
       { path: './index.js', command: 'node index.js' }
     ];
     
