@@ -111,8 +111,9 @@ export function setupProductionStatic(app: Express): void {
     handleIndexHtmlRequest(req, res);
   });
 
-  // Fallback для рендеринга клиентской части на все остальные запросы, не начинающиеся с /api
-  app.get(/^(?!\/api\/).*$/, (req: Request, res: Response) => {
+  // Fallback для рендеринга клиентской части ТОЛЬКО для страниц приложения
+  // НЕ перехватываем статические ресурсы (JS, CSS, изображения)
+  app.get(/^(?!\/api\/|\/assets\/|.*\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)).*$/, (req: Request, res: Response) => {
     handleIndexHtmlRequest(req, res);
   });
 
