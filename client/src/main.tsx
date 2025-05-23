@@ -1,5 +1,5 @@
-// МИНИМАЛЬНАЯ ДИАГНОСТИЧЕСКАЯ ВЕРСИЯ
-console.log('🔬 ТЕСТ: JavaScript выполняется!');
+// МИНИМАЛЬНАЯ ДИАГНОСТИЧЕСКАЯ ВЕРСИЯ v2.0 - ПРИНУДИТЕЛЬНАЯ ОЧИСТКА КЕША
+console.log('🚀 НОВАЯ ВЕРСИЯ v2.0: JavaScript выполняется!');
 
 import { createRoot } from "react-dom/client";
 
