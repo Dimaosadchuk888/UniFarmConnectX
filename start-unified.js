@@ -14,23 +14,21 @@ import { createRequire } from 'module';
 // Создаем require функцию, которая может использоваться внутри ES модуля
 const require = createRequire(import.meta.url);
 
-// Set environment variables to prioritize in-memory storage if database fails
-// to ensure the app can run even when Neon DB is unavailable
-process.env.DATABASE_PROVIDER = 'memory';
-process.env.FORCE_MEMORY_STORAGE = 'true';
-process.env.ALLOW_MEMORY_FALLBACK = 'true';
-process.env.USE_MEMORY_SESSION = 'true';
-process.env.IGNORE_DB_CONNECTION_ERRORS = 'true';
+// Set environment variables for Production PostgreSQL
+// Use Neon DB as primary with Replit PostgreSQL as fallback
+process.env.DATABASE_PROVIDER = 'neon';
+process.env.FORCE_NEON_DB = 'true';
+process.env.DISABLE_MEMORY_STORAGE = 'true';
+process.env.USE_PRODUCTION_DB = 'true';
+process.env.ENABLE_DB_CONNECTION_RECOVERY = 'true';
 process.env.NODE_ENV = 'production';
-process.env.SKIP_PARTITION_CREATION = 'true';
-process.env.IGNORE_PARTITION_ERRORS = 'true';
-// Disable Telegram check for browser access
+// Enable production features
 process.env.SKIP_TELEGRAM_CHECK = 'true';
 process.env.ALLOW_BROWSER_ACCESS = 'true';
 
 // Log early DB configuration to verify settings
 console.log('===============================================');
-console.log('UNIFARM STARTUP - MEMORY STORAGE CONFIGURATION');
+console.log('UNIFARM STARTUP - PRODUCTION POSTGRESQL CONFIGURATION');
 console.log('===============================================');
 console.log('DATABASE_PROVIDER =', process.env.DATABASE_PROVIDER);
 console.log('FORCE_NEON_DB =', process.env.FORCE_NEON_DB);
