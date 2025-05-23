@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db } from './db-connect-unified';
 import { users, uniFarmingDeposits, tonBoostDeposits } from '@shared/schema';
 import { UniFarmingService } from './services/uniFarmingService';
 import { NewUniFarmingService } from './services/newUniFarmingService';

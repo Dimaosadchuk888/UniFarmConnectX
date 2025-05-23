@@ -50,6 +50,7 @@ interface WebhookResult {
   success: boolean;
   info?: any;
   error?: string;
+  message?: string;
 }
 
 export async function setupTelegramHook(webhookUrl: string): Promise<WebhookResult> {
@@ -82,6 +83,18 @@ export async function setupWebhook(webhookUrl: string): Promise<WebhookResult> {
       return {
         success: false,
         error: 'URL повинен використовувати HTTPS'
+      };
+    }
+    
+    // Спочатку перевіряємо поточний webhook щоб уникнути 429 помилки
+    log(`Перевіряємо поточний webhook перед встановленням нового...`);
+    
+    const currentWebhookInfo = await getWebhookInfo();
+    if (currentWebhookInfo.success && currentWebhookInfo.info?.url === webhookUrl) {
+      log(`Webhook вже встановлено на ${webhookUrl}, пропускаємо встановлення`);
+      return {
+        success: true,
+        message: 'Webhook вже встановлено на цей URL'
       };
     }
     
