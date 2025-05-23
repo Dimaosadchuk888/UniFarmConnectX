@@ -205,7 +205,7 @@ async function startServer(): Promise<void> {
   app.use(responseFormatter as any);
 
   // Middleware для логирования API запросов
-  app.use('/api', ((req: Request, res: Response, next: NextFunction) => {
+  const apiLoggingMiddleware: RequestHandler = (req, res, next) => {
     const start = Date.now();
     const path = req.path;
     let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -233,7 +233,9 @@ async function startServer(): Promise<void> {
     });
 
     next();
-  });
+  };
+  
+  app.use('/api', apiLoggingMiddleware);
 
   // Дополнительные логи отладки запросов
   if (process.env.DEBUG_API_REQUESTS === 'true') {
