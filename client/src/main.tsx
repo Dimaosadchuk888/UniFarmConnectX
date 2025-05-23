@@ -38,6 +38,13 @@ window.process = {
   } 
 } as any;
 
+// Создаём body если его нет (критическое исправление для document.body.appendChild)
+if (typeof document !== 'undefined' && !document.body) {
+  const body = document.createElement('body');
+  document.documentElement.appendChild(body);
+  console.log('[DOM] Создали body элемент');
+}
+
 // ЭТАП 1.1: СТРОГАЯ ПРОВЕРКА ЗАПУСКА ИЗ TELEGRAM
 // Проверяем, запущено ли приложение в Telegram до рендеринга
 const isTelegramEnvironment = isTelegramWebApp();
@@ -73,17 +80,33 @@ if (isTelegramEnvironment) {
   console.log('[TG CHECK] Приложение запущено не из Telegram');
 }
 
-// Рендеринг основного компонента завжди
-try {
-  const rootElement = document.getElementById("root");
-  if (rootElement) {
-    const root = createRoot(rootElement);
-    root.render(<App />);
-    console.log('[RENDER] ✅ React додаток успішно змонтовано');
-  } else {
-    console.error('[RENDER] ❌ Елемент #root не знайдено');
+// Функция для безопасного рендеринга React приложения
+function renderApp() {
+  try {
+    // Проверяем готовность DOM
+    if (!document.body) {
+      console.log('[RENDER] ⏳ DOM ещё не готов, ждём...');
+      setTimeout(renderApp, 50);
+      return;
+    }
+
+    const rootElement = document.getElementById("root");
+    if (rootElement) {
+      const root = createRoot(rootElement);
+      root.render(<App />);
+      console.log('[RENDER] ✅ React додаток успішно змонтовано');
+    } else {
+      console.error('[RENDER] ❌ Елемент #root не знайдено');
+    }
+  } catch (error) {
+    console.error('[RENDER] ❌ Помилка рендерингу:', error);
+    console.error('[RENDER] ❌ Стек помилки:', (error as Error).stack);
   }
-} catch (error) {
-  console.error('[RENDER] ❌ Помилка рендерингу:', error);
-  console.error('[RENDER] ❌ Стек помилки:', (error as Error).stack);
+}
+
+// Безопасный запуск рендеринга
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', renderApp);
+} else {
+  renderApp();
 }
