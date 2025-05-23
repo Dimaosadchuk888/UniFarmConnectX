@@ -239,30 +239,34 @@ async function startServer(): Promise<void> {
 
   // Дополнительные логи отладки запросов
   if (process.env.DEBUG_API_REQUESTS === 'true') {
-    app.use('/api', (req: Request, _res: Response, next: NextFunction) => {
+    const debugMiddleware: RequestHandler = (req, _res, next) => {
       if (req.path.startsWith('/api/')) {
         logger.debug('[АУДИТ] [' + new Date().toISOString() + '] Request to ' + req.method + ' ' + req.url);
         logger.debug('[АУДИТ] Headers:', JSON.stringify(req.headers, null, 2));
       }
       next();
-    });
+    };
+    
+    app.use('/api', debugMiddleware);
   }
 
   // Создаем отдельный роутер для маршрутов здоровья
   const healthRouter = Router();
 
   // Добавляем специальный маршрут для проверки здоровья
-  healthRouter.get('/health', (req: Request, res: Response): Response => {
+  const healthHandler = (req: Request, res: Response): Response => {
     logger.debug('[Health Check] Запрос к /health эндпоинту');
     return res.status(200).send({
       status: 'ok',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development'
     });
-  });
+  };
+  
+  healthRouter.get('/health', healthHandler);
 
   // Добавляем обработчик корневого маршрута для проверки здоровья
-  healthRouter.get('/', (req: Request, res: Response) => {
+  const rootHealthHandler = (req: Request, res: Response) => {
     logger.debug('[Health Check] Запрос к корневому маршруту');
     
     // Если это запрос для проверки здоровья от Replit
@@ -288,7 +292,9 @@ async function startServer(): Promise<void> {
         </body>
       </html>
     `);
-  });
+  };
+  
+  healthRouter.get('/', rootHealthHandler);
 
   // Подключаем роутер с маршрутами здоровья
   app.use('/', healthRouter);
