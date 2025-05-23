@@ -61,6 +61,8 @@ import express, {
 } from "express";
 import http from 'http';
 import { WebSocketServer } from 'ws';
+import path from 'path';
+import fs from 'fs';
 
 // Импорты для работы с базой данных
 import { testConnection, db, queryWithRetry, dbType, pool } from './db-connect-unified';
