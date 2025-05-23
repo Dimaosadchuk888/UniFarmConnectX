@@ -74,10 +74,10 @@ async function runProcess(command, args, options = {}) {
  */
 async function main() {
   console.log('===================================================');
-  console.log('  STARTING UNIFARM IN PRODUCTION MODE (MEMORY STORAGE)');
+  console.log('  STARTING UNIFARM IN PRODUCTION MODE (POSTGRESQL)');
   console.log('===================================================');
   console.log('Start time:', new Date().toISOString());
-  console.log('Database settings: FORCED MEMORY STORAGE (Neon DB unavailable)');
+  console.log('Database settings: NEON POSTGRESQL DATABASE');
   console.log('===================================================');
   
   try {
