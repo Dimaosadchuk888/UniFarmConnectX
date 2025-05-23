@@ -2,6 +2,11 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+// ESM підтримка для __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Проверяем, существует ли файл .env
 const envPath = path.resolve(process.cwd(), '.env');
@@ -61,8 +66,6 @@ import express, {
 } from "express";
 import http from 'http';
 import { WebSocketServer } from 'ws';
-import path from 'path';
-import fs from 'fs';
 
 // Импорты для работы с базой данных
 import { testConnection, db, queryWithRetry, dbType, pool } from './db-connect-unified';

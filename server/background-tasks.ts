@@ -73,7 +73,7 @@ async function initializeReferralProcessor(): Promise<void> {
     
     // В режиме разработки можно включить оптимизированный процессор
     if (process.env.USE_OPTIMIZED_REFERRALS === 'true') {
-      referralSystem.setOptimizedVersion(true);
+      referralSystem.enableOptimizedMode();
       console.log('[Background Tasks] Optimized referral system ENABLED');
     } else {
       console.log('[Background Tasks] Using standard referral system (optimized system available but disabled)');
