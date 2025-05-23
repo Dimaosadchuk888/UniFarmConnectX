@@ -103,59 +103,77 @@ html, body {
     @apply flex items-center justify-center transition-all duration-300;
   }
 
-  /* ИСПРАВЛЕНИЕ ЧИТАЕМОСТИ ТЕКСТА В ТЁМНОЙ ТЕМЕ */
+  /* 💜 КРАСИВАЯ ФИОЛЕТОВАЯ ТЕМА UNIFARM */
   
-  /* Базовый светлый текст для всех элементов */
+  /* Базовый элегантный фиолетовый текст */
   * {
-    color: var(--foreground) !important;
+    color: #E8D5FF !important;
   }
   
-  /* Заголовки и важный текст */
+  /* Заголовки - светлый фиолетовый с сиянием */
   h1, h2, h3, h4, h5, h6 {
-    color: #ffffff !important;
+    color: #F0E6FF !important;
+    text-shadow: 0 0 10px rgba(240, 230, 255, 0.3);
   }
   
-  /* Текст в карточках */
+  /* Текст в карточках - мягкий фиолетовый */
   .card, [class*="card"] {
-    color: #eaeaea !important;
+    color: #D1B3FF !important;
   }
   
-  /* Текст в блоках и контейнерах */
+  /* Текст в блоках и контейнерах - яркий фиолетовый */
   .block, .container, [class*="block"], [class*="container"] {
-    color: #ffffff !important;
+    color: #F0E6FF !important;
   }
   
-  /* Описания и подписи */
+  /* Описания и подписи - приглушенный фиолетовый */
   .text-sm, .text-xs, .text-muted, [class*="muted"] {
-    color: #cccccc !important;
+    color: #C4A3FF !important;
   }
   
-  /* Значения и числа */
+  /* Значения и числа - акцентный светлый фиолетовый */
   .text-lg, .text-xl, .text-2xl, .font-bold, .font-semibold {
-    color: #ffffff !important;
+    color: #F0E6FF !important;
+    text-shadow: 0 0 8px rgba(240, 230, 255, 0.4);
   }
   
-  /* Кнопки и интерактивные элементы */
+  /* Кнопки - градиентный фиолетовый текст */
   button, .button, [role="button"] {
-    color: #ffffff !important;
+    color: #F0E6FF !important;
   }
   
-  /* Специальные исправления для проблемных блоков */
+  /* Специальные блоки - фирменный фиолетовый */
   [class*="forecast"], [class*="partner"], [class*="referral"], [class*="mission"] {
-    color: #ffffff !important;
+    color: #F0E6FF !important;
   }
   
   [class*="forecast"] * {
-    color: #eaeaea !important;
+    color: #D1B3FF !important;
   }
   
   [class*="partner"] * {
-    color: #eaeaea !important;
+    color: #D1B3FF !important;
   }
   
-  /* Исправление для всех дочерних элементов */
+  /* Дочерние элементы наследуют фиолетовые цвета */
   .dark * {
     color: inherit !important;
+  }
+  
+  /* Дополнительные акценты для красоты */
+  .text-primary {
+    color: #D1B3FF !important;
+  }
+  
+  /* Навигационные элементы */
+  nav, .nav, [class*="nav"] {
+    color: #E8D5FF !important;
+  }
+  
+  /* Числовые значения и статистика */
+  .balance, .amount, .value, [class*="balance"], [class*="amount"], [class*="value"] {
+    color: #F0E6FF !important;
+    text-shadow: 0 0 12px rgba(209, 179, 255, 0.5);
   }
 }
 
