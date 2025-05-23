@@ -102,6 +102,61 @@ html, body {
   .nav-icon-container {
     @apply flex items-center justify-center transition-all duration-300;
   }
+
+  /* ИСПРАВЛЕНИЕ ЧИТАЕМОСТИ ТЕКСТА В ТЁМНОЙ ТЕМЕ */
+  
+  /* Базовый светлый текст для всех элементов */
+  * {
+    color: var(--foreground) !important;
+  }
+  
+  /* Заголовки и важный текст */
+  h1, h2, h3, h4, h5, h6 {
+    color: #ffffff !important;
+  }
+  
+  /* Текст в карточках */
+  .card, [class*="card"] {
+    color: #eaeaea !important;
+  }
+  
+  /* Текст в блоках и контейнерах */
+  .block, .container, [class*="block"], [class*="container"] {
+    color: #ffffff !important;
+  }
+  
+  /* Описания и подписи */
+  .text-sm, .text-xs, .text-muted, [class*="muted"] {
+    color: #cccccc !important;
+  }
+  
+  /* Значения и числа */
+  .text-lg, .text-xl, .text-2xl, .font-bold, .font-semibold {
+    color: #ffffff !important;
+  }
+  
+  /* Кнопки и интерактивные элементы */
+  button, .button, [role="button"] {
+    color: #ffffff !important;
+  }
+  
+  /* Специальные исправления для проблемных блоков */
+  [class*="forecast"], [class*="partner"], [class*="referral"], [class*="mission"] {
+    color: #ffffff !important;
+  }
+  
+  [class*="forecast"] * {
+    color: #eaeaea !important;
+  }
+  
+  [class*="partner"] * {
+    color: #eaeaea !important;
+  }
+  
+  /* Исправление для всех дочерних элементов */
+  .dark * {
+    color: inherit !important;
+  }
 }
 
 /* Анимации и эффекты */
