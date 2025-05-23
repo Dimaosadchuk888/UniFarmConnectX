@@ -3,7 +3,7 @@
  * Автоматически выполняет повторное подключение при потере соединения
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { testDatabaseConnection, reconnect } from '../db';
 import logger from '../utils/logger';
 

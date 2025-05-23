@@ -51,7 +51,14 @@ process.env.SKIP_PARTITION_CREATION = 'true';
 process.env.IGNORE_PARTITION_ERRORS = 'true';
 
 // Импорты для работы с Express и базовыми модулями
-import express, { type Request, Response, NextFunction, Router } from "express";
+import express, { 
+  type Request, 
+  type Response, 
+  type NextFunction, 
+  Router,
+  type RequestHandler,
+  type ErrorRequestHandler 
+} from "express";
 import http from 'http';
 import { WebSocketServer } from 'ws';
 
@@ -189,7 +196,7 @@ async function startServer(): Promise<void> {
   }));
 
   // Регистрируем middleware для проверки подключения к БД
-  app.use(databaseErrorHandler as express.RequestHandler);
+  app.use(databaseErrorHandler as unknown as RequestHandler);
   
   // Регистрируем middleware для проверки здоровья приложения
   app.use(healthCheckMiddleware as express.RequestHandler);
@@ -198,7 +205,7 @@ async function startServer(): Promise<void> {
   app.use(responseFormatter as any);
 
   // Middleware для логирования API запросов
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  app.use('/api', (req: Request, res: Response, next: NextFunction) => {
     const start = Date.now();
     const path = req.path;
     let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -230,7 +237,7 @@ async function startServer(): Promise<void> {
 
   // Дополнительные логи отладки запросов
   if (process.env.DEBUG_API_REQUESTS === 'true') {
-    app.use((req: Request, _res: Response, next: NextFunction) => {
+    app.use('/api', (req: Request, _res: Response, next: NextFunction) => {
       if (req.path.startsWith('/api/')) {
         logger.debug('[АУДИТ] [' + new Date().toISOString() + '] Request to ' + req.method + ' ' + req.url);
         logger.debug('[АУДИТ] Headers:', JSON.stringify(req.headers, null, 2));
