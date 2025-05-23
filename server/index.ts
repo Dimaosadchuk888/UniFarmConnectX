@@ -300,7 +300,7 @@ async function startServer(): Promise<void> {
   app.use('/', healthRouter);
 
   // Добавление обработчика для Telegram WebApp параметров
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  const telegramWebAppMiddleware: RequestHandler = (req, res, next) => {
     // Получаем источник запроса
     const origin = req.headers.origin || '*';
 
@@ -331,7 +331,9 @@ async function startServer(): Promise<void> {
     }
 
     next();
-  });
+  };
+  
+  app.use(telegramWebAppMiddleware);
 
   // Создаем HTTP сервер на основе Express приложения
   const server = http.createServer(app);
@@ -362,14 +364,18 @@ async function startServer(): Promise<void> {
   }
 
   // Регистрируем централизованный обработчик ошибок
-  app.use((err: any, req: Request, res: Response, next: NextFunction) => 
-    errorHandler(err, req, res, next));
+  const centralErrorHandler: ErrorRequestHandler = (err, req, res, next) => 
+    errorHandler(err, req, res, next);
+  
+  app.use(centralErrorHandler);
 
   // Добавляем health check endpoint перед статическими файлами
-  app.get('/health', (req: Request, res: Response) => {
+  const mainHealthHandler = (req: Request, res: Response) => {
     logger.debug('[Health Check] Запрос к health endpoint');
     return res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
-  });
+  };
+  
+  app.get('/health', mainHealthHandler);
 
   // Настраиваем обработку статических файлов в зависимости от окружения
   if (app.get("env") === "development") {
@@ -381,8 +387,10 @@ async function startServer(): Promise<void> {
   }
   
   // Еще раз регистрируем централизованный обработчик ошибок
-  app.use((err: any, req: Request, res: Response, next: NextFunction) => 
-    errorHandler(err, req, res, next));
+  const finalErrorHandler: ErrorRequestHandler = (err, req, res, next) => 
+    errorHandler(err, req, res, next);
+  
+  app.use(finalErrorHandler);
 
   // В Replit при деплое необходимо слушать порт, указанный в переменной окружения PORT
   const port = parseInt(process.env.PORT || "3000", 10);
@@ -395,7 +403,7 @@ async function startServer(): Promise<void> {
     // После запуска сервера автоматически настраиваем Telegram вебхук
     if (process.env.TELEGRAM_BOT_TOKEN) {
       logger.info('[Server] Запуск автоматической настройки Telegram бота...');
-      setupTelegramHook(app).catch(error => {
+      setupTelegramHook().catch(error => {
         logger.error('[Server] Ошибка при настройке Telegram вебхука:', error);
         logger.info('[Server] Настройку Telegram бота можно выполнить вручную через /api/telegram/setup');
       });
