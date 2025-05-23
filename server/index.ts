@@ -350,47 +350,20 @@ async function startServer(): Promise<void> {
   app.use((err: any, req: Request, res: Response, next: NextFunction) => 
     errorHandler(err, req, res, next));
 
-  // Настраиваем обработку статических файлов в зависимости от окружения
-  if (app.get("env") === "development") {
-    logger.info('[Server] Запуск в режиме разработки (development), используем Vite middleware');
-    await setupVite(app, server);
-  } else {
-    logger.info('[Server] Запуск в production режиме, используем оптимизированную обработку статических файлов');
-    setupProductionStatic(app);
-  }
-
-  // Добавляем обработчик корневого маршрута только для проверки здоровья
+  // Добавляем health check endpoint перед статическими файлами
   app.get('/health', (req: Request, res: Response) => {
     logger.debug('[Health Check] Запрос к health endpoint');
-    return res.status(200).send('OK');
+    return res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
   });
-  
-  // Fallback для SPA - все не-API маршруты направляем на клиентское приложение
-  app.get('*', (req: Request, res: Response) => {
-    // Проверяем, является ли запрос API запросом
-    if (req.originalUrl.startsWith('/api/')) {
-      return res.status(404).json({
-        success: false,
-        error: 'API endpoint not found'
-      });
-    }
-    
-    // Для всех остальных маршрутов - позволяем статическим файлам обработать
-    // В development это будет Vite, в production - статические файлы
-    logger.debug(`[SPA Fallback] Обрабатываем маршрут: ${req.originalUrl}`);
-    
-    // Если это production, попробуем отдать index.html
-    if (app.get("env") !== "development") {
-      try {
-        return res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
-      } catch (error) {
-        logger.error('[SPA Fallback] Ошибка при отдаче index.html:', error);
-      }
-    }
-    
-    // В development или если файл не найден - 404
-    return res.status(404).send('Page not found');
-  });
+
+  // Настраиваем обработку статических файлов в зависимости от окружения
+  if (app.get("env") === "development") {
+    logger.info('[Server] 🔧 Запуск в режиме разработки (development), используем Vite middleware');
+    await setupVite(app, server);
+  } else {
+    logger.info('[Server] 🚀 Запуск в production режиме, используем оптимизированную обработку статических файлов');
+    setupProductionStatic(app);
+  }
   
   // Еще раз регистрируем централизованный обработчик ошибок
   app.use((err: any, req: Request, res: Response, next: NextFunction) => 

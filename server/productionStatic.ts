@@ -21,9 +21,10 @@ export function setupProductionStatic(app: Express): void {
   
   // Определяем возможные пути к собранным статическим файлам
   const possiblePaths = [
-    path.resolve(projectRoot, "dist", "public"), // Основной путь после сборки
-    path.resolve(projectRoot, "server", "public"), // Резервный путь для статических ресурсов сервера
-    path.resolve(projectRoot, "client", "dist")  // Альтернативный путь для режима разработки
+    path.resolve(projectRoot, "dist", "public"), // Основной путь после сборки Vite
+    path.resolve(projectRoot, "dist"), // Альтернативный путь для обычной сборки
+    path.resolve(projectRoot, "client", "dist"), // Путь для режима разработки
+    path.resolve(projectRoot, "server", "public") // Резервный путь для статических ресурсов сервера
   ];
   
   // Функция для обработки запросов index.html
