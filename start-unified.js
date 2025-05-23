@@ -119,11 +119,11 @@ async function main() {
         // Создаем единую среду с приоритетом использования in-memory хранилища
         const envVars = {
           ...process.env,
-          DATABASE_PROVIDER: 'memory',
-          FORCE_MEMORY_STORAGE: 'true',
-          ALLOW_MEMORY_FALLBACK: 'true',
-          USE_MEMORY_SESSION: 'true',
-          IGNORE_DB_CONNECTION_ERRORS: 'true',
+          DATABASE_PROVIDER: 'neon',
+          FORCE_NEON_DB: 'true',
+          USE_NEON_DB: 'true',
+          ALLOW_MEMORY_FALLBACK: 'false',
+          IGNORE_DB_CONNECTION_ERRORS: 'false',
           NODE_ENV: 'production',
           PORT: port.toString(),
           SKIP_PARTITION_CREATION: 'true',
