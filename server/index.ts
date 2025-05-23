@@ -205,7 +205,7 @@ async function startServer(): Promise<void> {
   app.use(responseFormatter as any);
 
   // Middleware для логирования API запросов
-  app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  app.use('/api', ((req: Request, res: Response, next: NextFunction) => {
     const start = Date.now();
     const path = req.path;
     let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -250,7 +250,7 @@ async function startServer(): Promise<void> {
   const healthRouter = Router();
 
   // Добавляем специальный маршрут для проверки здоровья
-  healthRouter.get('/health', (req: Request, res: Response) => {
+  healthRouter.get('/health', (req: Request, res: Response): Response => {
     logger.debug('[Health Check] Запрос к /health эндпоинту');
     return res.status(200).send({
       status: 'ok',
