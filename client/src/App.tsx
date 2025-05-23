@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Switch, Route, useLocation, useRoute } from "wouter";
-// Импортируем исправленный queryClient, который не использует Map для проблемных запросов
-import { safeQueryClient } from "./lib/queryClientFixed";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
