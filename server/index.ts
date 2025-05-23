@@ -359,40 +359,14 @@ async function startServer(): Promise<void> {
     setupProductionStatic(app);
   }
 
-  // Добавляем обработчик корневого маршрута для проверки здоровья
-  app.get('/', (req: Request, res: Response) => {
-    logger.debug('[Health Check] Запрос к корневому маршруту');
-    
-    // Если это запрос для проверки здоровья от Replit
-    if (req.query.health === 'check' || 
-        req.headers['user-agent']?.includes('Replit') || 
-        req.headers['x-replit-deployment-check']) {
-      return res.status(200).send('OK');
-    }
-    
-    // Иначе, перенаправляем на Telegram Mini App
-    if (process.env.TELEGRAM_BOT_USERNAME) {
-      return res.redirect(`https://t.me/${process.env.TELEGRAM_BOT_USERNAME}`);
-    }
-    
-    // Если бот не настроен, показываем стандартную страницу
-    return res.send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>UniFarm API</title>
-          <meta charset="utf-8">
-        </head>
-        <body>
-          <h1>UniFarm API</h1>
-          <p>API сервер работает. Перейдите в Telegram для доступа к UniFarm.</p>
-        </body>
-      </html>
-    `);
+  // Добавляем обработчик корневого маршрута только для проверки здоровья
+  app.get('/health', (req: Request, res: Response) => {
+    logger.debug('[Health Check] Запрос к health endpoint');
+    return res.status(200).send('OK');
   });
   
-  // Добавляем обработчик для всех остальных запросов к API
-  app.use('*', (req: Request, res: Response) => {
+  // Fallback для SPA - все не-API маршруты направляем на клиентское приложение
+  app.get('*', (req: Request, res: Response) => {
     // Проверяем, является ли запрос API запросом
     if (req.originalUrl.startsWith('/api/')) {
       return res.status(404).json({
@@ -401,8 +375,21 @@ async function startServer(): Promise<void> {
       });
     }
     
-    // Для не-API запросов перенаправляем на корневой маршрут
-    return res.redirect('/');
+    // Для всех остальных маршрутов - позволяем статическим файлам обработать
+    // В development это будет Vite, в production - статические файлы
+    logger.debug(`[SPA Fallback] Обрабатываем маршрут: ${req.originalUrl}`);
+    
+    // Если это production, попробуем отдать index.html
+    if (app.get("env") !== "development") {
+      try {
+        return res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+      } catch (error) {
+        logger.error('[SPA Fallback] Ошибка при отдаче index.html:', error);
+      }
+    }
+    
+    // В development или если файл не найден - 404
+    return res.status(404).send('Page not found');
   });
   
   // Еще раз регистрируем централизованный обработчик ошибок
