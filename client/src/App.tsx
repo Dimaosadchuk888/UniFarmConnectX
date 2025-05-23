@@ -342,7 +342,7 @@ function App() {
   };
 
   return (
-    <QueryClientProvider client={safeQueryClient}>
+    <QueryClientProvider client={queryClient}>
       <TonConnectUIProvider manifestUrl="https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json">
         {/* Компонент для автоматической инициализации Telegram WebApp */}
         <TelegramInitializer />

@@ -30,8 +30,13 @@ interface ProcessEnv {
   env: Record<string, string | undefined>
 }
 
-// Устанавливаем глобальный процесс, который требуется некоторым библиотекам
-window.process = { env: {} } as any;
+// Устанавливаем глобальный процесс с правильными переменными окружения
+window.process = { 
+  env: { 
+    NODE_ENV: 'production',
+    VITE_APP_ENV: 'production'
+  } 
+} as any;
 
 // ЭТАП 1.1: СТРОГАЯ ПРОВЕРКА ЗАПУСКА ИЗ TELEGRAM
 // Проверяем, запущено ли приложение в Telegram до рендеринга
