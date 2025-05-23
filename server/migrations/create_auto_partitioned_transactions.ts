@@ -11,7 +11,7 @@
  * 7. Создает необходимые индексы
  */
 
-import { Pool } from '@neondatabase/serverless';
+import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import { format, addDays } from 'date-fns';
 
@@ -283,8 +283,7 @@ export async function runMigration() {
 }
 
 // Если скрипт запускается напрямую, выполняем миграцию
-// @ts-ignore
-if (import.meta.url === import.meta.main) {
+if (typeof import.meta !== 'undefined' && 'url' in import.meta && 'main' in import.meta) {
   runMigration()
     .then(() => {
       console.log('Migration completed successfully');

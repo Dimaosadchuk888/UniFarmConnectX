@@ -380,7 +380,7 @@ async function startServer(): Promise<void> {
     // После запуска сервера автоматически настраиваем Telegram вебхук
     if (process.env.TELEGRAM_BOT_TOKEN) {
       logger.info('[Server] Запуск автоматической настройки Telegram бота...');
-      setupTelegramHook().catch(error => {
+      setupTelegramHook(app).catch(error => {
         logger.error('[Server] Ошибка при настройке Telegram вебхука:', error);
         logger.info('[Server] Настройку Telegram бота можно выполнить вручную через /api/telegram/setup');
       });
