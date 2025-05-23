@@ -421,8 +421,14 @@ async function startServer(): Promise<void> {
   // Статичні файли для frontend (CSS, JS, assets)
   app.use(express.static(path.join(__dirname, '../dist/public')));
 
-  // Добавляем SPA fallback для всех остальных маршрутов (після API та статичних файлів)
+  // Добавляем SPA fallback ТОЛЬКО для не-API маршрутов
   const spaFallbackHandler = (req: Request, res: Response) => {
+    // НЕ обрабатываем API запросы - они должны идти через API роуты
+    if (req.originalUrl.startsWith('/api/')) {
+      logger.debug('[SPA Fallback] Пропускаем API запрос:', req.originalUrl);
+      return res.status(404).json({ success: false, error: 'API endpoint not found' });
+    }
+    
     const indexPath = path.join(__dirname, '../dist/public/index.html');
     
     if (fs.existsSync(indexPath)) {

@@ -28,11 +28,36 @@ window.process = {
   } 
 } as any;
 
-// Создаём body если его нет
-if (typeof document !== 'undefined' && !document.body) {
-  const body = document.createElement('body');
-  document.documentElement.appendChild(body);
-  console.log('[DOM] Создали body элемент');
+// Безопасная инициализация DOM
+function ensureDOMReady() {
+  if (typeof document === 'undefined') {
+    console.warn('[DOM] Document недоступен');
+    return false;
+  }
+  
+  // Создаём body если его нет
+  if (!document.body) {
+    try {
+      const body = document.createElement('body');
+      if (document.documentElement) {
+        document.documentElement.appendChild(body);
+        console.log('[DOM] ✅ Создали body элемент');
+      } else {
+        console.error('[DOM] ❌ documentElement недоступен');
+        return false;
+      }
+    } catch (error) {
+      console.error('[DOM] ❌ Ошибка создания body:', error);
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+// Проверяем DOM готовность
+if (!ensureDOMReady()) {
+  console.error('[DOM] ❌ Не удалось подготовить DOM');
 }
 
 // Проверяем, запущено ли приложение в Telegram
@@ -67,24 +92,39 @@ if (isTelegramEnvironment) {
 
 // Функция для безопасного рендеринга React приложения
 function renderApp() {
+  console.log('[RENDER] 🔄 Начинаем рендеринг React приложения...');
+  
   try {
     // Проверяем готовность DOM
     if (!document.body) {
-      console.log('[RENDER] ⏳ DOM ещё не готов, ждём...');
+      console.log('[DOM] ⏳ DOM ещё не готов, ждём...');
       setTimeout(renderApp, 50);
       return;
     }
+    
+    console.log('[DOM] ✅ DOM готов');
 
     const rootElement = document.getElementById("root");
     if (rootElement) {
+      console.log('[RENDER] ✅ Элемент #root найден, создаём React root...');
       const root = createRoot(rootElement);
+      
+      console.log('[RENDER] 🚀 Запускаем рендеринг App компонента...');
       root.render(<App />);
-      console.log('[RENDER] ✅ UniFarm React приложение успешно запущено');
+      
+      console.log('[RENDER] ✅ App - UniFarm React приложение успешно смонтировано');
+      console.log('[TG INIT] Статус инициализации Telegram:', (window as any).__telegram_initialized ? '✅ ГОТОВО' : '⏳ В процессе');
     } else {
-      console.error('[RENDER] ❌ Элемент #root не найден');
+      console.error('[RENDER] ❌ Элемент #root не найден в DOM');
+      // Пробуем создать root элемент
+      const rootDiv = document.createElement('div');
+      rootDiv.id = 'root';
+      document.body.appendChild(rootDiv);
+      console.log('[RENDER] 🔧 Создали элемент #root, повторяем рендеринг...');
+      setTimeout(renderApp, 100);
     }
   } catch (error) {
-    console.error('[RENDER] ❌ Ошибка рендеринга UniFarm:', error);
+    console.error('[RENDER] ❌ Критическая ошибка рендеринга UniFarm:', error);
     console.error('[RENDER] ❌ Стек ошибки:', (error as Error).stack);
   }
 }

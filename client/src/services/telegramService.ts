@@ -129,20 +129,24 @@ export function initTelegramWebApp(): boolean {
     try {
       // Сообщаем Telegram, что приложение готово
       window.Telegram.WebApp.ready();
-      console.log('[telegramService] WebApp.ready() called successfully');
+      console.log('[TG INIT] ✅ WebApp.ready() called successfully');
       
       // Расширяем окно до максимальной высоты
       window.Telegram.WebApp.expand();
-      console.log('[telegramService] WebApp.expand() called successfully');
+      console.log('[TG INIT] ✅ WebApp.expand() called successfully');
       
       // Настраиваем базовый UI для лучшей интеграции
       if (window.Telegram.WebApp.MainButton) {
         window.Telegram.WebApp.MainButton.hide();
       }
       
+      // ВАЖНО: Помечаем как инициализированный
+      (window as any).__telegram_initialized = true;
+      console.log('[TG INIT] ✅ DONE - Telegram WebApp полностью инициализирован');
+      
       return true;
     } catch (error) {
-      console.error('[telegramService] Error initializing Telegram WebApp:', error);
+      console.error('[TG INIT] ❌ Error initializing Telegram WebApp:', error);
       return false;
     }
   }

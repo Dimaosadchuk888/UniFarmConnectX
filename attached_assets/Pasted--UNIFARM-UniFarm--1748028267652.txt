@@ -1,0 +1,45 @@
+ТЕХНІЧНЕ ЗАВДАННЯ — УСУНЕННЯ КРИТИЧНИХ ПОМИЛОК UNIFARM
+
+Ціль: Завершити повну стабілізацію UniFarm, усунувши всі критичні проблеми, які блочать Production.
+
+⸻
+
+ЧАСТИНА 1: Обробка 4 критичних проблем
+ 1. [CRITICAL] API повертає HTML замість JSON
+ • Перевірити усі маршрути /api/**
+ • Забезпечити, що всі API-ендпоінти відповідають строго у форматі JSON
+ • Виправити middleware/regex у server/index.ts або productionStatic.ts, які перехоплюють запити /api/ і перенаправляють на SPA
+ 2. [CRITICAL] DOM помилка — document.body.appendChild
+ • Перевірити ініціалізацію DOM у main.tsx або App.tsx
+ • Додати перевірку document.readyState та DOMContentLoaded
+ • Забезпечити, що DOM доступний перед вставкою елементів
+ 3. [CRITICAL] Telegram WebApp не вважає себе ініціалізованим
+ • Відсутній статус ініціалізації [TG INIT OK]
+ • Перевірити, чи викликається Telegram.WebApp.ready()
+ • Додати логування у консоль — [TG INIT: DONE] після повної ініціалізації
+ 4. [CRITICAL] Відсутність React логів
+ • Перевірити, чи монтується React-компонент у <div id="root">
+ • Додати логування: [RENDER: App], [DOM Ready], [TG INIT]
+ • Перевірити, чи правильно виконується ReactDOM.createRoot(...).render(...)
+
+⸻
+
+ЧАСТИНА 2: Перевірити та підтвердити 6 серверних помилок
+ 1. Webhook 429 Too Many Requests — перевірити throttle логіку, не дублюється чи виклик webhook
+ 2. db.select is not a function — перевірити імпорти в ReferralBonusProcessor
+ 3. this.db.execute is not a function — перевірити OptimizedReferralTreeService
+ 4. migrateRefCodes викликає помилку — чи правильно підключений db
+ 5. Referral processor init error — перевірити логіку ініціалізації
+ 6. Всі server/background-tasks.ts мають працювати з PostgreSQL, а не з memory
+
+⸻
+
+УМОВИ РОБОТИ
+ • Нічого не змінювати без потреби
+ • Не створювати нові дублікати файлів
+ • Після кожного пункту — звіт із позначкою ✅, ⚠️ або ❌
+ • Усе виправлення повинно залишити додаток працездатним і стабільним
+
+⸻
+
+Після усунення всіх пунктів буде дозволено завершальний деплой. Якщо згодні — відразу приступайте до виконання.
