@@ -58,8 +58,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initTelegramWebApp();
 });
 
-// Всегда используем основное приложение независимо от того, откуда оно запущено
-let ComponentToRender = App;
+// ВИПРАВЛЕННЯ: Завжди рендеримо основний додаток для усунення чорного екрану
+console.log('[RENDER] Запуск React додатку...');
 
 // Для отладки записываем информацию о среде
 if (isTelegramEnvironment) {
@@ -68,6 +68,16 @@ if (isTelegramEnvironment) {
   console.log('[TG CHECK] Приложение запущено не из Telegram');
 }
 
-// Рендеринг выбранного компонента
-const root = createRoot(document.getElementById("root")!);
-root.render(<ComponentToRender />);
+// Рендеринг основного компонента завжди
+try {
+  const rootElement = document.getElementById("root");
+  if (rootElement) {
+    const root = createRoot(rootElement);
+    root.render(<App />);
+    console.log('[RENDER] ✅ React додаток успішно змонтовано');
+  } else {
+    console.error('[RENDER] ❌ Елемент #root не знайдено');
+  }
+} catch (error) {
+  console.error('[RENDER] ❌ Помилка рендерингу:', error);
+}
