@@ -173,9 +173,9 @@ async function startServer(): Promise<void> {
           checkPeriod: 86400000 // Очистка устаревших сессий каждые 24 часа
         }) 
       : new PgStore({
-          pool,
-          tableName: 'session', // Имя таблицы для хранения сессий
-          createTableIfMissing: true // Создаем таблицу, если она отсутствует
+          pool: pool as any, // Временное приведение типа для совместимости с connect-pg-simple
+          tableName: 'session',
+          createTableIfMissing: true
         }),
     secret: process.env.SESSION_SECRET || 'UniFarm_secret_key_change_in_production',
     resave: false,
@@ -189,10 +189,10 @@ async function startServer(): Promise<void> {
   }));
 
   // Регистрируем middleware для проверки подключения к БД
-  app.use(databaseErrorHandler);
+  app.use(databaseErrorHandler as express.RequestHandler);
   
   // Регистрируем middleware для проверки здоровья приложения
-  app.use(healthCheckMiddleware);
+  app.use(healthCheckMiddleware as express.RequestHandler);
   
   // Регистрируем middleware для стандартизации ответов API
   app.use(responseFormatter as any);
@@ -204,9 +204,9 @@ async function startServer(): Promise<void> {
     let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
     const originalResJson = res.json;
-    res.json = function (bodyJson: any, ...args: any[]) {
+    res.json = function (bodyJson: any) {
       capturedJsonResponse = bodyJson;
-      return originalResJson.apply(res, [bodyJson, ...args]);
+      return originalResJson.call(res, bodyJson);
     };
 
     res.on("finish", () => {
@@ -245,7 +245,7 @@ async function startServer(): Promise<void> {
   // Добавляем специальный маршрут для проверки здоровья
   healthRouter.get('/health', (req: Request, res: Response) => {
     logger.debug('[Health Check] Запрос к /health эндпоинту');
-    res.status(200).send({
+    return res.status(200).send({
       status: 'ok',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development'
