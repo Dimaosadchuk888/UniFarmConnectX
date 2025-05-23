@@ -263,7 +263,7 @@ async function startServer(): Promise<void> {
     });
   };
   
-  healthRouter.get('/health', healthHandler);
+  healthRouter.get('/health', healthHandler as any);
 
   // Добавляем обработчик корневого маршрута для проверки здоровья
   const rootHealthHandler = (req: Request, res: Response) => {
@@ -294,7 +294,7 @@ async function startServer(): Promise<void> {
     `);
   };
   
-  healthRouter.get('/', rootHealthHandler);
+  healthRouter.get('/', rootHealthHandler as any);
 
   // Подключаем роутер с маршрутами здоровья
   app.use('/', healthRouter);
@@ -364,8 +364,9 @@ async function startServer(): Promise<void> {
   }
 
   // Регистрируем централизованный обработчик ошибок
-  const centralErrorHandler: ErrorRequestHandler = (err, req, res, next) => 
+  const centralErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
     errorHandler(err, req, res, next);
+  };
   
   app.use(centralErrorHandler);
 
@@ -375,7 +376,7 @@ async function startServer(): Promise<void> {
     return res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
   };
   
-  app.get('/health', mainHealthHandler);
+  app.get('/health', mainHealthHandler as any);
 
   // Настраиваем обработку статических файлов в зависимости от окружения
   if (app.get("env") === "development") {
@@ -387,8 +388,9 @@ async function startServer(): Promise<void> {
   }
   
   // Еще раз регистрируем централизованный обработчик ошибок
-  const finalErrorHandler: ErrorRequestHandler = (err, req, res, next) => 
+  const finalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
     errorHandler(err, req, res, next);
+  };
   
   app.use(finalErrorHandler);
 
