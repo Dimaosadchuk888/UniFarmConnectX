@@ -371,6 +371,14 @@ async function startServer(): Promise<void> {
     });
   });
   
+  // === API v1 → v2 MAPPING ===
+  // Маппинг TON Farming v1 на v2 для обратной совместимости
+  app.get('/api/ton-farming/info', (req, res, next) => {
+    logger.info('[API Mapping] Перенаправление /api/ton-farming/info → /api/v2/ton-farming/info');
+    req.url = '/api/v2/ton-farming/info';
+    next();
+  });
+
   // Регистрируем консолидированные маршруты API
   try {
     // Регистрируем консолидированные маршруты

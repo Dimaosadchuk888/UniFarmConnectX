@@ -22,6 +22,7 @@ import { BoostController } from './controllers/boostControllerConsolidated';
 import { TonBoostController } from './controllers/tonBoostControllerConsolidated';
 import { WalletController } from './controllers/walletControllerConsolidated';
 import { DailyBonusController } from './controllers/dailyBonusControllerConsolidated';
+import { UniFarmingController } from './controllers/UniFarmingController';
 
 // Импортируем маршруты для Telegram бота
 import telegramRouter from './telegram/routes';
@@ -464,6 +465,18 @@ export function registerNewRoutes(app: Express): void {
     
     if (typeof BoostController.purchaseBoost === 'function') {
       app.post('/api/v2/boosts/purchase', safeHandler(BoostController.purchaseBoost));
+    }
+  }
+  
+  // === UNI FARMING МАРШРУТЫ ===
+  // Маршруты для UNI фарминга (v1 и v2 совместимость)
+  if (UniFarmingController) {
+    if (typeof UniFarmingController.getStatus === 'function') {
+      // v1 маршрут для обратной совместимости
+      app.get('/api/uni-farming/status', safeHandler(UniFarmingController.getStatus));
+      // v2 маршрут
+      app.get('/api/v2/uni-farming/status', safeHandler(UniFarmingController.getStatus));
+      logger.info('[NewRoutes] ✓ UNI Farming маршруты зарегистрированы');
     }
   }
   
