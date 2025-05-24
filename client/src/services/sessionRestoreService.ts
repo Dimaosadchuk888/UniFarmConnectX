@@ -253,8 +253,8 @@ const isTelegramWebAppReady = (): boolean => {
       return true;
     }
     
-    // Проверяем признак готовности из хранилища
-    const isReady = localStorage.getItem(STORAGE_KEYS.TELEGRAM_READY) === 'true';
+    // Используем унифицированный флаг готовности
+    const isReady = localStorage.getItem('tg_ready') === 'true';
     
     if (isReady) {
       console.log('[sessionRestoreService] Telegram WebApp уже инициализирован');
@@ -276,8 +276,8 @@ const isTelegramWebAppReady = (): boolean => {
 const markTelegramWebAppAsReady = (): void => {
   try {
     console.log('[sessionRestoreService] Отмечаем Telegram WebApp как инициализированный');
-    localStorage.setItem(STORAGE_KEYS.TELEGRAM_READY, 'true');
-    sessionStorage.setItem(STORAGE_KEYS.TELEGRAM_READY, 'true');
+    localStorage.setItem('tg_ready', 'true');
+    sessionStorage.setItem('tg_ready', 'true');
   } catch (error) {
     console.error('[sessionRestoreService] Ошибка при отметке Telegram WebApp как готового:', error);
   }

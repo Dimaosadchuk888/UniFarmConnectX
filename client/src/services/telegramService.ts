@@ -133,25 +133,39 @@ export function initTelegramWebApp(): boolean {
       
       // Расширяем окно до максимальной высоты
       window.Telegram.WebApp.expand();
-      console.log('[TG INIT] ✅ WebApp.expand() called successfully');
+      console.log('[TG EXPAND]');
       
       // Настраиваем базовый UI для лучшей интеграции
       if (window.Telegram.WebApp.MainButton) {
         window.Telegram.WebApp.MainButton.hide();
       }
       
-      // ВАЖНО: Помечаем как инициализированный
-      (window as any).__telegram_initialized = true;
-      console.log('[TG INIT] ✅ DONE - Telegram WebApp полностью инициализирован');
+      // Обработка initData для получения пользовательских данных
+      try {
+        const initData = window.Telegram.WebApp.initDataUnsafe;
+        console.log('[TG INIT DATA]', initData);
+        
+        if (initData && initData.user && initData.user.id) {
+          console.log('[TG USER ID]', initData.user.id);
+        } else {
+          console.warn('[TG INIT] ⚠️ initData.user.id отсутствует - пользователь не авторизован через Telegram');
+        }
+      } catch (error) {
+        console.warn('[TG INIT] ⚠️ Ошибка при обработке initData:', error);
+      }
+      
+      // Унифицированное состояние готовности
+      localStorage.setItem('tg_ready', 'true');
+      console.log('[TG INIT: DONE]');
       
       return true;
     } catch (error) {
-      console.error('[TG INIT] ❌ Error initializing Telegram WebApp:', error);
+      console.error('[TG INIT ERROR]', error);
       return false;
     }
   }
   
-  console.warn('[telegramService] Telegram WebApp API not available');
+  console.warn('[TG INIT ERROR] Telegram WebApp API not available');
   return false;
 }
 

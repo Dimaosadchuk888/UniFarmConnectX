@@ -72,14 +72,10 @@ console.log('[TG INIT] Проверка среды выполнения:', {
   timestamp: new Date().toISOString()
 });
 
-// Инициализируем Telegram WebApp
-initTelegramWebApp();
-
-// Для гарантии инициализации также добавим слушатель DOMContentLoaded
-document.addEventListener("DOMContentLoaded", () => {
-  console.log('[main] DOMContentLoaded event, повторная проверка инициализации Telegram WebApp');
-  initTelegramWebApp();
-});
+// Инициализируем Telegram WebApp один раз
+console.log('[main] Запуск инициализации Telegram WebApp...');
+const initResult = initTelegramWebApp();
+console.log('[main] Результат инициализации Telegram WebApp:', initResult ? 'успешно' : 'ошибка');
 
 console.log('[RENDER] Запуск React приложения UniFarm...');
 
