@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { tonBoostService } from "../services";
 import { TonBoostService, TonBoostPaymentMethod } from "../services/tonBoostService";
+import { tonBoostServiceInstance } from "../services/tonBoostServiceInstance";
 import { wrapServiceFunction } from '../db-service-wrapper';
 import { ValidationError, NotFoundError, UnauthorizedError, ForbiddenError, DatabaseError } from '../middleware/errorHandler';
 import { sendSuccess, sendError } from '../utils/responseUtils';
@@ -231,20 +232,17 @@ export class TonBoostController {
 
       // Заворачиваем вызов сервиса в обработчик ошибок
       const getFarmingInfoWithFallback = wrapServiceFunction(
-        TonBoostService.getUserTonFarmingInfo.bind(TonBoostService), 
+        tonBoostServiceInstance.getUserTonFarmingInfo.bind(tonBoostServiceInstance), 
         async (error, userId) => {
           console.log(`[TonBoostControllerFallback] Возвращаем заглушку для TON фарминга по ID: ${userId}`);
           
-          // Заглушка для случая, когда нет доступа к БД
+          // Возвращаем TonFarmingInfo структуру напрямую
           return {
-            success: true,
-            data: {
-              deposits: [],
-              active_boosts: [],
-              total_balance: 0,
-              daily_farming_rate: 0,
-              total_farmed: 0
-            }
+            totalTonRatePerSecond: "0",
+            totalUniRatePerSecond: "0", 
+            dailyIncomeTon: "0",
+            dailyIncomeUni: "0",
+            deposits: []
           };
         }
       );
