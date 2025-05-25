@@ -109,8 +109,8 @@ export async function initializeBot(): Promise<boolean> {
       return false;
     }
     
-    // Отримуємо URL для Mini App
-    const miniAppUrl = process.env.MINI_APP_URL || process.env.APP_URL;
+    // Отримуємо URL для Mini App - ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ ПРОДАКШН URL
+    const miniAppUrl = process.env.MINI_APP_URL || process.env.APP_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
     
     if (!miniAppUrl) {
       logger.error('[Telegram Bot] MINI_APP_URL або APP_URL не встановлено в змінних середовища');
