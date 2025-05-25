@@ -565,8 +565,8 @@ export const MissionsList: React.FC = () => {
               className="mt-4 w-full"
               onClick={() => {
                 // Инвалидируем запросы для перезагрузки данных
-                queryClient.invalidateQueries({ queryKey: ['/api/missions/active'] });
-                queryClient.invalidateQueries({ queryKey: ['/api/user_missions', userId] });
+                queryClient.invalidateQueries({ queryKey: ['/api/v2/missions/active'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/v2/missions/user-completed', userId] });
               }}
             >
               Попробовать снова
@@ -596,8 +596,8 @@ export const MissionsList: React.FC = () => {
               className="mt-4 w-full"
               onClick={() => {
                 // Инвалидируем запросы для перезагрузки данных
-                queryClient.invalidateQueries({ queryKey: ['/api/missions/active'] });
-                queryClient.invalidateQueries({ queryKey: ['/api/user_missions', userId] });
+                queryClient.invalidateQueries({ queryKey: ['/api/v2/missions/active'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/v2/missions/user-completed', userId] });
               }}
             >
               Обновить

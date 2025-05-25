@@ -39,7 +39,7 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     isError: queryIsError, 
     refetch 
   } = useQuery({
-    queryKey: ['/api/me'],
+    queryKey: ['/api/v2/me'],
     queryFn: async () => {
       console.log('[UniFarmReferralLink] Резервный запрос данных пользователя');
       try {
@@ -127,7 +127,7 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
         });
         
         // Обновляем кэш React Query с новыми данными пользователя
-        queryClient.setQueryData(['/api/me'], updatedUser);
+        queryClient.setQueryData(['/api/v2/me'], updatedUser);
       }
     };
     
@@ -161,7 +161,7 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
       console.log('[UniFarmReferralLink] Реферальный код успешно сгенерирован:', newRefCode);
       
       // Дополнительно инвалидируем кэш React Query для гарантированного обновления UI
-      queryClient.invalidateQueries({ queryKey: ['/api/me'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v2/me'] });
       
       return newRefCode;
     } catch (error) {

@@ -20,7 +20,7 @@ const UniFarmingCardWithErrorBoundary: React.FC<UniFarmingCardWithErrorBoundaryP
   const handleReset = () => {
     if (userId) {
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/uni-farming/info', userId] 
+        queryKey: ['/api/v2/uni-farming/info', userId] 
       });
     }
   };
@@ -28,7 +28,7 @@ const UniFarmingCardWithErrorBoundary: React.FC<UniFarmingCardWithErrorBoundaryP
   return (
     <QueryErrorBoundary
       onReset={handleReset}
-      queryKey={['/api/uni-farming/info', userId]}
+      queryKey={['/api/v2/uni-farming/info', userId]}
       errorTitle="Ошибка загрузки UNI фарминга"
       errorDescription="Не удалось загрузить информацию о вашем UNI фарминге. Пожалуйста, обновите страницу или повторите позже."
       resetButtonText="Обновить данные"

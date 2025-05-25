@@ -20,7 +20,7 @@ const BoostPackagesCardWithErrorBoundary: React.FC<BoostPackagesCardWithErrorBou
   const handleReset = () => {
     if (userId) {
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/boost-packages'] 
+        queryKey: ['/api/v2/boosts/packages'] 
       });
     }
   };
@@ -28,7 +28,7 @@ const BoostPackagesCardWithErrorBoundary: React.FC<BoostPackagesCardWithErrorBou
   return (
     <QueryErrorBoundary
       onReset={handleReset}
-      queryKey={['/api/boost-packages']}
+      queryKey={['/api/v2/boosts/packages']}
       errorTitle="Ошибка загрузки UNI бустов"
       errorDescription="Не удалось загрузить информацию о доступных UNI бустах. Пожалуйста, обновите страницу или повторите позже."
       resetButtonText="Обновить данные"
