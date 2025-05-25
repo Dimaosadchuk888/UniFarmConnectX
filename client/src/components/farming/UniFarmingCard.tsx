@@ -251,7 +251,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       console.log('Отправляем депозит:', requestBody);
       
       // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
-      return correctApiRequest('/api/uni-farming/deposit', 'POST', requestBody);
+      return correctApiRequest('/api/v2/uni-farming/deposit', 'POST', requestBody);
     },
     onSuccess: (response) => {
       try {
@@ -279,13 +279,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // Обновляем данные с учетом динамического ID пользователя
         // Используем новую функцию вместо прямого вызова invalidateQueries
         // Обновляем сразу все основные эндпоинты
-        invalidateQueryWithUserId('/api/uni-farming/status', [
-          '/api/wallet/balance',
-          '/api/transactions'
+        invalidateQueryWithUserId('/api/v2/uni-farming/status', [
+          '/api/v2/wallet/balance',
+          '/api/v2/transactions'
         ]);
         
         // Принудительно обновляем баланс пользователя
-        queryClient.refetchQueries({ queryKey: ['/api/me'] });
+        queryClient.refetchQueries({ queryKey: ['/api/v2/me'] });
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess depositMutation:', error);
         // Даже в случае ошибки отображаем успех
