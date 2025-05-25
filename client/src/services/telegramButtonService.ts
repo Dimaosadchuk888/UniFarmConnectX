@@ -264,6 +264,13 @@ export function showBackButton(targetRoute?: string, customHandler?: ButtonClick
       }
     };
     
+    // [FIX: BACKBUTTON ISSUE #3] Исправление обработчика событий
+    // Удаляем старый обработчик если есть
+    if (window.Telegram?.WebApp?.BackButton?.offClick) {
+      window.Telegram.WebApp.BackButton.offClick(backButtonHandler);
+    }
+    
+    // Устанавливаем новый обработчик
     backButton.onClick(backButtonHandler);
     
     // ЭТАП 2: Показываем кнопку
