@@ -243,8 +243,13 @@ export class WalletController {
         }
       );
 
-      const result = await withdrawUniWithFallback(user_id, amount, ton_address);
-      return res.json(result);
+      const result = await withdrawUniWithFallback({
+        userId: user_id,
+        amount: amount,
+        currency: 'UNI',
+        walletAddress: ton_address || null
+      });
+      sendSuccess(res, result);
     } catch (error) {
       next(error);
     }

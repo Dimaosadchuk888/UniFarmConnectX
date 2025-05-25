@@ -34,6 +34,9 @@ import { createSafeHandler, createRouteSafely } from './utils/express-helpers';
 // Імпортуємо адміністративні маршрути
 import adminRouter from './api/admin/index';
 
+// Импортируем middleware для аутентификации администраторов
+import { requireAdminAuth, logAdminAction } from './middleware/adminAuth';
+
 // Импортируем маршрут для страницы статуса
 import statusRouter from './routes/status';
 
@@ -194,15 +197,8 @@ export function registerNewRoutes(app: Express): void {
   app.get('/api/health', healthCheckHandler);
   
   // Endpoint для управления подключением к базе данных (только для админов)
-  app.post('/api/db/reconnect', async (req, res) => {
+  app.post('/api/db/reconnect', requireAdminAuth, logAdminAction('DB_RECONNECT'), async (req, res) => {
     try {
-      // Проверка авторизации (в будущем можно добавить middleware)
-      if (req.query.admin_key !== process.env.ADMIN_SECRET) {
-        return res.status(403).json({
-          success: false,
-          error: 'Unauthorized access'
-        });
-      }
       
       // Получаем текущую информацию о соединении
       const db = app.locals.db;
@@ -265,15 +261,8 @@ export function registerNewRoutes(app: Express): void {
   });
   
   // Endpoint для получения информации о событиях DB (только для админов)
-  app.get('/api/db/events', async (req, res) => {
+  app.get('/api/db/events', requireAdminAuth, logAdminAction('DB_EVENTS_VIEW'), async (req, res) => {
     try {
-      // Проверка авторизации (в будущем можно добавить middleware)
-      if (req.query.admin_key !== process.env.ADMIN_SECRET) {
-        return res.status(403).json({
-          success: false,
-          error: 'Unauthorized access'
-        });
-      }
       
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
       const events = getDbEventManager().getHistory(limit);
