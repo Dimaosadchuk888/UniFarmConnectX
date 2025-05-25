@@ -19,7 +19,7 @@ if (process.env.NODE_ENV === 'production') {
     API_BASE_URL = currentDomain;
   } else {
     // Резервный вариант для деплоя
-    API_BASE_URL = 'https://uni-farm-connect-2-osadchukdmitro2.replit.app';
+    API_BASE_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
   }
 } else {
   // В режиме разработки используем относительные URL
