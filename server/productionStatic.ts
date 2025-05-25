@@ -46,11 +46,19 @@ export function setupProductionStatic(app: Express): void {
             if (fs.existsSync(indexPath)) {
               indexHtmlPathCache = indexPath;
               
-              // Настраиваем обслуживание статических файлов
+              // ОПТИМИЗАЦИЯ: Отключаем кэширование для мгновенных обновлений
               app.use(express.static(dir, {
-                etag: true, 
-                lastModified: true,
-                maxAge: 86400000
+                etag: false, 
+                lastModified: false,
+                maxAge: 0,
+                setHeaders: (res, path, stat) => {
+                  // Принудительно отключаем все виды кэширования
+                  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                  res.setHeader('Pragma', 'no-cache');
+                  res.setHeader('Expires', '0');
+                  res.setHeader('Surrogate-Control', 'no-store');
+                  console.log(`[NO-CACHE] Статический файл: ${path}`);
+                }
               }));
               
               console.log(`[ProductionStatic] Настроено обслуживание статических файлов из ${dir}`);

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TelegramAdvanced } from '../services/telegramAdvancedService';
 import TelegramCloseButton from '../components/telegram/TelegramCloseButton';
+import ForceRefreshButton from '../components/telegram/ForceRefreshButton';
 
 const TelegramAdvancedDemo: React.FC = () => {
   // ЭТАП 3: Состояние для демонстрации CloudStorage
@@ -354,7 +355,12 @@ const TelegramAdvancedDemo: React.FC = () => {
               <p>В консоли появится лог: <code>[TG CLOSE CLICKED]</code></p>
             </div>
             
-            <div className="flex justify-center">
+            <div className="flex justify-center space-x-4">
+              <ForceRefreshButton 
+                variant="secondary" 
+                size="lg" 
+                showIcon={true}
+              />
               <TelegramCloseButton 
                 variant="destructive" 
                 size="lg" 

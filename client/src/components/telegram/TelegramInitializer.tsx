@@ -27,6 +27,19 @@ const TelegramInitializer = () => {
           length: initData?.length || 0
         });
 
+        // ОПТИМИЗАЦИЯ КЭШИРОВАНИЯ: Принудительное обновление URL для Telegram
+        try {
+          if (window.Telegram && window.Telegram.WebApp) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('_t', Date.now().toString());
+            url.searchParams.set('_v', Math.random().toString(36).substring(7));
+            window.history.replaceState(null, '', url.toString());
+            console.log('[CACHE BUST] URL обновлен для предотвращения кэширования:', url.toString());
+          }
+        } catch (error) {
+          console.warn('[CACHE BUST] Не удалось обновить URL:', error);
+        }
+
         // Подтверждаем готовность
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
