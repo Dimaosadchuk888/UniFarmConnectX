@@ -27,7 +27,7 @@ const TonTransactionsWithErrorBoundary: React.FC<TonTransactionsWithErrorBoundar
   const handleReset = () => {
     if (actualUserId) {
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/transactions/ton', actualUserId] 
+        queryKey: ['/api/v2/transactions/ton', actualUserId] 
       });
     }
   };
@@ -35,7 +35,7 @@ const TonTransactionsWithErrorBoundary: React.FC<TonTransactionsWithErrorBoundar
   return (
     <QueryErrorBoundary
       onReset={handleReset}
-      queryKey={actualUserId ? ['/api/transactions/ton', actualUserId] : undefined}
+      queryKey={actualUserId ? ['/api/v2/transactions/ton', actualUserId] : undefined}
       errorTitle="Ошибка загрузки TON транзакций"
       errorDescription="Не удалось загрузить историю ваших TON транзакций. Пожалуйста, обновите страницу или повторите позже."
       resetButtonText="Обновить историю"

@@ -42,7 +42,7 @@ const EnhancedMissionsList: React.FC = () => {
         console.log('[EnhancedMissionsList] Загрузка данных миссий...');
         
         // Загружаем активные миссии
-        const missionsResponse = await correctApiRequest('/api/missions/active', 'GET');
+        const missionsResponse = await correctApiRequest('/api/v2/missions/active', 'GET');
         
         // Проверяем ответ
         if (!missionsResponse || !missionsResponse.success) {
@@ -60,7 +60,7 @@ const EnhancedMissionsList: React.FC = () => {
         
         // Загружаем выполненные миссии пользователя
         try {
-          const userMissionsResponse = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}`, 'GET');
+          const userMissionsResponse = await correctApiRequest(`/api/v2/missions/user-completed?user_id=${userId || 1}`, 'GET');
           
           // Безопасно извлекаем IDs выполненных миссий
           if (userMissionsResponse && userMissionsResponse.success && Array.isArray(userMissionsResponse.data)) {
@@ -103,7 +103,7 @@ const EnhancedMissionsList: React.FC = () => {
       const missionTitle = mission?.title || `Миссия #${missionId}`;
       
       // Отправляем запрос на сервер
-      const result = await correctApiRequest('/api/missions/complete', 'POST', {
+      const result = await correctApiRequest('/api/v2/missions/complete', 'POST', {
         user_id: userId || 1,
         mission_id: missionId
       });

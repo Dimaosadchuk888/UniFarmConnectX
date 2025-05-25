@@ -27,7 +27,7 @@ const WithdrawalFormWithErrorBoundary: React.FC = () => {
   return (
     <QueryErrorBoundary
       onReset={handleReset}
-      queryKey={userId ? ['/api/wallet', userId] : undefined}
+      queryKey={userId ? ['/api/v2/wallet', userId] : undefined}
       errorTitle="Ошибка загрузки формы вывода"
       errorDescription="Не удалось загрузить форму вывода средств. Пожалуйста, обновите страницу или повторите позже."
       resetButtonText="Обновить форму"

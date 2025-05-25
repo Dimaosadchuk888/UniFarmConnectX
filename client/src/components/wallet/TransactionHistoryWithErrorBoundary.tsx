@@ -27,7 +27,7 @@ const TransactionHistoryWithErrorBoundary: React.FC<TransactionHistoryWithErrorB
   const handleReset = () => {
     if (actualUserId) {
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/transactions', actualUserId] 
+        queryKey: ['/api/v2/transactions', actualUserId] 
       });
     }
   };
@@ -35,7 +35,7 @@ const TransactionHistoryWithErrorBoundary: React.FC<TransactionHistoryWithErrorB
   return (
     <QueryErrorBoundary
       onReset={handleReset}
-      queryKey={actualUserId ? ['/api/transactions', actualUserId] : undefined}
+      queryKey={actualUserId ? ['/api/v2/transactions', actualUserId] : undefined}
       errorTitle="Ошибка загрузки транзакций"
       errorDescription="Не удалось загрузить историю ваших транзакций. Пожалуйста, обновите страницу или повторите позже."
       resetButtonText="Обновить историю"
