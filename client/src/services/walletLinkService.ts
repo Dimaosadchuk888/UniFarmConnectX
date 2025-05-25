@@ -34,7 +34,7 @@ export async function linkWalletAddress(): Promise<{ success: boolean; message: 
     console.log(`[WalletLinkService] Linking wallet address: ${walletAddress}`);
 
     // Отправляем запрос на привязку адреса к пользователю
-    const response = await fetch('/api/user/link-wallet', {
+    const response = await fetch('/api/v2/wallet/link', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

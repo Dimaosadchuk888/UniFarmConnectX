@@ -194,7 +194,7 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
     mutationFn: async ({ boostId, paymentMethod }: { boostId: number, paymentMethod: 'internal_balance' | 'external_wallet' }) => {
       try {
         // Используем correctApiRequest вместо apiRequest для корректной обработки заголовков
-        return await correctApiRequest('/api/ton-boosts/purchase', 'POST', {
+        return await correctApiRequest('/api/v2/ton-farming/purchase', 'POST', {
           user_id: userId,
           boost_id: boostId,
           payment_method: paymentMethod
@@ -224,10 +224,10 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
             setSuccessMessage(data.message || 'Буст успешно приобретен!');
             
             // Инвалидируем кэш для обновления баланса и транзакций
-            invalidateQueryWithUserId(`/api/users`);
-            invalidateQueryWithUserId('/api/wallet/balance');
-            invalidateQueryWithUserId('/api/transactions');
-            invalidateQueryWithUserId('/api/ton-boosts/active');
+            invalidateQueryWithUserId(`/api/v2/users`);
+            invalidateQueryWithUserId('/api/v2/wallet/balance');
+            invalidateQueryWithUserId('/api/v2/transactions');
+            invalidateQueryWithUserId('/api/v2/ton-farming/active');
           }
           // Если оплата через внешний кошелек - показываем диалог статуса платежа
           else if (data.data.paymentMethod === 'external_wallet') {

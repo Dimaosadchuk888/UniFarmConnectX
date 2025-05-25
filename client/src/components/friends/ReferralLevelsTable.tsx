@@ -103,7 +103,7 @@ const ReferralLevelsTable: React.FC = () => {
         logger.debug(`[ReferralLevelsTable] Используем ${hasUserId ? 'user_id' : 'guest_id'} для запроса рефералов`);
 
         // Формируем полный URL для запроса с нужным параметром (user_id или guest_id)
-        const url = apiConfig.getFullUrl(`/api/referrals?${queryParam}`);
+        const url = apiConfig.getFullUrl(`/api/v2/referrals/stats?${queryParam}`);
         logger.debug('[ReferralLevelsTable] Запрос данных о рефералах по URL:', url);
         
         try {
