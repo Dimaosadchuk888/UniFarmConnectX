@@ -40,6 +40,9 @@ import { requireAdminAuth, logAdminAction } from './middleware/adminAuth';
 // Импортируем маршрут для страницы статуса
 import statusRouter from './routes/status';
 
+// Импортируем webhook для админ-бота
+import adminWebhookHandler from './api/admin/webhook';
+
 /**
  * Регистрирует новые маршруты API в указанном приложении Express
  * @param app Экземпляр приложения Express
@@ -71,6 +74,10 @@ export function registerNewRoutes(app: Express): void {
   // Регистрируем администативные маршруты
   app.use('/api/admin', adminRouter);
   logger.info('[NewRoutes] Административные маршруты зарегистрированы');
+
+  // Регистрируем webhook для админ-бота
+  app.post('/api/admin/webhook', adminWebhookHandler);
+  logger.info('[NewRoutes] Webhook для админ-бота зарегистрирован');
 
   // Endpoint для перевірки здоров'я сервера (health check)
   const healthCheckHandler: RequestHandler = async (req: Request, res: Response): Promise<void> => {
