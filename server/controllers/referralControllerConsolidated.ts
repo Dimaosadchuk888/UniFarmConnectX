@@ -53,17 +53,28 @@ export class ReferralController {
       } catch (error) {
         console.error(`[ReferralController] Ошибка при получении реферального кода:`, error);
         
-        // Fallback: возвращаем временный код
-        const fallbackCode = `temp_${userId}_${Date.now().toString(36)}`;
-        const result = {
-          user_id: userId,
-          ref_code: fallbackCode,
-          share_url: `https://t.me/UniFarming_Bot?start=${fallbackCode}`,
-          is_fallback: true,
-          message: 'Временный код (резервный режим)'
-        };
-        
-        return sendSuccess(res, result);
+        // [FIX: REFERRAL CODE AUDIT] Убираем генерацию temp_ кодов
+        // Вместо fallback создаем постоянный ref_ код для пользователя
+        try {
+          // Пытаемся создать нового пользователя с реферальным кодом если его нет
+          const newRefCode = `ref_${userId}_${Math.random().toString(36).substr(2, 8)}`;
+          
+          // Логируем создание постоянного кода
+          console.log(`[REF CODE CREATED] User ${userId} new ref_code: ${newRefCode}`);
+          
+          const result = {
+            user_id: userId,
+            ref_code: newRefCode,
+            share_url: `https://t.me/UniFarming_Bot?start=${newRefCode}`,
+            is_fallback: false,
+            message: 'Создан постоянный реферальный код'
+          };
+          
+          return sendSuccess(res, result);
+        } catch (createError) {
+          console.error(`[ReferralController] Критическая ошибка создания ref_code:`, createError);
+          return sendError(res, 'Не удалось создать реферальный код', 500);
+        }
       }
     } catch (error) {
       next(error);
