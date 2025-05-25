@@ -70,7 +70,12 @@ export class WalletController {
       );
 
       const balance = await getBalanceWithFallback(user_id);
-      return res.json(balance);
+      
+      // Логируем успешное получение баланса
+      console.log(`[WALLET BALANCE REQUEST] User ${user_id} balance retrieved:`, JSON.stringify(balance));
+      
+      // Возвращаем в стандартизированном формате API
+      sendSuccess(res, balance);
     } catch (error) {
       next(error);
     }
@@ -112,7 +117,12 @@ export class WalletController {
       );
 
       const result = await connectWalletWithFallback(userId, wallet_address);
-      return res.json(result);
+      
+      // Логируем подключение кошелька
+      console.log(`[TON CONNECT SUCCESS] User ${userId} connected wallet: ${wallet_address}`);
+      
+      // Возвращаем в стандартизированном формате API
+      sendSuccess(res, result);
     } catch (error) {
       next(error);
     }
