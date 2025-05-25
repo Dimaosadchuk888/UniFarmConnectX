@@ -371,11 +371,202 @@ async function startServer(): Promise<void> {
     });
   });
   
-  // === API v1 → v2 MAPPING ===
-  // Маппинг TON Farming v1 на v2 для обратной совместимости
+  // === API v1 → v2 MAPPING СИСТЕМА ===
+  // Универсальная система обратной совместимости для фронтенда
+  
+  // Маппинг для TON Farming эндпоинтов
   app.get('/api/ton-farming/info', (req, res, next) => {
-    logger.info('[API Mapping] Перенаправление /api/ton-farming/info → /api/v2/ton-farming/info');
+    logger.info('[API MAP] /api/ton-farming/info → /api/v2/ton-farming/info');
     req.url = '/api/v2/ton-farming/info';
+    next();
+  });
+  
+  app.get('/api/ton-farming/boosts', (req, res, next) => {
+    logger.info('[API MAP] /api/ton-farming/boosts → /api/v2/ton-farming/boosts');
+    req.url = '/api/v2/ton-farming/boosts';
+    next();
+  });
+  
+  app.get('/api/ton-farming/active', (req, res, next) => {
+    logger.info('[API MAP] /api/ton-farming/active → /api/v2/ton-farming/active');
+    req.url = '/api/v2/ton-farming/active';
+    next();
+  });
+  
+  app.post('/api/ton-farming/purchase', (req, res, next) => {
+    logger.info('[API MAP] /api/ton-farming/purchase → /api/v2/ton-farming/purchase');
+    req.url = '/api/v2/ton-farming/purchase';
+    next();
+  });
+  
+  app.post('/api/ton-farming/confirm-payment', (req, res, next) => {
+    logger.info('[API MAP] /api/ton-farming/confirm-payment → /api/v2/ton-farming/confirm-payment');
+    req.url = '/api/v2/ton-farming/confirm-payment';
+    next();
+  });
+  
+  app.post('/api/ton-farming/update', (req, res, next) => {
+    logger.info('[API MAP] /api/ton-farming/update → /api/v2/ton-farming/update');
+    req.url = '/api/v2/ton-farming/update';
+    next();
+  });
+  
+  // Маппинг для UniPool Farming эндпоинтов
+  app.get('/api/uni-farming/status', (req, res, next) => {
+    logger.info('[API MAP] /api/uni-farming/status → /api/v2/uni-farming/status');
+    req.url = '/api/v2/uni-farming/status';
+    next();
+  });
+  
+  // Маппинг для Wallet эндпоинтов
+  app.get('/api/wallet/balance', (req, res, next) => {
+    logger.info('[API MAP] /api/wallet/balance → /api/v2/wallet/balance');
+    req.url = '/api/v2/wallet/balance';
+    next();
+  });
+  
+  app.post('/api/wallet/connect', (req, res, next) => {
+    logger.info('[API MAP] /api/wallet/connect → /api/v2/wallet/connect');
+    req.url = '/api/v2/wallet/connect';
+    next();
+  });
+  
+  app.post('/api/wallet/disconnect', (req, res, next) => {
+    logger.info('[API MAP] /api/wallet/disconnect → /api/v2/wallet/disconnect');
+    req.url = '/api/v2/wallet/disconnect';
+    next();
+  });
+  
+  app.get('/api/wallet/transactions', (req, res, next) => {
+    logger.info('[API MAP] /api/wallet/transactions → /api/v2/wallet/transactions');
+    req.url = '/api/v2/wallet/transactions';
+    next();
+  });
+  
+  app.post('/api/wallet/withdraw', (req, res, next) => {
+    logger.info('[API MAP] /api/wallet/withdraw → /api/v2/wallet/withdraw');
+    req.url = '/api/v2/wallet/withdraw';
+    next();
+  });
+  
+  // Маппинг для Boosts эндпоинтов
+  app.get('/api/boosts', (req, res, next) => {
+    logger.info('[API MAP] /api/boosts → /api/v2/boosts');
+    req.url = '/api/v2/boosts';
+    next();
+  });
+  
+  app.get('/api/boosts/active', (req, res, next) => {
+    logger.info('[API MAP] /api/boosts/active → /api/v2/boosts/active');
+    req.url = '/api/v2/boosts/active';
+    next();
+  });
+  
+  app.post('/api/boosts/purchase', (req, res, next) => {
+    logger.info('[API MAP] /api/boosts/purchase → /api/v2/boosts/purchase');
+    req.url = '/api/v2/boosts/purchase';
+    next();
+  });
+  
+  // Маппинг для Missions эндпоинтов
+  app.get('/api/missions/active', (req, res, next) => {
+    logger.info('[API MAP] /api/missions/active → /api/v2/missions/active');
+    req.url = '/api/v2/missions/active';
+    next();
+  });
+  
+  app.get('/api/user-missions', (req, res, next) => {
+    logger.info('[API MAP] /api/user-missions → /api/v2/user-missions');
+    req.url = '/api/v2/user-missions';
+    next();
+  });
+  
+  app.get('/api/missions/with-completion', (req, res, next) => {
+    logger.info('[API MAP] /api/missions/with-completion → /api/v2/missions/with-completion');
+    req.url = '/api/v2/missions/with-completion';
+    next();
+  });
+  
+  app.post('/api/missions/complete', (req, res, next) => {
+    logger.info('[API MAP] /api/missions/complete → /api/v2/missions/complete');
+    req.url = '/api/v2/missions/complete';
+    next();
+  });
+  
+  // Маппинг для Referrals эндпоинтов
+  app.get('/api/referrals/tree', (req, res, next) => {
+    logger.info('[API MAP] /api/referrals/tree → /api/v2/referrals/tree');
+    req.url = '/api/v2/referrals/tree';
+    next();
+  });
+  
+  app.get('/api/referrals/stats', (req, res, next) => {
+    logger.info('[API MAP] /api/referrals/stats → /api/v2/referrals/stats');
+    req.url = '/api/v2/referrals/stats';
+    next();
+  });
+  
+  app.post('/api/referrals/apply', (req, res, next) => {
+    logger.info('[API MAP] /api/referrals/apply → /api/v2/referrals/apply');
+    req.url = '/api/v2/referrals/apply';
+    next();
+  });
+  
+  // Маппинг для Daily Bonus эндпоинтов
+  app.get('/api/daily-bonus/status', (req, res, next) => {
+    logger.info('[API MAP] /api/daily-bonus/status → /api/v2/daily-bonus/status');
+    req.url = '/api/v2/daily-bonus/status';
+    next();
+  });
+  
+  app.post('/api/daily-bonus/claim', (req, res, next) => {
+    logger.info('[API MAP] /api/daily-bonus/claim → /api/v2/daily-bonus/claim');
+    req.url = '/api/v2/daily-bonus/claim';
+    next();
+  });
+  
+  app.get('/api/daily-bonus/streak-info', (req, res, next) => {
+    logger.info('[API MAP] /api/daily-bonus/streak-info → /api/v2/daily-bonus/streak-info');
+    req.url = '/api/v2/daily-bonus/streak-info';
+    next();
+  });
+  
+  // Маппинг для Session эндпоинтов
+  app.post('/api/session/restore', (req, res, next) => {
+    logger.info('[API MAP] /api/session/restore → /api/v2/session/restore');
+    req.url = '/api/v2/session/restore';
+    next();
+  });
+  
+  // Маппинг для Users эндпоинтов
+  app.get('/api/users/:id', (req, res, next) => {
+    logger.info('[API MAP] /api/users/:id → /api/v2/users/:id');
+    req.url = '/api/v2/users/' + req.params.id;
+    next();
+  });
+  
+  app.get('/api/users/:userId/transactions', (req, res, next) => {
+    logger.info('[API MAP] /api/users/:userId/transactions → /api/v2/users/:userId/transactions');
+    req.url = '/api/v2/users/' + req.params.userId + '/transactions';
+    next();
+  });
+
+  // Универсальный fallback маппинг для любых оставшихся v1 маршрутов
+  // Должен быть ПОСЛЕДНИМ перед регистрацией v2 маршрутов
+  app.use('/api/', (req, res, next) => {
+    // Пропускаем уже обработанные v2 маршруты и специальные эндпоинты
+    if (req.url.startsWith('/v2/') || 
+        req.url.startsWith('/health') || 
+        req.url.startsWith('/db/') || 
+        req.url.startsWith('/telegram/') || 
+        req.url.startsWith('/admin/')) {
+      return next();
+    }
+    
+    // Перенаправляем все остальные /api/* запросы на /api/v2/*
+    const originalUrl = req.url;
+    req.url = '/v2' + req.url;
+    logger.info(`[API MAP FALLBACK] /api${originalUrl} → /api/v2${originalUrl}`);
     next();
   });
 
