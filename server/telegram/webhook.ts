@@ -82,41 +82,11 @@ export async function handleTelegramWebhook(req: Request, res: Response) {
 }
 
 /**
- * Обрабатывает обновление от Telegram
+ * Обрабатывает обновление от Telegram (УДАЛЕНО - используем умный бот)
  */
 async function processUpdate(update: TelegramUpdate): Promise<void> {
-  try {
-    // Обрабатываем сообщение
-    if (update.message) {
-      const { message } = update;
-      const chatId = message.chat.id;
-      
-      // Проверяем, является ли это командой
-      if (message.text && message.entities && message.entities.some(e => e.type === 'bot_command')) {
-        await handleCommand(message.text, chatId, message.from.id);
-        return;
-      }
-      
-      // Обрабатываем обычное сообщение
-      if (message.text) {
-        await handleTextMessage(message.text, chatId, message.from.id);
-        return;
-      }
-    }
-    
-    // Обрабатываем нажатие на кнопку (callback_query)
-    if (update.callback_query) {
-      const { callback_query } = update;
-      const chatId = callback_query.message?.chat.id;
-      
-      if (chatId) {
-        await handleCallbackQuery(callback_query.data, chatId, callback_query.from.id, callback_query.id);
-        return;
-      }
-    }
-  } catch (error) {
-    logger.error('[TelegramWebhook] Ошибка при обработке обновления:', error);
-  }
+  // Эта функция больше не используется - все обрабатывается через handleSmartBotUpdate
+  logger.info('[TelegramWebhook] processUpdate вызвана, но используется умный бот');
 }
 
 /**
@@ -161,36 +131,7 @@ async function sendMessage(chatId: number, text: string, options: any = {}): Pro
   }
 }
 
-async function handleCommand(text: string, chatId: number, userId: number): Promise<void> {
-  try {
-    // Получаем имя команды (убираем символ / и все параметры после пробела)
-    const command = text.split(' ')[0].substring(1).toLowerCase();
-    
-    logger.debug(`[TelegramWebhook] Получена команда: ${command} от пользователя ${userId}`);
-    
-    switch (command) {
-      case 'start':
-        await handleStartCommand(chatId, userId);
-        break;
-      case 'help':
-        await handleHelpCommand(chatId);
-        break;
-      case 'deposit':
-        await handleDepositCommand(chatId);
-        break;
-      case 'withdraw':
-        await handleWithdrawCommand(chatId);
-        break;
-      case 'referral':
-        await handleReferralCommand(chatId);
-        break;
-      default:
-        await sendMessage(chatId, 'Неизвестная команда. Используйте /help для получения списка доступных команд.');
-    }
-  } catch (error) {
-    logger.error('[TelegramWebhook] Ошибка при обработке команды:', error);
-  }
-}
+// УДАЛЕНО: старый обработчик команд - теперь используется умный бот
 
 /**
  * Обрабатывает обычное текстовое сообщение
