@@ -283,7 +283,7 @@ export const UserController = {
           telegram_id: null,
           wallet: null,
           ton_wallet_address: null,
-          guest_id: guestId || `temp_${temporaryId}`,
+          guest_id: guestId || `guest_${temporaryId}`,
           created_at: ensureDate(new Date().toISOString()),
           parent_ref_code: referrerCode,
           is_fallback: true,
@@ -351,7 +351,7 @@ export const UserController = {
       return {
         user: {
           id: temporaryId,
-          username: `temp_${temporaryId}`,
+          username: `guest_${temporaryId}`,
           ref_code: `REF${temporaryId}`,
           telegram_id: telegramData ? 12345678 : null,
           wallet: null,
