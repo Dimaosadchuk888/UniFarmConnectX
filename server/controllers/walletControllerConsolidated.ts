@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import 'express-session';
 import { walletService, validationService } from '../services';
+import { walletServiceInstance } from '../services/walletServiceInstance';
 import { WalletCurrency, TransactionStatusType } from '../services/walletService';
 import { ValidationError, NotFoundError } from '../middleware/errorHandler';
 import { createValidationErrorFromZod, extractUserId, formatZodErrors } from '../utils/validationUtils';
@@ -58,16 +59,12 @@ export class WalletController {
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
       const getBalanceWithFallback = wrapServiceFunction(
-        walletService.getUserBalance.bind(walletService),
+        async (userId) => await walletService.getUserBalance(userId),
         async (error, userId) => {
           console.log(`[WalletControllerFallback] Возвращаем заглушку для баланса по ID: ${userId}`);
           return { 
-            success: true, 
-            data: {
-              uni_balance: 0,
-              ton_balance: 0,
-              updated_at: new Date().toISOString()
-            }
+            balanceUni: "0",
+            balanceTon: "0"
           };
         }
       );
