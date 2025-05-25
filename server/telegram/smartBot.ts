@@ -254,6 +254,196 @@ async function sendAdminPanel(chatId: number, messageId?: number): Promise<void>
 }
 
 /**
+ * 🎯 Универсальная обработка всех админских действий
+ */
+async function handleAdminAction(chatId: number, action: string, username: string, messageId?: number): Promise<void> {
+  if (action.startsWith('admin_database') || action.startsWith('db_')) {
+    await handleDatabaseAction(chatId, action, username, messageId);
+    return;
+  }
+
+  switch (action) {
+    case 'admin_users':
+      const usersMenuText = `
+👥 <b>Управление пользователями</b>
+
+Выберите операцию:
+      `;
+      
+      if (messageId) {
+        await editMessage(chatId, messageId, usersMenuText, {
+          reply_markup: JSON.stringify(getUsersKeyboard())
+        });
+      }
+      break;
+
+    case 'users_stats':
+      await sendMessage(chatId, "📊 Получение статистики пользователей...");
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/users/stats`);
+        const result = await response.json();
+        
+        if (result.success) {
+          const stats = result.data;
+          const statsText = `
+📊 <b>Статистика пользователей</b>
+
+👥 Всего пользователей: ${stats.total}
+🟢 Активных: ${stats.active}
+🆕 Новых сегодня: ${stats.newToday}
+📅 Последняя регистрация: ${stats.lastRegistered ? new Date(stats.lastRegistered).toLocaleString('ru-RU') : 'Нет данных'}
+          `;
+          await sendMessage(chatId, statsText);
+        } else {
+          await sendMessage(chatId, `❌ Ошибка: ${result.error}`);
+        }
+      } catch (error) {
+        await sendMessage(chatId, `❌ Ошибка получения статистики: ${error}`);
+      }
+      break;
+
+    case 'admin_finance':
+      const financeMenuText = `
+💰 <b>Финансовые операции</b>
+
+Выберите операцию:
+      `;
+      
+      if (messageId) {
+        await editMessage(chatId, messageId, financeMenuText, {
+          reply_markup: JSON.stringify(getFinanceKeyboard())
+        });
+      }
+      break;
+
+    case 'finance_withdrawals':
+      await sendMessage(chatId, "💰 Получение заявок на вывод...");
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/finance/withdrawals`);
+        const result = await response.json();
+        
+        if (result.success) {
+          const withdrawals = result.data.slice(0, 5);
+          let withdrawText = "💰 <b>Заявки на вывод:</b>\n\n";
+          
+          if (withdrawals.length === 0) {
+            withdrawText += "✅ Новых заявок нет";
+          } else {
+            withdrawals.forEach((w: any, index: number) => {
+              withdrawText += `${index + 1}. 👤 ID: ${w.userId}\n`;
+              withdrawText += `   💰 Сумма: ${w.amount} ${w.currency}\n`;
+              withdrawText += `   📅 Дата: ${new Date(w.created_at).toLocaleString('ru-RU')}\n\n`;
+            });
+          }
+          
+          await sendMessage(chatId, withdrawText);
+        } else {
+          await sendMessage(chatId, `❌ Ошибка: ${result.error}`);
+        }
+      } catch (error) {
+        await sendMessage(chatId, `❌ Ошибка получения заявок: ${error}`);
+      }
+      break;
+
+    case 'admin_analytics':
+      await sendMessage(chatId, "📊 Загрузка аналитики...");
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/analytics/overview`);
+        const result = await response.json();
+        
+        if (result.success) {
+          const data = result.data;
+          const analyticsText = `
+📊 <b>Аналитика системы</b>
+
+👥 Всего пользователей: ${data.totalUsers}
+💰 UNI в системе: ${data.totalUniInSystem}
+📈 Всего депозитов: ${data.totalDeposits}
+📉 Всего выводов: ${data.totalWithdraws}
+⏳ Ожидающих вывод: ${data.pendingWithdrawals}
+          `;
+          await sendMessage(chatId, analyticsText);
+        } else {
+          await sendMessage(chatId, `❌ Ошибка: ${result.error}`);
+        }
+      } catch (error) {
+        await sendMessage(chatId, `❌ Ошибка получения аналитики: ${error}`);
+      }
+      break;
+
+    case 'admin_referral':
+      await sendMessage(chatId, "🔗 Загрузка статистики рефералов...");
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/referral/stats`);
+        const result = await response.json();
+        
+        if (result.success) {
+          const stats = result.data;
+          let referralText = `
+🔗 <b>Реферальная система</b>
+
+📊 Всего рефералов: ${stats.totalReferrals}
+🎯 Активных кодов: ${stats.totalReferralCodes}
+
+🏆 <b>Топ реферреры:</b>
+`;
+          
+          if (stats.topReferrers?.length > 0) {
+            stats.topReferrers.forEach((ref: any, index: number) => {
+              referralText += `${index + 1}. @${ref.username || 'Неизвестно'} - ${ref.referrals} реф.\n`;
+            });
+          } else {
+            referralText += "Нет активных рефереров";
+          }
+          
+          await sendMessage(chatId, referralText);
+        } else {
+          await sendMessage(chatId, `❌ Ошибка: ${result.error}`);
+        }
+      } catch (error) {
+        await sendMessage(chatId, `❌ Ошибка получения статистики: ${error}`);
+      }
+      break;
+
+    case 'admin_system':
+      await sendMessage(chatId, "⚙️ Загрузка системных логов...");
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/system/logs`);
+        const result = await response.json();
+        
+        if (result.success) {
+          const logs = result.data.lastEvents || [];
+          let logsText = "⚙️ <b>Системные события:</b>\n\n";
+          
+          if (logs.length === 0) {
+            logsText += "ℹ️ Событий не найдено";
+          } else {
+            logs.forEach((log: any, index: number) => {
+              logsText += `${index + 1}. ${log.event}\n`;
+              logsText += `   ⏰ ${new Date(log.time).toLocaleString('ru-RU')}\n\n`;
+            });
+          }
+          
+          await sendMessage(chatId, logsText);
+        } else {
+          await sendMessage(chatId, `❌ Ошибка: ${result.error}`);
+        }
+      } catch (error) {
+        await sendMessage(chatId, `❌ Ошибка получения логов: ${error}`);
+      }
+      break;
+
+    default:
+      await sendMessage(chatId, "❌ Неизвестная админская функция");
+  }
+}
+
+/**
  * 🗄️ Обработка команд базы данных
  */
 async function handleDatabaseAction(chatId: number, action: string, username: string, messageId?: number): Promise<void> {
@@ -483,6 +673,9 @@ UniFarm - это платформа для фарминга UNI токенов
         await sendMessage(chatId, helpText);
       } else if (data === 'ref_code') {
         await sendMessage(chatId, "🔗 Получение реферального кода...\nЭта функция будет добавлена в ближайшее время!");
+      } else if (data.startsWith('admin_') && isAdmin(username)) {
+        // Обработка всех админских кнопок
+        await handleAdminAction(chatId, data, username, messageId);
       } else {
         await sendMessage(chatId, "🚧 Функция в разработке");
       }
