@@ -58,7 +58,7 @@ export class WalletController {
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
       const getBalanceWithFallback = wrapServiceFunction(
-        walletService.getWalletBalance.bind(walletService),
+        walletService.getUserBalance.bind(walletService),
         async (error, userId) => {
           console.log(`[WalletControllerFallback] Возвращаем заглушку для баланса по ID: ${userId}`);
           return { 
