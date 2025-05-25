@@ -197,12 +197,24 @@ export const SafeTelegramAPI = {
     false
   ),
   
-  // ЭТАП 3: Безопасный вызов close()
-  close: () => safeTelegramOperation(
-    'close',
-    () => window.Telegram?.WebApp?.close(),
-    false
-  ),
+  // ЭТАП 3: Безопасный вызов close() с логированием
+  close: () => {
+    console.log('[TG CLOSE CLICKED] 🚪 Закрытие Telegram Mini App...');
+    return safeTelegramOperation(
+      'close',
+      () => {
+        if (window.Telegram?.WebApp?.close) {
+          console.log('[TG CLOSE] ✅ Вызываем Telegram.WebApp.close()');
+          window.Telegram.WebApp.close();
+          return true;
+        } else {
+          console.warn('[TG CLOSE] ⚠️ Telegram.WebApp.close() недоступен');
+          return false;
+        }
+      },
+      false
+    );
+  },
   
   // ЭТАП 3: Безопасная работа с MainButton
   mainButton: {

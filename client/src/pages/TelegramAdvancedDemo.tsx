@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TelegramAdvanced } from '../services/telegramAdvancedService';
+import TelegramCloseButton from '../components/telegram/TelegramCloseButton';
 
 const TelegramAdvancedDemo: React.FC = () => {
   // ЭТАП 3: Состояние для демонстрации CloudStorage
@@ -314,7 +315,7 @@ const TelegramAdvancedDemo: React.FC = () => {
       </Card>
 
       {/* ЭТАП 3: Инструкции */}
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle>📝 Инструкции по тестированию</CardTitle>
         </CardHeader>
@@ -333,6 +334,37 @@ const TelegramAdvancedDemo: React.FC = () => {
             </div>
             <div className="text-muted-foreground">
               <strong>Логи:</strong> Откройте консоль браузера для просмотра всех операций и ошибок.
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ФИНАЛЬНОЕ ЗАВЕРШЕНИЕ: Кнопка закрытия Telegram Mini App */}
+      <Card>
+        <CardHeader>
+          <CardTitle>🚪 Закрытие приложения</CardTitle>
+          <CardDescription>
+            Корректное завершение работы Telegram Mini App
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              <p>При нажатии на кнопку ниже будет вызван официальный метод Telegram.WebApp.close().</p>
+              <p>В консоли появится лог: <code>[TG CLOSE CLICKED]</code></p>
+            </div>
+            
+            <div className="flex justify-center">
+              <TelegramCloseButton 
+                variant="destructive" 
+                size="lg" 
+                showIcon={true}
+              />
+            </div>
+            
+            <div className="text-xs text-muted-foreground text-center">
+              <strong>Примечание:</strong> Если приложение запущено не в Telegram, 
+              кнопка выполнит fallback навигацию назад в браузере.
             </div>
           </div>
         </CardContent>

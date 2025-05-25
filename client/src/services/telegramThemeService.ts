@@ -280,6 +280,17 @@ export function initializeTelegramEvents(): boolean {
       console.log('[TELEGRAM THEME] 🔘 MainButton clicked');
     });
     
+    // ФИНАЛЬНОЕ ЗАВЕРШЕНИЕ: Обработка settingsButtonPressed
+    webApp.onEvent('settingsButtonPressed', () => {
+      console.log('[TG SETTINGS BUTTON PRESSED] ⚙️ Пользователь нажал кнопку настроек');
+      try {
+        // Можно добавить логику открытия настроек приложения
+        console.log('[TG SETTINGS] Открытие раздела настроек...');
+      } catch (error) {
+        console.error('[TG ERROR] settingsButtonPressed — Failed to handle settings:', error);
+      }
+    });
+    
     return true;
     
   } catch (error) {
