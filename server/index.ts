@@ -570,23 +570,13 @@ async function startServer(): Promise<void> {
     next();
   });
 
-  // Регистрируем Telegram webhook с умным ботом
+  // Регистрируем Telegram routes и webhook
   try {
-    const { handleSmartBotUpdate } = await import('./telegram/smartBot');
-    app.post('/api/telegram/webhook', async (req, res) => {
-      try {
-        // Быстро отвечаем Telegram
-        res.status(200).json({ success: true });
-        
-        // Обрабатываем через умный бот
-        await handleSmartBotUpdate(req.body);
-      } catch (error) {
-        logger.error('[Telegram Webhook] Ошибка обработки:', error);
-      }
-    });
-    logger.info('[Server] ✅ Умный Telegram бот зарегистрирован: /api/telegram/webhook');
+    const { default: telegramRouter } = await import('./telegram/routes');
+    app.use('/api/telegram', telegramRouter);
+    logger.info('[Server] ✅ Telegram маршруты зарегистрированы: /api/telegram/*');
   } catch (error) {
-    logger.error('[Server] ❌ Ошибка при регистрации умного бота:', error);
+    logger.error('[Server] ❌ Ошибка при регистрации Telegram маршрутов:', error);
   }
 
   // Регистрируем консолидированные маршруты API
