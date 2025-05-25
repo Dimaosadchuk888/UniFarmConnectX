@@ -129,8 +129,8 @@ export async function initializeBot(): Promise<boolean> {
       logger.info('[Telegram Bot] Кнопка меню успешно настроена');
     }
     
-    // Отримуємо URL для webhook
-    const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL;
+    // Отримуємо URL для webhook - ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ ПРОДАКШН URL
+    const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook';
     
     if (!webhookUrl) {
       logger.warn('[Telegram Bot] TELEGRAM_WEBHOOK_URL не встановлено, webhook не буде налаштовано');
