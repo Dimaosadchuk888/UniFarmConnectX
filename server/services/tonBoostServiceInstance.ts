@@ -208,17 +208,41 @@ class TonBoostService implements ITonBoostService {
    * @returns Список активных TON Boost-депозитов
    */
   async getUserActiveBoosts(userId: number): Promise<TonBoostDeposit[]> {
-    const userDeposits = await db
-      .select()
-      .from(tonBoostDeposits)
-      .where(
-        and(
-          eq(tonBoostDeposits.user_id, userId),
-          eq(tonBoostDeposits.is_active, true)
-        )
-      );
+    try {
+      console.log(`[TON FARMING] Запрос активных депозитов для пользователя ${userId}`);
+      
+      // Проверяем существование таблицы перед запросом
+      const tableCheckQuery = `
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'ton_boost_deposits'
+        );
+      `;
+      
+      const tableExists = await db.query(tableCheckQuery);
+      
+      if (!tableExists.rows?.[0]?.exists) {
+        console.log(`[TON FARMING] Таблица ton_boost_deposits не найдена, возвращаем пустой массив`);
+        return [];
+      }
+      
+      // Запрашиваем данные только если таблица существует
+      const query = `
+        SELECT * FROM ton_boost_deposits 
+        WHERE user_id = $1 AND is_active = true
+      `;
+      
+      const result = await db.query(query, [userId]);
+      const userDeposits = result.rows || [];
 
-    return userDeposits;
+      console.log(`[TON FARMING] Найдено ${userDeposits.length} активных депозитов для пользователя ${userId}`);
+      return userDeposits;
+    } catch (error) {
+      console.error(`[TON FARMING ERROR] Ошибка при получении депозитов пользователя ${userId}:`, error);
+      // Возвращаем пустой массив вместо падения
+      return [];
+    }
   }
 
   /**
@@ -409,29 +433,39 @@ class TonBoostService implements ITonBoostService {
    * @returns Информацию о TON фарминге пользователя
    */
   async getUserTonFarmingInfo(userId: number): Promise<TonFarmingInfo> {
-    // Получаем активные TON Boost-депозиты пользователя
-    const activeDeposits = await this.getUserActiveBoosts(userId);
+    try {
+      console.log(`[TON FARMING INFO] Начало загрузки данных для пользователя ${userId}`);
+      
+      // Получаем активные TON Boost-депозиты пользователя
+      const activeDeposits = await this.getUserActiveBoosts(userId);
 
-    // Рассчитываем общую скорость начисления TON и UNI
-    let totalTonRatePerSecond = new BigNumber(0);
-    let totalUniRatePerSecond = new BigNumber(0);
+      // Рассчитываем общую скорость начисления TON и UNI
+      let totalTonRatePerSecond = new BigNumber(0);
+      let totalUniRatePerSecond = new BigNumber(0);
 
-    for (const deposit of activeDeposits) {
-      totalTonRatePerSecond = totalTonRatePerSecond.plus(deposit.rate_ton_per_second || "0");
-      totalUniRatePerSecond = totalUniRatePerSecond.plus(deposit.rate_uni_per_second || "0");
+      for (const deposit of activeDeposits) {
+        totalTonRatePerSecond = totalTonRatePerSecond.plus(deposit.rate_ton_per_second || "0");
+        totalUniRatePerSecond = totalUniRatePerSecond.plus(deposit.rate_uni_per_second || "0");
+      }
+
+      // Рассчитываем дневной доход
+      const dailyIncomeTon = totalTonRatePerSecond.multipliedBy(SECONDS_IN_DAY);
+      const dailyIncomeUni = totalUniRatePerSecond.multipliedBy(SECONDS_IN_DAY);
+
+      const result = {
+        totalTonRatePerSecond: totalTonRatePerSecond.toString(),
+        totalUniRatePerSecond: totalUniRatePerSecond.toString(),
+        dailyIncomeTon: dailyIncomeTon.toString(),
+        dailyIncomeUni: dailyIncomeUni.toString(),
+        deposits: activeDeposits
+      };
+
+      console.log(`[TON FARMING INFO] Loaded for user_id=${userId}, deposits: ${activeDeposits.length}, daily TON: ${dailyIncomeTon.toString()}`);
+      return result;
+    } catch (error) {
+      console.error(`[TON FARMING ERROR] Критическая ошибка при загрузке данных пользователя ${userId}:`, error);
+      throw error;
     }
-
-    // Рассчитываем дневной доход
-    const dailyIncomeTon = totalTonRatePerSecond.multipliedBy(SECONDS_IN_DAY);
-    const dailyIncomeUni = totalUniRatePerSecond.multipliedBy(SECONDS_IN_DAY);
-
-    return {
-      totalTonRatePerSecond: totalTonRatePerSecond.toString(),
-      totalUniRatePerSecond: totalUniRatePerSecond.toString(),
-      dailyIncomeTon: dailyIncomeTon.toString(),
-      dailyIncomeUni: dailyIncomeUni.toString(),
-      deposits: activeDeposits
-    };
   }
 
   /**
