@@ -272,7 +272,7 @@ async function handleAdminAction(chatId: number, action: string, username: strin
       
       if (messageId) {
         await editMessage(chatId, messageId, usersMenuText, {
-          reply_markup: JSON.stringify(getUsersKeyboard())
+          reply_markup: JSON.stringify(getUserKeyboard())
         });
       }
       break;
@@ -312,7 +312,7 @@ async function handleAdminAction(chatId: number, action: string, username: strin
       
       if (messageId) {
         await editMessage(chatId, messageId, financeMenuText, {
-          reply_markup: JSON.stringify(getFinanceKeyboard())
+          reply_markup: JSON.stringify(getAdminPanelKeyboard())
         });
       }
       break;
@@ -675,7 +675,7 @@ UniFarm - это платформа для фарминга UNI токенов
         await sendMessage(chatId, "🔗 Получение реферального кода...\nЭта функция будет добавлена в ближайшее время!");
       } else if (data.startsWith('admin_') && isAdmin(username)) {
         // Обработка всех админских кнопок
-        await handleAdminAction(chatId, data, username, messageId);
+        await handleAdminAction(chatId, data, username || '', messageId);
       } else {
         await sendMessage(chatId, "🚧 Функция в разработке");
       }
