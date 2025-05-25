@@ -373,18 +373,26 @@ export function registerNewRoutes(app: Express): void {
   
   // Маршруты для реферальной системы с использованием консолидированного контроллера
   if (ReferralController) {
+    // Генерация реферального кода
+    if (typeof ReferralController.generateReferralCode === 'function') {
+      app.get('/api/v2/referral/code', safeHandler(ReferralController.generateReferralCode.bind(ReferralController)));
+    }
+    
+    // Получение дерева рефералов
     if (typeof ReferralController.getReferralTree === 'function') {
-      app.get('/api/v2/referrals/tree', safeHandler(ReferralController.getReferralTree));
+      app.get('/api/v2/referral/tree', safeHandler(ReferralController.getReferralTree.bind(ReferralController)));
+      app.get('/api/v2/referrals/tree', safeHandler(ReferralController.getReferralTree.bind(ReferralController)));
     }
     
+    // Статистика рефералов
     if (typeof ReferralController.getReferralStats === 'function') {
-      app.get('/api/v2/referrals/stats', safeHandler(ReferralController.getReferralStats));
+      app.get('/api/v2/referrals/stats', safeHandler(ReferralController.getReferralStats.bind(ReferralController)));
     }
     
-    // Проверка с корректной типизацией
+    // Применение реферального кода
     if (ReferralController && 'applyReferralCode' in ReferralController && 
         typeof (ReferralController as any).applyReferralCode === 'function') {
-      app.post('/api/v2/referrals/apply', safeHandler((ReferralController as any).applyReferralCode));
+      app.post('/api/v2/referrals/apply', safeHandler((ReferralController as any).applyReferralCode.bind(ReferralController)));
     }
   }
   
@@ -406,23 +414,23 @@ export function registerNewRoutes(app: Express): void {
   // Маршруты для кошелька с использованием консолидированного контроллера
   if (WalletController) {
     if (typeof WalletController.getWalletBalance === 'function') {
-      app.get('/api/v2/wallet/balance', safeHandler(WalletController.getWalletBalance));
+      app.get('/api/v2/wallet/balance', safeHandler(WalletController.getWalletBalance.bind(WalletController)));
     }
     
     if (typeof WalletController.connectWallet === 'function') {
-      app.post('/api/v2/wallet/connect', safeHandler(WalletController.connectWallet));
+      app.post('/api/v2/wallet/connect', safeHandler(WalletController.connectWallet.bind(WalletController)));
     }
     
     if (typeof WalletController.disconnectWallet === 'function') {
-      app.post('/api/v2/wallet/disconnect', safeHandler(WalletController.disconnectWallet));
+      app.post('/api/v2/wallet/disconnect', safeHandler(WalletController.disconnectWallet.bind(WalletController)));
     }
     
     if (typeof WalletController.getTransactions === 'function') {
-      app.get('/api/v2/wallet/transactions', safeHandler(WalletController.getTransactions));
+      app.get('/api/v2/wallet/transactions', safeHandler(WalletController.getTransactions.bind(WalletController)));
     }
     
     if (typeof WalletController.withdrawUni === 'function') {
-      app.post('/api/v2/wallet/withdraw', safeHandler(WalletController.withdrawUni));
+      app.post('/api/v2/wallet/withdraw', safeHandler(WalletController.withdrawUni.bind(WalletController)));
     }
   }
   

@@ -16,6 +16,57 @@ import { ReferralService } from '../services/referralService';
  */
 export class ReferralController {
   /**
+   * Генерирует реферальный код для пользователя
+   * @route GET /api/referral/code
+   */
+  static async generateReferralCode(req: Request, res: Response, next?: NextFunction): Promise<void> {
+    try {
+      // Извлекаем ID пользователя
+      const userIdRaw = extractUserId(req);
+      if (!userIdRaw || isNaN(userIdRaw) || userIdRaw <= 0) {
+        return sendError(res, 'Некорректный идентификатор пользователя', 400);
+      }
+      
+      const userId = Number(userIdRaw);
+      console.log(`[ReferralController] Запрос реферального кода для пользователя: ${userId}`);
+      
+      try {
+        // Получаем пользователя и его реферальный код
+        const user = await userService.getUserById(userId);
+        if (!user) {
+          return sendError(res, 'Пользователь не найден', 404);
+        }
+        
+        // Возвращаем существующий реферальный код
+        const result = {
+          user_id: userId,
+          ref_code: user.ref_code,
+          share_url: `https://t.me/yourbot?start=${user.ref_code}`,
+          is_fallback: false
+        };
+        
+        return sendSuccess(res, result);
+      } catch (error) {
+        console.error(`[ReferralController] Ошибка при получении реферального кода:`, error);
+        
+        // Fallback: возвращаем временный код
+        const fallbackCode = `temp_${userId}_${Date.now().toString(36)}`;
+        const result = {
+          user_id: userId,
+          ref_code: fallbackCode,
+          share_url: `https://t.me/yourbot?start=${fallbackCode}`,
+          is_fallback: true,
+          message: 'Временный код (резервный режим)'
+        };
+        
+        return sendSuccess(res, result);
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Получает реферальное дерево для пользователя 
    * @route GET /api/referrals/tree
    */
