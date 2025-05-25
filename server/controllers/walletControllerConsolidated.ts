@@ -100,13 +100,14 @@ export class WalletController {
       }
 
       // Валидация формата TON-адреса
-      if (!validationService.isTonAddressValid(wallet_address)) {
-        return next(new ValidationError('Некорректный формат TON-адреса'));
+      const addressValidation = walletServiceInstance.validateTonAddress(wallet_address);
+      if (!addressValidation.isValid) {
+        return next(new ValidationError(addressValidation.message || 'Некорректный формат TON-адреса'));
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
       const connectWalletWithFallback = wrapServiceFunction(
-        walletService.connectWallet.bind(walletService),
+        async (userId: number, address: string) => await walletServiceInstance.updateWalletAddress(userId, address),
         async (error, ...args) => {
           console.error('[WalletControllerFallback] Ошибка при подключении кошелька:', error);
           return { 
@@ -187,21 +188,25 @@ export class WalletController {
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
       const getTransactionsWithFallback = wrapServiceFunction(
-        walletService.getTransactions.bind(walletService),
+        async (userId: number, limit: number, offset: number) => {
+          return await walletServiceInstance.getUserTransactions({ userId, limit, offset });
+        },
         async (error, ...args) => {
-          console.log(`[WalletControllerFallback] Возвращаем заглушку для истории транзакций по ID: ${args[0]}`);
+          console.error('[WalletControllerFallback] Ошибка при получении транзакций:', error);
           return { 
-            success: true, 
-            data: [],
-            total: 0,
-            offset: args[2],
-            limit: args[1]
+            transactions: [],
+            total: 0
           };
         }
       );
 
-      const transactions = await getTransactionsWithFallback(user_id, limit, offset, currency);
-      return res.json(transactions);
+      const result = await getTransactionsWithFallback(user_id, limit, offset);
+      
+      // Логируем запрос транзакций
+      console.log(`[WALLET TRANSACTIONS REQUEST] User ${user_id} transactions retrieved: ${result.transactions.length} items`);
+      
+      // Возвращаем в стандартизированном формате API
+      sendSuccess(res, result);
     } catch (error) {
       next(error);
     }
