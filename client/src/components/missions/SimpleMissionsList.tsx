@@ -51,7 +51,7 @@ export const SimpleMissionsList: React.FC = () => {
         
         // Загружаем активные миссии
         console.log('SimpleMissionsList: отправка запроса active missions');
-        const missionsResponse = await correctApiRequest('/api/missions/active', 'GET');
+        const missionsResponse = await correctApiRequest('/api/v2/missions/active', 'GET');
         console.log('SimpleMissionsList: ответ получен', missionsResponse);
         
         if (!isMounted) return;
@@ -67,7 +67,7 @@ export const SimpleMissionsList: React.FC = () => {
         
         // Загружаем выполненные миссии
         console.log('SimpleMissionsList: отправка запроса user missions');
-        const userMissionsResponse = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}`, 'GET');
+        const userMissionsResponse = await correctApiRequest(`/api/v2/missions/user-completed?user_id=${userId || 1}`, 'GET');
         console.log('SimpleMissionsList: ответ user missions получен', userMissionsResponse);
         
         if (!isMounted) return;
@@ -145,7 +145,7 @@ export const SimpleMissionsList: React.FC = () => {
         }
       }
       
-      const result = await correctApiRequest('/api/missions/complete', 'POST', {
+      const result = await correctApiRequest('/api/v2/missions/complete', 'POST', {
         user_id: userId || 1,
         mission_id: missionId
       });

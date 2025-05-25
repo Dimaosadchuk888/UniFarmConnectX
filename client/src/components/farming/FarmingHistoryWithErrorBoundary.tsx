@@ -17,14 +17,14 @@ const FarmingHistoryWithErrorBoundary: React.FC<FarmingHistoryWithErrorBoundaryP
   // Обработчик сброса состояния ошибки и инвалидации данных
   const handleReset = () => {
     queryClient.invalidateQueries({ 
-      queryKey: ['/api/farming/history', userId] 
+      queryKey: ['/api/v2/uni-farming/history', userId] 
     });
   };
   
   return (
     <QueryErrorBoundary
       onReset={handleReset}
-      queryKey={['/api/farming/history', userId]}
+      queryKey={['/api/v2/uni-farming/history', userId]}
       errorTitle="Ошибка загрузки истории фарминга"
       errorDescription="Не удалось загрузить историю операций фарминга. Пожалуйста, обновите страницу или повторите позже."
       resetButtonText="Обновить данные"

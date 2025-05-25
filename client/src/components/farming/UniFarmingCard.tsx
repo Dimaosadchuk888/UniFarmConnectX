@@ -51,7 +51,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       try {
         // Используем безопасный запрос с правильными заголовками
         const response = await correctApiRequest<{ success: boolean; data: FarmingInfo }>(
-          `/api/uni-farming/status?user_id=${userId || 1}`, 
+          `/api/v2/uni-farming/status?user_id=${userId || 1}`, 
           'GET'
         );
         
@@ -107,10 +107,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   
   // Для подсчета транзакций фарминга
   const { data: transactionsResponse } = useQuery({
-    queryKey: ['/api/transactions', userId],
+    queryKey: ['/api/v2/transactions', userId],
     enabled: !!userId && farmingInfo.isActive,
     queryFn: async () => {
-      return await correctApiRequest('/api/transactions?user_id=' + (userId || 1), 'GET');
+      return await correctApiRequest('/api/v2/transactions?user_id=' + (userId || 1), 'GET');
     }
   });
   
@@ -192,7 +192,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         };
         
         // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
-        const response = await correctApiRequest('/api/uni-farming/harvest', 'POST', requestBody);
+        const response = await correctApiRequest('/api/v2/uni-farming/harvest', 'POST', requestBody);
         
         if (response?.success) {
           return response;
@@ -219,8 +219,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         
         // Обновляем данные с учетом динамического ID пользователя
         // Используем новую функцию вместо прямого вызова invalidateQueries
-        invalidateQueryWithUserId('/api/uni-farming/status', [
-          '/api/wallet/balance'
+        invalidateQueryWithUserId('/api/v2/uni-farming/status', [
+          '/api/v2/wallet/balance'
         ]);
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess infoMutation:', error);
