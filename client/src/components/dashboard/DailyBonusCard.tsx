@@ -38,7 +38,7 @@ const DailyBonusCard: React.FC = () => {
     queryFn: async () => {
       try {
         // Используем новый унифицированный метод apiGet
-        const endpoint = `/api/daily-bonus/status?user_id=${userId || 1}`;
+        const endpoint = `/api/v2/daily-bonus/status?user_id=${userId || 1}`;
         console.log('[DailyBonusCard] Запрос статуса бонуса:', endpoint);
         
         const response = await apiGet<DailyBonusStatus>(endpoint);
@@ -66,7 +66,7 @@ const DailyBonusCard: React.FC = () => {
     mutationFn: async () => {
       try {
         // Используем новый унифицированный метод apiPost
-        const endpoint = '/api/daily-bonus/claim';
+        const endpoint = '/api/v2/daily-bonus/claim';
         console.log('[DailyBonusCard] Отправка запроса на получение бонуса:', endpoint);
         
         // Отправляем POST запрос с корректными заголовками
@@ -93,11 +93,11 @@ const DailyBonusCard: React.FC = () => {
           setReward(`${data.amount || bonusStatus?.bonusAmount || 500} UNI`);
           
           // Обновляем данные о статусе бонуса с учетом userId
-          invalidateQueryWithUserId('/api/daily-bonus/status');
+          invalidateQueryWithUserId('/api/v2/daily-bonus/status');
           
           // Также обновляем данные баланса пользователя и транзакции
-          invalidateQueryWithUserId('/api/wallet/balance');
-          invalidateQueryWithUserId('/api/transactions');
+          invalidateQueryWithUserId('/api/v2/wallet/balance');
+          invalidateQueryWithUserId('/api/v2/transactions');
           
           // Скрываем конфетти через 4 секунды
           setTimeout(() => {
@@ -126,8 +126,8 @@ const DailyBonusCard: React.FC = () => {
         console.error('[ERROR] DailyBonusCard - Ошибка в onSuccess:', error);
         // Даже при ошибке пытаемся обновить данные интерфейса
         try {
-          invalidateQueryWithUserId('/api/daily-bonus/status');
-          invalidateQueryWithUserId('/api/wallet/balance');
+          invalidateQueryWithUserId('/api/v2/daily-bonus/status');
+          invalidateQueryWithUserId('/api/v2/wallet/balance');
           
           // Информируем пользователя
           toast({
@@ -151,7 +151,7 @@ const DailyBonusCard: React.FC = () => {
         });
         
         // В любом случае обновляем данные
-        invalidateQueryWithUserId('/api/daily-bonus/status');
+        invalidateQueryWithUserId('/api/v2/daily-bonus/status');
       } catch (err) {
         console.error('[ERROR] DailyBonusCard - Ошибка в обработчике onError:', err);
         // Последняя попытка показать уведомление

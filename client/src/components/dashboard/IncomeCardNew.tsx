@@ -56,7 +56,7 @@ const IncomeCardNew: React.FC = () => {
   
   // Загружаем данные UNI фарминга
   const { data: uniFarmingResponse } = useQuery<{ success: boolean; data: UniFarmingInfo }>({
-    queryKey: ['/api/uni-farming/status', validUserId],
+    queryKey: ['/api/v2/uni-farming/status', validUserId],
     refetchInterval: 15000, // Обновление каждые 15 секунд
     queryFn: async () => {
       return await correctApiRequest<{ success: boolean; data: UniFarmingInfo }>(
