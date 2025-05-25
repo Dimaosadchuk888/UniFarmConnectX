@@ -46,7 +46,7 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
     
     // Выполняем запрос к API
     console.log('[balanceService] Запрос новых данных баланса из API');
-    const response = await correctApiRequest(`/api/wallet/balance?user_id=${userId}`, 'GET');
+    const response = await correctApiRequest(`/api/v2/wallet/balance?user_id=${userId}`, 'GET');
     
     if (!response.success || !response.data) {
       console.error('[balanceService] Ошибка получения баланса:', response.error || 'Unknown error');
@@ -113,7 +113,7 @@ export async function requestWithdrawal(userId: number, amount: string, address:
       throw new Error('userId, amount и address обязательны для запроса на вывод');
     }
     
-    const response = await correctApiRequest('/api/wallet/withdraw', 'POST', {
+    const response = await correctApiRequest('/api/v2/wallet/withdraw', 'POST', {
       user_id: userId,
       amount,
       wallet_address: address

@@ -127,7 +127,7 @@ const restoreSession = async (guestId: string, additionalData: Record<string, an
     
     // Отправляем запрос на восстановление сессии
     console.log('[SessionRestoreService] Формирование запроса к серверу с телом:', JSON.stringify(requestData));
-    const result = await correctApiRequest('/api/session/restore', 'POST', requestData);
+    const result = await correctApiRequest('/api/v2/session/restore', 'POST', requestData);
     
     if (result.success && result.data) {
       console.log('[sessionRestoreService] Сессия успешно восстановлена:', result.data);

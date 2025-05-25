@@ -108,7 +108,7 @@ export async function submitWithdrawal(
       console.log(`[submitWithdrawal] [${requestId}] Используем correctApiRequest для запроса`);
       
       // correctApiRequest автоматически обрабатывает сетевые ошибки и стандартизирует ответ
-      response = await correctApiRequest('/api/wallet/withdraw', 'POST', requestData);
+      response = await correctApiRequest('/api/v2/wallet/withdraw', 'POST', requestData);
       
       console.log(`[submitWithdrawal] [${requestId}] Получен ответ от сервера:`, 
                    typeof response === 'object' ? JSON.stringify(response).slice(0, 100) + '...' : response);

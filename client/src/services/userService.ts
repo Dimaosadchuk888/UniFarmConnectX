@@ -388,7 +388,7 @@ class UserService {
   private async fetchDevUserFromApi(): Promise<User> {
     try {
       console.log('[UserService] Используем correctApiRequest для запроса dev-пользователя');
-      const devData = await correctApiRequest('/api/users/1', 'GET');
+      const devData = await correctApiRequest('/api/v2/users/1', 'GET');
       if (devData.success && devData.data && this.isValidUserData(devData.data)) {
         console.log('[UserService] Successfully got DEV user data from API:', { id: devData.data.id });
         return devData.data;
@@ -426,7 +426,7 @@ class UserService {
       
       // Делаем запрос к серверу для генерации кода с использованием correctApiRequest
       console.log('[UserService] Используем correctApiRequest для генерации реферального кода');
-      const response = await correctApiRequest('/api/users/generate-refcode', 'POST', requestData);
+      const response = await correctApiRequest('/api/v2/users/generate-refcode', 'POST', requestData);
       
       if (response.success && response.data) {
         console.log('[UserService] Успешно получен реферальный код:', response.data);
@@ -467,7 +467,7 @@ class UserService {
       // Отправляем запрос к API для получения пользователя по guest_id, используя correctApiRequest
       // ВАЖНО: URL на сервере ожидает guest_id, а не guestId в параметре пути
       console.log('[UserService] Используем correctApiRequest для запроса по guest_id');
-      const response = await correctApiRequest(`/api/users/guest/${guestId}?user_id=1`, 'GET', null, {
+      const response = await correctApiRequest(`/api/v2/users/guest/${guestId}?user_id=1`, 'GET', null, {
         additionalLogging: true,
         errorHandling: {
           report404: true, // Логировать 404 ошибки
