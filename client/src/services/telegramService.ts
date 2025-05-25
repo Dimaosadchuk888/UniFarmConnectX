@@ -32,6 +32,21 @@ declare global {
         colorScheme?: string;
         viewportHeight?: number;
         viewportStableHeight?: number;
+        // ЭТАП 1: Добавление themeParams для динамической темы
+        themeParams?: {
+          bg_color?: string;
+          text_color?: string;
+          hint_color?: string;
+          link_color?: string;
+          button_color?: string;
+          button_text_color?: string;
+          secondary_bg_color?: string;
+        };
+        // ЭТАП 1: Добавление обработчиков событий
+        onEvent?: (eventType: string, eventHandler: () => void) => void;
+        offEvent?: (eventType: string, eventHandler: () => void) => void;
+        // ЭТАП 1: Добавление свойства isExpanded
+        isExpanded?: boolean;
         MainButton?: {
           show: () => void;
           hide: () => void;
@@ -112,7 +127,7 @@ export function isTelegramWebApp(): boolean {
 /**
  * Инициализирует сервис идентификации пользователя
  * Минимальная инициализация Telegram WebApp для работы в среде Telegram
- * Вызывает только технические методы ready() и expand() без использования initData
+ * Включает интеграцию с темой и событиями Telegram WebApp
  */
 export function initTelegramWebApp(): boolean {
   // Проверяем наличие Telegram WebApp API
@@ -134,6 +149,20 @@ export function initTelegramWebApp(): boolean {
       // Расширяем окно до максимальной высоты
       window.Telegram.WebApp.expand();
       console.log('[TG EXPAND]');
+      
+      // НОВАЯ ФУНКЦИОНАЛЬНОСТЬ: Инициализация темы Telegram
+      // Интегрируем систему управления темой для автоматической адаптации
+      try {
+        // Динамический импорт службы темы для избежания циклических зависимостей
+        import('./telegramThemeService').then(({ initFullTelegramThemeIntegration }) => {
+          const themeInitSuccess = initFullTelegramThemeIntegration();
+          console.log('[TG THEME INTEGRATION]', themeInitSuccess ? 'успешно' : 'с ошибками');
+        }).catch(error => {
+          console.warn('[TG THEME INTEGRATION] Ошибка загрузки:', error);
+        });
+      } catch (error) {
+        console.warn('[TG THEME INTEGRATION] Ошибка инициализации:', error);
+      }
       
       // Настраиваем базовый UI для лучшей интеграции
       if (window.Telegram.WebApp.MainButton) {
