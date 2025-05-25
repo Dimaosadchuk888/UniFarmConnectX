@@ -267,7 +267,9 @@ async function answerCallbackQuery(callbackQueryId: string, text: string = ''): 
 async function handleStartCommand(chatId: number, userId: number): Promise<void> {
   try {
     // Проверяем наличие имени приложения в переменных окружения
-    const appUrl = process.env.MINI_APP_URL || 'https://t.me/UniFarming_Bot/UniFarm';
+    const baseUrl = process.env.MINI_APP_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+    // Добавляем версию для принудительного сброса кэша Telegram
+    const appUrl = `${baseUrl}?v=${Date.now()}`;
     
     const welcomeText = `
 Добро пожаловать в UniFarm!
