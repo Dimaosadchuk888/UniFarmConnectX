@@ -86,7 +86,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   
   // Запрос на получение транзакций с усиленной обработкой ошибок
   const { data: transactionsResponse, refetch: refetchTransactions } = useQuery({
-    queryKey: ['/api/transactions', { user_id: validUserId }],
+    queryKey: ['/api/v2/transactions', { user_id: validUserId }],
     queryFn: async () => {
       try {
         // Проверка наличия userId перед запросом
@@ -97,7 +97,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         
         // Используем correctApiRequest с расширенной обработкой ошибок
         try {
-          const result = await correctApiRequest<any>(`/api/transactions?user_id=${validUserId}`, 'GET');
+          const result = await correctApiRequest<any>(`/api/v2/transactions?user_id=${validUserId}`, 'GET');
           
           // Проверка структуры ответа на валидность
           if (!result) {
@@ -148,7 +148,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   
   // Запрос на получение активных TON бустов (единый эндпоинт)
   const { data: activeTonBoostsResponse, refetch: refetchTonBoosts } = useQuery({
-    queryKey: ['/api/ton-boosts/active', { user_id: validUserId }],
+    queryKey: ['/api/v2/ton-farming/active', { user_id: validUserId }],
     queryFn: async () => {
       try {
         // Проверка наличия userId перед запросом
@@ -159,8 +159,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         
         // Используем correctApiRequest с расширенной обработкой ошибок
         try {
-          console.log("[DEBUG] Запрос активных TON бустов по унифицированному API /api/ton-boosts/active");
-          const result = await correctApiRequest<any>(`/api/ton-boosts/active?user_id=${validUserId}`, 'GET');
+          console.log("[DEBUG] Запрос активных TON бустов по унифицированному API /api/v2/ton-farming/active");
+          const result = await correctApiRequest<any>(`/api/v2/ton-farming/active?user_id=${validUserId}`, 'GET');
           
           // Проверка структуры ответа на валидность
           if (!result) {
@@ -218,7 +218,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
   
   // Запрос на получение состояния UNI фарминга
   const { data: uniFarmingResponse, refetch: refetchFarming } = useQuery({
-    queryKey: ['/api/uni-farming/status', { user_id: validUserId }],
+    queryKey: ['/api/v2/uni-farming/status', { user_id: validUserId }],
     queryFn: async () => {
       try {
         // Проверка наличия userId перед запросом
@@ -229,7 +229,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         
         // Используем correctApiRequest с расширенной обработкой ошибок
         try {
-          const result = await correctApiRequest<any>(`/api/uni-farming/status?user_id=${validUserId}`, 'GET');
+          const result = await correctApiRequest<any>(`/api/v2/uni-farming/status?user_id=${validUserId}`, 'GET');
           
           // Проверка структуры ответа на валидность
           if (!result) {
@@ -296,7 +296,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         : 0;
       
       console.log("[DEBUG] Информация о TON бустах:");
-      console.log(`  - /api/ton-boosts/active: ${boostsCount} активных бустов`);
+      console.log(`  - /api/v2/ton-farming/active: ${boostsCount} активных бустов`);
     }
   }, [activeTonBoostsResponse]);
   
