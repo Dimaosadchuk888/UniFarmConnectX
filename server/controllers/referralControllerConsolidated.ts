@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { referralService, userService } from '../services';
+import { referralServiceInstance } from '../services/referralServiceInstance';
 import { sendSuccess, sendSuccessArray, sendError, sendServerError } from '../utils/responseUtils';
 import { extractUserId } from '../utils/validationUtils';
 import { ValidationError } from '../middleware/errorHandler';
@@ -44,6 +45,9 @@ export class ReferralController {
           share_url: `https://t.me/UniFarming_Bot?start=${user.ref_code}`,
           is_fallback: false
         };
+        
+        // Диагностический лог согласно ТЗ
+        console.log(`[REF CODE FETCHED] User ${userId} ref_code: ${user.ref_code}`);
         
         return sendSuccess(res, result);
       } catch (error) {
@@ -101,6 +105,9 @@ export class ReferralController {
           total_invitees: invitees.length,
           levels_data: []
         };
+        
+        // Диагностический лог согласно ТЗ
+        console.log(`[REF TREE REQUEST] User ${userId} tree with ${invitees.length} invitees`);
         
         // Форматируем и отправляем ответ
         sendSuccess(res, referralTree);
@@ -247,6 +254,9 @@ export class ReferralController {
             currency: "TON"
           }
         };
+        
+        // Диагностический лог согласно ТЗ
+        console.log(`[REF STATS RETURNED] User ${userId} stats: ${stats.total_invitees} invitees across ${Object.keys(stats.levels).length} levels`);
         
         // Форматируем и отправляем ответ
         sendSuccess(res, stats);

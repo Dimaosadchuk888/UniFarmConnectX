@@ -373,9 +373,11 @@ export function registerNewRoutes(app: Express): void {
   
   // Маршруты для реферальной системы с использованием консолидированного контроллера
   if (ReferralController) {
-    // Генерация реферального кода
+    // Генерация реферального кода (GET для получения существующего)
     if (typeof ReferralController.generateReferralCode === 'function') {
       app.get('/api/v2/referral/code', safeHandler(ReferralController.generateReferralCode.bind(ReferralController)));
+      // POST для генерации нового кода (согласно ТЗ)
+      app.post('/api/v2/referral/generate-code', safeHandler(ReferralController.generateReferralCode.bind(ReferralController)));
     }
     
     // Получение дерева рефералов
@@ -384,8 +386,9 @@ export function registerNewRoutes(app: Express): void {
       app.get('/api/v2/referrals/tree', safeHandler(ReferralController.getReferralTree.bind(ReferralController)));
     }
     
-    // Статистика рефералов
+    // Статистика рефералов (согласно ТЗ)
     if (typeof ReferralController.getReferralStats === 'function') {
+      app.get('/api/v2/referral/stats', safeHandler(ReferralController.getReferralStats.bind(ReferralController)));
       app.get('/api/v2/referrals/stats', safeHandler(ReferralController.getReferralStats.bind(ReferralController)));
     }
     
