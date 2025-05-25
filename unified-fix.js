@@ -180,7 +180,7 @@ function applyFixes(app, storage) {
         'https://web.telegram.org',
         'https://telegram.org',
         'https://telegram-web.github.io',
-        'http://localhost:3000',
+        'https://uni-farm-connect-x-lukyanenkolawfa.replit.app',
         'http://localhost:5173'
       ];
       

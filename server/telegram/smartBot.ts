@@ -15,7 +15,7 @@ const AUTHORIZED_ADMINS = ['a888bnd', 'DimaOsadchuk'];
 const MINI_APP_URL = process.env.MINI_APP_URL || process.env.APP_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app'
-  : 'http://localhost:3000';
+  : 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
 const ADMIN_SECRET = 'unifarm_admin_secret_2025';
 
 // Типы Telegram

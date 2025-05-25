@@ -19,7 +19,7 @@ async function callApi(endpoint, method = 'GET', body = null) {
   };
 
   // Получаем URL из окружения или используем localhost
-  const baseUrl = process.env.REPLIT_URL || 'http://localhost:3000';
+  const baseUrl = process.env.REPLIT_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
   const response = await fetch(`${baseUrl}${endpoint}`, options);
   return await response.json();
 }
@@ -28,7 +28,7 @@ async function checkAccumulatedTon() {
   console.log('\nПроверяем накопленный TON в депозитах:');
   
   try {
-    const baseUrl = process.env.REPLIT_URL || 'http://localhost:3000';
+    const baseUrl = process.env.REPLIT_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
     const query = `
       SELECT 
         id, 

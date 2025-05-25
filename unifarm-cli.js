@@ -20,7 +20,7 @@ const http = require('http');
 
 // Конфигурация
 const config = {
-  serverUrl: 'http://localhost:3000',
+  serverUrl: 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app',
   healthEndpoint: '/api/health',
   logDir: './logs',
   mainLogFile: 'unifarm.log',

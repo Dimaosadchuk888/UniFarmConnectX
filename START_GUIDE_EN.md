@@ -53,7 +53,7 @@ The system automatically switches between storage options when connection errors
 The Replit PostgreSQL database is configured automatically. To check its status:
 
 ```bash
-curl http://localhost:3000/api/health
+curl https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/health
 ```
 
 ### Telegram Integration

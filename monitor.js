@@ -15,7 +15,7 @@ const os = require('os');
 
 // Конфигурация
 const config = {
-  serverUrl: 'http://localhost:3000',
+  serverUrl: 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app',
   healthEndpoint: '/api/health',
   dbStatusEndpoint: '/api/admin/db-status',
   checkIntervalSec: 60,

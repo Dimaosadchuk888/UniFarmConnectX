@@ -3,7 +3,7 @@
  */
 const fetch = require('node-fetch');
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
 
 // Список ендпоінтів для тестування
 const endpoints = [

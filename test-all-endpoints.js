@@ -4,7 +4,7 @@
 import fetch from 'node-fetch';
 
 // Базовый URL и ID пользователя для тестирования
-const baseUrl = 'https://93cb0060-75d7-4281-ac65-b204cda864a4-00-1j7bpbfst9vfx.pike.replit.dev';
+const baseUrl = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
 const userId = 34;
 
 // Список эндпоинтов для тестирования

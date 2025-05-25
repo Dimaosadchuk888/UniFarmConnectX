@@ -13,7 +13,7 @@ async function makeRequest() {
     console.log('Запуск миграции guest_id...');
     
     // Определяем URL для запроса
-    const baseUrl = process.env.API_URL || 'https://8ac7b219-438d-4a0b-ab0e-d8b58de37c6d-00-8ncue1micrhz.sisko.replit.dev';
+    const baseUrl = process.env.API_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev';
     const url = `${baseUrl}/api/migrations/add-guest-id`;
     
     // Выполняем POST-запрос к API

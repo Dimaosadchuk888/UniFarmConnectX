@@ -7,7 +7,7 @@ import fetch from 'node-fetch';
 async function testDeposit() {
   // URL для тестирования - локальный и production
   const urls = [
-    'https://8ac7b219-438d-4a0b-ab0e-d8b58de37c6d-00-8ncue1micrhz.sisko.replit.dev',  // локальный
+    'https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev',  // локальный
     'https://uni-farm-connect-2-misterxuniverse.replit.app'  // production
   ];
 

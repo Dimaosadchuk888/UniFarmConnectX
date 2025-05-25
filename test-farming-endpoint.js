@@ -4,7 +4,7 @@
 import fetch from 'node-fetch';
 
 async function testFarmingEndpoint() {
-  const baseUrl = 'https://93cb0060-75d7-4281-ac65-b204cda864a4-00-1j7bpbfst9vfx.pike.replit.dev';
+  const baseUrl = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
   const userId = 34;
   const endpoint = `/api/uni-farming/info?user_id=${userId}`;
   

@@ -18,7 +18,7 @@ const util = require('util');
 const execAsync = util.promisify(exec);
 
 // Базовый URL API
-const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.API_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
 
 // Конфигурация тестирования
 const TEST_BALANCE_AMOUNT = 5; // Количество бонусов для начисления

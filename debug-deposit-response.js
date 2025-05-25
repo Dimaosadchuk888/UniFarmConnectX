@@ -6,7 +6,7 @@
 const fetch = require('node-fetch');
 
 async function testDeposit() {
-  const url = 'https://8ac7b219-438d-4a0b-ab0e-d8b58de37c6d-00-8ncue1micrhz.sisko.replit.dev/api/uni-farming/deposit';
+  const url = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev/api/uni-farming/deposit';
   const requestBody = {
     amount: '5',
     user_id: 1

@@ -10,7 +10,7 @@
 const fetch = require('node-fetch');
 
 // URL сервера (по умолчанию локальный)
-const BASE_URL = process.env.API_URL || 'http://localhost:3000';
+const BASE_URL = process.env.API_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
 
 // Токен аутентификации для API (если требуется)
 const AUTH_TOKEN = process.env.API_TOKEN || '';

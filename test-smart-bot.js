@@ -13,7 +13,7 @@ dotenv.config();
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const APP_URL = process.env.NODE_ENV === 'production' 
   ? 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app'
-  : 'http://localhost:3000';
+  : 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
 
 const colors = {
   reset: '\x1b[0m',

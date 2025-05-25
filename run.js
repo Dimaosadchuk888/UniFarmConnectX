@@ -27,7 +27,7 @@ let restartCount = 0;
 // Проверяем активность сервера через HTTP запрос
 async function checkServerHealth() {
   try {
-    const response = await fetch('http://localhost:3000/api/health');
+    const response = await fetch('https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/health');
     if (response.ok) {
       console.log('✅ [Healthcheck] Сервер работает стабильно');
       return true;
