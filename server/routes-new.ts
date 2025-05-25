@@ -337,6 +337,12 @@ export function registerNewRoutes(app: Express): void {
     app.get('/api/v2/users/:id', safeHandler(UserController.getUserById));
   }
   
+  // [TG REGISTRATION FIX] Новый эндпоинт для регистрации через Telegram
+  if (typeof UserController.createUserFromTelegram === 'function') {
+    app.post('/api/register/telegram', safeHandler(UserController.createUserFromTelegram));
+    logger.info('[NewRoutes] ✓ Telegram регистрация эндпоинт добавлен: POST /api/register/telegram');
+  }
+  
   // Маршруты для транзакций
   if (typeof TransactionController.getUserTransactions === 'function') {
     app.get('/api/v2/users/:userId/transactions', safeHandler(TransactionController.getUserTransactions));
