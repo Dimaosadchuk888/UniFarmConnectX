@@ -570,6 +570,15 @@ async function startServer(): Promise<void> {
     next();
   });
 
+  // Регистрируем Telegram webhook ПЕРЕД основными API маршрутами
+  try {
+    const { handleTelegramWebhook } = await import('./telegram/webhook');
+    app.post('/api/telegram/webhook', handleTelegramWebhook);
+    logger.info('[Server] ✅ Telegram webhook маршрут зарегистрирован: /api/telegram/webhook');
+  } catch (error) {
+    logger.error('[Server] ❌ Ошибка при регистрации Telegram webhook:', error);
+  }
+
   // Регистрируем консолидированные маршруты API
   try {
     // Регистрируем консолидированные маршруты
