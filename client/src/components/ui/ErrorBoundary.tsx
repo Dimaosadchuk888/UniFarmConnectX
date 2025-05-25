@@ -70,9 +70,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       // Всегда обновляем ключевые данные приложения при сбросе ошибки
       try {
         // Обновляем основные данные пользователя в кэше React Query
-        invalidateQueryWithUserId('/api/me', [
-          '/api/wallet/balance',
-          '/api/transactions'
+        invalidateQueryWithUserId('/api/v2/me', [
+          '/api/v2/wallet/balance',
+          '/api/v2/transactions'
         ]);
       } catch (queryError) {
         console.error('[ErrorBoundary] Ошибка при обновлении кэша запросов:', queryError);
