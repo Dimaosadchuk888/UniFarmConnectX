@@ -22,7 +22,7 @@ const WelcomeSection: React.FC = () => {
       // другие поля пользователя
     }
   }>({
-    queryKey: ['/api/me'],
+    queryKey: ['/api/v2/me'],
     staleTime: 60000, // Кэширование на 1 минуту
     refetchOnWindowFocus: false
   });

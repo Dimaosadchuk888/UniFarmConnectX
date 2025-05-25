@@ -86,7 +86,7 @@ class UserService {
       }
       
       // Формируем полный URL для запроса
-      const url = apiConfig.getFullUrl('/api/airdrop/register');
+      const url = apiConfig.getFullUrl('/api/v2/airdrop/register');
       console.log(`[UserService] AirDrop: Отправка запроса по URL: ${url}`);
       
       // Отправляем запрос на регистрацию в режиме AirDrop с использованием correctApiRequest
@@ -223,7 +223,7 @@ class UserService {
     try {
       // Делаем запрос к API, используя correctApiRequest
       console.log('[UserService] Используем correctApiRequest для запроса /api/me');
-      const data = await correctApiRequest('/api/me', 'GET');
+      const data = await correctApiRequest('/api/v2/me', 'GET');
       
       // Подробный лог для отладки
       console.log('[UserService] API /me result:', {
