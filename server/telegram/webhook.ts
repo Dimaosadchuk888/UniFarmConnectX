@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import logger from '../utils/logger';
 import fetch from 'node-fetch';
+import { handleSmartBotUpdate } from './smartBot';
 
 interface TelegramUpdate {
   update_id: number;
@@ -70,9 +71,9 @@ export async function handleTelegramWebhook(req: Request, res: Response) {
     // Быстро отвечаем Telegram, чтобы он не повторял запрос
     res.status(200).json({ success: true });
     
-    // Дальше обрабатываем обновление асинхронно
-    processUpdate(update).catch(error => {
-      logger.error('[TelegramWebhook] Ошибка при обработке обновления:', error);
+    // Дальше обрабатываем обновление через умный бот
+    handleSmartBotUpdate(update).catch(error => {
+      logger.error('[TelegramWebhook] Ошибка при обработке обновления умным ботом:', error);
     });
   } catch (error) {
     logger.error('[TelegramWebhook] Ошибка в обработчике вебхука:', error);
