@@ -75,9 +75,7 @@ export function registerNewRoutes(app: Express): void {
   app.use('/api/admin', adminRouter);
   logger.info('[NewRoutes] Административные маршруты зарегистрированы');
 
-  // Регистрируем webhook для админ-бота
-  app.post('/api/admin/webhook', adminWebhookHandler);
-  logger.info('[NewRoutes] Webhook для админ-бота зарегистрирован');
+  // УДАЛЕНО: webhook теперь регистрируется в server/index.ts с умным ботом
 
   // Endpoint для перевірки здоров'я сервера (health check)
   const healthCheckHandler: RequestHandler = async (req: Request, res: Response): Promise<void> => {
