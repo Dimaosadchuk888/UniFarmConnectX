@@ -79,7 +79,7 @@ export const MissionsList: React.FC = () => {
   
   // Загружаем активные миссии через API с явным указанием queryFn
   const { data: dbMissions, isLoading: missionsLoading, error: missionsError } = useQuery<DbMission[]>({
-    queryKey: ['/api/missions/active'],
+    queryKey: ['/api/v2/missions/active'],
     queryFn: async () => {
       console.log('🚀 Запрос активных миссий');
       
@@ -89,7 +89,7 @@ export const MissionsList: React.FC = () => {
         
         // Добавляем nocache параметр чтобы избежать кэширования запросов
         const nocache = Date.now();
-        const data = await correctApiRequest(`/api/missions/active?nocache=${nocache}`, 'GET');
+        const data = await correctApiRequest(`/api/v2/missions/active?nocache=${nocache}`, 'GET');
         
         console.log(`📥 Ответ получен через correctApiRequest:`, data);
         
@@ -117,7 +117,7 @@ export const MissionsList: React.FC = () => {
   
   // Загружаем выполненные миссии пользователя c явным указанием queryFn
   const { data: userCompletedMissions, isLoading: userMissionsLoading, error: userMissionsError } = useQuery<UserMission[]>({
-    queryKey: ['/api/user_missions', userId],
+    queryKey: ['/api/v2/missions/user-completed', userId],
     queryFn: async () => {
       console.log('🚀 Запрос выполненных миссий пользователя ID:', userId);
       
@@ -127,7 +127,7 @@ export const MissionsList: React.FC = () => {
         
         // Добавляем nocache параметр чтобы избежать кэширования запросов
         const nocache = Date.now();
-        const data = await correctApiRequest(`/api/user_missions?user_id=${userId || 1}&nocache=${nocache}`, 'GET');
+        const data = await correctApiRequest(`/api/v2/missions/user-completed?user_id=${userId || 1}&nocache=${nocache}`, 'GET');
         
         console.log(`📥 Ответ получен через correctApiRequest:`, data);
         
@@ -246,7 +246,7 @@ export const MissionsList: React.FC = () => {
       // Выполняем API запрос через correctApiRequest
       console.log(`📤 Отправка запроса на выполнение миссии ${missionId} с использованием correctApiRequest`);
       
-      const result = await correctApiRequest('/api/missions/complete', 'POST', {
+      const result = await correctApiRequest('/api/v2/missions/complete', 'POST', {
         user_id: userId || 1,
         mission_id: missionId
       }) as CompleteMissionResponse;
@@ -303,7 +303,7 @@ export const MissionsList: React.FC = () => {
             setProcessingMissionId(null);
             
             // Используем invalidateQueryWithUserId вместо invalidateQueries
-            invalidateQueryWithUserId('/api/user_missions');
+            invalidateQueryWithUserId('/api/v2/missions/user-completed');
           }
         }, 200);
       } else {
