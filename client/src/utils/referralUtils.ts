@@ -5,22 +5,22 @@
 /**
  * Создает реферальную ссылку на основе реферального кода
  * @param refCode - Реферальный код пользователя
- * @returns Полная ссылка в формате https://t.me/UniFarming_Bot/UniFarm?ref_code=CODE
+ * @returns Полная ссылка в формате https://t.me/UniFarming_Bot?start=CODE
  * 
- * АУДИТ: Обновлена структура URL в соответствии с текущей архитектурой.
- * Формат строго такой: https://t.me/UniFarming_Bot/UniFarm?ref_code=КОД
+ * УНИФИКАЦИЯ: Обновлена структура URL для единого стандарта.
+ * Формат строго такой: https://t.me/UniFarming_Bot?start=КОД
  * 
- * ВАЖНО: В отличие от предыдущей версии, теперь используется параметр ref_code
- * вместо startapp для прямого указания реферального кода
+ * ВАЖНО: Используется стандартный параметр start для Telegram ботов
+ * для корректной обработки реферальных кодов через команду /start
  */
 export function buildReferralLink(refCode: string | undefined | null): string {
   if (!refCode) {
     return '';
   }
   
-  // Формат указан в соответствии с текущей архитектурой
-  // Используем ref_code для прямого указания реферального кода
-  return `https://t.me/UniFarming_Bot/UniFarm?ref_code=${refCode}`;
+  // Унифицированный формат для всех реферальных ссылок
+  // Использует стандартный параметр start для Telegram ботов
+  return `https://t.me/UniFarming_Bot?start=${refCode}`;
 }
 
 /**

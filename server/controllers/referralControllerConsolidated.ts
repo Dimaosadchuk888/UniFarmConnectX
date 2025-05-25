@@ -41,7 +41,7 @@ export class ReferralController {
         const result = {
           user_id: userId,
           ref_code: user.ref_code,
-          share_url: `https://t.me/yourbot?start=${user.ref_code}`,
+          share_url: `https://t.me/UniFarming_Bot?start=${user.ref_code}`,
           is_fallback: false
         };
         
@@ -54,7 +54,7 @@ export class ReferralController {
         const result = {
           user_id: userId,
           ref_code: fallbackCode,
-          share_url: `https://t.me/yourbot?start=${fallbackCode}`,
+          share_url: `https://t.me/UniFarming_Bot?start=${fallbackCode}`,
           is_fallback: true,
           message: 'Временный код (резервный режим)'
         };

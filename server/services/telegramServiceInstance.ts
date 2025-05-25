@@ -202,6 +202,7 @@ class TelegramServiceImpl implements ITelegramService {
 
     // Если пользователь существует, возвращаем его данные
     if (user) {
+      console.log(`[TG INIT: DONE] Telegram инициализация завершена для существующего пользователя ID=${user.id}, TelegramID=${userId}`);
       return {
         isValid: true,
         user: {
@@ -295,6 +296,7 @@ class TelegramServiceImpl implements ITelegramService {
 
     // Генерируем уникальный реферальный код
     const refCode = `ref_${Math.random().toString(36).substring(2, 10)}`;
+    console.log(`[REF CODE CREATED] Сгенерирован реферальный код: ${refCode} для TelegramID=${telegramId}`);
 
     // Создаем нового пользователя
     const newUser = await storage.createUser({
@@ -306,6 +308,11 @@ class TelegramServiceImpl implements ITelegramService {
       ref_code: refCode,
       parent_ref_code: referrer || null
     });
+
+    console.log(`[USER REGISTERED] Пользователь зарегистрирован: ID=${newUser.id}, TelegramID=${telegramId}, RefCode=${refCode}`);
+    if (referrer) {
+      console.log(`[PARENT CODE LINKED] Пользователь ${newUser.id} привязан к родительскому коду: ${referrer}`);
+    }
 
     return {
       id: newUser.id,
