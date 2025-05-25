@@ -6,10 +6,15 @@ import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPacka
 import TonBoostPackagesCardWithErrorBoundary from '../components/ton-boost/TonBoostPackagesCardWithErrorBoundary';
 import TonFarmingStatusCardWithErrorBoundary from '../components/ton-boost/TonFarmingStatusCardWithErrorBoundary';
 import ActiveTonBoostsCardWithErrorBoundary from '../components/ton-boost/ActiveTonBoostsCardWithErrorBoundary';
+// ЭТАП 2: Импорт хука для управления кнопками фарминга
+import { useFarmingButtons } from '../hooks/useTelegramButtons';
 
 const Farming: React.FC = () => {
   // Хардкод ID=1 для демонстрации
   const userId = 1;
+  
+  // ЭТАП 2: Инициализация кнопок фарминга с обработчиками
+  const farmingButtons = useFarmingButtons();
   
   // Получаем информацию о пользователе для отображения баланса
   const { data: userResponse } = useQuery({
@@ -18,6 +23,28 @@ const Farming: React.FC = () => {
   
   // Извлекаем userData из ответа API
   const userData = (userResponse as any)?.data || null;
+
+  // ЭТАП 2: Обработчики для действий фарминга
+  const handleStartFarming = () => {
+    console.log('[FARMING PAGE] 🌱 Начало фарминга для пользователя:', userId);
+    // Здесь будет интеграция с API фарминга
+  };
+
+  const handleHarvestFarming = () => {
+    console.log('[FARMING PAGE] 🌾 Сбор урожая для пользователя:', userId);
+    // Здесь будет интеграция с API сбора урожая
+  };
+
+  // ЭТАП 2: Настройка кнопок при загрузке страницы
+  React.useEffect(() => {
+    console.log('[FARMING PAGE] 🔘 Настройка кнопок фарминга...');
+    
+    // Показываем кнопку начала фарминга
+    farmingButtons.showStartFarming(handleStartFarming);
+    
+    // Показываем кнопку возврата на главную
+    farmingButtons.showBackToHome();
+  }, []);
 
   return (
     <div className="container mx-auto p-4">

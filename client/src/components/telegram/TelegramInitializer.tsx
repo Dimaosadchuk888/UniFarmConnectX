@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 // ЭТАП 1: Импорт сервиса темы для интеграции
 import { initializeTelegramThemeSystem } from '../../services/telegramThemeService';
+// ЭТАП 2: Импорт сервиса кнопок для интеграции
+import { initializeTelegramButtons } from '../../services/telegramButtonService';
 
 const TelegramInitializer = () => {
   const [status, setStatus] = useState({
@@ -30,6 +32,10 @@ const TelegramInitializer = () => {
       console.log('[TelegramInitializer] 🎨 Запуск инициализации темы...');
       const themeInitialized = initializeTelegramThemeSystem();
       
+      // ЭТАП 2: Инициализация системы кнопок
+      console.log('[TelegramInitializer] 🔘 Запуск инициализации кнопок...');
+      const buttonsInitialized = initializeTelegramButtons();
+      
       // Логируем успешную инициализацию
       console.log('[TelegramInitializer] Диагностика:', {
         version: window.Telegram.WebApp.version,
@@ -38,7 +44,9 @@ const TelegramInitializer = () => {
         viewportStableHeight: window.Telegram.WebApp.viewportStableHeight,
         colorScheme: window.Telegram.WebApp.colorScheme,
         // ЭТАП 1: Добавление статуса инициализации темы
-        themeInitialized: themeInitialized
+        themeInitialized: themeInitialized,
+        // ЭТАП 2: Добавление статуса инициализации кнопок
+        buttonsInitialized: buttonsInitialized
       });
 
       setStatus({ initialized: true, error: null });
