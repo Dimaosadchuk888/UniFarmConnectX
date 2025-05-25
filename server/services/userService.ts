@@ -84,6 +84,15 @@ export interface IUserService {
   getUserByTelegramId(telegramId: number): Promise<User | undefined>;
   
   /**
+   * Создает или получает пользователя из Telegram данных
+   * [TG REGISTRATION FIX] Ключевой метод для корректной регистрации через Telegram
+   * @param initData Данные от Telegram WebApp
+   * @param referrerCode Реферальный код (опционально)
+   * @returns Объект пользователя (существующий или новый)
+   */
+  createOrGetUserFromTelegram(initData: any, referrerCode?: string): Promise<User>;
+  
+  /**
    * Создает нового пользователя
    * @param userData Данные пользователя
    * @returns Созданный объект пользователя
@@ -255,6 +264,107 @@ export function createUserService(storage: IExtendedStorage): IUserService {
     },
 
     /**
+     * Создает или получает пользователя из Telegram данных
+     * [TG REGISTRATION FIX] Ключевой метод для корректной регистрации через Telegram
+     * @param initData Данные от Telegram WebApp
+     * @param referrerCode Реферальный код (опционально)
+     * @returns Объект пользователя (существующий или новый)
+     */
+    async createOrGetUserFromTelegram(initData: any, referrerCode?: string): Promise<User> {
+      try {
+        console.log('[TG REGISTRATION] Начинаем обработку регистрации пользователя через Telegram');
+        
+        // Извлекаем данные пользователя из initData
+        let telegramId: number | undefined;
+        let username: string | undefined;
+        let firstName: string | undefined;
+        let lastName: string | undefined;
+        
+        if (initData && typeof initData === 'object') {
+          // Если initData это объект с полем user
+          if (initData.user) {
+            telegramId = parseInt(initData.user.id, 10);
+            username = initData.user.username;
+            firstName = initData.user.first_name;
+            lastName = initData.user.last_name;
+          }
+          // Если initData содержит данные напрямую
+          else if (initData.id) {
+            telegramId = parseInt(initData.id, 10);
+            username = initData.username;
+            firstName = initData.first_name;
+            lastName = initData.last_name;
+          }
+        }
+        // Если initData это строка, пытаемся парсить
+        else if (typeof initData === 'string') {
+          try {
+            const parsed = JSON.parse(initData);
+            if (parsed.user) {
+              telegramId = parseInt(parsed.user.id, 10);
+              username = parsed.user.username;
+              firstName = parsed.user.first_name;
+              lastName = parsed.user.last_name;
+            }
+          } catch {
+            console.error('[TG REGISTRATION] Не удалось распарсить initData как JSON');
+          }
+        }
+        
+        if (!telegramId) {
+          throw new ValidationError('Отсутствует Telegram ID в данных пользователя');
+        }
+        
+        console.log(`[TG REGISTRATION] Telegram ID: ${telegramId}, username: ${username}`);
+        
+        // Ищем существующего пользователя по Telegram ID
+        const existingUser = await this.getUserByTelegramId(telegramId);
+        if (existingUser) {
+          console.log(`[TG REGISTRATION] Найден существующий пользователь ID=${existingUser.id}`);
+          
+          // Убеждаемся, что у пользователя есть реферальный код
+          if (!existingUser.ref_code) {
+            console.log('[TG REGISTRATION] У существующего пользователя нет реферального кода, генерируем');
+            const refCode = await this.generateRefCode();
+            await this.updateUserRefCode(existingUser.id, refCode);
+            existingUser.ref_code = refCode;
+          }
+          
+          return existingUser;
+        }
+        
+        // Создаем нового пользователя
+        console.log('[TG REGISTRATION] Создаем нового пользователя');
+        
+        // Генерируем уникальный реферальный код
+        const refCode = await this.generateRefCode();
+        
+        // Формируем username
+        const finalUsername = username || `tg_user_${telegramId}`;
+        
+        // Создаем данные пользователя
+        const userData: InsertUser = {
+          telegram_id: telegramId,
+          username: finalUsername,
+          ref_code: refCode,
+          parent_ref_code: referrerCode || null,
+          balance_uni: "0",
+          balance_ton: "0",
+          uni_deposit_amount: "0",
+        };
+        
+        const newUser = await this.createUser(userData);
+        console.log(`[TG REGISTRATION] Успешно создан новый пользователь ID=${newUser.id} с реферальным кодом ${refCode}`);
+        
+        return newUser;
+      } catch (error) {
+        const err = error as ErrorWithMessage;
+        console.error('[TG REGISTRATION] Ошибка при создании/получении пользователя из Telegram:', err.message);
+        throw new DatabaseError(`Ошибка при регистрации пользователя через Telegram: ${err.message}`, error);
+      }
+    },
+
+    /**
      * Создает нового пользователя
      * @throws {DatabaseError} При ошибке в базе данных
      */
@@ -409,6 +519,7 @@ export const getUserByUsername = (username: string): Promise<User | undefined> =
 export const getUserByGuestId = (guestId: string): Promise<User | undefined> => userServiceInstance.getUserByGuestId(guestId);
 export const getUserByRefCode = (refCode: string): Promise<User | undefined> => userServiceInstance.getUserByRefCode(refCode);
 export const getUserByTelegramId = (telegramId: number): Promise<User | undefined> => userServiceInstance.getUserByTelegramId(telegramId);
+export const createOrGetUserFromTelegram = (initData: any, referrerCode?: string): Promise<User> => userServiceInstance.createOrGetUserFromTelegram(initData, referrerCode);
 export const createUser = (userData: InsertUser): Promise<User> => userServiceInstance.createUser(userData);
 export const updateUser = (userId: number, userData: Partial<User>): Promise<User> => userServiceInstance.updateUser(userId, userData);
 export const updateUserBalance = (userId: number, currencyType: 'uni' | 'ton', amount: string): Promise<User | undefined> => userServiceInstance.updateUserBalance(userId, currencyType, amount);
