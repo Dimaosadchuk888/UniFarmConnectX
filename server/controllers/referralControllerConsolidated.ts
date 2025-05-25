@@ -18,6 +18,7 @@ import { ReferralService } from '../services/referralService';
 export class ReferralController {
   /**
    * Генерирует реферальный код для пользователя
+   * [TG REGISTRATION FIX] Обновленная версия согласно ТЗ
    * @route GET /api/referral/code
    */
   static async generateReferralCode(req: Request, res: Response, next?: NextFunction): Promise<void> {
@@ -29,55 +30,60 @@ export class ReferralController {
       }
       
       const userId = Number(userIdRaw);
-      console.log(`[ReferralController] Запрос реферального кода для пользователя: ${userId}`);
+      console.log(`[TG REF FIX] Запрос реферального кода для пользователя: ${userId}`);
       
       try {
         // Получаем пользователя и его реферальный код
         const user = await userService.getUserById(userId);
-        if (!user) {
-          return sendError(res, 'Пользователь не найден', 404);
+        
+        if (user) {
+          // Пользователь найден - проверяем, есть ли у него реферальный код
+          if (user.ref_code) {
+            // У пользователя есть код - возвращаем его
+            const result = {
+              user_id: userId,
+              ref_code: user.ref_code,
+              share_url: `https://t.me/UniFarming_Bot?start=${user.ref_code}`,
+              is_fallback: false
+            };
+            
+            console.log(`[TG REF FIX] Найден существующий пользователь с кодом: ${user.ref_code}`);
+            return sendSuccess(res, result);
+          } else {
+            // У пользователя нет кода - генерируем и сохраняем
+            console.log(`[TG REF FIX] У пользователя ${userId} нет реферального кода, генерируем новый`);
+            const newRefCode = await userService.generateRefCode();
+            await userService.updateUserRefCode(userId, newRefCode);
+            
+            const result = {
+              user_id: userId,
+              ref_code: newRefCode,
+              share_url: `https://t.me/UniFarming_Bot?start=${newRefCode}`,
+              is_fallback: false,
+              message: 'Создан и сохранен новый реферальный код'
+            };
+            
+            console.log(`[TG REF FIX] Создан и сохранен новый код: ${newRefCode}`);
+            return sendSuccess(res, result);
+          }
+        } else {
+          // Пользователь не найден - согласно ТЗ создаем его через userService
+          console.log(`[TG REF FIX] Пользователь ${userId} не найден, но это не должно происходить`);
+          console.log(`[TG REF FIX] Пользователь должен быть создан через API /api/register/telegram перед запросом реферального кода`);
+          
+          return sendError(res, 'Пользователь не найден. Сначала зарегистрируйтесь через Telegram', 404);
         }
-        
-        // Возвращаем существующий реферальный код
-        const result = {
-          user_id: userId,
-          ref_code: user.ref_code,
-          share_url: `https://t.me/UniFarming_Bot?start=${user.ref_code}`,
-          is_fallback: false
-        };
-        
-        // Диагностический лог согласно ТЗ
-        console.log(`[REF CODE FETCHED] User ${userId} ref_code: ${user.ref_code}`);
-        
-        return sendSuccess(res, result);
       } catch (error) {
-        console.error(`[ReferralController] Ошибка при получении реферального кода:`, error);
-        
-        // [FIX: REFERRAL CODE AUDIT] Убираем генерацию temp_ кодов
-        // Вместо fallback создаем постоянный ref_ код для пользователя
-        try {
-          // Пытаемся создать нового пользователя с реферальным кодом если его нет
-          const newRefCode = `ref_${userId}_${Math.random().toString(36).substr(2, 8)}`;
-          
-          // Логируем создание постоянного кода
-          console.log(`[REF CODE CREATED] User ${userId} new ref_code: ${newRefCode}`);
-          
-          const result = {
-            user_id: userId,
-            ref_code: newRefCode,
-            share_url: `https://t.me/UniFarming_Bot?start=${newRefCode}`,
-            is_fallback: false,
-            message: 'Создан постоянный реферальный код'
-          };
-          
-          return sendSuccess(res, result);
-        } catch (createError) {
-          console.error(`[ReferralController] Критическая ошибка создания ref_code:`, createError);
-          return sendError(res, 'Не удалось создать реферальный код', 500);
-        }
+        console.error(`[TG REF FIX] Ошибка при работе с реферальным кодом:`, error);
+        return sendError(res, 'Ошибка при получении реферального кода', 500);
       }
     } catch (error) {
-      next(error);
+      console.error(`[TG REF FIX] Критическая ошибка в generateReferralCode:`, error);
+      if (next) {
+        next(error);
+      } else {
+        return sendError(res, 'Внутренняя ошибка сервера', 500);
+      }
     }
   }
 
