@@ -19,10 +19,10 @@ interface MissionStatsData {
  */
 const MissionStats: React.FC = () => {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['/api/missions/stats'],
+    queryKey: ['/api/v2/missions/stats'],
     queryFn: async () => {
       const response = await correctApiRequest<{ success: boolean; data: MissionStatsData; message?: string }>(
-        '/api/missions/stats',
+        '/api/v2/missions/stats',
         'GET'
       );
       

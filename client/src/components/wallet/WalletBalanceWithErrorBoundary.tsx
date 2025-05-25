@@ -23,10 +23,10 @@ const WalletBalanceWithErrorBoundary: React.FC<WalletBalanceWithErrorBoundaryPro
   const handleReset = () => {
     if (actualUserId) {
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/users', actualUserId] 
+        queryKey: ['/api/v2/users', actualUserId] 
       });
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/wallet/balance', actualUserId] 
+        queryKey: ['/api/v2/wallet/balance', actualUserId] 
       });
     }
   };
@@ -34,7 +34,7 @@ const WalletBalanceWithErrorBoundary: React.FC<WalletBalanceWithErrorBoundaryPro
   return (
     <QueryErrorBoundary
       onReset={handleReset}
-      queryKey={actualUserId ? ['/api/users', actualUserId] : undefined}
+      queryKey={actualUserId ? ['/api/v2/users', actualUserId] : undefined}
       errorTitle="Ошибка загрузки баланса"
       errorDescription="Не удалось загрузить информацию о вашем балансе. Пожалуйста, обновите страницу или повторите позже."
       resetButtonText="Обновить баланс"

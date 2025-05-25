@@ -42,7 +42,7 @@ const ReferralLevelsTable: React.FC = () => {
 
   // Получаем информацию о текущем пользователе из API
   const { data: currentUser, isLoading: isUserLoading } = useQuery({
-    queryKey: ['/api/me'],
+    queryKey: ['/api/v2/me'],
     queryFn: () => import('@/services/userService').then(module => module.default.getCurrentUser()),
     staleTime: 1000 * 5, // Кэшируем данные только на 5 секунд
     refetchOnWindowFocus: true, // Обновляем при возвращении на страницу
@@ -65,7 +65,7 @@ const ReferralLevelsTable: React.FC = () => {
   });
   
   // Формируем ключ запроса, учитывая оба возможных идентификатора
-  const queryKey = userId ? ['/api/referrals', 'userId', userId] : ['/api/referrals', 'guestId', guestId];
+  const queryKey = userId ? ['/api/v2/referrals/stats', 'userId', userId] : ['/api/v2/referrals/stats', 'guestId', guestId];
   
   // Запрос на получение структуры рефералов с сервера
   const { data: referralsData, isLoading, error } = useQuery<ReferralsResponse>({

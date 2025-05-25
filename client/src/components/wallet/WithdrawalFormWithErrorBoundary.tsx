@@ -16,10 +16,10 @@ const WithdrawalFormWithErrorBoundary: React.FC = () => {
   const handleReset = () => {
     if (userId) {
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/users', userId] 
+        queryKey: ['/api/v2/users', userId] 
       });
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/wallet', userId] 
+        queryKey: ['/api/v2/wallet', userId] 
       });
     }
   };

@@ -15,12 +15,12 @@ const MissionsListWithErrorBoundary: React.FC = () => {
   // Обработчик сброса состояния ошибки и инвалидации данных
   const handleReset = () => {
     queryClient.invalidateQueries({ 
-      queryKey: ['/api/missions'] 
+      queryKey: ['/api/v2/missions/active'] 
     });
     
     if (userId) {
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/missions/user', userId] 
+        queryKey: ['/api/v2/missions/user-completed', userId] 
       });
     }
   };
@@ -28,7 +28,7 @@ const MissionsListWithErrorBoundary: React.FC = () => {
   return (
     <QueryErrorBoundary
       onReset={handleReset}
-      queryKey={['/api/missions']}
+      queryKey={['/api/v2/missions/active']}
       errorTitle="Ошибка загрузки миссий"
       errorDescription="Не удалось загрузить список доступных миссий. Пожалуйста, обновите страницу или повторите позже."
       resetButtonText="Обновить миссии"
