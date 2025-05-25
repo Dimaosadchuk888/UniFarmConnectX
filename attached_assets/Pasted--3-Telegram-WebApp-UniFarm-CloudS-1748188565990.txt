@@ -1,0 +1,53 @@
+Отлично! Ниже — Техническое задание (Этап 3) на доработку Telegram WebApp в UniFarm: включает CloudStorage API, WebApp.sendData() и улучшение error handling.
+
+⸻
+
+ТЗ: ЭТАП 3 — Опциональные улучшения Telegram Mini App
+
+1. CloudStorage API
+
+Цель: реализация збереження користувацьких налаштувань в хмарному сховищі Telegram WebApp.
+
+Требования:
+ • Реализовать метод Telegram.WebApp.CloudStorage.setItem(key, value)
+ • Реализовать метод Telegram.WebApp.CloudStorage.getItem(key) + обробка null
+ • Створити сервіс telegramStorageService.ts:
+ • saveSetting(key: string, value: string): Promise<void>
+ • loadSetting(key: string): Promise<string | null>
+ • Продумать використання (наприклад: зберігати вибрану мову, тему, або останній екран користувача)
+ • Обов’язково реалізувати обробку помилок при роботі з API
+ • Логування: [TG STORAGE SET], [TG STORAGE GET], [TG STORAGE ERROR]
+
+2. WebApp.sendData()
+
+Цель: реализация отправки данных обратно в Telegram-бот по закрытию Mini App.
+
+Требования:
+ • Добавить метод Telegram.WebApp.sendData(...)
+ • Создать универсальную функцию sendDataToBot(data: object | string)
+ • Добавить кнопку (или кейс), при котором вызывается sendData (например: отправка выбранного boost-пакета)
+ • Обернуть логику в try-catch
+ • Логировать [TG SEND DATA]: <payload>
+
+3. Расширенный error handling
+
+Цель: централизованная обработка ошибок при работе с Telegram WebApp API.
+
+Требования:
+ • В каждом методе Telegram.WebApp.* добавить try-catch
+ • В случае ошибки — логировать в формате [TG ERROR] <method> — <message>
+ • Отправлять критические ошибки в консоль и optionally в Telegram через alert
+ • Обновить telegramService.ts и все вспомогательные хуки
+
+⸻
+
+Ожидаемый результат:
+ • Появится возможность сохранять пользовательские настройки через Telegram CloudStorage
+ • Отправка данных из Mini App в основного бота будет работать через sendData
+ • Все Telegram-ошибки будут централизованно логироваться и не вызывать крашей
+
+Приоритет: Низкий
+Сроки: 6–8 часов
+**Изменять код основного интерфейса (App.tsx) — запрещено без согласования.
+
+⸻

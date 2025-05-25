@@ -47,6 +47,10 @@ declare global {
         offEvent?: (eventType: string, eventHandler: () => void) => void;
         // ЭТАП 1: Добавление свойства isExpanded
         isExpanded?: boolean;
+        // ЭТАП 3: Добавление sendData для отправки данных в бот
+        sendData?: (data: string) => void;
+        // ЭТАП 3: Добавление showAlert для показа уведомлений
+        showAlert?: (message: string) => void;
         MainButton?: {
           show: () => void;
           hide: () => void;
