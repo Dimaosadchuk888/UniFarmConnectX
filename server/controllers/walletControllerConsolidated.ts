@@ -52,7 +52,7 @@ export class WalletController {
         // Проверка пользователя из сессии или query
         validationResult = userIdSchema.safeParse(req.query);
         if (!validationResult.success) {
-          return next(createValidationErrorFromZod(validationResult.error));
+          return next(new ValidationError(formatZodErrors(validationResult.error)));
         }
         user_id = validationResult.data.user_id;
       }
