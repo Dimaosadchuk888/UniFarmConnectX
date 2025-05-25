@@ -9,23 +9,8 @@
 // Определяем базовый URL API в зависимости от окружения
 let API_BASE_URL = '';
 
-// Устанавливаем абсолютный URL только для production
-if (process.env.NODE_ENV === 'production') {
-  // Получаем текущий домен, чтобы избежать хардкодирования
-  const currentDomain = window.location.origin;
-  
-  // Если страница загружена с replit.app, используем текущий домен
-  if (currentDomain.includes('replit.app')) {
-    API_BASE_URL = currentDomain;
-  } else {
-    // Резервный вариант для деплоя
-    API_BASE_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
-  }
-} else {
-  // В режиме разработки используем относительные URL
-  // Это позволяет работать через Vite DevServer
-  API_BASE_URL = '';
-}
+// ВСЕГДА используем наш правильный URL для исправления проблемы с Telegram кешем
+API_BASE_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
 
 /**
  * Конфигурация API-клиента
