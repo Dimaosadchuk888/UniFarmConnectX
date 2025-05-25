@@ -276,24 +276,75 @@ async function handleDatabaseAction(chatId: number, action: string, username: st
       await sendMessage(chatId, "🔄 Переподключение к базе данных...");
       
       try {
-        const response = await fetch(`${API_BASE_URL}/api/db/reconnect`, {
+        const response = await fetch(`${API_BASE_URL}/api/admin/db/reconnect`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            admin_username: username,
-            admin_key: ADMIN_SECRET
-          })
+          headers: { 'Content-Type': 'application/json' }
         });
 
-        const result = await response.json() as any;
+        const result = await response.json();
         
         if (result.success) {
-          await sendMessage(chatId, `✅ База данных успешно переподключена!\n\n${result.data?.message || ''}`);
+          await sendMessage(chatId, `✅ ${result.message}`);
         } else {
-          await sendMessage(chatId, `❌ Ошибка переподключения: ${result.error}`);
+          await sendMessage(chatId, `❌ Ошибка: ${result.error}`);
         }
       } catch (error) {
-        await sendMessage(chatId, `❌ Ошибка запроса: ${error}`);
+        await sendMessage(chatId, `❌ Ошибка переподключения: ${error}`);
+      }
+      break;
+
+    case 'db_status':
+      await sendMessage(chatId, "📊 Проверка состояния базы данных...");
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/db-status`);
+        const result = await response.json();
+        
+        if (result.success) {
+          const status = result.data;
+          const statusText = `
+🗄️ <b>Состояние базы данных</b>
+
+📊 Статус: ${status.connected ? '✅ Подключена' : '❌ Отключена'}
+🏃 Тип: ${status.type || 'PostgreSQL'}
+📡 Хост: ${status.host || 'Скрыт'}
+⏰ Время ответа: ${status.responseTime || 'N/A'}ms
+          `;
+          await sendMessage(chatId, statusText);
+        } else {
+          await sendMessage(chatId, `❌ Ошибка проверки: ${result.error}`);
+        }
+      } catch (error) {
+        await sendMessage(chatId, `❌ Ошибка получения статуса: ${error}`);
+      }
+      break;
+
+    case 'db_events':
+      await sendMessage(chatId, "📋 Последние события базы данных...");
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/system/logs`);
+        const result = await response.json();
+        
+        if (result.success) {
+          const events = result.data.lastEvents || [];
+          let eventsText = "📋 <b>Последние события:</b>\n\n";
+          
+          if (events.length === 0) {
+            eventsText += "ℹ️ Событий не найдено";
+          } else {
+            events.forEach((event: any, index: number) => {
+              eventsText += `${index + 1}. ${event.event}\n`;
+              eventsText += `   ⏰ ${new Date(event.time).toLocaleString('ru-RU')}\n\n`;
+            });
+          }
+          
+          await sendMessage(chatId, eventsText);
+        } else {
+          await sendMessage(chatId, `❌ Ошибка получения событий: ${result.error}`);
+        }
+      } catch (error) {
+        await sendMessage(chatId, `❌ Ошибка получения логов: ${error}`);
       }
       break;
 
