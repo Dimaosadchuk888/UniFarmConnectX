@@ -25,10 +25,10 @@ import { createAuthService, type IAuthService } from './authServiceInstance';
 import { createSecurityService, type ISecurityService } from './securityServiceInstance';
 import { createAdminService, type IAdminService } from './adminServiceInstance';
 import { databaseServiceInstance, type IDatabaseService } from './databaseServiceInstance';
-import { telegramServiceInstance, createTelegramService, type ITelegramService } from './telegramServiceInstance.js';
-import { missionServiceInstance, createMissionService, type IMissionService } from './missionServiceInstance.js';
-import { boostServiceInstance, createBoostService, type IBoostService } from './boostServiceInstance.js';
-import { walletServiceInstance, createWalletService, type IWalletService } from './walletServiceInstance.js';
+import { telegramServiceInstance, createTelegramService, type ITelegramService } from './telegramServiceInstance';
+import { missionServiceInstance, createMissionService, type IMissionService } from './missionServiceInstance';
+import { boostServiceInstance, createBoostService, type IBoostService } from './boostServiceInstance';
+import { walletServiceInstance, createWalletService, type IWalletService } from './walletServiceInstance';
 import { validationServiceInstance, createValidationService, type IValidationService } from './validationService';
 
 // Создаем экземпляры сервисов с подключением расширенного хранилища
