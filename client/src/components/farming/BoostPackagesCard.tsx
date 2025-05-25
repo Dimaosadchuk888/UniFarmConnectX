@@ -257,8 +257,8 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
           setSuccessMessage('Операция выполнена. Обновите страницу для проверки статуса.');
           
           // Пытаемся обновить кэш
-          invalidateQueryWithUserId('/api/wallet/balance');
-          invalidateQueryWithUserId('/api/ton-boosts/active');
+          invalidateQueryWithUserId('/api/v2/wallet/balance');
+          invalidateQueryWithUserId('/api/v2/ton-farming/active');
         } catch (err) {
           console.error('[ERROR] BoostPackagesCard - Критическая ошибка при восстановлении:', err);
         }
@@ -464,27 +464,27 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
       const invalidatePromises: Promise<void>[] = [];
       
       try {
-        invalidatePromises.push(invalidateQueryWithUserId('/api/users'));
+        invalidatePromises.push(invalidateQueryWithUserId('/api/v2/users'));
       } catch (userError) {
-        console.error('[ERROR] BoostPackagesCard - handlePaymentComplete: Ошибка при инвалидации /api/users:', userError);
+        console.error('[ERROR] BoostPackagesCard - handlePaymentComplete: Ошибка при инвалидации /api/v2/users:', userError);
       }
       
       try {
-        invalidatePromises.push(invalidateQueryWithUserId('/api/wallet/balance'));
+        invalidatePromises.push(invalidateQueryWithUserId('/api/v2/wallet/balance'));
       } catch (balanceError) {
-        console.error('[ERROR] BoostPackagesCard - handlePaymentComplete: Ошибка при инвалидации /api/wallet/balance:', balanceError);
+        console.error('[ERROR] BoostPackagesCard - handlePaymentComplete: Ошибка при инвалидации /api/v2/wallet/balance:', balanceError);
       }
       
       try {
-        invalidatePromises.push(invalidateQueryWithUserId('/api/transactions'));
+        invalidatePromises.push(invalidateQueryWithUserId('/api/v2/transactions'));
       } catch (transactionsError) {
-        console.error('[ERROR] BoostPackagesCard - handlePaymentComplete: Ошибка при инвалидации /api/transactions:', transactionsError);
+        console.error('[ERROR] BoostPackagesCard - handlePaymentComplete: Ошибка при инвалидации /api/v2/transactions:', transactionsError);
       }
       
       try {
-        invalidatePromises.push(invalidateQueryWithUserId('/api/ton-boosts/active'));
+        invalidatePromises.push(invalidateQueryWithUserId('/api/v2/ton-farming/active'));
       } catch (boostsError) {
-        console.error('[ERROR] BoostPackagesCard - handlePaymentComplete: Ошибка при инвалидации /api/ton-boosts/active:', boostsError);
+        console.error('[ERROR] BoostPackagesCard - handlePaymentComplete: Ошибка при инвалидации /api/v2/ton-farming/active:', boostsError);
       }
       
       // Ждем завершения всех запросов (даже если некоторые из них завершатся с ошибкой)
