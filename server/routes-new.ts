@@ -202,25 +202,27 @@ export function registerNewRoutes(app: Express): void {
   app.get('/api/health', healthCheckHandler);
   
   // [TG REGISTRATION FIX] API endpoint для регистрации пользователей через Telegram
-  app.post('/api/register/telegram', async (req: Request, res: Response): Promise<void> => {
+  app.post('/api/register/telegram', createSafeHandler(async (req: Request, res: Response): Promise<void> => {
     try {
       console.log('[TG API] 🚀 Получен запрос на регистрацию через Telegram:', req.body);
       
       // Імпортуємо AuthController для правильної обробки
       const { AuthController } = await import('./controllers/authController');
       
-      // Використовуємо AuthController.authenticateTelegram замість UserController
+      // Використовуємо AuthController.authenticateTelegram
       await AuthController.authenticateTelegram(req, res, () => {});
       
     } catch (error) {
       console.error('[TG API] ❌ Ошибка при регистрации через Telegram:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при регистрации пользователя',
-        details: error instanceof Error ? error.message : String(error)
-      });
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          error: 'Ошибка при регистрации пользователя',
+          details: error instanceof Error ? error.message : String(error)
+        });
+      }
     }
-  });
+  }));
   
   // Endpoint для управления подключением к базе данных (только для админов)
   app.post('/api/db/reconnect', requireAdminAuth, logAdminAction('DB_RECONNECT'), async (req, res) => {
