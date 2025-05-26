@@ -11,10 +11,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { DatabaseEventType, emitDbEvent } from './utils/db-events';
 
-// Force SSL for Neon DB
+// Force SSL for Neon DB ONLY - блокируем Replit DB
 process.env.PGSSLMODE = 'require';
 process.env.DATABASE_PROVIDER = 'neon';
 process.env.FORCE_NEON_DB = 'true';
+process.env.DISABLE_REPLIT_DB = 'true';
+process.env.USE_LOCAL_DB_ONLY = 'false';
 
 // Логи
 const logEnabled = process.env.DB_DEBUG === 'true';

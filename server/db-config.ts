@@ -39,26 +39,13 @@ export enum SSLMode {
 
 /**
  * Получает тип базы данных на основе переменных окружения
- * @returns DatabaseType - тип базы данных
+ * ПРИНУДИТЕЛЬНО ВОЗВРАЩАЕТ ТОЛЬКО NEON - БЛОКИРУЕТ REPLIT DB
+ * @returns DatabaseType - тип базы данных (ВСЕГДА NEON)
  */
 export function getDatabaseType(): DatabaseType {
-  // Явное указание типа БД
-  const dbType = process.env.DB_TYPE?.toLowerCase();
-  if (dbType === 'neon') {
-    return DatabaseType.NEON;
-  }
-  if (dbType === 'replit') {
-    return DatabaseType.REPLIT;
-  }
-
-  // Определение по URL
-  const databaseUrl = process.env.DATABASE_URL;
-  if (databaseUrl && databaseUrl.includes('neon.tech')) {
-    return DatabaseType.NEON;
-  }
-
-  // По умолчанию
-  return DatabaseType.REPLIT;
+  // ПРИНУДИТЕЛЬНОЕ ИСПОЛЬЗОВАНИЕ ТОЛЬКО NEON DB
+  console.log('[DB-CONFIG] 🔒 Принудительное использование Neon DB - Replit PostgreSQL заблокирован');
+  return DatabaseType.NEON;
 }
 
 /**
