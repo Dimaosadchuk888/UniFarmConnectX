@@ -57,11 +57,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       }
 
       // Получаем корректный URL для WebSocket с учетом Replit
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host.includes('replit.dev') ? window.location.host : '0.0.0.0:3000';
-      const wsUrl = `${protocol}//${host}/ws${userId ? `?user_id=${userId}` : ''}`;
+      // ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ PRODUCTION URL ДЛЯ WEBSOCKET
+      const FORCED_PRODUCTION_HOST = 'uni-farm-connect-x-lukyanenkolawfa.replit.app';
+      const protocol = 'wss:';
+      const wsUrl = `${protocol}//${FORCED_PRODUCTION_HOST}/ws${userId ? `?user_id=${userId}` : ''}`;
 
-      console.log('[WebSocket] Attempting connection to:', wsUrl);
+      console.log('[WebSocket] 🚀 ПРИНУДИТЕЛЬНО подключаемся к production WebSocket:', wsUrl);
 
       const newSocket = new WebSocket(wsUrl);
       setSocket(newSocket);
