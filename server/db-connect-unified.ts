@@ -18,6 +18,9 @@ process.env.FORCE_NEON_DB = 'true';
 process.env.DISABLE_REPLIT_DB = 'true';
 process.env.USE_LOCAL_DB_ONLY = 'false';
 
+// ВИПРАВЛЕННЯ - підключення до правильної production бази
+process.env.DATABASE_URL = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
+
 // Логи
 const logEnabled = process.env.DB_DEBUG === 'true';
 const logFile = path.join(process.cwd(), 'logs', 'db-connect.log');
