@@ -379,6 +379,12 @@ export function registerNewRoutes(app: Express): void {
     app.get('/api/v2/users/:id', safeHandler(UserController.getUserById));
   }
   
+  // КРИТИЧЕСКИЙ МАРШРУТ для поиска пользователя по guest_id (нужен для отображения баланса)
+  if (typeof UserController.getUserByGuestId === 'function') {
+    app.get('/api/v2/users/guest/:guest_id', safeHandler(UserController.getUserByGuestId));
+    logger.info('[NewRoutes] ✓ Маршрут для поиска по guest_id добавлен: GET /api/v2/users/guest/:guest_id');
+  }
+  
   // [TG REGISTRATION FIX] Новый эндпоинт для регистрации через Telegram
   if (typeof UserController.createUserFromTelegram === 'function') {
     app.post('/api/register/telegram', safeHandler(UserController.createUserFromTelegram));
