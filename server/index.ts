@@ -579,6 +579,51 @@ async function startServer(): Promise<void> {
     logger.error('[Server] ❌ Ошибка при регистрации Telegram маршрутов:', error);
   }
 
+  // [TG REGISTRATION FIX] Добавляем эндпоинт для регистрации через Telegram
+  app.post('/api/register/telegram', async (req: Request, res: Response): Promise<void> => {
+    try {
+      logger.info('[TG REGISTER] Получен запрос на регистрацию через Telegram');
+      
+      const { initData, referrerCode } = req.body;
+      
+      if (!initData) {
+        res.status(400).json({
+          success: false,
+          error: 'Отсутствуют данные Telegram (initData)'
+        });
+        return;
+      }
+      
+      // Импортируем UserController динамически
+      const { UserController } = await import('./controllers/userController');
+      const userController = new UserController();
+      
+      // Создаем пользователя через Telegram данные
+      const user = await userController.createUserFromTelegram(initData, referrerCode);
+      
+      logger.info(`[TG REGISTER] ✅ Успешно создан пользователь: ID=${user.id}, telegram_id=${user.telegram_id}`);
+      
+      res.status(200).json({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          referralCode: user.ref_code,
+          telegram_id: user.telegram_id,
+          balance_uni: user.balance_uni,
+          balance_ton: user.balance_ton
+        }
+      });
+    } catch (error) {
+      logger.error('[TG REGISTER] ❌ Ошибка при регистрации через Telegram:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка при регистрации пользователя',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Регистрируем консолидированные маршруты API
   try {
     // Регистрируем консолидированные маршруты
