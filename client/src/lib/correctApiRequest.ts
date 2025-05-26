@@ -69,12 +69,13 @@ export async function correctApiRequest<T = any>(
 
     // Формирование полного URL - ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ PRODUCTION URL
     try {
-      // КРИТИЧЕСКИ ВАЖНО: ВСЕГДА используем стабильный production URL
-      const FORCED_PRODUCTION_HOST = 'uni-farm-connect-x-lukyanenkolawfa.replit.app';
+      // РЕЖИМ РАЗРАБОТКИ: используем dev URL для тестирования в Replit
+      const DEV_HOST = '9283206a-9cd3-4f5f-8da2-4e00e210cfc8-00-3472gx7pg10wh.pike.replit.dev';
+      const FORCED_PRODUCTION_HOST = DEV_HOST; // Переключено на dev для тестирования
       const protocol = 'https:';
       
-      // Игнорируем любые динамические URL и используем только production
-      console.log(`[correctApiRequest] [${requestId}] 🚀 ПРИНУДИТЕЛЬНО используем production host: ${FORCED_PRODUCTION_HOST}`);
+      // Используем dev URL для тестирования баланса
+      console.log(`[correctApiRequest] [${requestId}] 🔧 РЕЖИМ РАЗРАБОТКИ: используем dev host: ${FORCED_PRODUCTION_HOST}`);
       
       // Получаем userId из localStorage чтобы передать его в запросах
       const lastSessionStr = localStorage.getItem('unifarm_last_session');
