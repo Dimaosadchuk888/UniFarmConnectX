@@ -77,12 +77,18 @@ class AuthServiceImpl implements IAuthService {
    */
   async authenticateTelegram(authData: TelegramAuthData, isDevelopment: boolean = false): Promise<User> {
     try {
+      console.log(`[AuthService] 🚀 НАЧАЛО АУТЕНТИФИКАЦИИ TELEGRAM:`);
+      console.log(`[AuthService] - authData:`, JSON.stringify(authData, null, 2));
+      console.log(`[AuthService] - isDevelopment:`, isDevelopment);
+      
       // 1. Валидация данных Telegram
       const validationResult: TelegramValidationResult = validateTelegramInitData(
         authData.authData || '',
         this.BOT_TOKEN,
         isDevelopment || authData.testMode || false
       );
+      
+      console.log(`[AuthService] - validationResult:`, JSON.stringify(validationResult, null, 2));
 
       if (!validationResult.isValid && !isDevelopment && !authData.testMode) {
         throw new Error(`Ошибка валидации данных Telegram: ${validationResult.errors?.join(', ')}`);
