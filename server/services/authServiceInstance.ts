@@ -156,7 +156,9 @@ class AuthServiceImpl implements IAuthService {
         return user;
       }
 
-      // 5. Если пользователь не найден, создаем нового
+      // 5. Если пользователь не найден, создаем нового (восстановление "призрачного" пользователя)
+      console.log(`[AuthService] 🔄 ВОССТАНОВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ: telegram_id=${telegramUserId}, guest_id=${authData.guest_id}`);
+      
       const username = authData.username || 
                       `user_${telegramUserId || crypto.randomBytes(4).toString('hex')}`;
 
@@ -165,6 +167,8 @@ class AuthServiceImpl implements IAuthService {
 
       // Определяем родительский реферальный код
       const parent_ref_code = authData.startParam || authData.refCode || null;
+      
+      console.log(`[AuthService] 📝 Создаем пользователя: username=${username}, ref_code=${ref_code}, parent_ref_code=${parent_ref_code}`);
 
       // Создаем пользователя
       // Преобразуем строковый telegramUserId в число (или null если отсутствует)
