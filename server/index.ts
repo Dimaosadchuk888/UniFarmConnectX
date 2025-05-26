@@ -47,6 +47,43 @@ console.log('[Telegram Config] TELEGRAM_WEBHOOK_URL:', process.env.TELEGRAM_WEBH
 // Устанавливаем переменные окружения для SSL
 process.env.PGSSLMODE = 'require';
 
+// === ОБЯЗАТЕЛЬНАЯ ПРОВЕРКА ПОДКЛЮЧЕНИЯ К PRODUCTION БАЗЕ ===
+import { Pool } from 'pg';
+
+async function checkDatabaseConnection() {
+  try {
+    console.log('[DB CHECK] Проверяем подключение к production базе...');
+    console.log('[DB CHECK] DATABASE_URL endpoint:', process.env.DATABASE_URL?.match(/ep-[^.]*/)?.[0] || 'не найден');
+    
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    });
+
+    const dbResult = await pool.query('SELECT current_database()');
+    const usersResult = await pool.query('SELECT COUNT(*) FROM public.users');
+    const lastUsersResult = await pool.query('SELECT id, telegram_id, username FROM public.users ORDER BY id DESC LIMIT 3');
+    
+    console.log('[DB CHECK] Database:', dbResult.rows[0].current_database);
+    console.log('[DB CHECK] Users in DB:', usersResult.rows[0].count);
+    console.log('[DB CHECK] Last users:', lastUsersResult.rows);
+    
+    // Перевірка правильності підключення
+    if (process.env.DATABASE_URL?.includes('ep-lucky-boat-a463bggt')) {
+      console.log('✅ [DB CHECK] Підключено до ПРАВИЛЬНОЇ production бази!');
+    } else {
+      console.log('❌ [DB CHECK] УВАГА! Підключено до неправильної бази!');
+    }
+    
+    await pool.end();
+  } catch (error) {
+    console.error('❌ [DB CHECK] Помилка підключення до бази:', error.message);
+  }
+}
+
+// Запускаємо перевірку при старті
+setTimeout(checkDatabaseConnection, 2000);
+
 // Принудительно устанавливаем Neon DB как провайдер базы данных
 process.env.DATABASE_PROVIDER = 'neon';
 process.env.FORCE_NEON_DB = 'true';
