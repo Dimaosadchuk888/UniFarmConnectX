@@ -1,14 +1,5 @@
-// ⚠️ КРИТИЧНЕ ВИПРАВЛЕННЯ: ПРИМУСОВЕ ВСТАНОВЛЕННЯ PRODUCTION БАЗИ
-console.log('🔧 [SYSTEM] Примусово встановлюємо production базу Neon...');
-process.env.DATABASE_URL = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
-process.env.PGHOST = 'ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech';
-process.env.PGUSER = 'neondb_owner';
-process.env.PGPASSWORD = 'npg_SpgdNBV70WKl';
-process.env.PGDATABASE = 'neondb';
-process.env.PGPORT = '5432';
-
-console.log('✅ [SYSTEM] Production база встановлена!');
-console.log('🎯 [SYSTEM] Endpoint:', process.env.PGHOST);
+// 🎯 СПРОЩЕНЕ ПІДКЛЮЧЕННЯ: використовуємо тільки production базу
+console.log('🎯 [SYSTEM] Налаштування PRODUCTION Neon DB: ep-lucky-boat-a463bggt');
 
 // Загружаем переменные окружения из файла .env
 import dotenv from 'dotenv';
@@ -59,42 +50,7 @@ console.log('[Telegram Config] TELEGRAM_WEBHOOK_URL:', process.env.TELEGRAM_WEBH
 // Устанавливаем переменные окружения для SSL
 process.env.PGSSLMODE = 'require';
 
-// === ОБЯЗАТЕЛЬНАЯ ПРОВЕРКА ПОДКЛЮЧЕНИЯ К PRODUCTION БАЗЕ ===
-import { Pool } from 'pg';
-
-async function checkDatabaseConnection() {
-  try {
-    console.log('[DB CHECK] Проверяем подключение к production базе...');
-    console.log('[DB CHECK] DATABASE_URL endpoint:', process.env.DATABASE_URL?.match(/ep-[^.]*/)?.[0] || 'не найден');
-    
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }
-    });
-
-    const dbResult = await pool.query('SELECT current_database()');
-    const usersResult = await pool.query('SELECT COUNT(*) FROM public.users');
-    const lastUsersResult = await pool.query('SELECT id, telegram_id, username FROM public.users ORDER BY id DESC LIMIT 3');
-    
-    console.log('[DB CHECK] Database:', dbResult.rows[0].current_database);
-    console.log('[DB CHECK] Users in DB:', usersResult.rows[0].count);
-    console.log('[DB CHECK] Last users:', lastUsersResult.rows);
-    
-    // Перевірка правильності підключення
-    if (process.env.DATABASE_URL?.includes('ep-lucky-boat-a463bggt')) {
-      console.log('✅ [DB CHECK] Підключено до ПРАВИЛЬНОЇ production бази!');
-    } else {
-      console.log('❌ [DB CHECK] УВАГА! Підключено до неправильної бази!');
-    }
-    
-    await pool.end();
-  } catch (error) {
-    console.error('❌ [DB CHECK] Помилка підключення до бази:', error.message);
-  }
-}
-
-// Запускаємо перевірку при старті
-setTimeout(checkDatabaseConnection, 2000);
+// Підключення до бази буде виконано через спрощений db-connect-unified.ts
 
 // Принудительно устанавливаем Neon DB как провайдер базы данных
 process.env.DATABASE_PROVIDER = 'neon';
@@ -118,7 +74,7 @@ import { WebSocketServer } from 'ws';
 
 // Импорты для работы с базой данных
 import { testConnection, db, queryWithRetry, dbType, pool } from './db-connect-unified';
-import { DatabaseType } from "./db-config";
+// Видалено: import { DatabaseType } from "./db-config";
 
 // Импорты middleware и обработчиков
 import { databaseErrorHandler } from './middleware/databaseErrorHandler';
