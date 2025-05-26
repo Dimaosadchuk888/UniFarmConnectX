@@ -386,9 +386,8 @@ export function autoConfigureButtonsForRoute(currentRoute: string): void {
     // ЭТАП 2: Настраиваем кнопки в зависимости от маршрута
     switch (currentRoute) {
       case '/farming':
-        ButtonConfigs.farming.showStartFarming();
-        ButtonConfigs.farming.showBackToHome();
-        console.log('[TELEGRAM BUTTONS] 🌱 Кнопки настроены для фарминга');
+        // КНОПКА "НАЧАТЬ ФАРМИНГ" ПОЛНОСТЬЮ УДАЛЕНА - НЕ ПОКАЗЫВАЕМ НИКАКИХ КНОПОК
+        console.log('[TELEGRAM BUTTONS] 🌱 Кнопки скрыты для фарминга (по требованию)');
         break;
         
       case '/boost':
