@@ -44,6 +44,9 @@ class DatabaseConnectionManager {
   private dbConfigs: DBConfig[] = [];
   private currentPool: Pool | null = null;
   private currentConfig: DBConfig | null = null;
+  
+  // КРИТИЧНЕ ВИПРАВЛЕННЯ: примусове використання правильної production бази
+  private readonly PRODUCTION_CONNECTION = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
   private isMemoryMode = false;
   private memoryStorage: Map<string, any[]> = new Map();
 
@@ -99,40 +102,52 @@ class DatabaseConnectionManager {
     this.dbConfigs.sort((a, b) => a.priority - b.priority);
   }
 
-  // Отримати пул підключень з покращеним механізмом відновлення
+  // ВИПРАВЛЕНИЙ МЕТОД: прямє підключення до правильної production бази
   public async getPool(): Promise<Pool | null> {
-    // Якщо вже є працюючий пул, перевіряємо його стан та повертаємо
+    console.log('🎯 [DB] ПРИМУСОВЕ ПІДКЛЮЧЕННЯ ДО PRODUCTION БАЗИ: ep-lucky-boat-a463bggt');
+    
+    // Закриваємо попередній пул якщо є
     if (this.currentPool) {
       try {
-        // Швидка перевірка стану пулу (без фактичного запиту до БД)
-        const poolState = this.currentPool.totalCount !== undefined && 
-                         this.currentPool.idleCount !== undefined;
-        if (poolState) {
-          return this.currentPool;
-        } else {
-          this.log('Існуючий пул в неробочому стані, спробуємо перепідключитися');
-          // Отправляем событие о начале переподключения
-          emitDbEvent(
-            DatabaseEventType.RECONNECTING,
-            'Существующий пул соединений в нерабочем состоянии',
-            undefined,
-            { previousPool: this.currentConfig?.name || 'unknown' }
-          );
-        }
-      } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        this.log(`Помилка при перевірці стану пулу: ${errorMessage}`, true);
-        
-        // Отправляем событие об ошибке при проверке пула
-        emitDbEvent(
-          DatabaseEventType.QUERY_ERROR,
-          'Ошибка при проверке состояния пула соединений',
-          errorMessage,
-          { connectionName: this.currentConfig?.name || 'unknown' }
-        );
-        
-        // Продовжуємо спробу перепідключення
+        await this.currentPool.end();
+        console.log('✅ [DB] Закрито попередній пул');
+      } catch (err) {
+        console.error('⚠️ [DB] Помилка при закритті попереднього пулу:', err);
       }
+      this.currentPool = null;
+    }
+
+    // Створюємо новий пул для правильної production бази
+    try {
+      this.currentPool = new Pool({
+        connectionString: this.PRODUCTION_CONNECTION,
+        ssl: { rejectUnauthorized: false },
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      });
+
+      // Перевіряємо підключення та кількість користувачів
+      const client = await this.currentPool.connect();
+      const result = await client.query('SELECT current_database(), COUNT(*) as user_count FROM public.users');
+      client.release();
+      
+      const dbName = result.rows[0].current_database;
+      const userCount = result.rows[0].user_count;
+      
+      console.log(`✅ [DB] Підключено до бази: ${dbName}`);
+      console.log(`✅ [DB] Кількість користувачів: ${userCount}`);
+      
+      if (userCount === '4') {
+        console.log('🎯 [DB] ПІДТВЕРДЖЕНО: Це ПРАВИЛЬНА production база з 4 користувачами!');
+      } else {
+        console.log(`⚠️ [DB] УВАГА: Очікувалося 4 користувачі, знайдено ${userCount}`);
+      }
+      
+      return this.currentPool;
+    } catch (error) {
+      console.error('❌ [DB] Критична помилка підключення до production бази:', error.message);
+      return null;
     }
 
     // Якщо ми в режимі in-memory storage, повертаємо null
