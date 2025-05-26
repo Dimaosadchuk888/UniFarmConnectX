@@ -543,32 +543,33 @@ async function getDrizzle() {
   return drizzleInstance;
 }
 
-// Экспортируем объект базы данных с правильной инициализацией
-export const db = {
-  select: async (...args: any[]) => {
-    const instance = await getDrizzle();
-    return instance.select(...args);
-  },
-  insert: async (...args: any[]) => {
-    const instance = await getDrizzle();
-    return instance.insert(...args);
-  },
-  update: async (...args: any[]) => {
-    const instance = await getDrizzle();
-    return instance.update(...args);
-  },
-  delete: async (...args: any[]) => {
-    const instance = await getDrizzle();
-    return instance.delete(...args);
-  },
-  query: async (text: string, params: any[] = []) => {
-    const pool = await DatabaseConnectionManager.getInstance().getPool();
-    if (!pool) {
-      throw new Error('Підключення до бази даних недоступне');
+// Создаем прокси для правильной работы с Drizzle ORM
+export const db = new Proxy({} as any, {
+  get(target, prop) {
+    if (prop === 'query') {
+      return async (text: string, params: any[] = []) => {
+        const pool = await DatabaseConnectionManager.getInstance().getPool();
+        if (!pool) {
+          throw new Error('Підключення до бази даних недоступне');
+        }
+        return pool.query(text, params);
+      };
     }
-    return pool.query(text, params);
+    
+    // Для всех остальных методов Drizzle ORM
+    return (...args: any[]) => {
+      if (!drizzleInstance) {
+        throw new Error('Drizzle ORM не инициализирован - попробуйте позже');
+      }
+      
+      const method = drizzleInstance[prop];
+      if (typeof method === 'function') {
+        return method.apply(drizzleInstance, args);
+      }
+      return method;
+    };
   }
-};
+});
 
 // Инициализируем Drizzle при загрузке модуля
 initDrizzleSync();
