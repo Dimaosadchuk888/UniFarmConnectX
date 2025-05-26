@@ -198,6 +198,79 @@ export const UserController = {
     }
   },
   /**
+   * Создает пользователя из данных Telegram
+   * @param initData Данные Telegram WebApp
+   * @param referrerCode Реферальный код (опционально)
+   * @returns Созданный или найденный пользователь
+   */
+  async createUserFromTelegram(initData: string, referrerCode?: string): Promise<any> {
+    try {
+      console.log('[TG REGISTRATION] Начинаем обработку Telegram данных:', { hasInitData: !!initData, hasReferrer: !!referrerCode });
+      
+      // Импортируем функцию валидации
+      const { validateTelegramInitData } = await import('../utils/telegramUtils');
+      
+      // Валидируем данные Telegram
+      const validationResult = validateTelegramInitData(
+        initData, 
+        process.env.TELEGRAM_BOT_TOKEN,
+        process.env.NODE_ENV === 'development'
+      );
+      
+      if (!validationResult.isValid) {
+        console.log('[TG REGISTRATION] Telegram данные невалидны:', validationResult.errors);
+        throw new Error(`Ошибка валидации Telegram данных: ${validationResult.errors?.join(', ')}`);
+      }
+      
+      const { userId, username, firstName, lastName } = validationResult;
+      console.log('[TG REGISTRATION] Telegram данные валидны:', { userId, username, firstName, lastName });
+      
+      if (!userId) {
+        throw new Error('Отсутствует userId в данных Telegram');
+      }
+      
+      const telegramId = parseInt(userId, 10);
+      
+      // Проверяем, существует ли уже пользователь с таким Telegram ID
+      const existingUser = await userService.getUserByTelegramId(telegramId);
+      if (existingUser) {
+        console.log(`[TG REGISTRATION] Найден существующий пользователь с Telegram ID ${telegramId}`);
+        return existingUser;
+      }
+      
+      // Находим реферера, если указан код
+      let parentRefCode = null;
+      if (referrerCode) {
+        const referrer = await userService.getUserByRefCode(referrerCode);
+        if (referrer) {
+          parentRefCode = referrer.ref_code;
+          console.log(`[TG REGISTRATION] Найден реферер с кодом ${referrerCode}`);
+        }
+      }
+      
+      // Создаем нового пользователя с данными Telegram
+      const userData: InsertUser = {
+        username: username || firstName || `user_${telegramId}`,
+        telegram_id: telegramId,
+        guest_id: `tg_${telegramId}`,
+        ref_code: await userService.generateRefCode(),
+        parent_ref_code: parentRefCode,
+        wallet: null,
+        ton_wallet_address: null
+      };
+      
+      const newUser = await userService.createUser(userData);
+      
+      console.log(`[USER REGISTERED: telegram_id=${telegramId} | username=${newUser.username}]`);
+      
+      return newUser;
+    } catch (error) {
+      console.error('[TG REGISTRATION] Ошибка при создании пользователя:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Генерирует временный реферальный код для аварийного режима
    */
   generateTempRefCode(): Promise<string> {
