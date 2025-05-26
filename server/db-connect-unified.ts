@@ -506,16 +506,72 @@ initDatabaseConnections();
  * Об'єкт для роботи з базою даних через Drizzle ORM
  * Експортується для використання в інших модулях
  */
+import { drizzle } from 'drizzle-orm/node-postgres';
+import * as schema from '@shared/schema';
+
+// Создаем глобальную переменную для Drizzle instance
+let drizzleInstance: any = null;
+
+// Создаем синхронную инициализацию Drizzle
+function initDrizzleSync() {
+  const manager = DatabaseConnectionManager.getInstance();
+  
+  // Используем setTimeout для асинхронной инициализации без блокировки
+  setTimeout(async () => {
+    try {
+      const pool = await manager.getPool();
+      if (pool) {
+        drizzleInstance = drizzle(pool, { schema });
+        console.log('[DB] Drizzle ORM успешно инициализирован');
+      }
+    } catch (error) {
+      console.error('[DB] Ошибка инициализации Drizzle:', error);
+    }
+  }, 0);
+}
+
+// Функция для получения Drizzle instance с автоинициализацией
+async function getDrizzle() {
+  if (!drizzleInstance) {
+    const pool = await DatabaseConnectionManager.getInstance().getPool();
+    if (pool) {
+      drizzleInstance = drizzle(pool, { schema });
+    } else {
+      throw new Error('Підключення до бази даних недоступне');
+    }
+  }
+  return drizzleInstance;
+}
+
+// Экспортируем объект базы данных с правильной инициализацией
 export const db = {
+  select: async (...args: any[]) => {
+    const instance = await getDrizzle();
+    return instance.select(...args);
+  },
+  insert: async (...args: any[]) => {
+    const instance = await getDrizzle();
+    return instance.insert(...args);
+  },
+  update: async (...args: any[]) => {
+    const instance = await getDrizzle();
+    return instance.update(...args);
+  },
+  delete: async (...args: any[]) => {
+    const instance = await getDrizzle();
+    return instance.delete(...args);
+  },
   query: async (text: string, params: any[] = []) => {
     const pool = await DatabaseConnectionManager.getInstance().getPool();
     if (!pool) {
-      console.error('[DB] Неможливо виконати запит: відсутнє підключення до бази даних');
       throw new Error('Підключення до бази даних недоступне');
     }
     return pool.query(text, params);
   }
 };
+
+// Инициализируем Drizzle при загрузке модуля
+initDrizzleSync();
 
 /**
  * Пул підключень до бази даних
