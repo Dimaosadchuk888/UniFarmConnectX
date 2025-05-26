@@ -1,3 +1,15 @@
+// ⚠️ КРИТИЧНЕ ВИПРАВЛЕННЯ: ПРИМУСОВЕ ВСТАНОВЛЕННЯ PRODUCTION БАЗИ
+console.log('🔧 [SYSTEM] Примусово встановлюємо production базу Neon...');
+process.env.DATABASE_URL = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
+process.env.PGHOST = 'ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech';
+process.env.PGUSER = 'neondb_owner';
+process.env.PGPASSWORD = 'npg_SpgdNBV70WKl';
+process.env.PGDATABASE = 'neondb';
+process.env.PGPORT = '5432';
+
+console.log('✅ [SYSTEM] Production база встановлена!');
+console.log('🎯 [SYSTEM] Endpoint:', process.env.PGHOST);
+
 // Загружаем переменные окружения из файла .env
 import dotenv from 'dotenv';
 import path from 'path';
