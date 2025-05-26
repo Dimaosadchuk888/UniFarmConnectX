@@ -582,14 +582,25 @@ async function startServer(): Promise<void> {
   // [TG REGISTRATION FIX] Добавляем эндпоинт для регистрации через Telegram
   app.post('/api/register/telegram', async (req: Request, res: Response): Promise<void> => {
     try {
-      logger.info('[TG REGISTER] Получен запрос на регистрацию через Telegram');
+      logger.info('[TELEGRAM REGISTER] 🚀 Получен запрос на регистрацию через Telegram');
+      logger.info('[TELEGRAM REGISTER] Данные запроса:', JSON.stringify(req.body, null, 2));
       
-      const { initData, referrerCode } = req.body;
+      const { initData, referrerCode, telegram_id, username, first_name, last_name } = req.body;
       
-      if (!initData) {
+      // Логируем какие данные получили
+      logger.info('[TELEGRAM REGISTER] Принятые данные:', {
+        hasInitData: !!initData,
+        hasTelegramId: !!telegram_id,
+        username: username || 'не указан',
+        firstName: first_name || 'не указан',
+        referrerCode: referrerCode || 'отсутствует'
+      });
+      
+      if (!initData && !telegram_id) {
+        logger.error('[TELEGRAM REGISTER] ❌ Отсутствуют необходимые данные Telegram');
         res.status(400).json({
           success: false,
-          error: 'Отсутствуют данные Telegram (initData)'
+          error: 'Отсутствуют данные Telegram (initData или telegram_id)'
         });
         return;
       }
@@ -597,10 +608,19 @@ async function startServer(): Promise<void> {
       // Импортируем UserController динамически
       const { UserController } = await import('./controllers/userController');
       
-      // Создаем пользователя через Telegram данные
-      const user = await UserController.createUserFromTelegram(initData, referrerCode);
+      logger.info('[TELEGRAM REGISTER] 📋 Вызываем createUserFromTelegram...');
       
-      logger.info(`[TG REGISTER] ✅ Успешно создан пользователь: ID=${user.id}, telegram_id=${user.telegram_id}`);
+      // Создаем пользователя через Telegram данные
+      const user = await UserController.createUserFromTelegram(initData || req.body, referrerCode);
+      
+      logger.info('[DB WRITE] ✅ Пользователь успешно записан в БД:', {
+        userId: user.id,
+        telegramId: user.telegram_id,
+        username: user.username,
+        refCode: user.ref_code,
+        balanceUni: user.balance_uni,
+        balanceTon: user.balance_ton
+      });
       
       res.status(200).json({
         success: true,
@@ -614,7 +634,11 @@ async function startServer(): Promise<void> {
         }
       });
     } catch (error) {
-      logger.error('[TG REGISTER] ❌ Ошибка при регистрации через Telegram:', error);
+      logger.error('[DB ERROR] ❌ Не удалось записать пользователя:', error);
+      logger.error('[TELEGRAM REGISTER] ❌ Полная ошибка:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
       res.status(500).json({
         success: false,
         error: 'Ошибка при регистрации пользователя',

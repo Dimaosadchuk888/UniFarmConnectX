@@ -473,6 +473,8 @@ export async function registerUserWithTelegram(
       }
       
       // Отправляем запрос на регистрацию через Telegram
+      console.log(`[TELEGRAM REGISTER] Отправляем данные на /api/register/telegram:`, registerData);
+      
       const response = await fetch(`${apiConfig.baseUrl}/api/register/telegram`, {
         method: 'POST',
         headers: {
@@ -482,13 +484,22 @@ export async function registerUserWithTelegram(
         body: JSON.stringify(registerData)
       });
       
+      console.log(`[TELEGRAM REGISTER] Получен ответ от сервера: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`[TELEGRAM REGISTER] Ошибка регистрации: ${response.status} - ${errorText}`);
         throw new Error(`Ошибка регистрации Telegram пользователя: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
       const registrationResult = await response.json();
-      console.log(`[TG REGISTERED] Telegram пользователь успешно зарегистрирован:`, registrationResult);
+      console.log(`[TELEGRAM REGISTER] ✅ Успешная регистрация:`, {
+        success: registrationResult.success,
+        userId: registrationResult.user?.id,
+        username: registrationResult.user?.username,
+        telegramId: registrationResult.user?.telegram_id,
+        refCode: registrationResult.user?.referralCode
+      });
       
       return registrationResult;
     } else {

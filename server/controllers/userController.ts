@@ -474,15 +474,26 @@ export const UserController = {
    */
   async createUserFromTelegram(initData: any, referrerCode?: string): Promise<any> {
     try {
-      console.log('[UserController] Создание/получение пользователя из Telegram данных');
+      console.log('[UserController] 📋 Создание/получение пользователя из Telegram данных');
+      console.log('[UserController] Входные данные:', {
+        hasInitData: !!initData,
+        referrerCode: referrerCode || 'отсутствует',
+        initDataType: typeof initData,
+        initDataKeys: typeof initData === 'object' ? Object.keys(initData) : 'не объект'
+      });
       
       // Используем новый метод из userService
       const user = await userService.createOrGetUserFromTelegram(initData, referrerCode);
       
-      console.log(`[UserController] Успешно обработан пользователь ID=${user.id}`);
+      console.log('[UserController] ✅ Успешно обработан пользователь:', {
+        userId: user.id,
+        telegramId: user.telegram_id,
+        username: user.username,
+        refCode: user.ref_code
+      });
       return user;
     } catch (error) {
-      console.error('[UserController] Ошибка при создании пользователя из Telegram:', error);
+      console.error('[UserController] ❌ Ошибка при создании пользователя из Telegram:', error);
       throw error;
     }
   },
