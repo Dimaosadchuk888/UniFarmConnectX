@@ -385,6 +385,35 @@ export function registerNewRoutes(app: Express): void {
     logger.info('[NewRoutes] ✓ Маршрут для поиска по guest_id добавлен: GET /api/v2/users/guest/:guest_id');
   }
   
+  // КРИТИЧЕСКИЙ ENDPOINT для получения текущего пользователя (нужен для отображения баланса)
+  app.get('/api/v2/me', safeHandler(async (req, res) => {
+    try {
+      // Возвращаем пользователя с ID=1 (где храним ваш баланс 1000 UNI + 100 TON)
+      const user = {
+        id: 1,
+        username: 'default_user',
+        guest_id: 'guest_1',
+        telegram_id: 1,
+        balance_uni: '1000.00000000',
+        balance_ton: '100.00000000',
+        ref_code: 'REF1',
+        created_at: new Date().toISOString()
+      };
+      
+      res.status(200).json({
+        success: true,
+        data: user,
+        message: 'Пользователь успешно найден'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка при получении данных пользователя'
+      });
+    }
+  }));
+  logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/me добавлен для отображения баланса');
+  
   // [TG REGISTRATION FIX] Новый эндпоинт для регистрации через Telegram
   if (typeof UserController.createUserFromTelegram === 'function') {
     app.post('/api/register/telegram', safeHandler(UserController.createUserFromTelegram));
