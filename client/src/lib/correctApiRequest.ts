@@ -67,14 +67,14 @@ export async function correctApiRequest<T = any>(
       // Продолжаем выполнение с исходным endpoint
     }
 
-    // Формирование полного URL - ИСПОЛЬЗУЕМ ФИКСИРОВАННЫЙ PRODUCTION URL
+    // Формирование полного URL - ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ PRODUCTION URL
     try {
-      // ВСЕГДА используем production URL вместо динамического window.location
-      const PRODUCTION_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+      // КРИТИЧЕСКИ ВАЖНО: ВСЕГДА используем стабильный production URL
+      const FORCED_PRODUCTION_HOST = 'uni-farm-connect-x-lukyanenkolawfa.replit.app';
       const protocol = 'https:';
-      const host = 'uni-farm-connect-x-lukyanenkolawfa.replit.app';
       
-      console.log(`[correctApiRequest] [${requestId}] Используем фиксированный production host: ${host}`);
+      // Игнорируем любые динамические URL и используем только production
+      console.log(`[correctApiRequest] [${requestId}] 🚀 ПРИНУДИТЕЛЬНО используем production host: ${FORCED_PRODUCTION_HOST}`);
       
       // Получаем userId из localStorage чтобы передать его в запросах
       const lastSessionStr = localStorage.getItem('unifarm_last_session');
@@ -96,7 +96,7 @@ export async function correctApiRequest<T = any>(
         console.log(`[correctApiRequest] [${requestId}] Добавлен user_id=${userId} к запросу`);
       }
       
-      fullUrl = `${protocol}//${host}${endpoint}`;
+      fullUrl = `${protocol}//${FORCED_PRODUCTION_HOST}${endpoint}`;
       console.log(`[correctApiRequest] [${requestId}] Отправка ${method} запроса на ${fullUrl}`);
     } catch (urlError) {
       console.error(`[correctApiRequest] [${requestId}] Ошибка при формировании URL:`, urlError);
