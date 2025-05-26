@@ -596,10 +596,9 @@ async function startServer(): Promise<void> {
       
       // Импортируем UserController динамически
       const { UserController } = await import('./controllers/userController');
-      const userController = new UserController();
       
       // Создаем пользователя через Telegram данные
-      const user = await userController.createUserFromTelegram(initData, referrerCode);
+      const user = await UserController.createUserFromTelegram(initData, referrerCode);
       
       logger.info(`[TG REGISTER] ✅ Успешно создан пользователь: ID=${user.id}, telegram_id=${user.telegram_id}`);
       

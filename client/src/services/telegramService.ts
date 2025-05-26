@@ -239,23 +239,53 @@ export function diagnosticTelegramWebApp(): Record<string, any> {
 }
 
 /**
- * Получает данные пользователя (заглушка для совместимости)
- * @returns Промис с тестовыми данными в режиме разработки или ошибкой
+ * Получает данные пользователя из Telegram WebApp
+ * @returns Промис с данными пользователя Telegram или null если недоступно
  */
-export function getTelegramUserData(): Promise<UserData> {
+export function getTelegramUserData(): Promise<any> {
   return new Promise((resolve, reject) => {
-    // В режиме разработки возвращаем тестовые данные
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[telegramService] Using test data in development mode');
-      resolve({
-        userId: 1,
-        guestId: 'test-guest-id',
-        username: 'test_user'
+    try {
+      // Проверяем наличие Telegram WebApp API
+      if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
+        console.warn('[telegramService] ⚠️ No Telegram initData available to add to headers');
+        resolve(null);
+        return;
+      }
+
+      // Получаем initData и пользователя из Telegram
+      const initData = window.Telegram.WebApp.initData;
+      const userData = window.Telegram.WebApp.initDataUnsafe?.user;
+
+      console.log('[telegramService] Telegram данные:', {
+        hasInitData: !!initData,
+        initDataLength: initData?.length || 0,
+        hasUser: !!userData,
+        userId: userData?.id,
+        username: userData?.username,
+        firstName: userData?.first_name
       });
-      return;
+
+      if (userData?.id) {
+        // Возвращаем реальные данные пользователя Telegram
+        const telegramUserData = {
+          id: userData.id,
+          username: userData.username,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          language_code: userData.language_code || 'en',
+          initData: initData
+        };
+        
+        console.log('[TG DATA] Получены реальные данные Telegram пользователя:', telegramUserData);
+        resolve(telegramUserData);
+      } else {
+        console.log('[telegramService] Данные Telegram пользователя недоступны');
+        resolve(null);
+      }
+    } catch (error) {
+      console.error('[telegramService] Ошибка при получении данных Telegram:', error);
+      resolve(null);
     }
-    
-    reject(new Error(IdentificationError.NOT_AVAILABLE));
   });
 }
 
