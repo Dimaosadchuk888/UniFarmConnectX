@@ -37,16 +37,28 @@ export class DatabaseStorage implements IStorage {
    * Получение пользователя по имени пользователя
    */
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user || undefined;
+    } catch (error) {
+      const err = error as ErrorWithMessage;
+      console.error(`[DatabaseStorage] Ошибка при получении пользователя по username ${username}:`, err.message);
+      throw new DatabaseError(`Ошибка при получении пользователя по username ${username}: ${err.message}`, error);
+    }
   }
 
   /**
    * Получение пользователя по его guest_id
    */
   async getUserByGuestId(guestId: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.guest_id, guestId));
-    return user || undefined;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.guest_id, guestId));
+      return user || undefined;
+    } catch (error) {
+      const err = error as ErrorWithMessage;
+      console.error(`[DatabaseStorage] Ошибка при получении пользователя по guest_id ${guestId}:`, err.message);
+      throw new DatabaseError(`Ошибка при получении пользователя по guest_id ${guestId}: ${err.message}`, error);
+    }
   }
 
   /**
