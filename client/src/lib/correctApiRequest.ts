@@ -67,14 +67,14 @@ export async function correctApiRequest<T = any>(
       // Продолжаем выполнение с исходным endpoint
     }
 
-    // Формирование полного URL
+    // Формирование полного URL - ИСПОЛЬЗУЕМ ФИКСИРОВАННЫЙ PRODUCTION URL
     try {
-      const protocol = window.location.protocol || 'https:';
-      const host = window.location.host || '';
+      // ВСЕГДА используем production URL вместо динамического window.location
+      const PRODUCTION_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+      const protocol = 'https:';
+      const host = 'uni-farm-connect-x-lukyanenkolawfa.replit.app';
       
-      if (!host) {
-        console.warn(`[correctApiRequest] [${requestId}] Не удалось получить host из window.location`);
-      }
+      console.log(`[correctApiRequest] [${requestId}] Используем фиксированный production host: ${host}`);
       
       // Получаем userId из localStorage чтобы передать его в запросах
       const lastSessionStr = localStorage.getItem('unifarm_last_session');
