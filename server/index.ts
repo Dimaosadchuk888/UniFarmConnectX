@@ -23,7 +23,7 @@ if (fs.existsSync(envPath)) {
   console.error('[Config] .env file not found at:', envPath);
 }
 
-// Добавим URL-ы для Telegram бота напрямую
+// Используем стабильный production URL для Telegram бота
 if (!process.env.APP_URL) {
   process.env.APP_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
   console.log('[Config] Setting APP_URL manually:', process.env.APP_URL);
