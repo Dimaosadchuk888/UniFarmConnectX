@@ -337,13 +337,9 @@ export function getButtonState(): ButtonState {
  * ЭТАП 2: Предустановленные конфигурации для разных страниц
  */
 export const ButtonConfigs = {
-  // ЭТАП 2: Конфигурация для страницы фарминга
+  // ЭТАП 2: Конфигурация для страницы фарминга (КНОПКА УДАЛЕНА)
   farming: {
-    showStartFarming: () => showMainButton(
-      "Начать фарминг", 
-      () => console.log('[FARMING] 🌱 Фарминг запущен!'),
-      true
-    ),
+    // showStartFarming - УДАЛЕНА ПО ТРЕБОВАНИЮ ПОЛЬЗОВАТЕЛЯ
     showHarvestFarming: () => showMainButton(
       "Собрать урожай", 
       () => console.log('[FARMING] 🌾 Урожай собран!'),

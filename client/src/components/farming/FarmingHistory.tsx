@@ -1339,9 +1339,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
             Откройте UNI фарминг на главной вкладке, чтобы начать зарабатывать
           </p>
           
-          <button className="mt-6 gradient-button text-white px-4 py-2 rounded-lg font-medium transition-transform hover:scale-105">
-            Начать фарминг
-          </button>
+          {/* КНОПКА "НАЧАТЬ ФАРМИНГ" УДАЛЕНА ПО ТРЕБОВАНИЮ */}
         </div>
       );
     }
