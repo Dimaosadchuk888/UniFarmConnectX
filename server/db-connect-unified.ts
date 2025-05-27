@@ -29,7 +29,7 @@ class SimpleProductionDB {
   public async getPool(): Promise<Pool> {
     if (!this.pool) {
       console.log('🚀 [DB] Створення підключення до PRODUCTION бази...');
-
+      
       this.pool = new Pool({
         connectionString: PRODUCTION_DB_URL,
         ssl: { rejectUnauthorized: false },
@@ -43,13 +43,13 @@ class SimpleProductionDB {
         const client = await this.pool.connect();
         const result = await client.query('SELECT current_database(), COUNT(*) as user_count FROM public.users');
         client.release();
-
+        
         const dbName = result.rows[0].current_database;
         const userCount = result.rows[0].user_count;
-
+        
         console.log(`✅ [DB CONNECTED] to ep-lucky-boat-a463bggt`);
         console.log(`✅ [DB] База: ${dbName}, користувачів: ${userCount}`);
-
+        
         if (userCount === '4') {
           console.log('🎯 [DB] ПІДТВЕРДЖЕНО: ПРАВИЛЬНА production база з 4 користувачами!');
         } else {
@@ -60,7 +60,7 @@ class SimpleProductionDB {
         throw error;
       }
     }
-
+    
     return this.pool;
   }
 
@@ -166,16 +166,4 @@ export function getConnectionStatus() {
 export const dbType = 'postgres';
 export const dbState = {
   isReady: true
-};
-
-// There was no 'reconnect' variable in the original code. It's likely a mistake in the change snippet.
-// Based on the intention, I will include the existing variables and dbType
-
-// Експортуємо основні функції та змінні
-export { 
-  db, 
-  pool, 
-  testConnection,
-  queryWithRetry,
-  dbType
 };
