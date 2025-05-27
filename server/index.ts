@@ -369,12 +369,58 @@ async function startServer(): Promise<void> {
   // Создаем HTTP сервер на основе Express приложения
   const server = http.createServer(app);
   
-  // Настройка WebSocket сервера
+  // Настройка WebSocket сервера для real-time обновлений
   const wss = new WebSocketServer({ server });
-  wss.on('connection', (ws) => {
-    // Обрабатываем только критические ошибки соединения
-    ws.on('error', (error: Error) => {
+  
+  wss.on('connection', (ws, req) => {
+    logger.info('[WebSocket] Новое подключение установлено');
+    
+    // Отправляем приветственное сообщение
+    ws.send(JSON.stringify({
+      type: 'connection',
+      status: 'connected',
+      timestamp: new Date().toISOString()
+    }));
+    
+    // Обработка входящих сообщений
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        logger.info('[WebSocket] Получено сообщение:', message);
+        
+        // Эхо-ответ для подтверждения
+        ws.send(JSON.stringify({
+          type: 'echo',
+          originalMessage: message,
+          timestamp: new Date().toISOString()
+        }));
+      } catch (error) {
+        logger.error('[WebSocket] Ошибка парсинга сообщения:', error);
+      }
+    });
+    
+    // Обработка закрытия соединения
+    ws.on('close', (code, reason) => {
+      logger.info(`[WebSocket] Соединение закрыто: ${code} - ${reason}`);
+    });
+    
+    // Улучшенная обработка ошибок
+    ws.on('error', (error) => {
       logger.error(`[WebSocket] Ошибка соединения:`, error.message);
+      // Не закрываем соединение принудительно - позволяем клиенту переподключиться
+    });
+    
+    // Heartbeat для поддержания соединения
+    const heartbeat = setInterval(() => {
+      if (ws.readyState === ws.OPEN) {
+        ws.ping();
+      } else {
+        clearInterval(heartbeat);
+      }
+    }, 30000); // ping каждые 30 секунд
+    
+    ws.on('pong', () => {
+      logger.debug('[WebSocket] Pong получен');
     });
   });
   

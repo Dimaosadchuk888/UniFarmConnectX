@@ -61,19 +61,51 @@ export class MissionControllerFixed {
   }
 
   /**
-   * Заглушка для завершения миссии
+   * Завершает миссию и начисляет награду
    */
   static async completeMission(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const { user_id, mission_id } = req.body;
+      
+      if (!user_id || !mission_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Не указан ID пользователя или ID миссии'
+        });
+      }
+
+      console.log('[MissionControllerFixed] 🚀 Завершение миссии:', { user_id, mission_id });
+      
+      // Завершаем миссию и получаем информацию о награде
+      const result = await missionServiceFixed.completeMission(Number(user_id), Number(mission_id));
+      
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          error: result.message || 'Не удалось завершить миссию'
+        });
+      }
+
+      console.log('[MissionControllerFixed] ✅ Миссия успешно завершена:', result);
+      
       res.status(200).json({
         success: true,
-        data: { message: 'Функция в разработке' },
-        message: 'Завершение миссии временно недоступно'
+        data: {
+          mission_id: Number(mission_id),
+          user_id: Number(user_id),
+          reward: result.reward || 500, // REDMAP: 500 UNI за миссию
+          completed_at: new Date().toISOString(),
+          new_balance: result.new_balance
+        },
+        message: `Миссия завершена! Получена награда: ${result.reward || 500} UNI`
       });
     } catch (error) {
+      console.error('[MissionControllerFixed] ❌ Ошибка при завершении миссии:', error);
+      
       res.status(500).json({
         success: false,
-        error: 'Ошибка при завершении миссии'
+        error: 'Ошибка при завершении миссии',
+        message: error instanceof Error ? error.message : String(error)
       });
     }
   }
