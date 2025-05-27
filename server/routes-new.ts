@@ -452,6 +452,12 @@ export function registerNewRoutes(app: Express): void {
     if (typeof MissionController.completeMission === 'function') {
       app.post('/api/v2/missions/complete', safeHandler(MissionController.completeMission));
     }
+    
+    // КРИТИЧЕСКИЙ МАРШРУТ: добавляем отсутствующий endpoint для frontend
+    if (typeof MissionController.getUserCompletedMissions === 'function') {
+      app.get('/api/v2/missions/user-completed', safeHandler(MissionController.getUserCompletedMissions));
+      logger.info('[NewRoutes] ✓ Добавлен критический маршрут: GET /api/v2/missions/user-completed');
+    }
   }
   
   // Маршруты для реферальной системы с использованием консолидированного контроллера
