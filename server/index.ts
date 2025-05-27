@@ -605,6 +605,10 @@ async function startServer(): Promise<void> {
     // Регистрируем консолидированные маршруты
     registerNewRoutes(app);
     
+    // КРИТИЧНО: Додаємо маршрути місій
+    const { addMissionRoutes } = await import('./routes-missions-only.js');
+    addMissionRoutes(app);
+    
     // Настраиваем базовый URL для API
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 

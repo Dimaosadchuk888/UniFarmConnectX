@@ -352,42 +352,6 @@ export function registerNewRoutes(app: Express): void {
   // Используем маршрутизатор для страницы статуса
   app.use('/status', statusRouter);
 
-  // Типы для обработчиков маршрутов
-  type RouteHandler = (req: Request, res: Response, next: NextFunction) => Promise<any> | any;
-  
-  // Централизованный обработчик маршрутов с обработкой ошибок
-  // Улучшенный тип для безопасного вызова обработчиков с надлежащей обработкой ошибок
-  const safeHandler = (handler: any): RequestHandler => async (req, res, next) => {
-    try {
-      if (typeof handler === 'function') {
-        // Явно вызываем функцию обработчика
-        await handler(req, res, next);
-        // Если обработчик не отправил ответ, не делаем ничего
-        // Это позволяет обработчику управлять ответом самостоятельно
-      } else {
-        logger.error('[Routes] Обработчик не является функцией:', handler);
-        if (!res.headersSent) {
-          res.status(500).json({
-            success: false,
-            error: 'Внутренняя ошибка сервера: неверный обработчик'
-          });
-        }
-      }
-    } catch (error) {
-      logger.error('[Routes] Ошибка в обработчике маршрута:', error);
-      
-      if (!res.headersSent) {
-        res.status(500).json({
-          success: false,
-          error: 'Внутренняя ошибка сервера',
-          message: error instanceof Error ? error.message : String(error)
-        });
-      } else {
-        next(error);
-      }
-    }
-  };
-
   // Маршруты для сессий
   if (typeof SessionController.restoreSession === 'function') {
     app.post('/api/v2/session/restore', safeHandler(SessionController.restoreSession));
