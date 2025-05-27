@@ -84,13 +84,26 @@ const dbManager = SimpleProductionDB.getInstance();
 // Основні експорти для сумісності
 export const getConnectionManager = () => dbManager;
 export const pool = {
-  connect: async () => dbManager.getClient(),
+  connect: async () => {
+    // Примусово використовуємо правильну production базу
+    const productionPool = new Pool({
+      connectionString: PRODUCTION_DB_URL,
+      ssl: { rejectUnauthorized: false }
+    });
+    return productionPool.connect();
+  },
   query: async (text: string, params: any[] = []) => {
-    const client = await dbManager.getClient();
+    // Примусово використовуємо правильну production базу
+    const productionPool = new Pool({
+      connectionString: PRODUCTION_DB_URL,
+      ssl: { rejectUnauthorized: false }
+    });
+    const client = await productionPool.connect();
     try {
       return await client.query(text, params);
     } finally {
       client.release();
+      await productionPool.end();
     }
   }
 };
@@ -98,18 +111,29 @@ export const pool = {
 export const db = new Proxy({} as any, {
   get(target, prop) {
     return async (...args: any[]) => {
-      const drizzleDb = await dbManager.getDrizzle();
+      // Примусово використовуємо правильну production базу
+      const productionPool = new Pool({
+        connectionString: PRODUCTION_DB_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      const drizzleDb = drizzle(productionPool, { schema });
       return drizzleDb[prop](...args);
     };
   }
 });
 
 export async function queryWithRetry(text: string, params: any[] = []): Promise<any> {
-  const client = await dbManager.getClient();
+  // Примусово використовуємо правильну production базу
+  const productionPool = new Pool({
+    connectionString: PRODUCTION_DB_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+  const client = await productionPool.connect();
   try {
     return await client.query(text, params);
   } finally {
     client.release();
+    await productionPool.end();
   }
 }
 
