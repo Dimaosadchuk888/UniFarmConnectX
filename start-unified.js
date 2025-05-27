@@ -24,12 +24,14 @@ console.log('🎯 [UNIFIED START] Використовуємо Neon DB:', proces
 console.log('📡 [UNIFIED START] Порт:', process.env.PORT);
 
 // Запускаємо основний сервер з dist/ після збірки
-const fs = require('fs');
+import fs from 'fs';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
 if (fs.existsSync('./dist/index.js')) {
   console.log('🎯 [UNIFIED START] Запуск зібраної версії з dist/');
-  require('./dist/index.js');
+  await import('./dist/index.js');
 } else {
   console.log('🔄 [UNIFIED START] Запуск development версії');
-  require('./server/index.js');
+  await import('./server/index.js');
 }
