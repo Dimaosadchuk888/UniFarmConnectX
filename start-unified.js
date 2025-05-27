@@ -7,12 +7,16 @@
 
 console.log('🚀 [UNIFIED START] Запуск UniFarm production сервера...');
 
-// Встановлюємо production змінні середовища
+// СИСТЕМНЕ ПЕРЕНАПРАВЛЕННЯ НА ПРАВИЛЬНУ БАЗУ
 process.env.NODE_ENV = 'production';
+process.env.DATABASE_URL = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
+process.env.PGHOST = 'ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech';
+process.env.PGUSER = 'neondb_owner';
+process.env.PGPASSWORD = 'npg_SpgdNBV70WKl';
+process.env.PGDATABASE = 'neondb';
+process.env.PGPORT = '5432';
 process.env.DATABASE_PROVIDER = 'neon';
 process.env.FORCE_NEON_DB = 'true';
-process.env.DISABLE_REPLIT_DB = 'true';
-process.env.OVERRIDE_DB_PROVIDER = 'neon';
 
 // Переконуємось що порт встановлений
 if (!process.env.PORT) {
