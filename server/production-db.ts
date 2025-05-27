@@ -1,13 +1,16 @@
 /**
  * ЄДИНИЙ МОДУЛЬ ДЛЯ ПІДКЛЮЧЕННЯ ДО PRODUCTION БАЗИ
- * Використовується всіма контролерами та сервісами
+ * ФОРСУВАННЯ ПРАВИЛЬНОЇ БАЗИ ep-lucky-boat-a463bggt з 13 користувачами
  */
 
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '../shared/schema.js';
 
-// ВАША ПРАВИЛЬНА PRODUCTION БАЗА
+// Форсуємо правильні змінні середовища перед будь-яким підключенням
+import './force-correct-db';
+
+// ВАША ПРАВИЛЬНА PRODUCTION БАЗА (13 користувачів)
 const PRODUCTION_CONNECTION = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
 let productionPool: Pool | null = null;
