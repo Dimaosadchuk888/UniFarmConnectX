@@ -498,6 +498,13 @@ async function startServer(): Promise<void> {
     next();
   });
   
+  // КРИТИЧНИЙ МАРШРУТ: додаємо відсутній endpoint для frontend
+  app.get('/api/v2/missions/user-completed', (req, res, next) => {
+    logger.info('[API MAP] /api/v2/missions/user-completed → /api/v2/user-missions');
+    req.url = '/api/v2/user-missions';
+    next();
+  });
+  
   // Маппинг для Referrals эндпоинтов
   app.get('/api/referrals/tree', (req, res, next) => {
     logger.info('[API MAP] /api/referrals/tree → /api/v2/referrals/tree');
