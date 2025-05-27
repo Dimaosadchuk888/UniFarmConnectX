@@ -438,7 +438,15 @@ export function registerNewRoutes(app: Express): void {
   // Маршруты для заданий с использованием консолидированного контроллера
   if (MissionControllerFixed) {
     if (typeof MissionControllerFixed.getActiveMissions === 'function') {
-      app.get('/api/v2/missions/active', safeHandler(MissionControllerFixed.getActiveMissions));
+      app.get('/api/v2/missions/active', (req, res, next) => {
+        // Принудительно очищаем кэш для получения актуальных миссий RIOTMAP.md
+        res.set({
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        });
+        next();
+      }, safeHandler(MissionControllerFixed.getActiveMissions));
     }
     
     if (typeof MissionControllerFixed.getUserCompletedMissions === 'function') {
