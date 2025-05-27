@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { getSingleDbConnection } from '../single-db-connection';
 import { missions, userMissions, users, transactions, Mission, UserMission } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { NotFoundError, ValidationError, InsufficientFundsError } from '../middleware/errorHandler';
@@ -170,14 +170,27 @@ class MissionServiceImpl implements IMissionService {
    */
   async getActiveMissions(): Promise<Mission[]> {
     try {
+      console.log('[MissionService] 🔍 ИССЛЕДОВАНИЕ: Запрос активных миссий через Drizzle ORM');
+      
+      // Получаем правильное подключение к БД
+      const db = await getSingleDbConnection();
+      console.log('[MissionService] 📡 DB CONNECTION TYPE:', typeof db);
+      
+      // Тестируем прямой SQL запрос
+      const rawResult = await db.execute(sql`SELECT COUNT(*) as count FROM missions WHERE is_active = true`);
+      console.log('[MissionService] 📊 RAW SQL COUNT:', rawResult);
+      
       const activeMissions = await db
         .select()
         .from(missions)
         .where(eq(missions.is_active, true));
       
+      console.log('[MissionService] 📋 DRIZZLE RESULT:', activeMissions);
+      console.log('[MissionService] 📊 DRIZZLE COUNT:', activeMissions.length);
+      
       return activeMissions;
     } catch (error) {
-      console.error('[MissionService] Ошибка при получении активных миссий:', error);
+      console.error('[MissionService] ❌ КРИТИЧЕСКАЯ ОШИБКА при получении активных миссий:', error);
       throw new Error('Не удалось загрузить активные миссии');
     }
   }

@@ -311,6 +311,38 @@ export function registerNewRoutes(app: Express): void {
     }
   });
   
+  // Типы для обработчиков маршрутов
+  type RouteHandler = (req: Request, res: Response, next: NextFunction) => Promise<any> | any;
+  
+  // Централизованный обработчик маршрутов с обработкой ошибок
+  const safeHandler = (handler: any): RequestHandler => async (req, res, next) => {
+    try {
+      if (typeof handler === 'function') {
+        await handler(req, res, next);
+      } else {
+        logger.error('[Routes] Обработчик не является функцией:', handler);
+        if (!res.headersSent) {
+          res.status(500).json({
+            success: false,
+            error: 'Внутренняя ошибка сервера: неверный обработчик'
+          });
+        }
+      }
+    } catch (error) {
+      logger.error('[Routes] Ошибка в обработчике маршрута:', error);
+      
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          error: 'Внутренняя ошибка сервера',
+          message: error instanceof Error ? error.message : String(error)
+        });
+      } else {
+        next(error);
+      }
+    }
+  };
+
   // CRITICAL: Добавляем маршруты для миссий
   app.get('/api/v2/missions/active', safeHandler(MissionController.getActiveMissions));
   app.get('/api/v2/user-missions', safeHandler(MissionController.getUserCompletedMissions));
