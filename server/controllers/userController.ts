@@ -466,37 +466,7 @@ export const UserController = {
     }
   },
 
-  /**
-   * [TG REGISTRATION FIX] Создает или получает пользователя из Telegram данных
-   * @param initData Данные от Telegram WebApp
-   * @param referrerCode Реферальный код (опционально)
-   * @returns Объект пользователя (существующий или новый)
-   */
-  async createUserFromTelegram(initData: any, referrerCode?: string): Promise<any> {
-    try {
-      console.log('[UserController] 📋 Создание/получение пользователя из Telegram данных');
-      console.log('[UserController] Входные данные:', {
-        hasInitData: !!initData,
-        referrerCode: referrerCode || 'отсутствует',
-        initDataType: typeof initData,
-        initDataKeys: typeof initData === 'object' ? Object.keys(initData) : 'не объект'
-      });
-      
-      // Используем новый метод из userService
-      const user = await userService.createOrGetUserFromTelegram(initData, referrerCode);
-      
-      console.log('[UserController] ✅ Успешно обработан пользователь:', {
-        userId: user.id,
-        telegramId: user.telegram_id,
-        username: user.username,
-        refCode: user.ref_code
-      });
-      return user;
-    } catch (error) {
-      console.error('[UserController] ❌ Ошибка при создании пользователя из Telegram:', error);
-      throw error;
-    }
-  },
+  // Дублікатна функція видалена для виправлення збірки
 
   /**
    * Получает информацию о пользователе по ID
