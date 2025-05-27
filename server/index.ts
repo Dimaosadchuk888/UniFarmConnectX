@@ -498,6 +498,13 @@ async function startServer(): Promise<void> {
     next();
   });
   
+  // КРИТИЧНИЙ МАРШРУТ: перенаправляємо відсутній endpoint на робочий
+  app.get('/api/v2/missions/user-completed', (req, res, next) => {
+    logger.info('[API MAP] /api/v2/missions/user-completed → /api/v2/user-missions');
+    req.url = '/api/v2/user-missions';
+    next();
+  });
+  
 
   
   // Маппинг для Referrals эндпоинтов
@@ -587,78 +594,11 @@ async function startServer(): Promise<void> {
   app.get('/api/test/production-db', getProductionDbStatus);
   app.post('/api/test/telegram-register', testTelegramRegistration);
   app.get('/api/test/user/:user_id', checkUser);
-    logger.info('[Server] ✅ Telegram маршруты зарегистрированы: /api/telegram/*');
+  
+  logger.info('[Server] ✅ Telegram маршруты зарегистрированы: /api/telegram/*');
   } catch (error) {
     logger.error('[Server] ❌ Ошибка при регистрации Telegram маршрутов:', error);
   }
-
-  // [TG REGISTRATION FIX] Добавляем эндпоинт для регистрации через Telegram
-  app.post('/api/register/telegram', async (req: Request, res: Response): Promise<void> => {
-    try {
-      logger.info('[TELEGRAM REGISTER] 🚀 Получен запрос на регистрацию через Telegram');
-      logger.info('[TELEGRAM REGISTER] Данные запроса:', JSON.stringify(req.body, null, 2));
-      
-      const { initData, referrerCode, telegram_id, username, first_name, last_name } = req.body;
-      
-      // Логируем какие данные получили
-      logger.info('[TELEGRAM REGISTER] Принятые данные:', {
-        hasInitData: !!initData,
-        hasTelegramId: !!telegram_id,
-        username: username || 'не указан',
-        firstName: first_name || 'не указан',
-        referrerCode: referrerCode || 'отсутствует'
-      });
-      
-      if (!initData && !telegram_id) {
-        logger.error('[TELEGRAM REGISTER] ❌ Отсутствуют необходимые данные Telegram');
-        res.status(400).json({
-          success: false,
-          error: 'Отсутствуют данные Telegram (initData или telegram_id)'
-        });
-        return;
-      }
-      
-      // Импортируем UserController динамически
-      const { UserController } = await import('./controllers/userController');
-      
-      logger.info('[TELEGRAM REGISTER] 📋 Вызываем createUserFromTelegram...');
-      
-      // Создаем пользователя через Telegram данные
-      const user = await UserController.createUserFromTelegram(initData || req.body, referrerCode);
-      
-      logger.info('[DB WRITE] ✅ Пользователь успешно записан в БД:', {
-        userId: user.id,
-        telegramId: user.telegram_id,
-        username: user.username,
-        refCode: user.ref_code,
-        balanceUni: user.balance_uni,
-        balanceTon: user.balance_ton
-      });
-      
-      res.status(200).json({
-        success: true,
-        user: {
-          id: user.id,
-          username: user.username,
-          referralCode: user.ref_code,
-          telegram_id: user.telegram_id,
-          balance_uni: user.balance_uni,
-          balance_ton: user.balance_ton
-        }
-      });
-    } catch (error) {
-      logger.error('[DB ERROR] ❌ Не удалось записать пользователя:', error);
-      logger.error('[TELEGRAM REGISTER] ❌ Полная ошибка:', {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : 'No stack trace'
-      });
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при регистрации пользователя',
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
 
   // Регистрируем консолидированные маршруты API
   try {
