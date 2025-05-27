@@ -17,12 +17,13 @@ router.get('/api/v2/boosts/active', async (req, res) => {
     
     const db = await getSingleDbConnection();
     
-    // Выполняем прямой SQL запрос для получения boost-пакетов
+    // Выполняем прямой SQL запрос для получения boost-пакетов с правильной логикой
     const activeBoosts = await db.execute(`
-      SELECT id, name, description, price_uni, price_ton, boost_multiplier, duration_hours
+      SELECT id, name, description, price_uni, price_ton, 
+             fixed_ton_daily_rate, uni_bonus_amount, duration_hours
       FROM boost_packages 
       WHERE is_active = true
-      ORDER BY price_uni ASC
+      ORDER BY price_ton ASC
     `);
     
     console.log('[SIMPLE BOOSTS] 📋 Найдено boost-пакетов:', activeBoosts.length);
