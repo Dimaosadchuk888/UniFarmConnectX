@@ -605,9 +605,10 @@ async function startServer(): Promise<void> {
     // Регистрируем консолидированные маршруты
     registerNewRoutes(app);
     
-    // КРИТИЧНО: Додаємо маршрути місій
-    const { addMissionRoutes } = await import('./routes-missions-only.js');
-    addMissionRoutes(app);
+    // КРИТИЧНО: Підключаємо простий робочий маршрут для місій
+    const simpleMissionsRouter = await import('./routes/simple-missions.js');
+    app.use('/', simpleMissionsRouter.default);
+    logger.info('[Server] ✅ Простий маршрут місій підключено');
     
     // Настраиваем базовый URL для API
     const baseUrl = process.env.NODE_ENV === 'production' 
