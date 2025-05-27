@@ -109,7 +109,7 @@ router.post('/api/v2/missions/complete', async (req, res) => {
     
     const db = await getSingleDbConnection();
     
-    // Перевіряємо чи місія не була виконана раніше
+    // КРИТИЧНО: Перевіряємо чи місія не була виконана раніше
     const existingCompletion = await db
       .select()
       .from(userMissions)
@@ -119,9 +119,12 @@ router.post('/api/v2/missions/complete', async (req, res) => {
       ));
     
     if (existingCompletion.length > 0) {
-      return res.status(400).json({
+      console.log('[SIMPLE MISSIONS] ⚠️ Повторное выполнение миссии заблокировано:', { user_id, mission_id });
+      return res.status(409).json({
         success: false,
-        error: 'Миссия уже выполнена'
+        error: 'Миссия уже выполнена',
+        code: 'MISSION_ALREADY_COMPLETED',
+        message: 'Эта миссия уже была выполнена ранее'
       });
     }
     
