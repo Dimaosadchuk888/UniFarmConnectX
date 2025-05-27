@@ -16,7 +16,7 @@ import { UserController } from './controllers/userController';
 import { getDbEventManager } from './utils/db-events';
 import { statusPageHandler } from './utils/status-page';
 import { TransactionController } from './controllers/transactionController';
-import { MissionController } from './controllers/missionControllerConsolidated';
+import { MissionControllerFixed } from './controllers/missionControllerFixed';
 import { ReferralController } from './controllers/referralControllerConsolidated';
 import { BoostController } from './controllers/boostControllerConsolidated';
 import { TonBoostController } from './controllers/tonBoostControllerConsolidated';
@@ -344,9 +344,9 @@ export function registerNewRoutes(app: Express): void {
   };
 
   // CRITICAL: Добавляем маршруты для миссий
-  app.get('/api/v2/missions/active', safeHandler(MissionController.getActiveMissions));
-  app.get('/api/v2/user-missions', safeHandler(MissionController.getUserCompletedMissions));
-  app.post('/api/v2/missions/complete', safeHandler(MissionController.completeMission));
+  app.get('/api/v2/missions/active', safeHandler(MissionControllerFixed.getActiveMissions));
+  app.get('/api/v2/user-missions', safeHandler(MissionControllerFixed.getUserCompletedMissions));
+  app.post('/api/v2/missions/complete', safeHandler(MissionControllerFixed.completeMission));
   logger.info('[NewRoutes] ✅ Добавлены маршруты миссий');
 
   // Используем маршрутизатор для страницы статуса
