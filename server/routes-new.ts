@@ -578,7 +578,18 @@ export function registerNewRoutes(app: Express): void {
       app.get('/api/uni-farming/status', safeHandler(UniFarmingController.getStatus));
       // v2 маршрут
       app.get('/api/v2/uni-farming/status', safeHandler(UniFarmingController.getStatus));
-      logger.info('[NewRoutes] ✓ UNI Farming маршруты зарегистрированы');
+      logger.info('[NewRoutes] ✓ UNI Farming status маршруты зарегистрированы');
+    }
+    
+    // КРИТИЧЕСКИ ВАЖНЫЕ НЕДОСТАЮЩИЕ API ИЗ REDMAP
+    if (typeof UniFarmingController.purchaseUniFarming === 'function') {
+      app.post('/api/v2/uni-farming/purchase', safeHandler(UniFarmingController.purchaseUniFarming));
+      logger.info('[NewRoutes] ✓ UNI Farming purchase маршрут добавлен: POST /api/v2/uni-farming/purchase');
+    }
+    
+    if (typeof UniFarmingController.withdrawUniFarming === 'function') {
+      app.post('/api/v2/uni-farming/withdraw', safeHandler(UniFarmingController.withdrawUniFarming));
+      logger.info('[NewRoutes] ✓ UNI Farming withdraw маршрут добавлен: POST /api/v2/uni-farming/withdraw');
     }
   }
   

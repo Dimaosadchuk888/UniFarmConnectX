@@ -425,6 +425,18 @@ async function startServer(): Promise<void> {
     next();
   });
   
+  app.post('/api/uni-farming/purchase', (req, res, next) => {
+    logger.info('[API MAP] /api/uni-farming/purchase → /api/v2/uni-farming/purchase');
+    req.url = '/api/v2/uni-farming/purchase';
+    next();
+  });
+  
+  app.post('/api/uni-farming/withdraw', (req, res, next) => {
+    logger.info('[API MAP] /api/uni-farming/withdraw → /api/v2/uni-farming/withdraw');
+    req.url = '/api/v2/uni-farming/withdraw';
+    next();
+  });
+  
   // Маппинг для Wallet эндпоинтов
   app.get('/api/wallet/balance', (req, res, next) => {
     logger.info('[API MAP] /api/wallet/balance → /api/v2/wallet/balance');
