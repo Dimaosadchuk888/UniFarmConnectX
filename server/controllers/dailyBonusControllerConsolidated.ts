@@ -44,33 +44,8 @@ export class DailyBonusController {
 
       const { user_id } = validationResult.data;
 
-      // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const getStatusWithFallback = DatabaseService(
-        dailyBonusService.getDailyBonusStatus.bind(dailyBonusService),
-        async (error, userId) => {
-          console.log(`[DailyBonusControllerFallback] Возвращаем заглушку для статуса бонуса по ID: ${userId}`);
-          
-          const now = new Date();
-          
-          // Заглушка со стандартным статусом "доступен"
-          return {
-            success: true,
-            data: {
-              available: true,
-              next_claim_time: null,
-              last_claim_time: null,
-              current_streak: 0,
-              max_streak: 0,
-              streak_multiplier: 1,
-              bonus_amount: 100,
-              streak_bonus_amount: 0,
-              total_bonus_amount: 100
-            }
-          };
-        }
-      );
-
-      const status = await getStatusWithFallback(user_id);
+      // Прямой вызов сервиса согласно RIOTMAP.md раздел 3.2
+      const status = await dailyBonusService.getDailyBonusStatus(user_id);
       return res.json(status);
     } catch (error) {
       next(error);
@@ -95,28 +70,8 @@ export class DailyBonusController {
 
       const { user_id } = validationResult.data;
 
-      // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const claimBonusWithFallback = DatabaseService(
-        dailyBonusService.claimDailyBonus.bind(dailyBonusService),
-        async (error, userId) => {
-          console.log(`[DailyBonusControllerFallback] Возвращаем заглушку для получения бонуса по ID: ${userId}`);
-          
-          // Заглушка с данными о "успешном" получении бонуса
-          return {
-            success: true,
-            data: {
-              claimed: true,
-              amount: 100,
-              streak: 1,
-              streak_multiplier: 1,
-              next_claim_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-              message: "Бонус успешно получен"
-            }
-          };
-        }
-      );
-
-      const result = await claimBonusWithFallback(user_id);
+      // Прямой вызов сервиса согласно RIOTMAP.md раздел 3.2
+      const result = await dailyBonusService.claimDailyBonus(user_id);
       return res.json(result);
     } catch (error) {
       next(error);
@@ -129,29 +84,8 @@ export class DailyBonusController {
    */
   static async getStreakInfo(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const getStreakInfoWithFallback = DatabaseService(
-        dailyBonusService.getStreakInfo.bind(dailyBonusService),
-        async (error) => {
-          console.log('[DailyBonusControllerFallback] Возвращаем заглушку для информации о бонусах за серию');
-          
-          // Заглушка с данными о бонусах за серию
-          return {
-            success: true,
-            data: {
-              base_amount: 100,
-              streak_levels: [
-                { days: 3, multiplier: 1.5 },
-                { days: 7, multiplier: 2 },
-                { days: 14, multiplier: 3 },
-                { days: 30, multiplier: 5 }
-              ]
-            }
-          };
-        }
-      );
-
-      const info = await getStreakInfoWithFallback();
+      // Прямой вызов сервиса согласно RIOTMAP.md раздел 3.2
+      const info = await dailyBonusService.getUserStreakInfo();
       return res.json(info);
     } catch (error) {
       next(error);
