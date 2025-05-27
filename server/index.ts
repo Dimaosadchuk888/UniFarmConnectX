@@ -87,7 +87,7 @@ import { errorHandler } from "./middleware/errorHandler";
 // Импорты для маршрутизации и статических файлов
 import { registerNewRoutes } from "./routes-new";
 import { setupVite, serveStatic, log } from "./vite";
-import { setupProductionStatic } from "./productionStatic";
+// import { setupProductionStatic } from "./productionStatic"; // Временно отключено
 
 // Импорты для фоновых задач и миграций
 import { startBackgroundTasks } from "./background-tasks";
