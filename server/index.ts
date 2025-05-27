@@ -617,19 +617,15 @@ async function startServer(): Promise<void> {
   }
 
   // Регистрируем централизованный обработчик ошибок
-  const centralErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  app.use((err: any, req: any, res: any, next: any) => {
     errorHandler(err, req, res, next);
-  };
-  
-  app.use(centralErrorHandler);
+  });
 
   // Добавляем health check endpoint перед статическими файлами
-  const mainHealthHandler = (req: Request, res: Response) => {
+  app.get('/health', (req: any, res: any) => {
     logger.debug('[Health Check] Запрос к health endpoint');
     return res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
-  };
-  
-  app.get('/health', mainHealthHandler as any);
+  });
 
   // Настраиваем обработку статических файлов в зависимости от окружения
   if (app.get("env") === "development") {
@@ -641,17 +637,15 @@ async function startServer(): Promise<void> {
   }
   
   // Еще раз регистрируем централизованный обработчик ошибок
-  const finalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  app.use((err: any, req: any, res: any, next: any) => {
     errorHandler(err, req, res, next);
-  };
-  
-  app.use(finalErrorHandler);
+  });
 
   // Статичні файли для frontend (CSS, JS, assets)
   app.use(express.static(path.join(__dirname, '../dist/public')));
 
   // Добавляем SPA fallback ТОЛЬКО для не-API маршрутов
-  const spaFallbackHandler = (req: Request, res: Response) => {
+  app.use('*', (req: any, res: any) => {
     // НЕ обрабатываем API запросы - они должны идти через API роуты
     if (req.originalUrl.startsWith('/api/')) {
       logger.debug('[SPA Fallback] Пропускаем API запрос:', req.originalUrl);
@@ -668,9 +662,7 @@ async function startServer(): Promise<void> {
     // Fallback если dist не найден
     logger.debug('[SPA Fallback] dist/index.html не найден, возвращаем 404');
     res.status(404).send('Page not found');
-  };
-  
-  app.use('*', spaFallbackHandler as any);
+  });
 
   // В Replit при деплое необходимо слушать порт, указанный в переменной окружения PORT
   const port = parseInt(process.env.PORT || "3000", 10);
