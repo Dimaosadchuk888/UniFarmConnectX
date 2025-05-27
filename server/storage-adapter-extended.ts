@@ -12,7 +12,7 @@ import {
 } from "@shared/schema";
 import { DatabaseStorage, storage as databaseStorage } from "./storage";
 import { IExtendedStorage } from "./storage-interface";
-import { db } from "./db";
+import { db } from "./production-db";
 
 /**
  * Адаптер для расширения DatabaseStorage до IExtendedStorage

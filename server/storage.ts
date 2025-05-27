@@ -4,7 +4,7 @@ import { users, transactions, uniFarmingDeposits, referrals, tonBoostDeposits,
   type Referral, type InsertReferral,
   type TonBoostDeposit, type InsertTonBoostDeposit
 } from "@shared/schema";
-import { db } from "./db";
+import { db } from "./production-db";
 import { eq, and, desc, sql, gt, lt } from "drizzle-orm";
 import type { IStorage } from './storage-memory';
 import { DatabaseError, NotFoundError } from './middleware/errorHandler';
