@@ -377,20 +377,11 @@ class MissionServiceImpl implements IMissionService {
         throw new ValidationError('Эта миссия уже выполнена пользователем');
       }
       
-      // Получаем награду за миссию
-      const rewardUni = mission.reward_uni;
+      // REDMAP COMPLIANCE: Фиксированная награда 500 UNI за каждую миссию
+      // Согласно REDMAP все миссии должны давать 500 UNI, независимо от значения в БД
+      const reward = 500;
       
-      // Проверка на null и корректное преобразование, с обработкой невалидных значений
-      let reward = 0;
-      if (rewardUni !== null && rewardUni !== undefined) {
-        const parsedReward = parseFloat(rewardUni);
-        // Проверяем на корректность преобразования (не NaN)
-        if (!isNaN(parsedReward)) {
-          reward = parsedReward;
-        } else {
-          console.warn(`[MissionService] Невалидное значение reward_uni "${rewardUni}" для миссии ${missionId}`);
-        }
-      }
+      console.log(`[MissionService] REDMAP: Начисляем фиксированную награду ${reward} UNI за миссию ${missionId} (тип: ${mission.type})`);
       
       // Создаем запись о выполнении миссии и начисляем награду транзакционно
       await this.processCompletionTransaction(userId, missionId, reward);
