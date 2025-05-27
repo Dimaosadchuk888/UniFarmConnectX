@@ -1,37 +1,35 @@
-run = "NODE_ENV=development tsx server/index.ts"
-hidden = [".config", "package-lock.json"]
-modules = ["nodejs-20:v8-20230920-bd784b9"]
+entrypoint = "server/index.ts"
+run = "npm run dev"
+language = "typescript"
 
 [nix]
 channel = "stable-23_05"
+packages = ["postgresql", "jq", "wget", "lsof", "nodejs-20"]
 
-[unitTest]
-language = "nodejs"
-
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix", "package.json", "package-lock.json"]
+[env]
+NODE_ENV = "development"
+PORT = "5000"
+DATABASE_PROVIDER = "neon"
+FORCE_NEON_DB = "true"
 
 [deployment]
-run = ["sh", "-c", "npm start"]
+run = ["sh", "-c", "npm run build && npm start"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
+build = ["sh", "-c", "npm run build"]
 
 [[ports]]
 localPort = 5000
 externalPort = 80
 
-[auth]
-pageEnabled = false
-buttonEnabled = false
+[workflows]
+runButton = "Start UniFarm"
 
-[[hints]]
-regex = 'Error: Unknown method: .*\n.*at createMethodNotFoundError'
-message = "You might be trying to access a method that doesn't exist on this object."
+[[workflows.workflow]]
+name = "Start UniFarm"
+mode = "sequential"
+author = 42563681
 
-[[workflows]]
-name = "Start application"
-command = "npm run dev"
-
-[[workflows]]
-name = "Start production"
-command = "NODE_ENV=production node run-in-production.cjs"
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
