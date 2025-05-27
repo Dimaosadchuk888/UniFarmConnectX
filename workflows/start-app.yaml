@@ -1,0 +1,6 @@
+name: Start application
+on: manual
+steps:
+  - name: Start server
+    run: npm run dev
+    background: true
