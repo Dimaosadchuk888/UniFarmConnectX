@@ -1,5 +1,5 @@
 /**
- * ПРОСТОЙ РАБОЧИЙ МАРШРУТ ДЛЯ МИССИЙ
+ * ПРОСТИЙ РАБОЧИЙ МАРШРУТ ДЛЯ МИССИЙ
  * Прямое подключение к БД без сложной архитектуры
  */
 
@@ -7,52 +7,35 @@ import { Router } from 'express';
 
 const router = Router();
 
-// Эндпоинт для активных миссий
+// Простий ендпоінт для активних місій
 router.get('/api/v2/missions/active', async (req, res) => {
   try {
-    console.log('[SIMPLE MISSIONS] 🔍 Запрос активных миссий через прямое подключение');
-
+    console.log('[SIMPLE MISSIONS] 🚀 Запрос активных миссий');
+    
     const { getSingleDbConnection } = await import('../single-db-connection');
     const { missions } = await import('../../shared/schema');
     const { eq } = await import('drizzle-orm');
-
+    
     const db = await getSingleDbConnection();
-    console.log('[SIMPLE MISSIONS] ✅ Подключение к БД успешно');
-
     const activeMissions = await db
       .select()
       .from(missions)
       .where(eq(missions.is_active, true));
-
-    // Добавляем action_url вручную, так как база возвращает только основные поля
-    const withLinks = activeMissions.map((mission: any) => {
-      let url = '';
-      switch (mission.id) {
-        case 1:
-          url = 'https://t.me/UniverseGamesChat';
-          break;
-        case 2:
-          url = 'https://t.me/UniverseGamesChannel';
-          break;
-        case 3:
-          url = 'https://youtube.com/@universegamesyoutube';
-          break;
-        case 4:
-          url = 'https://www.tiktok.com/@universegames.io';
-          break;
-        default:
-          url = '';
-      }
-
-      return { ...mission, action_url: url };
-    });
-
+    
+    console.log('[SIMPLE MISSIONS] 📋 Найдено миссий:', activeMissions.length);
+    
+    // Добавляем ссылки для каждой миссии
+    const withLinks = activeMissions.map(mission => ({
+      ...mission,
+      link: mission.link || getDefaultLink(mission.type)
+    }));
+    
     console.log('[SIMPLE MISSIONS] 📋 Миссии с ссылками:', withLinks);
 
     res.status(200).json({
       success: true,
       data: withLinks,
-      message: Найдено ${withLinks.length} активных миссий
+      message: `Найдено ${withLinks.length} активных миссий`
     });
 
   } catch (error) {
@@ -66,24 +49,50 @@ router.get('/api/v2/missions/active', async (req, res) => {
   }
 });
 
-// Заглушка для выполненных миссий
+// Функция для получения дефолтных ссылок
+function getDefaultLink(type: string): string {
+  switch (type) {
+    case 'telegram_group':
+      return 'https://t.me/unifarmchat';
+    case 'telegram_channel':
+      return 'https://t.me/unifarmchannel';
+    case 'youtube':
+      return 'https://youtube.com/@unifarm';
+    case 'tiktok':
+      return 'https://tiktok.com/@unifarm';
+    default:
+      return 'https://t.me/unifarm';
+  }
+}
+
+// Простий ендпоінт для виконаних місій користувача
 router.get('/api/v2/user-missions', async (req, res) => {
   try {
     const userId = parseInt(req.query.user_id as string) || 1;
     console.log('[SIMPLE MISSIONS] 🔍 Запрос выполненных миссий для пользователя:', userId);
-
+    
+    const { getSingleDbConnection } = await import('../single-db-connection');
+    const { userMissions } = await import('../../shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const db = await getSingleDbConnection();
+    const completedMissions = await db
+      .select()
+      .from(userMissions)
+      .where(eq(userMissions.user_id, userId));
+    
     res.status(200).json({
       success: true,
-      data: [],
-      message: 'Выполненные миссии (пока пусто)'
+      data: completedMissions,
+      message: `Найдено ${completedMissions.length} выполненных миссий`
     });
-
+    
   } catch (error) {
-    console.error('[SIMPLE MISSIONS] ❌ Ошибка user missions:', error);
-
+    console.error('[SIMPLE MISSIONS] ❌ Помилка user missions:', error);
+    
     res.status(500).json({
       success: false,
-      error: 'Ошибка получения выполненных миссий'
+      error: 'Помилка отримання виконаних місій'
     });
   }
 });
@@ -138,13 +147,12 @@ router.post('/api/v2/missions/complete', async (req, res) => {
       completed_at: new Date()
     });
     
-    // Нараховуємо нагороду користувачу
-    await db
-      .update(users)
-      .set({
-        balance_uni: `(balance_uni::numeric + ${reward})::varchar`
-      })
-      .where(eq(users.id, user_id));
+    // Нараховуємо нагороду користувачу через SQL
+    await db.execute(`
+      UPDATE users 
+      SET balance_uni = (balance_uni::numeric + ${reward})::varchar 
+      WHERE id = ${user_id}
+    `);
     
     console.log('[SIMPLE MISSIONS] ✅ Миссия завершена, награда:', reward);
     

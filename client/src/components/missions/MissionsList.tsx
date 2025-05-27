@@ -37,6 +37,7 @@ interface DbMission {
   description: string;
   reward_uni: string; // В БД это numeric как строка
   is_active: boolean;
+  link?: string; // Добавляем поле для ссылки
 }
 
 // Тип для выполненной миссии пользователя
@@ -217,7 +218,8 @@ export const MissionsList: React.FC = () => {
             title: dbMission.title || 'Миссия',
             description: dbMission.description || 'Описание отсутствует',
             rewardUni: typeof dbMission.reward_uni === 'string' ? parseFloat(dbMission.reward_uni) || 0 : 0,
-            status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE
+            status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE,
+            link: dbMission.link // Добавляем ссылку из базы данных
           };
         });
       
