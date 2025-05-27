@@ -691,7 +691,7 @@ async function startServer(): Promise<void> {
     await setupVite(app, server);
   } else {
     logger.info('[Server] 🚀 Запуск в production режиме, используем оптимизированную обработку статических файлов');
-    setupProductionStatic(app);
+    // setupProductionStatic(app); // Отключено - используем express.static ниже
   }
   
   // Еще раз регистрируем централизованный обработчик ошибок

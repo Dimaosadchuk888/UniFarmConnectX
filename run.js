@@ -1,19 +1,45 @@
 #!/usr/bin/env node
 
 /**
- * Простий і стабільний запуск UniFarm
+ * Простой и надежный запуск UniFarm приложения
  */
 
-console.log('🚀 [RUN] Запуск UniFarm з правильною production базою...');
+import { spawn } from 'child_process';
+import path from 'path';
 
-// Встановлюємо змінні середовища
+console.log('🚀 Запуск UniFarm приложения...');
+
+// Устанавливаем переменные окружения
 process.env.NODE_ENV = 'development';
 process.env.PORT = '3000';
-process.env.DATABASE_PROVIDER = 'neon';
-process.env.FORCE_NEON_DB = 'true';
 
-console.log('✅ [RUN] Змінні середовища встановлені');
-console.log('🎯 [RUN] Використовуємо правильну базу: ep-lucky-boat-a463bggt');
+// Запускаем сервер
+const serverProcess = spawn('npx', ['tsx', 'server/index.ts'], {
+  stdio: 'inherit',
+  cwd: process.cwd(),
+  env: process.env
+});
 
-// Запускаємо сервер
-import('./server/index.js').catch(console.error);
+// Обработка ошибок
+serverProcess.on('error', (error) => {
+  console.error('❌ Ошибка запуска сервера:', error);
+  process.exit(1);
+});
+
+serverProcess.on('exit', (code) => {
+  console.log(`🔄 Сервер завершил работу с кодом: ${code}`);
+  if (code !== 0) {
+    process.exit(code);
+  }
+});
+
+// Грациозное завершение
+process.on('SIGINT', () => {
+  console.log('\n⏹️ Получен сигнал завершения, останавливаем сервер...');
+  serverProcess.kill('SIGINT');
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n⏹️ Получен сигнал завершения, останавливаем сервер...');
+  serverProcess.kill('SIGTERM');
+});
