@@ -29,7 +29,10 @@ export class MissionController {
   static async getActiveMissions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       try {
+        console.log('[MissionController] 🔍 Запрос активных миссий...');
         const activeMissions = await missionService.getActiveMissions();
+        console.log('[MissionController] 📊 Получено миссий:', activeMissions.length);
+        console.log('[MissionController] 📋 Список миссий:', activeMissions);
         // Важно: Сохраняем текущий формат ответа для обратной совместимости с фронтендом
         sendSuccessArray(res, activeMissions);
       } catch (dbError) {

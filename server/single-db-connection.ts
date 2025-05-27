@@ -15,6 +15,10 @@ const CORRECT_DB_URL = process.env.DATABASE_URL || 'postgresql://neondb_owner:np
 let singlePool: Pool | null = null;
 let singleDb: any = null;
 
+// Очищаємо кеш при кожному перезапуску
+singlePool = null;
+singleDb = null;
+
 /**
  * Отримує єдине підключення до правильної бази даних
  */
