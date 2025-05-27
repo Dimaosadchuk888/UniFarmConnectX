@@ -431,6 +431,8 @@ export function registerNewRoutes(app: Express): void {
   // Маршруты для транзакций
   if (typeof TransactionController.getUserTransactions === 'function') {
     app.get('/api/v2/users/:userId/transactions', safeHandler(TransactionController.getUserTransactions));
+    // Добавляем альтернативный маршрут для совместимости с фронтендом
+    app.get('/api/transactions', safeHandler(TransactionController.getUserTransactions));
   }
   
   // Маршруты для заданий с использованием консолидированного контроллера
