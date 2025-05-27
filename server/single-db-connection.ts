@@ -9,8 +9,8 @@ import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '../shared/schema.js';
 
-// ЄДИНА ПРАВИЛЬНА БАЗА ДАНИХ (10 користувачів)
-const CORRECT_DB_URL = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
+// ЄДИНА ПРАВИЛЬНА БАЗА ДАНИХ - використовуємо змінну оточення
+const CORRECT_DB_URL = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
 let singlePool: Pool | null = null;
 let singleDb: any = null;
