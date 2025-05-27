@@ -538,7 +538,7 @@ async function handleDatabaseAction(chatId: number, action: string, username: st
       }
       break;
 
-    case 'db_events':
+    case 'db_events_detailed':
       try {
         const response = await fetch(`${API_BASE_URL}/api/db/events?admin_username=${username}&admin_key=${ADMIN_SECRET}`);
         const result = await response.json() as any;
@@ -561,7 +561,7 @@ async function handleDatabaseAction(chatId: number, action: string, username: st
       }
       break;
 
-    case 'db_status':
+    case 'db_status_detailed':
       try {
         const response = await fetch(`${API_BASE_URL}/api/admin/db-status`);
         const result = await response.json() as any;

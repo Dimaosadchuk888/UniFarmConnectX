@@ -7,5 +7,7 @@
 export { 
   getSingleDbConnection as getProductionDb, 
   getSinglePool as getProductionPool,
-  querySingleDb as queryProduction
+  querySingleDb as queryProduction,
+  getSingleDbConnection as db,
+  getSinglePool as pool
 } from './single-db-connection';
