@@ -579,6 +579,12 @@ async function startServer(): Promise<void> {
   try {
     const { default: telegramRouter } = await import('./telegram/routes');
     app.use('/api/telegram', telegramRouter);
+
+  // Тестові маршрути для прямого підключення до production бази
+  const { getProductionDbStatus, testTelegramRegistration, checkUser } = require('./api/test-production-db');
+  app.get('/api/test/production-db', getProductionDbStatus);
+  app.post('/api/test/telegram-register', testTelegramRegistration);
+  app.get('/api/test/user/:user_id', checkUser);
     logger.info('[Server] ✅ Telegram маршруты зарегистрированы: /api/telegram/*');
   } catch (error) {
     logger.error('[Server] ❌ Ошибка при регистрации Telegram маршрутов:', error);
