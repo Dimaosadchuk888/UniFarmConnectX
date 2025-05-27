@@ -67,7 +67,7 @@ export const SimpleMissionsList: React.FC = () => {
         
         // Загружаем выполненные миссии
         console.log('SimpleMissionsList: отправка запроса user missions');
-        const userMissionsResponse = await correctApiRequest(`/api/v2/missions/user-completed?user_id=${userId || 1}`, 'GET');
+        const userMissionsResponse = await correctApiRequest(`/api/v2/user-missions?user_id=${userId || 1}`, 'GET');
         console.log('SimpleMissionsList: ответ user missions получен', userMissionsResponse);
         
         if (!isMounted) return;

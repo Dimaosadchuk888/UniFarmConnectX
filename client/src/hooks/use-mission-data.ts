@@ -120,12 +120,12 @@ export function useMissionData() {
     isLoading: userMissionsLoading, 
     error: userMissionsError 
   } = useQuery<UserMission[]>({
-    queryKey: ['/api/v2/missions/user-completed', userId],
+    queryKey: ['/api/v2/user-missions', userId],
     queryFn: async () => {
       console.log('🚀 Запрос выполненных миссий пользователя ID:', userId);
       
       try {
-        const data = await correctApiRequest(`/api/v2/missions/user-completed?user_id=${userId || 1}`, 'GET');
+        const data = await correctApiRequest(`/api/v2/user-missions?user_id=${userId || 1}`, 'GET');
         console.log(`📥 Ответ получен через correctApiRequest:`, data);
         
         if (data && data.success) {
