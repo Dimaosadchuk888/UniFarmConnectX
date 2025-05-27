@@ -147,12 +147,13 @@ router.post('/api/v2/missions/complete', async (req, res) => {
       completed_at: new Date()
     });
     
-    // Нараховуємо нагороду користувачу через SQL
-    await db.execute(`
-      UPDATE users 
-      SET balance_uni = (balance_uni::numeric + ${reward})::varchar 
-      WHERE id = ${user_id}
-    `);
+    // Нараховуємо нагороду користувачу через Drizzle
+    await db
+      .update(users)
+      .set({
+        balance_uni: `(balance_uni::numeric + ${reward})::varchar`
+      })
+      .where(eq(users.id, user_id));
     
     console.log('[SIMPLE MISSIONS] ✅ Миссия завершена, награда:', reward);
     

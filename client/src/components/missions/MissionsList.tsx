@@ -66,6 +66,7 @@ interface Mission {
   progress?: number; // прогресс выполнения от 0 до 100
   visitStartTime?: number; // время начала выполнения социальной миссии
   verificationAvailable?: boolean; // доступна ли кнопка проверки
+  link?: string; // ссылка для перехода
 }
 
 export const MissionsList: React.FC = () => {
