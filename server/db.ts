@@ -1,26 +1,27 @@
 /**
- * Основний модуль підключення до бази даних
- * Експортує всі підключення з unified модуля для сумісності
+ * ЄДИНИЙ МОДУЛЬ ПІДКЛЮЧЕННЯ ДО ПРАВИЛЬНОЇ БД
+ * Перенаправляє всі запити на single-db-connection.ts
  */
 
-// Експортуємо з unified модуля для зворотної сумісності
+// Всі підключення йдуть через єдиний модуль
 export { 
-  db, 
-  pool
-} from './db-connect-unified';
+  getSingleDbConnection as db,
+  getSinglePool as pool,
+  querySingleDb as queryDb
+} from './single-db-connection';
 
-// Експортуємо production модуль як альтернативу
+// Експорти для зворотної сумісності
 export { 
-  getProductionDb, 
-  getProductionPool, 
-  queryProduction 
-} from './production-db';
+  getSingleDbConnection as getProductionDb, 
+  getSinglePool as getProductionPool,
+  querySingleDb as queryProduction
+} from './single-db-connection';
 
-// Додаткові експорти для сумісності з middleware
+// Функції для middleware
 export async function testDatabaseConnection() {
   try {
-    const { queryProduction } = await import('./production-db');
-    const result = await queryProduction('SELECT 1');
+    const { querySingleDb } = await import('./single-db-connection');
+    const result = await querySingleDb('SELECT 1');
     return { success: true, result };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -29,9 +30,8 @@ export async function testDatabaseConnection() {
 
 export async function reconnect() {
   try {
-    // Використовуємо production базу для переподключення
-    const { getProductionPool } = await import('./production-db');
-    const pool = await getProductionPool();
+    const { getSinglePool } = await import('./single-db-connection');
+    const pool = await getSinglePool();
     return { success: true, pool };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
