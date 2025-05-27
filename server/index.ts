@@ -631,6 +631,40 @@ async function startServer(): Promise<void> {
     return res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
   });
 
+  // КРИТИЧНО: Швидкий тестовий ендпоінт для місій з реальними даними з БД
+  app.get('/api/v2/missions/active', async (req: any, res: any) => {
+    try {
+      console.log('[QUICK FIX] 🔍 Запрос активных миссий через прямое подключение к БД');
+      
+      // Импортируем функцию для подключения к БД
+      const { getSingleDbConnection } = await import('./single-db-connection.js');
+      const { missions } = await import('../shared/schema.js');
+      const { eq } = await import('drizzle-orm');
+      
+      const db = await getSingleDbConnection();
+      
+      const activeMissions = await db
+        .select()
+        .from(missions)
+        .where(eq(missions.is_active, true));
+      
+      console.log('[QUICK FIX] ✅ Знайдено місій:', activeMissions.length);
+      
+      res.status(200).json({
+        success: true,
+        data: activeMissions,
+        message: 'Активные миссии получены из БД'
+      });
+    } catch (error) {
+      console.error('[QUICK FIX] ❌ Ошибка:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка получения миссий',
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Настраиваем обработку статических файлов в зависимости от окружения
   if (app.get("env") === "development") {
     logger.info('[Server] 🔧 Запуск в режиме разработки (development), используем Vite middleware');
