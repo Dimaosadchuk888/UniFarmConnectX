@@ -610,6 +610,11 @@ async function startServer(): Promise<void> {
     app.use('/', simpleMissionsRouter.default);
     logger.info('[Server] ✅ Простий маршрут місій підключено');
     
+    // КРИТИЧНО: Підключаємо простий робочий маршрут для бустів
+    const simpleBoostsRouter = await import('./routes/simple-boosts.js');
+    app.use('/', simpleBoostsRouter.default);
+    logger.info('[Server] ✅ Простий маршрут бустів підключено');
+    
     // Настраиваем базовый URL для API
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 
