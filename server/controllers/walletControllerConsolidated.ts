@@ -6,7 +6,7 @@ import { walletServiceInstance } from '../services/walletServiceInstance';
 import { WalletCurrency, TransactionStatusType } from '../services/walletService';
 import { ValidationError, NotFoundError } from '../middleware/errorHandler';
 import { createValidationErrorFromZod, extractUserId, formatZodErrors } from '../utils/validationUtils';
-import { wrapServiceFunction } from '../db-service-wrapper';
+import { DatabaseService } from "../db-service-wrapper";
 import { userIdSchema } from '../validators/schemas';
 import { sendSuccess } from '../utils/responseUtils';
 
@@ -58,7 +58,7 @@ export class WalletController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const getBalanceWithFallback = wrapServiceFunction(
+      const getBalanceWithFallback = DatabaseService(
         async (userId) => await walletService.getUserBalance(userId),
         async (error, userId) => {
           console.log(`[WalletControllerFallback] Возвращаем заглушку для баланса по ID: ${userId}`);
@@ -106,7 +106,7 @@ export class WalletController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const connectWalletWithFallback = wrapServiceFunction(
+      const connectWalletWithFallback = DatabaseService(
         async (userId: number, address: string) => await walletServiceInstance.updateWalletAddress(userId, address),
         async (error, ...args) => {
           console.error('[WalletControllerFallback] Ошибка при подключении кошелька:', error);
@@ -147,7 +147,7 @@ export class WalletController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const disconnectWalletWithFallback = wrapServiceFunction(
+      const disconnectWalletWithFallback = DatabaseService(
         walletService.disconnectWallet.bind(walletService),
         async (error, ...args) => {
           console.error('[WalletControllerFallback] Ошибка при отключении кошелька:', error);
@@ -187,7 +187,7 @@ export class WalletController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const getTransactionsWithFallback = wrapServiceFunction(
+      const getTransactionsWithFallback = DatabaseService(
         async (userId: number, limit: number, offset: number) => {
           return await walletServiceInstance.getUserTransactions({ userId, limit, offset });
         },
@@ -232,7 +232,7 @@ export class WalletController {
       const { user_id, amount, ton_address } = validationResult.data;
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const withdrawUniWithFallback = wrapServiceFunction(
+      const withdrawUniWithFallback = DatabaseService(
         walletService.withdrawUni.bind(walletService),
         async (error, ...args) => {
           console.error('[WalletControllerFallback] Ошибка при выводе UNI:', error);
@@ -267,7 +267,7 @@ export class WalletController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const getTransactionStatusWithFallback = wrapServiceFunction(
+      const getTransactionStatusWithFallback = DatabaseService(
         walletService.getTransactionStatus.bind(walletService),
         async (error, transaction_id) => {
           console.log(`[WalletControllerFallback] Возвращаем заглушку для статуса транзакции: ${transaction_id}`);
@@ -308,7 +308,7 @@ export class WalletController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const cancelTransactionWithFallback = wrapServiceFunction(
+      const cancelTransactionWithFallback = DatabaseService(
         walletService.cancelTransaction.bind(walletService),
         async (error, ...args) => {
           console.error('[WalletControllerFallback] Ошибка при отмене транзакции:', error);
@@ -345,7 +345,7 @@ export class WalletController {
         return next(new ValidationError('Некорректные значения: user_id и amount должны быть числами'));
       }
 
-      const addUniWithFallback = wrapServiceFunction(
+      const addUniWithFallback = DatabaseService(
         walletService.adminAddUni.bind(walletService),
         async (error, ...args) => {
           console.error('[WalletControllerFallback] Ошибка при добавлении UNI админом:', error);
@@ -370,7 +370,7 @@ export class WalletController {
   static async getWithdrawalFees(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const getFeesWithFallback = wrapServiceFunction(
+      const getFeesWithFallback = DatabaseService(
         walletService.getWithdrawalFees.bind(walletService),
         async (error) => {
           console.log('[WalletControllerFallback] Возвращаем заглушку для комиссий за вывод');
@@ -408,7 +408,7 @@ export class WalletController {
       const { user_id } = validationResult.data;
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const getWalletInfoWithFallback = wrapServiceFunction(
+      const getWalletInfoWithFallback = DatabaseService(
         walletService.getExternalWalletInfo.bind(walletService),
         async (error, userId) => {
           console.log(`[WalletControllerFallback] Возвращаем заглушку для информации о внешнем кошельке по ID: ${userId}`);
@@ -448,7 +448,7 @@ export class WalletController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const cancelAllWithFallback = wrapServiceFunction(
+      const cancelAllWithFallback = DatabaseService(
         walletService.cancelAllPendingTransactions.bind(walletService),
         async (error, ...args) => {
           console.error('[WalletControllerFallback] Ошибка при отмене всех транзакций:', error);

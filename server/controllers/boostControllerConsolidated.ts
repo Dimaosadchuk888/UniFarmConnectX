@@ -4,7 +4,7 @@ import { sendSuccess } from '../utils/responseUtils';
 import { ValidationError } from '../middleware/errorHandler';
 import { boostUserQuerySchema, boostRequestSchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
-import { wrapServiceFunction } from '../db-service-wrapper';
+import { DatabaseService } from "../db-service-wrapper";
 
 /**
  * Контроллер для работы с буст-пакетами

@@ -4,7 +4,7 @@ import { userService } from "../services";
 import 'express-session';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
 import { dbUserToApiUser } from '../utils/userAdapter';
-import { wrapServiceFunction } from '../db-service-wrapper';
+import { DatabaseService } from "../db-service-wrapper";
 import logger from '../utils/logger';
 
 // Для корректной работы с сессией расширяем интерфейс Request

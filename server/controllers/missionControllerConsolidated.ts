@@ -13,7 +13,7 @@ import {
 import { NotFoundError, ValidationError } from '../middleware/errorHandler';
 import { formatZodErrors } from '../utils/validationUtils';
 import { MissionService } from '../services/missionService';
-import { wrapServiceFunction } from '../db-service-wrapper';
+import { DatabaseService } from "../db-service-wrapper";
 
 /**
  * Консолидированный контроллер для работы с миссиями

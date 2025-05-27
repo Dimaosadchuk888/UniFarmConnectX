@@ -16,7 +16,7 @@ import logger from '../utils/logger';
 import { insertUserSchema, InsertUser } from '@shared/schema';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
 import { createUserFallback, createGuestUserFallback, createRegisteredGuestFallback } from '../utils/userAdapter';
-import { wrapServiceFunction } from '../db-service-wrapper';
+import { DatabaseService } from '../db-service-wrapper';
 import { ensureNumber, ensureDate } from '../utils/typeFixers';
 import { ZodError } from 'zod';
 import { ValidationError } from '../middleware/errorHandler';

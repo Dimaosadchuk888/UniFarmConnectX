@@ -13,7 +13,7 @@ import { db } from '../db';
 import { eq, desc } from 'drizzle-orm';
 import { transactionService, userService } from '../services';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
-import { wrapServiceFunction } from '../db-service-wrapper';
+import { DatabaseService } from "../db-service-wrapper";
 import { ensureNumber, ensureDate, ensureDateObject } from '../utils/typeFixers';
 
 // Визначення необхідних перерахувань
@@ -111,7 +111,7 @@ export class TransactionController {
       
       // Если указан wallet_address, находим пользователя по адресу кошелька
       if (wallet_address) {
-        const getUserByWallet = wrapServiceFunction(
+        const getUserByWallet = DatabaseService(
           userService.getUserByWalletAddress.bind(userService),
           async (error) => {
             console.error('[TransactionController] Ошибка при поиске пользователя по адресу кошелька:', error);
@@ -256,7 +256,7 @@ export class TransactionController {
       }
       
       // Проверяем существование пользователя через сервис пользователей
-      const getUserById = wrapServiceFunction(
+      const getUserById = DatabaseService(
         userService.getUserById.bind(userService),
         async (error) => {
           console.error('[TransactionController] Ошибка при поиске пользователя по ID:', error);

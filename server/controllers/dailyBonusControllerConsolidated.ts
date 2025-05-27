@@ -9,7 +9,7 @@ import { ValidationError } from '../middleware/errorHandler';
 import { userIdSchema, userMissionsQuerySchema } from '../validators/schemas';
 import { formatZodErrors } from '../utils/validationUtils';
 import { z } from 'zod';
-import { wrapServiceFunction } from '../db-service-wrapper';
+import { DatabaseService } from "../db-service-wrapper";
 
 // Создаем схему для валидации query-параметров (поддерживает user_id как строку)
 const dailyBonusQuerySchema = z.object({
@@ -45,7 +45,7 @@ export class DailyBonusController {
       const { user_id } = validationResult.data;
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const getStatusWithFallback = wrapServiceFunction(
+      const getStatusWithFallback = DatabaseService(
         dailyBonusService.getDailyBonusStatus.bind(dailyBonusService),
         async (error, userId) => {
           console.log(`[DailyBonusControllerFallback] Возвращаем заглушку для статуса бонуса по ID: ${userId}`);
@@ -96,7 +96,7 @@ export class DailyBonusController {
       const { user_id } = validationResult.data;
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const claimBonusWithFallback = wrapServiceFunction(
+      const claimBonusWithFallback = DatabaseService(
         dailyBonusService.claimDailyBonus.bind(dailyBonusService),
         async (error, userId) => {
           console.log(`[DailyBonusControllerFallback] Возвращаем заглушку для получения бонуса по ID: ${userId}`);
@@ -130,7 +130,7 @@ export class DailyBonusController {
   static async getStreakInfo(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const getStreakInfoWithFallback = wrapServiceFunction(
+      const getStreakInfoWithFallback = DatabaseService(
         dailyBonusService.getStreakInfo.bind(dailyBonusService),
         async (error) => {
           console.log('[DailyBonusControllerFallback] Возвращаем заглушку для информации о бонусах за серию');
@@ -183,7 +183,7 @@ export class DailyBonusController {
       const { user_id } = validationResult.data;
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback режима
-      const resetStreakWithFallback = wrapServiceFunction(
+      const resetStreakWithFallback = DatabaseService(
         dailyBonusService.resetStreak.bind(dailyBonusService),
         async (error, userId) => {
           console.log(`[DailyBonusControllerFallback] Возвращаем заглушку для сброса серии по ID: ${userId}`);

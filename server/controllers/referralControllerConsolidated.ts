@@ -5,7 +5,7 @@ import { sendSuccess, sendSuccessArray, sendError, sendServerError } from '../ut
 import { extractUserId } from '../utils/validationUtils';
 import { ValidationError } from '../middleware/errorHandler';
 import { storage as memStorage } from '../storage-memory';
-import { wrapServiceFunction } from '../db-service-wrapper';
+import { DatabaseService } from "../db-service-wrapper";
 import { ReferralService } from '../services/referralService';
 
 /**
@@ -161,7 +161,7 @@ export class ReferralController {
       console.log(`[ReferralController] Fallback: Запрос реферального дерева для пользователя: ${userId}`);
       
       // Заворачиваем вызов сервиса в обработчик ошибок
-      const getReferralTreeFallback = wrapServiceFunction(
+      const getReferralTreeFallback = DatabaseService(
         ReferralService.getReferralTree.bind(ReferralService),
         async (error, userId) => {
           console.log(`[ReferralController] Используем fallback для получения реферального дерева для пользователя: ${userId}`, error);
@@ -310,7 +310,7 @@ export class ReferralController {
       console.log(`[ReferralController] Fallback: Запрос реферальной статистики для пользователя: ${userId}`);
       
       // Заворачиваем вызов сервиса в обработчик ошибок
-      const getReferralStatsFallback = wrapServiceFunction(
+      const getReferralStatsFallback = DatabaseService(
         ReferralService.getReferralStats.bind(ReferralService),
         async (error, userId) => {
           console.log(`[ReferralController] Fallback: Используем fallback для получения реферальной статистики:`, error);
@@ -595,7 +595,7 @@ export class ReferralController {
       console.log(`[ReferralController] Fallback: Запрос данных для пользователя: ${userId}`);
       
       // Заворачиваем вызов сервиса в обработчик ошибок
-      const getUserReferralsFallback = wrapServiceFunction(
+      const getUserReferralsFallback = DatabaseService(
         referralService.getUserReferrals.bind(referralService),
         async (error, userId) => {
           console.log(`[ReferralController] Fallback: Используем fallback для получения данных рефералов:`, error);

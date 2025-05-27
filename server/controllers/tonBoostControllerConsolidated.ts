@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { tonBoostService } from "../services";
 import { TonBoostService, TonBoostPaymentMethod } from "../services/tonBoostService";
 import { tonBoostServiceInstance } from "../services/tonBoostServiceInstance";
-import { wrapServiceFunction } from '../db-service-wrapper';
+import { DatabaseService } from "../db-service-wrapper";
 import { ValidationError, NotFoundError, UnauthorizedError, ForbiddenError, DatabaseError } from '../middleware/errorHandler';
 import { sendSuccess, sendError } from '../utils/responseUtils';
 
@@ -40,7 +40,7 @@ export class TonBoostController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback
-      const processTransactionWithFallback = wrapServiceFunction(
+      const processTransactionWithFallback = DatabaseService(
         tonBoostService.processIncomingTransaction.bind(tonBoostService),
         async (error, ...args) => {
           console.error('[TonBoostControllerFallback] Ошибка при обработке транзакции:', error);
@@ -70,7 +70,7 @@ export class TonBoostController {
   static async getTonBoostPackages(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback
-      const getPackagesWithFallback = wrapServiceFunction(
+      const getPackagesWithFallback = DatabaseService(
         tonBoostService.getAvailableTonBoostPackages.bind(tonBoostService),
         async (error) => {
           console.log('[TonBoostControllerFallback] Возвращаем заглушку для TON Boost пакетов');
@@ -123,7 +123,7 @@ export class TonBoostController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback
-      const getUserBoostsWithFallback = wrapServiceFunction(
+      const getUserBoostsWithFallback = DatabaseService(
         tonBoostService.getUserTonBoosts.bind(tonBoostService),
         async (error, userId) => {
           console.log(`[TonBoostControllerFallback] Возвращаем заглушку для TON бустов пользователя ID: ${userId}`);
@@ -167,7 +167,7 @@ export class TonBoostController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback
-      const purchaseBoostWithFallback = wrapServiceFunction(
+      const purchaseBoostWithFallback = DatabaseService(
         tonBoostService.purchaseTonBoost.bind(tonBoostService),
         async (error, ...args) => {
           console.error('[TonBoostControllerFallback] Ошибка при покупке TON буста:', error);
@@ -197,7 +197,7 @@ export class TonBoostController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback
-      const confirmPaymentWithFallback = wrapServiceFunction(
+      const confirmPaymentWithFallback = DatabaseService(
         tonBoostService.confirmExternalPayment.bind(tonBoostService),
         async (error, ...args) => {
           console.error('[TonBoostControllerFallback] Ошибка при подтверждении платежа:', error);
@@ -274,7 +274,7 @@ export class TonBoostController {
       }
 
       // Заворачиваем вызов сервиса в обработчик ошибок
-      const updateFarmingWithFallback = wrapServiceFunction(
+      const updateFarmingWithFallback = DatabaseService(
         tonBoostService.calculateAndUpdateFarming.bind(tonBoostService),
         async (error, ...args) => {
           console.error('[TonBoostControllerFallback] Ошибка при обновлении TON фарминга:', error);
