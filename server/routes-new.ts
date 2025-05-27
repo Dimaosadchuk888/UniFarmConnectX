@@ -311,6 +311,12 @@ export function registerNewRoutes(app: Express): void {
     }
   });
   
+  // CRITICAL: Добавляем маршруты для миссий
+  app.get('/api/v2/missions/active', safeHandler(MissionController.getActiveMissions));
+  app.get('/api/v2/user-missions', safeHandler(MissionController.getUserCompletedMissions));
+  app.post('/api/v2/missions/complete', safeHandler(MissionController.completeMission));
+  logger.info('[NewRoutes] ✅ Добавлены маршруты миссий');
+
   // Используем маршрутизатор для страницы статуса
   app.use('/status', statusRouter);
 
