@@ -701,7 +701,8 @@ export const MissionsList: React.FC = () => {
                     <Button 
                       size="sm"
                       onClick={() => {
-                        const url = extractUrlFromDescription(mission.description) || 'https://t.me/unifarm';
+                        const url = mission.link || 'https://t.me/unifarm';
+                        console.log(`🔗 Открываем ссылку для миссии ${mission.id}:`, url);
                         handleStartSocialMission(mission.id, url);
                       }}
                       className="bg-primary hover:bg-primary/90"
