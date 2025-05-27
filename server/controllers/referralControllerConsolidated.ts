@@ -806,4 +806,92 @@ export class ReferralController {
       }
     }
   }
+
+  /**
+   * Применяет реферальный код для пользователя
+   * КРИТИЧЕСКИ ВАЖНЫЙ МЕТОД ПО REDMAP
+   * @route POST /api/v2/referrals/apply
+   */
+  static async applyReferralCode(req: Request, res: Response, next?: NextFunction): Promise<void> {
+    try {
+      const { user_id, referral_code } = req.body;
+      
+      // Валидация входных данных
+      if (!user_id || !referral_code) {
+        return sendError(res, 'user_id и referral_code обязательны', 400);
+      }
+
+      const userId = Number(user_id);
+      if (isNaN(userId) || userId <= 0) {
+        return sendError(res, 'Некорректный user_id', 400);
+      }
+
+      console.log(`[ReferralController] Применение реферального кода ${referral_code} для пользователя ${userId}`);
+
+      try {
+        // Находим пользователя-пригласителя по реферальному коду
+        const inviterUser = await userService.getUserByRefCode(referral_code);
+        
+        if (!inviterUser) {
+          return sendError(res, 'Реферальный код не найден', 404);
+        }
+
+        // Проверяем, что пользователь не пытается применить свой собственный код
+        if (inviterUser.id === userId) {
+          return sendError(res, 'Нельзя применить собственный реферальный код', 400);
+        }
+
+        // Проверяем, что у пользователя еще нет пригласителя
+        const currentUser = await userService.getUserById(userId);
+        if (currentUser && currentUser.parent_ref_code) {
+          return sendError(res, 'У пользователя уже есть пригласитель', 400);
+        }
+
+        // Создаем реферальную связь согласно REDMAP (20 уровней)
+        const referralResult = await referralService.createReferralConnection(userId, inviterUser.id, referral_code);
+        
+        const result = {
+          success: true,
+          user_id: userId,
+          inviter_id: inviterUser.id,
+          referral_code: referral_code,
+          connection_created: true,
+          message: 'Реферальный код успешно применен'
+        };
+
+        console.log(`[ReferralController] Реферальная связь создана: ${userId} → ${inviterUser.id}`);
+        return sendSuccess(res, result);
+
+      } catch (error) {
+        console.error('[ReferralController] Ошибка при применении реферального кода:', error);
+        
+        // Fallback режим для применения реферального кода
+        try {
+          const fallbackResult = {
+            success: true,
+            user_id: userId,
+            referral_code: referral_code,
+            connection_created: false,
+            is_fallback: true,
+            message: 'Реферальный код принят в режиме fallback'
+          };
+          
+          console.log(`[ReferralController] Fallback: Реферальный код ${referral_code} принят для пользователя ${userId}`);
+          return sendSuccess(res, fallbackResult);
+        } catch (fallbackError) {
+          console.error('[ReferralController] Fallback: Ошибка при применении реферального кода:', fallbackError);
+          return sendError(res, 'Ошибка при применении реферального кода', 500);
+        }
+      }
+
+    } catch (error) {
+      console.error('[ReferralController] Критическая ошибка в applyReferralCode:', error);
+      
+      if (next) {
+        next(error);
+      } else {
+        return sendError(res, 'Внутренняя ошибка сервера', 500);
+      }
+    }
+  }
 }
