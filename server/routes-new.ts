@@ -435,13 +435,9 @@ export function registerNewRoutes(app: Express): void {
   
   // Маршруты для заданий с использованием консолидированного контроллера
   if (MissionControllerFixed) {
-    if (typeof MissionControllerFixed.getActiveMissions === 'function') {
-      app.get('/api/v2/missions/active', safeHandler(MissionControllerFixed.getActiveMissions));
-    }
+    // Дублированный маршрут missions/active удален - используется основная версия выше
     
-    if (typeof MissionControllerFixed.getUserCompletedMissions === 'function') {
-      app.get('/api/v2/user-missions', safeHandler(MissionControllerFixed.getUserCompletedMissions));
-    }
+    // Дублированный маршрут user-missions удален - используется основная версия выше
     
     if (typeof MissionControllerFixed.getMissionsWithCompletion === 'function') {
       app.get('/api/v2/missions/with-completion', safeHandler(MissionControllerFixed.getMissionsWithCompletion));
@@ -451,9 +447,7 @@ export function registerNewRoutes(app: Express): void {
       app.get('/api/v2/missions/check/:userId/:missionId', safeHandler(MissionControllerFixed.checkMissionCompletion));
     }
     
-    if (typeof MissionControllerFixed.completeMission === 'function') {
-      app.post('/api/v2/missions/complete', safeHandler(MissionControllerFixed.completeMission));
-    }
+    // Дублированный маршрут missions/complete удален - используется основная версия выше
     
     // КРИТИЧЕСКИЙ МАРШРУТ: добавляем отсутствующий endpoint для frontend
     if (typeof MissionControllerFixed.getUserCompletedMissions === 'function') {
