@@ -467,35 +467,7 @@ export function registerNewRoutes(app: Express): void {
     app.get('/api/transactions', safeHandler(TransactionController.getUserTransactions));
   }
   
-  // Маршруты для заданий с использованием консолидированного контроллера
-  if (MissionControllerFixed) {
-    if (typeof MissionControllerFixed.getActiveMissions === 'function') {
-      app.get('/api/v2/missions/active', (req, res, next) => {
-        // Принудительно очищаем кэш для получения актуальных миссий RIOTMAP.md
-        res.set({
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        });
-        next();
-      }, safeHandler(MissionControllerFixed.getActiveMissions));
-    }
-    
-    if (typeof MissionControllerFixed.getUserCompletedMissions === 'function') {
-      app.get('/api/v2/user-missions', safeHandler(MissionControllerFixed.getUserCompletedMissions));
-    }
-    
-    if (typeof MissionControllerFixed.getMissionsWithCompletion === 'function') {
-      app.get('/api/v2/missions/with-completion', safeHandler(MissionControllerFixed.getMissionsWithCompletion));
-    }
-    
-    if (typeof MissionControllerFixed.checkMissionCompletion === 'function') {
-      app.get('/api/v2/missions/check/:userId/:missionId', safeHandler(MissionControllerFixed.checkMissionCompletion));
-    }
-    
-    if (typeof MissionControllerFixed.completeMission === 'function') {
-      app.post('/api/v2/missions/complete', safeHandler(MissionControllerFixed.completeMission));
-    }
+  // Дублированные маршруты миссий удалены - используем основные версии выше
     
     // КРИТИЧЕСКИЙ МАРШРУТ: добавляем отсутствующий endpoint для frontend
     if (typeof MissionControllerFixed.getUserCompletedMissions === 'function') {
@@ -532,20 +504,7 @@ export function registerNewRoutes(app: Express): void {
     }
   }
   
-  // Маршруты для бонусов с использованием консолидированного контроллера
-  if (DailyBonusController) {
-    if (typeof DailyBonusController.getDailyBonusStatus === 'function') {
-      app.get('/api/v2/daily-bonus/status', safeHandler(DailyBonusController.getDailyBonusStatus));
-    }
-    
-    if (typeof DailyBonusController.claimDailyBonus === 'function') {
-      app.post('/api/v2/daily-bonus/claim', safeHandler(DailyBonusController.claimDailyBonus));
-    }
-    
-    if (typeof DailyBonusController.getStreakInfo === 'function') {
-      app.get('/api/v2/daily-bonus/streak-info', safeHandler(DailyBonusController.getStreakInfo));
-    }
-  }
+  // Дублированные маршруты Daily Bonus удалены - используем основные версии выше
   
   // Маршруты для кошелька с использованием консолидированного контроллера
   if (WalletController) {
