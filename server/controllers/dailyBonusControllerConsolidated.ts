@@ -39,12 +39,13 @@ export class DailyBonusController {
       // Валидация параметров запроса
       const validationResult = dailyBonusQuerySchema.safeParse(req.query);
       if (!validationResult.success) {
-        return next(new ValidationError(formatZodErrors(validationResult.error)));
+        const errorMessage = formatZodErrors(validationResult.error);
+        return next(new ValidationError(errorMessage));
       }
 
       const { user_id } = validationResult.data;
 
-      // Прямой вызов сервиса согласно RIOTMAP.md раздел 3.2
+      // Прямой вызов сервиса с простой обработкой ошибок
       const status = await dailyBonusService.getDailyBonusStatus(user_id);
       return res.json({
         success: true,
@@ -74,8 +75,22 @@ export class DailyBonusController {
 
       const { user_id } = validationResult.data;
 
-      // Прямой вызов сервиса согласно RIOTMAP.md раздел 3.2
-      const result = await dailyBonusService.claimDailyBonus(user_id);
+      // Вызов сервиса с защитой от ошибок
+      const claimBonusWithFallback = DatabaseService(
+        dailyBonusService.claimDailyBonus.bind(dailyBonusService),
+        async (error, userId) => {
+          console.log(`[DailyBonusControllerFallback] Возвращаем заглушку claim для пользователя: ${userId}`, error?.message);
+          
+          // Заглушка с безопасными данными
+          return {
+            success: false,
+            error: "Сервис ежедневных бонусов временно недоступен. Попробуйте позже.",
+            data: null
+          };
+        }
+      );
+
+      const result = await claimBonusWithFallback(user_id);
       return res.json(result);
     } catch (error) {
       next(error);
