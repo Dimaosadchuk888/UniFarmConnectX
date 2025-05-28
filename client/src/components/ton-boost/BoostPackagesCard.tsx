@@ -292,13 +292,34 @@ const BoostPackagesCard: React.FC = () => {
     <>
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-yellow-500" />
-            TON Boost Пакеты
-          </CardTitle>
-          <CardDescription>
-            Активируйте TON Boost для увеличения скорости заработка
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-yellow-500" />
+                TON Boost Пакеты
+              </CardTitle>
+              <CardDescription>
+                Активируйте TON Boost для увеличения скорости заработка
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/v2/ton-farming/boosts'] });
+                toast({
+                  title: "Данные обновлены",
+                  description: "TON Boost пакеты перезагружены",
+                  variant: "default"
+                });
+              }}
+              className="flex items-center gap-1"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Обновить
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {boostPackages.length === 0 ? (
