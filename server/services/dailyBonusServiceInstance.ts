@@ -67,7 +67,13 @@ class DailyBonusServiceImpl implements IDailyBonusService {
         .where(eq(users.id, userId));
       
       if (!user) {
-        throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
+        // Вместо ошибки возвращаем дефолтные значения для нового пользователя
+        console.log(`[DailyBonusService] Пользователь ID ${userId} не найден, возвращаем дефолтные значения`);
+        return {
+          streak: 0,
+          canClaim: true, // Новый пользователь может получить бонус
+          lastClaimDate: null
+        };
       }
       
       // Безопасная обработка NULL значений
@@ -80,12 +86,13 @@ class DailyBonusServiceImpl implements IDailyBonusService {
         lastClaimDate: lastClaimDate
       };
     } catch (error) {
-      if (error instanceof NotFoundError) {
-        throw error;
-      }
-      // Логируем детали ошибки для диагностики
+      // При любой ошибке возвращаем безопасные дефолтные значения
       console.error('[DailyBonusService] Ошибка при получении streak-информации:', error);
-      throw new DatabaseError('Ошибка при получении информации о streak-бонусе', error);
+      return {
+        streak: 0,
+        canClaim: true,
+        lastClaimDate: null
+      };
     }
   }
   
