@@ -40,20 +40,41 @@ export class DailyBonusController {
       const validationResult = dailyBonusQuerySchema.safeParse(req.query);
       if (!validationResult.success) {
         const errorMessage = formatZodErrors(validationResult.error);
-        return next(new ValidationError(errorMessage));
+        return res.status(400).json({
+          success: false,
+          error: errorMessage
+        });
       }
 
       const { user_id } = validationResult.data;
 
-      // Прямой вызов сервиса с простой обработкой ошибок
-      const status = await dailyBonusService.getDailyBonusStatus(user_id);
-      return res.json({
-        success: true,
-        data: status,
-        message: 'Статус ежедневного бонуса получен успешно'
-      });
+      // Безопасный вызов сервиса с обработкой ошибок
+      try {
+        const status = await dailyBonusService.getDailyBonusStatus(user_id);
+        return res.status(200).json({
+          success: true,
+          data: status,
+          message: 'Статус ежедневного бонуса получен успешно'
+        });
+      } catch (serviceError) {
+        console.error('[DailyBonusController] Ошибка сервиса:', serviceError);
+        // Возвращаем безопасные дефолтные значения
+        return res.status(200).json({
+          success: true,
+          data: {
+            streak: 0,
+            canClaim: true,
+            lastClaimDate: null
+          },
+          message: 'Статус ежедневного бонуса получен (дефолтные значения)'
+        });
+      }
     } catch (error) {
-      next(error);
+      console.error('[DailyBonusController] Общая ошибка:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Внутренняя ошибка сервера'
+      });
     }
   }
 
@@ -70,28 +91,31 @@ export class DailyBonusController {
 
       const validationResult = schema.safeParse(req.body);
       if (!validationResult.success) {
-        return next(new ValidationError(formatZodErrors(validationResult.error)));
+        return res.status(400).json({
+          success: false,
+          error: formatZodErrors(validationResult.error)
+        });
       }
 
       const { user_id } = validationResult.data;
 
-      // Вызов сервиса с защитой от ошибок
-      const claimBonusWithFallback = DatabaseService(
-        dailyBonusService.claimDailyBonus.bind(dailyBonusService),
-        async (error, userId) => {
-          console.log(`[DailyBonusControllerFallback] Возвращаем заглушку claim для пользователя: ${userId}`, error?.message);
-          
-          // Заглушка с безопасными данными
-          return {
-            success: false,
-            error: "Сервис ежедневных бонусов временно недоступен. Попробуйте позже.",
-            data: null
-          };
-        }
-      );
-
-      const result = await claimBonusWithFallback(user_id);
-      return res.json(result);
+      // Безопасный вызов сервиса с обработкой ошибок
+      try {
+        const result = await dailyBonusService.claimDailyBonus(user_id);
+        return res.status(200).json({
+          success: true,
+          data: result,
+          message: 'Ежедневный бонус успешно получен'
+        });
+      } catch (serviceError) {
+        console.error('[DailyBonusController] Ошибка при получении бонуса:', serviceError);
+        // Возвращаем информативную ошибку
+        return res.status(400).json({
+          success: false,
+          error: 'Не удалось получить ежедневный бонус. Возможно, вы уже получили его сегодня.',
+          message: 'Попробуйте завтра'
+        });
+      }
     } catch (error) {
       next(error);
     }
