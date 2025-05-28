@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { users, transactions } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
+import type { PgTransaction } from 'drizzle-orm/pg-core';
 import { DatabaseError, NotFoundError } from '../middleware/errorHandler';
 
 /**
@@ -69,15 +70,21 @@ class DailyBonusServiceImpl implements IDailyBonusService {
         throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
       }
       
+      // Безопасная обработка NULL значений
+      const streakCount = user.checkin_streak ?? 0;
+      const lastClaimDate = user.checkin_last_date ?? null;
+      
       return {
-        streak: user.checkin_streak || 0,
-        canClaim: this.canClaimToday(user.checkin_last_date),
-        lastClaimDate: user.checkin_last_date
+        streak: streakCount,
+        canClaim: this.canClaimToday(lastClaimDate),
+        lastClaimDate: lastClaimDate
       };
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw error;
       }
+      // Логируем детали ошибки для диагностики
+      console.error('[DailyBonusService] Ошибка при получении streak-информации:', error);
       throw new DatabaseError('Ошибка при получении информации о streak-бонусе', error);
     }
   }

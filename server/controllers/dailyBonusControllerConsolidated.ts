@@ -46,7 +46,11 @@ export class DailyBonusController {
 
       // Прямой вызов сервиса согласно RIOTMAP.md раздел 3.2
       const status = await dailyBonusService.getDailyBonusStatus(user_id);
-      return res.json(status);
+      return res.json({
+        success: true,
+        data: status,
+        message: 'Статус ежедневного бонуса получен успешно'
+      });
     } catch (error) {
       next(error);
     }
