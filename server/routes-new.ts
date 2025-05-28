@@ -199,7 +199,7 @@ export function registerNewRoutes(app: Express): void {
     });
   };
   
-  app.get('/api/health', createSafeHandler(healthCheckHandler));
+  app.get('/api/health', healthCheckHandler);
   
   // [TG REGISTRATION FIX] API endpoint для регистрации пользователей через Telegram
   app.post('/api/register/telegram', createSafeHandler(async (req: Request, res: Response): Promise<void> => {
@@ -397,38 +397,6 @@ export function registerNewRoutes(app: Express): void {
   }));
   logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/me добавлен для отображения баланса');
   
-  // КРИТИЧЕСКИЙ ENDPOINT для получения транзакций
-  app.get('/api/transactions', safeHandler(async (req, res) => {
-    try {
-      const { user_id, limit = 50, offset = 0 } = req.query;
-      
-      // Возвращаем пустой список транзакций для нового пользователя
-      const transactions = [];
-      
-      res.status(200).json({
-        success: true,
-        data: {
-          transactions,
-          total: 0,
-          limit: parseInt(limit as string),
-          offset: parseInt(offset as string)
-        },
-        message: 'Транзакции успешно получены'
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при получении транзакций'
-      });
-    }
-  }));
-  logger.info('[NewRoutes] ✓ Маршрут транзакций добавлен: GET /api/transactions');
-
-  // ИСПРАВЛЕННЫЙ ENDPOINT для Daily Bonus через контроллер
-  app.get('/api/v2/daily-bonus/status', safeHandler(DailyBonusController.getDailyBonusStatus));
-  app.post('/api/v2/daily-bonus/claim', safeHandler(DailyBonusController.claimDailyBonus));
-  logger.info('[NewRoutes] ✓ Daily Bonus маршруты добавлены через контроллер: GET/POST /api/v2/daily-bonus');
-
   // КРИТИЧЕСКИЙ ENDPOINT для получения баланса кошелька
   app.get('/api/v2/wallet/balance', safeHandler(async (req, res) => {
     try {
@@ -463,11 +431,29 @@ export function registerNewRoutes(app: Express): void {
   // Маршруты для транзакций
   if (typeof TransactionController.getUserTransactions === 'function') {
     app.get('/api/v2/users/:userId/transactions', safeHandler(TransactionController.getUserTransactions));
-    // Добавляем альтернативный маршрут для совместимости с фронтендом
-    app.get('/api/transactions', safeHandler(TransactionController.getUserTransactions));
   }
   
-  // Дублированные маршруты миссий удалены - используем основные версии выше
+  // Маршруты для заданий с использованием консолидированного контроллера
+  if (MissionControllerFixed) {
+    if (typeof MissionControllerFixed.getActiveMissions === 'function') {
+      app.get('/api/v2/missions/active', safeHandler(MissionControllerFixed.getActiveMissions));
+    }
+    
+    if (typeof MissionControllerFixed.getUserCompletedMissions === 'function') {
+      app.get('/api/v2/user-missions', safeHandler(MissionControllerFixed.getUserCompletedMissions));
+    }
+    
+    if (typeof MissionControllerFixed.getMissionsWithCompletion === 'function') {
+      app.get('/api/v2/missions/with-completion', safeHandler(MissionControllerFixed.getMissionsWithCompletion));
+    }
+    
+    if (typeof MissionControllerFixed.checkMissionCompletion === 'function') {
+      app.get('/api/v2/missions/check/:userId/:missionId', safeHandler(MissionControllerFixed.checkMissionCompletion));
+    }
+    
+    if (typeof MissionControllerFixed.completeMission === 'function') {
+      app.post('/api/v2/missions/complete', safeHandler(MissionControllerFixed.completeMission));
+    }
     
     // КРИТИЧЕСКИЙ МАРШРУТ: добавляем отсутствующий endpoint для frontend
     if (typeof MissionControllerFixed.getUserCompletedMissions === 'function') {
@@ -504,7 +490,20 @@ export function registerNewRoutes(app: Express): void {
     }
   }
   
-  // Дублированные маршруты Daily Bonus удалены - используем основные версии выше
+  // Маршруты для бонусов с использованием консолидированного контроллера
+  if (DailyBonusController) {
+    if (typeof DailyBonusController.getDailyBonusStatus === 'function') {
+      app.get('/api/v2/daily-bonus/status', safeHandler(DailyBonusController.getDailyBonusStatus));
+    }
+    
+    if (typeof DailyBonusController.claimDailyBonus === 'function') {
+      app.post('/api/v2/daily-bonus/claim', safeHandler(DailyBonusController.claimDailyBonus));
+    }
+    
+    if (typeof DailyBonusController.getStreakInfo === 'function') {
+      app.get('/api/v2/daily-bonus/streak-info', safeHandler(DailyBonusController.getStreakInfo));
+    }
+  }
   
   // Маршруты для кошелька с использованием консолидированного контроллера
   if (WalletController) {
@@ -532,16 +531,7 @@ export function registerNewRoutes(app: Express): void {
   // Маршруты для TON бустов с использованием консолидированного контроллера
   if (TonBoostController) {
     if (typeof TonBoostController.getTonBoostPackages === 'function') {
-      // КРИТИЧЕСКИ ВАЖНО: Добавляем маршрут для совместимости с фронтендом
-      app.get('/api/ton-boosts', safeHandler(TonBoostController.getTonBoostPackages));
       app.get('/api/v2/ton-farming/boosts', safeHandler(TonBoostController.getTonBoostPackages));
-      logger.info('[NewRoutes] ✅ TON Boost packages маршруты добавлены: /api/ton-boosts и /api/v2/ton-farming/boosts');
-    }
-    
-    // КРИТИЧЕСКИ ВАЖНЫЙ ОТСУТСТВУЮЩИЙ МАРШРУТ: активные TON бусты пользователя
-    if (typeof TonBoostController.getUserTonBoosts === 'function') {
-      app.get('/api/ton-boosts/active', safeHandler(TonBoostController.getUserTonBoosts));
-      logger.info('[NewRoutes] ✅ ИСПРАВЛЕНО: Добавлен отсутствующий маршрут /api/ton-boosts/active');
     }
     
     if (typeof TonBoostController.getUserTonBoosts === 'function') {
