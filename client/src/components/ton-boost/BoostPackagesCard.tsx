@@ -59,12 +59,8 @@ const BoostPackagesCard: React.FC = () => {
     queryKey: ['/api/ton-boosts'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/ton-boosts');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data.success ? data.data as TonBoostPackage[] : [];
+        const response = await correctApiRequest('/api/ton-boosts', 'GET');
+        return response.success ? response.data as TonBoostPackage[] : [];
       } catch (error) {
         console.error("Failed to fetch TON Boost packages:", error);
         toast({
