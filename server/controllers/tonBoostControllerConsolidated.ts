@@ -71,7 +71,7 @@ export class TonBoostController {
     try {
       // Заворачиваем вызов сервиса в обработчик ошибок для поддержки fallback
       const getPackagesWithFallback = DatabaseService(
-        tonBoostService.getAvailableTonBoostPackages.bind(tonBoostService),
+        () => Promise.resolve({ success: true, data: tonBoostServiceInstance.getBoostPackages() }),
         async (error) => {
           console.log('[TonBoostControllerFallback] Возвращаем заглушку для TON Boost пакетов');
           return { 
