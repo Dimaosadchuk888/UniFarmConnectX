@@ -547,6 +547,12 @@ export function registerNewRoutes(app: Express): void {
       logger.info('[NewRoutes] ✅ TON Boost packages маршруты добавлены: /api/ton-boosts и /api/v2/ton-farming/boosts');
     }
     
+    // КРИТИЧЕСКИ ВАЖНЫЙ ОТСУТСТВУЮЩИЙ МАРШРУТ: активные TON бусты пользователя
+    if (typeof TonBoostController.getUserTonBoosts === 'function') {
+      app.get('/api/ton-boosts/active', safeHandler(TonBoostController.getUserTonBoosts));
+      logger.info('[NewRoutes] ✅ ИСПРАВЛЕНО: Добавлен отсутствующий маршрут /api/ton-boosts/active');
+    }
+    
     if (typeof TonBoostController.getUserTonBoosts === 'function') {
       app.get('/api/v2/ton-farming/active', safeHandler(TonBoostController.getUserTonBoosts));
     }
