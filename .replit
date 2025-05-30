@@ -13,7 +13,7 @@ PORT = "3000"
 # The NODE_ENV is set to 'production', and PORT is set to '3000'.
 # The deployment configuration specifies the necessary environment variables and commands required for production.
 [deployment]
-run = ["sh", "-c", "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true OVERRIDE_DB_PROVIDER=neon tsx server/index.ts"]
+run = ["sh", "-c", "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true OVERRIDE_DB_PROVIDER=neon node dist/index.js"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 build = ["sh", "-c", "npm run build"]
@@ -27,7 +27,7 @@ localPort = 3001
 externalPort = 3001
 
 [workflows]
-runButton = "Production UniFarm"
+runButton = "Production UniFarm Fixed"
 
 [[workflows.workflow]]
 name = "run.js"
@@ -89,3 +89,25 @@ args = "npm run build"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true SKIP_PARTITION_CREATION=true tsx server/index.ts"
+
+[[workflows.workflow]]
+name = "Production UniFarm Fixed"
+author = 43232783
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node start-unified.js"
+
+[[workflows.workflow]]
+name = "Emergency Start"
+author = 43232783
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true tsx server/index.ts"

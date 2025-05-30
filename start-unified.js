@@ -39,3 +39,74 @@ if (fs.existsSync('./dist/index.js')) {
   console.log('🔄 [UNIFIED START] Запуск development версії');
   await import('./server/index.js');
 }
+#!/usr/bin/env node
+
+/**
+ * Универсальный скрипт запуска UniFarm
+ * Поддерживает как development, так и production режимы
+ */
+
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+// Определяем режим работы
+const isProduction = process.env.NODE_ENV === 'production';
+const port = process.env.PORT || 3000;
+
+console.log(`🚀 Запуск UniFarm в ${isProduction ? 'production' : 'development'} режиме на порту ${port}`);
+
+// Устанавливаем переменные окружения для принудительного использования Neon DB
+process.env.DATABASE_PROVIDER = 'neon';
+process.env.FORCE_NEON_DB = 'true';
+process.env.DISABLE_REPLIT_DB = 'true';
+process.env.OVERRIDE_DB_PROVIDER = 'neon';
+process.env.SKIP_PARTITION_CREATION = 'true';
+
+let startCommand, startArgs;
+
+if (isProduction) {
+  // Проверяем наличие собранного файла
+  const distIndexPath = path.join(__dirname, 'dist', 'index.js');
+  
+  if (fs.existsSync(distIndexPath)) {
+    console.log('✅ Найден собранный файл, запускаем production версию');
+    startCommand = 'node';
+    startArgs = ['dist/index.js'];
+  } else {
+    console.log('⚠️ Собранный файл не найден, компилируем и запускаем через tsx');
+    startCommand = 'tsx';
+    startArgs = ['server/index.ts'];
+  }
+} else {
+  console.log('🔧 Development режим, запускаем через tsx');
+  startCommand = 'tsx';
+  startArgs = ['server/index.ts'];
+}
+
+// Запускаем приложение
+const child = spawn(startCommand, startArgs, {
+  stdio: 'inherit',
+  env: process.env
+});
+
+child.on('error', (error) => {
+  console.error('❌ Ошибка запуска:', error);
+  process.exit(1);
+});
+
+child.on('exit', (code) => {
+  console.log(`📛 Процесс завершен с кодом ${code}`);
+  process.exit(code);
+});
+
+// Обработка сигналов завершения
+process.on('SIGINT', () => {
+  console.log('🛑 Получен сигнал SIGINT, завершаем приложение...');
+  child.kill('SIGINT');
+});
+
+process.on('SIGTERM', () => {
+  console.log('🛑 Получен сигнал SIGTERM, завершаем приложение...');
+  child.kill('SIGTERM');
+});
