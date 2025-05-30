@@ -27,7 +27,7 @@ localPort = 3001
 externalPort = 3001
 
 [workflows]
-runButton = "Production UniFarm Fixed"
+runButton = "UniFarm Production Run"
 
 [[workflows.workflow]]
 name = "run.js"
@@ -107,6 +107,19 @@ args = "node start-unified.js"
 name = "Emergency Start"
 author = 43232783
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true tsx server/index.ts"
+
+[[workflows.workflow]]
+name = "UniFarm Production Run"
+author = 43232783
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"

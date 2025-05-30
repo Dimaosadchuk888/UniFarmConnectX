@@ -51,14 +51,15 @@ if (isProduction) {
     startCommand = 'node';
     startArgs = ['dist/index.js'];
   } else {
-    console.log('⚠️ [UNIFIED START] Собранный файл не найден, компилируем и запускаем через tsx');
-    startCommand = 'tsx';
-    startArgs = ['server/index.ts'];
+    console.log('⚠️ [UNIFIED START] Собранный файл не найден, запускаем через tsx');
+    console.log('🔧 [UNIFIED START] Для полноценного production используйте npm run build');
+    startCommand = 'npx';
+    startArgs = ['tsx', 'server/index.ts'];
   }
 } else {
   console.log('🔧 [UNIFIED START] Development режим, запускаем через tsx');
-  startCommand = 'tsx';
-  startArgs = ['server/index.ts'];
+  startCommand = 'npx';
+  startArgs = ['tsx', 'server/index.ts'];
 }
 
 // Запускаем приложение
