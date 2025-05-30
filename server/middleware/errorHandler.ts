@@ -10,7 +10,7 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
     if (res.headersSent) {
       return next(err);
     }
-    
+
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internal Server Error';
 
@@ -34,7 +34,7 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
       req.headers['user-agent']?.includes('Replit') || 
       req.headers['x-replit-deployment-check'] !== undefined
     );
-    
+
     // Для проверок здоровья всегда возвращаем успешный ответ
     if (isHealthCheck) {
       res.status(200).send('UniFarm API Server: Online');
@@ -50,7 +50,7 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
   } catch (handlerError) {
     // В случае ошибки в самом обработчике ошибок - логируем её и отправляем базовый ответ
     console.error('[CRITICAL] Error in errorHandler:', handlerError);
-    
+
     try {
       // Последняя попытка вернуть хоть какой-то ответ
       res.status(500).send('Internal Server Error');
@@ -116,7 +116,7 @@ export class InsufficientFundsError extends Error {
 
   constructor(message: string, balanceOrDetails: number | string | Record<string, any>, currency?: string) {
     super(message);
-    
+
     if (typeof balanceOrDetails === 'object') {
       // Поддержка старого формата для обратной совместимости
       this.errors = balanceOrDetails;

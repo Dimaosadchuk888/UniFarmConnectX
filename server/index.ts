@@ -181,8 +181,39 @@ async function startServer(): Promise<void> {
 
   // Создаем Express приложение
   const app = express();
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: false }));
+  
+  // Добавляем ограничения на размер запросов для безопасности
+  app.use(express.json({ 
+    limit: '10mb',
+    verify: (req, res, buf) => {
+      try {
+        JSON.parse(buf.toString());
+      } catch (e) {
+        logger.warn('[Security] Некорректный JSON в запросе');
+        res.status(400).json({ success: false, error: 'Некорректный JSON' });
+        return;
+      }
+    }
+  }));
+  
+  app.use(express.urlencoded({ 
+    extended: false, 
+    limit: '10mb' 
+  }));
+  
+  // Добавляем базовую защиту от атак
+  app.use((req, res, next) => {
+    // Проверяем User-Agent на подозрительные паттерны
+    const userAgent = req.headers['user-agent'] || '';
+    const suspiciousPatterns = ['<script', 'javascript:', 'vbscript:', 'onload='];
+    
+    if (suspiciousPatterns.some(pattern => userAgent.toLowerCase().includes(pattern))) {
+      logger.warn('[Security] Подозрительный User-Agent:', userAgent);
+      return res.status(403).json({ success: false, error: 'Запрещенный запрос' });
+    }
+    
+    next();
+  });
 
   // Создаем хранилище сессий
   const MemoryStore = memoryStore(session);

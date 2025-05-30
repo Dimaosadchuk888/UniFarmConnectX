@@ -299,17 +299,23 @@ const mutationCache = new MutationCache({
 });
 
 // Создаем экземпляр QueryClient с настроенными кэшами
+// Дедупликация запросов для предотвращения спама
+const pendingQueries = new Map<string, Promise<any>>();
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 5 * 60 * 1000, // 5 минут кеширование вместо Infinity
+      cacheTime: 10 * 60 * 1000, // 10 минут хранение в кеше
+      retry: 1, // Одна попытка повтора вместо false
+      retryDelay: 1000, // 1 секунда задержка между попытками
     },
     mutations: {
-      retry: false,
+      retry: 1,
+      retryDelay: 1000,
     },
   },
   queryCache,

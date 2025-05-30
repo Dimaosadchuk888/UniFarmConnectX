@@ -279,8 +279,32 @@ class TelegramService {
       isFallback: true
     };
   }
+
+  /**
+   * Проверка на реальное Telegram окружение
+   */
+  isRealTelegramEnvironment(): boolean {
+    // Проверяем наличие реальных Telegram данных
+    const hasValidInitData = this.getInitData().length > 0;
+    const hasValidUser = this.getUser() !== null;
+    const envInfo = this.getEnvironmentInfo();
+    
+    // Telegram Mini App должен иметь специфичные характеристики
+    const isTelegramUserAgent = envInfo.userAgent.includes('Telegram') || 
+                               envInfo.platform !== 'unknown';
+    
+    return hasValidInitData && hasValidUser && isTelegramUserAgent;
+  }
 }
 
 // Экспорт singleton instance
 export const telegramService = new TelegramService();
 export default telegramService;
+
+/**
+ * Функция для получения заголовков авторизации Telegram
+ * Совместимость с queryClient.ts
+ */
+export function getTelegramAuthHeaders(): Record<string, string> {
+  return telegramService.getApiHeaders();
+}
