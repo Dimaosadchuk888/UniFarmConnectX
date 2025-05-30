@@ -140,7 +140,9 @@ export function initTelegramWebApp(): boolean {
   
   console.log('[telegramService] Init check:', { 
     isTelegramAvailable, 
-    isWebAppAvailable
+    isWebAppAvailable,
+    userAgent: navigator.userAgent,
+    isInTelegram: navigator.userAgent.includes('Telegram')
   });
   
   // Инициализация только при наличии официального Telegram WebApp API
@@ -153,6 +155,28 @@ export function initTelegramWebApp(): boolean {
       // Расширяем окно до максимальной высоты
       window.Telegram.WebApp.expand();
       console.log('[TG EXPAND]');
+      
+      // Диагностика initData
+      const initData = window.Telegram.WebApp.initData;
+      const initDataUnsafe = window.Telegram.WebApp.initDataUnsafe;
+      
+      console.log('[TG INIT] Диагностика данных:', {
+        hasInitData: !!initData,
+        initDataLength: initData?.length || 0,
+        hasUser: !!initDataUnsafe?.user,
+        userId: initDataUnsafe?.user?.id,
+        startParam: initDataUnsafe?.start_param,
+        platform: window.Telegram.WebApp.platform,
+        version: window.Telegram.WebApp.version
+      });
+      
+      // Если initData отсутствует, выводим предупреждение
+      if (!initData || initData.length === 0) {
+        console.warn('[TG INIT] ⚠️ ВНИМАНИЕ: initData пустой! Возможные причины:');
+        console.warn('[TG INIT] 1. Приложение открыто не через Telegram');
+        console.warn('[TG INIT] 2. Неправильно настроен бот или webhook');
+        console.warn('[TG INIT] 3. Используется режим разработки');
+      }
       
       // НОВАЯ ФУНКЦИОНАЛЬНОСТЬ: Инициализация темы Telegram
       // Интегрируем систему управления темой для автоматической адаптации
@@ -353,9 +377,35 @@ export function getTelegramAuthHeaders(): Record<string, string> {
     
     // Проверяем наличие Telegram WebApp API и добавляем initData в заголовки
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      if (window.Telegram.WebApp.initData) {
+      const initData = window.Telegram.WebApp.initData;
+      const user = window.Telegram.WebApp.initDataUnsafe?.user;
+      
+      console.log('[telegramService] Подготовка заголовков:', {
+        hasInitData: !!initData,
+        initDataLength: initData?.length || 0,
+        hasUser: !!user,
+        userId: user?.id
+      });
+      
+      if (initData && initData.length > 0) {
+        const headers: Record<string, string> = {
+          'Telegram-Init-Data': initData
+        };
+        
+        // Добавляем дополнительные заголовки если есть пользователь
+        if (user?.id) {
+          headers['X-Telegram-User-Id'] = String(user.id);
+        }
+        
+        return headers;
+      }
+      
+      // Если initData пустой, но есть пользователь, используем fallback
+      if (user?.id) {
+        console.warn('[telegramService] ⚠️ initData пустой, используем fallback с user ID');
         return {
-          'Telegram-Init-Data': window.Telegram.WebApp.initData
+          'X-Telegram-User-Id': String(user.id),
+          'X-Fallback-Mode': 'true'
         };
       }
     }

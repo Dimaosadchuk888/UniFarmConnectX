@@ -96,6 +96,15 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
   
   // Детальная диагностика состояния реферального кода
   useEffect(() => {
+    // Проверяем состояние Telegram WebApp
+    const telegramState = {
+      isInTelegram: typeof window !== 'undefined' && !!window.Telegram?.WebApp,
+      hasInitData: typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initData,
+      initDataLength: typeof window !== 'undefined' ? (window.Telegram?.WebApp?.initData?.length || 0) : 0,
+      hasUser: typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initDataUnsafe?.user,
+      userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'SSR'
+    };
+    
     console.log('[UniFarmReferralLink] Состояние компонента:', { 
       isComponentMounted: true,
       hasData: !!data, 
@@ -108,7 +117,8 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
       } : 'Данные отсутствуют',
       linkType,
       referralLink: refCode ? buildReferralLink(refCode) : 'Не удалось создать (нет ref_code)',
-      directBotLink: refCode ? buildDirectBotReferralLink(refCode) : 'Не удалось создать (нет ref_code)'
+      directBotLink: refCode ? buildDirectBotReferralLink(refCode) : 'Не удалось создать (нет ref_code)',
+      telegramState
     });
   }, [data, refCode, linkType]);
   
