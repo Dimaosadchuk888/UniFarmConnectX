@@ -121,7 +121,25 @@ export async function checkHealth(req: Request, res: Response) {
     // Если запрос ожидает JSON, возвращаем JSON-ответ
     return res.status(statusCode).json({
       success: true, // Всегда true для деплоя
-      data: status
+      data: {
+        server: {
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime()
+        },
+        db: {
+          status: dbStatus.connected ? 'connected' : 'disconnected', 
+          responseTime: dbStatus.responseTime > 0 ? `${dbStatus.responseTime}ms` : undefined,
+          error: dbStatus.connected ? undefined : 'No active database connection',
+          memoryMode: false,
+          recentEvents: []
+        },
+        memory: {
+          usage: process.memoryUsage(),
+          free: process.memoryUsage().heapTotal - process.memoryUsage().heapUsed,
+          total: process.memoryUsage().heapTotal
+        }
+      }
     });
   } catch (error) {
     console.error('Health check failed with error:', error);

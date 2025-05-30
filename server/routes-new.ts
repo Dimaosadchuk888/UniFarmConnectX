@@ -43,6 +43,10 @@ import statusRouter from './routes/status';
 // Импортируем webhook для админ-бота
 import adminWebhookHandler from './api/admin/webhook';
 
+import { healthMonitor } from './utils/healthMonitor';
+import OptimizedBackgroundService from './services/optimizedBackgroundService';
+import { performanceMonitorMiddleware, errorMonitorMiddleware } from './middleware/performance-monitor';
+
 /**
  * Регистрирует новые маршруты API в указанном приложении Express
  * @param app Экземпляр приложения Express
@@ -958,4 +962,17 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   // Перенесено в async блок выше для корректного использования await
 
   logger.info('[NewRoutes] ✓ Новые маршруты API зарегистрированы успешно');
+
+  // Инициализируем мониторинг здоровья системы
+  healthMonitor.updateMetrics();
+  healthMonitor.setDbStatus(true);
+
+  // Применяем мониторинг производительности ко всем API маршрутам
+  app.use('/api', performanceMonitorMiddleware);
+  app.use('/api', errorMonitorMiddleware);
+
+  // Метрики производительности
+  const { getMetrics, resetMetrics } = await import('./api/metrics');
+  app.get('/api/metrics', getMetrics);
+  app.post('/api/metrics/reset', resetMetrics);
 }
