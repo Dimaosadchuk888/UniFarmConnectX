@@ -58,7 +58,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
       // Получаем корректный URL для WebSocket с учетом Replit
       // ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ PRODUCTION URL ДЛЯ WEBSOCKET
-      const FORCED_PRODUCTION_HOST = 'uni-farm-connect-x-lukyanenkolawfa.replit.app';
+      const FORCED_PRODUCTION_HOST = 'uni-farm-connect-xo-osadchukdmitro2.replit.app';
       const protocol = 'wss:';
       const wsUrl = `${protocol}//${FORCED_PRODUCTION_HOST}/ws${userId ? `?user_id=${userId}` : ''}`;
 

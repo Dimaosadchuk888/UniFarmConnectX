@@ -2,5 +2,5 @@ name: UniFarm Server
 on: manual
 steps:
   - name: Start UniFarm
-    run: node run.js
+    run: tsx server/index.ts
     background: true

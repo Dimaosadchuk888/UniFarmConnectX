@@ -4,21 +4,25 @@
  */
 
 import { Request, Response } from "express";
-import { getConnectionManager } from "../../db-connect-unified";
+import { getPool, getConnectionStatus, testConnection } from "../../db-unified";
 
 /**
  * Обробник для отримання статусу підключення до бази даних
  */
 export async function getDbStatus(req: Request, res: Response) {
   try {
-    const connectionManager = getConnectionManager();
-    const connectionInfo = connectionManager.getCurrentConnectionInfo();
+    const connectionStatus = getConnectionStatus();
+    const isConnected = await testConnection();
     
     // Спробуємо отримати пул для оновлення інформації про з'єднання
-    await connectionManager.getPool();
+    await getPool();
     
     // Отримуємо оновлену інформацію про з'єднання
-    const updatedConnectionInfo = connectionManager.getCurrentConnectionInfo();
+    const updatedConnectionInfo = {
+      ...connectionStatus,
+      isConnected,
+      testResult: isConnected
+    };
     
     // Формуємо відповідь
     const response = {
@@ -53,16 +57,15 @@ export async function getDbStatus(req: Request, res: Response) {
 export async function resetDbConnection(req: Request, res: Response) {
   try {
     console.log('[DB Status API] Запит на скидання підключення до бази даних');
-    const connectionManager = getConnectionManager();
     
     // Зберігаємо поточну інформацію про підключення
-    const oldConnectionInfo = connectionManager.getCurrentConnectionInfo();
+    const oldConnectionInfo = getConnectionStatus();
     
-    // Скидаємо підключення і пробуємо перепідключитися
-    const resetResult = await connectionManager.resetConnection();
+    // Тестуємо нове підключення
+    const resetResult = await testConnection();
     
     // Отримуємо нову інформацію про підключення
-    const newConnectionInfo = connectionManager.getCurrentConnectionInfo();
+    const newConnectionInfo = getConnectionStatus();
     
     // Формуємо відповідь
     const response = {
@@ -92,10 +95,10 @@ export async function resetDbConnection(req: Request, res: Response) {
 export async function testCreateTable(req: Request, res: Response) {
   try {
     console.log('[DB Status API] Тестове створення таблиці...');
-    const connectionManager = getConnectionManager();
+    const connectionStatus = getConnectionStatus();
     
     // Якщо ми в режимі in-memory, повертаємо успіх, але повідомляємо про це
-    if (connectionManager.isInMemoryMode()) {
+    if (connectionStatus.isMemoryMode) {
       return res.status(200).json({
         success: true,
         data: {
@@ -107,7 +110,8 @@ export async function testCreateTable(req: Request, res: Response) {
     }
     
     // Спробуємо отримати клієнт
-    const client = await connectionManager.getClient();
+    const pool = await getPool();
+    const client = await pool.connect();
     if (!client) {
       return res.status(500).json({
         success: false,
