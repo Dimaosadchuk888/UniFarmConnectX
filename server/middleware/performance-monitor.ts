@@ -23,6 +23,20 @@ export function performanceMonitorMiddleware(req: RequestWithTiming, res: Respon
     // Записываем метрики в health monitor
     healthMonitor.recordApiResponse(responseTime);
     
+    // Записываем в новую систему трекинга (асинхронно)
+    import('../utils/api-performance-tracker').then(({ apiPerformanceTracker }) => {
+      apiPerformanceTracker.recordMetric({
+        endpoint: req.originalUrl,
+        method: req.method,
+        responseTime,
+        statusCode: res.statusCode,
+        userAgent: req.headers['user-agent'],
+        ip: req.ip || req.connection?.remoteAddress
+      });
+    }).catch(err => {
+      console.warn('[Performance] Failed to record API metric:', err.message);
+    });
+    
     // Логируем завершение
     const status = res.statusCode;
     const statusText = status >= 200 && status < 300 ? '✅' : 

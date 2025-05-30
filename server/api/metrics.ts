@@ -8,10 +8,13 @@ import PerformanceMonitor from '../services/performanceMonitor';
  */
 export async function getMetrics(req: Request, res: Response) {
   try {
-    const [healthStatus, systemHealth, performanceReport] = await Promise.all([
+    const { apiPerformanceTracker } = await import('../utils/api-performance-tracker');
+    
+    const [healthStatus, systemHealth, performanceReport, apiStats] = await Promise.all([
       healthMonitor.getHealthStatus(),
       PerformanceMonitor.getSystemHealth(),
-      PerformanceMonitor.getPerformanceReport()
+      PerformanceMonitor.getPerformanceReport(),
+      Promise.resolve(apiPerformanceTracker.getOverallStats())
     ]);
 
     const metrics = {
@@ -34,6 +37,13 @@ export async function getMetrics(req: Request, res: Response) {
         avgDuration: `${Math.round(performanceReport.avgDuration)}ms`,
         successRate: `${(performanceReport.successRate * 100).toFixed(1)}%`,
         slowOperations: performanceReport.slowOperations.slice(0, 5)
+      },
+      api: {
+        totalRequests: apiStats.totalRequests,
+        avgResponseTime: `${apiStats.avgResponseTime}ms`,
+        requestsPerMinute: apiStats.requestsPerMinute,
+        topEndpoints: apiStats.topEndpoints,
+        slowestEndpoints: apiStats.slowestEndpoints
       },
       system: {
         activeUsers: systemHealth.activeUsers,

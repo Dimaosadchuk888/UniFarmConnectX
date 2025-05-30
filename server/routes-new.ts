@@ -392,6 +392,9 @@ export async function registerNewRoutes(app: Express): Promise<void> {
 
       console.log('[API] /api/v2/me - Параметры:', { userId, guestId });
 
+      // Используем unified database connection
+      const { queryWithRetry } = await import('./db-unified');
+
       // Если есть user_id, ищем по нему
       if (userId) {
         const result = await queryWithRetry(
