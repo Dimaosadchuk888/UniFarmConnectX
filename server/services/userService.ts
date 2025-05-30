@@ -201,9 +201,8 @@ export function createUserService(storage: IExtendedStorage): IUserService {
       if (!walletAddress) return undefined;
       
       try {
-        // Ищем по полю ton_wallet_address
-        const [user] = await db.select().from(users).where(eq(users.ton_wallet_address, walletAddress)).limit(1);
-        return user || undefined;
+        // Ищем по полю ton_wallet_address через storage
+        return await storage.getUserByWalletAddress(walletAddress);
       } catch (error) {
         console.error('[UserService] Error in getUserByWalletAddress:', error);
         return undefined;
@@ -481,15 +480,16 @@ export function createUserService(storage: IExtendedStorage): IUserService {
      */
     async generateRefCode(): Promise<string> {
       try {
-        return await storage.generateUniqueRefCode();
+        // Используем новые стандартизированные утилиты
+        const { generateUniqueRefCode } = await import('../utils/refCodeUtils');
+        return await generateUniqueRefCode();
       } catch (error) {
-        // Логируем ошибку, но используем синхронную версию генерации кода при ошибке
         const err = error as ErrorWithMessage;
-        console.error('[UserService] Error in generateRefCode:', err.message);
+        console.error('[UserService] Error in generateRefCode with new utils:', err.message);
         
         try {
-          // Пытаемся использовать локальный генератор как запасной вариант
-          return storage.generateRefCode();
+          // Fallback на старый метод через storage
+          return await storage.generateUniqueRefCode();
         } catch (fallbackError) {
           const fallbackErr = fallbackError as ErrorWithMessage;
           throw new DatabaseError(`Не удалось сгенерировать реферальный код: ${fallbackErr.message}`, fallbackError);

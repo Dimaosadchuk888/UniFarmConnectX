@@ -2,9 +2,10 @@
  * Утилиты для работы с реферальными кодами
  */
 
-import { db } from "../db-connect-unified";
+import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { storage } from "../storage";
 import crypto from "crypto";
 
 /**
@@ -38,16 +39,10 @@ export function generateRefCode(): string {
  * Проверяет, является ли реферальный код уникальным
  */
 export async function isRefCodeUnique(refCode: string): Promise<boolean> {
-  try {
-    const dbConnection = await db;
-    const existingUser = await dbConnection.query.users.findFirst({
-      where: eq(users.ref_code, refCode),
-    });
-    return !existingUser;
-  } catch (error) {
-    console.error('[RefCodeUtils] Ошибка при проверке уникальности кода:', error);
-    throw error;
-  }
+  const existingUser = await db.query.users.findFirst({
+    where: eq(users.ref_code, refCode),
+  });
+  return !existingUser;
 }
 
 /**
@@ -74,7 +69,6 @@ export async function generateUniqueRefCode(): Promise<string> {
     );
   }
 
-  console.log(`[RefCodeUtils] Сгенерирован уникальный код ${refCode} за ${attempts} попыток`);
   return refCode;
 }
 
@@ -90,18 +84,4 @@ export function validateRefCode(refCode: string): boolean {
   
   // Проверяем, что все символы допустимы
   return refCode.split('').every(char => REF_CODE_CHARS.includes(char));
-}
-
-/**
- * Очищает реферальный код от возможных префиксов
- */
-export function cleanRefCode(refCode: string): string {
-  if (!refCode) return '';
-  
-  // Убираем префикс "ref_" если он есть
-  if (refCode.startsWith('ref_')) {
-    return refCode.substring(4);
-  }
-  
-  return refCode;
 }
