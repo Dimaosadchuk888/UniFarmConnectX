@@ -222,7 +222,9 @@ class UserService {
 
     try {
       // Делаем запрос к API, используя correctApiRequest
-      console.log('[UserService] Используем correctApiRequest для запроса /api/me');
+      console.log('[UserService] Используем correctApiRequest для запроса /api/v2/me с guest_id:', guestId);
+      
+      // Делаем запрос без дополнительных параметров, так как guest_id передается в headers
       const data = await correctApiRequest('/api/v2/me', 'GET');
 
       // Подробный лог для отладки
@@ -234,6 +236,8 @@ class UserService {
         refCode: data?.data?.ref_code || 'НЕ ОПРЕДЕЛЕН',
         hasRefCode: !!data?.data?.ref_code,
         telegramId: data?.data?.telegram_id,
+        balanceUni: data?.data?.balance_uni,
+        balanceTon: data?.data?.balance_ton,
         responseJson: JSON.stringify(data).substring(0, 200) + '...'
       });
 

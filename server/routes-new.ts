@@ -582,9 +582,13 @@ export function registerNewRoutes(app: Express): void {
         });
       }
 
+      console.log(`[AUTO REGISTER] Попытка регистрации с guest_id: ${guest_id}, ref_code: ${ref_code || 'отсутствует'}`);
+
       // Проверяем, существует ли пользователь
+      const { userService } = await import('./services');
       const existingUser = await userService.getUserByGuestId(guest_id);
       if (existingUser) {
+        console.log(`[AUTO REGISTER] Пользователь уже существует: ID=${existingUser.id}`);
         return res.json({
           success: true,
           data: existingUser,
@@ -602,6 +606,8 @@ export function registerNewRoutes(app: Express): void {
         ton_wallet_address: null,
         parent_ref_code: ref_code || null
       });
+
+      console.log(`[AUTO REGISTER] Создан новый пользователь: ID=${newUser.id}, guest_id=${newUser.guest_id}`);
 
       res.status(201).json({
         success: true,

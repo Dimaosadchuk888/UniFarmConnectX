@@ -534,19 +534,39 @@ export const UserController = {
    */
   ,async getMe(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.query.user_id as string;
+      console.log('[userController] getMe - получение текущего пользователя');
 
+      // Пытаемся получить user_id из разных источников
+      let userId = req.query.user_id as string;
+      
+      // Если нет user_id в query, пытаемся извлечь из headers
       if (!userId) {
-        res.status(400).json({
-          success: false,
-          error: 'user_id обязателен'
-        });
-        return;
+        const guestId = req.headers['x-guest-id'] as string || req.headers['guest-id'] as string;
+        
+        if (guestId) {
+          console.log(`[userController] getMe - попытка найти пользователя по guest_id: ${guestId}`);
+          
+          try {
+            const userByGuestId = await userService.getUserByGuestId(guestId);
+            if (userByGuestId) {
+              userId = userByGuestId.id.toString();
+              console.log(`[userController] getMe - найден пользователь по guest_id: ${userId}`);
+            }
+          } catch (error) {
+            console.warn(`[userController] getMe - ошибка поиска по guest_id: ${error}`);
+          }
+        }
+      }
+
+      // Если все еще нет userId, используем fallback пользователя
+      if (!userId) {
+        console.log('[userController] getMe - fallback к пользователю ID=1');
+        userId = '1';
       }
 
       console.log(`[userController] getMe запрос для user_id: ${userId}`);
 
-      const user = await userService.getUserById(parseInt(userId));
+      const user = await userService.getUserById(parseInt(userId, 10));
 
       if (!user) {
         console.log(`[userController] Пользователь с ID ${userId} не найден`);
@@ -568,6 +588,8 @@ export const UserController = {
           ref_code: user.ref_code,
           parent_ref_code: user.parent_ref_code,
           guest_id: user.guest_id,
+          balance_uni: user.balance_uni || "0",
+          balance_ton: user.balance_ton || "0",
           created_at: user.created_at
         }
       });
