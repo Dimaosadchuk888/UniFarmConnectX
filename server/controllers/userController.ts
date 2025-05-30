@@ -671,6 +671,64 @@ export const UserController = {
       sendServerError(res, 'Ошибка при добавлении TON кошелька');
     }
   },
+  /**
+   * Получение пользователя по guest_id
+   */
+  static async getUserByGuestId(req: Request, res: Response): Promise<void> {
+    try {
+      const { guest_id } = req.params;
+      const { user_id } = req.query;
 
+      logger.info(`[UserController] Запрос пользователя: guest_id=${guest_id}, user_id=${user_id}`);
+
+      if (!guest_id) {
+        logger.warn('[UserController] guest_id отсутствует в параметрах');
+        res.status(400).json({
+          success: false,
+          error: 'guest_id is required'
+        });
+        return;
+      }
+
+      // Сначала пытаемся найти пользователя по guest_id
+      let user = await userService.getUserByGuestId(guest_id);
+
+      // Если пользователь не найден и есть user_id, пытаемся найти по user_id
+      if (!user && user_id) {
+        logger.info(`[UserController] Пользователь не найден по guest_id, ищем по user_id=${user_id}`);
+        user = await userService.getUserById(parseInt(user_id as string));
+
+        // Если найден по user_id, обновляем guest_id
+        if (user) {
+          logger.info(`[UserController] Обновляем guest_id для пользователя ${user.id}`);
+          await userService.updateUser(user.id, { guest_id });
+          user.guest_id = guest_id;
+        }
+      }
+
+      if (!user) {
+        logger.warn(`[UserController] Пользователь не найден: guest_id=${guest_id}, user_id=${user_id}`);
+        res.status(404).json({
+          success: false,
+          error: 'User not found',
+          debug: { guest_id, user_id }
+        });
+        return;
+      }
+
+      logger.info(`[UserController] Пользователь найден: id=${user.id}, guest_id=${user.guest_id}`);
+      res.status(200).json({
+        success: true,
+        data: user
+      });
+    } catch (error) {
+      logger.error('[UserController] Error getting user by guest_id:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
 
 };

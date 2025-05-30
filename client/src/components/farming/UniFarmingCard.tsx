@@ -33,7 +33,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   // Флаг для предотвращения автоматических вызовов
   const depositRequestSent = useRef<boolean>(false);
-  
+
   // Применяем Error Boundary к компоненту
   const withErrorBoundary = useErrorBoundary({
     queryKey: ['/api/v2/uni-farming/status', userId],
@@ -41,7 +41,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     errorDescription: 'Не удалось загрузить информацию о вашем UNI фарминге. Пожалуйста, обновите страницу или повторите позже.',
     resetButtonText: 'Обновить данные'
   });
-  
+
   // Получаем информацию о фарминге с динамическим ID пользователя
   const { data: farmingResponse, isLoading } = useQuery<{ success: boolean; data: FarmingInfo }>({
     queryKey: ['/api/v2/uni-farming/status', userId], // Обновлено на корректный эндпоинт /api/v2/uni-farming/status
@@ -54,7 +54,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           `/api/v2/uni-farming/status?user_id=${userId || 1}`, 
           'GET'
         );
-        
+
         console.log('[DEBUG] Получены данные фарминга:', JSON.stringify(response));
         // Выводим подробные дебаг данные для анализа точности отображения
         if (response.data) {
@@ -65,10 +65,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             ratePerSecond: response.data.totalRatePerSecond,
             dailyIncome: response.data.dailyIncomeUni
           });
-          
+
           // Вывод полного объекта response.data для диагностики
           console.log('[DEBUG] UNI Farming - Полный объект данных:', response.data);
-          
+
           // Проверка числовых значений
           try {
             // Приоритет отдаем общей скорости начисления из API
@@ -95,7 +95,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
     }
   });
-  
+
   // Информация о фарминге из ответа API
   const farmingInfo: FarmingInfo = (farmingResponse && farmingResponse.data) ? farmingResponse.data : {
     isActive: false,
@@ -104,7 +104,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     depositCount: 0,
     totalDepositAmount: '0',
   };
-  
+
   // Для подсчета транзакций фарминга
   const { data: transactionsResponse } = useQuery({
     queryKey: ['/api/v2/transactions', userId],
@@ -113,7 +113,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       return await correctApiRequest('/api/v2/transactions?user_id=' + (userId || 1), 'GET');
     }
   });
-  
+
   // Подсчет депозитов и суммирование их вклада из транзакций
   const farmingDeposits = React.useMemo(() => {
     if (!transactionsResponse?.data?.transactions) return [];
@@ -121,40 +121,40 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       (tx: any) => tx.type === 'deposit' && tx.currency === 'UNI' && tx.source === 'uni_farming'
     );
   }, [transactionsResponse?.data?.transactions]);
-  
+
   // Рассчитываем суммарную величину всех депозитов
   const totalDepositsAmount = React.useMemo(() => {
     try {
       console.log('[DEBUG] totalDepositsAmount - Начало расчета');
-      
+
       // Если API вернул значение для общей суммы, используем его
       if (farmingInfo.totalDepositAmount) {
         console.log('[DEBUG] totalDepositsAmount - Используем API значение totalDepositAmount:', farmingInfo.totalDepositAmount);
         return farmingInfo.totalDepositAmount;
       }
-      
+
       // Если нет транзакций, вернем depositAmount из API
       if (!farmingDeposits || farmingDeposits.length === 0) {
         console.log('[DEBUG] totalDepositsAmount - Нет депозитов, используем depositAmount из API:', farmingInfo.depositAmount);
         return farmingInfo.depositAmount || '0';
       }
-      
+
       console.log('[DEBUG] totalDepositsAmount - Количество депозитов для подсчета:', farmingDeposits.length);
-      
+
       // Суммируем все депозиты
       const total = farmingDeposits.reduce((sum: BigNumber, tx: any) => {
         try {
           // Обрабатываем значение безопасно
           const txAmount = String(tx.amount || '0').trim();
           console.log('[DEBUG] totalDepositsAmount - Обработка депозита:', { amount: txAmount });
-          
+
           const amountBN = new BigNumber(txAmount);
           // Проверяем на валидность
           if (amountBN.isNaN() || !amountBN.isFinite()) {
             console.log('[DEBUG] totalDepositsAmount - Невалидное значение депозита:', txAmount);
             return sum;
           }
-          
+
           const newSum = sum.plus(amountBN);
           console.log('[DEBUG] totalDepositsAmount - Промежуточная сумма:', newSum.toString());
           return newSum;
@@ -163,7 +163,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           return sum;
         }
       }, new BigNumber(0));
-      
+
       const result = total.toString();
       console.log('[DEBUG] totalDepositsAmount - Финальный результат:', result);
       return result;
@@ -172,7 +172,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       return farmingInfo.depositAmount || '0';
     }
   }, [farmingDeposits, farmingInfo.depositAmount, farmingInfo.totalDepositAmount]);
-  
+
   // Подсчитываем количество активных депозитов 
   // Приоритет отдаем значению из API, а если его нет, считаем локально
   const depositCount = farmingInfo.depositCount || farmingDeposits.length || 0;
@@ -181,7 +181,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     localCount: farmingDeposits.length,
     finalCount: depositCount
   });
-  
+
   // Информационная мутация (просто для показа информации о новом механизме)
   const infoMutation = useMutation({
     mutationFn: async () => {
@@ -190,10 +190,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         const requestBody = { 
           user_id: userId 
         };
-        
+
         // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
         const response = await correctApiRequest('/api/v2/uni-farming/harvest', 'POST', requestBody);
-        
+
         if (response?.success) {
           return response;
         } else {
@@ -216,7 +216,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       try {
         // Показываем информацию о новом механизме
         setError(data.message || 'Доход автоматически начисляется на ваш баланс UNI');
-        
+
         // Обновляем данные с учетом динамического ID пользователя
         // Используем новую функцию вместо прямого вызова invalidateQueries
         invalidateQueryWithUserId('/api/v2/uni-farming/status', [
@@ -238,7 +238,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
     },
   });
-  
+
   // Мутация для выполнения депозита (заменяет прямое использование fetch)
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
@@ -247,9 +247,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         amount: String(amount).trim(), // Гарантированно строка без пробелов
         user_id: Number(userId || 1) // Гарантированно число
       };
-      
+
       console.log('Отправляем депозит:', requestBody);
-      
+
       // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
       return correctApiRequest('/api/v2/uni-farming/deposit', 'POST', requestBody);
     },
@@ -258,24 +258,24 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // Очищаем форму и сообщение об ошибке
         setDepositAmount('');
         setError(null);
-        
+
         // Показываем уведомление об успешном создании депозита
         showNotification('success', {
           message: 'Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!',
           duration: 5000
         });
-        
+
         // Обновляем контекст пользователя для обновления баланса без перезагрузки
         if (userData && response?.data?.newBalance) {
           console.log('[INFO] Обновляем баланс пользователя:', {
             oldBalance: userData.balance_uni,
             newBalance: response.data.newBalance
           });
-          
+
           // Обновляем userData напрямую для мгновенного эффекта
           userData.balance_uni = response.data.newBalance;
         }
-        
+
         // Обновляем данные с учетом динамического ID пользователя
         // Используем новую функцию вместо прямого вызова invalidateQueries
         // Обновляем сразу все основные эндпоинты
@@ -283,7 +283,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           '/api/v2/wallet/balance',
           '/api/v2/transactions'
         ]);
-        
+
         // Принудительно обновляем баланс пользователя
         queryClient.refetchQueries({ queryKey: ['/api/v2/me'] });
       } catch (error: any) {
@@ -312,19 +312,19 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
     }
   });
-  
+
   // Улучшенный обработчик отправки формы с расширенной обработкой ошибок
   const handleSubmit = (e: React.FormEvent) => {
     try {
       // Предотвращаем стандартное поведение формы
       e.preventDefault();
-      
+
       // Предотвращаем множественные вызовы
       if (isSubmitting) {
         console.log('Предотвращен повторный вызов отправки формы (isSubmitting=true)');
         return;
       }
-      
+
       try {
         // Устанавливаем флаг отправки и очищаем ошибки
         setIsSubmitting(true);
@@ -333,7 +333,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         console.error('Ошибка при установке состояния отправки:', stateError);
         // Даже в случае ошибки продолжаем выполнение
       }
-      
+
       // Валидация наличия суммы
       if (!depositAmount || depositAmount.trim() === '' || depositAmount === '0') {
         try {
@@ -344,10 +344,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         }
         return;
       }
-      
+
       // Минимальная сумма депозита - 10 UNI согласно требованиям
       const MIN_DEPOSIT = 10;
-      
+
       try {
         // Создаем BigNumber для безопасной работы с числами
         let amount: BigNumber;
@@ -355,14 +355,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           // Удаляем все пробелы и другие нецифровые символы, кроме точки
           const cleanAmount = depositAmount.trim().replace(/[^\d.]/g, '');
           amount = new BigNumber(cleanAmount);
-          
+
           // Проверка на валидное число
           if (amount.isNaN() || !amount.isFinite()) {
             setError('Введено некорректное числовое значение');
             setIsSubmitting(false);
             return;
           }
-          
+
           // Проверка минимальной суммы
           if (amount.isLessThan(MIN_DEPOSIT)) {
             setError(`Минимальная сумма депозита - ${MIN_DEPOSIT} UNI`);
@@ -375,21 +375,21 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           setIsSubmitting(false);
           return;
         }
-        
+
         // Проверка корректности суммы
         if (amount.isLessThanOrEqualTo(0)) {
           setError('Сумма должна быть положительным числом');
           setIsSubmitting(false);
           return;
         }
-        
+
         // Проверка минимальной суммы депозита
         if (amount.isLessThan(MIN_DEPOSIT)) {
           setError(`Минимальная сумма депозита: ${MIN_DEPOSIT} UNI`);
           setIsSubmitting(false);
           return;
         }
-        
+
         // Получаем и проверяем баланс
         let balance: BigNumber;
         try {
@@ -401,10 +401,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             setIsSubmitting(false);
             return;
           }
-          
+
           // Создаем BigNumber для баланса
           balance = new BigNumber(balanceStr);
-          
+
           // Проверка на валидный баланс
           if (balance.isNaN() || !balance.isFinite()) {
             console.error('Получен некорректный баланс:', balanceStr);
@@ -418,14 +418,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           setIsSubmitting(false);
           return;
         }
-        
+
         // Проверка достаточности средств
         if (amount.isGreaterThan(balance)) {
           setError('Недостаточно средств на балансе');
           setIsSubmitting(false);
           return;
         }
-        
+
         try {
           // Вызываем мутацию с валидированной суммой
           console.log('Отправка депозита:', amount.toString());
@@ -450,7 +450,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
     }
   };
-  
+
   // Обработчик для показа информации о новом механизме автоматического начисления с улучшенной обработкой ошибок
   const handleShowInfo = () => {
     try {
@@ -464,7 +464,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         }
         return;
       }
-      
+
       // Проверяем, что у нас есть userId
       if (!userId) {
         console.warn('handleShowInfo вызван без userId');
@@ -475,7 +475,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         }
         return;
       }
-      
+
       // Проверка активности фарминга
       if (!isActive) {
         console.log('Показываем информацию для неактивного фарминга');
@@ -486,14 +486,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         }
         return;
       }
-      
+
       // Вызываем мутацию с обработкой ошибок
       try {
         console.log('Запускаем infoMutation...');
         infoMutation.mutate();
       } catch (mutationError) {
         console.error('Ошибка при запуске infoMutation:', mutationError);
-        
+
         // Показываем информационное сообщение в любом случае
         try {
           setError('Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!');
@@ -503,7 +503,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
     } catch (globalError) {
       console.error('Глобальная ошибка в handleShowInfo:', globalError);
-      
+
       // Гарантируем, что пользователь получит информацию даже при ошибке
       try {
         setError('Доход от фарминга автоматически начисляется на ваш баланс UNI каждую секунду!');
@@ -512,7 +512,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       }
     }
   };
-  
+
   // Форматирование числа с учетом малых значений и расширенной обработкой ошибок
   const formatNumber = (value: string | undefined, decimals: number = 3): string => {
     try {
@@ -522,16 +522,16 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         type: typeof value,
         decimals
       });
-      
+
       // Проверка наличия значения
       if (value === undefined || value === null) {
         console.log('[DEBUG] formatNumber - Значение undefined или null');
         return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
       }
-      
+
       // Нормализация значения
       let normalizedValue = value;
-      
+
       // Если это не строка, попробуем преобразовать
       if (typeof value !== 'string') {
         try {
@@ -542,20 +542,20 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
         }
       }
-      
+
       // Проверка на пустую строку
       if (normalizedValue.trim() === '') {
         console.log('[DEBUG] formatNumber - Пустая строка');
         return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
       }
-      
+
       // Создаем BigNumber с защитой от некорректных значений
       let num: BigNumber;
       try {
         // Гарантируем, что передаем строку и удаляем лишние пробелы
         num = new BigNumber(String(normalizedValue).trim());
         console.log('[DEBUG] formatNumber - BigNumber создан:', num.toString());
-        
+
         // Проверка на NaN или Infinity
         if (num.isNaN() || !num.isFinite()) {
           console.error('[ERROR] formatNumber - Получено нечисловое значение:', normalizedValue);
@@ -565,7 +565,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         console.error('[ERROR] formatNumber - Ошибка создания BigNumber:', bnError, 'для значения:', normalizedValue);
         return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
       }
-      
+
       try {
         // Для очень маленьких значений используем научную нотацию
         if (num.isGreaterThan(0) && num.isLessThanOrEqualTo(0.001)) {
@@ -573,14 +573,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           console.log('[DEBUG] formatNumber - Малое значение, научная нотация:', result);
           return result;
         }
-        
+
         // Для нормальных значений используем фиксированное количество десятичных знаков
         const result = num.toFixed(decimals);
         console.log('[DEBUG] formatNumber - Финальный результат:', result);
         return result;
       } catch (formatError) {
         console.error('[ERROR] formatNumber - Ошибка форматирования числа:', formatError);
-        
+
         // Запасной вариант форматирования - просто преобразуем в строку и округлим
         try {
           const numValue = parseFloat(normalizedValue);
@@ -588,7 +588,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             console.log('[DEBUG] formatNumber - Запасной вариант вернул NaN');
             return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
           }
-          
+
           const result = numValue.toFixed(decimals);
           console.log('[DEBUG] formatNumber - Результат запасного варианта:', result);
           return result;
@@ -602,10 +602,10 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       return decimals === 0 ? '0' : '0.' + '0'.repeat(decimals);
     }
   };
-  
+
   // Проверяем, активен ли фарминг
   const isActive = farmingInfo.isActive;
-  
+
   // Расчет дневного дохода (для отображения) с улучшенной обработкой ошибок
   const calculateDailyIncome = (): string => {
     try {
@@ -613,55 +613,55 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       if (!isActive) {
         return '0';
       }
-      
+
       // Получаем скорость начисления в секунду из API напрямую
       // Приоритет отдаем dailyIncomeUni, затем totalRatePerSecond, затем обычному ratePerSecond
       if (farmingInfo.dailyIncomeUni) {
         console.log('[DEBUG] calculateDailyIncome - Используем готовый дневной доход из API:', farmingInfo.dailyIncomeUni);
         return farmingInfo.dailyIncomeUni;
       }
-      
+
       const ratePerSecondStr = farmingInfo.totalRatePerSecond || farmingInfo.ratePerSecond;
       if (!ratePerSecondStr) {
         console.log('[DEBUG] calculateDailyIncome - Отсутствует скорость начисления для расчета дневного дохода');
         return '0';
       }
-      
+
       try {
         // Выводим значение для диагностики
         console.log('[DEBUG] calculateDailyIncome - Входные данные:', {
           ratePerSecondStr: ratePerSecondStr,
           type: typeof ratePerSecondStr
         });
-        
+
         // Используем BigNumber для безопасных вычислений, гарантируем строку
         const ratePerSecond = new BigNumber(String(ratePerSecondStr).trim());
-        
+
         // Проверка на валидное число
         if (ratePerSecond.isNaN() || !ratePerSecond.isFinite()) {
           console.error('[ERROR] calculateDailyIncome - Невалидное значение скорости начисления:', ratePerSecondStr);
           return '0';
         }
-        
+
         // Количество секунд в дне
         const SECONDS_IN_DAY = new BigNumber(86400);
-        
+
         // Вычисляем дневной доход: ratePerSecond * SECONDS_IN_DAY
         const dailyIncome = ratePerSecond.multipliedBy(SECONDS_IN_DAY);
-        
+
         // Логирование для диагностики
         console.log('[DEBUG] calculateDailyIncome - Результат расчета:', {
           ratePerSecond: ratePerSecond.toString(),
           seconds: SECONDS_IN_DAY.toString(),
           dailyIncome: dailyIncome.toString()
         });
-        
+
         // Проверка результата на валидность
         if (dailyIncome.isNaN() || !dailyIncome.isFinite()) {
           console.error('[ERROR] calculateDailyIncome - Ошибка при расчете дневного дохода, получено:', dailyIncome.toString());
           return '0';
         }
-        
+
         // Округляем до 3 знаков для отображения
         const result = dailyIncome.toFixed(3);
         console.log('[DEBUG] calculateDailyIncome - Финальный результат:', result);
@@ -675,7 +675,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       return '0';
     }
   };
-  
+
   // Расчет дохода в секунду (для отображения) с улучшенной обработкой ошибок
   const calculateSecondRate = (): string => {
     try {
@@ -683,7 +683,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       if (!isActive) {
         return '0';
       }
-      
+
       // Получаем скорость начисления в секунду непосредственно из API
       // Приоритет отдаем полю totalRatePerSecond из нового API
       const ratePerSecondStr = farmingInfo.totalRatePerSecond || farmingInfo.ratePerSecond;
@@ -691,7 +691,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         console.log('[DEBUG] calculateSecondRate - Отсутствует скорость начисления из API');
         return '0';
       }
-      
+
       try {
         // Выводим значение для диагностики
         console.log('[DEBUG] calculateSecondRate - Входные данные:', {
@@ -700,19 +700,19 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           finalRate: ratePerSecondStr,
           type: typeof ratePerSecondStr
         });
-        
+
         // Создаем BigNumber из скорости начисления, гарантируя строковый тип
         const ratePerSecond = new BigNumber(String(ratePerSecondStr).trim());
-        
+
         // Проверка на валидное число
         if (ratePerSecond.isNaN() || !ratePerSecond.isFinite()) {
           console.error('[ERROR] calculateSecondRate - Невалидное значение скорости начисления:', ratePerSecondStr);
           return '0';
         }
-        
+
         // Логируем результат для диагностики
         console.log('[DEBUG] calculateSecondRate - Обработанное значение:', ratePerSecond.toString());
-        
+
         // Возвращаем скорость напрямую из API с форматированием
         const result = ratePerSecond.toFixed(8); // 8 знаков для секундного дохода
         console.log('[DEBUG] calculateSecondRate - Финальный результат:', result);
@@ -726,7 +726,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       return '0';
     }
   };
-  
+
   // Форматирование даты начала фарминга с улучшенной обработкой ошибок
   // Расчет годовой доходности (APR) на основе скорости начисления
   const calculateAPR = (): { annual: string, daily: string } => {
@@ -736,18 +736,18 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         console.log('[DEBUG] calculateAPR - Фарминг неактивен');
         return { annual: '0', daily: '0' };
       }
-      
+
       console.log('[DEBUG] calculateAPR - Расчет фиксированной ставки');
-      
+
       // В нашем случае ставка фиксированная: 0.5% в день (из бизнес-логики)
       const DAILY_PERCENTAGE = 0.5;
       const ANNUAL_PERCENTAGE = DAILY_PERCENTAGE * 365;
-      
+
       const result = {
         annual: ANNUAL_PERCENTAGE.toFixed(1), // 182.5%
         daily: DAILY_PERCENTAGE.toFixed(1)    // 0.5%
       };
-      
+
       console.log('[DEBUG] calculateAPR - Результат:', result);
       return result;
     } catch (err) {
@@ -755,7 +755,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       return { annual: '182.5', daily: '0.5' }; // Значения по умолчанию
     }
   };
-  
+
   const formatStartDate = (): string => {
     try {
       // Проверка активности фарминга
@@ -763,27 +763,27 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         console.log('[DEBUG] formatStartDate - Фарминг неактивен');
         return '-';
       }
-      
+
       // Получаем timestamp из доступных полей
       const timestamp = farmingInfo.uni_farming_start_timestamp || farmingInfo.startDate;
       console.log('[DEBUG] formatStartDate - Получена дата:', timestamp);
-      
+
       // Проверка наличия метки времени
       if (!timestamp) {
         console.log('[DEBUG] formatStartDate - Отсутствует дата начала');
         return '-';
       }
-      
+
       // Попытка преобразовать строку в объект Date
       const date = new Date(timestamp);
       console.log('[DEBUG] formatStartDate - Создан объект Date:', date);
-      
+
       // Проверка валидности даты
       if (isNaN(date.getTime())) {
         console.error('[ERROR] formatStartDate - Невалидная дата:', timestamp);
         return '-';
       }
-      
+
       // Форматирование даты с обработкой ошибок
       try {
         const formatted = date.toLocaleDateString('ru-RU');
@@ -791,7 +791,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return formatted;
       } catch (formatError) {
         console.error('[ERROR] formatStartDate - Ошибка форматирования даты:', formatError);
-        
+
         // Запасной вариант форматирования
         try {
           const day = date.getDate().toString().padStart(2, '0');
@@ -810,12 +810,12 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
       return '-';
     }
   };
-  
+
   // Оборачиваем весь компонент в Error Boundary
   return withErrorBoundary(
     <div className="bg-card rounded-xl p-4 mb-5 shadow-md">
       <h2 className="text-xl font-semibold mb-3 text-primary">Основной UNI пакет</h2>
-      
+
       {/* Информация о текущем фарминге (отображается всегда, если активен) */}
       {isActive && (
         <div className="mb-5">
@@ -848,7 +848,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               </p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="p-2 rounded-lg">
               <p className="text-sm text-foreground opacity-70">Активных депозитов UNI</p>
@@ -864,7 +864,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               </p>
             </div>
           </div>
-          
+
           <div className="mb-3 p-2 rounded-lg">
             <p className="text-sm text-foreground opacity-70">Скорость начисления</p>
             <p className="text-md font-medium">
@@ -874,7 +874,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               </span>
             </p>
           </div>
-          
+
           <div className="p-3 bg-gradient-to-r from-indigo-900/30 to-purple-900/20 border border-indigo-500/30 rounded-lg flex items-center">
             <div className="text-indigo-300 mr-2">
               <i className="fas fa-info-circle"></i>
@@ -888,11 +888,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               </p>
             </div>
           </div>
-          
+
 
         </div>
       )}
-      
+
       {/* Информация для неактивного состояния фарминга */}
       {!isActive && (
         <div className="mb-5">
@@ -909,7 +909,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               </p>
             </div>
           </div>
-          
+
           <div className="mb-5 p-3 bg-gradient-to-r from-slate-900/50 to-slate-800/30 rounded-lg">
             <h3 className="text-md font-medium mb-2 flex items-center">
               <i className="fas fa-percentage text-primary mr-2"></i>
@@ -936,13 +936,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           </div>
         </div>
       )}
-      
+
       {/* Форма для создания депозита (отображается всегда) */}
       <div className={isActive ? "mt-6 pt-4 border-t border-slate-700" : ""}>
         <h3 className="text-md font-medium mb-4 flex items-center">
           <span className="text-primary">{isActive ? "Пополнить фарминг" : "Создать депозит и активировать фарминг"}</span>
         </h3>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm text-foreground opacity-70 mb-1">
@@ -971,20 +971,20 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               Доступно: <span className="text-primary">{formatNumber(userData?.balance_uni || '0')}</span> UNI
             </p>
           </div>
-          
+
           {error && (
             <div className="mb-4 p-2 bg-red-900/30 border border-red-500 rounded-lg text-red-300 text-sm animate-pulse">
               {error}
             </div>
           )}
-          
+
           <div className="mb-4 transition-all duration-300 hover:scale-[1.02] hover:bg-card/80 p-2 rounded-lg">
             <p className="text-sm text-foreground opacity-70">Минимальный депозит</p>
             <p className="text-md font-medium">
               <span className="text-primary animate-pulse">5</span> UNI
             </p>
           </div>
-          
+
           <button 
             type="submit"
             disabled={isLoading || error === 'Обработка запроса...'}

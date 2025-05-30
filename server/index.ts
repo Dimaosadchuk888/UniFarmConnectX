@@ -413,17 +413,54 @@ async function startServer(): Promise<void> {
       // Не закрываем соединение принудительно - позволяем клиенту переподключиться
     });
     
-    // Heartbeat для поддержания соединения
+    // Оптимизированный heartbeat для поддержания соединения
     const heartbeat = setInterval(() => {
       if (ws.readyState === ws.OPEN) {
         ws.ping();
       } else {
         clearInterval(heartbeat);
       }
-    }, 30000); // ping каждые 30 секунд
+    }, 15000); // ping каждые 15 секунд для уменьшения задержек
+    
+    // Установка timeout для pong ответов
+    let pongTimeout: NodeJS.Timeout;
+    
+    ws.on('ping', () => {
+      // Отвечаем на ping немедленно
+      ws.pong();
+    });
     
     ws.on('pong', () => {
       logger.debug('[WebSocket] Pong получен');
+      // Очищаем timeout при получении pong
+      if (pongTimeout) {
+        clearTimeout(pongTimeout);
+      }
+    });
+    
+    // Функция для отправки ping с timeout
+    const sendPingWithTimeout = () => {
+      if (ws.readyState === ws.OPEN) {
+        ws.ping();
+        
+        // Устанавливаем timeout для pong ответа
+        pongTimeout = setTimeout(() => {
+          logger.warn('[WebSocket] Pong timeout, закрываем соединение');
+          ws.terminate();
+        }, 5000); // 5 секунд timeout для pong
+      }
+    };
+    
+    // Обновляем heartbeat для использования новой функции
+    clearInterval(heartbeat);
+    const optimizedHeartbeat = setInterval(sendPingWithTimeout, 15000);
+    
+    // Очистка при закрытии соединения
+    ws.on('close', () => {
+      clearInterval(optimizedHeartbeat);
+      if (pongTimeout) {
+        clearTimeout(pongTimeout);
+      }
     });
   });
   
