@@ -165,23 +165,30 @@ export const UserController = {
             data_source: user.is_fallback ? 'fallback' : 'database'
           };
           
+          logger.info(`[UserController] Пользователь найден по guest_id: ${guestId}, ID: ${user.id}`);
           sendSuccess(res, responseData, 'Пользователь по guest_id успешно найден', 200);
         } else {
-          // Пользователь не найден - это нормальная ситуация, а не ошибка
-          // Клиент должен зарегистрировать нового пользователя
-          logger.info(`[UserController] Пользователь с guest_id: ${guestId} не найден, требуется регистрация`);
+          // Пользователь не найден - это нормальная ситуация, возвращаем 404
+          logger.info(`[UserController] Пользователь с guest_id: ${guestId} не найден (это нормально для новых пользователей)`);
           sendError(res, 'Пользователь с указанным guest_id не найден', 404);
         }
       } catch (serviceError) {
-        logger.error(`[UserController] Критическая ошибка при получении пользователя по guest_id: ${guestId}`, serviceError);
+        // Логируем ошибку сервиса
+        logger.error(`[UserController] Ошибка сервиса при получении пользователя по guest_id: ${guestId}`, serviceError);
         
-        // Определяем тип ошибки для правильной обработки
+        // Анализируем тип ошибки
         const errorMessage = (serviceError as any)?.message || 'Неизвестная ошибка';
         
-        // Если это проблема с подключением к БД, создаем fallback пользователя
-        if (errorMessage.includes('connection') || errorMessage.includes('database') || errorMessage.includes('timeout')) {
+        // Если это ошибка подключения к БД - пробуем fallback
+        if (errorMessage.includes('connection') || 
+            errorMessage.includes('database') || 
+            errorMessage.includes('timeout') || 
+            errorMessage.includes('ENOTFOUND') ||
+            errorMessage.includes('ETIMEDOUT')) {
+          
+          logger.warn(`[UserController] Проблема с БД, используем fallback режим для guest_id: ${guestId}`);
+          
           try {
-            logger.warn(`[UserController] Проблема с БД, создаем fallback пользователя для guest_id: ${guestId}`);
             const fallbackUser = createGuestUserFallback(guestId);
             
             sendSuccess(res, {
@@ -189,14 +196,16 @@ export const UserController = {
               is_fallback: true,
               data_source: 'emergency_fallback',
               message: 'Временные данные (проблема с БД)'
-            }, 'Временные данные пользователя', 200);
+            }, 'Временные данные пользователя (БД недоступна)', 200);
           } catch (fallbackError) {
             logger.error(`[UserController] Критическая ошибка создания fallback пользователя:`, fallbackError);
-            sendServerError(res, 'Критическая ошибка системы');
+            sendServerError(res, 'Сервис временно недоступен');
           }
         } else {
-          // Для других типов ошибок возвращаем 500
-          sendServerError(res, 'Ошибка при получении данных пользователя');
+          // Для других ошибок - возвращаем 404 вместо 500
+          // Это предотвращает ошибку 500 для клиента
+          logger.warn(`[UserController] Сервисная ошибка трактуется как "пользователь не найден": ${errorMessage}`);
+          sendError(res, 'Пользователь с указанным guest_id не найден', 404);
         }
       }
     } catch (error) {

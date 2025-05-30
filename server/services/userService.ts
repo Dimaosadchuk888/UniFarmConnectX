@@ -451,19 +451,52 @@ export function createUserService(storage: IExtendedStorage): IUserService {
       }
       
       try {
-        const updatedUser = await storage.updateUser(userId, userData);
-        
-        if (!updatedUser) {
+        // Проверяем существование пользователя
+        const existingUser = await this.getUserById(userId);
+        if (!existingUser) {
           throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
         }
+        
+        // Используем прямое обновление через сырой SQL запрос
+        const { storage: storageInstance } = await import('../storage-adapter');
+        
+        // Формируем обновления
+        const updateFields = Object.keys(userData)
+          .filter(key => userData[key as keyof User] !== undefined)
+          .map((key, index) => `${key} = $${index + 2}`)
+          .join(', ');
+        
+        if (!updateFields) {
+          // Если нет полей для обновления, возвращаем существующего пользователя
+          return existingUser;
+        }
+        
+        const values = [userId, ...Object.values(userData).filter(val => val !== undefined)];
+        
+        const query = `
+          UPDATE users 
+          SET ${updateFields}
+          WHERE id = $1
+          RETURNING *
+        `;
+        
+        // Выполняем запрос через storage adapter
+        const result = await (storageInstance as any).queryWithRetry(query, values);
+        
+        if (result.rows.length === 0) {
+          throw new NotFoundError(`Пользователь с ID ${userId} не найден после обновления`);
+        }
+        
+        const updatedUser = result.rows[0] as User;
+        console.log(`[UserService] Пользователь ${userId} успешно обновлен`);
         
         return updatedUser;
       } catch (error) {
         const err = error as ErrorWithMessage;
         console.error('[UserService] Error in updateUser:', err.message);
         
-        // Если это наша ошибка NotFoundError, пробрасываем её дальше
-        if (error instanceof NotFoundError) {
+        // Если это наша ошибка NotFoundError или ValidationError, пробрасываем её дальше
+        if (error instanceof NotFoundError || error instanceof ValidationError) {
           throw error;
         }
         

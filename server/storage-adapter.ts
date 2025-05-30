@@ -879,6 +879,50 @@ class StorageAdapter implements IExtendedStorage {
     }
   }
 
+  // Обновление данных пользователя
+  async updateUser(userId: number, userData: Partial<User>): Promise<User | undefined> {
+    console.log(`[StorageAdapter] Обновление пользователя с ID: ${userId}`);
+    try {
+      if (this.useMemory) {
+        return await this.memStorage.updateUser(userId, userData);
+      }
+
+      // Формируем SQL для обновления
+      const updateFields = Object.keys(userData)
+        .filter(key => userData[key as keyof User] !== undefined)
+        .map((key, index) => `${key} = $${index + 2}`)
+        .join(', ');
+
+      if (!updateFields) {
+        // Если нет полей для обновления, получаем текущего пользователя
+        const result = await queryWithRetry('SELECT * FROM users WHERE id = $1', [userId]);
+        return result.rows[0] as User || undefined;
+      }
+
+      const values = [userId, ...Object.values(userData).filter(val => val !== undefined)];
+
+      const query = `
+        UPDATE users 
+        SET ${updateFields}
+        WHERE id = $1
+        RETURNING *
+      `;
+
+      const result = await queryWithRetry(query, values);
+
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+
+      return result.rows[0] as User;
+    } catch (error) {
+      logDatabaseError('updateUser', error, { userId, userData });
+      console.error(`[StorageAdapter] Ошибка при обновлении пользователя ${userId}, переключаемся на хранилище в памяти:`, error);
+      this.useMemory = true;
+      return await this.memStorage.updateUser(userId, userData);
+    }
+  }
+
   // Обновление баланса пользователя
   async updateUserBalance(userId: number, currency: 'UNI' | 'TON', amount: string): Promise<User> {
     console.log(`[StorageAdapter] Обновление баланса ${currency} пользователя с ID: ${userId}, сумма: ${amount}`);
