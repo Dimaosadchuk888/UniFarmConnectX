@@ -15,6 +15,15 @@ export class AuthController {
    */
   static async authenticateTelegram(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      console.log('[AuthController] Новый запрос аутентификации Telegram');
+      console.log('[AuthController] Данные запроса:', {
+        body: req.body,
+        headers: {
+          'x-telegram-init-data': req.headers['x-telegram-init-data'] ? 'присутствует' : 'отсутствует',
+          'x-telegram-user-id': req.headers['x-telegram-user-id'] || 'отсутствует'
+        }
+      });
+
       // Создаем схему валидации данных Telegram
       const telegramAuthSchema = z.object({
         telegram_id: z.number(),
@@ -30,6 +39,7 @@ export class AuthController {
       const validatedData = telegramAuthSchema.safeParse(req.body);
 
       if (!validatedData.success) {
+        console.error('[AuthController] Ошибка валидации данных:', validatedData.error);
         return sendError(res, 'Неверный формат данных Telegram', 400, validatedData.error);
       }
 

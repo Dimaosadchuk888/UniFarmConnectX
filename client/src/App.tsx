@@ -305,6 +305,32 @@ function App() {
     }
   };
 
+  // Метод для регистрации пользователя
+  const registerUserWithTelegram = async (refCode?: string): Promise<any> => {
+    try {
+      console.log('[App] Регистрация пользователя через Telegram');
+
+      // Получаем данные пользователя Telegram
+      const telegramUserData = getTelegramUserData();
+      if (!telegramUserData) {
+        throw new Error('Отсутствуют данные пользователя Telegram');
+      }
+
+      console.log('[App] Данные Telegram пользователя:', {
+        id: telegramUserData.id,
+        username: telegramUserData.username,
+        first_name: telegramUserData.first_name
+      });
+
+      // Используем telegramService для регистрации
+      const result = await registerTelegramUser(telegramUserData.id, telegramUserData, refCode);
+      return result;
+    } catch (error) {
+      console.error('[App] Ошибка при регистрации через Telegram:', error);
+      throw error;
+    }
+  };
+
   // Switch between tabs without using routes (simpler for Telegram Mini App)
   const renderActivePage = () => {
     // ЭТАП 4.1: Удалена проверка на минимальную версию.

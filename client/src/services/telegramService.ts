@@ -328,37 +328,40 @@ export function checkTelegramWebApp(): Record<string, any> {
  * @param referrerCode Реферальный код, если есть
  * @returns Promise с результатом регистрации
  */
-export async function registerTelegramUser(referrerCode?: string): Promise<any> {
+export async function registerTelegramUser(telegramId: number, userData: any, refCode?: string): Promise<any> {
   try {
-    console.log('[TELEGRAM REGISTER] Начало регистрации пользователя');
+    console.log('[telegramService] Регистрация пользователя через Telegram...');
 
-    // Получаем данные Telegram пользователя
-    const telegramData = await getTelegramUserData();
-
-    console.log('[TELEGRAM REGISTER] Данные пользователя:', {
-      userId: telegramData.userId,
-      username: telegramData.username || 'N/A',
-      firstName: telegramData.firstName
-    });
-
-    const registerData: any = {
-      telegram_id: telegramData.userId,
-      username: telegramData.username || undefined,
-      first_name: telegramData.firstName,
-      last_name: telegramData.lastName || undefined,
-      initData: telegramData.initData
-    };
-
-    // Добавляем реферальный код, если он предоставлен
-    if (referrerCode) {
-      registerData.parent_ref_code = referrerCode;
-      console.log('[TELEGRAM REGISTER] С реферальным кодом:', referrerCode);
-    } else if (telegramData.startParam) {
-      registerData.parent_ref_code = telegramData.startParam;
-      console.log('[TELEGRAM REGISTER] Реферальный код из start_param:', telegramData.startParam);
+    // Валидируем обязательные данные Telegram
+    if (!telegramId || !userData.first_name) {
+      throw new Error('Отсутствуют обязательные данные Telegram');
     }
 
-    console.log('[TELEGRAM REGISTER] Отправляем данные на /api/register/telegram:', registerData);
+    // // Получаем initData
+    // const initData = getInitData();
+    // if (!initData) {
+    //   throw new Error('Отсутствует initData - доступ только через Telegram Mini App');
+    // }
+    const webApp = window.Telegram!.WebApp!;
+    const initData = webApp.initData;
+
+    // Формируем данные для регистрации
+    const registerData = {
+      telegram_id: telegramId,
+      username: userData.username,
+      first_name: userData.first_name,
+      last_name: userData.last_name,
+      initData: initData,
+      parent_ref_code: refCode
+    };
+
+    console.log('[telegramService] Отправка данных для регистрации:', {
+      telegram_id: telegramId,
+      username: userData.username,
+      first_name: userData.first_name,
+      has_initData: !!initData,
+      parent_ref_code: refCode || 'отсутствует'
+    });
 
     const response = await fetch(`${apiConfig.baseUrl}/api/register/telegram`, {
       method: 'POST',
@@ -414,3 +417,43 @@ export async function logAppLaunch(): Promise<boolean> {
     return false;
   }
 }
+
+export const getApiHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Cache-Control': 'no-cache'
+  };
+
+  try {
+    // Получаем initData
+    const webApp = window.Telegram!.WebApp!;
+    const initData = webApp.initData;
+    if (initData && initData.length > 0) {
+      headers['X-Telegram-Init-Data'] = initData;
+    }
+
+    // Получаем данные пользователя Telegram
+    const telegramUser = window.Telegram!.WebApp!.initDataUnsafe?.user;
+    if (telegramUser && telegramUser.id) {
+      headers['X-Telegram-User-ID'] = telegramUser.id.toString();
+    }
+
+    // В режиме разработки добавляем заголовок
+    if (process.env.NODE_ENV === 'development') {
+      headers['X-Development-Mode'] = 'true';
+    }
+
+    console.log('[telegramService] Подготовка заголовков:', {
+      hasInitData: !!initData,
+      initDataLength: initData?.length || 0,
+      hasUser: !!telegramUser,
+      telegramUserId: telegramUser?.id || 'отсутствует'
+    });
+
+    return headers;
+  } catch (error) {
+    console.error('[telegramService] Ошибка при формировании заголовков:', error);
+    return headers;
+  }
+};
