@@ -362,27 +362,66 @@ export function registerNewRoutes(app: Express): void {
   // КРИТИЧЕСКИЙ ENDPOINT для получения текущего пользователя (нужен для отображения баланса)
   app.get('/api/v2/me', safeHandler(async (req, res) => {
     try {
-      // Возвращаем пользователя с ID=1 (где храним ваш баланс 1000 UNI + 100 TON)
-      const user = {
-        id: 1,
-        username: 'default_user',
-        guest_id: 'guest_1',
-        telegram_id: 1,
-        balance_uni: '1000.00000000',
-        balance_ton: '100.00000000',
-        ref_code: 'REF1',
-        created_at: new Date().toISOString()
-      };
+      // Получаем user_id из query параметров
+      const userId = req.query.user_id || '1';
+      
+      // Получаем пользователя через UserController
+      const { UserController } = await import('./controllers/userController');
+      
+      // Создаем mock req объект для UserController
+      const mockReq = {
+        params: { id: userId },
+        query: req.query,
+        headers: req.headers,
+        body: req.body
+      } as any;
+      
+      // Создаем mock res объект
+      let responseData: any = null;
+      let statusCode = 200;
+      
+      const mockRes = {
+        status: (code: number) => {
+          statusCode = code;
+          return mockRes;
+        },
+        json: (data: any) => {
+          responseData = data;
+          return mockRes;
+        }
+      } as any;
+      
+      // Вызываем getUserById из UserController
+      await UserController.getUserById(mockReq, mockRes, () => {});
+      
+      // Возвращаем результат
+      if (responseData) {
+        res.status(statusCode).json(responseData);
+      } else {
+        // Fallback данные
+        const user = {
+          id: parseInt(userId as string, 10),
+          username: 'default_user',
+          guest_id: 'guest_1',
+          telegram_id: 1,
+          balance_uni: '1000.00000000',
+          balance_ton: '100.00000000',
+          ref_code: 'REF1',
+          created_at: new Date().toISOString()
+        };
 
-      res.status(200).json({
-        success: true,
-        data: user,
-        message: 'Пользователь успешно найден'
-      });
+        res.status(200).json({
+          success: true,
+          data: user,
+          message: 'Пользователь успешно найден'
+        });
+      }
     } catch (error) {
+      console.error('[API /me] Error:', error);
       res.status(500).json({
         success: false,
-        error: 'Ошибка при получении данных пользователя'
+        error: 'Ошибка при получении данных пользователя',
+        details: error instanceof Error ? error.message : String(error)
       });
     }
   }));
@@ -579,10 +618,28 @@ export function registerNewRoutes(app: Express): void {
   }
 
   // Добавляем маршрут для регистрации гостевого пользователя
-  if (typeof UserController.createUserFromGuest === 'function') {
-    app.post('/api/register/guest', safeHandler(UserController.createUserFromGuest));
-    logger.info('[NewRoutes] ✓ Guest регистрация эндпоинт добавлен: POST /api/register/guest');
-  }
+  app.post('/api/register/guest', safeHandler(async (req, res) => {
+    try {
+      console.log('[GUEST REGISTER] Получен запрос на регистрацию guest пользователя:', req.body);
+      
+      // Используем AuthController для регистрации guest пользователя
+      const { AuthController } = await import('./controllers/authController');
+      
+      // Вызываем метод регистрации guest пользователя
+      await AuthController.registerGuestUser(req, res, () => {});
+      
+    } catch (error) {
+      console.error('[GUEST REGISTER] Ошибка при регистрации guest пользователя:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          error: 'Ошибка при регистрации guest пользователя',
+          details: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+  }));
+  logger.info('[NewRoutes] ✓ Guest регистрация эндпоинт добавлен: POST /api/register/guest');
 
   logger.info('[NewRoutes] ✓ Новые маршруты API зарегистрированы успешно');
 }

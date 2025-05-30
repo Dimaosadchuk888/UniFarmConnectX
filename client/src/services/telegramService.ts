@@ -365,10 +365,17 @@ export function requestInitData(): Promise<boolean> {
  */
 export function getTelegramAuthHeaders(): Record<string, string> {
   try {
+    // Базовые заголовки для всех запросов
+    const baseHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Client-Version': '1.0.0'
+    };
+    
     // В режиме разработки используем тестовые данные
     if (process.env.NODE_ENV === 'development') {
       console.log('[telegramService] [DEV] Using default test user ID: 1');
       return {
+        ...baseHeaders,
         'X-Development-Mode': 'true',
         'X-Development-User-Id': '1',
         'X-Telegram-User-Id': '1'
@@ -389,6 +396,7 @@ export function getTelegramAuthHeaders(): Record<string, string> {
       
       if (initData && initData.length > 0) {
         const headers: Record<string, string> = {
+          ...baseHeaders,
           'Telegram-Init-Data': initData
         };
         
@@ -404,18 +412,25 @@ export function getTelegramAuthHeaders(): Record<string, string> {
       if (user?.id) {
         console.warn('[telegramService] ⚠️ initData пустой, используем fallback с user ID');
         return {
+          ...baseHeaders,
           'X-Telegram-User-Id': String(user.id),
           'X-Fallback-Mode': 'true'
         };
       }
     }
     
-    // В случае отсутствия данных возвращаем пустой объект
-    console.warn('[telegramService] ⚠️ No Telegram initData available to add to headers');
-    return {};
+    // В случае отсутствия данных Telegram работаем в guest режиме
+    console.log('[telegramService] Работаем в guest режиме без Telegram данных');
+    return {
+      ...baseHeaders,
+      'X-Guest-Mode': 'true'
+    };
   } catch (error) {
     console.error('[telegramService] Error preparing auth headers:', error);
-    return {};
+    return {
+      'Content-Type': 'application/json',
+      'X-Error-Mode': 'true'
+    };
   }
 }
 
@@ -514,6 +529,8 @@ export async function registerUserWithTelegram(
   referrerCode?: string
 ): Promise<any> {
   try {
+    console.log(`[REGISTER] Начало регистрации: guestId=${guestId}, referrerCode=${referrerCode || 'отсутствует'}`);
+    
     // [TG REGISTRATION FIX] Получаем данные Telegram пользователя
     const telegramData = await getTelegramUserData();
     
@@ -526,7 +543,8 @@ export async function registerUserWithTelegram(
         username: telegramData.username || undefined,
         first_name: telegramData.first_name || undefined,
         last_name: telegramData.last_name || undefined,
-        language_code: telegramData.language_code || 'en'
+        language_code: telegramData.language_code || 'en',
+        guest_id: guestId // Добавляем guest_id для связки
       };
       
       // Добавляем реферальный код, если он предоставлен
@@ -550,9 +568,9 @@ export async function registerUserWithTelegram(
       console.log(`[TELEGRAM REGISTER] Получен ответ от сервера: ${response.status} ${response.statusText}`);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[TELEGRAM REGISTER] Ошибка регистрации: ${response.status} - ${errorText}`);
-        throw new Error(`Ошибка регистрации Telegram пользователя: ${response.status} ${response.statusText} - ${errorText}`);
+        // Если Telegram регистрация не удалась, fallback к guest регистрации
+        console.warn(`[TELEGRAM REGISTER] Telegram регистрация не удалась, переход к guest регистрации`);
+        throw new Error('Telegram registration failed, falling back to guest');
       }
       
       const registrationResult = await response.json();
@@ -561,21 +579,28 @@ export async function registerUserWithTelegram(
         userId: registrationResult.user?.id,
         username: registrationResult.user?.username,
         telegramId: registrationResult.user?.telegram_id,
-        refCode: registrationResult.user?.referralCode
+        refCode: registrationResult.user?.ref_code
       });
       
       return registrationResult;
     } else {
-      // Fallback: регистрация через guest_id только если нет данных Telegram
-      console.log(`[telegramService] ⚠️ Нет данных Telegram, fallback к guest_id: ${guestId}, рефкод: ${referrerCode || 'отсутствует'}`);
-      
+      throw new Error('No Telegram data available, using guest registration');
+    }
+  } catch (error) {
+    // Fallback: регистрация через guest_id
+    console.log(`[telegramService] ⚠️ Fallback к guest_id регистрации: ${guestId}, рефкод: ${referrerCode || 'отсутствует'}`);
+    
+    try {
       const registerData: any = {
-        guest_id: guestId
+        guest_id: guestId,
+        username: `guest_${guestId.substring(0, 8)}`
       };
       
       if (referrerCode) {
-        registerData.ref_code = referrerCode;
+        registerData.parent_ref_code = referrerCode;
       }
+      
+      console.log(`[GUEST REGISTER] Отправляем запрос на /api/register/guest:`, registerData);
       
       const response = await fetch(`${apiConfig.baseUrl}/api/register/guest`, {
         method: 'POST',
@@ -586,23 +611,27 @@ export async function registerUserWithTelegram(
         body: JSON.stringify(registerData)
       });
       
+      console.log(`[GUEST REGISTER] Получен ответ от сервера: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Ошибка регистрации: ${response.status} ${response.statusText} - ${errorText}`);
+        console.error(`[GUEST REGISTER] Ошибка регистрации: ${response.status} - ${errorText}`);
+        throw new Error(`Ошибка регистрации guest пользователя: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
       const registrationResult = await response.json();
-      console.log(`[telegramService] Guest пользователь зарегистрирован:`, registrationResult);
+      console.log(`[GUEST REGISTER] ✅ Успешная guest регистрация:`, registrationResult);
       
       return registrationResult;
+    } catch (guestError) {
+      console.error(`[telegramService] Критическая ошибка - не удалось зарегистрировать пользователя:`, guestError);
+      
+      return {
+        success: false,
+        error: guestError instanceof Error ? guestError.message : String(guestError),
+        fallbackMode: true
+      };
     }
-  } catch (error) {
-    console.error(`[telegramService] Ошибка при регистрации пользователя:`, error);
-    
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
   }
 }
 

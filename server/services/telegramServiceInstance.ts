@@ -341,30 +341,7 @@ class TelegramServiceImpl implements ITelegramService {
   }
 }
 
-// Функция-обертка для сервисных методов с обработкой ошибок
-export function wrapServiceFunction<T extends (...args: any[]) => any>(
-  fn: T,
-  context: string = 'TelegramService'
-): T {
-  return ((...args: any[]) => {
-    try {
-      const result = fn.apply(this, args);
 
-      // Если результат - промис, обрабатываем асинхронные ошибки
-      if (result && typeof result.then === 'function') {
-        return result.catch((error: Error) => {
-          console.error(`[${context}] Async error:`, error);
-          throw error;
-        });
-      }
-
-      return result;
-    } catch (error) {
-      console.error(`[${context}] Sync error:`, error);
-      throw error;
-    }
-  }) as T;
-}
 
 // Создаем экземпляр сервиса для работы с Telegram API
 // @returns Экземпляр сервиса Telegram API
