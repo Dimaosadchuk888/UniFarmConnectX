@@ -96,7 +96,7 @@ export function registerNewRoutes(app: Express): void {
         dbDetails = {
           provider: 'memory',
           reason: 'Database connection failed, using memory fallback',
-          tables: Array.from(connectionManager['memoryStorage']?.keys() || [])
+          tables: []
         };
       } else if (connectionInfo.isConnected && connectionInfo.connectionName) {
         // Дополнительная проверка работоспособности
@@ -635,7 +635,7 @@ export function registerNewRoutes(app: Express): void {
   }));
 
   // КРИТИЧНИЙ ENDPOINT: Валидация Telegram initData
-  app.post('/api/auth/validate-init-data', async (req: any, res: any) => {
+  app.post('/api/auth/validate-init-data', safeHandler(async (req: any, res: any) => {
     try {
       console.log('[Auth] Получен запрос на валидацию initData');
       const { initData } = req.body;
@@ -661,10 +661,10 @@ export function registerNewRoutes(app: Express): void {
         error: 'Ошибка валидации'
       });
     }
-  });
+  }));
 
   // КРИТИЧНЫЙ ENDPOINT: Регистрация через guest_id
-  app.post('/api/register/guest', async (req: any, res: any) => {
+  app.post('/api/register/guest', safeHandler(async (req: any, res: any) => {
     try {
       console.log('[Auth] Регистрация через guest_id:', req.body);
       const { guest_id, ref_code } = req.body;
@@ -700,12 +700,16 @@ export function registerNewRoutes(app: Express): void {
         error: error.message || 'Ошибка регистрации'
       });
     }
-  });
+  }));
 
   // КРИТИЧНО: Підключаємо простий робочий маршрут для місій
-  const simpleMissionsRouter = await import('./routes/simple-missions.js');
-  app.use('/', simpleMissionsRouter.default);
-  logger.info('[NewRoutes] ✅ Простий маршрут місій підключено');
+  try {
+    const simpleMissionsRouter = await import('./routes/simple-missions');
+    app.use('/', simpleMissionsRouter.default || simpleMissionsRouter);
+    logger.info('[NewRoutes] ✅ Простий маршрут місій підключено');
+  } catch (error) {
+    logger.warn('[NewRoutes] ⚠️ Не удалось подключить simple-missions:', error.message);
+  }
 
   logger.info('[NewRoutes] ✓ Новые маршруты API зарегистрированы успешно');
 }
