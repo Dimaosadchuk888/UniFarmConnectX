@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { healthMonitor } from '../utils/healthMonitor';
 
 /**
  * Middleware для централизованной обработки ошибок
@@ -25,6 +26,11 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
       timestamp: new Date().toISOString()
     });
+
+    // Записываем ошибку в систему мониторинга
+    if (req.path.startsWith('/api/')) {
+      healthMonitor.recordApiError(req.path, err.message);
+    }
 
     // Проверяем, является ли это запросом для проверки здоровья
     const isHealthCheck = (

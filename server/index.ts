@@ -765,7 +765,22 @@ async function startServer(): Promise<void> {
   // Добавляем health check endpoint перед статическими файлами
   app.get('/health', (req: any, res: any) => {
     logger.debug('[Health Check] Запрос к health endpoint');
-    return res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+    
+    // Импортируем healthMonitor
+    const { healthMonitor } = require('./utils/healthMonitor');
+    healthMonitor.updateMetrics();
+    
+    const healthStatus = healthMonitor.getHealthStatus();
+    
+    return res.status(healthStatus.status === 'critical' ? 503 : 200).json({
+      status: healthStatus.status === 'healthy' ? 'OK' : healthStatus.status,
+      timestamp: new Date().toISOString(),
+      uptime: healthStatus.uptime,
+      database: healthStatus.dbConnected ? 'connected' : 'disconnected',
+      memory: `${Math.round(healthStatus.memory.heapUsed / 1024 / 1024)}MB`,
+      issues: healthStatus.issues || [],
+      lastError: healthStatus.lastError
+    });
   });
 
   // КРИТИЧНО: Швидкий тестовий ендпоінт для місій з реальними даними з БД

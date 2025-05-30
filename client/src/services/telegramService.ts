@@ -276,8 +276,22 @@ class TelegramService {
       guestId,
       refCode: refCode || null,
       environment: envInfo,
-      isFallback: true
+      isFallback: true,
+      reason: 'no_telegram_data'
     };
+  }
+
+  /**
+   * Проверка на реальное окружение (не iframe preview)
+   */
+  isPreviewMode(): boolean {
+    const envInfo = this.getEnvironmentInfo();
+    
+    // Проверяем признаки preview режима
+    const isReplit = window.location.hostname.includes('replit');
+    const isPreview = envInfo.isInIframe && !this.isAvailable();
+    
+    return isReplit && isPreview;
   }
 
   /**

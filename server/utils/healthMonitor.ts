@@ -42,22 +42,48 @@ class HealthMonitor {
     this.metrics.lastError = error;
   }
 
-  getHealthStatus(): HealthMetrics & { status: 'healthy' | 'warning' | 'critical' } {
+  recordApiError(endpoint: string, error: string) {
+    this.metrics.lastError = `${endpoint}: ${error}`;
+    console.log(`[HealthMonitor] API Error recorded: ${endpoint} - ${error}`);
+  }
+
+  getHealthStatus(): HealthMetrics & { 
+    status: 'healthy' | 'warning' | 'critical';
+    issues: string[];
+  } {
     const memoryUsageMB = this.metrics.memory.heapUsed / 1024 / 1024;
     const isHighMemory = memoryUsageMB > 500; // Больше 500MB
     const isSlowResponse = this.metrics.apiResponseTime > 5000; // Больше 5 секунд
+    const timeSinceLastCheck = Date.now() - this.lastHealthCheck;
+    const isStale = timeSinceLastCheck > 300000; // 5 минут
     
     let status: 'healthy' | 'warning' | 'critical' = 'healthy';
+    const issues: string[] = [];
     
     if (!this.metrics.dbConnected) {
       status = 'critical';
-    } else if (isHighMemory || isSlowResponse) {
-      status = 'warning';
+      issues.push('База данных недоступна');
+    }
+    
+    if (isHighMemory) {
+      status = status === 'critical' ? 'critical' : 'warning';
+      issues.push(`Высокое потребление памяти: ${memoryUsageMB.toFixed(0)}MB`);
+    }
+    
+    if (isSlowResponse) {
+      status = status === 'critical' ? 'critical' : 'warning';
+      issues.push(`Медленные API ответы: ${this.metrics.apiResponseTime}ms`);
+    }
+    
+    if (isStale) {
+      status = status === 'critical' ? 'critical' : 'warning';
+      issues.push('Устаревшие метрики здоровья');
     }
 
     return {
       ...this.metrics,
-      status
+      status,
+      issues
     };
   }
 }
