@@ -12,8 +12,8 @@ dotenv.config();
 
 const ADMIN_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const APP_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app'
-  : 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+  ? 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app'
+  : 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 const colors = {
   reset: '\x1b[0m',

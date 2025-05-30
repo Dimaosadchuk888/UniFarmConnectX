@@ -3,7 +3,7 @@
 ## Общая информация
 
 **Дата и время проведения:** 30 апреля 2025, 03:33:09  
-**База тестирования:** https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev
+**База тестирования:** https://uni-farm-connect-xo-osadchukdmitro2.replit.appsisko.replit.dev
 
 ## Обнаруженные проблемы
 

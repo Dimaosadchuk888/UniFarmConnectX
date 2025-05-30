@@ -15,7 +15,7 @@ const os = require('os');
 
 // Конфигурация
 const config = {
-  serverUrl: 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app',
+  serverUrl: 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app',
   healthEndpoint: '/api/health',
   dbStatusEndpoint: '/api/admin/db-status',
   checkIntervalSec: 60,

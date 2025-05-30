@@ -17,7 +17,7 @@ const AUTHORIZED_ADMINS = ['DimaOsadchuk', 'a888bnd']; // Список дозв�
 // API URL
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://api.unifarm.app' 
-  : 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+  : 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 // Типи для Telegram API
 interface TelegramUser {

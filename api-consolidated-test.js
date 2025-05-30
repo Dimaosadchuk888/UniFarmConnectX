@@ -10,7 +10,7 @@ const path = require('path');
 const axios = require('axios');
 
 // Базова URL для API запитів
-const BASE_URL = process.env.API_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const BASE_URL = process.env.API_URL || 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 // Список ендпоінтів для тестування (використовуються консолідовані контролери)
 const endpoints = [

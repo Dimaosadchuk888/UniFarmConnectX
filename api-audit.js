@@ -8,7 +8,7 @@
 import fetch from 'node-fetch';
 
 // Базовый URL сервера (используем текущий хост)
-const BASE_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev';
+const BASE_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.appsisko.replit.dev';
 console.log(`Базовый URL для тестирования: ${BASE_URL}`);
 
 // Список эндпоинтов для тестирования

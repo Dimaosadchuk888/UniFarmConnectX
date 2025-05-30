@@ -30,17 +30,17 @@ if (fs.existsSync(envPath)) {
 
 // Используем стабильный production URL для Telegram бота
 if (!process.env.APP_URL) {
-  process.env.APP_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+  process.env.APP_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
   console.log('[Config] Setting APP_URL manually:', process.env.APP_URL);
 }
 
 if (!process.env.MINI_APP_URL) {
-  process.env.MINI_APP_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+  process.env.MINI_APP_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
   console.log('[Config] Setting MINI_APP_URL manually:', process.env.MINI_APP_URL);
 }
 
 if (!process.env.TELEGRAM_WEBHOOK_URL) {
-  process.env.TELEGRAM_WEBHOOK_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook';
+  process.env.TELEGRAM_WEBHOOK_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/telegram/webhook';
   console.log('[Config] Setting TELEGRAM_WEBHOOK_URL manually:', process.env.TELEGRAM_WEBHOOK_URL);
 }
 

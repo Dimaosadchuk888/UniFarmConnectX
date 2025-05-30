@@ -7,7 +7,7 @@ async function testFarmingDepositWithNumberAmount() {
   try {
     // Тестируем локальный и production URL
     const urls = [
-      'https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev',
+      'https://uni-farm-connect-xo-osadchukdmitro2.replit.appsisko.replit.dev',
       'https://uni-farm-connect-2-misterxuniverse.replit.app'
     ];
     

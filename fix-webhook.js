@@ -3,7 +3,7 @@
  */
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const WEBHOOK_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook';
+const WEBHOOK_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/telegram/webhook';
 
 async function fixWebhook() {
   try {

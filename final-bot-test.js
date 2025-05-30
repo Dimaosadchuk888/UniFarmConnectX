@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const APP_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const APP_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 const colors = {
   reset: '\x1b[0m',

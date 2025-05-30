@@ -5,7 +5,7 @@ async function testMissionsAPI() {
   try {
     console.log('🔍 Тестуємо API місій...');
     
-    const response = await fetch('https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/v2/missions/active');
+    const response = await fetch('https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/v2/missions/active');
     const data = await response.json();
     
     console.log('📊 Статус відповіді:', response.status);

@@ -3,7 +3,7 @@
  */
 const fetch = require('node-fetch');
 
-const BASE_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const BASE_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 // Список ендпоінтів для тестування
 const endpoints = [

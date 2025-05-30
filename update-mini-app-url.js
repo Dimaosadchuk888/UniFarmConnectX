@@ -7,7 +7,7 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 async function updateMiniAppUrl() {
   try {
     const timestamp = Date.now();
-    const miniAppUrl = `https://uni-farm-connect-x-lukyanenkolawfa.replit.app?v=${timestamp}`;
+    const miniAppUrl = `https://uni-farm-connect-xo-osadchukdmitro2.replit.app?v=${timestamp}`;
     
     console.log('🔄 Обновление Mini App URL с принудительным обновлением кеша...');
     console.log(`🎯 Новый URL: ${miniAppUrl}`);

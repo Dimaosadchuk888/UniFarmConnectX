@@ -6,7 +6,7 @@
  */
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const PRODUCTION_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const PRODUCTION_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 async function callTelegramAPI(method, data = {}) {
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/${method}`;

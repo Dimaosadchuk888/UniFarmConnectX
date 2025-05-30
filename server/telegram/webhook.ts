@@ -209,7 +209,7 @@ async function answerCallbackQuery(callbackQueryId: string, text: string = ''): 
 async function handleStartCommand(chatId: number, userId: number): Promise<void> {
   try {
     // Проверяем наличие имени приложения в переменных окружения
-    const baseUrl = process.env.MINI_APP_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+    const baseUrl = process.env.MINI_APP_URL || 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
     // Добавляем версию для принудительного сброса кэша Telegram
     const appUrl = `${baseUrl}?v=${Date.now()}`;
     

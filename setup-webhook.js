@@ -1,6 +1,6 @@
 /**
  * Скрипт для принудительной настройки Telegram вебхука
- * на URL https://uni-farm-connect-x-lukyanenkolawfa.replit.app
+ * на URL https://uni-farm-connect-xo-osadchukdmitro2.replit.app
  */
 
 import fetch from 'node-fetch';
@@ -13,7 +13,7 @@ dotenv.config();
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 // Целевой URL приложения
-const TARGET_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const TARGET_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 const WEBHOOK_PATH = '/api/telegram/webhook';
 const WEBHOOK_URL = `${TARGET_URL}${WEBHOOK_PATH}`;
 

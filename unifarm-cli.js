@@ -20,7 +20,7 @@ const http = require('http');
 
 // Конфигурация
 const config = {
-  serverUrl: 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app',
+  serverUrl: 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app',
   healthEndpoint: '/api/health',
   logDir: './logs',
   mainLogFile: 'unifarm.log',

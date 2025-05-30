@@ -5,7 +5,7 @@
 Дата и время проведения: 29 апреля 2025, 18:55:16
 
 ### Базовый URL
-https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev
+https://uni-farm-connect-xo-osadchukdmitro2.replit.appsisko.replit.dev
 
 ### Сводная таблица результатов
 

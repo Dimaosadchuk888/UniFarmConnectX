@@ -27,7 +27,7 @@ async function finalBotSetup() {
         type: 'web_app',
         text: 'Открыть приложение',
         web_app: {
-          url: 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app'
+          url: 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app'
         }
       }
     })
@@ -38,7 +38,7 @@ async function finalBotSetup() {
   if (menuResult.ok) {
     console.log('✅ Menu Button налаштовано!');
     console.log('📱 Текст: "Открыть приложение"');
-    console.log('🔗 URL: https://uni-farm-connect-x-lukyanenkolawfa.replit.app');
+    console.log('🔗 URL: https://uni-farm-connect-xo-osadchukdmitro2.replit.app');
   } else {
     console.error('❌ Помилка Menu Button:', menuResult.description);
   }

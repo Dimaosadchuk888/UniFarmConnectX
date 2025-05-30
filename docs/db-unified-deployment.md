@@ -69,7 +69,7 @@
 ### Проверка состояния соединения
 
 ```bash
-curl -X GET https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/admin/db-unified-test
+curl -X GET https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/admin/db-unified-test
 ```
 
 ### Проверка журналов

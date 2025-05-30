@@ -15,7 +15,7 @@
 const fetch = require('node-fetch');
 
 // Базовый URL API
-const API_BASE_URL = process.env.API_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const API_BASE_URL = process.env.API_URL || 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 /**
  * Получает баланс пользователя

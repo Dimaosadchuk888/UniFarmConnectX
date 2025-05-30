@@ -14,7 +14,7 @@ import { users } from './shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 // Базовый URL API
-const API_BASE_URL = process.env.API_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const API_BASE_URL = process.env.API_URL || 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 /**
  * Вызывает API для получения статуса бонуса

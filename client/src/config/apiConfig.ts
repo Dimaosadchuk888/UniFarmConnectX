@@ -10,7 +10,7 @@
 let API_BASE_URL = '';
 
 // ВСЕГДА используем наш правильный URL для исправления проблемы с Telegram кешем
-API_BASE_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+API_BASE_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 /**
  * Конфигурация API-клиента

@@ -7,7 +7,7 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 async function forceCacheClear() {
   try {
     const timestamp = Date.now();
-    const miniAppUrl = `https://uni-farm-connect-x-lukyanenkolawfa.replit.app?cache_bust=${timestamp}`;
+    const miniAppUrl = `https://uni-farm-connect-xo-osadchukdmitro2.replit.app?cache_bust=${timestamp}`;
     
     console.log('🔄 Принудительная очистка кеша Telegram Mini App...');
     console.log(`🎯 Новый URL с cache_bust: ${miniAppUrl}`);

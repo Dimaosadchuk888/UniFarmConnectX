@@ -37,7 +37,7 @@ async function fixTelegramMiniApp() {
         type: 'web_app',
         text: 'Открыть приложение',
         web_app: {
-          url: 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app'
+          url: 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app'
         }
       }
     })
@@ -48,7 +48,7 @@ async function fixTelegramMiniApp() {
   if (result.ok) {
     console.log('✅ Menu Button успішно оновлено!');
     console.log('📱 Новий текст: "Открыть приложение"');
-    console.log('🔗 URL для Mini App: https://uni-farm-connect-x-lukyanenkolawfa.replit.app');
+    console.log('🔗 URL для Mini App: https://uni-farm-connect-xo-osadchukdmitro2.replit.app');
     
     // Перевіримо нові налаштування
     const verifyResponse = await fetch(`https://api.telegram.org/bot${botToken}/getChatMenuButton`);

@@ -2,7 +2,7 @@
  * Скрипт для проверки исправления API после устранения проблем с Drizzle ORM
  */
 
-const baseUrl = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const baseUrl = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 async function testApi(endpoint, method = 'GET', body = null) {
   try {

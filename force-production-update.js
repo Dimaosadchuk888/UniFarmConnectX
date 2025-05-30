@@ -2,7 +2,7 @@
  * Принудительное обновление данных на production сервере
  */
 
-const PRODUCTION_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const PRODUCTION_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 async function forceProductionUpdate() {
   console.log('🚀 Принудительное обновление production сервера...');

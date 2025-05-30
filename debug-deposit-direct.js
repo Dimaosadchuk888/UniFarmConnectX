@@ -19,7 +19,7 @@ async function testDeposit() {
   };
   
   // Получаем базовый URL из окружения
-  const baseUrl = process.env.BASE_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev';
+  const baseUrl = process.env.BASE_URL || 'https://uni-farm-connect-xo-osadchukdmitro2.replit.appsisko.replit.dev';
   const endpoint = '/api/uni-farming/deposit';
   const url = `${baseUrl}${endpoint}`;
   

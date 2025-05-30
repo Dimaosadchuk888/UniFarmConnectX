@@ -70,7 +70,7 @@ export async function correctApiRequest<T = any>(
     // Формирование полного URL - ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ PRODUCTION URL
     try {
       // ПРОДАКШН РЕЖИМ: используем правильный production URL
-      const PRODUCTION_HOST = 'uni-farm-connect-x-lukyanenkolawfa.replit.app';
+      const PRODUCTION_HOST = 'uni-farm-connect-xo-osadchukdmitro2.replit.app';
       const FORCED_PRODUCTION_HOST = PRODUCTION_HOST; // Переключено на продакшн
       const protocol = 'https:';
       

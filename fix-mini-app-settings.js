@@ -25,7 +25,7 @@ async function fixMiniAppSettings() {
         type: 'web_app',
         text: 'Открыть приложение',
         web_app: {
-          url: 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app'
+          url: 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app'
         }
       }
     })
@@ -36,7 +36,7 @@ async function fixMiniAppSettings() {
   if (result.ok) {
     console.log('✅ Menu Button успішно оновлено!');
     console.log('📱 Текст: "Открыть приложение"');
-    console.log('🔗 URL: https://uni-farm-connect-x-lukyanenkolawfa.replit.app');
+    console.log('🔗 URL: https://uni-farm-connect-xo-osadchukdmitro2.replit.app');
   } else {
     console.error('❌ Помилка налаштування Menu Button:', result.description);
   }

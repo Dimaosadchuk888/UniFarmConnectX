@@ -6,7 +6,7 @@
 import fetch from 'node-fetch';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const APP_URL = process.env.APP_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const APP_URL = process.env.APP_URL || 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 if (!TELEGRAM_BOT_TOKEN) {
   console.error('❌ TELEGRAM_BOT_TOKEN не найден в переменных окружения');

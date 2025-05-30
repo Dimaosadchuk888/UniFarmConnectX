@@ -4,7 +4,7 @@
 import fetch from 'node-fetch';
 
 async function testFetchDeposits() {
-  const baseUrl = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev';
+  const baseUrl = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.appsisko.replit.dev';
   const endpoint = '/api/uni-farming/deposits?user_id=1';
   
   console.log(`Отправка GET запроса на ${baseUrl}${endpoint}`);

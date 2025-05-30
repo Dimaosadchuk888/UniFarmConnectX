@@ -53,7 +53,7 @@ UniFarm использует трехуровневую систему хран�
 База данных Replit PostgreSQL настраивается автоматически. Для проверки её состояния:
 
 ```bash
-curl https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/health
+curl https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/health
 ```
 
 ### Интеграция с Telegram

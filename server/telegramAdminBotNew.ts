@@ -17,8 +17,8 @@ const AUTHORIZED_ADMINS = ['DimaOsadchuk', 'a888bnd'];
 
 // API URL для внутренних запросов
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app'
-  : 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+  ? 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app'
+  : 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 // Админский секретный ключ
 const ADMIN_SECRET = 'unifarm_admin_secret_2025';

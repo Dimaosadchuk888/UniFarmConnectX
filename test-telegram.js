@@ -54,7 +54,7 @@ async function testTelegramSystem() {
   // 4. Проверка доступности нашего webhook endpoint
   console.log('\n4. Проверка endpoint webhook:');
   try {
-    const response = await fetch('https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/status');
+    const response = await fetch('https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/telegram/status');
     const result = await response.json();
     
     if (response.ok && result.success) {

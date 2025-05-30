@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Продакшн URL
-const PRODUCTION_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const PRODUCTION_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 // Паттерны старых временных URL для замены
 const DEV_URL_PATTERNS = [

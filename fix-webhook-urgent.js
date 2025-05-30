@@ -6,7 +6,7 @@ import fetch from 'node-fetch';
 
 async function fixWebhookUrgent() {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const correctWebhookUrl = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook';
+  const correctWebhookUrl = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/telegram/webhook';
   
   if (!botToken) {
     console.error('❌ TELEGRAM_BOT_TOKEN не найден');

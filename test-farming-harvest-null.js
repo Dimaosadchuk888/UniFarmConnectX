@@ -5,7 +5,7 @@ import fetch from 'node-fetch';
  */
 async function testFarmingHarvestWithNull() {
   try {
-    const baseUrl = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev';
+    const baseUrl = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.appsisko.replit.dev';
     const endpoint = '/api/uni-farming/harvest';
     const url = `${baseUrl}${endpoint}`;
     

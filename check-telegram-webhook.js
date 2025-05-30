@@ -5,7 +5,7 @@
 import fetch from 'node-fetch';
 
 // Продакшн URL для webhook
-const PRODUCTION_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const PRODUCTION_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 const WEBHOOK_URL = `${PRODUCTION_URL}/api/telegram/webhook`;
 
 /**

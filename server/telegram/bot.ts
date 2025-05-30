@@ -110,7 +110,7 @@ export async function initializeBot(): Promise<boolean> {
     }
     
     // Отримуємо URL для Mini App - ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ ПРОДАКШН URL
-    const miniAppUrl = process.env.MINI_APP_URL || process.env.APP_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+    const miniAppUrl = process.env.MINI_APP_URL || process.env.APP_URL || 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
     
     if (!miniAppUrl) {
       logger.error('[Telegram Bot] MINI_APP_URL або APP_URL не встановлено в змінних середовища');
@@ -130,7 +130,7 @@ export async function initializeBot(): Promise<boolean> {
     }
     
     // Отримуємо URL для webhook - ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ ПРОДАКШН URL
-    const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook';
+    const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/telegram/webhook';
     
     if (!webhookUrl) {
       logger.warn('[Telegram Bot] TELEGRAM_WEBHOOK_URL не встановлено, webhook не буде налаштовано');

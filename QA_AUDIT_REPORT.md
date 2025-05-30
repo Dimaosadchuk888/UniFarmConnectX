@@ -60,7 +60,7 @@
 
 ### ⚠️ **7. Команда /start в Telegram боте**
 **ТРЕБУЕТ ПРОВЕРКИ**: Необходим Telegram Bot Token для тестирования
-- Webhook URL настроен: `https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook`
+- Webhook URL настроен: `https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/telegram/webhook`
 - Telegram bot setup файлы найдены в `server/telegram/`
 
 ### ✅ **8. Админ-панель Telegram**

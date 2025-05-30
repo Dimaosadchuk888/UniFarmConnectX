@@ -19,7 +19,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Целевой URL приложения
-const TARGET_APP_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const TARGET_APP_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 const WEBHOOK_PATH = '/api/telegram/webhook';
 
 // Токен бота из переменных окружения

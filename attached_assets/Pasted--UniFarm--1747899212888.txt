@@ -28,7 +28,7 @@
 
 NEON_DB_URL=postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
 NEON_ID=br-gentle-snowflake-a4p4y6rz
-MINI_APP_URL=https://uni-farm-connect-x-lukyanenkolawfa.replit.app
+MINI_APP_URL=https://uni-farm-connect-xo-osadchukdmitro2.replit.app
 
 Якщо ці значення потрібно додати в секрети — зроби це. Переконайся, що вони доступні у runtime.
 
@@ -53,14 +53,14 @@ MINI_APP_URL=https://uni-farm-connect-x-lukyanenkolawfa.replit.app
 
 Якщо потрібно — виконай вручну або автоматично:
 
-curl -X POST -H "Content-Type: application/json" -d '{"appUrl": "https://uni-farm-connect-x-lukyanenkolawfa.replit.app/webapp"}' https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/setup
+curl -X POST -H "Content-Type: application/json" -d '{"appUrl": "https://uni-farm-connect-xo-osadchukdmitro2.replit.app/webapp"}' https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/telegram/setup
 
 
 ⸻
 
 4. Перевірка запуску через браузер
  • Переконайся, що при переході за посиланням:
- • https://uni-farm-connect-x-lukyanenkolawfa.replit.app
+ • https://uni-farm-connect-xo-osadchukdmitro2.replit.app
  • …відкривається фронтенд, а не білий екран
  • Якщо фронт не збирається — проверь vite, dist, обслуговування статичних файлів через Express
  • Додай правильну підтримку CORS

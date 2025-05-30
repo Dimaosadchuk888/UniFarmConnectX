@@ -4,7 +4,7 @@
 import fetch from 'node-fetch';
 
 async function testMissionsEndpoint() {
-  const baseUrl = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+  const baseUrl = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
   const userId = 34;
   const endpoint = `/api/missions/active?user_id=${userId}`;
   

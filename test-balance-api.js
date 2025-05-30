@@ -2,7 +2,7 @@
  * Скрипт для проверки API баланса пользователя
  */
 
-const API_BASE = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const API_BASE = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 
 async function testBalanceAPI() {
   console.log('🔍 Проверяем API баланса пользователя...');

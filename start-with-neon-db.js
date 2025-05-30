@@ -30,7 +30,7 @@ process.env.FORCE_NEON_DB = 'true';
 let appProcess = null;
 
 // Функция для тестирования API endpoints
-async function testEndpoints(baseUrl = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app') {
+async function testEndpoints(baseUrl = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app') {
   log('🔍 Тестируем API endpoints...', colors.blue);
   
   const endpoints = [

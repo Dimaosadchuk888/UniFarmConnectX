@@ -21,7 +21,7 @@
  • Удалить все участки кода, где явно прописана dev-ссылка.
  • Установить и зафиксировать webhook только на:
 
-https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook
+https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/telegram/webhook
 
 
 

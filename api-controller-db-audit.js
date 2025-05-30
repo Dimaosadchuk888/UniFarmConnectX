@@ -20,7 +20,7 @@ const pool = new Pool({
 });
 
 // Базовый URL API
-const API_BASE_URL = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api';
+const API_BASE_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api';
 
 // Цветные логи для лучшей читаемости
 const colors = {

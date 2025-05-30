@@ -4,7 +4,7 @@
 import fetch from 'node-fetch';
 
 // Базовый URL и ID пользователя для тестирования
-const baseUrl = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app';
+const baseUrl = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
 const userId = 34;
 
 // Список эндпоинтов для тестирования

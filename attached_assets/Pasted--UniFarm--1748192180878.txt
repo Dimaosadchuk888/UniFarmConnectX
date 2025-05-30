@@ -7,7 +7,7 @@
 1. Webhook сбрасывается на dev-ссылку
 
 Проблема:
-Webhook Telegram бота автоматически сбрасывается на https://9283...replit.dev/api/telegram/webhook, несмотря на то, что была установлена продакшн-ссылка https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook.
+Webhook Telegram бота автоматически сбрасывается на https://9283...replit.dev/api/telegram/webhook, несмотря на то, что была установлена продакшн-ссылка https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/telegram/webhook.
 
 Задача:
  • Найти и удалить любые автоматические скрипты/логики, которые регистрируют dev-ссылку при старте.

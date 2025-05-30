@@ -10,8 +10,8 @@
  */
 
 // Настройка параметров запросов
-// const API_HOST = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.app'; // Локальный хост для тестирования
-const API_HOST = 'https://uni-farm-connect-x-lukyanenkolawfa.replit.appsisko.replit.dev'; // URL в Replit для тестирования
+// const API_HOST = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app'; // Локальный хост для тестирования
+const API_HOST = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.appsisko.replit.dev'; // URL в Replit для тестирования
 const ADMIN_USER_ID = 1; // ID пользователя с правами админа
 
 // Импортируем необходимые модули

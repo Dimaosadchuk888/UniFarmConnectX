@@ -12,7 +12,7 @@
  • Упевнись, що всі cron jobs запускаються без помилок.
  • Додай логування кожної задачі з підтвердженням про запуск і завершення.
  3. Виконай ретельну перевірку Webhook Telegram Mini App
- • Перевір, чи Webhook активний: https://uni-farm-connect-x-lukyanenkolawfa.replit.app/api/telegram/webhook
+ • Перевір, чи Webhook активний: https://uni-farm-connect-xo-osadchukdmitro2.replit.app/api/telegram/webhook
  • Перевір, чи передаються callback_query та message.
  • Упевнись, що initData обробляється правильно, і Mini App не дає білий екран.
  4. Оптимізуй запуск сервера
