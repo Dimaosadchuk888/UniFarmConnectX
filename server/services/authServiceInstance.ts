@@ -1,333 +1,204 @@
 import crypto from 'crypto';
-import { storage } from '../storage';
-import { User, InsertUser } from '@shared/schema';
-import { validateTelegramInitData, TelegramValidationResult } from '../utils/telegramUtils';
-import { generateUniqueRefCode } from '../utils/refCodeUtils';
-// Используем инстанс-подход вместо статического класса
-import { userService, referralBonusService } from './index';
+import { storage } from '../storage-adapter';
+import { ValidationError, NotFoundError, ConflictError } from '../utils/responseUtils';
+import logger from '../utils/logger';
+import { generateRefCode } from '../utils/refCodeUtils';
 
 /**
- * Интерфейс для аутентификации через Telegram
+ * Сервис аутентификации с обязательной Telegram верификацией
  */
-export interface TelegramAuthData {
-  authData?: string;
-  userId?: number;
-  username?: string;
-  firstName?: string;
-  lastName?: string;
-  startParam?: string;
-  referrerId?: number;
-  refCode?: string;
-  guest_id?: string;
-  testMode?: boolean;
-}
-
-/**
- * Интерфейс для регистрации гостевого пользователя
- */
-export interface GuestRegistrationData {
-  guest_id: string;
-  username?: string;
-  parent_ref_code?: string;
-  ref_code?: string;
-  airdrop_mode?: boolean;
-  telegram_id?: number;
-}
-
-/**
- * Интерфейс для регистрации обычного пользователя
- */
-export interface UserRegistrationData {
-  username: string;
-  refCode?: string;
-  parentRefCode?: string;
-  startParam?: string;
-  telegram_id?: number;
-  guest_id?: string;
-}
-
-/**
- * Интерфейс сервиса аутентификации
- */
-export interface IAuthService {
+export class AuthServiceInstance {
   /**
-   * Проверяет Telegram initData и аутентифицирует пользователя
+   * Валидирует initData от Telegram
    */
-  authenticateTelegram(authData: TelegramAuthData, isDevelopment?: boolean): Promise<User>;
-
-  /**
-   * Регистрирует гостевого пользователя по guest_id
-   */
-  registerGuestUser(data: GuestRegistrationData): Promise<User>;
-
-  /**
-   * Регистрирует обычного пользователя
-   */
-  registerUser(data: UserRegistrationData): Promise<User>;
-}
-
-/**
- * Реализация сервиса аутентификации
- */
-class AuthServiceImpl implements IAuthService {
-  private BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-
-  /**
-   * Проверяет Telegram initData и аутентифицирует пользователя
-   */
-  async authenticateTelegram(authData: TelegramAuthData, isDevelopment: boolean = false): Promise<User> {
+  async validateTelegramInitData(initData: string): Promise<boolean> {
     try {
-      console.log(`[AuthService] 🚀 НАЧАЛО АУТЕНТИФИКАЦИИ TELEGRAM:`);
-      console.log(`[AuthService] - authData:`, JSON.stringify(authData, null, 2));
-      console.log(`[AuthService] - isDevelopment:`, isDevelopment);
-
-      // 1. Валидация данных Telegram
-      const validationResult: TelegramValidationResult = validateTelegramInitData(
-        authData.authData || '',
-        this.BOT_TOKEN,
-        isDevelopment || authData.testMode || false
-      );
-
-      console.log(`[AuthService] - validationResult:`, JSON.stringify(validationResult, null, 2));
-
-      if (!validationResult.isValid && !isDevelopment && !authData.testMode) {
-        throw new Error(`Ошибка валидации данных Telegram: ${validationResult.errors?.join(', ')}`);
+      if (!initData || initData.length === 0) {
+        throw new ValidationError('Отсутствует initData');
       }
 
-      // 2. Получение идентификатора пользователя
-      let telegramUserId = validationResult.userId;
+      // Парсим initData
+      const urlParams = new URLSearchParams(initData);
+      const hash = urlParams.get('hash');
+      const authDate = urlParams.get('auth_date');
 
-      // Если в режиме разработки или тестирования
-      if ((isDevelopment || authData.testMode) && authData.userId && !telegramUserId) {
-        telegramUserId = authData.userId;
+      if (!hash) {
+        throw new ValidationError('Отсутствует hash в initData');
       }
 
-      if (!telegramUserId && !authData.guest_id) {
-        throw new Error('Не удалось определить пользователя Telegram');
+      if (!authDate) {
+        throw new ValidationError('Отсутствует auth_date в initData');
       }
 
-      // 3. Поиск пользователя по id Telegram или guest_id
-      let user: User | undefined;
-
-      // Приоритет поиска: guest_id > telegram_id
-      if (authData.guest_id) {
-        user = await userService.getUserByGuestId(authData.guest_id);
+      // В режиме разработки пропускаем криптографическую проверку
+      if (process.env.NODE_ENV === 'development') {
+        logger.info('[AuthService] Development mode: skipping cryptographic validation');
+        return true;
       }
 
-      if (!user && telegramUserId) {
-        // Используем метод getUserByTelegramId из storage
-        const numericTelegramId = typeof telegramUserId === 'string' 
-          ? parseInt(telegramUserId, 10) 
-          : telegramUserId;
-
-        user = await storage.getUserByTelegramId(numericTelegramId);
+      // Проверяем подпись (только в продакшене)
+      if (!process.env.TELEGRAM_BOT_TOKEN) {
+        throw new ValidationError('Не настроен TELEGRAM_BOT_TOKEN');
       }
 
-      // 4. Если пользователь найден, обновим его данные
+      // Создаем массив данных для проверки
+      const dataCheckArr: string[] = [];
+      urlParams.forEach((val, key) => {
+        if (key !== 'hash') {
+          dataCheckArr.push(`${key}=${val}`);
+        }
+      });
+
+      // Сортируем и создаем строку данных
+      dataCheckArr.sort();
+      const dataCheckString = dataCheckArr.join('\n');
+
+      // Создаем HMAC-SHA-256 подпис
+      const secretKey = crypto.createHmac('sha256', 'WebAppData')
+        .update(process.env.TELEGRAM_BOT_TOKEN)
+        .digest();
+
+      const calculatedHash = crypto.createHmac('sha256', secretKey)
+        .update(dataCheckString)
+        .digest('hex');
+
+      // Проверяем подпись
+      if (calculatedHash !== hash) {
+        throw new ValidationError('Недействительный подпись initData');
+      }
+
+      // Проверяем срок действия (24 часа)
+      const authDateTimestamp = parseInt(authDate, 10) * 1000;
+      const now = Date.now();
+      const maxAge = 24 * 60 * 60 * 1000; // 24 часа
+
+      if (now - authDateTimestamp > maxAge) {
+        throw new ValidationError('initData устарел');
+      }
+
+      return true;
+    } catch (error) {
+      logger.error('[AuthService] Ошибка валидации initData:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Аутентификация пользователя через Telegram
+   * Создает нового пользователя, если не существует
+   */
+  async authenticateTelegramUser(userData: {
+    telegram_id: number;
+    username?: string;
+    first_name: string;
+    last_name?: string;
+    parent_ref_code?: string;
+  }): Promise<any> {
+    try {
+      const { telegram_id, username, first_name, last_name, parent_ref_code } = userData;
+
+      logger.info(`[AuthService] Аутентификация пользователя telegram_id: ${telegram_id}`);
+
+      // Ищем существующего пользователя
+      let user = await storage.getUserByTelegramId(telegram_id);
+
       if (user) {
-        console.log(`[AuthService] Обновляем данные пользователя ${user.id}`);
+        // Обновляем данные пользователя, если изменились
+        const needsUpdate = 
+          user.username !== username ||
+          user.first_name !== first_name ||
+          user.last_name !== last_name;
 
-        // Собираем данные для обновления
-        const updateData: Partial<User> = {};
+        if (needsUpdate) {
+          await storage.updateUser(user.id, {
+            username,
+            first_name,
+            last_name,
+            updated_at: new Date()
+          });
 
-        // Обновляем guest_id только если он не установлен и передан в authData
-        if (!user.guest_id && authData.guest_id) {
-          console.log(`  - Привязка guest_id: ${authData.guest_id}`);
-          updateData.guest_id = authData.guest_id;
+          // Получаем обновленного пользователя
+          user = await storage.getUserByTelegramId(telegram_id);
         }
 
-        // Обновляем telegram_id, если он не установлен и доступен
-        if (!user.telegram_id && telegramUserId) {
-          const numericTelegramId = typeof telegramUserId === 'string' 
-            ? parseInt(telegramUserId, 10) 
-            : telegramUserId;
-
-          console.log(`  - Привязка telegram_id: ${numericTelegramId}`);
-          updateData.telegram_id = numericTelegramId;
-        }
-
-        // Если есть данные для обновления, выполняем запрос к БД
-        if (Object.keys(updateData).length > 0) {
-          try {
-            await storage.updateUser(user.id, updateData);
-
-            // Обновляем локальный объект пользователя
-            user = {...user, ...updateData};
-            console.log(`[AuthService] ✅ Данные пользователя ${user.id} успешно обновлены`);
-          } catch (error) {
-            console.error(`[AuthService] ❌ Ошибка обновления пользователя:`, error);
-          }
-        }
-
+        logger.info(`[AuthService] Существующий пользователь найден: id=${user.id}`);
         return user;
       }
 
-      // 5. Если пользователь не найден, создаем нового (восстановление "призрачного" пользователя)
-      console.log(`[AuthService] 🔄 ВОССТАНОВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ: telegram_id=${telegramUserId}, guest_id=${authData.guest_id}`);
+      // Создаем нового пользователя
+      logger.info(`[AuthService] Создание нового пользователя для telegram_id: ${telegram_id}`);
 
-      const username = authData.username || 
-                      `user_${telegramUserId || crypto.randomBytes(4).toString('hex')}`;
+      // Генерируем уникальный реферальный код
+      const refCode = await generateRefCode();
 
-      // Создаем уникальный реферальный код
-      const ref_code = await generateUniqueRefCode();
-
-      // Определяем родительский реферальный код
-      const parent_ref_code = authData.startParam || authData.refCode || null;
-
-      console.log(`[AuthService] 📝 Создаем пользователя: username=${username}, ref_code=${ref_code}, parent_ref_code=${parent_ref_code}`);
-
-      // Создаем пользователя
-      // Преобразуем строковый telegramUserId в число (или null если отсутствует)
-      let numericTelegramId: number | null = null;
-
-      if (telegramUserId) {
-        if (typeof telegramUserId === 'string') {
-          numericTelegramId = parseInt(telegramUserId, 10);
-        } else if (typeof telegramUserId === 'number') {
-          numericTelegramId = telegramUserId;
+      // Проверяем родительский реферальный код
+      let parentUserId = null;
+      if (parent_ref_code) {
+        const parentUser = await storage.getUserByRefCode(parent_ref_code);
+        if (parentUser) {
+          parentUserId = parentUser.id;
+          logger.info(`[AuthService] Найден родительский пользователь: ${parentUserId}`);
+        } else {
+          logger.warn(`[AuthService] Родительский реферальный код не найден: ${parent_ref_code}`);
         }
       }
 
-      const newUser: InsertUser = {
-        telegram_id: numericTelegramId,
-        guest_id: authData.guest_id || null,
-        username,
-        wallet: null,
-        ton_wallet_address: null,
-        ref_code,
-        parent_ref_code
-      };
-
-      const createdUser = await storage.createUser(newUser);
-
-      // Обрабатываем реферальный бонус, если указан родительский код
-      if (parent_ref_code) {
-        await referralBonusService.processRegistrationBonus(createdUser.id, parent_ref_code);
-      }
-
-      return createdUser;
-    } catch (error) {
-      console.error('[AuthService] Ошибка аутентификации Telegram:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Регистрирует гостевого пользователя по guest_id
-   */
-  async registerGuestUser(data: GuestRegistrationData): Promise<User> {
-    try {
-      // Проверяем, существует ли пользователь с таким guest_id
-      const existingUser = await userService.getUserByGuestId(data.guest_id);
-      if (existingUser) {
-        return existingUser;
-      }
-
-      // Создаем уникальный реферальный код
-      const ref_code = data.ref_code || await generateUniqueRefCode();
-
-      // Создаем пользователя в режиме AirDrop
-      const newUser: InsertUser = {
-        telegram_id: data.telegram_id || null,
-        guest_id: data.guest_id,
-        username: data.username || `guest_${data.guest_id.substring(0, 8)}`,
-        wallet: null,
-        ton_wallet_address: null,
-        ref_code,
-        parent_ref_code: data.parent_ref_code || null,
-      };
-
-      const createdUser = await storage.createUser(newUser);
-
-      // Если указан родительский реферальный код, начисляем бонус
-      if (data.parent_ref_code) {
-        await referralBonusService.processRegistrationBonus(createdUser.id, data.parent_ref_code);
-      }
-
-      return createdUser;
-    } catch (error) {
-      console.error('[AuthService] Ошибка регистрации гостевого пользователя:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Регистрирует обычного пользователя
-   */
-  async registerUser(data: UserRegistrationData): Promise<User> {
-    try {
-      // Проверяем, существует ли пользователь с таким именем
-      const existingUserByUsername = await userService.getUserByUsername(data.username);
-      if (existingUserByUsername) {
-        throw new Error(`Пользователь с именем ${data.username} уже существует`);
-      }
-
-      // Если указан telegram_id, проверяем, есть ли уже такой пользователь
-      if (data.telegram_id) {
-        const existingUserByTelegramId = await storage.getUserByTelegramId(data.telegram_id);
-        if (existingUserByTelegramId) {
-          console.log(`[AuthService] Пользователь с telegram_id ${data.telegram_id} уже существует`);
-          return existingUserByTelegramId;
-        }
-      }
-
-      // Создаем уникальный реферальный код
-      const ref_code = data.refCode || await generateUniqueRefCode();
-
-      // Определяем родительский реферальный код
-      const parent_ref_code = data.parentRefCode || data.startParam || null;
-
       // Создаем пользователя
-      const newUser: InsertUser = {
-        telegram_id: data.telegram_id || null,
-        guest_id: data.guest_id || null,
-        username: data.username,
-        wallet: null,
-        ton_wallet_address: null,
-        ref_code,
-        parent_ref_code,
+      const newUserData = {
+        telegram_id,
+        username: username || `user_${telegram_id}`,
+        first_name,
+        last_name,
+        ref_code: refCode,
+        parent_ref_code: parent_ref_code || null,
+        balance_uni: '0',
+        balance_ton: '0',
+        created_at: new Date(),
+        updated_at: new Date()
       };
 
-      const createdUser = await storage.createUser(newUser);
+      const newUser = await storage.createUser(newUserData);
+      logger.info(`[AuthService] ✅ Новый пользователь создан: id=${newUser.id}, ref_code=${refCode}`);
 
-      // Обрабатываем реферальный бонус, если указан родительский код
-      if (parent_ref_code) {
-        await referralBonusService.processRegistrationBonus(createdUser.id, parent_ref_code);
-      }
-
-      return createdUser;
+      return newUser;
     } catch (error) {
-      console.error('[AuthService] Ошибка регистрации пользователя:', error);
+      logger.error('[AuthService] Ошибка аутентификации через Telegram:', error);
       throw error;
     }
   }
 
   /**
-   * Создает или обновляет сессию пользователя
+   * Получение пользователя по telegram_id
    */
-  private async createOrUpdateSession(userId: number): Promise<string> {
+  async getUserByTelegramId(telegramId: number): Promise<any> {
     try {
-      // Создаем уникальный идентификатор сессии
-      const sessionId = crypto.randomUUID();
-
-      // В реальной реализации здесь должно быть сохранение в базу данных или
-      // другое хранилище сессий. В данном примере просто возвращаем идентификатор.
-
-      return sessionId;
+      const user = await storage.getUserByTelegramId(telegramId);
+      if (!user) {
+        throw new NotFoundError('Пользователь не найден');
+      }
+      return user;
     } catch (error) {
-      console.error('[AuthService] Ошибка создания сессии:', error);
+      logger.error(`[AuthService] Ошибка получения пользователя by telegram_id ${telegramId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Получение пользователя по ID
+   */
+  async getUserById(userId: number): Promise<any> {
+    try {
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        throw new NotFoundError('Пользователь не найден');
+      }
+      return user;
+    } catch (error) {
+      logger.error(`[AuthService] Ошибка получения пользователя by id ${userId}:`, error);
       throw error;
     }
   }
 }
 
-/**
- * Создает экземпляр сервиса аутентификации
- * @returns Экземпляр сервиса аутентификации
- */
-export function createAuthService(): IAuthService {
-  return new AuthServiceImpl();
-}
-
-// Создаем единственный экземпляр сервиса
-export const authServiceInstance = createAuthService();
+// Экспортируем экземпляр сервиса
+export const authServiceInstance = new AuthServiceInstance();

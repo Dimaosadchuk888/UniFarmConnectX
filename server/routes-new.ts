@@ -196,15 +196,12 @@ export function registerNewRoutes(app: Express): void {
 
   app.get('/api/health', healthCheckHandler);
 
-  // [TG REGISTRATION FIX] API endpoint для регистрации пользователей через Telegram
+  // API endpoint для регистрации пользователей через Telegram (единственный способ)
   app.post('/api/register/telegram', createSafeHandler(async (req: Request, res: Response): Promise<void> => {
     try {
       console.log('[TG API] 🚀 Получен запрос на регистрацию через Telegram:', req.body);
 
-      // Імпортуємо AuthController для правильної обробки
       const { AuthController } = await import('./controllers/authController');
-
-      // Використовуємо AuthController.authenticateTelegram
       await AuthController.authenticateTelegram(req, res, () => {});
 
     } catch (error) {
@@ -359,63 +356,11 @@ export function registerNewRoutes(app: Express): void {
     logger.info('[NewRoutes] ✓ Маршрут для поиска по guest_id добавлен: GET /api/v2/users/guest/:guest_id');
   }
 
-  // КРИТИЧЕСКИЙ ENDPOINT для получения текущего пользователя (нужен для отображения баланса)
+  // КРИТИЧЕСКИЙ ENDPOINT для получения текущего пользователя (через Telegram ID)
   app.get('/api/v2/me', safeHandler(async (req, res) => {
     try {
-      // Получаем user_id из query параметров
-      const userId = req.query.user_id || '1';
-      
-      // Получаем пользователя через UserController
-      const { UserController } = await import('./controllers/userController');
-      
-      // Создаем mock req объект для UserController
-      const mockReq = {
-        params: { id: userId },
-        query: req.query,
-        headers: req.headers,
-        body: req.body
-      } as any;
-      
-      // Создаем mock res объект
-      let responseData: any = null;
-      let statusCode = 200;
-      
-      const mockRes = {
-        status: (code: number) => {
-          statusCode = code;
-          return mockRes;
-        },
-        json: (data: any) => {
-          responseData = data;
-          return mockRes;
-        }
-      } as any;
-      
-      // Вызываем getUserById из UserController
-      await UserController.getUserById(mockReq, mockRes, () => {});
-      
-      // Возвращаем результат
-      if (responseData) {
-        res.status(statusCode).json(responseData);
-      } else {
-        // Fallback данные
-        const user = {
-          id: parseInt(userId as string, 10),
-          username: 'default_user',
-          guest_id: 'guest_1',
-          telegram_id: 1,
-          balance_uni: '1000.00000000',
-          balance_ton: '100.00000000',
-          ref_code: 'REF1',
-          created_at: new Date().toISOString()
-        };
-
-        res.status(200).json({
-          success: true,
-          data: user,
-          message: 'Пользователь успешно найден'
-        });
-      }
+      const { AuthController } = await import('./controllers/authController');
+      await AuthController.getCurrentUser(req, res, () => {});
     } catch (error) {
       console.error('[API /me] Error:', error);
       res.status(500).json({
@@ -617,29 +562,14 @@ export function registerNewRoutes(app: Express): void {
     }
   }
 
-  // Добавляем маршрут для регистрации гостевого пользователя
+  // Заглушка для старых guest запросов - редирект на Telegram регистрацию
   app.post('/api/register/guest', safeHandler(async (req, res) => {
-    try {
-      console.log('[GUEST REGISTER] Получен запрос на регистрацию guest пользователя:', req.body);
-      
-      // Используем AuthController для регистрации guest пользователя
-      const { AuthController } = await import('./controllers/authController');
-      
-      // Вызываем метод регистрации guest пользователя
-      await AuthController.registerGuestUser(req, res, () => {});
-      
-    } catch (error) {
-      console.error('[GUEST REGISTER] Ошибка при регистрации guest пользователя:', error);
-      if (!res.headersSent) {
-        res.status(500).json({
-          success: false,
-          error: 'Ошибка при регистрации guest пользователя',
-          details: error instanceof Error ? error.message : String(error)
-        });
-      }
-    }
+    res.status(410).json({
+      success: false,
+      error: 'Guest регистрация отключена. Используйте только Telegram Mini App.',
+      redirect: '/api/register/telegram'
+    });
   }));
-  logger.info('[NewRoutes] ✓ Guest регистрация эндпоинт добавлен: POST /api/register/guest');
 
   logger.info('[NewRoutes] ✓ Новые маршруты API зарегистрированы успешно');
 }

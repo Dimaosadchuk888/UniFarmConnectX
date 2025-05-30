@@ -6,12 +6,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { apiRequest } from "@/lib/queryClient";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { 
-  registerUserWithTelegram, // Функция регистрации пользователя
-  logAppLaunch, // Функция логирования запуска Mini App
-  clearTelegramCache, // Функция очистки кэша (для совместимости)
-  initTelegramWebApp, // Функция инициализации Telegram WebApp (Этап 11.1)
-  isTelegramWebApp // Функция проверки наличия Telegram WebApp
-} from "./services/telegramService";
+  isTelegramWebApp, 
+  initTelegramWebApp, 
+  getTelegramUserData,
+  logAppLaunch,
+  registerTelegramUser
+} from './services/telegramService';
 import { getReferrerIdFromURL } from './lib/utils';
 import userService from '@/services/userService';
 import sessionRestoreService from '@/services/sessionRestoreService'; // Сервис восстановления сессии
@@ -62,12 +62,12 @@ function App() {
     console.log('==[ App Init Check (No Telegram WebApp) ]==');
     console.log('Running in environment:', process.env.NODE_ENV);
     console.log('Window available:', typeof window !== 'undefined');
-    
+
     // Шаг 1.2 — Проверка initData в Telegram WebApp
     console.log('==[ Guest ID Check ]==', 
       sessionRestoreService.getGuestId() || 'not found'
     );
-    
+
     // Отладочная информация для проверки наличия реферального кода
     const urlParams = new URLSearchParams(window.location.search);
     console.log('==[ Ref Code Check ]==', {
@@ -96,7 +96,7 @@ function App() {
   // - Вызов initTelegramWebApp()
   // - Вызов WebApp.ready()
   // - Логирование запуска Mini App
-  
+
   // Примечание: логирование запуска перемещено в TelegramInitializer для соблюдения
   // правильной последовательности инициализации
 
@@ -104,14 +104,14 @@ function App() {
   // (Этап 10.3 - удалены все обращения к window.Telegram.WebApp)
   useEffect(() => {
     console.log('[App] Этап 10.3: Инициализация без зависимости от Telegram WebApp');
-    
+
     // Отображаем информацию о среде выполнения для диагностики
     console.log('[App] Детали среды выполнения:', {
       userAgent: navigator.userAgent,
       isIframe: window.self !== window.top,
       documentURL: window.location.href
     });
-    
+
     // Проверяем, можно ли восстановить сессию из локального хранилища
     if (sessionRestoreService.shouldAttemptRestore()) {
       console.log('[App] 🔄 Пытаемся восстановить сессию по guest_id из локального хранилища...');
@@ -131,63 +131,63 @@ function App() {
     try {
       setIsLoading(true);
       setTelegramAuthError(null);
-      
+
       console.log('[App] 🔍 Этап 5: Безопасное восстановление пользователя...');
-      
+
       // Шаг 1: Проверка наличия сохранённой сессии
       // Получаем guest_id из хранилища
       const guestId = sessionRestoreService.getGuestId();
-      
+
       // Если guest_id отсутствует, значит пользователь либо впервые зашел в приложение,
       // либо очистил данные
       if (!guestId) {
         console.warn('[App] ⚠️ Не найден guest_id в локальном хранилище');
         console.log('[App] Создаем новый кабинет в соответствии с Этапом 5...');
-        
+
         // Если восстановление невозможно, переходим к обычной авторизации для создания нового кабинета
         authenticateWithTelegram();
         return;
       }
-      
+
       console.log('[App] ✓ Найден guest_id в локальном хранилище:', guestId);
-      
+
       // Шаг 1.5 (НОВЫЙ): Дожидаемся инициализации Telegram WebApp перед отправкой запросов
       console.log('[App] 🕒 Ожидаем инициализации Telegram WebApp перед восстановлением сессии...');
-      
+
       // Ожидаем инициализации Telegram WebApp (или таймаута)
       const telegramReady = await sessionRestoreService.waitForTelegramWebApp();
-      
+
       console.log(`[App] ${telegramReady ? '✅ Telegram WebApp готов' : '⚠️ Таймаут ожидания Telegram WebApp'}, продолжаем восстановление сессии...`);
-      
+
       // Шаг 2: Восстановление кабинета по guest_id
       // Пытаемся восстановить сессию через API
       console.log('[App] Отправляем запрос на восстановление сессии с guest_id:', guestId);
       const result = await sessionRestoreService.restoreSession(guestId);
-      
+
       if (result.success && result.data) {
         // Успешно восстановили сессию
         setUserId(result.data.user_id);
         console.log('[App] ✅ Кабинет успешно восстановлен для пользователя:', result.data);
-        
+
         // Обновляем кэш запросов для получения актуальных данных пользователя
         queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
         queryClient.invalidateQueries({ queryKey: ['/api/me'] });
       } else {
         // Не удалось восстановить сессию - вероятно, guest_id устарел или был удален из базы
         console.error('[App] ❌ Не удалось восстановить кабинет:', result.message);
-        
+
         // Удаляем некорректный guest_id
         sessionRestoreService.clearGuestIdAndSession();
-        
+
         // Переходим к обычной авторизации для создания нового кабинета
         authenticateWithTelegram();
       }
     } catch (error) {
       console.error('[App] ❌ Ошибка при восстановлении кабинета:', error);
-      
+
       // При ошибке очищаем данные сессии, чтобы избежать зацикливания
       sessionRestoreService.clearGuestIdAndSession();
-      
+
       // Переходим к обычной авторизации при ошибке
       authenticateWithTelegram();
     } finally {
@@ -203,10 +203,10 @@ function App() {
       setTelegramAuthError(null);
 
       console.log('[App] Начинаем аутентификацию только через guest_id и ref_code');
-      
+
       // Этап 3.1: Проверка наличия реферального кода в URL
       let referrerCode: string | null = null;
-      
+
       try {
         // Получаем реферальный код только из URL параметров
         const urlParams = new URLSearchParams(window.location.search);
@@ -214,7 +214,7 @@ function App() {
           const refCodeFromUrl = urlParams.get('ref_code') || urlParams.get('refCode');
           referrerCode = refCodeFromUrl || '';  // Преобразуем в пустую строку вместо null
           console.log('[App] Обнаружен реферальный код в URL:', referrerCode);
-          
+
           // Сохраняем реферальный код в sessionStorage (если он есть)
           if (referrerCode) {
             sessionStorage.setItem('referrer_code', referrerCode);
@@ -222,7 +222,7 @@ function App() {
           }
         } else {
           console.log('[App] Реферальный код в URL не обнаружен');
-          
+
           // Проверяем сохраненный реферальный код
           const savedRefCode = sessionStorage.getItem('referrer_code');
           if (savedRefCode) {
@@ -233,55 +233,55 @@ function App() {
       } catch (error) {
         console.error('[App] Ошибка при обработке реферального кода:', error);
       }
-      
+
       // Этап 5.1: Получение или создание гостевого ID
       const guestId = sessionRestoreService.getOrCreateGuestId();
       console.log('[App] Используем guest_id:', guestId);
-      
+
       // Шаг 5.1.5 (НОВЫЙ): Дожидаемся инициализации Telegram WebApp перед отправкой запросов
       console.log('[App] 🕒 Ожидаем инициализации Telegram WebApp перед авторизацией...');
-      
+
       // Ожидаем инициализации Telegram WebApp (или таймаута)
       const telegramReady = await sessionRestoreService.waitForTelegramWebApp();
-      
+
       console.log(`[App] ${telegramReady ? '✅ Telegram WebApp готов' : '⚠️ Таймаут ожидания Telegram WebApp'}, продолжаем авторизацию...`);
-      
+
       // Этап 5.2: Проверка существующего пользователя и создание нового при необходимости
       try {
         console.log('[App] Проверяем существование пользователя с guest_id:', guestId);
         const existingUser = await userService.getUserByGuestId(guestId)
           .catch(() => null);
-        
+
         if (existingUser) {
           console.log('[App] Найден существующий пользователь по guest_id:', existingUser);
           setUserId(existingUser.id);
-          
+
           // Сохраняем guest_id для восстановления сессии
           sessionRestoreService.saveGuestId(guestId);
-          
+
           // Обновляем кэш запросов для получения актуальных данных
           queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
           queryClient.invalidateQueries({ queryKey: ['/api/me'] });
         } else {
           console.log('[App] Пользователь не найден, регистрируем нового с guest_id');
-          
+
           // Регистрируем пользователя с guest_id и реферальным кодом (если есть)
           // Если referrerCode пустой или null, передаем undefined
           const refCodeToSend = referrerCode && referrerCode.length > 0 ? referrerCode : undefined;
           console.log('[App] Отправляем запрос на регистрацию с guest_id:', guestId, 'и ref_code:', refCodeToSend || 'не указан');
           const registrationResult = await registerUserWithTelegram(guestId, refCodeToSend);
-          
+
           if (registrationResult && registrationResult.success) {
             console.log('[App] Пользователь успешно зарегистрирован:', registrationResult);
-            
+
             // Сохраняем данные о новом пользователе
             if (registrationResult.data && registrationResult.data.user_id) {
               const newUserId = registrationResult.data.user_id;
               setUserId(newUserId);
-              
+
               // Сохраняем guest_id для будущего восстановления сессии
               sessionRestoreService.saveGuestId(guestId);
-              
+
               // Устанавливаем статус зарегистрированного пользователя
               console.log('[App] Пользователь успешно идентифицирован и авторизован');
             } else {
@@ -309,7 +309,7 @@ function App() {
   const renderActivePage = () => {
     // ЭТАП 4.1: Удалена проверка на минимальную версию.
     // Всегда используем единый компонент Friends, работающий во всех средах.
-    
+
     // Используем дополнительные импорты на верхнем уровне
     // Используем MissionsFix вместо стандартного Missions
     // Используем только стандартные компоненты
@@ -346,14 +346,14 @@ function App() {
       <TonConnectUIProvider manifestUrl="https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json">
         {/* Компонент для автоматической инициализации Telegram WebApp */}
         <TelegramInitializer />
-        
+
         {/* Оборачиваем весь контент в WebSocketProvider для отслеживания соединения */}
         <WebSocketProvider>
           {/* Оборачиваем весь контент в NotificationProvider и UserProvider */}
           <NotificationProvider>
             {/* Компонент для отображения уведомлений */}
             <NotificationContainer />
-            
+
             {/* Оборачиваем весь контент в Provider контекста пользователя */}
             <UserProvider>
               {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
@@ -367,32 +367,32 @@ function App() {
                     <Route path="/UniFarm/">
                       <TelegramMiniApp />
                     </Route>
-                    
+
                     {/* Для совместимости, маршрут для Mini App независимо от регистра */}
                     <Route path="/unifarm/">
                       <TelegramMiniApp />
                     </Route>
-                    
+
                     {/* Специальный обработчик для маршрута /app/ со слешем */}
                     <Route path="/app/">
                       <TelegramMiniApp />
                     </Route>
-                    
+
                     {/* Основной маршрут /app без слеша */}
                     <Route path="/app">
                       <TelegramMiniApp />
                     </Route>
-                    
+
                     {/* Административная страница для настройки бота */}
                     <Route path="/admin">
                       <AdminPage />
                     </Route>
-                    
+
                     {/* Руководство по настройке Telegram Mini App */}
                     <Route path="/telegram-setup">
                       <TelegramSetupGuide />
                     </Route>
-                    
+
                     {/* Прямой маршрут на страницу фарминга */}
                     <Route path="/farming">
                       <div className="max-w-md mx-auto bg-background">
@@ -436,9 +436,9 @@ function App() {
                         <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
                       </div>
                     </Route>
-                    
+
                     {/* Удален специальный маршрут для прямого доступа к миссиям без React Query */}
-                    
+
                     {/* Тестовый маршрут на страницу миссий для навигации через меню */}
                     <Route path="/missions-nav">
                       <div className="max-w-md mx-auto bg-background">
@@ -460,7 +460,7 @@ function App() {
                         <NavigationBar activeTab="dashboard" setActiveTab={setActiveTab} />
                       </div>
                     </Route>
-                    
+
                     {/* Основной интерфейс приложения */}
                     <Route path="*">
                       <Header />
