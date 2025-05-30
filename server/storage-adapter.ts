@@ -307,14 +307,38 @@ class StorageAdapter implements IExtendedStorage {
   // Проверка подключения к базе данных с возвратом статуса
   private async checkDatabaseConnection(): Promise<boolean> {
     try {
-      // Выполняем простой запрос к базе данных с использованием импортированной функции
-      const result = await queryWithRetry('SELECT 1', [], 1); // Импортированная функция из db-selector
-      console.log('[StorageAdapter] Соединение с базой данных установлено', result?.rows ? 'успешно' : 'с предупреждением');
-      this.useMemory = false;
-      return true;
+      console.log('[StorageAdapter] 🔍 Проверяем соединение с базой данных...');
+      
+      // Выполняем простой запрос к базе данных с коротким таймаутом
+      const result = await Promise.race([
+        queryWithRetry('SELECT 1 as test_connection', [], 1),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Database connection timeout')), 3000)
+        )
+      ]);
+      
+      if (result && (result as any).rows && (result as any).rows.length > 0) {
+        console.log('[StorageAdapter] ✅ Соединение с базой данных установлено успешно');
+        this.useMemory = false;
+        
+        // Дополнительная проверка - пытаемся выполнить запрос к таблице users
+        try {
+          await queryWithRetry('SELECT COUNT(*) FROM users LIMIT 1', [], 1);
+          console.log('[StorageAdapter] ✅ Таблица users доступна');
+          return true;
+        } catch (tableError) {
+          console.warn('[StorageAdapter] ⚠️ Таблица users недоступна:', tableError);
+          this.useMemory = true;
+          return false;
+        }
+      } else {
+        console.warn('[StorageAdapter] ⚠️ База данных отвечает, но результат некорректный');
+        this.useMemory = true;
+        return false;
+      }
     } catch (error) {
       logDatabaseError('checkDatabaseConnection', error);
-      console.error('[StorageAdapter] Ошибка подключения к базе данных, переключаемся на хранилище в памяти:', error);
+      console.error('[StorageAdapter] ❌ Ошибка подключения к базе данных, переключаемся на хранилище в памяти:', error);
       this.useMemory = true;
       return false;
     }
@@ -350,16 +374,54 @@ class StorageAdapter implements IExtendedStorage {
   }
 
   async getUserByGuestId(guestId: string): Promise<User | undefined> {
+    if (!guestId) {
+      console.warn('[StorageAdapter] ⚠️ Пустой guest_id передан в getUserByGuestId');
+      return undefined;
+    }
+
     try {
       if (this.useMemory) {
+        console.log(`[StorageAdapter] 💾 Используем MemStorage для guest_id: ${guestId}`);
         return await this.memStorage.getUserByGuestId(guestId);
       }
-      return await this.dbStorage.getUserByGuestId(guestId);
+      
+      console.log(`[StorageAdapter] 🔍 Поиск пользователя в БД по guest_id: ${guestId}`);
+      const user = await this.dbStorage.getUserByGuestId(guestId);
+      
+      if (user) {
+        console.log(`[StorageAdapter] ✅ Пользователь найден в БД: ID=${user.id}`);
+      } else {
+        console.log(`[StorageAdapter] ℹ️ Пользователь с guest_id ${guestId} не найден в БД (это нормально для новых пользователей)`);
+      }
+      
+      return user;
     } catch (error) {
       logDatabaseError('getUserByGuestId', error, { guestId });
-      console.error(`[StorageAdapter] Ошибка при получении пользователя по guest_id ${guestId}, переключаемся на хранилище в памяти:`, error);
-      this.useMemory = true;
-      return await this.memStorage.getUserByGuestId(guestId);
+      
+      const errorMessage = (error as any)?.message || 'Неизвестная ошибка';
+      console.error(`[StorageAdapter] ❌ Ошибка БД при получении пользователя по guest_id ${guestId}:`, errorMessage);
+      
+      // Анализируем тип ошибки и принимаем решение
+      if (errorMessage.includes('connection') || 
+          errorMessage.includes('timeout') || 
+          errorMessage.includes('ECONNREFUSED') ||
+          errorMessage.includes('ENOTFOUND') ||
+          errorMessage.includes('ETIMEDOUT')) {
+        
+        console.warn(`[StorageAdapter] 🔄 Проблема с подключением к БД, переключаемся на MemStorage`);
+        this.useMemory = true;
+        
+        try {
+          return await this.memStorage.getUserByGuestId(guestId);
+        } catch (memError) {
+          console.error(`[StorageAdapter] ❌ Критическая ошибка в MemStorage:`, memError);
+          return undefined;
+        }
+      } else {
+        // Для других ошибок не переключаемся на память, возвращаем undefined
+        console.warn(`[StorageAdapter] ⚠️ Нетипичная ошибка БД, возвращаем undefined: ${errorMessage}`);
+        return undefined;
+      }
     }
   }
 

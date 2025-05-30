@@ -168,40 +168,30 @@ export function createUserService(storage: IExtendedStorage): IUserService {
      * Получает пользователя по гостевому ID
      */
     async getUserByGuestId(guestId: string): Promise<User | undefined> {
-      if (!guestId) return undefined;
+      if (!guestId) {
+        console.warn('[UserService] ⚠️ Попытка получить пользователя с пустым guest_id');
+        return undefined;
+      }
       
       try {
+        console.log(`[UserService] 🔍 Запрос пользователя по guest_id: ${guestId}`);
         const user = await storage.getUserByGuestId(guestId);
         
         // Если пользователь найден, возвращаем его
         if (user) {
-          console.log(`[UserService] Пользователь найден по guest_id: ${guestId}, ID: ${user.id}`);
+          console.log(`[UserService] ✅ Пользователь найден по guest_id: ${guestId}, ID: ${user.id}`);
           return user;
         }
         
         // Если пользователь не найден, логируем это и возвращаем undefined
-        console.log(`[UserService] Пользователь с guest_id: ${guestId} не найден в БД`);
+        console.log(`[UserService] ℹ️ Пользователь с guest_id: ${guestId} не найден (это нормально для новых пользователей)`);
         return undefined;
       } catch (error) {
         const err = error as ErrorWithMessage;
-        console.error(`[UserService] Ошибка БД при получении пользователя по guest_id: ${guestId}:`, err.message);
+        console.error(`[UserService] ❌ Ошибка при получении пользователя по guest_id: ${guestId}:`, err.message);
         
-        // В случае ошибки БД, не возвращаем undefined сразу - пробуем fallback логику
-        try {
-          // Проверяем в MemStorage как fallback
-          const { storage: storageInstance } = await import('../storage-adapter');
-          if (storageInstance?.memStorage) {
-            const fallbackUser = await storageInstance.memStorage.getUserByGuestId(guestId);
-            if (fallbackUser) {
-              console.log(`[UserService] Fallback: найден пользователь в MemStorage для guest_id: ${guestId}`);
-              return fallbackUser;
-            }
-          }
-        } catch (fallbackError) {
-          console.error('[UserService] Fallback также не удался:', fallbackError);
-        }
-        
-        // Возвращаем undefined только если все варианты исчерпаны
+        // Не пытаемся использовать fallback здесь - это должно обрабатываться на уровне storage
+        // Просто возвращаем undefined и позволяем контроллеру обработать ситуацию
         return undefined;
       }
     },
