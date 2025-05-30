@@ -27,7 +27,7 @@ localPort = 3001
 externalPort = 3001
 
 [workflows]
-runButton = "Start Production Server"
+runButton = "Production UniFarm"
 
 [[workflows.workflow]]
 name = "run.js"
@@ -63,3 +63,16 @@ args = "npm run build"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true tsx server/index.ts"
+
+[[workflows.workflow]]
+name = "Production UniFarm"
+author = 43232783
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true SKIP_PARTITION_CREATION=true tsx server/index.ts"
