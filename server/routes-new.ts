@@ -728,8 +728,8 @@ export async function registerNewRoutes(app: Express): Promise<void> {
       const connectionInfo = await getConnectionInfo();
       console.log('[Routes] Информация о подключении БД:', connectionInfo);
 
-      // Используем обновленный userServiceInstance
-      const userServiceInstance = require('./services/userServiceInstance').default;
+      // Используем обновленный userServiceInstance с правильным ESM импортом
+      const { default: userServiceInstance } = await import('./services/userServiceInstance');
       const user = await userServiceInstance.findByGuestId(guest_id);
       console.log('[Routes] Результат поиска пользователя:', user);
 

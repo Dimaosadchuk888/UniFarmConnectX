@@ -721,10 +721,14 @@ async function startServer(): Promise<void> {
     app.use('/api/telegram', telegramRouter);
 
   // Тестові маршрути для прямого підключення до production бази
-  const { getProductionDbStatus, testTelegramRegistration, checkUser } = require('./api/test-production-db');
-  app.get('/api/test/production-db', getProductionDbStatus);
-  app.post('/api/test/telegram-register', testTelegramRegistration);
-  app.get('/api/test/user/:user_id', checkUser);
+  try {
+    const testModule = await import('./api/test-production-db');
+    app.get('/api/test/production-db', testModule.getProductionDbStatus);
+    app.post('/api/test/telegram-register', testModule.testTelegramRegistration);
+    app.get('/api/test/user/:user_id', testModule.checkUser);
+  } catch (error) {
+    logger.warn('[Server] Тестовые маршруты production DB недоступны:', error);
+  }
 
   logger.info('[Server] ✅ Telegram маршруты зарегистрированы: /api/telegram/*');
   } catch (error) {
