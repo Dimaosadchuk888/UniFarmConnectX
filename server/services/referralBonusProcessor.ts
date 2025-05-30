@@ -8,7 +8,7 @@
  * 4. Подробное журналирование для аудита и отладки
  */
 
-import { db } from '../db';
+import { db } from '../db-connect-unified';
 import { eq, and, desc, lte, gte, inArray, isNull, sql } from 'drizzle-orm';
 import { 
   users, 
@@ -85,7 +85,7 @@ export class ReferralBonusProcessor {
     19,  // Уровень 19
     20   // Уровень 20
   ];
-  
+
   /**
    * Добавляет начисление в очередь обработки
    * @param userId ID пользователя, от которого идет распределение
@@ -96,9 +96,9 @@ export class ReferralBonusProcessor {
   async queueReferralReward(userId: number, earnedAmount: number, currency: Currency): Promise<string> {
     // Создаем уникальный идентификатор для отслеживания начисления
     const batchId = crypto.randomUUID();
-    
+
     console.log(`[ReferralBonusProcessor] Queuing reward: User ${userId}, Amount ${earnedAmount} ${currency}, BatchID: ${batchId}`);
-    
+
     // Создаем запись в журнале распределения
     try {
       const logData = insertRewardDistributionLogSchema.parse({
@@ -109,26 +109,26 @@ export class ReferralBonusProcessor {
         system_type: 'optimized', // Указываем тип системы для оптимизированной версии
         status: 'queued' // Начальный статус - в очереди
       });
-      
+
       await db.insert(reward_distribution_logs).values(logData);
-      
+
       // Добавляем в очередь на обработку
       this.processingQueue.push({
         userId,
         earnedAmount,
         currency
       });
-      
+
       // Запускаем обработку, если она еще не запущена
       this.scheduleProcessing();
-      
+
       return batchId;
     } catch (error) {
       console.error(`[ReferralBonusProcessor] Error queueing reward:`, error);
       throw error;
     }
   }
-  
+
   /**
    * Планирует обработку очереди с задержкой
    */
@@ -136,12 +136,12 @@ export class ReferralBonusProcessor {
     if (this.processingTimer) {
       clearTimeout(this.processingTimer);
     }
-    
+
     this.processingTimer = setTimeout(() => {
       this.processQueue();
     }, delay);
   }
-  
+
   /**
    * Обрабатывает очередь начислений
    */
@@ -149,22 +149,22 @@ export class ReferralBonusProcessor {
     if (this.isProcessing || this.processingQueue.length === 0) {
       return;
     }
-    
+
     this.isProcessing = true;
-    
+
     try {
       // Извлекаем пакет заданий из очереди
       const batch = this.processingQueue.splice(0, BATCH_SIZE);
       console.log(`[ReferralBonusProcessor] Processing batch of ${batch.length} rewards`);
-      
+
       // Обрабатываем каждое задание в пакете
       const processingPromises = batch.map(item => 
         this.processReferralReward(item.userId, item.earnedAmount, item.currency)
       );
-      
+
       // Ждем завершения всех заданий
       await Promise.allSettled(processingPromises);
-      
+
       // Если в очереди остались задания, планируем следующую обработку
       if (this.processingQueue.length > 0) {
         this.scheduleProcessing();
@@ -175,19 +175,19 @@ export class ReferralBonusProcessor {
       this.isProcessing = false;
     }
   }
-  
+
   /**
    * Обрабатывает одно реферальное начисление с повторными попытками
    */
   private async processReferralReward(userId: number, earnedAmount: number, currency: Currency, 
     retryCount = 0): Promise<{totalRewardsDistributed: number}> {
-    
+
     // Создаем уникальный идентификатор для пакета начислений
     const batchId = crypto.randomUUID();
-    
+
     try {
       console.log(`[ReferralBonusProcessor] Processing: User ${userId}, Amount ${earnedAmount} ${currency}, BatchID: ${batchId}, Attempt: ${retryCount + 1}`);
-      
+
       // Обновляем или создаем запись в журнале
       await db
         .insert(reward_distribution_logs)
@@ -205,82 +205,82 @@ export class ReferralBonusProcessor {
             processed_at: new Date()
           }
         });
-      
+
       // Если сумма слишком мала, не выполняем расчеты
       if (earnedAmount < this.minRewardThreshold) {
         console.log(`[ReferralBonusProcessor] Amount ${earnedAmount} is too small, skipping`);
-        
+
         await db.update(reward_distribution_logs)
           .set({ 
             status: 'completed',
             completed_at: new Date()
           })
           .where(eq(reward_distribution_logs.batch_id, batchId));
-          
+
         return {totalRewardsDistributed: 0};
       }
-      
+
       // Выполняем всю логику начисления внутри транзакции для обеспечения атомарности
       return await db.transaction(async (tx) => {
         let totalRewardsDistributed = 0;
         let levelsProcessed = 0;
         let inviterCount = 0;
-        
+
         // Получаем всех пригласителей пользователя внутри транзакции с использованием индекса
         const userReferrals = await tx
           .select()
           .from(referrals)
           .where(eq(referrals.user_id, userId))
           .orderBy(referrals.level);
-        
+
         // Если нет реферальных связей, выходим
         if (userReferrals.length === 0) {
           console.log(`[ReferralBonusProcessor] No referrals found for user ${userId}, skipping`);
-          
+
           await tx.update(reward_distribution_logs)
             .set({ 
               status: 'completed',
               completed_at: new Date()
             })
             .where(eq(reward_distribution_logs.batch_id, batchId));
-            
+
           return {totalRewardsDistributed: 0};
         }
-        
+
         console.log(`[ReferralBonusProcessor] Found ${userReferrals.length} referrals for user ${userId}, processing in batch...`);
-        
+
         // Собираем все ID пригласителей для массовой выборки
         const inviterIds = userReferrals
           .filter(ref => ref.level !== null && ref.level > 0 && ref.level <= this.maxLevels && ref.inviter_id !== null)
           .map(ref => ref.inviter_id!);
-        
+
         // Если нет подходящих пригласителей, выходим
         if (inviterIds.length === 0) {
           console.log(`[ReferralBonusProcessor] No valid inviters found for user ${userId}, skipping`);
-          
+
           await tx.update(reward_distribution_logs)
             .set({ 
               status: 'completed',
               completed_at: new Date()
             })
             .where(eq(reward_distribution_logs.batch_id, batchId));
-            
+
           return {totalRewardsDistributed: 0};
         }
-        
+
         // Получаем информацию о всех пригласителях одним запросом (оптимизация N+1)
         const invitersData = await tx
           .select()
           .from(users)
           .where(inArray(users.id, inviterIds));
-        
+
         // Создаем Map для быстрого доступа к данным пригласителей
         const invitersMap = new Map(invitersData.map(inviter => [inviter.id, inviter]));
-        
+
         // Подготавливаем массивы для истинно пакетных операций
         const balanceUpdates: BalanceUpdate[] = [];
         const transactionInserts: any[] = [];
-        
+
         // Предварительная групповая обработка - вычисляем награды для всех реферальных уровней сразу
         const bonusCalcs = userReferrals
           .filter(ref => 
@@ -293,9 +293,9 @@ export class ReferralBonusProcessor {
             const level = ref.level!;
             const percent = this.levelPercents[level - 1];
             const bonusAmount = earnedAmount * (percent / 100);
-            
+
             levelsProcessed++;
-            
+
             return {
               level,
               inviter_id: ref.inviter_id!,
@@ -305,13 +305,13 @@ export class ReferralBonusProcessor {
             };
           })
           .filter(calc => calc.valid);
-          
+
         console.log(`[ReferralBonusProcessor] Calculated rewards for ${bonusCalcs.length} valid levels out of ${levelsProcessed} total`);
-        
+
         // Группируем бонусы по получателям для случаев, когда пользователь может получить 
         // вознаграждения с нескольких уровней (например, при цикличных структурах)
         const bonusesByInviter: Record<number, any[]> = {};
-        
+
         // Группируем бонусы по ID пригласителя (используем обычный объект вместо Map)
         for (const calc of bonusCalcs) {
           const key = calc.inviter_id;
@@ -320,27 +320,27 @@ export class ReferralBonusProcessor {
           }
           bonusesByInviter[key].push(calc);
         }
-        
+
         // Обрабатываем каждого уникального пригласителя один раз
         for (const inviterId of Object.keys(bonusesByInviter)) {
           const numericInviterId = parseInt(inviterId);
           const bonuses = bonusesByInviter[numericInviterId];
           // Получаем пользователя-приглашателя из Map
           const inviter = invitersMap.get(numericInviterId);
-          
+
           if (!inviter) {
             console.log(`[ReferralBonusProcessor] Inviter with ID ${inviterId} not found in fetched data, skipping`);
             continue;
           }
-          
+
           // Обработка всех бонусов для одного пригласителя
           let totalInviterBonus = 0;
           const inviterTransactions = [];
-          
+
           for (const bonus of bonuses) {
             // Накапливаем общую сумму бонусов для этого пригласителя
             totalInviterBonus += bonus.bonusAmount;
-            
+
             // Создаем транзакцию для каждого отдельного бонуса
             try {
               const transactionData = insertTransactionSchema.parse({
@@ -359,10 +359,10 @@ export class ReferralBonusProcessor {
                   percent: bonus.percent
                 })
               });
-              
+
               // Добавляем в массив транзакций для этого пользователя
               inviterTransactions.push(transactionData);
-              
+
               // Подсчитываем общее количество бонусных начислений
               inviterCount++;
             } catch (validationError) {
@@ -370,45 +370,45 @@ export class ReferralBonusProcessor {
               // Продолжаем для других бонусов
             }
           }
-          
+
           // Добавляем все транзакции для пользователя в общий массив
           transactionInserts.push(...inviterTransactions);
-          
+
           // Вычисляем новый баланс (один раз для всех бонусов пользователя)
           if (totalInviterBonus > 0) {
             // Проверяем значения баланса и обрабатываем null значения
             const uniBalance = inviter.balance_uni !== null ? inviter.balance_uni : "0";
             const tonBalance = inviter.balance_ton !== null ? inviter.balance_ton : "0";
-            
+
             // Увеличиваем баланс пользователя общей суммой всех его бонусов
             const newBalance = currency === Currency.UNI 
               ? Number(uniBalance) + totalInviterBonus 
               : Number(tonBalance) + totalInviterBonus;
-            
+
             // Добавляем в массив обновлений баланса (один раз для каждого пользователя)
             balanceUpdates.push({
               id: Number(inviterId),
               amount: totalInviterBonus
             });
-            
+
             // Суммируем все начисленные бонусы для общей статистики
             totalRewardsDistributed += totalInviterBonus;
           }
         }
-        
+
         // Теперь выполняем пакетное обновление балансов с помощью VALUES и CASE
         if (balanceUpdates.length > 0) {
           console.log(`[ReferralBonusProcessor] Performing batch balance update for ${balanceUpdates.length} users`);
-          
+
           // Сортируем обновления для консистентности (важно для тестирования и отладки)
           balanceUpdates.sort((a, b) => Number(a.id) - Number(b.id));
-          
+
           // Строим массив ID пользователей для обновления
           const updateUserIds: UserIdArray = balanceUpdates.map(update => Number(update.id));
-          
+
           // Определяем, какое поле баланса нужно обновить
           const balanceField = currency === Currency.UNI ? users.balance_uni : users.balance_ton;
-          
+
           // Строим сложное выражение CASE для массового обновления
           // Формируем SQL-выражения для обновления балансов
           const caseExpressions = balanceUpdates.map(update => {
@@ -416,7 +416,7 @@ export class ReferralBonusProcessor {
             const fieldName = currency === Currency.UNI ? 'balance_uni' : 'balance_ton';
             return sql`WHEN ${update.id} THEN ${fieldName}::numeric + ${update.amount}`;
           });
-          
+
           // Выполняем единое массовое обновление для всех пользователей
           await tx
             .update(users)
@@ -426,13 +426,13 @@ export class ReferralBonusProcessor {
             })
             .where(inArray(users.id, updateUserIds));
         }
-        
+
         // Выполняем пакетную вставку всех транзакций (одним запросом)
         if (transactionInserts.length > 0) {
           console.log(`[ReferralBonusProcessor] Inserting ${transactionInserts.length} transactions in batch`);
           await tx.insert(transactions).values(transactionInserts);
         }
-        
+
         // Обновляем запись журнала с результатами
         await tx.update(reward_distribution_logs)
           .set({ 
@@ -440,13 +440,13 @@ export class ReferralBonusProcessor {
             completed_at: new Date()
           })
           .where(eq(reward_distribution_logs.batch_id, batchId));
-        
+
         console.log(`[ReferralBonusProcessor] Batch ${batchId} completed. Total distributed: ${totalRewardsDistributed} ${currency} to ${inviterCount} inviters`);
         return { totalRewardsDistributed };
       });
     } catch (error) {
       console.error(`[ReferralBonusProcessor] Error processing batch ${batchId}:`, error);
-      
+
       // Обновляем журнал с ошибкой
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       await db.update(reward_distribution_logs)
@@ -456,20 +456,20 @@ export class ReferralBonusProcessor {
           completed_at: new Date()
         })
         .where(eq(reward_distribution_logs.batch_id, batchId));
-      
+
       // Повторяем обработку, если не превышено максимальное количество попыток
       if (retryCount < RETRY_CONFIG.maxRetries) {
         const delay = RETRY_CONFIG.initialDelay * Math.pow(RETRY_CONFIG.backoffFactor, retryCount);
         console.log(`[ReferralBonusProcessor] Will retry in ${delay}ms (attempt ${retryCount + 1}/${RETRY_CONFIG.maxRetries})`);
-        
+
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.processReferralReward(userId, earnedAmount, currency, retryCount + 1);
       }
-      
+
       return { totalRewardsDistributed: 0 };
     }
   }
-  
+
   /**
    * Создает индексы для оптимизации запросов
    * Вызывать при инициализации приложения
@@ -477,15 +477,15 @@ export class ReferralBonusProcessor {
   async ensureIndexes(): Promise<void> {
     try {
       console.log(`[ReferralBonusProcessor] Ensuring database indexes are in place...`);
-      
+
       // Индексы создаются в schema.ts, поэтому здесь только проверка схемы
-      
+
       console.log(`[ReferralBonusProcessor] Index verification complete.`);
     } catch (error) {
       console.error(`[ReferralBonusProcessor] Error ensuring indexes:`, error);
     }
   }
-  
+
   /**
    * Восстанавливает обработку неуспешных начислений
    * Вызывать при запуске сервера
@@ -493,7 +493,7 @@ export class ReferralBonusProcessor {
   async recoverFailedProcessing(): Promise<number> {
     try {
       console.log(`[ReferralBonusProcessor] Recovering failed reward distributions...`);
-      
+
       // Находим все записи со статусом "failed" или "processing" (возможно прерванные)
       const failedRecords = await db
         .select()
@@ -501,14 +501,14 @@ export class ReferralBonusProcessor {
         .where(inArray(reward_distribution_logs.status, ['failed', 'processing']))
         .orderBy(desc(reward_distribution_logs.processed_at))
         .limit(100); // Ограничиваем количество для безопасности
-      
+
       if (failedRecords.length === 0) {
         console.log(`[ReferralBonusProcessor] No failed distributions found.`);
         return 0;
       }
-      
+
       console.log(`[ReferralBonusProcessor] Found ${failedRecords.length} failed distributions to recover.`);
-      
+
       // Добавляем их в очередь на повторную обработку
       for (const record of failedRecords) {
         this.processingQueue.push({
@@ -517,10 +517,10 @@ export class ReferralBonusProcessor {
           currency: record.currency as Currency
         });
       }
-      
+
       // Запускаем обработку очереди
       this.scheduleProcessing();
-      
+
       return failedRecords.length;
     } catch (error) {
       console.error(`[ReferralBonusProcessor] Error recovering failed processing:`, error);

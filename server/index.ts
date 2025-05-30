@@ -891,15 +891,22 @@ function initBackgroundServices(): void {
   setTimeout(() => {
     // Инициализация системы автоматического восстановления соединения с БД
     try {
-      const { initDbAutoRecovery } = require('./utils/db-auto-recovery');
-      initDbAutoRecovery({
-        initialBackoff: 5000,         // 5 секунд начальная задержка
-        maxBackoff: 300000,           // Максимум 5 минут между попытками
-        backoffFactor: 1.5,           // Увеличение задержки в 1.5 раза при каждой неудаче
-        resetThreshold: 600000,       // Сброс счетчика неудач после 10 минут успешной работы
-        maxConsecutiveFailures: 5     // Максимум 5 последовательных неудач
-      });
-      logger.info('[Server] ✅ Система автоматического восстановления БД инициализирована');
+      // Проверяем, существует ли модуль db-auto-recovery
+      try {
+        const dbAutoRecoveryModule = await import('./utils/db-auto-recovery');
+        if (dbAutoRecoveryModule.initDbAutoRecovery) {
+          dbAutoRecoveryModule.initDbAutoRecovery({
+            initialBackoff: 5000,         // 5 секунд начальная задержка
+            maxBackoff: 300000,           // Максимум 5 минут между попытками
+            backoffFactor: 1.5,           // Увеличение задержки в 1.5 раза при каждой неудаче
+            resetThreshold: 600000,       // Сброс счетчика неудач после 10 минут успешной работы
+            maxConsecutiveFailures: 5     // Максимум 5 последовательных неудач
+          });
+          logger.info('[Server] ✅ Система автоматического восстановления БД инициализирована');
+        }
+      } catch (importError) {
+        logger.info('[Server] ℹ️ Модуль db-auto-recovery не найден, продолжаем без него');
+      }
     } catch (error) {
       logger.error('[Server] ❌ Ошибка при инициализации системы автоматического восстановления БД:', 
         error instanceof Error ? error.message : String(error));
