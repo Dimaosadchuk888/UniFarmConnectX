@@ -352,7 +352,10 @@ export function registerNewRoutes(app: Express): void {
 
   // КРИТИЧЕСКИЙ МАРШРУТ для поиска пользователя по guest_id (нужен для отображения баланса)
   if (typeof UserController.getUserByGuestId === 'function') {
-    app.get('/api/v2/users/guest/:guest_id', safeHandler(UserController.getUserByGuestId));
+    app.get('/api/v2/users/guest/:guest_id', (req, res, next) => {
+      console.log(`[routes] GET /api/v2/users/guest/${req.params.guest_id}`);
+      next();
+    }, safeHandler(UserController.getUserByGuestId));
     logger.info('[NewRoutes] ✓ Маршрут для поиска по guest_id добавлен: GET /api/v2/users/guest/:guest_id');
   }
 

@@ -51,9 +51,17 @@ export class DailyBonusController {
       // Безопасный вызов сервиса с обработкой ошибок
       try {
         const status = await dailyBonusService.getDailyBonusStatus(user_id);
+
+        // Ensure consistent response format
+        const responseData = {
+          canClaim: status?.canClaim || false,
+          streak: status?.streak || 0,
+          lastClaimDate: status?.lastClaimDate || null,
+        };
+
         return res.status(200).json({
           success: true,
-          data: status,
+          data: responseData,
           message: 'Статус ежедневного бонуса получен успешно'
         });
       } catch (serviceError) {
@@ -164,7 +172,7 @@ export class DailyBonusController {
         dailyBonusService.resetStreak.bind(dailyBonusService),
         async (error, userId) => {
           console.log(`[DailyBonusControllerFallback] Возвращаем заглушку для сброса серии по ID: ${userId}`);
-          
+
           // Заглушка с данными об "успешном" сбросе серии
           return {
             success: true,

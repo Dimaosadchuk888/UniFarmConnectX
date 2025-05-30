@@ -26,12 +26,12 @@ const DailyBonusCard: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { userId } = useUser(); // Получаем ID пользователя из контекста
-  
+
   // Состояние для анимаций и эффектов
   const [isButtonHovered, setIsButtonHovered] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [reward, setReward] = useState('');
-  
+
   // Запрос на получение статуса ежедневного бонуса
   const { data: bonusStatus, isLoading, refetch } = useQuery({
     queryKey: ['dailyBonusStatus', userId], // Добавляем userId в ключ запроса
@@ -40,13 +40,13 @@ const DailyBonusCard: React.FC = () => {
         // Используем новый унифицированный метод apiGet
         const endpoint = `/api/v2/daily-bonus/status?user_id=${userId || 1}`;
         console.log('[DailyBonusCard] Запрос статуса бонуса:', endpoint);
-        
+
         const response = await apiGet<DailyBonusStatus>(endpoint);
-        
+
         if (!response.success) {
           throw new Error(response.error || 'Ошибка при получении статуса бонуса');
         }
-        
+
         return response.data as DailyBonusStatus;
       } catch (error: any) {
         console.error('[ERROR] DailyBonusCard - Ошибка при получении статуса бонуса:', error);
@@ -57,10 +57,10 @@ const DailyBonusCard: React.FC = () => {
     refetchOnWindowFocus: false,
     enabled: !!userId // Запрос активен только если есть userId
   });
-  
+
   // Получаем значение стрика (серии дней) из данных API или показываем 0
   const streak = bonusStatus?.streak || 0;
-  
+
   // Мутация для получения ежедневного бонуса
   const claimBonusMutation = useMutation({
     mutationFn: async () => {
@@ -68,17 +68,17 @@ const DailyBonusCard: React.FC = () => {
         // Используем новый унифицированный метод apiPost
         const endpoint = '/api/v2/daily-bonus/claim';
         console.log('[DailyBonusCard] Отправка запроса на получение бонуса:', endpoint);
-        
+
         // Отправляем POST запрос с корректными заголовками
         const response = await apiPost<ClaimBonusResult>(
           endpoint, 
           { user_id: userId || 1 } // Используем динамический userId
         );
-        
+
         if (!response.success) {
           throw new Error(response.error || response.message || 'Ошибка при получении бонуса');
         }
-        
+
         return response;
       } catch (error: any) {
         console.error('[ERROR] DailyBonusCard - Ошибка при получении бонуса:', error);
@@ -91,14 +91,14 @@ const DailyBonusCard: React.FC = () => {
           // Показываем анимацию с конфетти
           setShowConfetti(true);
           setReward(`${data.amount || bonusStatus?.bonusAmount || 500} UNI`);
-          
+
           // Обновляем данные о статусе бонуса с учетом userId
           invalidateQueryWithUserId('/api/v2/daily-bonus/status');
-          
+
           // Также обновляем данные баланса пользователя и транзакции
           invalidateQueryWithUserId('/api/v2/wallet/balance');
           invalidateQueryWithUserId('/api/v2/transactions');
-          
+
           // Скрываем конфетти через 4 секунды
           setTimeout(() => {
             try {
@@ -108,7 +108,7 @@ const DailyBonusCard: React.FC = () => {
               console.error('[ERROR] DailyBonusCard - Ошибка при удалении анимации:', error);
             }
           }, 4000);
-          
+
           // Показываем уведомление
           toast({
             title: "Бонус получен!",
@@ -128,7 +128,7 @@ const DailyBonusCard: React.FC = () => {
         try {
           invalidateQueryWithUserId('/api/v2/daily-bonus/status');
           invalidateQueryWithUserId('/api/v2/wallet/balance');
-          
+
           // Информируем пользователя
           toast({
             title: "Бонус зачислен, но произошла ошибка",
@@ -143,13 +143,13 @@ const DailyBonusCard: React.FC = () => {
     onError: (error) => {
       try {
         console.error('[ERROR] DailyBonusCard - Ошибка при получении бонуса:', error);
-        
+
         toast({
           title: "Ошибка",
           description: "Не удалось получить бонус. Попробуйте позже.",
           variant: "destructive",
         });
-        
+
         // В любом случае обновляем данные
         invalidateQueryWithUserId('/api/v2/daily-bonus/status');
       } catch (err) {
@@ -165,7 +165,7 @@ const DailyBonusCard: React.FC = () => {
       }
     },
   });
-  
+
   // Обработка нажатия на кнопку получения бонуса
   const handleClaimBonus = () => {
     try {
@@ -180,7 +180,7 @@ const DailyBonusCard: React.FC = () => {
       }
     } catch (error: any) {
       console.error('[ERROR] DailyBonusCard - Ошибка при клике на кнопку получения бонуса:', error);
-      
+
       // Информируем пользователя о проблеме
       toast({
         title: "Ошибка системы",
@@ -189,7 +189,7 @@ const DailyBonusCard: React.FC = () => {
       });
     }
   };
-  
+
   // Создаем частицы-конфетти (только визуальный эффект)
   const confettiParticles = Array(20).fill(0).map((_, i) => ({
     id: i,
@@ -204,10 +204,10 @@ const DailyBonusCard: React.FC = () => {
     rotation: Math.random() * 360,
     rotationSpeed: (Math.random() - 0.5) * 8
   }));
-  
+
   // Анимировать индикаторы дней
   const [animateDayIndicator, setAnimateDayIndicator] = useState<number | null>(null);
-  
+
   useEffect(() => {
     try {
       if (showConfetti) {
@@ -216,7 +216,7 @@ const DailyBonusCard: React.FC = () => {
           setTimeout(() => {
             try {
               setAnimateDayIndicator(i);
-              
+
               // Убираем анимацию через короткое время
               setTimeout(() => {
                 try {
@@ -237,24 +237,24 @@ const DailyBonusCard: React.FC = () => {
       console.error('[ERROR] DailyBonusCard - Ошибка при настройке анимации:', error);
     }
   }, [showConfetti]);
-  
+
   // Проверяем статус бонуса каждую полночь с улучшенной обработкой ошибок
   useEffect(() => {
     let timerId: number | NodeJS.Timeout;
-    
+
     try {
       // Функция для безопасного получения миллисекунд до полуночи
       const getMsUntilMidnight = (): number => {
         try {
           const now = new Date();
-          
+
           // Проверка, что мы получили корректный объект Date
           if (!(now instanceof Date) || isNaN(now.getTime())) {
             console.error('[ERROR] DailyBonusCard - Некорректная дата:', now);
             // Возвращаем резервное значение - обновление через 1 час (3600000 мс)
             return 3600000;
           }
-          
+
           try {
             const midnight = new Date(
               now.getFullYear(),
@@ -262,23 +262,23 @@ const DailyBonusCard: React.FC = () => {
               now.getDate() + 1,
               0, 0, 0
             );
-            
+
             // Проверка, что мы создали корректную дату полуночи
             if (!(midnight instanceof Date) || isNaN(midnight.getTime())) {
               console.error('[ERROR] DailyBonusCard - Некорректная дата полуночи:', midnight);
               // Резервное значение
               return 3600000;
             }
-            
+
             const diff = midnight.getTime() - now.getTime();
-            
+
             // Проверка, что разница имеет смысл
             if (diff <= 0 || diff > 86400000) { // больше 24 часов быть не должно
               console.error('[ERROR] DailyBonusCard - Некорректная разница времени:', diff);
               // Резервное значение
               return 3600000;
             }
-            
+
             return diff;
           } catch (dateError) {
             console.error('[ERROR] DailyBonusCard - Ошибка при создании даты полуночи:', dateError);
@@ -291,13 +291,13 @@ const DailyBonusCard: React.FC = () => {
           return 3600000;
         }
       };
-      
+
       // Функция для обновления бонуса после полуночи с улучшенной обработкой ошибок
       const scheduleRefresh = () => {
         try {
           const msUntilMidnight = getMsUntilMidnight();
           console.log('[DailyBonusCard] Следующее обновление бонуса через:', msUntilMidnight, 'мс');
-          
+
           // Устанавливаем безопасный таймаут
           try {
             timerId = setTimeout(() => {
@@ -306,12 +306,12 @@ const DailyBonusCard: React.FC = () => {
                 refetch().catch(err => {
                   console.error('[ERROR] DailyBonusCard - Ошибка при обновлении данных бонуса:', err);
                 });
-                
+
                 // Запускаем планирование снова
                 scheduleRefresh();
               } catch (refreshError) {
                 console.error('[ERROR] DailyBonusCard - Ошибка в таймере обновления бонуса:', refreshError);
-                
+
                 // Пытаемся восстановиться даже при ошибке
                 try {
                   scheduleRefresh();
@@ -320,7 +320,7 @@ const DailyBonusCard: React.FC = () => {
                 }
               }
             }, msUntilMidnight);
-            
+
             return timerId;
           } catch (timeoutError) {
             console.error('[ERROR] DailyBonusCard - Ошибка при установке таймера:', timeoutError);
@@ -331,7 +331,7 @@ const DailyBonusCard: React.FC = () => {
           return null;
         }
       };
-      
+
       // Запускаем планирование
       timerId = scheduleRefresh() || setTimeout(() => {}, 0); // Фиктивный таймер если произошла ошибка
     } catch (globalError) {
@@ -339,7 +339,7 @@ const DailyBonusCard: React.FC = () => {
       // Создаем фиктивный таймер для корректной очистки
       timerId = setTimeout(() => {}, 0);
     }
-    
+
     // Функция очистки с защитой от ошибок
     return () => {
       try {
@@ -351,7 +351,7 @@ const DailyBonusCard: React.FC = () => {
       }
     };
   }, [refetch]);
-  
+
   // Если данные загружаются, показываем скелетон
   if (isLoading) {
     return (
@@ -367,13 +367,13 @@ const DailyBonusCard: React.FC = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="bg-card rounded-xl p-4 mb-5 shadow-lg card-hover-effect relative overflow-hidden">
       {/* Фоновые декоративные элементы */}
       <div className="absolute -right-12 -top-12 w-32 h-32 bg-primary/5 rounded-full blur-xl"></div>
       <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-primary/5 rounded-full blur-xl"></div>
-      
+
       <div className="flex justify-between items-start mb-2">
         <h2 className="text-md font-medium">Check-in</h2>
         <div className="flex items-center">
@@ -381,17 +381,17 @@ const DailyBonusCard: React.FC = () => {
           <span className="text-sm font-medium text-primary">{streak} дн.</span>
         </div>
       </div>
-      
+
       <p className="text-xs text-foreground opacity-70 mb-4">
         Возвращайся каждый день, чтобы собирать бонусы!
       </p>
-      
+
       {/* Дни недели */}
       <div className="flex justify-between mb-4">
         {Array(7).fill(0).map((_, index) => {
           const isActive = index < streak;
           const isAnimating = animateDayIndicator === index;
-          
+
           return (
             <div 
               key={index} 
@@ -410,7 +410,7 @@ const DailyBonusCard: React.FC = () => {
           );
         })}
       </div>
-      
+
       <button 
         className={`
           w-full py-3 rounded-lg font-medium relative overflow-hidden
@@ -469,7 +469,7 @@ const DailyBonusCard: React.FC = () => {
             }}
           ></div>
         )}
-        
+
         <span className="relative z-10 text-white">
           {claimBonusMutation.isPending 
             ? 'Загрузка...' 
@@ -478,7 +478,7 @@ const DailyBonusCard: React.FC = () => {
               : 'Уже получено сегодня'}
         </span>
       </button>
-      
+
       {/* Конфетти при получении бонуса */}
       {(() => {
         try {
@@ -486,7 +486,7 @@ const DailyBonusCard: React.FC = () => {
           if (!showConfetti) {
             return null;
           }
-          
+
           return (
             <>
               {/* Сообщение о награде */}
@@ -499,12 +499,12 @@ const DailyBonusCard: React.FC = () => {
                         if (!reward || reward.trim() === '') {
                           return '+UNI';
                         }
-                        
+
                         // Проверка на формат награды, добавляем + если его нет
                         if (!reward.startsWith('+')) {
                           return `+${reward}`;
                         }
-                        
+
                         return reward;
                       } catch (rewardError) {
                         console.error('[ERROR] DailyBonusCard - Ошибка при форматировании награды:', rewardError);
@@ -517,7 +517,7 @@ const DailyBonusCard: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Конфетти-частицы */}
               {(() => {
                 try {
@@ -525,7 +525,7 @@ const DailyBonusCard: React.FC = () => {
                     console.error('[ERROR] DailyBonusCard - confettiParticles не является массивом');
                     return null;
                   }
-                  
+
                   // Только для проверки, не слишком ли много частиц
                   if (confettiParticles.length > 100) {
                     console.warn('[WARNING] DailyBonusCard - Слишком много частиц конфетти:', confettiParticles.length);
@@ -535,7 +535,7 @@ const DailyBonusCard: React.FC = () => {
                         if (!particle || typeof particle !== 'object') {
                           return null; // Пропускаем некорректные частицы
                         }
-                        
+
                         return (
                           <div
                             key={particle.id || Math.random()}
@@ -561,14 +561,14 @@ const DailyBonusCard: React.FC = () => {
                       }
                     });
                   }
-                  
+
                   // Стандартный рендеринг частиц
                   return confettiParticles.map((particle) => {
                     try {
                       if (!particle || typeof particle !== 'object') {
                         return null; // Пропускаем некорректные частицы
                       }
-                      
+
                       return (
                         <div
                           key={particle.id || Math.random()}
