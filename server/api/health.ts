@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { pool } from '../db';
+import { getPool, testConnection } from '../db-unified';
 import path from 'path';
 import fs from 'fs';
 
@@ -28,9 +28,9 @@ export async function checkHealth(req: Request, res: Response) {
 
     const dbStartTime = Date.now();
     try {
-      // Проверяем соединение с БД простым запросом
-      await pool.query('SELECT 1');
-      dbStatus.connected = true;
+      // Проверяем соединение с БД через unified interface
+      const isConnected = await testConnection();
+      dbStatus.connected = isConnected;
     } catch (err) {
       console.error('Health check: DB connection failed', err);
     }
