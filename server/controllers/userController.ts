@@ -159,24 +159,43 @@ export const UserController = {
         const user = await userService.getUserByGuestId(guestId);
         
         if (user) {
-          sendSuccess(res, user, 'Пользователь по guest_id успешно найден', 200);
+          // Добавляем индикатор типа источника данных
+          const responseData = {
+            ...user,
+            data_source: user.is_fallback ? 'fallback' : 'database'
+          };
+          
+          sendSuccess(res, responseData, 'Пользователь по guest_id успешно найден', 200);
         } else {
-          // Если пользователь не найден, возвращаем 404
+          // Пользователь не найден - это нормальная ситуация, а не ошибка
+          // Клиент должен зарегистрировать нового пользователя
+          logger.info(`[UserController] Пользователь с guest_id: ${guestId} не найден, требуется регистрация`);
           sendError(res, 'Пользователь с указанным guest_id не найден', 404);
         }
       } catch (serviceError) {
-        logger.error(`[UserController] Ошибка при получении пользователя по guest_id: ${guestId}`, serviceError);
+        logger.error(`[UserController] Критическая ошибка при получении пользователя по guest_id: ${guestId}`, serviceError);
         
-        // Возвращаем fallback пользователя при ошибке БД
-        try {
-          const fallbackUser = createGuestUserFallback(guestId);
-          sendSuccess(res, {
-            ...fallbackUser,
-            is_fallback: true,
-            message: 'Временные данные (ошибка БД)'
-          }, 'Временные данные пользователя', 200);
-        } catch (fallbackError) {
-          logger.error(`[UserController] Ошибка создания fallback пользователя:`, fallbackError);
+        // Определяем тип ошибки для правильной обработки
+        const errorMessage = (serviceError as any)?.message || 'Неизвестная ошибка';
+        
+        // Если это проблема с подключением к БД, создаем fallback пользователя
+        if (errorMessage.includes('connection') || errorMessage.includes('database') || errorMessage.includes('timeout')) {
+          try {
+            logger.warn(`[UserController] Проблема с БД, создаем fallback пользователя для guest_id: ${guestId}`);
+            const fallbackUser = createGuestUserFallback(guestId);
+            
+            sendSuccess(res, {
+              ...fallbackUser,
+              is_fallback: true,
+              data_source: 'emergency_fallback',
+              message: 'Временные данные (проблема с БД)'
+            }, 'Временные данные пользователя', 200);
+          } catch (fallbackError) {
+            logger.error(`[UserController] Критическая ошибка создания fallback пользователя:`, fallbackError);
+            sendServerError(res, 'Критическая ошибка системы');
+          }
+        } else {
+          // Для других типов ошибок возвращаем 500
           sendServerError(res, 'Ошибка при получении данных пользователя');
         }
       }
