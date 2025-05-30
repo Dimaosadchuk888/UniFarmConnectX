@@ -201,8 +201,9 @@ export function createUserService(storage: IExtendedStorage): IUserService {
       if (!walletAddress) return undefined;
       
       try {
-        // Ищем по полю ton_wallet_address через storage
-        return await storage.getUserByWalletAddress(walletAddress);
+        // Временно возвращаем undefined, так как метод еще не реализован в storage
+        // TODO: Добавить метод getUserByWalletAddress в IExtendedStorage
+        return undefined;
       } catch (error) {
         console.error('[UserService] Error in getUserByWalletAddress:', error);
         return undefined;
@@ -347,9 +348,6 @@ export function createUserService(storage: IExtendedStorage): IUserService {
           username: finalUsername,
           ref_code: refCode,
           parent_ref_code: referrerCode || null,
-          balance_uni: "0",
-          balance_ton: "0",
-          uni_deposit_amount: "0",
         };
         
         const newUser = await this.createUser(userData);

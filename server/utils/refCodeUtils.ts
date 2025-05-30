@@ -2,7 +2,7 @@
  * Утилиты для работы с реферальными кодами
  */
 
-import { db } from "../db-connect-unified";
+import { db } from "../db-connect-unified.js";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
