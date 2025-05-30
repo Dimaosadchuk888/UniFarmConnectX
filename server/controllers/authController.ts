@@ -5,13 +5,13 @@ import { authService } from '../services/index';
 import { sendSuccess, sendError } from '../utils/responseUtils';
 
 /**
- * AuthController с обязательной Telegram верификацией
- * Все пользователи должны быть зарегистрированы через Telegram
+ * AuthController с поддержкой Telegram и guest_id
+ * Поддерживает регистрацию через Telegram и guest_id fallback
  */
 export class AuthController {
   /**
-   * Аутентификация и регистрация пользователя через Telegram
-   * Единственный способ входа в систему
+   * Аутентификация и регистрация пользователя через Telegram или guest_id
+   * Поддерживает fallback к guest_id при отсутствии Telegram данных
    */
   static async authenticateTelegram(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -24,13 +24,14 @@ export class AuthController {
         }
       });
 
-      // Создаем схему валидации данных Telegram
+      // Создаем схему валидации данных Telegram или guest_id
       const telegramAuthSchema = z.object({
-        telegram_id: z.number(),
+        telegram_id: z.number().optional(),
         username: z.string().optional(),
-        first_name: z.string(),
+        first_name: z.string().optional(),
         last_name: z.string().optional(),
-        initData: z.string(),
+        initData: z.string().optional(),
+        guest_id: z.string().optional(),
         parent_ref_code: z.string().optional(),
         start_param: z.string().optional()
       });
@@ -43,11 +44,52 @@ export class AuthController {
         return sendError(res, 'Неверный формат данных Telegram', 400, validatedData.error);
       }
 
-      const { telegram_id, username, first_name, last_name, initData, parent_ref_code, start_param } = validatedData.data;
+      const { telegram_id, username, first_name, last_name, initData, guest_id, parent_ref_code, start_param } = validatedData.data;
 
-      // Проверяем валидность initData
-      if (!initData || initData.length === 0) {
-        return sendError(res, 'Отсутствует initData - доступ только через Telegram Mini App', 403);
+      // Проверяем наличие telegram_id или guest_id
+      if (!telegram_id && !guest_id) {
+        return sendError(res, 'Требуется telegram_id или guest_id для аутентификации', 400);
+      }
+
+      // Если есть guest_id но нет telegram_id, используем guest_id режим
+      if (!telegram_id && guest_id) {
+        console.log('[AuthController] Fallback к guest_id аутентификации:', guest_id);
+        
+        const guestUser = await authService.authenticateGuestUser({
+          guest_id,
+          username: username || 'Guest User',
+          first_name: first_name || 'Guest',
+          last_name: last_name || '',
+          parent_ref_code: parent_ref_code || start_param
+        });
+
+        const userResponse = {
+          id: guestUser.id,
+          username: guestUser.username,
+          telegram_id: guestUser.telegram_id,
+          guest_id: guestUser.guest_id,
+          first_name: guestUser.first_name,
+          last_name: guestUser.last_name,
+          wallet: guestUser.wallet,
+          ton_wallet_address: guestUser.ton_wallet_address,
+          ref_code: guestUser.ref_code,
+          parent_ref_code: guestUser.parent_ref_code,
+          balance_uni: guestUser.balance_uni,
+          balance_ton: guestUser.balance_ton,
+          created_at: guestUser.created_at
+        };
+
+        return sendSuccess(res, {
+          user: userResponse,
+          authenticated: true,
+          session_id: crypto.randomUUID(),
+          auth_method: 'guest_id'
+        });
+      }
+
+      // Проверяем валидность initData для Telegram
+      if (telegram_id && (!initData || initData.length === 0)) {
+        return sendError(res, 'Отсутствует initData для Telegram аутентификации', 403);
       }
 
       // Валидируем initData (в продакшене)

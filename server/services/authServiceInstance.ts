@@ -198,6 +198,59 @@ export class AuthServiceInstance {
       throw error;
     }
   }
+
+  /**
+   * Аутентификация пользователя через guest_id
+   */
+  async authenticateGuestUser(guestData: {
+    guest_id: string;
+    username: string;
+    first_name: string;
+    last_name: string;
+    parent_ref_code?: string;
+  }): Promise<any> {
+    try {
+      const { guest_id, username, first_name, last_name, parent_ref_code } = guestData;
+
+      logger.info(`[AuthService] Аутентификация пользователя guest_id: ${guest_id}`);
+
+      // Ищем существующего пользователя
+      let user = await storage.getUserByGuestId(guest_id);
+
+      if (user) {
+        logger.info(`[AuthService] Существующий guest пользователь найден: id=${user.id}`);
+        return user;
+      }
+
+      // Создаем нового пользователя
+      logger.info(`[AuthService] Создание нового guest пользователя`);
+
+      // Генерируем уникальный реферальный код
+      const refCode = await generateRefCode();
+
+      // Создаем пользователя
+      const newUserData = {
+        guest_id,
+        username,
+        first_name,
+        last_name,
+        ref_code: refCode,
+        parent_ref_code: parent_ref_code || null,
+        balance_uni: '0',
+        balance_ton: '0',
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+
+      const newUser = await storage.createUser(newUserData);
+      logger.info(`[AuthService] ✅ Новый guest пользователь создан: id=${newUser.id}, ref_code=${refCode}`);
+
+      return newUser;
+    } catch (error) {
+      logger.error('[AuthService] Ошибка аутентификации через guest_id:', error);
+      throw error;
+    }
+  }
 }
 
 // Экспортируем экземпляр сервиса
@@ -224,4 +277,11 @@ export interface IAuthService {
   }): Promise<any>;
   getUserByTelegramId(telegramId: number): Promise<any>;
   getUserById(userId: number): Promise<any>;
+  authenticateGuestUser(guestData: {
+    guest_id: string;
+    username: string;
+    first_name: string;
+    last_name: string;
+    parent_ref_code?: string;
+  }): Promise<any>;
 }

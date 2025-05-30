@@ -9,7 +9,7 @@
 import { createUserService, IUserService } from './userService';
 import { extendedStorage } from '../storage-adapter-extended';
 import { sql } from '@vercel/postgres';
-import { db } from '../db';
+import { db } from '../db-connect-unified';
 
 /**
  * Создает экземпляр сервиса пользователей

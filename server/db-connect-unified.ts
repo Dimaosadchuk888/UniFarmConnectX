@@ -168,19 +168,34 @@ export async function queryWithRetry(query: string, params: any[] = []): Promise
         console.log(`[DB Query] Подключение нездорово или отсутствует, переинициализируем (попытка ${attempt})...`);
         globalDb = null;
         globalPool = null;
-        // await initializeDatabase();  // Assuming initializeDatabase is defined elsewhere.  If not, use dbManager.getPool() or similar
-        await dbManager.getPool(); // Trying this instead
+        
+        // Переинициализируем подключение через dbManager
+        const pool = await dbManager.getPool();
+        const drizzleDb = await dbManager.getDrizzle();
+        globalDb = drizzleDb;
+        globalPool = pool;
+      }
+
+      // Дополнительная проверка что globalDb инициализирован
+      if (!globalDb) {
+        throw new Error('Failed to initialize database connection');
       }
 
       console.log(`[DB Query] Выполнение запроса (попытка ${attempt}/${maxRetries}):`, query.substring(0, 100));
 
-      // Выполняем запрос с таймаутом
-      const queryPromise = globalDb.execute(query, params);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query execution timeout')), 30000)
-      );
+      // Выполняем запрос напрямую через pool если drizzle не работает
+      let result;
+      try {
+        const queryPromise = globalDb.execute ? globalDb.execute(query, params) : globalPool.query(query, params);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Query execution timeout')), 30000)
+        );
 
-      const result = await Promise.race([queryPromise, timeoutPromise]);
+        result = await Promise.race([queryPromise, timeoutPromise]);
+      } catch (drizzleError) {
+        console.log(`[DB Query] Drizzle ошибка, используем прямой pool запрос:`, drizzleError.message);
+        result = await globalPool.query(query, params);
+      }
 
       if (attempt > 1) {
         console.log(`[DB Query] ✅ Запрос успешен на попытке ${attempt}`);
