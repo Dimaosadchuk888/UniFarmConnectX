@@ -251,6 +251,58 @@ export class AuthServiceInstance {
       throw error;
     }
   }
+
+  /**
+   * Получает пользователя по guest_id
+   */
+  async getUserByGuestId(guestId: string): Promise<User | null> {
+    try {
+      console.log('[AuthService] Поиск пользователя по guest_id:', guestId);
+
+      const result = await db.execute(
+        `SELECT * FROM users WHERE guest_id = $1 LIMIT 1`,
+        [guestId]
+      );
+
+      if (result.rows.length === 0) {
+        console.log('[AuthService] Пользователь с guest_id не найден:', guestId);
+        return null;
+      }
+
+      const user = result.rows[0] as User;
+      console.log('[AuthService] Пользователь найден по guest_id:', user.id);
+      return user;
+    } catch (error) {
+      console.error('[AuthService] Ошибка при поиске пользователя по guest_id:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Получает пользователя по telegram_id
+   */
+  async getUserByTelegramId(telegramId: number): Promise<User | null> {
+    try {
+      console.log('[AuthService] Поиск пользователя по telegram_id:', telegramId);
+
+      const result = await db.execute(
+        `SELECT * FROM users WHERE telegram_id = $1 LIMIT 1`,
+        [telegramId]
+      );
+
+      if (result.rows.length === 0) {
+        console.log('[AuthService] Пользователь с telegram_id не найден:', telegramId);
+        return null;
+      }
+
+      const user = result.rows[0] as User;
+      console.log('[AuthService] Пользователь найден по telegram_id:', user.id);
+      return user;
+    } catch (error) {
+      console.error('[AuthService] Ошибка при поиске пользователя по telegram_id:', error);
+      throw error;
+    }
+  }
 }
 
 // Экспортируем экземпляр сервиса

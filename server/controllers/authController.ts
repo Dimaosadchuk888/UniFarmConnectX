@@ -140,55 +140,86 @@ export class AuthController {
 
   /**
    * Получение информации о текущем пользователе
+   * Поддерживает как telegram_id, так и guest_id для обратной совместимости
    */
   static async getCurrentUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Извлекаем telegram_id из заголовков
+      // Извлекаем различные идентификаторы из заголовков
       const telegramUserId = req.headers['x-telegram-user-id'];
+      const guestId = req.headers['x-guest-id'] as string;
 
-      console.log('[AuthController] getCurrentUser - telegram_id из заголовков:', telegramUserId);
+      console.log('[AuthController] getCurrentUser - заголовки:', {
+        telegramUserId,
+        guestId: guestId ? 'присутствует' : 'отсутствует'
+      });
 
-      if (!telegramUserId) {
-        console.error('[AuthController] getCurrentUser - отсутствует x-telegram-user-id в заголовках');
-        return sendError(res, 'Отсутствует идентификатор пользователя Telegram', 401);
+      // Приоритет: сначала telegram_id, затем guest_id
+      if (telegramUserId) {
+        const telegramId = Number(telegramUserId);
+        if (isNaN(telegramId)) {
+          console.error('[AuthController] getCurrentUser - некорректный telegram_id:', telegramUserId);
+          return sendError(res, 'Некорректный идентификатор пользователя Telegram', 400);
+        }
+
+        console.log('[AuthController] getCurrentUser - ищем пользователя с telegram_id:', telegramId);
+
+        try {
+          const user = await authService.getUserByTelegramId(telegramId);
+          if (user) {
+            console.log('[AuthController] getCurrentUser - пользователь найден по telegram_id:', user.id);
+            return AuthController.sendUserResponse(res, user);
+          }
+        } catch (error) {
+          console.error('[AuthController] getCurrentUser - ошибка поиска по telegram_id:', error);
+        }
       }
 
-      const telegramId = Number(telegramUserId);
-      if (isNaN(telegramId)) {
-        console.error('[AuthController] getCurrentUser - некорректный telegram_id:', telegramUserId);
-        return sendError(res, 'Некорректный идентификатор пользователя Telegram', 400);
+      // Fallback к guest_id
+      if (guestId) {
+        console.log('[AuthController] getCurrentUser - fallback к guest_id:', guestId);
+        
+        try {
+          // Используем userService для поиска по guest_id
+          const { userService } = await import('../services/index');
+          const user = await userService.getUserByGuestId(guestId);
+          
+          if (user) {
+            console.log('[AuthController] getCurrentUser - пользователь найден по guest_id:', user.id);
+            return AuthController.sendUserResponse(res, user);
+          }
+        } catch (error) {
+          console.error('[AuthController] getCurrentUser - ошибка поиска по guest_id:', error);
+        }
       }
 
-      console.log('[AuthController] getCurrentUser - ищем пользователя с telegram_id:', telegramId);
-
-      const user = await authService.getUserByTelegramId(telegramId);
-
-      if (!user) {
-        console.error('[AuthController] getCurrentUser - пользователь не найден для telegram_id:', telegramId);
-        return sendError(res, 'Пользователь не найден', 404);
-      }
-
-      console.log('[AuthController] getCurrentUser - пользователь найден:', user.id);
-
-      const userResponse = {
-        id: user.id,
-        username: user.username,
-        telegram_id: user.telegram_id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        wallet: user.wallet,
-        ton_wallet_address: user.ton_wallet_address,
-        ref_code: user.ref_code,
-        parent_ref_code: user.parent_ref_code,
-        balance_uni: user.balance_uni,
-        balance_ton: user.balance_ton,
-        created_at: user.created_at
-      };
-
-      sendSuccess(res, { user: userResponse });
+      console.error('[AuthController] getCurrentUser - пользователь не найден');
+      return sendError(res, 'Пользователь не найден', 404);
     } catch (error) {
-      console.error('[AuthController] getCurrentUser - ошибка:', error);
+      console.error('[AuthController] getCurrentUser - критическая ошибка:', error);
       next(error);
     }
+  }
+
+  /**
+   * Отправляет ответ с данными пользователя
+   */
+  private static sendUserResponse(res: Response, user: any): void {
+    const userResponse = {
+      id: user.id,
+      username: user.username || `user_${user.id}`,
+      telegram_id: user.telegram_id || null,
+      guest_id: user.guest_id || null,
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      wallet: user.wallet || null,
+      ton_wallet_address: user.ton_wallet_address || null,
+      ref_code: user.ref_code || '',
+      parent_ref_code: user.parent_ref_code || null,
+      balance_uni: user.balance_uni || '0',
+      balance_ton: user.balance_ton || '0',
+      created_at: user.created_at
+    };
+
+    sendSuccess(res, { user: userResponse });
   }
 }
