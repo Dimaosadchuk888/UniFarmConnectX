@@ -809,8 +809,7 @@ class StorageAdapter implements IExtendedStorage {
         RETURNING *
       `;
 
-      const result = await queryWithRetry```typescript
-(query, placeholders);
+      const result = await queryWithRetry(query, placeholders);
       if (result.rows.length === 0) {
         throw new Error('Не удалось создать депозит TON Boost');
       }
