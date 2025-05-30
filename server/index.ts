@@ -722,7 +722,7 @@ async function startServer(): Promise<void> {
 
   // Тестові маршрути для прямого підключення до production бази
   try {
-    const testModule = await import('./api/test-production-db');
+    const testModule = await import('./api/test-production-db.js');
     app.get('/api/test/production-db', testModule.getProductionDbStatus);
     app.post('/api/test/telegram-register', testModule.testTelegramRegistration);
     app.get('/api/test/user/:user_id', testModule.checkUser);
@@ -879,14 +879,16 @@ async function startServer(): Promise<void> {
     }
 
     // Инициализируем фоновые сервисы
-    initBackgroundServices();
+    initBackgroundServices().catch(error => {
+      logger.error('[Server] Ошибка при инициализации фоновых сервисов:', error);
+    });
   });
 }
 
 /**
  * Инициализирует фоновые сервисы
  */
-function initBackgroundServices(): void {
+async function initBackgroundServices(): Promise<void> {
   // Задержка инициализации тяжелых сервисов для обеспечения быстрого запуска
   setTimeout(() => {
     // Инициализация системы автоматического восстановления соединения с БД
