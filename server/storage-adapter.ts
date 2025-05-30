@@ -805,12 +805,12 @@ class StorageAdapter implements IExtendedStorage {
 
       const query = `
         INSERT INTO ton_boost_deposits (${columns})
-        ```text
         VALUES (${values})
         RETURNING *
       `;
 
-      const result = await queryWithRetry(query, placeholders);
+      const result = await queryWithRetry```typescript
+(query, placeholders);
       if (result.rows.length === 0) {
         throw new Error('Не удалось создать депозит TON Boost');
       }

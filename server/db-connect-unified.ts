@@ -12,9 +12,9 @@ import logger from './utils/logger';
 const PRODUCTION_DB_URL = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
 // Глобальные переменные для подключения
-let db: any = null;
-let pool: any = null;
-let dbType: string = 'unknown';
+let globalDb: any = null;
+let globalPool: any = null;
+let globalDbType: string = 'unknown';
 let connectionRetries = 0;
 const MAX_RETRIES = 5;
 const RETRY_DELAY = 2000; // 2 секунды
@@ -164,10 +164,10 @@ export async function queryWithRetry(query: string, params: any[] = []): Promise
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       // Проверяем здоровье подключения перед запросом
-      if (!db || !(await isDatabaseHealthy())) {
+      if (!globalDb || !(await isDatabaseHealthy())) {
         console.log(`[DB Query] Подключение нездорово или отсутствует, переинициализируем (попытка ${attempt})...`);
-        db = null;
-        pool = null;
+        globalDb = null;
+        globalPool = null;
         // await initializeDatabase();  // Assuming initializeDatabase is defined elsewhere.  If not, use dbManager.getPool() or similar
         await dbManager.getPool(); // Trying this instead
       }
@@ -175,7 +175,7 @@ export async function queryWithRetry(query: string, params: any[] = []): Promise
       console.log(`[DB Query] Выполнение запроса (попытка ${attempt}/${maxRetries}):`, query.substring(0, 100));
 
       // Выполняем запрос с таймаутом
-      const queryPromise = db.execute(query, params);
+      const queryPromise = globalDb.execute(query, params);
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Query execution timeout')), 30000)
       );
@@ -193,8 +193,8 @@ export async function queryWithRetry(query: string, params: any[] = []): Promise
 
       if (attempt < maxRetries) {
         // Очищаем подключение для повторной инициализации
-        db = null;
-        pool = null;
+        globalDb = null;
+        globalPool = null;
 
         // Прогрессивная задержка
         const delay = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
@@ -221,14 +221,14 @@ export async function testConnection(): Promise<boolean> {
     try {
       console.log(`[DB Connection] 🔄 Попытка ${attempt}/${MAX_RETRIES}: Тестирование подключения к базе данных...`);
 
-      if (!db) {
+      if (!globalDb) {
         console.log('[DB Connection] 🔄 База данных не инициализирована, инициализируем...');
         // await initializeDatabase(); // Assuming initializeDatabase is defined elsewhere. If not, use dbManager.getPool() or similar
         await dbManager.getPool(); // Trying this instead
       }
 
       // Простой тест запроса с таймаутом
-      const testPromise = db.execute('SELECT 1 as test');
+      const testPromise = globalDb.execute('SELECT 1 as test');
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Database query timeout')), 10000)
       );
@@ -246,8 +246,8 @@ export async function testConnection(): Promise<boolean> {
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
 
         // Очищаем подключение для повторной инициализации
-        db = null;
-        pool = null;
+        globalDb = null;
+        globalPool = null;
       } else {
         connectionRetries = attempt;
         console.error('[DB Connection] ❌ Исчерпаны все попытки подключения к базе данных');
