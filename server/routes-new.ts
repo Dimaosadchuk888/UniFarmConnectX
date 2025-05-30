@@ -574,7 +574,7 @@ export function registerNewRoutes(app: Express): void {
   app.post('/api/v2/register/auto', safeHandler(async (req, res) => {
     try {
       const { guest_id, ref_code } = req.body;
-      
+
       if (!guest_id) {
         return res.status(400).json({
           success: false,

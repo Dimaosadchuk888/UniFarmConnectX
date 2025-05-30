@@ -538,14 +538,14 @@ export const UserController = {
 
       // Пытаемся получить user_id из разных источников
       let userId = req.query.user_id as string;
-      
+
       // Если нет user_id в query, пытаемся извлечь из headers
       if (!userId) {
         const guestId = req.headers['x-guest-id'] as string || req.headers['guest-id'] as string;
-        
+
         if (guestId) {
           console.log(`[userController] getMe - попытка найти пользователя по guest_id: ${guestId}`);
-          
+
           try {
             const userByGuestId = await userService.getUserByGuestId(guestId);
             if (userByGuestId) {
@@ -606,51 +606,56 @@ export const UserController = {
   /**
    * Создает нового пользователя
    */
-  async createUser(req: Request, res: Response): Promise<void> {
+  async createUser(req: Request, res: Response, next: NextFunction) {
     try {
-      // Валидация входных данных с помощью схемы Zod
-      const validationResult = createUserSchema.safeParse(req.body);
+      console.log('[UserController] Запрос на создание пользователя:', req.body);
 
-      if (!validationResult.success) {
-        sendError(res, 'Ошибка валидации данных', 400, formatZodErrors(validationResult.error));
-        return;
+      const userData = req.body;
+
+      // Валидация обязательных полей
+      if (!userData.guestId && !userData.guest_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'guest_id is required'
+        });
       }
 
-      const userData = validationResult.data;
+      // Нормализуем guest_id
+      const guestId = userData.guestId || userData.guest_id;
 
-      // Проверка уникальности username
-      if (userData.username) {
-        const existingUser = await userService.getUserByUsername(userData.username);
-        if (existingUser) {
-          sendError(res, 'Пользователь с таким username уже существует', 409);
-          return;
-        }
+      // Проверяем, не существует ли уже пользователь с таким guest_id
+      const existingUser = await userService.getUserByGuestId(guestId);
+      if (existingUser) {
+        console.log('[UserController] ℹ️ Пользователь уже существует, возвращаем существующего:', existingUser.id);
+        return res.json({
+          success: true,
+          data: existingUser,
+          message: 'User already exists'
+        });
       }
 
-      // Если передан Telegram ID, проверяем его уникальность
-      if (userData.telegram_id) {
-        const existingUser = await userService.getUserByTelegramId(userData.telegram_id);
-        if (existingUser) {
-          sendError(res, 'Пользователь с таким Telegram ID уже существует', 409);
-          return;
-        }
+      // Создаем пользователя через сервис
+      const result = await userService.createUser({
+        ...userData,
+        guestId
+      });
+
+      if (result.success) {
+        console.log('[UserController] ✅ Пользователь успешно создан:', result.data);
+        return res.status(201).json(result);
+      } else {
+        console.error('[UserController] ❌ Ошибка создания пользователя:', result.error);
+        return res.status(400).json(result);
       }
-
-      // Создаем пользователя
-      const newUser = await userService.createUser(userData);
-
-      // Генерируем реферальный код, если не был передан
-      if (!newUser.ref_code) {
-        // Генеруємо реферальний код та одразу застосовуємо його
-        newUser.ref_code = await userService.generateRefCode();
-        // Оновлюємо реферальний код через спеціалізований метод
-        await userService.updateUserRefCode(newUser.id, newUser.ref_code);
-      }
-
-      sendSuccess(res, newUser, 'Пользователь успешно создан', 201);
     } catch (error) {
-      logger.error('[UserController] Помилка при створенні користувача:', error);
-      sendServerError(res, 'Ошибка при создании пользователя');
+      console.error('[UserController] Критическая ошибка при создании пользователя:', error);
+
+      // Возвращаем структурированную ошибку
+      return res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   },
 
@@ -777,44 +782,6 @@ export const UserController = {
     } catch (error) {
       logger.error('[UserController] Помилка при додаванні TON гаманця:', error);
       sendServerError(res, 'Ошибка при добавлении TON кошелька');
-    }
-  },
-  /**
-   * Получение пользователя по guest_id
-   */
-  async getUserByGuestId(req: Request, res: Response) {
-    try {
-      const { guest_id } = req.params;
-
-      if (!guest_id) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Guest ID is required' 
-        });
-      }
-
-      const user = await userService.getUserByGuestId(guest_id);
-
-      if (!user) {
-        return res.status(404).json({ 
-          success: false, 
-          error: 'User not found',
-          data: null
-        });
-      }
-
-      res.json({ 
-        success: true, 
-        data: user,
-        message: 'User found successfully'
-      });
-    } catch (error) {
-      console.error('[userController] Error in getUserByGuestId:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: error.message || 'Internal server error',
-        data: null
-      });
     }
   }
 

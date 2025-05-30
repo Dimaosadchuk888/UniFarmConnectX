@@ -455,6 +455,57 @@ class UserService {
   }
 
   /**
+   * Создает нового пользователя
+   * @param userData Данные для создания пользователя
+   * @returns Promise с результатом создания
+   */
+  async createUser(userData: {
+    guestId?: string;
+    telegramId?: number;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    refCode?: string;
+  }): Promise<{success: boolean, data?: any, error?: string}> {
+    try {
+      console.log('[UserService] Создание пользователя:', userData);
+
+      const result = await correctApiRequest('/api/v2/users', 'POST', {
+        guest_id: userData.guestId,
+        telegram_id: userData.telegramId,
+        username: userData.username || `user_${Date.now()}`,
+        first_name: userData.firstName,
+        last_name: userData.lastName,
+        ref_code: userData.refCode
+      });
+
+      if (result.success && result.data) {
+        console.log('[UserService] ✅ Пользователь успешно создан:', result.data);
+        
+        // Кэшируем данные нового пользователя
+        this.cacheUserData(result.data);
+        
+        return {
+          success: true,
+          data: result.data
+        };
+      } else {
+        console.error('[UserService] ❌ Ошибка создания пользователя:', result);
+        return {
+          success: false,
+          error: result.error || 'Failed to create user'
+        };
+      }
+    } catch (error) {
+      console.error('[UserService] Критическая ошибка при создании пользователя:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
    * Очищает кэш данных пользователя
    */
   clearUserCache(): void {
