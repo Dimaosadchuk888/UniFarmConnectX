@@ -862,7 +862,33 @@ async function startServer(): Promise<void> {
   const port = parseInt(process.env.PORT || "3000", 10);
   logger.info(`[Server] Starting on port ${port} in ${process.env.NODE_ENV || 'development'} mode`);
 
-  // Запускаем сервер
+  // Запускаем сервер с обработкой конфликта портов
+  server.on('error', (error: any) => {
+    if (error.code === 'EADDRINUSE') {
+      logger.error(`[Server] ❌ Порт ${port} уже занят. Пытаемся завершить конфликтующие процессы...`);
+      
+      // Принудительно завершаем процессы на порту
+      import('child_process').then(({ exec }) => {
+        exec(`lsof -ti:${port} | xargs kill -9`, (killError) => {
+          if (killError) {
+            logger.warn(`[Server] Не удалось завершить процессы на порту ${port}: ${killError.message}`);
+          } else {
+            logger.info(`[Server] Процессы на порту ${port} завершены. Повторная попытка запуска...`);
+            
+            // Повторная попытка запуска через 2 секунды
+            setTimeout(() => {
+              server.listen(port, "0.0.0.0", () => {
+                logger.info(`[Server] 🚀 Сервер успешно запущен на порту ${port} после очистки`);
+              });
+            }, 2000);
+          }
+        });
+      });
+    } else {
+      logger.error(`[Server] ❌ Ошибка сервера:`, error);
+    }
+  });
+
   server.listen(port, "0.0.0.0", () => {
     logger.info(`[Server] 🚀 Сервер успешно запущен на порту ${port}`);
 
