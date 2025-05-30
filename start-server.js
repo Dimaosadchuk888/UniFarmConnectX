@@ -1,15 +1,55 @@
+#!/usr/bin/env node
+
 /**
- * Скрипт для запуска сервера с правильной настройкой базы данных
- * Этот скрипт проверяет настройки подключения и запускает сервер
+ * Server startup script with database connection testing
  */
 
-console.log('🔄 Запуск сервера UniFarm с улучшенной обработкой подключения к БД');
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-// Явно устанавливаем переменные окружения для БД
-process.env.PGSSLMODE = 'require';
-process.env.FORCE_NEON_DB = 'true';
-process.env.DISABLE_REPLIT_DB = 'true';
-process.env.OVERRIDE_DB_PROVIDER = 'neon';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// Импортируем и запускаем сервер
-require('./server/index.js');
+console.log('🚀 Starting UniFarm server...');
+
+// Test database connection first
+console.log('🔍 Testing database connection...');
+
+try {
+  // Import and test the unified database connection
+  const { testConnection } = await import('./server/db-unified.js');
+  const isConnected = await testConnection();
+  
+  if (isConnected) {
+    console.log('✅ Database connection successful');
+  } else {
+    console.log('⚠️ Database connection failed, but continuing...');
+  }
+} catch (error) {
+  console.log('⚠️ Database test error:', error.message);
+  console.log('Continuing with server startup...');
+}
+
+// Start the server
+console.log('🌟 Starting server with tsx...');
+
+const serverProcess = spawn('npx', ['tsx', 'server/index.ts'], {
+  stdio: 'inherit',
+  env: { ...process.env, NODE_ENV: 'development' }
+});
+
+serverProcess.on('error', (error) => {
+  console.error('❌ Server startup error:', error);
+});
+
+serverProcess.on('exit', (code) => {
+  console.log(`Server exited with code ${code}`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('Shutting down server...');
+  serverProcess.kill('SIGINT');
+  process.exit(0);
+});

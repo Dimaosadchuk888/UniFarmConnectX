@@ -1,37 +1,30 @@
 /**
- * ЄДИНИЙ МОДУЛЬ ПІДКЛЮЧЕННЯ ДО ПРАВИЛЬНОЇ БД
- * Перенаправляє всі запити на single-db-connection.ts
+ * Main Database Connection Module
+ * Uses unified database connection to resolve conflicts
  */
 
-// Всі підключення йдуть через єдиний модуль
+// Import from unified connection module
 export { 
-  getSingleDbConnection as db,
-  getSinglePool as pool,
-  querySingleDb as queryDb
-} from './single-db-connection';
+  getDb as db,
+  getPool as pool,
+  query as queryDb,
+  testConnection as testDatabaseConnection,
+  getConnectionStatus,
+  dbType
+} from './db-unified';
 
-// Експорти для зворотної сумісності
+// Compatibility exports
 export { 
-  getSingleDbConnection as getProductionDb, 
-  getSinglePool as getProductionPool,
-  querySingleDb as queryProduction
-} from './single-db-connection';
+  getDb as getProductionDb, 
+  getPool as getProductionPool,
+  query as queryProduction
+} from './db-unified';
 
-// Функції для middleware
-export async function testDatabaseConnection() {
-  try {
-    const { querySingleDb } = await import('./single-db-connection');
-    const result = await querySingleDb('SELECT 1');
-    return { success: true, result };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
-}
-
+// Additional utility functions
 export async function reconnect() {
   try {
-    const { getSinglePool } = await import('./single-db-connection');
-    const pool = await getSinglePool();
+    const { getPool } = await import('./db-unified');
+    const pool = await getPool();
     return { success: true, pool };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
