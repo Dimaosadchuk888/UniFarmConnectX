@@ -461,13 +461,13 @@ export const getApiHeaders = (): Record<string, string> => {
 /**
  * Получает initData от Telegram Web App с улучшенной диагностикой
  */
-export function getInitData(): string | null {
+function getInitData(): string | null {
     try {
       console.log('[telegramService] 🔍 Начинаем поиск initData...');
-      
+
       // Проверяем различные способы получения initData
       if (typeof window !== 'undefined') {
-        
+
         // Подробная диагностика окружения
         const diagnostics = {
           hasTelegram: !!window.Telegram,
@@ -481,9 +481,9 @@ export function getInitData(): string | null {
           referrer: document.referrer,
           isInIframe: window !== window.parent
         };
-        
+
         console.log('[telegramService] 📊 Диагностика окружения:', diagnostics);
-        
+
         // 1. Из Telegram Web App API (основной способ)
         const webAppData = window.Telegram?.WebApp?.initData;
         if (webAppData && webAppData.length > 0) {
@@ -551,7 +551,7 @@ export function getInitData(): string | null {
         console.log('2. Неправильно настроен Telegram Bot');
         console.log('3. Проблемы с URL или webhook');
         console.log('4. Запуск в режиме разработки вне Telegram');
-        
+
         // Детальная диагностика для разработчика
         if (!window.Telegram) {
           console.log('[telegramService] ❌ window.Telegram отсутствует - НЕ Telegram среда');
@@ -568,3 +568,21 @@ export function getInitData(): string | null {
       return null;
     }
   }
+
+export const telegramService = {
+  isAvailable,
+  getUser,
+  getUserId,
+  close,
+  expand,
+  getStartParam,
+  sendData,
+  getThemeParams,
+  ready,
+  isExpanded,
+  getViewportHeight,
+  getInitDataUnsafe,
+  getInitData,
+  onEvent,
+  offEvent
+};
