@@ -94,15 +94,29 @@ export class AuthController {
       // Извлекаем telegram_id из заголовков
       const telegramUserId = req.headers['x-telegram-user-id'];
 
+      console.log('[AuthController] getCurrentUser - telegram_id из заголовков:', telegramUserId);
+
       if (!telegramUserId) {
+        console.error('[AuthController] getCurrentUser - отсутствует x-telegram-user-id в заголовках');
         return sendError(res, 'Отсутствует идентификатор пользователя Telegram', 401);
       }
 
-      const user = await authService.getUserByTelegramId(Number(telegramUserId));
+      const telegramId = Number(telegramUserId);
+      if (isNaN(telegramId)) {
+        console.error('[AuthController] getCurrentUser - некорректный telegram_id:', telegramUserId);
+        return sendError(res, 'Некорректный идентификатор пользователя Telegram', 400);
+      }
+
+      console.log('[AuthController] getCurrentUser - ищем пользователя с telegram_id:', telegramId);
+
+      const user = await authService.getUserByTelegramId(telegramId);
 
       if (!user) {
+        console.error('[AuthController] getCurrentUser - пользователь не найден для telegram_id:', telegramId);
         return sendError(res, 'Пользователь не найден', 404);
       }
+
+      console.log('[AuthController] getCurrentUser - пользователь найден:', user.id);
 
       const userResponse = {
         id: user.id,
@@ -121,6 +135,7 @@ export class AuthController {
 
       sendSuccess(res, { user: userResponse });
     } catch (error) {
+      console.error('[AuthController] getCurrentUser - ошибка:', error);
       next(error);
     }
   }

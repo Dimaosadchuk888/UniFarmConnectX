@@ -83,7 +83,7 @@ function App() {
     // Принудительная очистка всех кэшированных данных Telegram при загрузке приложения
     // Это необходимо для удаления устаревших данных от старого бота
     console.log('[App] 🧹 Очистка кэша Telegram при старте приложения...');
-    clearTelegramCache();
+    //clearTelegramCache();
     console.log('[App] ✅ Кэш Telegram очищен, обновляем локальные данные...');
   }, []);
 
@@ -470,8 +470,17 @@ function App() {
                           <div className="flex items-center justify-center h-32">
                             <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
                           </div>
+                        ) : telegramAuthError ? (
+                          <div className="p-4 text-center">
+                            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-4">
+                              <h2 className="text-lg font-semibold text-red-400 mb-2">Ошибка аутентификации</h2>
+                              <p className="text-red-300">{telegramAuthError}</p>
+                              <p className="text-sm text-red-400 mt-2">
+                                Приложение работает только в Telegram Mini App
+                              </p>
+                            </div>
+                          </div>
                         ) : (
-                          /* Просто рендерим страницу, не показываем ошибку Telegram авторизации */
                           renderActivePage()
                         )}
                       </main>
