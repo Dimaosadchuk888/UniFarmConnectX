@@ -247,7 +247,7 @@ export function getTelegramUserData(): Promise<any> {
     try {
       // Проверяем наличие Telegram WebApp API
       if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
-        console.warn('[telegramService] ⚠️ No Telegram initData available to add to headers');
+        console.warn('[telegramService] ⚠️ Telegram WebApp API недоступен');
         resolve(null);
         return;
       }
@@ -255,6 +255,19 @@ export function getTelegramUserData(): Promise<any> {
       // Получаем initData и пользователя из Telegram
       const initData = window.Telegram.WebApp.initData;
       const userData = window.Telegram.WebApp.initDataUnsafe?.user;
+      
+      // Дополнительная проверка на валидность initData
+      if (!initData || initData.length === 0) {
+        console.warn('[telegramService] ⚠️ initData пустой или отсутствует');
+        console.log('[telegramService] Детали среды:', {
+          platform: window.Telegram.WebApp.platform,
+          version: window.Telegram.WebApp.version,
+          isInIframe: window.self !== window.top,
+          userAgent: navigator.userAgent
+        });
+        resolve(null);
+        return;
+      }
 
       console.log('[telegramService] Telegram данные:', {
         hasInitData: !!initData,

@@ -196,12 +196,22 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
       isGeneratingCode
     });
     
+    // Проверяем доступность Telegram данных
+    const telegramAvailable = typeof window !== 'undefined' && window.Telegram?.WebApp;
+    console.log('[UniFarmReferralLink] Telegram доступность:', {
+      available: telegramAvailable,
+      hasInitData: telegramAvailable ? !!window.Telegram.WebApp.initData : false,
+      hasUser: telegramAvailable ? !!window.Telegram.WebApp.initDataUnsafe?.user : false
+    });
+    
     // Всегда запрашиваем обновленные данные при монтировании компонента
     refetch()
       .then((result) => {
         console.log('[UniFarmReferralLink] Обновлены данные:', { 
           hasData: !!result.data,
-          hasRefCode: result.data?.ref_code ? true : false
+          hasRefCode: result.data?.ref_code ? true : false,
+          isError: result.isError,
+          error: result.error
         });
         
         // Если данные получены, но ref_code отсутствует
@@ -220,7 +230,13 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
           }, 500);
         }
       })
-      .catch(error => console.error('[UniFarmReferralLink] Ошибка при обновлении данных:', error));
+      .catch(error => {
+        console.error('[UniFarmReferralLink] Ошибка при обновлении данных:', error);
+        // Проверяем, связана ли ошибка с Telegram
+        if (error?.message?.includes('wrapServiceFunction')) {
+          console.error('[UniFarmReferralLink] Обнаружена проблема с Telegram сервисом');
+        }
+      });
   }, []);
   
   // Копирование ссылки в буфер обмена

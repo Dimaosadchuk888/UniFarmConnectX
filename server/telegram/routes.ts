@@ -18,6 +18,17 @@ telegramRouter.get('/status', async (req, res) => {
     // Перевіряємо наявність токену бота
     const hasBotToken = Boolean(process.env.TELEGRAM_BOT_TOKEN);
     
+    // Дополнительная диагностика
+    const diagnosticInfo = {
+      hasBotToken,
+      webhookConfigured: webhookInfo.success && !!webhookInfo.info?.url,
+      miniAppUrl: process.env.MINI_APP_URL || process.env.APP_URL,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    };
+    
+    logger.info('[TelegramRoutes] Diagnostic info:', diagnosticInfo);
+    
     if (hasBotToken && webhookInfo.success) {
       return res.json({
         success: true,
@@ -26,6 +37,8 @@ telegramRouter.get('/status', async (req, res) => {
           status: 'online',
           webhookStatus: webhookInfo.info?.url ? 'configured' : 'not_configured',
           webhookUrl: webhookInfo.info?.url,
+          miniAppUrl: process.env.MINI_APP_URL || process.env.APP_URL,
+          diagnostic: diagnosticInfo,
           timestamp: new Date().toISOString()
         }
       });
@@ -33,13 +46,15 @@ telegramRouter.get('/status', async (req, res) => {
       return res.status(503).json({
         success: false,
         error: 'TELEGRAM_BOT_TOKEN не налаштовано',
-        details: 'Токен бота відсутній у змінних середовища'
+        details: 'Токен бота відсутній у змінних середовища',
+        diagnostic: diagnosticInfo
       });
     } else {
       return res.status(503).json({
         success: false,
         error: 'Telegram Bot API недоступний',
-        details: webhookInfo.error || 'Неможливо отримати інформацію про webhook'
+        details: webhookInfo.error || 'Неможливо отримати інформацію про webhook',
+        diagnostic: diagnosticInfo
       });
     }
   } catch (error) {
@@ -47,7 +62,11 @@ telegramRouter.get('/status', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Внутренняя ошибка сервера',
-      details: error instanceof Error ? error.message : String(error)
+      details: error instanceof Error ? error.message : String(error),
+      diagnostic: {
+        errorType: error?.constructor?.name || 'Unknown',
+        errorMessage: error instanceof Error ? error.message : String(error)
+      }
     });
   }
 });

@@ -3,6 +3,20 @@ import { validateTelegramInitData, extractReferralCodeFromStartParam, TelegramVa
 import { NotFoundError, ValidationError } from '../middleware/errorHandler';
 
 /**
+ * Обертка для безопасного выполнения сервисных функций
+ */
+function wrapServiceFunction<T>(fn: () => Promise<T> | T, context: string = 'Service'): Promise<T> {
+  return Promise.resolve().then(() => {
+    try {
+      return fn();
+    } catch (error) {
+      console.error(`[${context}] Error:`, error);
+      throw error;
+    }
+  });
+}
+
+/**
  * Интерфейс для данных пользователя Telegram
  */
 export interface TelegramUserData {
