@@ -18,7 +18,7 @@ const envPath = path.resolve(process.cwd(), '.env');
 if (fs.existsSync(envPath)) {
   console.log('[Config] Loading environment variables from:', envPath);
   const result = dotenv.config({ path: envPath });
-  
+
   if (result.error) {
     console.error('[Config] Error loading .env file:', result.error);
   } else {
@@ -130,7 +130,7 @@ process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) =>
     stack: reason instanceof Error ? reason.stack : undefined,
     timestamp: new Date().toISOString()
   });
-  
+
   // Логируем более подробную информацию для отладки
   if (reason instanceof Error) {
     logger.error('[SERVER] Детали ошибки:', {
@@ -181,7 +181,7 @@ async function startServer(): Promise<void> {
 
   // Создаем Express приложение
   const app = express();
-  
+
   // Добавляем ограничения на размер запросов для безопасности
   app.use(express.json({ 
     limit: '10mb',
@@ -195,30 +195,30 @@ async function startServer(): Promise<void> {
       }
     }
   }));
-  
+
   app.use(express.urlencoded({ 
     extended: false, 
     limit: '10mb' 
   }));
-  
+
   // Добавляем базовую защиту от атак
   app.use((req, res, next) => {
     // Проверяем User-Agent на подозрительные паттерны
     const userAgent = req.headers['user-agent'] || '';
     const suspiciousPatterns = ['<script', 'javascript:', 'vbscript:', 'onload='];
-    
+
     if (suspiciousPatterns.some(pattern => userAgent.toLowerCase().includes(pattern))) {
       logger.warn('[Security] Подозрительный User-Agent:', userAgent);
       return res.status(403).json({ success: false, error: 'Запрещенный запрос' });
     }
-    
+
     next();
   });
 
   // Создаем хранилище сессий
   const MemoryStore = memoryStore(session);
   const PgStore = connectPgSimple(session);
-  
+
   // Настраиваем сессионный middleware
   app.use(session({
     store: process.env.USE_MEMORY_SESSION === 'true' 
@@ -243,10 +243,10 @@ async function startServer(): Promise<void> {
 
   // Регистрируем middleware для проверки подключения к БД
   app.use(databaseErrorHandler as unknown as RequestHandler);
-  
+
   // Регистрируем middleware для проверки здоровья приложения
   app.use(healthCheckMiddleware as express.RequestHandler);
-  
+
   // Регистрируем middleware для стандартизации ответов API
   app.use(responseFormatter as any);
 
@@ -280,7 +280,7 @@ async function startServer(): Promise<void> {
 
     next();
   };
-  
+
   app.use('/api', apiLoggingMiddleware);
 
   // Дополнительные логи отладки запросов
@@ -292,7 +292,7 @@ async function startServer(): Promise<void> {
       }
       next();
     };
-    
+
     app.use('/api', debugMiddleware);
   }
 
@@ -308,13 +308,13 @@ async function startServer(): Promise<void> {
       environment: process.env.NODE_ENV || 'development'
     });
   };
-  
+
   healthRouter.get('/health', healthHandler as any);
 
   // Добавляем обработчик корневого маршрута для проверки здоровья
   const rootHealthHandler = (req: Request, res: Response) => {
     logger.debug('[Health Check] Запрос к корневому маршруту');
-    
+
     // Если это запрос для проверки здоровья от Replit
     if (req.query.health === 'check' || 
         req.headers['user-agent']?.includes('Replit') || 
@@ -322,16 +322,16 @@ async function startServer(): Promise<void> {
       logger.info('[Health Check] Replit проверка здоровья обнаружена');
       return res.status(200).send('OK');
     }
-    
+
     // Отдаем фронтенд приложение
     const indexPath = path.join(__dirname, '../dist/public/index.html');
-    
+
     // Проверяем существование файла
     if (fs.existsSync(indexPath)) {
       logger.debug('[Frontend] Отдаем index.html фронтенда');
       return res.sendFile(indexPath);
     }
-    
+
     // Fallback если dist не найден - отдаем базовый HTML для Mini App
     logger.debug('[Frontend] dist/index.html не найден, возвращаем базовую страницу');
     res.status(200).send(`
@@ -358,7 +358,7 @@ async function startServer(): Promise<void> {
       </html>
     `);
   };
-  
+
   healthRouter.get('/', rootHealthHandler as any);
 
   // Подключаем роутер с маршрутами здоровья
@@ -397,31 +397,31 @@ async function startServer(): Promise<void> {
 
     next();
   };
-  
+
   app.use(telegramWebAppMiddleware);
 
   // Создаем HTTP сервер на основе Express приложения
   const server = http.createServer(app);
-  
+
   // Настройка WebSocket сервера для real-time обновлений
   const wss = new WebSocketServer({ server });
-  
+
   wss.on('connection', (ws, req) => {
     logger.info('[WebSocket] Новое подключение установлено');
-    
+
     // Отправляем приветственное сообщение
     ws.send(JSON.stringify({
       type: 'connection',
       status: 'connected',
       timestamp: new Date().toISOString()
     }));
-    
+
     // Обработка входящих сообщений
     ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString());
         logger.info('[WebSocket] Получено сообщение:', message);
-        
+
         // Эхо-ответ для подтверждения
         ws.send(JSON.stringify({
           type: 'echo',
@@ -432,18 +432,18 @@ async function startServer(): Promise<void> {
         logger.error('[WebSocket] Ошибка парсинга сообщения:', error);
       }
     });
-    
+
     // Обработка закрытия соединения
     ws.on('close', (code, reason) => {
       logger.info(`[WebSocket] Соединение закрыто: ${code} - ${reason}`);
     });
-    
+
     // Улучшенная обработка ошибок
     ws.on('error', (error) => {
       logger.error(`[WebSocket] Ошибка соединения:`, error.message);
       // Не закрываем соединение принудительно - позволяем клиенту переподключиться
     });
-    
+
     // Оптимизированный heartbeat для поддержания соединения
     const heartbeat = setInterval(() => {
       if (ws.readyState === ws.OPEN) {
@@ -452,15 +452,15 @@ async function startServer(): Promise<void> {
         clearInterval(heartbeat);
       }
     }, 15000); // ping каждые 15 секунд для уменьшения задержек
-    
+
     // Установка timeout для pong ответов
     let pongTimeout: NodeJS.Timeout;
-    
+
     ws.on('ping', () => {
       // Отвечаем на ping немедленно
       ws.pong();
     });
-    
+
     ws.on('pong', () => {
       logger.debug('[WebSocket] Pong получен');
       // Очищаем timeout при получении pong
@@ -468,12 +468,12 @@ async function startServer(): Promise<void> {
         clearTimeout(pongTimeout);
       }
     });
-    
+
     // Функция для отправки ping с timeout
     const sendPingWithTimeout = () => {
       if (ws.readyState === ws.OPEN) {
         ws.ping();
-        
+
         // Устанавливаем timeout для pong ответа
         pongTimeout = setTimeout(() => {
           logger.warn('[WebSocket] Pong timeout, закрываем соединение');
@@ -481,11 +481,11 @@ async function startServer(): Promise<void> {
         }, 5000); // 5 секунд timeout для pong
       }
     };
-    
+
     // Обновляем heartbeat для использования новой функции
     clearInterval(heartbeat);
     const optimizedHeartbeat = setInterval(sendPingWithTimeout, 15000);
-    
+
     // Очистка при закрытии соединения
     ws.on('close', () => {
       clearInterval(optimizedHeartbeat);
@@ -494,202 +494,202 @@ async function startServer(): Promise<void> {
       }
     });
   });
-  
+
   // === API v1 → v2 MAPPING СИСТЕМА ===
   // Универсальная система обратной совместимости для фронтенда
-  
+
   // Маппинг для TON Farming эндпоинтов
   app.get('/api/ton-farming/info', (req, res, next) => {
     logger.info('[API MAP] /api/ton-farming/info → /api/v2/ton-farming/info');
     req.url = '/api/v2/ton-farming/info';
     next();
   });
-  
+
   app.get('/api/ton-farming/boosts', (req, res, next) => {
     logger.info('[API MAP] /api/ton-farming/boosts → /api/v2/ton-farming/boosts');
     req.url = '/api/v2/ton-farming/boosts';
     next();
   });
-  
+
   app.get('/api/ton-farming/active', (req, res, next) => {
     logger.info('[API MAP] /api/ton-farming/active → /api/v2/ton-farming/active');
     req.url = '/api/v2/ton-farming/active';
     next();
   });
-  
+
   app.post('/api/ton-farming/purchase', (req, res, next) => {
     logger.info('[API MAP] /api/ton-farming/purchase → /api/v2/ton-farming/purchase');
     req.url = '/api/v2/ton-farming/purchase';
     next();
   });
-  
+
   app.post('/api/ton-farming/confirm-payment', (req, res, next) => {
     logger.info('[API MAP] /api/ton-farming/confirm-payment → /api/v2/ton-farming/confirm-payment');
     req.url = '/api/v2/ton-farming/confirm-payment';
     next();
   });
-  
+
   app.post('/api/ton-farming/update', (req, res, next) => {
     logger.info('[API MAP] /api/ton-farming/update → /api/v2/ton-farming/update');
     req.url = '/api/v2/ton-farming/update';
     next();
   });
-  
+
   // Маппинг для UniPool Farming эндпоинтов
   app.get('/api/uni-farming/status', (req, res, next) => {
     logger.info('[API MAP] /api/uni-farming/status → /api/v2/uni-farming/status');
     req.url = '/api/v2/uni-farming/status';
     next();
   });
-  
+
   app.post('/api/uni-farming/purchase', (req, res, next) => {
     logger.info('[API MAP] /api/uni-farming/purchase → /api/v2/uni-farming/purchase');
     req.url = '/api/v2/uni-farming/purchase';
     next();
   });
-  
+
   app.post('/api/uni-farming/withdraw', (req, res, next) => {
     logger.info('[API MAP] /api/uni-farming/withdraw → /api/v2/uni-farming/withdraw');
     req.url = '/api/v2/uni-farming/withdraw';
     next();
   });
-  
+
   // Маппинг для Wallet эндпоинтов
   app.get('/api/wallet/balance', (req, res, next) => {
     logger.info('[API MAP] /api/wallet/balance → /api/v2/wallet/balance');
     req.url = '/api/v2/wallet/balance';
     next();
   });
-  
+
   app.post('/api/wallet/connect', (req, res, next) => {
     logger.info('[API MAP] /api/wallet/connect → /api/v2/wallet/connect');
     req.url = '/api/v2/wallet/connect';
     next();
   });
-  
+
   app.post('/api/wallet/disconnect', (req, res, next) => {
     logger.info('[API MAP] /api/wallet/disconnect → /api/v2/wallet/disconnect');
     req.url = '/api/v2/wallet/disconnect';
     next();
   });
-  
+
   app.get('/api/wallet/transactions', (req, res, next) => {
     logger.info('[API MAP] /api/wallet/transactions → /api/v2/wallet/transactions');
     req.url = '/api/v2/wallet/transactions';
     next();
   });
-  
+
   app.post('/api/wallet/withdraw', (req, res, next) => {
     logger.info('[API MAP] /api/wallet/withdraw → /api/v2/wallet/withdraw');
     req.url = '/api/v2/wallet/withdraw';
     next();
   });
-  
+
   // Маппинг для Boosts эндпоинтов
   app.get('/api/boosts', (req, res, next) => {
     logger.info('[API MAP] /api/boosts → /api/v2/boosts');
     req.url = '/api/v2/boosts';
     next();
   });
-  
+
   app.get('/api/boosts/active', (req, res, next) => {
     logger.info('[API MAP] /api/boosts/active → /api/v2/boosts/active');
     req.url = '/api/v2/boosts/active';
     next();
   });
-  
+
   app.post('/api/boosts/purchase', (req, res, next) => {
     logger.info('[API MAP] /api/boosts/purchase → /api/v2/boosts/purchase');
     req.url = '/api/v2/boosts/purchase';
     next();
   });
-  
+
   // Маппинг для Missions эндпоинтов
   app.get('/api/missions/active', (req, res, next) => {
     logger.info('[API MAP] /api/missions/active → /api/v2/missions/active');
     req.url = '/api/v2/missions/active';
     next();
   });
-  
+
   app.get('/api/user-missions', (req, res, next) => {
     logger.info('[API MAP] /api/user-missions → /api/v2/user-missions');
     req.url = '/api/v2/user-missions';
     next();
   });
-  
+
   app.get('/api/missions/with-completion', (req, res, next) => {
     logger.info('[API MAP] /api/missions/with-completion → /api/v2/missions/with-completion');
     req.url = '/api/v2/missions/with-completion';
     next();
   });
-  
+
   app.post('/api/missions/complete', (req, res, next) => {
     logger.info('[API MAP] /api/missions/complete → /api/v2/missions/complete');
     req.url = '/api/v2/missions/complete';
     next();
   });
-  
+
   // КРИТИЧНИЙ МАРШРУТ: перенаправляємо відсутній endpoint на робочий
   app.get('/api/v2/missions/user-completed', (req, res, next) => {
     logger.info('[API MAP] /api/v2/missions/user-completed → /api/v2/user-missions');
     req.url = '/api/v2/user-missions';
     next();
   });
-  
 
-  
+
+
   // Маппинг для Referrals эндпоинтов
   app.get('/api/referrals/tree', (req, res, next) => {
     logger.info('[API MAP] /api/referrals/tree → /api/v2/referrals/tree');
     req.url = '/api/v2/referrals/tree';
     next();
   });
-  
+
   app.get('/api/referrals/stats', (req, res, next) => {
     logger.info('[API MAP] /api/referrals/stats → /api/v2/referrals/stats');
     req.url = '/api/v2/referrals/stats';
     next();
   });
-  
+
   app.post('/api/referrals/apply', (req, res, next) => {
     logger.info('[API MAP] /api/referrals/apply → /api/v2/referrals/apply');
     req.url = '/api/v2/referrals/apply';
     next();
   });
-  
+
   // Маппинг для Daily Bonus эндпоинтов
   app.get('/api/daily-bonus/status', (req, res, next) => {
     logger.info('[API MAP] /api/daily-bonus/status → /api/v2/daily-bonus/status');
     req.url = '/api/v2/daily-bonus/status';
     next();
   });
-  
+
   app.post('/api/daily-bonus/claim', (req, res, next) => {
     logger.info('[API MAP] /api/daily-bonus/claim → /api/v2/daily-bonus/claim');
     req.url = '/api/v2/daily-bonus/claim';
     next();
   });
-  
+
   app.get('/api/daily-bonus/streak-info', (req, res, next) => {
     logger.info('[API MAP] /api/daily-bonus/streak-info → /api/v2/daily-bonus/streak-info');
     req.url = '/api/v2/daily-bonus/streak-info';
     next();
   });
-  
+
   // Маппинг для Session эндпоинтов
   app.post('/api/session/restore', (req, res, next) => {
     logger.info('[API MAP] /api/session/restore → /api/v2/session/restore');
     req.url = '/api/v2/session/restore';
     next();
   });
-  
+
   // Маппинг для Users эндпоинтов
   app.get('/api/users/:id', (req, res, next) => {
     logger.info('[API MAP] /api/users/:id → /api/v2/users/:id');
     req.url = '/api/v2/users/' + req.params.id;
     next();
   });
-  
+
   app.get('/api/users/:userId/transactions', (req, res, next) => {
     logger.info('[API MAP] /api/users/:userId/transactions → /api/v2/users/:userId/transactions');
     req.url = '/api/v2/users/' + req.params.userId + '/transactions';
@@ -707,7 +707,7 @@ async function startServer(): Promise<void> {
         req.url.startsWith('/admin/')) {
       return next();
     }
-    
+
     // Перенаправляем все остальные /api/* запросы на /api/v2/*
     const originalUrl = req.url;
     req.url = '/v2' + req.url;
@@ -725,7 +725,7 @@ async function startServer(): Promise<void> {
   app.get('/api/test/production-db', getProductionDbStatus);
   app.post('/api/test/telegram-register', testTelegramRegistration);
   app.get('/api/test/user/:user_id', checkUser);
-  
+
   logger.info('[Server] ✅ Telegram маршруты зарегистрированы: /api/telegram/*');
   } catch (error) {
     logger.error('[Server] ❌ Ошибка при регистрации Telegram маршрутов:', error);
@@ -733,24 +733,24 @@ async function startServer(): Promise<void> {
 
   // Регистрируем консолидированные маршруты API
   try {
-    // Регистрируем консолидированные маршруты
-    registerNewRoutes(app);
-    
+    // Регистрируем новые маршруты API
+    await registerNewRoutes(app);
+
     // КРИТИЧНО: Підключаємо простий робочий маршрут для місій
     const simpleMissionsRouter = await import('./routes/simple-missions.js');
     app.use('/', simpleMissionsRouter.default);
     logger.info('[Server] ✅ Простий маршрут місій підключено');
-    
+
     // КРИТИЧНО: Підключаємо простий робочий маршрут для бустів
     const simpleBoostsRouter = await import('./routes/simple-boosts.js');
     app.use('/', simpleBoostsRouter.default);
     logger.info('[Server] ✅ Простий маршрут бустів підключено');
-    
+
     // Настраиваем базовый URL для API
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 
       : 'https://uni-farm-connect-2.osadchukdmitro2.replit.app';
-      
+
     logger.info('[Server] ✅ API маршруты успешно настроены');
   } catch (error) {
     logger.error('[Server] ❌ Ошибка при настройке маршрутов API:', 
@@ -765,13 +765,13 @@ async function startServer(): Promise<void> {
   // Добавляем health check endpoint перед статическими файлами
   app.get('/health', (req: any, res: any) => {
     logger.debug('[Health Check] Запрос к health endpoint');
-    
+
     // Импортируем healthMonitor
     const { healthMonitor } = require('./utils/healthMonitor');
     healthMonitor.updateMetrics();
-    
+
     const healthStatus = healthMonitor.getHealthStatus();
-    
+
     return res.status(healthStatus.status === 'critical' ? 503 : 200).json({
       status: healthStatus.status === 'healthy' ? 'OK' : healthStatus.status,
       timestamp: new Date().toISOString(),
@@ -787,21 +787,21 @@ async function startServer(): Promise<void> {
   app.get('/api/v2/missions/active', async (req: any, res: any) => {
     try {
       console.log('[QUICK FIX] 🔍 Запрос активных миссий через прямое подключение к БД');
-      
+
       // Импортируем функцию для подключения к БД
       const { getSingleDbConnection } = await import('./single-db-connection.js');
       const { missions } = await import('../shared/schema.js');
       const { eq } = await import('drizzle-orm');
-      
+
       const db = await getSingleDbConnection();
-      
+
       const activeMissions = await db
         .select()
         .from(missions)
         .where(eq(missions.is_active, true));
-      
+
       console.log('[QUICK FIX] ✅ Знайдено місій:', activeMissions.length);
-      
+
       res.status(200).json({
         success: true,
         data: activeMissions,
@@ -825,7 +825,7 @@ async function startServer(): Promise<void> {
     logger.info('[Server] 🚀 Запуск в production режиме, используем оптимизированную обработку статических файлов');
     // setupProductionStatic(app); // Отключено - используем express.static ниже
   }
-  
+
   // Еще раз регистрируем централизованный обработчик ошибок
   app.use((err: any, req: any, res: any, next: any) => {
     errorHandler(err, req, res, next);
@@ -841,14 +841,14 @@ async function startServer(): Promise<void> {
       logger.debug('[SPA Fallback] Пропускаем API запрос:', req.originalUrl);
       return res.status(404).json({ success: false, error: 'API endpoint not found' });
     }
-    
+
     const indexPath = path.join(__dirname, '../dist/public/index.html');
-    
+
     if (fs.existsSync(indexPath)) {
       logger.debug('[SPA Fallback] Отдаем index.html для SPA маршрута:', req.originalUrl);
       return res.sendFile(indexPath);
     }
-    
+
     // Fallback если dist не найден
     logger.debug('[SPA Fallback] dist/index.html не найден, возвращаем 404');
     res.status(404).send('Page not found');
@@ -861,7 +861,7 @@ async function startServer(): Promise<void> {
   // Запускаем сервер
   server.listen(port, "0.0.0.0", () => {
     logger.info(`[Server] 🚀 Сервер успешно запущен на порту ${port}`);
-    
+
     // После запуска сервера автоматически настраиваем Telegram вебхук
     if (process.env.TELEGRAM_BOT_TOKEN) {
       logger.info('[Server] Запуск автоматической настройки Telegram бота...');
@@ -873,7 +873,7 @@ async function startServer(): Promise<void> {
     } else {
       logger.warn('[Server] TELEGRAM_BOT_TOKEN не найден, автоматическая настройка вебхука пропущена');
     }
-    
+
     // Инициализируем фоновые сервисы
     initBackgroundServices();
   });

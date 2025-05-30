@@ -47,8 +47,17 @@ import adminWebhookHandler from './api/admin/webhook';
  * Регистрирует новые маршруты API в указанном приложении Express
  * @param app Экземпляр приложения Express
  */
-export function registerNewRoutes(app: Express): void {
+export async function registerNewRoutes(app: Express): Promise<void> {
   logger.info('[NewRoutes] Регистрация новых маршрутов API');
+
+  // КРИТИЧНО: Підключаємо простий робочий маршрут для місій
+  try {
+    const simpleMissionsRouter = await import('./routes/simple-missions');
+    app.use('/', simpleMissionsRouter.default || simpleMissionsRouter);
+    logger.info('[NewRoutes] ✅ Простий маршрут місій підключено');
+  } catch (error) {
+    logger.warn('[NewRoutes] ⚠️ Не удалось подключить simple-missions:', error.message);
+  }
 
   // Инициализируем Telegram бота
   try {
@@ -703,13 +712,7 @@ export function registerNewRoutes(app: Express): void {
   }));
 
   // КРИТИЧНО: Підключаємо простий робочий маршрут для місій
-  try {
-    const simpleMissionsRouter = await import('./routes/simple-missions');
-    app.use('/', simpleMissionsRouter.default || simpleMissionsRouter);
-    logger.info('[NewRoutes] ✅ Простий маршрут місій підключено');
-  } catch (error) {
-    logger.warn('[NewRoutes] ⚠️ Не удалось подключить simple-missions:', error.message);
-  }
+  // Перенесено в async блок выше для корректного использования await
 
   logger.info('[NewRoutes] ✓ Новые маршруты API зарегистрированы успешно');
 }
