@@ -27,7 +27,7 @@ localPort = 3001
 externalPort = 3001
 
 [workflows]
-runButton = "UniFarm Start"
+runButton = "Clean Start UniFarm"
 
 [[workflows.workflow]]
 name = "run.js"
@@ -173,3 +173,20 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd /home/runner/workspace && node -r tsx/esm server/index.ts"
+
+[[workflows.workflow]]
+name = "Clean Start UniFarm"
+author = 43232783
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"tsx server/index.ts\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sleep 2"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true npx --yes tsx server/index.ts"
