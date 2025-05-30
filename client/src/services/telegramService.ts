@@ -457,3 +457,70 @@ export const getApiHeaders = (): Record<string, string> => {
     return headers;
   }
 };
+
+/**
+   * Получает initData от Telegram Web App
+   */
+  getInitData(): string | null {
+    try {
+      // Проверяем различные способы получения initData
+      if (typeof window !== 'undefined') {
+        // 1. Из Telegram Web App API (основной способ)
+        const webAppData = window.Telegram?.WebApp?.initData;
+        if (webAppData && webAppData.length > 0) {
+          console.log('[telegramService] ✅ InitData получен из Telegram.WebApp');
+          // Кэшируем валидные данные
+          localStorage.setItem('telegram_init_data', webAppData);
+          return webAppData;
+        }
+
+        // 2. Из URL параметров (альтернативный способ)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlInitData = urlParams.get('tgWebAppData') || urlParams.get('initData');
+        if (urlInitData && urlInitData.length > 0) {
+          console.log('[telegramService] ✅ InitData получен из URL параметров');
+          localStorage.setItem('telegram_init_data', urlInitData);
+          return urlInitData;
+        }
+
+        // 3. Из localStorage (кэш) - только если не старше 1 часа
+        const cachedData = localStorage.getItem('telegram_init_data');
+        const cacheTime = localStorage.getItem('telegram_init_data_time');
+        if (cachedData && cacheTime) {
+          const timeDiff = Date.now() - parseInt(cacheTime);
+          if (timeDiff < 3600000) { // 1 час
+            console.log('[telegramService] ✅ InitData получен из кэша');
+            return cachedData;
+          } else {
+            console.log('[telegramService] ⚠️ Кэш initData устарел, очищаем');
+            localStorage.removeItem('telegram_init_data');
+            localStorage.removeItem('telegram_init_data_time');
+          }
+        }
+
+        // 4. Попытка получить из hash параметров
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const hashInitData = hashParams.get('tgWebAppData');
+        if (hashInitData && hashInitData.length > 0) {
+          console.log('[telegramService] ✅ InitData получен из hash параметров');
+          localStorage.setItem('telegram_init_data', hashInitData);
+          localStorage.setItem('telegram_init_data_time', Date.now().toString());
+          return hashInitData;
+        }
+
+        console.log('[telegramService] ❌ InitData не найден ни одним способом');
+        console.log('[telegramService] Debug info:', {
+          hasWebApp: !!window.Telegram?.WebApp,
+          webAppDataLength: window.Telegram?.WebApp?.initData?.length || 0,
+          urlSearch: window.location.search,
+          urlHash: window.location.hash,
+          userAgent: navigator.userAgent
+        });
+      }
+
+      return null;
+    } catch (error) {
+      console.error('[telegramService] Ошибка при получении initData:', error);
+      return null;
+    }
+  }
