@@ -202,3 +202,26 @@ export class AuthServiceInstance {
 
 // Экспортируем экземпляр сервиса
 export const authServiceInstance = new AuthServiceInstance();
+
+/**
+ * Фабричная функция для создания экземпляра сервиса аутентификации
+ */
+export function createAuthService(): AuthServiceInstance {
+  return authServiceInstance;
+}
+
+/**
+ * Интерфейс сервиса аутентификации
+ */
+export interface IAuthService {
+  validateTelegramInitData(initData: string): Promise<boolean>;
+  authenticateTelegramUser(userData: {
+    telegram_id: number;
+    username?: string;
+    first_name: string;
+    last_name?: string;
+    parent_ref_code?: string;
+  }): Promise<any>;
+  getUserByTelegramId(telegramId: number): Promise<any>;
+  getUserById(userId: number): Promise<any>;
+}
