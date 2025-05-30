@@ -978,4 +978,34 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   const { getMetrics, resetMetrics } = await import('./api/metrics');
   app.get('/api/metrics', getMetrics);
   app.post('/api/metrics/reset', resetMetrics);
+  
+  // Endpoint для принудительного восстановления БД
+  app.post('/api/system/force-recovery', requireAdminAuth, logAdminAction('FORCE_DB_RECOVERY'), async (req, res) => {
+    try {
+      logger.info('[System] Force recovery requested by admin');
+      
+      const { autoRecoverySystem } = await import('./utils/auto-recovery-system');
+      const { recoverDatabaseConnection } = await import('./utils/db-auto-recovery');
+      
+      // Запускаем принудительное восстановление
+      const recoveryResult = await recoverDatabaseConnection();
+      const autoRecoveryStats = autoRecoverySystem.getRecoveryStats();
+      
+      res.json({
+        success: true,
+        recovery: recoveryResult,
+        autoRecoveryStats,
+        timestamp: new Date().toISOString(),
+        message: recoveryResult.success ? 'Database recovery successful' : 'Database recovery failed'
+      });
+      
+    } catch (error) {
+      logger.error('[System] Force recovery error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
 }

@@ -203,5 +203,11 @@ export const autoRecoverySystem = new AutoRecoverySystem();
 
 // Автоматический запуск при импорте модуля
 setTimeout(() => {
+  logger.info('[AutoRecovery] Initializing auto-recovery system...');
   autoRecoverySystem.startMonitoring();
-}, 10000); // Запускаем через 10 секунд после старта сервера
+  
+  // Принудительная проверка при старте
+  setTimeout(() => {
+    autoRecoverySystem.forceRecovery();
+  }, 5000);
+}, 3000); // Запускаем раньше для быстрого восстановления

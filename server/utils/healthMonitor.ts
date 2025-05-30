@@ -1,4 +1,3 @@
-
 interface HealthMetrics {
   uptime: number;
   memory: NodeJS.MemoryUsage;
@@ -56,25 +55,25 @@ class HealthMonitor {
     const isSlowResponse = this.metrics.apiResponseTime > 5000; // Больше 5 секунд
     const timeSinceLastCheck = Date.now() - this.lastHealthCheck;
     const isStale = timeSinceLastCheck > 300000; // 5 минут
-    
+
     let status: 'healthy' | 'warning' | 'critical' = 'healthy';
     const issues: string[] = [];
-    
+
     if (!this.metrics.dbConnected) {
       status = 'critical';
       issues.push('База данных недоступна');
     }
-    
+
     if (isHighMemory) {
       status = status === 'critical' ? 'critical' : 'warning';
       issues.push(`Высокое потребление памяти: ${memoryUsageMB.toFixed(0)}MB`);
     }
-    
+
     if (isSlowResponse) {
       status = status === 'critical' ? 'critical' : 'warning';
       issues.push(`Медленные API ответы: ${this.metrics.apiResponseTime}ms`);
     }
-    
+
     if (isStale) {
       status = status === 'critical' ? 'critical' : 'warning';
       issues.push('Устаревшие метрики здоровья');
@@ -85,6 +84,30 @@ class HealthMonitor {
       status,
       issues
     };
+  }
+  updateMetrics() {
+    this.metrics.memory = process.memoryUsage();
+    this.metrics.uptime = Date.now() - this.startTime;
+    this.lastHealthCheck = Date.now();
+
+    // Интеграция с системой автовосстановления
+    this.checkDatabaseHealth();
+  }
+
+  private async checkDatabaseHealth() {
+    try {
+      //Dynamically import the db-auto-recovery module to avoid circular dependencies
+      const { checkDatabaseHealth } = await import('./db-auto-recovery');
+      const health = await checkDatabaseHealth();
+
+      this.metrics.dbConnected = health.isHealthy;
+
+      if (!health.isHealthy) {
+        this.recordApiError('/database/health', 'Database connection unhealthy');
+      }
+    } catch (error) {
+      console.warn('[HealthMonitor] Failed to check database health:', error.message);
+    }
   }
 }
 

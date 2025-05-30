@@ -130,3 +130,122 @@ export function getRecoveryStatus() {
     isRecoveryActive: recoveryTimer !== null
   };
 }
+/**
+ * Модуль автоматического восстановления соединения с базой данных
+ */
+
+import logger from './logger';
+
+interface RecoveryResult {
+  success: boolean;
+  provider?: string;
+  error?: string;
+  connectionInfo?: any;
+}
+
+/**
+ * Основная функция восстановления соединения с БД
+ */
+export async function recoverDatabaseConnection(): Promise<RecoveryResult> {
+  logger.info('[DB Recovery] Starting database connection recovery...');
+  
+  try {
+    // Импортируем модули для работы с БД
+    const { initializeDatabase, getConnectionStatus, testConnection } = await import('../db-unified');
+    
+    // Проверяем текущее состояние
+    const currentStatus = getConnectionStatus();
+    logger.info('[DB Recovery] Current connection status:', currentStatus);
+    
+    // Если уже подключены и не в memory mode, возвращаем успех
+    if (currentStatus.isConnected && !currentStatus.isMemoryMode) {
+      logger.info('[DB Recovery] Database already connected, no recovery needed');
+      return {
+        success: true,
+        provider: currentStatus.connectionName,
+        connectionInfo: currentStatus
+      };
+    }
+    
+    // Пытаемся переинициализировать соединение
+    logger.info('[DB Recovery] Attempting database reinitialization...');
+    
+    try {
+      await initializeDatabase();
+      
+      // Проверяем результат
+      const newConnection = await testConnection();
+      const newStatus = getConnectionStatus();
+      
+      if (newConnection && !newStatus.isMemoryMode) {
+        logger.info('[DB Recovery] Database recovery successful', {
+          provider: newStatus.connectionName,
+          isConnected: newStatus.isConnected
+        });
+        
+        return {
+          success: true,
+          provider: newStatus.connectionName,
+          connectionInfo: newStatus
+        };
+      } else {
+        const errorMsg = 'Database reinitialization completed but connection test failed';
+        logger.error('[DB Recovery]', errorMsg);
+        return {
+          success: false,
+          error: errorMsg,
+          connectionInfo: newStatus
+        };
+      }
+      
+    } catch (initError) {
+      const errorMsg = `Database initialization failed: ${initError.message}`;
+      logger.error('[DB Recovery]', errorMsg);
+      return {
+        success: false,
+        error: errorMsg
+      };
+    }
+    
+  } catch (error) {
+    const errorMsg = `Recovery process failed: ${error.message}`;
+    logger.error('[DB Recovery]', errorMsg);
+    return {
+      success: false,
+      error: errorMsg
+    };
+  }
+}
+
+/**
+ * Проверка доступности соединения с БД
+ */
+export async function checkDatabaseHealth(): Promise<{
+  isHealthy: boolean;
+  details: any;
+}> {
+  try {
+    const { testConnection, getConnectionStatus } = await import('../db-unified');
+    
+    const isConnected = await testConnection();
+    const status = getConnectionStatus();
+    
+    return {
+      isHealthy: isConnected && !status.isMemoryMode,
+      details: {
+        isConnected,
+        isMemoryMode: status.isMemoryMode,
+        provider: status.connectionName,
+        timestamp: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    return {
+      isHealthy: false,
+      details: {
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
+}

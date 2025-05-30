@@ -132,7 +132,38 @@ class ApiPerformanceTracker {
    */
   cleanupOldMetrics(hoursOld: number = 24) {
     const cutoffTime = new Date(Date.now() - hoursOld * 60 * 60 * 1000);
+    const beforeCount = this.metrics.length;
     this.metrics = this.metrics.filter(m => m.timestamp > cutoffTime);
+    const afterCount = this.metrics.length;
+    
+    if (beforeCount !== afterCount) {
+      console.log(`[Performance Tracker] Cleaned up ${beforeCount - afterCount} old metrics`);
+    }
+  }
+  
+  /**
+   * Получает топ медленных endpoints
+   */
+  getSlowestEndpoints(limit: number = 10): PerformanceStats[] {
+    const endpointGroups = new Map<string, ApiMetric[]>();
+    this.metrics.forEach(metric => {
+      if (!endpointGroups.has(metric.endpoint)) {
+        endpointGroups.set(metric.endpoint, []);
+      }
+      endpointGroups.get(metric.endpoint)!.push(metric);
+    });
+    
+    const endpointStats: PerformanceStats[] = [];
+    endpointGroups.forEach((metrics, endpoint) => {
+      const stats = this.getEndpointStats(endpoint);
+      if (stats) {
+        endpointStats.push(stats);
+      }
+    });
+    
+    return endpointStats
+      .sort((a, b) => b.avgResponseTime - a.avgResponseTime)
+      .slice(0, limit);
   }
   
   /**
