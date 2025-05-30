@@ -80,6 +80,9 @@ export {
 // Also export the instance directly for backward compatibility
 export { authServiceInstance } from './authServiceInstance';
 
+// Export factory function for createAuthService
+export const createAuthService = () => authServiceInstance;
+
 // Типы и интерфейсы из missionServiceInstance доступны через реэкспорт из missionService
 
 // Экспортируем типы для использования в пользовательском коде
