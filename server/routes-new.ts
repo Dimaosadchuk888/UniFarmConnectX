@@ -247,10 +247,8 @@ export function registerNewRoutes(app: Express): void {
         logger.error(`[DB Manager] Reconnection error: ${errorMessage}`);
       }
       
-      // Получаем обновленную информацию о соединении
-      const newConnectionInfo = db && typeof db.connectionManager?.getCurrentConnectionInfo === 'function'
-        ? db.connectionManager.getCurrentConnectionInfo()
-        : { isConnected: false, connectionName: null, isMemoryMode: false };
+      // Получаем обновленную информацию о соединении через db-unified
+      const newConnectionInfo = getConnectionStatus();
       
       // Получаем новую историю событий после попытки переподключения
       const newDbEvents = getDbEventManager().getHistory(5);
