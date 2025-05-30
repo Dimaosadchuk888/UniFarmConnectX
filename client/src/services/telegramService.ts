@@ -352,3 +352,49 @@ export function getTelegramUserDisplayName(): string {
 export function isTelegramWebApp(): boolean {
   return telegramService.isAvailable();
 }
+
+/**
+ * Заглушка для совместимости - инициализация Telegram WebApp
+ */
+export function initTelegramWebApp(): Promise<boolean> {
+  console.log('[telegramService] initTelegramWebApp: используется автоматическая инициализация');
+  return Promise.resolve(telegramService.isAvailable());
+}
+
+/**
+ * Заглушка для совместимости - получение данных пользователя Telegram
+ */
+export function getTelegramUserData(): any {
+  const user = telegramService.getUser();
+  return user ? {
+    id: user.id,
+    username: user.username,
+    first_name: user.first_name,
+    last_name: user.last_name
+  } : null;
+}
+
+/**
+ * Заглушка для совместимости - логирование запуска приложения
+ */
+export function logAppLaunch(): void {
+  console.log('[telegramService] logAppLaunch: приложение запущено');
+}
+
+/**
+ * Заглушка для совместимости - регистрация пользователя Telegram
+ */
+export async function registerTelegramUser(telegramId: number, userData: any, refCode?: string): Promise<any> {
+  console.log('[telegramService] registerTelegramUser: используйте userService.createUser вместо этой функции');
+  
+  // Используем импортированный userService
+  const { default: userService } = await import('./userService');
+  
+  return userService.createUser({
+    telegramId,
+    username: userData.username,
+    firstName: userData.first_name,
+    lastName: userData.last_name,
+    refCode
+  });
+}

@@ -306,28 +306,21 @@ function App() {
     }
   };
 
-  // Метод для регистрации пользователя
-  const registerUserWithTelegram = async (refCode?: string): Promise<any> => {
+  // Метод для регистрации пользователя через guest_id
+  const registerUserWithTelegram = async (guestId: string, refCode?: string): Promise<any> => {
     try {
-      console.log('[App] Регистрация пользователя через Telegram');
+      console.log('[App] Регистрация пользователя через guest_id:', guestId);
 
-      // Получаем данные пользователя Telegram
-      const telegramUserData = getTelegramUserData();
-      if (!telegramUserData) {
-        throw new Error('Отсутствуют данные пользователя Telegram');
-      }
-
-      console.log('[App] Данные Telegram пользователя:', {
-        id: telegramUserData.id,
-        username: telegramUserData.username,
-        first_name: telegramUserData.first_name
+      // Используем userService для создания пользователя
+      const result = await userService.createUser({
+        guestId,
+        refCode: refCode || undefined
       });
 
-      // Используем telegramService для регистрации
-      const result = await registerTelegramUser(telegramUserData.id, telegramUserData, refCode);
+      console.log('[App] Результат регистрации:', result);
       return result;
     } catch (error) {
-      console.error('[App] Ошибка при регистрации через Telegram:', error);
+      console.error('[App] Ошибка при регистрации пользователя:', error);
       throw error;
     }
   };
