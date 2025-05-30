@@ -117,16 +117,43 @@ export const pool = {
   }
 };
 
+// Глобальная переменная для Drizzle
+let globalDrizzleInstance: any = null;
+
+async function getDrizzleInstance() {
+  if (!globalDrizzleInstance) {
+    const productionPool = new Pool({
+      connectionString: PRODUCTION_DB_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    });
+    
+    // Проверяем подключение
+    try {
+      const client = await productionPool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      console.log('✅ [DB] Drizzle ORM успешно инициализирован');
+    } catch (error) {
+      console.error('❌ [DB] Ошибка инициализации Drizzle:', error);
+      throw error;
+    }
+    
+    globalDrizzleInstance = drizzle(productionPool, { schema });
+  }
+  return globalDrizzleInstance;
+}
+
 export const db = new Proxy({} as any, {
   get(target, prop) {
     return async (...args: any[]) => {
-      // Примусово використовуємо правильну production базу
-      const productionPool = new Pool({
-        connectionString: PRODUCTION_DB_URL,
-        ssl: { rejectUnauthorized: false }
-      });
-      const drizzleDb = drizzle(productionPool, { schema });
-      return drizzleDb[prop](...args);
+      const drizzleDb = await getDrizzleInstance();
+      if (typeof drizzleDb[prop] === 'function') {
+        return drizzleDb[prop](...args);
+      }
+      return drizzleDb[prop];
     };
   }
 });
@@ -236,33 +263,24 @@ export async function testConnection(): Promise<boolean> {
     try {
       console.log(`[DB Connection] 🔄 Попытка ${attempt}/${MAX_RETRIES}: Тестирование подключения к базе данных...`);
 
-      if (!globalDb) {
-        console.log('[DB Connection] 🔄 База данных не инициализирована, инициализируем...');
-        // await initializeDatabase(); // Assuming initializeDatabase is defined elsewhere. If not, use dbManager.getPool() or similar
-        await dbManager.getPool(); // Trying this instead
+      // Используем прямое подключение к pool
+      const pool = await dbManager.getPool();
+      const client = await pool.connect();
+      
+      try {
+        const result = await client.query('SELECT 1 as test');
+        console.log(`[DB Connection] ✅ Тест подключения успешен на попытке ${attempt}:`, result.rows);
+        connectionRetries = 0;
+        return true;
+      } finally {
+        client.release();
       }
-
-      // Простой тест запроса с таймаутом
-      const testPromise = globalDb.execute('SELECT 1 as test');
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database query timeout')), 10000)
-      );
-
-      const result = await Promise.race([testPromise, timeoutPromise]);
-      console.log(`[DB Connection] ✅ Тест подключения успешен на попытке ${attempt}:`, result);
-
-      connectionRetries = 0; // Сбрасываем счетчик при успехе
-      return true;
     } catch (error) {
       console.error(`[DB Connection] ❌ Ошибка при тестировании подключения (попытка ${attempt}/${MAX_RETRIES}):`, error);
 
       if (attempt < MAX_RETRIES) {
         console.log(`[DB Connection] ⏳ Ожидание ${RETRY_DELAY}ms перед следующей попыткой...`);
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-
-        // Очищаем подключение для повторной инициализации
-        globalDb = null;
-        globalPool = null;
       } else {
         connectionRetries = attempt;
         console.error('[DB Connection] ❌ Исчерпаны все попытки подключения к базе данных');
