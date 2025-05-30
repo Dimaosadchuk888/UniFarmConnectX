@@ -386,10 +386,10 @@ const autoReauthenticate = async (): Promise<boolean> => {
 };
 
 /**
- * Очищает guest_id и связанные данные сессии
+ * Улучшенная очистка guest_id и связанных данных сессии
  * Используется только при критических ошибках аутентификации
  */
-const clearGuestIdAndSession = (force: boolean = false): void => {
+const clearGuestIdAndSessionAdvanced = (force: boolean = false): void => {
   try {
     console.log('[sessionRestoreService] Запрос на очистку данных сессии, force:', force);
 
