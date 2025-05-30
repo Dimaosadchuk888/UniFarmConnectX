@@ -687,7 +687,7 @@ export async function registerNewRoutes(app: Express): Promise<void> {
 
       // Импортируем authService
       const { authService } = await import('./services');
-      
+
       // Используем authService для создания пользователя
       const newUser = await authService.registerUser({
         guest_id,
@@ -707,6 +707,51 @@ export async function registerNewRoutes(app: Express): Promise<void> {
       return res.status(500).json({
         success: false,
         error: error.message || 'Ошибка регистрации'
+      });
+    }
+  }));
+
+  // КРИТИЧНЫЙ ENDPOINT: Поиск пользователя по guest_id
+  app.get('/api/v2/users/guest/:guest_id', safeHandler(async (req: any, res: any) => {
+    try {
+      console.log('[Routes] Запрос поиска пользователя по guest_id:', req.params.guest_id);
+      const { guest_id } = req.params;
+      const { user_id } = req.query;
+
+      if (!guest_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'guest_id обязателен'
+        });
+      }
+
+      const connectionInfo = await getConnectionInfo();
+      console.log('[Routes] Информация о подключении БД:', connectionInfo);
+
+      // Используем обновленный userServiceInstance
+      const userServiceInstance = require('./services/userServiceInstance').default;
+      const user = await userServiceInstance.findByGuestId(guest_id);
+      console.log('[Routes] Результат поиска пользователя:', user);
+
+      if (user) {
+        res.json({
+          success: true,
+          data: user,
+          source: 'database'
+        });
+      } else {
+        console.log('[Routes] Пользователь не найден, возвращаем 404');
+        res.status(404).json({
+          success: false,
+          error: 'Пользователь не найден',
+          guest_id: guest_id
+        });
+      }
+    } catch (error) {
+      console.error('[Routes] Ошибка поиска пользователя по guest_id:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Внутренняя ошибка сервера'
       });
     }
   }));
