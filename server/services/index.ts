@@ -47,7 +47,7 @@ const newUniFarmingService = createNewUniFarmingService();
 const launchLogService = createLaunchLogService();
 const dailyBonusService = createDailyBonusService();
 const partitionService = createPartitionService();
-const authService = authServiceInstance;
+const authService = createAuthService();
 const securityService = createSecurityService();
 const adminService = createAdminService();
 // Используем существующий экземпляр validationServiceInstance
