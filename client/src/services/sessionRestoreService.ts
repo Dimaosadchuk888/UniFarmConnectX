@@ -14,7 +14,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { isTelegramWebApp } from './telegramService';
+import telegramService from './telegramService';
 import apiConfig from "@/config/apiConfig";
 import { correctApiRequest } from "@/lib/correctApiRequest";
 import sessionStorageService, { SESSION_KEYS } from './sessionStorageService';
@@ -248,13 +248,13 @@ const getOrCreateGuestId = (): string => {
 const isTelegramWebAppReady = (): boolean => {
   try {
     // Если Telegram WebApp не доступен, считаем что "готов" (не нужно ждать)
-    if (!isTelegramWebApp()) {
+    if (!telegramService.isAvailable()) {
       console.log('[sessionRestoreService] Telegram WebApp не обнаружен, считаем "готовым"');
       return true;
     }
 
     // Используем унифицированный флаг готовности
-    const isReady = localStorage.getItem('tg_ready') === 'true';
+    const isReady = localStorage.getItem(SESSION_KEYS.TELEGRAM_READY) === 'true';
 
     if (isReady) {
       console.log('[sessionRestoreService] Telegram WebApp уже инициализирован');
@@ -276,8 +276,8 @@ const isTelegramWebAppReady = (): boolean => {
 const markTelegramWebAppAsReady = (): void => {
   try {
     console.log('[sessionRestoreService] Отмечаем Telegram WebApp как инициализированный');
-    localStorage.setItem('tg_ready', 'true');
-    sessionStorage.setItem('tg_ready', 'true');
+    localStorage.setItem(SESSION_KEYS.TELEGRAM_READY, 'true');
+    sessionStorage.setItem(SESSION_KEYS.TELEGRAM_READY, 'true');
   } catch (error) {
     console.error('[sessionRestoreService] Ошибка при отметке Telegram WebApp как готового:', error);
   }
@@ -291,7 +291,7 @@ const markTelegramWebAppAsReady = (): void => {
  */
 const waitForTelegramWebApp = (timeoutMs = 5000): Promise<boolean> => {
   // Если Telegram WebApp не используется или уже готов, сразу возвращаем true
-  if (!isTelegramWebApp() || isTelegramWebAppReady()) {
+  if (!telegramService.isAvailable() || isTelegramWebAppReady()) {
     console.log('[sessionRestoreService] Не требуется ожидание Telegram WebApp');
     return Promise.resolve(true);
   }

@@ -158,12 +158,12 @@ export const UserController = {
 
       // ИСПРАВЛЕНИЕ: Более надежная обработка с fallback
       let user = null;
-      
+
       try {
         user = await userService.getUserByGuestId(guestId);
       } catch (dbError) {
         logger.warn(`[UserController] DB ошибка для guest_id: ${guestId}, используем fallback`, dbError);
-        
+
         // Fallback: возвращаем 404 для новых пользователей
         sendError(res, 'Пользователь не найден, необходима регистрация', 404);
         return;
@@ -476,31 +476,82 @@ export const UserController = {
     }
   },
 
-  // Дублікатна функція видалена для виправлення збірки
-
   /**
-   * Получает информацию о пользователе по ID
+   * Получение guest пользователя по guest_id
    */
-  async getUser(req: Request, res: Response): Promise<void> {
+  async getGuestUser(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.params.id, 10);
+      const guestId = req.params.guest_id;
+      const userId = req.query.user_id as string;
 
-      if (isNaN(userId)) {
-        sendError(res, 'Некорректный ID пользователя', 400);
+      console.log('[UserController] Запрос guest пользователя:', { guestId, userId });
+
+      if (!guestId) {
+        res.status(400).json({
+          success: false,
+          message: 'Guest ID is required'
+        });
         return;
       }
 
-      const user = await userService.getUserById(userId);
+      // Попытка найти пользователя по guest_id
+      const user = await userService.getUserByGuestId(guestId);
 
       if (!user) {
-        sendError(res, 'Пользователь не найден', 404);
+        console.log('[UserController] Guest пользователь не найден:', guestId);
+        res.status(404).json({
+          success: false,
+          message: 'Guest user not found'
+        });
+        return;
+      }
+
+      console.log('[UserController] Guest пользователь найден:', user.id);
+
+      res.json({
+        success: true,
+        data: {
+          user_id: user.id,
+          username: user.username,
+          guest_id: user.guest_id,
+          ref_code: user.ref_code,
+          balance: user.wallet || 0, // Use wallet instead of balance
+          farming_rate: 0 // Farming rate is not available in the database
+        }
+      });
+
+    } catch (error) {
+      console.error('[UserController] Ошибка при получении guest пользователя:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка при получении данных пользователя'
+      });
+    }
+  }
+
+  /**
+   * Получение данных пользователя
+   */
+  ,async getMe(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.query.user_id as string;
+
+      if (!userId) {
+        sendError(res, 'User ID is required', 400);
+        return;
+      }
+
+      const user = await userService.getUserById(parseInt(userId, 10));
+
+      if (!user) {
+        sendError(res, 'User not found', 404);
         return;
       }
 
       sendSuccess(res, user);
     } catch (error) {
-      logger.error('[UserController] Помилка при отриманні користувача:', error);
-      sendServerError(res, 'Ошибка при получении данных пользователя');
+      logger.error('[UserController] Error while getting user:', error);
+      sendServerError(res, 'Error while getting user data');
     }
   },
 

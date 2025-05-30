@@ -358,6 +358,14 @@ export function registerNewRoutes(app: Express): void {
     }, safeHandler(UserController.getUserByGuestId));
     logger.info('[NewRoutes] ✓ Маршрут для поиска по guest_id добавлен: GET /api/v2/users/guest/:guest_id');
   }
+  
+    // Добавим обработку запроса для guest пользователя, если UserController.getUserByGuestId существует
+  if (typeof UserController.getUserByGuestId === 'function') {
+    app.get('/api/v2/users/guest/:guest_id', safeHandler(UserController.getUserByGuestId));
+    logger.info('[NewRoutes] ✓ Маршрут для получения пользователя по guest_id: GET /api/v2/users/guest/:guest_id');
+  } else {
+    logger.warn('[NewRoutes] ⚠️  UserController.getUserByGuestId не определен, маршрут GET /api/v2/users/guest/:guest_id не добавлен');
+  }
 
   // КРИТИЧЕСКИЙ ENDPOINT для получения текущего пользователя (через Telegram ID)
   app.get('/api/v2/me', safeHandler(async (req, res) => {
