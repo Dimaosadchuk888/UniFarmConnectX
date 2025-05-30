@@ -219,6 +219,7 @@ export function registerNewRoutes(app: Express): void {
   // Endpoint для управления подключением к базе данных (только для админов)
   app.post('/api/db/reconnect', requireAdminAuth, logAdminAction('DB_RECONNECT'), async (req, res) => {
     try {
+      const db = app.locals.storage;
 
       // Получаем текущую информацию о соединении через db-unified
       const { getConnectionStatus } = await import('./db-unified');
@@ -675,6 +676,9 @@ export function registerNewRoutes(app: Express): void {
         });
       }
 
+      // Импортируем authService
+      const { authService } = await import('./services');
+      
       // Используем authService для создания пользователя
       const newUser = await authService.registerUser({
         guest_id,
