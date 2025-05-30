@@ -890,12 +890,12 @@ async function startServer(): Promise<void> {
  */
 async function initBackgroundServices(): Promise<void> {
   // Задержка инициализации тяжелых сервисов для обеспечения быстрого запуска
-  setTimeout(() => {
+  setTimeout(async () => {
     // Инициализация системы автоматического восстановления соединения с БД
     try {
       // Проверяем, существует ли модуль db-auto-recovery
       try {
-        const dbAutoRecoveryModule = await import('./utils/db-auto-recovery');
+        const dbAutoRecoveryModule = await import('./utils/db-auto-recovery.js');
         if (dbAutoRecoveryModule.initDbAutoRecovery) {
           dbAutoRecoveryModule.initDbAutoRecovery({
             initialBackoff: 5000,         // 5 секунд начальная задержка
