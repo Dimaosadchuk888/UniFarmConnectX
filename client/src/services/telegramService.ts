@@ -459,9 +459,9 @@ export const getApiHeaders = (): Record<string, string> => {
 };
 
 /**
-   * Получает initData от Telegram Web App
-   */
-  getInitData(): string | null {
+ * Получает initData от Telegram Web App
+ */
+export function getInitData(): string | null {
     try {
       // Проверяем различные способы получения initData
       if (typeof window !== 'undefined') {
