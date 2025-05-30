@@ -308,7 +308,7 @@ class StorageAdapter implements IExtendedStorage {
   private async checkDatabaseConnection(): Promise<boolean> {
     try {
       console.log('[StorageAdapter] 🔍 Проверяем соединение с базой данных...');
-      
+
       // Выполняем простой запрос к базе данных с коротким таймаутом
       const result = await Promise.race([
         queryWithRetry('SELECT 1 as test_connection', [], 1),
@@ -316,11 +316,11 @@ class StorageAdapter implements IExtendedStorage {
           setTimeout(() => reject(new Error('Database connection timeout')), 3000)
         )
       ]);
-      
+
       if (result && (result as any).rows && (result as any).rows.length > 0) {
         console.log('[StorageAdapter] ✅ Соединение с базой данных установлено успешно');
         this.useMemory = false;
-        
+
         // Дополнительная проверка - пытаемся выполнить запрос к таблице users
         try {
           await queryWithRetry('SELECT COUNT(*) FROM users LIMIT 1', [], 1);
@@ -384,33 +384,33 @@ class StorageAdapter implements IExtendedStorage {
         console.log(`[StorageAdapter] 💾 Используем MemStorage для guest_id: ${guestId}`);
         return await this.memStorage.getUserByGuestId(guestId);
       }
-      
+
       console.log(`[StorageAdapter] 🔍 Поиск пользователя в БД по guest_id: ${guestId}`);
       const user = await this.dbStorage.getUserByGuestId(guestId);
-      
+
       if (user) {
         console.log(`[StorageAdapter] ✅ Пользователь найден в БД: ID=${user.id}`);
       } else {
         console.log(`[StorageAdapter] ℹ️ Пользователь с guest_id ${guestId} не найден в БД (это нормально для новых пользователей)`);
       }
-      
+
       return user;
     } catch (error) {
       logDatabaseError('getUserByGuestId', error, { guestId });
-      
+
       const errorMessage = (error as any)?.message || 'Неизвестная ошибка';
       console.error(`[StorageAdapter] ❌ Ошибка БД при получении пользователя по guest_id ${guestId}:`, errorMessage);
-      
+
       // Анализируем тип ошибки и принимаем решение
       if (errorMessage.includes('connection') || 
           errorMessage.includes('timeout') || 
           errorMessage.includes('ECONNREFUSED') ||
           errorMessage.includes('ENOTFOUND') ||
           errorMessage.includes('ETIMEDOUT')) {
-        
+
         console.warn(`[StorageAdapter] 🔄 Проблема с подключением к БД, переключаемся на MemStorage`);
         this.useMemory = true;
-        
+
         try {
           return await this.memStorage.getUserByGuestId(guestId);
         } catch (memError) {
@@ -805,6 +805,7 @@ class StorageAdapter implements IExtendedStorage {
 
       const query = `
         INSERT INTO ton_boost_deposits (${columns})
+        ```text
         VALUES (${values})
         RETURNING *
       `;

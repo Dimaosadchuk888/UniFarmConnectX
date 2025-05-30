@@ -33,13 +33,13 @@ const shouldAttemptRestore = (): boolean => {
   try {
     // Проверяем наличие guest_id в localStorage
     const guestId = localStorage.getItem(STORAGE_KEYS.GUEST_ID);
-    
+
     // Если guest_id существует, возвращаем true
     if (guestId) {
       console.log('[sessionRestoreService] Найден guest_id в localStorage:', guestId);
       return true;
     }
-    
+
     // Проверяем также наличие guest_id в sessionStorage (запасной вариант)
     const sessionGuestId = sessionStorage.getItem(STORAGE_KEYS.GUEST_ID);
     if (sessionGuestId) {
@@ -48,7 +48,7 @@ const shouldAttemptRestore = (): boolean => {
       localStorage.setItem(STORAGE_KEYS.GUEST_ID, sessionGuestId);
       return true;
     }
-    
+
     console.log('[sessionRestoreService] Не найден guest_id ни в одном хранилище');
     return false;
   } catch (error) {
@@ -68,7 +68,7 @@ const getGuestId = (): string | null => {
     if (guestId) {
       return guestId;
     }
-    
+
     // Запасной вариант - проверяем sessionStorage
     const sessionGuestId = sessionStorage.getItem(STORAGE_KEYS.GUEST_ID);
     if (sessionGuestId) {
@@ -76,7 +76,7 @@ const getGuestId = (): string | null => {
       localStorage.setItem(STORAGE_KEYS.GUEST_ID, sessionGuestId);
       return sessionGuestId;
     }
-    
+
     return null;
   } catch (error) {
     console.error('[sessionRestoreService] Ошибка при получении guest_id:', error);
@@ -94,13 +94,13 @@ const saveGuestId = (guestId: string): void => {
       console.error('[sessionRestoreService] Попытка сохранить пустой guest_id');
       return;
     }
-    
+
     // Сохраняем в localStorage для долгосрочного хранения
     localStorage.setItem(STORAGE_KEYS.GUEST_ID, guestId);
-    
+
     // Сохраняем также в sessionStorage для максимальной совместимости
     sessionStorage.setItem(STORAGE_KEYS.GUEST_ID, guestId);
-    
+
     console.log('[sessionRestoreService] guest_id успешно сохранен:', guestId);
   } catch (error) {
     console.error('[sessionRestoreService] Ошибка при сохранении guest_id:', error);
@@ -118,20 +118,20 @@ const restoreSession = async (guestId: string, additionalData: Record<string, an
     console.log('[sessionRestoreService] Текущий guest_id:', guestId);
     console.log('[sessionRestoreService] Попытка восстановить сессию через /api/session/restore с guest_id:', guestId);
     console.log('[SessionRestoreService] Объект localStorage доступен:', typeof localStorage !== 'undefined');
-    
+
     // Подготавливаем данные для запроса
     const requestData = {
       guest_id: guestId,
       ...additionalData
     };
-    
+
     // Отправляем запрос на восстановление сессии
     console.log('[SessionRestoreService] Формирование запроса к серверу с телом:', JSON.stringify(requestData));
     const result = await correctApiRequest('/api/v2/session/restore', 'POST', requestData);
-    
+
     if (result.success && result.data) {
       console.log('[sessionRestoreService] Сессия успешно восстановлена:', result.data);
-      
+
       // Сохраняем данные сессии в новом сервисе и в localStorage для обратной совместимости
       const sessionData = {
         timestamp: new Date().toISOString(),
@@ -140,15 +140,15 @@ const restoreSession = async (guestId: string, additionalData: Record<string, an
         ref_code: result.data.ref_code || null,
         guest_id: result.data.guest_id || guestId
       };
-      
+
       // Сохраняем для обратной совместимости
       localStorage.setItem(STORAGE_KEYS.LAST_SESSION, JSON.stringify(sessionData));
-      
+
       // Также сохраняем guest_id отдельно для надежности
       if (guestId) {
         localStorage.setItem(STORAGE_KEYS.GUEST_ID, guestId);
       }
-      
+
       return result;
     } else {
       console.error('[sessionRestoreService] Не удалось восстановить сессию:', result.message);
@@ -170,12 +170,12 @@ const restoreSession = async (guestId: string, additionalData: Record<string, an
 const clearGuestIdAndSession = (): void => {
   try {
     console.log('[sessionRestoreService] Очистка guest_id и данных сессии...');
-    
+
     // Удаляем все связанные с сессией данные из хранилищ
     localStorage.removeItem(STORAGE_KEYS.GUEST_ID);
     sessionStorage.removeItem(STORAGE_KEYS.GUEST_ID);
     localStorage.removeItem(STORAGE_KEYS.LAST_SESSION);
-    
+
     console.log('[sessionRestoreService] ✅ Данные сессии успешно очищены');
   } catch (error) {
     console.error('[sessionRestoreService] ❌ Ошибка при очистке данных сессии:', error);
@@ -210,33 +210,33 @@ const getOrCreateGuestId = (): string => {
   try {
     // Пытаемся получить существующий guest_id
     const existingGuestId = getGuestId();
-    
+
     if (existingGuestId) {
       console.log('[sessionRestoreService] Используем существующий guest_id:', existingGuestId);
       return existingGuestId;
     }
-    
+
     // Если guest_id не найден, создаем новый на основе UUID v4
     const newGuestId = uuidv4();
     console.log('[sessionRestoreService] Создан новый guest_id:', newGuestId);
-    
+
     // Сохраняем новый guest_id
     saveGuestId(newGuestId);
-    
+
     return newGuestId;
   } catch (error) {
     console.error('[sessionRestoreService] Ошибка при создании guest_id:', error);
-    
+
     // В случае ошибки создаем fallback ID на основе timestamp
     const fallbackId = `fb-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     console.warn('[sessionRestoreService] Используем fallback guest_id:', fallbackId);
-    
+
     try {
       saveGuestId(fallbackId);
     } catch (saveError) {
       console.error('[sessionRestoreService] Не удалось сохранить fallback guest_id:', saveError);
     }
-    
+
     return fallbackId;
   }
 };
@@ -252,15 +252,15 @@ const isTelegramWebAppReady = (): boolean => {
       console.log('[sessionRestoreService] Telegram WebApp не обнаружен, считаем "готовым"');
       return true;
     }
-    
+
     // Используем унифицированный флаг готовности
     const isReady = localStorage.getItem('tg_ready') === 'true';
-    
+
     if (isReady) {
       console.log('[sessionRestoreService] Telegram WebApp уже инициализирован');
       return true;
     }
-    
+
     console.log('[sessionRestoreService] Telegram WebApp еще не инициализирован');
     return false;
   } catch (error) {
@@ -295,16 +295,16 @@ const waitForTelegramWebApp = (timeoutMs = 5000): Promise<boolean> => {
     console.log('[sessionRestoreService] Не требуется ожидание Telegram WebApp');
     return Promise.resolve(true);
   }
-  
+
   console.log('[sessionRestoreService] Ожидаем инициализации Telegram WebApp...');
-  
+
   return new Promise((resolve) => {
     // Устанавливаем таймаут для защиты от зависания
     const timeoutId = setTimeout(() => {
       console.warn('[sessionRestoreService] Таймаут ожидания инициализации Telegram WebApp');
       resolve(false);
     }, timeoutMs);
-    
+
     // Функция проверки готовности с интервалом
     const checkReady = () => {
       if (isTelegramWebAppReady()) {
@@ -320,11 +320,11 @@ const waitForTelegramWebApp = (timeoutMs = 5000): Promise<boolean> => {
         } catch (e) {
           console.error('[sessionRestoreService] Ошибка при вызове WebApp.ready():', e);
         }
-        
+
         setTimeout(checkReady, 100);
       }
     };
-    
+
     // Начинаем проверять готовность
     checkReady();
   });
@@ -337,43 +337,43 @@ const waitForTelegramWebApp = (timeoutMs = 5000): Promise<boolean> => {
 const autoReauthenticate = async (): Promise<boolean> => {
   try {
     console.log('[sessionRestoreService] Начинаем автоматическую повторную аутентификацию...');
-    
+
     // Получаем guest_id или создаем новый через улучшенный сервис
     const guestId = sessionStorageService.getGuestId() || getOrCreateGuestId();
-    
+
     // Для дополнительной надежности сохраняем guest_id в новом сервисе
     sessionStorageService.saveGuestId(guestId);
-    
+
     // Ожидаем инициализации Telegram WebApp, если она требуется
     await waitForTelegramWebApp();
-    
+
     // Добавляем информацию о режиме разработки
     const additionalData: Record<string, any> = {};
     if (process.env.NODE_ENV !== 'production') {
       additionalData.development_mode = true;
-      
+
       // Если есть user_id, добавляем его для режима разработки
       const userId = sessionStorageService.getUserId();
       if (userId) {
         additionalData.user_id = userId;
       }
     }
-    
+
     console.log('[sessionRestoreService] Дополнительные данные для восстановления:', 
       JSON.stringify(additionalData, null, 2));
-    
+
     // Пытаемся восстановить сессию с дополнительными данными
     const result = await restoreSession(guestId, additionalData);
-    
+
     if (result.success) {
       console.log('[sessionRestoreService] ✅ Автоматическая повторная аутентификация успешна!');
-      
+
       // Сохраняем обновленную сессию через новый сервис
       if (result.data) {
         sessionStorageService.saveSession(result.data);
         console.log('[sessionRestoreService] Данные сессии сохранены');
       }
-      
+
       return true;
     } else {
       console.error('[sessionRestoreService] ❌ Не удалось выполнить повторную аутентификацию:', result.message);
@@ -385,13 +385,53 @@ const autoReauthenticate = async (): Promise<boolean> => {
   }
 };
 
+/**
+ * Очищает guest_id и связанные данные сессии
+ * Используется только при критических ошибках аутентификации
+ */
+const clearGuestIdAndSession = (force: boolean = false): void => {
+  try {
+    console.log('[sessionRestoreService] Запрос на очистку данных сессии, force:', force);
+
+    // Если не принудительная очистка, проверяем, действительно ли нужна очистка
+    if (!force) {
+      const currentGuestId = localStorage.getItem(STORAGE_KEYS.GUEST_ID);
+      const userData = localStorage.getItem(STORAGE_KEYS.LAST_SESSION);
+
+      // Не очищаем сессию, если есть валидные данные
+      if (currentGuestId && userData) {
+        try {
+          const parsedUserData = JSON.parse(userData);
+          if (parsedUserData && parsedUserData.user_id && parsedUserData.user_id > 1) {
+            console.log('[sessionRestoreService] ⚠️ Отменяем очистку: найдены валидные данные пользователя');
+            return;
+          }
+        } catch (parseError) {
+          console.warn('[sessionRestoreService] Не удалось парсить данные пользователя, продолжаем очистку');
+        }
+      }
+    }
+
+    console.log('[sessionRestoreService] Очистка guest_id и данных сессии...');
+
+    // Удаляем все связанные с сессией данные из хранилищ
+    localStorage.removeItem(STORAGE_KEYS.GUEST_ID);
+    sessionStorage.removeItem(STORAGE_KEYS.GUEST_ID);
+    localStorage.removeItem(STORAGE_KEYS.LAST_SESSION);
+
+    console.log('[sessionRestoreService] ✅ Данные сессии успешно очищены');
+  } catch (error) {
+    console.error('[sessionRestoreService] ❌ Ошибка при очистке данных сессии:', error);
+  }
+};
+
 // Экспортируем методы сервиса с указанием точных типов
 type SessionRestoreService = {
   shouldAttemptRestore: () => boolean;
   getGuestId: () => string | null;
   saveGuestId: (guestId: string) => void;
   restoreSession: (guestId: string, additionalData?: Record<string, any>) => Promise<any>;
-  clearGuestIdAndSession: () => void;
+  clearGuestIdAndSession: (force?: boolean) => void;
   hasTelegramUserChanged: (any: any) => boolean;
   updateSessionWithTelegramData: (telegramId: any, userId: any) => void;
   getOrCreateGuestId: () => string;
