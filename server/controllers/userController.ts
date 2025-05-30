@@ -26,6 +26,26 @@ import { v4 as uuidv4 } from 'uuid';
 import { storage } from '../storage-adapter';
 
 /**
+ * Обертка для методов сервиса с обработкой ошибок и fallback логикой
+ * @param serviceMethod Метод сервиса
+ * @param fallbackFunction Функция fallback при ошибке
+ * @returns Обернутый метод
+ */
+function wrapServiceFunction<T, Args extends any[]>(
+  serviceMethod: (...args: Args) => Promise<T>,
+  fallbackFunction: (error: any, ...args: Args) => Promise<T>
+): (...args: Args) => Promise<T> {
+  return async (...args: Args): Promise<T> => {
+    try {
+      return await serviceMethod(...args);
+    } catch (error) {
+      logger.debug(`[wrapServiceFunction] Fallback triggered:`, error);
+      return await fallbackFunction(error, ...args);
+    }
+  };
+}
+
+/**
  * Стандартизированная структура ответа API
  */
 interface ApiResponse<T> {
@@ -130,27 +150,38 @@ export const UserController = {
       const guestId = req.params.guest_id;
       
       if (!guestId) {
-        throw new ValidationError('Не указан guest_id пользователя', { guest_id: 'Обязательный параметр' });
+        sendError(res, 'Не указан guest_id пользователя', 400);
+        return;
       }
       
-      // Заворачиваем вызов сервиса в обработчик ошибок // from fallback logic
-      const getUserByGuestIdWithFallback = wrapServiceFunction(
-        userService.getUserByGuestId.bind(userService),
-        async (error, guestId) => {
-          logger.debug(`[UserController] Повернення користувача по guest_id: ${guestId}`, error);
-          
-          // Возвращаем данные по умолчанию при отсутствии соединения с БД
-          const user = createGuestUserFallback(guestId);
-          
-          // Согласно комментарию в db-service-wrapper.ts используем прагматичный подход с "as unknown as"
-          // для обеспечения совместимости типов между сервисами и контроллерами
-          return user as unknown as any;
+      try {
+        // Пытаемся получить пользователя через сервис
+        const user = await userService.getUserByGuestId(guestId);
+        
+        if (user) {
+          sendSuccess(res, user, 'Пользователь по guest_id успешно найден', 200);
+        } else {
+          // Если пользователь не найден, возвращаем 404
+          sendError(res, 'Пользователь с указанным guest_id не найден', 404);
         }
-      );
-      
-      const user = await getUserByGuestIdWithFallback(guestId);
-      sendSuccess(res, user, 'Користувач за guest_id успішно знайдений', 200);
+      } catch (serviceError) {
+        logger.error(`[UserController] Ошибка при получении пользователя по guest_id: ${guestId}`, serviceError);
+        
+        // Возвращаем fallback пользователя при ошибке БД
+        try {
+          const fallbackUser = createGuestUserFallback(guestId);
+          sendSuccess(res, {
+            ...fallbackUser,
+            is_fallback: true,
+            message: 'Временные данные (ошибка БД)'
+          }, 'Временные данные пользователя', 200);
+        } catch (fallbackError) {
+          logger.error(`[UserController] Ошибка создания fallback пользователя:`, fallbackError);
+          sendServerError(res, 'Ошибка при получении данных пользователя');
+        }
+      }
     } catch (error) {
+      logger.error(`[UserController] Критическая ошибка в getUserByGuestId:`, error);
       next(error);
     }
   },
