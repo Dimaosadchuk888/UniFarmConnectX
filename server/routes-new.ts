@@ -474,6 +474,38 @@ export function registerNewRoutes(app: Express): void {
     }
   }
 
+  // ===== USER REFCODE GENERATION =====
+  // Генерация реферального кода для пользователя
+  app.post('/api/v2/users/generate-refcode', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.body.user_id;
+
+      if (!userId) {
+        const { adaptedSendError } = await import('./utils/apiResponseAdapter');
+        adaptedSendError(res, 'User ID обязателен', 400);
+        return;
+      }
+
+      // Генерируем реферальный код через userService
+      const { userService } = await import('./services');
+      const refCode = await userService.generateRefCode();
+
+      // Обновляем пользователя с новым реферальным кодом
+      const updatedUser = await userService.updateUserRefCode(userId, refCode);
+
+      if (!updatedUser) {
+        const { adaptedSendError } = await import('./utils/apiResponseAdapter');
+        adaptedSendError(res, 'Не удалось обновить реферальный код', 500);
+        return;
+      }
+
+      const { adaptedSendSuccess } = await import('./utils/apiResponseAdapter');
+      adaptedSendSuccess(res, updatedUser, 'Реферальный код успешно сгенерирован', 200);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Маршруты для кошелька с использованием консолидированного контроллера
   if (WalletController) {
     if (typeof WalletController.getWalletBalance === 'function') {
