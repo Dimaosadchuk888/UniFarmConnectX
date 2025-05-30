@@ -79,9 +79,6 @@ export class ConflictError extends Error {
   }
 }
 
-// Экспорт всех классов ошибок для совместимости
-export { ValidationError, NotFoundError, ConflictError };
-
 /**
  * Преобразует ошибку в стандартный объект ошибки API
  */
