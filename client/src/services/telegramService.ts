@@ -322,3 +322,33 @@ export default telegramService;
 export function getTelegramAuthHeaders(): Record<string, string> {
   return telegramService.getApiHeaders();
 }
+
+/**
+ * Функция для получения отображаемого имени пользователя Telegram
+ */
+export function getTelegramUserDisplayName(): string {
+  const user = telegramService.getUser();
+  if (!user) return 'Пользователь';
+  
+  // Приоритет: first_name + last_name, затем username, затем значение по умолчанию
+  const firstName = user.first_name || '';
+  const lastName = user.last_name || '';
+  const username = user.username || '';
+  
+  if (firstName) {
+    return lastName ? `${firstName} ${lastName}` : firstName;
+  }
+  
+  if (username) {
+    return username;
+  }
+  
+  return 'Пользователь';
+}
+
+/**
+ * Проверка, является ли среда Telegram WebApp
+ */
+export function isTelegramWebApp(): boolean {
+  return telegramService.isAvailable();
+}

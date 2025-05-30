@@ -537,21 +537,47 @@ export const UserController = {
       const userId = req.query.user_id as string;
 
       if (!userId) {
-        sendError(res, 'User ID is required', 400);
+        res.status(400).json({
+          success: false,
+          error: 'user_id обязателен'
+        });
         return;
       }
 
-      const user = await userService.getUserById(parseInt(userId, 10));
+      console.log(`[userController] getMe запрос для user_id: ${userId}`);
+
+      const user = await userService.getUserById(parseInt(userId));
 
       if (!user) {
-        sendError(res, 'User not found', 404);
+        console.log(`[userController] Пользователь с ID ${userId} не найден`);
+        res.status(404).json({
+          success: false,
+          error: 'Пользователь не найден'
+        });
         return;
       }
 
-      sendSuccess(res, user);
+      console.log(`[userController] Пользователь найден: ${user.username || user.telegram_id || user.guest_id}`);
+
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          username: user.username || user.telegram_id?.toString() || `guest_${user.guest_id}`,
+          telegram_id: user.telegram_id,
+          ref_code: user.ref_code,
+          parent_ref_code: user.parent_ref_code,
+          guest_id: user.guest_id,
+          created_at: user.created_at
+        }
+      });
     } catch (error) {
-      logger.error('[UserController] Error while getting user:', error);
-      sendServerError(res, 'Error while getting user data');
+      console.error('[userController] Ошибка в getMe:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Внутренняя ошибка сервера',
+        details: error instanceof Error ? error.message : 'Неизвестная ошибка'
+      });
     }
   },
 
