@@ -30,14 +30,14 @@ export interface IUserService {
    * @throws {DatabaseError} При ошибке в базе данных
    */
   getUserById(id: number): Promise<User | undefined>;
-  
+
   /**
    * Получает пользователя по имени пользователя
    * @param username Имя пользователя
    * @returns Объект пользователя или undefined, если пользователь не найден
    */
   getUserByUsername(username: string): Promise<User | undefined>;
-  
+
   /**
    * Обновляет данные пользователя
    * @param userId ID пользователя
@@ -45,21 +45,21 @@ export interface IUserService {
    * @returns Обновленный объект пользователя
    */
   updateUser(userId: number, data: Partial<User>): Promise<User>;
-  
+
   /**
    * Получает пользователя по гостевому ID
    * @param guestId Гостевой ID
    * @returns Объект пользователя или undefined, если пользователь не найден
    */
   getUserByGuestId(guestId: string): Promise<User | undefined>;
-  
+
   /**
    * Получает пользователя по адресу кошелька
    * @param walletAddress Адрес кошелька
    * @returns Объект пользователя или undefined, если пользователь не найден
    */
   getUserByWalletAddress(walletAddress: string): Promise<User | undefined>;
-  
+
   /**
    * Регистрирует нового гостевого пользователя
    * @param guestId Гостевой ID
@@ -68,21 +68,21 @@ export interface IUserService {
    * @returns Объект созданного пользователя
    */
   registerGuestUser(guestId: string, referrerCode?: string | null, airdropMode?: boolean): Promise<User>;
-  
+
   /**
    * Получает пользователя по реферальному коду
    * @param refCode Реферальный код
    * @returns Объект пользователя или undefined, если пользователь не найден
    */
   getUserByRefCode(refCode: string): Promise<User | undefined>;
-  
+
   /**
    * Получает пользователя по Telegram ID
    * @param telegramId Telegram ID
    * @returns Объект пользователя или undefined, если пользователь не найден
    */
   getUserByTelegramId(telegramId: number): Promise<User | undefined>;
-  
+
   /**
    * Создает или получает пользователя из Telegram данных
    * [TG REGISTRATION FIX] Ключевой метод для корректной регистрации через Telegram
@@ -91,7 +91,7 @@ export interface IUserService {
    * @returns Объект пользователя (существующий или новый)
    */
   createOrGetUserFromTelegram(initData: any, referrerCode?: string): Promise<User>;
-  
+
   /**
    * Создает нового пользователя
    * @param userData Данные пользователя
@@ -99,7 +99,7 @@ export interface IUserService {
    * @throws {DatabaseError} При ошибке в базе данных
    */
   createUser(userData: InsertUser): Promise<User>;
-  
+
   /**
    * Обновляет баланс пользователя
    * @param userId ID пользователя
@@ -110,7 +110,7 @@ export interface IUserService {
    * @throws {DatabaseError} При ошибке в базе данных
    */
   updateUserBalance(userId: number, currencyType: 'uni' | 'ton', amount: string): Promise<User | undefined>;
-  
+
   /**
    * Обновляет реферальный код пользователя
    * @param userId ID пользователя
@@ -120,7 +120,7 @@ export interface IUserService {
    * @throws {DatabaseError} При ошибке в базе данных или если код не уникален
    */
   updateUserRefCode(userId: number, refCode: string): Promise<User | undefined>;
-  
+
   /**
    * Генерирует уникальный реферальный код
    * @returns Сгенерированный реферальный код
@@ -140,7 +140,7 @@ export function createUserService(storage: IExtendedStorage): IUserService {
      */
     async getUserById(id: number): Promise<User | undefined> {
       if (!id) return undefined;
-      
+
       try {
         return await storage.getUser(id);
       } catch (error) {
@@ -155,7 +155,7 @@ export function createUserService(storage: IExtendedStorage): IUserService {
      */
     async getUserByUsername(username: string): Promise<User | undefined> {
       if (!username) return undefined;
-      
+
       try {
         return await storage.getUserByUsername(username);
       } catch (error) {
@@ -172,24 +172,24 @@ export function createUserService(storage: IExtendedStorage): IUserService {
         console.warn('[UserService] ⚠️ Попытка получить пользователя с пустым guest_id');
         return undefined;
       }
-      
+
       try {
         console.log(`[UserService] 🔍 Запрос пользователя по guest_id: ${guestId}`);
         const user = await storage.getUserByGuestId(guestId);
-        
+
         // Если пользователь найден, возвращаем его
         if (user) {
           console.log(`[UserService] ✅ Пользователь найден по guest_id: ${guestId}, ID: ${user.id}`);
           return user;
         }
-        
+
         // Если пользователь не найден, логируем это и возвращаем undefined
         console.log(`[UserService] ℹ️ Пользователь с guest_id: ${guestId} не найден (это нормально для новых пользователей)`);
         return undefined;
       } catch (error) {
         const err = error as ErrorWithMessage;
         console.error(`[UserService] ❌ Ошибка при получении пользователя по guest_id: ${guestId}:`, err.message);
-        
+
         // Не пытаемся использовать fallback здесь - это должно обрабатываться на уровне storage
         // Просто возвращаем undefined и позволяем контроллеру обработать ситуацию
         return undefined;
@@ -201,7 +201,7 @@ export function createUserService(storage: IExtendedStorage): IUserService {
      */
     async getUserByRefCode(refCode: string): Promise<User | undefined> {
       if (!refCode) return undefined;
-      
+
       try {
         return await storage.getUserByRefCode(refCode);
       } catch (error) {
@@ -209,7 +209,7 @@ export function createUserService(storage: IExtendedStorage): IUserService {
         return undefined;
       }
     },
-    
+
     /**
      * Получает пользователя по адресу кошелька
      * @param walletAddress Адрес кошелька TON
@@ -217,7 +217,7 @@ export function createUserService(storage: IExtendedStorage): IUserService {
      */
     async getUserByWalletAddress(walletAddress: string): Promise<User | undefined> {
       if (!walletAddress) return undefined;
-      
+
       try {
         // Временно возвращаем undefined, так как метод еще не реализован в storage
         // TODO: Добавить метод getUserByWalletAddress в IExtendedStorage
@@ -227,7 +227,7 @@ export function createUserService(storage: IExtendedStorage): IUserService {
         return undefined;
       }
     },
-    
+
     /**
      * Регистрирует нового гостевого пользователя
      * @param guestId Гостевой ID
@@ -239,17 +239,17 @@ export function createUserService(storage: IExtendedStorage): IUserService {
       if (!guestId) {
         throw new ValidationError('Гостевой ID обязателен для регистрации пользователя');
       }
-      
+
       try {
         // Сначала проверяем, не существует ли уже такой пользователь
         const existingUser = await this.getUserByGuestId(guestId);
         if (existingUser) {
           return existingUser;
         }
-        
+
         // Генерируем уникальный реферальный код
         const refCode = await this.generateRefCode();
-        
+
         // Создаем нового пользователя
         const userData = {
           guest_id: guestId,
@@ -258,7 +258,7 @@ export function createUserService(storage: IExtendedStorage): IUserService {
           // Используем правильный формат для баланса
           // balance_uni обрабатывается в createUser
         };
-        
+
         return await this.createUser(userData);
       } catch (error) {
         const err = error as ErrorWithMessage;
@@ -272,7 +272,7 @@ export function createUserService(storage: IExtendedStorage): IUserService {
      */
     async getUserByTelegramId(telegramId: number): Promise<User | undefined> {
       if (!telegramId) return undefined;
-      
+
       try {
         return await storage.getUserByTelegramId(telegramId);
       } catch (error) {
@@ -291,13 +291,13 @@ export function createUserService(storage: IExtendedStorage): IUserService {
     async createOrGetUserFromTelegram(initData: any, referrerCode?: string): Promise<User> {
       try {
         console.log('[TG REGISTRATION] Начинаем обработку регистрации пользователя через Telegram');
-        
+
         // Извлекаем данные пользователя из initData
         let telegramId: number | undefined;
         let username: string | undefined;
         let firstName: string | undefined;
         let lastName: string | undefined;
-        
+
         if (initData && typeof initData === 'object') {
           // Если initData это объект с полем user
           if (initData.user) {
@@ -328,18 +328,18 @@ export function createUserService(storage: IExtendedStorage): IUserService {
             console.error('[TG REGISTRATION] Не удалось распарсить initData как JSON');
           }
         }
-        
+
         if (!telegramId) {
           throw new ValidationError('Отсутствует Telegram ID в данных пользователя');
         }
-        
+
         console.log(`[TG REGISTRATION] Telegram ID: ${telegramId}, username: ${username}`);
-        
+
         // Ищем существующего пользователя по Telegram ID
         const existingUser = await this.getUserByTelegramId(telegramId);
         if (existingUser) {
           console.log(`[TG REGISTRATION] Найден существующий пользователь ID=${existingUser.id}`);
-          
+
           // Убеждаемся, что у пользователя есть реферальный код
           if (!existingUser.ref_code) {
             console.log('[TG REGISTRATION] У существующего пользователя нет реферального кода, генерируем');
@@ -347,19 +347,19 @@ export function createUserService(storage: IExtendedStorage): IUserService {
             await this.updateUserRefCode(existingUser.id, refCode);
             existingUser.ref_code = refCode;
           }
-          
+
           return existingUser;
         }
-        
+
         // Создаем нового пользователя
         console.log('[TG REGISTRATION] Создаем нового пользователя');
-        
+
         // Генерируем уникальный реферальный код
         const refCode = await this.generateRefCode();
-        
+
         // Формируем username
         const finalUsername = username || `tg_user_${telegramId}`;
-        
+
         // Создаем данные пользователя
         const userData: InsertUser = {
           telegram_id: telegramId,
@@ -367,10 +367,10 @@ export function createUserService(storage: IExtendedStorage): IUserService {
           ref_code: refCode,
           parent_ref_code: referrerCode || null,
         };
-        
+
         const newUser = await this.createUser(userData);
         console.log(`[TG REGISTRATION] Успешно создан новый пользователь ID=${newUser.id} с реферальным кодом ${refCode}`);
-        
+
         return newUser;
       } catch (error) {
         const err = error as ErrorWithMessage;
@@ -406,17 +406,17 @@ export function createUserService(storage: IExtendedStorage): IUserService {
         if (!user) {
           throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
         }
-        
+
         // Преобразуем тип валюты к верхнему регистру для соответствия интерфейсу хранилища
         const currency = currencyType === 'uni' ? 'UNI' : 'TON';
-        
+
         return await storage.updateUserBalance(userId, currency, amount);
       } catch (error) {
         // Пропускаем NotFoundError дальше без изменений
         if (error instanceof NotFoundError) {
           throw error;
         }
-        
+
         // Логируем ошибку и преобразуем в DatabaseError
         const err = error as ErrorWithMessage;
         console.error('[UserService] Error in updateUserBalance:', err.message);
@@ -439,62 +439,62 @@ export function createUserService(storage: IExtendedStorage): IUserService {
       if (!userId) {
         throw new ValidationError('ID пользователя обязателен для обновления');
       }
-      
+
       try {
         // Проверяем существование пользователя
         const existingUser = await this.getUserById(userId);
         if (!existingUser) {
           throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
         }
-        
+
         // Используем прямое обновление через сырой SQL запрос
         const { storage: storageInstance } = await import('../storage-adapter');
-        
+
         // Формируем обновления
         const updateFields = Object.keys(userData)
           .filter(key => userData[key as keyof User] !== undefined)
           .map((key, index) => `${key} = $${index + 2}`)
           .join(', ');
-        
+
         if (!updateFields) {
           // Если нет полей для обновления, возвращаем существующего пользователя
           return existingUser;
         }
-        
+
         const values = [userId, ...Object.values(userData).filter(val => val !== undefined)];
-        
+
         const query = `
           UPDATE users 
           SET ${updateFields}
           WHERE id = $1
           RETURNING *
         `;
-        
+
         // Выполняем запрос через storage adapter
         const result = await (storageInstance as any).queryWithRetry(query, values);
-        
+
         if (result.rows.length === 0) {
           throw new NotFoundError(`Пользователь с ID ${userId} не найден после обновления`);
         }
-        
+
         const updatedUser = result.rows[0] as User;
         console.log(`[UserService] Пользователь ${userId} успешно обновлен`);
-        
+
         return updatedUser;
       } catch (error) {
         const err = error as ErrorWithMessage;
         console.error('[UserService] Error in updateUser:', err.message);
-        
+
         // Если это наша ошибка NotFoundError или ValidationError, пробрасываем её дальше
         if (error instanceof NotFoundError || error instanceof ValidationError) {
           throw error;
         }
-        
+
         // Иначе оборачиваем в DatabaseError
         throw new DatabaseError(`Ошибка при обновлении пользователя: ${err.message}`, error);
       }
     },
-    
+
     async updateUserRefCode(userId: number, refCode: string): Promise<User | undefined> {
       try {
         // Проверяем существование пользователя
@@ -502,20 +502,20 @@ export function createUserService(storage: IExtendedStorage): IUserService {
         if (!user) {
           throw new NotFoundError(`Пользователь с ID ${userId} не найден`);
         }
-        
+
         // Проверяем уникальность реферального кода
         const isUnique = await storage.isRefCodeUnique(refCode);
         if (!isUnique) {
           throw new DatabaseError(`Реферальный код ${refCode} уже используется`);
         }
-        
+
         return await storage.updateUserRefCode(userId, refCode);
       } catch (error) {
         // Пропускаем NotFoundError дальше без изменений
         if (error instanceof NotFoundError || error instanceof DatabaseError) {
           throw error;
         }
-        
+
         // Логируем ошибку и преобразуем в DatabaseError
         const err = error as ErrorWithMessage;
         console.error('[UserService] Error in updateUserRefCode:', err.message);
@@ -535,7 +535,7 @@ export function createUserService(storage: IExtendedStorage): IUserService {
       } catch (error) {
         const err = error as ErrorWithMessage;
         console.error('[UserService] Error in generateRefCode with new utils:', err.message);
-        
+
         try {
           // Fallback на старый метод через storage
           return await storage.generateUniqueRefCode();

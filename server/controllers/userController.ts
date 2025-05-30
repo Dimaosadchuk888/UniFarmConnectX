@@ -108,11 +108,11 @@ export const UserController = {
   async getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = parseInt(req.params.id);
-      
+
       if (isNaN(userId)) {
         throw new ValidationError('Некорректный ID пользователя', { id: 'Должен быть числом' });
       }
-      
+
       // Використовуємо сервіс для отримання даних користувача
       const getUserByIdSafe = wrapServiceFunction(
         userService.getUserById.bind(userService),
@@ -121,10 +121,10 @@ export const UserController = {
           return null; // В продакшн-версії не використовуємо заглушки
         }
       );
-      
+
       // Отримуємо дані користувача з бази даних
       const dbUser = await userService.getUserById(userId);
-      
+
       // Адаптуємо користувача для відповіді API з належним форматуванням дат
       const apiUser = dbUser ? {
         ...dbUser,
@@ -134,7 +134,7 @@ export const UserController = {
         created_at: ensureDate(dbUser.created_at)
         // Додаткові поля оброблюються, якщо вони присутні
       } : null;
-      
+
       sendSuccess(res, apiUser, 'Користувач успішно знайдений', 200);
     } catch (error) {
       next(error);
@@ -148,23 +148,23 @@ export const UserController = {
   async getUserByGuestId(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const guestId = req.params.guest_id;
-      
+
       if (!guestId) {
         sendError(res, 'Не указан guest_id пользователя', 400);
         return;
       }
-      
+
       try {
         // Пытаемся получить пользователя через сервис
         const user = await userService.getUserByGuestId(guestId);
-        
+
         if (user) {
           // Добавляем индикатор типа источника данных
           const responseData = {
             ...user,
             data_source: user.is_fallback ? 'fallback' : 'database'
           };
-          
+
           logger.info(`[UserController] Пользователь найден по guest_id: ${guestId}, ID: ${user.id}`);
           sendSuccess(res, responseData, 'Пользователь по guest_id успешно найден', 200);
         } else {
@@ -175,22 +175,22 @@ export const UserController = {
       } catch (serviceError) {
         // Логируем ошибку сервиса
         logger.error(`[UserController] Ошибка сервиса при получении пользователя по guest_id: ${guestId}`, serviceError);
-        
+
         // Анализируем тип ошибки
         const errorMessage = (serviceError as any)?.message || 'Неизвестная ошибка';
-        
+
         // Если это ошибка подключения к БД - пробуем fallback
         if (errorMessage.includes('connection') || 
             errorMessage.includes('database') || 
             errorMessage.includes('timeout') || 
             errorMessage.includes('ENOTFOUND') ||
             errorMessage.includes('ETIMEDOUT')) {
-          
+
           logger.warn(`[UserController] Проблема с БД, используем fallback режим для guest_id: ${guestId}`);
-          
+
           try {
             const fallbackUser = createGuestUserFallback(guestId);
-            
+
             sendSuccess(res, {
               ...fallbackUser,
               is_fallback: true,
@@ -222,20 +222,20 @@ export const UserController = {
     try {
       // Валидация входных данных
       const validationResult = guestRegistrationSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         throw new ValidationError('Ошибка валидации данных', formatZodErrors(validationResult.error));
       }
-      
+
       // Готуємо дані з валідованої схеми
       const { guest_id: validatedGuestId, referrer_code } = validationResult.data;
       // Використовуємо дані з запиту для зворотної сумісності (username може передаватися поза схемою)
       const username = req.body.username || `guest_${Math.floor(1000 + Math.random() * 9000)}`;
       const parent_ref_code = referrer_code;
-      
+
       // Генерируем уникальный guest_id если не передан
       const guest_id = req.body.guest_id || uuidv4();
-      
+
       // Використовуємо сервіс для реєстрації гостьового користувача
       const registerGuestUserSafe = wrapServiceFunction(
         userService.registerGuestUser.bind(userService),
@@ -244,7 +244,7 @@ export const UserController = {
           throw new Error('Не вдалося зареєструвати гостьового користувача');
         }
       );
-      
+
       // Реєструємо нового гостьового користувача через сервіс авторизації
       const newUser = await authService.registerGuestUser({
         guest_id, 
@@ -265,38 +265,38 @@ export const UserController = {
   async createUserFromTelegram(initData: string, referrerCode?: string): Promise<any> {
     try {
       console.log('[TG REGISTRATION] Начинаем обработку Telegram данных:', { hasInitData: !!initData, hasReferrer: !!referrerCode });
-      
+
       // Импортируем функцию валидации
       const { validateTelegramInitData } = await import('../utils/telegramUtils');
-      
+
       // Валидируем данные Telegram
       const validationResult = validateTelegramInitData(
         initData, 
         process.env.TELEGRAM_BOT_TOKEN,
         process.env.NODE_ENV === 'development'
       );
-      
+
       if (!validationResult.isValid) {
         console.log('[TG REGISTRATION] Telegram данные невалидны:', validationResult.errors);
         throw new Error(`Ошибка валидации Telegram данных: ${validationResult.errors?.join(', ')}`);
       }
-      
+
       const { userId, username, firstName, lastName } = validationResult;
       console.log('[TG REGISTRATION] Telegram данные валидны:', { userId, username, firstName, lastName });
-      
+
       if (!userId) {
         throw new Error('Отсутствует userId в данных Telegram');
       }
-      
+
       const telegramId = parseInt(userId, 10);
-      
+
       // Проверяем, существует ли уже пользователь с таким Telegram ID
       const existingUser = await userService.getUserByTelegramId(telegramId);
       if (existingUser) {
         console.log(`[TG REGISTRATION] Найден существующий пользователь с Telegram ID ${telegramId}`);
         return existingUser;
       }
-      
+
       // Находим реферера, если указан код
       let parentRefCode = null;
       if (referrerCode) {
@@ -306,7 +306,7 @@ export const UserController = {
           console.log(`[TG REGISTRATION] Найден реферер с кодом ${referrerCode}`);
         }
       }
-      
+
       // Создаем нового пользователя с данными Telegram
       const userData: InsertUser = {
         username: username || firstName || `user_${telegramId}`,
@@ -317,11 +317,11 @@ export const UserController = {
         wallet: null,
         ton_wallet_address: null
       };
-      
+
       const newUser = await userService.createUser(userData);
-      
+
       console.log(`[USER REGISTERED: telegram_id=${telegramId} | username=${newUser.username}]`);
-      
+
       return newUser;
     } catch (error) {
       console.error('[TG REGISTRATION] Ошибка при создании пользователя:', error);
@@ -349,7 +349,7 @@ export const UserController = {
           return existingUser;
         }
       }
-      
+
       // Находим реферера, если указан код
       let referrerId = null;
       if (referrerCode) {
@@ -359,7 +359,7 @@ export const UserController = {
           logger.debug(`[UserController] Знайдено реферала з кодом ${referrerCode}, ID: ${referrerId}`);
         }
       }
-      
+
       // Создаем нового пользователя
       const newUser = await userService.createUser({
         guest_id: guestId || null,
@@ -370,25 +370,25 @@ export const UserController = {
         ton_wallet_address: null,
         parent_ref_code: referrerCode
       } as InsertUser);
-      
+
       return newUser;
     } catch (error) {
       logger.debug(`[UserController] Створюємо тимчасового користувача з guest_id: ${guestId}`, error);
-      
+
       try {
         // Проверяем, существует ли пользователь в MemStorage
         const memStorage = storage.memStorage;
         const existingUser = guestId ? await memStorage.getUserByGuestId(guestId) : undefined;
-        
+
         if (existingUser) {
           logger.debug(`[UserController] Користувач з guest_id: ${guestId} вже існує в MemStorage`);
           return existingUser;
         }
-        
+
         // Для fallback режима просто используем referrerCode напрямую,
         // так как мы не можем проверить его валидность в БД
         logger.debug(`[UserController] Використовуємо referrerCode=${referrerCode} напряму в fallback режимі`);
-        
+
         // Создаем временного пользователя в MemStorage
         const newUser = await memStorage.createUser({
           guest_id: guestId,
@@ -397,7 +397,7 @@ export const UserController = {
           telegram_id: null,
           parent_ref_code: referrerCode
         });
-        
+
         return {
           ...newUser,
           is_fallback: true,
@@ -405,7 +405,7 @@ export const UserController = {
         };
       } catch (memError) {
         logger.error(`[UserController] Помилка створення користувача в MemStorage:`, memError);
-        
+
         // Если не удалось создать в MemStorage, возвращаем объект напрямую
         const temporaryId = Math.floor(Math.random() * 1000000) + 1;
         return {
@@ -440,12 +440,12 @@ export const UserController = {
       }
 
       const { guest_id, referrer_code, airdrop_mode } = validationResult.data;
-      
+
       // Переконвертуємо типи, щоб уникнути помилок типізації
       const guestId = guest_id || null;
       const refCode = referrer_code || null;
       const airdropMode = !!airdrop_mode; // Конвертуємо до boolean
-      
+
       const result = await this._registerGuestUserWithFallback(guestId, refCode, airdropMode);
       sendSuccess(res, result);
     } catch (error) {
@@ -459,17 +459,17 @@ export const UserController = {
   async _restoreSessionWithFallback(guestId: string | null, telegramData: any): Promise<any> {
     try {
       let user;
-      
+
       if (guestId) {
         user = await userService.getUserByGuestId(guestId);
       } else if (telegramData && telegramData.id) {
         user = await userService.getUserByTelegramId(telegramData.id);
       }
-      
+
       if (!user) {
         throw new Error('Пользователь не найден');
       }
-      
+
       return {
         user,
         session_id: `sess_${uuidv4()}`,
@@ -477,7 +477,7 @@ export const UserController = {
       };
     } catch (error) {
       logger.debug(`[UserController] Відновлення сесії з помилкою:`, error);
-      
+
       // Создаем временную сессию
       const temporaryId = Math.floor(Math.random() * 1000000) + 1;
       return {
@@ -500,31 +500,6 @@ export const UserController = {
     }
   },
 
-  /**
-   * Восстанавливает сессию пользователя по guest_id или telegram_data
-   * с поддержкой работы при отсутствии соединения с БД
-   * @route POST /api/users/restore-session
-   */
-  async restoreSession(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const { guest_id, telegram_data } = req.body;
-      
-      if (!guest_id && !telegram_data) {
-        throw new ValidationError('Не предоставлены данные для восстановления сессии', { 
-          data: 'Необходимо предоставить guest_id или telegram_data' 
-        });
-      }
-      
-      // Переконвертуємо типи для уникнення помилок типізації
-      const guestId = guest_id || null;
-      
-      const sessionData = await this._restoreSessionWithFallback(guestId, telegram_data);
-      sendSuccess(res, sessionData);
-    } catch (error) {
-      next(error);
-    }
-  },
-
   // Дублікатна функція видалена для виправлення збірки
 
   /**
@@ -533,26 +508,26 @@ export const UserController = {
   async getUser(req: Request, res: Response): Promise<void> {
     try {
       const userId = parseInt(req.params.id, 10);
-      
+
       if (isNaN(userId)) {
         sendError(res, 'Некорректный ID пользователя', 400);
         return;
       }
-      
+
       const user = await userService.getUserById(userId);
-      
+
       if (!user) {
         sendError(res, 'Пользователь не найден', 404);
         return;
       }
-      
+
       sendSuccess(res, user);
     } catch (error) {
       logger.error('[UserController] Помилка при отриманні користувача:', error);
       sendServerError(res, 'Ошибка при получении данных пользователя');
     }
   },
-  
+
   /**
    * Создает нового пользователя
    */
@@ -560,14 +535,14 @@ export const UserController = {
     try {
       // Валидация входных данных с помощью схемы Zod
       const validationResult = createUserSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         sendError(res, 'Ошибка валидации данных', 400, formatZodErrors(validationResult.error));
         return;
       }
-      
+
       const userData = validationResult.data;
-      
+
       // Проверка уникальности username
       if (userData.username) {
         const existingUser = await userService.getUserByUsername(userData.username);
@@ -576,7 +551,7 @@ export const UserController = {
           return;
         }
       }
-      
+
       // Если передан Telegram ID, проверяем его уникальность
       if (userData.telegram_id) {
         const existingUser = await userService.getUserByTelegramId(userData.telegram_id);
@@ -585,10 +560,10 @@ export const UserController = {
           return;
         }
       }
-      
+
       // Создаем пользователя
       const newUser = await userService.createUser(userData);
-      
+
       // Генерируем реферальный код, если не был передан
       if (!newUser.ref_code) {
         // Генеруємо реферальний код та одразу застосовуємо його
@@ -596,70 +571,70 @@ export const UserController = {
         // Оновлюємо реферальний код через спеціалізований метод
         await userService.updateUserRefCode(newUser.id, newUser.ref_code);
       }
-      
+
       sendSuccess(res, newUser, 'Пользователь успешно создан', 201);
     } catch (error) {
       logger.error('[UserController] Помилка при створенні користувача:', error);
       sendServerError(res, 'Ошибка при создании пользователя');
     }
   },
-  
+
   /**
    * Обновляет информацию о пользователе
    */
   async updateUser(req: Request, res: Response): Promise<void> {
     try {
       const userId = parseInt(req.params.id, 10);
-      
+
       if (isNaN(userId)) {
         sendError(res, 'Некорректный ID пользователя', 400);
         return;
       }
-      
+
       // Проверяем существование пользователя
       const user = await userService.getUserById(userId);
-      
+
       if (!user) {
         sendError(res, 'Пользователь не найден', 404);
         return;
       }
-      
+
       // Временное решение - используем обходной путь через обновление реферального кода
       // В будущем этот код будет заменен на полноценный метод updateUser
       const userData = req.body;
       let updatedUser = user;
-      
+
       // Если есть ref_code в данных для обновления, используем этот метод
       if (userData.ref_code) {
         updatedUser = await userService.updateUserRefCode(userId, userData.ref_code) || user;
       }
-      
+
       sendSuccess(res, updatedUser, 'Данные пользователя обновлены');
     } catch (error) {
       logger.error('[UserController] Помилка при оновленні користувача:', error);
       sendServerError(res, 'Ошибка при обновлении данных пользователя');
     }
   },
-  
+
   /**
    * Получает реферальный код пользователя
    */
   async getRefCode(req: Request, res: Response): Promise<void> {
     try {
       const userId = parseInt(req.params.id, 10);
-      
+
       if (isNaN(userId)) {
         sendError(res, 'Некорректный ID пользователя', 400);
         return;
       }
-      
+
       const user = await userService.getUserById(userId);
-      
+
       if (!user) {
         sendError(res, 'Пользователь не найден', 404);
         return;
       }
-      
+
       sendSuccess(res, {
         user_id: user.id,
         ref_code: user.ref_code
@@ -669,21 +644,21 @@ export const UserController = {
       sendServerError(res, 'Ошибка при получении реферального кода');
     }
   },
-  
+
   /**
    * Проверяет доступность username
    */
   async checkUsername(req: Request, res: Response): Promise<void> {
     try {
       const { username } = req.query;
-      
+
       if (!username || typeof username !== 'string') {
         sendError(res, 'Не указан username', 400);
         return;
       }
-      
+
       const user = await userService.getUserByUsername(username);
-      
+
       sendSuccess(res, {
         username,
         available: !user
@@ -693,36 +668,36 @@ export const UserController = {
       sendServerError(res, 'Ошибка при проверке доступности username');
     }
   },
-  
+
   /**
    * Добавляет TON кошелек пользователю
    */
   async addTonWallet(req: Request, res: Response): Promise<void> {
     try {
       const userId = parseInt(req.params.id, 10);
-      
+
       if (isNaN(userId)) {
         sendError(res, 'Некорректный ID пользователя', 400);
         return;
       }
-      
+
       const { ton_wallet_address } = req.body;
-      
+
       if (!ton_wallet_address) {
         sendError(res, 'Не указан адрес TON кошелька', 400);
         return;
       }
-      
+
       // Проверяем формат адреса TON кошелька (примерная валидация)
       const tonAddressRegex = /^(?:UQ|EQ)[A-Za-z0-9_-]{46,48}$/;
       if (!tonAddressRegex.test(ton_wallet_address)) {
         sendError(res, 'Некорректный формат адреса TON кошелька', 400);
         return;
       }
-      
+
       // Обновляем пользователя
       const updatedUser = await userService.updateUser(userId, { ton_wallet_address });
-      
+
       sendSuccess(res, updatedUser, 'TON кошелек успешно добавлен');
     } catch (error) {
       logger.error('[UserController] Помилка при додаванні TON гаманця:', error);
