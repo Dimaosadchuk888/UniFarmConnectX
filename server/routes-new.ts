@@ -84,14 +84,9 @@ export function registerNewRoutes(app: Express): void {
     let dbDetails: Record<string, any> = {};
     
     try {
-      // Получаем информацию о текущем подключении через глобальный объект
-      // Используем app.locals.db для доступа к соединению
-      const connectionManager = app.locals.db ? app.locals.db.connectionManager : null;
-      const connectionInfo = connectionManager ? connectionManager.getCurrentConnectionInfo() : { 
-        isConnected: false, 
-        connectionName: null, 
-        isMemoryMode: false 
-      };
+      // Получаем информацию о текущем подключении через db-unified
+      const { getConnectionStatus } = await import('./db-unified');
+      const connectionInfo = getConnectionStatus();
       
       // Проста перевірка підключення до БД
       const db = app.locals.storage;
@@ -228,11 +223,9 @@ export function registerNewRoutes(app: Express): void {
   app.post('/api/db/reconnect', requireAdminAuth, logAdminAction('DB_RECONNECT'), async (req, res) => {
     try {
       
-      // Получаем текущую информацию о соединении
-      const db = app.locals.db;
-      const connectionInfo = db && typeof db.connectionManager?.getCurrentConnectionInfo === 'function' 
-        ? db.connectionManager.getCurrentConnectionInfo()
-        : { isConnected: false, connectionName: null, isMemoryMode: false };
+      // Получаем текущую информацию о соединении через db-unified
+      const { getConnectionStatus } = await import('./db-unified');
+      const connectionInfo = getConnectionStatus();
       
       // Получаем историю недавних событий DB для включения в ответ
       const recentDbEvents = getDbEventManager().getHistory(10);

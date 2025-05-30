@@ -15,13 +15,14 @@ export async function getDbStatus(req: Request, res: Response) {
     const isConnected = await testConnection();
     
     // Спробуємо отримати пул для оновлення інформації про з'єднання
-    await getPool();
+    const pool = await getPool();
     
     // Отримуємо оновлену інформацію про з'єднання
     const updatedConnectionInfo = {
       ...connectionStatus,
       isConnected,
-      testResult: isConnected
+      testResult: isConnected,
+      poolStatus: pool ? 'active' : 'inactive'
     };
     
     // Формуємо відповідь
