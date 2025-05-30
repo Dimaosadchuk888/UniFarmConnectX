@@ -78,6 +78,9 @@ import { WebSocketServer } from 'ws';
 import { testConnection, db, queryWithRetry, dbType, pool } from './db-connect-unified';
 // Видалено: import { DatabaseType } from "./db-config";
 
+// Импорт сервисов
+import { authService } from './services/index';
+
 // Импорты middleware и обработчиков
 import { databaseErrorHandler } from './middleware/databaseErrorHandler';
 import { healthCheckMiddleware } from './middleware/health-check';

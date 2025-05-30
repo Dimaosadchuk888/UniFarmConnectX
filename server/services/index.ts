@@ -47,7 +47,7 @@ const newUniFarmingService = createNewUniFarmingService();
 const launchLogService = createLaunchLogService();
 const dailyBonusService = createDailyBonusService();
 const partitionService = createPartitionService();
-const authService = createAuthService();
+const authService = authServiceInstance;
 const securityService = createSecurityService();
 const adminService = createAdminService();
 // Используем существующий экземпляр validationServiceInstance
@@ -76,6 +76,9 @@ export {
   walletServiceInstance as walletService,
   validationService
 };
+
+// Also export the instance directly for backward compatibility
+export { authServiceInstance } from './authServiceInstance';
 
 // Типы и интерфейсы из missionServiceInstance доступны через реэкспорт из missionService
 
