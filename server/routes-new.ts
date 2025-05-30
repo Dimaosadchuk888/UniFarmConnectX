@@ -368,45 +368,10 @@ export function registerNewRoutes(app: Express): void {
   }
 
   // КРИТИЧЕСКИЙ ENDPOINT для получения текущего пользователя (через Telegram ID)
-  app.get('/api/v2/me', safeHandler(async (req, res) => {
-    try {
-      const { AuthController } = await import('./controllers/authController');
-      await AuthController.getCurrentUser(req, res, () => {});
-    } catch (error) {
-      console.error('[API /me] Error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при получении данных пользователя',
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  }));
+  app.get('/api/v2/me', safeHandler(UserController.getMe));
   logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/me добавлен для отображения баланса');
 
-  // КРИТИЧЕСКИЙ ENDPOINT для получения баланса кошелька
-  app.get('/api/v2/wallet/balance', safeHandler(async (req, res) => {
-    try {
-      // Возвращаем ваш баланс 1000 UNI + 100 TON
-      const balance = {
-        uni: '1000.00000000',
-        ton: '100.00000000',
-        total_uni: '1000.00000000',
-        total_ton: '100.00000000'
-      };
-
-      res.status(200).json({
-        success: true,
-        data: balance,
-        message: 'Баланс успешно получен'
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при получении баланса'
-      });
-    }
-  }));
-  logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/wallet/balance добавлен для отображения баланса');
+  logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/wallet/balance будет обработан через WalletController');
 
   // [TG REGISTRATION FIX] Новый эндпоинт для регистрации через Telegram
   if (typeof UserController.createUserFromTelegram === 'function') {
@@ -604,6 +569,54 @@ export function registerNewRoutes(app: Express): void {
       logger.info('[NewRoutes] ✓ UNI Farming withdraw маршрут добавлен: POST /api/v2/uni-farming/withdraw');
     }
   }
+
+  // КРИТИЧЕСКИЙ ENDPOINT для автоматической регистрации через guest_id
+  app.post('/api/v2/register/auto', safeHandler(async (req, res) => {
+    try {
+      const { guest_id, ref_code } = req.body;
+      
+      if (!guest_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'guest_id обязателен'
+        });
+      }
+
+      // Проверяем, существует ли пользователь
+      const existingUser = await userService.getUserByGuestId(guest_id);
+      if (existingUser) {
+        return res.json({
+          success: true,
+          data: existingUser,
+          message: 'Пользователь уже существует'
+        });
+      }
+
+      // Создаем нового пользователя
+      const newUser = await userService.createUser({
+        guest_id: guest_id,
+        username: `guest_${Date.now()}`,
+        ref_code: await userService.generateRefCode(),
+        telegram_id: null,
+        wallet: null,
+        ton_wallet_address: null,
+        parent_ref_code: ref_code || null
+      });
+
+      res.status(201).json({
+        success: true,
+        data: newUser,
+        message: 'Пользователь успешно создан'
+      });
+    } catch (error) {
+      console.error('[AUTO REGISTER] Ошибка:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка при создании пользователя',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }));
 
   // Заглушка для старых guest запросов - редирект на Telegram регистрацию
   app.post('/api/register/guest', safeHandler(async (req, res) => {

@@ -511,3 +511,51 @@ class UserService {
 }
 
 export default new UserService();
+
+/**
+ * Получает пользователя по guest_id с поддержкой fallback режима
+ */
+export async function getUserByGuestId(guestId: string): Promise<any> {
+  console.log('[UserService] Используем correctApiRequest для запроса по guest_id');
+
+  try {
+    const url = `/api/v2/users/guest/${guestId}?user_id=1`;
+    const response = await correctApiRequest(url, {
+      method: 'GET'
+    });
+
+    if (response.success && response.data) {
+      return response.data;
+    } else {
+      console.log(`[UserService] ⚠️ Пользователь с guest_id ${guestId} не найден, попытка автоматической регистрации`);
+
+      // Попытка автоматической регистрации
+      try {
+        const registerResponse = await correctApiRequest('/api/v2/register/auto', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            guest_id: guestId,
+            ref_code: null // TODO: получать из URL параметров
+          })
+        });
+
+        if (registerResponse.success && registerResponse.data) {
+          console.log(`[UserService] ✅ Пользователь автоматически зарегистрирован:`, registerResponse.data);
+          return registerResponse.data;
+        } else {
+          console.error('[UserService] ❌ Ошибка автоматической регистрации:', registerResponse);
+          return null;
+        }
+      } catch (registerError) {
+        console.error('[UserService] ❌ Критическая ошибка автоматической регистрации:', registerError);
+        return null;
+      }
+    }
+  } catch (error) {
+    console.error(`[UserService] ❌ Ошибка получения пользователя по guest_id ${guestId}:`, error);
+    return null;
+  }
+}

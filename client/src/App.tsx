@@ -253,7 +253,7 @@ function App() {
           .catch(() => null);
 
         if (existingUser) {
-          console.log('[App] Найден существующий пользователь по guest_id:', existingUser);
+          console.log('[App] Пользователь найден или создан через guest_id:', existingUser);
           setUserId(existingUser.id);
 
           // Сохраняем guest_id для восстановления сессии
@@ -263,7 +263,8 @@ function App() {
           queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
           queryClient.invalidateQueries({ queryKey: ['/api/me'] });
         } else {
-          console.log('[App] Пользователь не найден, регистрируем нового с guest_id');
+          console.log('[App] ❌ Не удалось найти или создать пользователя с guest_id:', guestId);
+          console.log('[App] Попробуем создать нового пользователя через старый API');
 
           // Регистрируем пользователя с guest_id и реферальным кодом (если есть)
           // Если referrerCode пустой или null, передаем undefined
