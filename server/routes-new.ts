@@ -70,7 +70,7 @@ export function registerNewRoutes(app: Express): void {
   // Регистрируем маршруты для Telegram бота
   app.use('/api/telegram', telegramRouter);
   logger.info('[NewRoutes] Маршруты для Telegram бота зарегистрированы');
-  
+
   // Регистрируем администативные маршруты
   app.use('/api/admin', adminRouter);
   logger.info('[NewRoutes] Административные маршруты зарегистрированы');
@@ -82,15 +82,15 @@ export function registerNewRoutes(app: Express): void {
     // Перевіряємо стан бази даних
     let dbStatus: 'unknown' | 'connected' | 'error' | 'memory_fallback' | 'configured' | 'disconnected' = 'unknown';
     let dbDetails: Record<string, any> = {};
-    
+
     try {
       // Получаем информацию о текущем подключении через db-unified
       const { getConnectionStatus } = await import('./db-unified');
       const connectionInfo = getConnectionStatus();
-      
+
       // Проста перевірка підключення до БД
       const db = app.locals.storage;
-      
+
       if (connectionInfo.isMemoryMode) {
         dbStatus = 'memory_fallback';
         dbDetails = {
@@ -105,7 +105,7 @@ export function registerNewRoutes(app: Express): void {
             const startTime = Date.now();
             await db.executeRawQuery('SELECT 1');
             const queryTime = Date.now() - startTime;
-            
+
             dbStatus = 'connected';
             dbDetails = {
               provider: connectionInfo.connectionName,
@@ -145,7 +145,7 @@ export function registerNewRoutes(app: Express): void {
     // Перевіряємо стан Telegram бота
     let telegramStatus = 'not_initialized';
     let telegramDetails = {};
-    
+
     try {
       // Используем типобезопасную функцию для проверки инициализации бота
       if (isTelegramBotInitialized()) {
@@ -193,20 +193,20 @@ export function registerNewRoutes(app: Express): void {
       }
     });
   };
-  
+
   app.get('/api/health', healthCheckHandler);
-  
+
   // [TG REGISTRATION FIX] API endpoint для регистрации пользователей через Telegram
   app.post('/api/register/telegram', createSafeHandler(async (req: Request, res: Response): Promise<void> => {
     try {
       console.log('[TG API] 🚀 Получен запрос на регистрацию через Telegram:', req.body);
-      
+
       // Імпортуємо AuthController для правильної обробки
       const { AuthController } = await import('./controllers/authController');
-      
+
       // Використовуємо AuthController.authenticateTelegram
       await AuthController.authenticateTelegram(req, res, () => {});
-      
+
     } catch (error) {
       console.error('[TG API] ❌ Ошибка при регистрации через Telegram:', error);
       if (!res.headersSent) {
@@ -218,22 +218,22 @@ export function registerNewRoutes(app: Express): void {
       }
     }
   }));
-  
+
   // Endpoint для управления подключением к базе данных (только для админов)
   app.post('/api/db/reconnect', requireAdminAuth, logAdminAction('DB_RECONNECT'), async (req, res) => {
     try {
-      
+
       // Получаем текущую информацию о соединении через db-unified
       const { getConnectionStatus } = await import('./db-unified');
       const connectionInfo = getConnectionStatus();
-      
+
       // Получаем историю недавних событий DB для включения в ответ
       const recentDbEvents = getDbEventManager().getHistory(10);
-      
+
       // Попытка сбросить соединение и переподключиться
       let reconnectResult = false;
       let errorMessage = '';
-      
+
       try {
         if (db && typeof db.connectionManager?.resetConnection === 'function') {
           // Попытка переподключения
@@ -246,13 +246,13 @@ export function registerNewRoutes(app: Express): void {
         errorMessage = error instanceof Error ? error.message : String(error);
         logger.error(`[DB Manager] Reconnection error: ${errorMessage}`);
       }
-      
+
       // Получаем обновленную информацию о соединении через db-unified
       const newConnectionInfo = getConnectionStatus();
-      
+
       // Получаем новую историю событий после попытки переподключения
       const newDbEvents = getDbEventManager().getHistory(5);
-      
+
       return res.json({
         success: true,
         reconnected: reconnectResult,
@@ -278,14 +278,14 @@ export function registerNewRoutes(app: Express): void {
       });
     }
   });
-  
+
   // Endpoint для получения информации о событиях DB (только для админов)
   app.get('/api/db/events', requireAdminAuth, logAdminAction('DB_EVENTS_VIEW'), async (req, res) => {
     try {
-      
+
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
       const events = getDbEventManager().getHistory(limit);
-      
+
       return res.json({
         success: true,
         events,
@@ -301,10 +301,10 @@ export function registerNewRoutes(app: Express): void {
       });
     }
   });
-  
+
   // Типы для обработчиков маршрутов
   type RouteHandler = (req: Request, res: Response, next: NextFunction) => Promise<any> | any;
-  
+
   // Централизованный обработчик маршрутов с обработкой ошибок
   const safeHandler = (handler: any): RequestHandler => async (req, res, next) => {
     try {
@@ -321,7 +321,7 @@ export function registerNewRoutes(app: Express): void {
       }
     } catch (error) {
       logger.error('[Routes] Ошибка в обработчике маршрута:', error);
-      
+
       if (!res.headersSent) {
         res.status(500).json({
           success: false,
@@ -347,18 +347,18 @@ export function registerNewRoutes(app: Express): void {
   if (typeof SessionController.restoreSession === 'function') {
     app.post('/api/v2/session/restore', safeHandler(SessionController.restoreSession));
   }
-  
+
   // Маршруты для пользователей
   if (typeof UserController.getUserById === 'function') {
     app.get('/api/v2/users/:id', safeHandler(UserController.getUserById));
   }
-  
+
   // КРИТИЧЕСКИЙ МАРШРУТ для поиска пользователя по guest_id (нужен для отображения баланса)
   if (typeof UserController.getUserByGuestId === 'function') {
     app.get('/api/v2/users/guest/:guest_id', safeHandler(UserController.getUserByGuestId));
     logger.info('[NewRoutes] ✓ Маршрут для поиска по guest_id добавлен: GET /api/v2/users/guest/:guest_id');
   }
-  
+
   // КРИТИЧЕСКИЙ ENDPOINT для получения текущего пользователя (нужен для отображения баланса)
   app.get('/api/v2/me', safeHandler(async (req, res) => {
     try {
@@ -373,7 +373,7 @@ export function registerNewRoutes(app: Express): void {
         ref_code: 'REF1',
         created_at: new Date().toISOString()
       };
-      
+
       res.status(200).json({
         success: true,
         data: user,
@@ -387,7 +387,7 @@ export function registerNewRoutes(app: Express): void {
     }
   }));
   logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/me добавлен для отображения баланса');
-  
+
   // КРИТИЧЕСКИЙ ENDPOINT для получения баланса кошелька
   app.get('/api/v2/wallet/balance', safeHandler(async (req, res) => {
     try {
@@ -398,7 +398,7 @@ export function registerNewRoutes(app: Express): void {
         total_uni: '1000.00000000',
         total_ton: '100.00000000'
       };
-      
+
       res.status(200).json({
         success: true,
         data: balance,
@@ -412,41 +412,41 @@ export function registerNewRoutes(app: Express): void {
     }
   }));
   logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/wallet/balance добавлен для отображения баланса');
-  
+
   // [TG REGISTRATION FIX] Новый эндпоинт для регистрации через Telegram
   if (typeof UserController.createUserFromTelegram === 'function') {
     app.post('/api/register/telegram', safeHandler(UserController.createUserFromTelegram));
     logger.info('[NewRoutes] ✓ Telegram регистрация эндпоинт добавлен: POST /api/register/telegram');
   }
-  
+
   // Маршруты для транзакций
   if (typeof TransactionController.getUserTransactions === 'function') {
     app.get('/api/v2/users/:userId/transactions', safeHandler(TransactionController.getUserTransactions));
   }
-  
+
   // Маршруты для заданий с использованием консолидированного контроллера
   if (MissionControllerFixed) {
     // Дублированный маршрут missions/active удален - используется основная версия выше
-    
+
     // Дублированный маршрут user-missions удален - используется основная версия выше
-    
+
     if (typeof MissionControllerFixed.getMissionsWithCompletion === 'function') {
       app.get('/api/v2/missions/with-completion', safeHandler(MissionControllerFixed.getMissionsWithCompletion));
     }
-    
+
     if (typeof MissionControllerFixed.checkMissionCompletion === 'function') {
       app.get('/api/v2/missions/check/:userId/:missionId', safeHandler(MissionControllerFixed.checkMissionCompletion));
     }
-    
+
     // Дублированный маршрут missions/complete удален - используется основная версия выше
-    
+
     // КРИТИЧЕСКИЙ МАРШРУТ: добавляем отсутствующий endpoint для frontend
     if (typeof MissionControllerFixed.getUserCompletedMissions === 'function') {
       app.get('/api/v2/missions/user-completed', safeHandler(MissionControllerFixed.getUserCompletedMissions));
       logger.info('[NewRoutes] ✓ Добавлен критический маршрут: GET /api/v2/missions/user-completed');
     }
   }
-  
+
   // Маршруты для реферальной системы с использованием консолидированного контроллера
   if (ReferralController) {
     // Генерация реферального кода (GET для получения существующего)
@@ -455,106 +455,106 @@ export function registerNewRoutes(app: Express): void {
       // POST для генерации нового кода (согласно ТЗ)
       app.post('/api/v2/referral/generate-code', safeHandler(ReferralController.generateReferralCode.bind(ReferralController)));
     }
-    
+
     // Получение дерева рефералов
     if (typeof ReferralController.getReferralTree === 'function') {
       app.get('/api/v2/referral/tree', safeHandler(ReferralController.getReferralTree.bind(ReferralController)));
       app.get('/api/v2/referrals/tree', safeHandler(ReferralController.getReferralTree.bind(ReferralController)));
     }
-    
+
     // Статистика рефералов (согласно ТЗ)
     if (typeof ReferralController.getReferralStats === 'function') {
       app.get('/api/v2/referral/stats', safeHandler(ReferralController.getReferralStats.bind(ReferralController)));
       app.get('/api/v2/referrals/stats', safeHandler(ReferralController.getReferralStats.bind(ReferralController)));
     }
-    
+
     // Применение реферального кода
     if (ReferralController && 'applyReferralCode' in ReferralController && 
         typeof (ReferralController as any).applyReferralCode === 'function') {
       app.post('/api/v2/referrals/apply', safeHandler((ReferralController as any).applyReferralCode.bind(ReferralController)));
     }
   }
-  
+
   // Маршруты для бонусов с использованием консолидированного контроллера
   if (DailyBonusController) {
     if (typeof DailyBonusController.getDailyBonusStatus === 'function') {
       app.get('/api/v2/daily-bonus/status', safeHandler(DailyBonusController.getDailyBonusStatus));
     }
-    
+
     if (typeof DailyBonusController.claimDailyBonus === 'function') {
       app.post('/api/v2/daily-bonus/claim', safeHandler(DailyBonusController.claimDailyBonus));
     }
-    
+
     if (typeof DailyBonusController.getStreakInfo === 'function') {
       app.get('/api/v2/daily-bonus/streak-info', safeHandler(DailyBonusController.getStreakInfo));
     }
   }
-  
+
   // Маршруты для кошелька с использованием консолидированного контроллера
   if (WalletController) {
     if (typeof WalletController.getWalletBalance === 'function') {
       app.get('/api/v2/wallet/balance', safeHandler(WalletController.getWalletBalance.bind(WalletController)));
     }
-    
+
     if (typeof WalletController.connectWallet === 'function') {
       app.post('/api/v2/wallet/connect', safeHandler(WalletController.connectWallet.bind(WalletController)));
     }
-    
+
     if (typeof WalletController.disconnectWallet === 'function') {
       app.post('/api/v2/wallet/disconnect', safeHandler(WalletController.disconnectWallet.bind(WalletController)));
     }
-    
+
     if (typeof WalletController.getTransactions === 'function') {
       app.get('/api/v2/wallet/transactions', safeHandler(WalletController.getTransactions.bind(WalletController)));
     }
-    
+
     if (typeof WalletController.withdrawUni === 'function') {
       app.post('/api/v2/wallet/withdraw', safeHandler(WalletController.withdrawUni.bind(WalletController)));
     }
   }
-  
+
   // Маршруты для TON бустов с использованием консолидированного контроллера
   if (TonBoostController) {
     if (typeof TonBoostController.getTonBoostPackages === 'function') {
       app.get('/api/v2/ton-farming/boosts', safeHandler(TonBoostController.getTonBoostPackages));
     }
-    
+
     if (typeof TonBoostController.getUserTonBoosts === 'function') {
       app.get('/api/v2/ton-farming/active', safeHandler(TonBoostController.getUserTonBoosts));
     }
-    
+
     if (typeof TonBoostController.purchaseTonBoost === 'function') {
       app.post('/api/v2/ton-farming/purchase', safeHandler(TonBoostController.purchaseTonBoost));
     }
-    
+
     if (typeof TonBoostController.confirmExternalPayment === 'function') {
       app.post('/api/v2/ton-farming/confirm-payment', safeHandler(TonBoostController.confirmExternalPayment));
     }
-    
+
     if (typeof TonBoostController.getUserTonFarmingInfo === 'function') {
       app.get('/api/v2/ton-farming/info', safeHandler(TonBoostController.getUserTonFarmingInfo));
     }
-    
+
     if (typeof TonBoostController.calculateAndUpdateTonFarming === 'function') {
       app.post('/api/v2/ton-farming/update', safeHandler(TonBoostController.calculateAndUpdateTonFarming));
     }
   }
-  
+
   // Маршруты для обычных бустов с использованием консолидированного контроллера
   if (BoostController) {
     if (typeof BoostController.getBoostPackages === 'function') {
       app.get('/api/v2/boosts', safeHandler(BoostController.getBoostPackages));
     }
-    
+
     if (typeof BoostController.getUserActiveBoosts === 'function') {
       app.get('/api/v2/boosts/active', safeHandler(BoostController.getUserActiveBoosts));
     }
-    
+
     if (typeof BoostController.purchaseBoost === 'function') {
       app.post('/api/v2/boosts/purchase', safeHandler(BoostController.purchaseBoost));
     }
   }
-  
+
   // === UNI FARMING МАРШРУТЫ ===
   // Маршруты для UNI фарминга (v1 и v2 совместимость)
   if (UniFarmingController) {
@@ -565,18 +565,24 @@ export function registerNewRoutes(app: Express): void {
       app.get('/api/v2/uni-farming/status', safeHandler(UniFarmingController.getStatus));
       logger.info('[NewRoutes] ✓ UNI Farming status маршруты зарегистрированы');
     }
-    
+
     // КРИТИЧЕСКИ ВАЖНЫЕ НЕДОСТАЮЩИЕ API ИЗ REDMAP
     if (typeof UniFarmingController.purchaseUniFarming === 'function') {
       app.post('/api/v2/uni-farming/purchase', safeHandler(UniFarmingController.purchaseUniFarming));
       logger.info('[NewRoutes] ✓ UNI Farming purchase маршрут добавлен: POST /api/v2/uni-farming/purchase');
     }
-    
+
     if (typeof UniFarmingController.withdrawUniFarming === 'function') {
       app.post('/api/v2/uni-farming/withdraw', safeHandler(UniFarmingController.withdrawUniFarming));
       logger.info('[NewRoutes] ✓ UNI Farming withdraw маршрут добавлен: POST /api/v2/uni-farming/withdraw');
     }
   }
-  
+
+  // Добавляем маршрут для регистрации гостевого пользователя
+  if (typeof UserController.createUserFromGuest === 'function') {
+    app.post('/api/register/guest', safeHandler(UserController.createUserFromGuest));
+    logger.info('[NewRoutes] ✓ Guest регистрация эндпоинт добавлен: POST /api/register/guest');
+  }
+
   logger.info('[NewRoutes] ✓ Новые маршруты API зарегистрированы успешно');
 }

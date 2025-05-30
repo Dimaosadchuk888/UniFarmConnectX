@@ -54,12 +54,12 @@ export interface IAuthService {
    * Проверяет Telegram initData и аутентифицирует пользователя
    */
   authenticateTelegram(authData: TelegramAuthData, isDevelopment?: boolean): Promise<User>;
-  
+
   /**
    * Регистрирует гостевого пользователя по guest_id
    */
   registerGuestUser(data: GuestRegistrationData): Promise<User>;
-  
+
   /**
    * Регистрирует обычного пользователя
    */
@@ -80,14 +80,14 @@ class AuthServiceImpl implements IAuthService {
       console.log(`[AuthService] 🚀 НАЧАЛО АУТЕНТИФИКАЦИИ TELEGRAM:`);
       console.log(`[AuthService] - authData:`, JSON.stringify(authData, null, 2));
       console.log(`[AuthService] - isDevelopment:`, isDevelopment);
-      
+
       // 1. Валидация данных Telegram
       const validationResult: TelegramValidationResult = validateTelegramInitData(
         authData.authData || '',
         this.BOT_TOKEN,
         isDevelopment || authData.testMode || false
       );
-      
+
       console.log(`[AuthService] - validationResult:`, JSON.stringify(validationResult, null, 2));
 
       if (!validationResult.isValid && !isDevelopment && !authData.testMode) {
@@ -119,38 +119,38 @@ class AuthServiceImpl implements IAuthService {
         const numericTelegramId = typeof telegramUserId === 'string' 
           ? parseInt(telegramUserId, 10) 
           : telegramUserId;
-        
+
         user = await storage.getUserByTelegramId(numericTelegramId);
       }
 
       // 4. Если пользователь найден, обновим его данные
       if (user) {
         console.log(`[AuthService] Обновляем данные пользователя ${user.id}`);
-        
+
         // Собираем данные для обновления
         const updateData: Partial<User> = {};
-        
+
         // Обновляем guest_id только если он не установлен и передан в authData
         if (!user.guest_id && authData.guest_id) {
           console.log(`  - Привязка guest_id: ${authData.guest_id}`);
           updateData.guest_id = authData.guest_id;
         }
-        
+
         // Обновляем telegram_id, если он не установлен и доступен
         if (!user.telegram_id && telegramUserId) {
           const numericTelegramId = typeof telegramUserId === 'string' 
             ? parseInt(telegramUserId, 10) 
             : telegramUserId;
-            
+
           console.log(`  - Привязка telegram_id: ${numericTelegramId}`);
           updateData.telegram_id = numericTelegramId;
         }
-        
+
         // Если есть данные для обновления, выполняем запрос к БД
         if (Object.keys(updateData).length > 0) {
           try {
             await storage.updateUser(user.id, updateData);
-            
+
             // Обновляем локальный объект пользователя
             user = {...user, ...updateData};
             console.log(`[AuthService] ✅ Данные пользователя ${user.id} успешно обновлены`);
@@ -164,7 +164,7 @@ class AuthServiceImpl implements IAuthService {
 
       // 5. Если пользователь не найден, создаем нового (восстановление "призрачного" пользователя)
       console.log(`[AuthService] 🔄 ВОССТАНОВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ: telegram_id=${telegramUserId}, guest_id=${authData.guest_id}`);
-      
+
       const username = authData.username || 
                       `user_${telegramUserId || crypto.randomBytes(4).toString('hex')}`;
 
@@ -173,13 +173,13 @@ class AuthServiceImpl implements IAuthService {
 
       // Определяем родительский реферальный код
       const parent_ref_code = authData.startParam || authData.refCode || null;
-      
+
       console.log(`[AuthService] 📝 Создаем пользователя: username=${username}, ref_code=${ref_code}, parent_ref_code=${parent_ref_code}`);
 
       // Создаем пользователя
       // Преобразуем строковый telegramUserId в число (или null если отсутствует)
       let numericTelegramId: number | null = null;
-      
+
       if (telegramUserId) {
         if (typeof telegramUserId === 'string') {
           numericTelegramId = parseInt(telegramUserId, 10);
@@ -187,7 +187,7 @@ class AuthServiceImpl implements IAuthService {
           numericTelegramId = telegramUserId;
         }
       }
-        
+
       const newUser: InsertUser = {
         telegram_id: numericTelegramId,
         guest_id: authData.guest_id || null,

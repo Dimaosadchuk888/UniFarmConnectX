@@ -32,18 +32,18 @@ export class AuthController {
 
       // Валидируем данные запроса
       const validatedData = telegramAuthSchema.safeParse(req.body);
-      
+
       if (!validatedData.success) {
         return sendError(res, 'Неверный формат данных', 400, validatedData.error);
       }
-      
+
       // Определяем режим разработки
       const isDevelopment = process.env.NODE_ENV === 'development' || 
                             process.env.IS_DEV === 'true';
-      
+
       // Вызываем сервис аутентификации
       const user = await authService.authenticateTelegram(validatedData.data, isDevelopment);
-      
+
       // Обогащаем данные пользователя для ответа
       const userResponse = {
         id: user.id,
@@ -58,7 +58,7 @@ export class AuthController {
         balance_ton: user.balance_ton,
         created_at: user.created_at
       };
-      
+
       // Возвращаем успешный ответ
       sendSuccess(res, {
         user: userResponse,
@@ -69,7 +69,7 @@ export class AuthController {
       next(error);
     }
   }
-  
+
   /**
    * Регистрация гостевого пользователя для работы в режиме AirDrop
    */
@@ -84,17 +84,17 @@ export class AuthController {
         airdrop_mode: z.boolean().optional(),
         telegram_id: z.number().optional(),
       });
-      
+
       // Валидируем данные запроса
       const validatedData = guestRegisterSchema.safeParse(req.body);
-      
+
       if (!validatedData.success) {
         return sendError(res, 'Неверный формат данных', 400, validatedData.error);
       }
-      
+
       // Вызываем сервис регистрации гостевых пользователей
       const user = await authService.registerGuestUser(validatedData.data);
-      
+
       // Обогащаем данные пользователя для ответа
       const userResponse = {
         id: user.id,
@@ -109,7 +109,7 @@ export class AuthController {
         balance_ton: user.balance_ton,
         created_at: user.created_at
       };
-      
+
       // Возвращаем успешный ответ
       sendSuccess(res, {
         user: userResponse,
@@ -120,7 +120,7 @@ export class AuthController {
       next(error);
     }
   }
-  
+
   /**
    * Регистрация обычного пользователя
    */
@@ -135,17 +135,17 @@ export class AuthController {
         telegram_id: z.number().optional(),
         guest_id: z.string().optional(),
       });
-      
+
       // Валидируем данные запроса
       const validatedData = userRegisterSchema.safeParse(req.body);
-      
+
       if (!validatedData.success) {
         return sendError(res, 'Неверный формат данных', 400, validatedData.error);
       }
-      
+
       // Вызываем сервис регистрации
       const user = await authService.registerUser(validatedData.data);
-      
+
       // Обогащаем данные пользователя для ответа
       const userResponse = {
         id: user.id,
@@ -160,7 +160,7 @@ export class AuthController {
         balance_ton: user.balance_ton,
         created_at: user.created_at
       };
-      
+
       // Возвращаем успешный ответ
       sendSuccess(res, {
         user: userResponse,

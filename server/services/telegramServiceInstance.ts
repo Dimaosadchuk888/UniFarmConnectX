@@ -134,12 +134,12 @@ class TelegramServiceImpl implements ITelegramService {
   async handleWebhook(webhookData: TelegramWebhookData): Promise<{ success: boolean; message: string }> {
     try {
       console.log('[TelegramService] Обработка webhook от Telegram');
-      
+
       if (!webhookData) {
         console.warn('[TelegramService] Получен пустой webhook без данных');
         return { success: false, message: 'Пустые данные webhook' };
       }
-      
+
       // Логирование для диагностики
       const logData = {
         updateId: webhookData.update_id,
@@ -154,9 +154,9 @@ class TelegramServiceImpl implements ITelegramService {
               `${webhookData.message.chat.type} [ID: ${webhookData.message.chat.id}]` : 
               'нет_данных_чата'
       };
-      
+
       console.log('[TelegramService] Детали webhook:', logData);
-      
+
       // Проверка наличия команды
       if (webhookData.message?.entities) {
         const hasCommand = webhookData.message.entities.some(e => e.type === 'bot_command');
@@ -164,9 +164,9 @@ class TelegramServiceImpl implements ITelegramService {
           console.log('[TelegramService] Обнаружена команда в сообщении:', webhookData.message.text);
         }
       }
-      
+
       // Дополнительная обработка webhook может быть реализована здесь
-      
+
       return { success: true, message: 'Webhook обработан успешно' };
     } catch (error) {
       console.error('[TelegramService] Ошибка при обработке webhook:', error);
@@ -341,10 +341,33 @@ class TelegramServiceImpl implements ITelegramService {
   }
 }
 
-/**
- * Создает экземпляр сервиса для работы с Telegram API
- * @returns Экземпляр сервиса Telegram API
- */
+// Функция-обертка для сервисных методов с обработкой ошибок
+export function wrapServiceFunction<T extends (...args: any[]) => any>(
+  fn: T,
+  context: string = 'TelegramService'
+): T {
+  return ((...args: any[]) => {
+    try {
+      const result = fn.apply(this, args);
+
+      // Если результат - промис, обрабатываем асинхронные ошибки
+      if (result && typeof result.then === 'function') {
+        return result.catch((error: Error) => {
+          console.error(`[${context}] Async error:`, error);
+          throw error;
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`[${context}] Sync error:`, error);
+      throw error;
+    }
+  }) as T;
+}
+
+// Создаем экземпляр сервиса для работы с Telegram API
+// @returns Экземпляр сервиса Telegram API
 export function createTelegramService(): ITelegramService {
   return new TelegramServiceImpl();
 }
