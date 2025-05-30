@@ -377,11 +377,209 @@ export async function registerNewRoutes(app: Express): Promise<void> {
     logger.warn('[NewRoutes] ⚠️  UserController.getUserByGuestId не определен, маршрут GET /api/v2/users/guest/:guest_id не добавлен');
   }
 
-  // КРИТИЧЕСКИЙ ENDPOINT для получения текущего пользователя (через Telegram ID)
-  app.get('/api/v2/me', safeHandler(UserController.getMe));
+  // КРИТИЧНИЙ endpoint для отображения баланса и основной информации
+  app.get('/api/v2/me', async (req: any, res: any) => {
+    try {
+      console.log('[API] /api/v2/me - Запрос информации о пользователе');
+
+      // Получаем user_id из параметров запроса или заголовков
+      const userId = req.query.user_id || req.headers['x-telegram-user-id'];
+      const guestId = req.query.guest_id || req.headers['x-guest-id'];
+
+      console.log('[API] /api/v2/me - Параметры:', { userId, guestId });
+
+      // Если есть user_id, ищем по нему
+      if (userId) {
+        const result = await queryWithRetry(
+          'SELECT * FROM users WHERE user_id = $1',
+          [userId]
+        );
+
+        if (result && result.length > 0) {
+          const user = result[0];
+          return res.status(200).json({
+            success: true,
+            data: {
+              id: user.user_id,
+              username: user.username || user.first_name || 'Аноним',
+              balance: user.balance || '0',
+              uni_balance: user.uni_balance || '0',
+              ton_balance: user.ton_balance || '0',
+              total_earned: user.total_earned || '0',
+              ref_code: user.ref_code,
+              guest_id: user.guest_id,
+              registration_date: user.registration_date
+            }
+          });
+        }
+      }
+
+      // Если есть guest_id, ищем по нему
+      if (guestId) {
+        const result = await queryWithRetry(
+          'SELECT * FROM users WHERE guest_id = $1',
+          [guestId]
+        );
+
+        if (result && result.length > 0) {
+          const user = result[0];
+          return res.status(200).json({
+            success: true,
+            data: {
+              id: user.user_id,
+              username: user.username || user.first_name || 'Аноним',
+              balance: user.balance || '0',
+              uni_balance: user.uni_balance || '0',
+              ton_balance: user.ton_balance || '0',
+              total_earned: user.total_earned || '0',
+              ref_code: user.ref_code,
+              guest_id: user.guest_id,
+              registration_date: user.registration_date
+            }
+          });
+        }
+      }
+
+      // Если пользователь не найден, возвращаем 404
+      console.log('[API] /api/v2/me - Пользователь не найден');
+      return res.status(404).json({
+        success: false,
+        error: 'Пользователь не найден',
+        code: 'USER_NOT_FOUND',
+        message: 'Необходима регистрация через guest_id'
+      });
+
+    } catch (error) {
+      console.error('[API] /api/v2/me - Ошибка:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Внутренняя ошибка сервера',
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
   logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/me добавлен для отображения баланса');
 
   logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/wallet/balance будет обработан через WalletController');
+
+  // Регистрация пользователя через Telegram или guest_id
+  app.post('/api/register/telegram', async (req: any, res: any) => {
+    try {
+      console.log('[API] POST /api/register/telegram - Начало регистрации');
+      console.log('[API] Тело запроса:', req.body);
+
+      const { user_id, username, first_name, guest_id, ref_code } = req.body;
+
+      // Если нет ни user_id, ни guest_id - ошибка
+      if (!user_id && !guest_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Необходим user_id или guest_id для регистрации'
+        });
+      }
+
+      // Сначала проверяем, существует ли уже пользователь
+      let existingUser = null;
+
+      if (user_id) {
+        const existing = await queryWithRetry('SELECT * FROM users WHERE user_id = $1', [user_id]);
+        existingUser = existing && existing.length > 0 ? existing[0] : null;
+      }
+
+      if (!existingUser && guest_id) {
+        const existing = await queryWithRetry('SELECT * FROM users WHERE guest_id = $1', [guest_id]);
+        existingUser = existing && existing.length > 0 ? existing[0] : null;
+      }
+
+      if (existingUser) {
+        // Пользователь уже существует, возвращаем его данные
+        console.log('[API] Пользователь уже зарегистрирован:', existingUser.user_id || existingUser.guest_id);
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            id: existingUser.user_id,
+            username: existingUser.username || existingUser.first_name || 'Аноним',
+            balance: existingUser.balance || '0',
+            uni_balance: existingUser.uni_balance || '0',
+            ton_balance: existingUser.ton_balance || '0',
+            total_earned: existingUser.total_earned || '0',
+            ref_code: existingUser.ref_code,
+            guest_id: existingUser.guest_id,
+            registration_date: existingUser.registration_date
+          },
+          message: 'Пользователь уже зарегистрирован'
+        });
+      }
+
+      // Генерируем уникальный ref_code для нового пользователя
+      const newRefCode = await generateUniqueRefCode();
+
+      let result;
+
+      if (user_id) {
+        // Регистрация через Telegram
+        result = await queryWithRetry(`
+          INSERT INTO users (user_id, username, first_name, ref_code, guest_id, registration_date, balance, uni_balance, ton_balance)
+          VALUES ($1, $2, $3, $4, $5, NOW(), '1000', '0', '0')
+          RETURNING *
+        `, [user_id, username, first_name, newRefCode, guest_id]);
+      } else {
+        // Регистрация через guest_id
+        result = await queryWithRetry(`
+          INSERT INTO users (guest_id, username, first_name, ref_code, registration_date, balance, uni_balance, ton_balance)
+          VALUES ($1, $2, $3, $4, NOW(), '1000', '0', '0')
+          RETURNING *
+        `, [guest_id, username || 'Гость', first_name || 'Анонимный пользователь', newRefCode]);
+      }
+
+      if (!result || result.length === 0) {
+        throw new Error('Не удалось создать пользователя');
+      }
+
+      const user = result[0];
+
+      // Если был указан реферальный код, обрабатываем его
+      if (ref_code && ref_code !== user.ref_code) {
+        try {
+          await queryWithRetry(`
+            UPDATE users 
+            SET parent_ref_code = $1 
+            WHERE (user_id = $2 OR guest_id = $3) AND parent_ref_code IS NULL
+          `, [ref_code, user_id, guest_id]);
+
+          console.log('[API] Реферальный код применен:', ref_code);
+        } catch (refError) {
+          console.error('[API] Ошибка при применении реферального кода:', refError);
+          // Не прерываем регистрацию из-за ошибки с рефералом
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        data: {
+          id: user.user_id,
+          username: user.username || user.first_name || 'Аноним',
+          balance: user.balance || '1000',
+          uni_balance: user.uni_balance || '0',
+          ton_balance: user.ton_balance || '0',
+          total_earned: user.total_earned || '0',
+          ref_code: user.ref_code,
+          guest_id: user.guest_id,
+          registration_date: user.registration_date
+        },
+        message: 'Пользователь успешно зарегистрирован'
+      });
+
+    } catch (error) {
+      console.error('[API] POST /api/register/telegram - Ошибка:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка при регистрации пользователя',
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   // [TG REGISTRATION FIX] Новый эндпоинт для регистрации через Telegram
   if (typeof UserController.createUserFromTelegram === 'function') {
