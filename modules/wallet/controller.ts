@@ -4,7 +4,7 @@ import { WalletService } from './service';
 const walletService = new WalletService();
 
 export class WalletController {
-  async getBalance(req: express.Request, res: express.Response) {
+  async getBalance(req: Request, res: Response) {
     try {
       const userId = req.params.userId;
       const balance = await walletService.getBalance(userId);
