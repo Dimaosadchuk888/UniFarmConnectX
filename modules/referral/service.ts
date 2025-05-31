@@ -108,11 +108,36 @@ export class ReferralService {
    */
   async processReferral(refCode: string, newUserId: string): Promise<boolean> {
     try {
-      console.log(`[ReferralService] Обработка реферала: код ${refCode} для пользователя ${newUserId}`);
-      
-      // Здесь будет логика записи в базу данных
-      // Связывание нового пользователя с пригласившим
-      
+      const { db } = await import('../../server/db');
+      const { users, referrals } = await import('../../shared/schema');
+      const { eq } = await import('drizzle-orm');
+
+      // Находим пользователя с таким реферальным кодом
+      const [inviter] = await db
+        .select()
+        .from(users)
+        .where(eq(users.ref_code, refCode))
+        .limit(1);
+
+      if (!inviter) return false;
+
+      // Обновляем нового пользователя, указывая родительский реферальный код
+      await db
+        .update(users)
+        .set({ parent_ref_code: refCode })
+        .where(eq(users.id, parseInt(newUserId)));
+
+      // Создаем запись о реферальной связи
+      await db
+        .insert(referrals)
+        .values({
+          user_id: parseInt(newUserId),
+          inviter_id: inviter.id,
+          level: 1,
+          reward_uni: "10", // Базовая награда за приглашение
+          created_at: new Date()
+        });
+
       return true;
     } catch (error) {
       console.error('[ReferralService] Ошибка обработки реферала:', error);
@@ -125,14 +150,40 @@ export class ReferralService {
    */
   async getReferralStats(userId: string): Promise<any> {
     try {
-      console.log(`[ReferralService] Получение статистики рефералов для пользователя ${userId}`);
-      
-      // Здесь будет логика получения данных из базы
-      return { 
-        referrals: 0, 
-        earnings: "0",
-        total_invited: 0,
-        active_referrals: 0
+      const { db } = await import('../../server/db');
+      const { users, referrals } = await import('../../shared/schema');
+      const { eq, count, sum } = await import('drizzle-orm');
+
+      // Получаем пользователя и его реферальный код
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, parseInt(userId)))
+        .limit(1);
+
+      if (!user || !user.ref_code) {
+        return { referrals: 0, earnings: "0", total_invited: 0, active_referrals: 0 };
+      }
+
+      // Считаем всех приглашенных пользователей
+      const invitedUsers = await db
+        .select()
+        .from(users)
+        .where(eq(users.parent_ref_code, user.ref_code));
+
+      // Считаем общий доход от рефералов
+      const [earnings] = await db
+        .select({ total: sum(referrals.reward_uni) })
+        .from(referrals)
+        .where(eq(referrals.inviter_id, parseInt(userId)));
+
+      return {
+        referrals: invitedUsers.length,
+        earnings: earnings?.total || "0",
+        total_invited: invitedUsers.length,
+        active_referrals: invitedUsers.filter(u => u.created_at && 
+          (new Date().getTime() - new Date(u.created_at).getTime()) < 30 * 24 * 60 * 60 * 1000
+        ).length
       };
     } catch (error) {
       console.error('[ReferralService] Ошибка получения статистики рефералов:', error);
@@ -149,10 +200,18 @@ export class ReferralService {
         return false;
       }
 
-      console.log(`[ReferralService] Валидация реферального кода: ${refCode}`);
-      
-      // Здесь будет проверка существования кода в базе данных
-      return true;
+      const { db } = await import('../../server/db');
+      const { users } = await import('../../shared/schema');
+      const { eq } = await import('drizzle-orm');
+
+      // Проверяем существование пользователя с таким реферальным кодом
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.ref_code, refCode))
+        .limit(1);
+
+      return !!user;
     } catch (error) {
       console.error('[ReferralService] Ошибка валидации реферального кода:', error);
       return false;
