@@ -69,13 +69,15 @@ export async function correctApiRequest<T = any>(
 
     // Формирование полного URL - ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ PRODUCTION URL
     try {
-      // ПРОДАКШН РЕЖИМ: используем правильный production URL
+      // РАЗРАБОТКА: используем локальный сервер для корректной работы миссий
+      const DEVELOPMENT_HOST = 'localhost:3000';
       const PRODUCTION_HOST = 'uni-farm-connect-xo-osadchukdmitro2.replit.app';
-      const FORCED_PRODUCTION_HOST = PRODUCTION_HOST; // Переключено на продакшн
-      const protocol = 'https:';
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('replit');
+      const FORCED_HOST = isDevelopment ? DEVELOPMENT_HOST : PRODUCTION_HOST;
+      const protocol = isDevelopment ? 'http:' : 'https:';
 
-      // Используем production URL для стабильной работы
-      console.log(`[correctApiRequest] [${requestId}] 🚀 ПРОДАКШН РЕЖИМ: используем production host: ${FORCED_PRODUCTION_HOST}`);
+      // Используем соответствующий хост в зависимости от режима
+      console.log(`[correctApiRequest] [${requestId}] 🚀 ${isDevelopment ? 'РЕЖИМ РАЗРАБОТКИ' : 'ПРОДАКШН РЕЖИМ'}: используем ${isDevelopment ? 'development' : 'production'} host: ${FORCED_HOST}`);
 
       // Получаем userId из localStorage чтобы передать его в запросах
       const lastSessionStr = localStorage.getItem('unifarm_last_session');
