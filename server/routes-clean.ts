@@ -24,16 +24,45 @@ export function registerCleanRoutes(app: Express): void {
   app.get('/api/v2/me', async (req, res) => {
     let pool;
     try {
+      // ПРИОРИТЕТ: Telegram данные из middleware > параметры запроса
+      const telegramUser = req.telegram?.user;
+      const telegram_id = telegramUser?.telegram_id || req.headers['x-telegram-user-id'] || req.query.telegram_id;
       const user_id = req.query.user_id;
-      const telegram_id = req.headers['x-telegram-user-id'] || req.query.telegram_id;
-      const guest_id = req.query.guest_id || req.headers['x-guest-id'];
       
-      console.log('[GetMe] Запрос данных пользователя:', { user_id, telegram_id, guest_id });
+      console.log('[GetMe] Запрос данных пользователя:', { 
+        has_telegram_middleware: !!telegramUser,
+        telegram_id, 
+        user_id,
+        validated: req.telegram?.validated 
+      });
       
-      if (!user_id && !telegram_id && !guest_id) {
+      // Если есть Telegram данные из middleware, используем их
+      if (telegramUser) {
+        console.log('[GetMe] Используем данные из Telegram middleware:', telegramUser);
+        return res.json({
+          success: true,
+          data: {
+            id: telegramUser.id,
+            telegram_id: telegramUser.telegram_id,
+            username: telegramUser.username,
+            first_name: telegramUser.username,
+            ref_code: telegramUser.ref_code,
+            ref_by: null,
+            uni_balance: telegramUser.uni_balance || 0,
+            ton_balance: telegramUser.ton_balance || 0,
+            balance_uni: telegramUser.uni_balance || 0,
+            balance_ton: telegramUser.ton_balance || 0,
+            created_at: new Date().toISOString(),
+            is_telegram_user: true
+          }
+        });
+      }
+      
+      if (!user_id && !telegram_id) {
         return res.status(400).json({
           success: false,
-          error: 'Требуется user_id, telegram_id или guest_id для идентификации пользователя'
+          error: 'Требуется Telegram авторизация или user_id для идентификации пользователя',
+          need_telegram_auth: true
         });
       }
       
