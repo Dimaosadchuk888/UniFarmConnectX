@@ -169,6 +169,51 @@ async function startServer(): Promise<void> {
   const app = express();
 
   // Регистрируем критически важные API endpoints для миссий СРАЗУ
+  app.get('/api/v2/missions/active', (req: any, res: any) => {
+    try {
+      const missions = [
+        {
+          id: 1,
+          title: "Ежедневный вход",
+          description: "Заходите в приложение каждый день",
+          reward: "100 UNI",
+          status: "active",
+          type: "daily",
+          progress: 0,
+          maxProgress: 1
+        },
+        {
+          id: 2,
+          title: "Пригласить друга", 
+          description: "Пригласите друга в UniFarm",
+          reward: "500 UNI",
+          status: "active",
+          type: "referral",
+          progress: 0,
+          maxProgress: 1
+        },
+        {
+          id: 3,
+          title: "TON Boost",
+          description: "Активируйте TON Boost для увеличения дохода",
+          reward: "1000 UNI",
+          status: "active",
+          type: "boost",
+          progress: 0,
+          maxProgress: 1
+        }
+      ];
+      
+      res.json({
+        success: true,
+        data: missions,
+        message: 'Активные миссии получены'
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Missions service unavailable' });
+    }
+  });
+
   app.get('/api/missions', (req: any, res: any) => {
     try {
       const missions = [
