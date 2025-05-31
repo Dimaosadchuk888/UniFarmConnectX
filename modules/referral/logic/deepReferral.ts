@@ -58,12 +58,36 @@ export class DeepReferralLogic {
    */
   static async buildReferrerChain(userId: string): Promise<string[]> {
     try {
-      console.log(`[DeepReferral] Построение цепочки рефереров для пользователя ${userId}`);
-      
-      // Здесь будет рекурсивный запрос к базе данных для построения цепочки
+      const { db } = await import('../../server/db');
+      const { users } = await import('../../shared/schema');
+      const { eq } = await import('drizzle-orm');
+
       const chain: string[] = [];
-      
-      // Заглушка - в реальном приложении здесь будет запрос к БД
+      let currentUserId = parseInt(userId);
+
+      // Строим цепочку до максимальной глубины
+      for (let level = 0; level < this.MAX_REFERRAL_DEPTH; level++) {
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, currentUserId))
+          .limit(1);
+
+        if (!user || !user.parent_ref_code) break;
+
+        // Находим пользователя-пригласителя по реферальному коду
+        const [inviter] = await db
+          .select()
+          .from(users)
+          .where(eq(users.ref_code, user.parent_ref_code))
+          .limit(1);
+
+        if (!inviter) break;
+
+        chain.push(inviter.id.toString());
+        currentUserId = inviter.id;
+      }
+
       return chain;
     } catch (error) {
       console.error('[DeepReferral] Ошибка построения цепочки рефереров:', error);

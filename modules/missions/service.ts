@@ -1,6 +1,7 @@
 import { db } from '../../server/db';
 import { missions, userMissions, users } from '../../shared/schema';
 import { eq, and, notInArray } from 'drizzle-orm';
+import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';
 
 export class MissionsService {
   async getAvailableMissions(userId: string): Promise<any[]> {
@@ -102,6 +103,9 @@ export class MissionsService {
           .update(users)
           .set({ balance_uni: newBalance })
           .where(eq(users.id, parseInt(userId)));
+
+        // Распределяем реферальные вознаграждения за выполнение миссии
+        await ReferralRewardDistribution.distributeMissionRewards(userId, mission.reward_uni);
       }
 
       return { amount: mission.reward_uni, claimed: true };

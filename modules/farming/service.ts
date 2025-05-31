@@ -1,6 +1,8 @@
 import { db } from '../../server/db';
-import { users, farmingDeposits } from '../../shared/schema';
+import { users, farmingDeposits, transactions } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { RewardCalculationLogic } from './logic/rewardCalculation';
+import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';
 
 export class FarmingService {
   async startFarming(userId: string): Promise<boolean> {
@@ -53,22 +55,61 @@ export class FarmingService {
         .where(eq(users.id, parseInt(userId)))
         .limit(1);
 
-      if (!user || !user.uni_farming_balance) {
+      if (!user || !user.uni_farming_start_timestamp) {
         return { amount: "0", claimed: false };
       }
 
-      const rewardAmount = user.uni_farming_balance;
+      // Расчет времени фарминга в часах
+      const now = new Date();
+      const farmingStart = new Date(user.uni_farming_start_timestamp);
+      const farmingHours = (now.getTime() - farmingStart.getTime()) / (1000 * 60 * 60);
+
+      if (farmingHours < 1) {
+        return { amount: "0", claimed: false };
+      }
+
+      // Расчет базового вознаграждения
+      const depositAmount = user.uni_deposit_amount || "0";
+      const farmingRate = parseFloat(user.uni_farming_rate || "1.2"); // 1.2% в час по умолчанию
+      
+      const baseReward = RewardCalculationLogic.calculateBaseReward(
+        depositAmount,
+        farmingRate,
+        farmingHours
+      );
+
+      if (parseFloat(baseReward) <= 0) {
+        return { amount: "0", claimed: false };
+      }
+
+      // Обновляем баланс пользователя
+      const newBalance = String(parseFloat(user.balance_uni || "0") + parseFloat(baseReward));
       
       await db
         .update(users)
         .set({ 
-          balance_uni: String(parseFloat(user.balance_uni || "0") + parseFloat(rewardAmount)),
-          uni_farming_balance: "0",
-          uni_farming_last_update: new Date()
+          balance_uni: newBalance,
+          uni_farming_start_timestamp: now, // Сбрасываем время для нового цикла
+          uni_farming_last_update: now
         })
         .where(eq(users.id, parseInt(userId)));
 
-      return { amount: rewardAmount, claimed: true };
+      // Записываем транзакцию о начислении
+      await db
+        .insert(transactions)
+        .values({
+          user_id: parseInt(userId),
+          type: 'farming_reward',
+          currency: 'UNI',
+          amount: baseReward,
+          description: `Farming reward for ${farmingHours.toFixed(2)} hours`,
+          status: 'confirmed'
+        });
+
+      // Распределяем реферальные вознаграждения
+      await ReferralRewardDistribution.distributeFarmingRewards(userId, baseReward);
+
+      return { amount: baseReward, claimed: true };
     } catch (error) {
       console.error('[FarmingService] Ошибка получения наград:', error);
       return { amount: "0", claimed: false };
