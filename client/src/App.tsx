@@ -420,9 +420,12 @@ function App() {
                     {/* Прямой маршрут на страницу фарминга */}
                     <Route path="/farming">
                       <div className="max-w-md mx-auto" style={{ 
-                        backgroundColor: '#1e1e2e', 
+                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
                         color: '#ffffff',
-                        minHeight: '100vh'
+                        minHeight: '100vh',
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column'
                       }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
@@ -435,9 +438,12 @@ function App() {
                     {/* Прямой маршрут на страницу кошелька */}
                     <Route path="/wallet">
                       <div className="max-w-md mx-auto" style={{ 
-                        backgroundColor: '#1e1e2e', 
+                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
                         color: '#ffffff',
-                        minHeight: '100vh'
+                        minHeight: '100vh',
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column'
                       }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
@@ -450,9 +456,12 @@ function App() {
                     {/* Прямой маршрут на страницу друзей/партнёрки */}
                     <Route path="/friends">
                       <div className="max-w-md mx-auto" style={{ 
-                        backgroundColor: '#1e1e2e', 
+                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
                         color: '#ffffff',
-                        minHeight: '100vh'
+                        minHeight: '100vh',
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column'
                       }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
@@ -465,9 +474,12 @@ function App() {
                     {/* Прямой маршрут на страницу миссий - URL версия */}
                     <Route path="/missions">
                       <div className="max-w-md mx-auto" style={{ 
-                        backgroundColor: '#1e1e2e', 
+                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
                         color: '#ffffff',
-                        minHeight: '100vh'
+                        minHeight: '100vh',
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column'
                       }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
@@ -482,9 +494,12 @@ function App() {
                     {/* Тестовый маршрут на страницу миссий для навигации через меню */}
                     <Route path="/missions-nav">
                       <div className="max-w-md mx-auto" style={{ 
-                        backgroundColor: '#1e1e2e', 
+                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
                         color: '#ffffff',
-                        minHeight: '100vh'
+                        minHeight: '100vh',
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column'
                       }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
@@ -497,9 +512,12 @@ function App() {
                     {/* Прямой маршрут на страницу дашборда */}
                     <Route path="/dashboard">
                       <div className="max-w-md mx-auto" style={{ 
-                        backgroundColor: '#1e1e2e', 
+                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
                         color: '#ffffff',
-                        minHeight: '100vh'
+                        minHeight: '100vh',
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column'
                       }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">

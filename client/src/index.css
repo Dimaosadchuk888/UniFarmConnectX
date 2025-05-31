@@ -4,7 +4,7 @@
 
 /* ИСПРАВЛЕНИЕ: Базовые стили для устранения черного экрана */
 html, body {
-  background-color: #1e1e2e !important;
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%) !important;
   color: #ffffff !important;
   margin: 0;
   padding: 0;
@@ -14,8 +14,10 @@ html, body {
 
 #root {
   min-height: 100vh;
-  background-color: #1e1e2e !important;
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%) !important;
   color: #ffffff !important;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Принудительное исправление для всех элементов */
@@ -120,6 +122,17 @@ body {
   /* Базовый светлый текст для всех элементов */
   * {
     color: var(--foreground) !important;
+  }
+  
+  /* Принудительная видимость всех элементов */
+  *, *::before, *::after {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* Убираем возможные скрытые элементы */
+  [hidden] {
+    display: block !important;
   }
   
   /* Заголовки и важный текст */
