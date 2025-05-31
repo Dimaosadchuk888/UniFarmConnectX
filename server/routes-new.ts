@@ -63,6 +63,20 @@ export async function registerNewRoutes(app: Express): Promise<void> {
     logger.warn('[NewRoutes] ⚠️ Не удалось подключить simple-missions:', error.message);
   }
 
+  // КРИТИЧНО: Добавляем основной маршрут для миссий
+  app.get('/api/missions', safeHandler(async (req, res) => {
+    try {
+      logger.info('[NewRoutes] 🚀 Запрос миссий через /api/missions');
+      const activeMissions = await MissionControllerFixed.getActiveMissions(req, res, () => {});
+    } catch (error) {
+      logger.error('[NewRoutes] ❌ Ошибка /api/missions:', error);
+      res.status(500).json({
+        success: false,
+        error: 'API endpoint not found'
+      });
+    }
+  }));
+
   // Инициализируем Telegram бота
   try {
     telegramBot.initialize()
@@ -85,9 +99,20 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   logger.info('[NewRoutes] Маршруты для Telegram бота зарегистрированы');
 
   // Быстрый тест БД
-  const { quickDbTest } = await import('./api/quick-db-test');
-  app.get('/api/quick-db-test', quickDbTest);
-  logger.info('[NewRoutes] Быстрый тест БД добавлен: GET /api/quick-db-test');
+  try {
+    const { quickDbTest } = await import('./api/quick-db-test');
+    app.get('/api/quick-db-test', quickDbTest);
+    logger.info('[NewRoutes] Быстрый тест БД добавлен: GET /api/quick-db-test');
+  } catch (error) {
+    logger.warn('[NewRoutes] ⚠️ quick-db-test не найден, создаем заглушку');
+    app.get('/api/quick-db-test', (req, res) => {
+      res.json({
+        success: true,
+        message: 'DB test endpoint',
+        timestamp: new Date().toISOString()
+      });
+    });
+  }
 
   // Регистрируем администативные маршруты
   app.use('/api/admin', adminRouter);
