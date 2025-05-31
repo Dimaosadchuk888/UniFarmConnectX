@@ -885,39 +885,61 @@ async function startServer(): Promise<void> {
     });
     
     app.get('/api/v2/missions/active', async (req, res) => {
-      // Перенаправляем на основной эндпоинт миссий
-      try {
-        const missions = [
-          {
-            id: 1,
-            title: "Ежедневный вход",
-            description: "Заходите в приложение каждый день",
-            reward: "100 UNI",
-            status: "active",
-            type: "daily",
-            progress: 0,
-            maxProgress: 1
-          },
-          {
-            id: 2,
-            title: "Пригласить друга", 
-            description: "Пригласите друга в UniFarm",
-            reward: "500 UNI",
-            status: "active",
-            type: "referral",
-            progress: 0,
-            maxProgress: 1
-          }
-        ];
-        
-        res.json({
-          success: true,
-          data: missions,
-          message: 'Активные миссии получены'
-        });
-      } catch (error) {
-        res.status(500).json({ success: false, error: 'Missions service unavailable' });
-      }
+      // Прямой возврат активных миссий без подключения к БД
+      console.log('[MISSIONS API] 🚀 Запрос активных миссий');
+      
+      const missions = [
+        {
+          id: 1,
+          title: "Ежедневный вход",
+          description: "Заходите в приложение каждый день",
+          reward: "100 UNI",
+          status: "active",
+          type: "daily",
+          progress: 0,
+          maxProgress: 1,
+          is_active: true,
+          link: null
+        },
+        {
+          id: 2,
+          title: "Пригласить друга", 
+          description: "Пригласите друга в UniFarm",
+          reward: "500 UNI",
+          status: "active",
+          type: "referral",
+          progress: 0,
+          maxProgress: 1,
+          is_active: true,
+          link: null
+        },
+        {
+          id: 3,
+          title: "TON Boost",
+          description: "Активируйте TON Boost для увеличения дохода",
+          reward: "1000 UNI",
+          status: "active",
+          type: "boost",
+          progress: 0,
+          maxProgress: 1,
+          is_active: true,
+          link: null
+        }
+      ];
+      
+      console.log('[MISSIONS API] ✅ Возвращаем миссии:', missions.length);
+      
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
+      res.json({
+        success: true,
+        data: missions,
+        message: 'Активные миссии получены'
+      });
     });
 
     // Настраиваем базовый URL для API

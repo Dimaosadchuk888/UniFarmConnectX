@@ -33,8 +33,8 @@ export function registerNewRoutes(app: Express): void {
   });
 
   // API маршруты для миссий
-  app.get('/api/missions', MissionControllerFixed.getActiveMissions);
-  app.get('/api/v2/missions/active', MissionControllerFixed.getActiveMissions);
+  // app.get('/api/missions', MissionControllerFixed.getActiveMissions);
+  // app.get('/api/v2/missions/active', MissionControllerFixed.getActiveMissions); // Отключено - используется hardcoded endpoint в index.ts
   
   // Отладочный маршрут для проверки регистрации
   app.get('/api/debug/routes-status', (req, res) => {
