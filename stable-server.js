@@ -306,7 +306,7 @@ app.use((err, req, res, next) => {
 });
 
 // Запуск сервера
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('🎯 UniFarm Stable Server запущен');
   console.log(`🚀 Порт: ${PORT}`);
   console.log(`📱 URL: https://uni-farm-connect-xo-osadchukdmitro2.replit.app`);
