@@ -3,8 +3,6 @@
 // 🎯 СПРОЩЕНЕ ПІДКЛЮЧЕННЯ: використовуємо тільки production базу
 console.log('🎯 [SYSTEM] Налаштування PRODUCTION Neon DB: ep-lucky-boat-a463bggt');
 
-// Загружаем переменные окружения из файла .env
-
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -13,20 +11,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Проверяем, существует ли файл .env
-const envPath = path.resolve(process.cwd(), '.env');
-if (fs.existsSync(envPath)) {
-  console.log('[Config] Loading environment variables from:', envPath);
-  const result = dotenv.config({ path: envPath });
-
-  if (result.error) {
-    console.error('[Config] Error loading .env file:', result.error);
-  } else {
-    console.log('[Config] Environment variables loaded successfully');
-  }
-} else {
-  console.error('[Config] .env file not found at:', envPath);
-}
+// Environment variables are loaded automatically by Replit
+console.log('[Config] Using Replit environment variables');
 
 // Используем стабильный production URL для Telegram бота
 if (!process.env.APP_URL) {
@@ -793,7 +779,7 @@ async function startServer(): Promise<void> {
       // Импортируем функцию для подключения к БД
       const { getSingleDbConnection } = await import('./single-db-connection.js');
       const { missions } = await import('../shared/schema.js');
-      const { eq } = await ;
+      const { eq } = await import('drizzle-orm');
 
       const db = await getSingleDbConnection();
 
