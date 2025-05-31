@@ -457,4 +457,302 @@ export function registerCleanRoutes(app: Express): void {
     }
   });
 
+  // ЭТАП 4: Добавление отсутствующих критических эндпоинтов
+
+  // Реферальная система - генерация кода
+  app.post('/api/v2/users/generate-refcode', async (req, res) => {
+    try {
+      const telegramUser = req.telegram?.user;
+      
+      if (!telegramUser || !req.telegram?.validated) {
+        return res.status(401).json({
+          success: false,
+          error: 'Требуется авторизация через Telegram'
+        });
+      }
+
+      // Если у пользователя уже есть реферальный код, возвращаем его
+      if (telegramUser.ref_code) {
+        return res.json({
+          success: true,
+          data: {
+            ref_code: telegramUser.ref_code,
+            already_exists: true
+          }
+        });
+      }
+
+      // Генерируем новый уникальный код
+      const { Pool } = await import('pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      
+      const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+      let refCode = generateCode();
+      let attempts = 0;
+      
+      while (attempts < 10) {
+        const checkQuery = 'SELECT id FROM users WHERE ref_code = $1';
+        const checkResult = await pool.query(checkQuery, [refCode]);
+        
+        if (checkResult.rows.length === 0) break;
+        
+        refCode = generateCode();
+        attempts++;
+      }
+
+      // Обновляем пользователя с новым кодом
+      const updateQuery = 'UPDATE users SET ref_code = $1 WHERE telegram_id = $2 RETURNING ref_code';
+      const updateResult = await pool.query(updateQuery, [refCode, telegramUser.telegram_id]);
+
+      await pool.end();
+
+      res.json({
+        success: true,
+        data: {
+          ref_code: refCode,
+          generated: true
+        }
+      });
+
+    } catch (error: any) {
+      console.error('[RefCode] Ошибка генерации:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка генерации реферального кода'
+      });
+    }
+  });
+
+  // Реферальная система - статистика
+  app.get('/api/v2/referrals/stats', async (req, res) => {
+    try {
+      const telegramUser = req.telegram?.user;
+      
+      if (!telegramUser || !req.telegram?.validated) {
+        return res.status(401).json({
+          success: false,
+          error: 'Требуется авторизация через Telegram'
+        });
+      }
+
+      const { Pool } = await import('pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+      // Получаем статистику рефералов
+      const statsQuery = `
+        SELECT 
+          COUNT(*) as total_referrals,
+          COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') as month_referrals,
+          COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') as week_referrals
+        FROM users 
+        WHERE parent_ref_code = $1
+      `;
+
+      const statsResult = await pool.query(statsQuery, [telegramUser.ref_code]);
+      const stats = statsResult.rows[0] || { total_referrals: 0, month_referrals: 0, week_referrals: 0 };
+
+      await pool.end();
+
+      res.json({
+        success: true,
+        data: {
+          total_referrals: parseInt(stats.total_referrals) || 0,
+          month_referrals: parseInt(stats.month_referrals) || 0,
+          week_referrals: parseInt(stats.week_referrals) || 0,
+          ref_code: telegramUser.ref_code
+        }
+      });
+
+    } catch (error: any) {
+      console.error('[RefStats] Ошибка получения статистики:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка получения статистики рефералов'
+      });
+    }
+  });
+
+  // Валидация сессии
+  app.post('/api/v2/session/validate', async (req, res) => {
+    try {
+      const telegramUser = req.telegram?.user;
+      const isValid = req.telegram?.validated;
+
+      res.json({
+        success: true,
+        data: {
+          valid: !!isValid,
+          user: telegramUser ? {
+            id: telegramUser.id,
+            telegram_id: telegramUser.telegram_id,
+            username: telegramUser.username,
+            ref_code: telegramUser.ref_code
+          } : null,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    } catch (error: any) {
+      console.error('[SessionValidate] Ошибка валидации:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка валидации сессии'
+      });
+    }
+  });
+
+  // Получение пользователя по ID
+  app.get('/api/v2/users/:id', async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      if (!userId || isNaN(userId)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Некорректный ID пользователя'
+        });
+      }
+
+      const { Pool } = await import('pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+      const userQuery = `
+        SELECT 
+          id, telegram_id, username, first_name,
+          ref_code, parent_ref_code,
+          uni_balance, ton_balance,
+          created_at
+        FROM users 
+        WHERE id = $1
+      `;
+
+      const userResult = await pool.query(userQuery, [userId]);
+      await pool.end();
+
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Пользователь не найден'
+        });
+      }
+
+      const user = userResult.rows[0];
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          telegram_id: user.telegram_id,
+          username: user.username || user.first_name,
+          ref_code: user.ref_code,
+          parent_ref_code: user.parent_ref_code,
+          uni_balance: parseFloat(user.uni_balance) || 0,
+          ton_balance: parseFloat(user.ton_balance) || 0,
+          created_at: user.created_at
+        }
+      });
+
+    } catch (error: any) {
+      console.error('[GetUser] Ошибка получения пользователя:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка получения данных пользователя'
+      });
+    }
+  });
+
+  // Завершение выполнения миссий
+  app.post('/api/v2/missions/complete', async (req, res) => {
+    try {
+      const telegramUser = req.telegram?.user;
+      const { mission_id } = req.body;
+      
+      if (!telegramUser || !req.telegram?.validated) {
+        return res.status(401).json({
+          success: false,
+          error: 'Требуется авторизация через Telegram'
+        });
+      }
+
+      if (!mission_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'ID миссии не указан'
+        });
+      }
+
+      const { Pool } = await import('pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+      // Проверяем, не завершена ли уже миссия
+      const checkQuery = `
+        SELECT id FROM user_missions 
+        WHERE user_id = $1 AND mission_id = $2 AND completed = true
+      `;
+      const checkResult = await pool.query(checkQuery, [telegramUser.id, mission_id]);
+
+      if (checkResult.rows.length > 0) {
+        await pool.end();
+        return res.json({
+          success: true,
+          data: {
+            already_completed: true,
+            message: 'Миссия уже завершена'
+          }
+        });
+      }
+
+      // Получаем информацию о миссии
+      const missionQuery = 'SELECT * FROM missions WHERE id = $1';
+      const missionResult = await pool.query(missionQuery, [mission_id]);
+
+      if (missionResult.rows.length === 0) {
+        await pool.end();
+        return res.status(404).json({
+          success: false,
+          error: 'Миссия не найдена'
+        });
+      }
+
+      const mission = missionResult.rows[0];
+
+      // Завершаем миссию
+      const completeQuery = `
+        INSERT INTO user_missions (user_id, mission_id, completed, completed_at)
+        VALUES ($1, $2, true, NOW())
+        ON CONFLICT (user_id, mission_id) 
+        DO UPDATE SET completed = true, completed_at = NOW()
+        RETURNING *
+      `;
+      
+      await pool.query(completeQuery, [telegramUser.id, mission_id]);
+
+      // Начисляем награду
+      const rewardQuery = `
+        UPDATE users 
+        SET uni_balance = uni_balance + $1 
+        WHERE id = $2
+        RETURNING uni_balance
+      `;
+      
+      const rewardResult = await pool.query(rewardQuery, [mission.reward_amount, telegramUser.id]);
+      await pool.end();
+
+      res.json({
+        success: true,
+        data: {
+          mission_completed: true,
+          reward_amount: parseFloat(mission.reward_amount),
+          new_balance: parseFloat(rewardResult.rows[0].uni_balance)
+        }
+      });
+
+    } catch (error: any) {
+      console.error('[MissionComplete] Ошибка завершения миссии:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка завершения миссии'
+      });
+    }
+  });
+
 }
