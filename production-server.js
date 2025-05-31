@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { neon } from '@neondatabase/serverless';
 
@@ -165,13 +166,55 @@ app.get('/api/v2/wallet', (req, res) => {
   });
 });
 
-// Static files
-app.use(express.static(path.join(__dirname, 'client', 'dist')));
+// Static files - проверяем существование
+const distPath = path.join(__dirname, 'client', 'dist');
+const publicPath = path.join(__dirname, 'client', 'public');
 
-// SPA routing
+// Обслуживаем статические файлы из dist если существует, иначе из public
+try {
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+  } else if (fs.existsSync(publicPath)) {
+    app.use(express.static(publicPath));
+  }
+} catch (error) {
+  console.warn('Статические файлы не найдены');
+}
+
+// SPA routing с проверкой файлов
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+    const indexPath = path.join(__dirname, 'client', 'dist', 'index.html');
+    const publicIndexPath = path.join(__dirname, 'client', 'public', 'index.html');
+    const fallbackIndexPath = path.join(__dirname, 'client', 'index.html');
+    
+    // Пробуем найти index.html в разных локациях
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else if (fs.existsSync(publicIndexPath)) {
+      res.sendFile(publicIndexPath);
+    } else if (fs.existsSync(fallbackIndexPath)) {
+      res.sendFile(fallbackIndexPath);
+    } else {
+      // Возвращаем простую HTML страницу если файлы не найдены
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>UniFarm Loading</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body>
+          <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+            <h1>🌾 UniFarm</h1>
+            <p>Приложение загружается...</p>
+            <p><a href="/health">Проверить статус сервера</a></p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
   } else {
     res.status(404).json({
       success: false,
