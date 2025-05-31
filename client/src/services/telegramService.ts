@@ -92,13 +92,38 @@ class TelegramService {
    * Инициализация Telegram WebApp
    */
   private initialize(): void {
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      this.webApp = window.Telegram.WebApp;
-      this.webApp.ready();
-      this.initialized = true;
-      console.log('[telegramService] Telegram WebApp инициализирован');
+    // Проверяем доступность в браузере
+    if (typeof window === 'undefined') {
+      console.log('[telegramService] Окружение не браузер');
+      return;
+    }
+
+    // Ждем полной загрузки Telegram WebApp
+    const initTelegram = () => {
+      if (window.Telegram?.WebApp) {
+        this.webApp = window.Telegram.WebApp;
+        this.webApp.ready();
+        this.initialized = true;
+        console.log('[telegramService] Telegram WebApp успешно инициализирован');
+        
+        // Расширяем приложение
+        this.webApp.expand();
+      } else {
+        console.log('[telegramService] Telegram WebApp недоступен, работаем в fallback режиме');
+      }
+    };
+
+    // Если Telegram уже доступен - инициализируем сразу
+    if (window.Telegram?.WebApp) {
+      initTelegram();
     } else {
-      console.log('[telegramService] Telegram WebApp недоступен');
+      // Иначе ждем события загрузки
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTelegram);
+      } else {
+        // Документ уже загружен, пытаемся через небольшую задержку
+        setTimeout(initTelegram, 100);
+      }
     }
   }
 

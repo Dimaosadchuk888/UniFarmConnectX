@@ -78,15 +78,15 @@ const sessionRestoreService = {
   restoreUserSession,
   isTelegramWebAppReady,
   markTelegramWebAppAsReady,
-  
+
   // Добавляем метод для автоматической повторной аутентификации
   autoReauthenticate: async (): Promise<boolean> => {
     try {
       console.log('[sessionRestoreService] Попытка автоматической повторной аутентификации...');
-      
+
       // Простая заглушка - всегда возвращаем true для совместимости
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       console.log('[sessionRestoreService] ✅ Автоматическая повторная аутентификация выполнена (заглушка)');
       return true;
     } catch (error) {
@@ -100,18 +100,34 @@ const sessionRestoreService = {
     try {
       const lastSession = localStorage.getItem('unifarm_last_session');
       const guestId = localStorage.getItem('unifarm_guest_id');
-      
+
       console.log('[sessionRestoreService] Проверка необходимости восстановления сессии:', {
         hasLastSession: !!lastSession,
         hasGuestId: !!guestId
       });
-      
+
       return !!(lastSession || guestId);
     } catch (error) {
       console.error('[sessionRestoreService] Ошибка при проверке восстановления сессии:', error);
       return false;
     }
-  }
+  },
+  /**
+   * Получает гостевой ID из Telegram данных или генерирует новый
+   */
+  getGuestId(): string {
+    console.log('[sessionRestoreService] Получение гостевого ID...');
+
+    // Сначала пытаемся получить сохраненный guest_id
+    const savedGuestId = this.sessionStorageService.getGuestId();
+
+    // Проверяем инициализацию Telegram WebApp
+    if (!this.checkTelegramWebAppInitialized()) {
+      console.log('[sessionRestoreService] Telegram WebApp еще не инициализирован, используем сохраненный ID');
+      // Возвращаем сохраненный guest_id
+      return savedGuestId;
+    }
+}
 };
 
 export default sessionRestoreService;
