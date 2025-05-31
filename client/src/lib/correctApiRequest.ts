@@ -99,7 +99,7 @@ export async function correctApiRequest<T = any>(
         console.log(`[correctApiRequest] [${requestId}] Добавлен user_id=${userId} к запросу`);
       }
 
-      fullUrl = `${protocol}//${FORCED_PRODUCTION_HOST}${endpoint}`;
+      fullUrl = `${protocol}//${FORCED_HOST}${endpoint}`;
       console.log(`[correctApiRequest] [${requestId}] Отправка ${method} запроса на ${fullUrl}`);
     } catch (urlError) {
       console.error(`[correctApiRequest] [${requestId}] Ошибка при формировании URL:`, urlError);
