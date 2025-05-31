@@ -75,21 +75,48 @@ export function registerCleanRoutes(app: Express): void {
       });
       
     } catch (error: any) {
-      console.error('[GetMe] Детальная ошибка:', error);
+      console.error('[GetMe] Критическая ошибка:', error);
       res.status(500).json({
         success: false,
-        error: 'Ошибка базы данных при получении данных пользователя',
+        error: 'Внутренняя ошибка сервера при обработке Telegram авторизации',
         details: error.message
       });
-    } finally {
-      if (pool) {
-        try {
-          await pool.end();
-        } catch (e: any) {
-          console.error('[GetMe] Ошибка закрытия пула:', e.message);
-        }
-      }
     }
+  });
+
+  // Диагностический эндпоинт для проверки Telegram middleware
+  app.get('/api/v2/telegram/debug', (req, res) => {
+    const telegramData = req.telegram;
+    const headers = {
+      'x-telegram-init-data': req.headers['x-telegram-init-data'],
+      'x-telegram-user-id': req.headers['x-telegram-user-id'],
+      'telegram-init-data': req.headers['telegram-init-data']
+    };
+    
+    console.log('[TelegramDebug] Состояние middleware:', {
+      has_telegram: !!telegramData,
+      validated: telegramData?.validated,
+      has_user: !!telegramData?.user,
+      user_id: telegramData?.user?.id,
+      telegram_id: telegramData?.user?.telegram_id
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        middleware_active: !!telegramData,
+        validated: telegramData?.validated || false,
+        user_present: !!telegramData?.user,
+        user_data: telegramData?.user ? {
+          id: telegramData.user.id,
+          telegram_id: telegramData.user.telegram_id,
+          username: telegramData.user.username,
+          ref_code: telegramData.user.ref_code
+        } : null,
+        headers_received: headers,
+        timestamp: new Date().toISOString()
+      }
+    });
   });
 
   // Простой эндпоинт для получения миссий
