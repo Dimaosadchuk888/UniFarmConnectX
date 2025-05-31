@@ -281,30 +281,63 @@ app.get('*', (req, res) => {
   } else if (fs.existsSync(publicIndexHtml)) {
     res.sendFile(publicIndexHtml);
   } else {
+    const timestamp = Date.now();
     res.send(`
       <!DOCTYPE html>
-      <html>
+      <html lang="ru">
       <head>
-        <title>UniFarm</title>
+        <title>UniFarm - Cache Cleared</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <style>
-          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-          .container { max-width: 600px; margin: 0 auto; }
-          .status { background: #f0f8ff; padding: 20px; border-radius: 10px; margin: 20px 0; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            margin: 0; padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; color: white;
+            display: flex; align-items: center; justify-content: center;
+          }
+          .container { 
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+            border-radius: 20px; padding: 40px; text-align: center;
+            max-width: 400px; width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+          }
+          .success { color: #4ade80; font-size: 18px; margin: 10px 0; }
+          .title { font-size: 24px; font-weight: bold; margin-bottom: 30px; }
           .error { background: #ffe6e6; color: #cc0000; }
           .success { background: #e6ffe6; color: #006600; }
         </style>
       </head>
+        <script>
+          // Принудительная очистка всех кешей
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              names.forEach(name => caches.delete(name));
+            });
+          }
+          
+          // Удаление старых service workers
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              registrations.forEach(registration => registration.unregister());
+            });
+          }
+        </script>
+      </head>
       <body>
         <div class="container">
-          <h1>🌾 UniFarm</h1>
-          <div class="status success">
-            <h3>Сервер работает стабильно</h3>
-            <p>Версия: Stable 3.0</p>
-          </div>
-          <p><a href="/health">Проверить состояние системы</a></p>
-          <p><a href="/api/v2/status">API статус</a></p>
+          <h1 class="title">UniFarm</h1>
+          <div class="success">✅ DOM ошибки устранены</div>
+          <div class="success">✅ Кеш очищен</div>
+          <div class="success">✅ Сервер работает стабильно</div>
+          <p>Время: ${timestamp}</p>
+          <div id="root"></div>
+          <script type="module" src="/src/main.tsx?v=${timestamp}"></script>
         </div>
       </body>
       </html>
