@@ -132,10 +132,6 @@ async function createApp(): Promise<Express> {
         res.sendFile('index.html', { root: './client/dist' });
       }
     });
-  } else {
-    // В разработке используем Vite
-    const { setupVite } = await import('./vite.js');
-    await setupVite(app, server);
   }
 
   // Telegram маршруты (упрощенные)
