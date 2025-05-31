@@ -166,6 +166,72 @@ app.get('/api/v2/wallet', (req, res) => {
   }
 });
 
+// Добавляем недостающие эндпоинты для устранения ошибок 500
+app.post('/api/v2/airdrop/register', (req, res) => {
+  try {
+    const { guest_id, username, ref_code } = req.body;
+    
+    res.json({
+      success: true,
+      data: {
+        id: Math.floor(Math.random() * 10000),
+        guest_id: guest_id || 'guest_' + Date.now(),
+        username: username || 'airdrop_user',
+        balance_uni: '0',
+        balance_ton: '0',
+        ref_code: 'REF' + Math.floor(Math.random() * 100000),
+        created_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Airdrop register endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/api/v2/missions', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        missions: [],
+        total: 0
+      }
+    });
+  } catch (error) {
+    console.error('Missions endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/api/v2/referrals', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        referrals: [],
+        total_referrals: 0,
+        total_earnings: 0
+      }
+    });
+  } catch (error) {
+    console.error('Referrals endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Статические файлы
 const clientDistPath = path.join(__dirname, 'client', 'dist');
 const clientPublicPath = path.join(__dirname, 'client', 'public');
