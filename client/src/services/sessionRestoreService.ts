@@ -132,7 +132,7 @@ const sessionRestoreService = {
   /**
    * Проверяет готовность Telegram WebApp
    */
-  private isTelegramReady(): boolean {
+  isTelegramReady(): boolean {
     if (typeof window === 'undefined') {
       return false;
     }
@@ -151,12 +151,12 @@ const sessionRestoreService = {
     const hasUser = tg.initDataUnsafe?.user;
 
     return hasInitData && hasUser;
-  }
+  },
 
   /**
    * Проверка на preview режим Replit
    */
-  private isPreviewMode(): boolean {
+  isPreviewMode(): boolean {
     if (typeof window === 'undefined') return false;
 
     const hostname = window.location.hostname;
