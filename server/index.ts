@@ -135,9 +135,16 @@ async function createApp(server: http.Server): Promise<Express> {
       }
     });
   } else {
-    // Режим разработки - Vite dev server
-    const { setupVite } = await import('./vite.js');
-    await setupVite(app, server);
+    // Режим разработки - обслуживаем исходные файлы React
+    app.use('/src', express.static('./client/src'));
+    app.use('/node_modules', express.static('./node_modules'));
+    app.get('*', (req, res, next) => {
+      if (!req.path.startsWith('/api')) {
+        res.sendFile('index.html', { root: './client' });
+      } else {
+        next();
+      }
+    });
   }
 
   // Telegram маршруты (упрощенные)
