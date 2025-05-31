@@ -63,15 +63,15 @@ function errorHandler(err, req, res, next) {
 // Импорт модулей
 async function importModules() {
   try {
+    const modules = await import('./modules/index.js');
     const { 
       UserController, 
       WalletController, 
       FarmingController, 
       MissionsController, 
-      TelegramController 
-    } = await import('./modules/index.js');
-    
-    const { telegramMiddleware } = await import('./modules/telegram/middleware.ts');
+      TelegramController,
+      telegramMiddleware 
+    } = modules;
     
     return {
       UserController,
