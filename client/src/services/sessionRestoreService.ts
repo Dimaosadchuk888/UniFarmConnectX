@@ -248,37 +248,29 @@ let telegramReadyCache: boolean | null = null;
 let lastReadyCheck = 0;
 const READY_CHECK_CACHE_DURATION = 5000; // 5 секунд кэша для уменьшения спама
 
-// Автоматическая инициализация при загрузке
-if (typeof window !== 'undefined') {
-  // Проверяем при загрузке скрипта
-  setTimeout(() => {
-    if (window.Telegram?.WebApp) {
-      console.log('[sessionRestoreService] 🚀 Автоматическая инициализация Telegram WebApp');
-      markTelegramWebAppAsReady();
-    }
-  }, 100);
-
-  // Слушаем события готовности WebApp
-  window.addEventListener('message', (event) => {
-    if (event.data && event.data.eventType === 'web_app_ready') {
-      console.log('[sessionRestoreService] 📡 Получено событие web_app_ready');
-      markTelegramWebAppAsReady();
-    }
-  });
-}
-
 /**
  * Проверяет, инициализирован ли Telegram WebApp
  * @returns true если Telegram WebApp уже инициализирован или недоступен
  */
 const isTelegramWebAppReady = (): boolean => {
+  // Используем кэш для избежания частых проверок
+  const now = Date.now();
+  if (telegramReadyCache !== null && (now - lastReadyCheck) < READY_CHECK_CACHE_DURATION) {
+    if (telegramReadyCache) {
+      console.log('[sessionRestoreService] ✅ Используем кэшированный результат: готов');
+    }
+    return telegramReadyCache;
+  }
+
+  lastReadyCheck = now;
+
   try {
-    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если есть любой Telegram объект, считаем готовым
-    if (typeof window !== 'undefined' && window.Telegram) {
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если WebApp объект существует, считаем готовым
+    if (window.Telegram?.WebApp) {
       // Автоматически отмечаем как готовый
       markTelegramWebAppAsReady();
       telegramReadyCache = true; // Обновляем кэш
-      console.log('[sessionRestoreService] ✅ Telegram объект найден, считаем готовым');
+      console.log('[sessionRestoreService] ✅ Telegram WebApp объект найден, считаем готовым');
       return true;
     }
 
@@ -291,11 +283,22 @@ const isTelegramWebAppReady = (): boolean => {
     // Проверяем флаг готовности из localStorage как запасной вариант
     const isReady = localStorage.getItem(SESSION_KEYS.TELEGRAM_READY) === 'true';
     if (isReady) {
+      telegramReadyCache = true; // Обновляем кэш
       console.log('[sessionRestoreService] ✅ Telegram WebApp готов (по флагу)');
       return true;
     }
 
-    console.log('[sessionRestoreService] ⏳ Telegram WebApp еще не инициализирован');
+    // Кэшируем отрицательный результат на более короткое время
+    telegramReadyCache = false;
+    lastReadyCheck = now - (READY_CHECK_CACHE_DURATION - 1000); // Кэш на 1 секунду для отрицательного результата
+
+    // Выводим сообщение об ошибке только раз в 5 секунд
+    const lastErrorLog = parseInt(localStorage.getItem('lastTelegramErrorLog') || '0');
+    if (now - lastErrorLog > 5000) {
+      console.log('[sessionRestoreService] Telegram WebApp еще не инициализирован');
+      localStorage.setItem('lastTelegramErrorLog', now.toString());
+    }
+
     return false;
   } catch (error) {
     console.error('[sessionRestoreService] ❌ Ошибка при проверке готовности Telegram WebApp:', error);
