@@ -69,11 +69,11 @@ export async function correctApiRequest<T = any>(
 
     // Формирование полного URL - ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ PRODUCTION URL
     try {
-      // РАЗРАБОТКА: используем локальный сервер для корректной работы миссий
+      // PRODUCTION: используем Replit production URL для доступа к реальным данным кабинета
       const DEVELOPMENT_HOST = 'localhost:3000';
-      const PRODUCTION_HOST = 'uni-farm-connect-xo-osadchukdmitro2.replit.app';
-      // ПРИНУДИТЕЛЬНО используем localhost для тестирования кабинета
-      const isDevelopment = true;
+      const PRODUCTION_HOST = window.location.host;
+      // Используем production для отображения реальных данных из PostgreSQL
+      const isDevelopment = false;
       const FORCED_HOST = isDevelopment ? DEVELOPMENT_HOST : PRODUCTION_HOST;
       const protocol = isDevelopment ? 'http:' : 'https:';
 
