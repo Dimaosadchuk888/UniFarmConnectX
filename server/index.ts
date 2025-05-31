@@ -805,6 +805,49 @@ async function startServer(): Promise<void> {
       ? (process.env.PRODUCTION_URL || 'https://uni-farm.app') 
       : 'https://uni-farm-connect-2.osadchukdmitro2.replit.app';
 
+    // Добавляем обязательные маршруты для миссий
+    console.log('[Server] Регистрируем критично важные маршруты для миссий...');
+    
+    app.get('/api/missions', (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: [
+          {
+            id: 1,
+            title: "Ежедневный вход",
+            description: "Заходите в приложение каждый день",
+            reward: "100 UNI",
+            status: "active",
+            type: "daily",
+            progress: 0,
+            maxProgress: 1
+          },
+          {
+            id: 2,
+            title: "Пригласить друга",
+            description: "Пригласите друга в UniFarm",
+            reward: "500 UNI",
+            status: "active",
+            type: "referral",
+            progress: 0,
+            maxProgress: 1
+          },
+          {
+            id: 3,
+            title: "TON Boost",
+            description: "Активируйте TON Boost для увеличения дохода",
+            reward: "1000 UNI",
+            status: "active",
+            type: "boost",
+            progress: 0,
+            maxProgress: 1
+          }
+        ],
+        message: 'Активные миссии получены'
+      });
+    });
+    
+    console.log('[Server] ✅ Маршруты для миссий зарегистрированы');
     logger.info('[Server] ✅ API маршруты успешно настроены');
   } catch (error) {
     logger.error('[Server] ❌ Ошибка при настройке маршрутов API:', 
