@@ -32,6 +32,32 @@ export function registerNewRoutes(app: Express): void {
     });
   });
 
+  // Диагностический эндпоинт для проверки базы данных
+  app.get('/api/v2/test-db', async (req, res) => {
+    try {
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      const result = await pool.query('SELECT COUNT(*) as count FROM users');
+      await pool.end();
+      
+      res.json({
+        success: true,
+        users_count: result.rows[0].count,
+        database_status: 'connected'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        database_status: 'error'
+      });
+    }
+  });
+
   // API маршруты для миссий - активные
   app.get('/api/v2/missions/active', async (req, res) => {
     try {
@@ -73,15 +99,52 @@ export function registerNewRoutes(app: Express): void {
   // API для получения данных пользователя
   app.get('/api/v2/me', async (req, res) => {
     try {
+      const user_id = req.query.user_id;
       const telegram_id = req.headers['x-telegram-user-id'] || req.query.telegram_id;
       const guest_id = req.query.guest_id || req.headers['x-guest-id'];
       
-      console.log('[GetMe] Запрос данных пользователя:', { telegram_id, guest_id });
+      console.log('[GetMe] Запрос данных пользователя:', { user_id, telegram_id, guest_id });
+      
+      // Если передан user_id, используем его в первую очередь
+      if (user_id) {
+        const { Pool } = await import('pg');
+        const pool = new Pool({
+          connectionString: process.env.DATABASE_URL,
+          ssl: { rejectUnauthorized: false }
+        });
+        
+        const result = await pool.query(`
+          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
+                 ref_code, ref_by, created_at, first_name 
+          FROM users WHERE id = $1 LIMIT 1
+        `, [user_id]);
+        
+        if (result.rows.length > 0) {
+          const user = result.rows[0];
+          await pool.end();
+          return res.json({
+            success: true,
+            data: {
+              id: user.id,
+              username: user.username,
+              guest_id: user.guest_id,
+              telegram_id: user.telegram_id,
+              uni_balance: user.uni_balance,
+              ton_balance: user.ton_balance,
+              ref_code: user.ref_code,
+              ref_by: user.ref_by,
+              created_at: user.created_at,
+              first_name: user.first_name
+            }
+          });
+        }
+        await pool.end();
+      }
       
       if (!telegram_id && !guest_id) {
         return res.status(400).json({
           success: false,
-          error: 'Требуется telegram_id или guest_id для идентификации пользователя'
+          error: 'Требуется user_id, telegram_id или guest_id для идентификации пользователя'
         });
       }
       
