@@ -31,6 +31,12 @@ const TelegramInitializer = () => {
           window.addEventListener('web_app_ready', handleWebAppReady);
         }
 
+        // Дополнительная проверка: если WebApp уже есть, сразу отмечаем готовым
+        if (window.Telegram?.WebApp) {
+          console.log('[TelegramInitializer] 🎯 WebApp уже доступен, отмечаем готовым');
+          handleWebAppReady();
+        }
+
         // Ждем готовности Telegram WebApp
         let attempts = 0;
         const maxAttempts = 30;

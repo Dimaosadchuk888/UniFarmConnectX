@@ -253,27 +253,18 @@ const isTelegramWebAppReady = (): boolean => {
       return true;
     }
 
-    // Проверяем флаг готовности из localStorage
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если WebApp объект существует, считаем готовым
+    if (window.Telegram?.WebApp) {
+      // Автоматически отмечаем как готовый
+      markTelegramWebAppAsReady();
+      console.log('[sessionRestoreService] ✅ Telegram WebApp объект найден, считаем готовым');
+      return true;
+    }
+
+    // Проверяем флаг готовности из localStorage как запасной вариант
     const isReady = localStorage.getItem(SESSION_KEYS.TELEGRAM_READY) === 'true';
-    
-    // Дополнительная проверка: если WebApp имеет version или initData, то он готов
-    const hasWebAppData = window.Telegram?.WebApp && (
-      window.Telegram.WebApp.version ||
-      window.Telegram.WebApp.initData ||
-      window.Telegram.WebApp.platform ||
-      window.Telegram.WebApp.ready // Проверяем метод ready
-    );
-
-    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: автоматически считаем готовым, если есть основной объект WebApp
-    const hasBasicWebApp = !!window.Telegram?.WebApp;
-
-    if (isReady || hasWebAppData || hasBasicWebApp) {
-      if ((hasWebAppData || hasBasicWebApp) && !isReady) {
-        // Автоматически отмечаем как готовый, если есть данные WebApp
-        markTelegramWebAppAsReady();
-        console.log('[sessionRestoreService] ✅ Автоматически отмечен как готовый');
-      }
-      console.log('[sessionRestoreService] ✅ Telegram WebApp готов');
+    if (isReady) {
+      console.log('[sessionRestoreService] ✅ Telegram WebApp готов (по флагу)');
       return true;
     }
 
