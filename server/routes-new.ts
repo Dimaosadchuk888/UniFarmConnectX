@@ -32,9 +32,43 @@ export function registerNewRoutes(app: Express): void {
     });
   });
 
-  // API маршруты для миссий
-  // app.get('/api/missions', MissionControllerFixed.getActiveMissions);
-  // app.get('/api/v2/missions/active', MissionControllerFixed.getActiveMissions); // Отключено - используется hardcoded endpoint в index.ts
+  // API маршруты для миссий - активные
+  app.get('/api/v2/missions/active', async (req, res) => {
+    try {
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      const result = await pool.query('SELECT * FROM missions WHERE is_active = true ORDER BY id');
+      const missions = result.rows.map(mission => ({
+        id: mission.id,
+        type: mission.type,
+        title: mission.title,
+        description: mission.description,
+        reward: `${mission.reward_uni} UNI`,
+        reward_uni: mission.reward_uni,
+        is_completed: false,
+        action_url: mission.action_url
+      }));
+      
+      await pool.end();
+      
+      res.json({
+        success: true,
+        data: missions,
+        count: missions.length
+      });
+    } catch (error) {
+      console.error('Ошибка загрузки миссий:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка при получении активных миссий',
+        message: error.message
+      });
+    }
+  });
   
   // Отладочный маршрут для проверки регистрации
   app.get('/api/debug/routes-status', (req, res) => {
