@@ -163,10 +163,43 @@ export function registerNewRoutes(app: Express): void {
       console.log('[TelegramReg] Получены данные:', { telegram_id, username, first_name, ref_code, initData });
       
       // Проверяем обязательные поля
-      if (!telegram_id) {
+      if (!telegram_id && !initData) {
         return res.status(400).json({
           success: false,
-          error: 'telegram_id обязателен для регистрации'
+          error: 'Требуется telegram_id или initData для регистрации'
+        });
+      }
+
+      // Если есть initData, но нет telegram_id, пытаемся извлечь из initData
+      let finalTelegramId = telegram_id;
+      let finalUsername = username;
+      let finalFirstName = first_name;
+
+      if (initData && !telegram_id) {
+        try {
+          // Простой парсинг initData для извлечения user данных
+          const urlParams = new URLSearchParams(initData);
+          const userParam = urlParams.get('user');
+          
+          if (userParam) {
+            const userData = JSON.parse(decodeURIComponent(userParam));
+            finalTelegramId = userData.id;
+            finalUsername = userData.username || username;
+            finalFirstName = userData.first_name || first_name;
+            
+            console.log('[TelegramReg] Извлечены данные из initData:', { 
+              finalTelegramId, finalUsername, finalFirstName 
+            });
+          }
+        } catch (parseError) {
+          console.error('[TelegramReg] Ошибка парсинга initData:', parseError.message);
+        }
+      }
+
+      if (!finalTelegramId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Не удалось определить telegram_id пользователя'
         });
       }
       
@@ -178,7 +211,7 @@ export function registerNewRoutes(app: Express): void {
       
       // Проверяем, существует ли пользователь
       const existingUserQuery = 'SELECT id, ref_code, uni_balance, ton_balance FROM users WHERE telegram_id = $1';
-      const existingUser = await pool.query(existingUserQuery, [telegram_id]);
+      const existingUser = await pool.query(existingUserQuery, [finalTelegramId]);
       
       if (existingUser.rows.length > 0) {
         const user = existingUser.rows[0];
@@ -218,9 +251,9 @@ export function registerNewRoutes(app: Express): void {
       `;
       
       const insertResult = await pool.query(insertQuery, [
-        telegram_id, 
-        username || '', 
-        first_name || '', 
+        finalTelegramId, 
+        finalUsername || '', 
+        finalFirstName || '', 
         newRefCode, 
         referrerExists ? ref_code : null, 
         1000.0,  // Начальный баланс UNI

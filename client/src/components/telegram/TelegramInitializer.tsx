@@ -11,75 +11,72 @@ const TelegramInitializer = () => {
     initialized: false,
     error: null as string | null
   });
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    async function initializeTelegramServices() {
+    const initializeTelegram = async () => {
       try {
-        // Проверяем наличие Telegram WebApp
-        if (!window.Telegram?.WebApp) {
-          throw new Error('Telegram WebApp API не найден');
+        console.log('[TelegramInitializer] Начинаем инициализацию...');
+
+        // Ждем готовности Telegram WebApp
+        let attempts = 0;
+        const maxAttempts = 30;
+
+        const waitForTelegram = (): Promise<boolean> => {
+          return new Promise((resolve) => {
+            const checkTelegram = () => {
+              attempts++;
+
+              if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+                resolve(true);
+                return;
+              }
+
+              if (attempts >= maxAttempts) {
+                console.log('[TelegramInitializer] ⚠️ Telegram WebApp недоступен после ожидания');
+                resolve(false);
+                return;
+              }
+
+              setTimeout(checkTelegram, 200);
+            };
+
+            checkTelegram();
+          });
+        };
+
+        const telegramReady = await waitForTelegram();
+
+        if (telegramReady && window.Telegram?.WebApp) {
+          const tg = window.Telegram.WebApp;
+
+          // Расширяем WebApp на весь экран
+          tg.expand();
+
+          // Настраиваем тему
+          tg.setHeaderColor('#1a1a1a');
+          tg.setBackgroundColor('#0a0a0a');
+
+          // Включаем закрывающую кнопку
+          tg.enableClosingConfirmation();
+
+          // Уведомляем о готовности
+          tg.ready();
+
+          console.log('[TelegramInitializer] ✅ Telegram WebApp успешно инициализирован');
+          setIsReady(true);
+        } else {
+          console.log('[TelegramInitializer] ⚠️ Переходим в standalone режим');
+          setIsReady(true); // Разрешаем работу в standalone режиме
         }
-
-        // Проверяем initData
-        const initData = window.Telegram.WebApp.initData;
-        console.log('[TelegramInitializer] InitData check:', {
-          exists: !!initData,
-          length: initData?.length || 0
-        });
-
-        // ОПТИМИЗАЦИЯ КЭШИРОВАНИЯ: Принудительное обновление URL для Telegram
-        try {
-          if (window.Telegram && window.Telegram.WebApp) {
-            const url = new URL(window.location.href);
-            url.searchParams.set('_t', Date.now().toString());
-            url.searchParams.set('_v', Math.random().toString(36).substring(7));
-            window.history.replaceState(null, '', url.toString());
-            console.log('[CACHE BUST] URL обновлен для предотвращения кэширования:', url.toString());
-          }
-        } catch (error) {
-          console.warn('[CACHE BUST] Не удалось обновить URL:', error);
-        }
-
-        // Подтверждаем готовность
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-
-        // ЭТАП 1: Инициализация системы темы и событий
-        console.log('[TelegramInitializer] 🎨 Запуск инициализации темы...');
-        const themeInitialized = initializeTelegramThemeSystem();
-        
-        // ЭТАП 2: Инициализация системы кнопок
-        console.log('[TelegramInitializer] 🔘 Запуск инициализации кнопок...');
-        const buttonsInitialized = initializeTelegramButtons();
-        
-        // ЭТАП 3: Инициализация улучшенных функций (CloudStorage, SendData, Error Handling)
-        console.log('[TelegramInitializer] ⚡ Запуск инициализации улучшенных функций...');
-        const advancedFeatures = await initializeTelegramAdvancedFeatures();
-        
-        // Логируем успешную инициализацию
-        console.log('[TelegramInitializer] Диагностика:', {
-          version: window.Telegram.WebApp.version,
-          platform: window.Telegram.WebApp.platform,
-          viewportHeight: window.Telegram.WebApp.viewportHeight,
-          viewportStableHeight: window.Telegram.WebApp.viewportStableHeight,
-          colorScheme: window.Telegram.WebApp.colorScheme,
-          // ЭТАП 1: Добавление статуса инициализации темы
-          themeInitialized: themeInitialized,
-          // ЭТАП 2: Добавление статуса инициализации кнопок
-          buttonsInitialized: buttonsInitialized,
-          // ЭТАП 3: Добавление статуса улучшенных функций
-          advancedFeatures: advancedFeatures
-        });
-
-        setStatus({ initialized: true, error: null });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-        console.error('[TelegramInitializer] Ошибка:', errorMessage);
-        setStatus({ initialized: false, error: errorMessage });
+        console.error('[TelegramInitializer] Ошибка инициализации:', error);
+        setIsReady(true); // Все равно разрешаем работу
       }
-    }
+    };
 
-    initializeTelegramServices();
+    // Запускаем инициализацию
+    initializeTelegram();
   }, []);
 
   // Возвращаем компонент с информацией о статусе

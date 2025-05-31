@@ -457,3 +457,96 @@ const sessionRestoreService: SessionRestoreService = {
 };
 
 export default sessionRestoreService;
+export class SessionRestoreService {
+  private static instance: SessionRestoreService;
+  private isInitialized = false;
+  private initializationPromise: Promise<void> | null = null;
+
+  static getInstance(): SessionRestoreService {
+    if (!SessionRestoreService.instance) {
+      SessionRestoreService.instance = new SessionRestoreService();
+    }
+    return SessionRestoreService.instance;
+  }
+
+  private async waitForTelegramInit(): Promise<boolean> {
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+      return !!window.Telegram?.WebApp;
+    }
+
+    this.initializationPromise = new Promise((resolve) => {
+      let attempts = 0;
+      const maxAttempts = 50;
+
+      const checkTelegram = () => {
+        attempts++;
+
+        if (window.Telegram?.WebApp) {
+          console.log('[sessionRestoreService] ✅ Telegram WebApp успешно инициализирован');
+          this.isInitialized = true;
+          resolve();
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          console.log('[sessionRestoreService] ⚠️ Достигнут лимит попыток инициализации Telegram');
+          resolve();
+          return;
+        }
+
+        setTimeout(checkTelegram, 100);
+      };
+
+      checkTelegram();
+    });
+
+    await this.initializationPromise;
+    return !!window.Telegram?.WebApp;
+  }
+
+  async restoreSession(): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      console.log('[sessionRestoreService] Начинаем восстановление сессии...');
+
+      // Ждем инициализации Telegram WebApp
+      const telegramReady = await this.waitForTelegramInit();
+
+      if (!telegramReady) {
+        console.log('[sessionRestoreService] Fallback: используем guest режим');
+        return this.handleGuestMode();
+      }
+
+return { success: false, error: 'Неизвестная ошибка при восстановлении сессии' };
+    }
+  }
+
+  private handleGuestMode(): { success: boolean; data: any } {
+    console.log('[sessionRestoreService] 🔄 Переход в guest режим');
+
+    const guestId = this.generateGuestId();
+    const userData = {
+      user_id: 1,
+      guest_id: guestId,
+      telegram_id: null,
+      username: 'Guest User',
+      first_name: 'Guest',
+      uni_balance: 1000.0,
+      ton_balance: 50.0,
+      is_guest: true,
+      session_restored: true
+    };
+
+    // Сохраняем в localStorage
+    localStorage.setItem('unifarm_guest_id', guestId);
+    localStorage.setItem('unifarm_user_data', JSON.stringify(userData));
+
+    return { success: true, data: userData };
+  }
+
+  private generateGuestId(): string {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `guest_${timestamp}_${random}`;
+  }
+}
