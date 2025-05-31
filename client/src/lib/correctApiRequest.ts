@@ -72,7 +72,10 @@ export async function correctApiRequest<T = any>(
       // РАЗРАБОТКА: используем локальный сервер для корректной работы миссий
       const DEVELOPMENT_HOST = 'localhost:3000';
       const PRODUCTION_HOST = 'uni-farm-connect-xo-osadchukdmitro2.replit.app';
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('replit');
+      // Принудительно используем localhost для разработки в Replit
+      const isDevelopment = window.location.hostname === 'localhost' || 
+                           window.location.hostname.includes('replit.dev') ||
+                           window.location.hostname.includes('sisko.replit.dev');
       const FORCED_HOST = isDevelopment ? DEVELOPMENT_HOST : PRODUCTION_HOST;
       const protocol = isDevelopment ? 'http:' : 'https:';
 

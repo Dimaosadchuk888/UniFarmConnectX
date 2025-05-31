@@ -884,8 +884,8 @@ async function startServer(): Promise<void> {
       }
     });
     
-    // Приоритетный обработчик для миссий (должен быть зарегистрирован до всех других)
-    app.get('/api/v2/missions/active', (req, res) => {
+    // ПРИОРИТЕТНЫЙ обработчик миссий - регистрируется РАНЬШЕ всех других
+    app.use('/api/v2/missions/active', (req, res) => {
       console.log('[MISSIONS API] 🚀 Запрос активных миссий');
       
       const missions = [
@@ -932,10 +932,13 @@ async function startServer(): Promise<void> {
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
         'Pragma': 'no-cache',
-        'Expires': '0'
+        'Expires': '0',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': '*'
       });
       
-      res.json({
+      res.status(200).json({
         success: true,
         data: missions,
         message: 'Активные миссии получены'
