@@ -80,20 +80,45 @@ export async function correctApiRequest<T = any>(
       // Используем соответствующий хост в зависимости от режима
       console.log(`[correctApiRequest] [${requestId}] 🚀 ${isDevelopment ? 'РЕЖИМ РАЗРАБОТКИ' : 'ПРОДАКШН РЕЖИМ'}: используем ${isDevelopment ? 'development' : 'production'} host: ${FORCED_HOST}`);
 
-      // Получаем userId из localStorage чтобы передать его в запросах
-      const lastSessionStr = localStorage.getItem('unifarm_last_session');
+      // Получаем userId из различных источников
       let userId = null;
-      if (lastSessionStr) {
+      
+      // 1. Сначала пытаемся получить из Telegram
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+        userId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+        console.log(`[correctApiRequest] [${requestId}] Получен Telegram user_id: ${userId}`);
+      }
+      
+      // 2. Если нет Telegram, пытаемся из localStorage
+      if (!userId) {
         try {
-          const lastSession = JSON.parse(lastSessionStr);
-          userId = lastSession.user_id;
+          const lastSessionStr = localStorage.getItem('unifarm_last_session');
+          if (lastSessionStr) {
+            const lastSession = JSON.parse(lastSessionStr);
+            userId = lastSession.user_id || lastSession.telegram_id;
+          }
         } catch (e) {
           console.warn(`[correctApiRequest] [${requestId}] Ошибка при извлечении userId из localStorage:`, e);
         }
       }
+      
+      // 3. Если все еще нет, пытаемся получить из заголовков Telegram
+      if (!userId && typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
+        try {
+          const urlParams = new URLSearchParams(window.Telegram.WebApp.initData);
+          const userParam = urlParams.get('user');
+          if (userParam) {
+            const userData = JSON.parse(userParam);
+            userId = userData.id?.toString();
+            console.log(`[correctApiRequest] [${requestId}] Получен user_id из initData: ${userId}`);
+          }
+        } catch (e) {
+          console.warn(`[correctApiRequest] [${requestId}] Ошибка парсинга initData:`, e);
+        }
+      }
 
       // Добавляем userId ко всем запросам кроме /session и если это не GET с уже имеющимся user_id
-      if (userId && !endpoint.includes('/session') && 
+      if (userId && !endpoint.includes('/session') && !endpoint.includes('/register') &&
           !(method === 'GET' && endpoint.includes('user_id='))) {
         const separator = endpoint.includes('?') ? '&' : '?';
         endpoint = `${endpoint}${separator}user_id=${userId}`;

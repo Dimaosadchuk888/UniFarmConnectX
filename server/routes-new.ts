@@ -58,25 +58,46 @@ export function registerNewRoutes(app: Express): void {
     }
   });
 
-  // API маршруты для миссий - активные
+  // API маршруты для миссий - активные с проверкой выполнения
   app.get('/api/v2/missions/active', async (req, res) => {
     try {
+      const user_id = req.query.user_id || req.headers['x-user-id'] || req.headers['x-telegram-user-id'];
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'user_id required for missions'
+        });
+      }
+      
       const { Pool } = await import('pg');
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: { rejectUnauthorized: false }
       });
       
-      const result = await pool.query('SELECT * FROM missions WHERE is_active = true ORDER BY id');
-      const missions = result.rows.map(mission => ({
+      // Получаем активные миссии
+      const missionsResult = await pool.query('SELECT * FROM missions WHERE is_active = true ORDER BY id');
+      
+      // Получаем выполненные миссии пользователя
+      const completedResult = await pool.query(
+        'SELECT mission_id FROM user_missions WHERE user_id = $1 AND completed = true',
+        [user_id]
+      );
+      
+      const completedMissionIds = new Set(completedResult.rows.map(row => row.mission_id));
+      
+      const missions = missionsResult.rows.map(mission => ({
         id: mission.id,
         type: mission.type,
         title: mission.title,
         description: mission.description,
         reward: `${mission.reward_uni} UNI`,
         reward_uni: mission.reward_uni,
-        is_completed: false,
-        action_url: mission.action_url
+        is_completed: completedMissionIds.has(mission.id),
+        action_url: mission.action_url,
+        progress: completedMissionIds.has(mission.id) ? 1 : 0,
+        maxProgress: 1
       }));
       
       await pool.end();
@@ -176,6 +197,221 @@ export function registerNewRoutes(app: Express): void {
         success: true,
         data: {
           id: user.id,
+
+
+  // API для выполнения миссий
+  app.post('/api/v2/missions/complete', async (req, res) => {
+    try {
+      const { mission_id } = req.body;
+      const user_id = req.body.user_id || req.headers['x-user-id'] || req.headers['x-telegram-user-id'];
+      
+      if (!user_id || !mission_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'user_id and mission_id required'
+        });
+      }
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      // Проверяем, существует ли миссия
+      const missionResult = await pool.query(
+        'SELECT id, reward_uni, title FROM missions WHERE id = $1 AND is_active = true',
+        [mission_id]
+      );
+      
+      if (missionResult.rows.length === 0) {
+        await pool.end();
+        return res.status(404).json({
+          success: false,
+          error: 'Mission not found or inactive'
+        });
+      }
+      
+      const mission = missionResult.rows[0];
+      
+      // Проверяем, не выполнена ли уже миссия
+      const completedResult = await pool.query(
+        'SELECT id FROM user_missions WHERE user_id = $1 AND mission_id = $2',
+        [user_id, mission_id]
+      );
+      
+      if (completedResult.rows.length > 0) {
+        await pool.end();
+        return res.status(400).json({
+          success: false,
+          error: 'Mission already completed'
+        });
+      }
+      
+      // Начинаем транзакцию
+      await pool.query('BEGIN');
+      
+      try {
+        // Отмечаем миссию как выполненную
+        await pool.query(`
+          INSERT INTO user_missions (user_id, mission_id, completed, completed_at)
+          VALUES ($1, $2, true, NOW())
+        `, [user_id, mission_id]);
+        
+        // Начисляем награду
+        await pool.query(`
+          UPDATE users 
+          SET uni_balance = uni_balance + $1
+          WHERE id = $2
+        `, [mission.reward_uni, user_id]);
+        
+        // Логируем транзакцию
+        await pool.query(`
+          INSERT INTO transactions (user_id, type, amount, currency, description, created_at)
+          VALUES ($1, 'mission_reward', $2, 'UNI', $3, NOW())
+        `, [user_id, mission.reward_uni, `Награда за миссию: ${mission.title}`]);
+        
+        await pool.query('COMMIT');
+        
+        res.json({
+          success: true,
+          data: {
+            mission_id: mission_id,
+            reward: mission.reward_uni,
+            message: 'Mission completed successfully'
+          }
+        });
+      } catch (error) {
+        await pool.query('ROLLBACK');
+        throw error;
+      } finally {
+        await pool.end();
+      }
+    } catch (error) {
+      console.error('Ошибка выполнения миссии:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Mission completion error',
+        message: error.message
+      });
+    }
+  });
+
+  // API для получения ежедневного бонуса
+  app.post('/api/v2/daily-bonus/claim', async (req, res) => {
+    try {
+      const user_id = req.body.user_id || req.headers['x-user-id'] || req.headers['x-telegram-user-id'];
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'user_id required'
+        });
+      }
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      const result = await pool.query(`
+        SELECT 
+          checkin_streak,
+          checkin_last_date,
+          uni_balance
+        FROM users 
+        WHERE id = $1
+      `, [user_id]);
+      
+      if (result.rows.length === 0) {
+        await pool.end();
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
+      const user = result.rows[0];
+      const now = new Date();
+      const lastClaimDate = user.checkin_last_date ? new Date(user.checkin_last_date) : null;
+      const currentStreak = parseInt(user.checkin_streak) || 0;
+      
+      // Проверяем, можно ли получить бонус
+      if (lastClaimDate) {
+        const timeDiff = now.getTime() - lastClaimDate.getTime();
+        const hoursDiff = timeDiff / (1000 * 60 * 60);
+        
+        if (hoursDiff < 24) {
+          await pool.end();
+          return res.status(400).json({
+            success: false,
+            error: 'Daily bonus already claimed today',
+            next_claim_in: Math.ceil(24 - hoursDiff)
+          });
+        }
+      }
+      
+      // Вычисляем новый стрик
+      let newStreak = 1;
+      if (lastClaimDate) {
+        const daysDiff = Math.floor((now.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysDiff === 1) {
+          newStreak = currentStreak + 1;
+        }
+      }
+      
+      // Вычисляем бонус
+      const bonusAmount = 100 + (newStreak * 10);
+      
+      // Начинаем транзакцию
+      await pool.query('BEGIN');
+      
+      try {
+        // Обновляем пользователя
+        await pool.query(`
+          UPDATE users 
+          SET 
+            uni_balance = uni_balance + $1,
+            checkin_streak = $2,
+            checkin_last_date = NOW(),
+            last_claim_at = NOW()
+          WHERE id = $3
+        `, [bonusAmount, newStreak, user_id]);
+        
+        // Логируем транзакцию
+        await pool.query(`
+          INSERT INTO transactions (user_id, type, amount, currency, description, created_at)
+          VALUES ($1, 'daily_bonus', $2, 'UNI', $3, NOW())
+        `, [user_id, bonusAmount, `Ежедневный бонус (стрик: ${newStreak} дней)`]);
+        
+        await pool.query('COMMIT');
+        
+        res.json({
+          success: true,
+          data: {
+            bonus_amount: bonusAmount,
+            new_streak: newStreak,
+            new_balance: parseFloat(user.uni_balance) + bonusAmount,
+            message: 'Daily bonus claimed successfully'
+          }
+        });
+      } catch (error) {
+        await pool.query('ROLLBACK');
+        throw error;
+      } finally {
+        await pool.end();
+      }
+    } catch (error) {
+      console.error('Ошибка получения ежедневного бонуса:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Daily bonus claim error',
+        message: error.message
+      });
+    }
+  });
+
           telegram_id: user.telegram_id,
           username: user.username,
           first_name: user.first_name || user.username,
@@ -490,10 +726,17 @@ export function registerNewRoutes(app: Express): void {
     }
   });
   
-  // API для фарминга UNI
+  // API для фарминга UNI - реальные данные из БД
   app.get('/api/v2/uni-farming/status', async (req, res) => {
     try {
-      const user_id = req.query.user_id || '1';
+      const user_id = req.query.user_id || req.headers['x-user-id'] || req.headers['x-telegram-user-id'];
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'user_id required'
+        });
+      }
       
       const { Pool } = await import('pg');
       const pool = new Pool({
@@ -501,31 +744,67 @@ export function registerNewRoutes(app: Express): void {
         ssl: { rejectUnauthorized: false }
       });
       
-      const result = await pool.query('SELECT uni_balance FROM users WHERE id = $1', [user_id]);
+      const result = await pool.query(`
+        SELECT 
+          uni_balance,
+          uni_farming_balance,
+          uni_farming_rate,
+          uni_farming_last_update,
+          uni_farming_activated_at
+        FROM users 
+        WHERE id = $1
+      `, [user_id]);
+      
+      if (result.rows.length === 0) {
+        await pool.end();
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
       const user = result.rows[0];
+      const now = new Date();
+      const lastUpdate = user.uni_farming_last_update ? new Date(user.uni_farming_last_update) : now;
+      const timeDiff = Math.max(0, (now.getTime() - lastUpdate.getTime()) / 1000); // в секундах
+      const farmingRate = parseFloat(user.uni_farming_rate) || 10.0;
+      const accruedAmount = timeDiff * (farmingRate / 3600); // за час
+      
       await pool.end();
       
       res.json({
         success: true,
         data: {
-          farming_rate: 10.0,
-          current_balance: parseFloat(user?.uni_balance) || 1000.0,
-          is_farming: true,
-          last_claim: new Date().toISOString()
+          farming_rate: farmingRate,
+          current_balance: parseFloat(user.uni_balance) || 0,
+          farming_balance: parseFloat(user.uni_farming_balance) || 0,
+          accrued_amount: accruedAmount,
+          is_farming: !!user.uni_farming_activated_at,
+          last_claim: user.uni_farming_last_update || now.toISOString(),
+          activated_at: user.uni_farming_activated_at
         }
       });
     } catch (error) {
+      console.error('Ошибка получения статуса UNI фарминга:', error.message);
       res.status(500).json({
         success: false,
-        error: 'Farming status error'
+        error: 'Farming status error',
+        message: error.message
       });
     }
   });
 
-  // API для фарминга TON
+  // API для фарминга TON - реальные данные из БД
   app.get('/api/v2/ton-farming/info', async (req, res) => {
     try {
-      const user_id = req.query.user_id || '1';
+      const user_id = req.query.user_id || req.headers['x-user-id'] || req.headers['x-telegram-user-id'];
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'user_id required'
+        });
+      }
       
       const { Pool } = await import('pg');
       const pool = new Pool({
@@ -533,46 +812,132 @@ export function registerNewRoutes(app: Express): void {
         ssl: { rejectUnauthorized: false }
       });
       
-      const result = await pool.query('SELECT ton_balance FROM users WHERE id = $1', [user_id]);
+      const result = await pool.query(`
+        SELECT 
+          ton_balance,
+          ton_boost_level,
+          ton_farming_balance,
+          ton_farming_rate,
+          ton_farming_start_timestamp,
+          ton_deposit_amount
+        FROM users 
+        WHERE id = $1
+      `, [user_id]);
+      
+      if (result.rows.length === 0) {
+        await pool.end();
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
       const user = result.rows[0];
+      const boostLevel = parseInt(user.ton_boost_level) || 1;
+      const baseBoostCosts = [0, 0.1, 0.25, 0.5, 1.0, 2.0]; // TON стоимость каждого уровня
+      const nextBoostCost = baseBoostCosts[boostLevel] || 5.0;
+      
       await pool.end();
       
       res.json({
         success: true,
         data: {
-          boost_level: 1,
-          current_balance: parseFloat(user?.ton_balance) || 50.0,
-          next_boost_cost: 0.1,
-          farming_active: true
+          boost_level: boostLevel,
+          current_balance: parseFloat(user.ton_balance) || 0,
+          farming_balance: parseFloat(user.ton_farming_balance) || 0,
+          farming_rate: parseFloat(user.ton_farming_rate) || 0,
+          next_boost_cost: nextBoostCost,
+          farming_active: !!user.ton_farming_start_timestamp,
+          deposit_amount: parseFloat(user.ton_deposit_amount) || 0,
+          max_boost_level: baseBoostCosts.length - 1
         }
       });
     } catch (error) {
+      console.error('Ошибка получения информации TON фарминга:', error.message);
       res.status(500).json({
         success: false,
-        error: 'TON farming error'
+        error: 'TON farming error',
+        message: error.message
       });
     }
   });
 
-  // API для ежедневного бонуса
+  // API для ежедневного бонуса - реальные данные
   app.get('/api/v2/daily-bonus/status', async (req, res) => {
     try {
-      const user_id = req.query.user_id || '1';
+      const user_id = req.query.user_id || req.headers['x-user-id'] || req.headers['x-telegram-user-id'];
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'user_id required'
+        });
+      }
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      const result = await pool.query(`
+        SELECT 
+          checkin_streak,
+          checkin_last_date,
+          last_claim_at
+        FROM users 
+        WHERE id = $1
+      `, [user_id]);
+      
+      if (result.rows.length === 0) {
+        await pool.end();
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
+      const user = result.rows[0];
+      const now = new Date();
+      const lastClaimDate = user.checkin_last_date ? new Date(user.checkin_last_date) : null;
+      const streak = parseInt(user.checkin_streak) || 0;
+      
+      // Проверяем, можно ли получить бонус (раз в день)
+      let canClaim = true;
+      let nextBonusIn = 0;
+      
+      if (lastClaimDate) {
+        const timeDiff = now.getTime() - lastClaimDate.getTime();
+        const hoursDiff = timeDiff / (1000 * 60 * 60);
+        
+        if (hoursDiff < 24) {
+          canClaim = false;
+          nextBonusIn = Math.ceil(24 - hoursDiff);
+        }
+      }
+      
+      // Бонус зависит от стрика: базовый 100 + 10 за каждый день стрика
+      const bonusAmount = 100 + (streak * 10);
+      
+      await pool.end();
       
       res.json({
         success: true,
         data: {
-          available: true,
-          bonus_amount: 100,
-          next_bonus_in: 0,
-          streak_days: 1,
-          can_claim: true
+          available: canClaim,
+          bonus_amount: bonusAmount,
+          next_bonus_in: nextBonusIn,
+          streak_days: streak,
+          can_claim: canClaim,
+          last_claim: lastClaimDate?.toISOString() || null
         }
       });
     } catch (error) {
+      console.error('Ошибка получения статуса ежедневного бонуса:', error.message);
       res.status(500).json({
         success: false,
-        error: 'Daily bonus error'
+        error: 'Daily bonus error',
+        message: error.message
       });
     }
   });
