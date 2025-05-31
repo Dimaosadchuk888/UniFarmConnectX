@@ -4,6 +4,7 @@
  */
 
 import express, { Express } from "express";
+import { MissionControllerFixed } from './controllers/missionControllerFixed';
 
 /**
  * Регистрирует основные маршруты API
@@ -31,14 +32,20 @@ export function registerNewRoutes(app: Express): void {
     });
   });
 
+  // API маршруты для миссий
+  app.get('/api/missions', MissionControllerFixed.getActiveMissions);
+  app.get('/api/v2/missions/active', MissionControllerFixed.getActiveMissions);
+  
   // Отладочный маршрут для проверки регистрации
   app.get('/api/debug/routes-status', (req, res) => {
     res.json({
       routes_registered: true,
+      missions_enabled: true,
       timestamp: new Date().toISOString(),
       message: 'Новые маршруты успешно зарегистрированы после восстановления'
     });
   });
 
   console.log('[NewRoutes] ✅ Восстановленные маршруты успешно зарегистрированы');
+  console.log('[NewRoutes] ✅ Маршруты миссий добавлены: /api/missions, /api/v2/missions/active');
 }
