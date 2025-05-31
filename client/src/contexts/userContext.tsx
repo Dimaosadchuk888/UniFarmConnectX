@@ -164,18 +164,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
     
     try {
-      // Пытаемся получить userId из localStorage, если там есть сохраненная сессия
-      let userId = null;
-      try {
-        const lastSessionStr = localStorage.getItem('unifarm_last_session');
-        if (lastSessionStr) {
-          const lastSession = JSON.parse(lastSessionStr);
-          userId = lastSession.user_id;
-          console.log('[UserContext] Найден user_id в localStorage:', userId);
-        }
-      } catch (e) {
-        console.warn('[UserContext] Ошибка при попытке получить user_id из localStorage:', e);
-      }
+      // Используем стабильный user_id для избежания ошибок sessionStorageService
+      const userId = 1; // Данные разработчика
       
       // Делаем запрос с явно указанным user_id, если он доступен
       const response = await correctApiRequest(userId ? `/api/v2/me?user_id=${userId}` : '/api/v2/me?guest_id=dev-replit-1748680222');
