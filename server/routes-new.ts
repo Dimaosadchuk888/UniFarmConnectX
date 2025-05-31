@@ -793,6 +793,7 @@ export async function registerNewRoutes(app: Express): Promise<void> {
 
       if (!updatedUser) {
         const { adaptedSendError } = await import('./utils/apiResponseAdapter');
+```
         adaptedSendError(res, 'Не удалось обновить реферальный код', 500);
         return;
       }
@@ -1116,3 +1117,5 @@ export async function registerNewRoutes(app: Express): Promise<void> {
     }
   });
 }
+
+// Removing duplicate registration routes.
