@@ -95,6 +95,16 @@ export async function registerNewRoutes(app: Express): Promise<void> {
     try {
       logger.info('[NewRoutes] 🚀 Запрос миссий через /api/missions');
 
+      // Проверяем, что контроллер загружен
+      if (!MissionControllerFixed || typeof MissionControllerFixed.getActiveMissions !== 'function') {
+        logger.error('[NewRoutes] ❌ MissionControllerFixed не загружен или метод недоступен');
+        return res.status(500).json({
+          success: false,
+          error: 'Mission controller not available',
+          debug: 'MissionControllerFixed not loaded'
+        });
+      }
+
       // Используем фиксированный контроллер миссий
       return await MissionControllerFixed.getActiveMissions(req, res);
 
@@ -152,6 +162,46 @@ export async function registerNewRoutes(app: Express): Promise<void> {
       });
     }));
   }
+
+  // ОТЛАДОЧНЫЙ МАРШРУТ: проверка регистрации новых маршрутов
+  app.get('/api/debug/routes-status', safeHandler(async (req, res) => {
+    try {
+      const routesStatus = {
+        timestamp: new Date().toISOString(),
+        routes: {
+          missions: {
+            controller: !!MissionControllerFixed,
+            method: typeof MissionControllerFixed?.getActiveMissions,
+            registered: true
+          },
+          quickDbTest: {
+            available: true,
+            registered: true
+          },
+          health: {
+            registered: true
+          }
+        },
+        imports: {
+          MissionControllerFixed: !!MissionControllerFixed,
+          logger: !!logger
+        }
+      };
+
+      res.json({
+        success: true,
+        data: routesStatus,
+        message: 'Routes debug information'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }));
+  logger.info('[NewRoutes] ✅ Отладочный маршрут добавлен: GET /api/debug/routes-status');
 
   // Регистрируем администативные маршруты
   app.use('/api/admin', adminRouter);
