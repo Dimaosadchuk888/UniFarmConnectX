@@ -73,8 +73,17 @@ export function registerNewRoutes(app: Express): void {
   // API для получения данных пользователя
   app.get('/api/v2/me', async (req, res) => {
     try {
-      const guest_id = req.query.guest_id || req.headers['x-guest-id'];
       const telegram_id = req.headers['x-telegram-user-id'] || req.query.telegram_id;
+      const guest_id = req.query.guest_id || req.headers['x-guest-id'];
+      
+      console.log('[GetMe] Запрос данных пользователя:', { telegram_id, guest_id });
+      
+      if (!telegram_id && !guest_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Требуется telegram_id или guest_id для идентификации пользователя'
+        });
+      }
       
       const { Pool } = await import('pg');
       const pool = new Pool({
@@ -83,30 +92,41 @@ export function registerNewRoutes(app: Express): void {
       });
       
       let query, params;
+      
+      // Приоритет telegram_id над guest_id
       if (telegram_id) {
-        query = 'SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, ref_code FROM users WHERE telegram_id = $1 LIMIT 1';
+        query = `
+          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
+                 ref_code, ref_by, created_at, first_name 
+          FROM users WHERE telegram_id = $1 LIMIT 1
+        `;
         params = [telegram_id];
-      } else if (guest_id) {
-        query = 'SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, ref_code FROM users WHERE guest_id = $1 LIMIT 1';
-        params = [guest_id];
+        console.log('[GetMe] Поиск по telegram_id:', telegram_id);
       } else {
-        return res.status(400).json({
-          success: false,
-          error: 'telegram_id or guest_id required'
-        });
+        query = `
+          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
+                 ref_code, ref_by, created_at, first_name 
+          FROM users WHERE guest_id = $1 LIMIT 1
+        `;
+        params = [guest_id];
+        console.log('[GetMe] Поиск по guest_id:', guest_id);
       }
       
       const result = await pool.query(query, params);
       
       if (result.rows.length === 0) {
+        await pool.end();
+        console.log('[GetMe] Пользователь не найден');
         return res.status(404).json({
           success: false,
-          error: 'User not found'
+          error: 'Пользователь не найден. Необходима регистрация через Telegram.'
         });
       }
       
       const user = result.rows[0];
       await pool.end();
+      
+      console.log('[GetMe] Пользователь найден:', user.id);
       
       res.json({
         success: true,
@@ -114,19 +134,23 @@ export function registerNewRoutes(app: Express): void {
           id: user.id,
           telegram_id: user.telegram_id,
           username: user.username,
+          first_name: user.first_name,
           guest_id: user.guest_id,
           ref_code: user.ref_code,
+          ref_by: user.ref_by,
           uni_balance: parseFloat(user.uni_balance) || 0,
           ton_balance: parseFloat(user.ton_balance) || 0,
           balance_uni: parseFloat(user.uni_balance) || 0,
-          balance_ton: parseFloat(user.ton_balance) || 0
+          balance_ton: parseFloat(user.ton_balance) || 0,
+          created_at: user.created_at,
+          is_telegram_user: !!user.telegram_id
         }
       });
     } catch (error) {
-      console.error('Ошибка получения пользователя:', error.message);
+      console.error('[GetMe] Ошибка получения пользователя:', error.message);
       res.status(500).json({
         success: false,
-        error: 'Database error'
+        error: 'Ошибка базы данных при получении данных пользователя'
       });
     }
   });
@@ -134,12 +158,15 @@ export function registerNewRoutes(app: Express): void {
   // API для регистрации через Telegram
   app.post('/api/v2/register/telegram', async (req, res) => {
     try {
-      const { telegram_id, username, first_name, ref_code } = req.body;
+      const { telegram_id, username, first_name, ref_code, initData } = req.body;
       
+      console.log('[TelegramReg] Получены данные:', { telegram_id, username, first_name, ref_code, initData });
+      
+      // Проверяем обязательные поля
       if (!telegram_id) {
         return res.status(400).json({
           success: false,
-          error: 'telegram_id required'
+          error: 'telegram_id обязателен для регистрации'
         });
       }
       
@@ -150,39 +177,80 @@ export function registerNewRoutes(app: Express): void {
       });
       
       // Проверяем, существует ли пользователь
-      const existingUser = await pool.query('SELECT id FROM users WHERE telegram_id = $1', [telegram_id]);
+      const existingUserQuery = 'SELECT id, ref_code, uni_balance, ton_balance FROM users WHERE telegram_id = $1';
+      const existingUser = await pool.query(existingUserQuery, [telegram_id]);
       
       if (existingUser.rows.length > 0) {
+        const user = existingUser.rows[0];
         await pool.end();
+        
+        console.log('[TelegramReg] Пользователь уже существует:', user.id);
         return res.json({
           success: true,
-          data: { user_id: existingUser.rows[0].id, message: 'User already exists' }
+          data: { 
+            user_id: user.id, 
+            ref_code: user.ref_code,
+            uni_balance: parseFloat(user.uni_balance) || 0,
+            ton_balance: parseFloat(user.ton_balance) || 0,
+            message: 'Пользователь уже зарегистрирован' 
+          }
         });
       }
       
       // Создаем нового пользователя
       const newRefCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const currentTime = new Date().toISOString();
       
-      const insertResult = await pool.query(
-        'INSERT INTO users (telegram_id, username, first_name, ref_code, ref_by, uni_balance, ton_balance) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-        [telegram_id, username, first_name, newRefCode, ref_code || null, 1000, 50]
-      );
+      // Проверяем, существует ли реферер (если передан ref_code)
+      let referrerExists = false;
+      if (ref_code) {
+        const referrerCheck = await pool.query('SELECT id FROM users WHERE ref_code = $1', [ref_code]);
+        referrerExists = referrerCheck.rows.length > 0;
+        console.log('[TelegramReg] Реферер найден:', referrerExists);
+      }
+      
+      const insertQuery = `
+        INSERT INTO users (
+          telegram_id, username, first_name, ref_code, ref_by, 
+          uni_balance, ton_balance, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+        RETURNING id, ref_code
+      `;
+      
+      const insertResult = await pool.query(insertQuery, [
+        telegram_id, 
+        username || '', 
+        first_name || '', 
+        newRefCode, 
+        referrerExists ? ref_code : null, 
+        1000.0,  // Начальный баланс UNI
+        50.0,    // Начальный баланс TON
+        currentTime,
+        currentTime
+      ]);
+      
+      const newUser = insertResult.rows[0];
       
       await pool.end();
+      
+      console.log('[TelegramReg] Новый пользователь создан:', newUser.id);
       
       res.json({
         success: true,
         data: {
-          user_id: insertResult.rows[0].id,
-          ref_code: newRefCode,
-          message: 'User created successfully'
+          user_id: newUser.id,
+          ref_code: newUser.ref_code,
+          uni_balance: 1000.0,
+          ton_balance: 50.0,
+          referred_by: referrerExists ? ref_code : null,
+          message: 'Пользователь успешно зарегистрирован через Telegram'
         }
       });
     } catch (error) {
-      console.error('Ошибка регистрации пользователя:', error.message);
+      console.error('[TelegramReg] Ошибка регистрации:', error.message);
       res.status(500).json({
         success: false,
-        error: 'Registration error'
+        error: 'Ошибка при регистрации пользователя'
       });
     }
   });
@@ -533,38 +601,78 @@ export function registerNewRoutes(app: Express): void {
   // API для восстановления сессии
   app.post('/api/v2/session/restore', async (req, res) => {
     try {
+      const { telegram_id, guest_id, initData } = req.body;
+      
+      console.log('[SessionRestore] Запрос восстановления сессии:', { telegram_id, guest_id, initData });
+      
+      if (!telegram_id && !guest_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Требуется telegram_id или guest_id для восстановления сессии'
+        });
+      }
+      
       const { Pool } = await import('pg');
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: { rejectUnauthorized: false }
       });
       
-      const result = await pool.query('SELECT * FROM users WHERE id = 1 LIMIT 1');
-      const user = result.rows[0];
+      let query, params;
+      
+      // Приоритет telegram_id
+      if (telegram_id) {
+        query = `
+          SELECT id, telegram_id, username, first_name, uni_balance, ton_balance, 
+                 guest_id, ref_code, ref_by, created_at 
+          FROM users WHERE telegram_id = $1 LIMIT 1
+        `;
+        params = [telegram_id];
+      } else {
+        query = `
+          SELECT id, telegram_id, username, first_name, uni_balance, ton_balance, 
+                 guest_id, ref_code, ref_by, created_at 
+          FROM users WHERE guest_id = $1 LIMIT 1
+        `;
+        params = [guest_id];
+      }
+      
+      const result = await pool.query(query, params);
       await pool.end();
       
-      if (!user) {
+      if (result.rows.length === 0) {
+        console.log('[SessionRestore] Пользователь не найден, требуется регистрация');
         return res.status(404).json({
           success: false,
-          error: 'User not found'
+          error: 'Пользователь не найден. Требуется регистрация.',
+          need_registration: true
         });
       }
+      
+      const user = result.rows[0];
+      console.log('[SessionRestore] Сессия восстановлена для пользователя:', user.id);
       
       res.json({
         success: true,
         data: {
           user_id: user.id,
+          telegram_id: user.telegram_id,
           username: user.username,
-          uni_balance: parseFloat(user.uni_balance) || 1000.0,
-          ton_balance: parseFloat(user.ton_balance) || 50.0,
+          first_name: user.first_name,
+          uni_balance: parseFloat(user.uni_balance) || 0,
+          ton_balance: parseFloat(user.ton_balance) || 0,
           guest_id: user.guest_id,
-          ref_code: user.ref_code
+          ref_code: user.ref_code,
+          ref_by: user.ref_by,
+          session_restored: true,
+          is_telegram_user: !!user.telegram_id
         }
       });
     } catch (error) {
+      console.error('[SessionRestore] Ошибка восстановления сессии:', error.message);
       res.status(500).json({
         success: false,
-        error: 'Session restore error'
+        error: 'Ошибка при восстановлении сессии'
       });
     }
   });
