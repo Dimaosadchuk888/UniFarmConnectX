@@ -5,8 +5,8 @@ const router = Router();
 const userController = new UserController();
 
 // Пользовательские маршруты
-router.get('/me', userController.getCurrentUser);
+router.get('/profile', userController.getCurrentUser);
 router.put('/:id', userController.updateUser);
-router.post('/generate-ref-code', userController.generateRefCode);
+router.post('/ref-code', userController.generateRefCode);
 
 export default router;
