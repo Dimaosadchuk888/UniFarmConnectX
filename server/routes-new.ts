@@ -74,6 +74,7 @@ export function registerNewRoutes(app: Express): void {
   app.get('/api/v2/me', async (req, res) => {
     try {
       const guest_id = req.query.guest_id || req.headers['x-guest-id'];
+      const telegram_id = req.headers['x-telegram-user-id'] || req.query.telegram_id;
       
       const { Pool } = await import('pg');
       const pool = new Pool({
@@ -81,7 +82,21 @@ export function registerNewRoutes(app: Express): void {
         ssl: { rejectUnauthorized: false }
       });
       
-      const result = await pool.query('SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, ref_code FROM users WHERE guest_id = $1 OR telegram_id = $2 LIMIT 1', [guest_id, '1234567890']);
+      let query, params;
+      if (telegram_id) {
+        query = 'SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, ref_code FROM users WHERE telegram_id = $1 LIMIT 1';
+        params = [telegram_id];
+      } else if (guest_id) {
+        query = 'SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, ref_code FROM users WHERE guest_id = $1 LIMIT 1';
+        params = [guest_id];
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'telegram_id or guest_id required'
+        });
+      }
+      
+      const result = await pool.query(query, params);
       
       if (result.rows.length === 0) {
         return res.status(404).json({
@@ -101,14 +116,117 @@ export function registerNewRoutes(app: Express): void {
           username: user.username,
           guest_id: user.guest_id,
           ref_code: user.ref_code,
-          uni_balance: user.uni_balance,
-          ton_balance: user.ton_balance,
-          balance_uni: user.uni_balance,
-          balance_ton: user.ton_balance
+          uni_balance: parseFloat(user.uni_balance) || 0,
+          ton_balance: parseFloat(user.ton_balance) || 0,
+          balance_uni: parseFloat(user.uni_balance) || 0,
+          balance_ton: parseFloat(user.ton_balance) || 0
         }
       });
     } catch (error) {
       console.error('Ошибка получения пользователя:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Database error'
+      });
+    }
+  });
+
+  // API для регистрации через Telegram
+  app.post('/api/v2/register/telegram', async (req, res) => {
+    try {
+      const { telegram_id, username, first_name, ref_code } = req.body;
+      
+      if (!telegram_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'telegram_id required'
+        });
+      }
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      // Проверяем, существует ли пользователь
+      const existingUser = await pool.query('SELECT id FROM users WHERE telegram_id = $1', [telegram_id]);
+      
+      if (existingUser.rows.length > 0) {
+        await pool.end();
+        return res.json({
+          success: true,
+          data: { user_id: existingUser.rows[0].id, message: 'User already exists' }
+        });
+      }
+      
+      // Создаем нового пользователя
+      const newRefCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      const insertResult = await pool.query(
+        'INSERT INTO users (telegram_id, username, first_name, ref_code, ref_by, uni_balance, ton_balance) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        [telegram_id, username, first_name, newRefCode, ref_code || null, 1000, 50]
+      );
+      
+      await pool.end();
+      
+      res.json({
+        success: true,
+        data: {
+          user_id: insertResult.rows[0].id,
+          ref_code: newRefCode,
+          message: 'User created successfully'
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка регистрации пользователя:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Registration error'
+      });
+    }
+  });
+
+  // API для информации о пользователе
+  app.get('/api/v2/user/info', async (req, res) => {
+    try {
+      const user_id = req.query.user_id || req.headers['x-user-id'];
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'user_id required'
+        });
+      }
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      const result = await pool.query(
+        'SELECT id, username, telegram_id, ref_code, ref_by, uni_balance, ton_balance, created_at FROM users WHERE id = $1',
+        [user_id]
+      );
+      
+      if (result.rows.length === 0) {
+        await pool.end();
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
+      const user = result.rows[0];
+      await pool.end();
+      
+      res.json({
+        success: true,
+        data: user
+      });
+    } catch (error) {
+      console.error('Ошибка получения информации о пользователе:', error.message);
       res.status(500).json({
         success: false,
         error: 'Database error'
@@ -298,6 +416,116 @@ export function registerNewRoutes(app: Express): void {
       res.status(500).json({
         success: false,
         error: 'Daily bonus error'
+      });
+    }
+  });
+
+  // API для реферальной информации
+  app.get('/api/v2/referral/info', async (req, res) => {
+    try {
+      const user_id = req.query.user_id || req.headers['x-user-id'];
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'user_id required'
+        });
+      }
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      // Получаем реферальный код пользователя
+      const userResult = await pool.query('SELECT ref_code FROM users WHERE id = $1', [user_id]);
+      
+      if (userResult.rows.length === 0) {
+        await pool.end();
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
+      const refCode = userResult.rows[0].ref_code;
+      
+      // Считаем рефералов
+      const referralsResult = await pool.query(
+        'SELECT COUNT(*) as total_referrals, SUM(uni_balance) as total_earnings FROM users WHERE ref_by = $1',
+        [refCode]
+      );
+      
+      await pool.end();
+      
+      const referralData = referralsResult.rows[0];
+      
+      res.json({
+        success: true,
+        data: {
+          ref_code: refCode,
+          total_referrals: parseInt(referralData.total_referrals) || 0,
+          total_earnings: parseFloat(referralData.total_earnings) || 0,
+          referral_link: `https://t.me/your_bot?start=${refCode}`
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка получения реферальной информации:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Referral info error'
+      });
+    }
+  });
+
+  // API для баланса кошелька
+  app.get('/api/v2/wallet/balance', async (req, res) => {
+    try {
+      const user_id = req.query.user_id || req.headers['x-user-id'];
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'user_id required'
+        });
+      }
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      const result = await pool.query(
+        'SELECT uni_balance, ton_balance FROM users WHERE id = $1',
+        [user_id]
+      );
+      
+      if (result.rows.length === 0) {
+        await pool.end();
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
+      const balance = result.rows[0];
+      await pool.end();
+      
+      res.json({
+        success: true,
+        data: {
+          uni_balance: parseFloat(balance.uni_balance) || 0,
+          ton_balance: parseFloat(balance.ton_balance) || 0,
+          total_usd_value: (parseFloat(balance.uni_balance) || 0) * 0.01 + (parseFloat(balance.ton_balance) || 0) * 5.5
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка получения баланса:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Balance error'
       });
     }
   });
