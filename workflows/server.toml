@@ -1,3 +1,0 @@
-[command]
-name = "Start UniFarm Server"
-shell = "node start.cjs"

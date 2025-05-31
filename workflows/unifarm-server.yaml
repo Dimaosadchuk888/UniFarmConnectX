@@ -1,6 +1,0 @@
-name: UniFarm Server
-on: manual
-steps:
-  - name: Start UniFarm
-    run: tsx server/index.ts
-    background: true

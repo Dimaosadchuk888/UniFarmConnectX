@@ -1,6 +1,0 @@
-[workflow]
-name = "dev"
-
-[[workflow.steps]]
-name = "start"
-run = "tsx server/index.ts"
