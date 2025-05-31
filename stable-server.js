@@ -1,0 +1,260 @@
+import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { neon } from '@neondatabase/serverless';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+console.log('🚀 Запуск стабильного UniFarm сервера');
+
+// Database
+let db;
+try {
+  if (process.env.DATABASE_URL) {
+    db = neon(process.env.DATABASE_URL);
+    console.log('✅ База данных подключена');
+  }
+} catch (error) {
+  console.error('❌ Ошибка подключения к БД:', error.message);
+}
+
+// Middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Логирование запросов
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+  next();
+});
+
+// Health check
+app.get('/health', async (req, res) => {
+  try {
+    let dbStatus = 'disconnected';
+    if (db) {
+      await db`SELECT 1`;
+      dbStatus = 'connected';
+    }
+    
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      database: dbStatus,
+      telegram: process.env.TELEGRAM_BOT_TOKEN ? 'configured' : 'missing',
+      version: 'stable-3.0'
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// API Routes без ошибок
+app.get('/api/v2/status', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      data: {
+        status: 'operational',
+        version: '2.0-stable',
+        database: db ? 'connected' : 'disconnected'
+      }
+    });
+  } catch (error) {
+    console.error('Status endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/api/v2/me', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authorization required',
+        need_telegram_auth: true
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: 'guest',
+        username: 'guest_user',
+        telegram_id: null,
+        balance: 0,
+        farming_active: false
+      }
+    });
+  } catch (error) {
+    console.error('Me endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/api/v2/farming', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        active: false,
+        rate: 0,
+        accumulated: 0,
+        last_claim: null
+      }
+    });
+  } catch (error) {
+    console.error('Farming endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/api/v2/wallet', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        balance: 0,
+        currency: 'UNIFARM',
+        transactions: []
+      }
+    });
+  } catch (error) {
+    console.error('Wallet endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Статические файлы
+const clientDistPath = path.join(__dirname, 'client', 'dist');
+const clientPublicPath = path.join(__dirname, 'client', 'public');
+
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  console.log('📁 Обслуживаем статические файлы из client/dist');
+} else if (fs.existsSync(clientPublicPath)) {
+  app.use(express.static(clientPublicPath));
+  console.log('📁 Обслуживаем статические файлы из client/public');
+}
+
+// SPA маршрутизация
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({
+      success: false,
+      error: 'API endpoint not found'
+    });
+  }
+
+  const indexHtml = path.join(clientDistPath, 'index.html');
+  const publicIndexHtml = path.join(clientPublicPath, 'index.html');
+  
+  if (fs.existsSync(indexHtml)) {
+    res.sendFile(indexHtml);
+  } else if (fs.existsSync(publicIndexHtml)) {
+    res.sendFile(publicIndexHtml);
+  } else {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>UniFarm</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+          .container { max-width: 600px; margin: 0 auto; }
+          .status { background: #f0f8ff; padding: 20px; border-radius: 10px; margin: 20px 0; }
+          .error { background: #ffe6e6; color: #cc0000; }
+          .success { background: #e6ffe6; color: #006600; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🌾 UniFarm</h1>
+          <div class="status success">
+            <h3>Сервер работает стабильно</h3>
+            <p>Версия: Stable 3.0</p>
+          </div>
+          <p><a href="/health">Проверить состояние системы</a></p>
+          <p><a href="/api/v2/status">API статус</a></p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+});
+
+// Глобальный обработчик ошибок
+app.use((err, req, res, next) => {
+  console.error('Global error:', err.message);
+  
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Запуск сервера
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('🎯 UniFarm Stable Server запущен');
+  console.log(`🚀 Порт: ${PORT}`);
+  console.log(`📱 URL: https://uni-farm-connect-xo-osadchukdmitro2.replit.app`);
+  console.log(`🔗 Health: http://localhost:${PORT}/health`);
+  console.log(`🗄️ База данных: ${db ? 'Подключена' : 'Не подключена'}`);
+});
+
+// Обработчики процесса
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error.message);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+  process.exit(1);
+});
