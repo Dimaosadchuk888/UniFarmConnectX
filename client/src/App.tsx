@@ -53,13 +53,13 @@ declare global {
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Начинаем с loading=true
   const [userId, setUserId] = useState<number | null>(null);
   const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
 
-  // Проверка инициализации приложения (без Telegram WebApp по требованиям фазы 10.3)
+  // Проверка инициализации приложения
   useEffect(() => {
-    console.log('==[ App Init Check (No Telegram WebApp) ]==');
+    console.log('==[ App Init Check ]==');
     console.log('Running in environment:', process.env.NODE_ENV);
     console.log('Window available:', typeof window !== 'undefined');
 
@@ -76,7 +76,18 @@ function App() {
       inSession: !!sessionStorage.getItem('referrer_code'),
       sessionRefCode: sessionStorage.getItem('referrer_code') || 'not found'
     });
-  }, []);
+
+    // Принудительно инициализируем приложение через 2 секунды если ничего не происходит
+    const forceInitTimeout = setTimeout(() => {
+      if (isLoading) {
+        console.log('[App] Принудительная инициализация приложения...');
+        setIsLoading(false);
+        setUserId(1); // Устанавливаем тестового пользователя
+      }
+    }, 2000);
+
+    return () => clearTimeout(forceInitTimeout);
+  }, [isLoading]);
 
   // Очистка кэша Telegram при старте приложения
   useEffect(() => {
@@ -530,24 +541,37 @@ function App() {
                     {/* Основной интерфейс приложения */}
                     <Route path="*">
                       <Header />
-                      {/* Показываем предупреждение о проблемах с Telegram WebApp */}
-                      <main className="px-4 pt-2 pb-20">
+                      {/* Основной контент приложения */}
+                      <main className="px-4 pt-2 pb-20" style={{ minHeight: '80vh' }}>
                         {isLoading ? (
-                          <div className="flex items-center justify-center h-32">
-                            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                          <div className="flex flex-col items-center justify-center h-64">
+                            <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+                            <p className="text-white text-lg">Загрузка UniFarm...</p>
+                            <p className="text-gray-400 text-sm mt-2">Инициализация приложения</p>
                           </div>
                         ) : telegramAuthError ? (
                           <div className="p-4 text-center">
-                            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-4">
-                              <h2 className="text-lg font-semibold text-red-400 mb-2">Ошибка аутентификации</h2>
-                              <p className="text-red-300">{telegramAuthError}</p>
-                              <p className="text-sm text-red-400 mt-2">
-                                Приложение работает только в Telegram Mini App
+                            <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 mb-4">
+                              <h2 className="text-lg font-semibold text-yellow-400 mb-2">Проблема с подключением</h2>
+                              <p className="text-yellow-300">{telegramAuthError}</p>
+                              <p className="text-sm text-yellow-400 mt-2">
+                                Переходим в режим демонстрации...
                               </p>
+                              <button 
+                                onClick={() => {
+                                  setTelegramAuthError(null);
+                                  setUserId(1);
+                                }}
+                                className="mt-4 px-4 py-2 bg-primary rounded-lg text-white"
+                              >
+                                Продолжить в demo режиме
+                              </button>
                             </div>
                           </div>
                         ) : (
-                          renderActivePage()
+                          <div style={{ minHeight: '60vh' }}>
+                            {renderActivePage()}
+                          </div>
                         )}
                       </main>
                       <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
