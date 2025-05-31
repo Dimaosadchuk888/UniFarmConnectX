@@ -6,11 +6,7 @@ const port = process.env.PORT || 3000;
 
 async function startServer() {
   try {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa'
-    });
-
+    // Настройка API endpoints
     app.use(express.json());
     
     app.get('/api/v2/status', (req, res) => {
@@ -39,11 +35,21 @@ async function startServer() {
       });
     });
 
+    // Настройка Vite для frontend
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+      root: './client',
+      configFile: './client/vite.config.ts'
+    });
+
     app.use(vite.ssrFixStacktrace);
     app.use(vite.middlewares);
 
     app.listen(port, '0.0.0.0', () => {
-      console.log(`Сервер запущен на порту ${port}`);
+      console.log(`✓ Unified сервер запущен на порту ${port}`);
+      console.log(`✓ API доступно на http://localhost:${port}/api/v2/`);
+      console.log(`✓ Frontend доступен на http://localhost:${port}/`);
     });
 
   } catch (error) {
