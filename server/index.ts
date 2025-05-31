@@ -72,7 +72,7 @@ import { databaseErrorHandler } from './middleware/databaseErrorHandler';
 import { healthCheckMiddleware } from './middleware/health-check';
 import { responseFormatter } from "./middleware/responseFormatter";
 import { errorHandler } from "./middleware/errorHandler";
-import { unifiedTelegramMiddleware } from './telegram/unified-middleware';
+import { stableTelegramMiddleware } from './telegram/stable-middleware';
 
 // Импорты для маршрутизации и статических файлов
 import { registerCleanRoutes } from "./routes-clean";
@@ -234,7 +234,7 @@ async function startServer(): Promise<void> {
   }));
 
   // Регистрируем telegram middleware ПЕРВЫМ для обработки initData
-  app.use(unifiedTelegramMiddleware);
+  app.use(stableTelegramMiddleware);
 
   // Регистрируем middleware для проверки подключения к БД
   app.use(databaseErrorHandler as unknown as RequestHandler);
@@ -359,61 +359,22 @@ async function startServer(): Promise<void> {
   // Подключаем роутер с маршрутами здоровья
   app.use('/', healthRouter);
 
-  // Добавление обработчика для Telegram WebApp параметров
-  const telegramWebAppMiddleware: RequestHandler = (req, res, next) => {
-    // Получаем источник запроса
+  // CORS и безопасность для Telegram Mini App
+  const corsMiddleware: RequestHandler = (req, res, next) => {
     const origin = req.headers.origin || '*';
-
-    // Добавляем специальные заголовки для корректной работы в Telegram Mini App с поддержкой cookies
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-telegram-data, x-telegram-user-id, x-telegram-init-data");
-
-    // Модифицированная политика безопасности для Telegram
     res.header("Content-Security-Policy", "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'");
 
-    // Для запросов OPTIONS возвращаем 200 OK
     if (req.method === 'OPTIONS') {
       return res.status(200).send();
     }
-
-    // Обработка Telegram initData
-    const telegramInitData = req.headers['x-telegram-init-data'] as string;
-    if (telegramInitData) {
-      try {
-        // Парсим initData (обычно это URL-encoded строка)
-        const urlParams = new URLSearchParams(telegramInitData);
-        const userParam = urlParams.get('user');
-        
-        if (userParam) {
-          const userData = JSON.parse(userParam);
-          console.log('[TelegramWebApp] Получены данные пользователя из initData:', userData);
-          
-          // Сохраняем обработанные данные в заголовок для дальнейшего использования
-          req.headers['x-telegram-data'] = JSON.stringify({ user: userData });
-        }
-      } catch (error) {
-        console.error('[TelegramWebApp] Ошибка парсинга initData:', error);
-      }
-    }
-
-    // Логирование параметров Telegram
-    const telegramParams = ['tgWebAppData', 'tgWebAppVersion', 'tgWebAppPlatform', 'tgWebAppStartParam']
-      .filter(param => req.query[param])
-      .reduce((acc, param) => {
-        acc[param] = req.query[param];
-        return acc;
-      }, {} as Record<string, any>);
-
-    if (Object.keys(telegramParams).length > 0) {
-      logger.debug('[TelegramWebApp] Параметры в URL:', telegramParams);
-    }
-
     next();
   };
 
-  app.use(telegramWebAppMiddleware);
+  app.use(corsMiddleware);
 
   // Создаем HTTP сервер на основе Express приложения
   const server = http.createServer(app);

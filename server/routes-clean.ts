@@ -22,116 +22,55 @@ export function registerCleanRoutes(app: Express): void {
 
   // Основной эндпоинт для получения данных пользователя
   app.get('/api/v2/me', async (req, res) => {
-    let pool;
     try {
-      // ПРИОРИТЕТ: Telegram данные из middleware > параметры запроса
+      // ПРИОРИТЕТ: Только Telegram данные из middleware
       const telegramUser = req.telegram?.user;
-      const telegram_id = telegramUser?.telegram_id || req.headers['x-telegram-user-id'] || req.query.telegram_id;
-      const user_id = req.query.user_id;
+      const isValidated = req.telegram?.validated;
       
       console.log('[GetMe] Запрос данных пользователя:', { 
-        has_telegram_middleware: !!telegramUser,
-        telegram_id, 
-        user_id,
-        validated: req.telegram?.validated 
+        has_telegram_user: !!telegramUser,
+        validated: isValidated,
+        telegram_id: telegramUser?.telegram_id
       });
       
-      // Если есть Telegram данные из middleware, используем их
-      if (telegramUser) {
-        console.log('[GetMe] Используем данные из Telegram middleware:', telegramUser);
-        return res.json({
-          success: true,
-          data: {
-            id: telegramUser.id,
-            telegram_id: telegramUser.telegram_id,
-            username: telegramUser.username,
-            first_name: telegramUser.username,
-            ref_code: telegramUser.ref_code,
-            ref_by: null,
-            uni_balance: telegramUser.uni_balance || 0,
-            ton_balance: telegramUser.ton_balance || 0,
-            balance_uni: telegramUser.uni_balance || 0,
-            balance_ton: telegramUser.ton_balance || 0,
-            created_at: new Date().toISOString(),
-            is_telegram_user: true
+      // Проверяем наличие Telegram данных из middleware
+      if (!telegramUser || !isValidated) {
+        console.log('[GetMe] Отсутствуют валидные Telegram данные');
+        return res.status(401).json({
+          success: false,
+          error: 'Требуется авторизация через Telegram Mini App',
+          need_telegram_auth: true,
+          debug: {
+            has_telegram: !!req.telegram,
+            has_user: !!telegramUser,
+            validated: isValidated
           }
         });
       }
       
-      if (!user_id && !telegram_id) {
-        return res.status(400).json({
-          success: false,
-          error: 'Требуется Telegram авторизация или user_id для идентификации пользователя',
-          need_telegram_auth: true
-        });
-      }
-      
-      const { Pool } = await import('pg');
-      pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
+      // Возвращаем данные пользователя из middleware
+      console.log('[GetMe] Возвращаем данные пользователя из middleware:', {
+        id: telegramUser.id,
+        telegram_id: telegramUser.telegram_id,
+        ref_code: telegramUser.ref_code
       });
       
-      let query, params;
-      
-      // Приоритет: user_id > telegram_id > guest_id
-      if (user_id) {
-        query = `
-          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
-                 ref_code, created_at 
-          FROM users WHERE id = $1 LIMIT 1
-        `;
-        params = [user_id];
-        console.log('[GetMe] Поиск по user_id:', user_id);
-      } else if (telegram_id) {
-        query = `
-          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
-                 ref_code, created_at 
-          FROM users WHERE telegram_id = $1 LIMIT 1
-        `;
-        params = [telegram_id];
-        console.log('[GetMe] Поиск по telegram_id:', telegram_id);
-      } else {
-        query = `
-          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
-                 ref_code, created_at 
-          FROM users WHERE guest_id = $1 LIMIT 1
-        `;
-        params = [guest_id];
-        console.log('[GetMe] Поиск по guest_id:', guest_id);
-      }
-      
-      console.log('[GetMe] Выполнение запроса:', query, params);
-      const result = await pool.query(query, params);
-      console.log('[GetMe] Результат запроса:', result.rows.length, 'строк');
-      
-      if (result.rows.length === 0) {
-        console.log('[GetMe] Пользователь не найден');
-        return res.status(404).json({
-          success: false,
-          error: 'Пользователь не найден. Необходима регистрация через Telegram.'
-        });
-      }
-      
-      const user = result.rows[0];
-      console.log('[GetMe] Найден пользователь:', JSON.stringify(user, null, 2));
-      
-      res.json({
+      return res.json({
         success: true,
         data: {
-          id: user.id,
-          telegram_id: user.telegram_id,
-          username: user.username,
-          first_name: user.username,
-          guest_id: user.guest_id,
-          ref_code: user.ref_code,
+          id: telegramUser.id,
+          telegram_id: telegramUser.telegram_id,
+          username: telegramUser.username || telegramUser.first_name,
+          first_name: telegramUser.first_name,
+          ref_code: telegramUser.ref_code,
           ref_by: null,
-          uni_balance: parseFloat(user.uni_balance) || 0,
-          ton_balance: parseFloat(user.ton_balance) || 0,
-          balance_uni: parseFloat(user.uni_balance) || 0,
-          balance_ton: parseFloat(user.ton_balance) || 0,
-          created_at: user.created_at,
-          is_telegram_user: !!user.telegram_id
+          uni_balance: telegramUser.uni_balance || 0,
+          ton_balance: telegramUser.ton_balance || 0,
+          balance_uni: telegramUser.uni_balance || 0,
+          balance_ton: telegramUser.ton_balance || 0,
+          created_at: new Date().toISOString(),
+          is_telegram_user: true,
+          auth_method: 'telegram'
         }
       });
       
