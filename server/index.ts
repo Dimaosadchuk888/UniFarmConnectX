@@ -704,15 +704,7 @@ async function startServer(): Promise<void> {
     const { default: telegramRouter } = await import('./telegram/routes');
     app.use('/api/telegram', telegramRouter);
 
-  // Тестові маршрути для прямого підключення до production бази
-  try {
-    const testModule = await import('./api/test-production-db.js');
-    app.get('/api/test/production-db', testModule.getProductionDbStatus);
-    app.post('/api/test/telegram-register', testModule.testTelegramRegistration);
-    app.get('/api/test/user/:user_id', testModule.checkUser);
-  } catch (error) {
-    logger.warn('[Server] Тестовые маршруты production DB недоступны:', error);
-  }
+  // Test routes removed during cleanup
 
   logger.info('[Server] ✅ Telegram маршруты зарегистрированы: /api/telegram/*');
   } catch (error) {
@@ -725,14 +717,7 @@ async function startServer(): Promise<void> {
     await registerNewRoutes(app);
 
     // КРИТИЧНО: Підключаємо простий робочий маршрут для місій
-    const simpleMissionsRouter = await import('./routes/simple-missions.js');
-    app.use('/', simpleMissionsRouter.default);
-    logger.info('[Server] ✅ Простий маршрут місій підключено');
-
-    // КРИТИЧНО: Підключаємо простий робочий маршрут для бустів
-    const simpleBoostsRouter = await import('./routes/simple-boosts.js');
-    app.use('/', simpleBoostsRouter.default);
-    logger.info('[Server] ✅ Простий маршрут бустів підключено');
+    // Simple routes removed during cleanup
 
     // Настраиваем базовый URL для API
     const baseUrl = process.env.NODE_ENV === 'production' 
