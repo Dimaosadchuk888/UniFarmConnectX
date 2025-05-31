@@ -77,14 +77,18 @@ function App() {
       sessionRefCode: sessionStorage.getItem('referrer_code') || 'not found'
     });
 
-    // Принудительно инициализируем приложение через 2 секунды если ничего не происходит
+    // Быстрая инициализация для preview режима
+    const isPreview = window.location.hostname.includes('replit') && window.self !== window.top;
+    const initTimeout = isPreview ? 500 : 2000; // Быстрее для preview
+    
     const forceInitTimeout = setTimeout(() => {
       if (isLoading) {
-        console.log('[App] Принудительная инициализация приложения...');
+        const mode = isPreview ? 'Preview' : 'Standalone';
+        console.log(`[App] ${mode} режим: принудительная инициализация приложения...`);
         setIsLoading(false);
         setUserId(1); // Устанавливаем тестового пользователя
       }
-    }, 2000);
+    }, initTimeout);
 
     return () => clearTimeout(forceInitTimeout);
   }, [isLoading]);

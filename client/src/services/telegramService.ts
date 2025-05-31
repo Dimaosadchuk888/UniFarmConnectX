@@ -310,13 +310,17 @@ class TelegramService {
    * Проверка на реальное окружение (не iframe preview)
    */
   isPreviewMode(): boolean {
+    if (typeof window === 'undefined') return false;
+    
     const envInfo = this.getEnvironmentInfo();
+    const hostname = window.location.hostname;
     
     // Проверяем признаки preview режима
-    const isReplit = window.location.hostname.includes('replit');
-    const isPreview = envInfo.isInIframe && !this.isAvailable();
+    const isReplit = hostname.includes('replit.app') || hostname.includes('replit.dev');
+    const isInIframe = envInfo.isInIframe;
+    const noValidTelegramData = !this.getInitData() || this.getInitData().length === 0;
     
-    return isReplit && isPreview;
+    return isReplit && isInIframe && noValidTelegramData;
   }
 
   /**

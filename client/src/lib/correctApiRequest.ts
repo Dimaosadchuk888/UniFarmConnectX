@@ -82,13 +82,13 @@ export async function correctApiRequest<T = any>(
 
       // Получаем userId из различных источников
       let userId = null;
-      
+
       // 1. Сначала пытаемся получить из Telegram
       if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
         userId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
         console.log(`[correctApiRequest] [${requestId}] Получен Telegram user_id: ${userId}`);
       }
-      
+
       // 2. Если нет Telegram, пытаемся из localStorage
       if (!userId) {
         try {
@@ -101,7 +101,7 @@ export async function correctApiRequest<T = any>(
           console.warn(`[correctApiRequest] [${requestId}] Ошибка при извлечении userId из localStorage:`, e);
         }
       }
-      
+
       // 3. Если все еще нет, пытаемся получить из заголовков Telegram
       if (!userId && typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
         try {

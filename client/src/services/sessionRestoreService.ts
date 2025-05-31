@@ -127,7 +127,44 @@ const sessionRestoreService = {
       // Возвращаем сохраненный guest_id
       return savedGuestId;
     }
-}
+  },
+
+  /**
+   * Проверяет готовность Telegram WebApp
+   */
+  private isTelegramReady(): boolean {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    const tg = window.Telegram?.WebApp;
+    if (!tg) {
+      // Убираем частые логи для preview режима
+      if (!this.isPreviewMode()) {
+        console.log('[sessionRestoreService] Telegram WebApp еще не инициализирован');
+      }
+      return false;
+    }
+
+    // Проверяем наличие initData
+    const hasInitData = tg.initData && tg.initData.length > 0;
+    const hasUser = tg.initDataUnsafe?.user;
+
+    return hasInitData && hasUser;
+  }
+
+  /**
+   * Проверка на preview режим Replit
+   */
+  private isPreviewMode(): boolean {
+    if (typeof window === 'undefined') return false;
+
+    const hostname = window.location.hostname;
+    const isReplit = hostname.includes('replit.app') || hostname.includes('replit.dev');
+    const isInIframe = window.self !== window.top;
+
+    return isReplit && isInIframe && !window.Telegram?.WebApp?.initData;
+  }
 };
 
 export default sessionRestoreService;
