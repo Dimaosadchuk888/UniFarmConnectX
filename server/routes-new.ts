@@ -69,6 +69,86 @@ export function registerNewRoutes(app: Express): void {
       });
     }
   });
+
+  // API для получения данных пользователя
+  app.get('/api/v2/me', async (req, res) => {
+    try {
+      const guest_id = req.query.guest_id || req.headers['x-guest-id'];
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      const result = await pool.query('SELECT * FROM users WHERE guest_id = $1 OR telegram_id = $2 LIMIT 1', [guest_id, '1234567890']);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
+      const user = result.rows[0];
+      await pool.end();
+      
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          telegram_id: user.telegram_id,
+          username: user.username,
+          guest_id: user.guest_id,
+          ref_code: user.ref_code,
+          balance_uni: user.balance_uni,
+          balance_ton: user.balance_ton,
+          uni_farming_rate: user.uni_farming_rate
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка получения пользователя:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Database error'
+      });
+    }
+  });
+
+  app.get('/api/users/guest/:guest_id', async (req, res) => {
+    try {
+      const { guest_id } = req.params;
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      const result = await pool.query('SELECT * FROM users WHERE guest_id = $1 LIMIT 1', [guest_id]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
+      const user = result.rows[0];
+      await pool.end();
+      
+      res.json({
+        success: true,
+        data: user
+      });
+    } catch (error) {
+      console.error('Ошибка получения пользователя по guest_id:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Database error'
+      });
+    }
+  });
   
   // Отладочный маршрут для проверки регистрации
   app.get('/api/debug/routes-status', (req, res) => {
