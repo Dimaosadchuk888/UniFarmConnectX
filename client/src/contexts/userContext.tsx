@@ -178,7 +178,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
       
       // Делаем запрос с явно указанным user_id, если он доступен
-      const response = await correctApiRequest('/api/v2/me?guest_id=dev-replit-1748680222');
+      const response = await correctApiRequest(userId ? `/api/v2/me?user_id=${userId}` : '/api/v2/me?guest_id=dev-replit-1748680222');
       
       if (response.success && response.data) {
         const user = response.data;
