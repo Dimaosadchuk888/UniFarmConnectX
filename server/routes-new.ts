@@ -197,7 +197,38 @@ export function registerNewRoutes(app: Express): void {
         success: true,
         data: {
           id: user.id,
-
+          telegram_id: user.telegram_id,
+          username: user.username,
+          first_name: user.username,
+          guest_id: user.guest_id,
+          ref_code: user.ref_code,
+          ref_by: null,
+          uni_balance: parseFloat(user.uni_balance) || 0,
+          ton_balance: parseFloat(user.ton_balance) || 0,
+          balance_uni: parseFloat(user.uni_balance) || 0,
+          balance_ton: parseFloat(user.ton_balance) || 0,
+          created_at: user.created_at,
+          is_telegram_user: !!user.telegram_id
+        }
+      });
+      
+    } catch (error) {
+      console.error('[GetMe] Детальная ошибка:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка базы данных при получении данных пользователя',
+        details: error.message
+      });
+    } finally {
+      if (pool) {
+        try {
+          await pool.end();
+        } catch (e) {
+          console.error('[GetMe] Ошибка закрытия пула:', e.message);
+        }
+      }
+    }
+  });
 
   // API для выполнения миссий
   app.post('/api/v2/missions/complete', async (req, res) => {
@@ -411,17 +442,6 @@ export function registerNewRoutes(app: Express): void {
       });
     }
   });
-
-          telegram_id: user.telegram_id,
-          username: user.username,
-          first_name: user.first_name || user.username,
-          last_name: user.last_name || '',
-          guest_id: user.guest_id,
-          ref_code: user.ref_code,
-          ref_by: user.ref_by,
-          uni_balance: parseFloat(user.uni_balance) || 0,
-          ton_balance: parseFloat(user.ton_balance) || 0,
-          balance_uni: parseFloat(user.uni_balance) || 0,
           balance_ton: parseFloat(user.ton_balance) || 0,
           created_at: user.created_at,
           is_telegram_user: !!user.telegram_id,
