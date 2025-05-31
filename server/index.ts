@@ -831,6 +831,69 @@ async function startServer(): Promise<void> {
     logger.error('[Server] ❌ Ошибка при регистрации Telegram маршрутов:', error);
   }
 
+  // КРИТИЧНО: Регистрируем API маршруты для баланса кошелька ПЕРВЫМИ
+  app.get('/api/users/:user_id', async (req, res) => {
+    try {
+      const { user_id } = req.params;
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      const result = await pool.query('SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, ref_code FROM users WHERE id = $1 LIMIT 1', [user_id]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      
+      const user = result.rows[0];
+      await pool.end();
+      
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          username: user.username,
+          guest_id: user.guest_id,
+          uni_balance: parseFloat(user.uni_balance) || 0,
+          ton_balance: parseFloat(user.ton_balance) || 0,
+          balance_uni: parseFloat(user.uni_balance) || 0,
+          balance_ton: parseFloat(user.ton_balance) || 0,
+          ref_code: user.ref_code
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка получения пользователя по ID:', error.message);
+      res.status(500).json({
+        success: false,
+        error: 'Database error'
+      });
+    }
+  });
+
+  app.get('/api/v2/transactions', async (req, res) => {
+    try {
+      const user_id = req.query.user_id || '1';
+      
+      res.json({
+        success: true,
+        data: [],
+        total: 0,
+        message: 'No transactions yet'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Transactions error'
+      });
+    }
+  });
+
   // Регистрируем консолидированные маршруты API
   try {
     // Регистрируем новые маршруты API
