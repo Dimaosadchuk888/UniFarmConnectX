@@ -98,6 +98,7 @@ export function registerNewRoutes(app: Express): void {
 
   // API для получения данных пользователя
   app.get('/api/v2/me', async (req, res) => {
+    let pool;
     try {
       const user_id = req.query.user_id;
       const telegram_id = req.headers['x-telegram-user-id'] || req.query.telegram_id;
@@ -105,48 +106,7 @@ export function registerNewRoutes(app: Express): void {
       
       console.log('[GetMe] Запрос данных пользователя:', { user_id, telegram_id, guest_id });
       
-      // Если передан user_id, используем его в первую очередь
-      if (user_id) {
-        const { Pool } = await import('pg');
-        const pool = new Pool({
-          connectionString: process.env.DATABASE_URL,
-          ssl: { rejectUnauthorized: false }
-        });
-        
-        const result = await pool.query(`
-          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
-                 ref_code, ref_by, created_at, first_name 
-          FROM users WHERE id = $1 LIMIT 1
-        `, [user_id]);
-        
-        if (result.rows.length > 0) {
-          const user = result.rows[0];
-          await pool.end();
-          console.log('[GetMe] Пользователь найден по user_id:', user.id);
-          return res.json({
-            success: true,
-            data: {
-              id: user.id,
-              username: user.username,
-              guest_id: user.guest_id,
-              telegram_id: user.telegram_id,
-              uni_balance: parseFloat(user.uni_balance) || 0,
-              ton_balance: parseFloat(user.ton_balance) || 0,
-              balance_uni: parseFloat(user.uni_balance) || 0,
-              balance_ton: parseFloat(user.ton_balance) || 0,
-              ref_code: user.ref_code,
-              ref_by: user.ref_by,
-              created_at: user.created_at,
-              first_name: user.first_name,
-              is_telegram_user: !!user.telegram_id
-            }
-          });
-        }
-        await pool.end();
-        console.log('[GetMe] Пользователь не найден по user_id:', user_id);
-      }
-      
-      if (!telegram_id && !guest_id) {
+      if (!user_id && !telegram_id && !guest_id) {
         return res.status(400).json({
           success: false,
           error: 'Требуется user_id, telegram_id или guest_id для идентификации пользователя'
@@ -154,15 +114,23 @@ export function registerNewRoutes(app: Express): void {
       }
       
       const { Pool } = await import('pg');
-      const pool = new Pool({
+      pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: { rejectUnauthorized: false }
       });
       
       let query, params;
       
-      // Приоритет telegram_id над guest_id
-      if (telegram_id) {
+      // Приоритет: user_id > telegram_id > guest_id
+      if (user_id) {
+        query = `
+          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
+                 ref_code, ref_by, created_at, first_name 
+          FROM users WHERE id = $1 LIMIT 1
+        `;
+        params = [user_id];
+        console.log('[GetMe] Поиск по user_id:', user_id);
+      } else if (telegram_id) {
         query = `
           SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
                  ref_code, ref_by, created_at, first_name 
@@ -180,10 +148,11 @@ export function registerNewRoutes(app: Express): void {
         console.log('[GetMe] Поиск по guest_id:', guest_id);
       }
       
+      console.log('[GetMe] Выполнение запроса:', query, params);
       const result = await pool.query(query, params);
+      console.log('[GetMe] Результат запроса:', result.rows.length, 'строк');
       
       if (result.rows.length === 0) {
-        await pool.end();
         console.log('[GetMe] Пользователь не найден');
         return res.status(404).json({
           success: false,
@@ -192,9 +161,7 @@ export function registerNewRoutes(app: Express): void {
       }
       
       const user = result.rows[0];
-      await pool.end();
-      
-      console.log('[GetMe] Пользователь найден:', user.id);
+      console.log('[GetMe] Найден пользователь:', JSON.stringify(user, null, 2));
       
       res.json({
         success: true,
@@ -214,12 +181,22 @@ export function registerNewRoutes(app: Express): void {
           is_telegram_user: !!user.telegram_id
         }
       });
+      
     } catch (error) {
-      console.error('[GetMe] Ошибка получения пользователя:', error.message);
+      console.error('[GetMe] Детальная ошибка:', error);
       res.status(500).json({
         success: false,
-        error: 'Ошибка базы данных при получении данных пользователя'
+        error: 'Ошибка базы данных при получении данных пользователя',
+        details: error.message
       });
+    } finally {
+      if (pool) {
+        try {
+          await pool.end();
+        } catch (e) {
+          console.error('[GetMe] Ошибка закрытия пула:', e.message);
+        }
+      }
     }
   });
 
