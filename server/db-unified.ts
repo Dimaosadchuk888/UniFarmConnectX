@@ -3,7 +3,6 @@
  * Resolves conflicts between multiple database connection files
  */
 
-import { Pool, PoolClient } from 'pg';
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../shared/schema.js';
 

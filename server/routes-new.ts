@@ -41,10 +41,9 @@ import { requireAdminAuth, logAdminAction } from './middleware/adminAuth';
 import statusRouter from './routes/status';
 
 // Импортируем webhook для админ-бота
-import adminWebhookHandler from './api/admin/webhook';
 
 import { healthMonitor } from './utils/healthMonitor';
-import OptimizedBackgroundService from './services/optimizedBackgroundService';
+
 import { performanceMonitorMiddleware, errorMonitorMiddleware } from './middleware/performance-monitor';
 
 /**

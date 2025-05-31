@@ -4,7 +4,7 @@
 console.log('🎯 [SYSTEM] Налаштування PRODUCTION Neon DB: ep-lucky-boat-a463bggt');
 
 // Загружаем переменные окружения из файла .env
-import dotenv from 'dotenv';
+
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -636,8 +636,6 @@ async function startServer(): Promise<void> {
     next();
   });
 
-
-
   // Маппинг для Referrals эндпоинтов
   app.get('/api/referrals/tree', (req, res, next) => {
     logger.info('[API MAP] /api/referrals/tree → /api/v2/referrals/tree');
@@ -795,7 +793,7 @@ async function startServer(): Promise<void> {
       // Импортируем функцию для подключения к БД
       const { getSingleDbConnection } = await import('./single-db-connection.js');
       const { missions } = await import('../shared/schema.js');
-      const { eq } = await import('drizzle-orm');
+      const { eq } = await ;
 
       const db = await getSingleDbConnection();
 

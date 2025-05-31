@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { storage } from '../storage';
 import { transactions, User } from '@shared/schema';
 import { db } from '../db';
-import { eq, desc } from 'drizzle-orm';
+
 import { transactionService, userService } from '../services';
 import { adaptedSendSuccess as sendSuccess, adaptedSendError as sendError, adaptedSendServerError as sendServerError } from '../utils/apiResponseAdapter';
 import { DatabaseService } from "../db-service-wrapper";
