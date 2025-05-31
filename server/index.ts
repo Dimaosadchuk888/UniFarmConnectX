@@ -75,7 +75,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import { telegramMiddleware } from './telegram/middleware';
 
 // Импорты для маршрутизации и статических файлов
-import { registerNewRoutes } from "./routes-new";
+import { registerCleanRoutes } from "./routes-clean";
 import { setupVite, serveStatic, log } from "./vite";
 // import { setupProductionStatic } from "./productionStatic"; // Временно отключено
 
@@ -806,7 +806,7 @@ async function startServer(): Promise<void> {
   // Регистрируем консолидированные маршруты API
   try {
     // Регистрируем новые маршруты API
-    await registerNewRoutes(app);
+    await registerCleanRoutes(app);
 
     // КРИТИЧНО: Підключаємо простий робочий маршрут для місій
     // Прямые маршруты для миссий после восстановления
