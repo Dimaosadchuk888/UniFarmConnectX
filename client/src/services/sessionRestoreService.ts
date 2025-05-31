@@ -63,7 +63,7 @@ export const restoreUserSession = async (): Promise<any> => {
   }
 };
 
-// Экспорт функций
+// Экспорт основных функций
 export {
   isTelegramWebAppReady,
   markTelegramWebAppAsReady

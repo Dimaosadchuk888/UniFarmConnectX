@@ -756,4 +756,75 @@ export function registerCleanRoutes(app: Express): void {
     }
   });
 
+  // Эндпоинт для статуса UNI фарминга
+  app.get('/api/v2/uni-farming/status', async (req, res) => {
+    try {
+      const telegramUser = req.telegram?.user;
+      
+      if (!telegramUser || !req.telegram?.validated) {
+        return res.status(401).json({
+          success: false,
+          error: 'Требуется авторизация через Telegram'
+        });
+      }
+
+      // Возвращаем базовый статус UNI фарминга
+      res.json({
+        success: true,
+        data: {
+          rate: '0.001000',
+          accumulated: '0.000000',
+          last_claim: null,
+          can_claim: false,
+          next_claim_available: null,
+          farming_active: true,
+          boost_multiplier: 1.0
+        }
+      });
+
+    } catch (error: any) {
+      console.error('[UniFarming] Ошибка получения статуса:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка получения статуса UNI фарминга'
+      });
+    }
+  });
+
+  // Эндпоинт для информации о TON фарминге
+  app.get('/api/v2/ton-farming/info', async (req, res) => {
+    try {
+      const telegramUser = req.telegram?.user;
+      
+      if (!telegramUser || !req.telegram?.validated) {
+        return res.status(401).json({
+          success: false,
+          error: 'Требуется авторизация через Telegram'
+        });
+      }
+
+      // Возвращаем базовую информацию о TON фарминге
+      res.json({
+        success: true,
+        data: {
+          rate: '0.0001',
+          accumulated: '0.0000',
+          last_claim: null,
+          can_claim: false,
+          next_claim_available: null,
+          farming_active: false,
+          boost_packages_available: true,
+          min_boost_price: '0.1'
+        }
+      });
+
+    } catch (error: any) {
+      console.error('[TonFarming] Ошибка получения информации:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка получения информации о TON фарминге'
+      });
+    }
+  });
+
 }
