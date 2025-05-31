@@ -78,7 +78,7 @@ const Farming: React.FC = () => {
           
           {/* TON Boost-пакеты - с ErrorBoundary */}
           <div className="mb-6">
-            <TonBoostPackagesCardWithErrorBoundary />
+            <TonBoostPackagesCardWithErrorBoundary userData={userData} />
           </div>
         </TabsContent>
       </Tabs>

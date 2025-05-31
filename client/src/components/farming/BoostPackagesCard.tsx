@@ -322,39 +322,25 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
         return false;
       }
       
-      // Проверка наличия данных пользователя
+      // Если данные пользователя отсутствуют, все равно разрешаем покупку
+      // так как может быть внешняя оплата
       if (!userData) {
-        console.warn('[WARNING] BoostPackagesCard - canBuyBoost: userData отсутствует');
-        return false;
+        console.log('[INFO] BoostPackagesCard - canBuyBoost: userData отсутствует, но разрешаем покупку');
+        return true;
       }
       
       // Проверка, что userData является объектом
       if (typeof userData !== 'object') {
         console.warn('[WARNING] BoostPackagesCard - canBuyBoost: userData не является объектом:', typeof userData);
-        return false;
+        return true; // Все равно разрешаем
       }
       
-      // Попытка проверить баланс TON
-      try {
-        const balanceTon = userData.balance_ton;
-        
-        // Если баланс не определен или отрицательный
-        if (balanceTon === undefined || balanceTon === null) {
-          console.warn('[WARNING] BoostPackagesCard - canBuyBoost: balance_ton отсутствует');
-          return false;
-        }
-        
-        // В текущей версии для упрощения любой положительный баланс разрешает покупку
-        // В полной версии здесь будет сравнение с ценой буста
-        return true;
-      } catch (balanceError) {
-        console.error('[ERROR] BoostPackagesCard - canBuyBoost: Ошибка при проверке баланса:', balanceError);
-        return false;
-      }
+      // Всегда разрешаем покупку, так как есть возможность внешней оплаты
+      return true;
     } catch (error: any) {
       console.error('[ERROR] BoostPackagesCard - Ошибка при проверке возможности покупки буста:', error);
-      // В случае ошибки лучше вернуть false, чтобы пользователь не мог выполнить неправильную операцию
-      return false;
+      // В случае ошибки разрешаем покупку
+      return true;
     }
   };
   
@@ -702,7 +688,7 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
                 {/* Button */}
                 <button 
                   className="w-full py-3 px-4 rounded-lg font-medium bg-white/20 backdrop-blur-sm text-white transition-all duration-300 hover:bg-white/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:scale-100 flex items-center justify-center gap-2"
-                  disabled={purchasingBoostId !== null || !userData || !canBuyBoost(boost.id)}
+                  disabled={purchasingBoostId !== null}
                   onClick={() => handleBuyBoost(boost.id)}
                 >
                   {purchasingBoostId === boost.id ? (
