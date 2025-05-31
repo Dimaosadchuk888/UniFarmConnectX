@@ -379,7 +379,11 @@ function App() {
               {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
               <ErrorBoundary>
                 <TelegramWebAppCheck>
-                  <div className="max-w-md mx-auto min-h-screen bg-background pb-20 relative">
+                  <div className="max-w-md mx-auto min-h-screen pb-20 relative" style={{ 
+                    backgroundColor: '#1e1e2e', 
+                    color: '#ffffff', 
+                    background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)'
+                  }}>
                     {/* Индикатор статуса сети и WebSocket соединения */}
                     <NetworkStatusIndicator />
                   <Switch>
@@ -415,7 +419,11 @@ function App() {
 
                     {/* Прямой маршрут на страницу фарминга */}
                     <Route path="/farming">
-                      <div className="max-w-md mx-auto bg-background">
+                      <div className="max-w-md mx-auto" style={{ 
+                        backgroundColor: '#1e1e2e', 
+                        color: '#ffffff',
+                        minHeight: '100vh'
+                      }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
                           <Farming />
@@ -426,7 +434,11 @@ function App() {
 
                     {/* Прямой маршрут на страницу кошелька */}
                     <Route path="/wallet">
-                      <div className="max-w-md mx-auto bg-background">
+                      <div className="max-w-md mx-auto" style={{ 
+                        backgroundColor: '#1e1e2e', 
+                        color: '#ffffff',
+                        minHeight: '100vh'
+                      }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
                           <Wallet />
@@ -437,7 +449,11 @@ function App() {
 
                     {/* Прямой маршрут на страницу друзей/партнёрки */}
                     <Route path="/friends">
-                      <div className="max-w-md mx-auto bg-background">
+                      <div className="max-w-md mx-auto" style={{ 
+                        backgroundColor: '#1e1e2e', 
+                        color: '#ffffff',
+                        minHeight: '100vh'
+                      }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
                           <Friends />
@@ -448,7 +464,11 @@ function App() {
 
                     {/* Прямой маршрут на страницу миссий - URL версия */}
                     <Route path="/missions">
-                      <div className="max-w-md mx-auto bg-background">
+                      <div className="max-w-md mx-auto" style={{ 
+                        backgroundColor: '#1e1e2e', 
+                        color: '#ffffff',
+                        minHeight: '100vh'
+                      }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
                           <Missions />
@@ -461,7 +481,11 @@ function App() {
 
                     {/* Тестовый маршрут на страницу миссий для навигации через меню */}
                     <Route path="/missions-nav">
-                      <div className="max-w-md mx-auto bg-background">
+                      <div className="max-w-md mx-auto" style={{ 
+                        backgroundColor: '#1e1e2e', 
+                        color: '#ffffff',
+                        minHeight: '100vh'
+                      }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
                           <MissionsNavMenu />
@@ -472,7 +496,11 @@ function App() {
 
                     {/* Прямой маршрут на страницу дашборда */}
                     <Route path="/dashboard">
-                      <div className="max-w-md mx-auto bg-background">
+                      <div className="max-w-md mx-auto" style={{ 
+                        backgroundColor: '#1e1e2e', 
+                        color: '#ffffff',
+                        minHeight: '100vh'
+                      }}>
                         <Header />
                         <main className="px-4 pt-2 pb-20">
                           <Dashboard />
