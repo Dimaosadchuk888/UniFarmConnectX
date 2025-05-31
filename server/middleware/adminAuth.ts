@@ -34,40 +34,29 @@ const getAuthorizedAdmins = (): string[] => {
  * Middleware для проверки админских прав по username
  */
 export const requireAdminAuth = (req: Request, res: Response, next: NextFunction) => {
-  // Проверяем несколько вариантов админской аутентификации
-  const adminUserId = req.headers['x-admin-user-id'] || req.query.admin_user_id;
-  const adminKey = req.headers['x-admin-key'] || req.query.admin_key;
-  const adminToken = req.headers['authorization'] || req.query.token;
+  const adminUserId = req.headers['x-admin-user-id'];
+  const adminUserName = req.headers['x-admin-user-name'];
 
-  // Разрешаем доступ для локальных запросов и тестирования
-  if (req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost') {
-    console.log('[AdminAuth] Локальный доступ разрешен');
-    next();
-    return;
-  }
+  // Проверяем альтернативные способы аутентификации
+  const queryAdminId = req.query.admin_id;
+  const bodyAdminId = req.body?.admin_id;
 
-  // Проверяем стандартные админские токены
-  if (adminUserId === '1' || 
-      adminUserId === 'admin' || 
-      adminToken === 'admin-token' ||
-      adminKey === 'admin-key') {
-    console.log('[AdminAuth] Админский доступ подтвержден');
-    next();
-    return;
-  }
+  const finalAdminId = adminUserId || queryAdminId || bodyAdminId;
 
-  // Если нет никакой аутентификации
-  if (!adminUserId && !adminKey && !adminToken) {
+  if (!finalAdminId || finalAdminId !== '1') {
     return res.status(401).json({
       success: false,
-      error: 'Требуется аутентификация: используйте X-Admin-User-ID: 1 или admin_user_id=1 в query параметрах'
+      error: 'Требуется аутентификация: admin_username и admin_key'
     });
   }
 
-  return res.status(403).json({
-    success: false,
-    error: 'Недостаточно прав доступа'
-  });
+  // Добавляем информацию об админе в запрос
+  (req as any).admin = {
+    userId: finalAdminId,
+    userName: adminUserName || 'admin'
+  };
+
+  next();
 };
 
 /**

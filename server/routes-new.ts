@@ -84,6 +84,11 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   app.use('/api/telegram', telegramRouter);
   logger.info('[NewRoutes] Маршруты для Telegram бота зарегистрированы');
 
+  // Быстрый тест БД
+  const { quickDbTest } = await import('./api/quick-db-test');
+  app.get('/api/quick-db-test', quickDbTest);
+  logger.info('[NewRoutes] Быстрый тест БД добавлен: GET /api/quick-db-test');
+
   // Регистрируем администативные маршруты
   app.use('/api/admin', adminRouter);
   logger.info('[NewRoutes] Административные маршруты зарегистрированы');
