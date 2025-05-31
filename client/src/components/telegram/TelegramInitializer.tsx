@@ -18,6 +18,19 @@ const TelegramInitializer = () => {
       try {
         console.log('[TelegramInitializer] Начинаем инициализацию...');
 
+        // Добавляем обработчик события web_app_ready
+        const handleWebAppReady = () => {
+          console.log('[TelegramInitializer] 🎯 Получено событие web_app_ready');
+          localStorage.setItem('telegram_ready', 'true');
+          sessionStorage.setItem('telegram_ready', 'true');
+          setIsReady(true);
+        };
+
+        // Слушаем события WebApp
+        if (typeof window !== 'undefined' && window.addEventListener) {
+          window.addEventListener('web_app_ready', handleWebAppReady);
+        }
+
         // Ждем готовности Telegram WebApp
         let attempts = 0;
         const maxAttempts = 30;
@@ -63,12 +76,21 @@ const TelegramInitializer = () => {
           // Уведомляем о готовности
           tg.ready();
 
+          // Принудительно отмечаем как готовый
+          handleWebAppReady();
+
           console.log('[TelegramInitializer] ✅ Telegram WebApp успешно инициализирован');
-          setIsReady(true);
         } else {
           console.log('[TelegramInitializer] ⚠️ Переходим в standalone режим');
           setIsReady(true); // Разрешаем работу в standalone режиме
         }
+
+        // Очистка обработчика при размонтировании
+        return () => {
+          if (typeof window !== 'undefined' && window.removeEventListener) {
+            window.removeEventListener('web_app_ready', handleWebAppReady);
+          }
+        };
       } catch (error) {
         console.error('[TelegramInitializer] Ошибка инициализации:', error);
         setIsReady(true); // Все равно разрешаем работу
@@ -76,7 +98,18 @@ const TelegramInitializer = () => {
     };
 
     // Запускаем инициализацию
-    initializeTelegram();
+    const cleanup = initializeTelegram();
+    
+    // Возвращаем функцию очистки
+    return () => {
+      if (cleanup && typeof cleanup.then === 'function') {
+        cleanup.then(cleanupFn => {
+          if (typeof cleanupFn === 'function') {
+            cleanupFn();
+          }
+        });
+      }
+    };
   }, []);
 
   // Возвращаем компонент с информацией о статусе

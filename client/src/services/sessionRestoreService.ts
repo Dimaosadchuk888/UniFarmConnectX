@@ -260,22 +260,27 @@ const isTelegramWebAppReady = (): boolean => {
     const hasWebAppData = window.Telegram?.WebApp && (
       window.Telegram.WebApp.version ||
       window.Telegram.WebApp.initData ||
-      window.Telegram.WebApp.platform
+      window.Telegram.WebApp.platform ||
+      window.Telegram.WebApp.ready // Проверяем метод ready
     );
 
-    if (isReady || hasWebAppData) {
-      if (hasWebAppData && !isReady) {
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: автоматически считаем готовым, если есть основной объект WebApp
+    const hasBasicWebApp = !!window.Telegram?.WebApp;
+
+    if (isReady || hasWebAppData || hasBasicWebApp) {
+      if ((hasWebAppData || hasBasicWebApp) && !isReady) {
         // Автоматически отмечаем как готовый, если есть данные WebApp
         markTelegramWebAppAsReady();
+        console.log('[sessionRestoreService] ✅ Автоматически отмечен как готовый');
       }
-      console.log('[sessionRestoreService] Telegram WebApp готов');
+      console.log('[sessionRestoreService] ✅ Telegram WebApp готов');
       return true;
     }
 
-    console.log('[sessionRestoreService] Telegram WebApp еще не инициализирован');
+    console.log('[sessionRestoreService] ⏳ Telegram WebApp еще не инициализирован');
     return false;
   } catch (error) {
-    console.error('[sessionRestoreService] Ошибка при проверке готовности Telegram WebApp:', error);
+    console.error('[sessionRestoreService] ❌ Ошибка при проверке готовности Telegram WebApp:', error);
     // В случае ошибки считаем, что готов (защита от зависаний)
     return true;
   }
@@ -300,40 +305,53 @@ const markTelegramWebAppAsReady = (): void => {
  * @param timeoutMs максимальное время ожидания в миллисекундах
  * @returns Promise<boolean> - true если WebApp готов, false если произошел таймаут
  */
-const waitForTelegramWebApp = (timeoutMs = 5000): Promise<boolean> => {
+const waitForTelegramWebApp = (timeoutMs = 3000): Promise<boolean> => {
   // Если Telegram WebApp не используется или уже готов, сразу возвращаем true
   if (!telegramService.isAvailable() || isTelegramWebAppReady()) {
-    console.log('[sessionRestoreService] Не требуется ожидание Telegram WebApp');
+    console.log('[sessionRestoreService] ✅ Не требуется ожидание Telegram WebApp');
     return Promise.resolve(true);
   }
 
-  console.log('[sessionRestoreService] Ожидаем инициализации Telegram WebApp...');
+  console.log('[sessionRestoreService] ⏳ Ожидаем инициализации Telegram WebApp...');
 
   return new Promise((resolve) => {
+    let attempts = 0;
+    const maxAttempts = Math.floor(timeoutMs / 100); // 100мс интервал проверки
+
     // Устанавливаем таймаут для защиты от зависания
     const timeoutId = setTimeout(() => {
-      console.warn('[sessionRestoreService] Таймаут ожидания инициализации Telegram WebApp');
-      resolve(false);
+      console.warn('[sessionRestoreService] ⚠️ Таймаут ожидания инициализации Telegram WebApp, продолжаем работу');
+      resolve(true); // Возвращаем true чтобы не блокировать работу
     }, timeoutMs);
 
     // Функция проверки готовности с интервалом
     const checkReady = () => {
+      attempts++;
+
       if (isTelegramWebAppReady()) {
         clearTimeout(timeoutId);
-        console.log('[sessionRestoreService] Telegram WebApp успешно инициализирован');
+        console.log('[sessionRestoreService] ✅ Telegram WebApp успешно инициализирован');
         resolve(true);
-      } else {
-        // Если не готов, пробуем вызвать ready() еще раз и проверяем снова через 100мс
-        try {
-          if (window.Telegram?.WebApp?.ready) {
-            window.Telegram.WebApp.ready();
-          }
-        } catch (e) {
-          console.error('[sessionRestoreService] Ошибка при вызове WebApp.ready():', e);
-        }
-
-        setTimeout(checkReady, 100);
+        return;
       }
+
+      if (attempts >= maxAttempts) {
+        clearTimeout(timeoutId);
+        console.warn('[sessionRestoreService] ⚠️ Достигнут лимит попыток, продолжаем работу');
+        resolve(true); // Возвращаем true чтобы не блокировать работу
+        return;
+      }
+
+      // Если не готов, пробуем вызвать ready() еще раз и проверяем снова через 100мс
+      try {
+        if (window.Telegram?.WebApp?.ready && typeof window.Telegram.WebApp.ready === 'function') {
+          window.Telegram.WebApp.ready();
+        }
+      } catch (e) {
+        console.error('[sessionRestoreService] Ошибка при вызове WebApp.ready():', e);
+      }
+
+      setTimeout(checkReady, 100);
     };
 
     // Начинаем проверять готовность
