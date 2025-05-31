@@ -27,7 +27,7 @@ localPort = 3001
 externalPort = 3001
 
 [workflows]
-runButton = "Production Start"
+runButton = "Quick Start Fixed"
 
 [[workflows.workflow]]
 name = "run.js"
@@ -291,6 +291,19 @@ args = "lsof -ti:3000 | xargs kill -9 || true"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "sleep 3"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production PORT=3000 DATABASE_PROVIDER=neon FORCE_NEON_DB=true DISABLE_REPLIT_DB=true npx --yes tsx server/index.ts"
+
+[[workflows.workflow]]
+name = "Quick Start Fixed"
+author = 43232783
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"

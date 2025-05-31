@@ -253,11 +253,22 @@ const isTelegramWebAppReady = (): boolean => {
       return true;
     }
 
-    // Используем унифицированный флаг готовности
+    // Проверяем флаг готовности из localStorage
     const isReady = localStorage.getItem(SESSION_KEYS.TELEGRAM_READY) === 'true';
+    
+    // Дополнительная проверка: если WebApp имеет version или initData, то он готов
+    const hasWebAppData = window.Telegram?.WebApp && (
+      window.Telegram.WebApp.version ||
+      window.Telegram.WebApp.initData ||
+      window.Telegram.WebApp.platform
+    );
 
-    if (isReady) {
-      console.log('[sessionRestoreService] Telegram WebApp уже инициализирован');
+    if (isReady || hasWebAppData) {
+      if (hasWebAppData && !isReady) {
+        // Автоматически отмечаем как готовый, если есть данные WebApp
+        markTelegramWebAppAsReady();
+      }
+      console.log('[sessionRestoreService] Telegram WebApp готов');
       return true;
     }
 
@@ -517,7 +528,10 @@ export class SessionRestoreService {
         return this.handleGuestMode();
       }
 
-return { success: false, error: 'Неизвестная ошибка при восстановлении сессии' };
+      return { success: false, error: 'Неизвестная ошибка при восстановлении сессии' };
+    } catch (error) {
+      console.error('[sessionRestoreService] Ошибка при восстановлении сессии:', error);
+      return { success: false, error: 'Критическая ошибка при восстановлении сессии' };
     }
   }
 
