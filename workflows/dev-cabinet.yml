@@ -1,0 +1,6 @@
+name: "Dev Cabinet"
+run: "npm run dev"
+env:
+  NODE_ENV: "production"
+  DATABASE_PROVIDER: "neon"
+  FORCE_NEON_DB: "true"
