@@ -27,6 +27,17 @@ try {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Анти-кеш заголовки для устранения DOM ошибок
+app.use((req, res, next) => {
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Surrogate-Control': 'no-store'
+  });
+  next();
+});
+
 // CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -246,6 +257,15 @@ if (fs.existsSync(clientDistPath)) {
 
 // SPA маршрутизация
 app.get('*', (req, res) => {
+  // API health check
+  if (req.path === '/api/health') {
+    return res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      message: 'Server running'
+    });
+  }
+  
   if (req.path.startsWith('/api')) {
     return res.status(404).json({
       success: false,
