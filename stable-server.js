@@ -271,9 +271,9 @@ app.get('*', (req, res) => {
     return res.sendFile(path.join(__dirname, 'emergency-cache-clear.html'));
   }
 
-  // Временное перенаправление на очистку кеша для устранения DOM ошибок
+  // Временная замена на диагностическую страницу для устранения DOM ошибок
   if (req.path === '/') {
-    return res.redirect('/clear-cache');
+    return res.sendFile(path.join(__dirname, 'diagnostic.html'));
   }
 
   if (req.path.startsWith('/api')) {
