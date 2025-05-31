@@ -20,7 +20,7 @@ export default function MainLayout({ children, activeTab, onTabChange }: MainLay
       </main>
       
       {/* Bottom Navigation */}
-      <NavigationBar activeTab={activeTab} onTabChange={onTabChange} />
+      <NavigationBar activeTab={activeTab} setActiveTab={onTabChange} />
     </div>
   );
 }

@@ -1,374 +1,176 @@
 import { useState, useEffect } from "react";
-import { Switch, Route, useLocation, useRoute } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { apiRequest } from "@/lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
-import { 
-  isTelegramWebApp, 
-  initTelegramWebApp, 
-  getTelegramUserData,
-  logAppLaunch,
-  registerTelegramUser
-} from './services/telegramService';
-import { getReferrerIdFromURL } from './lib/utils';
-import userService from '@/services/userService';
-import sessionRestoreService from '@/services/sessionRestoreService'; // Сервис восстановления сессии
-import { UserProvider } from "@/contexts/userContext"; // Импортируем UserProvider
-import { WebSocketProvider } from "@/contexts/webSocketContext"; // Импортируем WebSocketProvider
-import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator"; // Импортируем индикатор статуса сети
-import { NotificationProvider } from "@/contexts/notificationContext"; // Импортируем NotificationProvider
-import NotificationContainer from "@/components/ui/NotificationContainer"; // Импортируем контейнер уведомлений
-import ErrorBoundary from "@/components/ui/ErrorBoundary"; // Импортируем глобальный ErrorBoundary
+import { queryClient } from "./lib/queryClient";
+import { Toaster } from "@/components/ui/toaster";
 
-// Импортируем компоненты UI
+// Layouts and Hooks
+import MainLayout from "@/layouts/MainLayout";
+import { useTelegram } from "@/hooks/useTelegram";
+import { useBalance } from "@/hooks/useBalance";
+
+// Components
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { UserProvider } from "@/contexts/userContext";
+import { WebSocketProvider } from "@/contexts/webSocketContext";
+import { NotificationProvider } from "@/contexts/notificationContext";
+import NotificationContainer from "@/components/ui/NotificationContainer";
+import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 
-import Header from "@/components/layout/Header";
-import NavigationBar from "@/components/layout/NavigationBar";
+// Pages
 import Dashboard from "@/pages/Dashboard";
 import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
-import MissionsNavMenu from "@/pages/MissionsNavMenu"; // Специальная версия для меню
-// Используем только основной компонент миссий
-import Friends from "@/pages/Friends"; // Компонент страницы друзей и реферальной системы
-import FriendsWithErrorBoundary from "@/components/friends/FriendsWithErrorBoundary"; // ErrorBoundary для страницы друзей
+import Friends from "@/pages/Friends";
 import Wallet from "@/pages/Wallet";
-import AdminPage from "./pages/AdminPage";
-import TelegramSetupGuide from "./pages/TelegramSetupGuide";
-import TelegramMiniApp from "./pages/TelegramMiniApp";
-import TelegramInitializer from "@/components/telegram/TelegramInitializer";
-// Используем только стандартный компонент MissionsList
 
-// Дополнительные определения для глобальных объектов
-// Тип для Telegram определен в telegramService.ts
-declare global {
-  interface Window {
-    process: any; // Используем any, чтобы избежать конфликта типов
-    TextEncoder: typeof TextEncoder;
-    // Определение для Telegram перемещено в telegramService.ts
-  }
+// Services
+import userService from '@/services/userService';
+import { getReferrerIdFromURL } from './lib/utils';
+
+// Types
+interface AppState {
+  isLoading: boolean;
+  userId: number | null;
+  activeTab: string;
+  authError: string | null;
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [isLoading, setIsLoading] = useState(true); // Начинаем с loading=true
-  const [userId, setUserId] = useState<number | null>(null);
-  const [telegramAuthError, setTelegramAuthError] = useState<string | null>(null);
+  const [state, setState] = useState<AppState>({
+    isLoading: true,
+    userId: null,
+    activeTab: "dashboard",
+    authError: null
+  });
 
-  // Проверка инициализации приложения
+  const { isReady: telegramReady, user: telegramUser, initData } = useTelegram();
+
+  // Initialize app
   useEffect(() => {
-    console.log('==[ App Init Check ]==');
-    console.log('Running in environment:', process.env.NODE_ENV);
-    console.log('Window available:', typeof window !== 'undefined');
-
-    // Шаг 1.2 — Проверка initData в Telegram WebApp
-    console.log('==[ Guest ID Check ]==', 
-      sessionRestoreService.getGuestId() || 'not found'
-    );
-
-    // Отладочная информация для проверки наличия реферального кода
-    const urlParams = new URLSearchParams(window.location.search);
-    console.log('==[ Ref Code Check ]==', {
-      inUrl: urlParams.has('ref_code') || urlParams.has('refCode'),
-      refCode: urlParams.get('ref_code') || urlParams.get('refCode') || 'not found',
-      inSession: !!sessionStorage.getItem('referrer_code'),
-      sessionRefCode: sessionStorage.getItem('referrer_code') || 'not found'
-    });
-
-    // Быстрая инициализация для preview режима
-    const isPreview = window.location.hostname.includes('replit') && window.self !== window.top;
-    const initTimeout = isPreview ? 500 : 2000; // Быстрее для preview
-    
-    const forceInitTimeout = setTimeout(() => {
-      if (isLoading) {
-        const mode = isPreview ? 'Preview' : 'Standalone';
-        console.log(`[App] ${mode} режим: принудительная инициализация приложения...`);
-        setIsLoading(false);
-        setUserId(1); // Устанавливаем тестового пользователя
-      }
-    }, initTimeout);
-
-    return () => clearTimeout(forceInitTimeout);
-  }, [isLoading]);
-
-  // Очистка кэша Telegram при старте приложения
-  useEffect(() => {
-    // Принудительная очистка всех кэшированных данных Telegram при загрузке приложения
-    // Это необходимо для удаления устаревших данных от старого бота
-    console.log('[App] 🧹 Очистка кэша Telegram при старте приложения...');
-    //clearTelegramCache();
-    console.log('[App] ✅ Кэш Telegram очищен, обновляем локальные данные...');
+    initializeApp();
   }, []);
 
-  // Этап 11.1: Делегируем инициализацию Telegram WebApp компоненту TelegramInitializer
-  // Это освобождает нас от необходимости дублировать код инициализации и гарантирует
-  // корректную последовательность действий для корректной работы в среде Telegram
-  // 
-  // Все используемые ранее вызовы теперь выполняются в TelegramInitializer:
-  // - Проверка доступности Telegram WebApp API
-  // - Вызов initTelegramWebApp()
-  // - Вызов WebApp.ready()
-  // - Логирование запуска Mini App
-
-  // Примечание: логирование запуска перемещено в TelegramInitializer для соблюдения
-  // правильной последовательности инициализации
-
-  // Обновленная инициализация приложения без зависимости от Telegram WebApp
-  // (Этап 10.3 - удалены все обращения к window.Telegram.WebApp)
-  useEffect(() => {
-    console.log('[App] Этап 10.3: Инициализация без зависимости от Telegram WebApp');
-
-    // Отображаем информацию о среде выполнения для диагностики
-    console.log('[App] Детали среды выполнения:', {
-      userAgent: navigator.userAgent,
-      isIframe: window.self !== window.top,
-      documentURL: window.location.href
-    });
-
-    // Проверяем, можно ли восстановить сессию из локального хранилища
-    if (sessionRestoreService.shouldAttemptRestore()) {
-      console.log('[App] 🔄 Пытаемся восстановить сессию по guest_id из локального хранилища...');
-      restoreSessionFromStorage();
-    } else {
-      // Если нет сохраненной сессии, продолжаем обычную авторизацию
-      console.log('[App] ⚙️ Нет сохраненной сессии, продолжаем авторизацию через guest_id...');
-      authenticateWithTelegram();
-    }
-  }, []);
-
-  // Отладочный баннер с отображением домена удален для улучшения UX
-
-  // Метод для безопасного восстановления сессии из локального хранилища (Этап 5)
-  // Обновлен для обеспечения корректной инициализации Telegram WebApp перед отправкой запросов
-  const restoreSessionFromStorage = async () => {
+  const initializeApp = async () => {
     try {
-      setIsLoading(true);
-      setTelegramAuthError(null);
+      setState(prev => ({ ...prev, isLoading: true, authError: null }));
+      
+      // Simple authentication without complex session restore
+      await authenticateUser();
+    } catch (error) {
+      console.error('App initialization error:', error);
+      setState(prev => ({ 
+        ...prev, 
+        authError: 'Ошибка инициализации приложения',
+        isLoading: false 
+      }));
+    }
+  };
 
-      console.log('[App] 🔍 Этап 5: Безопасное восстановление пользователя...');
+  const authenticateUser = async () => {
+    try {
+      // Get referral code from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const refCode = urlParams.get('ref_code') || urlParams.get('refCode') || 
+                     sessionStorage.getItem('referrer_code');
 
-      // Шаг 1: Проверка наличия сохранённой сессии
-      // Получаем guest_id из хранилища
-      const guestId = sessionRestoreService.getGuestId();
-
-      // Если guest_id отсутствует, значит пользователь либо впервые зашел в приложение,
-      // либо очистил данные
-      if (!guestId) {
-        console.warn('[App] ⚠️ Не найден guest_id в локальном хранилище');
-        console.log('[App] Создаем новый кабинет в соответствии с Этапом 5...');
-
-        // Если восстановление невозможно, переходим к обычной авторизации для создания нового кабинета
-        authenticateWithTelegram();
-        return;
+      if (refCode) {
+        sessionStorage.setItem('referrer_code', refCode);
       }
 
-      console.log('[App] ✓ Найден guest_id в локальном хранилище:', guestId);
+      // Get or create guest ID
+      const guestId = getOrCreateGuestId();
 
-      // Шаг 1.5 (НОВЫЙ): Дожидаемся инициализации Telegram WebApp перед отправкой запросов
-      console.log('[App] 🕒 Ожидаем инициализации Telegram WebApp перед восстановлением сессии...');
+      // Try to find existing user or create new one
+      let user = null;
+      
+      try {
+        // Try to get existing user by guest ID
+        const response = await fetch(`/api/v2/user/by-guest-id?guest_id=${guestId}`);
+        if (response.ok) {
+          user = await response.json();
+        }
+      } catch (error) {
+        console.log('No existing user found, will create new one');
+      }
 
-      // Ожидаем инициализации Telegram WebApp (или таймаута)
-      const telegramReady = await sessionRestoreService.waitForTelegramWebApp();
+      if (!user) {
+        // Create new user
+        const response = await fetch('/api/v2/user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            guestId,
+            refCode: refCode || undefined
+          }),
+        });
 
-      console.log(`[App] ${telegramReady ? '✅ Telegram WebApp готов' : '⚠️ Таймаут ожидания Telegram WebApp'}, продолжаем восстановление сессии...`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result && result.success && result.data) {
+            user = { id: result.data.user_id };
+          }
+        }
+      }
 
-      // Шаг 2: Восстановление кабинета по guest_id
-      // Пытаемся восстановить сессию через API
-      console.log('[App] Отправляем запрос на восстановление сессии с guest_id:', guestId);
-      const result = await sessionRestoreService.restoreSession(guestId);
-
-      if (result.success && result.data) {
-        // Успешно восстановили сессию
-        setUserId(result.data.user_id);
-        console.log('[App] ✅ Кабинет успешно восстановлен для пользователя:', result.data);
-
-        // Обновляем кэш запросов для получения актуальных данных пользователя
+      if (user) {
+        setState(prev => ({ 
+          ...prev, 
+          userId: user.id,
+          isLoading: false 
+        }));
+        
+        // Save guest ID for future sessions
+        localStorage.setItem('guest_id', guestId);
+        
+        // Invalidate cache for fresh data
         queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
         queryClient.invalidateQueries({ queryKey: ['/api/me'] });
       } else {
-        // Не удалось восстановить сессию - вероятно, guest_id устарел или был удален из базы
-        console.error('[App] ❌ Не удалось восстановить кабинет:', result.message);
-
-        // Удаляем некорректный guest_id
-        sessionRestoreService.clearGuestIdAndSession();
-
-        // Переходим к обычной авторизации для создания нового кабинета
-        authenticateWithTelegram();
+        setState(prev => ({ 
+          ...prev, 
+          authError: 'Ошибка создания пользователя',
+          isLoading: false 
+        }));
       }
     } catch (error) {
-      console.error('[App] ❌ Ошибка при восстановлении кабинета:', error);
-
-      // При ошибке очищаем данные сессии, чтобы избежать зацикливания
-      sessionRestoreService.clearGuestIdAndSession();
-
-      // Переходим к обычной авторизации при ошибке
-      authenticateWithTelegram();
-    } finally {
-      setIsLoading(false);
+      console.error('Authentication error:', error);
+      setState(prev => ({ 
+        ...prev, 
+        authError: 'Ошибка аутентификации',
+        isLoading: false 
+      }));
     }
   };
 
-  // Метод для аутентификации только через guest_id и ref_code
-  // Обновлен для обеспечения корректной инициализации Telegram WebApp перед отправкой запросов
-  const authenticateWithTelegram = async () => {
-    try {
-      setIsLoading(true);
-      setTelegramAuthError(null);
-
-      console.log('[App] Начинаем аутентификацию только через guest_id и ref_code');
-
-      // Этап 3.1: Проверка наличия реферального кода в URL
-      let referrerCode: string | null = null;
-
-      try {
-        // Получаем реферальный код только из URL параметров
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('ref_code') || urlParams.has('refCode')) {
-          const refCodeFromUrl = urlParams.get('ref_code') || urlParams.get('refCode');
-          referrerCode = refCodeFromUrl || '';  // Преобразуем в пустую строку вместо null
-          console.log('[App] Обнаружен реферальный код в URL:', referrerCode);
-
-          // Сохраняем реферальный код в sessionStorage (если он есть)
-          if (referrerCode) {
-            sessionStorage.setItem('referrer_code', referrerCode);
-            sessionStorage.setItem('referrer_code_timestamp', Date.now().toString());
-          }
-        } else {
-          console.log('[App] Реферальный код в URL не обнаружен');
-
-          // Проверяем сохраненный реферальный код
-          const savedRefCode = sessionStorage.getItem('referrer_code');
-          if (savedRefCode) {
-            console.log('[App] Используем ранее сохраненный реферальный код:', savedRefCode);
-            referrerCode = savedRefCode;
-          }
-        }
-      } catch (error) {
-        console.error('[App] Ошибка при обработке реферального кода:', error);
-      }
-
-      // Этап 5.1: Получение или создание гостевого ID
-      const guestId = sessionRestoreService.getOrCreateGuestId();
-      console.log('[App] Используем guest_id:', guestId);
-
-      // Шаг 5.1.5 (НОВЫЙ): Дожидаемся инициализации Telegram WebApp перед отправкой запросов
-      console.log('[App] 🕒 Ожидаем инициализации Telegram WebApp перед авторизацией...');
-
-      // Ожидаем инициализации Telegram WebApp (или таймаута)
-      const telegramReady = await sessionRestoreService.waitForTelegramWebApp();
-
-      console.log(`[App] ${telegramReady ? '✅ Telegram WebApp готов' : '⚠️ Таймаут ожидания Telegram WebApp'}, продолжаем авторизацию...`);
-
-      // Этап 5.2: Проверка существующего пользователя и создание нового при необходимости
-      try {
-        console.log('[App] Проверяем существование пользователя с guest_id:', guestId);
-        const existingUser = await userService.getUserByGuestId(guestId)
-          .catch(() => null);
-
-        if (existingUser) {
-          console.log('[App] Пользователь найден или создан через guest_id:', existingUser);
-          setUserId(existingUser.id);
-
-          // Сохраняем guest_id для восстановления сессии
-          sessionRestoreService.saveGuestId(guestId);
-
-          // Обновляем кэш запросов для получения актуальных данных
-          queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/me'] });
-        } else {
-          console.log('[App] ❌ Не удалось найти или создать пользователя с guest_id:', guestId);
-          console.log('[App] Попробуем создать нового пользователя через старый API');
-
-          // Регистрируем пользователя с guest_id и реферальным кодом (если есть)
-          // Если referrerCode пустой или null, передаем undefined
-          const refCodeToSend = referrerCode && referrerCode.length > 0 ? referrerCode : undefined;
-          console.log('[App] Отправляем запрос на регистрацию с guest_id:', guestId, 'и ref_code:', refCodeToSend || 'не указан');
-          const registrationResult = await registerUserWithTelegram(guestId, refCodeToSend);
-
-          if (registrationResult && registrationResult.success) {
-            console.log('[App] Пользователь успешно зарегистрирован:', registrationResult);
-
-            // Сохраняем данные о новом пользователе
-            if (registrationResult.data && registrationResult.data.user_id) {
-              const newUserId = registrationResult.data.user_id;
-              setUserId(newUserId);
-
-              // Сохраняем guest_id для будущего восстановления сессии
-              sessionRestoreService.saveGuestId(guestId);
-
-              // Устанавливаем статус зарегистрированного пользователя
-              console.log('[App] Пользователь успешно идентифицирован и авторизован');
-            } else {
-              console.error('[App] API вернул успех, но отсутствуют данные пользователя');
-              setTelegramAuthError('Ошибка получения ID пользователя');
-            }
-          } else {
-            console.error('[App] Ошибка регистрации пользователя:', registrationResult);
-            setTelegramAuthError('Ошибка регистрации пользователя');
-          }
-        }
-      } catch (error) {
-        console.error('[App] Ошибка при работе с пользователем:', error);
-        setTelegramAuthError('Ошибка доступа к серверу');
-      }
-    } catch (error) {
-      console.error('[App] Общая ошибка аутентификации:', error);
-      setTelegramAuthError('Ошибка аутентификации');
-    } finally {
-      setIsLoading(false);
+  const getOrCreateGuestId = () => {
+    let guestId = localStorage.getItem('guest_id');
+    
+    if (!guestId) {
+      guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('guest_id', guestId);
     }
+    
+    return guestId;
   };
 
-  // Метод для регистрации пользователя через guest_id
-  const registerUserWithTelegram = async (guestId: string, refCode?: string): Promise<any> => {
-    try {
-      console.log('[App] Регистрация пользователя через guest_id:', guestId);
-
-      // Используем userService для создания пользователя
-      const result = await userService.createUser({
-        guestId,
-        refCode: refCode || undefined
-      });
-
-      console.log('[App] Результат регистрации:', result);
-      return result;
-    } catch (error) {
-      console.error('[App] Ошибка при регистрации пользователя:', error);
-      throw error;
-    }
+  const handleTabChange = (tab: string) => {
+    setState(prev => ({ ...prev, activeTab: tab }));
   };
 
-  // Switch between tabs without using routes (simpler for Telegram Mini App)
-  const renderActivePage = () => {
-    // ЭТАП 4.1: Удалена проверка на минимальную версию.
-    // Всегда используем единый компонент Friends, работающий во всех средах.
-
-    // Используем дополнительные импорты на верхнем уровне
-    // Используем MissionsFix вместо стандартного Missions
-    // Используем только стандартные компоненты
-    switch (activeTab) {
+  const renderPage = () => {
+    switch (state.activeTab) {
       case "dashboard":
         return <Dashboard />;
       case "farming":
         return <Farming />;
       case "missions":
-        // Использовать новый компонент с прямыми вызовами API
-        // Это требуется по ТЗ: "Настроить вызов именно на /missions и обеспечить корректную загрузку карточек"
-        // Обходим ошибку "w.map is not a function" используя прямой компонент
-        return (
-          <div className="p-4">
-            <h1 className="text-xl font-semibold text-white mb-4">Выполняй задания — получай UNI</h1>
-            <div className="grid gap-4">
-              {/* Используем основной компонент MissionsList через импорт из Missions */}
-              <Missions />
-            </div>
-          </div>
-        );
+        return <Missions />;
       case "friends":
-        // Используем компонент Friends с ErrorBoundary
-        return <FriendsWithErrorBoundary />;
+        return <Friends />;
       case "wallet":
         return <Wallet />;
       default:
@@ -376,218 +178,57 @@ function App() {
     }
   };
 
+  // Loading state
+  if (state.isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Загрузка UniFarm...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (state.authError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive mb-4">{state.authError}</p>
+          <button 
+            onClick={initializeApp}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded"
+          >
+            Попробовать снова
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
-      <TonConnectUIProvider manifestUrl="https://universegames8.github.io/tonconnect-manifest/tonconnect-manifest.json">
-        {/* Компонент для автоматической инициализации Telegram WebApp */}
-        <TelegramInitializer />
-
-        {/* Оборачиваем весь контент в WebSocketProvider для отслеживания соединения */}
-        <WebSocketProvider>
-          {/* Оборачиваем весь контент в NotificationProvider и UserProvider */}
+      <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
+        <ErrorBoundary>
           <NotificationProvider>
-            {/* Компонент для отображения уведомлений */}
-            <NotificationContainer />
-
-            {/* Оборачиваем весь контент в Provider контекста пользователя */}
             <UserProvider>
-              {/* Оборачиваем весь контент в компонент проверки Telegram WebApp */}
-              <ErrorBoundary>
+              <WebSocketProvider>
                 <TelegramWebAppCheck>
-                  <div className="max-w-md mx-auto min-h-screen pb-20 relative" style={{ 
-                    backgroundColor: '#1e1e2e', 
-                    color: '#ffffff', 
-                    background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)'
-                  }}>
-                    {/* Индикатор статуса сети и WebSocket соединения */}
-                    <NetworkStatusIndicator />
-                  <Switch>
-                    {/* Маршруты для Telegram Mini App */}
-                    <Route path="/UniFarm/">
-                      <TelegramMiniApp />
-                    </Route>
-
-                    {/* Для совместимости, маршрут для Mini App независимо от регистра */}
-                    <Route path="/unifarm/">
-                      <TelegramMiniApp />
-                    </Route>
-
-                    {/* Специальный обработчик для маршрута /app/ со слешем */}
-                    <Route path="/app/">
-                      <TelegramMiniApp />
-                    </Route>
-
-                    {/* Основной маршрут /app без слеша */}
-                    <Route path="/app">
-                      <TelegramMiniApp />
-                    </Route>
-
-                    {/* Административная страница для настройки бота */}
-                    <Route path="/admin">
-                      <AdminPage />
-                    </Route>
-
-                    {/* Руководство по настройке Telegram Mini App */}
-                    <Route path="/telegram-setup">
-                      <TelegramSetupGuide />
-                    </Route>
-
-                    {/* Прямой маршрут на страницу фарминга */}
-                    <Route path="/farming">
-                      <div className="max-w-md mx-auto" style={{ 
-                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
-                        color: '#ffffff',
-                        minHeight: '100vh',
-                        width: '100%',
-                        display: 'flex',
-                        flexDirection: 'column'
-                      }}>
-                        <Header />
-                        <main className="px-4 pt-2 pb-20">
-                          <Farming />
-                        </main>
-                        <NavigationBar activeTab="farming" setActiveTab={setActiveTab} />
-                      </div>
-                    </Route>
-
-                    {/* Прямой маршрут на страницу кошелька */}
-                    <Route path="/wallet">
-                      <div className="max-w-md mx-auto" style={{ 
-                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
-                        color: '#ffffff',
-                        minHeight: '100vh',
-                        width: '100%',
-                        display: 'flex',
-                        flexDirection: 'column'
-                      }}>
-                        <Header />
-                        <main className="px-4 pt-2 pb-20">
-                          <Wallet />
-                        </main>
-                        <NavigationBar activeTab="wallet" setActiveTab={setActiveTab} />
-                      </div>
-                    </Route>
-
-                    {/* Прямой маршрут на страницу друзей/партнёрки */}
-                    <Route path="/friends">
-                      <div className="max-w-md mx-auto" style={{ 
-                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
-                        color: '#ffffff',
-                        minHeight: '100vh',
-                        width: '100%',
-                        display: 'flex',
-                        flexDirection: 'column'
-                      }}>
-                        <Header />
-                        <main className="px-4 pt-2 pb-20">
-                          <Friends />
-                        </main>
-                        <NavigationBar activeTab="friends" setActiveTab={setActiveTab} />
-                      </div>
-                    </Route>
-
-                    {/* Прямой маршрут на страницу миссий - URL версия */}
-                    <Route path="/missions">
-                      <div className="max-w-md mx-auto" style={{ 
-                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
-                        color: '#ffffff',
-                        minHeight: '100vh',
-                        width: '100%',
-                        display: 'flex',
-                        flexDirection: 'column'
-                      }}>
-                        <Header />
-                        <main className="px-4 pt-2 pb-20">
-                          <Missions />
-                        </main>
-                        <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
-                      </div>
-                    </Route>
-
-                    {/* Удален специальный маршрут для прямого доступа к миссиям без React Query */}
-
-                    {/* Тестовый маршрут на страницу миссий для навигации через меню */}
-                    <Route path="/missions-nav">
-                      <div className="max-w-md mx-auto" style={{ 
-                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
-                        color: '#ffffff',
-                        minHeight: '100vh',
-                        width: '100%',
-                        display: 'flex',
-                        flexDirection: 'column'
-                      }}>
-                        <Header />
-                        <main className="px-4 pt-2 pb-20">
-                          <MissionsNavMenu />
-                        </main>
-                        <NavigationBar activeTab="missions" setActiveTab={setActiveTab} />
-                      </div>
-                    </Route>
-
-                    {/* Прямой маршрут на страницу дашборда */}
-                    <Route path="/dashboard">
-                      <div className="max-w-md mx-auto" style={{ 
-                        background: 'linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%)',
-                        color: '#ffffff',
-                        minHeight: '100vh',
-                        width: '100%',
-                        display: 'flex',
-                        flexDirection: 'column'
-                      }}>
-                        <Header />
-                        <main className="px-4 pt-2 pb-20">
-                          <Dashboard />
-                        </main>
-                        <NavigationBar activeTab="dashboard" setActiveTab={setActiveTab} />
-                      </div>
-                    </Route>
-
-                    {/* Основной интерфейс приложения */}
-                    <Route path="*">
-                      <Header />
-                      {/* Основной контент приложения */}
-                      <main className="px-4 pt-2 pb-20" style={{ minHeight: '80vh' }}>
-                        {isLoading ? (
-                          <div className="flex flex-col items-center justify-center h-64">
-                            <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
-                            <p className="text-white text-lg">Загрузка UniFarm...</p>
-                            <p className="text-gray-400 text-sm mt-2">Инициализация приложения</p>
-                          </div>
-                        ) : telegramAuthError ? (
-                          <div className="p-4 text-center">
-                            <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 mb-4">
-                              <h2 className="text-lg font-semibold text-yellow-400 mb-2">Проблема с подключением</h2>
-                              <p className="text-yellow-300">{telegramAuthError}</p>
-                              <p className="text-sm text-yellow-400 mt-2">
-                                Переходим в режим демонстрации...
-                              </p>
-                              <button 
-                                onClick={() => {
-                                  setTelegramAuthError(null);
-                                  setUserId(1);
-                                }}
-                                className="mt-4 px-4 py-2 bg-primary rounded-lg text-white"
-                              >
-                                Продолжить в demo режиме
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{ minHeight: '60vh' }}>
-                            {renderActivePage()}
-                          </div>
-                        )}
-                      </main>
-                      <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
-                    </Route>
-                  </Switch>
+                  <MainLayout 
+                    activeTab={state.activeTab} 
+                    onTabChange={handleTabChange}
+                  >
+                    {renderPage()}
+                  </MainLayout>
+                  <NetworkStatusIndicator />
+                  <NotificationContainer />
                   <Toaster />
-                </div>
-              </TelegramWebAppCheck>
-            </ErrorBoundary>
-          </UserProvider>
-        </NotificationProvider>
-        </WebSocketProvider>
+                </TelegramWebAppCheck>
+              </WebSocketProvider>
+            </UserProvider>
+          </NotificationProvider>
+        </ErrorBoundary>
       </TonConnectUIProvider>
     </QueryClientProvider>
   );
