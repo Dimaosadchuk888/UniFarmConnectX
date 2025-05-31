@@ -189,6 +189,27 @@ export async function correctApiRequest<T = any>(
       }
     }
 
+    // Добавляем специальные заголовки для Telegram
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+
+      if (tg.initData) {
+        headers['x-telegram-init-data'] = tg.initData;
+        console.log('[correctApiRequest] Отправляем Telegram initData в заголовке');
+      }
+
+      if (tg.initDataUnsafe?.user?.id) {
+        headers['x-telegram-user-id'] = tg.initDataUnsafe.user.id.toString();
+        console.log('[correctApiRequest] Отправляем Telegram user_id:', tg.initDataUnsafe.user.id);
+      }
+
+      // Также отправляем обработанные данные пользователя
+      if (tg.initDataUnsafe?.user) {
+        headers['x-telegram-data'] = JSON.stringify({ user: tg.initDataUnsafe.user });
+        console.log('[correctApiRequest] Отправляем обработанные Telegram данные');
+      }
+    }
+
     // Безопасная обработка тела запроса
     let body: string | undefined;
 

@@ -479,7 +479,7 @@ async function startServer(): Promise<void> {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-telegram-data, x-telegram-user-id");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-telegram-data, x-telegram-user-id, x-telegram-init-data");
 
     // Модифицированная политика безопасности для Telegram
     res.header("Content-Security-Policy", "default-src * 'self' data: blob: 'unsafe-inline' 'unsafe-eval'");
@@ -487,6 +487,26 @@ async function startServer(): Promise<void> {
     // Для запросов OPTIONS возвращаем 200 OK
     if (req.method === 'OPTIONS') {
       return res.status(200).send();
+    }
+
+    // Обработка Telegram initData
+    const telegramInitData = req.headers['x-telegram-init-data'] as string;
+    if (telegramInitData) {
+      try {
+        // Парсим initData (обычно это URL-encoded строка)
+        const urlParams = new URLSearchParams(telegramInitData);
+        const userParam = urlParams.get('user');
+        
+        if (userParam) {
+          const userData = JSON.parse(userParam);
+          console.log('[TelegramWebApp] Получены данные пользователя из initData:', userData);
+          
+          // Сохраняем обработанные данные в заголовок для дальнейшего использования
+          req.headers['x-telegram-data'] = JSON.stringify({ user: userData });
+        }
+      } catch (error) {
+        console.error('[TelegramWebApp] Ошибка парсинга initData:', error);
+      }
     }
 
     // Логирование параметров Telegram

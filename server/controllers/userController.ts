@@ -783,6 +783,163 @@ export const UserController = {
       logger.error('[UserController] Помилка при додаванні TON гаманця:', error);
       sendServerError(res, 'Ошибка при добавлении TON кошелька');
     }
+  },
+  /**
+ * Обработка Telegram initData и создание/получение пользователя
+ */
+async getMeController(req: Request, res: Response): Promise<void> {
+  try {
+    const { user_id, telegram_id, guest_id } = req.query;
+
+    console.log('[GetMe] Запрос данных пользователя:', {
+      user_id,
+      telegram_id,
+      guest_id,
+      headers: req.headers['x-telegram-data'] ? 'present' : 'missing'
+    });
+
+    let user = null;
+
+    // Обрабатываем Telegram initData если присутствует
+    const telegramData = req.headers['x-telegram-data'] as string;
+    if (telegramData) {
+      try {
+        console.log('[GetMe] Обработка Telegram initData...');
+        const parsedData = JSON.parse(telegramData);
+
+        if (parsedData.user) {
+          const telegramUser = parsedData.user;
+          console.log('[GetMe] Telegram пользователь:', telegramUser);
+
+          // Ищем существующего пользователя по telegram_id
+          const existingResult = await pool.query(`
+            SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
+                   ref_code, created_at 
+            FROM users WHERE telegram_id = $1 LIMIT 1
+          `, [telegramUser.id.toString()]);
+
+          if (existingResult.rows.length > 0) {
+            user = existingResult.rows[0];
+            console.log('[GetMe] Найден существующий Telegram пользователь:', user.id);
+          } else {
+            // Создаем нового пользователя из Telegram данных
+            console.log('[GetMe] Создание нового Telegram пользователя...');
+
+            // Генерируем реферальный код
+            const refCode = generateRefCode(telegramUser.username || telegramUser.first_name);
+
+            const insertResult = await pool.query(`
+              INSERT INTO users (
+                username, 
+                telegram_id, 
+                uni_balance, 
+                ton_balance, 
+                ref_code,
+                guest_id,
+                created_at
+              ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+              RETURNING id, username, guest_id, telegram_id, uni_balance, ton_balance, ref_code, created_at
+            `, [
+              telegramUser.username || telegramUser.first_name || 'telegram_user',
+              telegramUser.id.toString(),
+              '1000.00', // Начальный баланс UNI
+              '0.00',    // Начальный баланс TON
+              refCode,
+              `tg_${telegramUser.id}` // guest_id как fallback
+            ]);
+
+            user = insertResult.rows[0];
+            console.log('[GetMe] Создан новый Telegram пользователь:', user.id);
+          }
+        }
+      } catch (telegramError) {
+        console.error('[GetMe] Ошибка обработки Telegram данных:', telegramError);
+      }
+    }
+
+    // Если пользователь не найден через Telegram, используем стандартный поиск
+    if (!user) {
+      if (user_id) {
+        console.log('[GetMe] Поиск по user_id:', user_id);
+        const result = await pool.query(`
+            SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
+                   ref_code, created_at 
+            FROM users WHERE id = $1 LIMIT 1
+           `, [user_id]);
+
+        if (result.rows.length > 0) {
+          user = result.rows[0];
+        }
+      } else if (telegram_id) {
+        console.log('[GetMe] Поиск по telegram_id:', telegram_id);
+        const result = await pool.query(`
+            SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
+                   ref_code, created_at 
+            FROM users WHERE telegram_id = $1 LIMIT 1
+           `, [telegram_id]);
+
+        if (result.rows.length > 0) {
+          user = result.rows[0];
+        }
+      } else if (guest_id) {
+        console.log('[GetMe] Поиск по guest_id:', guest_id);
+        const result = await pool.query(`
+            SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
+                   ref_code, created_at 
+            FROM users WHERE guest_id = $1 LIMIT 1
+           `, [guest_id]);
+
+        if (result.rows.length > 0) {
+          user = result.rows[0];
+        }
+      }
+    }
+
+    if (!user) {
+      console.log('[GetMe] Пользователь не найден, возвращаем 404');
+      res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+      return;
+    }
+
+    // Форматируем ответ
+    const userData = {
+      id: user.id,
+      username: user.username || '',
+      guest_id: user.guest_id || '',
+      telegram_id: user.telegram_id || '',
+      uni_balance: parseFloat(user.uni_balance || '0'),
+      ton_balance: parseFloat(user.ton_balance || '0'),
+      balance_uni: parseFloat(user.uni_balance || '0'),
+      balance_ton: parseFloat(user.ton_balance || '0'),
+      ref_code: user.ref_code || '',
+      created_at: user.created_at
+    };
+
+    console.log('[GetMe] Отправляем данные пользователя:', userData.id, userData.ref_code);
+
+    res.json({
+      success: true,
+      data: userData
+    });
+  } catch (error) {
+    console.error('[GetMe] Ошибка получения пользователя:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Database error'
+    });
   }
+}
+
+/**
+ * Генерирует уникальный реферальный код
+ */
+function generateRefCode(username: string): string {
+  const timestamp = Date.now().toString().slice(-8);
+  const cleanUsername = username.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8);
+  return `${cleanUsername}${timestamp}`;
+}
 
 };
