@@ -4,7 +4,6 @@
 
 import express from 'express';
 import { Pool } from 'pg';
-import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -20,7 +19,18 @@ const pool = new Pool({
   ssl: false
 });
 
-app.use(cors());
+// Расширенная CORS настройка для работы с Telegram WebApp
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-guest-id, x-telegram-user-id');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 app.use(express.json());
 
 // Статичные файлы
