@@ -711,11 +711,11 @@ async function startServer(): Promise<void> {
   });
 
   // Маппинг для Missions эндпоинтов
-  app.get('/api/missions/active', (req, res, next) => {
-    logger.info('[API MAP] /api/missions/active → /api/v2/missions/active');
-    req.url = '/api/v2/missions/active';
-    next();
-  });
+  // app.get('/api/missions/active', (req, res, next) => {
+  //   logger.info('[API MAP] /api/missions/active → /api/v2/missions/active');
+  //   req.url = '/api/v2/missions/active';
+  //   next();
+  // }); // Отключено - конфликтует с прямым обработчиком
 
   app.get('/api/user-missions', (req, res, next) => {
     logger.info('[API MAP] /api/user-missions → /api/v2/user-missions');
@@ -1008,39 +1008,7 @@ async function startServer(): Promise<void> {
     });
   });
 
-  // КРИТИЧНО: Швидкий тестовий ендпоінт для місій з реальними даними з БД
-  app.get('/api/v2/missions/active', async (req: any, res: any) => {
-    try {
-      console.log('[QUICK FIX] 🔍 Запрос активных миссий через прямое подключение к БД');
-
-      // Импортируем функцию для подключения к БД
-      const { getSingleDbConnection } = await import('./single-db-connection.js');
-      const { missions } = await import('../shared/schema.js');
-      const { eq } = await import('drizzle-orm');
-
-      const db = await getSingleDbConnection();
-
-      const activeMissions = await db
-        .select()
-        .from(missions)
-        .where(eq(missions.is_active, true));
-
-      console.log('[QUICK FIX] ✅ Знайдено місій:', activeMissions.length);
-
-      res.status(200).json({
-        success: true,
-        data: activeMissions,
-        message: 'Активные миссии получены из БД'
-      });
-    } catch (error) {
-      console.error('[QUICK FIX] ❌ Ошибка:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения миссий',
-        message: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
+  // Удален конфликтующий обработчик для миссий - используется hardcoded версия выше
 
   // Настраиваем обработку статических файлов в зависимости от окружения
   if (app.get("env") === "development") {
