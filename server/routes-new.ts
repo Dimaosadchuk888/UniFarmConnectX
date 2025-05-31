@@ -586,7 +586,7 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   });
   logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/me добавлен для отображения баланса');
 
-  logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/wallet/balance будет обработан через WalletController');
+  // Wallet balance endpoint обрабатывается через WalletController ниже
 
   // Регистрация пользователя через Telegram или guest_id
   app.post('/api/register/telegram', async (req: any, res: any) => {
@@ -707,11 +707,7 @@ export async function registerNewRoutes(app: Express): Promise<void> {
     }
   });
 
-  // [TG REGISTRATION FIX] Новый эндпоинт для регистрации через Telegram
-  if (typeof UserController.createUserFromTelegram === 'function') {
-    app.post('/api/register/telegram', safeHandler(UserController.createUserFromTelegram));
-    logger.info('[NewRoutes] ✓ Telegram регистрация эндпоинт добавлен: POST /api/register/telegram');
-  }
+  // [TG REGISTRATION FIX] Удален дубликат - основной маршрут определен выше
 
   // Маршруты для транзакций
   if (typeof TransactionController.getUserTransactions === 'function') {
@@ -720,10 +716,6 @@ export async function registerNewRoutes(app: Express): Promise<void> {
 
   // Маршруты для заданий с использованием консолидированного контроллера
   if (MissionControllerFixed) {
-    // Дублированный маршрут missions/active удален - используется основная версия выше
-
-    // Дублированный маршрут user-missions удален - используется основная версия выше
-
     if (typeof MissionControllerFixed.getMissionsWithCompletion === 'function') {
       app.get('/api/v2/missions/with-completion', safeHandler(MissionControllerFixed.getMissionsWithCompletion));
     }
@@ -731,8 +723,6 @@ export async function registerNewRoutes(app: Express): Promise<void> {
     if (typeof MissionControllerFixed.checkMissionCompletion === 'function') {
       app.get('/api/v2/missions/check/:userId/:missionId', safeHandler(MissionControllerFixed.checkMissionCompletion));
     }
-
-    // Дублированный маршрут missions/complete удален - используется основная версия выше
 
     // КРИТИЧЕСКИЙ МАРШРУТ: добавляем отсутствующий endpoint для frontend
     if (typeof MissionControllerFixed.getUserCompletedMissions === 'function') {
