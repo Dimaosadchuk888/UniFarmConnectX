@@ -1,8 +1,4 @@
 import { Router } from 'express';
-import { handleTelegramWebhook } from './webhook';
-import { initializeBot } from './bot';
-import logger from '../utils/logger';
-import { setupWebhook, getWebhookInfo, setMenuButton } from './setup-hook';
 
 const telegramRouter = Router();
 
