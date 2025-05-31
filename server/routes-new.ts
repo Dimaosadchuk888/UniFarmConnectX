@@ -122,6 +122,7 @@ export function registerNewRoutes(app: Express): void {
         if (result.rows.length > 0) {
           const user = result.rows[0];
           await pool.end();
+          console.log('[GetMe] Пользователь найден по user_id:', user.id);
           return res.json({
             success: true,
             data: {
@@ -129,16 +130,20 @@ export function registerNewRoutes(app: Express): void {
               username: user.username,
               guest_id: user.guest_id,
               telegram_id: user.telegram_id,
-              uni_balance: user.uni_balance,
-              ton_balance: user.ton_balance,
+              uni_balance: parseFloat(user.uni_balance) || 0,
+              ton_balance: parseFloat(user.ton_balance) || 0,
+              balance_uni: parseFloat(user.uni_balance) || 0,
+              balance_ton: parseFloat(user.ton_balance) || 0,
               ref_code: user.ref_code,
               ref_by: user.ref_by,
               created_at: user.created_at,
-              first_name: user.first_name
+              first_name: user.first_name,
+              is_telegram_user: !!user.telegram_id
             }
           });
         }
         await pool.end();
+        console.log('[GetMe] Пользователь не найден по user_id:', user_id);
       }
       
       if (!telegram_id && !guest_id) {
