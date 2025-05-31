@@ -67,12 +67,34 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   app.get('/api/missions', safeHandler(async (req, res) => {
     try {
       logger.info('[NewRoutes] 🚀 Запрос миссий через /api/missions');
-      const activeMissions = await MissionControllerFixed.getActiveMissions(req, res, () => {});
+      
+      // Используем unified database connection для получения активных миссий
+      const { queryWithRetry } = await import('./db-unified');
+      const missions = await queryWithRetry(`
+        SELECT 
+          id, title, description, reward, type, 
+          status, created_at, updated_at,
+          external_link, required_action, verification_type
+        FROM missions 
+        WHERE status = 'active' 
+        ORDER BY created_at DESC
+      `);
+      
+      logger.info(`[NewRoutes] ✅ Найдено ${missions?.length || 0} активных миссий`);
+      
+      res.status(200).json({
+        success: true,
+        data: missions || [],
+        count: missions?.length || 0,
+        timestamp: new Date().toISOString()
+      });
+      
     } catch (error) {
       logger.error('[NewRoutes] ❌ Ошибка /api/missions:', error);
       res.status(500).json({
         success: false,
-        error: 'API endpoint not found'
+        error: 'Failed to fetch missions',
+        details: error instanceof Error ? error.message : String(error)
       });
     }
   }));
