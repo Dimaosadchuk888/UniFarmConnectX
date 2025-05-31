@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-05-31T05:16:14.504Z",
+  "phase1": {
+    "description": "Удаление безопасных архивных файлов",
+    "status": "completed",
+    "filesRemoved": [
+      "archive/db-backups/db-service-wrapper.ts",
+      "archive/telegram-bot-scripts/setup-webhook.js",
+      "archive/telegram-bot-scripts/update-menu-button.js",
+      "backup/index.ts",
+      "backup/routes/routes-new.ts",
+      "backup/routes/routes.ts",
+      "dist/public/index.html.bak"
+    ]
+  },
+  "phase2": {
+    "description": "Очистка пустых директорий",
+    "status": "completed"
+  },
+  "nextSteps": {
+    "description": "Следующие шаги для полной очистки",
+    "items": [
+      "Удалить bug-fixes-proposal.js (содержит тестовые дубликаты функций)",
+      "Консолидировать скрипты с одинаковой функциональностью (.js/.mjs/.cjs)",
+      "Удалить неиспользуемые тестовые скрипты после проверки",
+      "Стандартизировать структуру директорий"
+    ]
+  },
+  "backup": {
+    "location": "cleanup-backup",
+    "description": "Все удаленные файлы сохранены для возможности восстановления"
+  }
+}
