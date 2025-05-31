@@ -26,70 +26,47 @@ const TelegramInitializer = () => {
           setIsReady(true);
         };
 
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если есть объект Telegram, сразу отмечаем готовым
+        if (typeof window !== 'undefined' && window.Telegram) {
+          console.log('[TelegramInitializer] ✅ Telegram объект обнаружен, немедленно отмечаем готовым');
+          handleWebAppReady();
+        }
+
         // Слушаем события WebApp
         if (typeof window !== 'undefined' && window.addEventListener) {
           window.addEventListener('web_app_ready', handleWebAppReady);
         }
 
-        // Дополнительная проверка: если WebApp уже есть, сразу отмечаем готовым
-        if (window.Telegram?.WebApp) {
-          console.log('[TelegramInitializer] 🎯 WebApp уже доступен, отмечаем готовым');
-          handleWebAppReady();
-        }
-
-        // Ждем готовности Telegram WebApp
-        let attempts = 0;
-        const maxAttempts = 30;
-
-        const waitForTelegram = (): Promise<boolean> => {
-          return new Promise((resolve) => {
-            const checkTelegram = () => {
-              attempts++;
-
-              if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-                resolve(true);
-                return;
-              }
-
-              if (attempts >= maxAttempts) {
-                console.log('[TelegramInitializer] ⚠️ Telegram WebApp недоступен после ожидания');
-                resolve(false);
-                return;
-              }
-
-              setTimeout(checkTelegram, 200);
-            };
-
-            checkTelegram();
-          });
-        };
-
-        const telegramReady = await waitForTelegram();
+        // Упрощенная проверка готовности Telegram WebApp
+        const telegramReady = !!(typeof window !== 'undefined' && window.Telegram);
 
         if (telegramReady && window.Telegram?.WebApp) {
           const tg = window.Telegram.WebApp;
+          
+          try {
+            // Расширяем WebApp на весь экран
+            if (typeof tg.expand === 'function') tg.expand();
 
-          // Расширяем WebApp на весь экран
-          tg.expand();
+            // Настраиваем тему
+            if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#1a1a1a');
+            if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#0a0a0a');
 
-          // Настраиваем тему
-          tg.setHeaderColor('#1a1a1a');
-          tg.setBackgroundColor('#0a0a0a');
+            // Включаем закрывающую кнопку
+            if (typeof tg.enableClosingConfirmation === 'function') tg.enableClosingConfirmation();
 
-          // Включаем закрывающую кнопку
-          tg.enableClosingConfirmation();
-
-          // Уведомляем о готовности
-          tg.ready();
-
-          // Принудительно отмечаем как готовый
-          handleWebAppReady();
+            // Уведомляем о готовности
+            if (typeof tg.ready === 'function') tg.ready();
+          } catch (e) {
+            console.warn('[TelegramInitializer] Ошибка при настройке WebApp:', e);
+          }
 
           console.log('[TelegramInitializer] ✅ Telegram WebApp успешно инициализирован');
         } else {
-          console.log('[TelegramInitializer] ⚠️ Переходим в standalone режим');
-          setIsReady(true); // Разрешаем работу в standalone режиме
+          console.log('[TelegramInitializer] ✅ Переходим в standalone режим');
         }
+        
+        // В любом случае разрешаем работу приложения
+        setIsReady(true);
 
         // Очистка обработчика при размонтировании
         return () => {

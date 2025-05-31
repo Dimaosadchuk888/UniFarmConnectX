@@ -247,17 +247,17 @@ const getOrCreateGuestId = (): string => {
  */
 const isTelegramWebAppReady = (): boolean => {
   try {
-    // Если Telegram WebApp не доступен, считаем что "готов" (не нужно ждать)
-    if (!telegramService.isAvailable()) {
-      console.log('[sessionRestoreService] Telegram WebApp не обнаружен, считаем "готовым"');
+    // ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ: всегда считаем готовым, если есть объект Telegram
+    if (typeof window !== 'undefined' && window.Telegram) {
+      // Автоматически отмечаем как готовый
+      markTelegramWebAppAsReady();
+      console.log('[sessionRestoreService] ✅ Telegram объект найден, считаем готовым');
       return true;
     }
 
-    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если WebApp объект существует, считаем готовым
-    if (window.Telegram?.WebApp) {
-      // Автоматически отмечаем как готовый
-      markTelegramWebAppAsReady();
-      console.log('[sessionRestoreService] ✅ Telegram WebApp объект найден, считаем готовым');
+    // Если Telegram WebApp не доступен через telegramService, считаем что "готов"
+    if (!telegramService.isAvailable()) {
+      console.log('[sessionRestoreService] ✅ Telegram WebApp не обнаружен, считаем готовым');
       return true;
     }
 
