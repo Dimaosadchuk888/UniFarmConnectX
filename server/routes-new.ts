@@ -57,7 +57,7 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   // Функция для генерации уникального реферального кода
   async function generateUniqueRefCode(): Promise<string> {
     const { queryWithRetry } = await import('./db-unified');
-    
+
     for (let attempt = 0; attempt < 10; attempt++) {
       // Генерируем код из 8 символов
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -65,18 +65,18 @@ export async function registerNewRoutes(app: Express): Promise<void> {
       for (let i = 0; i < 8; i++) {
         refCode += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-      
+
       // Проверяем уникальность
       const existing = await queryWithRetry(
         'SELECT id FROM users WHERE ref_code = $1 LIMIT 1',
         [refCode]
       );
-      
+
       if (!existing || existing.length === 0) {
         return refCode;
       }
     }
-    
+
     // Если не удалось сгенерировать уникальный код, используем timestamp
     return `REF${Date.now().toString(36).toUpperCase()}`;
   }
@@ -143,7 +143,7 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   try {
     const quickDbTestModule = await import('./api/quick-db-test');
     const quickDbTest = quickDbTestModule.default || quickDbTestModule.quickDbTest;
-    
+
     if (typeof quickDbTest === 'function') {
       app.get('/api/quick-db-test', safeHandler(quickDbTest));
       logger.info('[NewRoutes] ✅ Быстрый тест БД добавлен: GET /api/quick-db-test');
@@ -585,8 +585,6 @@ export async function registerNewRoutes(app: Express): Promise<void> {
     }
   });
   logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/me добавлен для отображения баланса');
-
-  // Wallet balance endpoint обрабатывается через WalletController ниже
 
   // Регистрация пользователя через Telegram или guest_id
   app.post('/api/register/telegram', async (req: any, res: any) => {
