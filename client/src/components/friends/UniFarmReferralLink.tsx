@@ -267,7 +267,11 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
         if (document.body) {
           const textArea = document.createElement('textarea');
           textArea.value = linkToCopy;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          textArea.style.top = '-999999px';
           document.body.appendChild(textArea);
+          textArea.focus();
           textArea.select();
           document.execCommand('copy');
           document.body.removeChild(textArea);

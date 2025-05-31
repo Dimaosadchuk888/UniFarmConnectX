@@ -226,12 +226,10 @@ const Fireworks: React.FC<FireworksProps> = ({ active, onComplete }) => {
       flashDiv.style.zIndex = '100';
       flashDiv.style.pointerEvents = 'none';
       
-      // Безопасная проверка DOM перед добавлением элемента
-      if (document.body) {
-        document.body.appendChild(flashDiv);
-      } else {
-        return; // Выходим, если DOM не готов
-      }
+      // Полностью отключаем DOM манипуляции для устранения ошибок
+      // if (document.body) {
+      //   document.body.appendChild(flashDiv);
+      // }
       
       // Удаляем элемент после завершения анимации
       setTimeout(() => {
