@@ -5,7 +5,7 @@ const router = Router();
 const walletController = new WalletController();
 
 // Маршруты кошелька
-router.get('/:userId/balance', walletController.getBalance);
+router.get('/', walletController.getWalletData);
 router.get('/:userId/transactions', walletController.getTransactions);
 router.post('/withdraw', walletController.withdraw);
 
