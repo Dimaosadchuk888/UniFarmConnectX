@@ -117,7 +117,9 @@ export async function correctApiRequest<T = any>(
 
   // Добавляем guest_id если доступен
   try {
-    const guestId = localStorage.getItem('unifarm_guest_id');
+    // Импортируем sessionStorageService и извлекаем guest_id
+    const { getGuestId } = await import('@/services/sessionStorageService');
+    const guestId = getGuestId();
     if (guestId) {
       headers['X-Guest-Id'] = guestId;
     }
