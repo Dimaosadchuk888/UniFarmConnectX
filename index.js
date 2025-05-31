@@ -71,7 +71,7 @@ async function importModules() {
       TelegramController 
     } = await import('./modules/index.js');
     
-    const { telegramMiddleware } = await import('./modules/telegram/middleware.js');
+    const { telegramMiddleware } = await import('./modules/telegram/middleware.ts');
     
     return {
       UserController,

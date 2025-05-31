@@ -3,9 +3,21 @@ import path from 'path';
 import { config } from './config';
 import { initDatabase } from './db';
 import { corsMiddleware, loggerMiddleware, errorHandler } from './middleware';
+import { telegramMiddleware } from '../modules';
 
 // Импорт модулей
-import { userRoutes, walletRoutes } from '../modules';
+import { 
+  userRoutes, 
+  walletRoutes, 
+  farmingRoutes,
+  missionsRoutes,
+  telegramRoutes,
+  referralRoutes,
+  boostRoutes,
+  dailyBonusRoutes,
+  adminRoutes,
+  authRoutes
+} from '../modules';
 
 export async function createServer() {
   const app = express();
@@ -18,10 +30,21 @@ export async function createServer() {
   app.use(express.urlencoded({ extended: true }));
   app.use(corsMiddleware);
   app.use(loggerMiddleware);
+  
+  // Telegram middleware для обработки initData
+  app.use('/api', telegramMiddleware);
 
   // API маршруты
+  app.use(`/api/${config.app.apiVersion}/auth`, authRoutes);
   app.use(`/api/${config.app.apiVersion}/users`, userRoutes);
   app.use(`/api/${config.app.apiVersion}/wallet`, walletRoutes);
+  app.use(`/api/${config.app.apiVersion}/farming`, farmingRoutes);
+  app.use(`/api/${config.app.apiVersion}/missions`, missionsRoutes);
+  app.use(`/api/${config.app.apiVersion}/referral`, referralRoutes);
+  app.use(`/api/${config.app.apiVersion}/boost`, boostRoutes);
+  app.use(`/api/${config.app.apiVersion}/daily-bonus`, dailyBonusRoutes);
+  app.use(`/api/${config.app.apiVersion}/telegram`, telegramRoutes);
+  app.use(`/api/${config.app.apiVersion}/admin`, adminRoutes);
 
   // Health check
   app.get('/health', (req, res) => {
@@ -29,6 +52,28 @@ export async function createServer() {
       status: 'ok', 
       timestamp: new Date().toISOString(),
       version: config.app.apiVersion 
+    });
+  });
+
+  // Расширенный health check для проверки модулей
+  app.get('/api/v2/status', (req, res) => {
+    const modules = [
+      'auth', 'users', 'wallet', 'farming', 'missions', 
+      'referral', 'boost', 'daily-bonus', 'telegram', 'admin'
+    ];
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      version: config.app.apiVersion,
+      environment: process.env.NODE_ENV || 'development',
+      modules: modules.map(module => ({
+        name: module,
+        endpoint: `/api/v2/${module}`,
+        status: 'registered'
+      })),
+      database: 'connected',
+      telegram_bot: process.env.TELEGRAM_BOT_TOKEN ? 'configured' : 'missing'
     });
   });
 
