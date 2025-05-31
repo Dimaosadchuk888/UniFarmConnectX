@@ -151,6 +151,7 @@ export async function registerNewRoutes(app: Express): Promise<void> {
     }
   } catch (error) {
     logger.error('[NewRoutes] ❌ Ошибка подключения quick-db-test:', error);
+    app.get('/api/quick-db-test', safeHandler(async (req, res) => {
       res.json({
         success: false,
         error: 'quick-db-test module not available',
