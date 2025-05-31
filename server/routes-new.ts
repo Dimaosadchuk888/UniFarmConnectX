@@ -81,7 +81,7 @@ export function registerNewRoutes(app: Express): void {
         ssl: { rejectUnauthorized: false }
       });
       
-      const result = await pool.query('SELECT * FROM users WHERE guest_id = $1 OR telegram_id = $2 LIMIT 1', [guest_id, '1234567890']);
+      const result = await pool.query('SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, ref_code FROM users WHERE guest_id = $1 OR telegram_id = $2 LIMIT 1', [guest_id, '1234567890']);
       
       if (result.rows.length === 0) {
         return res.status(404).json({
@@ -101,9 +101,10 @@ export function registerNewRoutes(app: Express): void {
           username: user.username,
           guest_id: user.guest_id,
           ref_code: user.ref_code,
-          balance_uni: user.balance_uni,
-          balance_ton: user.balance_ton,
-          uni_farming_rate: user.uni_farming_rate
+          uni_balance: user.uni_balance,
+          ton_balance: user.ton_balance,
+          balance_uni: user.uni_balance,
+          balance_ton: user.ton_balance
         }
       });
     } catch (error) {
