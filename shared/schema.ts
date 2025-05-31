@@ -274,6 +274,7 @@ export type BoostDeposit = typeof boostDeposits.$inferSelect;
 export const tonBoostDeposits = pgTable("ton_boost_deposits", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id").notNull().references(() => users.id),
+  boost_package_id: integer("boost_package_id").notNull(), // ID пакета (1-4)
   ton_amount: numeric("ton_amount", { precision: 18, scale: 5 }).notNull(), // Сумма TON в депозите
   bonus_uni: numeric("bonus_uni", { precision: 18, scale: 6 }).notNull(), // Единоразовый бонус UNI
   rate_ton_per_second: numeric("rate_ton_per_second", { precision: 20, scale: 18 }).notNull(), // Скорость фарминга TON
@@ -287,6 +288,7 @@ export const tonBoostDeposits = pgTable("ton_boost_deposits", {
 // Схемы для таблицы ton_boost_deposits
 export const insertTonBoostDepositSchema = createInsertSchema(tonBoostDeposits).pick({
   user_id: true,
+  boost_package_id: true,
   ton_amount: true,
   bonus_uni: true,
   rate_ton_per_second: true,
@@ -414,6 +416,18 @@ export const boostPackages = pgTable("boost_packages", {
   created_at: timestamp("created_at").defaultNow()
 });
 
+// Таблица ton_boost_packages для конфигурации TON Boost пакетов
+export const tonBoostPackages = pgTable("ton_boost_packages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Starter Boost, Standard Boost, Advanced Boost, Premium Boost
+  description: text("description"),
+  price_ton: numeric("price_ton", { precision: 18, scale: 5 }).notNull(), // Стоимость в TON
+  bonus_uni: numeric("bonus_uni", { precision: 18, scale: 6 }).notNull(), // Единоразовый бонус UNI
+  daily_rate: numeric("daily_rate", { precision: 5, scale: 3 }).notNull(), // Ставка в день (0.005, 0.01, 0.02, 0.025)
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow()
+});
+
 // Схемы для таблицы boost_packages
 export const insertBoostPackageSchema = createInsertSchema(boostPackages).pick({
   name: true,
@@ -426,6 +440,19 @@ export const insertBoostPackageSchema = createInsertSchema(boostPackages).pick({
 
 export type InsertBoostPackage = z.infer<typeof insertBoostPackageSchema>;
 export type BoostPackage = typeof boostPackages.$inferSelect;
+
+// Схемы для таблицы ton_boost_packages
+export const insertTonBoostPackageSchema = createInsertSchema(tonBoostPackages).pick({
+  name: true,
+  description: true,
+  price_ton: true,
+  bonus_uni: true,
+  daily_rate: true,
+  is_active: true
+});
+
+export type InsertTonBoostPackage = z.infer<typeof insertTonBoostPackageSchema>;
+export type TonBoostPackage = typeof tonBoostPackages.$inferSelect;
 
 // Схемы для таблицы launch_logs
 export const insertLaunchLogSchema = createInsertSchema(launchLogs).pick({
