@@ -210,8 +210,8 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     const telegramAvailable = typeof window !== 'undefined' && window.Telegram?.WebApp;
     console.log('[UniFarmReferralLink] Telegram доступность:', {
       available: telegramAvailable,
-      hasInitData: telegramAvailable ? !!window.Telegram.WebApp.initData : false,
-      hasUser: telegramAvailable ? !!window.Telegram.WebApp.initDataUnsafe?.user : false
+      hasInitData: telegramAvailable ? !!window.Telegram?.WebApp?.initData : false,
+      hasUser: telegramAvailable ? !!window.Telegram?.WebApp?.initDataUnsafe?.user : false
     });
     
     // Всегда запрашиваем обновленные данные при монтировании компонента
