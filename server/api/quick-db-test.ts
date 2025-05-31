@@ -63,3 +63,6 @@ export async function quickDbTest(req: Request, res: Response) {
 
 // Экспорт по умолчанию для совместимости
 export default quickDbTest;
+
+// Также экспортируем именованную функцию для обратной совместимости
+export { quickDbTest };

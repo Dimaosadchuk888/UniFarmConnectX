@@ -90,34 +90,13 @@ export async function registerNewRoutes(app: Express): Promise<void> {
     logger.warn('[NewRoutes] ⚠️ Не удалось подключить simple-missions:', error.message);
   }
 
-  // КРИТИЧНО: Добавляем основной маршрут для миссий
+  // КРИТИЧНО: Основной маршрут для миссий (используем MissionControllerFixed)
   app.get('/api/missions', safeHandler(async (req, res) => {
     try {
       logger.info('[NewRoutes] 🚀 Запрос миссий через /api/missions');
 
-      // Используем unified database connection для получения активных миссий
-      const { queryWithRetry } = await import('./db-unified');
-      
-      // Получаем активные миссии из базы данных
-      const missions = await queryWithRetry(`
-        SELECT 
-          id, title, description, reward, type, 
-          status, created_at, updated_at,
-          external_link, required_action, verification_type
-        FROM missions 
-        WHERE status = 'active' 
-        ORDER BY created_at DESC
-      `);
-
-      logger.info(`[NewRoutes] ✅ Найдено ${missions?.length || 0} активных миссий`);
-
-      // Возвращаем миссии в правильном формате
-      res.status(200).json({
-        success: true,
-        data: missions || [],
-        count: missions?.length || 0,
-        timestamp: new Date().toISOString()
-      });
+      // Используем фиксированный контроллер миссий
+      return await MissionControllerFixed.getActiveMissions(req, res);
 
     } catch (error) {
       logger.error('[NewRoutes] ❌ Ошибка /api/missions:', error);
@@ -150,11 +129,17 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   app.use('/api/telegram', telegramRouter);
   logger.info('[NewRoutes] Маршруты для Telegram бота зарегистрированы');
 
-  // Быстрый тест БД
+  // Быстрый тест БД - используем default export
   try {
-    const { quickDbTest } = await import('./api/quick-db-test');
-    app.get('/api/quick-db-test', safeHandler(quickDbTest));
-    logger.info('[NewRoutes] ✅ Быстрый тест БД добавлен: GET /api/quick-db-test');
+    const quickDbTestModule = await import('./api/quick-db-test');
+    const quickDbTest = quickDbTestModule.default || quickDbTestModule.quickDbTest;
+    
+    if (typeof quickDbTest === 'function') {
+      app.get('/api/quick-db-test', safeHandler(quickDbTest));
+      logger.info('[NewRoutes] ✅ Быстрый тест БД добавлен: GET /api/quick-db-test');
+    } else {
+      throw new Error('quickDbTest is not a function');
+    }
   } catch (error) {
     logger.error('[NewRoutes] ❌ Ошибка подключения quick-db-test:', error);
     app.get('/api/quick-db-test', safeHandler(async (req, res) => {
@@ -162,7 +147,8 @@ export async function registerNewRoutes(app: Express): Promise<void> {
         success: false,
         error: 'quick-db-test module not available',
         fallback: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        details: error.message
       });
     }));
   }
