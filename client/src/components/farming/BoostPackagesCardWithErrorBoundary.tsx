@@ -5,7 +5,7 @@ import { useUser } from '@/contexts/userContext';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface BoostPackagesCardWithErrorBoundaryProps {
-  userData: any;
+  userData?: any;
 }
 
 /**
@@ -15,7 +15,7 @@ interface BoostPackagesCardWithErrorBoundaryProps {
 const BoostPackagesCardWithErrorBoundary: React.FC<BoostPackagesCardWithErrorBoundaryProps> = ({ userData }) => {
   const queryClient = useQueryClient();
   const { userId } = useUser();
-  
+
   // Обработчик сброса состояния ошибки и инвалидации данных
   const handleReset = () => {
     if (userId) {
@@ -24,7 +24,7 @@ const BoostPackagesCardWithErrorBoundary: React.FC<BoostPackagesCardWithErrorBou
       });
     }
   };
-  
+
   return (
     <QueryErrorBoundary
       onReset={handleReset}

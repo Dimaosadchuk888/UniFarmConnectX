@@ -688,7 +688,7 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
                 {/* Button */}
                 <button 
                   className="w-full py-3 px-4 rounded-lg font-medium bg-white/20 backdrop-blur-sm text-white transition-all duration-300 hover:bg-white/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:scale-100 flex items-center justify-center gap-2"
-                  disabled={purchasingBoostId !== null}
+                  disabled={purchasingBoostId === boost.id}
                   onClick={() => handleBuyBoost(boost.id)}
                 >
                   {purchasingBoostId === boost.id ? (

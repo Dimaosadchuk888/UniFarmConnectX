@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UniFarmingCardWithErrorBoundary from '../components/farming/UniFarmingCardWithErrorBoundary';
 import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPackagesCardWithErrorBoundary';
 import TonBoostPackagesCardWithErrorBoundary from '../components/ton-boost/TonBoostPackagesCardWithErrorBoundary';
+import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPackagesCardWithErrorBoundary';
 import TonFarmingStatusCardWithErrorBoundary from '../components/ton-boost/TonFarmingStatusCardWithErrorBoundary';
 import ActiveTonBoostsCardWithErrorBoundary from '../components/ton-boost/ActiveTonBoostsCardWithErrorBoundary';
 // ЭТАП 2: Импорт хука для управления кнопками фарминга
@@ -78,7 +79,7 @@ const Farming: React.FC = () => {
           
           {/* TON Boost-пакеты - с ErrorBoundary */}
           <div className="mb-6">
-            <TonBoostPackagesCardWithErrorBoundary userData={userData} />
+            <BoostPackagesCardWithErrorBoundary userData={userData} />
           </div>
         </TabsContent>
       </Tabs>
