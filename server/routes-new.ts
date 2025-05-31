@@ -54,6 +54,33 @@ import { performanceMonitorMiddleware, errorMonitorMiddleware } from './middlewa
 export async function registerNewRoutes(app: Express): Promise<void> {
   logger.info('[NewRoutes] Регистрация новых маршрутов API');
 
+  // Функция для генерации уникального реферального кода
+  async function generateUniqueRefCode(): Promise<string> {
+    const { queryWithRetry } = await import('./db-unified');
+    
+    for (let attempt = 0; attempt < 10; attempt++) {
+      // Генерируем код из 8 символов
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let refCode = '';
+      for (let i = 0; i < 8; i++) {
+        refCode += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      
+      // Проверяем уникальность
+      const existing = await queryWithRetry(
+        'SELECT id FROM users WHERE ref_code = $1 LIMIT 1',
+        [refCode]
+      );
+      
+      if (!existing || existing.length === 0) {
+        return refCode;
+      }
+    }
+    
+    // Если не удалось сгенерировать уникальный код, используем timestamp
+    return `REF${Date.now().toString(36).toUpperCase()}`;
+  }
+
   // КРИТИЧНО: Підключаємо простий робочий маршрут для місій
   try {
     const simpleMissionsRouter = await import('./routes/simple-missions');
@@ -70,6 +97,8 @@ export async function registerNewRoutes(app: Express): Promise<void> {
 
       // Используем unified database connection для получения активных миссий
       const { queryWithRetry } = await import('./db-unified');
+      
+      // Получаем активные миссии из базы данных
       const missions = await queryWithRetry(`
         SELECT 
           id, title, description, reward, type, 
@@ -82,6 +111,7 @@ export async function registerNewRoutes(app: Express): Promise<void> {
 
       logger.info(`[NewRoutes] ✅ Найдено ${missions?.length || 0} активных миссий`);
 
+      // Возвращаем миссии в правильном формате
       res.status(200).json({
         success: true,
         data: missions || [],
@@ -123,17 +153,18 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   // Быстрый тест БД
   try {
     const { quickDbTest } = await import('./api/quick-db-test');
-    app.get('/api/quick-db-test', quickDbTest);
-    logger.info('[NewRoutes] Быстрый тест БД добавлен: GET /api/quick-db-test');
+    app.get('/api/quick-db-test', safeHandler(quickDbTest));
+    logger.info('[NewRoutes] ✅ Быстрый тест БД добавлен: GET /api/quick-db-test');
   } catch (error) {
-    logger.warn('[NewRoutes] ⚠️ quick-db-test не найден, создаем заглушку');
-    app.get('/api/quick-db-test', (req, res) => {
+    logger.error('[NewRoutes] ❌ Ошибка подключения quick-db-test:', error);
+    app.get('/api/quick-db-test', safeHandler(async (req, res) => {
       res.json({
-        success: true,
-        message: 'DB test endpoint',
+        success: false,
+        error: 'quick-db-test module not available',
+        fallback: true,
         timestamp: new Date().toISOString()
       });
-    });
+    }));
   }
 
   // Регистрируем администативные маршруты
