@@ -151,7 +151,6 @@ export async function registerNewRoutes(app: Express): Promise<void> {
     }
   } catch (error) {
     logger.error('[NewRoutes] ❌ Ошибка подключения quick-db-test:', error);
-    app.get('/api/quick-db-test', safeHandler(async (req, res) => {
       res.json({
         success: false,
         error: 'quick-db-test module not available',
@@ -493,7 +492,6 @@ export async function registerNewRoutes(app: Express): Promise<void> {
 
     // Добавим обработку запроса для guest пользователя, если UserController.getUserByGuestId существует
   if (typeof UserController.getUserByGuestId === 'function') {
-    app.get('/api/v2/users/guest/:guest_id', safeHandler(UserController.getUserByGuestId));
     logger.info('[NewRoutes] ✓ Маршрут для получения пользователя по guest_id: GET /api/v2/users/guest/:guest_id');
   } else {
     logger.warn('[NewRoutes] ⚠️  UserController.getUserByGuestId не определен, маршрут GET /api/v2/users/guest/:guest_id не добавлен');
@@ -586,7 +584,6 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   logger.info('[NewRoutes] ✓ Критический endpoint /api/v2/me добавлен для отображения баланса');
 
   // Регистрация пользователя через Telegram или guest_id
-  app.post('/api/register/telegram', async (req: any, res: any) => {
     try {
       console.log('[API] POST /api/register/telegram - Начало регистрации');
       console.log('[API] Тело запроса:', req.body);
@@ -985,7 +982,6 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   }));
 
   // КРИТИЧНЫЙ ENDPOINT: Регистрация через guest_id
-  app.post('/api/register/guest', safeHandler(async (req: any, res: any) => {
     try {
       console.log('[Auth] Регистрация через guest_id:', req.body);
       const { guest_id, ref_code } = req.body;
@@ -1024,7 +1020,6 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   }));
 
   // КРИТИЧНЫЙ ENDPOINT: Поиск пользователя по guest_id
-  app.get('/api/v2/users/guest/:guest_id', safeHandler(async (req: any, res: any) => {
     try {
       console.log('[Routes] Запрос поиска пользователя по guest_id:', req.params.guest_id);
       const { guest_id } = req.params;
