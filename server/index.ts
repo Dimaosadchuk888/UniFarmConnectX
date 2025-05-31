@@ -717,7 +717,24 @@ async function startServer(): Promise<void> {
     await registerNewRoutes(app);
 
     // КРИТИЧНО: Підключаємо простий робочий маршрут для місій
-    // Simple routes removed during cleanup
+    // Прямые маршруты для миссий после восстановления
+    app.get('/api/missions', async (req, res) => {
+      try {
+        const { MissionControllerFixed } = await import('./controllers/missionControllerFixed');
+        await MissionControllerFixed.getActiveMissions(req, res, () => {});
+      } catch (error) {
+        res.status(500).json({ success: false, error: 'Missions service unavailable' });
+      }
+    });
+    
+    app.get('/api/v2/missions/active', async (req, res) => {
+      try {
+        const { MissionControllerFixed } = await import('./controllers/missionControllerFixed');
+        await MissionControllerFixed.getActiveMissions(req, res, () => {});
+      } catch (error) {
+        res.status(500).json({ success: false, error: 'Missions service unavailable' });
+      }
+    });
 
     // Настраиваем базовый URL для API
     const baseUrl = process.env.NODE_ENV === 'production' 
