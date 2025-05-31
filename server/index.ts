@@ -123,6 +123,21 @@ async function createApp(): Promise<Express> {
   // Регистрируем чистые API маршруты
   registerCleanRoutes(app);
 
+  // Подключаем Vite для обслуживания фронтенда
+  if (process.env.NODE_ENV === 'production') {
+    // В продакшене обслуживаем статические файлы
+    app.use(express.static('./client/dist'));
+    app.get('*', (req, res) => {
+      if (!req.path.startsWith('/api')) {
+        res.sendFile('index.html', { root: './client/dist' });
+      }
+    });
+  } else {
+    // В разработке используем Vite
+    const { setupVite } = await import('./vite.js');
+    await setupVite(app, server);
+  }
+
   // Telegram маршруты (упрощенные)
   app.get('/api/telegram/status', (req, res) => {
     const hasBotToken = Boolean(process.env.TELEGRAM_BOT_TOKEN);
