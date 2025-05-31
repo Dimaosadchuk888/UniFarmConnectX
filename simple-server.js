@@ -67,6 +67,12 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`[INFO] 🔗 Health check: http://localhost:${PORT}/health`);
 });
 
+// Логирование всех запросов
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Детальное логирование ошибок
 app.use((error, req, res, next) => {
   console.error('Express ошибка:', {

@@ -2,6 +2,7 @@
  * Чистые рабочие маршруты API для UniFarm
  */
 import { Express } from 'express';
+import { sql } from '@vercel/postgres';
 
 export function registerCleanRoutes(app: Express): void {
   
