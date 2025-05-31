@@ -55,7 +55,7 @@ process.on('unhandledRejection', (reason: any) => {
 });
 
 // Создание и настройка Express приложения
-async function createApp(): Promise<Express> {
+async function createApp(server: http.Server): Promise<Express> {
   const app = express();
 
   // Базовые middleware
@@ -123,15 +123,21 @@ async function createApp(): Promise<Express> {
   // Регистрируем чистые API маршруты
   registerCleanRoutes(app);
 
-  // Подключаем Vite для обслуживания фронтенда
+  // Обслуживание фронтенда
   if (process.env.NODE_ENV === 'production') {
-    // В продакшене обслуживаем статические файлы
+    // Продакшен режим - статические файлы
     app.use(express.static('./client/dist'));
-    app.get('*', (req, res) => {
+    app.get('*', (req, res, next) => {
       if (!req.path.startsWith('/api')) {
         res.sendFile('index.html', { root: './client/dist' });
+      } else {
+        next();
       }
     });
+  } else {
+    // Режим разработки - Vite dev server
+    const { setupVite } = await import('./vite.js');
+    await setupVite(app, server);
   }
 
   // Telegram маршруты (упрощенные)
@@ -165,8 +171,9 @@ async function createApp(): Promise<Express> {
 
 // Создание HTTP сервера
 async function createServer(): Promise<http.Server> {
-  const app = await createApp();
-  const server = http.createServer(app);
+  const server = http.createServer();
+  const app = await createApp(server);
+  server.on('request', app);
 
   // WebSocket сервер (упрощенный)
   const wss = new WebSocketServer({ 
