@@ -67,7 +67,7 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   app.get('/api/missions', safeHandler(async (req, res) => {
     try {
       logger.info('[NewRoutes] 🚀 Запрос миссий через /api/missions');
-      
+
       // Используем unified database connection для получения активных миссий
       const { queryWithRetry } = await import('./db-unified');
       const missions = await queryWithRetry(`
@@ -79,16 +79,16 @@ export async function registerNewRoutes(app: Express): Promise<void> {
         WHERE status = 'active' 
         ORDER BY created_at DESC
       `);
-      
+
       logger.info(`[NewRoutes] ✅ Найдено ${missions?.length || 0} активных миссий`);
-      
+
       res.status(200).json({
         success: true,
         data: missions || [],
         count: missions?.length || 0,
         timestamp: new Date().toISOString()
       });
-      
+
     } catch (error) {
       logger.error('[NewRoutes] ❌ Ошибка /api/missions:', error);
       res.status(500).json({
@@ -1030,19 +1030,19 @@ export async function registerNewRoutes(app: Express): Promise<void> {
   const { getMetrics, resetMetrics } = await import('./api/metrics');
   app.get('/api/metrics', getMetrics);
   app.post('/api/metrics/reset', resetMetrics);
-  
+
   // Endpoint для принудительного восстановления БД
   app.post('/api/system/force-recovery', requireAdminAuth, logAdminAction('FORCE_DB_RECOVERY'), async (req, res) => {
     try {
       logger.info('[System] Force recovery requested by admin');
-      
+
       const { autoRecoverySystem } = await import('./utils/auto-recovery-system');
       const { recoverDatabaseConnection } = await import('./utils/db-auto-recovery');
-      
+
       // Запускаем принудительное восстановление
       const recoveryResult = await recoverDatabaseConnection();
       const autoRecoveryStats = autoRecoverySystem.getRecoveryStats();
-      
+
       res.json({
         success: true,
         recovery: recoveryResult,
@@ -1050,7 +1050,7 @@ export async function registerNewRoutes(app: Express): Promise<void> {
         timestamp: new Date().toISOString(),
         message: recoveryResult.success ? 'Database recovery successful' : 'Database recovery failed'
       });
-      
+
     } catch (error) {
       logger.error('[System] Force recovery error:', error);
       res.status(500).json({
