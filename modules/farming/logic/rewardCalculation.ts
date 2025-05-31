@@ -6,19 +6,39 @@ import { FarmingType, RewardType } from '../model';
 
 export class RewardCalculationLogic {
   /**
-   * Расчет базового вознаграждения
+   * Базовая суточная доходность (0.5% в день)
+   */
+  private static readonly DAILY_RATE = 0.005; // 0.5%
+
+  /**
+   * Расчет базового вознаграждения (только от дохода с фарминга)
    */
   static calculateBaseReward(
     amount: string,
-    rate: number,
-    durationHours: number
+    farmingDays: number = 1
   ): string {
     try {
       const amountNum = parseFloat(amount);
-      const reward = (amountNum * rate * durationHours) / 100;
+      const reward = amountNum * this.DAILY_RATE * farmingDays;
       return reward.toFixed(8);
     } catch (error) {
       console.error('[RewardCalculation] Ошибка расчета базового вознаграждения:', error);
+      return '0';
+    }
+  }
+
+  /**
+   * Расчет дохода с фарминга по часам
+   */
+  static calculateFarmingReward(
+    depositAmount: string,
+    farmingHours: number
+  ): string {
+    try {
+      const days = farmingHours / 24;
+      return this.calculateBaseReward(depositAmount, days);
+    } catch (error) {
+      console.error('[RewardCalculation] Ошибка расчета дохода с фарминга:', error);
       return '0';
     }
   }

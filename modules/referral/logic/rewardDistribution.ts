@@ -6,7 +6,8 @@ import { DeepReferralLogic } from './deepReferral';
 
 export class ReferralRewardDistribution {
   /**
-   * Распределяет реферальные вознаграждения при farming операции
+   * Распределяет реферальные вознаграждения ТОЛЬКО от дохода с фарминга
+   * Бизнес-модель: доход от дохода, 20 уровней (1%, 2%, 3%...20%)
    */
   static async distributeFarmingRewards(
     userId: string, 
@@ -72,28 +73,9 @@ export class ReferralRewardDistribution {
   }
 
   /**
-   * Распределяет бонусы при завершении миссий
+   * УДАЛЕНО: Миссии НЕ дают реферальные бонусы
+   * Согласно бизнес-модели: только доход от фарминга
    */
-  static async distributeMissionRewards(
-    userId: string,
-    missionReward: string
-  ): Promise<boolean> {
-    try {
-      const referrerChain = await DeepReferralLogic.buildReferrerChain(userId);
-      
-      if (referrerChain.length === 0) {
-        return true;
-      }
-
-      // Для миссий используем уменьшенные коэффициенты (50% от farming)
-      const adjustedReward = String(parseFloat(missionReward) * 0.5);
-      
-      return await this.distributeFarmingRewards(userId, adjustedReward);
-    } catch (error) {
-      console.error('[ReferralRewardDistribution] Ошибка распределения mission наград:', error);
-      return false;
-    }
-  }
 
   /**
    * Начисляет milestone бонусы за достижение целей по рефералам

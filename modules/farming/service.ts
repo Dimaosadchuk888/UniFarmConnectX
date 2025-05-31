@@ -68,13 +68,11 @@ export class FarmingService {
         return { amount: "0", claimed: false };
       }
 
-      // Расчет базового вознаграждения
+      // Расчет базового вознаграждения (0.5% в сутки)
       const depositAmount = user.uni_deposit_amount || "0";
-      const farmingRate = parseFloat(user.uni_farming_rate || "1.2"); // 1.2% в час по умолчанию
       
-      const baseReward = RewardCalculationLogic.calculateBaseReward(
+      const baseReward = RewardCalculationLogic.calculateFarmingReward(
         depositAmount,
-        farmingRate,
         farmingHours
       );
 
