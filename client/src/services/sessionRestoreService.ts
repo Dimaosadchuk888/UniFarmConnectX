@@ -241,16 +241,43 @@ const getOrCreateGuestId = (): string => {
   }
 };
 
+let isInitialized = false;
+
+// Кэш для хранения состояния готовности
+let telegramReadyCache: boolean | null = null;
+let lastReadyCheck = 0;
+const READY_CHECK_CACHE_DURATION = 5000; // 5 секунд кэша для уменьшения спама
+
+// Автоматическая инициализация при загрузке
+if (typeof window !== 'undefined') {
+  // Проверяем при загрузке скрипта
+  setTimeout(() => {
+    if (window.Telegram?.WebApp) {
+      console.log('[sessionRestoreService] 🚀 Автоматическая инициализация Telegram WebApp');
+      markTelegramWebAppAsReady();
+    }
+  }, 100);
+
+  // Слушаем события готовности WebApp
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.eventType === 'web_app_ready') {
+      console.log('[sessionRestoreService] 📡 Получено событие web_app_ready');
+      markTelegramWebAppAsReady();
+    }
+  });
+}
+
 /**
  * Проверяет, инициализирован ли Telegram WebApp
  * @returns true если Telegram WebApp уже инициализирован или недоступен
  */
 const isTelegramWebAppReady = (): boolean => {
   try {
-    // ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ: всегда считаем готовым, если есть объект Telegram
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если есть любой Telegram объект, считаем готовым
     if (typeof window !== 'undefined' && window.Telegram) {
       // Автоматически отмечаем как готовый
       markTelegramWebAppAsReady();
+      telegramReadyCache = true; // Обновляем кэш
       console.log('[sessionRestoreService] ✅ Telegram объект найден, считаем готовым');
       return true;
     }
