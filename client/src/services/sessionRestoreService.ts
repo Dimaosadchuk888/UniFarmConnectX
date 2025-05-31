@@ -241,36 +241,52 @@ const getOrCreateGuestId = (): string => {
   }
 };
 
-let isInitialized = false;
-
 // Кэш для хранения состояния готовности
 let telegramReadyCache: boolean | null = null;
 let lastReadyCheck = 0;
-const READY_CHECK_CACHE_DURATION = 5000; // 5 секунд кэша для уменьшения спама
+const READY_CHECK_CACHE_DURATION = 60000; // 60 секунд кэша
+let consecutiveChecks = 0;
+const MAX_CONSECUTIVE_CHECKS = 3;
+let forceReady = false;
 
 /**
  * Проверяет, инициализирован ли Telegram WebApp
  * @returns true если Telegram WebApp уже инициализирован или недоступен
  */
 const isTelegramWebAppReady = (): boolean => {
-  // Используем кэш для избежания частых проверок
-  const now = Date.now();
-  if (telegramReadyCache !== null && (now - lastReadyCheck) < READY_CHECK_CACHE_DURATION) {
-    if (telegramReadyCache) {
-      console.log('[sessionRestoreService] ✅ Используем кэшированный результат: готов');
-    }
-    return telegramReadyCache;
-  }
-
-  lastReadyCheck = now;
-
   try {
-    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если WebApp объект существует, считаем готовым
-    if (window.Telegram?.WebApp) {
+    const now = Date.now();
+
+    // Принудительно считаем готовым после первой проверки
+    if (forceReady) {
+      return true;
+    }
+
+    // Проверяем кэш
+    if (telegramReadyCache !== null && (now - lastReadyCheck) < READY_CHECK_CACHE_DURATION) {
+      return telegramReadyCache;
+    }
+
+    // Ограничиваем количество последовательных проверок
+    consecutiveChecks++;
+    if (consecutiveChecks > MAX_CONSECUTIVE_CHECKS) {
+      console.log('[sessionRestoreService] 🛑 Превышен лимит проверок, принудительно завершаем');
+      forceReady = true;
+      telegramReadyCache = true;
+      lastReadyCheck = now;
+      markTelegramWebAppAsReady();
+      return true;
+    }
+
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если есть любой Telegram объект, считаем готовым
+    if (typeof window !== 'undefined' && window.Telegram) {
       // Автоматически отмечаем как готовый
       markTelegramWebAppAsReady();
-      telegramReadyCache = true; // Обновляем кэш
-      console.log('[sessionRestoreService] ✅ Telegram WebApp объект найден, считаем готовым');
+      telegramReadyCache = true;
+      lastReadyCheck = now;
+      consecutiveChecks = 0;
+      forceReady = true;
+      console.log('[sessionRestoreService] ✅ Telegram объект найден, считаем готовым');
       return true;
     }
 
