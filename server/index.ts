@@ -72,6 +72,7 @@ import { databaseErrorHandler } from './middleware/databaseErrorHandler';
 import { healthCheckMiddleware } from './middleware/health-check';
 import { responseFormatter } from "./middleware/responseFormatter";
 import { errorHandler } from "./middleware/errorHandler";
+import { telegramMiddleware } from './telegram/middleware';
 
 // Импорты для маршрутизации и статических файлов
 import { registerNewRoutes } from "./routes-new";
@@ -346,6 +347,9 @@ async function startServer(): Promise<void> {
       sameSite: 'lax'
     }
   }));
+
+  // Регистрируем telegram middleware ПЕРВЫМ для обработки initData
+  app.use(telegramMiddleware);
 
   // Регистрируем middleware для проверки подключения к БД
   app.use(databaseErrorHandler as unknown as RequestHandler);

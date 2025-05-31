@@ -100,16 +100,25 @@ export function registerNewRoutes(app: Express): void {
   app.get('/api/v2/me', async (req, res) => {
     let pool;
     try {
+      // Приоритет: telegram данные из middleware > явно переданные параметры > guest_id
+      const telegramUser = req.telegram?.user;
+      const telegram_id = telegramUser?.id || req.headers['x-telegram-user-id'] || req.query.telegram_id;
       const user_id = req.query.user_id;
-      const telegram_id = req.headers['x-telegram-user-id'] || req.query.telegram_id;
       const guest_id = req.query.guest_id || req.headers['x-guest-id'];
       
-      console.log('[GetMe] Запрос данных пользователя:', { user_id, telegram_id, guest_id });
+      console.log('[GetMe] Запрос данных пользователя:', { 
+        telegram_id, 
+        user_id, 
+        guest_id,
+        has_telegram_middleware: !!telegramUser 
+      });
       
-      if (!user_id && !telegram_id && !guest_id) {
+      // Если есть telegram_id, приоритет всегда ему
+      if (!telegram_id && !user_id && !guest_id) {
         return res.status(400).json({
           success: false,
-          error: 'Требуется user_id, telegram_id или guest_id для идентификации пользователя'
+          error: 'Требуется telegram_id, user_id или guest_id для идентификации пользователя',
+          need_telegram_auth: true
         });
       }
       
@@ -121,27 +130,27 @@ export function registerNewRoutes(app: Express): void {
       
       let query, params;
       
-      // Приоритет: user_id > telegram_id > guest_id
-      if (user_id) {
+      // НОВЫЙ приоритет: telegram_id > user_id > guest_id
+      if (telegram_id) {
         query = `
-          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
-                 ref_code, created_at 
+          SELECT id, username, first_name, last_name, guest_id, telegram_id, 
+                 uni_balance, ton_balance, ref_code, ref_by, created_at 
+          FROM users WHERE telegram_id = $1 LIMIT 1
+        `;
+        params = [telegram_id.toString()];
+        console.log('[GetMe] Поиск по telegram_id:', telegram_id);
+      } else if (user_id) {
+        query = `
+          SELECT id, username, first_name, last_name, guest_id, telegram_id, 
+                 uni_balance, ton_balance, ref_code, ref_by, created_at 
           FROM users WHERE id = $1 LIMIT 1
         `;
         params = [user_id];
         console.log('[GetMe] Поиск по user_id:', user_id);
-      } else if (telegram_id) {
-        query = `
-          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
-                 ref_code, created_at 
-          FROM users WHERE telegram_id = $1 LIMIT 1
-        `;
-        params = [telegram_id];
-        console.log('[GetMe] Поиск по telegram_id:', telegram_id);
       } else {
         query = `
-          SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
-                 ref_code, created_at 
+          SELECT id, username, first_name, last_name, guest_id, telegram_id, 
+                 uni_balance, ton_balance, ref_code, ref_by, created_at 
           FROM users WHERE guest_id = $1 LIMIT 1
         `;
         params = [guest_id];
@@ -169,16 +178,18 @@ export function registerNewRoutes(app: Express): void {
           id: user.id,
           telegram_id: user.telegram_id,
           username: user.username,
-          first_name: user.username, // используем username как имя если нет first_name
+          first_name: user.first_name || user.username,
+          last_name: user.last_name || '',
           guest_id: user.guest_id,
           ref_code: user.ref_code,
-          ref_by: null, // поле отсутствует в базе
+          ref_by: user.ref_by,
           uni_balance: parseFloat(user.uni_balance) || 0,
           ton_balance: parseFloat(user.ton_balance) || 0,
           balance_uni: parseFloat(user.uni_balance) || 0,
           balance_ton: parseFloat(user.ton_balance) || 0,
           created_at: user.created_at,
-          is_telegram_user: !!user.telegram_id
+          is_telegram_user: !!user.telegram_id,
+          auth_method: telegram_id ? 'telegram' : (user_id ? 'direct' : 'guest')
         }
       });
       
@@ -569,12 +580,14 @@ export function registerNewRoutes(app: Express): void {
   // API для реферальной информации
   app.get('/api/v2/referral/info', async (req, res) => {
     try {
+      // Приоритет telegram_id
+      const telegram_id = req.telegram?.user?.id || req.headers['x-telegram-user-id'] || req.query.telegram_id;
       const user_id = req.query.user_id || req.headers['x-user-id'];
       
-      if (!user_id) {
+      if (!telegram_id && !user_id) {
         return res.status(400).json({
           success: false,
-          error: 'user_id required'
+          error: 'telegram_id или user_id required'
         });
       }
       
@@ -585,7 +598,16 @@ export function registerNewRoutes(app: Express): void {
       });
       
       // Получаем реферальный код пользователя
-      const userResult = await pool.query('SELECT ref_code FROM users WHERE id = $1', [user_id]);
+      let userQuery, userParams;
+      if (telegram_id) {
+        userQuery = 'SELECT id, ref_code, telegram_id FROM users WHERE telegram_id = $1';
+        userParams = [telegram_id.toString()];
+      } else {
+        userQuery = 'SELECT id, ref_code, telegram_id FROM users WHERE id = $1';
+        userParams = [user_id];
+      }
+      
+      const userResult = await pool.query(userQuery, userParams);
       
       if (userResult.rows.length === 0) {
         await pool.end();
@@ -595,25 +617,55 @@ export function registerNewRoutes(app: Express): void {
         });
       }
       
-      const refCode = userResult.rows[0].ref_code;
+      const user = userResult.rows[0];
+      const refCode = user.ref_code;
       
-      // Считаем рефералов
-      const referralsResult = await pool.query(
-        'SELECT COUNT(*) as total_referrals, SUM(uni_balance) as total_earnings FROM users WHERE ref_by = $1',
-        [refCode]
-      );
+      // Считаем рефералов и их суммарный баланс
+      const referralsResult = await pool.query(`
+        SELECT 
+          COUNT(*) as total_referrals,
+          COALESCE(SUM(uni_balance), 0) as total_uni_balance,
+          COALESCE(SUM(ton_balance), 0) as total_ton_balance
+        FROM users 
+        WHERE ref_by = $1
+      `, [refCode]);
+      
+      // Получаем список рефералов для дополнительной информации
+      const referralsList = await pool.query(`
+        SELECT id, username, first_name, telegram_id, uni_balance, ton_balance, created_at
+        FROM users 
+        WHERE ref_by = $1 
+        ORDER BY created_at DESC 
+        LIMIT 10
+      `, [refCode]);
       
       await pool.end();
       
       const referralData = referralsResult.rows[0];
       
+      // Формируем реферальную ссылку
+      const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'your_bot';
+      const referralLink = `https://t.me/${botUsername}?start=${refCode}`;
+      
       res.json({
         success: true,
         data: {
+          user_id: user.id,
           ref_code: refCode,
+          referral_link: referralLink,
           total_referrals: parseInt(referralData.total_referrals) || 0,
-          total_earnings: parseFloat(referralData.total_earnings) || 0,
-          referral_link: `https://t.me/your_bot?start=${refCode}`
+          total_uni_earned: parseFloat(referralData.total_uni_balance) || 0,
+          total_ton_earned: parseFloat(referralData.total_ton_balance) || 0,
+          referrals_list: referralsList.rows.map(ref => ({
+            id: ref.id,
+            name: ref.first_name || ref.username || `User ${ref.id}`,
+            telegram_id: ref.telegram_id,
+            uni_balance: parseFloat(ref.uni_balance) || 0,
+            ton_balance: parseFloat(ref.ton_balance) || 0,
+            joined_at: ref.created_at
+          })),
+          bonus_percentage: 10, // 10% от дохода рефералов
+          next_level_threshold: 5 // следующий уровень при 5 рефералах
         }
       });
     } catch (error) {
