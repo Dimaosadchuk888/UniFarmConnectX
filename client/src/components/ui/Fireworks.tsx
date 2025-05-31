@@ -210,26 +210,30 @@ const Fireworks: React.FC<FireworksProps> = ({ active, onComplete }) => {
     // Создаем много частиц для каждого взрыва
     const particleCount = 120 + Math.floor(Math.random() * 80);
     
-    // Создаем вспышку в центре взрыва
-    const flashDiv = document.createElement('div');
-    flashDiv.style.position = 'absolute';
-    flashDiv.style.left = `${x}px`;
-    flashDiv.style.top = `${y}px`;
-    flashDiv.style.width = '10px';
-    flashDiv.style.height = '10px';
-    flashDiv.style.borderRadius = '50%';
-    flashDiv.style.backgroundColor = 'white';
-    flashDiv.style.boxShadow = `0 0 30px 20px ${baseColor}`;
-    flashDiv.style.transform = 'translate(-50%, -50%)';
-    flashDiv.style.animation = 'flashExplosion 0.4s forwards';
-    flashDiv.style.zIndex = '100';
-    flashDiv.style.pointerEvents = 'none';
-    document.body.appendChild(flashDiv);
-    
-    // Удаляем элемент после завершения анимации
-    setTimeout(() => {
-      document.body.removeChild(flashDiv);
-    }, 400);
+    // Создаем вспышку в центре взрыва (безопасная проверка DOM)
+    if (document.body) {
+      const flashDiv = document.createElement('div');
+      flashDiv.style.position = 'absolute';
+      flashDiv.style.left = `${x}px`;
+      flashDiv.style.top = `${y}px`;
+      flashDiv.style.width = '10px';
+      flashDiv.style.height = '10px';
+      flashDiv.style.borderRadius = '50%';
+      flashDiv.style.backgroundColor = 'white';
+      flashDiv.style.boxShadow = `0 0 30px 20px ${baseColor}`;
+      flashDiv.style.transform = 'translate(-50%, -50%)';
+      flashDiv.style.animation = 'flashExplosion 0.4s forwards';
+      flashDiv.style.zIndex = '100';
+      flashDiv.style.pointerEvents = 'none';
+      document.body.appendChild(flashDiv);
+      
+      // Удаляем элемент после завершения анимации
+      setTimeout(() => {
+        if (document.body && document.body.contains(flashDiv)) {
+          document.body.removeChild(flashDiv);
+        }
+      }, 400);
+    }
     
     for (let i = 0; i < particleCount; i++) {
       let angle, speed, size, color, blur, trailLength;

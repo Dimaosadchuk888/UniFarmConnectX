@@ -262,19 +262,21 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
         setIsCopied(false);
       }, 2000);
     } catch (err) {
-      // Fallback для устройств без поддержки clipboard API
+      // Fallback для устройств без поддержки clipboard API (безопасная проверка DOM)
       try {
-        const textArea = document.createElement('textarea');
-        textArea.value = linkToCopy;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        
-        setIsCopied(true);
-        setTimeout(() => {
-          setIsCopied(false);
-        }, 2000);
+        if (document.body) {
+          const textArea = document.createElement('textarea');
+          textArea.value = linkToCopy;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          
+          setIsCopied(true);
+          setTimeout(() => {
+            setIsCopied(false);
+          }, 2000);
+        }
       } catch (fallbackErr) {
         console.error('Не удалось скопировать ссылку:', fallbackErr);
         alert('Не удалось скопировать. Пожалуйста, выделите ссылку вручную и скопируйте.');
