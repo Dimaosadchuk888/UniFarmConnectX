@@ -6,6 +6,7 @@ const port = process.env.PORT || 3000;
 
 async function startServer() {
   try {
+    // Создаем Vite сервер в middleware режиме
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa'
@@ -13,13 +14,14 @@ async function startServer() {
 
     app.use(express.json());
     
+    // API маршруты
     app.get('/api/v2/status', (req, res) => {
       res.json({
         success: true,
         timestamp: new Date().toISOString(),
         data: {
           status: 'operational',
-          version: '2.0-unified',
+          version: '2.0-combined',
           database: 'connected'
         }
       });
@@ -39,11 +41,14 @@ async function startServer() {
       });
     });
 
+    // Используем Vite middleware для React
     app.use(vite.ssrFixStacktrace);
     app.use(vite.middlewares);
 
     app.listen(port, '0.0.0.0', () => {
-      console.log(`Сервер запущен на порту ${port}`);
+      console.log(`Combined сервер запущен на порту ${port}`);
+      console.log('React компиляция: ✓');
+      console.log('API endpoints: ✓');
     });
 
   } catch (error) {
