@@ -125,7 +125,7 @@ export function registerNewRoutes(app: Express): void {
       if (user_id) {
         query = `
           SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
-                 ref_code, ref_by, created_at, first_name 
+                 ref_code, created_at 
           FROM users WHERE id = $1 LIMIT 1
         `;
         params = [user_id];
@@ -133,7 +133,7 @@ export function registerNewRoutes(app: Express): void {
       } else if (telegram_id) {
         query = `
           SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
-                 ref_code, ref_by, created_at, first_name 
+                 ref_code, created_at 
           FROM users WHERE telegram_id = $1 LIMIT 1
         `;
         params = [telegram_id];
@@ -141,7 +141,7 @@ export function registerNewRoutes(app: Express): void {
       } else {
         query = `
           SELECT id, username, guest_id, telegram_id, uni_balance, ton_balance, 
-                 ref_code, ref_by, created_at, first_name 
+                 ref_code, created_at 
           FROM users WHERE guest_id = $1 LIMIT 1
         `;
         params = [guest_id];
@@ -169,10 +169,10 @@ export function registerNewRoutes(app: Express): void {
           id: user.id,
           telegram_id: user.telegram_id,
           username: user.username,
-          first_name: user.first_name,
+          first_name: user.username, // используем username как имя если нет first_name
           guest_id: user.guest_id,
           ref_code: user.ref_code,
-          ref_by: user.ref_by,
+          ref_by: null, // поле отсутствует в базе
           uni_balance: parseFloat(user.uni_balance) || 0,
           ton_balance: parseFloat(user.ton_balance) || 0,
           balance_uni: parseFloat(user.uni_balance) || 0,
