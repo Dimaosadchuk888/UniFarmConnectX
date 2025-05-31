@@ -118,15 +118,20 @@ const sessionRestoreService = {
   getGuestId(): string {
     console.log('[sessionRestoreService] Получение гостевого ID...');
 
-    // Сначала пытаемся получить сохраненный guest_id
-    const savedGuestId = this.sessionStorageService.getGuestId();
+    // Генерируем базовый ID на основе браузера
+    const browserFingerprint = this.generateBrowserFingerprint();
+    return `guest_${browserFingerprint}`;
+  },
 
-    // Проверяем инициализацию Telegram WebApp
-    if (!this.checkTelegramWebAppInitialized()) {
-      console.log('[sessionRestoreService] Telegram WebApp еще не инициализирован, используем сохраненный ID');
-      // Возвращаем сохраненный guest_id
-      return savedGuestId;
+  generateBrowserFingerprint(): string {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillText('Browser fingerprint', 2, 2);
     }
+    return btoa(canvas.toDataURL()).slice(0, 16);
   },
 
   /**
