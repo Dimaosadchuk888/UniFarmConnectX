@@ -35,6 +35,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Добавляем middleware для Telegram данных
+app.use((req, res, next) => {
+  // Базовая структура для req.telegram
+  req.telegram = {
+    user: null,
+    validated: false
+  };
+  next();
+});
+
 // Регистрируем API маршруты
 registerCleanRoutes(app);
 
@@ -57,9 +67,28 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`[INFO] 🔗 Health check: http://localhost:${PORT}/health`);
 });
 
+// Детальное логирование ошибок
+app.use((error, req, res, next) => {
+  console.error('Express ошибка:', {
+    message: error.message,
+    stack: error.stack,
+    url: req.url,
+    method: req.method,
+    timestamp: new Date().toISOString()
+  });
+  
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      error: 'Внутренняя ошибка сервера',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Обработка ошибок
 process.on('uncaughtException', (error) => {
-  console.error('Критическая ошибка:', error.message);
+  console.error('Критическая ошибка:', error.message, error.stack);
 });
 
 process.on('unhandledRejection', (reason) => {
