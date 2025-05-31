@@ -1,10 +1,23 @@
+import { db } from '../../server/db';
+import { users, transactions } from '../../shared/schema';
+import { eq, desc, and } from 'drizzle-orm';
+
 export class WalletService {
   async getBalance(userId: string): Promise<{ uni: string; ton: string }> {
     try {
-      console.log(`[WalletService] Получение баланса для пользователя ${userId}`);
+      const [user] = await db
+        .select({
+          balance_uni: users.balance_uni,
+          balance_ton: users.balance_ton
+        })
+        .from(users)
+        .where(eq(users.id, parseInt(userId)))
+        .limit(1);
       
-      // Здесь будет запрос к базе данных для получения реального баланса
-      return { uni: "0", ton: "0" };
+      return {
+        uni: user?.balance_uni || "0",
+        ton: user?.balance_ton || "0"
+      };
     } catch (error) {
       console.error('[WalletService] Ошибка получения баланса:', error);
       throw error;
@@ -13,29 +26,44 @@ export class WalletService {
 
   async updateBalance(userId: string, type: 'uni' | 'ton', amount: string): Promise<boolean> {
     try {
-      console.log(`[WalletService] Обновление баланса пользователя ${userId}: ${type} ${amount}`);
+      const updateData = type === 'uni' 
+        ? { balance_uni: amount }
+        : { balance_ton: amount };
       
-      // Здесь будет логика обновления баланса в базе данных
-      return true;
+      const [updatedUser] = await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, parseInt(userId)))
+        .returning();
+      
+      return !!updatedUser;
     } catch (error) {
       console.error('[WalletService] Ошибка обновления баланса:', error);
       throw error;
     }
   }
 
-  async createTransaction(data: any): Promise<any> {
+  async createTransaction(data: {
+    userId: string;
+    type: string;
+    currency: string;
+    amount: string;
+    description?: string;
+  }): Promise<any> {
     try {
-      console.log('[WalletService] Создание транзакции:', data);
+      const [newTransaction] = await db
+        .insert(transactions)
+        .values({
+          user_id: parseInt(data.userId),
+          type: data.type,
+          currency: data.currency,
+          amount: data.amount,
+          description: data.description || '',
+          status: 'confirmed'
+        })
+        .returning();
       
-      // Здесь будет создание записи транзакции в базе данных
-      return {
-        id: Date.now(),
-        user_id: data.userId,
-        type: data.type,
-        amount: data.amount,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
+      return newTransaction;
     } catch (error) {
       console.error('[WalletService] Ошибка создания транзакции:', error);
       throw error;
@@ -44,16 +72,23 @@ export class WalletService {
 
   async getTransactionHistory(userId: string, page: number = 1, limit: number = 20): Promise<any> {
     try {
-      console.log(`[WalletService] Получение истории транзакций для пользователя ${userId}`);
+      const offset = (page - 1) * limit;
       
-      // Здесь будет запрос к базе данных для получения истории транзакций
+      const userTransactions = await db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.user_id, parseInt(userId)))
+        .orderBy(desc(transactions.created_at))
+        .limit(limit)
+        .offset(offset);
+      
       return {
-        transactions: [],
+        transactions: userTransactions,
         pagination: {
           page,
           limit,
-          total: 0,
-          has_more: false
+          total: userTransactions.length,
+          has_more: userTransactions.length === limit
         }
       };
     } catch (error) {

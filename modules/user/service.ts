@@ -1,12 +1,18 @@
 import type { User, InsertUser } from '../../shared/schema';
+import { db } from '../../server/db';
+import { users } from '../../shared/schema';
+import { eq } from 'drizzle-orm';
 
 export class UserService {
   async getUserById(id: string): Promise<User | null> {
-    // Логика получения пользователя по ID из базы данных
     try {
-      // Здесь будет реальная логика работы с базой данных
-      console.log(`[UserService] Получение пользователя с ID: ${id}`);
-      return null;
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, parseInt(id)))
+        .limit(1);
+      
+      return user || null;
     } catch (error) {
       console.error('[UserService] Ошибка получения пользователя:', error);
       throw error;
@@ -14,11 +20,13 @@ export class UserService {
   }
 
   async createUser(userData: InsertUser): Promise<User> {
-    // Логика создания пользователя в базе данных
     try {
-      console.log('[UserService] Создание нового пользователя:', userData);
-      // Здесь будет реальная логика создания пользователя
-      throw new Error('Database connection required');
+      const [newUser] = await db
+        .insert(users)
+        .values(userData)
+        .returning();
+      
+      return newUser;
     } catch (error) {
       console.error('[UserService] Ошибка создания пользователя:', error);
       throw error;
@@ -26,10 +34,14 @@ export class UserService {
   }
 
   async updateUser(id: string, userData: Partial<User>): Promise<User | null> {
-    // Логика обновления пользователя в базе данных
     try {
-      console.log(`[UserService] Обновление пользователя ${id}:`, userData);
-      return null;
+      const [updatedUser] = await db
+        .update(users)
+        .set(userData)
+        .where(eq(users.id, parseInt(id)))
+        .returning();
+      
+      return updatedUser || null;
     } catch (error) {
       console.error('[UserService] Ошибка обновления пользователя:', error);
       throw error;
@@ -37,10 +49,12 @@ export class UserService {
   }
 
   async deleteUser(id: string): Promise<boolean> {
-    // Логика удаления пользователя из базы данных
     try {
-      console.log(`[UserService] Удаление пользователя с ID: ${id}`);
-      return false;
+      const result = await db
+        .delete(users)
+        .where(eq(users.id, parseInt(id)));
+      
+      return result.rowCount > 0;
     } catch (error) {
       console.error('[UserService] Ошибка удаления пользователя:', error);
       throw error;
@@ -48,10 +62,14 @@ export class UserService {
   }
 
   async getUserByTelegramId(telegramId: string): Promise<User | null> {
-    // Логика поиска пользователя по Telegram ID в базе данных
     try {
-      console.log(`[UserService] Поиск пользователя по Telegram ID: ${telegramId}`);
-      return null;
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegram_id, parseInt(telegramId)))
+        .limit(1);
+      
+      return user || null;
     } catch (error) {
       console.error('[UserService] Ошибка поиска по Telegram ID:', error);
       throw error;
@@ -59,11 +77,16 @@ export class UserService {
   }
 
   async generateRefCode(userId: string): Promise<string> {
-    // Генерация реферального кода
     try {
-      const refCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      console.log(`[UserService] Генерация ref_code для пользователя ${userId}: ${refCode}`);
-      return refCode;
+      const refCode = `REF${userId}${Date.now()}`.substring(0, 12).toUpperCase();
+      
+      const [updatedUser] = await db
+        .update(users)
+        .set({ ref_code: refCode })
+        .where(eq(users.id, parseInt(userId)))
+        .returning();
+      
+      return updatedUser.ref_code || refCode;
     } catch (error) {
       console.error('[UserService] Ошибка генерации ref_code:', error);
       throw error;
