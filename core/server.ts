@@ -1,9 +1,14 @@
 import express from 'express';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { config } from './config';
 import { initDatabase } from './db';
 import { corsMiddleware, loggerMiddleware, errorHandler } from './middleware';
 import { telegramMiddleware } from '../modules';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Импорт модулей
 import { 
