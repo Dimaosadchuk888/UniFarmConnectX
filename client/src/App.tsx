@@ -60,11 +60,12 @@ function App() {
       await authenticateUser();
     } catch (error) {
       console.error('App initialization error:', error);
+      // Не блокируем интерфейс, просто логируем ошибку
       setState(prev => ({ 
         ...prev, 
-        authError: 'Ошибка инициализации приложения',
         isLoading: false 
       }));
+      // Ошибка будет показана через систему уведомлений в UserProvider
     }
   };
 
@@ -130,9 +131,9 @@ function App() {
         queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
         queryClient.invalidateQueries({ queryKey: ['/api/me'] });
       } else {
+        console.warn('User creation failed, but continuing with UI load');
         setState(prev => ({ 
           ...prev, 
-          authError: 'Ошибка создания пользователя',
           isLoading: false 
         }));
       }
@@ -140,7 +141,6 @@ function App() {
       console.error('Authentication error:', error);
       setState(prev => ({ 
         ...prev, 
-        authError: 'Ошибка аутентификации',
         isLoading: false 
       }));
     }
@@ -190,22 +190,8 @@ function App() {
     );
   }
 
-  // Error state
-  if (state.authError) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive mb-4">{state.authError}</p>
-          <button 
-            onClick={initializeApp}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded"
-          >
-            Попробовать снова
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // В случае ошибки аутентификации всё равно загружаем основной интерфейс
+  // Ошибки будут отображаться в уведомлениях, но не блокируют UI
 
   return (
     <QueryClientProvider client={queryClient}>
