@@ -35,14 +35,14 @@ export interface TelegramWebhookUpdate {
 
 export interface TelegramMessage {
   message_id: number;
-  from: TelegramUser;
+  from: TelegramUserAPI;
   chat: TelegramChat;
   date: number;
   text?: string;
   entities?: TelegramMessageEntity[];
 }
 
-export interface TelegramUser {
+export interface TelegramUserAPI {
   id: number;
   is_bot: boolean;
   first_name: string;
@@ -63,14 +63,14 @@ export interface TelegramChat {
 
 export interface TelegramCallbackQuery {
   id: string;
-  from: TelegramUser;
+  from: TelegramUserAPI;
   message?: TelegramMessage;
   data?: string;
 }
 
 export interface TelegramInlineQuery {
   id: string;
-  from: TelegramUser;
+  from: TelegramUserAPI;
   query: string;
   offset: string;
 }
@@ -80,7 +80,7 @@ export interface TelegramMessageEntity {
   offset: number;
   length: number;
   url?: string;
-  user?: TelegramUser;
+  user?: TelegramUserAPI;
 }
 
 export type TelegramWebhookEventType = 'message' | 'callback_query' | 'inline_query';
