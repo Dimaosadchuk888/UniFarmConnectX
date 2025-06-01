@@ -66,10 +66,10 @@ class UserService {
       console.log(`[UserService] AirDrop: Сгенерирован временный ID: ${tempId} для пользователя ${username}`);
 
       // Импортируем GuestIdService для получения guest_id
-      const { getGuestId } = await import('./guestIdService');
+      const { getOrCreateGuestId } = await import('./guestIdService');
 
       // Получаем guest_id из localStorage или создаем новый
-      const guestId = getGuestId();
+      const guestId = getOrCreateGuestId();
 
       console.log(`[UserService] AirDrop: Используем guest_id: ${guestId}`);
 
@@ -206,8 +206,8 @@ class UserService {
    */
   private async fetchUserFromApi(): Promise<User> {
     // Импортируем guestIdService для получения guest_id
-    const { getGuestId } = await import('./guestIdService');
-    const guestId = getGuestId();
+    const { getOrCreateGuestId } = await import('./guestIdService');
+    const guestId = getOrCreateGuestId();
 
     console.log('[UserService] Запрос к API с guest_id:', guestId);
     console.log('[UserService] Объект localStorage в момент запроса к /api/me:', 

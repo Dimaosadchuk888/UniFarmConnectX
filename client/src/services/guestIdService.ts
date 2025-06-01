@@ -66,12 +66,16 @@ export function isGuestId(id: string): boolean {
   return id.startsWith('guest_');
 }
 
+// Экспорт функции getGuestId для обратной совместимости
+export const getGuestId = getOrCreateGuestId;
+
 // Экспорт по умолчанию для совместимости
 const guestIdService = {
   generateGuestId,
   saveGuestId,
   getStoredGuestId,
   getOrCreateGuestId,
+  getGuestId,
   clearGuestId,
   isGuestId
 };
