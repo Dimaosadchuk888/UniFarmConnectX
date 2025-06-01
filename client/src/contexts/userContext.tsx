@@ -350,7 +350,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       });
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Ошибка отключения кошелька');
-      dispatch({ type: 'SET_ERROR', payload: error });
+      console.error('[UserContext] Ошибка отключения кошелька:', error);
+      // Не блокируем интерфейс, просто логируем ошибку
+      dispatch({ type: 'SET_ERROR', payload: null });
     }
   }, [tonConnectUI]);
   
