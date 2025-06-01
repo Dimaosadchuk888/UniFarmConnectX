@@ -222,10 +222,10 @@ class UserService {
 
     try {
       // Делаем запрос к API, используя correctApiRequest
-      console.log('[UserService] Используем correctApiRequest для запроса /api/v2/me с guest_id:', guestId);
+      console.log('[UserService] Используем correctApiRequest для запроса /api/v2/users/profile с guest_id:', guestId);
       
       // Делаем запрос без дополнительных параметров, так как guest_id передается в headers
-      const data = await correctApiRequest('/api/v2/me', 'GET');
+      const data = await correctApiRequest('/api/v2/users/profile', 'GET');
 
       // Подробный лог для отладки
       console.log('[UserService] API /me result:', {
