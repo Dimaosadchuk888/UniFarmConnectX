@@ -164,11 +164,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
     
     try {
-      // Используем стабильный user_id для избежания ошибок sessionStorageService
-      const userId = 1; // Данные разработчика
+      // Получаем данные пользователя из localStorage или используем guest_id
+      let apiUrl = '/api/v2/me';
+      const lastSessionStr = localStorage.getItem('unifarm_last_session');
+      const guestId = localStorage.getItem('unifarm_guest_id');
       
-      // Делаем запрос с явно указанным user_id, если он доступен
-      const response = await correctApiRequest(userId ? `/api/v2/me?user_id=${userId}` : '/api/v2/me?guest_id=dev-replit-1748680222');
+      if (lastSessionStr) {
+        try {
+          const lastSession = JSON.parse(lastSessionStr);
+          if (lastSession.user_id) {
+            apiUrl = `/api/v2/me?user_id=${lastSession.user_id}`;
+          }
+        } catch (e) {
+          console.warn('[UserContext] Ошибка парсинга данных сессии:', e);
+        }
+      } else if (guestId) {
+        apiUrl = `/api/v2/me?guest_id=${guestId}`;
+      }
+      
+      const response = await correctApiRequest(apiUrl);
       
       if (response.success && response.data) {
         const user = response.data;
@@ -216,17 +230,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         } else {
           const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';
           console.error('[UserContext] Ошибка получения данных пользователя:', errorMsg);
-          // Не блокируем интерфейс, устанавливаем минимальные данные для продолжения работы
-          dispatch({
-            type: 'SET_USER_DATA',
-            payload: {
-              userId: 1, // fallback user ID
-              username: null,
-              guestId: localStorage.getItem('guest_id'),
-              telegramId: null,
-              refCode: null
-            }
-          });
+          // Не устанавливаем fallback данные, пусть App.tsx обработает создание пользователя
           dispatch({ type: 'SET_ERROR', payload: null });
         }
       }
