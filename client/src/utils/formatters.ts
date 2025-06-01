@@ -120,3 +120,101 @@ export function formatLargeNumber(num: number): string {
   }
   return num.toString();
 }
+
+/**
+ * Форматирует UNI числа
+ */
+export function formatUniNumber(amount: number | string, decimals: number = 2): string {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  if (isNaN(numAmount)) return '0';
+  
+  return numAmount.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals
+  });
+}
+
+/**
+ * Форматирует TON числа
+ */
+export function formatTonNumber(amount: number | string, decimals: number = 5): string {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  if (isNaN(numAmount)) return '0';
+  
+  return numAmount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: decimals
+  });
+}
+
+/**
+ * Безопасное форматирование суммы
+ */
+export function safeFormatAmount(amount: number | string, decimals: number = 2, currency: string = ''): string {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  if (isNaN(numAmount)) return '0';
+  
+  const formatted = numAmount.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals
+  });
+  
+  return currency ? `${formatted} ${currency}` : formatted;
+}
+
+/**
+ * Получает USD эквивалент
+ */
+export function getUSDEquivalent(amount: number, currency: string): number {
+  // Примерные курсы (в реальном приложении должны загружаться с API)
+  const rates: Record<string, number> = {
+    'UNI': 0.1,
+    'TON': 2.5
+  };
+  
+  return amount * (rates[currency] || 0);
+}
+
+/**
+ * Получает оптимальное количество десятичных знаков
+ */
+export function getOptimalDecimals(amount: number | string, currency: string): number {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  if (currency === 'TON') {
+    return numAmount > 1 ? 3 : 6;
+  }
+  
+  return numAmount > 1000 ? 0 : 2;
+}
+
+/**
+ * Получает цветовой класс для транзакции
+ */
+export function getTransactionColorClass(type: string): string {
+  const colorMap: Record<string, string> = {
+    deposit: 'text-green-400',
+    withdrawal: 'text-red-400',
+    reward: 'text-blue-400',
+    referral: 'text-purple-400'
+  };
+  
+  return colorMap[type] || 'text-gray-400';
+}
+
+/**
+ * Получает иконку для типа транзакции
+ */
+export function getTransactionIcon(type: string): string {
+  const iconMap: Record<string, string> = {
+    deposit: '↗️',
+    withdrawal: '↙️',
+    reward: '🎁',
+    referral: '👥'
+  };
+  
+  return iconMap[type] || '💰';
+}

@@ -8,7 +8,7 @@ import {
   fetchTransactions,
   Transaction
 } from '@/services/transactionService';
-import { formatDateTime, formatTransactionAmount } from '@/utils/formatters';
+import { formatDateTime, formatTransactionAmount, getTransactionIcon, getTransactionColorClass } from '@/utils/formatters';
 
 /**
  * Компонент для отображения истории транзакций пользователя

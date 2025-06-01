@@ -65,3 +65,15 @@ export function clearGuestId(): void {
 export function isGuestId(id: string): boolean {
   return id.startsWith('guest_');
 }
+
+// Экспорт по умолчанию для совместимости
+const guestIdService = {
+  generateGuestId,
+  saveGuestId,
+  getStoredGuestId,
+  getOrCreateGuestId,
+  clearGuestId,
+  isGuestId
+};
+
+export default guestIdService;
