@@ -87,7 +87,7 @@ function App() {
       
       try {
         // Try to get existing user by guest ID
-        const response = await fetch(`/api/v2/user/by-guest-id?guest_id=${guestId}`);
+        const response = await fetch(`/api/v2/users/by-guest-id?guest_id=${guestId}`);
         if (response.ok) {
           user = await response.json();
         }
@@ -97,7 +97,7 @@ function App() {
 
       if (!user) {
         // Create new user
-        const response = await fetch('/api/v2/user', {
+        const response = await fetch('/api/v2/users', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
