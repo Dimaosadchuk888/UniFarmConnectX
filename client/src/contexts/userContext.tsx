@@ -204,7 +204,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         try {
           localStorage.setItem('unifarm_last_session', JSON.stringify({
             timestamp: new Date().toISOString(),
-            user_id: user.id || userId,
+            user_id: user.id,
             username: user.username || null,
             refCode: user.ref_code || null
           }));
@@ -212,21 +212,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           console.warn('[UserContext] Ошибка при сохранении данных пользователя в localStorage:', e);
         }
       } else {
-        // Если запрос не удался, сначала проверяем, если user_id есть в localStorage
-        if (userId) {
-          console.log('[UserContext] Используем информацию о пользователе из localStorage:', userId);
-          // Установим минимально необходимые данные из localStorage
-          dispatch({
-            type: 'SET_USER_DATA',
-            payload: {
-              userId: userId,
-              username: null,
-              guestId: null,
-              telegramId: null,
-              refCode: null
+        // Если запрос не удался, проверяем данные в localStorage
+        if (lastSessionStr) {
+          try {
+            const lastSession = JSON.parse(lastSessionStr);
+            if (lastSession.user_id) {
+              console.log('[UserContext] Используем информацию о пользователе из localStorage:', lastSession.user_id);
+              dispatch({
+                type: 'SET_USER_DATA',
+                payload: {
+                  userId: lastSession.user_id,
+                  username: lastSession.username || null,
+                  guestId: guestId,
+                  telegramId: null,
+                  refCode: lastSession.refCode || null
+                }
+              });
+              dispatch({ type: 'SET_ERROR', payload: null });
             }
-          });
-          dispatch({ type: 'SET_ERROR', payload: null });
+          } catch (e) {
+            console.warn('[UserContext] Ошибка парсинга localStorage:', e);
+          }
         } else {
           const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';
           console.error('[UserContext] Ошибка получения данных пользователя:', errorMsg);
@@ -261,17 +267,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       
       const error = err instanceof Error ? err : new Error('Ошибка получения данных пользователя');
       console.error('[UserContext] Ошибка получения данных пользователя:', error);
-      // Не блокируем интерфейс при ошибке, устанавливаем fallback данные
-      dispatch({
-        type: 'SET_USER_DATA',
-        payload: {
-          userId: 1,
-          username: null,
-          guestId: localStorage.getItem('guest_id'),
-          telegramId: null,
-          refCode: null
-        }
-      });
+      // Не устанавливаем fallback данные, позволяем App.tsx обработать создание пользователя
       dispatch({ type: 'SET_ERROR', payload: null });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: false } });
