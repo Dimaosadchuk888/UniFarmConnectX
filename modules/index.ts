@@ -52,7 +52,7 @@ export * from './auth/model';
 export * from './user/types';
 export * from './wallet/types';
 export * from './farming/types';
-export { MissionConfig, UserMissionProgress, MissionClaimRequest, MissionClaimResult, MissionRequirements, MissionType, MissionRewardType } from './missions/types';
+export * from './missions/types';
 export * from './referral/types';
 export * from './boost/types';
 export * from './telegram/types';
