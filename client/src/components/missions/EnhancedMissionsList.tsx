@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,49 +34,38 @@ const EnhancedMissionsList: React.FC = () => {
   const { userId } = useUser();
   const { showNotification } = useNotification();
   
-  // Загрузка миссий
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        console.log('[EnhancedMissionsList] Загрузка данных миссий...');
-        
-        // Загружаем активные миссии
-        const missionsResponse = await correctApiRequest('/api/v2/missions/active', 'GET');
-        
-        // Проверяем ответ
-        if (!missionsResponse || !missionsResponse.success) {
-          throw new Error('Не удалось загрузить список миссий');
-        }
-        
-        // Проверяем наличие данных в виде массива
-        if (!Array.isArray(missionsResponse.data)) {
-          console.error('Неожиданный формат данных:', missionsResponse);
-          throw new Error('Получен неверный формат данных о миссиях');
-        }
-        
-        console.log('[EnhancedMissionsList] Загружено миссий:', missionsResponse.data.length);
-        setMissions(missionsResponse.data || []);
-        
-        // Загружаем выполненные миссии пользователя
+  // Функция загрузки данных миссий
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      console.log('[EnhancedMissionsList] Загрузка данных миссий...');
+      
+      // Загружаем активные миссии
+      const missionsResponse = await correctApiRequest('/api/v2/missions/active', 'GET');
+      
+      // Проверяем ответ
+      if (!missionsResponse || !missionsResponse.success) {
+        throw new Error('Не удалось загрузить список миссий');
+      }
+      
+      const missionsData = missionsResponse.data || [];
+      setMissions(missionsData);
+      console.log('[EnhancedMissionsList] Загружено миссий:', missionsData.length);
+      
+      // Загружаем выполненные пользователем миссии (только если есть userId)
+      if (userId) {
         try {
-          const userMissionsResponse = await correctApiRequest(`/api/v2/missions/user-completed?user_id=${userId || 1}`, 'GET');
+          console.log('[EnhancedMissionsList] Загружаем выполненные миссии для пользователя:', userId);
+          const completedResponse = await correctApiRequest(`/api/v2/missions/user/${userId}`, 'GET');
           
-          // Безопасно извлекаем IDs выполненных миссий
-          if (userMissionsResponse && userMissionsResponse.success && Array.isArray(userMissionsResponse.data)) {
-            const completedIds: number[] = [];
-            
-            // Защищенная обработка массива
-            (userMissionsResponse.data || []).forEach((mission: any) => {
-              if (mission && typeof mission === 'object' && 'mission_id' in mission) {
-                completedIds.push(mission.mission_id);
-              }
-            });
-            
-            console.log('[EnhancedMissionsList] Загружено выполненных миссий:', completedIds.length);
+          if (completedResponse && completedResponse.success) {
+            const completedData = completedResponse.data || [];
+            const completedIds = completedData.map((mission: UserMission) => mission.mission_id);
             setCompletedMissionIds(completedIds);
+            console.log('[EnhancedMissionsList] Загружено выполненных миссий:', completedIds.length);
           } else {
-            console.warn('[EnhancedMissionsList] Нет данных о выполненных миссиях');
+            // Если не удалось загрузить выполненные миссии, продолжаем с пустым списком
+            console.log('[EnhancedMissionsList] Не удалось загрузить выполненные миссии, продолжаем без них');
             setCompletedMissionIds([]);
           }
         } catch (userMissionsError) {
@@ -84,16 +73,19 @@ const EnhancedMissionsList: React.FC = () => {
           // Продолжаем работу с пустым списком выполненных миссий
           setCompletedMissionIds([]);
         }
-      } catch (fetchError: any) {
-        console.error('[EnhancedMissionsList] Ошибка загрузки данных:', fetchError);
-        setError(fetchError.message || 'Не удалось загрузить миссии');
-      } finally {
-        setLoading(false);
       }
+    } catch (fetchError: any) {
+      console.error('[EnhancedMissionsList] Ошибка загрузки данных:', fetchError);
+      setError(fetchError.message || 'Не удалось загрузить миссии');
+    } finally {
+      setLoading(false);
     }
-    
-    fetchData();
   }, [userId]);
+    
+  // Загрузка миссий при монтировании компонента
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
   
   // Функция для выполнения миссии
   const completeMission = async (missionId: number) => {
@@ -119,51 +111,64 @@ const EnhancedMissionsList: React.FC = () => {
         
         // Показываем улучшенное уведомление об успехе с эмодзи
         showNotification('success', {
-          message: `Задание "${missionTitle}" выполнено! Награда: ${reward} UNI`,
-          duration: 5000 // Увеличиваем время показа для важных уведомлений
+          message: `✅ ${missionTitle} выполнена! Получено ${reward} UNI`,
+          duration: 4000,
+          autoDismiss: true
         });
       } else {
-        const errorMessage = result?.message || (result?.data?.message) || 'Не удалось выполнить миссию';
-        
-        // Показываем улучшенное уведомление об ошибке
+        // Показываем ошибку с подробностями
         showNotification('error', {
-          message: `Ошибка при выполнении задания: ${errorMessage}`,
-          duration: 6000 // Увеличиваем время показа для ошибок
+          message: `❌ Не удалось выполнить миссию "${missionTitle}": ${result?.message || 'Неизвестная ошибка'}`,
+          duration: 5000,
+          autoDismiss: true
         });
       }
-    } catch (err: any) {
-      console.error('[EnhancedMissionsList] Ошибка выполнения миссии:', err);
-      
-      // Показываем улучшенное уведомление об ошибке
+    } catch (error: any) {
+      // Показываем ошибку сети или сервера
       showNotification('error', {
-        message: `Не удалось выполнить задание: ${err.message || 'Произошла неизвестная ошибка'}`,
-        duration: 6000 // Увеличиваем время показа для ошибок
+        message: `🔥 Ошибка при выполнении миссии: ${error.message || 'Проблема с подключением'}`,
+        duration: 5000,
+        autoDismiss: true
       });
+      console.error('[EnhancedMissionsList] Ошибка выполнения миссии:', error);
     }
   };
   
-  // Функция для получения иконки по типу миссии
+  // Функция для получения иконки миссии в зависимости от типа
   const getMissionIcon = (type: string) => {
-    switch (type) {
-      case 'social': return <MessageCircle className="h-5 w-5 text-blue-400" />;
-      case 'invite': return <UserPlus className="h-5 w-5 text-indigo-400" />;
-      case 'daily': return <Calendar className="h-5 w-5 text-amber-400" />;
-      default: return <Coins className="h-5 w-5 text-purple-400" />;
+    switch (type.toLowerCase()) {
+      case 'social':
+        return <MessageCircle className="h-5 w-5 text-blue-500" />;
+      case 'referral':
+        return <UserPlus className="h-5 w-5 text-green-500" />;
+      case 'daily':
+        return <Calendar className="h-5 w-5 text-orange-500" />;
+      case 'achievement':
+        return <CheckCircle className="h-5 w-5 text-purple-500" />;
+      default:
+        return <Coins className="h-5 w-5 text-yellow-500" />;
     }
   };
   
-  // Отображение загрузки
+  // Отображение состояния загрузки
   if (loading) {
     return (
-      <div className="space-y-4 p-4">
-        <div className="text-center text-muted-foreground text-sm mb-4">Загрузка заданий...</div>
-        {[1, 2, 3].map(i => (
-          <Card key={i} className="w-full opacity-70 animate-pulse">
-            <CardHeader className="h-16"></CardHeader>
-            <CardContent className="h-20"></CardContent>
-            <CardFooter className="h-12"></CardFooter>
-          </Card>
-        ))}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold mb-4">🎯 Доступные задания</h2>
+        <div className="grid gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -171,12 +176,13 @@ const EnhancedMissionsList: React.FC = () => {
   // Отображение ошибки
   if (error) {
     return (
-      <div className="space-y-4 p-4">
-        <Card className="w-full bg-slate-800/70 border border-slate-700">
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold mb-4">🎯 Доступные задания</h2>
+        <Card className="border-red-200">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center">
-              <AlertCircle className="mr-2 h-5 w-5 text-red-400" />
-              Не удалось загрузить задания
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Ошибка загрузки
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -185,7 +191,10 @@ const EnhancedMissionsList: React.FC = () => {
             </p>
             <Button 
               className="mt-4 w-full"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                setError(null);
+                fetchData();
+              }}
             >
               Попробовать снова
             </Button>
@@ -198,13 +207,11 @@ const EnhancedMissionsList: React.FC = () => {
   // Отображение пустого списка
   if (!missions || missions.length === 0) {
     return (
-      <div className="space-y-4 p-4">
-        <Card className="w-full bg-slate-800/70 border border-slate-700">
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold mb-4">🎯 Доступные задания</h2>
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg flex items-center">
-              <AlertCircle className="mr-2 h-5 w-5 text-amber-400" />
-              Задания не найдены
-            </CardTitle>
+            <CardTitle>Заданий пока нет</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
@@ -212,7 +219,10 @@ const EnhancedMissionsList: React.FC = () => {
             </p>
             <Button 
               className="mt-4 w-full"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                setError(null);
+                fetchData();
+              }}
             >
               Обновить
             </Button>
@@ -224,62 +234,57 @@ const EnhancedMissionsList: React.FC = () => {
   
   // Отображение списка миссий
   return (
-    <div className="space-y-4 p-4">
-      {missions.map(mission => {
-        const isCompleted = completedMissionIds.includes(mission.id);
-        
-        return (
-          <Card key={mission.id} className="w-full">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center">
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold mb-4">🎯 Доступные задания</h2>
+      <div className="grid gap-4">
+        {missions.map((mission) => {
+          const isCompleted = completedMissionIds.includes(mission.id);
+          
+          return (
+            <Card key={mission.id} className={`transition-all duration-200 ${
+              isCompleted 
+                ? 'bg-green-50 border-green-200 opacity-75' 
+                : 'hover:shadow-md border-gray-200'
+            }`}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between text-base">
+                  <div className="flex items-center gap-2">
                     {getMissionIcon(mission.type)}
+                    <span className={isCompleted ? 'line-through text-gray-500' : ''}>
+                      {mission.title}
+                    </span>
                   </div>
-                  <CardTitle className="text-lg">{mission.title}</CardTitle>
-                </div>
-                <Badge className={isCompleted ? 'bg-teal-500/70' : 'bg-blue-500'}>
-                  <span className="flex items-center">
-                    {isCompleted ? (
-                      <><CheckCircle className="h-4 w-4 mr-1" />Выполнено</>
-                    ) : (
-                      <><AlertCircle className="h-4 w-4 mr-1" />Доступно</>
-                    )}
-                  </span>
-                </Badge>
-              </div>
-              <CardDescription className="mt-2">{mission.description}</CardDescription>
-            </CardHeader>
-            
-            <CardFooter className="flex justify-between items-center border-t pt-4">
-              <div className="flex items-center">
-                <div className="text-purple-300/80 font-medium mr-2">Награда:</div>
-                <div className="flex items-center px-2 py-1 bg-purple-900/30 rounded-md">
-                  <Coins className="h-4 w-4 text-purple-400 mr-1.5" />
-                  <span className="text-purple-300 font-semibold">
-                    {parseFloat(mission.reward_uni)} UNI
-                  </span>
-                </div>
-              </div>
+                  <Badge variant={isCompleted ? 'secondary' : 'default'}>
+                    {isCompleted ? '✅ Выполнено' : `+${mission.reward_uni} UNI`}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  {mission.description}
+                </CardDescription>
+              </CardHeader>
               
-              {isCompleted ? (
-                <Badge variant="outline" className="border-purple-400/60 text-purple-300 px-3 py-1">
-                  <CheckCircle className="h-4 w-4 mr-1.5" />
-                  Получено
-                </Badge>
-              ) : (
-                <Button 
-                  size="sm"
-                  onClick={() => completeMission(mission.id)}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  Выполнить
-                </Button>
+              {!isCompleted && (
+                <CardFooter className="pt-0">
+                  <Button 
+                    onClick={() => completeMission(mission.id)}
+                    className="w-full"
+                    size="sm"
+                  >
+                    <Coins className="h-4 w-4 mr-2" />
+                    Выполнить задание
+                  </Button>
+                </CardFooter>
               )}
-            </CardFooter>
-          </Card>
-        );
-      })}
+            </Card>
+          );
+        })}
+      </div>
+      
+      {missions.length > 0 && (
+        <div className="text-center text-sm text-muted-foreground pt-4">
+          Выполнено заданий: {completedMissionIds.length} из {missions.length}
+        </div>
+      )}
     </div>
   );
 };
