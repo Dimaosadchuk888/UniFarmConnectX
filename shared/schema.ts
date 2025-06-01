@@ -428,6 +428,21 @@ export const tonBoostPackages = pgTable("ton_boost_packages", {
   created_at: timestamp("created_at").defaultNow()
 });
 
+// Таблица user_boosts для отслеживания активных бустов пользователей
+export const userBoosts = pgTable("user_boosts", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").notNull().references(() => users.id),
+  package_id: integer("package_id").notNull().references(() => boostPackages.id),
+  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
+  daily_rate: numeric("daily_rate", { precision: 5, scale: 4 }).notNull(),
+  start_date: timestamp("start_date").defaultNow().notNull(),
+  end_date: timestamp("end_date").notNull(),
+  last_claim: timestamp("last_claim"),
+  total_earned: numeric("total_earned", { precision: 18, scale: 6 }).default("0"),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow().notNull()
+});
+
 // Схемы для таблицы boost_packages
 export const insertBoostPackageSchema = createInsertSchema(boostPackages).pick({
   name: true,
@@ -440,6 +455,20 @@ export const insertBoostPackageSchema = createInsertSchema(boostPackages).pick({
 
 export type InsertBoostPackage = z.infer<typeof insertBoostPackageSchema>;
 export type BoostPackage = typeof boostPackages.$inferSelect;
+
+// Схемы для таблицы user_boosts
+export const insertUserBoostSchema = createInsertSchema(userBoosts).pick({
+  user_id: true,
+  package_id: true,
+  amount: true,
+  daily_rate: true,
+  start_date: true,
+  end_date: true,
+  is_active: true
+});
+
+export type InsertUserBoost = z.infer<typeof insertUserBoostSchema>;
+export type UserBoost = typeof userBoosts.$inferSelect;
 
 // Схемы для таблицы ton_boost_packages
 export const insertTonBoostPackageSchema = createInsertSchema(tonBoostPackages).pick({
