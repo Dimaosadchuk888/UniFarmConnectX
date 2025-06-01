@@ -1,8 +1,0 @@
-name: start-simplified
-command: tsx server/index.ts
-env:
-  NODE_ENV: development
-  PORT: 3000
-  DATABASE_PROVIDER: neon
-  FORCE_NEON_DB: true
-  DISABLE_REPLIT_DB: true
