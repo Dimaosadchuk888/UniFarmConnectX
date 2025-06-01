@@ -48,4 +48,4 @@ export interface MissionRequirements {
 }
 
 export type MissionType = 'daily' | 'weekly' | 'one_time' | 'referral';
-export type RewardType = 'UNI' | 'TON' | 'BOOST';
+export type MissionRewardType = 'UNI' | 'TON' | 'BOOST';
