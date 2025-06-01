@@ -3,7 +3,7 @@
  */
 
 import { db } from './server/db.js';
-import { users, missions, transactions } from './shared/schema.js';
+import { users, missions as missionsTable, transactions } from './shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 console.log('🧪 Начинаем тестирование системы UniFarm...\n');
@@ -17,7 +17,7 @@ async function testDatabase() {
     console.log('✅ База данных: подключение успешно');
     
     // Проверяем структуру таблиц
-    const tableCheck = await db.select().from(missions).limit(1);
+    const tableCheck = await db.select().from(missionsTable).limit(1);
     console.log('✅ Схема базы данных: структура корректна');
     
     return true;
@@ -63,8 +63,8 @@ async function testMissionsSystem() {
     // Проверяем существующие миссии
     const missions = await db
       .select()
-      .from(missions)
-      .where(eq(missions.is_active, true));
+      .from(missionsTable)
+      .where(eq(missionsTable.is_active, true));
     
     console.log('✅ Активных миссий найдено:', missions.length);
     
@@ -91,16 +91,16 @@ async function testTransactionSystem(userId) {
       .insert(transactions)
       .values({
         user_id: userId,
-        transaction_type: 'test_reward',
+        type: 'test_reward',
         amount: '100.000000',
         currency: 'UNI',
-        status: 'completed'
+        status: 'confirmed'
       })
       .returning();
     
     console.log('✅ Транзакция создана:', {
       id: transaction.id,
-      type: transaction.transaction_type,
+      type: transaction.type,
       amount: transaction.amount
     });
     

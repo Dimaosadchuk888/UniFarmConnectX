@@ -106,7 +106,7 @@ export const transactions = pgTable(
   {
     id: serial("id").primaryKey(),
     user_id: integer("user_id").references(() => users.id),
-    type: text("type"), // deposit / withdraw / reward / boost_bonus
+    transaction_type: text("transaction_type"), // deposit / withdraw / reward / boost_bonus
     currency: text("currency"), // UNI / TON
     amount: numeric("amount", { precision: 18, scale: 6 }),
     status: text("status").default("confirmed"), // pending / confirmed / rejected
