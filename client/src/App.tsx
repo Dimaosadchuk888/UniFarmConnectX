@@ -15,7 +15,6 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
 import { WebSocketProvider } from "@/contexts/webSocketContext";
 import { NotificationProvider } from "@/contexts/notificationContext";
-import NotificationContainer from "@/components/ui/NotificationContainer";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 
 // Pages
@@ -204,7 +203,6 @@ function App() {
                     {renderPage()}
                   </MainLayout>
                   <NetworkStatusIndicator />
-                  <NotificationContainer />
                   <Toaster />
                 </TelegramWebAppCheck>
               </WebSocketProvider>
