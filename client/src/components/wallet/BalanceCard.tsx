@@ -2,11 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
 import { useNotification } from '@/contexts/notificationContext';
-import { 
-  formatUniNumber, 
-  formatTonNumber, 
-  getUSDEquivalent 
-} from '@/utils/formatters';
+import { formatAmount } from '@/utils/formatters';
 
 /**
  * Компонент для отображения баланса пользователя
@@ -171,7 +167,7 @@ const BalanceCard: React.FC = () => {
   const formatRateNumber = useCallback((rate: number): JSX.Element => {
     if (rate > 0.001) {
       // Для ставок больше 0.001 показываем до 5 знаков
-      return <span>+{formatTonNumber(rate)}</span>;
+      return <span>+{formatAmount(rate, 'TON')}</span>;
     } else if (rate > 0) {
       // Для очень маленьких ставок показываем до 7 знаков уменьшенным шрифтом
       return <span className="text-[0.7em] text-opacity-80">+{formatUniNumber(rate, 7)}</span>;
