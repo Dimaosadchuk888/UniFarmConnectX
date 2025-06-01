@@ -102,3 +102,39 @@ export function useTelegramButtons() {
     isAvailable: !!webApp?.MainButton
   };
 }
+
+export function useFarmingButtons() {
+  const { tg } = useTelegram();
+  
+  const showStartFarmingButton = (onClick: () => void) => {
+    if (tg?.MainButton) {
+      tg.MainButton.text = 'Начать фарминг';
+      tg.MainButton.color = '#28a745';
+      tg.MainButton.onClick(onClick);
+      tg.MainButton.show();
+    }
+  };
+
+  const showCollectButton = (onClick: () => void) => {
+    if (tg?.MainButton) {
+      tg.MainButton.text = 'Собрать награду';
+      tg.MainButton.color = '#ffc107';
+      tg.MainButton.onClick(onClick);
+      tg.MainButton.show();
+    }
+  };
+
+  const hideButton = () => {
+    if (tg?.MainButton) {
+      tg.MainButton.hide();
+      tg.MainButton.offClick();
+    }
+  };
+
+  return {
+    showStartFarmingButton,
+    showCollectButton,
+    hideButton,
+    isAvailable: !!tg?.MainButton
+  };
+}
