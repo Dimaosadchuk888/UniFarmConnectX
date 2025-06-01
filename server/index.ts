@@ -5,6 +5,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { config, logger, globalErrorHandler, notFoundHandler } from '../core';
 import { db } from '../core/db';
 
@@ -65,8 +66,13 @@ async function startServer() {
       });
     });
 
-    // Статические файлы (если есть frontend)
-    app.use(express.static('client/dist'));
+    // Статические файлы React фронтенда
+    app.use(express.static('dist/public'));
+
+    // SPA routing - все неизвестные маршруты направляем на React приложение
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
+    });
 
     // Обработка ошибок
     app.use(notFoundHandler);
