@@ -91,7 +91,7 @@ async function testTransactionSystem(userId) {
       .insert(transactions)
       .values({
         user_id: userId,
-        type: 'test_reward',
+        transaction_type: 'test_reward',
         amount: '100.000000',
         currency: 'UNI',
         status: 'confirmed'
@@ -100,7 +100,7 @@ async function testTransactionSystem(userId) {
     
     console.log('✅ Транзакция создана:', {
       id: transaction.id,
-      type: transaction.type,
+      type: transaction.transaction_type,
       amount: transaction.amount
     });
     

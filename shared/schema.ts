@@ -124,7 +124,7 @@ export const transactions = pgTable(
       // Индексы для ускорения запросов к транзакциям
       userIdIdx: index("idx_transactions_user_id").on(table.user_id),
       sourceUserIdIdx: index("idx_transactions_source_user_id").on(table.source_user_id),
-      typeStatusIdx: index("idx_transactions_type_status").on(table.type, table.status),
+      typeStatusIdx: index("idx_transactions_type_status").on(table.transaction_type, table.status),
     };
   }
 );
@@ -132,7 +132,7 @@ export const transactions = pgTable(
 // Схемы для таблицы transactions
 export const insertTransactionSchema = createInsertSchema(transactions).pick({
   user_id: true,
-  type: true,
+  transaction_type: true,
   currency: true,
   amount: true,
   status: true,
