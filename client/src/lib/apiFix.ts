@@ -93,3 +93,28 @@ export function handleApiError(error: any): ApiErrorResponse {
     return createErrorResponse('Неизвестная ошибка', error.message);
   }
 }
+
+/**
+ * Исправляет тело запроса для корректной отправки
+ */
+export function fixRequestBody(body: any): any {
+  if (!body) return body;
+  
+  // Если это уже строка JSON
+  if (typeof body === 'string') {
+    try {
+      JSON.parse(body);
+      return body;
+    } catch {
+      return JSON.stringify({ data: body });
+    }
+  }
+  
+  // Если это объект
+  if (typeof body === 'object') {
+    return JSON.stringify(body);
+  }
+  
+  // Для других типов данных
+  return JSON.stringify({ data: body });
+}
