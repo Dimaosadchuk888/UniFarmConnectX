@@ -97,23 +97,19 @@ function App() {
       }
 
       if (!user) {
-        // Create new user
-        const response = await fetch('/api/v2/users', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        try {
+          // Create new user using correctApiRequest
+          const { correctApiRequest } = await import('./lib/correctApiRequest');
+          const response = await correctApiRequest('/api/v2/users', 'POST', {
             guestId,
             refCode: refCode || undefined
-          }),
-        });
+          });
 
-        if (response.ok) {
-          const result = await response.json();
-          if (result && result.success && result.data) {
-            user = { id: result.data.user_id };
+          if (response && response.success && response.data) {
+            user = { id: response.data.user_id };
           }
+        } catch (createError) {
+          console.error('Error creating user:', createError);
         }
       }
 
@@ -125,7 +121,7 @@ function App() {
         }));
         
         // Save guest ID for future sessions
-        localStorage.setItem('guest_id', guestId);
+        localStorage.setItem('unifarm_guest_id', guestId);
         
         // Invalidate cache for fresh data
         queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
@@ -147,11 +143,11 @@ function App() {
   };
 
   const getOrCreateGuestId = () => {
-    let guestId = localStorage.getItem('guest_id');
+    let guestId = localStorage.getItem('unifarm_guest_id');
     
     if (!guestId) {
       guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('guest_id', guestId);
+      localStorage.setItem('unifarm_guest_id', guestId);
     }
     
     return guestId;
