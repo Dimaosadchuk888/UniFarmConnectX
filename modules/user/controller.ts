@@ -4,6 +4,66 @@ import { UserService } from './service';
 const userService = new UserService();
 
 export class UserController {
+  async createUser(req: Request, res: Response) {
+    try {
+      const { guestId, refCode } = req.body;
+      
+      if (!guestId) {
+        return res.status(400).json({
+          success: false,
+          error: 'guestId is required'
+        });
+      }
+
+      const result = await userService.createUser({
+        guest_id: guestId,
+        parent_ref_code: refCode || null
+      });
+
+      res.json({
+        success: true,
+        data: { user_id: result.id }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  async getUserByGuestId(req: Request, res: Response) {
+    try {
+      const { guest_id } = req.query;
+      
+      if (!guest_id || typeof guest_id !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: 'guest_id query parameter is required'
+        });
+      }
+
+      const user = await userService.getUserByGuestId(guest_id);
+      
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: user
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
   async getCurrentUser(req: Request, res: Response) {
     try {
       // ПРИОРИТЕТ: Только Telegram данные из middleware
