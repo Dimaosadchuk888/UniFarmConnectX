@@ -3,6 +3,49 @@ import { missions, userMissions, users } from '../../shared/schema';
 import { eq, and, notInArray } from 'drizzle-orm';
 
 export class MissionsService {
+  async getActiveMissionsByTelegramId(telegramId: string): Promise<any[]> {
+    try {
+      // Находим пользователя по Telegram ID
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegram_id, parseInt(telegramId)))
+        .limit(1);
+
+      if (!user) {
+        return [];
+      }
+
+      // Получаем завершенные миссии пользователя
+      const completedMissions = await db
+        .select({ mission_id: userMissions.mission_id })
+        .from(userMissions)
+        .where(eq(userMissions.user_id, user.id));
+
+      const completedMissionIds = completedMissions.map(m => m.mission_id);
+
+      // Получаем активные миссии с информацией о выполнении
+      let activeMissions = await db
+        .select()
+        .from(missions)
+        .where(eq(missions.is_active, true));
+
+      // Добавляем информацию о выполнении
+      return activeMissions.map(mission => ({
+        id: mission.id,
+        title: mission.title,
+        description: mission.description,
+        reward: parseFloat(mission.reward_uni || "0"),
+        type: mission.mission_type,
+        completed: completedMissionIds.includes(mission.id),
+        completed_at: null // Можно добавить если нужно
+      }));
+    } catch (error) {
+      console.error('[MissionsService] Ошибка получения активных миссий:', error);
+      return [];
+    }
+  }
+
   async getAvailableMissions(userId: string): Promise<any[]> {
     try {
       // Получаем завершенные миссии пользователя

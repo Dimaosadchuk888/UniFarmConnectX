@@ -5,7 +5,58 @@ import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';
 
 export class FarmingService {
-  async startFarming(userId: string): Promise<boolean> {
+  async getFarmingDataByTelegramId(telegramId: string): Promise<{
+    rate: string;
+    accumulated: string;
+    last_claim: string | null;
+    can_claim: boolean;
+    next_claim_available: string | null;
+  }> {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegram_id, parseInt(telegramId)))
+        .limit(1);
+
+      if (!user) {
+        return {
+          rate: '0.000000',
+          accumulated: '0.000000',
+          last_claim: null,
+          can_claim: false,
+          next_claim_available: null
+        };
+      }
+
+      const now = new Date();
+      const lastClaim = user.uni_farming_last_update ? new Date(user.uni_farming_last_update) : null;
+      const farmingStart = user.uni_farming_start_timestamp ? new Date(user.uni_farming_start_timestamp) : now;
+      
+      // Расчет накопленного фарминга (базовая ставка 0.001 UNI в час)
+      const baseRate = 0.001;
+      const hoursElapsed = lastClaim 
+        ? (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60)
+        : (now.getTime() - farmingStart.getTime()) / (1000 * 60 * 60);
+      
+      const accumulated = Math.max(0, hoursElapsed * baseRate);
+      
+      return {
+        rate: baseRate.toFixed(6),
+        accumulated: accumulated.toFixed(6),
+        last_claim: lastClaim?.toISOString() || null,
+        can_claim: accumulated >= 0.001, // Минимум для клейма
+        next_claim_available: lastClaim 
+          ? new Date(lastClaim.getTime() + (24 * 60 * 60 * 1000)).toISOString() // 24 часа
+          : null
+      };
+    } catch (error) {
+      console.error('[FarmingService] Ошибка получения данных фарминга:', error);
+      throw error;
+    }
+  }
+
+  async startFarming(userId: string, amount?: string): Promise<boolean> {
     try {
       const [user] = await db
         .select()
@@ -47,12 +98,12 @@ export class FarmingService {
     }
   }
 
-  async claimRewards(userId: string): Promise<{ amount: string; claimed: boolean }> {
+  async claimRewards(telegramId: string): Promise<{ amount: string; claimed: boolean }> {
     try {
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.id, parseInt(userId)))
+        .where(eq(users.telegram_id, parseInt(telegramId)))
         .limit(1);
 
       if (!user || !user.uni_farming_start_timestamp) {
@@ -90,13 +141,13 @@ export class FarmingService {
           uni_farming_start_timestamp: now, // Сбрасываем время для нового цикла
           uni_farming_last_update: now
         })
-        .where(eq(users.id, parseInt(userId)));
+        .where(eq(users.telegram_id, parseInt(telegramId)));
 
       // Записываем транзакцию о начислении
       await db
         .insert(transactions)
         .values({
-          user_id: parseInt(userId),
+          user_id: user.id,
           type: 'farming_reward',
           currency: 'UNI',
           amount: baseReward,
@@ -105,7 +156,7 @@ export class FarmingService {
         });
 
       // Распределяем реферальные вознаграждения
-      await ReferralRewardDistribution.distributeFarmingRewards(userId, baseReward);
+      await ReferralRewardDistribution.distributeFarmingRewards(user.id.toString(), baseReward);
 
       return { amount: baseReward, claimed: true };
     } catch (error) {

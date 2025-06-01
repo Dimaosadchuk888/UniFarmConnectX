@@ -1,4 +1,7 @@
 import type { Request, Response } from 'express';
+import { UserService } from './service';
+
+const userService = new UserService();
 
 export class UserController {
   async getCurrentUser(req: Request, res: Response) {
@@ -28,27 +31,36 @@ export class UserController {
         });
       }
       
-      // Возвращаем данные пользователя из middleware
-      console.log('[GetMe] Возвращаем данные пользователя из middleware:', {
-        id: telegramUser.id,
-        telegram_id: telegramUser.telegram_id,
-        ref_code: telegramUser.ref_code
+      // Получаем полные данные пользователя через сервис
+      const user = await userService.getUserByTelegramId(telegramUser.telegram_id.toString());
+      
+      console.log('[GetMe] Возвращаем данные пользователя:', {
+        id: user?.id,
+        telegram_id: user?.telegram_id,
+        ref_code: user?.ref_code
       });
+      
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'Пользователь не найден'
+        });
+      }
       
       return res.json({
         success: true,
         data: {
-          id: telegramUser.id,
-          telegram_id: telegramUser.telegram_id,
-          username: telegramUser.username || telegramUser.first_name,
+          id: user.id,
+          telegram_id: user.telegram_id,
+          username: user.username || telegramUser.first_name,
           first_name: telegramUser.first_name,
-          ref_code: telegramUser.ref_code,
-          ref_by: null,
-          uni_balance: telegramUser.uni_balance || 0,
-          ton_balance: telegramUser.ton_balance || 0,
-          balance_uni: telegramUser.uni_balance || 0,
-          balance_ton: telegramUser.ton_balance || 0,
-          created_at: new Date().toISOString(),
+          ref_code: user.ref_code,
+          parent_ref_code: user.parent_ref_code,
+          uni_balance: user.balance_uni || "0",
+          ton_balance: user.balance_ton || "0",
+          balance_uni: user.balance_uni || "0",
+          balance_ton: user.balance_ton || "0",
+          created_at: user.created_at?.toISOString(),
           is_telegram_user: true,
           auth_method: 'telegram'
         }
