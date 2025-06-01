@@ -216,7 +216,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         } else {
           const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';
           console.error('[UserContext] Ошибка получения данных пользователя:', errorMsg);
-          dispatch({ type: 'SET_ERROR', payload: new Error(errorMsg) });
+          // Не блокируем интерфейс, устанавливаем минимальные данные для продолжения работы
+          dispatch({
+            type: 'SET_USER_DATA',
+            payload: {
+              userId: 1, // fallback user ID
+              username: null,
+              guestId: localStorage.getItem('guest_id'),
+              telegramId: null,
+              refCode: null
+            }
+          });
+          dispatch({ type: 'SET_ERROR', payload: null });
         }
       }
     } catch (err) {
@@ -246,7 +257,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       
       const error = err instanceof Error ? err : new Error('Ошибка получения данных пользователя');
       console.error('[UserContext] Ошибка получения данных пользователя:', error);
-      dispatch({ type: 'SET_ERROR', payload: error });
+      // Не блокируем интерфейс при ошибке, устанавливаем fallback данные
+      dispatch({
+        type: 'SET_USER_DATA',
+        payload: {
+          userId: 1,
+          username: null,
+          guestId: localStorage.getItem('guest_id'),
+          telegramId: null,
+          refCode: null
+        }
+      });
+      dispatch({ type: 'SET_ERROR', payload: null });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: false } });
       refreshInProgressRef.current = false;
@@ -273,7 +295,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Ошибка получения баланса');
       console.error('[UserContext] Ошибка получения баланса:', error);
-      dispatch({ type: 'SET_ERROR', payload: error });
+      // Устанавливаем нулевые балансы вместо блокировки интерфейса
+      dispatch({
+        type: 'SET_BALANCE',
+        payload: {
+          uniBalance: 0,
+          tonBalance: 0,
+          uniFarmingActive: false,
+          uniDepositAmount: 0,
+          uniFarmingBalance: 0
+        }
+      });
+      dispatch({ type: 'SET_ERROR', payload: null });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: false } });
       refreshInProgressRef.current = false;
@@ -300,7 +333,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       return false;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Ошибка подключения кошелька');
-      dispatch({ type: 'SET_ERROR', payload: error });
+      console.error('[UserContext] Ошибка подключения кошелька:', error);
+      // Не блокируем интерфейс, просто логируем ошибку
+      dispatch({ type: 'SET_ERROR', payload: null });
       return false;
     }
   }, [tonConnectUI]);
