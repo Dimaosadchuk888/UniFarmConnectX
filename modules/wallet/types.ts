@@ -1,3 +1,6 @@
+// Импорт enum'ов из model.ts для избежания дублирования
+import type { TransactionType, TransactionStatus } from './model';
+
 export interface WalletBalance {
   user_id: number;
   balance_uni: string;
@@ -29,21 +32,7 @@ export interface WithdrawalRequest {
   network?: string;
 }
 
-export interface WithdrawalData {
-  id: number;
-  user_id: number;
-  amount: string;
-  currency: 'UNI' | 'TON';
-  wallet_address: string;
-  network?: string;
-  status: WithdrawalStatus;
-  transaction_hash?: string;
-  fee_amount?: string;
-  created_at: Date;
-  processed_at?: Date;
-}
-
-export interface DepositData {
+export interface DepositRecord {
   id: number;
   user_id: number;
   amount: string;
@@ -53,24 +42,22 @@ export interface DepositData {
   created_at: Date;
 }
 
-export type TransactionType = 
-  | 'deposit' 
-  | 'withdrawal' 
-  | 'farming_reward' 
-  | 'referral_commission' 
-  | 'boost_reward'
-  | 'mission_reward'
-  | 'daily_bonus';
-
-export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
-
 export type WithdrawalStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 
 export type DepositSource = 'manual' | 'farming' | 'referral' | 'boost' | 'mission' | 'bonus';
 
+export interface WalletOperationResult {
+  success: boolean;
+  transaction_id?: string;
+  new_balance?: string;
+  error?: string;
+}
+
 export interface WalletSummary {
-  balances: WalletBalance;
-  recent_transactions: TransactionData[];
-  pending_withdrawals: WithdrawalData[];
-  total_earned_today: string;
+  total_balance_uni: string;
+  total_balance_ton: string;
+  total_earned: string;
+  total_withdrawn: string;
+  active_deposits: number;
+  pending_withdrawals: number;
 }

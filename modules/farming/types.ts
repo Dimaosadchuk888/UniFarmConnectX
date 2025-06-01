@@ -40,4 +40,4 @@ export interface RewardCalculation {
   total_available: string;
 }
 
-export type FarmingStatus = 'active' | 'paused' | 'completed' | 'cancelled';
+// FarmingStatus и RewardType определены в model.ts как enum'ы
