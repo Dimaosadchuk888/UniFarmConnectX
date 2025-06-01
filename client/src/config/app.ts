@@ -7,7 +7,7 @@ export const APP_CONFIG = {
       : 'http://localhost:3000',
     ENDPOINTS: {
       AUTH: '/api/v2/auth',
-      USER: '/api/v2/user',
+      USER: '/api/v2/users',
       WALLET: '/api/v2/wallet',
       FARMING: '/api/v2/farming',
       MISSIONS: '/api/v2/missions',
