@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { correctApiRequest } from '@/lib/correctApiRequest';
-import { formatUniNumber, formatTonNumber, getOptimalDecimals, safeFormatAmount } from '@/utils/formatters';
+import { formatAmount } from '@/utils/formatters';
 
 // Интерфейс для фарминг-депозита
 interface FarmingDeposit {
@@ -1407,11 +1407,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                           <span className={item.currency === 'UNI' ? "text-purple-300" : "text-blue-300"}>
                             +{(() => {
                               try {
-                                // Определяем оптимальное количество десятичных знаков в зависимости от валюты и размера суммы
-                                const decimals = getOptimalDecimals(item.amount, item.currency);
-                                
-                                // Используем безопасное форматирование
-                                return safeFormatAmount(item.amount, decimals, item.currency);
+                                // Используем форматирование
+                                return formatAmount(item.amount, item.currency);
                               } catch (error) {
                                 console.error('[ERROR] FarmingHistory - Ошибка при форматировании суммы транзакции:', error);
                                 // Безопасное значение по умолчанию
@@ -1560,11 +1557,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                         <span className="text-blue-300">
                           +{(() => {
                             try {
-                              // Определяем оптимальное количество десятичных знаков для TON
-                              const decimals = getOptimalDecimals(item.amount, 'TON');
-                              
-                              // Используем безопасное форматирование
-                              return safeFormatAmount(item.amount, decimals, 'TON');
+                              // Используем форматирование для TON
+                              return formatAmount(item.amount, 'TON');
                             } catch (error) {
                               console.error('[ERROR] FarmingHistory - Ошибка при форматировании TON суммы:', error);
                               // Безопасное значение по умолчанию

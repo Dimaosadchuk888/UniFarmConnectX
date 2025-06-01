@@ -116,15 +116,15 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
         parentRefCode: data.parent_ref_code || 'Отсутствует'
       } : 'Данные отсутствуют',
       linkType,
-      referralLink: refCode ? buildReferralLink(refCode) : 'Не удалось создать (нет ref_code)',
-      directBotLink: refCode ? buildDirectBotReferralLink(refCode) : 'Не удалось создать (нет ref_code)',
+      referralLink: refCode ? createReferralLink(refCode) : 'Не удалось создать (нет ref_code)',
+      directBotLink: refCode ? createReferralLink(refCode) : 'Не удалось создать (нет ref_code)',
       telegramState
     });
   }, [data, refCode, linkType]);
   
   // Формируем ссылки с помощью утилит
-  const referralLink = refCode ? buildReferralLink(refCode) : "";
-  const directBotLink = refCode ? buildDirectBotReferralLink(refCode) : "";
+  const referralLink = refCode ? createReferralLink(refCode) : "";
+  const directBotLink = refCode ? createReferralLink(refCode) : "";
   
   // Слушатель событий обновления пользователя
   useEffect(() => {

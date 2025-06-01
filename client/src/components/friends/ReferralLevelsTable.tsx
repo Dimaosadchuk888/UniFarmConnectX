@@ -3,7 +3,7 @@ import { Coins } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import apiConfig from '@/config/apiConfig';
 import logger from '@/utils/logger';
-import { safeFormatAmount } from '@/utils/formatters';
+import { formatAmount } from '@/utils/formatters';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 
 /**
@@ -237,8 +237,8 @@ const ReferralLevelsTable: React.FC = () => {
         try {
           // Используем глобальную функцию safeFormatAmount для форматирования
           // Аргументы: значение, десятичные знаки, валюта
-          const formattedUniIncome = safeFormatAmount(uniIncome, 8, 'UNI').replace(' UNI', ''); 
-          const formattedTonIncome = safeFormatAmount(tonIncome, 6, 'TON').replace(' TON', '');
+          const formattedUniIncome = formatAmount(uniIncome, 'UNI'); 
+          const formattedTonIncome = formatAmount(tonIncome, 'TON');
           
           return {
             level: `Уровень ${levelNumber}`,
