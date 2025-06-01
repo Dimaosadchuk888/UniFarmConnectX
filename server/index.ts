@@ -43,6 +43,16 @@ async function startServer() {
       next();
     });
 
+    // Health check (должен быть первым для мониторинга)
+    app.get('/health', (req, res) => {
+      res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        version: config.app.apiVersion,
+        environment: config.app.nodeEnv
+      });
+    });
+
     // API routes
     const apiPrefix = `/api/${config.app.apiVersion}`;
     app.use(`${apiPrefix}/users`, userRoutes);
@@ -56,21 +66,16 @@ async function startServer() {
     app.use(`${apiPrefix}/admin`, adminRoutes);
     app.use(`${apiPrefix}/daily-bonus`, dailyBonusRoutes);
 
-    // Health check
-    app.get('/health', (req, res) => {
-      res.json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString(),
-        version: config.app.apiVersion,
-        environment: config.app.nodeEnv
-      });
-    });
-
     // Статические файлы React фронтенда
     app.use(express.static('dist/public'));
 
-    // SPA routing - все неизвестные маршруты направляем на React приложение
-    app.get('*', (req, res) => {
+    // SPA routing - направляем только non-API маршруты на React приложение
+    app.get('*', (req, res, next) => {
+      // Пропускаем API запросы, они должны возвращать 404 если не найдены
+      if (req.path.startsWith('/api/')) {
+        return next();
+      }
+      // Отправляем React приложение для всех остальных маршрутов
       res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
     });
 
