@@ -6,7 +6,11 @@ const userService = new UserService();
 export class UserController {
   async createUser(req: Request, res: Response) {
     try {
-      const { guestId, refCode } = req.body;
+      const { guestId: bodyGuestId, refCode } = req.body;
+      const headerGuestId = req.headers['x-guest-id'] as string;
+      
+      // Try to get guestId from body first, then from headers
+      const guestId = bodyGuestId || headerGuestId;
       
       if (!guestId) {
         return res.status(400).json({

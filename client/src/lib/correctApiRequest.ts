@@ -20,7 +20,7 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
   };
 
   // Добавляем guest_id из localStorage
-  const guestId = localStorage.getItem('guest_id');
+  const guestId = localStorage.getItem('unifarm_guest_id');
   if (guestId) {
     requestHeaders['X-Guest-ID'] = guestId;
   }
