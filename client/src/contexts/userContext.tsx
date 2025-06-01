@@ -165,7 +165,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     try {
       // Получаем данные пользователя из localStorage или используем guest_id
-      let apiUrl = '/api/v2/me';
+      let apiUrl = '/api/v2/users/profile';
       const lastSessionStr = localStorage.getItem('unifarm_last_session');
       const guestId = localStorage.getItem('unifarm_guest_id');
       
@@ -173,13 +173,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         try {
           const lastSession = JSON.parse(lastSessionStr);
           if (lastSession.user_id) {
-            apiUrl = `/api/v2/me?user_id=${lastSession.user_id}`;
+            apiUrl = `/api/v2/users/profile?user_id=${lastSession.user_id}`;
           }
         } catch (e) {
           console.warn('[UserContext] Ошибка парсинга данных сессии:', e);
         }
       } else if (guestId) {
-        apiUrl = `/api/v2/me?guest_id=${guestId}`;
+        apiUrl = `/api/v2/users/profile?guest_id=${guestId}`;
       }
       
       const response = await correctApiRequest(apiUrl);

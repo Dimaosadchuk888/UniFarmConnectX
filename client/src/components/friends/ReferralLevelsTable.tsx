@@ -42,7 +42,7 @@ const ReferralLevelsTable: React.FC = () => {
 
   // Получаем информацию о текущем пользователе из API
   const { data: currentUser, isLoading: isUserLoading } = useQuery({
-    queryKey: ['/api/v2/me'],
+    queryKey: ['/api/v2/users/profile'],
     queryFn: () => import('@/services/userService').then(module => module.default.getCurrentUser()),
     staleTime: 1000 * 5, // Кэшируем данные только на 5 секунд
     refetchOnWindowFocus: true, // Обновляем при возвращении на страницу
