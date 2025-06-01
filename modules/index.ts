@@ -48,17 +48,17 @@ export * from './dailyBonus/model';
 export * from './admin/model';
 export * from './auth/model';
 
-// Types
-export * from './user/types';
-export * from './wallet/types';
-export * from './farming/types';
-export * from './missions/types';
-export * from './referral/types';
-export * from './boost/types';
-export * from './telegram/types';
-export * from './dailyBonus/types';
-export * from './admin/types';
-export * from './auth/types';
+// Types (избегаем конфликтов с моделями)
+export type * from './user/types';
+export type * from './wallet/types';
+export type * from './farming/types';
+export type * from './missions/types';
+export type * from './referral/types';
+export type * from './boost/types';
+export type * from './telegram/types';
+export type * from './dailyBonus/types';
+export type * from './admin/types';
+export type * from './auth/types';
 
 // Middleware
 export { telegramMiddleware, requireTelegramAuth } from './telegram/middleware';
