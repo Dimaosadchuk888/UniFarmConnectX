@@ -14,11 +14,17 @@ export function generateReferralCode(userId: number | string): string {
 }
 
 /**
- * Создает реферальную ссылку
+ * Создает безопасную реферальную ссылку через Telegram WebApp
  */
 export function createReferralLink(referralCode: string): string {
-  const baseUrl = window.location.origin;
-  return `${baseUrl}?ref=${referralCode}`;
+  // БЕЗОПАСНОСТЬ: Используем только Telegram WebApp формат
+  // Никогда не используем прямые Replit URL'ы для защиты конфиденциальности
+  
+  // Получаем конфигурацию бота из переменных окружения или дефолтных значений
+  const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'UniFarming_Bot';
+  const appName = import.meta.env.VITE_TELEGRAM_WEBAPP_NAME || 'UniFarm';
+  
+  return `https://t.me/${botUsername}/${appName}?startapp=${referralCode}`;
 }
 
 /**
