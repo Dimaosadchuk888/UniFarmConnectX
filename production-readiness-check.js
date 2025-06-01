@@ -2,7 +2,7 @@
  * Комплексная проверка готовности UniFarm к продакшену
  */
 
-import { db } from './core/db.js';
+// Database connection will be imported dynamically
 import { config } from './core/config/index.js';
 import { users, missions, transactions } from './shared/schema.js';
 import { eq } from 'drizzle-orm';
