@@ -8,14 +8,14 @@ import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPacka
 import TonFarmingStatusCardWithErrorBoundary from '../components/ton-boost/TonFarmingStatusCardWithErrorBoundary';
 import ActiveTonBoostsCardWithErrorBoundary from '../components/ton-boost/ActiveTonBoostsCardWithErrorBoundary';
 // ЭТАП 2: Импорт хука для управления кнопками фарминга
-import { useFarmingButtons } from '../hooks/useTelegramButtons';
+import { useTelegramButtons } from '../hooks/useTelegramButtons';
 
 const Farming: React.FC = () => {
   // Хардкод ID=1 для демонстрации
   const userId = 1;
   
   // ЭТАП 2: Инициализация кнопок фарминга с обработчиками
-  const farmingButtons = useFarmingButtons();
+  const { showStartFarmingButton, showCollectButton, hideButton } = useTelegramButtons();
   
   // Получаем информацию о пользователе для отображения баланса
   const { data: userResponse } = useQuery({
@@ -41,14 +41,12 @@ const Farming: React.FC = () => {
     console.log('[FARMING PAGE] 🔘 Скрываем все кнопки Telegram...');
     
     // ПОЛНОСТЬЮ УБИРАЕМ ВСЕ КНОПКИ - чистый интерфейс без кнопок внизу
-    farmingButtons.hideMainButton();
-    farmingButtons.hideBackButton();
+    hideButton();
     
     // [FIX: REMOVE FARMING BUTTON] Очистка кнопок при выходе со страницы
     return () => {
       console.log('[FARMING PAGE] 🧹 Очистка кнопок при выходе со страницы фарминга');
-      farmingButtons.hideMainButton();
-      farmingButtons.hideBackButton();
+      hideButton();
     };
   }, []);
 
