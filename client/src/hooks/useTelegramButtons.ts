@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTelegram } from './useTelegram';
 
 interface TelegramButton {
   text: string;
   color?: string;
   textColor?: string;
-  isVisible?: boolean;
+  isVisible: boolean;
   isActive?: boolean;
   onClick?: () => void;
 }
 
 export function useTelegramButtons() {
-  const { webApp } = useTelegram();
+  const { tg } = useTelegram();
   const [mainButton, setMainButton] = useState<TelegramButton>({
     text: '',
     isVisible: false,
@@ -19,16 +19,16 @@ export function useTelegramButtons() {
   });
 
   const showMainButton = (config: TelegramButton) => {
-    if (webApp?.MainButton) {
-      webApp.MainButton.text = config.text;
-      webApp.MainButton.color = config.color || '#007AFF';
-      webApp.MainButton.textColor = config.textColor || '#FFFFFF';
+    if (tg?.MainButton) {
+      tg.MainButton.text = config.text;
+      tg.MainButton.color = config.color || '#007AFF';
+      tg.MainButton.textColor = config.textColor || '#FFFFFF';
       
       if (config.onClick) {
-        webApp.MainButton.onClick(config.onClick);
+        tg.MainButton.onClick(config.onClick);
       }
       
-      webApp.MainButton.show();
+      tg.MainButton.show();
       
       setMainButton({
         ...config,
@@ -39,8 +39,8 @@ export function useTelegramButtons() {
   };
 
   const hideMainButton = () => {
-    if (webApp?.MainButton) {
-      webApp.MainButton.hide();
+    if (tg?.MainButton) {
+      tg.MainButton.hide();
       setMainButton(prev => ({
         ...prev,
         isVisible: false,
@@ -49,77 +49,86 @@ export function useTelegramButtons() {
     }
   };
 
-  const updateMainButton = (updates: Partial<TelegramButton>) => {
-    if (webApp?.MainButton) {
-      if (updates.text !== undefined) {
-        webApp.MainButton.text = updates.text;
-      }
-      if (updates.color !== undefined) {
-        webApp.MainButton.color = updates.color;
-      }
-      if (updates.textColor !== undefined) {
-        webApp.MainButton.textColor = updates.textColor;
-      }
-      
-      setMainButton(prev => ({
-        ...prev,
-        ...updates
-      }));
-    }
-  };
-
-  const enableMainButton = () => {
-    if (webApp?.MainButton) {
-      webApp.MainButton.enable();
-      setMainButton(prev => ({ ...prev, isActive: true }));
-    }
-  };
-
-  const disableMainButton = () => {
-    if (webApp?.MainButton) {
-      webApp.MainButton.disable();
-      setMainButton(prev => ({ ...prev, isActive: false }));
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      // Cleanup при размонтировании
-      if (webApp?.MainButton) {
-        webApp.MainButton.hide();
-        webApp.MainButton.offClick();
-      }
-    };
-  }, [webApp]);
-
-  return {
-    mainButton,
-    showMainButton,
-    hideMainButton,
-    updateMainButton,
-    enableMainButton,
-    disableMainButton,
-    isAvailable: !!webApp?.MainButton
-  };
-}
-
-export function useFarmingButtons() {
-  const { tg } = useTelegram();
-  
-  const showStartFarmingButton = (onClick: () => void) => {
+  const showStartFarmingButton = (onStart: () => void) => {
     if (tg?.MainButton) {
       tg.MainButton.text = 'Начать фарминг';
-      tg.MainButton.color = '#28a745';
-      tg.MainButton.onClick(onClick);
+      tg.MainButton.color = '#4CAF50';
+      tg.MainButton.textColor = '#FFFFFF';
+      
+      if (onStart) {
+        tg.MainButton.onClick(onStart);
+      }
+      
       tg.MainButton.show();
     }
   };
 
-  const showCollectButton = (onClick: () => void) => {
+  const showCollectButton = (onCollect: () => void) => {
     if (tg?.MainButton) {
       tg.MainButton.text = 'Собрать награду';
-      tg.MainButton.color = '#ffc107';
-      tg.MainButton.onClick(onClick);
+      tg.MainButton.color = '#FF9800';
+      tg.MainButton.textColor = '#FFFFFF';
+      
+      if (onCollect) {
+        tg.MainButton.onClick(onCollect);
+      }
+      
+      tg.MainButton.show();
+    }
+  };
+
+  const showConnectWalletButton = (onConnect: () => void) => {
+    if (tg?.MainButton) {
+      tg.MainButton.text = 'Подключить кошелек';
+      tg.MainButton.color = '#2196F3';
+      tg.MainButton.textColor = '#FFFFFF';
+      
+      if (onConnect) {
+        tg.MainButton.onClick(onConnect);
+      }
+      
+      tg.MainButton.show();
+    }
+  };
+
+  const showBoostButton = (onBoost: () => void) => {
+    if (tg?.MainButton) {
+      tg.MainButton.text = 'Активировать буст';
+      tg.MainButton.color = '#9C27B0';
+      tg.MainButton.textColor = '#FFFFFF';
+      
+      if (onBoost) {
+        tg.MainButton.onClick(onBoost);
+      }
+      
+      tg.MainButton.show();
+    }
+  };
+
+  const showInviteFriendsButton = (onInvite: () => void) => {
+    if (tg?.MainButton) {
+      tg.MainButton.text = 'Пригласить друзей';
+      tg.MainButton.color = '#E91E63';
+      tg.MainButton.textColor = '#FFFFFF';
+      
+      if (onInvite) {
+        tg.MainButton.onClick(onInvite);
+      }
+      
+      tg.MainButton.show();
+    }
+  };
+
+  const showCompleteTaskButton = (onComplete: () => void) => {
+    if (tg?.MainButton) {
+      tg.MainButton.text = 'Выполнить задание';
+      tg.MainButton.color = '#FF5722';
+      tg.MainButton.textColor = '#FFFFFF';
+      
+      if (onComplete) {
+        tg.MainButton.onClick(onComplete);
+      }
+      
       tg.MainButton.show();
     }
   };
@@ -127,14 +136,19 @@ export function useFarmingButtons() {
   const hideButton = () => {
     if (tg?.MainButton) {
       tg.MainButton.hide();
-      tg.MainButton.offClick();
     }
   };
 
   return {
     showStartFarmingButton,
     showCollectButton,
+    showConnectWalletButton,
+    showBoostButton,
+    showInviteFriendsButton,
+    showCompleteTaskButton,
+    showMainButton,
+    hideMainButton,
     hideButton,
-    isAvailable: !!tg?.MainButton
+    mainButton
   };
 }

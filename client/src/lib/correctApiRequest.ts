@@ -9,8 +9,8 @@ interface RequestConfig {
   credentials?: RequestCredentials;
 }
 
-export async function correctApiRequest(url: string, config: RequestConfig = {}) {
-  const { method = 'GET', headers = {}, body, credentials = 'include' } = config;
+export async function correctApiRequest(url: string, method: string = 'GET', body?: any, headers: Record<string, string> = {}) {
+  const credentials = 'include';
 
   // Базовые заголовки
   const requestHeaders: Record<string, string> = {
@@ -18,6 +18,12 @@ export async function correctApiRequest(url: string, config: RequestConfig = {})
     'Accept': 'application/json',
     ...headers
   };
+
+  // Добавляем guest_id из localStorage
+  const guestId = localStorage.getItem('guest_id');
+  if (guestId) {
+    requestHeaders['X-Guest-ID'] = guestId;
+  }
 
   // Добавляем Telegram WebApp данные если доступны
   if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
