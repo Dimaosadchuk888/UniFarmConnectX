@@ -34,7 +34,7 @@ const UniFarmingCardWithErrorBoundary: React.FC<UniFarmingCardWithErrorBoundaryP
           <div className="space-y-3 mb-4">
             <div className="flex justify-between items-center py-2 px-3 bg-secondary/30 rounded">
               <span className="text-sm text-muted-foreground">Дневной доход:</span>
-              <span className="text-sm font-medium text-accent">До 5% в день</span>
+              <span className="text-sm font-medium text-accent">0.5% в день</span>
             </div>
             <div className="flex justify-between items-center py-2 px-3 bg-secondary/30 rounded">
               <span className="text-sm text-muted-foreground">Минимальная сумма:</span>
