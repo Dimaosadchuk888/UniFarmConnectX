@@ -22,7 +22,7 @@ const Dashboard: React.FC = () => {
   const { userId } = useUser();
 
   // Получаем данные пользователя для передачи в компоненты
-  const { data: userResponse } = useQuery({
+  const { data: userResponse } = useQuery<{ success: boolean; data: any }>({
     queryKey: [`/api/v2/users/profile`],
     enabled: !!userId
   });

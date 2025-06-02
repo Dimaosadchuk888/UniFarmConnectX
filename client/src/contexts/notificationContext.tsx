@@ -1,6 +1,22 @@
 import React, { createContext, useReducer, useContext, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Notification, NotificationType, NotificationOptions } from '@types/notification';
+// Локальные определения типов для уведомлений
+export type NotificationType = 'success' | 'error' | 'info' | 'loading';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  message: string;
+  duration?: number;
+  autoDismiss?: boolean;
+}
+
+export interface NotificationOptions {
+  message: string;
+  type?: NotificationType;
+  duration?: number;
+  autoDismiss?: boolean;
+}
 
 // Тип действий для reducer
 type NotificationAction =
