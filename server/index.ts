@@ -117,6 +117,42 @@ async function startServer() {
       }
     });
 
+    // User Profile API
+    app.get(`${apiPrefix}/users/profile`, async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        const [user] = await db.select()
+          .from(users)
+          .where(eq(users.id, parseInt(user_id)))
+          .limit(1);
+
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+
+        res.json({
+          success: true,
+          data: user
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
     // Wallet API
     app.get(`${apiPrefix}/wallet/balance`, async (req: any, res: any) => {
       try {

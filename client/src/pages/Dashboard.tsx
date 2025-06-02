@@ -12,9 +12,7 @@ import SystemStatusIndicator from '@/components/ui/SystemStatusIndicator';
 
 
 
-// Farming Components
-import UniFarmingCardWithErrorBoundary from '@/components/farming/UniFarmingCardWithErrorBoundary';
-import FarmingHistoryWithErrorBoundary from '@/components/farming/FarmingHistoryWithErrorBoundary';
+
 
 const Dashboard: React.FC = () => {
   const { userId } = useUser();
@@ -44,25 +42,7 @@ const Dashboard: React.FC = () => {
       {/* Ежедневный бонус */}
       <DailyBonusCard />
 
-      {/* UNI Фарминг */}
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <i className="fas fa-seedling text-primary mr-2"></i>
-          UNI Фарминг
-        </h2>
-        <UniFarmingCardWithErrorBoundary userData={userData} />
-      </div>
 
-      {/* История фарминга */}
-      {userId && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
-            <i className="fas fa-history text-primary mr-2"></i>
-            История фарминга
-          </h2>
-          <FarmingHistoryWithErrorBoundary userId={userId} />
-        </div>
-      )}
 
       {/* Индикатор статуса системы для диагностики */}
       {process.env.NODE_ENV !== 'production' && (
