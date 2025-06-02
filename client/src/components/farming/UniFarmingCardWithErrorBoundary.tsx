@@ -1,22 +1,13 @@
 import React from 'react';
-import QueryErrorBoundary from '@/components/common/QueryErrorBoundary';
-import UniFarmingCard from './UniFarmingCard';
-import { useUser } from '@/contexts/userContext';
-import { useQueryClient } from '@tanstack/react-query';
 
 interface UniFarmingCardWithErrorBoundaryProps {
   userData: any;
 }
 
 /**
- * Компонент, оборачивающий UniFarmingCard в ErrorBoundary
- * для обеспечения устойчивости к ошибкам
+ * Компонент UNI Фарминга для демонстрации
  */
 const UniFarmingCardWithErrorBoundary: React.FC<UniFarmingCardWithErrorBoundaryProps> = ({ userData }) => {
-  const queryClient = useQueryClient();
-  const { userId } = useUser();
-  
-  // Всегда показываем информационную карточку для демонстрации
   return (
     <div className="bg-card border border-border rounded-lg p-6 mb-4">
       <div className="text-center">
@@ -46,31 +37,10 @@ const UniFarmingCardWithErrorBoundary: React.FC<UniFarmingCardWithErrorBoundaryP
         </div>
         
         <div className="text-xs text-muted-foreground">
-          {userId ? 'Фарминг готов к работе' : 'Подключите Telegram для начала фарминга'}
+          Подключите Telegram для начала фарминга
         </div>
       </div>
     </div>
-  );
-  
-  // Обработчик сброса состояния ошибки и инвалидации данных
-  const handleReset = () => {
-    if (userId) {
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/v2/uni-farming/info', userId] 
-      });
-    }
-  };
-  
-  return (
-    <QueryErrorBoundary
-      onReset={handleReset}
-      queryKey={['/api/v2/uni-farming/info', userId]}
-      errorTitle="Ошибка загрузки UNI фарминга"
-      errorDescription="Не удалось загрузить информацию о вашем UNI фарминге. Пожалуйста, обновите страницу или повторите позже."
-      resetButtonText="Обновить данные"
-    >
-      <UniFarmingCard userData={userData} />
-    </QueryErrorBoundary>
   );
 };
 
