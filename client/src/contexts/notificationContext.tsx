@@ -1,6 +1,6 @@
 import React, { createContext, useReducer, useContext, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Notification, NotificationType, NotificationOptions } from '@/types/notification';
+import { Notification, NotificationType, NotificationOptions } from '@types/notification';
 
 // Тип действий для reducer
 type NotificationAction =
