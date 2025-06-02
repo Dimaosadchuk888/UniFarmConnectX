@@ -12,9 +12,9 @@ export interface Notification {
   autoDismiss?: boolean; // Автоматически скрывать уведомление через duration
 }
 
-// Тип для функции отправки уведомления
 export interface NotificationOptions {
   message: string;
+  type?: NotificationType;
   duration?: number;
   autoDismiss?: boolean;
 }

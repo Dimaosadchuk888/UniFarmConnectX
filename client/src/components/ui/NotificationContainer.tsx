@@ -1,10 +1,23 @@
 import React from 'react';
-import { useNotification } from '@/contexts/NotificationContext';
 import { X, CheckCircle, XCircle, Info, Loader2 } from 'lucide-react';
-import { NotificationType } from '@/types/notification';
 
-const NotificationContainer: React.FC = () => {
-  const { notifications, removeNotification } = useNotification();
+type NotificationType = 'success' | 'error' | 'info' | 'loading';
+
+interface Notification {
+  id: string;
+  type: NotificationType;
+  message: string;
+}
+
+interface NotificationContainerProps {
+  notifications?: Notification[];
+  onRemove?: (id: string) => void;
+}
+
+const NotificationContainer: React.FC<NotificationContainerProps> = ({ 
+  notifications = [], 
+  onRemove = () => {} 
+}) => {
 
   const getIcon = (type: NotificationType) => {
     switch (type) {
@@ -66,7 +79,7 @@ const NotificationContainer: React.FC = () => {
           </div>
 
           <button
-            onClick={() => removeNotification(notification.id)}
+            onClick={() => onRemove(notification.id)}
             className="
               p-1 
               rounded-full 
