@@ -11,17 +11,7 @@ import { db } from '../core/db';
 import { users, transactions } from '../shared/schema';
 import { eq, desc } from 'drizzle-orm';
 
-// Импорт всех модулей
-import userRoutes from '../modules/user/routes';
-import walletRoutes from '../modules/wallet/routes';
-import farmingRoutes from '../modules/farming/routes';
-import missionsRoutes from '../modules/missions/routes';
-import boostRoutes from '../modules/boost/routes';
-import referralRoutes from '../modules/referral/routes';
-import telegramRoutes from '../modules/telegram/routes';
-import authRoutes from '../modules/auth/routes';
-import adminRoutes from '../modules/admin/routes';
-import dailyBonusRoutes from '../modules/dailyBonus/routes';
+// API будет создан прямо в сервере
 
 async function startServer() {
   try {
