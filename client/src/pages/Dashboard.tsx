@@ -10,9 +10,7 @@ import BoostStatusCard from '@/components/dashboard/BoostStatusCard';
 import DailyBonusCard from '@/components/dashboard/DailyBonusCard';
 import SystemStatusIndicator from '@/components/ui/SystemStatusIndicator';
 
-// Wallet Components
-import WalletBalanceWithErrorBoundary from '@/components/wallet/WalletBalanceWithErrorBoundary';
-import TransactionHistoryWithErrorBoundary from '@/components/wallet/TransactionHistoryWithErrorBoundary';
+
 
 // Farming Components
 import UniFarmingCardWithErrorBoundary from '@/components/farming/UniFarmingCardWithErrorBoundary';
@@ -46,15 +44,6 @@ const Dashboard: React.FC = () => {
       {/* Ежедневный бонус */}
       <DailyBonusCard />
 
-      {/* Кошелек и баланс */}
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <i className="fas fa-wallet text-primary mr-2"></i>
-          Баланс кошелька
-        </h2>
-        <WalletBalanceWithErrorBoundary />
-      </div>
-
       {/* UNI Фарминг */}
       <div className="mt-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
@@ -74,15 +63,6 @@ const Dashboard: React.FC = () => {
           <FarmingHistoryWithErrorBoundary userId={userId} />
         </div>
       )}
-
-      {/* История транзакций */}
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <i className="fas fa-exchange-alt text-primary mr-2"></i>
-          Последние транзакции
-        </h2>
-        <TransactionHistoryWithErrorBoundary />
-      </div>
 
       {/* Индикатор статуса системы для диагностики */}
       {process.env.NODE_ENV !== 'production' && (

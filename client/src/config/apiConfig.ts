@@ -15,6 +15,12 @@ export const apiConfig = {
    */
   getFullUrl: (endpoint: string): string => {
     const baseURL = apiConfig.baseURL;
+    
+    // Если endpoint уже содержит базовый путь, возвращаем как есть
+    if (endpoint.startsWith('/api/v2') || endpoint.startsWith('api/v2')) {
+      return endpoint;
+    }
+    
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
     return `${baseURL}/${cleanEndpoint}`;
   },
