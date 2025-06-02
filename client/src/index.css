@@ -52,45 +52,44 @@ body {
 
 @layer base {
   :root {
-    --background: #1e1e2e;
-    --foreground: #ffffff;
+    --background: 240 13% 6%;        /* Темный фон */
+    --foreground: 0 0% 90%;          /* Светлый текст */
+    --card: 240 9% 11%;              /* Фон карточек */
+    --card-foreground: 0 0% 90%;
     
-    --card: #2a2a3e;
-    --card-foreground: #ffffff;
+    --popover: 240 9% 11%;
+    --popover-foreground: 0 0% 90%;
     
-    --popover: #2a2a3e;
-    --popover-foreground: #ffffff;
+    --primary: 270 100% 67%;         /* Фиолетовый акцент */
+    --primary-foreground: 0 0% 100%;
     
-    --primary: #a259ff;
-    --primary-foreground: #ffffff;
+    --secondary: 240 5% 25%;         /* Вторичный цвет */
+    --secondary-foreground: 0 0% 90%;
     
-    --secondary: #3a3a4e;
-    --secondary-foreground: #ffffff;
+    --muted: 240 5% 25%;
+    --muted-foreground: 0 0% 70%;
     
-    --muted: #3a3a4e;
-    --muted-foreground: #cccccc;
+    --accent: 143 72% 59%;           /* Зеленый акцент */
+    --accent-foreground: 0 0% 0%;
     
-    --accent: #4bef7c;
-    --accent-foreground: #000000;
+    --destructive: 0 63% 31%;        /* Цвет ошибки */
+    --destructive-foreground: 0 0% 100%;
     
-    --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
+    --success: 143 72% 53%;          /* Цвет успеха */
+    --success-foreground: 0 0% 100%;
     
-    --success: #22c55e;
-    --success-foreground: #ffffff;
+    --border: 240 5% 25%;            /* Цвет границ */
+    --input: 240 5% 25%;
+    --ring: 270 100% 67%;            /* Цвет фокуса */
     
-    --border: #3a3a4e;
-    --input: #3a3a4e;
-    --ring: #a259ff;
-    
-    --sidebar-background: #1a1a2e;
-    --sidebar-foreground: #ffffff;
-    --sidebar-primary: #a259ff;
-    --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #4bef7c;
-    --sidebar-accent-foreground: #000000;
-    --sidebar-border: #3a3a4e;
-    --sidebar-ring: #a259ff;
+    --sidebar-background: 240 13% 6%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 270 100% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 143 72% 59%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 240 5% 25%;
+    --sidebar-ring: 270 100% 67%;
   }
 
   * {
