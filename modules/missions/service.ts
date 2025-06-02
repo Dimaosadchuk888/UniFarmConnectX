@@ -1,4 +1,4 @@
-import { db } from '../../server/db';
+import { db } from '../../core/db';
 import { missions, userMissions, users } from '../../shared/schema';
 import { eq, and, notInArray } from 'drizzle-orm';
 

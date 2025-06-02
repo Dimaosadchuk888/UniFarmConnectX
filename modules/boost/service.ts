@@ -1,4 +1,4 @@
-import { db } from '../../server/db';
+import { db } from '../../core/db';
 import { boostPackages, userBoosts, users } from '../../shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { TonBoostCalculation } from './logic/tonBoostCalculation';

@@ -108,7 +108,7 @@ export class ReferralService {
    */
   async processReferral(refCode: string, newUserId: string): Promise<boolean> {
     try {
-      const { db } = await import('../../server/db');
+      const { db } = await import('../../core/db');
       const { users, referrals } = await import('../../shared/schema');
       const { eq } = await import('drizzle-orm');
 
@@ -150,7 +150,7 @@ export class ReferralService {
    */
   async getReferralStats(userId: string): Promise<any> {
     try {
-      const { db } = await import('../../server/db');
+      const { db } = await import('../../core/db');
       const { users, referrals } = await import('../../shared/schema');
       const { eq, count, sum } = await import('drizzle-orm');
 
@@ -200,7 +200,7 @@ export class ReferralService {
         return false;
       }
 
-      const { db } = await import('../../server/db');
+      const { db } = await import('../../core/db');
       const { users } = await import('../../shared/schema');
       const { eq } = await import('drizzle-orm');
 

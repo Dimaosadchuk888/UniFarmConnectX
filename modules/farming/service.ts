@@ -1,4 +1,4 @@
-import { db } from '../../server/db';
+import { db } from '../../core/db';
 import { users, farmingDeposits, transactions } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { RewardCalculationLogic } from './logic/rewardCalculation';

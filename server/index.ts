@@ -8,6 +8,8 @@ import cors from 'cors';
 import path from 'path';
 import { config, logger, globalErrorHandler, notFoundHandler } from '../core';
 import { db } from '../core/db';
+import { users, transactions } from '../shared/schema';
+import { eq, desc } from 'drizzle-orm';
 
 // Импорт всех модулей
 import userRoutes from '../modules/user/routes';
@@ -55,16 +57,186 @@ async function startServer() {
 
     // API routes
     const apiPrefix = `/api/v2`;
-    app.use(`${apiPrefix}/users`, userRoutes);
-    app.use(`${apiPrefix}/wallet`, walletRoutes);
-    app.use(`${apiPrefix}/farming`, farmingRoutes);
-    app.use(`${apiPrefix}/missions`, missionsRoutes);
-    app.use(`${apiPrefix}/boost`, boostRoutes);
-    app.use(`${apiPrefix}/referral`, referralRoutes);
-    app.use(`${apiPrefix}/telegram`, telegramRoutes);
-    app.use(`${apiPrefix}/auth`, authRoutes);
-    app.use(`${apiPrefix}/admin`, adminRoutes);
-    app.use(`${apiPrefix}/daily-bonus`, dailyBonusRoutes);
+    
+    // User API
+    app.post(`${apiPrefix}/users`, async (req: any, res: any) => {
+      try {
+        const { guestId, refCode } = req.body;
+        const headerGuestId = req.headers['x-guest-id'];
+        const finalGuestId = guestId || headerGuestId;
+        
+        if (!finalGuestId) {
+          return res.status(400).json({
+            success: false,
+            error: 'guestId is required'
+          });
+        }
+
+        // Создаем нового пользователя в базе данных
+        const newUser = await db.insert(users).values({
+          guest_id: finalGuestId,
+          parent_ref_code: refCode || null,
+          balance_uni: '0',
+          balance_ton: '0'
+        }).returning();
+
+        res.json({
+          success: true,
+          data: { user_id: newUser[0].id }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    app.get(`${apiPrefix}/users/by-guest-id`, async (req: any, res: any) => {
+      try {
+        const { guest_id } = req.query;
+        
+        if (!guest_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'guest_id parameter is required'
+          });
+        }
+
+        const [user] = await db.select()
+          .from(users)
+          .where(eq(users.guest_id, guest_id))
+          .limit(1);
+
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+
+        res.json({
+          success: true,
+          data: user
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // Wallet API
+    app.get(`${apiPrefix}/wallet/balance`, async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        const [user] = await db.select()
+          .from(users)
+          .where(eq(users.id, parseInt(user_id)))
+          .limit(1);
+
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+
+        res.json({
+          success: true,
+          data: {
+            uni_balance: parseFloat(user.balance_uni || '0'),
+            ton_balance: parseFloat(user.balance_ton || '0')
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // UNI Farming API
+    app.get(`${apiPrefix}/uni-farming`, async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        const [user] = await db.select()
+          .from(users)
+          .where(eq(users.id, parseInt(user_id)))
+          .limit(1);
+
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+
+        res.json({
+          success: true,
+          data: {
+            deposit_amount: parseFloat(user.uni_deposit_amount || '0'),
+            farming_balance: parseFloat(user.uni_farming_balance || '0'),
+            farming_rate: parseFloat(user.uni_farming_rate || '0'),
+            is_active: !!user.uni_farming_start_timestamp,
+            last_update: user.uni_farming_last_update || null
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // Transactions API
+    app.get(`${apiPrefix}/transactions`, async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        const userTransactions = await db.select()
+          .from(transactions)
+          .where(eq(transactions.user_id, parseInt(user_id)))
+          .orderBy(desc(transactions.created_at))
+          .limit(50);
+
+        res.json({
+          success: true,
+          data: userTransactions
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
 
     // Статические файлы React фронтенда
     app.use(express.static('dist/public'));
