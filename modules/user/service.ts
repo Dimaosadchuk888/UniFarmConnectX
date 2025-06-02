@@ -1,5 +1,5 @@
 import type { User, InsertUser } from '../../shared/schema';
-import { db } from '../../server/db';
+import { db } from '../../core/db';
 import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 

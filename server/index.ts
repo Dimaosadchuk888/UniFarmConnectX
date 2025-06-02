@@ -27,7 +27,7 @@ async function startServer() {
 
     // Middleware
     app.use(cors({
-      origin: config.security.corsOrigins,
+      origin: config.security.cors.origin,
       credentials: true
     }));
     app.use(express.json({ limit: '10mb' }));
@@ -54,7 +54,7 @@ async function startServer() {
     });
 
     // API routes
-    const apiPrefix = `/api/${config.app.apiVersion}`;
+    const apiPrefix = `/api/v2`;
     app.use(`${apiPrefix}/users`, userRoutes);
     app.use(`${apiPrefix}/wallet`, walletRoutes);
     app.use(`${apiPrefix}/farming`, farmingRoutes);
