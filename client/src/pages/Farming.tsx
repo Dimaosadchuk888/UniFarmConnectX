@@ -1,5 +1,4 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UniFarmingCardWithErrorBoundary from '../components/farming/UniFarmingCardWithErrorBoundary';
 import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPackagesCardWithErrorBoundary';
@@ -10,28 +9,20 @@ import ActiveTonBoostsCardWithErrorBoundary from '../components/ton-boost/Active
 import { useTelegramButtons } from '../hooks/useTelegramButtons';
 
 const Farming: React.FC = () => {
-  // Хардкод ID=1 для демонстрации
-  const userId = 1;
-  
   // ЭТАП 2: Инициализация кнопок фарминга с обработчиками
   const { showStartFarmingButton, showCollectButton, hideButton } = useTelegramButtons();
   
-  // Получаем информацию о пользователе для отображения баланса
-  const { data: userResponse } = useQuery({
-    queryKey: [`/api/v2/users/profile`],
-  });
-  
-  // Извлекаем userData из ответа API
-  const userData = (userResponse as any)?.data || null;
+  // Статические данные для демонстрации в Replit (без API запросов)
+  const userData = null;
 
   // ЭТАП 2: Обработчики для действий фарминга
   const handleStartFarming = () => {
-    console.log('[FARMING PAGE] 🌱 Начало фарминга для пользователя:', userId);
+    console.log('[FARMING PAGE] 🌱 Начало фарминга');
     // Здесь будет интеграция с API фарминга
   };
 
   const handleHarvestFarming = () => {
-    console.log('[FARMING PAGE] 🌾 Сбор урожая для пользователя:', userId);
+    console.log('[FARMING PAGE] 🌾 Сбор урожая');
     // Здесь будет интеграция с API сбора урожая
   };
 
