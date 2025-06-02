@@ -27,7 +27,7 @@
         console.log('[Telegram Check]', {
           isTelegramAvailable: isTelegramAvailable,
           host: location.host,
-          isDevelopment: location.host.includes('replit.dev') || process.env.NODE_ENV === 'development'
+          isDevelopment: location.host.includes('replit.dev') || location.hostname === 'localhost'
         });
         
         // Удалена логика автоматического перенаправления
