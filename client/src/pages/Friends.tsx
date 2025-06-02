@@ -18,7 +18,7 @@ const Friends: React.FC = () => {
   
   // Получаем информацию о пользователе с принудительным обновлением
   const { data: userData, isLoading, isError, refetch } = useQuery<User>({
-    queryKey: ['/api/me'], 
+    queryKey: ['/api/v2/users/profile'], 
     queryFn: () => userService.getCurrentUser(true), // Принудительно обновляем данные
     staleTime: 0, // Отключаем кэширование для получения свежих данных
     refetchOnWindowFocus: true, // Включаем обновление при фокусе окна

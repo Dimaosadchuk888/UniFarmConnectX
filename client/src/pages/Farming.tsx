@@ -18,7 +18,7 @@ const Farming: React.FC = () => {
   
   // Получаем информацию о пользователе для отображения баланса
   const { data: userResponse } = useQuery({
-    queryKey: [`/api/users/${userId}`],
+    queryKey: [`/api/v2/users/profile`],
   });
   
   // Извлекаем userData из ответа API
