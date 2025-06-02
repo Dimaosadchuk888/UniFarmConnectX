@@ -1,184 +1,206 @@
-import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface ConfettiEffectProps {
   active: boolean;
   onComplete?: () => void;
-  duration?: number; // продолжительность в миллисекундах
-  colors?: string[]; // цвета для конфетти
-  particleCount?: number; // количество частиц
-  spread?: number; // угол разброса частиц
-  gravity?: number; // скорость падения
+  duration?: number;
+  colors?: string[];
+  particleCount?: number;
+  spread?: number;
+  gravity?: number;
 }
 
-interface ConfettiParticle {
+interface Particle {
   x: number;
   y: number;
-  size: number;
-  color: string;
+  vx: number;
+  vy: number;
   rotation: number;
-  speed: number;
+  rotationSpeed: number;
+  color: string;
+  size: number;
+  shape: 'square' | 'circle' | 'triangle';
+  opacity: number;
+  life: number;
+  maxLife: number;
 }
 
 const ConfettiEffect: React.FC<ConfettiEffectProps> = ({
   active,
   onComplete,
   duration = 3000,
-  colors = ['#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
-  particleCount = 100,
-  spread = 70,
-  gravity = 1
+  colors = ['#A259FF', '#B368F7', '#6DBFFF', '#4BEF7C', '#FFD700', '#FF6B6B'],
+  particleCount = 80,
+  spread = 45,
+  gravity = 0.3
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const particlesRef = useRef<ConfettiParticle[]>([]);
-  const animationFrameRef = useRef<number | null>(null);
+  const animationFrameRef = useRef<number>();
+  const particlesRef = useRef<Particle[]>([]);
+  const startTimeRef = useRef<number>(0);
+  const [isActive, setIsActive] = useState(false);
 
-  // Создаем конфетти частицы
-  const createParticles = () => {
-    if (!canvasRef.current) return;
+  // Создание частицы
+  const createParticle = (x: number, y: number): Particle => {
+    const angle = (Math.random() - 0.5) * spread * (Math.PI / 180);
+    const velocity = Math.random() * 15 + 5;
+    const shapes: Array<'square' | 'circle' | 'triangle'> = ['square', 'circle', 'triangle'];
     
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const particles: ConfettiParticle[] = [];
-    const centerX = canvas.width / 2;
-    
-    for (let i = 0; i < particleCount; i++) {
-      // Расчет угла разброса
-      const angle = (Math.random() * spread - spread / 2) * (Math.PI / 180);
-      const velocity = Math.random() * 5 + 2;
-      
-      // Рассчитываем начальную позицию и скорость
-      const x = centerX + (Math.random() * 100 - 50);
-      const y = canvas.height * 0.6;
-      
-      particles.push({
-        x: x,
-        y: y, // начинаем снизу-посередине
-        size: Math.random() * 10 + 5,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        rotation: Math.random() * 360,
-        speed: Math.random() * gravity + 0.5 // вертикальная скорость зависит от gravity
-      });
-    }
-    
-    particlesRef.current = particles;
+    return {
+      x,
+      y,
+      vx: Math.cos(angle) * velocity,
+      vy: Math.sin(angle) * velocity - Math.random() * 10 - 5,
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 10,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: Math.random() * 8 + 4,
+      shape: shapes[Math.floor(Math.random() * shapes.length)],
+      opacity: 1,
+      life: 0,
+      maxLife: Math.random() * 120 + 60
+    };
   };
-  
-  // Анимируем конфетти
-  const animateParticles = () => {
-    if (!canvasRef.current) return;
-    
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    const particles = particlesRef.current;
-    let allFallen = true;
-    
-    for (let i = 0; i < particles.length; i++) {
-      const p = particles[i];
-      
-      // Применяем гравитацию
-      p.y -= p.speed; // частицы двигаются вверх и медленно замедляются
-      p.speed -= gravity * 0.01; // гравитация замедляет скорость
-      
-      // Добавляем небольшое боковое движение для эффекта развевания
-      p.x += Math.sin(p.rotation / 30) * 0.5;
-      p.rotation += 2;
-      
-      // Рисуем частицу
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate((p.rotation * Math.PI) / 180);
-      
-      // Рисуем разные формы для частиц
-      ctx.fillStyle = p.color;
-      const shape = i % 3; // 3 типа частиц
-      
-      if (shape === 0) {
-        // Квадрат
-        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-      } else if (shape === 1) {
-        // Круг
-        ctx.beginPath();
-        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        // Треугольник
-        ctx.beginPath();
-        ctx.moveTo(0, -p.size / 2);
-        ctx.lineTo(p.size / 2, p.size / 2);
-        ctx.lineTo(-p.size / 2, p.size / 2);
-        ctx.closePath();
-        ctx.fill();
-      }
-      
-      ctx.restore();
-      
-      // Проверяем, все ли частицы вышли за пределы экрана
-      if (p.y > -20 && p.y < canvas.height + 20) {
-        allFallen = false;
-      }
-    }
-    
-    if (allFallen) {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-      if (onComplete) onComplete();
-    } else {
-      animationFrameRef.current = requestAnimationFrame(animateParticles);
-    }
-  };
-  
-  useEffect(() => {
-    if (!active) return;
-    
+
+  // Инициализация частиц
+  const initializeParticles = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
-    // Устанавливаем размеры холста
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    // Создаем и запускаем анимацию
-    createParticles();
-    animationFrameRef.current = requestAnimationFrame(animateParticles);
-    
-    // Ограничиваем длительность эффекта
-    const timer = setTimeout(() => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-      if (onComplete) onComplete();
-    }, duration);
-    
+
+    const particles: Particle[] = [];
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(createParticle(centerX, centerY));
+    }
+
+    particlesRef.current = particles;
+  };
+
+  // Обновление частиц
+  const updateParticles = () => {
+    particlesRef.current = particlesRef.current.map(particle => {
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+      particle.vy += gravity;
+      particle.rotation += particle.rotationSpeed;
+      particle.life++;
+      
+      // Затухание по времени жизни
+      particle.opacity = Math.max(0, 1 - (particle.life / particle.maxLife));
+      
+      return particle;
+    }).filter(particle => particle.life < particle.maxLife && particle.opacity > 0);
+  };
+
+  // Отрисовка частицы
+  const drawParticle = (ctx: CanvasRenderingContext2D, particle: Particle) => {
+    ctx.save();
+    ctx.globalAlpha = particle.opacity;
+    ctx.translate(particle.x, particle.y);
+    ctx.rotate((particle.rotation * Math.PI) / 180);
+    ctx.fillStyle = particle.color;
+
+    const halfSize = particle.size / 2;
+
+    switch (particle.shape) {
+      case 'square':
+        ctx.fillRect(-halfSize, -halfSize, particle.size, particle.size);
+        break;
+      case 'circle':
+        ctx.beginPath();
+        ctx.arc(0, 0, halfSize, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      case 'triangle':
+        ctx.beginPath();
+        ctx.moveTo(0, -halfSize);
+        ctx.lineTo(-halfSize, halfSize);
+        ctx.lineTo(halfSize, halfSize);
+        ctx.closePath();
+        ctx.fill();
+        break;
+    }
+
+    ctx.restore();
+  };
+
+  // Основной цикл анимации
+  const animate = (currentTime: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+
+    if (startTimeRef.current === 0) {
+      startTimeRef.current = currentTime;
+    }
+
+    const elapsed = currentTime - startTimeRef.current;
+
+    // Очистка canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Обновление и отрисовка частиц
+    updateParticles();
+    particlesRef.current.forEach(particle => {
+      drawParticle(ctx, particle);
+    });
+
+    // Проверка завершения анимации
+    if (elapsed < duration && particlesRef.current.length > 0) {
+      animationFrameRef.current = requestAnimationFrame(animate);
+    } else {
+      setIsActive(false);
+      onComplete?.();
+    }
+  };
+
+  // Запуск анимации
+  useEffect(() => {
+    if (active && !isActive) {
+      setIsActive(true);
+      startTimeRef.current = 0;
+      initializeParticles();
+      animationFrameRef.current = requestAnimationFrame(animate);
+    }
+
     return () => {
-      clearTimeout(timer);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
       }
     };
-  }, [active, duration, onComplete]);
-  
-  if (!active) return null;
-  
+  }, [active]);
+
+  // Установка размеров canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const updateSize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+
+    return () => {
+      window.removeEventListener('resize', updateSize);
+    };
+  }, []);
+
+  if (!active && !isActive) return null;
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+    <canvas
+      ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-50"
-    >
-      <canvas ref={canvasRef} className="w-full h-full" />
-    </motion.div>
+      style={{
+        width: '100%',
+        height: '100%'
+      }}
+    />
   );
 };
 

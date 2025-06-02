@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { invalidateQueryWithUserId } from '@/lib/queryClient';
 import { apiGet, apiPost } from '@/lib/apiService';
 import { useUser } from '@/contexts/userContext';
+import ConfettiEffect from '@/components/ui/ConfettiEffect';
 
 // Типы для статуса бонуса
 type DailyBonusStatus = {
@@ -190,20 +191,7 @@ const DailyBonusCard: React.FC = () => {
     }
   };
 
-  // Создаем частицы-конфетти (только визуальный эффект)
-  const confettiParticles = Array(20).fill(0).map((_, i) => ({
-    id: i,
-    size: Math.random() * 6 + 4,
-    x: Math.random() * 90 + 5,
-    y: -10 - Math.random() * 20,
-    color: i % 3 === 0 ? '#A259FF' : (i % 3 === 1 ? '#00FF99' : '#B368F7'),
-    velocity: {
-      x: (Math.random() - 0.5) * 4,
-      y: 5 + Math.random() * 3
-    },
-    rotation: Math.random() * 360,
-    rotationSpeed: (Math.random() - 0.5) * 8
-  }));
+
 
   // Анимировать индикаторы дней
   const [animateDayIndicator, setAnimateDayIndicator] = useState<number | null>(null);
@@ -480,6 +468,31 @@ const DailyBonusCard: React.FC = () => {
       </button>
 
       {/* Конфетти при получении бонуса */}
+      <ConfettiEffect 
+        active={showConfetti}
+        onComplete={() => setShowConfetti(false)}
+        duration={3000}
+        colors={['#A259FF', '#B368F7', '#6DBFFF', '#4BEF7C', '#FFD700', '#FF6B6B']}
+        particleCount={60}
+        spread={45}
+        gravity={0.4}
+      />
+
+      {/* Сообщение о награде поверх конфетти */}
+      {showConfetti && (
+        <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+          <div className="text-center animate-bounce">
+            <div className="text-2xl font-bold text-white mb-2 drop-shadow-lg">
+              +{reward || `${bonusStatus?.bonusAmount || 500} UNI`}
+            </div>
+            <div className="text-sm text-white drop-shadow-md">
+              Ежедневный бонус получен!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Старое конфетти (будет удалено) */}
       {(() => {
         try {
           // Проверка на активность конфетти
