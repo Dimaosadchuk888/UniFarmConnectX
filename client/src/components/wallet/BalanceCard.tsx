@@ -5,9 +5,8 @@ import { useNotification } from '@/contexts/notificationContext';
 import { formatAmount, formatUniNumber, formatTonNumber, getUSDEquivalent } from '@/utils/formatters';
 
 /**
- * Компонент для отображения баланса пользователя
- * Использует userContext для получения данных пользователя и баланса
- * Исправленная версия без автоматических обновлений через useEffect
+ * Компонент карточки баланса согласно UX спецификации
+ * Отображает UNI и TON балансы с правильными градиентами и визуальными эффектами
  */
 const BalanceCard: React.FC = () => {
   // Получаем данные пользователя и баланса из контекста
@@ -30,7 +29,7 @@ const BalanceCard: React.FC = () => {
   const [uniAnimating, setUniAnimating] = useState<boolean>(false);
   const [tonAnimating, setTonAnimating] = useState<boolean>(false);
   
-  // Состояния для текущего прироста (получаем из API)
+  // Состояния для текущего прироста
   const [uniRate, setUniRate] = useState<number>(0);
   
   // Статус WebSocket подключения
@@ -56,14 +55,7 @@ const BalanceCard: React.FC = () => {
     setWsStatus('Соединение установлено');
     setWsConnectedOnce(true);
     setWsErrorNotificationShown(false);
-    
-    if (!wsConnectedOnce) {
-      showNotification('success', {
-        message: 'WebSocket соединение установлено',
-        duration: 3000
-      });
-    }
-  }, [showNotification, wsConnectedOnce]);
+  }, []);
   
   // Обработчик получения сообщения
   const handleMessage = useCallback((data: any) => {
@@ -71,8 +63,6 @@ const BalanceCard: React.FC = () => {
     
     if (data.type === 'update' && data.balanceData) {
       if (userId) {
-        // НЕ вызываем refreshBalance() автоматически, чтобы избежать циклов
-        // Просто показываем уведомление о необходимости обновления
         showNotification('info', {
           message: 'Доступно обновление баланса',
           duration: 3000
@@ -88,9 +78,6 @@ const BalanceCard: React.FC = () => {
     }
     setWsStatus('Ожидание соединения');
     isSubscribedRef.current = false;
-    
-    // Скрываем уведомление об ошибке WebSocket от пользователей
-    // Это не критическая ошибка, которая не должна прерывать работу пользователя
   }, []);
   
   // Обработчик ошибки соединения
@@ -100,9 +87,6 @@ const BalanceCard: React.FC = () => {
     }
     setWsStatus('Ожидание соединения');
     isSubscribedRef.current = false;
-    
-    // Скрываем уведомления об ошибках WebSocket от пользователей
-    // Эти ошибки не критичны и не должны прерывать работу пользователя
   }, []);
   
   // Инициализируем WebSocket соединение
@@ -119,43 +103,10 @@ const BalanceCard: React.FC = () => {
     reconnectInterval: 3000
   });
   
-  // Ручная подписка на обновления пользователя
-  const handleSubscribe = useCallback(() => {
-    if (!userId || !isConnected || !subscribeToUserUpdates || isSubscribedRef.current) {
-      return;
-    }
-    
-    console.log('[BalanceCard] Manually subscribing to user updates', userId);
-    
-    try {
-      const success = subscribeToUserUpdates(userId);
-      if (success) {
-        console.log('[BalanceCard] Successfully subscribed to user updates');
-        isSubscribedRef.current = true;
-        showNotification('success', {
-          message: 'Подписка на обновления активирована',
-          duration: 2000
-        });
-      } else {
-        console.warn('[BalanceCard] Failed to subscribe to user updates');
-        showNotification('error', {
-          message: 'Не удалось подписаться на обновления',
-          duration: 3000
-        });
-      }
-    } catch (error) {
-      console.error('[BalanceCard] Error subscribing to user updates', error);
-      showNotification('error', {
-        message: 'Ошибка при подписке на обновления',
-        duration: 3000
-      });
-    }
-  }, [userId, isConnected, subscribeToUserUpdates, showNotification]);
-  
   // Расчет скорости фарминга
   const calculateRate = useCallback(() => {
     if (uniDepositAmount) {
-      // Примерная скорость фарминга
+      // Скорость фарминга: 0.5% в день
       const estimatedRate = 0.000000289351851800 * uniDepositAmount;
       setUniRate(estimatedRate);
     }
@@ -166,20 +117,16 @@ const BalanceCard: React.FC = () => {
   // Форматирование скорости начисления доходов
   const formatRateNumber = useCallback((rate: number): JSX.Element => {
     if (rate > 0.001) {
-      // Для ставок больше 0.001 показываем до 5 знаков
-      return <span>+{formatAmount(rate, 'TON')}</span>;
+      return <span>+{formatAmount(rate, 'UNI')}</span>;
     } else if (rate > 0) {
-      // Для очень маленьких ставок показываем до 7 знаков уменьшенным шрифтом
       return <span className="text-[0.7em] text-opacity-80">+{formatUniNumber(rate, 7)}</span>;
     } else {
-      // Для нулевых ставок
       return <span>+0.00000</span>;
     }
   }, []);
   
   // Обработчик ручного обновления баланса
   const handleManualRefresh = useCallback(() => {
-    // Проверка, что не выполняется другое обновление
     if (isBalanceFetching) return;
     
     showNotification('loading', {
@@ -188,14 +135,10 @@ const BalanceCard: React.FC = () => {
     });
     
     try {
-      // Обновляем с небольшой задержкой для предотвращения множественных вызовов
       setTimeout(() => {
         refreshBalance();
-        
-        // Вычисляем уровень доходности после обновления баланса
         calculateRate();
         
-        // Показываем уведомление об успешном обновлении
         showNotification('success', {
           message: 'Баланс успешно обновлён',
           duration: 2000
@@ -208,7 +151,6 @@ const BalanceCard: React.FC = () => {
         setTonAnimating(true);
         setTimeout(() => setTonAnimating(false), 800);
         
-        // Устанавливаем предыдущие значения для сравнения
         setPrevUniBalance(uniBalance);
         setPrevTonBalance(tonBalance);
       }, 100);
@@ -228,7 +170,7 @@ const BalanceCard: React.FC = () => {
     calculateRate
   ]);
   
-  // Обработчик обновления профиля и баланса
+  // Обработчик полного обновления
   const handleFullRefresh = useCallback(() => {
     if (isBalanceFetching) return;
     
@@ -238,10 +180,8 @@ const BalanceCard: React.FC = () => {
     });
     
     try {
-      // Сначала обновляем данные пользователя
       refreshUserData();
       
-      // Затем с небольшой задержкой обновляем баланс
       setTimeout(() => {
         refreshBalance();
         calculateRate();
@@ -279,33 +219,26 @@ const BalanceCard: React.FC = () => {
       duration: 2000
     });
     
-    // Сбрасываем флаг подписки перед переподключением
     isSubscribedRef.current = false;
     forceReconnect();
   }, [forceReconnect, showNotification]);
   
-  // Проверка и обновление баланса только при первом рендере компонента
+  // Проверка и обновление баланса при первом рендере
   useEffect(() => {
-    // Проверяем баланс только один раз при монтировании компонента
     if (userId && uniBalance === 0 && !initialLoadedRef.current) {
-      // Устанавливаем флаг, что первая загрузка была выполнена
       initialLoadedRef.current = true;
       
-      // Отображаем уведомление о загрузке
       showNotification('loading', {
         message: 'Загрузка баланса...',
         duration: 2000
       });
       
-      console.log('[BalanceCard] Первичная загрузка баланса, т.к. текущее значение = 0');
+      console.log('[BalanceCard] Первичная загрузка баланса');
       
-      // Добавляем небольшую задержку для избежания состояния гонки
       setTimeout(() => {
-        // Загружаем баланс принудительно
         refreshBalance(true);
         calculateRate();
         
-        // Добавляем визуальный эффект при обновлении
         setTimeout(() => {
           setUniAnimating(true);
           setTimeout(() => setUniAnimating(false), 800);
@@ -317,20 +250,13 @@ const BalanceCard: React.FC = () => {
     }
   }, [userId, uniBalance, refreshBalance, calculateRate, showNotification]);
 
-  // ===== Рендеринг компонента =====
+  // ===== Рендеринг согласно UX спецификации =====
   return (
     <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
-      {/* Декоративный градиентный фон */}
-      <div 
-        className="absolute inset-0 opacity-20" 
-        style={{
-          background: 'radial-gradient(circle at 10% 20%, rgba(162, 89, 255, 0.2) 0%, transparent 70%), radial-gradient(circle at 80% 70%, rgba(92, 120, 255, 0.2) 0%, transparent 70%)'
-        }}
-      ></div>
-      
       {/* Неоновая рамка */}
       <div className="absolute inset-0 rounded-xl border border-primary/30"></div>
       
+      {/* Заголовок с кнопками управления */}
       <h2 className="text-lg font-semibold text-white mb-4 relative z-10 flex items-center justify-between">
         <div className="flex items-center">
           <i className="fas fa-wallet text-primary mr-2"></i>
@@ -346,22 +272,22 @@ const BalanceCard: React.FC = () => {
             <i className={`fas fa-sync-alt ${isBalanceFetching ? 'animate-spin' : ''}`}></i>
           </button>
           
-          {/* Добавлен дополнительный вариант для полного обновления */}
           <button 
             onClick={handleFullRefresh}
             className="text-sm text-gray-400 hover:text-primary transition-colors"
             disabled={isBalanceFetching}
-            title="Полное обновление данных"
+            title="Полное обновление"
           >
             <i className="fas fa-redo-alt"></i>
           </button>
         </div>
       </h2>
       
+      {/* Сетка карточек токенов */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* UNI Token */}
-        <div className="bg-black/20 rounded-lg p-4 backdrop-blur-sm relative overflow-hidden">
-          {/* Декоративный слой */}
+        {/* UNI Token - фиолетово-синий градиент */}
+        <div className="bg-black/20 rounded-lg p-4 backdrop-blur-sm relative overflow-hidden border border-primary/20">
+          {/* Декоративный градиентный фон UNI */}
           <div className="absolute inset-0 opacity-20">
             <div 
               className="w-24 h-24 rounded-full absolute -right-8 -top-8 blur-xl"
@@ -369,8 +295,8 @@ const BalanceCard: React.FC = () => {
             ></div>
           </div>
           
-          {/* Заголовок токена */}
-          <div className="flex items-center mb-3">
+          {/* Заголовок UNI секции */}
+          <div className="flex items-center mb-3 relative z-10">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2">
               <i className="fas fa-coins text-primary"></i>
             </div>
@@ -380,8 +306,8 @@ const BalanceCard: React.FC = () => {
             </div>
           </div>
           
-          {/* Баланс с анимацией */}
-          <div className="mb-2">
+          {/* Баланс UNI с анимацией */}
+          <div className="mb-2 relative z-10">
             <div className="text-2xl font-bold text-white flex items-center">
               <span className={`transition-all duration-300 ${uniAnimating ? 'text-green-400 scale-105' : ''}`}>
                 {formatUniNumber(uniBalance)}
@@ -393,48 +319,19 @@ const BalanceCard: React.FC = () => {
             </div>
           </div>
           
-          {/* Скорость начисления */}
-          <div className="bg-success/10 text-success rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center">
+          {/* Индикатор скорости фарминга */}
+          <div className="bg-success/10 text-success rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center relative z-10">
             <i className="fas fa-arrow-trend-up mr-1"></i>
             <span className={uniAnimating ? 'text-green-400 font-bold' : ''}>
               {formatRateNumber(uniRate)}
             </span>
             <span className="text-gray-400 ml-1">UNI / сек</span>
           </div>
-          
-          {/* WebSocket статус и другие элементы скрыты по запросу */}
-          <div className="mt-2 text-xs text-gray-500/50">
-            <div className="flex items-center justify-end">
-              {/* Кнопка переподключения при ошибках - оставляем для отладки */}
-              <div className="flex space-x-2">
-                {errorCount > 0 && (
-                  <button 
-                    onClick={handleReconnect}
-                    className="text-blue-400 hover:text-blue-300 transition-colors text-xs"
-                    title="Переподключиться к WebSocket"
-                  >
-                    <i className="fas fa-redo-alt mr-1"></i>
-                    Обновить соединение
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            {/* Статус ошибок WebSocket - оставляем для отладки */}
-            {errorCount > 0 && (
-              <div className="text-yellow-400 mt-1">
-                <i className="fas fa-exclamation-triangle mr-1 text-yellow-400"></i>
-                Ошибок соединения: {errorCount}
-              </div>
-            )}
-            
-            {/* Кнопка обновления расчета ставки для фарминга - убрана по запросу */}
-          </div>
         </div>
         
-        {/* TON Balance */}
-        <div className="bg-black/20 rounded-lg p-4 backdrop-blur-sm relative overflow-hidden">
-          {/* Декоративный слой */}
+        {/* TON Balance - сине-голубой градиент */}
+        <div className="bg-black/20 rounded-lg p-4 backdrop-blur-sm relative overflow-hidden border border-blue-500/20">
+          {/* Декоративный градиентный фон TON */}
           <div className="absolute inset-0 opacity-20">
             <div 
               className="w-24 h-24 rounded-full absolute -right-8 -top-8 blur-xl"
@@ -442,19 +339,19 @@ const BalanceCard: React.FC = () => {
             ></div>
           </div>
           
-          {/* Заголовок токена */}
-          <div className="flex items-center mb-3">
+          {/* Заголовок TON секции */}
+          <div className="flex items-center mb-3 relative z-10">
             <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center mr-2">
-              <i className="fas fa-gem text-blue-500"></i>
+              <i className="fab fa-telegram text-blue-400"></i>
             </div>
             <div>
-              <h3 className="text-md font-medium text-white">TON</h3>
-              <p className="text-xs text-gray-400">нативный токен</p>
+              <h3 className="text-md font-medium text-white">TON Balance</h3>
+              <p className="text-xs text-gray-400">блокчейн токен</p>
             </div>
           </div>
           
-          {/* Баланс с анимацией */}
-          <div className="mb-2">
+          {/* Баланс TON с анимацией */}
+          <div className="mb-2 relative z-10">
             <div className="text-2xl font-bold text-white flex items-center">
               <span className={`transition-all duration-300 ${tonAnimating ? 'text-green-400 scale-105' : ''}`}>
                 {formatTonNumber(tonBalance)}
@@ -466,27 +363,30 @@ const BalanceCard: React.FC = () => {
             </div>
           </div>
           
-          {/* Дополнительная информация */}
-          <div className="mt-4 text-xs">
-            <div className="rounded-md bg-blue-900/30 p-2 border border-blue-800/30">
-              <p className="text-gray-300 mb-1">
-                <i className="fas fa-info-circle mr-2 text-blue-400"></i>
-                TON можно вывести на любой кошелек в сети TON.
-              </p>
-              <p className="text-gray-400">
-                Минимальная сумма вывода: 0.05 TON
-              </p>
-            </div>
-          </div>
-          
-          {/* Фарминг TON - скрыт по запросу */}
-          <div className="mt-3 text-xs text-gray-500/70">
-            {/* Информация о фарминге скрыта */}
+          {/* Статус доступности */}
+          <div className="bg-green-500/10 text-green-400 rounded-md px-2 py-1 mt-3 text-xs inline-flex items-center relative z-10">
+            <i className="fas fa-check-circle mr-1"></i>
+            <span>Доступно для вывода</span>
           </div>
         </div>
       </div>
       
-      {/* Кнопка "Обновить сейчас" удалена по запросу */}
+      {/* WebSocket статус для отладки (скрыт от пользователей) */}
+      {process.env.NODE_ENV === 'development' && errorCount > 0 && (
+        <div className="mt-3 text-xs text-gray-500/50 relative z-10">
+          <div className="flex items-center justify-between">
+            <span>WebSocket ошибок: {errorCount}</span>
+            <button 
+              onClick={handleReconnect}
+              className="text-blue-400 hover:text-blue-300 transition-colors text-xs"
+              title="Переподключиться к WebSocket"
+            >
+              <i className="fas fa-redo-alt mr-1"></i>
+              Переподключить
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
