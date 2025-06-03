@@ -1,20 +1,19 @@
 import React from 'react';
-import MissionsListWithErrorBoundary from '@/components/missions/MissionsListWithErrorBoundary';
-import MissionStatsWithErrorBoundary from '@/components/missions/MissionStatsWithErrorBoundary';
+import SimpleMissionsList from '@/components/missions/SimpleMissionsList';
 
 /**
  * Компонент страницы миссий
- * Использует компоненты с оберткой ErrorBoundary для повышения устойчивости
+ * Отображает только карточки миссий без статистики
  */
 const Missions: React.FC = () => {
-  console.log('Rendering Missions page (v2)');
+  console.log('Rendering Missions page (v3)');
   
   return (
     <div className="p-4">
       <h1 className="text-xl font-semibold text-white mb-4">Выполняй задания — получай UNI</h1>
       
-      {/* Список миссий с ErrorBoundary */}
-      <MissionsListWithErrorBoundary />
+      {/* Простые карточки миссий */}
+      <SimpleMissionsList />
     </div>
   );
 };
