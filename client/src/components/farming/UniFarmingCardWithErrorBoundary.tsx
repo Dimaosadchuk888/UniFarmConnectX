@@ -19,36 +19,86 @@ const UniFarmingCardWithErrorBoundary: React.FC<UniFarmingCardWithErrorBoundaryP
   // Если нет userId, показываем информационную карточку без API запросов
   if (!userId) {
     return (
-      <div className="bg-card border border-border rounded-lg p-6 mb-4">
-        <div className="text-center">
-          <div className="mb-4">
-            <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <i className="fas fa-seedling text-primary text-2xl"></i>
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">UNI Фарминг</h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              Зарабатывайте UNI токены пассивно, размещая их в фарминг
+      <div className="bg-card border border-border rounded-xl p-4 mb-5 shadow-md">
+        <h2 className="text-xl font-semibold mb-3 text-primary">Основной UNI пакет</h2>
+        
+        {/* Состояние "Фарминг не активирован" */}
+        <div className="mb-4 p-3 bg-gradient-to-r from-amber-900/30 to-orange-900/20 border border-amber-500/30 rounded-lg flex items-center">
+          <div className="flex items-center justify-center w-8 h-8 mr-3 bg-amber-500/20 rounded-full">
+            <i className="fas fa-seedling text-amber-300 text-lg"></i>
+          </div>
+          <div>
+            <p className="text-sm text-amber-300 font-medium">
+              Фарминг не активирован
+            </p>
+            <p className="text-xs text-amber-200/70 mt-1">
+              Создайте свой первый депозит, чтобы начать получать доход
             </p>
           </div>
-          
-          <div className="space-y-3 mb-4">
-            <div className="flex justify-between items-center py-2 px-3 bg-secondary/30 rounded">
-              <span className="text-sm text-muted-foreground">Дневной доход:</span>
-              <span className="text-sm font-medium text-accent">0.5% в день</span>
+        </div>
+
+        {/* Информация о доходности */}
+        <div className="mb-4 p-3 bg-gradient-to-r from-indigo-900/30 to-purple-900/20 border border-indigo-500/30 rounded-lg">
+          <div className="flex items-center mb-2">
+            <i className="fas fa-info-circle text-indigo-300 mr-2"></i>
+            <p className="text-sm text-indigo-300 font-medium">Информация о доходности</p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <i className="fas fa-circle-check text-green-400 text-xs mr-2"></i>
+              <span className="text-xs text-foreground">Ежедневная доходность: 0.5% в день</span>
             </div>
-            <div className="flex justify-between items-center py-2 px-3 bg-secondary/30 rounded">
-              <span className="text-sm text-muted-foreground">Минимальная сумма:</span>
-              <span className="text-sm font-medium">10 UNI</span>
+            <div className="flex items-center">
+              <i className="fas fa-circle-check text-green-400 text-xs mr-2"></i>
+              <span className="text-xs text-foreground">Годовая доходность (APR): 182.5%</span>
             </div>
-            <div className="flex justify-between items-center py-2 px-3 bg-secondary/30 rounded">
-              <span className="text-sm text-muted-foreground">Автоначисление:</span>
-              <span className="text-sm font-medium text-accent">Каждую секунду</span>
+            <div className="flex items-center">
+              <i className="fas fa-circle-check text-green-400 text-xs mr-2"></i>
+              <span className="text-xs text-foreground">Начисления: каждую секунду</span>
+            </div>
+            <div className="flex items-center">
+              <i className="fas fa-circle-check text-green-400 text-xs mr-2"></i>
+              <span className="text-xs text-foreground">Минимальный депозит: 5 UNI</span>
             </div>
           </div>
+        </div>
+
+        {/* Форма депозита */}
+        <div className="border border-border rounded-lg p-3">
+          <h3 className="text-sm font-medium text-foreground mb-3">
+            💰 Создать депозит и активировать фарминг
+          </h3>
           
-          <div className="text-xs text-muted-foreground">
+          <div className="mb-3">
+            <label className="block text-xs text-muted-foreground mb-1">
+              Введите сумму UNI
+            </label>
+            <input
+              type="text"
+              placeholder="0.00"
+              className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all duration-300 text-foreground"
+              disabled
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Доступно: -- UNI
+            </p>
+          </div>
+
+          <div className="mb-3">
+            <p className="text-xs text-muted-foreground">Минимальный депозит</p>
+            <p className="text-sm font-medium text-foreground">5 UNI</p>
+          </div>
+
+          <button
+            disabled
+            className="w-full py-2 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-900/20 hover:shadow-green-900/30 text-white font-medium rounded-lg transition-all duration-300 opacity-60 cursor-not-allowed"
+          >
+            🌱 Активировать фарминг UNI
+          </button>
+          
+          <p className="text-xs text-muted-foreground text-center mt-2">
             Подключите Telegram для начала фарминга
-          </div>
+          </p>
         </div>
       </div>
     );
