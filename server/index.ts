@@ -531,6 +531,26 @@ async function startServer() {
       }
     });
 
+    // Missions Stats API
+    app.get(`${apiPrefix}/missions/stats`, async (req: any, res: any) => {
+      try {
+        res.json({
+          success: true,
+          data: {
+            completed: 1,
+            total: 3,
+            userPoints: 5.0,
+            totalAvailable: 17.5
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
     // Статические файлы React фронтенда
     app.use(express.static('dist/public'));
 
