@@ -89,9 +89,10 @@ export const MissionsList: React.FC = () => {
         // Используем стандартизированный метод для API запросов с параметром nocache для предотвращения кэширования
         console.log(`📤 GET запрос активных миссий с использованием correctApiRequest`);
         
-        // Добавляем nocache параметр чтобы избежать кэширования запросов
+        // Добавляем user_id и nocache параметры
         const nocache = Date.now();
-        const data = await correctApiRequest(`/api/v2/missions/active?nocache=${nocache}`, 'GET');
+        const user_id = userId || 35; // Используем текущий user_id или 35 по умолчанию
+        const data = await correctApiRequest(`/api/v2/missions/active?user_id=${user_id}&nocache=${nocache}`, 'GET');
         
         console.log(`📥 Ответ получен через correctApiRequest:`, data);
         

@@ -484,15 +484,14 @@ async function startServer() {
           .from(missions)
           .where(eq(missions.is_active, true));
 
-        // Format missions for UI
+        // Format missions for UI - match the DbMission interface expected by frontend
         const formattedMissions = activeMissions.map(mission => ({
           id: mission.id,
           title: mission.title,
           description: mission.description,
           type: mission.type,
           reward_uni: mission.reward_uni,
-          is_active: mission.is_active,
-          link: mission.link
+          is_active: mission.is_active
         }));
 
         res.json({
