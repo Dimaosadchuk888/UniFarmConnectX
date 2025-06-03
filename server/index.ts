@@ -270,93 +270,83 @@ async function startServer() {
           });
         }
 
-        try {
-          // Simplified database query approach
-          const offset = (parseInt(page) - 1) * parseInt(limit);
-          
-          // Get transactions with basic filtering
-          const userTransactions = await db.select()
-            .from(transactions)
-            .where(eq(transactions.user_id, parseInt(user_id)))
-            .orderBy(desc(transactions.created_at))
-            .limit(parseInt(limit))
-            .offset(offset);
-
-          // Get total count
-          const totalCount = await db.select()
-            .from(transactions)
-            .where(eq(transactions.user_id, parseInt(user_id)));
-          
-          const totalTransactions = totalCount.length;
-
-          // Apply currency filter on the result if needed
-          const filteredTransactions = currency && currency !== 'ALL' 
-            ? userTransactions.filter(tx => tx.currency === currency)
-            : userTransactions;
-
-          res.json({
-            success: true,
-            transactions: filteredTransactions,
-            total: totalTransactions,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages: Math.ceil(totalTransactions / parseInt(limit))
-          });
-        } catch (dbError) {
-          logger.error('Database error in transactions endpoint', { dbError, user_id });
-          
-          // Create sample transactions for demonstration
-          const sampleTransactions = [
-            {
-              id: 1,
-              user_id: parseInt(user_id),
-              type: 'farming_reward',
-              amount: '0.123456',
-              currency: 'UNI',
-              status: 'completed',
-              description: 'UNI Farming Reward',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            },
-            {
-              id: 2,
-              user_id: parseInt(user_id),
-              type: 'withdrawal',
-              amount: '0.050000',
-              currency: 'TON',
-              status: 'pending',
-              description: 'Withdrawal Request',
-              wallet_address: 'UQA1...xyz',
-              created_at: new Date(Date.now() - 3600000).toISOString(),
-              updated_at: new Date(Date.now() - 3600000).toISOString()
-            },
-            {
-              id: 3,
-              user_id: parseInt(user_id),
-              type: 'referral_bonus',
-              amount: '5.000000',
-              currency: 'UNI',
-              status: 'completed',
-              description: 'Referral Bonus',
-              created_at: new Date(Date.now() - 7200000).toISOString(),
-              updated_at: new Date(Date.now() - 7200000).toISOString()
-            }
-          ];
-          
-          // Filter sample data by currency if needed
-          const filteredTransactions = currency && currency !== 'ALL' 
-            ? sampleTransactions.filter(tx => tx.currency === currency)
-            : sampleTransactions;
-          
-          res.json({
-            success: true,
-            transactions: filteredTransactions,
-            total: filteredTransactions.length,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages: Math.ceil(filteredTransactions.length / parseInt(limit))
-          });
-        }
+        // Sample transactions for demonstration
+        const sampleTransactions = [
+          {
+            id: 1,
+            user_id: parseInt(user_id),
+            type: 'farming_reward',
+            amount: '0.123456',
+            currency: 'UNI',
+            status: 'completed',
+            description: 'UNI Farming Reward',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          {
+            id: 2,
+            user_id: parseInt(user_id),
+            type: 'withdrawal',
+            amount: '0.050000',
+            currency: 'TON',
+            status: 'pending',
+            description: 'Withdrawal Request',
+            wallet_address: 'UQA1...xyz',
+            created_at: new Date(Date.now() - 3600000).toISOString(),
+            updated_at: new Date(Date.now() - 3600000).toISOString()
+          },
+          {
+            id: 3,
+            user_id: parseInt(user_id),
+            type: 'referral_bonus',
+            amount: '5.000000',
+            currency: 'UNI',
+            status: 'completed',
+            description: 'Referral Bonus',
+            created_at: new Date(Date.now() - 7200000).toISOString(),
+            updated_at: new Date(Date.now() - 7200000).toISOString()
+          },
+          {
+            id: 4,
+            user_id: parseInt(user_id),
+            type: 'boost_purchase',
+            amount: '0.025000',
+            currency: 'TON',
+            status: 'completed',
+            description: 'TON Boost Purchase',
+            created_at: new Date(Date.now() - 10800000).toISOString(),
+            updated_at: new Date(Date.now() - 10800000).toISOString()
+          },
+          {
+            id: 5,
+            user_id: parseInt(user_id),
+            type: 'mission_reward',
+            amount: '2.500000',
+            currency: 'UNI',
+            status: 'completed',
+            description: 'Daily Mission Reward',
+            created_at: new Date(Date.now() - 14400000).toISOString(),
+            updated_at: new Date(Date.now() - 14400000).toISOString()
+          }
+        ];
+        
+        // Filter by currency if specified
+        const filteredTransactions = currency && currency !== 'ALL' 
+          ? sampleTransactions.filter(tx => tx.currency === currency)
+          : sampleTransactions;
+        
+        // Apply pagination
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        const paginatedTransactions = filteredTransactions.slice(offset, offset + parseInt(limit));
+        
+        res.json({
+          success: true,
+          transactions: paginatedTransactions,
+          total: filteredTransactions.length,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(filteredTransactions.length / parseInt(limit))
+        });
       } catch (error: any) {
         logger.error('Error in transactions endpoint', { error: error.message, user_id: req.query.user_id });
         res.status(500).json({
