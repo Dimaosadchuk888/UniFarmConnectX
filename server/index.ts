@@ -490,7 +490,7 @@ async function startServer() {
           title: mission.title,
           description: mission.description,
           type: mission.type,
-          reward_uni: mission.reward_uni,
+          reward_uni: mission.reward_uni, // Правильное поле для frontend
           is_active: mission.is_active
         }));
 
