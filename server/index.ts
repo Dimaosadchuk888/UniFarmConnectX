@@ -258,6 +258,64 @@ async function startServer() {
       }
     });
 
+    // UNI Farming Status API
+    app.get(`${apiPrefix}/uni-farming/status`, async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        try {
+          const [user] = await db.select()
+            .from(users)
+            .where(eq(users.id, parseInt(user_id)))
+            .limit(1);
+
+          if (!user) {
+            return res.status(404).json({
+              success: false,
+              error: 'User not found'
+            });
+          }
+
+          const isActive = !!user.uni_farming_start_timestamp;
+          const depositAmount = user.uni_deposit_amount || '0';
+          const ratePerSecond = user.uni_farming_rate || '0';
+          
+          res.json({
+            success: true,
+            data: {
+              isActive: isActive,
+              depositAmount: depositAmount,
+              ratePerSecond: ratePerSecond,
+              totalRatePerSecond: ratePerSecond,
+              depositCount: isActive ? 1 : 0,
+              totalDepositAmount: depositAmount,
+              dailyIncomeUni: (parseFloat(ratePerSecond) * 86400).toString(),
+              startDate: user.uni_farming_start_timestamp,
+              lastUpdate: user.uni_farming_last_update || null
+            }
+          });
+        } catch (dbError) {
+          logger.error('Database error in UNI farming status endpoint', { dbError, user_id });
+          res.status(500).json({
+            success: false,
+            error: 'Database error occurred'
+          });
+        }
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
     // Transactions API with pagination and filtering support
     app.get(`${apiPrefix}/transactions`, async (req: any, res: any) => {
       try {
@@ -421,9 +479,49 @@ async function startServer() {
           });
         }
 
+        // Sample missions data for demonstration
+        const sampleMissions = [
+          {
+            id: 1,
+            title: 'Ежедневный вход',
+            description: 'Заходите в приложение каждый день для получения бонуса',
+            type: 'daily_login',
+            status: 'available',
+            reward_amount: '5.0',
+            reward_currency: 'UNI',
+            progress: 0,
+            target: 1,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 2,
+            title: 'Пригласить друга',
+            description: 'Пригласите друга и получите бонус за каждого нового пользователя',
+            type: 'referral',
+            status: 'available',
+            reward_amount: '10.0',
+            reward_currency: 'UNI',
+            progress: 0,
+            target: 1,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 3,
+            title: 'Активировать фарминг',
+            description: 'Запустите UNI фарминг для начала пассивного дохода',
+            type: 'farming_start',
+            status: 'available',
+            reward_amount: '2.5',
+            reward_currency: 'UNI',
+            progress: 0,
+            target: 1,
+            created_at: new Date().toISOString()
+          }
+        ];
+
         res.json({
           success: true,
-          data: []
+          data: sampleMissions
         });
       } catch (error: any) {
         res.status(500).json({

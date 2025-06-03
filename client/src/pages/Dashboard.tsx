@@ -9,6 +9,8 @@ import ChartCard from '@/components/dashboard/ChartCard';
 import BoostStatusCard from '@/components/dashboard/BoostStatusCard';
 import DailyBonusCard from '@/components/dashboard/DailyBonusCard';
 import SystemStatusIndicator from '@/components/ui/SystemStatusIndicator';
+import UniFarmingCardWithErrorBoundary from '@/components/farming/UniFarmingCardWithErrorBoundary';
+import SimpleMissionsList from '@/components/missions/SimpleMissionsList';
 
 
 
@@ -42,7 +44,11 @@ const Dashboard: React.FC = () => {
       {/* Ежедневный бонус */}
       <DailyBonusCard />
 
+      {/* UNI Фарминг карточка */}
+      <UniFarmingCardWithErrorBoundary userData={userData} />
 
+      {/* Миссии и задания */}
+      <SimpleMissionsList />
 
       {/* Индикатор статуса системы для диагностики */}
       {process.env.NODE_ENV !== 'production' && (
