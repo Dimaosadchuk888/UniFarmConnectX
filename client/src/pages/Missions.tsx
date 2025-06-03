@@ -13,9 +13,6 @@ const Missions: React.FC = () => {
     <div className="p-4">
       <h1 className="text-xl font-semibold text-white mb-4">Выполняй задания — получай UNI</h1>
       
-      {/* Статистика миссий с ErrorBoundary */}
-      <MissionStatsWithErrorBoundary />
-      
       {/* Список миссий с ErrorBoundary */}
       <MissionsListWithErrorBoundary />
     </div>

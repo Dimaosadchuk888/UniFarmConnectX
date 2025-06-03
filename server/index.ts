@@ -8,7 +8,7 @@ import cors from 'cors';
 import path from 'path';
 import { config, logger, globalErrorHandler, notFoundHandler } from '../core';
 import { db } from '../core/db';
-import { users, transactions } from '../shared/schema';
+import { users, transactions, missions } from '../shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 
 // API будет создан прямо в сервере
@@ -479,51 +479,28 @@ async function startServer() {
           });
         }
 
-        // Sample missions data for demonstration
-        const sampleMissions = [
-          {
-            id: 1,
-            title: 'Ежедневный вход',
-            description: 'Заходите в приложение каждый день для получения бонуса',
-            type: 'daily_login',
-            status: 'available',
-            reward_amount: '5.0',
-            reward_currency: 'UNI',
-            progress: 0,
-            target: 1,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 2,
-            title: 'Пригласить друга',
-            description: 'Пригласите друга и получите бонус за каждого нового пользователя',
-            type: 'referral',
-            status: 'available',
-            reward_amount: '10.0',
-            reward_currency: 'UNI',
-            progress: 0,
-            target: 1,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 3,
-            title: 'Активировать фарминг',
-            description: 'Запустите UNI фарминг для начала пассивного дохода',
-            type: 'farming_start',
-            status: 'available',
-            reward_amount: '2.5',
-            reward_currency: 'UNI',
-            progress: 0,
-            target: 1,
-            created_at: new Date().toISOString()
-          }
-        ];
+        // Fetch active missions from database
+        const activeMissions = await db.select()
+          .from(missions)
+          .where(eq(missions.is_active, true));
+
+        // Format missions for UI
+        const formattedMissions = activeMissions.map(mission => ({
+          id: mission.id,
+          title: mission.title,
+          description: mission.description,
+          type: mission.type,
+          reward_uni: mission.reward_uni,
+          is_active: mission.is_active,
+          link: mission.link
+        }));
 
         res.json({
           success: true,
-          data: sampleMissions
+          data: formattedMissions
         });
       } catch (error: any) {
+        logger.error('Error fetching active missions', { error: error.message, user_id });
         res.status(500).json({
           success: false,
           error: error.message || 'Internal server error'
