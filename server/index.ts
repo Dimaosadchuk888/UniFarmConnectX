@@ -121,6 +121,30 @@ async function startServer() {
     app.get(`${apiPrefix}/users/profile`, async (req: any, res: any) => {
       try {
         const { user_id } = req.query;
+        const guestId = req.headers['x-guest-id'] || req.query.guest_id;
+        
+        // Если есть guest_id, попробуем найти или создать пользователя
+        if (guestId) {
+          let [user] = await db.select()
+            .from(users)
+            .where(eq(users.guest_id, guestId))
+            .limit(1);
+
+          // Если пользователь не найден, создаем нового
+          if (!user) {
+            const newUser = await db.insert(users).values({
+              guest_id: guestId,
+              balance_uni: '0',
+              balance_ton: '0'
+            }).returning();
+            user = newUser[0];
+          }
+
+          return res.json({
+            success: true,
+            data: user
+          });
+        }
         
         if (!user_id) {
           return res.status(400).json({
@@ -255,6 +279,83 @@ async function startServer() {
         res.json({
           success: true,
           data: userTransactions
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // TON Farming API
+    app.get(`${apiPrefix}/api/ton-farming/info`, async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        res.json({
+          success: true,
+          data: {
+            is_active: false,
+            balance: "0",
+            rate: "0.01",
+            last_update: null
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // TON Boosts API
+    app.get(`${apiPrefix}/api/ton-boosts/active`, async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        res.json({
+          success: true,
+          data: []
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // Missions API
+    app.get(`${apiPrefix}/missions/active`, async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        res.json({
+          success: true,
+          data: []
         });
       } catch (error: any) {
         res.status(500).json({
