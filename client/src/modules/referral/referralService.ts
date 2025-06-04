@@ -271,7 +271,8 @@ export class ReferralService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.get<{
+      const response = await apiClient.get(`/api/v2/referral/top?limit=${limit}`);
+      return response as {
         success: boolean;
         data?: Array<{
           user_id: number;
@@ -281,8 +282,7 @@ export class ReferralService {
           rank: number;
         }>;
         message?: string;
-      }>(`/api/v2/referral/top?limit=${limit}`);
-      return response;
+      };
     } catch (error) {
       console.error('[ReferralService] Get top referrers error:', error);
       return {
