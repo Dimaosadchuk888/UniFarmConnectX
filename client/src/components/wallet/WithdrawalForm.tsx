@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
-import { useNotification } from '@/contexts/notificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -91,10 +91,7 @@ const WithdrawalForm: React.FC = () => {
     clearErrors();
     setErrorMessage(null);
     
-    showNotification('info', {
-      message: `Переключено на ${currency}`,
-      duration: 2000
-    });
+    info(`Переключено на ${currency}`);
   };
   
   // Валидация TON адреса
@@ -133,10 +130,7 @@ const WithdrawalForm: React.FC = () => {
       setSubmitState(SubmitState.SUCCESS);
       
       // Показываем уведомление об успешной отправке
-      showNotification('success', {
-        message: `Заявка на вывод ${data.amount} ${selectedCurrency} создана успешно!`,
-        duration: 5000
-      });
+      success(`Заявка на вывод ${data.amount} ${selectedCurrency} создана успешно!`);
       
       // Очищаем форму после успешной отправки
       setTimeout(() => {
@@ -157,10 +151,7 @@ const WithdrawalForm: React.FC = () => {
       setErrorMessage(errorMsg);
       setSubmitState(SubmitState.ERROR);
       
-      showNotification('error', {
-        message: `Ошибка создания заявки: ${errorMsg}`,
-        duration: 5000
-      });
+      showError(`Ошибка создания заявки: ${errorMsg}`);
       
       // Сбрасываем состояние ошибки через 5 секунд
       setTimeout(() => {

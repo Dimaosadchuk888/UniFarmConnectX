@@ -73,22 +73,17 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   }
 
   // Применяем Error Boundary к компоненту
-  const withErrorBoundary = useErrorBoundary({
-    queryKey: ['/api/v2/uni-farming/status', userId],
-    errorTitle: 'Ошибка загрузки UNI фарминга',
-    errorDescription: 'Не удалось загрузить информацию о вашем UNI фарминге. Пожалуйста, обновите страницу или повторите позже.',
-    resetButtonText: 'Обновить данные'
-  });
+  const { captureError, handleAsyncError } = useErrorBoundary();
 
   // Получаем информацию о фарминге с динамическим ID пользователя
-  const { data: farmingResponse, isLoading } = useQuery<{ success: boolean; data: FarmingInfo }>({
+  const { data: farmingResponse, isLoading } = useQuery({
     queryKey: ['/api/v2/uni-farming/status', userId], // Обновлено на корректный эндпоинт /api/v2/uni-farming/status
     refetchInterval: 15000, // Обновление каждые 15 секунд для более актуальных данных
     enabled: !!userId, // Запрос активен только если есть userId
     queryFn: async () => {
       try {
         // Используем безопасный запрос с правильными заголовками
-        const response = await correctApiRequest<{ success: boolean; data: FarmingInfo }>(
+        const response = await correctApiRequest(
           `/api/v2/uni-farming/status?user_id=${userId || 1}`, 
           'GET'
         );
@@ -135,7 +130,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   });
 
   // Информация о фарминге из ответа API
-  const farmingInfo: FarmingInfo = (farmingResponse && farmingResponse.data) ? farmingResponse.data : {
+  const farmingInfo: FarmingInfo = farmingResponse?.data || {
     isActive: false,
     depositAmount: '0',
     ratePerSecond: '0',
