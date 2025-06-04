@@ -110,23 +110,20 @@ const EnhancedMissionsList: React.FC = () => {
           : (result.reward || 0);
         
         // Показываем улучшенное уведомление об успехе с эмодзи
-        showNotification('success', {
-          message: `✅ ${missionTitle} выполнена! Получено ${reward} UNI`,
+        success(`✅ ${missionTitle} выполнена! Получено ${reward} UNI`, {
           duration: 4000,
           autoDismiss: true
         });
       } else {
         // Показываем ошибку с подробностями
-        showNotification('error', {
-          message: `❌ Не удалось выполнить миссию "${missionTitle}": ${result?.message || 'Неизвестная ошибка'}`,
+        showError(`❌ Не удалось выполнить миссию "${missionTitle}": ${result?.message || 'Неизвестная ошибка'}`, {
           duration: 5000,
           autoDismiss: true
         });
       }
     } catch (error: any) {
       // Показываем ошибку сети или сервера
-      showNotification('error', {
-        message: `🔥 Ошибка при выполнении миссии: ${error.message || 'Проблема с подключением'}`,
+      showError(`🔥 Ошибка при выполнении миссии: ${error.message || 'Проблема с подключением'}`, {
         duration: 5000,
         autoDismiss: true
       });
@@ -174,7 +171,7 @@ const EnhancedMissionsList: React.FC = () => {
   }
   
   // Отображение ошибки
-  if (error) {
+  if (errorState) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold mb-4">🎯 Доступные задания</h2>
@@ -187,7 +184,7 @@ const EnhancedMissionsList: React.FC = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Произошла ошибка: {error}
+              Произошла ошибка: {errorState}
             </p>
             <Button 
               className="mt-4 w-full"

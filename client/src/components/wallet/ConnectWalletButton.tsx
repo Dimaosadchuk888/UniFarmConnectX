@@ -38,35 +38,18 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     
     try {
       if (isWalletConnected) {
-        // Отображаем уведомление о процессе отключения
-        showNotification('loading', {
-          message: 'Отключение кошелька...',
-          duration: 2000
-        });
+        // Отключение кошелька без уведомления для упрощения UX
         
         // Отключение кошелька
         await disconnectWallet();
         
-        // Уведомление об успешном отключении
-        showNotification('info', {
-          message: 'Кошелёк успешно отключен',
-          duration: 3000
-        });
+        // Подключение кошелька выполнено
       } else {
-        // Отображаем уведомление о процессе подключения
-        showNotification('loading', {
-          message: 'Ожидание подключения кошелька...',
-          duration: 2000
-        });
-        
         // Подключение кошелька
         await connectWallet();
         
         // Уведомление об успешном подключении
-        showNotification('success', {
-          message: 'Кошелёк успешно подключен',
-          duration: 3000
-        });
+        success('Кошелёк успешно подключен');
       }
     } catch (error) {
       // Безопасное обращение к свойству message у error
