@@ -63,10 +63,7 @@ const WalletConnectionCard: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       
       // Показываем уведомление об ошибке
-      showNotification('error', {
-        message: `Ошибка: ${errorMessage}`,
-        duration: 4000
-      });
+      showError(`Ошибка: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -85,10 +82,7 @@ const WalletConnectionCard: React.FC = () => {
       setCopySuccess(true);
       
       // Показываем уведомление об успешном копировании
-      showNotification('success', {
-        message: 'TON-адрес скопирован в буфер обмена',
-        duration: 2000
-      });
+      success('TON-адрес скопирован в буфер обмена');
       
       // Сбрасываем статус через 2 секунды
       setTimeout(() => setCopySuccess(false), 2000);
@@ -97,10 +91,7 @@ const WalletConnectionCard: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       
       // Показываем уведомление об ошибке
-      showNotification('error', {
-        message: `Не удалось скопировать адрес кошелька: ${errorMessage}`,
-        duration: 3000
-      });
+      showError(`Не удалось скопировать адрес кошелька: ${errorMessage}`);
       
       // Сбрасываем статус копирования
       setCopySuccess(false);

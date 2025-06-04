@@ -23,7 +23,7 @@ const BalanceCard: React.FC = () => {
   } = useUser();
   
   // Получаем доступ к системе уведомлений
-  const { showNotification } = useNotification();
+  const { success, error: showError, info, loading } = useNotification();
   
   // Состояния для визуальных эффектов
   const [uniAnimating, setUniAnimating] = useState<boolean>(false);

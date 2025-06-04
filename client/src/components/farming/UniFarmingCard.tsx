@@ -5,7 +5,7 @@ import { apiRequest, invalidateQueryWithUserId } from '@/lib/queryClient';
 import BigNumber from 'bignumber.js';
 import { useUser } from '@/contexts/userContext';
 import useErrorBoundary from '@/hooks/useErrorBoundary';
-import { useNotification } from '@/contexts/notificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface UniFarmingCardProps {
   userData: any;
@@ -26,7 +26,7 @@ interface FarmingInfo {
 const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const queryClient = useQueryClient();
   const { userId } = useUser(); // Получаем ID пользователя из контекста
-  const { showNotification } = useNotification(); // Для показа уведомлений
+  const { success, error: showError } = useNotification(); // Для показа уведомлений
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   // Защита от повторных вызовов
@@ -298,10 +298,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         setError(null);
 
         // Показываем уведомление об успешном создании депозита
-        showNotification('success', {
-          message: 'Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!',
-          duration: 5000
-        });
+        success('Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!');
 
         // Обновляем контекст пользователя для обновления баланса без перезагрузки
         if (userData && response?.data?.newBalance) {
