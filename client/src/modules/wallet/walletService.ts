@@ -136,7 +136,12 @@ export class WalletService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.get(`/api/v2/wallet/transactions/${userId}?limit=${limit}&offset=${offset}`);
+      const response = await apiClient.get<{
+        success: boolean;
+        data?: Transaction[];
+        total?: number;
+        message?: string;
+      }>(`/api/v2/wallet/transactions/${userId}?limit=${limit}&offset=${offset}`);
       return response;
     } catch (error) {
       console.error('[WalletService] Get transaction history error:', error);
@@ -172,7 +177,11 @@ export class WalletService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.post('/api/v2/wallet/validate', {
+      const response = await apiClient.post<{
+        success: boolean;
+        isValid?: boolean;
+        message?: string;
+      }>('/api/v2/wallet/validate', {
         address,
         type
       });
@@ -199,7 +208,15 @@ export class WalletService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.post('/api/v2/wallet/fees', {
+      const response = await apiClient.post<{
+        success: boolean;
+        data?: {
+          networkFee: string;
+          serviceFee: string;
+          totalFee: string;
+        };
+        message?: string;
+      }>('/api/v2/wallet/fees', {
         token_type: tokenType,
         amount
       });

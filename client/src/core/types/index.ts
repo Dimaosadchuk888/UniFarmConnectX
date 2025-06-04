@@ -25,6 +25,16 @@ export interface User {
   checkin_streak?: number;
 }
 
+export interface InsertUser {
+  telegram_id?: number;
+  username?: string;
+  guest_id?: string;
+  ref_code?: string;
+  parent_ref_code?: string;
+  balance_uni?: string;
+  balance_ton?: string;
+}
+
 export interface UserValidation {
   hasId: boolean;
   idIsPositive: boolean;

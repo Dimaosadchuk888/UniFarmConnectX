@@ -55,7 +55,11 @@ export class ReferralService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.get(`/api/v2/referral/users/${userId}?level=${level}`);
+      const response = await apiClient.get<{
+        success: boolean;
+        data?: ReferralUser[];
+        message?: string;
+      }>(`/api/v2/referral/users/${userId}?level=${level}`);
       return response;
     } catch (error) {
       console.error('[ReferralService] Get referrals by level error:', error);

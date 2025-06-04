@@ -155,7 +155,18 @@ export class FarmingService {
   }> {
     try {
       const params = tokenType ? `?token_type=${tokenType}` : '';
-      const response = await apiClient.get(`/api/v2/farming/history/${userId}${params}`);
+      const response = await apiClient.get<{
+        success: boolean;
+        data?: Array<{
+          id: number;
+          amount: string;
+          token_type: string;
+          action: string;
+          timestamp: string;
+          rewards_earned?: string;
+        }>;
+        message?: string;
+      }>(`/api/v2/farming/history/${userId}${params}`);
       return response;
     } catch (error) {
       console.error('[FarmingService] Farming history error:', error);
@@ -179,7 +190,15 @@ export class FarmingService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.post('/api/v2/farming/calculate', {
+      const response = await apiClient.post<{
+        success: boolean;
+        data?: {
+          dailyIncome: string;
+          totalIncome: string;
+          apy: string;
+        };
+        message?: string;
+      }>('/api/v2/farming/calculate', {
         amount,
         token_type: tokenType,
         days
