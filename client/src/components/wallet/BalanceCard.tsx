@@ -171,10 +171,7 @@ const BalanceCard: React.FC = () => {
         refreshBalance();
         calculateRate();
         
-        showNotification('success', {
-          message: 'Данные профиля и баланс обновлены',
-          duration: 3000
-        });
+        success('Данные профиля и баланс обновлены');
         
         setUniAnimating(true);
         setTimeout(() => setUniAnimating(false), 800);
@@ -184,39 +181,30 @@ const BalanceCard: React.FC = () => {
       }, 500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
-      showNotification('error', {
-        message: `Не удалось обновить данные: ${errorMessage}`,
-        duration: 3000
-      });
+      showError(`Не удалось обновить данные: ${errorMessage}`);
     }
   }, [
     refreshUserData, 
     refreshBalance, 
-    showNotification, 
+    showError, 
     isBalanceFetching, 
     calculateRate
   ]);
   
   // Обработчик переподключения WebSocket
   const handleReconnect = useCallback(() => {
-    showNotification('loading', {
-      message: 'Переподключение...',
-      duration: 2000
-    });
+    loading('Переподключение...');
     
     isSubscribedRef.current = false;
     forceReconnect();
-  }, [forceReconnect, showNotification]);
+  }, [forceReconnect, loading]);
   
   // Проверка и обновление баланса при первом рендере
   useEffect(() => {
     if (userId && uniBalance === 0 && !initialLoadedRef.current) {
       initialLoadedRef.current = true;
       
-      showNotification('loading', {
-        message: 'Загрузка баланса...',
-        duration: 2000
-      });
+      loading('Загрузка баланса...');
       
       console.log('[BalanceCard] Первичная загрузка баланса');
       
@@ -233,7 +221,7 @@ const BalanceCard: React.FC = () => {
         }, 1000);
       }, 500);
     }
-  }, [userId, uniBalance, refreshBalance, calculateRate, showNotification]);
+  }, [userId, uniBalance, refreshBalance, calculateRate, loading]);
 
   // ===== Рендеринг согласно UX спецификации =====
   return (

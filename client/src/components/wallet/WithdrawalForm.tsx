@@ -49,7 +49,7 @@ const WithdrawalForm: React.FC = () => {
   const [amountFocused, setAmountFocused] = useState(false);
   
   // Хук для отображения уведомлений
-  const { showNotification } = useNotification();
+  const { success, error: showError, info } = useNotification();
   
   // Настройка формы с валидацией
   const {
