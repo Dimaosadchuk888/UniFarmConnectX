@@ -29,7 +29,7 @@ const WalletConnectionCard: React.FC = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   
   // Получение доступа к системе уведомлений
-  const { success, error } = useNotification();
+  const { success, error: showError } = useNotification();
   
   /**
    * Обработчик подключения/отключения кошелька
@@ -39,42 +39,23 @@ const WalletConnectionCard: React.FC = () => {
     
     try {
       if (isWalletConnected) {
-        // Отображаем уведомление о процессе отключения
-        showNotification('loading', {
-          message: 'Отключение кошелька...',
-          duration: 2000
-        });
-        
         // Отключаем кошелек
         await disconnectWallet();
         
         // Показываем уведомление об успешном отключении
-        showNotification('info', {
-          message: 'TON-кошелек успешно отключен',
-          duration: 3000
-        });
+        success('TON-кошелек успешно отключен');
       } else {
-        // Отображаем уведомление о процессе подключения
-        showNotification('loading', {
-          message: 'Ожидание подключения кошелька...',
-          duration: 2000
-        });
+        // Подключение кошелька
         
         // Подключаем кошелек
-        const success = await connectWallet();
+        const result = await connectWallet();
         
-        if (success) {
+        if (result) {
           // Уведомление об успешном подключении
-          showNotification('success', {
-            message: 'TON-кошелек успешно подключен',
-            duration: 3000
-          });
+          success('TON-кошелек успешно подключен');
         } else {
           // Уведомление об ошибке
-          showNotification('error', {
-            message: 'Не удалось подключить кошелек',
-            duration: 3000
-          });
+          showError('Не удалось подключить кошелек');
         }
       }
     } catch (error) {

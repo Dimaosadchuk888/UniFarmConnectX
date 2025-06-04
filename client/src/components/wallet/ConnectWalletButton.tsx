@@ -27,7 +27,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
   } = useUser();
   
   // Получаем доступ к системе уведомлений
-  const { success, error } = useNotification();
+  const { success, error: showError } = useNotification();
   
   // Локальное состояние для отображения индикатора загрузки
   const [loading, setLoading] = useState(false);
@@ -51,16 +51,13 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
         // Уведомление об успешном подключении
         success('Кошелёк успешно подключен');
       }
-    } catch (error) {
+    } catch (walletError) {
       // Безопасное обращение к свойству message у error
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      const errorMessage = walletError instanceof Error ? walletError.message : 'Неизвестная ошибка';
       console.error('Ошибка управления кошельком:', errorMessage);
       
       // Отображаем уведомление об ошибке
-      showNotification('error', {
-        message: `Ошибка: ${errorMessage}`,
-        duration: 5000
-      });
+      showError(`Ошибка: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -74,19 +71,13 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
       navigator.clipboard.writeText(walletAddress)
         .then(() => {
           // Показываем уведомление об успешном копировании
-          showNotification('success', {
-            message: 'Адрес кошелька скопирован в буфер обмена',
-            duration: 2000
-          });
+          success('Адрес кошелька скопирован в буфер обмена');
         })
-        .catch((error) => {
-          console.error('Ошибка копирования адреса:', error);
+        .catch((copyError) => {
+          console.error('Ошибка копирования адреса:', copyError);
           
           // Показываем уведомление об ошибке копирования
-          showNotification('error', {
-            message: 'Не удалось скопировать адрес кошелька',
-            duration: 3000
-          });
+          showError('Не удалось скопировать адрес кошелька');
         });
     }
   };
