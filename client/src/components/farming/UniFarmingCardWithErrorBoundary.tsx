@@ -16,8 +16,11 @@ const UniFarmingCardWithErrorBoundary: React.FC<UniFarmingCardWithErrorBoundaryP
   const queryClient = useQueryClient();
   const { userId } = useUser();
   
-  // Если нет userId, показываем информационную карточку без API запросов
-  if (!userId) {
+  // Всегда показываем карточку с полной функциональностью
+  // в режиме демонстрации независимо от userId
+  const showStaticCard = true;
+  
+  if (showStaticCard) {
     return (
       <div className="bg-card border border-border rounded-xl p-4 mb-5 shadow-md">
         <h2 className="text-xl font-semibold mb-3 text-primary">Основной UNI пакет</h2>
