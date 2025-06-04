@@ -4,7 +4,7 @@
 import React from 'react';
 import { WelcomeSection } from './WelcomeSection';
 import { UniFarmingCard } from '../../farming/components/UniFarmingCard';
-import { BalanceCard } from '../../wallet/components/BalanceCard';
+import { BalanceCardSimple } from '../../wallet/components/BalanceCardSimple';
 import type { User } from '../../../core/types';
 
 interface DashboardLayoutProps {
@@ -17,7 +17,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
       <WelcomeSection user={user} />
       
       <div className="grid gap-4 md:grid-cols-2">
-        <BalanceCard user={user} />
+        <BalanceCardSimple user={user} />
         <UniFarmingCard user={user} />
       </div>
     </div>

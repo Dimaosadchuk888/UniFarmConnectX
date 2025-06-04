@@ -88,8 +88,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   };
 
   useEffect(() => {
-    // Временно отключаем WebSocket подключения
-    console.log('[WebSocket] Подключения временно отключены для реструктуризации');
+    connect();
 
     return () => {
       if (reconnectTimeoutRef.current) {
