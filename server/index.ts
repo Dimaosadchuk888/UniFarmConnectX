@@ -6,6 +6,8 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
 import { config, logger, globalErrorHandler, notFoundHandler } from '../core';
 import { db } from '../core/db';
 import { users, transactions, missions } from '../shared/schema';
@@ -654,11 +656,47 @@ async function startServer() {
     app.use(notFoundHandler);
     app.use(globalErrorHandler);
 
+    // Создание HTTP сервера
+    const httpServer = createServer(app);
+    
+    // Настройка WebSocket сервера
+    const wss = new WebSocketServer({ server: httpServer });
+    
+    wss.on('connection', (ws, req) => {
+      console.log('[WebSocket] Новое подключение установлено');
+      
+      ws.on('message', (message) => {
+        try {
+          const data = JSON.parse(message.toString());
+          console.log('[WebSocket] Получено сообщение:', data);
+          
+          // Эхо ответ для поддержания соединения
+          if (data.type === 'ping') {
+            ws.send(JSON.stringify({ type: 'pong', timestamp: data.timestamp }));
+          }
+        } catch (error) {
+          console.error('[WebSocket] Ошибка обработки сообщения:', error);
+        }
+      });
+      
+      ws.on('close', () => {
+        console.log('[WebSocket] Соединение закрыто');
+      });
+      
+      ws.on('error', (error) => {
+        console.error('[WebSocket] Ошибка соединения:', error);
+      });
+      
+      // Отправляем приветственное сообщение
+      ws.send(JSON.stringify({ type: 'welcome', message: 'WebSocket подключение установлено' }));
+    });
+
     // Запуск сервера
-    const server = app.listen(config.app.port, config.app.host, () => {
+    const server = httpServer.listen(config.app.port, config.app.host, () => {
       logger.info(`🚀 Сервер запущен на http://${config.app.host}:${config.app.port}`);
       logger.info(`📡 API доступен: http://${config.app.host}:${config.app.port}${apiPrefix}/`);
       logger.info(`🌐 Frontend: http://${config.app.host}:${config.app.port}/`);
+      logger.info(`🔌 WebSocket сервер активен`);
     });
 
     return server;
