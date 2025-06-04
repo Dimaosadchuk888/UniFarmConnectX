@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
-import { useNotification } from '@/contexts/notificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { formatAmount, formatUniNumber, formatTonNumber, getUSDEquivalent } from '@/utils/formatters';
 
 /**
@@ -63,13 +63,10 @@ const BalanceCard: React.FC = () => {
     
     if (data.type === 'update' && data.balanceData) {
       if (userId) {
-        showNotification('info', {
-          message: 'Доступно обновление баланса',
-          duration: 3000
-        });
+        info('Доступно обновление баланса');
       }
     }
-  }, [userId, showNotification]);
+  }, [userId, info]);
   
   // Обработчик закрытия соединения
   const handleClose = useCallback((event: CloseEvent) => {
@@ -129,20 +126,14 @@ const BalanceCard: React.FC = () => {
   const handleManualRefresh = useCallback(() => {
     if (isBalanceFetching) return;
     
-    showNotification('loading', {
-      message: 'Обновление баланса...',
-      duration: 1500
-    });
+    loading('Обновление баланса...');
     
     try {
       setTimeout(() => {
         refreshBalance();
         calculateRate();
         
-        showNotification('success', {
-          message: 'Баланс успешно обновлён',
-          duration: 2000
-        });
+        success('Баланс успешно обновлён');
         
         // Анимация обновления
         setUniAnimating(true);
@@ -156,14 +147,11 @@ const BalanceCard: React.FC = () => {
       }, 100);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
-      showNotification('error', {
-        message: `Не удалось обновить баланс: ${errorMessage}`,
-        duration: 3000
-      });
+      showError(`Не удалось обновить баланс: ${errorMessage}`);
     }
   }, [
     refreshBalance, 
-    showNotification, 
+    showError, 
     isBalanceFetching, 
     uniBalance, 
     tonBalance, 
@@ -174,10 +162,7 @@ const BalanceCard: React.FC = () => {
   const handleFullRefresh = useCallback(() => {
     if (isBalanceFetching) return;
     
-    showNotification('loading', {
-      message: 'Обновление данных...',
-      duration: 1500
-    });
+    loading('Обновление данных...');
     
     try {
       refreshUserData();
