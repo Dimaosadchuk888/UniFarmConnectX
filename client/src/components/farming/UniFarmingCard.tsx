@@ -34,8 +34,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Флаг для предотвращения автоматических вызовов
   const depositRequestSent = useRef<boolean>(false);
 
-  // Если нет userId, показываем информационную карточку
-  if (!userId) {
+  // Всегда показываем карточку для демонстрации
+  if (!userId || true) {
     return (
       <div className="bg-card border border-border rounded-lg p-6 mb-4">
         <div className="text-center">
