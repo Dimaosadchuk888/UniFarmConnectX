@@ -9,10 +9,10 @@ import { correctApiRequest } from "@/lib/correctApiRequest";
 export interface User {
   id: number;
   telegram_id: number | null;
-  username: string;
+  username: string | null;
   balance_uni: string;
   balance_ton: string;
-  ref_code: string; // Реферальный код пользователя всегда должен быть определен
+  ref_code: string | null; // Реферальный код может быть пустым
   guest_id: string; // Идентификатор гостя
   created_at?: string;
   parent_ref_code?: string | null;
@@ -247,15 +247,16 @@ class UserService {
         throw new Error('Invalid response from server');
       }
 
-      // Проверяем и фиксируем поля с типами данных, если это необходимо
+      // Проверяем и фиксируем поля с типами данных, добавляем отсутствующие поля
       const userData = {
         ...data.data,
         id: Number(data.data.id),
         telegram_id: data.data.telegram_id !== undefined ? 
           (data.data.telegram_id === null ? null : Number(data.data.telegram_id)) : null,
+        username: data.data.username || null, // Добавляем username если отсутствует
         balance_uni: String(data.data.balance_uni || "0"),
         balance_ton: String(data.data.balance_ton || "0"),
-        ref_code: String(data.data.ref_code || ""),
+        ref_code: data.data.ref_code || null, // Разрешаем null для ref_code
         guest_id: String(data.data.guest_id || "")
       };
 
@@ -301,10 +302,10 @@ class UserService {
       typeof data.id === 'number' &&
       data.id > 0 &&
       (typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string' || data.telegram_id === null) &&
-      typeof data.username === 'string' &&
+      (typeof data.username === 'string' || data.username === null) &&
       typeof data.balance_uni === 'string' &&
       typeof data.balance_ton === 'string' &&
-      typeof data.ref_code === 'string' // Добавлена проверка на ref_code
+      (typeof data.ref_code === 'string' || data.ref_code === null || data.ref_code === undefined) // Разрешаем пустой ref_code
     );
 
     // Подробный лог для отладки валидации данных
@@ -314,10 +315,10 @@ class UserService {
         idIsPositive: data.id > 0,
         hasTelegramId: typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string' || data.telegram_id === null,
         telegramIdValue: data.telegram_id,
-        hasUsername: typeof data.username === 'string',
+        hasUsername: typeof data.username === 'string' || data.username === null,
         hasBalanceUni: typeof data.balance_uni === 'string',
         hasBalanceTon: typeof data.balance_ton === 'string',
-        hasRefCode: typeof data.ref_code === 'string',
+        hasRefCode: typeof data.ref_code === 'string' || data.ref_code === null || data.ref_code === undefined,
         refCodeValue: data.ref_code || 'missing',
         rawData: data
       });
