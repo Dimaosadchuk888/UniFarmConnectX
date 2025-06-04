@@ -190,7 +190,12 @@ export class FarmingService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.post<{
+      const response = await apiClient.post('/api/v2/farming/calculate', {
+        amount,
+        token_type: tokenType,
+        days
+      });
+      return response as {
         success: boolean;
         data?: {
           dailyIncome: string;
@@ -198,12 +203,7 @@ export class FarmingService {
           apy: string;
         };
         message?: string;
-      }>('/api/v2/farming/calculate', {
-        amount,
-        token_type: tokenType,
-        days
-      });
-      return response;
+      };
     } catch (error) {
       console.error('[FarmingService] Calculate income error:', error);
       return {

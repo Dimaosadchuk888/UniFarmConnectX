@@ -136,13 +136,13 @@ export class WalletService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.get<{
+      const response = await apiClient.get(`/api/v2/wallet/transactions/${userId}?limit=${limit}&offset=${offset}`);
+      return response as {
         success: boolean;
         data?: Transaction[];
         total?: number;
         message?: string;
-      }>(`/api/v2/wallet/transactions/${userId}?limit=${limit}&offset=${offset}`);
-      return response;
+      };
     } catch (error) {
       console.error('[WalletService] Get transaction history error:', error);
       return {
@@ -177,15 +177,15 @@ export class WalletService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.post<{
-        success: boolean;
-        isValid?: boolean;
-        message?: string;
-      }>('/api/v2/wallet/validate', {
+      const response = await apiClient.post('/api/v2/wallet/validate', {
         address,
         type
       });
-      return response;
+      return response as {
+        success: boolean;
+        isValid?: boolean;
+        message?: string;
+      };
     } catch (error) {
       console.error('[WalletService] Validate wallet address error:', error);
       return {
@@ -208,7 +208,11 @@ export class WalletService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.post<{
+      const response = await apiClient.post('/api/v2/wallet/fees', {
+        token_type: tokenType,
+        amount
+      });
+      return response as {
         success: boolean;
         data?: {
           networkFee: string;
@@ -216,11 +220,7 @@ export class WalletService {
           totalFee: string;
         };
         message?: string;
-      }>('/api/v2/wallet/fees', {
-        token_type: tokenType,
-        amount
-      });
-      return response;
+      };
     } catch (error) {
       console.error('[WalletService] Get transaction fees error:', error);
       return {

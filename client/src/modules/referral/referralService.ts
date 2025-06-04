@@ -55,12 +55,12 @@ export class ReferralService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.get<{
+      const response = await apiClient.get(`/api/v2/referral/users/${userId}?level=${level}`);
+      return response as {
         success: boolean;
         data?: ReferralUser[];
         message?: string;
-      }>(`/api/v2/referral/users/${userId}?level=${level}`);
-      return response;
+      };
     } catch (error) {
       console.error('[ReferralService] Get referrals by level error:', error);
       return {
@@ -126,7 +126,8 @@ export class ReferralService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.get<{
+      const response = await apiClient.get(`/api/v2/referral/payments/${userId}?limit=${limit}`);
+      return response as {
         success: boolean;
         data?: Array<{
           id: number;
@@ -139,8 +140,7 @@ export class ReferralService {
           source: string;
         }>;
         message?: string;
-      }>(`/api/v2/referral/payments/${userId}?limit=${limit}`);
-      return response;
+      };
     } catch (error) {
       console.error('[ReferralService] Get referral payments error:', error);
       return {
@@ -160,15 +160,15 @@ export class ReferralService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.post<{
+      const response = await apiClient.post('/api/v2/referral/validate-code', {
+        referral_code: code
+      });
+      return response as {
         success: boolean;
         isValid?: boolean;
         ownerUsername?: string;
         message?: string;
-      }>('/api/v2/referral/validate-code', {
-        referral_code: code
-      });
-      return response;
+      };
     } catch (error) {
       console.error('[ReferralService] Validate referral code error:', error);
       return {
@@ -197,7 +197,8 @@ export class ReferralService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.get<{
+      const response = await apiClient.get(`/api/v2/referral/tree/${userId}?max_levels=${maxLevels}`);
+      return response as {
         success: boolean;
         data?: {
           userId: number;
@@ -211,8 +212,7 @@ export class ReferralService {
           };
         };
         message?: string;
-      }>(`/api/v2/referral/tree/${userId}?max_levels=${maxLevels}`);
-      return response;
+      };
     } catch (error) {
       console.error('[ReferralService] Get referral tree error:', error);
       return {
@@ -236,7 +236,8 @@ export class ReferralService {
     message?: string;
   }> {
     try {
-      const response = await apiClient.get<{
+      const response = await apiClient.get('/api/v2/referral/settings');
+      return response as {
         success: boolean;
         data?: {
           maxLevels: number;
@@ -245,8 +246,7 @@ export class ReferralService {
           bonusForFirstReferral: string;
         };
         message?: string;
-      }>('/api/v2/referral/settings');
-      return response;
+      };
     } catch (error) {
       console.error('[ReferralService] Get referral settings error:', error);
       return {
