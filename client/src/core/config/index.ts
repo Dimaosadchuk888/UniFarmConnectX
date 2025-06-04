@@ -21,11 +21,12 @@ export const TELEGRAM_CONFIG = {
   WEBAPP_URL: getBaseUrl(),
 } as const;
 
-// Отключаем внешние WebSocket подключения
+// Настройки WebSocket подключений
 export const WEBSOCKET_CONFIG = {
-  ENABLED: false, // Временно отключено
+  ENABLED: true,
   MAX_RECONNECT_ATTEMPTS: 5,
   RECONNECT_INTERVAL: 3000,
+  EXTERNAL_URL: 'wss://uni-farm-connect-xo-osadchukdmitro2.replit.app/ws',
 } as const;
 
 export const TONCONNECT_MANIFEST_URL = '/tonconnect-manifest.json';

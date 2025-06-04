@@ -114,8 +114,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   }, []);
 
   useEffect(() => {
-    // Временно отключено для реструктуризации
-    console.log('[WebSocket] Hook отключен во время реструктуризации');
+    connect();
 
     return () => {
       disconnect();
