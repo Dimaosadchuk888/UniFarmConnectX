@@ -155,7 +155,8 @@ export class FarmingService {
   }> {
     try {
       const params = tokenType ? `?token_type=${tokenType}` : '';
-      const response = await apiClient.get<{
+      const response = await apiClient.get(`/api/v2/farming/history/${userId}${params}`);
+      return response as {
         success: boolean;
         data?: Array<{
           id: number;
@@ -166,8 +167,7 @@ export class FarmingService {
           rewards_earned?: string;
         }>;
         message?: string;
-      }>(`/api/v2/farming/history/${userId}${params}`);
-      return response;
+      };
     } catch (error) {
       console.error('[FarmingService] Farming history error:', error);
       return {
