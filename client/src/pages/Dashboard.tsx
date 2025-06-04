@@ -1,57 +1,49 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useUser } from '@/contexts/userContext';
-
-// Dashboard Components
-import WelcomeSection from '@/components/dashboard/WelcomeSection';
-import IncomeCardNew from '@/components/dashboard/IncomeCardNew';
-import ChartCard from '@/components/dashboard/ChartCard';
-import BoostStatusCard from '@/components/dashboard/BoostStatusCard';
-import DailyBonusCard from '@/components/dashboard/DailyBonusCard';
-import SystemStatusIndicator from '@/components/ui/SystemStatusIndicator';
-import UniFarmingCardWithErrorBoundary from '@/components/farming/UniFarmingCardWithErrorBoundary';
-
-
-
-
+import { userService } from '../modules/auth/userService';
+import { DashboardLayout } from '../modules/dashboard/components/DashboardLayout';
+import type { User } from '../core/types';
 
 const Dashboard: React.FC = () => {
-  const { userId } = useUser();
-
-  // Получаем данные пользователя для передачи в компоненты
-  const { data: userResponse } = useQuery<{ success: boolean; data: any }>({
-    queryKey: [`/api/v2/users/profile`],
-    enabled: !!userId
+  // Получаем данные пользователя с улучшенной валидацией
+  const { data: user, isLoading, error } = useQuery<User>({
+    queryKey: ['/api/me'],
+    queryFn: () => userService.getCurrentUser(),
+    retry: 3,
+    retryDelay: 1000,
   });
 
-  const userData = userResponse?.data || null;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Загрузка данных...</p>
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    <div className="space-y-5">
-      {/* Основная секция приветствия */}
-      <WelcomeSection />
-      
-      {/* Карточка доходов */}
-      <IncomeCardNew />
-      
-      {/* График доходности */}
-      <ChartCard />
-      
-      {/* Статус бустов */}
-      <BoostStatusCard />
-      
-      {/* Ежедневный бонус */}
-      <DailyBonusCard />
+  if (error || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center p-6">
+          <h2 className="text-xl font-semibold mb-2">Ошибка загрузки</h2>
+          <p className="text-muted-foreground mb-4">
+            {error instanceof Error ? error.message : 'Не удалось загрузить данные пользователя'}
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            Обновить страницу
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-      {/* UNI Фарминг карточка */}
-      <UniFarmingCardWithErrorBoundary userData={userData} />
-
-      {/* Индикатор статуса системы для диагностики */}
-      {process.env.NODE_ENV !== 'production' && (
-        <SystemStatusIndicator />
-      )}
-    </div>
-  );
+  return <DashboardLayout user={user} />;
 };
 
 export default Dashboard;
