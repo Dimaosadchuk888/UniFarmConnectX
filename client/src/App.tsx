@@ -13,7 +13,7 @@ import { useBalance } from "@/hooks/useBalance";
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
-import { WebSocketProvider } from "@/contexts/webSocketContext";
+import { WebSocketProvider } from "./core/providers/WebSocketProvider";
 import { NotificationProvider } from "@/contexts/notificationContext";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 
