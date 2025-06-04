@@ -27,7 +27,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
   } = useUser();
   
   // Получаем доступ к системе уведомлений
-  const { showNotification } = useNotification();
+  const { success, error } = useNotification();
   
   // Локальное состояние для отображения индикатора загрузки
   const [loading, setLoading] = useState(false);

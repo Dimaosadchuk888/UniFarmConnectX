@@ -35,7 +35,7 @@ const TransactionHistory: React.FC = () => {
   const { userId } = useUser();
   
   // Получаем доступ к системе уведомлений
-  const { showNotification } = useNotification();
+  const { error: showError } = useNotification();
   
   // Запрос транзакций
   const {
@@ -175,25 +175,12 @@ const TransactionHistory: React.FC = () => {
     setActiveFilter(filter);
     setPage(1); // Сбрасываем пагинацию при смене фильтра
     
-    showNotification('info', {
-      message: `Фильтр изменен на ${filter === 'ALL' ? 'Все транзакции' : filter}`,
-      duration: 2000
-    });
+    // Уведомление о смене фильтра удалено для упрощения UX
   };
   
   // Обработчик обновления данных
   const handleRefresh = () => {
-    showNotification('loading', {
-      message: 'Обновление истории транзакций...',
-      duration: 1500
-    });
-    
-    refetch().then(() => {
-      showNotification('success', {
-        message: 'История транзакций обновлена',
-        duration: 2000
-      });
-    });
+    refetch();
   };
   
   // Обработчик загрузки следующей страницы

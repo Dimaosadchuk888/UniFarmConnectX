@@ -29,10 +29,10 @@ interface UserMission {
 const EnhancedMissionsList: React.FC = () => {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errorState, setError] = useState<string | null>(null);
   const [completedMissionIds, setCompletedMissionIds] = useState<number[]>([]);
   const { userId } = useUser();
-  const { showNotification } = useNotification();
+  const { success, error: showError } = useNotification();
   
   // Функция загрузки данных миссий
   const fetchData = useCallback(async () => {
