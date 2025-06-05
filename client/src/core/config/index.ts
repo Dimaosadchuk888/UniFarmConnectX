@@ -4,12 +4,11 @@
 
 // WebSocket Configuration
 export const WEBSOCKET_CONFIG = {
-  ENABLED: true,
+  ENABLED: false, // Отключаем WebSocket до стабилизации
   RECONNECT_INTERVAL: 3000,
   MAX_RECONNECT_ATTEMPTS: 5,
   TIMEOUT: 10000,
-  // Временно отключаем внешний сервер до получения токенов
-  PRODUCTION_URL: null, // 'wss://uni-farm-connect-xo-osadchukdmitro2.replit.app/ws'
+  PRODUCTION_URL: null,
   USE_LOCAL_FALLBACK: true
 };
 
