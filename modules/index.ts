@@ -37,7 +37,6 @@ export { default as adminRoutes } from './admin/routes';
 export { default as authRoutes } from './auth/routes';
 
 // Models - Drizzle схемы и enum'ы
-export * from './user/model';
 export * from './wallet/model';
 export * from './farming/model';
 export * from './missions/model';
@@ -60,8 +59,5 @@ export * from './dailyBonus/types';
 export * from './admin/types';
 export * from './auth/types';
 
-// Middleware
-export { telegramMiddleware, requireTelegramAuth } from './telegram/middleware';
-
-// Utils
-export * from './telegram/utils';
+// Middleware (из core для унификации)
+export { requireTelegramAuth, optionalTelegramAuth } from '../core/middleware/telegramAuth';

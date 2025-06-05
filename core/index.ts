@@ -2,6 +2,7 @@
 export { db } from './db';
 export { logger } from './logger';
 export { config } from './config';
+export { BaseController } from './BaseController';
 
 // Middleware
 export { 
