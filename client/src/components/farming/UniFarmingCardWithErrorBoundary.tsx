@@ -19,9 +19,22 @@ const UniFarmingCardWithErrorBoundary: React.FC = () => {
   
   return (
     <ErrorBoundary fallback={
-      <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-red-400 mb-2">UNI Farming Error</h3>
-        <p className="text-red-300">Failed to load UNI farming data. Please refresh the page.</p>
+      <div className="bg-card border border-border rounded-lg p-6 mb-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i className="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+          </div>
+          <h3 className="text-lg font-semibold text-red-400 mb-2">Ошибка загрузки UNI фарминга</h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            Не удалось загрузить информацию о вашем UNI фарминге. Пожалуйста, обновите страницу или повторите позже.
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 transition-colors"
+          >
+            Обновить страницу
+          </button>
+        </div>
       </div>
     }>
       <UniFarmingCard userData={userData} />

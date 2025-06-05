@@ -25,8 +25,20 @@ interface FarmingInfo {
 
 const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const queryClient = useQueryClient();
-  const { userId } = useUser(); // Получаем ID пользователя из контекста
+  const userContext = useUser();
+  const { userId } = userContext; // Получаем ID пользователя из контекста
   const { success, error: showError } = useNotification(); // Для показа уведомлений
+  
+  // Диагностическое логирование для отладки
+  console.log('[DEBUG] UniFarmingCard props and context:', {
+    userData,
+    userContext: {
+      userId: userContext.userId,
+      username: userContext.username,
+      telegramId: userContext.telegramId,
+      guestId: userContext.guestId
+    }
+  });
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   // Защита от повторных вызовов
@@ -34,8 +46,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Флаг для предотвращения автоматических вызовов
   const depositRequestSent = useRef<boolean>(false);
 
-  // Всегда показываем карточку для демонстрации
-  if (!userId || true) {
+  // Показываем демо карточку только если нет userId
+  if (!userId) {
     return (
       <div className="bg-card border border-border rounded-lg p-6 mb-4">
         <div className="text-center">
@@ -76,55 +88,44 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const { captureError, handleAsyncError } = useErrorBoundary();
 
   // Получаем информацию о фарминге с динамическим ID пользователя
-  const { data: farmingResponse, isLoading } = useQuery({
-    queryKey: ['/api/v2/uni-farming/status', userId], // Обновлено на корректный эндпоинт /api/v2/uni-farming/status
-    refetchInterval: 15000, // Обновление каждые 15 секунд для более актуальных данных
-    enabled: !!userId, // Запрос активен только если есть userId
+  const { data: farmingResponse, isLoading, error: farmingError } = useQuery({
+    queryKey: ['/api/v2/uni-farming/status', userId],
+    refetchInterval: 15000,
+    enabled: !!userId,
+    retry: 2, // Ограничиваем количество повторных попыток
+    retryDelay: 1000,
     queryFn: async () => {
       try {
-        // Используем безопасный запрос с правильными заголовками
         const response = await correctApiRequest(
           `/api/v2/uni-farming/status?user_id=${userId || 1}`, 
           'GET'
         );
 
-        console.log('[DEBUG] Получены данные фарминга:', JSON.stringify(response));
-        // Выводим подробные дебаг данные для анализа точности отображения
-        if (response.data) {
-          console.log('[DEBUG] UNI Farming - Детали API:',{
-            isActive: response.data.isActive,
-            depositCount: response.data.depositCount,
-            totalDepositAmount: response.data.totalDepositAmount,
-            ratePerSecond: response.data.totalRatePerSecond,
-            dailyIncome: response.data.dailyIncomeUni
-          });
+        console.log('[DEBUG] UNI Farming rates:', {
+          ratePerSecond: response.data?.totalRatePerSecond || 0,
+          hourlyRate: (parseFloat(response.data?.totalRatePerSecond || '0') * 3600),
+          dailyRate: (parseFloat(response.data?.totalRatePerSecond || '0') * 86400),
+          rawData: response.data
+        });
 
-          // Вывод полного объекта response.data для диагностики
-          console.log('[DEBUG] UNI Farming - Полный объект данных:', response.data);
-
-          // Проверка числовых значений
-          try {
-            // Приоритет отдаем общей скорости начисления из API
-            const ratePerSecond = new BigNumber(response.data.totalRatePerSecond || response.data.ratePerSecond || '0');
-            const dailyRate = ratePerSecond.multipliedBy(86400);
-            console.log('[DEBUG] Числовые проверки:', {
-              totalRatePerSecond: response.data.totalRatePerSecond,
-              ratePerSecond: response.data.ratePerSecond,
-              calculatedRate: ratePerSecond.toString(),
-              dailyRate: dailyRate.toString(),
-              dailyIncomeUni: response.data.dailyIncomeUni,
-              depositCount: response.data.depositCount,
-              isNaN: ratePerSecond.isNaN(),
-              isFinite: ratePerSecond.isFinite()
-            });
-          } catch (bnError) {
-            console.error('[ERROR] Ошибка преобразования числовых значений:', bnError);
-          }
-        }
         return response;
       } catch (error: any) {
-        console.error('[ERROR] UniFarmingCard - Ошибка при получении информации о фарминге:', error);
-        throw new Error(`Ошибка получения данных фарминга: ${error.message || 'Неизвестная ошибка'}`);
+        console.error('[ERROR] UNI Farming API error:', error);
+        // Возвращаем дефолтные данные вместо выбрасывания ошибки
+        return {
+          success: false,
+          data: {
+            isActive: false,
+            depositAmount: '0.000000',
+            ratePerSecond: '0.000000',
+            totalRatePerSecond: '0.000000',
+            depositCount: 0,
+            totalDepositAmount: '0.000000',
+            dailyIncomeUni: '0',
+            startDate: null,
+            lastUpdate: null
+          }
+        };
       }
     }
   });
