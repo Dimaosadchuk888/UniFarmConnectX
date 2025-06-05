@@ -18,6 +18,24 @@ const NotificationContainer: React.FC<NotificationContainerProps> = ({
   notifications = [], 
   onRemove = () => {} 
 }) => {
+  // БЛОКИРУЕМ ВСЕ СИСТЕМНЫЕ УВЕДОМЛЕНИЯ ОБ ОШИБКАХ СОЕДИНЕНИЯ
+  // Фильтруем уведомления чтобы не показывать ошибки соединения
+  const filteredNotifications = notifications.filter(notification => {
+    const message = notification.message.toLowerCase();
+    const isConnectionError = message.includes('ошибка соединения') ||
+                             message.includes('ошибка подключения') ||
+                             message.includes('попытка переподключения') ||
+                             message.includes('соединения с сервером') ||
+                             message.includes('connection') ||
+                             message.includes('server error') ||
+                             (notification.type === 'error' && (
+                               message.includes('ошибка') ||
+                               message.includes('error') ||
+                               message.includes('failed')
+                             ));
+    
+    return !isConnectionError; // Показываем только НЕ системные ошибки
+  });
 
   const getIcon = (type: NotificationType) => {
     switch (type) {
@@ -49,11 +67,11 @@ const NotificationContainer: React.FC<NotificationContainerProps> = ({
     }
   };
 
-  if (notifications.length === 0) return null;
+  if (filteredNotifications.length === 0) return null;
 
   return (
     <div className="fixed top-4 right-4 z-50 space-y-2">
-      {notifications.map((notification) => (
+      {filteredNotifications.map((notification) => (
         <div
           key={notification.id}
           className={`
