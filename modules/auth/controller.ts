@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
+import { BaseController } from '../../core/BaseController';
 import { AuthService } from './service';
 
-export class AuthController {
+export class AuthController extends BaseController {
   private authService: AuthService;
 
   constructor() {
+    super();
     this.authService = new AuthService();
   }
 
@@ -12,172 +14,99 @@ export class AuthController {
    * Аутентификация через Telegram
    */
   async authenticateTelegram(req: Request, res: Response): Promise<void> {
-    try {
+    await this.handleRequest(req, res, async () => {
+      this.validateRequiredFields(req.body, ['initData']);
+      
       const { initData } = req.body;
       console.log('[AuthController] Аутентификация через Telegram');
       
-      if (!initData) {
-        res.status(400).json({
-          success: false,
-          error: 'Не предоставлены данные initData'
-        });
-        return;
-      }
-
       const result = await this.authService.authenticateWithTelegram(initData);
       
       if (result.success) {
-        res.json({
-          success: true,
-          data: {
-            user: result.user,
-            token: result.token,
-            session_id: result.sessionId
-          }
+        this.sendSuccess(res, {
+          user: result.user,
+          token: result.token,
+          session_id: result.sessionId
         });
       } else {
-        res.status(401).json({
-          success: false,
-          error: result.error
-        });
+        this.sendError(res, result.error, 401);
       }
-    } catch (error) {
-      console.error('[AuthController] Ошибка аутентификации:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка аутентификации'
-      });
-    }
+    }, 'аутентификации через Telegram');
   }
 
   /**
    * Проверка валидности токена
    */
   async validateToken(req: Request, res: Response): Promise<void> {
-    try {
+    await this.handleRequest(req, res, async () => {
       const token = req.headers.authorization?.replace('Bearer ', '');
       
       if (!token) {
-        res.status(401).json({
-          success: false,
-          error: 'Токен не предоставлен'
-        });
-        return;
+        return this.sendError(res, 'Токен не предоставлен', 401);
       }
 
       const isValid = await this.authService.validateToken(token);
       
-      res.json({
-        success: true,
-        data: {
-          valid: isValid,
-          checked_at: new Date().toISOString()
-        }
+      this.sendSuccess(res, {
+        valid: isValid,
+        checked_at: new Date().toISOString()
       });
-    } catch (error) {
-      console.error('[AuthController] Ошибка валидации токена:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка валидации токена'
-      });
-    }
+    }, 'валидации токена');
   }
 
   /**
    * Обновление токена
    */
   async refreshToken(req: Request, res: Response): Promise<void> {
-    try {
-      const { refreshToken } = req.body;
+    await this.handleRequest(req, res, async () => {
+      this.validateRequiredFields(req.body, ['refreshToken']);
       
-      if (!refreshToken) {
-        res.status(400).json({
-          success: false,
-          error: 'Refresh token не предоставлен'
-        });
-        return;
-      }
-
+      const { refreshToken } = req.body;
       const result = await this.authService.refreshToken(refreshToken);
       
       if (result.success) {
-        res.json({
-          success: true,
-          data: {
-            access_token: result.accessToken,
-            refresh_token: result.refreshToken,
-            expires_in: result.expiresIn
-          }
+        this.sendSuccess(res, {
+          access_token: result.accessToken,
+          refresh_token: result.refreshToken,
+          expires_in: result.expiresIn
         });
       } else {
-        res.status(401).json({
-          success: false,
-          error: result.error
-        });
+        this.sendError(res, result.error, 401);
       }
-    } catch (error) {
-      console.error('[AuthController] Ошибка обновления токена:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка обновления токена'
-      });
-    }
+    }, 'обновления токена');
   }
 
   /**
    * Выход из системы
    */
   async logout(req: Request, res: Response): Promise<void> {
-    try {
+    await this.handleRequest(req, res, async () => {
       const token = req.headers.authorization?.replace('Bearer ', '');
       
       if (token) {
         await this.authService.invalidateToken(token);
       }
 
-      res.json({
-        success: true,
-        data: {
-          message: 'Выход выполнен успешно',
-          logged_out_at: new Date().toISOString()
-        }
+      this.sendSuccess(res, {
+        message: 'Выход выполнен успешно',
+        logged_out_at: new Date().toISOString()
       });
-    } catch (error) {
-      console.error('[AuthController] Ошибка выхода:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка выхода из системы'
-      });
-    }
+    }, 'выхода из системы');
   }
 
   /**
    * Получение информации о текущей сессии
    */
   async getSessionInfo(req: Request, res: Response): Promise<void> {
-    try {
+    await this.handleRequest(req, res, async () => {
       const token = req.headers.authorization?.replace('Bearer ', '');
       
       if (!token) {
-        res.status(401).json({
-          success: false,
-          error: 'Токен не предоставлен'
-        });
-        return;
+        return this.sendError(res, 'Токен не предоставлен', 401);
       }
 
       const sessionInfo = await this.authService.getSessionInfo(token);
-      
-      res.json({
-        success: true,
-        data: sessionInfo
-      });
-    } catch (error) {
-      console.error('[AuthController] Ошибка получения информации о сессии:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения информации о сессии'
-      });
-    }
+      this.sendSuccess(res, sessionInfo);
+    }, 'получения информации о сессии');
   }
 }

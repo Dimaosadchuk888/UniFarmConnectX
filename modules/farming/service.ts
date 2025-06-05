@@ -1,6 +1,7 @@
 import { db } from '../../core/db';
 import { users, farmingDeposits, transactions } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { UserRepository } from '../../core/repositories/UserRepository';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';
 
@@ -13,11 +14,7 @@ export class FarmingService {
     next_claim_available: string | null;
   }> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.telegram_id, parseInt(telegramId)))
-        .limit(1);
+      const user = await UserRepository.findByTelegramId(telegramId);
 
       if (!user) {
         return {
@@ -56,42 +53,30 @@ export class FarmingService {
     }
   }
 
-  async startFarming(userId: string, amount?: string): Promise<boolean> {
+  async startFarming(telegramId: string, amount?: string): Promise<boolean> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, parseInt(userId)))
-        .limit(1);
-
+      const user = await UserRepository.findByTelegramId(telegramId);
       if (!user) return false;
 
-      await db
-        .update(users)
-        .set({ 
-          uni_farming_start_timestamp: new Date(),
-          uni_farming_last_update: new Date()
-        })
-        .where(eq(users.id, parseInt(userId)));
-
-      return true;
+      return await UserRepository.updateFarmingTimestamps(user.id.toString(), {
+        uni_farming_start_timestamp: new Date(),
+        uni_farming_last_update: new Date()
+      });
     } catch (error) {
       console.error('[FarmingService] Ошибка запуска фарминга:', error);
       return false;
     }
   }
 
-  async stopFarming(userId: string): Promise<boolean> {
+  async stopFarming(telegramId: string): Promise<boolean> {
     try {
-      await db
-        .update(users)
-        .set({ 
-          uni_farming_start_timestamp: null,
-          uni_farming_last_update: new Date()
-        })
-        .where(eq(users.id, parseInt(userId)));
+      const user = await UserRepository.findByTelegramId(telegramId);
+      if (!user) return false;
 
-      return true;
+      return await UserRepository.updateFarmingTimestamps(user.id.toString(), {
+        uni_farming_start_timestamp: null,
+        uni_farming_last_update: new Date()
+      });
     } catch (error) {
       console.error('[FarmingService] Ошибка остановки фарминга:', error);
       return false;
@@ -100,13 +85,9 @@ export class FarmingService {
 
   async claimRewards(telegramId: string): Promise<{ amount: string; claimed: boolean }> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.telegram_id, parseInt(telegramId)))
-        .limit(1);
-
-      if (!user || !user.uni_farming_start_timestamp) {
+      const user = await UserRepository.requireByTelegramId(telegramId);
+      
+      if (!user.uni_farming_start_timestamp) {
         return { amount: "0", claimed: false };
       }
 

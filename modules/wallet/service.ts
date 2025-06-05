@@ -1,6 +1,7 @@
 import { db } from '../../core/db';
-import { users, transactions } from '../../shared/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { transactions } from '../../shared/schema';
+import { eq, desc } from 'drizzle-orm';
+import { UserRepository } from '../../core/repositories/UserRepository';
 
 export class WalletService {
   async getWalletDataByTelegramId(telegramId: string): Promise<{
@@ -11,11 +12,7 @@ export class WalletService {
     transactions: any[];
   }> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.telegram_id, parseInt(telegramId)))
-        .limit(1);
+      const user = await UserRepository.findByTelegramId(telegramId);
 
       if (!user) {
         return {

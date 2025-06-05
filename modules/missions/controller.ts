@@ -1,15 +1,14 @@
 import type { Request, Response } from 'express';
+import { BaseController } from '../../core/BaseController';
 import { MissionsService } from './service';
 
 const missionsService = new MissionsService();
 
-export class MissionsController {
+export class MissionsController extends BaseController {
   async getActiveMissions(req: Request, res: Response) {
-    try {
-      // Telegram пользователь уже проверен middleware
-      const telegramUser = (req as any).telegramUser;
+    await this.handleRequest(req, res, async () => {
+      const telegramUser = this.getTelegramUser(req);
 
-      // Используем сервис для получения активных миссий
       const missions = await missionsService.getActiveMissionsByTelegramId(
         telegramUser.telegram_id.toString()
       );
@@ -19,79 +18,40 @@ export class MissionsController {
         missions_count: missions.length
       });
 
-      res.json({
-        success: true,
-        data: missions
-      });
-
-    } catch (error: any) {
-      console.error('[Missions] Ошибка получения миссий:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения активных миссий',
-        details: error.message
-      });
-    }
+      this.sendSuccess(res, missions);
+    }, 'получения активных миссий');
   }
 
   async completeMission(req: Request, res: Response) {
-    try {
-      // Telegram пользователь уже проверен middleware
-      const telegramUser = (req as any).telegramUser;
-
+    await this.handleRequest(req, res, async () => {
+      const telegramUser = this.getTelegramUser(req);
       const { missionId } = req.body;
+      
+      this.validateRequiredFields(req.body, ['missionId']);
       
       const result = await missionsService.completeMission(
         telegramUser.id.toString(),
         missionId
       );
 
-      res.json({
-        success: true,
-        data: { completed: result }
-      });
-
-    } catch (error: any) {
-      console.error('[Missions] Ошибка завершения миссии:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка завершения миссии',
-        details: error.message
-      });
-    }
+      this.sendSuccess(res, { completed: result });
+    }, 'завершения миссии');
   }
 
   async claimReward(req: Request, res: Response) {
-    try {
-      const telegramUser = (req as any).telegram?.user;
-      const isValidated = (req as any).telegram?.validated;
-      
-      if (!telegramUser || !isValidated) {
-        return res.status(401).json({
-          success: false,
-          error: 'Требуется авторизация через Telegram Mini App'
-        });
-      }
+    await this.handleRequest(req, res, async () => {
+      const telegramUser = this.validateTelegramAuth(req, res);
+      if (!telegramUser) return;
 
       const { missionId } = req.body;
+      this.validateRequiredFields(req.body, ['missionId']);
       
       const result = await missionsService.claimMissionReward(
         telegramUser.id.toString(),
         missionId
       );
 
-      res.json({
-        success: true,
-        data: result
-      });
-
-    } catch (error: any) {
-      console.error('[Missions] Ошибка получения награды:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения награды за миссию',
-        details: error.message
-      });
-    }
+      this.sendSuccess(res, result);
+    }, 'получения награды за миссию');
   }
 }

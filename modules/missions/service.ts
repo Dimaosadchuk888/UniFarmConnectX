@@ -1,17 +1,12 @@
 import { db } from '../../core/db';
-import { missions, userMissions, users } from '../../shared/schema';
+import { missions, userMissions } from '../../shared/schema';
 import { eq, and, notInArray } from 'drizzle-orm';
+import { UserRepository } from '../../core/repositories/UserRepository';
 
 export class MissionsService {
   async getActiveMissionsByTelegramId(telegramId: string): Promise<any[]> {
     try {
-      // Находим пользователя по Telegram ID
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.telegram_id, parseInt(telegramId)))
-        .limit(1);
-
+      const user = await UserRepository.findByTelegramId(telegramId);
       if (!user) {
         return [];
       }

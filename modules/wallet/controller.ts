@@ -1,15 +1,14 @@
 import type { Request, Response } from 'express';
+import { BaseController } from '../../core/BaseController';
 import { WalletService } from './service';
 
 const walletService = new WalletService();
 
-export class WalletController {
+export class WalletController extends BaseController {
   async getWalletData(req: Request, res: Response) {
-    try {
-      // Telegram пользователь уже проверен middleware
-      const telegramUser = (req as any).telegramUser;
+    await this.handleRequest(req, res, async () => {
+      const telegramUser = this.getTelegramUser(req);
 
-      // Используем сервис для получения данных кошелька
       const walletData = await walletService.getWalletDataByTelegramId(
         telegramUser.telegram_id.toString()
       );
@@ -21,44 +20,31 @@ export class WalletController {
         transactions_count: walletData.transactions.length
       });
 
-      res.json({
-        success: true,
-        data: walletData
-      });
-
-    } catch (error: any) {
-      console.error('[Wallet] Ошибка получения данных кошелька:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения данных кошелька',
-        details: error.message
-      });
-    }
+      this.sendSuccess(res, walletData);
+    }, 'получения данных кошелька');
   }
 
   async getTransactions(req: Request, res: Response) {
-    try {
+    await this.handleRequest(req, res, async () => {
+      if (!this.validateParams(req, ['userId'])) {
+        return this.sendError(res, 'Отсутствует параметр userId', 400);
+      }
+
       const userId = req.params.userId;
       const transactions = await walletService.getTransactionHistory(userId);
-      res.json({ success: true, data: transactions });
-    } catch (error) {
-      res.status(500).json({ 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      });
-    }
+      
+      this.sendSuccess(res, transactions);
+    }, 'получения транзакций');
   }
 
   async withdraw(req: Request, res: Response) {
-    try {
+    await this.handleRequest(req, res, async () => {
+      this.validateRequiredFields(req.body, ['userId', 'amount', 'type']);
+      
       const { userId, amount, type } = req.body;
       const result = await walletService.processWithdrawal(userId, amount, type);
-      res.json({ success: result, data: { processed: result } });
-    } catch (error) {
-      res.status(500).json({ 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      });
-    }
+      
+      this.sendSuccess(res, { processed: result });
+    }, 'вывода средств');
   }
 }
