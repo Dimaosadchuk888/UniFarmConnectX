@@ -640,7 +640,7 @@ async function startServer() {
     });
 
     // TON Boosts API - Список доступных пакетов
-    app.get(`${apiPrefix}/api/ton-boosts`, async (req: any, res: any) => {
+    app.get(`${apiPrefix}/ton-boosts`, async (req: any, res: any) => {
       try {
         // Временные тестовые данные для TON Boost пакетов (пока база недоступна)
         const packages = [
@@ -699,7 +699,7 @@ async function startServer() {
     });
 
     // TON Boosts API - Активные пакеты пользователя
-    app.get(`${apiPrefix}/api/ton-boosts/active`, async (req: any, res: any) => {
+    app.get(`${apiPrefix}/ton-boosts/active`, async (req: any, res: any) => {
       try {
         const { user_id } = req.query;
         
