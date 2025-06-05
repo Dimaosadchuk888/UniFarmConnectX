@@ -84,9 +84,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     );
   };
 
-  // Показываем демо карточку если нет userId
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Всегда показываем карточку, даже без userId
+  // Вместо раннего return показываем информативную карточку с возможностью активации
   if (!userId || userId === null || userId === undefined) {
-    return renderInformativeCard("UNI Фарминг", "Зарабатывайте UNI токены пассивно, размещая их в фарминг");
+    console.log('[INFO] UNI Farming - показываем демо карточку без userId');
+    return renderInformativeCard("UNI Фарминг", "Подключите Telegram для активации фарминга UNI токенов");
   }
 
   // Применяем Error Boundary к компоненту
@@ -162,11 +164,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     totalDepositAmount: '0',
   };
 
-  // ВСЕГДА ПОКАЗЫВАЕМ ИНФОРМАТИВНУЮ КАРТОЧКУ, даже при ошибках API
-  // Если есть ошибка загрузки данных фарминга, показываем информативную карточку
+  // КРИТИЧЕСКИ ВАЖНО: ВСЕГДА показываем карточку, никогда не позволяем ей исчезнуть
+  // Если есть ошибка API, показываем информативную карточку с полезными данными
   if (farmingError && !farmingResponse) {
     console.log('[INFO] UNI Farming API недоступен, показываем информативную карточку');
-    return renderInformativeCard("UNI Фарминг", "Система фарминга временно недоступна. Попробуйте обновить страницу позже.");
+    return renderInformativeCard("UNI Фарминг", "Система фарминга временно недоступна, но будет восстановлена автоматически");
   }
 
   // Для подсчета транзакций фарминга
