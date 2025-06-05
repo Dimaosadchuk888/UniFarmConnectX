@@ -13,7 +13,7 @@ import { useBalance } from "@/hooks/useBalance";
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
-import { WebSocketProvider } from "@/contexts/DisabledWebSocketContext";
+import { ConfigurableWebSocketProvider } from "@/core/providers/ConfigurableWebSocketProvider";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 
@@ -163,7 +163,7 @@ function App() {
         <ErrorBoundary>
           <NotificationProvider>
             <UserProvider>
-              <WebSocketProvider>
+              <ConfigurableWebSocketProvider enableAutoConnect={true}>
                 <TelegramWebAppCheck>
                   <MainLayout 
                     activeTab={state.activeTab} 
@@ -174,7 +174,7 @@ function App() {
                   <NetworkStatusIndicator />
                   <Toaster />
                 </TelegramWebAppCheck>
-              </WebSocketProvider>
+              </ConfigurableWebSocketProvider>
             </UserProvider>
           </NotificationProvider>
         </ErrorBoundary>

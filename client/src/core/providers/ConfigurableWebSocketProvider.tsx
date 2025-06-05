@@ -35,7 +35,12 @@ export const ConfigurableWebSocketProvider: React.FC<WebSocketProviderProps> = (
   const getWebSocketUrl = useCallback(() => {
     if (wsUrl) return wsUrl;
     
-    // Определяем URL WebSocket
+    // Используем production URL из конфигурации
+    if (WEBSOCKET_CONFIG.PRODUCTION_URL) {
+      return WEBSOCKET_CONFIG.PRODUCTION_URL;
+    }
+    
+    // Fallback к локальному URL
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
@@ -45,11 +50,18 @@ export const ConfigurableWebSocketProvider: React.FC<WebSocketProviderProps> = (
   }, [wsUrl]);
 
   const connect = useCallback(() => {
-    // WebSocket подключения полностью отключены
-    console.log('[WebSocket] Подключения отключены');
-    setConnectionStatus('disconnected');
-    setIsConnected(false);
-    return;et(url);
+    if (!WEBSOCKET_CONFIG.ENABLED) {
+      console.log('[WebSocket] Подключения отключены в конфигурации');
+      setConnectionStatus('disconnected');
+      setIsConnected(false);
+      return;
+    }
+
+    try {
+      const url = getWebSocketUrl();
+      console.log(`[WebSocket] Подключение к: ${url}`);
+      
+      const newSocket = new WebSocket(url);
       setSocket(newSocket);
       setConnectionStatus('connecting');
 
@@ -83,7 +95,7 @@ export const ConfigurableWebSocketProvider: React.FC<WebSocketProviderProps> = (
           reconnectTimeoutRef.current = window.setTimeout(() => {
             reconnectTimeoutRef.current = null;
             connect();
-          }, 5000);
+          }, WEBSOCKET_CONFIG.RECONNECT_INTERVAL);
         }
       };
 
