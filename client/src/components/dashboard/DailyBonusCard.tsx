@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { invalidateQueryWithUserId } from '@/lib/queryClient';
-import { apiGet, apiPost } from '@/lib/apiService';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useUser } from '@/contexts/userContext';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
 
