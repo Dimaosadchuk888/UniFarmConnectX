@@ -9,8 +9,15 @@
 // Определяем базовый URL API в зависимости от окружения
 let API_BASE_URL = '';
 
-// ВСЕГДА используем наш правильный URL для исправления проблемы с Telegram кешем
-API_BASE_URL = 'https://uni-farm-connect-xo-osadchukdmitro2.replit.app';
+// Используем локальный сервер для разработки и тестирования
+if (typeof window !== 'undefined') {
+  const protocol = window.location.protocol;
+  const host = window.location.host;
+  API_BASE_URL = `${protocol}//${host}`;
+} else {
+  // Fallback для серверной среды
+  API_BASE_URL = '';
+}
 
 /**
  * Конфигурация API-клиента
