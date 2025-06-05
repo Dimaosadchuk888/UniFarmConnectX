@@ -48,19 +48,23 @@ const NetworkStatusIndicator: React.FC = () => {
     };
   }, []);
 
-  // Обновляем статус WebSocket соединения
+  // Обновляем статус WebSocket соединения (ОТКЛЮЧЕНЫ УВЕДОМЛЕНИЯ О ПРОБЛЕМАХ)
   useEffect(() => {
+    // ОТКЛЮЧЕНО: Не показываем уведомления о проблемах WebSocket соединения
+    // Оставляем только логику для успешного подключения (и то скрытую)
     if (connectionStatus === 'connected') {
-      setAlertType('wsConnected');
-      setAlertVisible(true);
+      // Скрываем даже успешные подключения, чтобы не спамить пользователя
+      // setAlertType('wsConnected');
+      // setAlertVisible(true);
       
       // Автоматически скрываем уведомление об успешном подключении через 3 секунды
-      setTimeout(() => {
-        setAlertVisible(false);
-      }, 3000);
+      // setTimeout(() => {
+      //   setAlertVisible(false);
+      // }, 3000);
     } else if (connectionStatus === 'disconnected') {
-      setAlertType('wsDisconnected');
-      setAlertVisible(true);
+      // ОТКЛЮЧЕНО: Не показываем уведомления об ошибках соединения с сервером
+      // setAlertType('wsDisconnected');
+      // setAlertVisible(true);
     } else {
       // Если статус 'connecting', не показываем уведомление
     }

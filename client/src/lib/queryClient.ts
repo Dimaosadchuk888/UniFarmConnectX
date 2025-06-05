@@ -267,9 +267,10 @@ export const getQueryFn: <T>(options: {
 /**
  * Глобальный обработчик ошибок для React Query
  * Позволяет централизованно обрабатывать и логировать ошибки запросов
+ * ОТКЛЮЧЕНЫ УВЕДОМЛЕНИЯ ПОЛЬЗОВАТЕЛЯМ О ПРОБЛЕМАХ СОЕДИНЕНИЯ
  */
 const globalQueryErrorHandler = (error: unknown) => {
-  // Логируем ошибку
+  // Логируем ошибку только в консоль для разработчиков
   console.error('[QueryClient] Глобальная ошибка запроса:', error);
 
   // Анализируем тип ошибки
@@ -279,14 +280,14 @@ const globalQueryErrorHandler = (error: unknown) => {
     const statusText = (error as any).statusText;
     const errorData = (error as any).errorData;
 
-    // Логируем детали для диагностики
+    // Логируем детали для диагностики (только в консоль)
     console.error(`[QueryClient] Ошибка ${status || 'неизвестный статус'}: ${statusText || error.message}`);
 
     if (errorData) {
       console.error('[QueryClient] Данные ошибки:', errorData);
     }
 
-    // Обработка по типу HTTP-статуса
+    // Обработка по типу HTTP-статуса (БЕЗ показа уведомлений пользователю)
     if (status === 401) {
       console.warn('[QueryClient] Пользователь не авторизован (401)');
       // Здесь могла бы быть логика перенаправления на страницу логина
@@ -296,13 +297,14 @@ const globalQueryErrorHandler = (error: unknown) => {
       console.warn('[QueryClient] Ресурс не найден (404)');
     } else if (status >= 500) {
       console.error('[QueryClient] Серверная ошибка:', error.message);
+      // НЕ показываем уведомления о серверных ошибках пользователям
     }
   } else {
     // Если это не экземпляр Error, логируем как есть
     console.error('[QueryClient] Неизвестная ошибка:', error);
   }
 
-  // Возвращаем ошибку для дальнейшей обработки
+  // Возвращаем ошибку для дальнейшей обработки (но без уведомлений)
   return error;
 };
 
