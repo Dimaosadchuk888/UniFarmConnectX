@@ -61,9 +61,26 @@ const BoostPackagesCard: React.FC = () => {
     queryKey: ['/api/ton-boosts'],
     queryFn: async () => {
       try {
-        const response = await correctApiRequest('/api/ton-boosts', 'GET');
-        console.log('[DEBUG] TON Boost packages API response:', response);
-        const packages = response.success ? response.data as TonBoostPackage[] : [];
+        const url = '/api/ton-boosts';
+        console.log('[DEBUG] Fetching TON Boost packages from:', url);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log('[DEBUG] TON Boost packages API response:', result);
+        
+        const packages = result.success ? result.data as TonBoostPackage[] : [];
         console.log('[DEBUG] Parsed packages:', packages);
         return packages;
       } catch (error) {
@@ -79,6 +96,8 @@ const BoostPackagesCard: React.FC = () => {
   });
 
   const boostPackages = data || [];
+  
+  console.log('[DEBUG] Final boostPackages for rendering:', boostPackages);
 
   // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету
   const handleBoostClick = (boostId: number) => {
