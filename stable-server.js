@@ -1,45 +1,69 @@
 #!/usr/bin/env node
-
 /**
  * Stable server entry point for production
  * Uses compiled TypeScript from server/index.ts
  */
 
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const path = require('path');
+const fs = require('fs');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Production environment setup
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
-// Start the TypeScript server using tsx
-const serverProcess = spawn('npx', ['tsx', 'server/index.ts'], {
-  stdio: 'inherit',
-  cwd: __dirname,
-  env: {
-    ...process.env,
-    NODE_ENV: process.env.NODE_ENV || 'production',
-    PORT: process.env.PORT || '3000'
-  }
+// Load production configuration
+const productionConfig = require('./production-config');
+
+// Setup logging
+const logDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, shutting down gracefully...');
+  process.exit(0);
 });
 
-serverProcess.on('error', (error) => {
-  console.error('Failed to start server:', error);
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, shutting down gracefully...');
+  process.exit(0);
+});
+
+// Unhandled error handling
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
   process.exit(1);
 });
 
-serverProcess.on('exit', (code) => {
-  console.log(`Server process exited with code ${code}`);
-  process.exit(code || 0);
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
 
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully...');
-  serverProcess.kill('SIGINT');
-});
+// Start the application
+async function startServer() {
+  try {
+    console.log('🚀 Starting UniFarm Production Server...');
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`Port: ${process.env.PORT || 3000}`);
+    
+    // Check if compiled server exists
+    const serverPath = path.join(__dirname, 'dist', 'server', 'index.js');
+    if (fs.existsSync(serverPath)) {
+      console.log('Loading compiled server...');
+      require(serverPath);
+    } else {
+      console.log('Loading TypeScript server directly...');
+      require('./server/index.ts');
+    }
+    
+    console.log('✅ UniFarm server started successfully');
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
 
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully...');
-  serverProcess.kill('SIGTERM');
-});
+// Initialize server
+startServer();

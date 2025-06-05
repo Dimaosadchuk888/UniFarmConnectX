@@ -1,0 +1,73 @@
+## Структура проекта:
+```
+UniFarm/
+├── 📱 Frontend (client/)
+│   ├── src/
+│   │   ├── components/           # UI компоненты
+│   │   │   ├── farming/         # Компоненты фарминга
+│   │   │   ├── wallet/          # Компоненты кошелька  
+│   │   │   ├── missions/        # Компоненты заданий
+│   │   │   └── ui/              # UI библиотека
+│   │   ├── contexts/            # React контексты
+│   │   │   ├── userContext.tsx  # Контекст пользователя
+│   │   │   ├── NotificationContext.tsx # Уведомления
+│   │   │   └── webSocketContext.tsx # WebSocket
+│   │   ├── hooks/               # Кастомные хуки
+│   │   ├── modules/             # Клиентские модули
+│   │   │   ├── auth/           # Аутентификация
+│   │   │   ├── farming/        # Фарминг сервисы
+│   │   │   ├── wallet/         # Кошелек сервисы
+│   │   │   ├── referral/       # Реферальные сервисы
+│   │   │   └── missions/       # Задания сервисы
+│   │   └── utils/              # Утилиты
+│   └── public/                 # Статические файлы
+
+├── 🔧 Backend (modules/)
+│   ├── auth/                   # Модуль аутентификации
+│   │   ├── controller.ts       # Auth контроллер
+│   │   ├── service.ts          # Бизнес-логика
+│   │   ├── routes.ts           # API роуты
+│   │   └── types.ts            # TypeScript типы
+│   ├── user/                   # Модуль пользователей
+│   ├── farming/                # Модуль фарминга
+│   │   ├── controller.ts       # Farming контроллер
+│   │   ├── service.ts          # Логика фарминга
+│   │   ├── logic/              # Расчеты доходности
+│   │   └── routes.ts           # Farming API
+│   ├── wallet/                 # Модуль кошелька
+│   │   ├── controller.ts       # Wallet контроллер
+│   │   ├── service.ts          # Операции с балансом
+│   │   ├── logic/              # TON интеграция
+│   │   └── routes.ts           # Wallet API
+│   ├── referral/               # Модуль рефералов
+│   │   ├── controller.ts       # Referral контроллер
+│   │   ├── service.ts          # Реферальная логика
+│   │   ├── logic/              # Построение дерева
+│   │   └── routes.ts           # Referral API
+│   ├── boost/                  # Модуль буст-пакетов
+│   ├── missions/               # Модуль заданий
+│   ├── telegram/               # Telegram бот
+│   ├── admin/                  # Админ панель
+│   └── dailyBonus/             # Ежедневные бонусы
+
+├── 🗄️ Database (shared/)
+│   └── schema.ts               # Drizzle ORM схемы
+
+├── ⚙️ Core (core/)
+│   ├── db.ts                   # Подключение к БД
+│   ├── logger.ts               # Система логирования
+│   └── middleware/             # Express middleware
+
+├── 🔧 Config (config/)
+│   ├── app.ts                  # Основные настройки
+│   ├── database.ts             # Настройки БД
+│   ├── telegram.ts             # Telegram конфиг
+│   └── tonConnect.ts           # TON кошелек
+
+└── 🚀 Production Files
+    ├── Dockerfile              # Docker контейнер
+    ├── docker-compose.prod.yml # Production compose
+    ├── nginx.conf              # Nginx конфигурация
+    ├── health-check.js         # Мониторинг здоровья
+    └── production-config.js    # Production настройки
+```

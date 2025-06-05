@@ -1,366 +1,388 @@
-# UniFarm - Полная Модульная Архитектура и Подготовка к Продакшену
+# UniFarm Production Deployment Architecture
+## Complete System Architecture Documentation
 
-## 🏗️ Общая Архитектура Проекта
+## 🏗️ System Overview
+
+UniFarm is a sophisticated Telegram Mini App built with a modular microservices architecture designed for scalability, maintainability, and production reliability.
+
+### Core Technologies
+- **Frontend**: React 18 + TypeScript + Vite + Shadcn/UI
+- **Backend**: Node.js + Express + TypeScript  
+- **Database**: PostgreSQL + Drizzle ORM
+- **Deployment**: Docker + Nginx + Redis + Monitoring Stack
+- **Integration**: Telegram WebApp API + TON Blockchain
+
+## 📁 Complete Project Structure
 
 ```
 UniFarm/
-├── 📁 client/                    # Frontend React приложение
+├── 📱 Client Application (client/)
 │   ├── src/
-│   │   ├── components/          # UI компоненты
-│   │   ├── contexts/           # React контексты
-│   │   ├── hooks/              # Кастомные хуки
-│   │   ├── core/               # Основная логика клиента
-│   │   ├── modules/            # Модульные сервисы
-│   │   └── utils/              # Утилиты
-│   └── public/                 # Статические файлы
+│   │   ├── components/           # Reusable UI Components
+│   │   │   ├── farming/         # Farming interface components
+│   │   │   ├── wallet/          # Wallet management UI
+│   │   │   ├── missions/        # Mission system UI
+│   │   │   ├── referral/        # Referral system UI
+│   │   │   └── ui/              # Shadcn/UI components
+│   │   ├── contexts/            # React Context Providers
+│   │   │   ├── UserContext.tsx  # User state management
+│   │   │   ├── NotificationContext.tsx # Toast notifications
+│   │   │   └── WebSocketContext.tsx # Real-time updates
+│   │   ├── hooks/               # Custom React hooks
+│   │   │   ├── useAuth.ts       # Authentication logic
+│   │   │   ├── useFarming.ts    # Farming state management
+│   │   │   └── useWebSocket.ts  # WebSocket connection
+│   │   ├── modules/             # Feature modules (client-side)
+│   │   │   ├── auth/           # Authentication services
+│   │   │   ├── farming/        # Farming calculations
+│   │   │   ├── wallet/         # Wallet operations
+│   │   │   ├── referral/       # Referral tracking
+│   │   │   └── missions/       # Mission management
+│   │   ├── pages/              # Route components
+│   │   ├── services/           # API service layer
+│   │   └── utils/              # Utility functions
+│   └── public/                 # Static assets
 │
-├── 📁 server/                   # Backend Express сервер
-│   ├── index.ts               # Главная точка входа
-│   ├── db.ts                  # Подключение к БД
-│   └── vite.ts                # Vite сервер
+├── 🔧 Backend Modules (modules/)
+│   ├── auth/                   # Authentication Module
+│   │   ├── controller.ts       # HTTP request handlers
+│   │   ├── service.ts          # Business logic layer
+│   │   ├── routes.ts           # API route definitions
+│   │   ├── middleware.ts       # Auth middleware
+│   │   └── types.ts            # TypeScript interfaces
+│   ├── user/                   # User Management Module
+│   │   ├── controller.ts       # User CRUD operations
+│   │   ├── service.ts          # User business logic
+│   │   ├── routes.ts           # User API endpoints
+│   │   └── validation.ts       # Input validation
+│   ├── farming/                # Farming System Module
+│   │   ├── controller.ts       # Farming API handlers
+│   │   ├── service.ts          # Farming business logic
+│   │   ├── scheduler.ts        # Automated reward distribution
+│   │   ├── logic/              # Mathematical calculations
+│   │   │   ├── rewards.ts      # Reward calculations
+│   │   │   ├── rates.ts        # Interest rate logic
+│   │   │   └── compounds.ts    # Compound interest
+│   │   └── routes.ts           # Farming endpoints
+│   ├── wallet/                 # Wallet Management Module
+│   │   ├── controller.ts       # Wallet operations
+│   │   ├── service.ts          # Balance management
+│   │   ├── logic/              # Blockchain integration
+│   │   │   ├── tonConnect.ts   # TON wallet connection
+│   │   │   ├── transactions.ts # Transaction processing
+│   │   │   └── validation.ts   # Address validation
+│   │   └── routes.ts           # Wallet API
+│   ├── referral/               # Referral System Module
+│   │   ├── controller.ts       # Referral management
+│   │   ├── service.ts          # Tree construction logic
+│   │   ├── logic/              # Referral algorithms
+│   │   │   ├── tree.ts         # Multi-level tree building
+│   │   │   ├── rewards.ts      # Commission calculations
+│   │   │   └── analytics.ts    # Performance metrics
+│   │   └── routes.ts           # Referral endpoints
+│   ├── boost/                  # Boost Package Module
+│   │   ├── controller.ts       # Boost management
+│   │   ├── service.ts          # Package logic
+│   │   ├── logic/              # Boost calculations
+│   │   └── routes.ts           # Boost API
+│   ├── missions/               # Mission System Module
+│   │   ├── controller.ts       # Mission tracking
+│   │   ├── service.ts          # Mission logic
+│   │   ├── logic/              # Mission algorithms
+│   │   └── routes.ts           # Mission API
+│   ├── telegram/               # Telegram Integration
+│   │   ├── bot.ts              # Bot message handling
+│   │   ├── webhook.ts          # Webhook processing
+│   │   ├── commands/           # Bot commands
+│   │   └── notifications.ts    # Push notifications
+│   ├── admin/                  # Admin Panel Module
+│   │   ├── controller.ts       # Admin operations
+│   │   ├── service.ts          # Admin business logic
+│   │   ├── dashboard.ts        # Analytics dashboard
+│   │   └── routes.ts           # Admin API
+│   └── dailyBonus/             # Daily Bonus System
+│       ├── controller.ts       # Bonus management
+│       ├── service.ts          # Streak logic
+│       ├── scheduler.ts        # Daily reset automation
+│       └── routes.ts           # Bonus API
 │
-├── 📁 modules/                  # Бизнес-логика модулей
-│   ├── auth/                  # Аутентификация
-│   ├── user/                  # Управление пользователями
-│   ├── wallet/                # Кошелек и баланс
-│   ├── farming/               # Фарминг UNI
-│   ├── referral/              # Реферальная система
-│   ├── boost/                 # Boost пакеты
-│   ├── missions/              # Система заданий
-│   ├── telegram/              # Telegram бот
-│   ├── admin/                 # Админ панель
-│   └── dailyBonus/            # Ежедневные бонусы
+├── 🗄️ Database Layer (shared/)
+│   ├── schema.ts               # Complete Drizzle ORM schema
+│   ├── migrations/             # Database migrations
+│   ├── seeds/                  # Initial data seeding
+│   └── types.ts                # Database type definitions
 │
-├── 📁 core/                     # Ядро системы
-│   ├── db.ts                  # База данных
-│   ├── logger.ts              # Логирование
-│   └── middleware/            # Промежуточное ПО
+├── ⚙️ Core Infrastructure (core/)
+│   ├── db.ts                   # Database connection management
+│   ├── logger.ts               # Structured logging system
+│   ├── cache.ts                # Redis caching layer
+│   ├── middleware/             # Express middleware stack
+│   │   ├── auth.ts             # Authentication middleware
+│   │   ├── rateLimit.ts        # API rate limiting
+│   │   ├── validation.ts       # Request validation
+│   │   └── errorHandler.ts     # Global error handling
+│   └── websocket.ts            # WebSocket server management
 │
-├── 📁 shared/                   # Общие типы и схемы
-│   └── schema.ts              # Drizzle схемы БД
+├── 🔧 Configuration (config/)
+│   ├── app.ts                  # Application settings
+│   ├── database.ts             # Database configuration
+│   ├── telegram.ts             # Telegram Bot settings
+│   ├── tonConnect.ts           # TON wallet configuration
+│   └── security.ts             # Security settings
 │
-├── 📁 config/                   # Конфигурации
-│   ├── app.ts                 # Основные настройки
-│   ├── database.ts            # БД конфиг
-│   ├── telegram.ts            # Telegram настройки
-│   └── tonConnect.ts          # TON кошелек
+├── 🚀 Production Infrastructure
+│   ├── Dockerfile              # Multi-stage Docker build
+│   ├── docker-compose.prod.yml # Production services stack
+│   ├── nginx.conf              # Nginx load balancer config
+│   ├── production-config.js    # Production settings
+│   ├── health-check.js         # System health monitoring
+│   ├── production-readiness-check.js # Pre-deployment validation
+│   └── .github/workflows/      # CI/CD automation
 │
-├── 📁 types/                    # TypeScript типы
-└── 📁 utils/                    # Общие утилиты
+├── 📊 Monitoring & Logs
+│   ├── prometheus.yml          # Metrics collection config
+│   ├── grafana-dashboard.json  # Visualization dashboards
+│   └── logs/                   # Application logs directory
+│
+└── 📚 Documentation
+    ├── PRODUCTION_DEPLOYMENT_GUIDE.md # Deployment instructions
+    ├── API_DOCUMENTATION.md          # API reference
+    ├── ARCHITECTURE_OVERVIEW.md      # System design docs
+    └── TROUBLESHOOTING.md            # Common issues guide
 ```
 
-## 🔧 Детальная Модульная Структура
+## 🗄️ Database Architecture (17 Tables)
 
-### 1. Frontend Модули (client/src/modules/)
-
-**Farming Module**
-```typescript
-modules/farming/
-├── farmingService.ts          # API запросы фарминга
-├── farmingUtils.ts            # Утилиты расчетов
-└── types.ts                   # Типы фарминга
-```
-
-**Wallet Module**
-```typescript
-modules/wallet/
-├── walletService.ts           # Управление кошельком
-├── balanceService.ts          # Работа с балансом
-└── tonConnectService.ts       # TON интеграция
-```
-
-**Referral Module**
-```typescript
-modules/referral/
-├── referralService.ts         # Реферальная система
-├── referralCalculator.ts      # Расчет комиссий
-└── referralTree.ts            # Построение дерева
-```
-
-### 2. Backend Модули (modules/)
-
-**Auth Module**
-```typescript
-modules/auth/
-├── controller.ts              # Auth контроллер
-├── service.ts                 # Бизнес-логика
-├── middleware.ts              # Auth middleware
-└── routes.ts                  # API роуты
-```
-
-**User Module**
-```typescript
-modules/user/
-├── controller.ts              # User контроллер
-├── service.ts                 # Управление профилями
-├── queries.ts                 # DB запросы
-└── routes.ts                  # API endpoints
-```
-
-**Farming Module**
-```typescript
-modules/farming/
-├── controller.ts              # Farming контроллер
-├── service.ts                 # Логика фарминга
-├── calculator.ts              # Расчет доходности
-├── scheduler.ts               # Автоматические выплаты
-└── routes.ts                  # Farming API
-```
-
-**Wallet Module**
-```typescript
-modules/wallet/
-├── controller.ts              # Wallet контроллер
-├── service.ts                 # Операции с балансом
-├── tonService.ts              # TON интеграция
-├── transactionService.ts      # История транзакций
-└── routes.ts                  # Wallet API
-```
-
-**Referral Module**
-```typescript
-modules/referral/
-├── controller.ts              # Referral контроллер
-├── service.ts                 # Реферальная логика
-├── treeBuilder.ts             # Построение дерева
-├── commissionCalculator.ts    # Расчет комиссий
-└── routes.ts                  # Referral API
-```
-
-**Boost Module**
-```typescript
-modules/boost/
-├── controller.ts              # Boost контроллер
-├── service.ts                 # Boost пакеты
-├── tonBoostService.ts         # TON boost логика
-└── routes.ts                  # Boost API
-```
-
-**Missions Module**
-```typescript
-modules/missions/
-├── controller.ts              # Missions контроллер
-├── service.ts                 # Система заданий
-├── validator.ts               # Проверка выполнения
-└── routes.ts                  # Missions API
-```
-
-**Telegram Module**
-```typescript
-modules/telegram/
-├── bot.ts                     # Telegram бот
-├── handlers/                  # Обработчики команд
-├── webhooks.ts                # Webhook handlers
-└── notifications.ts           # Уведомления
-```
-
-**Admin Module**
-```typescript
-modules/admin/
-├── controller.ts              # Admin контроллер
-├── dashboard.ts               # Админ панель
-├── analytics.ts               # Аналитика
-└── routes.ts                  # Admin API
-```
-
-### 3. Core System (core/)
-
-**Database Layer**
-```typescript
-core/db.ts                     # Drizzle ORM подключение
-core/migrations/               # Миграции БД
-core/seeds/                    # Начальные данные
-```
-
-**Logging System**
-```typescript
-core/logger.ts                 # Winston логирование
-core/monitoring/               # Мониторинг системы
-```
-
-**Middleware**
-```typescript
-core/middleware/
-├── auth.ts                    # Аутентификация
-├── cors.ts                    # CORS настройки
-├── rateLimit.ts               # Rate limiting
-├── validation.ts              # Валидация запросов
-└── errorHandler.ts            # Обработка ошибок
-```
-
-## 📊 База Данных - Схема Таблиц
-
-### Основные Таблицы
+### User Management Tables
 ```sql
--- Пользователи
-auth_users                     # Аутентификация
-users                         # Профили пользователей
+-- Authentication data
+auth_users (id, telegram_id, username, password_hash, created_at)
 
--- Фарминг
-farming_deposits              # Депозиты фарминга
-uni_farming_deposits          # UNI фарминг депозиты
-
--- Boost системы
-boost_deposits                # Boost депозиты
-ton_boost_deposits            # TON boost депозиты
-boost_packages                # Пакеты boost
-ton_boost_packages            # TON boost пакеты
-user_boosts                   # Активные boost пользователей
-
--- Финансы
-transactions                  # История транзакций
-referrals                     # Реферальные связи
-
--- Геймификация
-missions                      # Доступные задания
-user_missions                 # Выполненные задания
-
--- Системные
-launch_logs                   # Логи запуска
-partition_logs                # Логи партиций
-reward_distribution_logs      # Логи выплат
-performance_metrics           # Метрики производительности
+-- User profiles and balances
+users (id, telegram_id, username, guest_id, ref_code, parent_ref_code, 
+       balance_uni, balance_ton, wallet, ton_wallet_address, created_at)
 ```
 
-## 🔒 Безопасность и Конфигурация
+### Farming System Tables
+```sql
+-- Main farming deposits
+farming_deposits (id, user_id, amount, rate, start_timestamp, 
+                 last_update, is_active, created_at)
 
-### Environment Variables
-```bash
-# Database
-DATABASE_URL=postgresql://...
-NEON_API_KEY=...
-NEON_PROJECT_ID=...
-
-# Telegram
-TELEGRAM_BOT_TOKEN=...
-
-# TON Blockchain
-TON_CENTER_API_KEY=...
-TON_NETWORK=mainnet
-
-# Security
-JWT_SECRET=...
-SESSION_SECRET=...
-CORS_ORIGIN=...
-
-# Production
-NODE_ENV=production
-PORT=3000
+-- UNI token specific farming
+uni_farming_deposits (id, user_id, amount, start_timestamp, 
+                     last_update, rate, is_active)
 ```
 
-### Security Middleware
-- CORS protection
-- Rate limiting
-- Input validation
-- XSS protection
-- CSRF protection
-- Helmet security headers
+### Boost System Tables
+```sql
+-- Boost packages configuration
+boost_packages (id, name, price, multiplier, duration_hours, 
+               description, is_active)
 
-## 🚀 Production Deployment Configuration
+-- TON boost packages
+ton_boost_packages (id, name, ton_price, multiplier, duration_hours, 
+                   description, is_active)
 
-### Docker Configuration
-```dockerfile
-# Multi-stage build
-FROM node:18-alpine AS builder
-# Build process...
+-- User boost purchases
+boost_deposits (id, user_id, package_id, amount, start_timestamp, 
+               end_timestamp, is_active)
 
-FROM node:18-alpine AS production
-# Production runtime...
+-- TON boost purchases
+ton_boost_deposits (id, user_id, package_id, ton_amount, start_timestamp, 
+                   end_timestamp, is_active)
+
+-- Active user boosts
+user_boosts (id, user_id, boost_type, multiplier, start_timestamp, 
+            end_timestamp, is_active)
 ```
 
-### Nginx Configuration
-```nginx
-server {
-    listen 80;
-    server_name unifarm.app;
-    
-    # Static files
-    location /static/ {
-        alias /var/www/static/;
-        expires 1y;
-    }
-    
-    # API proxy
-    location /api/ {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-    }
-}
+### Financial Tables
+```sql
+-- All financial transactions
+transactions (id, user_id, type, amount, currency, description, 
+             reference_id, status, created_at)
+
+-- Referral relationships
+referrals (id, referrer_id, referred_id, level, commission_rate, 
+          total_earned, is_active, created_at)
 ```
 
-### PM2 Configuration
-```json
-{
-  "name": "unifarm",
-  "script": "dist/server/index.js",
-  "instances": "max",
-  "exec_mode": "cluster",
-  "env_production": {
-    "NODE_ENV": "production",
-    "PORT": 3000
-  }
-}
+### Gamification Tables
+```sql
+-- Available missions
+missions (id, title, description, reward_amount, reward_type, 
+         requirements, is_active, created_at)
+
+-- User mission progress
+user_missions (id, user_id, mission_id, status, progress, 
+              completed_at, reward_claimed)
 ```
 
-## 📈 Мониторинг и Аналитика
+### System Monitoring Tables
+```sql
+-- Application launch logs
+launch_logs (id, timestamp, version, environment, status, details)
 
-### Логирование
-- Winston для структурированных логов
-- Разные уровни (error, warn, info, debug)
-- Ротация логов по размеру и времени
+-- Database partition logs
+partition_logs (id, table_name, partition_date, status, 
+               records_count, created_at)
 
-### Метрики
-- Performance metrics в БД
-- API response times
-- Database query performance
-- User activity analytics
+-- Reward distribution tracking
+reward_distribution_logs (id, user_id, amount, type, source, 
+                         distribution_date, status)
 
-### Health Checks
-- Database connectivity
-- External API availability
-- Memory and CPU usage
-- Disk space monitoring
+-- Performance metrics
+performance_metrics (id, metric_name, metric_value, timestamp, 
+                    tags, created_at)
+```
 
-## 🔄 CI/CD Pipeline
+## 🔄 Data Flow Architecture
 
-### GitHub Actions
+### User Authentication Flow
+```
+Telegram WebApp → Auth Module → Database → JWT Token → Frontend Context
+```
+
+### Farming System Flow
+```
+User Deposit → Farming Service → Scheduler → Reward Calculation → Balance Update
+```
+
+### Referral System Flow
+```
+User Registration → Referral Tree Builder → Commission Calculator → Payout Queue
+```
+
+### Real-time Updates Flow
+```
+Backend Event → WebSocket Server → Client Context → UI Update
+```
+
+## 🚀 Production Services Stack
+
+### Core Application Services
 ```yaml
-# .github/workflows/deploy.yml
-name: Deploy to Production
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy:
-    # Build, test, deploy steps
+unifarm-app:     # Main Node.js application
+  - Port: 3000
+  - Resources: 1GB RAM, 0.5 CPU
+  - Health: /health endpoint
+  - Scaling: Horizontal (multiple replicas)
+
+nginx:           # Load balancer & reverse proxy
+  - Ports: 80, 443 (SSL)
+  - Features: Gzip, Caching, Rate limiting
+  - SSL: Let's Encrypt certificates
+
+redis:           # Caching layer
+  - Port: 6379
+  - Usage: Session storage, API caching
+  - Persistence: RDB snapshots
 ```
 
-### Deployment Steps
-1. Code quality checks (ESLint, TypeScript)
-2. Unit tests execution
-3. Build optimization
-4. Database migrations
-5. Zero-downtime deployment
-6. Health checks verification
+### Monitoring Services
+```yaml
+prometheus:      # Metrics collection
+  - Port: 9090
+  - Metrics: Application, System, Custom
+  - Retention: 30 days
 
-## 📱 Telegram Mini App Integration
-
-### WebApp Features
-- Telegram user authentication
-- TON Connect wallet integration
-- Native Telegram UI components
-- Cloud storage for user data
-- Push notifications via bot
-
-### Bot Commands
-```
-/start - Запуск приложения
-/balance - Проверка баланса
-/farming - Статус фарминга
-/referral - Реферальная ссылка
-/help - Помощь
+grafana:         # Visualization dashboard
+  - Port: 3001
+  - Dashboards: System health, Business metrics
+  - Alerts: Email, Telegram notifications
 ```
 
----
+## 🔒 Security Architecture
 
-*Архитектура готова к масштабированию и production deployment*
+### Authentication & Authorization
+- JWT token-based authentication
+- Telegram WebApp data validation
+- Role-based access control (User, Admin)
+- Session management with Redis
+
+### API Security
+- Rate limiting (10 req/sec per IP)
+- Input validation with Zod schemas
+- CORS protection
+- Helmet.js security headers
+
+### Infrastructure Security
+- SSL/TLS encryption (Let's Encrypt)
+- Nginx security headers
+- Docker container isolation
+- Environment variable protection
+
+### Data Protection
+- Database connection encryption
+- Sensitive data hashing
+- Audit logging
+- GDPR compliance measures
+
+## 📈 Scalability Design
+
+### Horizontal Scaling
+- Stateless application design
+- Redis session storage
+- Database connection pooling
+- Load balancing with Nginx
+
+### Performance Optimization
+- Database indexing strategy
+- API response caching
+- Static asset compression
+- CDN integration ready
+
+### Monitoring & Alerting
+- Real-time health checks
+- Performance metrics tracking
+- Error rate monitoring
+- Business metrics dashboards
+
+## 🔧 Development & Deployment
+
+### Development Workflow
+```bash
+# Local development
+npm run dev          # Start development servers
+npm run db:push      # Apply database changes
+npm run type-check   # TypeScript validation
+```
+
+### Production Deployment
+```bash
+# Automated CI/CD pipeline
+git push origin main                    # Trigger deployment
+docker-compose -f docker-compose.prod.yml up -d # Manual deployment
+node production-readiness-check.js     # Pre-deployment validation
+```
+
+### Monitoring & Maintenance
+```bash
+# Health monitoring
+curl https://unifarm.app/health        # System health check
+docker logs unifarm-app -f             # Application logs
+docker stats                           # Resource usage
+```
+
+## 📊 Business Logic Architecture
+
+### Farming System
+- Compound interest calculations
+- Multi-tier rate structures
+- Automated reward distribution
+- Performance tracking
+
+### Referral System
+- 20-level deep referral tree
+- Dynamic commission rates
+- Real-time earnings tracking
+- Analytics dashboard
+
+### Boost System
+- Time-based multipliers
+- Package management
+- TON payment integration
+- Usage analytics
+
+This architecture provides a robust foundation for UniFarm's production deployment with comprehensive monitoring, security, and scalability features.
