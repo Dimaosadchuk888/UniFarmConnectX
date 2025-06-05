@@ -1,7 +1,28 @@
 import { QueryClient, QueryFunction, QueryCache, MutationCache } from "@tanstack/react-query";
 import { getTelegramAuthHeaders } from "@/services/telegramService";
 import apiConfig from "@/config/apiConfig";
-import { fixRequestBody } from "./apiFix";
+// Utility function to fix request body for proper sending
+function fixRequestBody(body: any): any {
+  if (!body) return body;
+  
+  // If it's already a JSON string
+  if (typeof body === 'string') {
+    try {
+      JSON.parse(body);
+      return body;
+    } catch {
+      return JSON.stringify({ data: body });
+    }
+  }
+  
+  // If it's an object
+  if (typeof body === 'object') {
+    return JSON.stringify(body);
+  }
+  
+  // For other data types
+  return JSON.stringify({ data: body });
+}
 
 /**
  * Вспомогательная функция для проверки статуса HTTP-ответа
@@ -103,8 +124,8 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
  * @returns Результат запроса в формате JSON
  */
 export async function apiRequest(url: string, options?: RequestInit): Promise<any> {
-  // Импортируем улучшенный apiService
-  const { apiService } = await import('./apiService');
+  // Используем correctApiRequest для всех API запросов
+  const { correctApiRequest } = await import('./correctApiRequest');
 
   console.log('[queryClient] apiRequest to', url);
 
@@ -147,12 +168,8 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
     }
   }
 
-  // Используем унифицированный apiService
-  return await apiService(url, {
-    method: method as any,
-    body,
-    headers: options?.headers as Record<string, string>
-  });
+  // Используем корректный API запрос
+  return await correctApiRequest(url, method as any, body, options?.headers as Record<string, string>);
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -309,7 +326,7 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 минут кеширование вместо Infinity
-      cacheTime: 10 * 60 * 1000, // 10 минут хранение в кеше
+      gcTime: 10 * 60 * 1000, // 10 минут хранение в кеше (gcTime заменяет cacheTime в TanStack Query v5)
       retry: 1, // Одна попытка повтора вместо false
       retryDelay: 1000, // 1 секунда задержка между попытками
     },
