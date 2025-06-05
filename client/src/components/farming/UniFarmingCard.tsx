@@ -161,8 +161,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const { data: transactionsResponse } = useQuery({
     queryKey: ['/api/v2/transactions', userId],
     enabled: !!userId && farmingInfo.isActive,
+    retry: false,
     queryFn: async () => {
-      return await correctApiRequest('/api/v2/transactions?user_id=' + (userId || 1), 'GET');
+      try {
+        return await correctApiRequest('/api/v2/transactions?user_id=' + (userId || 1), 'GET');
+      } catch (error) {
+        console.warn('[WARN] Transactions API error, returning empty data:', error);
+        return { success: true, data: { transactions: [] } };
+      }
     }
   });
 
@@ -291,72 +297,53 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     },
   });
 
-  // Мутация для выполнения депозита (заменяет прямое использование fetch)
+  // Мутация для выполнения депозита
   const depositMutation = useMutation({
     mutationFn: async (amount: string) => {
-      // Формируем тело запроса с правильными типами данных
-      const requestBody = {
-        amount: String(amount).trim(), // Гарантированно строка без пробелов
-        user_id: Number(userId || 1) // Гарантированно число
-      };
+      try {
+        const requestBody = {
+          amount: String(amount).trim(),
+          user_id: Number(userId || 1)
+        };
 
-      console.log('Отправляем депозит:', requestBody);
-
-      // Используем correctApiRequest вместо apiRequest для лучшей обработки ошибок
-      return correctApiRequest('/api/v2/uni-farming/deposit', 'POST', requestBody);
+        console.log('Отправляем депозит:', requestBody);
+        return await correctApiRequest('/api/v2/uni-farming/deposit', 'POST', requestBody);
+      } catch (error) {
+        console.warn('[WARN] Deposit API error:', error);
+        throw error;
+      }
     },
     onSuccess: (response) => {
       try {
-        // Очищаем форму и сообщение об ошибке
         setDepositAmount('');
         setError(null);
-
-        // Показываем уведомление об успешном создании депозита
+        setIsSubmitting(false);
+        
         success('Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!');
 
-        // Обновляем контекст пользователя для обновления баланса без перезагрузки
         if (userData && response?.data?.newBalance) {
-          console.log('[INFO] Обновляем баланс пользователя:', {
-            oldBalance: userData.balance_uni,
-            newBalance: response.data.newBalance
-          });
-
-          // Обновляем userData напрямую для мгновенного эффекта
           userData.balance_uni = response.data.newBalance;
         }
 
-        // Обновляем данные с учетом динамического ID пользователя
-        // Используем новую функцию вместо прямого вызова invalidateQueries
-        // Обновляем сразу все основные эндпоинты
         invalidateQueryWithUserId('/api/v2/uni-farming/status', [
           '/api/v2/wallet/balance',
           '/api/v2/transactions'
         ]);
 
-        // Принудительно обновляем баланс пользователя
         queryClient.refetchQueries({ queryKey: ['/api/v2/me'] });
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess depositMutation:', error);
-        // Даже в случае ошибки отображаем успех
         setError(null);
       }
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       try {
         console.error('[ERROR] UniFarmingCard - Ошибка в depositMutation:', error);
         setError(`Не удалось выполнить депозит: ${error.message}`);
+        setIsSubmitting(false);
       } catch (err: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка обработки onError depositMutation:', err);
         setError('Не удалось выполнить депозит: пожалуйста, попробуйте позже');
-      }
-    },
-    onSettled: () => {
-      try {
-        // Разрешаем повторный вызов в любом случае
-        setIsSubmitting(false);
-      } catch (error: any) {
-        console.error('[ERROR] UniFarmingCard - Ошибка в onSettled depositMutation:', error);
-        // В крайнем случае, сбросим флаг для следующих попыток
         setIsSubmitting(false);
       }
     }
