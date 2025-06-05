@@ -15,8 +15,10 @@ export default function MainLayout({ children, activeTab, onTabChange }: MainLay
       <Header />
       
       {/* Main Content Area */}
-      <main className="flex-1 overflow-auto">
-        {children}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar pb-20">
+        <div className="min-h-full">
+          {children}
+        </div>
       </main>
       
       {/* Bottom Navigation */}

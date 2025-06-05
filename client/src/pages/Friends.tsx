@@ -249,7 +249,7 @@ const Friends: React.FC = () => {
   const safeUser = userData as User | undefined;
 
   return (
-    <div className="w-full">
+    <div className="w-full p-4 min-h-full">
       <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить интерфейс партнерской программы</div>}>
         <div className="flex flex-col justify-center items-center mb-6">
           <div className="text-center mb-6">
@@ -299,6 +299,9 @@ const Friends: React.FC = () => {
           <div className="absolute bottom-10 right-10 w-12 h-12 rounded-full bg-yellow-200 opacity-20 animate-pulse" style={{animationDelay: '1.5s'}}></div>
         </div>
       </ErrorBoundary>
+      
+      {/* Дополнительное пространство внизу для прокрутки */}
+      <div className="h-4"></div>
     </div>
   );
 };

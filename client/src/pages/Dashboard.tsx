@@ -23,7 +23,7 @@ const Dashboard: React.FC = () => {
   const userData = userResponse?.data || null;
 
   return (
-    <div className="space-y-5">
+    <div className="p-4 space-y-5 min-h-full">
       {/* Основная секция приветствия */}
       <WelcomeSection />
       
@@ -46,6 +46,9 @@ const Dashboard: React.FC = () => {
       {process.env.NODE_ENV !== 'production' && (
         <SystemStatusIndicator />
       )}
+      
+      {/* Дополнительное пространство внизу для прокрутки */}
+      <div className="h-4"></div>
     </div>
   );
 };

@@ -30,7 +30,7 @@ const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> 
  */
 const Wallet: React.FC = () => {
   return (
-    <div className="min-h-screen bg-background text-white">
+    <div className="p-4 min-h-full">
       {/* Заголовок страницы */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white flex items-center">
@@ -42,29 +42,34 @@ const Wallet: React.FC = () => {
         </div>
       </div>
       
-      {/* Карточка баланса с ErrorBoundary */}
-      <ErrorBoundary
-        FallbackComponent={ErrorFallback}
-        onReset={() => window.location.reload()}
-      >
-        <BalanceCard />
-      </ErrorBoundary>
-      
-      {/* Форма вывода средств с ErrorBoundary */}
-      <ErrorBoundary
-        FallbackComponent={ErrorFallback}
-        onReset={() => window.location.reload()}
-      >
-        <WithdrawalForm />
-      </ErrorBoundary>
-      
-      {/* История транзакций с ErrorBoundary */}
-      <ErrorBoundary
-        FallbackComponent={ErrorFallback}
-        onReset={() => window.location.reload()}
-      >
-        <TransactionHistory />
-      </ErrorBoundary>
+      <div className="space-y-6">
+        {/* Карточка баланса с ErrorBoundary */}
+        <ErrorBoundary
+          FallbackComponent={ErrorFallback}
+          onReset={() => window.location.reload()}
+        >
+          <BalanceCard />
+        </ErrorBoundary>
+        
+        {/* Форма вывода средств с ErrorBoundary */}
+        <ErrorBoundary
+          FallbackComponent={ErrorFallback}
+          onReset={() => window.location.reload()}
+        >
+          <WithdrawalForm />
+        </ErrorBoundary>
+        
+        {/* История транзакций с ErrorBoundary */}
+        <ErrorBoundary
+          FallbackComponent={ErrorFallback}
+          onReset={() => window.location.reload()}
+        >
+          <TransactionHistory />
+        </ErrorBoundary>
+        
+        {/* Дополнительное пространство внизу для прокрутки */}
+        <div className="h-4"></div>
+      </div>
     </div>
   );
 };
