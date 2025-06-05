@@ -611,7 +611,7 @@ async function startServer() {
     });
 
     // TON Farming API
-    app.get(`${apiPrefix}/api/ton-farming/info`, async (req: any, res: any) => {
+    app.get(`${apiPrefix}/ton-farming/info`, async (req: any, res: any) => {
       try {
         const { user_id } = req.query;
         
