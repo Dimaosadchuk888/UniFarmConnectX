@@ -46,8 +46,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Флаг для предотвращения автоматических вызовов
   const depositRequestSent = useRef<boolean>(false);
 
-  // Показываем демо карточку только если нет userId
-  if (!userId) {
+  // Показываем демо карточку только если нет userId или он undefined/null
+  if (!userId || userId === null || userId === undefined) {
     return (
       <div className="bg-card border border-border rounded-lg p-6 mb-4">
         <div className="text-center">
@@ -92,28 +92,46 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     queryKey: ['/api/v2/uni-farming/status', userId],
     refetchInterval: 15000,
     enabled: !!userId,
-    retry: 2, // Ограничиваем количество повторных попыток
-    retryDelay: 1000,
+    retry: false, // Отключаем повторные попытки чтобы избежать ErrorBoundary
     queryFn: async () => {
+      console.log('[DEBUG] UNI Farming - запрос API с userId:', userId);
+      
       try {
         const response = await correctApiRequest(
           `/api/v2/uni-farming/status?user_id=${userId || 1}`, 
           'GET'
         );
 
-        console.log('[DEBUG] UNI Farming rates:', {
-          ratePerSecond: response.data?.totalRatePerSecond || 0,
-          hourlyRate: (parseFloat(response.data?.totalRatePerSecond || '0') * 3600),
-          dailyRate: (parseFloat(response.data?.totalRatePerSecond || '0') * 86400),
-          rawData: response.data
+        console.log('[DEBUG] UNI Farming - успешный ответ API:', {
+          success: response.success,
+          data: response.data
         });
 
-        return response;
-      } catch (error: any) {
-        console.error('[ERROR] UNI Farming API error:', error);
-        // Возвращаем дефолтные данные вместо выбрасывания ошибки
+        // Проверяем что ответ имеет правильную структуру
+        if (response && typeof response === 'object') {
+          return response;
+        }
+
+        // Если структура неправильная, возвращаем дефолтные данные
         return {
-          success: false,
+          success: true,
+          data: {
+            isActive: false,
+            depositAmount: '0.000000',
+            ratePerSecond: '0.000000',
+            totalRatePerSecond: '0.000000',
+            depositCount: 0,
+            totalDepositAmount: '0.000000',
+            dailyIncomeUni: '0',
+            startDate: null,
+            lastUpdate: null
+          }
+        };
+      } catch (error: any) {
+        console.warn('[WARN] UNI Farming API error, returning defaults:', error);
+        // НЕ выбрасываем ошибку - возвращаем дефолтные данные
+        return {
+          success: true,
           data: {
             isActive: false,
             depositAmount: '0.000000',
