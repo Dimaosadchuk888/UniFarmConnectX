@@ -8,7 +8,9 @@ export const WEBSOCKET_CONFIG = {
   RECONNECT_INTERVAL: 3000,
   MAX_RECONNECT_ATTEMPTS: 5,
   TIMEOUT: 10000,
-  PRODUCTION_URL: 'wss://uni-farm-connect-xo-osadchukdmitro2.replit.app/ws'
+  // Временно отключаем внешний сервер до получения токенов
+  PRODUCTION_URL: null, // 'wss://uni-farm-connect-xo-osadchukdmitro2.replit.app/ws'
+  USE_LOCAL_FALLBACK: true
 };
 
 // API Configuration
