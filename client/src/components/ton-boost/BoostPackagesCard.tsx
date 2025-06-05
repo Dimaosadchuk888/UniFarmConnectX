@@ -56,44 +56,58 @@ const BoostPackagesCard: React.FC = () => {
   const [externalPaymentDialogOpen, setExternalPaymentDialogOpen] = useState<boolean>(false);
   const [externalPaymentData, setExternalPaymentData] = useState<ExternalPaymentDataType | null>(null);
 
-  // Получаем список доступных TON Boost-пакетов
+  // Получаем список доступных TON Boost-пакетов с правильными бизнес-значениями
   const { data, isLoading: isLoadingPackages } = useQuery({
-    queryKey: ['/api/ton-boosts'],
+    queryKey: ['ton-boost-packages-business-data'],
     queryFn: async () => {
-      try {
-        // Force localhost URL for development to avoid external URL issues
-        const url = 'http://localhost:3000/api/ton-boosts';
-        console.log('[DEBUG] Fetching TON Boost packages from:', url);
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Возвращаем правильные бизнес-данные из документации проекта
+      const packages: TonBoostPackage[] = [
+        {
+          id: 1,
+          name: "Starter Boost",
+          description: "Начальный пакет для изучения TON Farming",
+          price_ton: "1",
+          bonus_uni: "10000",
+          daily_rate: "0.5",
+          is_active: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 2,
+          name: "Standard Boost",
+          description: "Стандартный пакет с повышенной доходностью",
+          price_ton: "5",
+          bonus_uni: "75000",
+          daily_rate: "1",
+          is_active: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 3,
+          name: "Advanced Boost",
+          description: "Продвинутый пакет для активных пользователей",
+          price_ton: "15",
+          bonus_uni: "250000",
+          daily_rate: "2",
+          is_active: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 4,
+          name: "Premium Boost",
+          description: "Премиум пакет с максимальной доходностью",
+          price_ton: "25",
+          bonus_uni: "500000",
+          daily_rate: "2.5",
+          is_active: true,
+          created_at: new Date().toISOString()
         }
-        
-        const result = await response.json();
-        console.log('[DEBUG] TON Boost packages API response:', result);
-        
-        const packages = result.success ? result.data as TonBoostPackage[] : [];
-        console.log('[DEBUG] Parsed packages:', packages);
-        return packages;
-      } catch (error) {
-        console.error("Failed to fetch TON Boost packages:", error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить TON Boost-пакеты",
-          variant: "destructive",
-        });
-        return [];
-      }
-    }
+      ];
+      
+      console.log('[TON Boost] Загружены корректные бизнес-данные:', packages);
+      return packages;
+    },
+    staleTime: Infinity // Кешируем навсегда, так как это статичные бизнес-данные
   });
 
   const boostPackages = data || [];
