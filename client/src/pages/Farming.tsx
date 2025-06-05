@@ -69,7 +69,7 @@ const Farming: React.FC = () => {
           <ActiveTonBoostsCardWithErrorBoundary />
           
           {/* TON Boost-пакеты - с ErrorBoundary */}
-          <BoostPackagesCardWithErrorBoundary userData={userData} />
+          <TonBoostPackagesCardWithErrorBoundary />
           
           {/* Дополнительное пространство внизу для прокрутки */}
           <div className="h-4"></div>
