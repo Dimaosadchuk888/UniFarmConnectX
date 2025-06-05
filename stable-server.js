@@ -4,14 +4,17 @@
  * Uses compiled TypeScript from server/index.ts
  */
 
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import productionConfig from './production-config.js';
+
+// ES module compatibility
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Production environment setup
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
-
-// Load production configuration
-const productionConfig = require('./production-config');
 
 // Setup logging
 const logDir = path.join(__dirname, 'logs');
@@ -52,10 +55,10 @@ async function startServer() {
     const serverPath = path.join(__dirname, 'dist', 'server', 'index.js');
     if (fs.existsSync(serverPath)) {
       console.log('Loading compiled server...');
-      require(serverPath);
+      await import(serverPath);
     } else {
       console.log('Loading TypeScript server directly...');
-      require('./server/index.ts');
+      await import('./server/index.ts');
     }
     
     console.log('✅ UniFarm server started successfully');

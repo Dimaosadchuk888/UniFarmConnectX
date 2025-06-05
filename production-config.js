@@ -170,4 +170,4 @@ const productionConfig = {
   }
 };
 
-module.exports = productionConfig;
+export default productionConfig;
