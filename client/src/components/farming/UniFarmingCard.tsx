@@ -106,7 +106,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     const depositMutation = useMutation({
       mutationFn: async (amount: string) => {
         try {
-          return await apiRequest('/api/v2/uni-farming/deposit', 'POST', {
+          return await correctApiRequest('/api/v2/uni-farming/deposit', 'POST', {
             user_id: userId,
             amount: amount
           });
