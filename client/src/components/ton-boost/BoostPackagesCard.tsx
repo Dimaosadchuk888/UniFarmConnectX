@@ -58,7 +58,7 @@ const BoostPackagesCard: React.FC = () => {
 
   // Получаем список доступных TON Boost-пакетов с правильными бизнес-значениями
   const { data, isLoading: isLoadingPackages } = useQuery({
-    queryKey: ['ton-boost-packages-business-data', 'v2-fixed-values'],
+    queryKey: ['ton-boost-packages-business-data', 'v3-force-refresh', Date.now()],
     queryFn: async () => {
       // Возвращаем правильные бизнес-данные из документации проекта
       const packages: TonBoostPackage[] = [
@@ -366,6 +366,9 @@ const BoostPackagesCard: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="mb-4 p-2 bg-green-900/20 border border-green-500/30 rounded text-green-400 text-xs">
+            DEBUG: Загружено {boostPackages.length} пакетов. Первый пакет: {boostPackages[0]?.name} - {boostPackages[0]?.price_ton} TON
+          </div>
           {boostPackages.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Пакеты недоступны
