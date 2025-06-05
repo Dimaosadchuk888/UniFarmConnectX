@@ -30,10 +30,12 @@ class WalletNotConnectedError extends Error {
 interface TonBoostPackage {
   id: number;
   name: string;
-  priceTon: string;
-  bonusUni: string;
-  rateTon: string;
-  rateUni: string;
+  description: string;
+  price_ton: string;
+  bonus_uni: string;
+  daily_rate: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 interface ExternalPaymentDataType {
@@ -173,7 +175,7 @@ const BoostPackagesCard: React.FC = () => {
             messages: [
               {
                 address: tonConnectUI?.wallet?.account?.address || '',
-                amount: (parseFloat(selectedPackage.priceTon) * 1e9).toString(),
+                amount: (parseFloat(selectedPackage.price_ton) * 1e9).toString(),
                 payload: transactionComment
               }
             ]
@@ -333,10 +335,10 @@ const BoostPackagesCard: React.FC = () => {
                   <div className="flex-1">
                     <div className="font-semibold">{pkg.name}</div>
                     <div className="text-sm text-muted-foreground space-y-1">
-                      <div>💰 Цена: {formatNumberWithPrecision(pkg.priceTon, 2)} TON</div>
-                      <div>🎁 Бонус: {formatNumberWithPrecision(pkg.bonusUni, 0)} UNI</div>
-                      <div>📈 Доходность TON: {formatNumberWithPrecision(pkg.rateTon, 2)}% в день</div>
-                      <div>📈 Доходность UNI: {formatNumberWithPrecision(pkg.rateUni, 2)}% в день</div>
+                      <div className="mb-1">{pkg.description}</div>
+                      <div>💰 Цена: {pkg.price_ton} TON</div>
+                      <div>🎁 Бонус: {pkg.bonus_uni} UNI</div>
+                      <div>📈 Доходность: {pkg.daily_rate}% в день</div>
                     </div>
                   </div>
                   <Button 
