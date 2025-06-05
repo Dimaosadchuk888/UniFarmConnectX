@@ -62,7 +62,10 @@ const BoostPackagesCard: React.FC = () => {
     queryFn: async () => {
       try {
         const response = await correctApiRequest('/api/ton-boosts', 'GET');
-        return response.success ? response.data as TonBoostPackage[] : [];
+        console.log('[DEBUG] TON Boost packages API response:', response);
+        const packages = response.success ? response.data as TonBoostPackage[] : [];
+        console.log('[DEBUG] Parsed packages:', packages);
+        return packages;
       } catch (error) {
         console.error("Failed to fetch TON Boost packages:", error);
         toast({
@@ -337,7 +340,7 @@ const BoostPackagesCard: React.FC = () => {
                     <div className="text-sm text-muted-foreground space-y-1">
                       <div className="mb-1">{pkg.description}</div>
                       <div>💰 Цена: {pkg.price_ton} TON</div>
-                      <div>🎁 Бонус: {pkg.bonus_uni} UNI</div>
+                      <div>🎁 Бонус: {formatNumberWithPrecision(pkg.bonus_uni, 0)} UNI</div>
                       <div>📈 Доходность: {pkg.daily_rate}% в день</div>
                     </div>
                   </div>
