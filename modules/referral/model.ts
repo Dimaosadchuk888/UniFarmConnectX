@@ -2,6 +2,10 @@
  * Модели реферальной системы - описывают структуры таблиц referrals в базе данных
  */
 
+// Імпортуємо централізовані enum типи
+import { ReferralStatus, ReferralEarningType } from '../../shared/schema';
+export { ReferralStatus, ReferralEarningType };
+
 export interface ReferralModel {
   id: string;
   referrer_user_id: string;
@@ -13,13 +17,6 @@ export interface ReferralModel {
   level: number;
   created_at: Date;
   activated_at?: Date;
-}
-
-export enum ReferralStatus {
-  PENDING = 'pending',
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  COMPLETED = 'completed'
 }
 
 export interface ReferralCodeModel {
@@ -44,12 +41,7 @@ export interface ReferralEarningsModel {
   created_at: Date;
 }
 
-export enum ReferralEarningType {
-  SIGNUP_BONUS = 'signup_bonus',
-  FARMING_COMMISSION = 'farming_commission',
-  TRANSACTION_COMMISSION = 'transaction_commission',
-  LEVEL_BONUS = 'level_bonus'
-}
+
 
 export interface ReferralCreateModel {
   referrer_user_id: string;

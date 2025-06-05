@@ -42,6 +42,20 @@ export enum RewardType {
   LEVEL_BONUS = 'level_bonus'
 }
 
+export enum ReferralStatus {
+  PENDING = 'pending',
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  COMPLETED = 'completed'
+}
+
+export enum ReferralEarningType {
+  SIGNUP_BONUS = 'signup_bonus',
+  FARMING_COMMISSION = 'farming_commission',
+  TRANSACTION_COMMISSION = 'transaction_commission',
+  LEVEL_BONUS = 'level_bonus'
+}
+
 // Таблица с аутентификацией по имени пользователя и паролю (пароль не обязателен для Telegram)
 export const authUsers = pgTable("auth_users", {
   id: serial("id").primaryKey(),
