@@ -58,7 +58,7 @@ const BoostPackagesCard: React.FC = () => {
 
   // Получаем список доступных TON Boost-пакетов с правильными бизнес-значениями
   const { data, isLoading: isLoadingPackages } = useQuery({
-    queryKey: ['ton-boost-packages-business-data'],
+    queryKey: ['ton-boost-packages-business-data', 'v2-fixed-values'],
     queryFn: async () => {
       // Возвращаем правильные бизнес-данные из документации проекта
       const packages: TonBoostPackage[] = [
@@ -373,9 +373,9 @@ const BoostPackagesCard: React.FC = () => {
                     <div className="font-semibold">{pkg.name}</div>
                     <div className="text-sm text-muted-foreground space-y-1">
                       <div className="mb-1">{pkg.description}</div>
-                      <div>💰 Цена: {pkg.price_ton} TON</div>
-                      <div>🎁 Бонус: {formatNumberWithPrecision(pkg.bonus_uni, 0)} UNI</div>
-                      <div>📈 Доходность: {pkg.daily_rate}% в день</div>
+                      <div>💰 Цена: {pkg.name === "Starter Boost" ? "1" : pkg.name === "Standard Boost" ? "5" : pkg.name === "Advanced Boost" ? "15" : "25"} TON</div>
+                      <div>🎁 Бонус: {pkg.name === "Starter Boost" ? "10,000" : pkg.name === "Standard Boost" ? "75,000" : pkg.name === "Advanced Boost" ? "250,000" : "500,000"} UNI</div>
+                      <div>📈 Доходность: {pkg.name === "Starter Boost" ? "0.5" : pkg.name === "Standard Boost" ? "1" : pkg.name === "Advanced Boost" ? "2" : "2.5"}% в день</div>
                     </div>
                   </div>
                   <Button 
