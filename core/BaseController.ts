@@ -63,6 +63,30 @@ export abstract class BaseController {
   }
 
   /**
+   * Валідація Telegram користувача з детальною перевіркою
+   */
+  protected validateTelegramAuth(req: Request, res: Response): any | null {
+    const telegramUser = (req as any).telegram?.user;
+    const isValidated = (req as any).telegram?.validated;
+    
+    if (!telegramUser || !isValidated) {
+      res.status(401).json({
+        success: false,
+        error: 'Требуется авторизация через Telegram Mini App',
+        need_telegram_auth: true,
+        debug: {
+          has_telegram: !!(req as any).telegram,
+          has_user: !!telegramUser,
+          validated: isValidated
+        }
+      });
+      return null;
+    }
+    
+    return telegramUser;
+  }
+
+  /**
    * Валідація обов'язкових полів
    */
   protected validateRequiredFields(body: any, fields: string[]): void {
@@ -70,5 +94,37 @@ export abstract class BaseController {
     if (missingFields.length > 0) {
       throw new Error(`Отсутствуют обязательные поля: ${missingFields.join(', ')}`);
     }
+  }
+
+  /**
+   * Стандартна обробка помилок контролера
+   */
+  protected handleControllerError(error: any, res: Response, operation: string): void {
+    console.error(`[${this.constructor.name}] Ошибка ${operation}:`, error);
+    
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        error: `Ошибка ${operation}`,
+        details: error.message
+      });
+    }
+  }
+
+  /**
+   * Валідація параметрів запиту
+   */
+  protected validateParams(req: Request, requiredParams: string[]): boolean {
+    const missingParams = requiredParams.filter(param => !req.params[param]);
+    return missingParams.length === 0;
+  }
+
+  /**
+   * Отримання пагінації з запиту
+   */
+  protected getPagination(req: Request): { page: number; limit: number } {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    return { page, limit };
   }
 }
