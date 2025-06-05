@@ -61,7 +61,9 @@ const BoostPackagesCard: React.FC = () => {
     queryKey: ['/api/ton-boosts'],
     queryFn: async () => {
       try {
-        const url = '/api/ton-boosts';
+        // Use window.location.origin to ensure we're hitting the correct server
+        const baseUrl = window.location.origin;
+        const url = `${baseUrl}/api/ton-boosts`;
         console.log('[DEBUG] Fetching TON Boost packages from:', url);
         
         const response = await fetch(url, {

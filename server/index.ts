@@ -697,6 +697,31 @@ async function startServer() {
       }
     });
 
+    // TON Boosts Active API - Get user's active boost packages
+    app.get(`${apiPrefix}/ton-boosts/active`, async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        // Return empty array for now - no active boosts
+        res.json({
+          success: true,
+          data: []
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
     // TON Boosts API - Список доступных пакетов
     app.get(`${apiPrefix}/ton-boosts`, async (req: any, res: any) => {
       try {
