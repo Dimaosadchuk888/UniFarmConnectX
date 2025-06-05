@@ -2,6 +2,9 @@
  * Модели кошелька - описывают структуры таблиц wallet и transactions в базе данных
  */
 
+// Імпортуємо централізовані enum типи
+export { TransactionType, TransactionStatus } from '../../shared/schema';
+
 export interface WalletModel {
   id: string;
   user_id: string;
@@ -27,25 +30,6 @@ export interface TransactionModel {
   metadata?: Record<string, any>;
   created_at: Date;
   completed_at?: Date;
-}
-
-export enum TransactionType {
-  DEPOSIT = 'deposit',
-  WITHDRAWAL = 'withdrawal',
-  FARMING_REWARD = 'farming_reward',
-  REFERRAL_REWARD = 'referral_reward',
-  DAILY_BONUS = 'daily_bonus',
-  MISSION_REWARD = 'mission_reward',
-  BOOST_PURCHASE = 'boost_purchase',
-  ADMIN_ADJUSTMENT = 'admin_adjustment'
-}
-
-export enum TransactionStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled'
 }
 
 export interface WalletCreateModel {

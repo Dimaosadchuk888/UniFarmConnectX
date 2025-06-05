@@ -2,6 +2,46 @@ import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric, js
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Централізовані enum типи для всього проєкту
+export enum TransactionType {
+  DEPOSIT = 'deposit',
+  WITHDRAWAL = 'withdrawal',
+  FARMING_REWARD = 'farming_reward',
+  REFERRAL_REWARD = 'referral_reward',
+  DAILY_BONUS = 'daily_bonus',
+  MISSION_REWARD = 'mission_reward',
+  BOOST_PURCHASE = 'boost_purchase',
+  ADMIN_ADJUSTMENT = 'admin_adjustment'
+}
+
+export enum TransactionStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled'
+}
+
+export enum FarmingType {
+  UNI_FARMING = 'uni_farming',
+  TON_FARMING = 'ton_farming',
+  BOOST_FARMING = 'boost_farming'
+}
+
+export enum FarmingStatus {
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  HARVESTED = 'harvested',
+  CANCELLED = 'cancelled'
+}
+
+export enum RewardType {
+  BASE_REWARD = 'base_reward',
+  BOOST_REWARD = 'boost_reward',
+  REFERRAL_BONUS = 'referral_bonus',
+  LEVEL_BONUS = 'level_bonus'
+}
+
 // Таблица с аутентификацией по имени пользователя и паролю (пароль не обязателен для Telegram)
 export const authUsers = pgTable("auth_users", {
   id: serial("id").primaryKey(),

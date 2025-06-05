@@ -1,5 +1,5 @@
-// Импорт enum'ов из model.ts для избежания дублирования
-import type { TransactionType, TransactionStatus } from './model';
+// Імпорт enum'ів з централізованого schema
+import type { TransactionType, TransactionStatus } from '../../shared/schema';
 
 export interface WalletBalance {
   user_id: number;

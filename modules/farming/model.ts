@@ -2,6 +2,9 @@
  * Модели фарминга - описывают структуры таблиц farming в базе данных
  */
 
+// Імпортуємо централізовані enum типи
+export { FarmingType, FarmingStatus, RewardType } from '../../shared/schema';
+
 export interface FarmingSessionModel {
   id: string;
   user_id: string;
@@ -17,19 +20,6 @@ export interface FarmingSessionModel {
   created_at: Date;
 }
 
-export enum FarmingType {
-  UNI_FARMING = 'uni_farming',
-  TON_FARMING = 'ton_farming',
-  BOOST_FARMING = 'boost_farming'
-}
-
-export enum FarmingStatus {
-  ACTIVE = 'active',
-  COMPLETED = 'completed',
-  HARVESTED = 'harvested',
-  CANCELLED = 'cancelled'
-}
-
 export interface FarmingRewardModel {
   id: string;
   user_id: string;
@@ -41,12 +31,7 @@ export interface FarmingRewardModel {
   created_at: Date;
 }
 
-export enum RewardType {
-  BASE_REWARD = 'base_reward',
-  BOOST_REWARD = 'boost_reward',
-  REFERRAL_BONUS = 'referral_bonus',
-  LEVEL_BONUS = 'level_bonus'
-}
+
 
 export interface FarmingConfigModel {
   id: string;
