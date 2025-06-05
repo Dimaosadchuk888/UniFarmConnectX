@@ -5,9 +5,21 @@ server/public
 vite.config.ts.*
 *.tar.gz
 
-# Environement variables
+# Environment variables
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.replit
+
+# Security sensitive files
+config/secrets.ts
+*.secret
+*.key
+*.pem
+
+# Backup and temporary files
+*.backup
+*.tmp
+.DS_Store

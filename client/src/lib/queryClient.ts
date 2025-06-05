@@ -1,6 +1,6 @@
 import { QueryClient, QueryFunction, QueryCache, MutationCache } from "@tanstack/react-query";
 import { getTelegramAuthHeaders } from "@/services/telegramService";
-import apiConfig from "@/config/apiConfig";
+import apiConfig from "../../../config/apiConfig";
 // Utility function to fix request body for proper sending
 function fixRequestBody(body: any): any {
   if (!body) return body;
