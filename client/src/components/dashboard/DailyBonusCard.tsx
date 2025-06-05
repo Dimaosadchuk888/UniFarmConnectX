@@ -42,7 +42,7 @@ const DailyBonusCard: React.FC = () => {
         const endpoint = `/api/v2/daily-bonus/status?user_id=${userId || 1}`;
         console.log('[DailyBonusCard] Запрос статуса бонуса:', endpoint);
 
-        const response = await correctApiRequest<DailyBonusStatus>(endpoint, 'GET');
+        const response = await correctApiRequest(endpoint, 'GET');
 
         if (!response.success) {
           throw new Error(response.error || 'Ошибка при получении статуса бонуса');
@@ -71,7 +71,7 @@ const DailyBonusCard: React.FC = () => {
         console.log('[DailyBonusCard] Отправка запроса на получение бонуса:', endpoint);
 
         // Отправляем POST запрос с корректными заголовками
-        const response = await correctApiRequest<ClaimBonusResult>(
+        const response = await correctApiRequest(
           endpoint, 
           'POST',
           { user_id: userId || 1 } // Используем динамический userId
