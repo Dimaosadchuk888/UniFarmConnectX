@@ -57,8 +57,29 @@ async function startServer() {
       console.log('Loading compiled server...');
       await import(serverPath);
     } else {
-      console.log('Loading TypeScript server directly...');
-      await import('./server/index.ts');
+      console.log('Loading TypeScript server with tsx...');
+      const { spawn } = await import('child_process');
+      const tsxPath = path.join(__dirname, 'node_modules', '.bin', 'tsx');
+      const serverProcess = spawn(tsxPath, ['server/index.ts'], {
+        stdio: 'inherit',
+        cwd: __dirname,
+        env: { ...process.env, NODE_ENV: 'production' }
+      });
+      
+      serverProcess.on('error', (error) => {
+        console.error('Server process error:', error);
+        process.exit(1);
+      });
+      
+      serverProcess.on('exit', (code) => {
+        if (code !== 0) {
+          console.log(`Server process exited with code ${code}`);
+          process.exit(code || 0);
+        }
+      });
+      
+      // Keep the process alive
+      return new Promise(() => {});
     }
     
     console.log('✅ UniFarm server started successfully');
