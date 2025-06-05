@@ -97,10 +97,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       
       // Современный стилизованный fallback UI, используя компоненты ShadCN
       return (
-        <Alert variant="destructive" className="my-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle className="font-medium">{errorTitle}</AlertTitle>
-          <AlertDescription className="mt-2">
+        <Alert variant="default" className="my-4 border-border bg-card">
+          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          <AlertTitle className="font-medium text-foreground">{errorTitle}</AlertTitle>
+          <AlertDescription className="mt-2 text-muted-foreground">
             {errorDescription}
             
             {process.env.NODE_ENV !== 'production' && this.state.error && (
