@@ -6,16 +6,8 @@ const missionsService = new MissionsService();
 export class MissionsController {
   async getActiveMissions(req: Request, res: Response) {
     try {
-      // Проверяем Telegram авторизацию
-      const telegramUser = (req as any).telegram?.user;
-      const isValidated = (req as any).telegram?.validated;
-      
-      if (!telegramUser || !isValidated) {
-        return res.status(401).json({
-          success: false,
-          error: 'Требуется авторизация через Telegram Mini App'
-        });
-      }
+      // Telegram пользователь уже проверен middleware
+      const telegramUser = (req as any).telegramUser;
 
       // Используем сервис для получения активных миссий
       const missions = await missionsService.getActiveMissionsByTelegramId(
@@ -44,15 +36,8 @@ export class MissionsController {
 
   async completeMission(req: Request, res: Response) {
     try {
-      const telegramUser = (req as any).telegram?.user;
-      const isValidated = (req as any).telegram?.validated;
-      
-      if (!telegramUser || !isValidated) {
-        return res.status(401).json({
-          success: false,
-          error: 'Требуется авторизация через Telegram Mini App'
-        });
-      }
+      // Telegram пользователь уже проверен middleware
+      const telegramUser = (req as any).telegramUser;
 
       const { missionId } = req.body;
       

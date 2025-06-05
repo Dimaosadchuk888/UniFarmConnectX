@@ -24,3 +24,8 @@ export {
   validateParams, 
   validateQuery 
 } from './middleware/validate';
+
+export {
+  requireTelegramAuth,
+  optionalTelegramAuth
+} from './middleware/telegramAuth';

@@ -6,16 +6,8 @@ const walletService = new WalletService();
 export class WalletController {
   async getWalletData(req: Request, res: Response) {
     try {
-      // Проверяем Telegram авторизацию
-      const telegramUser = (req as any).telegram?.user;
-      const isValidated = (req as any).telegram?.validated;
-      
-      if (!telegramUser || !isValidated) {
-        return res.status(401).json({
-          success: false,
-          error: 'Требуется авторизация через Telegram Mini App'
-        });
-      }
+      // Telegram пользователь уже проверен middleware
+      const telegramUser = (req as any).telegramUser;
 
       // Используем сервис для получения данных кошелька
       const walletData = await walletService.getWalletDataByTelegramId(
