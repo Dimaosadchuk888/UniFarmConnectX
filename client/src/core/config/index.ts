@@ -4,7 +4,7 @@
 
 // WebSocket Configuration
 export const WEBSOCKET_CONFIG = {
-  ENABLED: true,
+  ENABLED: false, // Отключаем WebSocket для устранения ошибок подключения
   RECONNECT_INTERVAL: 3000,
   MAX_RECONNECT_ATTEMPTS: 5,
   TIMEOUT: 10000
