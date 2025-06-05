@@ -185,8 +185,13 @@ export const getQueryFn: <T>(options: {
       const timestamp = new Date().getTime();
       const queryKeyStr = queryKey[0] as string;
 
-      // Преобразуем относительный URL в полный с использованием apiConfig
-      let baseUrl = apiConfig.getFullUrl(queryKeyStr);
+      // Используем localhost для development вместо внешнего URL
+      let baseUrl = queryKeyStr;
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        baseUrl = `http://localhost:3000${queryKeyStr}`;
+      } else {
+        baseUrl = apiConfig.getFullUrl(queryKeyStr);
+      }
 
       // Проверяем, есть ли второй элемент в queryKey (userId) и добавляем его в URL
       let userId = null;
