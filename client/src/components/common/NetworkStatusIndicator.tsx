@@ -12,68 +12,12 @@ type AlertType = 'online' | 'offline' | 'wsConnected' | 'wsDisconnected' | 'hidd
 
 /**
  * Компонент для отображения статуса сетевого соединения и WebSocket
- * Показывает уведомление при потере соединения
+ * ПОЛНОСТЬЮ ОТКЛЮЧЕН - НЕ ПОКАЗЫВАЕТ НИКАКИХ УВЕДОМЛЕНИЙ ПОЛЬЗОВАТЕЛЯМ
  */
 const NetworkStatusIndicator: React.FC = () => {
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [alertType, setAlertType] = useState<AlertType>('hidden');
-  const [alertVisible, setAlertVisible] = useState<boolean>(false);
-  const { connectionStatus } = useWebSocket();
-
-  // Обновляем статус онлайн/оффлайн
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      setAlertType('online');
-      setAlertVisible(true);
-      
-      // Автоматически скрываем уведомление об успешном подключении через 3 секунды
-      setTimeout(() => {
-        setAlertVisible(false);
-      }, 3000);
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      setAlertType('offline');
-      setAlertVisible(true);
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // Обновляем статус WebSocket соединения (ОТКЛЮЧЕНЫ УВЕДОМЛЕНИЯ О ПРОБЛЕМАХ)
-  useEffect(() => {
-    // ОТКЛЮЧЕНО: Не показываем уведомления о проблемах WebSocket соединения
-    // Оставляем только логику для успешного подключения (и то скрытую)
-    if (connectionStatus === 'connected') {
-      // Скрываем даже успешные подключения, чтобы не спамить пользователя
-      // setAlertType('wsConnected');
-      // setAlertVisible(true);
-      
-      // Автоматически скрываем уведомление об успешном подключении через 3 секунды
-      // setTimeout(() => {
-      //   setAlertVisible(false);
-      // }, 3000);
-    } else if (connectionStatus === 'disconnected') {
-      // ОТКЛЮЧЕНО: Не показываем уведомления об ошибках соединения с сервером
-      // setAlertType('wsDisconnected');
-      // setAlertVisible(true);
-    } else {
-      // Если статус 'connecting', не показываем уведомление
-    }
-  }, [connectionStatus]);
-
-  // Если нет проблем с соединением, ничего не показываем
-  if (!alertVisible) {
-    return null;
-  }
+  // ПОЛНОСТЬЮ ОТКЛЮЧАЕМ ВСЕ СИСТЕМНЫЕ УВЕДОМЛЕНИЯ
+  // Компонент больше не показывает никаких уведомлений об ошибках
+  return null;
 
   const alertContent = {
     online: {
