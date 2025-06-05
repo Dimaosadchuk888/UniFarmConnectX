@@ -2,7 +2,7 @@
  * Приветственная секция дашборда
  */
 import React from 'react';
-import { Card, CardContent } from '../../../shared/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import type { User } from '../../../core/types';
 
 interface WelcomeSectionProps {
