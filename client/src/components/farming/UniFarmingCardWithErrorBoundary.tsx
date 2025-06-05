@@ -6,7 +6,15 @@ import { useUser } from '@/contexts/userContext';
 const UniFarmingCardWithErrorBoundary: React.FC = () => {
   const userContext = useUser();
   
-  // Створюємо userData з доступних полів контексту
+  // Логируем контекст пользователя для диагностики
+  console.log('[DEBUG] UniFarmingCardWithErrorBoundary - userContext:', {
+    userId: userContext.userId,
+    username: userContext.username,
+    guestId: userContext.guestId,
+    telegramId: userContext.telegramId
+  });
+  
+  // Создаем userData из доступных полей контекста
   const userData = {
     id: userContext.userId,
     username: userContext.username,
