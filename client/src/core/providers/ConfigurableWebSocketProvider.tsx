@@ -45,16 +45,11 @@ export const ConfigurableWebSocketProvider: React.FC<WebSocketProviderProps> = (
   }, [wsUrl]);
 
   const connect = useCallback(() => {
-    if (!WEBSOCKET_CONFIG.ENABLED && !enableAutoConnect) {
-      console.log('[WebSocket] Подключения отключены в конфигурации');
-      return;
-    }
-
-    try {
-      const url = getWebSocketUrl();
-      console.log(`[WebSocket] Подключение к ${url}`);
-      
-      const newSocket = new WebSocket(url);
+    // WebSocket подключения полностью отключены
+    console.log('[WebSocket] Подключения отключены');
+    setConnectionStatus('disconnected');
+    setIsConnected(false);
+    return;et(url);
       setSocket(newSocket);
       setConnectionStatus('connecting');
 
