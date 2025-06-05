@@ -76,6 +76,64 @@ async function startServer() {
       }
     });
 
+    // TON Boost packages endpoint for frontend
+    app.get('/api/ton-boosts', async (req: any, res: any) => {
+      try {
+        const packages = [
+          {
+            id: 1,
+            name: "Starter Boost",
+            description: "Начальный пакет для изучения TON Farming",
+            price_ton: "0.1",
+            bonus_uni: "10",
+            daily_rate: "0.005",
+            is_active: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 2,
+            name: "Standard Boost", 
+            description: "Стандартный пакет с повышенной доходностью",
+            price_ton: "0.5",
+            bonus_uni: "60",
+            daily_rate: "0.01",
+            is_active: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 3,
+            name: "Advanced Boost",
+            description: "Продвинутый пакет для активных пользователей", 
+            price_ton: "1.0",
+            bonus_uni: "130",
+            daily_rate: "0.02",
+            is_active: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 4,
+            name: "Premium Boost",
+            description: "Премиум пакет с максимальной доходностью",
+            price_ton: "2.0", 
+            bonus_uni: "280",
+            daily_rate: "0.025",
+            is_active: true,
+            created_at: new Date().toISOString()
+          }
+        ];
+        
+        res.json({
+          success: true,
+          data: packages
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
     app.get('/api/missions', async (req: any, res: any) => {
       try {
         const missionsList = await db.select().from(missions).orderBy(missions.id);
