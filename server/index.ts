@@ -639,6 +639,81 @@ async function startServer() {
       }
     });
 
+    // Legacy transactions API support
+    app.get('/api/transactions', async (req: any, res: any) => {
+      try {
+        const { user_id, page = 1, limit = 20, currency = '' } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        const userTransactions = await db.select()
+          .from(transactions)
+          .where(eq(transactions.user_id, parseInt(user_id)))
+          .orderBy(desc(transactions.created_at))
+          .limit(parseInt(limit))
+          .offset((parseInt(page) - 1) * parseInt(limit));
+
+        const filteredTransactions = currency 
+          ? userTransactions.filter(t => t.currency === currency.toUpperCase())
+          : userTransactions;
+
+        res.json({
+          success: true,
+          data: {
+            transactions: filteredTransactions,
+            pagination: {
+              page: parseInt(page),
+              limit: parseInt(limit),
+              total: filteredTransactions.length,
+              totalPages: Math.ceil(filteredTransactions.length / parseInt(limit))
+            }
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // Guest user API support
+    app.get('/api/users/guest/:guestId', async (req: any, res: any) => {
+      try {
+        const { guestId } = req.params;
+        
+        let [user] = await db.select()
+          .from(users)
+          .where(eq(users.guest_id, guestId))
+          .limit(1);
+
+        if (!user) {
+          const newUser = await db.insert(users).values({
+            guest_id: guestId,
+            balance_uni: '0',
+            balance_ton: '0'
+          }).returning();
+          
+          user = newUser[0];
+        }
+
+        res.json({
+          success: true,
+          data: user
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
     // Статические файлы React фронтенда
     app.use(express.static('dist/public'));
 
