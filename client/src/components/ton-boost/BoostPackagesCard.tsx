@@ -105,6 +105,8 @@ const BoostPackagesCard: React.FC = () => {
       ];
       
       console.log('[TON Boost] Загружены корректные бизнес-данные:', packages);
+      console.log('[TON Boost] Первый пакет цена:', packages[0].price_ton, 'TON');
+      console.log('[TON Boost] Первый пакет бонус:', packages[0].bonus_uni, 'UNI');
       return packages;
     },
     staleTime: Infinity // Кешируем навсегда, так как это статичные бизнес-данные
@@ -112,6 +114,9 @@ const BoostPackagesCard: React.FC = () => {
 
   const boostPackages = data || [];
   
+  console.log('[TON BOOST COMPONENT] Загружен компонент BoostPackagesCard');
+  console.log('[TON BOOST COMPONENT] Количество пакетов для отображения:', boostPackages.length);
+  console.log('[TON BOOST COMPONENT] Первый пакет данные:', boostPackages[0]);
   console.log('[DEBUG] Final boostPackages for rendering:', boostPackages);
 
   // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету
@@ -373,9 +378,24 @@ const BoostPackagesCard: React.FC = () => {
                     <div className="font-semibold">{pkg.name}</div>
                     <div className="text-sm text-muted-foreground space-y-1">
                       <div className="mb-1">{pkg.description}</div>
-                      <div>💰 Цена: {pkg.name === "Starter Boost" ? "1" : pkg.name === "Standard Boost" ? "5" : pkg.name === "Advanced Boost" ? "15" : "25"} TON</div>
-                      <div>🎁 Бонус: {pkg.name === "Starter Boost" ? "10,000" : pkg.name === "Standard Boost" ? "75,000" : pkg.name === "Advanced Boost" ? "250,000" : "500,000"} UNI</div>
-                      <div>📈 Доходность: {pkg.name === "Starter Boost" ? "0.5" : pkg.name === "Standard Boost" ? "1" : pkg.name === "Advanced Boost" ? "2" : "2.5"}% в день</div>
+                      <div>💰 Цена: {
+                        pkg.name === "Starter Boost" ? "1" : 
+                        pkg.name === "Standard Boost" ? "5" : 
+                        pkg.name === "Advanced Boost" ? "15" : 
+                        "25"
+                      } TON</div>
+                      <div>🎁 Бонус: {
+                        pkg.name === "Starter Boost" ? "10,000" : 
+                        pkg.name === "Standard Boost" ? "75,000" : 
+                        pkg.name === "Advanced Boost" ? "250,000" : 
+                        "500,000"
+                      } UNI</div>
+                      <div>📈 Доходность: {
+                        pkg.name === "Starter Boost" ? "0.5" : 
+                        pkg.name === "Standard Boost" ? "1" : 
+                        pkg.name === "Advanced Boost" ? "2" : 
+                        "2.5"
+                      }% в день</div>
                     </div>
                   </div>
                   <Button 
