@@ -89,9 +89,8 @@ const BalanceCard: React.FC = () => {
   // Инициализируем WebSocket соединение
   const { 
     isConnected,
-    subscribeToUserUpdates,
-    errorCount, 
-    forceReconnect 
+    connect,
+    disconnect
   } = useWebSocket({
     onOpen: handleOpen,
     onMessage: handleMessage,
@@ -99,6 +98,12 @@ const BalanceCard: React.FC = () => {
     onError: handleError,
     reconnectInterval: 3000
   });
+
+  // Создаем локальные методы для совместимости
+  const forceReconnect = () => {
+    disconnect();
+    setTimeout(() => connect(), 1000);
+  };
   
   // Расчет скорости фарминга
   const calculateRate = useCallback(() => {
@@ -345,10 +350,10 @@ const BalanceCard: React.FC = () => {
       </div>
       
       {/* WebSocket статус для отладки (скрыт от пользователей) */}
-      {process.env.NODE_ENV === 'development' && errorCount > 0 && (
+      {process.env.NODE_ENV === 'development' && !isConnected && (
         <div className="mt-3 text-xs text-gray-500/50 relative z-10">
           <div className="flex items-center justify-between">
-            <span>WebSocket ошибок: {errorCount}</span>
+            <span>WebSocket: Отключено</span>
             <button 
               onClick={handleReconnect}
               className="text-blue-400 hover:text-blue-300 transition-colors text-xs"
