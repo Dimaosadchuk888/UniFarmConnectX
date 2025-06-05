@@ -3,8 +3,8 @@
  * Мониторинг состояния всех компонентов системы
  */
 
-const { db } = require('./core/db');
-const { logger } = require('./core/logger');
+import { db } from './core/db.js';
+import { logger } from './core/logger.js';
 
 class HealthCheckSystem {
   constructor() {
@@ -188,7 +188,7 @@ function createHealthEndpoint(healthChecker) {
   };
 }
 
-module.exports = {
+export {
   HealthCheckSystem,
   createHealthEndpoint
 };

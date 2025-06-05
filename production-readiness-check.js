@@ -4,10 +4,10 @@
  * Comprehensive validation before deployment
  */
 
-const { db } = require('./core/db');
-const { logger } = require('./core/logger');
-const fs = require('fs');
-const path = require('path');
+import { db } from './core/db.js';
+import { logger } from './core/logger.js';
+import fs from 'fs';
+import path from 'path';
 
 async function checkDatabaseConnection() {
   console.log('🔍 Checking database connection...');
@@ -212,7 +212,7 @@ if (require.main === module) {
   });
 }
 
-module.exports = {
+export {
   runProductionCheck,
   checkDatabaseConnection,
   checkEnvironmentVariables,
