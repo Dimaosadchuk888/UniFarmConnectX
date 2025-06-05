@@ -49,7 +49,8 @@ const BoostPackagesCard: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tonConnectUI] = useTonConnectUI();
-  const { user } = useUser();
+  const userContext = useUser();
+  const user = userContext?.user;
   const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState<boolean>(false);
