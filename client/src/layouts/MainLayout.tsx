@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import Header from '@/components/layout/Header';
-import NavigationBar from '@/components/layout/NavigationBar';
+import Header from '../components/layout/Header';
+import NavigationBar from '../components/layout/NavigationBar';
 
 interface MainLayoutProps {
   children: ReactNode;
