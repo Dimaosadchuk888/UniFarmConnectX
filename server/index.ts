@@ -12,6 +12,7 @@ import { config, logger, globalErrorHandler, notFoundHandler } from '../core';
 import { db } from '../core/db';
 import { users, transactions, missions, tonBoostPackages, tonBoostDeposits } from '../shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
+import { setupVite, serveStatic } from './vite';
 
 // API будет создан прямо в сервере
 
