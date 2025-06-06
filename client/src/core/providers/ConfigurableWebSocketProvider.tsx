@@ -35,12 +35,7 @@ export const ConfigurableWebSocketProvider: React.FC<WebSocketProviderProps> = (
   const getWebSocketUrl = useCallback(() => {
     if (wsUrl) return wsUrl;
     
-    // Используем production URL из конфигурации только если он доступен
-    if (WEBSOCKET_CONFIG.PRODUCTION_URL && !WEBSOCKET_CONFIG.USE_LOCAL_FALLBACK) {
-      return WEBSOCKET_CONFIG.PRODUCTION_URL;
-    }
-    
-    // Используем локальный WebSocket сервер
+    // Определяем URL WebSocket
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
@@ -50,16 +45,14 @@ export const ConfigurableWebSocketProvider: React.FC<WebSocketProviderProps> = (
   }, [wsUrl]);
 
   const connect = useCallback(() => {
-    if (!WEBSOCKET_CONFIG.ENABLED) {
+    if (!WEBSOCKET_CONFIG.ENABLED && !enableAutoConnect) {
       console.log('[WebSocket] Подключения отключены в конфигурации');
-      setConnectionStatus('disconnected');
-      setIsConnected(false);
       return;
     }
 
     try {
       const url = getWebSocketUrl();
-      console.log(`[WebSocket] Подключение к: ${url}`);
+      console.log(`[WebSocket] Подключение к ${url}`);
       
       const newSocket = new WebSocket(url);
       setSocket(newSocket);
@@ -90,29 +83,18 @@ export const ConfigurableWebSocketProvider: React.FC<WebSocketProviderProps> = (
         setIsConnected(false);
         setSocket(null);
         
-        // Более интеллектуальное переподключение
+        // Переподключение только если включено
         if (enableAutoConnect && !reconnectTimeoutRef.current) {
-          // Увеличиваем интервал при проблемах с внешним сервером
-          const reconnectDelay = url.includes('uni-farm-connect-xo-osadchukdmitro2.replit.app') 
-            ? WEBSOCKET_CONFIG.RECONNECT_INTERVAL * 3  // 9 секунд для внешнего сервера
-            : WEBSOCKET_CONFIG.RECONNECT_INTERVAL;     // 3 секунды для локального
-            
           reconnectTimeoutRef.current = window.setTimeout(() => {
             reconnectTimeoutRef.current = null;
             connect();
-          }, reconnectDelay);
+          }, 5000);
         }
       };
 
       newSocket.onerror = (error) => {
         console.error('[WebSocket] Ошибка соединения:', error);
         setConnectionStatus('disconnected');
-        setIsConnected(false);
-        
-        // Если это внешний сервер, логируем детали для диагностики
-        if (url.includes('uni-farm-connect-xo-osadchukdmitro2.replit.app')) {
-          console.warn('[WebSocket] Внешний сервер недоступен, проверьте подключение и аутентификацию');
-        }
         setIsConnected(false);
       };
 

@@ -4,12 +4,10 @@
 
 // WebSocket Configuration
 export const WEBSOCKET_CONFIG = {
-  ENABLED: false, // Отключаем WebSocket до стабилизации
+  ENABLED: true,
   RECONNECT_INTERVAL: 3000,
   MAX_RECONNECT_ATTEMPTS: 5,
-  TIMEOUT: 10000,
-  PRODUCTION_URL: null,
-  USE_LOCAL_FALLBACK: true
+  TIMEOUT: 10000
 };
 
 // API Configuration

@@ -37,34 +37,11 @@ const TonFarmingStatusCard: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
   const [dotOpacity, setDotOpacity] = useState(0.5);
 
-  // Получаем информацию о TON фарминге с правильными бизнес-данными
+  // Получаем информацию о TON фарминге
   const apiUrl = `/api/ton-farming/info?user_id=${userId}`;
 
   const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
-    queryKey: [apiUrl, 'fixed-business-data'],
-    queryFn: async () => {
-      // Возвращаем корректные бизнес-данные для TON фарминга
-      return {
-        success: true,
-        data: {
-          totalTonRatePerSecond: "0.00001157", // 1 TON в день = 0.00001157 TON/сек
-          totalUniRatePerSecond: "0.11574", // 10000 UNI в день = 0.11574 UNI/сек
-          dailyIncomeTon: "1.0", // 1 TON в день
-          dailyIncomeUni: "10000", // 10000 UNI в день
-          deposits: [
-            {
-              id: 1,
-              user_id: parseInt(userId),
-              ton_amount: "1.0",
-              uni_amount: "10000",
-              start_date: new Date().toISOString(),
-              status: "active",
-              created_at: new Date().toISOString()
-            }
-          ]
-        }
-      };
-    },
+    queryKey: [apiUrl],
     refetchInterval: 5000, // Обновляем каждые 5 секунд
   });
 

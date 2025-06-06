@@ -25,10 +25,56 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const reconnectTimeoutRef = useRef<number | null>(null);
 
   const connect = () => {
-    // WebSocket подключения временно отключены для устранения ошибок
-    console.log('[WebSocket] Подключения отключены в конфигурации');
-    setConnectionStatus('disconnected');
-    return;
+    try {
+      // Используем локальный WebSocket сервер
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/ws`;
+
+      const newSocket = new WebSocket(wsUrl);
+      setSocket(newSocket);
+      setConnectionStatus('connecting');
+
+      newSocket.onopen = () => {
+        console.log('[WebSocket] Подключение установлено');
+        setConnectionStatus('connected');
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+      };
+
+      newSocket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          setLastMessage(message);
+        } catch (error) {
+          console.error('[WebSocket] Ошибка парсинга сообщения:', error);
+        }
+      };
+
+      newSocket.onclose = () => {
+        console.log('[WebSocket] Соединение закрыто');
+        setConnectionStatus('disconnected');
+        setSocket(null);
+        
+        // Переподключение через 5 секунд
+        if (!reconnectTimeoutRef.current) {
+          reconnectTimeoutRef.current = window.setTimeout(() => {
+            reconnectTimeoutRef.current = null;
+            connect();
+          }, 5000);
+        }
+      };
+
+      newSocket.onerror = (error) => {
+        console.error('[WebSocket] Ошибка соединения:', error);
+      };
+
+    } catch (error) {
+      console.error('[WebSocket] Ошибка создания соединения:', error);
+      setConnectionStatus('disconnected');
+    }
   };
 
   const sendMessage = (message: any) => {

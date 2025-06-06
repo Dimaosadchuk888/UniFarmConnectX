@@ -101,32 +101,9 @@ const getEmojiForTitle = (title: string | React.ReactNode): string => {
 export function Toaster() {
   const { toasts } = useToast()
 
-  // БЛОКИРУЕМ ВСЕ СИСТЕМНЫЕ УВЕДОМЛЕНИЯ ОБ ОШИБКАХ СОЕДИНЕНИЯ
-  // Фильтруем toast-уведомления для блокировки системных ошибок
-  const filteredToasts = toasts.filter(toast => {
-    const title = typeof toast.title === 'string' ? toast.title.toLowerCase() : '';
-    const description = typeof toast.description === 'string' ? toast.description.toLowerCase() : '';
-    
-    // Проверяем на системные ошибки соединения
-    const isConnectionError = title.includes('ошибка соединения') ||
-                             title.includes('ошибка подключения') ||
-                             description.includes('ошибка соединения') ||
-                             description.includes('попытка переподключения') ||
-                             description.includes('соединения с сервером') ||
-                             description.includes('connection') ||
-                             description.includes('server error') ||
-                             (toast.variant === 'destructive' && (
-                               title.includes('ошибка') ||
-                               description.includes('ошибка') ||
-                               description.includes('error')
-                             ));
-    
-    return !isConnectionError; // Показываем только НЕ системные ошибки
-  });
-
   return (
     <ToastProvider>
-      {filteredToasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({ id, title, description, action, ...props }) {
         const emoji = title ? getEmojiForTitle(title) : '';
         
         return (

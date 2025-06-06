@@ -144,29 +144,6 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
-  // БЛОКИРУЕМ СИСТЕМНЫЕ УВЕДОМЛЕНИЯ ОБ ОШИБКАХ СОЕДИНЕНИЯ
-  const title = typeof props.title === 'string' ? props.title : '';
-  const description = typeof props.description === 'string' ? props.description : '';
-  
-  // Проверяем на системные ошибки соединения и блокируем их
-  if (title.includes('Ошибка соединения') || 
-      title.includes('Ошибка подключения') ||
-      description.includes('Попытка переподключения') ||
-      description.includes('соединения с сервером') ||
-      props.variant === 'destructive' && (
-        title.includes('Ошибка') || 
-        description.includes('ошибка') ||
-        description.includes('server') ||
-        description.includes('connection')
-      )) {
-    // НЕ ПОКАЗЫВАЕМ системные уведомления об ошибках соединения
-    return {
-      id: 'blocked',
-      dismiss: () => {},
-      update: () => {},
-    };
-  }
-
   const id = genId()
 
   const update = (props: ToasterToast) =>

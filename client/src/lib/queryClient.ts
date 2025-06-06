@@ -50,14 +50,6 @@ async function throwIfResNotOk(res: Response) {
     let errorData;
     try {
       errorData = JSON.parse(text);
-      
-      // Специальная обработка для Vite прокси ошибок:
-      // Если получили корректный JSON с success: true, это не ошибка
-      if (errorData && errorData.success === true && errorData.data) {
-        console.log(`[QueryClient] Найдены корректные данные в ответе ${res.status}, обрабатываем как успех`);
-        // Возвращаем данные напрямую, не бросая ошибку
-        return;
-      }
     } catch (e) {
       if (isHtmlResponse) {
         errorData = { 
@@ -193,13 +185,8 @@ export const getQueryFn: <T>(options: {
       const timestamp = new Date().getTime();
       const queryKeyStr = queryKey[0] as string;
 
-      // Используем localhost для development вместо внешнего URL
-      let baseUrl = queryKeyStr;
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        baseUrl = `http://localhost:3000${queryKeyStr}`;
-      } else {
-        baseUrl = apiConfig.getFullUrl(queryKeyStr);
-      }
+      // Преобразуем относительный URL в полный с использованием apiConfig
+      let baseUrl = apiConfig.getFullUrl(queryKeyStr);
 
       // Проверяем, есть ли второй элемент в queryKey (userId) и добавляем его в URL
       let userId = null;
@@ -280,10 +267,9 @@ export const getQueryFn: <T>(options: {
 /**
  * Глобальный обработчик ошибок для React Query
  * Позволяет централизованно обрабатывать и логировать ошибки запросов
- * ОТКЛЮЧЕНЫ УВЕДОМЛЕНИЯ ПОЛЬЗОВАТЕЛЯМ О ПРОБЛЕМАХ СОЕДИНЕНИЯ
  */
 const globalQueryErrorHandler = (error: unknown) => {
-  // Логируем ошибку только в консоль для разработчиков
+  // Логируем ошибку
   console.error('[QueryClient] Глобальная ошибка запроса:', error);
 
   // Анализируем тип ошибки
@@ -293,14 +279,14 @@ const globalQueryErrorHandler = (error: unknown) => {
     const statusText = (error as any).statusText;
     const errorData = (error as any).errorData;
 
-    // Логируем детали для диагностики (только в консоль)
+    // Логируем детали для диагностики
     console.error(`[QueryClient] Ошибка ${status || 'неизвестный статус'}: ${statusText || error.message}`);
 
     if (errorData) {
       console.error('[QueryClient] Данные ошибки:', errorData);
     }
 
-    // Обработка по типу HTTP-статуса (БЕЗ показа уведомлений пользователю)
+    // Обработка по типу HTTP-статуса
     if (status === 401) {
       console.warn('[QueryClient] Пользователь не авторизован (401)');
       // Здесь могла бы быть логика перенаправления на страницу логина
@@ -310,14 +296,13 @@ const globalQueryErrorHandler = (error: unknown) => {
       console.warn('[QueryClient] Ресурс не найден (404)');
     } else if (status >= 500) {
       console.error('[QueryClient] Серверная ошибка:', error.message);
-      // НЕ показываем уведомления о серверных ошибках пользователям
     }
   } else {
     // Если это не экземпляр Error, логируем как есть
     console.error('[QueryClient] Неизвестная ошибка:', error);
   }
 
-  // Возвращаем ошибку для дальнейшей обработки (но без уведомлений)
+  // Возвращаем ошибку для дальнейшей обработки
   return error;
 };
 

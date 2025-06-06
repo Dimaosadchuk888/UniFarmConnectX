@@ -30,12 +30,10 @@ class WalletNotConnectedError extends Error {
 interface TonBoostPackage {
   id: number;
   name: string;
-  description: string;
-  price_ton: string;
-  bonus_uni: string;
-  daily_rate: string;
-  is_active: boolean;
-  created_at: string;
+  priceTon: string;
+  bonusUni: string;
+  rateTon: string;
+  rateUni: string;
 }
 
 interface ExternalPaymentDataType {
@@ -49,75 +47,33 @@ const BoostPackagesCard: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tonConnectUI] = useTonConnectUI();
-  const userContext = useUser();
-  const user = userContext?.user;
+  const { user } = useUser();
   const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState<boolean>(false);
   const [externalPaymentDialogOpen, setExternalPaymentDialogOpen] = useState<boolean>(false);
   const [externalPaymentData, setExternalPaymentData] = useState<ExternalPaymentDataType | null>(null);
 
-  // Получаем список оригинальных TON Boost-пакетов из API
+  // Получаем список доступных TON Boost-пакетов
   const { data, isLoading: isLoadingPackages } = useQuery({
     queryKey: ['/api/ton-boosts'],
     queryFn: async () => {
       try {
-        console.log('[TON Boost] Запрос пакетов с /api/ton-boosts');
-        const response = await fetch('/api/ton-boosts', {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-          credentials: 'same-origin'
-        });
-        
-        console.log('[TON Boost] Ответ сервера:', response.status, response.statusText);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('[TON Boost] Ошибка ответа:', errorText);
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        console.log('[TON Boost] Полученные данные:', result);
-        
-        if (result.success && Array.isArray(result.data)) {
-          console.log('[TON Boost] Загружены оригинальные пакеты из API:', result.data.length, 'пакетов');
-          result.data.forEach((pkg: any, index: number) => {
-            console.log(`[TON Boost] Пакет ${index + 1}: ${pkg.name} - ${pkg.price_ton} TON, ${pkg.bonus_uni} UNI`);
-          });
-          return result.data;
-        } else {
-          throw new Error('Неверный формат ответа API');
-        }
+        const response = await correctApiRequest('/api/ton-boosts', 'GET');
+        return response.success ? response.data as TonBoostPackage[] : [];
       } catch (error) {
-        console.error('[TON Boost] Ошибка загрузки пакетов:', error);
-        throw error;
+        console.error("Failed to fetch TON Boost packages:", error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить TON Boost-пакеты",
+          variant: "destructive",
+        });
+        return [];
       }
-    },
-    staleTime: 5 * 60 * 1000, // Кешируем на 5 минут
-    refetchInterval: 30000, // Обновляем каждые 30 секунд
-    retry: 3, // Повторяем запрос 3 раза при ошибке
-    retryDelay: 1000, // Задержка между попытками 1 секунда
+    }
   });
 
   const boostPackages = data || [];
-  
-  console.log('[TON BOOST] Загружено пакетов из API:', boostPackages.length);
-  console.log('[TON BOOST] Состояние загрузки:', isLoadingPackages);
-  console.log('[TON BOOST] Полные данные пакетов:', boostPackages);
-  
-  if (boostPackages.length > 0) {
-    console.log('[TON BOOST] Первый пакет:', boostPackages[0]);
-    console.log('[TON BOOST] Отображаемые значения:');
-    boostPackages.forEach((pkg: any, index: number) => {
-      console.log(`  Пакет ${index + 1}: ${pkg.name} - цена: ${pkg.price_ton} TON, бонус: ${pkg.bonus_uni} UNI`);
-    });
-  } else {
-    console.warn('[TON BOOST] Нет данных для отображения - используются заглушки');
-  }
 
   // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету
   const handleBoostClick = (boostId: number) => {
@@ -217,7 +173,7 @@ const BoostPackagesCard: React.FC = () => {
             messages: [
               {
                 address: tonConnectUI?.wallet?.account?.address || '',
-                amount: (parseFloat(selectedPackage.price_ton) * 1e9).toString(),
+                amount: (parseFloat(selectedPackage.priceTon) * 1e9).toString(),
                 payload: transactionComment
               }
             ]
@@ -377,11 +333,10 @@ const BoostPackagesCard: React.FC = () => {
                   <div className="flex-1">
                     <div className="font-semibold">{pkg.name}</div>
                     <div className="text-sm text-muted-foreground space-y-1">
-                      <div className="mb-1">{pkg.description}</div>
-                      <div>💰 Цена: {pkg.price_ton} TON</div>
-                      <div>🎁 Бонус: {parseInt(pkg.bonus_uni).toLocaleString()} UNI</div>
-                      <div>📈 Доходность TON: {pkg.daily_rate}% в день</div>
-                      <div>📈 Доходность UNI: {pkg.daily_rate}% в день</div>
+                      <div>💰 Цена: {formatNumberWithPrecision(pkg.priceTon, 2)} TON</div>
+                      <div>🎁 Бонус: {formatNumberWithPrecision(pkg.bonusUni, 0)} UNI</div>
+                      <div>📈 Доходность TON: {formatNumberWithPrecision(pkg.rateTon, 2)}% в день</div>
+                      <div>📈 Доходность UNI: {formatNumberWithPrecision(pkg.rateUni, 2)}% в день</div>
                     </div>
                   </div>
                   <Button 

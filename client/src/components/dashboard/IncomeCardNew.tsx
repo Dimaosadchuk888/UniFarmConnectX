@@ -51,14 +51,14 @@ const IncomeCardNew: React.FC = () => {
   
   // Получаем данные фарминга
   const { data: uniFarmingInfo } = useQuery({
-    queryKey: ['/api/v2/uni-farming/status', validUserId],
-    queryFn: () => correctApiRequest(`/api/v2/uni-farming/status?user_id=${validUserId}`),
+    queryKey: ['/api/uni-farming/status', validUserId],
+    queryFn: () => correctApiRequest(`/api/uni-farming/status?user_id=${validUserId}`),
     refetchInterval: 5000,
   });
 
   const { data: tonFarmingInfo } = useQuery({
-    queryKey: ['/api/v2/ton-boosts/active', validUserId],
-    queryFn: () => correctApiRequest(`/api/v2/ton-boosts/active?user_id=${validUserId}`),
+    queryKey: ['/api/ton-boost/farming-status', validUserId],
+    queryFn: () => correctApiRequest(`/api/ton-boost/farming-status?user_id=${validUserId}`),
     refetchInterval: 5000,
   });
 
@@ -164,7 +164,7 @@ const IncomeCardNew: React.FC = () => {
         )}
 
         {/* TON Boost Farming */}
-        {tonFarming.deposits && tonFarming.deposits.length > 0 && (
+        {tonFarming.deposits.length > 0 && (
           <div className="bg-black/20 rounded-lg p-4">
             <div className="text-sm text-purple-300 mb-1">TON Boost</div>
             <div className="flex justify-between items-center">
