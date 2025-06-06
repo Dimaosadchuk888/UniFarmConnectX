@@ -10,13 +10,13 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, activeTab, onTabChange }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex flex-col">
       {/* Top Bar */}
       <Header />
       
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar pb-20">
-        <div className="min-h-full">
+      <main className="flex-1 w-full overflow-y-auto overflow-x-hidden custom-scrollbar pb-20 px-4">
+        <div className="min-h-full w-full max-w-md mx-auto">
           {children}
         </div>
       </main>
