@@ -1199,12 +1199,25 @@ async function startServer() {
       res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
     });
 
+    // Создание HTTP сервера
+    const httpServer = createServer(app);
+
+    // Настройка статических файлов и Vite в зависимости от окружения
+    // Принудительно используем Vite middleware для отображения в превью
+    const isDev = config.app.nodeEnv === 'development' || process.env.NODE_ENV !== 'production';
+    
+    if (isDev) {
+      // В режиме разработки используем Vite middleware
+      await setupVite(app, httpServer);
+      console.log('✅ Vite middleware настроен для development режима');
+    } else {
+      serveStatic(app);
+      console.log('✅ Статические файлы настроены для production режима');
+    }
+
     // Обработка ошибок
     app.use(notFoundHandler);
     app.use(globalErrorHandler);
-
-    // Создание HTTP сервера
-    const httpServer = createServer(app);
     
     // Настройка WebSocket сервера
     const wss = new WebSocketServer({ server: httpServer });
