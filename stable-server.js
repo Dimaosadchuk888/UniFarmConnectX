@@ -49,9 +49,9 @@ async function startServer() {
     console.log(`Environment: ${process.env.NODE_ENV}`);
     console.log(`Port: ${process.env.PORT || 3000}`);
     
-    // Use simple preview for TypeScript compilation
+    // Use working preview for TypeScript compilation
     console.log('Loading application with Vite...');
-    await import('./simple-preview.js');
+    await import('./working-preview.js');
     
     console.log('✅ UniFarm preview server started successfully');
   } catch (error) {
