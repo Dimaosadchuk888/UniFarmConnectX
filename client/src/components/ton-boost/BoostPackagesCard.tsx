@@ -349,9 +349,10 @@ const BoostPackagesCard: React.FC = () => {
                     <div className="font-semibold">{pkg.name}</div>
                     <div className="text-sm text-muted-foreground space-y-1">
                       <div className="mb-1">{pkg.description}</div>
-                      <div>💰 Цена: {pkg.id === 1 ? "1" : pkg.id === 2 ? "5" : pkg.id === 3 ? "15" : "25"} TON</div>
-                      <div>🎁 Бонус: {pkg.id === 1 ? "10,000" : pkg.id === 2 ? "75,000" : pkg.id === 3 ? "250,000" : "500,000"} UNI</div>
-                      <div>📈 Доходность: {pkg.id === 1 ? "0.5" : pkg.id === 2 ? "1" : pkg.id === 3 ? "2" : "2.5"}% в день</div>
+                      <div>💰 Цена: {pkg.price_ton} TON</div>
+                      <div>🎁 Бонус: {parseInt(pkg.bonus_uni).toLocaleString()} UNI</div>
+                      <div>📈 Доходность TON: {pkg.daily_rate}% в день</div>
+                      <div>📈 Доходность UNI: {pkg.daily_rate}% в день</div>
                     </div>
                   </div>
                   <Button 
