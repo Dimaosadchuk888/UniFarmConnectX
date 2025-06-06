@@ -20,9 +20,7 @@ export default defineConfig({
   server: {
     port: 3000
   },
-  optimizeDeps: {
-    include: ['@types/node']
-  },
+
   define: {
     // 'process.env': process.env // Удалено ради безопасности
   }
