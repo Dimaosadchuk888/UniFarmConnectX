@@ -922,7 +922,7 @@ async function startServer() {
       }
     });
 
-    // TON Boost check payment endpoint
+    // TON Boost check payment endpoint (both legacy and v2)
     app.get('/api/ton-boosts/check-payment', async (req: any, res: any) => {
       try {
         const { user_id, transaction_id } = req.query;
@@ -957,8 +957,97 @@ async function startServer() {
       }
     });
 
-    // TON Boost farming status endpoint
+    // V2 TON Boost check payment endpoint
+    app.get(`${apiPrefix}/ton-boosts/check-payment`, async (req: any, res: any) => {
+      try {
+        const { user_id, transaction_id } = req.query;
+        
+        if (!user_id || !transaction_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id and transaction_id parameters are required'
+          });
+        }
+
+        // Check if payment exists in database
+        const deposits = await db.select()
+          .from(tonBoostDeposits)
+          .where(eq(tonBoostDeposits.user_id, parseInt(user_id)))
+          .limit(10);
+
+        const foundDeposit = deposits.find(d => d.transaction_hash === transaction_id);
+
+        res.json({
+          success: true,
+          data: {
+            payment_confirmed: !!foundDeposit,
+            deposit: foundDeposit || null
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // TON Boost farming status endpoint (both legacy and v2)
     app.get('/api/ton-boost/farming-status', async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        const [user] = await db.select()
+          .from(users)
+          .where(eq(users.id, parseInt(user_id)))
+          .limit(1);
+
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+
+        // Get active TON boost deposits
+        const activeDeposits = await db.select()
+          .from(tonBoostDeposits)
+          .where(eq(tonBoostDeposits.user_id, parseInt(user_id)));
+
+        const totalInvested = activeDeposits.reduce((sum, deposit) => 
+          sum + parseFloat(deposit.amount_ton || '0'), 0);
+
+        const dailyRate = activeDeposits.reduce((sum, deposit) => 
+          sum + parseFloat(deposit.daily_rate || '0'), 0);
+
+        res.json({
+          success: true,
+          data: {
+            isActive: activeDeposits.length > 0,
+            totalInvested: totalInvested.toString(),
+            dailyRate: dailyRate.toString(),
+            currentBalance: user.balance_ton || '0',
+            activeDeposits: activeDeposits.length,
+            lastUpdate: user.updated_at || null
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // V2 TON Boost farming status endpoint  
+    app.get(`${apiPrefix}/ton-boost/farming-status`, async (req: any, res: any) => {
       try {
         const { user_id } = req.query;
         
