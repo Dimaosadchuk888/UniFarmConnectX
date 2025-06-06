@@ -220,65 +220,133 @@ async function startServer() {
       }
     });
 
-    // Add missing v2 endpoints that frontend expects
-    app.get(`${apiPrefix}/users/profile`, async (req: any, res: any) => {
-      try {
-        // Return user data without requiring user_id parameter
-        const userData = {
-          id: 1,
-          guest_id: 'guest_' + Date.now(),
-          balance_uni: '0',
-          balance_ton: '0',
-          uni_farming_balance: '0',
-          uni_farming_rate: '0',
-          uni_deposit_amount: '0',
-          uni_farming_start_timestamp: null,
-          uni_farming_last_update: null
-        };
+    // User Profile API - работает без базы данных
+    app.get(`${apiPrefix}/users/profile`, (req: any, res: any) => {
+      const userData = {
+        id: 1,
+        guest_id: 'guest_demo_' + Date.now(),
+        balance_uni: '1000.000000',
+        balance_ton: '5.500000',
+        uni_farming_balance: '250.000000',
+        uni_farming_rate: '0.500000',
+        uni_deposit_amount: '500.000000',
+        uni_farming_start_timestamp: new Date().toISOString(),
+        uni_farming_last_update: new Date().toISOString(),
+        uni_farming_active: true
+      };
 
-        res.json({
-          success: true,
-          data: userData
-        });
-      } catch (error: any) {
-        res.status(500).json({
-          success: false,
-          error: error.message || 'Internal server error'
-        });
-      }
+      res.json({
+        success: true,
+        data: userData
+      });
     });
 
-    app.get(`${apiPrefix}/daily-bonus/status`, async (req: any, res: any) => {
-      try {
-        res.json({
-          success: true,
-          data: {
-            can_claim: true,
-            streak: 1,
-            last_claim_date: null,
-            next_claim_time: null,
-            bonus_amount: 100
-          }
-        });
-      } catch (error: any) {
-        res.status(500).json({
-          success: false,
-          error: error.message || 'Internal server error'
-        });
-      }
+    // Daily bonus status API - работает без базы данных
+    app.get(`${apiPrefix}/daily-bonus/status`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          can_claim: true,
+          streak: 1,
+          last_claim_date: null,
+          next_claim_time: null,
+          bonus_amount: 100
+        }
+      });
     });
 
-    app.get(`${apiPrefix}/ton-farming/info`, async (req: any, res: any) => {
+    // TON Farming info API - работает без базы данных
+    app.get(`${apiPrefix}/ton-farming/info`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          deposit_amount: 2.5,
+          farming_balance: 0.15,
+          farming_rate: 0.0001,
+          is_active: true,
+          last_update: new Date().toISOString()
+        }
+      });
+    });
+
+    // UNI Farming status API - работает без базы данных  
+    app.get(`${apiPrefix}/uni-farming/status`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          isActive: true,
+          depositAmount: '500.000000',
+          ratePerSecond: '0.000006',
+          totalRatePerSecond: '0.000006',
+          depositCount: 1,
+          totalDepositAmount: '500.000000'
+        }
+      });
+    });
+
+    // Wallet balance API - работает без базы данных
+    app.get(`${apiPrefix}/wallet/balance`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          balance_uni: '1000.000000',
+          balance_ton: '5.500000',
+          uni_farming_balance: '250.000000',
+          accumulated_ton: '0.150000'
+        }
+      });
+    });
+
+    // Missions API - работает без базы данных
+    app.get(`${apiPrefix}/missions`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: [
+          {
+            id: 1,
+            type: 'social',
+            title: 'Подписаться на Telegram канал',
+            description: 'Подпишитесь на наш официальный Telegram канал',
+            reward_uni: '100.000000',
+            is_active: true
+          },
+          {
+            id: 2,
+            type: 'invite',
+            title: 'Пригласить друга',
+            description: 'Пригласите друга и получите бонус',
+            reward_uni: '200.000000',
+            is_active: true
+          }
+        ]
+      });
+    });
+
+    // Старая версия API поддержки (legacy)
+    app.get('/api/missions', (req: any, res: any) => {
       try {
+        const missionsList = [
+          {
+            id: 1,
+            type: 'social',
+            title: 'Подписаться на Telegram канал',
+            description: 'Подпишитесь на наш официальный Telegram канал',
+            reward_uni: '100.000000',
+            is_active: true
+          },
+          {
+            id: 2,
+            type: 'invite', 
+            title: 'Пригласить друга',
+            description: 'Пригласите друга и получите бонус',
+            reward_uni: '200.000000',
+            is_active: true
+          }
+        ];
+        
         res.json({
           success: true,
-          data: {
-            deposit_amount: 0,
-            farming_balance: 0,
-            farming_rate: 0,
-            is_active: false,
-            last_update: null
-          }
+          data: missionsList
         });
       } catch (error: any) {
         res.status(500).json({
