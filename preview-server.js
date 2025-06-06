@@ -25,9 +25,24 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from client directory
-app.use(express.static(path.join(__dirname, 'client')));
-app.use('/src', express.static(path.join(__dirname, 'client', 'src')));
+// Serve client files with proper content types
+app.use(express.static(path.join(__dirname, 'client'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.tsx') || path.endsWith('.ts')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+    if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    }
+  }
+}));
+app.use('/src', express.static(path.join(__dirname, 'client', 'src'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.tsx') || path.endsWith('.ts')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+  }
+}));
 app.use('/node_modules', express.static(path.join(__dirname, 'node_modules')));
 
 // Health check
