@@ -62,14 +62,32 @@ const BoostPackagesCard: React.FC = () => {
     queryKey: ['/api/ton-boosts'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/ton-boosts');
+        console.log('[TON Boost] Запрос пакетов с /api/ton-boosts');
+        const response = await fetch('/api/ton-boosts', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          credentials: 'same-origin'
+        });
+        
+        console.log('[TON Boost] Ответ сервера:', response.status, response.statusText);
+        
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[TON Boost] Ошибка ответа:', errorText);
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+        
         const result = await response.json();
+        console.log('[TON Boost] Полученные данные:', result);
         
         if (result.success && Array.isArray(result.data)) {
-          console.log('[TON Boost] Загружены оригинальные пакеты из API:', result.data);
+          console.log('[TON Boost] Загружены оригинальные пакеты из API:', result.data.length, 'пакетов');
+          result.data.forEach((pkg: any, index: number) => {
+            console.log(`[TON Boost] Пакет ${index + 1}: ${pkg.name} - ${pkg.price_ton} TON, ${pkg.bonus_uni} UNI`);
+          });
           return result.data;
         } else {
           throw new Error('Неверный формат ответа API');
@@ -81,13 +99,24 @@ const BoostPackagesCard: React.FC = () => {
     },
     staleTime: 5 * 60 * 1000, // Кешируем на 5 минут
     refetchInterval: 30000, // Обновляем каждые 30 секунд
+    retry: 3, // Повторяем запрос 3 раза при ошибке
+    retryDelay: 1000, // Задержка между попытками 1 секунда
   });
 
   const boostPackages = data || [];
   
   console.log('[TON BOOST] Загружено пакетов из API:', boostPackages.length);
+  console.log('[TON BOOST] Состояние загрузки:', isLoadingPackages);
+  console.log('[TON BOOST] Полные данные пакетов:', boostPackages);
+  
   if (boostPackages.length > 0) {
     console.log('[TON BOOST] Первый пакет:', boostPackages[0]);
+    console.log('[TON BOOST] Отображаемые значения:');
+    boostPackages.forEach((pkg: any, index: number) => {
+      console.log(`  Пакет ${index + 1}: ${pkg.name} - цена: ${pkg.price_ton} TON, бонус: ${pkg.bonus_uni} UNI`);
+    });
+  } else {
+    console.warn('[TON BOOST] Нет данных для отображения - используются заглушки');
   }
 
   // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету
