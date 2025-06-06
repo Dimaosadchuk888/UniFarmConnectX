@@ -51,14 +51,14 @@ const IncomeCardNew: React.FC = () => {
   
   // Получаем данные фарминга
   const { data: uniFarmingInfo } = useQuery({
-    queryKey: ['/api/uni-farming/status', validUserId],
-    queryFn: () => correctApiRequest(`/api/uni-farming/status?user_id=${validUserId}`),
+    queryKey: ['/api/v2/uni-farming/status', validUserId],
+    queryFn: () => correctApiRequest(`/api/v2/uni-farming/status?user_id=${validUserId}`),
     refetchInterval: 5000,
   });
 
   const { data: tonFarmingInfo } = useQuery({
-    queryKey: ['/api/ton-boost/farming-status', validUserId],
-    queryFn: () => correctApiRequest(`/api/ton-boost/farming-status?user_id=${validUserId}`),
+    queryKey: ['/api/v2/ton-boosts/active', validUserId],
+    queryFn: () => correctApiRequest(`/api/v2/ton-boosts/active?user_id=${validUserId}`),
     refetchInterval: 5000,
   });
 
