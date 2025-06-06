@@ -45,6 +45,7 @@ api.get('/api/v2/users/profile', (req, res) => {
   });
 });
 
+// Daily bonus endpoints
 api.get('/api/v2/daily-bonus/status', (req, res) => {
   res.json({
     success: true,
@@ -54,6 +55,80 @@ api.get('/api/v2/daily-bonus/status', (req, res) => {
       reward: 100,
       next_bonus_in: 3600000
     }
+  });
+});
+
+// Missions endpoints
+api.get('/api/v2/missions', (req, res) => {
+  res.json({
+    success: true,
+    data: [
+      {
+        id: 1,
+        title: "Ежедневный вход",
+        description: "Заходите в приложение каждый день",
+        reward: 50,
+        progress: 0.8,
+        completed: false,
+        type: "daily"
+      },
+      {
+        id: 2,
+        title: "Пригласить друга",
+        description: "Пригласите друга в UniFarm",
+        reward: 200,
+        progress: 0.5,
+        completed: false,
+        type: "referral"
+      }
+    ]
+  });
+});
+
+// Referral endpoints
+api.get('/api/v2/referrals/stats', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      total_referrals: 5,
+      active_referrals: 3,
+      total_earned: 1500,
+      referral_code: "UNIFARM2024"
+    }
+  });
+});
+
+// Wallet endpoints
+api.get('/api/v2/wallet/balance', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      balance: 12450,
+      ton_balance: 2.5,
+      connected: false
+    }
+  });
+});
+
+api.get('/api/v2/wallet/transactions', (req, res) => {
+  res.json({
+    success: true,
+    data: [
+      {
+        id: 1,
+        type: "farming",
+        amount: 150,
+        timestamp: Date.now() - 3600000,
+        status: "completed"
+      },
+      {
+        id: 2,
+        type: "mission",
+        amount: 50,
+        timestamp: Date.now() - 7200000,
+        status: "completed"
+      }
+    ]
   });
 });
 
