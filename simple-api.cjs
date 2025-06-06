@@ -1,5 +1,11 @@
-const express = require('express');
-const cors = require('cors');
+let express, cors;
+try {
+  express = require('express');
+  cors = require('cors');
+} catch (e) {
+  console.error('Ошибка загрузки модулей:', e.message);
+  process.exit(1);
+}
 
 const app = express();
 const PORT = 3001;
