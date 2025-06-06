@@ -49,9 +49,9 @@ async function startServer() {
     console.log(`Environment: ${process.env.NODE_ENV}`);
     console.log(`Port: ${process.env.PORT || 3000}`);
     
-    // Use preview server for better compatibility
-    console.log('Loading preview server...');
-    await import('./preview-server.js');
+    // Use start.js for better workflow detection
+    console.log('Loading application...');
+    await import('./start.js');
     
     console.log('✅ UniFarm preview server started successfully');
   } catch (error) {
