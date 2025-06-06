@@ -1,4 +1,0 @@
-run = "node test-server.js"
-
-[deployment]
-run = ["sh", "-c", "node test-server.js"]
