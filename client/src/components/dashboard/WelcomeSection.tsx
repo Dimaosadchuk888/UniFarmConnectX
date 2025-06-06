@@ -67,13 +67,10 @@ const WelcomeSection: React.FC = () => {
   }, [userData]);
   
   return (
-    <div className="welcome-card-bg subtle-pattern rounded-xl p-5 mb-6 shadow-lg shadow-primary/20 backdrop-blur-md border border-white/10 overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-purple-600/5 via-transparent to-accent/5"></div>
+    <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30 rounded-xl p-5 mb-6 border overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-purple-600/10 via-transparent to-pink-600/10"></div>
       
-      {/* Тонкая светящаяся линия сверху */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-      
-      {/* Главный контент с лого и минималистичным дизайном */}
+      {/* Главный контент с лого и современным дизайном */}
       <div className="relative flex items-start justify-between">
         {/* Лого UniFarm с эффектом парения */}
         <div className="flex items-center float-animation">
