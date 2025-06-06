@@ -18,7 +18,16 @@ export default defineConfig({
     emptyOutDir: true
   },
   server: {
-    port: 3000
+    host: '0.0.0.0',
+    port: 3000,
+    allowedHosts: [
+      'localhost',
+      '.replit.dev',
+      '.replit.co', 
+      '.replit.app',
+      '.sisko.replit.dev',
+      'b5a0c2c0-8ae5-4c76-805d-b6526b5c71bf-00-3g55kazsjo72c.sisko.replit.dev'
+    ]
   },
 
   define: {
