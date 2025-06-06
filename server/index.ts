@@ -50,6 +50,16 @@ async function startServer() {
     // API routes
     const apiPrefix = `/api/v2`;
     
+    // Health check endpoint for v2 API
+    app.get(`${apiPrefix}/health`, (req, res) => {
+      res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        version: config.app.apiVersion,
+        environment: config.app.nodeEnv
+      });
+    });
+    
     // Legacy API support for v1 endpoints
     app.get('/api/user/current', async (req: any, res: any) => {
       try {
