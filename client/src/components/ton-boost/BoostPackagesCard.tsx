@@ -59,10 +59,10 @@ const BoostPackagesCard: React.FC = () => {
 
   // Получаем список оригинальных TON Boost-пакетов из API
   const { data, isLoading: isLoadingPackages } = useQuery({
-    queryKey: ['/api/v2/ton-boosts'],
+    queryKey: ['/api/ton-boosts'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/v2/ton-boosts');
+        const response = await fetch('/api/ton-boosts');
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
