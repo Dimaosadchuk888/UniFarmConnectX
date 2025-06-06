@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
       <DailyBonusCard />
 
       {/* UNI Фарминг карточка */}
-      <UniFarmingCardWithErrorBoundary userData={userData} />
+      <UniFarmingCardWithErrorBoundary />
 
       {/* Индикатор статуса системы для диагностики */}
       {process.env.NODE_ENV !== 'production' && (
