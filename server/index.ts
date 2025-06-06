@@ -870,6 +870,147 @@ async function startServer() {
       }
     });
 
+    // Missing API endpoints to fix 404 errors
+
+    // UNI Farming Status endpoint (legacy support)
+    app.get('/api/uni-farming/status', async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        const [user] = await db.select()
+          .from(users)
+          .where(eq(users.id, parseInt(user_id)))
+          .limit(1);
+
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+
+        const isActive = !!user.uni_farming_start_timestamp;
+        const depositAmount = user.uni_deposit_amount || '0';
+        const ratePerSecond = user.uni_farming_rate || '0';
+        
+        res.json({
+          success: true,
+          data: {
+            isActive: isActive,
+            depositAmount: depositAmount,
+            ratePerSecond: ratePerSecond,
+            totalRatePerSecond: ratePerSecond,
+            depositCount: isActive ? 1 : 0,
+            totalDepositAmount: depositAmount,
+            dailyIncomeUni: (parseFloat(ratePerSecond) * 86400).toString(),
+            startDate: user.uni_farming_start_timestamp,
+            lastUpdate: user.uni_farming_last_update || null
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // TON Boost check payment endpoint
+    app.get('/api/ton-boosts/check-payment', async (req: any, res: any) => {
+      try {
+        const { user_id, transaction_id } = req.query;
+        
+        if (!user_id || !transaction_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id and transaction_id parameters are required'
+          });
+        }
+
+        // Check if payment exists in database
+        const deposits = await db.select()
+          .from(tonBoostDeposits)
+          .where(eq(tonBoostDeposits.user_id, parseInt(user_id)))
+          .limit(10);
+
+        const foundDeposit = deposits.find(d => d.transaction_hash === transaction_id);
+
+        res.json({
+          success: true,
+          data: {
+            payment_confirmed: !!foundDeposit,
+            deposit: foundDeposit || null
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
+    // TON Boost farming status endpoint
+    app.get('/api/ton-boost/farming-status', async (req: any, res: any) => {
+      try {
+        const { user_id } = req.query;
+        
+        if (!user_id) {
+          return res.status(400).json({
+            success: false,
+            error: 'user_id parameter is required'
+          });
+        }
+
+        const [user] = await db.select()
+          .from(users)
+          .where(eq(users.id, parseInt(user_id)))
+          .limit(1);
+
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+
+        // Get active TON boost deposits
+        const activeDeposits = await db.select()
+          .from(tonBoostDeposits)
+          .where(eq(tonBoostDeposits.user_id, parseInt(user_id)));
+
+        const totalInvested = activeDeposits.reduce((sum, deposit) => 
+          sum + parseFloat(deposit.amount_ton || '0'), 0);
+
+        const dailyRate = activeDeposits.reduce((sum, deposit) => 
+          sum + parseFloat(deposit.daily_rate || '0'), 0);
+
+        res.json({
+          success: true,
+          data: {
+            isActive: activeDeposits.length > 0,
+            totalInvested: totalInvested.toString(),
+            dailyRate: dailyRate.toString(),
+            currentBalance: user.balance_ton || '0',
+            activeDeposits: activeDeposits.length,
+            lastUpdate: user.updated_at || null
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
     // Legacy transactions API support
     app.get('/api/transactions', async (req: any, res: any) => {
       try {
