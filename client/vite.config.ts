@@ -14,6 +14,13 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
+    allowedHosts: [
+      'localhost',
+      '.replit.dev',
+      '.replit.co', 
+      '.replit.app',
+      '.sisko.replit.dev'
+    ],
     proxy: {
       '/api': 'http://localhost:3001'
     }
