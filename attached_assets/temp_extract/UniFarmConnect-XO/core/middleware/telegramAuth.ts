@@ -1,0 +1,48 @@
+import { Request, Response, NextFunction } from 'express';
+
+/**
+ * Middleware для перевірки Telegram авторизації
+ */
+export function requireTelegramAuth(req: Request, res: Response, next: NextFunction): void {
+  try {
+    const telegramUser = (req as any).telegram?.user;
+    const isValidated = (req as any).telegram?.validated;
+    
+    if (!telegramUser || !isValidated) {
+      res.status(401).json({
+        success: false,
+        error: 'Требуется авторизация через Telegram Mini App'
+      });
+      return;
+    }
+
+    // Додаємо telegramUser до req для подальшого використання
+    (req as any).telegramUser = telegramUser;
+    next();
+  } catch (error) {
+    console.error('[TelegramAuth] Ошибка проверки авторизации:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Ошибка проверки авторизации'
+    });
+  }
+}
+
+/**
+ * Опціональний middleware для Telegram авторизації
+ */
+export function optionalTelegramAuth(req: Request, res: Response, next: NextFunction): void {
+  try {
+    const telegramUser = (req as any).telegram?.user;
+    const isValidated = (req as any).telegram?.validated;
+    
+    if (telegramUser && isValidated) {
+      (req as any).telegramUser = telegramUser;
+    }
+    
+    next();
+  } catch (error) {
+    console.error('[TelegramAuth] Ошибка опциональной авторизации:', error);
+    next();
+  }
+}
