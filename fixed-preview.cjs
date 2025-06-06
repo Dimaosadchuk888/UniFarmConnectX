@@ -10,7 +10,7 @@ const path = require('path');
 console.log('🚀 Запуск исправленного UniFarm сервера...');
 
 // Запускаем API сервер на порту 3001
-const apiServer = spawn('node', ['simple-api-server.js'], {
+const apiServer = spawn('node', ['simple-api-server.cjs'], {
   stdio: 'inherit',
   env: { ...process.env, PORT: '3001' }
 });
