@@ -57,68 +57,38 @@ const BoostPackagesCard: React.FC = () => {
   const [externalPaymentDialogOpen, setExternalPaymentDialogOpen] = useState<boolean>(false);
   const [externalPaymentData, setExternalPaymentData] = useState<ExternalPaymentDataType | null>(null);
 
-  // Получаем список доступных TON Boost-пакетов с правильными бизнес-значениями
+  // Получаем список оригинальных TON Boost-пакетов из API
   const { data, isLoading: isLoadingPackages } = useQuery({
-    queryKey: ['ton-boost-packages-business-data', 'v3-force-refresh', Date.now()],
+    queryKey: ['/api/v2/ton-boosts'],
     queryFn: async () => {
-      // Возвращаем правильные бизнес-данные из документации проекта
-      const packages: TonBoostPackage[] = [
-        {
-          id: 1,
-          name: "Starter Boost",
-          description: "Начальный пакет для изучения TON Farming",
-          price_ton: "1",
-          bonus_uni: "10000",
-          daily_rate: "0.5",
-          is_active: true,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 2,
-          name: "Standard Boost",
-          description: "Стандартный пакет с повышенной доходностью",
-          price_ton: "5",
-          bonus_uni: "75000",
-          daily_rate: "1",
-          is_active: true,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 3,
-          name: "Advanced Boost",
-          description: "Продвинутый пакет для активных пользователей",
-          price_ton: "15",
-          bonus_uni: "250000",
-          daily_rate: "2",
-          is_active: true,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 4,
-          name: "Premium Boost",
-          description: "Премиум пакет с максимальной доходностью",
-          price_ton: "25",
-          bonus_uni: "500000",
-          daily_rate: "2.5",
-          is_active: true,
-          created_at: new Date().toISOString()
+      try {
+        const response = await fetch('/api/v2/ton-boosts');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-      ];
-      
-      console.log('[TON Boost] Загружены корректные бизнес-данные:', packages);
-      console.log('[TON Boost] Первый пакет цена:', packages[0].price_ton, 'TON');
-      console.log('[TON Boost] Первый пакет бонус:', packages[0].bonus_uni, 'UNI');
-      return packages;
+        const result = await response.json();
+        
+        if (result.success && Array.isArray(result.data)) {
+          console.log('[TON Boost] Загружены оригинальные пакеты из API:', result.data);
+          return result.data;
+        } else {
+          throw new Error('Неверный формат ответа API');
+        }
+      } catch (error) {
+        console.error('[TON Boost] Ошибка загрузки пакетов:', error);
+        throw error;
+      }
     },
-    staleTime: Infinity // Кешируем навсегда, так как это статичные бизнес-данные
+    staleTime: 5 * 60 * 1000, // Кешируем на 5 минут
+    refetchInterval: 30000, // Обновляем каждые 30 секунд
   });
 
   const boostPackages = data || [];
   
-  console.log('[TON BOOST COMPONENT] Загружен компонент BoostPackagesCard');
-  console.log('[TON BOOST COMPONENT] Количество пакетов для отображения:', boostPackages.length);
-  console.log('[TON BOOST COMPONENT] Первый пакет данные:', boostPackages[0]);
-  console.log('[DEBUG] Final boostPackages for rendering:', boostPackages);
+  console.log('[TON BOOST] Загружено пакетов из API:', boostPackages.length);
+  if (boostPackages.length > 0) {
+    console.log('[TON BOOST] Первый пакет:', boostPackages[0]);
+  }
 
   // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету
   const handleBoostClick = (boostId: number) => {
@@ -367,9 +337,6 @@ const BoostPackagesCard: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="mb-4 p-2 bg-green-900/20 border border-green-500/30 rounded text-green-400 text-xs">
-            DEBUG: Загружено {boostPackages.length} пакетов. Первый пакет: {boostPackages[0]?.name} - {boostPackages[0]?.price_ton} TON
-          </div>
           {boostPackages.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Пакеты недоступны
