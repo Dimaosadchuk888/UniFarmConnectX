@@ -10,7 +10,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, activeTab, onTabChange }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 flex flex-col">
       {/* Top Bar */}
       <Header />
       
