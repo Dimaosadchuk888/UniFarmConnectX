@@ -83,11 +83,15 @@ api.listen(apiPort, '0.0.0.0', () => {
   console.log(`API server running on port ${apiPort}`);
 });
 
-// Start Vite with explicit port binding
+// Start Vite with explicit port binding and allowed hosts
 const viteProcess = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', port, '--force'], {
   cwd: path.join(__dirname, 'client'),
   stdio: 'inherit',
-  env: { ...process.env, FORCE_COLOR: '1' }
+  env: { 
+    ...process.env, 
+    FORCE_COLOR: '1',
+    VITE_ALLOWED_HOSTS: 'all'
+  }
 });
 
 viteProcess.on('error', (err) => {
