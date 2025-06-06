@@ -17,16 +17,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@/components/*": ["src/components/*"],
-      "@/services/*": ["src/services/*"],
-      "@/lib/*": ["src/lib/*"],
-      "@/utils/*": ["src/utils/*"],
-      "@/hooks/*": ["src/hooks/*"],
-      "@/contexts/*": ["src/contexts/*"],
-      "@/pages/*": ["src/pages/*"],
-      "@/layouts/*": ["src/layouts/*"],
-      "@/modules/*": ["src/modules/*"],
-      "@/shared/*": ["src/shared/*"],
       "@shared/*": ["../shared/*"],
       "@assets/*": ["../attached_assets/*"]
     }
