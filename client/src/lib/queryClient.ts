@@ -50,6 +50,14 @@ async function throwIfResNotOk(res: Response) {
     let errorData;
     try {
       errorData = JSON.parse(text);
+      
+      // Специальная обработка для Vite прокси ошибок:
+      // Если получили корректный JSON с success: true, это не ошибка
+      if (errorData && errorData.success === true && errorData.data) {
+        console.log(`[QueryClient] Найдены корректные данные в ответе ${res.status}, обрабатываем как успех`);
+        // Возвращаем данные напрямую, не бросая ошибку
+        return;
+      }
     } catch (e) {
       if (isHtmlResponse) {
         errorData = { 

@@ -164,7 +164,7 @@ const IncomeCardNew: React.FC = () => {
         )}
 
         {/* TON Boost Farming */}
-        {tonFarming.deposits.length > 0 && (
+        {tonFarming.deposits && tonFarming.deposits.length > 0 && (
           <div className="bg-black/20 rounded-lg p-4">
             <div className="text-sm text-purple-300 mb-1">TON Boost</div>
             <div className="flex justify-between items-center">

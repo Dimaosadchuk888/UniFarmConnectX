@@ -45,14 +45,29 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
   try {
     const response = await fetch(url, requestConfig);
     
-    // Проверяем статус ответа
+    // Получаем текст ответа один раз
+    const responseText = await response.text();
+    let responseData;
+    
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(`Некорректный JSON ответ: ${responseText.substring(0, 100)}`);
+    }
+    
+    // Специальная обработка для Vite прокси:
+    // Если данные корректные (success: true), возвращаем их независимо от HTTP статуса
+    if (responseData && responseData.success === true && responseData.data) {
+      return responseData;
+    }
+    
+    // Проверяем статус ответа только если данные некорректные
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(responseData.message || responseData.error || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    // Возвращаем JSON данные
-    return await response.json();
+    // Возвращаем данные
+    return responseData;
   } catch (error) {
     console.error('API Request Error:', error);
     throw error;
