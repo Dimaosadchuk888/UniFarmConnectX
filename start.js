@@ -12,8 +12,8 @@ console.log('🚀 Starting UniFarm Application...');
 process.env.NODE_ENV = 'development';
 process.env.PORT = process.env.PORT || '3000';
 
-// Start the preview server
-const server = spawn('node', ['preview-server.js'], {
+// Start the backend server with tsx for TypeScript support
+const server = spawn('npx', ['tsx', 'server/index.ts'], {
   stdio: 'inherit',
   env: process.env
 });
