@@ -29,12 +29,12 @@ export class UserModel {
   /**
    * Поиск пользователя по Telegram ID
    */
-  static async findByTelegramId(telegramId: number): Promise<User | null> {
+  static async findByTelegramId(telegramId: string | number): Promise<User | null> {
     try {
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.telegram_id, telegramId))
+        .where(eq(users.telegram_id, String(telegramId)))
         .limit(1);
       
       return user || null;

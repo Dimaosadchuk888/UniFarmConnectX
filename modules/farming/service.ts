@@ -122,7 +122,7 @@ export class FarmingService {
           uni_farming_start_timestamp: now, // Сбрасываем время для нового цикла
           uni_farming_last_update: now
         })
-        .where(eq(users.telegram_id, parseInt(telegramId)));
+        .where(eq(users.telegram_id, telegramId));
 
       // Записываем транзакцию о начислении
       await db

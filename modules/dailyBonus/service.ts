@@ -137,7 +137,7 @@ export class DailyBonusService {
         .update(users)
         .set({
           balance_uni: newBalance,
-          checkin_last_date: now,
+          checkin_last_date: new Date().toISOString().split('T')[0],
           checkin_streak: newStreak
         })
         .where(eq(users.id, parseInt(userId)));
