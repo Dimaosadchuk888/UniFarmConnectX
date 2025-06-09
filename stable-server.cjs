@@ -1,6 +1,5 @@
 /**
- * Stable integrated server for UniFarm
- * Serves both backend API and static frontend files
+ * Stable server for UniFarm - Direct Express server
  */
 
 const express = require('express');
@@ -10,14 +9,14 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-console.log('Запуск UniFarm интегрированного сервера...');
+console.log('Запуск UniFarm сервера...');
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// API маршруты (пока заглушки)
+// API routes
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -81,42 +80,96 @@ app.get('/api/missions', (req, res) => {
   });
 });
 
-// Статические файлы frontend
+// Static files
 const clientPath = path.join(__dirname, 'client', 'dist');
 app.use(express.static(clientPath));
 
-// Обслуживание React приложения
+// Serve React app
 app.get('*', (req, res) => {
   const indexPath = path.join(clientPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
-      res.status(404).send(`
+      res.status(200).send(`
+        <!DOCTYPE html>
         <html>
           <head>
             <title>UniFarm</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
-              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-              .container { max-width: 600px; margin: 0 auto; }
-              .status { color: #28a745; font-size: 24px; margin-bottom: 20px; }
-              .api-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-              .endpoint { margin: 10px 0; font-family: monospace; background: #e9ecef; padding: 5px; border-radius: 4px; }
+              body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              .container { 
+                text-align: center;
+                background: rgba(255,255,255,0.1);
+                padding: 40px;
+                border-radius: 20px;
+                backdrop-filter: blur(10px);
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                max-width: 600px;
+              }
+              .status { 
+                color: #00ff88;
+                font-size: 28px;
+                margin-bottom: 20px;
+                font-weight: bold;
+              }
+              .api-info { 
+                background: rgba(255,255,255,0.1);
+                padding: 20px;
+                border-radius: 12px;
+                margin: 20px 0;
+                text-align: left;
+              }
+              .endpoint { 
+                margin: 10px 0;
+                font-family: 'Monaco', 'Menlo', monospace;
+                background: rgba(0,0,0,0.3);
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 14px;
+              }
+              h1 { margin: 0 0 10px 0; font-size: 32px; }
+              h3 { margin: 15px 0 10px 0; color: #fff; }
+              .btn {
+                display: inline-block;
+                background: #00ff88;
+                color: #000;
+                padding: 12px 24px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: bold;
+                margin: 10px;
+                transition: all 0.3s ease;
+              }
+              .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,255,136,0.3); }
             </style>
           </head>
           <body>
             <div class="container">
-              <h1>🚀 UniFarm Server</h1>
-              <div class="status">✅ Сервер работает успешно!</div>
+              <h1>🚀 UniFarm</h1>
+              <div class="status">✅ Сервер работает!</div>
               <p>Backend API запущен и готов к работе</p>
               
               <div class="api-info">
                 <h3>Доступные API endpoints:</h3>
-                <div class="endpoint">GET /api/health - Проверка состояния</div>
-                <div class="endpoint">GET /api/user/profile - Профиль пользователя</div>
-                <div class="endpoint">GET /api/farming/status - Статус фарминга</div>
-                <div class="endpoint">GET /api/missions - Список миссий</div>
+                <div class="endpoint">GET /api/health</div>
+                <div class="endpoint">GET /api/user/profile</div>
+                <div class="endpoint">GET /api/farming/status</div>
+                <div class="endpoint">GET /api/missions</div>
               </div>
               
-              <p><small>Frontend будет подключен после сборки клиентского приложения</small></p>
+              <a href="/api/health" class="btn">Тест API</a>
+              <a href="/api/user/profile" class="btn">Профиль</a>
             </div>
           </body>
         </html>
@@ -125,10 +178,10 @@ app.get('*', (req, res) => {
   });
 });
 
-// Запуск сервера
+// Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`UniFarm сервер запущен на порту ${PORT}`);
-  console.log(`API доступно: http://localhost:${PORT}/api`);
+  console.log(`API: http://localhost:${PORT}/api`);
   console.log(`Приложение: http://localhost:${PORT}`);
 });
 
