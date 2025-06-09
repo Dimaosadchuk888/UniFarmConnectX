@@ -26,8 +26,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const notification: Notification = {
       id,
       type: 'info',
-      duration: 5000,
-      autoDismiss: true,
+  duration: 5000,
+  autoDismiss: true,
       ...options,
     };
 
@@ -51,8 +51,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     return addNotification({
       message,
       type: 'success',
-      duration: 4000,
-      autoDismiss: true,
+  duration: 4000,
+  autoDismiss: true,
       ...options,
     });
   }, [addNotification]);
@@ -61,8 +61,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     return addNotification({
       message,
       type: 'error',
-      duration: 6000,
-      autoDismiss: true,
+  duration: 6000,
+  autoDismiss: true,
       ...options,
     });
   }, [addNotification]);
@@ -71,8 +71,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     return addNotification({
       message,
       type: 'info',
-      duration: 5000,
-      autoDismiss: true,
+  duration: 5000,
+  autoDismiss: true,
       ...options,
     });
   }, [addNotification]);
@@ -81,7 +81,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     return addNotification({
       message,
       type: 'loading',
-      autoDismiss: false,
+  autoDismiss: false,
       ...options,
     });
   }, [addNotification]);

@@ -364,7 +364,7 @@ export const MissionsList: React.FC = () => {
             { opacity: 0, transform: 'translateY(-50px) scale(1)' }
           ],
           {
-            duration: 1500,
+  duration: 1500,
             easing: 'ease-out'
           }
         );
