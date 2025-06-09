@@ -6,8 +6,8 @@ const { spawn } = require('child_process');
 
 console.log('Запуск UniFarm сервера...');
 
-// Запускаем CommonJS сервер
-const server = spawn('node', ['stable-server.cjs'], {
+// Запускаем интегрированный сервер
+const server = spawn('node', ['integrated-server.cjs'], {
   stdio: 'inherit',
   env: {
     ...process.env,
