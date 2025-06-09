@@ -1,8 +1,8 @@
 /**
- * Stable server for UniFarm - запускает backend через CommonJS
+ * Stable server for UniFarm - ES Module wrapper
  */
 
-const { spawn } = require('child_process');
+import { spawn } from 'child_process';
 
 console.log('Запуск UniFarm сервера...');
 
