@@ -2,11 +2,15 @@
  * UniFarm Main Server
  */
 
-const express = require('express');
-const cors = require('cors');
-const { createServer } = require('http');
-const path = require('path');
-const fs = require('fs');
+import express from 'express';
+import cors from 'cors';
+import { createServer } from 'http';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function startUniFarmServer() {
   try {
@@ -138,7 +142,7 @@ async function startUniFarmServer() {
     const server = createServer(app);
 
     // WebSocket поддержка
-    const { WebSocketServer } = require('ws');
+    const { WebSocketServer } = await import('ws');
     const wss = new WebSocketServer({ server, path: '/ws' });
 
     wss.on('connection', (ws, request) => {
