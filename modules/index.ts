@@ -37,6 +37,7 @@ export { default as adminRoutes } from './admin/routes';
 export { default as authRoutes } from './auth/routes';
 
 // Models - Drizzle схемы и enum'ы
+export * from './user/model';
 export * from './wallet/model';
 export * from './farming/model';
 export * from './missions/model';

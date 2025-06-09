@@ -3,7 +3,7 @@ import { users, farmingDeposits, transactions } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
-import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';
+// import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution'; // TODO: Remove circular dependency
 
 export class FarmingService {
   async getFarmingDataByTelegramId(telegramId: string): Promise<{
