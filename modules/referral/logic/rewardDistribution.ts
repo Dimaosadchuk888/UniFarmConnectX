@@ -5,7 +5,7 @@
 import { DeepReferralLogic } from './deepReferral';
 import { db } from '../../../server/db';
 import { users, transactions } from '../../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export class ReferralRewardDistribution {
   /**
@@ -55,7 +55,7 @@ export class ReferralRewardDistribution {
             .insert(transactions)
             .values({
               user_id: parseInt(commission.userId),
-              type: 'referral_bonus',
+              transaction_type: 'referral_bonus',
               currency: 'UNI',
               amount: commission.amount,
               source_user_id: parseInt(userId),
@@ -110,9 +110,11 @@ export class ReferralRewardDistribution {
         const existingMilestone = await db
           .select()
           .from(transactions)
-          .where(eq(transactions.user_id, parseInt(userId)))
-          .where(eq(transactions.type, 'milestone_bonus'))
-          .where(eq(transactions.amount, milestoneBonus));
+          .where(and(
+            eq(transactions.user_id, parseInt(userId)),
+            eq(transactions.transaction_type, 'milestone_bonus'),
+            eq(transactions.amount, milestoneBonus)
+          ));
 
         if (existingMilestone.length === 0) {
           // Начисляем milestone бонус
@@ -130,7 +132,7 @@ export class ReferralRewardDistribution {
             .insert(transactions)
             .values({
               user_id: parseInt(userId),
-              type: 'milestone_bonus',
+              transaction_type: 'milestone_bonus',
               currency: 'UNI',
               amount: milestoneBonus,
               description: `Milestone bonus for ${referralCount} referrals`,

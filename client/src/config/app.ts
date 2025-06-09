@@ -19,8 +19,8 @@ export const APP_CONFIG = {
 
   // Telegram настройки
   TELEGRAM: {
-    BOT_USERNAME: process.env.VITE_TELEGRAM_BOT_USERNAME || '',
-    WEB_APP_URL: process.env.VITE_WEB_APP_URL || '',
+    BOT_USERNAME: import.meta.env.VITE_TELEGRAM_BOT_USERNAME || '',
+    WEB_APP_URL: import.meta.env.VITE_WEB_APP_URL || '',
     SCRIPT_URL: 'https://telegram.org/js/telegram-web-app.js'
   },
 
