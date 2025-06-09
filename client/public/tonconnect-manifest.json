@@ -1,7 +1,0 @@
-{
-  "url": "${APP_URL}",
-  "name": "UniFarm",
-  "iconUrl": "${APP_URL}/assets/favicon.ico",
-  "termsOfUseUrl": "${APP_URL}/terms",
-  "privacyPolicyUrl": "${APP_URL}/privacy"
-}

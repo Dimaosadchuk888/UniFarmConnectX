@@ -10,6 +10,15 @@ const fs = require('fs');
 
 async function startUniFarmServer() {
   try {
+    // Валідація змінних оточення
+    const EnvValidator = require('./server/envValidator.js');
+    const envValidator = new EnvValidator();
+    const envStatus = envValidator.validate();
+    
+    if (!envStatus.isValid) {
+      console.error('❌ Критичні змінні оточення відсутні. Сервер може працювати некоректно.');
+    }
+    
     console.log('✅ База данных подключена успешно');
     
     const app = express();
@@ -43,6 +52,11 @@ async function startUniFarmServer() {
         environment: process.env.NODE_ENV || 'development'
       });
     });
+
+    // Динамічні маніфести з змінними оточення
+    const ManifestGenerator = require('./server/manifestGenerator.js');
+    const manifestGenerator = new ManifestGenerator();
+    manifestGenerator.setupRoutes(app);
 
     // API v2 routes
     const apiPrefix = '/api/v2';

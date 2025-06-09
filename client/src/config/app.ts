@@ -2,7 +2,7 @@
 export const APP_CONFIG = {
   // API настройки
   API: {
-    BASE_URL: (import.meta as any).env?.VITE_API_BASE_URL || 
+    BASE_URL: import.meta.env.VITE_API_BASE_URL || 
       (typeof window !== 'undefined' 
         ? window.location.origin 
         : 'http://localhost:3000'),

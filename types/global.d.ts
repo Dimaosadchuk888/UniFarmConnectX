@@ -57,7 +57,6 @@ declare global {
       }
     }
   }
-  }
 
   // Типы для Vite environment variables
   interface ImportMetaEnv {
