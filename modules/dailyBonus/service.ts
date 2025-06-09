@@ -199,9 +199,13 @@ export class DailyBonusService {
       const history = await db
         .select()
         .from(transactions)
-        .where(eq(transactions.user_id, parseInt(userId)))
-        .where(eq(transactions.transaction_type, 'daily_bonus'))
-        .orderBy(transactions.created_at);
+        .where(
+          and(
+            eq(transactions.user_id, parseInt(userId)),
+            eq(transactions.transaction_type, 'daily_bonus')
+          )
+        )
+        .orderBy(descOrder(transactions.created_at));
 
       return history.map(tx => ({
         id: tx.id,

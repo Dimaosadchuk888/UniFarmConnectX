@@ -216,8 +216,6 @@ export class ReferralService {
         .select({
           id: users.id,
           username: users.username,
-          firstname: users.firstname,
-          lastname: users.lastname,
           created_at: users.created_at,
           balance_uni: users.balance_uni,
           balance_ton: users.balance_ton
@@ -227,7 +225,7 @@ export class ReferralService {
 
       return invitedUsers.map(invitedUser => ({
         id: invitedUser.id,
-        name: invitedUser.firstname || invitedUser.username || 'Unknown',
+        name: invitedUser.username || 'Unknown',
         username: invitedUser.username,
         joined_date: invitedUser.created_at,
         balance_uni: invitedUser.balance_uni || "0",
