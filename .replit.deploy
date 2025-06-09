@@ -3,7 +3,7 @@ modules = ["postgresql-16", "nodejs-20"]
 hidden = ["package-lock.json"]
 
 [nix]
-channel = "stable-23_05"
+channel = "stable-24_05"
 packages = ["postgresql", "jq", "wget", "lsof"]
 
 [env]
@@ -22,14 +22,5 @@ ignorePorts = false
 build = ["sh", "-c", "npm run build"]
 
 [[ports]]
-localPort = 80
-externalPort = 3001
-
-[[ports]]
 localPort = 3000
 externalPort = 80
-
-[[ports]]
-localPort = 5432
-externalPort = 3000
-exposeLocalhost = true
