@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { BaseController } from '../../core/BaseController';
 
-export class AdminController {
+export class AdminController extends BaseController {
   /**
    * Получить статистику системы
    */
