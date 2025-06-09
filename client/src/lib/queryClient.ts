@@ -322,7 +322,7 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 минут кеширование вместо Infinity
-      cacheTime: 10 * 60 * 1000, // 10 минут хранение в кеше
+      gcTime: 10 * 60 * 1000, // 10 минут хранение в кеше (gcTime заменяет cacheTime в React Query v5)
       retry: 1, // Одна попытка повтора вместо false
       retryDelay: 1000, // 1 секунда задержка между попытками
     },
