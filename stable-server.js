@@ -163,6 +163,42 @@ async function startUniFarmServer() {
       });
     });
 
+    // API для ежедневного бонуса
+    app.get(`${apiPrefix}/daily-bonus/status`, (req, res) => {
+      const now = new Date();
+      const bonusData = {
+        user_id: req.query.user_id || 'user_' + Date.now(),
+        bonus_available: true,
+        bonus_amount: '50',
+        bonus_type: 'UNI',
+        last_claimed: new Date(now.getTime() - 25 * 60 * 60 * 1000).toISOString(), // 25 часов назад
+        next_bonus_available: new Date(now.getTime() + 23 * 60 * 60 * 1000).toISOString(), // через 23 часа
+        consecutive_days: 3,
+        max_consecutive_days: 7,
+        bonus_multiplier: 1.0
+      };
+
+      res.json({
+        success: true,
+        data: bonusData
+      });
+    });
+
+    // API для получения ежедневного бонуса
+    app.post(`${apiPrefix}/daily-bonus/claim`, (req, res) => {
+      res.json({
+        success: true,
+        data: {
+          bonus_claimed: true,
+          bonus_amount: '50',
+          bonus_type: 'UNI',
+          new_balance: '1050',
+          consecutive_days: 4,
+          next_bonus_available: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        }
+      });
+    });
+
     // TON Connect manifest
     app.get('/tonconnect-manifest.json', (req, res) => {
       res.json({
