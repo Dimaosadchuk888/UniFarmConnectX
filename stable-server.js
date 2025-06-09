@@ -62,17 +62,27 @@ async function startUniFarmServer() {
 
     // API для профиля пользователя
     app.get(`${apiPrefix}/users/profile`, (req, res) => {
+      const userId = 'user_' + Date.now();
+      const guestId = 'guest_' + Date.now();
       const userData = {
-        user_id: 'user_' + Date.now(),
+        id: parseInt(userId.replace('user_', '')),
+        user_id: userId,
+        telegram_id: req.headers['x-telegram-user-id'] || '123456789',
         username: 'demo_user',
         first_name: 'Demo',
         last_name: 'User',
-        guest_id: 'guest_' + Date.now(),
+        guest_id: guestId,
         balance_uni: '1000',
         balance_ton: '5',
         uni_farming_balance: '250',
         uni_farming_rate: '0.5',
-        uni_deposit_amount: '500'
+        uni_deposit_amount: '500',
+        ref_code: 'REF_' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+        parent_ref_code: null,
+        wallet: null,
+        ton_wallet_address: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       res.json({
@@ -114,6 +124,42 @@ async function startUniFarmServer() {
       res.json({
         success: true,
         data: farmingStatus
+      });
+    });
+
+    // API для генерации реферального кода
+    app.post(`${apiPrefix}/users/generate-ref-code`, (req, res) => {
+      const refCode = 'REF_' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      res.json({
+        success: true,
+        data: {
+          ref_code: refCode
+        }
+      });
+    });
+
+    // API для получения обновленных данных пользователя
+    app.get(`${apiPrefix}/users/current`, (req, res) => {
+      const userId = 'user_' + Date.now();
+      const userData = {
+        id: parseInt(userId.replace('user_', '')),
+        user_id: userId,
+        telegram_id: req.headers['x-telegram-user-id'] || '123456789',
+        username: 'demo_user',
+        first_name: 'Demo',
+        last_name: 'User',
+        guest_id: 'guest_' + Date.now(),
+        balance_uni: '1000',
+        balance_ton: '5',
+        ref_code: 'REF_' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+        parent_ref_code: null,
+        wallet: null,
+        ton_wallet_address: null
+      };
+
+      res.json({
+        success: true,
+        data: userData
       });
     });
 
