@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
-import { useNotification } from '@/contexts/notificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { formatAmount, formatUniNumber, formatTonNumber, getUSDEquivalent } from '@/utils/formatters';
 
 /**

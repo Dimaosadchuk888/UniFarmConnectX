@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
-import { useNotification } from '@/contexts/notificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';

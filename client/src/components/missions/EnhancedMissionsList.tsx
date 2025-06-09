@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Calendar, CheckCircle, Coins, MessageCircle, UserPlus } from 'lucide-react';
 import { useUser } from '@/contexts/userContext';
-import { useNotification } from '@/contexts/notificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 
 // Тип миссии из API

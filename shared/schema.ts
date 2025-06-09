@@ -133,6 +133,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   ton_wallet_address: true,
   ref_code: true, // Добавляем поле ref_code в схему вставки
   parent_ref_code: true, // Добавляем поле parent_ref_code в схему вставки
+  balance_uni: true, // Добавляем поля баланса для корректной работы модели
+  balance_ton: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
