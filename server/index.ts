@@ -248,10 +248,144 @@ async function startServer() {
         data: {
           can_claim: true,
           streak: 1,
-          last_claim_date: null,
-          next_claim_time: null,
-          bonus_amount: 100
+          next_reward: '100.000000',
+          last_claim: null
         }
+      });
+    });
+
+    // Daily bonus claim API
+    app.post(`${apiPrefix}/daily-bonus/claim`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          reward: '100.000000',
+          new_balance: '1100.000000',
+          streak: 2
+        }
+      });
+    });
+
+    // UNI Farming endpoints
+    app.get(`${apiPrefix}/uni-farming/status`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          active: true,
+          balance: '250.000000',
+          rate: '0.500000',
+          started_at: new Date().toISOString(),
+          last_update: new Date().toISOString()
+        }
+      });
+    });
+
+    app.post(`${apiPrefix}/uni-farming/start`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          message: 'UNI Farming активирован',
+          rate: '0.500000'
+        }
+      });
+    });
+
+    app.post(`${apiPrefix}/uni-farming/claim`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          claimed: '250.000000',
+          new_balance: '1250.000000'
+        }
+      });
+    });
+
+    // Income chart data
+    app.get(`${apiPrefix}/income/chart`, (req: any, res: any) => {
+      const chartData = Array.from({ length: 7 }, (_, i) => ({
+        date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        income: Math.floor(Math.random() * 100) + 50
+      }));
+
+      res.json({
+        success: true,
+        data: chartData
+      });
+    });
+
+    // Boost status endpoint
+    app.get(`${apiPrefix}/boosts/status`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          speed_boost: {
+            active: true,
+            multiplier: 2,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          },
+          income_boost: {
+            active: false,
+            multiplier: 1,
+            expires_at: null
+          },
+          energy_boost: {
+            active: true,
+            multiplier: 1.5,
+            expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
+          }
+        }
+      });
+    });
+
+    // Referral stats
+    app.get(`${apiPrefix}/referrals/stats`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          total_referrals: 5,
+          active_referrals: 3,
+          total_earnings: '500.000000',
+          referral_code: 'REF123456'
+        }
+      });
+    });
+
+    // Wallet operations
+    app.get(`${apiPrefix}/wallet/balance`, (req: any, res: any) => {
+      res.json({
+        success: true,
+        data: {
+          uni_balance: '1000.000000',
+          ton_balance: '5.500000',
+          farming_balance: '250.000000'
+        }
+      });
+    });
+
+    // Transaction history
+    app.get(`${apiPrefix}/transactions`, (req: any, res: any) => {
+      const transactions = [
+        {
+          id: 1,
+          type: 'farming_claim',
+          amount: '250.000000',
+          currency: 'UNI',
+          timestamp: new Date().toISOString(),
+          status: 'completed'
+        },
+        {
+          id: 2,
+          type: 'daily_bonus',
+          amount: '100.000000',
+          currency: 'UNI',
+          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          status: 'completed'
+        }
+      ];
+
+      res.json({
+        success: true,
+        data: transactions
       });
     });
 
