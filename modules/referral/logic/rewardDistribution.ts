@@ -3,6 +3,9 @@
  */
 
 import { DeepReferralLogic } from './deepReferral';
+import { db } from '../../../core/db';
+import { users, transactions } from '../../../shared/schema';
+import { eq } from 'drizzle-orm';
 
 export class ReferralRewardDistribution {
   /**
@@ -14,9 +17,6 @@ export class ReferralRewardDistribution {
     farmingReward: string
   ): Promise<boolean> {
     try {
-      const { db } = await import('../../server/db');
-      const { users, transactions } = await import('../../shared/schema');
-      const { eq } = await import('drizzle-orm');
 
       // Получаем цепочку рефереров
       const referrerChain = await DeepReferralLogic.buildReferrerChain(userId);
