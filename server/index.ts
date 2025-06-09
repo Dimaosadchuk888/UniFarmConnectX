@@ -8,6 +8,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { config, logger } from '../core';
 import { setupVite, serveStatic } from './vite';
+import apiRoutes from './routes';
 
 async function startServer() {
   try {

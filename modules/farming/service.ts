@@ -7,6 +7,15 @@ import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution
 
 export class FarmingService {
   async getFarmingDataByTelegramId(telegramId: string): Promise<{
+    isActive: boolean;
+    depositAmount: string;
+    ratePerSecond: string;
+    totalRatePerSecond: string;
+    dailyIncomeUni: string;
+    depositCount: number;
+    totalDepositAmount: string;
+    startDate: string | null;
+    uni_farming_start_timestamp: string | null;
     rate: string;
     accumulated: string;
     last_claim: string | null;
@@ -18,6 +27,15 @@ export class FarmingService {
 
       if (!user) {
         return {
+          isActive: false,
+          depositAmount: '0',
+          ratePerSecond: '0',
+          totalRatePerSecond: '0',
+          dailyIncomeUni: '0',
+          depositCount: 0,
+          totalDepositAmount: '0',
+          startDate: null,
+          uni_farming_start_timestamp: null,
           rate: '0.000000',
           accumulated: '0.000000',
           last_claim: null,
@@ -31,15 +49,29 @@ export class FarmingService {
       const farmingStart = user.uni_farming_start_timestamp ? new Date(user.uni_farming_start_timestamp) : now;
       
       // Расчет накопленного фарминга (базовая ставка 0.001 UNI в час)
-      const baseRate = 0.001;
+      const baseHourlyRate = 0.001;
+      const ratePerSecond = baseHourlyRate / 3600; // Конвертация в секунды
+      const dailyRate = baseHourlyRate * 24; // Дневная ставка
+      
       const hoursElapsed = lastClaim 
         ? (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60)
         : (now.getTime() - farmingStart.getTime()) / (1000 * 60 * 60);
       
-      const accumulated = Math.max(0, hoursElapsed * baseRate);
+      const accumulated = Math.max(0, hoursElapsed * baseHourlyRate);
+      const isActive = !!user.uni_farming_start_timestamp;
+      const depositAmount = user.uni_deposit_amount || '0';
       
       return {
-        rate: baseRate.toFixed(6),
+        isActive,
+        depositAmount,
+        ratePerSecond: ratePerSecond.toFixed(8),
+        totalRatePerSecond: ratePerSecond.toFixed(8),
+        dailyIncomeUni: dailyRate.toFixed(6),
+        depositCount: isActive ? 1 : 0,
+        totalDepositAmount: depositAmount,
+        startDate: farmingStart.toISOString(),
+        uni_farming_start_timestamp: user.uni_farming_start_timestamp || null,
+        rate: baseHourlyRate.toFixed(6),
         accumulated: accumulated.toFixed(6),
         last_claim: lastClaim?.toISOString() || null,
         can_claim: accumulated >= 0.001, // Минимум для клейма

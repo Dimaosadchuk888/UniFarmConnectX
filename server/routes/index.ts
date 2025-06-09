@@ -26,6 +26,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/wallet', walletRoutes);
 router.use('/farming', farmingRoutes);
+router.use('/uni-farming', farmingRoutes);
 router.use('/missions', missionsRoutes);
 router.use('/referral', referralRoutes);
 router.use('/boost', boostRoutes);

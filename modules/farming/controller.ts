@@ -22,6 +22,25 @@ export class FarmingController extends BaseController {
     }, 'получения данных фарминга');
   }
 
+  async getFarmingInfo(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const userId = req.query.user_id as string;
+      
+      if (!userId) {
+        return this.sendError(res, 'user_id parameter is required', 400);
+      }
+
+      const farmingData = await farmingService.getFarmingDataByTelegramId(userId);
+
+      console.log('[Farming] Информация о фарминге для пользователя:', {
+        user_id: userId,
+        farming_info: farmingData
+      });
+
+      this.sendSuccess(res, farmingData);
+    }, 'получения информации о фарминге');
+  }
+
   async startFarming(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
       const telegramUser = this.getTelegramUser(req);
