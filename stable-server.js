@@ -6,8 +6,8 @@ import { spawn } from 'child_process';
 
 console.log('🚀 Запуск UniFarm интегрированного сервера...');
 
-// Запускаем интегрированный сервер с TSX
-const server = spawn('npx', ['tsx', 'integrated-server.ts'], {
+// Запускаем простой сервер с Node.js
+const server = spawn('node', ['simple-server.js'], {
   stdio: 'inherit',
   env: {
     ...process.env,

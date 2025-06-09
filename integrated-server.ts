@@ -7,7 +7,8 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
-import { setupVite, serveStatic } from './server/vite';
+import path from 'path';
+import fs from 'fs';
 import { config, logger } from './core';
 
 async function startIntegratedServer() {
