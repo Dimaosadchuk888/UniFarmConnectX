@@ -159,10 +159,10 @@ export const transactions = pgTable(
   "transactions", 
   {
     id: serial("id").primaryKey(),
-    user_id: integer("user_id").references(() => users.id),
-    transaction_type: text("transaction_type"), // deposit / withdraw / reward / boost_bonus
-    currency: text("currency"), // UNI / TON
-    amount: numeric("amount", { precision: 18, scale: 6 }),
+    user_id: integer("user_id").references(() => users.id).notNull(),
+    transaction_type: text("transaction_type").notNull(), // deposit / withdraw / reward / boost_bonus
+    currency: text("currency").notNull(), // UNI / TON
+    amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
     status: text("status").default("confirmed"), // pending / confirmed / rejected
     source: text("source"), // источник транзакции (например, "TON Boost")
     category: text("category"), // категория транзакции (например, "bonus")
