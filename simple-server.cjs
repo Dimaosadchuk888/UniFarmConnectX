@@ -144,6 +144,16 @@ async function startSimpleServer() {
     // HTTP сервер
     const server = createServer(app);
 
+    // WebSocket поддержка (базовая)
+    server.on('upgrade', (request, socket, head) => {
+      console.log('WebSocket upgrade запрос получен');
+      // Простая обработка WebSocket для совместимости
+      socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
+                   'Upgrade: websocket\r\n' +
+                   'Connection: Upgrade\r\n' +
+                   '\r\n');
+    });
+
     // Запуск сервера
     const port = parseInt(process.env.PORT || '3000');
     server.listen(port, '0.0.0.0', () => {
