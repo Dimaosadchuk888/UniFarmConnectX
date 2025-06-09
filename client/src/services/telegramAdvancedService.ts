@@ -12,14 +12,25 @@ export class TelegramAdvancedService {
    * Get data from Telegram Cloud Storage
    */
   async getCloudStorageItem(key: string): Promise<string | null> {
-    try {
-      if (window.Telegram?.WebApp?.CloudStorage) {
-        return await window.Telegram.WebApp.CloudStorage.getItem(key);
+    return new Promise((resolve) => {
+      try {
+        if (window.Telegram?.WebApp?.CloudStorage) {
+          window.Telegram.WebApp.CloudStorage.getItem(key, (error, value) => {
+            if (error) {
+              console.warn('[TelegramAdvanced] Failed to get cloud storage item:', error);
+              resolve(null);
+            } else {
+              resolve(value || null);
+            }
+          });
+        } else {
+          resolve(null);
+        }
+      } catch (error) {
+        console.warn('[TelegramAdvanced] Failed to get cloud storage item:', error);
+        resolve(null);
       }
-    } catch (error) {
-      console.warn('[TelegramAdvanced] Failed to get cloud storage item:', error);
-    }
-    return null;
+    });
   }
 
   /**
@@ -56,14 +67,25 @@ export class TelegramAdvancedService {
    * Get multiple items from cloud storage
    */
   async getCloudStorageItems(keys: string[]): Promise<CloudStorageData> {
-    try {
-      if (window.Telegram?.WebApp?.CloudStorage) {
-        return await window.Telegram.WebApp.CloudStorage.getItems(keys);
+    return new Promise((resolve) => {
+      try {
+        if (window.Telegram?.WebApp?.CloudStorage) {
+          window.Telegram.WebApp.CloudStorage.getItems(keys, (error, values) => {
+            if (error) {
+              console.warn('[TelegramAdvanced] Failed to get cloud storage items:', error);
+              resolve({});
+            } else {
+              resolve(values || {});
+            }
+          });
+        } else {
+          resolve({});
+        }
+      } catch (error) {
+        console.warn('[TelegramAdvanced] Failed to get cloud storage items:', error);
+        resolve({});
       }
-    } catch (error) {
-      console.warn('[TelegramAdvanced] Failed to get cloud storage items:', error);
-    }
-    return {};
+    });
   }
 
   /**

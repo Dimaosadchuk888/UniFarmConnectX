@@ -116,41 +116,30 @@ export const farmingDeposits = pgTable("farming_deposits", {
 });
 
 // Схемы для аутентификации
-export const insertAuthUserSchema = createInsertSchema(authUsers).pick({
-  username: true,
-  password: true,
+export const insertAuthUserSchema = createInsertSchema(authUsers).omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
 });
 
 export type InsertAuthUser = z.infer<typeof insertAuthUserSchema>;
 export type AuthUser = typeof authUsers.$inferSelect;
 
 // Схемы для таблицы users
-export const insertUserSchema = createInsertSchema(users).pick({
-  telegram_id: true,
-  guest_id: true, // Добавляем guest_id в схему вставки
-  username: true,
-  wallet: true,
-  ton_wallet_address: true,
-  ref_code: true, // Добавляем поле ref_code в схему вставки
-  parent_ref_code: true, // Добавляем поле parent_ref_code в схему вставки
-  balance_uni: true, // Добавляем поля баланса для корректной работы модели
-  balance_ton: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 // Схемы для таблицы farming_deposits
-export const insertFarmingDepositSchema = createInsertSchema(farmingDeposits).pick({
-  user_id: true,
-  amount_uni: true,
-  rate_uni: true,
-  rate_ton: true,
-  last_claim: true,
-  is_boosted: true,
-  deposit_type: true,
-  boost_id: true,
-  expires_at: true
+export const insertFarmingDepositSchema = createInsertSchema(farmingDeposits).omit({
+  id: true,
+  created_at: true,
+  updated_at: true
 });
 
 export type InsertFarmingDeposit = z.infer<typeof insertFarmingDepositSchema>;
