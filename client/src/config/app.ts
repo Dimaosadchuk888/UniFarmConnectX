@@ -2,9 +2,10 @@
 export const APP_CONFIG = {
   // API настройки
   API: {
-    BASE_URL: process.env.NODE_ENV === 'production' 
-      ? 'https://your-domain.replit.app' 
-      : 'http://localhost:3000',
+    BASE_URL: (import.meta as any).env?.VITE_API_BASE_URL || 
+      (typeof window !== 'undefined' 
+        ? window.location.origin 
+        : 'http://localhost:3000'),
     ENDPOINTS: {
       AUTH: '/api/v2/auth',
       USER: '/api/v2/users',

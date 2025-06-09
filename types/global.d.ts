@@ -57,6 +57,18 @@ declare global {
       }
     }
   }
+  }
+
+  // Типы для Vite environment variables
+  interface ImportMetaEnv {
+    readonly VITE_API_BASE_URL: string;
+    readonly VITE_TELEGRAM_BOT_USERNAME: string;
+    readonly VITE_WEB_APP_URL: string;
+  }
+
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
 }
 
 // Пустой экспорт требуется для превращения файла в модуль

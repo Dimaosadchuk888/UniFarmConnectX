@@ -1,7 +1,7 @@
 {
-  "url": "https://uni-farm-connect-xo-osadchukdmitro2.replit.app",
+  "url": "${APP_URL}",
   "name": "UniFarm",
-  "iconUrl": "https://uni-farm-connect-xo-osadchukdmitro2.replit.app/assets/favicon.ico",
-  "termsOfUseUrl": "https://uni-farm-connect-xo-osadchukdmitro2.replit.app/terms",
-  "privacyPolicyUrl": "https://uni-farm-connect-xo-osadchukdmitro2.replit.app/privacy"
+  "iconUrl": "${APP_URL}/assets/favicon.ico",
+  "termsOfUseUrl": "${APP_URL}/terms",
+  "privacyPolicyUrl": "${APP_URL}/privacy"
 }

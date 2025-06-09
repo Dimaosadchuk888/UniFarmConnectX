@@ -5,5 +5,5 @@
   "description": "Фарминг, награды и рефералы в Telegram",
   "start_parameter": "ref",
   "bot_username": "UniFarming_Bot",
-  "url": "https://uni-farm-connect-2-misterxuniverse.replit.app/UniFarm"
+  "url": "${APP_URL}"
 }
