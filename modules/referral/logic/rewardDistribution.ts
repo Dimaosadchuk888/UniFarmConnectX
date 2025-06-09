@@ -3,7 +3,7 @@
  */
 
 import { DeepReferralLogic } from './deepReferral';
-import { db } from '../../../server/db';
+import { db } from '../../../core/db';
 import { users, transactions } from '../../../shared/schema';
 import { eq, and } from 'drizzle-orm';
 

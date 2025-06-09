@@ -5,6 +5,7 @@ interface NotificationContextType {
   notifications: Notification[];
   addNotification: (options: NotificationOptions) => string;
   removeNotification: (id: string) => void;
+  showNotification: (options: NotificationOptions | string, type?: 'success' | 'error' | 'info' | 'loading') => string;
   success: (message: string, options?: Partial<NotificationOptions>) => string;
   error: (message: string, options?: Partial<NotificationOptions>) => string;
   info: (message: string, options?: Partial<NotificationOptions>) => string;
@@ -85,10 +86,23 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     });
   }, [addNotification]);
 
+  const showNotification = useCallback((options: NotificationOptions | string, type: 'success' | 'error' | 'info' | 'loading' = 'info'): string => {
+    if (typeof options === 'string') {
+      return addNotification({
+        message: options,
+        type,
+        duration: type === 'loading' ? undefined : 5000,
+        autoDismiss: type !== 'loading',
+      });
+    }
+    return addNotification(options);
+  }, [addNotification]);
+
   const value = {
     notifications,
     addNotification,
     removeNotification,
+    showNotification,
     success,
     error,
     info,

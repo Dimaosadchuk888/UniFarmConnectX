@@ -29,7 +29,7 @@ export class BoostController extends BaseController {
   /**
    * Получить активные бусты пользователя
    */
-  async getUserBoosts(req: Request, res: Response): Promise<void> {
+  async getUserBoosts(req: express.Request, res: express.Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
       if (!this.validateParams(req, ['userId'])) {
         return this.sendError(res, 'Отсутствует параметр userId', 400);
