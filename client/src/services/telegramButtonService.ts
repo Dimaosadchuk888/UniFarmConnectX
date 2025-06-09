@@ -60,7 +60,8 @@ export class TelegramButtonService {
     try {
       if (window.Telegram?.WebApp?.MainButton) {
         window.Telegram.WebApp.MainButton.hide();
-        window.Telegram.WebApp.MainButton.offClick();
+        // Clear existing click handler by setting a new empty one
+      window.Telegram.WebApp.MainButton.onClick(() => {});
       }
     } catch (error) {
       console.warn('[TelegramButton] Failed to hide main button:', error);

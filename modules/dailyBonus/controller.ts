@@ -31,7 +31,7 @@ export class DailyBonusController extends BaseController {
   /**
    * Забрать ежедневный бонус
    */
-  async claimDailyBonus(req: express.Request, res: express.Response): Promise<void> {
+  async claimDailyBonus(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.body;
       console.log(`[DailyBonusController] Получение ежедневного бонуса для пользователя ${userId}`);
@@ -77,7 +77,7 @@ export class DailyBonusController extends BaseController {
   /**
    * Получить календарь ежедневных бонусов
    */
-  async getDailyBonusCalendar(req: express.Request, res: express.Response): Promise<void> {
+  async getDailyBonusCalendar(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.params.userId;
       const month = req.query.month as string || new Date().getMonth().toString();
@@ -116,7 +116,7 @@ export class DailyBonusController extends BaseController {
   /**
    * Получить статистику ежедневных бонусов
    */
-  async getDailyBonusStats(req: express.Request, res: express.Response): Promise<void> {
+  async getDailyBonusStats(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.params.userId;
       console.log(`[DailyBonusController] Получение статистики ежедневных бонусов для пользователя ${userId}`);
@@ -149,7 +149,7 @@ export class DailyBonusController extends BaseController {
   /**
    * Проверить доступность ежедневного бонуса
    */
-  async checkDailyBonusAvailability(req: express.Request, res: express.Response): Promise<void> {
+  async checkDailyBonusAvailability(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.params.userId;
       console.log(`[DailyBonusController] Проверка доступности ежедневного бонуса для пользователя ${userId}`);
