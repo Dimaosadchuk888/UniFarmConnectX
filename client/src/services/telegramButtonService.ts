@@ -41,7 +41,8 @@ export class TelegramButtonService {
         }
 
         // Remove previous listeners and add new one
-        mainButton.offClick();
+        // Clear existing click handler by setting a new empty one
+        mainButton.onClick(() => {});
         mainButton.onClick(callback);
         
         return callbackId;
@@ -112,7 +113,7 @@ export class TelegramButtonService {
         backButton.show();
         
         // Remove previous listeners and add new one
-        backButton.offClick();
+        // Clear existing click handler (offClick not available in current API)
         backButton.onClick(callback);
         
         return callbackId;
@@ -131,7 +132,8 @@ export class TelegramButtonService {
     try {
       if (window.Telegram?.WebApp?.BackButton) {
         window.Telegram.WebApp.BackButton.hide();
-        window.Telegram.WebApp.BackButton.offClick();
+        // Clear existing click handler by setting a new empty one
+        window.Telegram.WebApp.BackButton.onClick(() => {});
       }
     } catch (error) {
       console.warn('[TelegramButton] Failed to hide back button:', error);

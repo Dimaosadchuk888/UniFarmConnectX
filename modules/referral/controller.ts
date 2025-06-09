@@ -72,7 +72,7 @@ export class ReferralController extends BaseController {
       
       console.log(`[ReferralController] Получение рефералов для пользователя ${userId}, страница ${page}`);
       
-      const result = await this.referralService.getReferralsByUserId(userId, page, limit);
+      const result = await this.referralService.getReferralsByUserId(userId);
       
       this.sendSuccess(res, result);
     }, 'получения списка рефералов');

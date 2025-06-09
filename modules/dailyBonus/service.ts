@@ -3,6 +3,64 @@ import { users, transactions } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 export class DailyBonusService {
+  /**
+   * Get daily bonus information for a user
+   */
+  async getDailyBonusInfo(userId: string): Promise<{
+    can_claim: boolean;
+    streak_days: number;
+    next_bonus_amount: string;
+    last_claim_date: string | null;
+  }> {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, parseInt(userId)))
+        .limit(1);
+
+      if (!user) {
+        return {
+          can_claim: false,
+          streak_days: 0,
+          next_bonus_amount: "100",
+          last_claim_date: null
+        };
+      }
+
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const lastCheckin = user.checkin_last_date 
+        ? new Date(user.checkin_last_date).toISOString().split('T')[0] 
+        : null;
+
+      const canClaim = lastCheckin !== today;
+      const streakDays = user.checkin_streak || 0;
+      const nextBonusAmount = this.calculateBonusAmount(streakDays + 1).toString();
+
+      return {
+        can_claim: canClaim,
+        streak_days: streakDays,
+        next_bonus_amount: nextBonusAmount,
+        last_claim_date: lastCheckin
+      };
+    } catch (error) {
+      console.error('[DailyBonusService] Error getting daily bonus info:', error);
+      return {
+        can_claim: false,
+        streak_days: 0,
+        next_bonus_amount: "100",
+        last_claim_date: null
+      };
+    }
+  }
+
+  private calculateBonusAmount(day: number): number {
+    // Base bonus starts at 100, increases with streak
+    const baseBonus = 100;
+    const streakMultiplier = Math.min(day / 7, 3); // Max 3x multiplier after 21 days
+    return Math.floor(baseBonus * (1 + streakMultiplier));
+  }
   async checkDailyBonusAvailability(userId: string): Promise<boolean> {
     try {
       const [user] = await db

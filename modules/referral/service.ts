@@ -192,6 +192,55 @@ export class ReferralService {
   }
 
   /**
+   * Get referrals by user ID
+   */
+  async getReferralsByUserId(userId: string): Promise<any[]> {
+    try {
+      const { db } = await import('../../core/db');
+      const { users, referrals } = await import('../../shared/schema');
+      const { eq } = await import('drizzle-orm');
+
+      // Get user's referral code first
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, parseInt(userId)))
+        .limit(1);
+
+      if (!user || !user.ref_code) {
+        return [];
+      }
+
+      // Get all users invited by this user's referral code
+      const invitedUsers = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          firstname: users.firstname,
+          lastname: users.lastname,
+          created_at: users.created_at,
+          balance_uni: users.balance_uni,
+          balance_ton: users.balance_ton
+        })
+        .from(users)
+        .where(eq(users.parent_ref_code, user.ref_code));
+
+      return invitedUsers.map(invitedUser => ({
+        id: invitedUser.id,
+        name: invitedUser.firstname || invitedUser.username || 'Unknown',
+        username: invitedUser.username,
+        joined_date: invitedUser.created_at,
+        balance_uni: invitedUser.balance_uni || "0",
+        balance_ton: invitedUser.balance_ton || "0",
+        level: 1 // Direct referral
+      }));
+    } catch (error) {
+      console.error('[ReferralService] Error getting referrals by user ID:', error);
+      return [];
+    }
+  }
+
+  /**
    * Валидирует реферальный код
    */
   async validateReferralCode(refCode: string): Promise<boolean> {
