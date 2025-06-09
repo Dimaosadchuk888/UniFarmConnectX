@@ -81,6 +81,42 @@ async function startUniFarmServer() {
       });
     });
 
+    // TON Farming API
+    app.get(`${apiPrefix}/ton-farming/info`, (req, res) => {
+      const farmingData = {
+        user_id: req.query.user_id || 'user_' + Date.now(),
+        ton_farming_active: true,
+        ton_balance: '2.5',
+        ton_rate: '0.1',
+        ton_accumulated: '1.2',
+        last_claim: new Date().toISOString(),
+        next_claim_available: new Date(Date.now() + 3600000).toISOString()
+      };
+
+      res.json({
+        success: true,
+        data: farmingData
+      });
+    });
+
+    // UNI Farming API
+    app.get(`${apiPrefix}/uni-farming/status`, (req, res) => {
+      const farmingStatus = {
+        user_id: req.query.user_id || 'user_' + Date.now(),
+        uni_farming_active: true,
+        uni_balance: '500',
+        uni_rate: '0.5',
+        uni_accumulated: '125',
+        farming_start_time: new Date(Date.now() - 7200000).toISOString(),
+        last_update: new Date().toISOString()
+      };
+
+      res.json({
+        success: true,
+        data: farmingStatus
+      });
+    });
+
     // TON Connect manifest
     app.get('/tonconnect-manifest.json', (req, res) => {
       res.json({
