@@ -360,7 +360,7 @@ async function startServer() {
     }
 
     // Start server
-    const port = parseInt(config.app.port);
+    const port = parseInt(String(config.app.port));
     server.listen(port, '0.0.0.0', () => {
       logger.info(`UniFarm server запущен на порту ${port}`);
       logger.info(`Environment: ${config.app.nodeEnv}`);

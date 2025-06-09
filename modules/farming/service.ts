@@ -70,7 +70,7 @@ export class FarmingService {
         depositCount: isActive ? 1 : 0,
         totalDepositAmount: depositAmount,
         startDate: farmingStart.toISOString(),
-        uni_farming_start_timestamp: user.uni_farming_start_timestamp || null,
+        uni_farming_start_timestamp: user.uni_farming_start_timestamp ? user.uni_farming_start_timestamp.toISOString() : null,
         rate: baseHourlyRate.toFixed(6),
         accumulated: accumulated.toFixed(6),
         last_claim: lastClaim?.toISOString() || null,

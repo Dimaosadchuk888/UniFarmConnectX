@@ -156,6 +156,28 @@ export const userMissions = pgTable("user_missions", {
   completed_at: timestamp("completed_at").defaultNow()
 });
 
+export const boostPackages = pgTable("boost_packages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  multiplier: numeric("multiplier", { precision: 8, scale: 4 }).notNull(),
+  duration_hours: integer("duration_hours").notNull(),
+  price_ton: numeric("price_ton", { precision: 18, scale: 8 }).notNull(),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow()
+});
+
+export const userBoosts = pgTable("user_boosts", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  boost_package_id: integer("boost_package_id").references(() => boostPackages.id).notNull(),
+  started_at: timestamp("started_at").defaultNow(),
+  expires_at: timestamp("expires_at").notNull(),
+  is_active: boolean("is_active").default(true),
+  created_at: timestamp("created_at").defaultNow()
+});
+
 // Schema exports using proper createInsertSchema approach
 export const insertAuthUserSchema = createInsertSchema(authUsers);
 export const insertUserSchema = createInsertSchema(users);
@@ -164,6 +186,8 @@ export const insertTransactionSchema = createInsertSchema(transactions);
 export const insertReferralSchema = createInsertSchema(referrals);
 export const insertMissionSchema = createInsertSchema(missions);
 export const insertUserMissionSchema = createInsertSchema(userMissions);
+export const insertBoostPackageSchema = createInsertSchema(boostPackages);
+export const insertUserBoostSchema = createInsertSchema(userBoosts);
 
 // Type exports
 export type InsertAuthUser = z.infer<typeof insertAuthUserSchema>;
@@ -186,3 +210,9 @@ export type Mission = typeof missions.$inferSelect;
 
 export type InsertUserMission = z.infer<typeof insertUserMissionSchema>;
 export type UserMission = typeof userMissions.$inferSelect;
+
+export type InsertBoostPackage = z.infer<typeof insertBoostPackageSchema>;
+export type BoostPackage = typeof boostPackages.$inferSelect;
+
+export type InsertUserBoost = z.infer<typeof insertUserBoostSchema>;
+export type UserBoost = typeof userBoosts.$inferSelect;
