@@ -47,12 +47,40 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
     
     // Проверяем статус ответа
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      let errorData;
+      try {
+        const errorText = await response.text();
+        errorData = JSON.parse(errorText);
+      } catch (parseError) {
+        errorData = { error: 'Ошибка парсинга ответа сервера', status: response.status };
+      }
       throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    // Возвращаем JSON данные
-    return await response.json();
+    // Пытаемся получить JSON ответ
+    try {
+      const responseText = await response.text();
+      
+      // Проверяем, что ответ не пустой
+      if (!responseText || responseText.trim() === '') {
+        return {
+          success: false,
+          error: 'Пустой ответ от сервера',
+          data: null
+        };
+      }
+      
+      // Парсим JSON
+      const data = JSON.parse(responseText);
+      return data;
+    } catch (parseError) {
+      console.error('[correctApiRequest] Ошибка парсинга JSON:', parseError);
+      return {
+        success: false,
+        error: 'Ошибка обработки ответа сервера',
+        data: null
+      };
+    }
   } catch (error) {
     console.error('API Request Error:', error);
     throw error;
