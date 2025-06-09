@@ -56,22 +56,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         console.error('[WebSocket] Error retrieving user_id from storage:', e);
       }
 
-      // Определяем URL для WebSocket в зависимости от окружения
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('replit.dev');
+      // Определяем URL для WebSocket на основе текущего домена
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/ws${userId ? `?user_id=${userId}` : ''}`;
       
-      let wsUrl;
-      if (isDevelopment) {
-        // В режиме разработки используем локальный WebSocket или отключаем
-        console.log('[WebSocket] Development mode detected - WebSocket disabled');
-        setConnectionStatus('disconnected');
-        return;
-      } else {
-        // В продакшене используем production URL
-        const PRODUCTION_HOST = 'uni-farm-connect-xo-osadchukdmitro2.replit.app';
-        const protocol = 'wss:';
-        wsUrl = `${protocol}//${PRODUCTION_HOST}/ws${userId ? `?user_id=${userId}` : ''}`;
-        console.log('[WebSocket] Connecting to production WebSocket:', wsUrl);
-      }
+      console.log('[WebSocket] Подключение к:', wsUrl);
 
       const newSocket = new WebSocket(wsUrl);
       setSocket(newSocket);
