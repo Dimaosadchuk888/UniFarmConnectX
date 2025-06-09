@@ -41,7 +41,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
         // Отображаем уведомление о процессе отключения
         showNotification({
   message: 'Отключение кошелька...',
-        type: \'loading\',
+        type: 'loading',
         duration: 2000
         });
         
@@ -51,14 +51,14 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
         // Уведомление об успешном отключении
         showNotification({
   message: 'Кошелёк успешно отключен',
-        type: \'loading\',
+        type: 'loading',
         duration: 3000
         });
       } else {
         // Отображаем уведомление о процессе подключения
         showNotification({
   message: 'Ожидание подключения кошелька...',
-        type: \'loading\',
+        type: 'loading',
         duration: 2000
         });
         
@@ -68,7 +68,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
         // Уведомление об успешном подключении
         showNotification({
   message: 'Кошелёк успешно подключен',
-        type: \'loading\',
+        type: 'loading',
         duration: 3000
         });
       }
@@ -80,7 +80,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
       // Отображаем уведомление об ошибке
       showNotification({
   message: `Ошибка: ${errorMessage}`,
-        type: \'loading\',
+        type: 'loading',
         duration: 5000
       });
     } finally {
@@ -98,7 +98,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
           // Показываем уведомление об успешном копировании
           showNotification({
   message: 'Адрес кошелька скопирован в буфер обмена',
-        type: \'loading\',
+        type: 'loading',
         duration: 2000
           });
         })
@@ -108,7 +108,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
           // Показываем уведомление об ошибке копирования
           showNotification({
   message: 'Не удалось скопировать адрес кошелька',
-        type: \'loading\',
+        type: 'loading',
         duration: 3000
           });
         });

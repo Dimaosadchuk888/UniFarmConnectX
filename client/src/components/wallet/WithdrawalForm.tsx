@@ -93,7 +93,7 @@ const WithdrawalForm: React.FC = () => {
     
     showNotification({
   message: `Переключено на ${currency}`,
-        type: \'loading\',
+        type: 'loading',
         duration: 2000
     });
   };
@@ -136,7 +136,7 @@ const WithdrawalForm: React.FC = () => {
       // Показываем уведомление об успешной отправке
       showNotification({
   message: `Заявка на вывод ${data.amount} ${selectedCurrency} создана успешно!`,
-        type: \'loading\',
+        type: 'loading',
         duration: 5000
       });
       
@@ -161,7 +161,7 @@ const WithdrawalForm: React.FC = () => {
       
       showNotification({
   message: `Ошибка создания заявки: ${errorMsg}`,
-        type: \'loading\',
+        type: 'loading',
         duration: 5000
       });
       

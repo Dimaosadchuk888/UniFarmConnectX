@@ -177,7 +177,7 @@ const TransactionHistory: React.FC = () => {
     
     showNotification({
   message: `Фильтр изменен на ${filter === 'ALL' ? 'Все транзакции' : filter}`,
-        type: \'loading\',
+        type: 'loading',
         duration: 2000
     });
   };
@@ -186,14 +186,14 @@ const TransactionHistory: React.FC = () => {
   const handleRefresh = () => {
     showNotification({
   message: 'Обновление истории транзакций...',
-        type: \'loading\',
+        type: 'loading',
         duration: 1500
     });
     
     refetch().then(() => {
       showNotification({
   message: 'История транзакций обновлена',
-        type: \'loading\',
+        type: 'loading',
         duration: 2000
       });
     });
