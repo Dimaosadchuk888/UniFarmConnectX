@@ -20,8 +20,6 @@ const Dashboard: React.FC = () => {
     enabled: !!userId
   });
 
-  const userData = userResponse?.data || null;
-
   return (
     <div className="p-4 space-y-5 min-h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Основная секция приветствия */}
