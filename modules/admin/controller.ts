@@ -44,7 +44,7 @@ export class AdminController extends BaseController {
       console.log(`[AdminController] Получение пользователей, страница ${page}`);
       
       // Здесь будет запрос к базе данных
-      const users = [];
+      const users: any[] = [];
       
       res.json({
         success: true,
