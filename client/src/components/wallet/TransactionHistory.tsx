@@ -175,22 +175,22 @@ const TransactionHistory: React.FC = () => {
     setActiveFilter(filter);
     setPage(1); // Сбрасываем пагинацию при смене фильтра
     
-    showNotification({type: 'info', {
-      message: `Фильтр изменен на ${filter === 'ALL' ? 'Все транзакции' : filter}`,
+    showNotification({
+      message: `Фильтр изменен на ${filter === 'ALL' ? 'Все транзакции' : filter}`, type: 'loading',
       duration: 2000
     });
   };
   
   // Обработчик обновления данных
   const handleRefresh = () => {
-    showNotification({type: 'loading', {
-      message: 'Обновление истории транзакций...',
+    showNotification({
+      message: 'Обновление истории транзакций...', type: 'loading',
       duration: 1500
     });
     
     refetch().then(() => {
-      showNotification({type: 'success', {
-        message: 'История транзакций обновлена',
+      showNotification({
+        message: 'История транзакций обновлена', type: 'loading',
         duration: 2000
       });
     });

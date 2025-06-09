@@ -39,8 +39,8 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     try {
       if (isWalletConnected) {
         // Отображаем уведомление о процессе отключения
-        showNotification({type: 'loading', {
-          message: 'Отключение кошелька...',
+        showNotification({
+          message: 'Отключение кошелька...', type: 'loading',
           duration: 2000
         });
         
@@ -48,14 +48,14 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
         await disconnectWallet();
         
         // Уведомление об успешном отключении
-        showNotification({type: 'info', {
-          message: 'Кошелёк успешно отключен',
+        showNotification({
+          message: 'Кошелёк успешно отключен', type: 'loading',
           duration: 3000
         });
       } else {
         // Отображаем уведомление о процессе подключения
-        showNotification({type: 'loading', {
-          message: 'Ожидание подключения кошелька...',
+        showNotification({
+          message: 'Ожидание подключения кошелька...', type: 'loading',
           duration: 2000
         });
         
@@ -63,8 +63,8 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
         await connectWallet();
         
         // Уведомление об успешном подключении
-        showNotification({type: 'success', {
-          message: 'Кошелёк успешно подключен',
+        showNotification({
+          message: 'Кошелёк успешно подключен', type: 'loading',
           duration: 3000
         });
       }
@@ -74,8 +74,8 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
       console.error('Ошибка управления кошельком:', errorMessage);
       
       // Отображаем уведомление об ошибке
-      showNotification({type: 'error', {
-        message: `Ошибка: ${errorMessage}`,
+      showNotification({
+        message: `Ошибка: ${errorMessage}`, type: 'loading',
         duration: 5000
       });
     } finally {
@@ -91,8 +91,8 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
       navigator.clipboard.writeText(walletAddress)
         .then(() => {
           // Показываем уведомление об успешном копировании
-          showNotification({type: 'success', {
-            message: 'Адрес кошелька скопирован в буфер обмена',
+          showNotification({
+            message: 'Адрес кошелька скопирован в буфер обмена', type: 'loading',
             duration: 2000
           });
         })
@@ -100,8 +100,8 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
           console.error('Ошибка копирования адреса:', error);
           
           // Показываем уведомление об ошибке копирования
-          showNotification({type: 'error', {
-            message: 'Не удалось скопировать адрес кошелька',
+          showNotification({
+            message: 'Не удалось скопировать адрес кошелька', type: 'loading',
             duration: 3000
           });
         });

@@ -64,7 +64,7 @@ const BalanceCard: React.FC = () => {
     if (data.type === 'update' && data.balanceData) {
       if (userId) {
         showNotification({
-          message: 'Доступно обновление баланса',
+          message: 'Доступно обновление баланса', type: 'loading',
           type: 'info',
           duration: 3000
         });
@@ -131,7 +131,7 @@ const BalanceCard: React.FC = () => {
     if (isBalanceFetching) return;
     
     showNotification({
-      message: 'Обновление баланса...',
+      message: 'Обновление баланса...', type: 'loading',
       type: 'loading',
       duration: 1500
     });
@@ -142,7 +142,7 @@ const BalanceCard: React.FC = () => {
         calculateRate();
         
         showNotification({
-          message: 'Баланс успешно обновлён',
+          message: 'Баланс успешно обновлён', type: 'loading',
           type: 'success',
           duration: 2000
         });
@@ -160,7 +160,7 @@ const BalanceCard: React.FC = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
       showNotification({
-        message: `Не удалось обновить баланс: ${errorMessage}`,
+        message: `Не удалось обновить баланс: ${errorMessage}`, type: 'loading',
         type: 'error',
         duration: 3000
       });
@@ -179,7 +179,7 @@ const BalanceCard: React.FC = () => {
     if (isBalanceFetching) return;
     
     showNotification({
-      message: 'Обновление данных...',
+      message: 'Обновление данных...', type: 'loading',
       type: 'loading',
       duration: 1500
     });
@@ -191,8 +191,9 @@ const BalanceCard: React.FC = () => {
         refreshBalance();
         calculateRate();
         
-        showNotification({type: 'success', {
-          message: 'Данные профиля и баланс обновлены',
+        showNotification({
+          message: 'Данные профиля и баланс обновлены', type: 'loading',
+          type: 'success',
           duration: 3000
         });
         
@@ -204,8 +205,9 @@ const BalanceCard: React.FC = () => {
       }, 500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
-      showNotification({type: 'error', {
-        message: `Не удалось обновить данные: ${errorMessage}`,
+      showNotification({
+        message: `Не удалось обновить данные: ${errorMessage}`, type: 'loading',
+        type: 'error',
         duration: 3000
       });
     }
@@ -220,7 +222,7 @@ const BalanceCard: React.FC = () => {
   // Обработчик переподключения WebSocket
   const handleReconnect = useCallback(() => {
     showNotification({
-      message: 'Переподключение...',
+      message: 'Переподключение...', type: 'loading',
       type: 'loading',
       duration: 2000
     });
@@ -235,7 +237,7 @@ const BalanceCard: React.FC = () => {
       initialLoadedRef.current = true;
       
       showNotification({
-        message: 'Загрузка баланса...',
+        message: 'Загрузка баланса...', type: 'loading',
         type: 'loading',
         duration: 2000
       });

@@ -40,8 +40,8 @@ const WalletConnectionCard: React.FC = () => {
     try {
       if (isWalletConnected) {
         // Отображаем уведомление о процессе отключения
-        showNotification({type: 'loading', {
-          message: 'Отключение кошелька...',
+        showNotification({
+          message: 'Отключение кошелька...', type: 'loading',
           duration: 2000
         });
         
@@ -49,14 +49,14 @@ const WalletConnectionCard: React.FC = () => {
         await disconnectWallet();
         
         // Показываем уведомление об успешном отключении
-        showNotification({type: 'info', {
-          message: 'TON-кошелек успешно отключен',
+        showNotification({
+          message: 'TON-кошелек успешно отключен', type: 'loading',
           duration: 3000
         });
       } else {
         // Отображаем уведомление о процессе подключения
-        showNotification({type: 'loading', {
-          message: 'Ожидание подключения кошелька...',
+        showNotification({
+          message: 'Ожидание подключения кошелька...', type: 'loading',
           duration: 2000
         });
         
@@ -65,14 +65,14 @@ const WalletConnectionCard: React.FC = () => {
         
         if (success) {
           // Уведомление об успешном подключении
-          showNotification({type: 'success', {
-            message: 'TON-кошелек успешно подключен',
+          showNotification({
+            message: 'TON-кошелек успешно подключен', type: 'loading',
             duration: 3000
           });
         } else {
           // Уведомление об ошибке
-          showNotification({type: 'error', {
-            message: 'Не удалось подключить кошелек',
+          showNotification({
+            message: 'Не удалось подключить кошелек', type: 'loading',
             duration: 3000
           });
         }
@@ -82,8 +82,8 @@ const WalletConnectionCard: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       
       // Показываем уведомление об ошибке
-      showNotification({type: 'error', {
-        message: `Ошибка: ${errorMessage}`,
+      showNotification({
+        message: `Ошибка: ${errorMessage}`, type: 'loading',
         duration: 4000
       });
     } finally {
@@ -104,8 +104,8 @@ const WalletConnectionCard: React.FC = () => {
       setCopySuccess(true);
       
       // Показываем уведомление об успешном копировании
-      showNotification({type: 'success', {
-        message: 'TON-адрес скопирован в буфер обмена',
+      showNotification({
+        message: 'TON-адрес скопирован в буфер обмена', type: 'loading',
         duration: 2000
       });
       
@@ -116,8 +116,8 @@ const WalletConnectionCard: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       
       // Показываем уведомление об ошибке
-      showNotification({type: 'error', {
-        message: `Не удалось скопировать адрес кошелька: ${errorMessage}`,
+      showNotification({
+        message: `Не удалось скопировать адрес кошелька: ${errorMessage}`, type: 'loading',
         duration: 3000
       });
       
