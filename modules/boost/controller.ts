@@ -1,88 +1,50 @@
-import express from 'express';
+import type { Request, Response } from 'express';
+import { BaseController } from '../../core/BaseController';
+import { BoostService } from './service';
 
-export class BoostController {
+export class BoostController extends BaseController {
+  private boostService: BoostService;
+
+  constructor() {
+    super();
+    this.boostService = new BoostService();
+  }
+
   /**
    * Получить список доступных бустов
    */
-  async getAvailableBoosts(req: express.Request, res: express.Response): Promise<void> {
-    try {
+  async getAvailableBoosts(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
       console.log('[BoostController] Получение списка доступных бустов');
       
-      // Здесь будет логика получения бустов из базы данных
-      const boosts = [
-        {
-          id: 1,
-          name: "Speed Boost",
-          description: "Увеличивает скорость фарминга на 50%",
-          cost_uni: "100",
-          cost_ton: "0.1",
-          duration_hours: 24,
-          effect_multiplier: 1.5,
-          is_available: true
-        },
-        {
-          id: 2,
-          name: "Power Boost",
-          description: "Удваивает доходность на 12 часов",
-          cost_uni: "250",
-          cost_ton: "0.25",
-          duration_hours: 12,
-          effect_multiplier: 2.0,
-          is_available: true
-        }
-      ];
+      const boosts = await this.boostService.getAvailableBoosts();
 
-      res.json({
-        success: true,
-        data: {
-          boosts,
-          total: boosts.length
-        }
+      this.sendSuccess(res, {
+        boosts,
+        total: boosts.length
       });
-    } catch (error) {
-      console.error('[BoostController] Ошибка получения бустов:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения списка бустов'
-      });
-    }
+    }, 'получения списка бустов');
   }
 
   /**
    * Получить активные бусты пользователя
    */
-  async getUserBoosts(req: express.Request, res: express.Response): Promise<void> {
-    try {
+  async getUserBoosts(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      if (!this.validateParams(req, ['userId'])) {
+        return this.sendError(res, 'Отсутствует параметр userId', 400);
+      }
+
       const userId = req.params.userId;
       console.log(`[BoostController] Получение активных бустов для пользователя ${userId}`);
       
-      // Здесь будет логика получения активных бустов из базы данных
-      const activeBoosts = [
-        {
-          id: 1,
-          boost_id: 1,
-          user_id: userId,
-          activated_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          effect_multiplier: 1.5,
-          is_active: true
-        }
-      ];
+      const activeBoosts = await this.boostService.getUserActiveBoosts(userId);
 
-      res.json({
-        success: true,
-        data: {
-          active_boosts: activeBoosts,
-          total: activeBoosts.length
-        }
+      this.sendSuccess(res, {
+        active_boosts: activeBoosts,
+        total: activeBoosts.length
       });
-    } catch (error) {
-      console.error('[BoostController] Ошибка получения активных бустов:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения активных бустов'
-      });
-    }
+    }, 'получения активных бустов');
   }
 
   /**

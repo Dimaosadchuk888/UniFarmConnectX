@@ -1,126 +1,81 @@
-import express from 'express';
+import type { Request, Response } from 'express';
+import { BaseController } from '../../core/BaseController';
 import { ReferralService } from './service';
 
-export class ReferralController {
+export class ReferralController extends BaseController {
   private referralService: ReferralService;
 
   constructor() {
+    super();
     this.referralService = new ReferralService();
   }
 
   /**
    * Получить реферальную информацию пользователя
    */
-  async getReferralInfo(req: express.Request, res: express.Response): Promise<void> {
-    try {
+  async getReferralInfo(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
       const userId = req.params.userId;
+      
+      if (!this.validateParams(req, ['userId'])) {
+        return this.sendError(res, 'Отсутствует параметр userId', 400);
+      }
+      
       console.log(`[ReferralController] Получение реферальной информации для пользователя ${userId}`);
       
       const stats = await this.referralService.getReferralStats(userId);
       const refCode = await this.referralService.generateReferralCode(userId);
       
-      res.json({
-        success: true,
-        data: {
-          ref_code: refCode,
-          stats,
-          referral_link: `https://t.me/unifarm_bot/app?ref_code=${refCode}`
-        }
+      this.sendSuccess(res, {
+        ref_code: refCode,
+        stats,
+        referral_link: `https://t.me/unifarm_bot/app?ref_code=${refCode}`
       });
-    } catch (error) {
-      console.error('[ReferralController] Ошибка получения реферальной информации:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения реферальной информации'
-      });
-    }
+    }, 'получения реферальной информации');
   }
 
   /**
    * Обработать реферальный код
    */
-  async processReferralCode(req: express.Request, res: express.Response): Promise<void> {
-    try {
+  async processReferralCode(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      this.validateRequiredFields(req.body, ['refCode', 'userId']);
+      
       const { refCode, userId } = req.body;
       console.log(`[ReferralController] Обработка реферального кода ${refCode} для пользователя ${userId}`);
-      
-      if (!refCode || !userId) {
-        res.status(400).json({
-          success: false,
-          error: 'Не указан refCode или userId'
-        });
-        return;
-      }
 
       const isValid = await this.referralService.validateReferralCode(refCode);
       if (!isValid) {
-        res.status(400).json({
-          success: false,
-          error: 'Недействительный реферальный код'
-        });
-        return;
+        return this.sendError(res, 'Недействительный реферальный код', 400);
       }
 
       const result = await this.referralService.processReferral(refCode, userId);
       
-      res.json({
-        success: true,
-        data: {
-          processed: result,
-          message: result ? 'Реферальный код успешно применен' : 'Ошибка применения реферального кода'
-        }
+      this.sendSuccess(res, {
+        processed: result,
+        message: result ? 'Реферальный код успешно применен' : 'Ошибка применения реферального кода'
       });
-    } catch (error) {
-      console.error('[ReferralController] Ошибка обработки реферального кода:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка обработки реферального кода'
-      });
-    }
+    }, 'обработки реферального кода');
   }
 
   /**
    * Получить список рефералов пользователя
    */
-  async getUserReferrals(req: express.Request, res: express.Response): Promise<void> {
-    try {
+  async getUserReferrals(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      if (!this.validateParams(req, ['userId'])) {
+        return this.sendError(res, 'Отсутствует параметр userId', 400);
+      }
+
       const userId = req.params.userId;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const { page, limit } = this.getPagination(req);
       
       console.log(`[ReferralController] Получение рефералов для пользователя ${userId}, страница ${page}`);
       
-      // Здесь будет логика получения рефералов из базы данных
-      const referrals = [
-        {
-          id: 1,
-          referred_user_id: "123",
-          referred_username: "user123",
-          referred_at: new Date().toISOString(),
-          earnings_from_referral: "50",
-          is_active: true
-        }
-      ];
+      const result = await this.referralService.getUserReferrals(userId, page, limit);
       
-      res.json({
-        success: true,
-        data: {
-          referrals,
-          pagination: {
-            page,
-            limit,
-            total: referrals.length,
-            has_more: false
-          }
-        }
-      });
-    } catch (error) {
-      console.error('[ReferralController] Ошибка получения рефералов:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения списка рефералов'
-      });
-    }
+      this.sendSuccess(res, result);
+    }, 'получения списка рефералов');
   }
 
   /**
@@ -162,26 +117,21 @@ export class ReferralController {
   /**
    * Валидировать реферальный код
    */
-  async validateReferralCode(req: express.Request, res: express.Response): Promise<void> {
-    try {
+  async validateReferralCode(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      if (!this.validateParams(req, ['refCode'])) {
+        return this.sendError(res, 'Отсутствует параметр refCode', 400);
+      }
+
       const { refCode } = req.params;
       console.log(`[ReferralController] Валидация реферального кода ${refCode}`);
       
       const isValid = await this.referralService.validateReferralCode(refCode);
       
-      res.json({
-        success: true,
-        data: {
-          is_valid: isValid,
-          ref_code: refCode
-        }
+      this.sendSuccess(res, {
+        is_valid: isValid,
+        ref_code: refCode
       });
-    } catch (error) {
-      console.error('[ReferralController] Ошибка валидации реферального кода:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка валидации реферального кода'
-      });
-    }
+    }, 'валидации реферального кода');
   }
 }

@@ -1,37 +1,31 @@
-import express from 'express';
+import type { Request, Response } from 'express';
+import { BaseController } from '../../core/BaseController';
+import { DailyBonusService } from './service';
 
-export class DailyBonusController {
+export class DailyBonusController extends BaseController {
+  private dailyBonusService: DailyBonusService;
+
+  constructor() {
+    super();
+    this.dailyBonusService = new DailyBonusService();
+  }
+
   /**
    * Получить информацию о ежедневном бонусе пользователя
    */
-  async getDailyBonusInfo(req: express.Request, res: express.Response): Promise<void> {
-    try {
+  async getDailyBonusInfo(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      if (!this.validateParams(req, ['userId'])) {
+        return this.sendError(res, 'Отсутствует параметр userId', 400);
+      }
+
       const userId = req.params.userId;
       console.log(`[DailyBonusController] Получение информации о ежедневном бонусе для пользователя ${userId}`);
       
-      // Здесь будет логика получения данных из базы данных
-      const dailyBonusInfo = {
-        current_streak: 3,
-        max_streak: 7,
-        last_claim_date: "2025-05-30",
-        next_available_claim: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        can_claim_today: true,
-        today_bonus_amount: "100",
-        streak_multiplier: 1.3,
-        total_claimed: "850"
-      };
+      const dailyBonusInfo = await this.dailyBonusService.getDailyBonusInfo(userId);
 
-      res.json({
-        success: true,
-        data: dailyBonusInfo
-      });
-    } catch (error) {
-      console.error('[DailyBonusController] Ошибка получения информации о ежедневном бонусе:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения информации о ежедневном бонусе'
-      });
-    }
+      this.sendSuccess(res, dailyBonusInfo);
+    }, 'получения информации о ежедневном бонусе');
   }
 
   /**
