@@ -1,4 +1,7 @@
 [workflows]
 
 [workflows.dev]
-run = "tsx server/index.ts"
+run = "npm run dev"
+
+[workflows."Start application"]
+run = "npm run dev"
