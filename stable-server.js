@@ -138,13 +138,49 @@ async function startUniFarmServer() {
     const server = createServer(app);
 
     // WebSocket поддержка
-    server.on('upgrade', (request, socket, head) => {
-      console.log('WebSocket upgrade запрос получен');
-      socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
-                   'Upgrade: websocket\r\n' +
-                   'Connection: Upgrade\r\n' +
-                   '\r\n');
+    const { WebSocketServer } = require('ws');
+    const wss = new WebSocketServer({ server, path: '/ws' });
+
+    wss.on('connection', (ws, request) => {
+      console.log('✅ WebSocket соединение установлено');
+      
+      // Отправляем приветственное сообщение
+      ws.send(JSON.stringify({
+        type: 'connection',
+        status: 'connected',
+        timestamp: new Date().toISOString()
+      }));
+
+      // Обработка входящих сообщений
+      ws.on('message', (data) => {
+        try {
+          const message = JSON.parse(data.toString());
+          console.log('📨 WebSocket сообщение:', message.type);
+
+          // Обработка ping сообщений
+          if (message.type === 'ping') {
+            ws.send(JSON.stringify({
+              type: 'pong',
+              timestamp: new Date().toISOString()
+            }));
+          }
+        } catch (error) {
+          console.error('❌ Ошибка обработки WebSocket сообщения:', error);
+        }
+      });
+
+      // Обработка закрытия соединения
+      ws.on('close', (code, reason) => {
+        console.log('📴 WebSocket соединение закрыто:', code, reason.toString());
+      });
+
+      // Обработка ошибок
+      ws.on('error', (error) => {
+        console.error('❌ WebSocket ошибка:', error);
+      });
     });
+
+    console.log('🔌 WebSocket сервер настроен на /ws');
 
     // Запуск сервера
     const port = parseInt(process.env.PORT || '3000');

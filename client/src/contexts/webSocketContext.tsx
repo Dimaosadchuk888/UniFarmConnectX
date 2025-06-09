@@ -125,8 +125,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         } else {
           console.log('[WebSocket] Development mode - reconnection disabled');
         }
-
-        setReconnectTimeout(timeout);
       };
 
       newSocket.onerror = (event) => {
