@@ -103,7 +103,7 @@ export const users = pgTable(
 // Таблица farming_deposits по требованиям задачи
 export const farmingDeposits = pgTable("farming_deposits", {
   id: serial("id").primaryKey(),
-  user_id: integer("user_id").references(() => users.id),
+  user_id: integer("user_id").references(() => users.id).notNull(),
   amount_uni: numeric("amount_uni", { precision: 18, scale: 6 }),
   rate_uni: numeric("rate_uni", { precision: 5, scale: 2 }),
   rate_ton: numeric("rate_ton", { precision: 5, scale: 2 }),
@@ -264,8 +264,8 @@ export type Mission = typeof missions.$inferSelect;
 // Таблица user_missions для отслеживания выполнения миссий пользователями
 export const userMissions = pgTable("user_missions", {
   id: serial("id").primaryKey(),
-  user_id: integer("user_id").references(() => users.id),
-  mission_id: integer("mission_id").references(() => missions.id),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  mission_id: integer("mission_id").references(() => missions.id).notNull(),
   completed_at: timestamp("completed_at").defaultNow()
 });
 
