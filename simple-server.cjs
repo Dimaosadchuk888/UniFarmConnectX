@@ -58,8 +58,8 @@ async function startSimpleServer() {
       });
     });
 
-    // Mock user data для разработки
-    app.get(`${apiPrefix}/user/profile`, (req, res) => {
+    // API для профиля пользователя
+    app.get(`${apiPrefix}/users/profile`, (req, res) => {
       const userData = {
         user_id: 'user_' + Date.now(),
         username: 'demo_user',

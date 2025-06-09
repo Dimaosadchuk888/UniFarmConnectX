@@ -7,7 +7,7 @@ import { spawn } from 'child_process';
 console.log('🚀 Запуск UniFarm интегрированного сервера...');
 
 // Запускаем простой сервер с Node.js
-const server = spawn('node', ['simple-server.js'], {
+const server = spawn('node', ['simple-server.cjs'], {
   stdio: 'inherit',
   env: {
     ...process.env,
