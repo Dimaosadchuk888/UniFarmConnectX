@@ -56,13 +56,22 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         console.error('[WebSocket] Error retrieving user_id from storage:', e);
       }
 
-      // Получаем корректный URL для WebSocket с учетом Replit
-      // ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ PRODUCTION URL ДЛЯ WEBSOCKET
-      const FORCED_PRODUCTION_HOST = 'uni-farm-connect-xo-osadchukdmitro2.replit.app';
-      const protocol = 'wss:';
-      const wsUrl = `${protocol}//${FORCED_PRODUCTION_HOST}/ws${userId ? `?user_id=${userId}` : ''}`;
-
-      console.log('[WebSocket] 🚀 ПРИНУДИТЕЛЬНО подключаемся к production WebSocket:', wsUrl);
+      // Определяем URL для WebSocket в зависимости от окружения
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('replit.dev');
+      
+      let wsUrl;
+      if (isDevelopment) {
+        // В режиме разработки используем локальный WebSocket или отключаем
+        console.log('[WebSocket] Development mode detected - WebSocket disabled');
+        setConnectionStatus('disconnected');
+        return;
+      } else {
+        // В продакшене используем production URL
+        const PRODUCTION_HOST = 'uni-farm-connect-xo-osadchukdmitro2.replit.app';
+        const protocol = 'wss:';
+        wsUrl = `${protocol}//${PRODUCTION_HOST}/ws${userId ? `?user_id=${userId}` : ''}`;
+        console.log('[WebSocket] Connecting to production WebSocket:', wsUrl);
+      }
 
       const newSocket = new WebSocket(wsUrl);
       setSocket(newSocket);
@@ -110,13 +119,22 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         console.log('[WebSocket] Connection closed:', event.code, event.reason);
         setConnectionStatus('disconnected');
 
-        // Запускаем переподключение с небольшой задержкой
-        const randomDelay = 3000 + Math.random() * 1000;
-        console.log(`[WebSocket] Reconnecting in ${Math.round(randomDelay)}ms...`);
+        // Проверяем режим разработки перед переподключением
+        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('replit.dev');
+        
+        if (!isDevelopment) {
+          // Запускаем переподключение только в продакшене
+          const randomDelay = 3000 + Math.random() * 1000;
+          console.log(`[WebSocket] Reconnecting in ${Math.round(randomDelay)}ms...`);
 
-        const timeout = window.setTimeout(() => {
-          createWebSocket();
-        }, randomDelay);
+          const timeout = window.setTimeout(() => {
+            createWebSocket();
+          }, randomDelay);
+          
+          setReconnectTimeout(timeout);
+        } else {
+          console.log('[WebSocket] Development mode - reconnection disabled');
+        }
 
         setReconnectTimeout(timeout);
       };

@@ -7,6 +7,7 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { spawn } = require('child_process');
 const path = require('path');
+const WebSocket = require('ws');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
