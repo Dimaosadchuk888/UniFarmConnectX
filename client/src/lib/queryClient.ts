@@ -13,9 +13,10 @@ async function throwIfResNotOk(res: Response) {
     const text = await res.text();
 
     // Проверяем на HTML-ответ (серверные ошибки часто возвращают HTML)
-    const isHtmlResponse = text.trim().startsWith('<!DOCTYPE html>') || 
-                          text.trim().startsWith('<html') || 
-                          text.trim().match(/^<[!a-z]/i);
+    const trimmedText = text.trim();
+    const isHtmlResponse = trimmedText.startsWith('<!DOCTYPE html>') || 
+                          trimmedText.startsWith('<html') || 
+                          /^<[!a-z]/i.test(trimmedText);
 
     // Проверяем на редирект в тексте
     const isRedirect = text.includes('Redirecting to') || 
@@ -240,14 +241,24 @@ export const getQueryFn: <T>(options: {
             return data;
           }
         } catch (error: any) {
-          console.error("[DEBUG] QueryClient - JSON parse error:", error);
-          console.error("[DEBUG] QueryClient - Response text:", text);
+          console.error("[DEBUG] QueryClient - JSON parse error:", error.message || error);
+          console.error("[DEBUG] QueryClient - Response text length:", text.length);
+          
+          // Проверяем, не является ли это пустым ответом
+          if (!text || text.trim() === '') {
+            return {
+              success: false,
+              error: "Пустой ответ от сервера",
+              data: null
+            };
+          }
           
           // Возвращаем структуру с ошибкой вместо пустых данных
           return {
             success: false,
             error: "Ошибка парсинга ответа сервера",
-            data: null
+            data: null,
+            rawText: text.substring(0, 100) // Первые 100 символов для отладки
           };
         }
       } catch (resError) {

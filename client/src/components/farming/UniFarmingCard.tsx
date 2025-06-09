@@ -72,8 +72,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     );
   }
 
-  // Применяем Error Boundary к компоненту
-  const withErrorBoundary = useErrorBoundary();
+  // Используем Error Boundary для обработки ошибок
+  const { showBoundary } = useErrorBoundary();
 
   // Получаем информацию о фарминге с динамическим ID пользователя
   const { data: farmingResponse, isLoading } = useQuery({
@@ -124,6 +124,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return response;
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка при получении информации о фарминге:', error);
+        showBoundary(error);
         throw new Error(`Ошибка получения данных фарминга: ${error.message || 'Неизвестная ошибка'}`);
       }
     }
@@ -845,13 +846,13 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     }
   };
 
-  // Оборачиваем весь компонент в Error Boundary
-  return withErrorBoundary(
+  // Основной рендер компонента
+  return (
     <div className="bg-card rounded-xl p-4 mb-5 shadow-md">
       <h2 className="text-xl font-semibold mb-3 text-primary">Основной UNI пакет</h2>
 
       {/* Информация о текущем фарминге (отображается всегда, если активен) */}
-      {isActive && withErrorBoundary.captureError && (
+      {isActive && (
         <div className="mb-5">
           {/* Индикатор активности фарминга */}
           <div className="mb-4 p-3 bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-500/30 rounded-lg flex items-center">
