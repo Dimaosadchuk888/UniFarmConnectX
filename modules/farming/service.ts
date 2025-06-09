@@ -1,4 +1,4 @@
-import { db } from '../../core/db';
+import { db } from '../../server/db';
 import { users, farmingDeposits, transactions } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository';
@@ -129,7 +129,7 @@ export class FarmingService {
         .insert(transactions)
         .values({
           user_id: user.id,
-          type: 'farming_reward',
+          transaction_type: 'farming_reward',
           currency: 'UNI',
           amount: baseReward,
           description: `Farming reward for ${farmingHours.toFixed(2)} hours`,

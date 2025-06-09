@@ -3,7 +3,7 @@
  */
 
 import { DeepReferralLogic } from './deepReferral';
-import { db } from '../../../core/db';
+import { db } from '../../../server/db';
 import { users, transactions } from '../../../shared/schema';
 import { eq } from 'drizzle-orm';
 
@@ -82,9 +82,6 @@ export class ReferralRewardDistribution {
    */
   static async processMilestoneBonus(userId: string): Promise<string> {
     try {
-      const { db } = await import('../../server/db');
-      const { users, transactions } = await import('../../shared/schema');
-      const { eq } = await import('drizzle-orm');
 
       // Получаем пользователя и его реферальный код
       const [user] = await db
