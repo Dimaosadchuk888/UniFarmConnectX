@@ -55,6 +55,9 @@ async function startServer() {
       });
     });
 
+    // Connect modular API routes
+    app.use(apiPrefix, apiRoutes);
+
     // User Profile API
     app.get(`${apiPrefix}/users/profile`, (req: any, res: any) => {
       const userData = {
