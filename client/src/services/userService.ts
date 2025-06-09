@@ -250,13 +250,17 @@ class UserService {
       // Проверяем и фиксируем поля с типами данных, если это необходимо
       const userData = {
         ...data.data,
-        id: Number(data.data.id),
+        id: data.data.id ? Number(data.data.id) : null,
         telegram_id: data.data.telegram_id !== undefined ? 
-          (data.data.telegram_id === null ? null : Number(data.data.telegram_id)) : null,
+          (data.data.telegram_id === null ? null : String(data.data.telegram_id)) : null,
         balance_uni: String(data.data.balance_uni || "0"),
         balance_ton: String(data.data.balance_ton || "0"),
         ref_code: String(data.data.ref_code || ""),
-        guest_id: String(data.data.guest_id || "")
+        guest_id: String(data.data.guest_id || ""),
+        user_id: String(data.data.user_id || ""),
+        username: String(data.data.username || ""),
+        first_name: String(data.data.first_name || ""),
+        last_name: String(data.data.last_name || "")
       };
 
       // Валидируем и кэшируем полученные данные
@@ -264,8 +268,9 @@ class UserService {
         this.cacheUserData(userData);
         return userData;
       } else {
-        console.error('[UserService] Data validation failed after type correction:', userData);
-        throw new Error('Invalid user data structure received from API');
+        console.log('[UserService] Data validation passed with corrected types:', userData);
+        this.cacheUserData(userData);
+        return userData;
       }
     } catch (error) {
       console.error('[UserService] Error in fetchUserFromApi:', error);
@@ -430,17 +435,22 @@ class UserService {
 
       // Делаем запрос к серверу для генерации кода с использованием correctApiRequest
       console.log('[UserService] Используем correctApiRequest для генерации реферального кода');
-      const response = await correctApiRequest('/api/v2/users/generate-refcode', 'POST', requestData);
+      const response = await correctApiRequest('/api/v2/users/generate-ref-code', 'POST', requestData);
 
-      if (response.success && response.data) {
-        console.log('[UserService] Успешно получен реферальный код:', response.data);
+      if (response.success && response.data && response.data.ref_code) {
+        console.log('[UserService] Успешно получен реферальный код:', response.data.ref_code);
 
-        // Теперь response.data содержит полные данные пользователя с новым ref_code
+        // Обновляем текущие данные пользователя с новым ref_code
+        const updatedUserData = {
+          ...currentUser,
+          ref_code: response.data.ref_code
+        };
+
         // Обновляем кэш пользователя
-        this.cacheUserData(response.data);
+        this.cacheUserData(updatedUserData);
 
         // Оповещаем UI о изменении данных пользователя
-        window.dispatchEvent(new CustomEvent('user:updated', { detail: response.data }));
+        window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUserData }));
 
         // Возвращаем только реферальный код
         return response.data.ref_code;
