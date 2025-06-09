@@ -127,9 +127,9 @@ app.get('*', (req, res) => {
 
 // Запуск сервера
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ UniFarm сервер запущен на порту ${PORT}`);
-  console.log(`🌐 API доступно по адресу: http://localhost:${PORT}/api`);
-  console.log(`📱 Приложение доступно по адресу: http://localhost:${PORT}`);
+  console.log(`UniFarm сервер запущен на порту ${PORT}`);
+  console.log(`API доступно: http://localhost:${PORT}/api`);
+  console.log(`Приложение: http://localhost:${PORT}`);
 });
 
 // Graceful shutdown
