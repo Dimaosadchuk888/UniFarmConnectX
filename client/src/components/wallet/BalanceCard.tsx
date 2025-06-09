@@ -63,8 +63,9 @@ const BalanceCard: React.FC = () => {
     
     if (data.type === 'update' && data.balanceData) {
       if (userId) {
-        showNotification('info', {
+        showNotification({
           message: 'Доступно обновление баланса',
+          type: 'info',
           duration: 3000
         });
       }
@@ -129,8 +130,9 @@ const BalanceCard: React.FC = () => {
   const handleManualRefresh = useCallback(() => {
     if (isBalanceFetching) return;
     
-    showNotification('loading', {
+    showNotification({
       message: 'Обновление баланса...',
+      type: 'loading',
       duration: 1500
     });
     
@@ -139,8 +141,9 @@ const BalanceCard: React.FC = () => {
         refreshBalance();
         calculateRate();
         
-        showNotification('success', {
+        showNotification({
           message: 'Баланс успешно обновлён',
+          type: 'success',
           duration: 2000
         });
         
@@ -156,8 +159,9 @@ const BalanceCard: React.FC = () => {
       }, 100);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
-      showNotification('error', {
+      showNotification({
         message: `Не удалось обновить баланс: ${errorMessage}`,
+        type: 'error',
         duration: 3000
       });
     }

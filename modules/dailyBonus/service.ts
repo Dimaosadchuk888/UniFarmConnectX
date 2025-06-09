@@ -1,6 +1,6 @@
 import { db } from '../../core/db';
 import { users, transactions } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, desc, gte, lt } from 'drizzle-orm';
 
 export class DailyBonusService {
   /**
@@ -205,7 +205,7 @@ export class DailyBonusService {
             eq(transactions.transaction_type, 'daily_bonus')
           )
         )
-        .orderBy(descOrder(transactions.created_at));
+        .orderBy(desc(transactions.created_at));
 
       return history.map(tx => ({
         id: tx.id,
