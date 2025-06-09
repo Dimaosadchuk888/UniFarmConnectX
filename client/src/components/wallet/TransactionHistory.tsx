@@ -175,7 +175,7 @@ const TransactionHistory: React.FC = () => {
     setActiveFilter(filter);
     setPage(1); // Сбрасываем пагинацию при смене фильтра
     
-    showNotification('info', {
+    showNotification({type: 'info', {
       message: `Фильтр изменен на ${filter === 'ALL' ? 'Все транзакции' : filter}`,
       duration: 2000
     });
@@ -183,13 +183,13 @@ const TransactionHistory: React.FC = () => {
   
   // Обработчик обновления данных
   const handleRefresh = () => {
-    showNotification('loading', {
+    showNotification({type: 'loading', {
       message: 'Обновление истории транзакций...',
       duration: 1500
     });
     
     refetch().then(() => {
-      showNotification('success', {
+      showNotification({type: 'success', {
         message: 'История транзакций обновлена',
         duration: 2000
       });

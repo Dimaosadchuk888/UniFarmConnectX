@@ -178,8 +178,9 @@ const BalanceCard: React.FC = () => {
   const handleFullRefresh = useCallback(() => {
     if (isBalanceFetching) return;
     
-    showNotification('loading', {
+    showNotification({
       message: 'Обновление данных...',
+      type: 'loading',
       duration: 1500
     });
     
@@ -190,7 +191,7 @@ const BalanceCard: React.FC = () => {
         refreshBalance();
         calculateRate();
         
-        showNotification('success', {
+        showNotification({type: 'success', {
           message: 'Данные профиля и баланс обновлены',
           duration: 3000
         });
@@ -203,7 +204,7 @@ const BalanceCard: React.FC = () => {
       }, 500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
-      showNotification('error', {
+      showNotification({type: 'error', {
         message: `Не удалось обновить данные: ${errorMessage}`,
         duration: 3000
       });
@@ -218,8 +219,9 @@ const BalanceCard: React.FC = () => {
   
   // Обработчик переподключения WebSocket
   const handleReconnect = useCallback(() => {
-    showNotification('loading', {
+    showNotification({
       message: 'Переподключение...',
+      type: 'loading',
       duration: 2000
     });
     
@@ -232,8 +234,9 @@ const BalanceCard: React.FC = () => {
     if (userId && uniBalance === 0 && !initialLoadedRef.current) {
       initialLoadedRef.current = true;
       
-      showNotification('loading', {
+      showNotification({
         message: 'Загрузка баланса...',
+        type: 'loading',
         duration: 2000
       });
       

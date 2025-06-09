@@ -91,7 +91,7 @@ const WithdrawalForm: React.FC = () => {
     clearErrors();
     setErrorMessage(null);
     
-    showNotification('info', {
+    showNotification({type: 'info', {
       message: `Переключено на ${currency}`,
       duration: 2000
     });
@@ -133,7 +133,7 @@ const WithdrawalForm: React.FC = () => {
       setSubmitState(SubmitState.SUCCESS);
       
       // Показываем уведомление об успешной отправке
-      showNotification('success', {
+      showNotification({type: 'success', {
         message: `Заявка на вывод ${data.amount} ${selectedCurrency} создана успешно!`,
         duration: 5000
       });
@@ -157,7 +157,7 @@ const WithdrawalForm: React.FC = () => {
       setErrorMessage(errorMsg);
       setSubmitState(SubmitState.ERROR);
       
-      showNotification('error', {
+      showNotification({type: 'error', {
         message: `Ошибка создания заявки: ${errorMsg}`,
         duration: 5000
       });

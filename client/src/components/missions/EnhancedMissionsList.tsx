@@ -110,14 +110,14 @@ const EnhancedMissionsList: React.FC = () => {
           : (result.reward || 0);
         
         // Показываем улучшенное уведомление об успехе с эмодзи
-        showNotification('success', {
+        showNotification({type: 'success', {
           message: `✅ ${missionTitle} выполнена! Получено ${reward} UNI`,
           duration: 4000,
           autoDismiss: true
         });
       } else {
         // Показываем ошибку с подробностями
-        showNotification('error', {
+        showNotification({type: 'error', {
           message: `❌ Не удалось выполнить миссию "${missionTitle}": ${result?.message || 'Неизвестная ошибка'}`,
           duration: 5000,
           autoDismiss: true
@@ -125,7 +125,7 @@ const EnhancedMissionsList: React.FC = () => {
       }
     } catch (error: any) {
       // Показываем ошибку сети или сервера
-      showNotification('error', {
+      showNotification({type: 'error', {
         message: `🔥 Ошибка при выполнении миссии: ${error.message || 'Проблема с подключением'}`,
         duration: 5000,
         autoDismiss: true
