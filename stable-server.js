@@ -1,13 +1,13 @@
 /**
- * Stable server for UniFarm - ES Module wrapper
+ * Stable server for UniFarm - Single Integrated Server
  */
 
 import { spawn } from 'child_process';
 
-console.log('Запуск UniFarm сервера...');
+console.log('🚀 Запуск UniFarm интегрированного сервера...');
 
-// Запускаем интегрированный сервер
-const server = spawn('node', ['integrated-server.cjs'], {
+// Запускаем интегрированный сервер с TSX
+const server = spawn('npx', ['tsx', 'integrated-server.ts'], {
   stdio: 'inherit',
   env: {
     ...process.env,
@@ -17,22 +17,22 @@ const server = spawn('node', ['integrated-server.cjs'], {
 });
 
 server.on('error', (error) => {
-  console.error('Ошибка сервера:', error);
+  console.error('❌ Ошибка сервера:', error);
   process.exit(1);
 });
 
 server.on('exit', (code) => {
-  console.log(`Сервер завершился с кодом ${code}`);
+  console.log(`📴 Сервер завершился с кодом ${code}`);
   process.exit(code);
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\nОстанавливаю сервер...');
+  console.log('\n📴 Останавливаю сервер...');
   server.kill('SIGINT');
 });
 
 process.on('SIGTERM', () => {
-  console.log('\nОстанавливаю сервер...');
+  console.log('\n📴 Останавливаю сервер...');
   server.kill('SIGTERM');
 });
