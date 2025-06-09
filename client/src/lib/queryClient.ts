@@ -231,11 +231,24 @@ export const getQueryFn: <T>(options: {
 
         try {
           const data = JSON.parse(text);
-          return data;
+          
+          // Дополнительная валидация для безопасности
+          if (data && typeof data === 'object') {
+            return data;
+          } else {
+            console.warn("[DEBUG] QueryClient - Неожиданный формат данных:", data);
+            return data;
+          }
         } catch (error: any) {
           console.error("[DEBUG] QueryClient - JSON parse error:", error);
-          // Если JSON невалидный, возвращаем пустой массив для защиты от ошибок
-          return Array.isArray(queryKey[0]) ? [] : {};
+          console.error("[DEBUG] QueryClient - Response text:", text);
+          
+          // Возвращаем структуру с ошибкой вместо пустых данных
+          return {
+            success: false,
+            error: "Ошибка парсинга ответа сервера",
+            data: null
+          };
         }
       } catch (resError) {
         console.error("[DEBUG] QueryClient - Response error:", resError);
