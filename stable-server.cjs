@@ -11,7 +11,7 @@ const fs = require('fs');
 async function startUniFarmServer() {
   try {
     // Валідація змінних оточення
-    const EnvValidator = require('./server/envValidator.js');
+    const EnvValidator = require('./server/envValidator.cjs');
     const envValidator = new EnvValidator();
     const envStatus = envValidator.validate();
     
@@ -54,7 +54,7 @@ async function startUniFarmServer() {
     });
 
     // Динамічні маніфести з змінними оточення
-    const ManifestGenerator = require('./server/manifestGenerator.js');
+    const ManifestGenerator = require('./server/manifestGenerator.cjs');
     const manifestGenerator = new ManifestGenerator();
     manifestGenerator.setupRoutes(app);
 
