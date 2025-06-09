@@ -135,8 +135,8 @@ const WithdrawalForm: React.FC = () => {
       
       // Показываем уведомление об успешной отправке
       showNotification({
-  message: `Заявка на вывод ${data.amount} ${selectedCurrency} создана успешно!`,
-        type: 'loading',
+        message: `Заявка на вывод ${data.amount} ${selectedCurrency} создана успешно!`,
+        type: 'success',
         duration: 5000
       });
       
@@ -160,8 +160,8 @@ const WithdrawalForm: React.FC = () => {
       setSubmitState(SubmitState.ERROR);
       
       showNotification({
-  message: `Ошибка создания заявки: ${errorMsg}`,
-        type: 'loading',
+        message: `Ошибка создания заявки: ${errorMsg}`,
+        type: 'error',
         duration: 5000
       });
       
