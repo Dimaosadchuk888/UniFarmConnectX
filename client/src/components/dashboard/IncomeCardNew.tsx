@@ -59,7 +59,7 @@ const IncomeCardNew: React.FC = () => {
     queryKey: ['/api/v2/uni-farming/status', validUserId],
     refetchInterval: 15000, // Обновление каждые 15 секунд
     queryFn: async () => {
-      return await correctApiRequest<{ success: boolean; data: UniFarmingInfo }>(
+      return await correctApiRequest(
         `/api/v2/uni-farming/status?user_id=${validUserId}`,
         'GET'
       );
@@ -71,7 +71,7 @@ const IncomeCardNew: React.FC = () => {
     queryKey: ['/api/v2/ton-farming/info', validUserId],
     refetchInterval: 15000, // Обновление каждые 15 секунд
     queryFn: async () => {
-      return await correctApiRequest<{ success: boolean; data: TonFarmingInfo }>(
+      return await correctApiRequest(
         `/api/v2/ton-farming/info?user_id=${validUserId}`,
         'GET'
       );
