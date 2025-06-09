@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { BoostService } from './service';
 
@@ -29,7 +29,7 @@ export class BoostController extends BaseController {
   /**
    * Получить активные бусты пользователя
    */
-  async getUserBoosts(req: express.Request, res: express.Response): Promise<void> {
+  async getUserBoosts(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
       if (!this.validateParams(req, ['userId'])) {
         return this.sendError(res, 'Отсутствует параметр userId', 400);
@@ -50,7 +50,7 @@ export class BoostController extends BaseController {
   /**
    * Активировать буст
    */
-  async activateBoost(req: express.Request, res: express.Response): Promise<void> {
+  async activateBoost(req: Request, res: Response): Promise<void> {
     try {
       const { boostId, userId } = req.body;
       console.log(`[BoostController] Активация буста ${boostId} для пользователя ${userId}`);
@@ -98,7 +98,7 @@ export class BoostController extends BaseController {
   /**
    * Деактивировать буст
    */
-  async deactivateBoost(req: express.Request, res: express.Response): Promise<void> {
+  async deactivateBoost(req: Request, res: Response): Promise<void> {
     try {
       const { boostId } = req.params;
       const { userId } = req.body;
@@ -133,7 +133,7 @@ export class BoostController extends BaseController {
   /**
    * Получить статистику использования бустов
    */
-  async getBoostStats(req: express.Request, res: express.Response): Promise<void> {
+  async getBoostStats(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.params.userId;
       console.log(`[BoostController] Получение статистики бустов для пользователя ${userId}`);

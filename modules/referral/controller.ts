@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { ReferralService } from './service';
 
@@ -72,7 +72,7 @@ export class ReferralController extends BaseController {
       
       console.log(`[ReferralController] Получение рефералов для пользователя ${userId}, страница ${page}`);
       
-      const result = await this.referralService.getUserReferrals(userId, page, limit);
+      const result = await this.referralService.getReferralsByUserId(userId, page, limit);
       
       this.sendSuccess(res, result);
     }, 'получения списка рефералов');
@@ -81,7 +81,7 @@ export class ReferralController extends BaseController {
   /**
    * Получить статистику доходов от рефералов
    */
-  async getReferralEarnings(req: express.Request, res: express.Response): Promise<void> {
+  async getReferralEarnings(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.params.userId;
       const period = req.query.period as string || 'all'; // all, month, week, day

@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { DailyBonusService } from './service';
 
