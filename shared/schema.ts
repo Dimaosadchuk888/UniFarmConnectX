@@ -81,6 +81,15 @@ export const users = pgTable("users", {
   parent_ref_code: text("parent_ref_code"),
   balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default('0'),
   balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default('0'),
+  // Farming fields
+  uni_farming_last_update: timestamp("uni_farming_last_update"),
+  uni_farming_start_timestamp: timestamp("uni_farming_start_timestamp"),
+  uni_farming_balance: numeric("uni_farming_balance", { precision: 18, scale: 6 }).default('0'),
+  uni_deposit_amount: numeric("uni_deposit_amount", { precision: 18, scale: 6 }).default('0'),
+  uni_farming_rate: numeric("uni_farming_rate", { precision: 18, scale: 6 }).default('0'),
+  // Daily bonus fields
+  checkin_last_date: text("checkin_last_date"),
+  checkin_streak: integer("checkin_streak").default(0),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull()
 });
@@ -147,46 +156,14 @@ export const userMissions = pgTable("user_missions", {
   completed_at: timestamp("completed_at").defaultNow()
 });
 
-// Schema exports with proper omit patterns
-export const insertAuthUserSchema = createInsertSchema(authUsers).omit({
-  id: true,
-  created_at: true,
-  updated_at: true
-});
-
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  created_at: true,
-  updated_at: true
-});
-
-export const insertFarmingDepositSchema = createInsertSchema(farmingDeposits).omit({
-  id: true,
-  created_at: true,
-  updated_at: true
-});
-
-export const insertTransactionSchema = createInsertSchema(transactions).omit({
-  id: true,
-  updated_at: true
-});
-
-export const insertReferralSchema = createInsertSchema(referrals).omit({
-  id: true,
-  created_at: true,
-  updated_at: true
-});
-
-export const insertMissionSchema = createInsertSchema(missions).omit({
-  id: true,
-  created_at: true,
-  updated_at: true
-});
-
-export const insertUserMissionSchema = createInsertSchema(userMissions).omit({
-  id: true,
-  completed_at: true
-});
+// Schema exports using proper createInsertSchema approach
+export const insertAuthUserSchema = createInsertSchema(authUsers);
+export const insertUserSchema = createInsertSchema(users);
+export const insertFarmingDepositSchema = createInsertSchema(farmingDeposits);
+export const insertTransactionSchema = createInsertSchema(transactions);
+export const insertReferralSchema = createInsertSchema(referrals);
+export const insertMissionSchema = createInsertSchema(missions);
+export const insertUserMissionSchema = createInsertSchema(userMissions);
 
 // Type exports
 export type InsertAuthUser = z.infer<typeof insertAuthUserSchema>;
