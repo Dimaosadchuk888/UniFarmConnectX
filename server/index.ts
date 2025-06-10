@@ -6,6 +6,8 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
+import path from 'path';
+import fs from 'fs';
 import { config, logger } from '../core';
 import { setupVite, serveStatic } from './vite';
 import apiRoutes from './routes';
@@ -328,6 +330,28 @@ async function startServer() {
         termsOfUseUrl: `${config.app.baseUrl}/terms`,
         privacyPolicyUrl: `${config.app.baseUrl}/privacy`
       });
+    });
+
+    // Root route - serve the main application
+    app.get('/', (req: any, res: any) => {
+      const indexPath = path.resolve(import.meta.dirname, '..', 'dist', 'public', 'index.html');
+      
+      // Check if built file exists
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        // Fallback response if build doesn't exist
+        res.json({
+          success: true,
+          message: 'UniFarm API Server',
+          version: config.app.apiVersion,
+          environment: config.app.nodeEnv,
+          endpoints: {
+            health: '/health',
+            api: '/api/v2'
+          }
+        });
+      }
     });
 
     // Error handling middleware
