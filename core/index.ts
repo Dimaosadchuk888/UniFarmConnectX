@@ -1,5 +1,5 @@
 // Экспорт основных компонентов системного ядра
-export { db } from './db';
+export { db } from '../server/db';
 export { logger } from './logger';
 export { config } from './config';
 export { BaseController } from './BaseController';

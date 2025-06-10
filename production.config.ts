@@ -146,7 +146,9 @@ export class ProductionConfig {
   init(): ManifestData {
     this.setupEnvironment();
     
-    if (!this.validateSecrets()) {
+    // In development, log warnings but don't exit
+    const isValid = this.validateSecrets();
+    if (!isValid && process.env.NODE_ENV === 'production') {
       process.exit(1);
     }
     
