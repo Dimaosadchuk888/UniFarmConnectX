@@ -108,7 +108,7 @@ export class UserService {
     }
   }
 
-  async validateUser(userData: any): Promise<boolean> {
+  async validateUser(userData: { telegram_id?: number; username?: string; [key: string]: unknown }): Promise<boolean> {
     // Валидация данных пользователя
     try {
       if (!userData.telegram_id) {

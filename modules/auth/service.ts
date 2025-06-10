@@ -139,7 +139,7 @@ export class AuthService {
   /**
    * Генерация JWT токена
    */
-  async generateJWT(payload: any): Promise<string> {
+  async generateJWT(payload: Record<string, unknown>): Promise<string> {
     try {
       console.log('[AuthService] Генерация JWT токена');
       

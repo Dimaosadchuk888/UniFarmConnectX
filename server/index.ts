@@ -385,7 +385,7 @@ async function startServer() {
     });
 
     // Error handling middleware
-    app.use((req: any, res: any, next: any) => {
+    app.use((req: Request, res: Response, next: NextFunction) => {
       res.status(404).json({
         success: false,
         error: 'Endpoint not found',
@@ -393,7 +393,7 @@ async function startServer() {
       });
     });
 
-    app.use((error: any, req: any, res: any, next: any) => {
+    app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
       logger.error('Server error:', error);
       if (!res.headersSent) {
         res.status(500).json({
@@ -421,8 +421,8 @@ async function startServer() {
       logger.info(`API Version: ${config.app.apiVersion}`);
     });
 
-  } catch (error: any) {
-    logger.error('Ошибка запуска сервера:', error);
+  } catch (error: unknown) {
+    logger.error('Ошибка запуска сервера:', error instanceof Error ? error.message : error);
     process.exit(1);
   }
 }

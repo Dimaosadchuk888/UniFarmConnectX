@@ -1,25 +1,25 @@
-/**
- * Express Request расширения для UniFarm
- */
+import { Request } from 'express';
 
 declare global {
   namespace Express {
     interface Request {
+      telegramUser?: {
+        id: number;
+        username?: string;
+        first_name?: string;
+        last_name?: string;
+        [key: string]: unknown;
+      };
       telegram?: {
         user?: {
           id: number;
-          telegram_id: number;
           username?: string;
+          first_name?: string;
+          last_name?: string;
+          [key: string]: unknown;
         };
         validated?: boolean;
-      };
-      telegramUser?: {
-        id: number;
-        telegram_id: number;
-        username?: string;
       };
     }
   }
 }
-
-export {};
