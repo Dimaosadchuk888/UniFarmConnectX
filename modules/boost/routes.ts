@@ -13,8 +13,8 @@ router.get('/user/:userId', boostController.getUserBoosts.bind(boostController))
 // POST /api/boosts/activate - Активировать буст
 router.post('/activate', boostController.activateBoost.bind(boostController));
 
-// DELETE /api/boosts/:boostId/deactivate - Деактивировать буст
-router.delete('/:boostId/deactivate', boostController.deactivateBoost.bind(boostController));
+// DELETE /api/boosts/deactivate/:boostId - Деактивировать буст
+router.delete('/deactivate/:boostId', boostController.deactivateBoost.bind(boostController));
 
 // GET /api/boosts/stats/:userId - Получить статистику использования бустов
 router.get('/stats/:userId', boostController.getBoostStats.bind(boostController));
