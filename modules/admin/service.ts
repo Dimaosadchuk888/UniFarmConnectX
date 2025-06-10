@@ -1,3 +1,7 @@
+import { db } from '../../core/db';
+import { users, transactions } from '../../shared/schema';
+import { count, desc } from 'drizzle-orm';
+
 interface DashboardStats {
   totalUsers: number;
   totalTransactions: number;

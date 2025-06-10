@@ -1,70 +1,38 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
+import { AdminService } from './service';
 
 export class AdminController extends BaseController {
+  private adminService: AdminService;
+
+  constructor() {
+    super();
+    this.adminService = new AdminService();
+  }
   /**
    * Получить статистику системы
    */
   async getSystemStats(req: Request, res: Response): Promise<void> {
-    try {
+    await this.handleRequest(req, res, async () => {
       console.log('[AdminController] Получение статистики системы');
       
-      // Базовая статистика системы
-      const stats = {
-        total_users: 0,
-        total_transactions: 0,
-        total_farming_sessions: 0,
-        active_missions: 0,
-        system_uptime: process.uptime(),
-        memory_usage: process.memoryUsage(),
-        timestamp: new Date().toISOString()
-      };
-
-      res.json({
-        success: true,
-        data: stats
-      });
-    } catch (error) {
-      console.error('[AdminController] Ошибка получения статистики:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения статистики системы'
-      });
-    }
+      const stats = await this.adminService.getDashboardStats();
+      this.sendSuccess(res, stats);
+    }, 'получения статистики системы');
   }
 
   /**
    * Получить список пользователей
    */
   async getUsers(req: Request, res: Response): Promise<void> {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 50;
+    await this.handleRequest(req, res, async () => {
+      const { page, limit } = this.getPagination(req);
       
       console.log(`[AdminController] Получение пользователей, страница ${page}`);
       
-      // Здесь будет запрос к базе данных
-      const users: any[] = [];
-      
-      res.json({
-        success: true,
-        data: {
-          users,
-          pagination: {
-            page,
-            limit,
-            total: 0,
-            has_more: false
-          }
-        }
-      });
-    } catch (error) {
-      console.error('[AdminController] Ошибка получения пользователей:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения списка пользователей'
-      });
-    }
+      const usersList = await this.adminService.getUsersList(page, limit);
+      this.sendSuccess(res, usersList);
+    }, 'получения списка пользователей');
   }
 
   /**

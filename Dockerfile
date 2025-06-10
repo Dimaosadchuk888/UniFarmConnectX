@@ -61,4 +61,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 EXPOSE 3000
 
 # Start the application
-CMD ["node", "dist/server/index.js"]
+CMD ["npx", "tsx", "server/index.ts"]

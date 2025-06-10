@@ -52,20 +52,11 @@ export class DailyBonusController extends BaseController {
         streak_bonus_percentage: 30
       };
 
-      res.json({
-        success: true,
-        data: {
-          ...claimResult,
-          message: `Ежедневный бонус ${claimResult.bonus_amount} UNI успешно получен!`
-        }
+      this.sendSuccess(res, {
+        ...claimResult,
+        message: `Ежедневный бонус ${claimResult.bonus_amount} UNI успешно получен!`
       });
-    } catch (error) {
-      console.error('[DailyBonusController] Ошибка получения ежедневного бонуса:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка получения ежедневного бонуса'
-      });
-    }
+    }, 'получения ежедневного бонуса');
   }
 
   /**
