@@ -362,27 +362,7 @@ async function startServer() {
       }
     }
 
-    // Root route - serve the main application
-    app.get('/', (req: Request, res: Response) => {
-      const indexPath = path.resolve(import.meta.dirname, '..', 'dist', 'public', 'index.html');
-      
-      // Check if built file exists
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        // Fallback response if build doesn't exist
-        res.json({
-          success: true,
-          message: 'UniFarm API Server',
-          version: config.app.apiVersion,
-          environment: config.app.nodeEnv,
-          endpoints: {
-            health: '/health',
-            api: '/api/v2'
-          }
-        });
-      }
-    });
+    // Remove explicit root route to allow Vite middleware to handle it
 
     // Error handling middleware
     app.use((req: Request, res: Response, next: NextFunction) => {
