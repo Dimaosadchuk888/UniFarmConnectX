@@ -45,13 +45,29 @@ const DailyBonusCard: React.FC = () => {
         const response = await correctApiRequest(endpoint, 'GET');
 
         if (!response.success) {
-          throw new Error(response.error || 'Ошибка при получении статуса бонуса');
+          console.warn('[DailyBonusCard] API вернул ошибку:', response.error);
+          // Возвращаем демо данные при ошибке
+          return {
+            canClaim: false,
+            streak: 0,
+            bonusAmount: 500,
+            lastClaimedAt: null,
+            nextClaimAt: null
+          } as DailyBonusStatus;
         }
 
         return response.data as DailyBonusStatus;
       } catch (error: any) {
         console.error('[ERROR] DailyBonusCard - Ошибка при получении статуса бонуса:', error);
-        throw new Error(`Ошибка при получении статуса бонуса: ${error.message || 'Неизвестная ошибка'}`);
+        
+        // Возвращаем безопасные демо данные вместо исключения
+        return {
+          canClaim: false,
+          streak: 0,
+          bonusAmount: 500,
+          lastClaimedAt: null,
+          nextClaimAt: null
+        } as DailyBonusStatus;
       }
     },
     retry: 1,

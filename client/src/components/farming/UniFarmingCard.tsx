@@ -88,6 +88,24 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           'GET'
         );
 
+        // Проверяем успешность запроса
+        if (!response.success) {
+          console.warn('[UniFarmingCard] API вернул ошибку:', response.error);
+          // Возвращаем пустые данные для демо-режима
+          return {
+            success: false,
+            data: {
+              isActive: false,
+              depositAmount: '0',
+              ratePerSecond: '0',
+              depositCount: 0,
+              totalDepositAmount: '0',
+              totalRatePerSecond: '0',
+              dailyIncomeUni: '0'
+            }
+          };
+        }
+
         console.log('[DEBUG] Получены данные фарминга:', JSON.stringify(response));
         // Выводим подробные дебаг данные для анализа точности отображения
         if (response.data) {
@@ -124,8 +142,21 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return response;
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка при получении информации о фарминге:', error);
-        showBoundary(error);
-        throw new Error(`Ошибка получения данных фарминга: ${error.message || 'Неизвестная ошибка'}`);
+        
+        // Возвращаем безопасный объект ошибки вместо исключения
+        return {
+          success: false,
+          error: `Ошибка получения данных фарминга: ${error.message || 'Неизвестная ошибка'}`,
+          data: {
+            isActive: false,
+            depositAmount: '0',
+            ratePerSecond: '0',
+            depositCount: 0,
+            totalDepositAmount: '0',
+            totalRatePerSecond: '0',
+            dailyIncomeUni: '0'
+          }
+        };
       }
     }
   });

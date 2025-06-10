@@ -54,7 +54,14 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
       } catch (parseError) {
         errorData = { error: 'Ошибка парсинга ответа сервера', status: response.status };
       }
-      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      
+      // Возвращаем объект ошибки вместо исключения для консистентности
+      return {
+        success: false,
+        error: errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+        status: response.status,
+        errorData
+      };
     }
 
     // Пытаемся получить JSON ответ
@@ -75,15 +82,25 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
       return data;
     } catch (parseError) {
       console.error('[correctApiRequest] Ошибка парсинга JSON:', parseError);
+      
+      // Возвращаем успешный объект с флагом ошибки вместо исключения
+      // Это предотвращает крэш компонентов при некорректных ответах сервера
       return {
         success: false,
         error: 'Ошибка обработки ответа сервера',
-        data: null
+        data: null,
+        parseError: true
       };
     }
   } catch (error) {
     console.error('API Request Error:', error);
-    throw error;
+    
+    // Возвращаем объект ошибки вместо исключения для стабильности
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Неизвестная ошибка сети',
+      networkError: true
+    };
   }
 }
 
