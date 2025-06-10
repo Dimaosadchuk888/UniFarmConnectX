@@ -1,5 +1,5 @@
 import { db } from '../../server/db';
-import { missions, userMissions } from '../../shared/schema';
+import { missions, userMissions, users } from '../../shared/schema';
 import { eq, and, notInArray } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository';
 
@@ -31,7 +31,7 @@ export class MissionsService {
         title: mission.title,
         description: mission.description,
         reward: parseFloat(mission.reward_uni || "0"),
-        type: mission.mission_type,
+        type: mission.type,
         completed: completedMissionIds.includes(mission.id),
         completed_at: null // Можно добавить если нужно
       }));
@@ -52,16 +52,22 @@ export class MissionsService {
       const completedMissionIds = completedMissions.map(m => m.mission_id);
 
       // Получаем доступные миссии (активные и не завершенные)
-      let query = db
-        .select()
-        .from(missions)
-        .where(eq(missions.is_active, true));
-
+      let availableMissions;
+      
       if (completedMissionIds.length > 0) {
-        query = query.where(notInArray(missions.id, completedMissionIds));
+        availableMissions = await db
+          .select()
+          .from(missions)
+          .where(and(
+            eq(missions.is_active, true),
+            notInArray(missions.id, completedMissionIds)
+          ));
+      } else {
+        availableMissions = await db
+          .select()
+          .from(missions)
+          .where(eq(missions.is_active, true));
       }
-
-      const availableMissions = await query;
       return availableMissions;
     } catch (error) {
       console.error('[MissionsService] Ошибка получения миссий:', error);

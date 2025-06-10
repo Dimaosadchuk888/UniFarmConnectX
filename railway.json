@@ -18,8 +18,6 @@
         "TELEGRAM_BOT_TOKEN": "${{TELEGRAM_BOT_TOKEN}}",
         "SESSION_SECRET": "${{SESSION_SECRET}}",
         "JWT_SECRET": "${{JWT_SECRET}}",
-        "NEON_API_KEY": "${{NEON_API_KEY}}",
-        "NEON_PROJECT_ID": "${{NEON_PROJECT_ID}}",
         "TELEGRAM_BOT_USERNAME": "UniFarming_Bot",
         "ALLOW_BROWSER_ACCESS": "true",
         "SKIP_TELEGRAM_CHECK": "false",
