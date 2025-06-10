@@ -30,8 +30,13 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 unifarm
 
-# Copy built application
+# Copy built application and source files
 COPY --from=builder --chown=unifarm:nodejs /app/dist ./dist
+COPY --from=builder --chown=unifarm:nodejs /app/server ./server
+COPY --from=builder --chown=unifarm:nodejs /app/shared ./shared
+COPY --from=builder --chown=unifarm:nodejs /app/modules ./modules
+COPY --from=builder --chown=unifarm:nodejs /app/core ./core
+COPY --from=builder --chown=unifarm:nodejs /app/config ./config
 COPY --from=builder --chown=unifarm:nodejs /app/package*.json ./
 COPY --from=deps --chown=unifarm:nodejs /app/node_modules ./node_modules
 
