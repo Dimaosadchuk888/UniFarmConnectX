@@ -4,66 +4,75 @@ import apiConfig from "@/config/apiConfig";
 
 /**
  * Вспомогательная функция для проверки статуса HTTP-ответа
- * Если ответ не OK (не 2xx), бросает исключение с текстом ответа
- * Добавлена продвинутая диагностика для обнаружения редиректов и HTML-ответов
+ * Не выбрасывает исключения, только возвращает объекты ошибок
  */
-async function throwIfResNotOk(res: Response) {
+async function checkResponseStatus(res: Response): Promise<{ success: boolean; error?: any; data?: any }> {
   if (!res.ok) {
-    const text = await res.text();
-
-    // Проверяем на HTML-ответ (серверные ошибки часто возвращают HTML)
-    const trimmedText = text.trim();
-    const isHtmlResponse = trimmedText.startsWith('<!DOCTYPE html>') || 
-                          trimmedText.startsWith('<html') || 
-                          /^<[!a-z]/i.test(trimmedText);
-
-    // Проверяем на редирект в тексте
-    const isRedirect = text.includes('Redirecting to') || 
-                      text.includes('301 Moved Permanently') ||
-                      text.includes('302 Found');
-
-    // Для отладки логируем первые байты ответа
-    console.log(`[QueryClient] Проблемный ответ (${res.status}): ${text.substring(0, 100)}...`);
-
-    // Анализируем данные ошибки, если это JSON
-    let errorData;
     try {
-      errorData = JSON.parse(text);
-    } catch (e) {
-      if (isHtmlResponse) {
-        errorData = { 
-          error: 'Получен HTML-ответ вместо JSON', 
-          isHtmlResponse: true,
-          type: 'html_response'
-        };
-      } else if (isRedirect) {
-        errorData = { 
-          error: 'Сервер вернул редирект', 
-          isRedirect: true,
-          type: 'redirect_response'
-        };
-      } else {
-        errorData = { 
-          error: text || res.statusText || 'Неопределенная ошибка',
-          type: 'unknown'
-        };
+      const text = await res.text();
+
+      // Проверяем на HTML-ответ (серверные ошибки часто возвращают HTML)
+      const trimmedText = text.trim();
+      const isHtmlResponse = trimmedText.startsWith('<!DOCTYPE html>') || 
+                            trimmedText.startsWith('<html') || 
+                            /^<[!a-z]/i.test(trimmedText);
+
+      // Проверяем на редирект в тексте
+      const isRedirect = text.includes('Redirecting to') || 
+                        text.includes('301 Moved Permanently') ||
+                        text.includes('302 Found');
+
+      // Анализируем данные ошибки, если это JSON
+      let errorData;
+      try {
+        errorData = JSON.parse(text);
+      } catch (e) {
+        if (isHtmlResponse) {
+          errorData = { 
+            error: 'Получен HTML-ответ вместо JSON', 
+            isHtmlResponse: true,
+            type: 'html_response'
+          };
+        } else if (isRedirect) {
+          errorData = { 
+            error: 'Сервер вернул редирект', 
+            isRedirect: true,
+            type: 'redirect_response'
+          };
+        } else {
+          errorData = { 
+            error: text || res.statusText || 'Неопределенная ошибка',
+            type: 'unknown'
+          };
+        }
       }
+
+      // Возвращаем объект с ошибкой
+      return {
+        success: false,
+        error: {
+          message: `${res.status}: ${errorData.message || errorData.error || "Неизвестная ошибка"}`,
+          status: res.status,
+          statusText: res.statusText,
+          errorData: errorData,
+          isHtmlResponse: isHtmlResponse,
+          isRedirect: isRedirect
+        }
+      };
+    } catch (e) {
+      return {
+        success: false,
+        error: {
+          message: `HTTP ${res.status}: ${res.statusText}`,
+          status: res.status,
+          statusText: res.statusText,
+          criticalError: true
+        }
+      };
     }
-
-    // Вместо исключения возвращаем объект с ошибкой
-    const errorObj = {
-      message: `${res.status}: ${errorData.message || errorData.error || "Неизвестная ошибка"}`,
-      status: res.status,
-      statusText: res.statusText,
-      errorData: errorData,
-      isHtmlResponse: isHtmlResponse,
-      isRedirect: isRedirect,
-      success: false
-    };
-
-    // Не выбрасываем исключение, а возвращаем объект ошибки
-    return Promise.reject(errorObj);
   }
+  
+  return { success: true };
 }
 
 // Получает все необходимые заголовки для запросов к API
@@ -345,11 +354,23 @@ const globalQueryErrorHandler = (error: unknown) => {
 
 // Создаем кэши с обработчиками ошибок
 const queryCache = new QueryCache({
-  onError: globalQueryErrorHandler
+  onError: (error, query) => {
+    // Подавляем логирование ошибок в production для предотвращения спама в консоли
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[QueryClient] Query error for key:', query.queryKey, error);
+    }
+    // Не выбрасываем ошибку дальше
+  }
 });
 
 const mutationCache = new MutationCache({
-  onError: globalQueryErrorHandler
+  onError: (error, variables, context, mutation) => {
+    // Подавляем логирование ошибок в production для предотвращения спама в консоли
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[QueryClient] Mutation error:', error);
+    }
+    // Не выбрасываем ошибку дальше
+  }
 });
 
 // Создаем экземпляр QueryClient с настроенными кэшами
