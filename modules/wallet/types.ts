@@ -1,5 +1,5 @@
 // Імпорт enum'ів з централізованого schema
-import type { TransactionType, TransactionStatus } from '../../shared/schema';
+import type { TransactionType, TransactionStatus } from '@/shared/schema';
 
 export interface WalletBalance {
   user_id: number;

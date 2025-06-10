@@ -1,7 +1,7 @@
-import { db } from '../../server/db';
-import { users } from '../../shared/schema';
+import { db } from '@/server/db';
+import { users } from '@/shared/schema';
 import { eq } from 'drizzle-orm';
-import type { User } from '../../shared/schema';
+import type { User } from '@/shared/schema';
 
 /**
  * Централізований репозиторій для роботи з користувачами

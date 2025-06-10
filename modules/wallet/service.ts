@@ -1,7 +1,7 @@
-import { db } from '../../server/db';
-import { transactions, users, type Transaction } from '../../shared/schema';
+import { db } from '@/server/db';
+import { transactions, users, type Transaction } from '@/shared/schema';
 import { eq, desc } from 'drizzle-orm';
-import { UserRepository } from '../../core/repositories/UserRepository';
+import { UserRepository } from '@/core/repositories/UserRepository';
 
 export class WalletService {
   async getWalletDataByTelegramId(telegramId: string): Promise<{
