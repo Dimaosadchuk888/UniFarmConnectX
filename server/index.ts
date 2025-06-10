@@ -15,7 +15,7 @@ import { EnvValidator } from '../core/envValidator';
 import { HealthMonitor } from '../core/monitoring';
 
 // Production configuration
-const { ProductionConfig } = require('../production.config.js');
+import { ProductionConfig } from '../production.config';
 
 async function startServer() {
   try {

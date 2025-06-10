@@ -3,10 +3,36 @@
  * Handles secure environment variable management
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-class ProductionConfig {
+interface ManifestData {
+  tonConnectManifest: {
+    url: string;
+    name: string;
+    iconUrl: string;
+    termsOfUseUrl: string;
+    privacyPolicyUrl: string;
+  };
+  telegramManifest: {
+    name: string;
+    short_name: string;
+    start_url: string;
+    display: string;
+    background_color: string;
+    theme_color: string;
+    icons: Array<{
+      src: string;
+      sizes: string;
+      type: string;
+    }>;
+  };
+}
+
+export class ProductionConfig {
+  private requiredSecrets: string[];
+  private optionalSecrets: string[];
+
   constructor() {
     this.requiredSecrets = [
       'TELEGRAM_BOT_TOKEN',
@@ -22,9 +48,9 @@ class ProductionConfig {
     ];
   }
 
-  validateSecrets() {
-    const missing = [];
-    const warnings = [];
+  validateSecrets(): boolean {
+    const missing: string[] = [];
+    const warnings: string[] = [];
     
     // Check required secrets
     for (const secret of this.requiredSecrets) {
@@ -56,7 +82,7 @@ class ProductionConfig {
     return true;
   }
 
-  generateManifests() {
+  generateManifests(): ManifestData {
     const baseUrl = process.env.REPLIT_DEV_DOMAIN 
       ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
       : 'https://unifarm.replit.app';
@@ -95,7 +121,7 @@ class ProductionConfig {
     return { tonConnectManifest, telegramManifest };
   }
 
-  setupEnvironment() {
+  setupEnvironment(): void {
     // Set defaults for production
     process.env.NODE_ENV = process.env.NODE_ENV || 'production';
     process.env.PORT = process.env.PORT || '3000';
@@ -117,7 +143,7 @@ class ProductionConfig {
     console.log(`   APP_URL: ${process.env.VITE_WEB_APP_URL || process.env.BASE_URL || 'Not set'}`);
   }
 
-  init() {
+  init(): ManifestData {
     this.setupEnvironment();
     
     if (!this.validateSecrets()) {
@@ -127,5 +153,3 @@ class ProductionConfig {
     return this.generateManifests();
   }
 }
-
-module.exports = { ProductionConfig };
