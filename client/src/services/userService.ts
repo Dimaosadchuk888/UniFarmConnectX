@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/queryClient";
-import { getCachedTelegramUserId } from "@/services/telegramService";
+// import { getCachedTelegramUserId } from "@/services/telegramService";
 import apiConfig from "@/config/apiConfig";
 import { correctApiRequest } from "@/lib/correctApiRequest";
 
@@ -52,7 +52,7 @@ class UserService {
    * Используется как альтернативный способ регистрации для максимальной доступности
    * @returns {Promise<{success: boolean, data?: any}>} Результат операции и данные пользователя
    */
-  async registerInAirDropMode(): Promise<{success: boolean, data?: any}> {
+  async registerInAirDropMode(): Promise<{success: boolean, data?: User}> {
     console.log('[UserService] Запуск регистрации в режиме AirDrop...');
 
     try {
@@ -580,7 +580,7 @@ export default new UserService();
 /**
  * Получает пользователя по guest_id с поддержкой fallback режима
  */
-export async function getUserByGuestId(guestId: string): Promise<any> {
+export async function getUserByGuestId(guestId: string): Promise<{success: boolean, data?: User, error?: string}> {
   console.log('[UserService] Используем correctApiRequest для запроса по guest_id');
 
   try {

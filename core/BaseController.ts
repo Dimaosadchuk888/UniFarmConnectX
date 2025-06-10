@@ -10,7 +10,7 @@ export abstract class BaseController {
   protected async handleRequest(
     req: Request,
     res: Response,
-    handler: (req: Request, res: Response) => Promise<any>,
+    handler: (req: Request, res: Response) => Promise<void>,
     operationName: string
   ): Promise<void> {
     try {

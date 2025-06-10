@@ -1,4 +1,4 @@
-run = "node start-browser-access.cjs"
+run = "node stable-server.js"
 modules = ["postgresql-16", "nodejs-20"]
 hidden = ["package-lock.json"]
 
@@ -16,7 +16,7 @@ SKIP_TELEGRAM_CHECK = "true"
 ALLOW_BROWSER_ACCESS = "true"
 
 [deployment]
-run = ["sh", "-c", "node start-browser-access.cjs"]
+run = ["sh", "-c", "node stable-server.js"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 build = ["sh", "-c", "npm run build"]

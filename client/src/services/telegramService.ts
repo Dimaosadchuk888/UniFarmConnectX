@@ -413,7 +413,7 @@ export function logAppLaunch(): void {
 /**
  * Заглушка для совместимости - регистрация пользователя Telegram
  */
-export async function registerTelegramUser(telegramId: number, userData: any, refCode?: string): Promise<any> {
+export async function registerTelegramUser(telegramId: number, userData: TelegramUser, refCode?: string): Promise<{success: boolean, data?: any, error?: string}> {
   console.log('[telegramService] registerTelegramUser: используйте userService.createUser вместо этой функции');
   
   // Используем импортированный userService
