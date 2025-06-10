@@ -6,8 +6,8 @@ const router = Router();
 const walletController = new WalletController();
 
 // Маршруты кошелька с обязательной авторизацией
-router.get('/', requireTelegramAuth, walletController.getWalletData);
-router.get('/:userId/transactions', requireTelegramAuth, walletController.getTransactions);
-router.post('/withdraw', requireTelegramAuth, walletController.withdraw);
+router.get('/', requireTelegramAuth, walletController.getWalletData.bind(walletController));
+router.get('/:userId/transactions', requireTelegramAuth, walletController.getTransactions.bind(walletController));
+router.post('/withdraw', requireTelegramAuth, walletController.withdraw.bind(walletController));
 
 export default router;

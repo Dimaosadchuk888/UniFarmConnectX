@@ -5,10 +5,10 @@ const router = Router();
 const userController = new UserController();
 
 // Пользовательские маршруты
-router.post('/', userController.createUser);
-router.get('/by-guest-id', userController.getUserByGuestId);
-router.get('/profile', userController.getCurrentUser);
-router.put('/:id', userController.updateUser);
-router.post('/ref-code', userController.generateRefCode);
+router.post('/', userController.createUser.bind(userController));
+router.get('/by-guest-id', userController.getUserByGuestId.bind(userController));
+router.get('/profile', userController.getCurrentUser.bind(userController));
+router.put('/:id', userController.updateUser.bind(userController));
+router.post('/ref-code', userController.generateRefCode.bind(userController));
 
 export default router;
