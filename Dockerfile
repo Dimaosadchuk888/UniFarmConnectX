@@ -7,11 +7,9 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY client/package*.json ./client/
 
 # Install dependencies
 RUN npm ci --only=production && npm cache clean --force
-RUN cd client && npm ci --only=production && npm cache clean --force
 
 # Build the application
 FROM base AS builder
@@ -20,11 +18,9 @@ WORKDIR /app
 # Copy source code
 COPY . .
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/client/node_modules ./client/node_modules
 
-# Build client and server
+# Build application
 RUN npm run build
-RUN cd client && npm run build
 
 # Production image
 FROM node:18-alpine AS runner
@@ -36,7 +32,6 @@ RUN adduser --system --uid 1001 unifarm
 
 # Copy built application
 COPY --from=builder --chown=unifarm:nodejs /app/dist ./dist
-COPY --from=builder --chown=unifarm:nodejs /app/client/dist ./client/dist
 COPY --from=builder --chown=unifarm:nodejs /app/package*.json ./
 COPY --from=deps --chown=unifarm:nodejs /app/node_modules ./node_modules
 
