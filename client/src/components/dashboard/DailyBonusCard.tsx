@@ -407,9 +407,8 @@ const DailyBonusCard: React.FC = () => {
       </CardHeader>
 
       <CardContent>
-
-      {/* Дни недели */}
-      <div className="flex justify-between mb-4">
+        {/* Дни недели */}
+        <div className="flex justify-between mb-4">
         {Array(7).fill(0).map((_, index) => {
           const isActive = index < streak;
           const isAnimating = animateDayIndicator === index;
@@ -431,9 +430,9 @@ const DailyBonusCard: React.FC = () => {
             </div>
           );
         })}
-      </div>
+        </div>
 
-      <button 
+        <button 
         className={`
           w-full py-3 rounded-lg font-medium relative overflow-hidden
           ${isButtonHovered && bonusStatus?.canClaim
@@ -499,34 +498,34 @@ const DailyBonusCard: React.FC = () => {
               ? `Получить ${bonusStatus.bonusAmount} UNI` 
               : 'Уже получено сегодня'}
         </span>
-      </button>
+        </button>
 
-      {/* Конфетти при получении бонуса */}
-      <ConfettiEffect 
-        active={showConfetti}
-        onComplete={() => setShowConfetti(false)}
-        duration={3000}
-        colors={['#A259FF', '#B368F7', '#6DBFFF', '#4BEF7C', '#FFD700', '#FF6B6B']}
-        particleCount={60}
-        spread={45}
-        gravity={0.4}
-      />
+        {/* Конфетти при получении бонуса */}
+        <ConfettiEffect 
+          active={showConfetti}
+          onComplete={() => setShowConfetti(false)}
+          duration={3000}
+          colors={['#A259FF', '#B368F7', '#6DBFFF', '#4BEF7C', '#FFD700', '#FF6B6B']}
+          particleCount={60}
+          spread={45}
+          gravity={0.4}
+        />
 
-      {/* Сообщение о награде поверх конфетти */}
-      {showConfetti && (
-        <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-          <div className="text-center animate-bounce">
-            <div className="text-2xl font-bold text-white mb-2 drop-shadow-lg">
-              +{reward || `${bonusStatus?.bonusAmount || 500} UNI`}
-            </div>
-            <div className="text-sm text-white drop-shadow-md">
-              Ежедневный бонус получен!
+        {/* Сообщение о награде поверх конфетти */}
+        {showConfetti && (
+          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+            <div className="text-center animate-bounce">
+              <div className="text-2xl font-bold text-white mb-2 drop-shadow-lg">
+                +{reward || `${bonusStatus?.bonusAmount || 500} UNI`}
+              </div>
+              <div className="text-sm text-white drop-shadow-md">
+                Ежедневный бонус получен!
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 const ChartCard: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -467,7 +468,7 @@ const ChartCard: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-card rounded-xl p-4 mb-5 shadow-lg overflow-hidden relative">
+    <Card className="mb-5 shadow-lg overflow-hidden relative">
       {/* Дополнительный фоновый слой */}
       <div 
         className="absolute inset-0 opacity-30 z-0" 
@@ -476,30 +477,33 @@ const ChartCard: React.FC = () => {
         }}
       ></div>
       
-      <h2 className="text-md font-medium mb-3 relative z-10">Доход за день (UNI + TON)</h2>
-      
-      <div className="flex items-center justify-end mb-2 space-x-4">
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded-full bg-[#A259FF] mr-1"></div>
-          <span className="text-xs text-foreground/70">UNI</span>
+      <CardHeader className="pb-2 relative z-10">
+        <CardTitle className="text-md font-medium">Доход за день (UNI + TON)</CardTitle>
+        <div className="flex items-center justify-end space-x-4">
+          <div className="flex items-center">
+            <div className="w-3 h-3 rounded-full bg-[#A259FF] mr-1"></div>
+            <span className="text-xs text-muted-foreground">UNI</span>
+          </div>
+          
+          <div className="flex items-center">
+            <div className="w-3 h-3 rounded-full bg-[#6DBFFF] mr-1"></div>
+            <span className="text-xs text-muted-foreground">TON</span>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        <div className="relative h-[120px] mb-2">
+          <canvas ref={canvasRef} className="w-full h-full"></canvas>
         </div>
         
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded-full bg-[#6DBFFF] mr-1"></div>
-          <span className="text-xs text-foreground/70">TON</span>
-        </div>
-      </div>
-      
-      <div className="relative h-[120px] mb-2">
-        <canvas ref={canvasRef} className="w-full h-full"></canvas>
-      </div>
-      
-      {showTonChart && (
-        <div className="relative h-[120px]">
-          <canvas ref={tonCanvasRef} className="w-full h-full"></canvas>
-        </div>
-      )}
-    </div>
+        {showTonChart && (
+          <div className="relative h-[120px]">
+            <canvas ref={tonCanvasRef} className="w-full h-full"></canvas>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
