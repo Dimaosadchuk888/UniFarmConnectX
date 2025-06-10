@@ -28,7 +28,7 @@ export const config = {
   // Безопасность
   security: {
     cors: {
-      origin: process.env.CORS_ORIGIN || true,
+      origin: process.env.CORS_ORIGINS?.split(',') || true,
       credentials: true,
     },
     rateLimit: {
