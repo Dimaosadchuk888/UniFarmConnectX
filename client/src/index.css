@@ -93,27 +93,37 @@ body {
   }
 
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 
   .green-gradient-text {
-    @apply bg-gradient-to-r from-accent to-[#00FF99] bg-clip-text text-transparent;
+    background: linear-gradient(to right, hsl(var(--accent)), #00FF99);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
   }
 
   .gradient-button {
-    @apply bg-gradient-to-r from-primary to-[#B368F7];
+    background: linear-gradient(to right, hsl(var(--primary)), #B368F7);
   }
 
   .active-nav-item {
-    @apply text-primary border-b-2 border-primary;
+    color: hsl(var(--primary));
+    border-bottom: 2px solid hsl(var(--primary));
   }
   
   .nav-icon-container {
-    @apply flex items-center justify-center transition-all duration-300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
   }
 
   /* ИСПРАВЛЕНИЕ ЧИТАЕМОСТИ ТЕКСТА В ТЁМНОЙ ТЕМЕ */
