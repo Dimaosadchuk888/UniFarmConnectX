@@ -1,8 +1,36 @@
+interface AuthResponse {
+  success: boolean;
+  user?: {
+    id: string;
+    telegram_id: number | null;
+    username: string;
+    created_at: string;
+  };
+  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  sessionId?: string;
+  error?: string;
+}
+
+interface SessionInfo {
+  valid?: boolean;
+  user_id?: string;
+  userId?: string;
+  session_id?: string;
+  created_at?: string;
+  expires_at?: string;
+  expiresAt?: string;
+  is_active?: boolean;
+  error?: string;
+}
+
 export class AuthService {
   /**
    * Аутентификация пользователя через Telegram initData
    */
-  async authenticateWithTelegram(initData: string): Promise<any> {
+  async authenticateWithTelegram(initData: string): Promise<AuthResponse> {
     try {
       console.log('[AuthService] Аутентификация через Telegram initData');
       
@@ -50,7 +78,7 @@ export class AuthService {
   /**
    * Обновление токена доступа
    */
-  async refreshToken(refreshToken: string): Promise<any> {
+  async refreshToken(refreshToken: string): Promise<AuthResponse> {
     try {
       console.log('[AuthService] Обновление токена доступа');
       
@@ -91,18 +119,16 @@ export class AuthService {
   /**
    * Получение информации о сессии
    */
-  async getSessionInfo(token: string): Promise<any> {
+  async getSessionInfo(token: string): Promise<SessionInfo> {
     try {
       console.log('[AuthService] Получение информации о сессии');
       
       // Здесь будет декодирование токена и получение данных сессии
       
       return {
-        user_id: 'temp_user_id',
-        session_id: 'session_' + Date.now(),
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 3600000).toISOString(),
-        is_active: true
+        valid: true,
+        userId: 'temp_user_id',
+        expiresAt: new Date(Date.now() + 3600000).toISOString()
       };
     } catch (error) {
       console.error('[AuthService] Ошибка получения информации о сессии:', error);

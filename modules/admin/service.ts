@@ -1,5 +1,31 @@
+interface DashboardStats {
+  totalUsers: number;
+  totalTransactions: number;
+  totalFarmingRewards: string;
+  systemStatus: string;
+  lastUpdated: string;
+}
+
+interface UsersList {
+  users: any[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+interface UserDetails {
+  id: string;
+  telegram_id: number | null;
+  username: string;
+  balance_uni: string;
+  balance_ton: string;
+  created_at: string;
+  is_active: boolean;
+}
+
 export class AdminService {
-  async getDashboardStats(): Promise<any> {
+  async getDashboardStats(): Promise<DashboardStats> {
     try {
       console.log('[AdminService] Получение статистики панели администратора');
       
@@ -17,7 +43,7 @@ export class AdminService {
     }
   }
 
-  async getUsersList(page: number, limit: number): Promise<any> {
+  async getUsersList(page: number, limit: number): Promise<UsersList> {
     try {
       console.log(`[AdminService] Получение списка пользователей, страница ${page}`);
       
@@ -35,7 +61,7 @@ export class AdminService {
     }
   }
 
-  async getUserDetails(userId: string): Promise<any> {
+  async getUserDetails(userId: string): Promise<UserDetails> {
     try {
       console.log(`[AdminService] Получение деталей пользователя ${userId}`);
       

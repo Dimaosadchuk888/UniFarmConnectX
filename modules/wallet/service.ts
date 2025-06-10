@@ -99,7 +99,7 @@ export class WalletService {
     currency: string;
     amount: string;
     description?: string;
-  }): Promise<any> {
+  }): Promise<Transaction> {
     try {
       const [newTransaction] = await db
         .insert(transactions)
