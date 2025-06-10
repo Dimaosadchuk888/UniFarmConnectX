@@ -72,8 +72,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     );
   }
 
-  // Используем Error Boundary для обработки ошибок
-  const { showBoundary } = useErrorBoundary();
+  // Убираем Error Boundary hook для предотвращения исключений
 
   // Получаем информацию о фарминге с динамическим ID пользователя
   const { data: farmingResponse, isLoading } = useQuery({
