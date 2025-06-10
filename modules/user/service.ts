@@ -54,7 +54,7 @@ export class UserService {
         .delete(users)
         .where(eq(users.id, parseInt(id)));
       
-      return result.rowCount > 0;
+      return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
       console.error('[UserService] Ошибка удаления пользователя:', error);
       throw error;
@@ -66,7 +66,7 @@ export class UserService {
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.telegram_id, parseInt(telegramId)))
+        .where(eq(users.telegram_id, telegramId))
         .limit(1);
       
       return user || null;

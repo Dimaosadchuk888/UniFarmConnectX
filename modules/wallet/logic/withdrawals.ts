@@ -1,6 +1,18 @@
-import { apiRequest } from '@/lib/queryClient';
-import { correctApiRequest } from '@/lib/correctApiRequest';
-import { WithdrawalFormData } from '@/schemas/withdrawalSchema';
+// Временные типы для компиляции до создания соответствующих модулей
+type ApiRequest = (url: string, options?: any) => Promise<any>;
+type CorrectApiRequest = (url: string, method?: string, data?: any) => Promise<any>;
+
+// Временная заглушка для correctApiRequest
+const correctApiRequest: CorrectApiRequest = async (url: string, method = 'GET', data?: any) => {
+  throw new Error('correctApiRequest not implemented yet');
+};
+
+interface WithdrawalFormData {
+  amount: string;
+  currency: string;
+  address: string;
+  [key: string]: any;
+}
 
 /**
  * Структура успешного ответа API при отправке запроса на вывод средств
