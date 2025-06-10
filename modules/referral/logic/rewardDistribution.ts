@@ -61,7 +61,7 @@ export class ReferralRewardDistribution {
               source_user_id: parseInt(userId),
               description: `Referral bonus level ${commission.level} from farming`,
               status: 'confirmed'
-            });
+            } as any);
         }
       }
 
@@ -137,7 +137,7 @@ export class ReferralRewardDistribution {
               amount: milestoneBonus,
               description: `Milestone bonus for ${referralCount} referrals`,
               status: 'confirmed'
-            });
+            } as any);
 
           return milestoneBonus;
         }

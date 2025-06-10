@@ -110,7 +110,7 @@ export class WalletService {
           amount: data.amount,
           description: data.description || '',
           status: 'confirmed'
-        })
+        } as any)
         .returning();
       
       return newTransaction;
