@@ -407,9 +407,14 @@ async function startServer() {
     const server = createServer(app);
 
     // Setup Vite middleware or static files
-    if (config.app.nodeEnv === 'development') {
+    const distPath = path.resolve(import.meta.dirname, '..', 'dist', 'public');
+    const hasBuiltFiles = fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'));
+    
+    if (config.app.nodeEnv === 'development' || !hasBuiltFiles) {
+      logger.info('Starting in development mode with Vite');
       await setupVite(app, server);
     } else {
+      logger.info('Starting in production mode with static files');
       serveStatic(app);
     }
 
