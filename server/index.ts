@@ -362,31 +362,10 @@ async function startServer() {
       }
     }
 
-    // Remove explicit root route to allow Vite middleware to handle it
-
-    // Error handling middleware
-    app.use((req: Request, res: Response, next: NextFunction) => {
-      res.status(404).json({
-        success: false,
-        error: 'Endpoint not found',
-        path: req.originalUrl
-      });
-    });
-
-    app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
-      logger.error('Server error:', error);
-      if (!res.headersSent) {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error'
-        });
-      }
-    });
-
     // HTTP server
     const server = createServer(app);
 
-    // Setup Vite middleware or static files
+    // Setup Vite middleware or static files FIRST
     const distPath = path.resolve(import.meta.dirname, '..', 'dist', 'public');
     const hasBuiltFiles = fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'));
     
@@ -397,6 +376,17 @@ async function startServer() {
       logger.info('Starting in production mode with static files');
       serveStatic(app);
     }
+
+    // Error handling middleware AFTER Vite setup
+    app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+      logger.error('Server error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+        });
+      }
+    });
 
     // Start server
     const port = parseInt(String(config.app.port));
