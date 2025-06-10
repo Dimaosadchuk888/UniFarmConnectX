@@ -3,7 +3,7 @@
  * Запускает сервер с интеграцией всех модулей
  */
 
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import path from 'path';
@@ -25,7 +25,7 @@ async function startServer() {
     app.use(express.urlencoded({ extended: true }));
 
     // Логирование запросов
-    app.use((req: any, res: any, next: any) => {
+    app.use((req: Request, res: Response, next: NextFunction) => {
       const start = Date.now();
       res.on('finish', () => {
         const duration = Date.now() - start;
@@ -35,7 +35,7 @@ async function startServer() {
     });
 
     // Health check
-    app.get('/health', (req: any, res: any) => {
+    app.get('/health', (req: Request, res: Response) => {
       res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
@@ -48,7 +48,7 @@ async function startServer() {
     const apiPrefix = `/api/v2`;
     
     // Health check endpoint for v2 API
-    app.get(`${apiPrefix}/health`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/health`, (req: Request, res: Response) => {
       res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
@@ -61,7 +61,7 @@ async function startServer() {
     app.use(apiPrefix, apiRoutes);
 
     // User Profile API
-    app.get(`${apiPrefix}/users/profile`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/users/profile`, (req: Request, res: Response) => {
       const userData = {
         id: 1,
         guest_id: 'guest_demo_' + Date.now(),
@@ -82,7 +82,7 @@ async function startServer() {
     });
 
     // Daily bonus status API
-    app.get(`${apiPrefix}/daily-bonus/status`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/daily-bonus/status`, (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
@@ -95,7 +95,7 @@ async function startServer() {
     });
 
     // Daily bonus claim API
-    app.post(`${apiPrefix}/daily-bonus/claim`, (req: any, res: any) => {
+    app.post(`${apiPrefix}/daily-bonus/claim`, (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
@@ -107,7 +107,7 @@ async function startServer() {
     });
 
     // UNI Farming endpoints
-    app.get(`${apiPrefix}/uni-farming/status`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/uni-farming/status`, (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
@@ -120,7 +120,7 @@ async function startServer() {
       });
     });
 
-    app.post(`${apiPrefix}/uni-farming/start`, (req: any, res: any) => {
+    app.post(`${apiPrefix}/uni-farming/start`, (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
@@ -130,7 +130,7 @@ async function startServer() {
       });
     });
 
-    app.post(`${apiPrefix}/uni-farming/claim`, (req: any, res: any) => {
+    app.post(`${apiPrefix}/uni-farming/claim`, (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
@@ -141,7 +141,7 @@ async function startServer() {
     });
 
     // Income chart data
-    app.get(`${apiPrefix}/income/chart`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/income/chart`, (req: Request, res: Response) => {
       const chartData = Array.from({ length: 7 }, (_, i) => ({
         date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         income: Math.floor(Math.random() * 100) + 50
@@ -154,7 +154,7 @@ async function startServer() {
     });
 
     // Boost status endpoint
-    app.get(`${apiPrefix}/boosts/status`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/boosts/status`, (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
