@@ -193,7 +193,7 @@ export class ReferralService {
         referralCode: user.ref_code,
         recentReferrals: invitedUsers.filter(u => u.created_at && 
           (new Date().getTime() - new Date(u.created_at).getTime()) < 30 * 24 * 60 * 60 * 1000
-        )
+        ).slice(0, 10)
       };
     } catch (error) {
       console.error('[ReferralService] Ошибка получения статистики рефералов:', error);

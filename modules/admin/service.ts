@@ -93,7 +93,13 @@ export class AdminService {
     }
   }
 
-  async getSystemLogs(page: number, limit: number): Promise<any> {
+  async getSystemLogs(page: number, limit: number): Promise<{
+    logs: any[];
+    total: number;
+    page: number;
+    limit: number;
+    hasMore: boolean;
+  }> {
     try {
       console.log(`[AdminService] Получение системных логов, страница ${page}`);
       
@@ -102,7 +108,8 @@ export class AdminService {
         logs: [],
         total: 0,
         page,
-        limit
+        limit,
+        hasMore: false
       };
     } catch (error) {
       console.error('[AdminService] Ошибка получения логов:', error);

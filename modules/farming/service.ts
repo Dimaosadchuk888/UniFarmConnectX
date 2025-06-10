@@ -178,7 +178,14 @@ export class FarmingService {
     }
   }
 
-  async getFarmingStatus(userId: string): Promise<any> {
+  async getFarmingStatus(userId: string): Promise<{
+    isActive: boolean;
+    currentAmount: string;
+    rate: string;
+    lastUpdate: string | null;
+    canHarvest: boolean;
+    estimatedReward: string;
+  }> {
     try {
       const [user] = await db
         .select()
@@ -187,19 +194,34 @@ export class FarmingService {
         .limit(1);
 
       if (!user) {
-        return { isActive: false, startTime: null, pendingRewards: "0" };
+        return { 
+          isActive: false, 
+          currentAmount: "0", 
+          rate: "0", 
+          lastUpdate: null, 
+          canHarvest: false, 
+          estimatedReward: "0" 
+        };
       }
 
       return {
         isActive: !!user.uni_farming_start_timestamp,
-        startTime: user.uni_farming_start_timestamp,
-        pendingRewards: user.uni_farming_balance || "0",
-        depositAmount: user.uni_deposit_amount || "0",
-        farmingRate: user.uni_farming_rate || "0"
+        currentAmount: user.uni_farming_balance || "0",
+        rate: user.uni_farming_rate || "0",
+        lastUpdate: user.uni_farming_last_update?.toISOString() || null,
+        canHarvest: !!user.uni_farming_balance && parseFloat(user.uni_farming_balance) > 0,
+        estimatedReward: user.uni_farming_balance || "0"
       };
     } catch (error) {
       console.error('[FarmingService] Ошибка получения статуса:', error);
-      return { isActive: false, startTime: null, pendingRewards: "0" };
+      return { 
+        isActive: false, 
+        currentAmount: "0", 
+        rate: "0", 
+        lastUpdate: null, 
+        canHarvest: false, 
+        estimatedReward: "0" 
+      };
     }
   }
 
