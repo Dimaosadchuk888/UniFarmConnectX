@@ -6,6 +6,7 @@ import { invalidateQueryWithUserId } from '@/lib/queryClient';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useUser } from '@/contexts/userContext';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 // Типы для статуса бонуса
 type DailyBonusStatus = {
@@ -369,36 +370,43 @@ const DailyBonusCard: React.FC = () => {
   // Если данные загружаются, показываем скелетон
   if (isLoading) {
     return (
-      <div className="bg-card rounded-xl p-4 mb-5 shadow-lg">
-        <Skeleton className="h-6 w-1/3 mb-2" />
-        <Skeleton className="h-4 w-full mb-4" />
-        <div className="flex justify-between mb-4">
-          {Array(7).fill(0).map((_, i) => (
-            <Skeleton key={i} className="h-8 w-8 rounded-full" />
-          ))}
-        </div>
-        <Skeleton className="h-12 w-full rounded-lg" />
-      </div>
+      <Card className="mb-5 shadow-lg">
+        <CardHeader>
+          <Skeleton className="h-6 w-1/3 mb-2" />
+          <Skeleton className="h-4 w-full" />
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between mb-4">
+            {Array(7).fill(0).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-8 rounded-full" />
+            ))}
+          </div>
+          <Skeleton className="h-12 w-full rounded-lg" />
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-card rounded-xl p-4 mb-5 shadow-lg card-hover-effect relative overflow-hidden">
+    <Card className="mb-5 shadow-lg card-hover-effect relative overflow-hidden">
       {/* Фоновые декоративные элементы */}
       <div className="absolute -right-12 -top-12 w-32 h-32 bg-primary/5 rounded-full blur-xl"></div>
       <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-primary/5 rounded-full blur-xl"></div>
 
-      <div className="flex justify-between items-start mb-2">
-        <h2 className="text-md font-medium">Check-in</h2>
-        <div className="flex items-center">
-          <span className="text-xs text-foreground opacity-70 mr-2">Серия: </span>
-          <span className="text-sm font-medium text-primary">{streak} дн.</span>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <CardTitle className="text-md font-medium">Check-in</CardTitle>
+          <div className="flex items-center">
+            <span className="text-xs text-muted-foreground mr-2">Серия: </span>
+            <span className="text-sm font-medium text-primary">{streak} дн.</span>
+          </div>
         </div>
-      </div>
+        <p className="text-xs text-muted-foreground">
+          Возвращайся каждый день, чтобы собирать бонусы!
+        </p>
+      </CardHeader>
 
-      <p className="text-xs text-foreground opacity-70 mb-4">
-        Возвращайся каждый день, чтобы собирать бонусы!
-      </p>
+      <CardContent>
 
       {/* Дни недели */}
       <div className="flex justify-between mb-4">

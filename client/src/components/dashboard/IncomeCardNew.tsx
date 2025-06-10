@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useUser } from '@/contexts/userContext';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 // Интерфейсы для данных API
 interface UniFarmingInfo {
@@ -172,49 +173,50 @@ const IncomeCardNew: React.FC = () => {
   }, [targetHourRate, targetDayRate, targetTonHourRate, targetTonDayRate]);
 
   return (
-    <div className="bg-card rounded-xl p-4 mb-5 shadow-md border border-primary/10">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-md font-medium text-foreground/90">Прогноз дохода</h2>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-4 mb-3">
-        <div className="bg-background/50 rounded-lg p-3">
-          <p className="text-sm text-foreground/60 mb-1">За 1 час</p>
-          <div className="flex flex-col">
-            <p className={`font-medium transition-transform ${isPulsing ? 'scale-105' : 'scale-100'}`}>
-              <span className="text-primary/80">+{displayedHourRate.toFixed(4)}</span> 
-              <span className="text-xs ml-1 opacity-70">UNI</span>
-            </p>
-            {displayedTonHourRate > 0 && (
-              <p className={`font-medium transition-transform ${isTonPulsing ? 'scale-105' : 'scale-100'}`}>
-                <span className="text-cyan-400/80">+{displayedTonHourRate.toFixed(5)}</span>
-                <span className="text-xs ml-1 opacity-70">TON</span>
+    <Card className="mb-5">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-md font-medium">Прогноз дохода</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4 mb-3">
+          <Card className="p-3">
+            <p className="text-sm text-muted-foreground mb-1">За 1 час</p>
+            <div className="flex flex-col">
+              <p className={`font-medium transition-transform ${isPulsing ? 'scale-105' : 'scale-100'}`}>
+                <span className="text-primary">+{displayedHourRate.toFixed(4)}</span> 
+                <span className="text-xs ml-1 text-muted-foreground">UNI</span>
               </p>
-            )}
-          </div>
+              {displayedTonHourRate > 0 && (
+                <p className={`font-medium transition-transform ${isTonPulsing ? 'scale-105' : 'scale-100'}`}>
+                  <span className="text-cyan-400">+{displayedTonHourRate.toFixed(5)}</span>
+                  <span className="text-xs ml-1 text-muted-foreground">TON</span>
+                </p>
+              )}
+            </div>
+          </Card>
+          
+          <Card className="p-3">
+            <p className="text-sm text-muted-foreground mb-1">За 24 часа</p>
+            <div className="flex flex-col">
+              <p className={`font-medium transition-transform ${isPulsing ? 'scale-105' : 'scale-100'}`}>
+                <span className="text-primary">+{displayedDayRate.toFixed(3)}</span>
+                <span className="text-xs ml-1 text-muted-foreground">UNI</span>
+              </p>
+              {displayedTonDayRate > 0 && (
+                <p className={`font-medium transition-transform ${isTonPulsing ? 'scale-105' : 'scale-100'}`}>
+                  <span className="text-cyan-400">+{displayedTonDayRate.toFixed(4)}</span>
+                  <span className="text-xs ml-1 text-muted-foreground">TON</span>
+                </p>
+              )}
+            </div>
+          </Card>
         </div>
         
-        <div className="bg-background/50 rounded-lg p-3">
-          <p className="text-sm text-foreground/60 mb-1">За 24 часа</p>
-          <div className="flex flex-col">
-            <p className={`font-medium transition-transform ${isPulsing ? 'scale-105' : 'scale-100'}`}>
-              <span className="text-primary/80">+{displayedDayRate.toFixed(3)}</span>
-              <span className="text-xs ml-1 opacity-70">UNI</span>
-            </p>
-            {displayedTonDayRate > 0 && (
-              <p className={`font-medium transition-transform ${isTonPulsing ? 'scale-105' : 'scale-100'}`}>
-                <span className="text-cyan-400/80">+{displayedTonDayRate.toFixed(4)}</span>
-                <span className="text-xs ml-1 opacity-70">TON</span>
-              </p>
-            )}
-          </div>
+        <div className="text-xs text-muted-foreground text-center italic">
+          Расчет основан на текущих ставках и активных бустах
         </div>
-      </div>
-      
-      <div className="text-xs text-foreground/40 text-center italic">
-        Расчет основан на текущих ставках и активных бустах
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

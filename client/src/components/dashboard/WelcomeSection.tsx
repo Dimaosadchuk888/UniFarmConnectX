@@ -6,6 +6,7 @@ import {
   getWalletAddress
 } from '@/services/tonConnectService';
 import { useQuery } from '@tanstack/react-query';
+import { Card } from '../ui/card';
 
 const WelcomeSection: React.FC = () => {
   const [userName, setUserName] = useState<string>('Пользователь');
@@ -67,7 +68,7 @@ const WelcomeSection: React.FC = () => {
   }, [userData]);
   
   return (
-    <div className="welcome-card-bg subtle-pattern rounded-xl p-5 mb-6 shadow-lg shadow-primary/20 backdrop-blur-md border border-white/10 overflow-hidden">
+    <Card className="welcome-card-bg subtle-pattern mb-6 shadow-lg shadow-primary/20 backdrop-blur-md border-white/10 overflow-hidden p-5">
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-purple-600/5 via-transparent to-accent/5"></div>
       
       {/* Тонкая светящаяся линия сверху */}
@@ -165,7 +166,7 @@ const WelcomeSection: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 };
 
