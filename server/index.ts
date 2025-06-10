@@ -28,9 +28,9 @@ async function startServer() {
     
     const app = express();
 
-    // Middleware
+    // Middleware - использование унифицированных CORS настроек
     app.use(cors({
-      origin: config.security.cors.origin,
+      origin: config.env.corsOrigins.split(',').map(o => o.trim()),
       credentials: true
     }));
     app.use(express.json({ limit: '10mb' }));
