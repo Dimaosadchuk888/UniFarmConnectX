@@ -39,7 +39,7 @@ export class WalletService {
         total_spent: 0,  // Можно вычислить из транзакций
         transactions: userTransactions.map(tx => ({
           id: tx.id,
-          type: tx.type,
+          type: tx.transaction_type,
           amount: parseFloat(tx.amount),
           currency: tx.currency,
           description: tx.description,
@@ -134,12 +134,8 @@ export class WalletService {
       
       return {
         transactions: userTransactions,
-        pagination: {
-          page,
-          limit,
-          total: userTransactions.length,
-          has_more: userTransactions.length === limit
-        }
+        total: userTransactions.length,
+        hasMore: userTransactions.length === limit
       };
     } catch (error) {
       console.error('[WalletService] Ошибка получения истории транзакций:', error);

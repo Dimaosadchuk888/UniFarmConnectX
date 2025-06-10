@@ -148,7 +148,12 @@ export class ReferralService {
   /**
    * Получает статистику рефералов для пользователя
    */
-  async getReferralStats(userId: string): Promise<any> {
+  async getReferralStats(userId: string): Promise<{
+    totalReferrals: number;
+    totalEarnings: string;
+    referralCode: string | null;
+    recentReferrals: any[];
+  }> {
     try {
       const { db } = await import('../../core/db');
       const { users, referrals } = await import('../../shared/schema');
@@ -162,7 +167,12 @@ export class ReferralService {
         .limit(1);
 
       if (!user || !user.ref_code) {
-        return { referrals: 0, earnings: "0", total_invited: 0, active_referrals: 0 };
+        return { 
+          totalReferrals: 0, 
+          totalEarnings: "0", 
+          referralCode: null, 
+          recentReferrals: [] 
+        };
       }
 
       // Считаем всех приглашенных пользователей
@@ -178,12 +188,12 @@ export class ReferralService {
         .where(eq(referrals.inviter_id, parseInt(userId)));
 
       return {
-        referrals: invitedUsers.length,
-        earnings: earnings?.total || "0",
-        total_invited: invitedUsers.length,
-        active_referrals: invitedUsers.filter(u => u.created_at && 
+        totalReferrals: invitedUsers.length,
+        totalEarnings: earnings?.total || "0",
+        referralCode: user.ref_code,
+        recentReferrals: invitedUsers.filter(u => u.created_at && 
           (new Date().getTime() - new Date(u.created_at).getTime()) < 30 * 24 * 60 * 60 * 1000
-        ).length
+        )
       };
     } catch (error) {
       console.error('[ReferralService] Ошибка получения статистики рефералов:', error);
