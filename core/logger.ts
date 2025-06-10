@@ -21,19 +21,19 @@ class Logger {
     return `[${timestamp}] [${level.toUpperCase()}] ${message}${metaStr}`;
   }
 
-  error(message: string, meta?: any): void {
+  error(message: string, meta?: unknown): void {
     console.error(this.formatMessage(LOG_LEVELS.ERROR, message, meta));
   }
 
-  warn(message: string, meta?: any): void {
+  warn(message: string, meta?: unknown): void {
     console.warn(this.formatMessage(LOG_LEVELS.WARN, message, meta));
   }
 
-  info(message: string, meta?: any): void {
+  info(message: string, meta?: unknown): void {
     console.log(this.formatMessage(LOG_LEVELS.INFO, message, meta));
   }
 
-  debug(message: string, meta?: any): void {
+  debug(message: string, meta?: unknown): void {
     if (!this.isProduction) {
       console.log(this.formatMessage(LOG_LEVELS.DEBUG, message, meta));
     }
