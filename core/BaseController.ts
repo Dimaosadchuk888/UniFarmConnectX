@@ -32,7 +32,7 @@ export abstract class BaseController {
   /**
    * Стандартна успішна відповідь
    */
-  protected sendSuccess(res: Response, data: any, message?: string): void {
+  protected sendSuccess(res: Response, data: unknown, message?: string): void {
     res.json({
       success: true,
       data,
@@ -43,7 +43,7 @@ export abstract class BaseController {
   /**
    * Стандартна відповідь з помилкою
    */
-  protected sendError(res: Response, error: string, statusCode: number = 400, details?: any): void {
+  protected sendError(res: Response, error: string, statusCode: number = 400, details?: unknown): void {
     res.status(statusCode).json({
       success: false,
       error,
@@ -54,8 +54,8 @@ export abstract class BaseController {
   /**
    * Отримання Telegram користувача з request (після middleware)
    */
-  protected getTelegramUser(req: Request): any {
-    const telegramUser = (req as any).telegramUser;
+  protected getTelegramUser(req: Request): Express.Request['telegramUser'] {
+    const telegramUser = req.telegramUser;
     if (!telegramUser) {
       throw new Error('Telegram пользователь не найден в запросе');
     }
@@ -65,9 +65,9 @@ export abstract class BaseController {
   /**
    * Валідація Telegram користувача з детальною перевіркою
    */
-  protected validateTelegramAuth(req: Request, res: Response): any | null {
-    const telegramUser = (req as any).telegram?.user;
-    const isValidated = (req as any).telegram?.validated;
+  protected validateTelegramAuth(req: Request, res: Response): Express.Request['telegram'] | null {
+    const telegramUser = req.telegram?.user;
+    const isValidated = req.telegram?.validated;
     
     if (!telegramUser || !isValidated) {
       res.status(401).json({
@@ -75,7 +75,7 @@ export abstract class BaseController {
         error: 'Требуется авторизация через Telegram Mini App',
         need_telegram_auth: true,
         debug: {
-          has_telegram: !!(req as any).telegram,
+          has_telegram: !!req.telegram,
           has_user: !!telegramUser,
           validated: isValidated
         }
@@ -83,13 +83,13 @@ export abstract class BaseController {
       return null;
     }
     
-    return telegramUser;
+    return req.telegram;
   }
 
   /**
    * Валідація обов'язкових полів
    */
-  protected validateRequiredFields(body: any, fields: string[]): void {
+  protected validateRequiredFields(body: Record<string, unknown>, fields: string[]): void {
     const missingFields = fields.filter(field => !body[field]);
     if (missingFields.length > 0) {
       throw new Error(`Отсутствуют обязательные поля: ${missingFields.join(', ')}`);
@@ -99,14 +99,14 @@ export abstract class BaseController {
   /**
    * Стандартна обробка помилок контролера
    */
-  protected handleControllerError(error: any, res: Response, operation: string): void {
+  protected handleControllerError(error: unknown, res: Response, operation: string): void {
     console.error(`[${this.constructor.name}] Ошибка ${operation}:`, error);
     
     if (!res.headersSent) {
       res.status(500).json({
         success: false,
         error: `Ошибка ${operation}`,
-        details: error.message
+        details: error instanceof Error ? error.message : error
       });
     }
   }

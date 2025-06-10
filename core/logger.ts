@@ -15,7 +15,7 @@ const LOG_LEVELS: LogLevel = {
 class Logger {
   private isProduction = process.env.NODE_ENV === 'production';
 
-  private formatMessage(level: string, message: string, meta?: any): string {
+  private formatMessage(level: string, message: string, meta?: unknown): string {
     const timestamp = new Date().toISOString();
     const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
     return `[${timestamp}] [${level.toUpperCase()}] ${message}${metaStr}`;
