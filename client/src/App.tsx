@@ -37,6 +37,8 @@ interface AppState {
 }
 
 function App() {
+  console.log('[UniFarm Debug] App.tsx загружается...');
+  
   const [state, setState] = useState<AppState>({
     isLoading: true,
     userId: null,

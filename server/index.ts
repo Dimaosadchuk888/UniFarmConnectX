@@ -365,52 +365,20 @@ async function startServer() {
     // HTTP server
     const server = createServer(app);
 
-    // Serve the main React application for all non-API routes
-    app.get('*', (req: Request, res: Response) => {
-      // Skip API routes and health checks
-      if (req.path.startsWith('/api/') || req.path === '/health' || 
-          req.path.startsWith('/tonconnect-') || req.path.startsWith('/.well-known/')) {
-        return res.status(404).json({
-          success: false,
-          error: 'Endpoint not found',
-          path: req.originalUrl
-        });
-      }
-      
-      // Serve the client HTML for all other routes
-      const clientTemplate = path.resolve(import.meta.dirname, '..', 'client', 'index.html');
-      
-      if (fs.existsSync(clientTemplate)) {
-        res.sendFile(clientTemplate);
-      } else {
-        res.status(200).send(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>UniFarm Loading...</title>
-              <style>
-                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
-                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-              </style>
-              <script src="https://telegram.org/js/telegram-web-app.js"></script>
-            </head>
-            <body>
-              <h1>UniFarm</h1>
-              <div class="loader"></div>
-              <p>Загрузка приложения...</p>
-              <p>Если приложение не загружается, проверьте подключение к интернету.</p>
-              <script>
-                if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-                  window.Telegram.WebApp.ready();
-                  window.Telegram.WebApp.expand();
-                }
-              </script>
-            </body>
-          </html>
-        `);
-      }
-    });
+    // Setup Vite middleware or static files
+    const distPath = path.resolve(import.meta.dirname, '..', 'dist', 'public');
+    const hasBuiltFiles = fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'));
+    
+    // Force development mode if no built files exist, regardless of NODE_ENV
+    const isDevelopmentMode = !hasBuiltFiles || process.env.FORCE_DEV_MODE === 'true';
+    
+    if (isDevelopmentMode) {
+      logger.info('Starting in development mode with Vite middleware');
+      await setupVite(app, server);
+    } else {
+      logger.info('Starting in production mode with static files');
+      serveStatic(app);
+    }
 
     // Error handling middleware AFTER Vite setup
     app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
