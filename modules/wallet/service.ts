@@ -1,5 +1,5 @@
 import { db } from '../../core/db';
-import { transactions } from '../../shared/schema';
+import { transactions, users, type Transaction } from '../../shared/schema';
 import { eq, desc } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository';
 
@@ -105,7 +105,7 @@ export class WalletService {
         .insert(transactions)
         .values({
           user_id: parseInt(data.userId),
-          type: data.type,
+          transaction_type: data.type,
           currency: data.currency,
           amount: data.amount,
           description: data.description || '',
@@ -120,7 +120,7 @@ export class WalletService {
     }
   }
 
-  async getTransactionHistory(userId: string, page: number = 1, limit: number = 20): Promise<any> {
+  async getTransactionHistory(userId: string, page: number = 1, limit: number = 20): Promise<{transactions: Transaction[], total: number, hasMore: boolean}> {
     try {
       const offset = (page - 1) * limit;
       
