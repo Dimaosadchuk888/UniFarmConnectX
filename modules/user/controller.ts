@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { BaseController } from '../../core/BaseController';
+import { BaseController } from '@/core/BaseController';
 import { UserService } from './service';
 
 const userService = new UserService();

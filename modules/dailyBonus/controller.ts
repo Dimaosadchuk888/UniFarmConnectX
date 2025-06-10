@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { BaseController } from '../../core/BaseController';
+import { BaseController } from '@/core/BaseController';
 import { DailyBonusService } from './service';
 
 export class DailyBonusController extends BaseController {

@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { BaseController } from '../../core/BaseController';
+import { BaseController } from '@/core/BaseController';
 import { AdminService } from './service';
 
 export class AdminController extends BaseController {
