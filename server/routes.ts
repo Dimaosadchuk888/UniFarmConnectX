@@ -28,6 +28,7 @@ router.use('/users', userRoutes);
 // Core application routes
 router.use('/wallet', walletRoutes);
 router.use('/farming', farmingRoutes);
+router.use('/uni-farming', farmingRoutes); // Alias for backward compatibility
 router.use('/missions', missionsRoutes);
 router.use('/referral', referralRoutes);
 router.use('/boost', boostRoutes);

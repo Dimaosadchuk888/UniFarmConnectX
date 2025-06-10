@@ -1,90 +1,14 @@
 /**
- * Сервис для обработки реферальных ссылок и кодов
+ * Серверный сервис для обработки реферальных ссылок и кодов
  * 
  * Этот сервис отвечает за:
- * 1. Извлечение реферального кода из URL
+ * 1. Генерацию реферальных кодов
  * 2. Проверку валидности реферального кода
- * 3. Сохранение реферального кода в локальное хранилище
- * 4. Применение реферального кода при создании новых пользователей
- * 5. Получение статистики рефералов
+ * 3. Применение реферального кода при создании новых пользователей
+ * 4. Получение статистики рефералов
  */
 
-// Ключ для хранения реферального кода в локальном хранилище
-const REFERRAL_CODE_KEY = 'unifarm_referral_code';
-
-// Максимальное время хранения реферального кода в локальном хранилище (24 часа)
-const REFERRAL_CODE_TTL = 24 * 60 * 60 * 1000;
-
-// Интерфейс для хранения реферального кода с временной меткой
-interface StoredReferralCode {
-  code: string;
-  timestamp: number;
-}
-
 export class ReferralService {
-  /**
-   * Извлекает реферальный код из URL (параметр ref_code или устаревший startapp)
-   */
-  getRefCodeFromUrl(): string | null {
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('ref_code') || urlParams.get('startapp') || null;
-    } catch (error) {
-      console.error('[ReferralService] Ошибка извлечения ref_code из URL:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Сохраняет реферальный код в локальное хранилище с временной меткой
-   */
-  saveRefCodeToStorage(refCode: string): void {
-    try {
-      const data: StoredReferralCode = {
-        code: refCode,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(REFERRAL_CODE_KEY, JSON.stringify(data));
-      console.log(`[ReferralService] Реферальный код сохранен: ${refCode}`);
-    } catch (error) {
-      console.error('[ReferralService] Ошибка сохранения ref_code:', error);
-    }
-  }
-
-  /**
-   * Получает реферальный код из локального хранилища
-   */
-  getRefCodeFromStorage(): string | null {
-    try {
-      const storedData = localStorage.getItem(REFERRAL_CODE_KEY);
-      if (!storedData) return null;
-
-      const data: StoredReferralCode = JSON.parse(storedData);
-      
-      // Проверяем, не истек ли TTL
-      if (Date.now() - data.timestamp > REFERRAL_CODE_TTL) {
-        this.clearRefCodeFromStorage();
-        return null;
-      }
-
-      return data.code;
-    } catch (error) {
-      console.error('[ReferralService] Ошибка получения ref_code из хранилища:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Очищает реферальный код из локального хранилища
-   */
-  clearRefCodeFromStorage(): void {
-    try {
-      localStorage.removeItem(REFERRAL_CODE_KEY);
-      console.log('[ReferralService] Реферальный код очищен из хранилища');
-    } catch (error) {
-      console.error('[ReferralService] Ошибка очистки ref_code:', error);
-    }
-  }
 
   /**
    * Генерирует уникальный реферальный код для пользователя
@@ -275,18 +199,4 @@ export class ReferralService {
     }
   }
 
-  /**
-   * Получает активный реферальный код (из URL или хранилища)
-   */
-  getActiveRefCode(): string | null {
-    // Сначала проверяем URL
-    const urlRefCode = this.getRefCodeFromUrl();
-    if (urlRefCode) {
-      this.saveRefCodeToStorage(urlRefCode);
-      return urlRefCode;
-    }
-
-    // Если в URL нет, проверяем хранилище
-    return this.getRefCodeFromStorage();
-  }
 }
