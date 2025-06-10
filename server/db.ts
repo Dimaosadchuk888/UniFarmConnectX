@@ -11,5 +11,15 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Configure Neon with better error handling
+neonConfig.fetchConnectionCache = true;
+neonConfig.fetchFunction = fetch;
+
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  max: 10,
+  connectionTimeoutMillis: 30000,
+  idleTimeoutMillis: 30000
+});
+
 export const db = drizzle({ client: pool, schema });
