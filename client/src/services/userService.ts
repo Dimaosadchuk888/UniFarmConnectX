@@ -29,6 +29,15 @@ export interface ApiError {
 }
 
 /**
+ * Интерфейс ответа API для пользователя
+ */
+export interface UserResponse {
+  success: boolean;
+  data?: User;
+  error?: string;
+}
+
+/**
  * Ключ для хранения данных пользователя в localStorage
  */
 const USER_DATA_STORAGE_KEY = 'unifarm_user_data';
@@ -52,7 +61,7 @@ class UserService {
    * Используется как альтернативный способ регистрации для максимальной доступности
    * @returns {Promise<{success: boolean, data?: any}>} Результат операции и данные пользователя
    */
-  async registerInAirDropMode(): Promise<{success: boolean, data?: User}> {
+  async registerInAirDropMode(): Promise<UserResponse> {
     console.log('[UserService] Запуск регистрации в режиме AirDrop...');
 
     try {
@@ -125,7 +134,7 @@ class UserService {
         console.error('[UserService] В ответе отсутствуют данные пользователя:', result);
         return { 
           success: false,
-          data: { error: 'Некорректный ответ сервера, отсутствуют данные пользователя' }
+          error: 'Некорректный ответ сервера, отсутствуют данные пользователя'
         };
       }
     } catch (error: any) {
@@ -134,10 +143,7 @@ class UserService {
       // correctApiRequest уже предоставляет структурированную ошибку
       return { 
         success: false, 
-        data: { 
-          error: error.message || 'Неизвестная ошибка при регистрации',
-          details: error.details || error
-        }
+        error: error.message || 'Неизвестная ошибка при регистрации'
       };
     }
   }
@@ -580,7 +586,7 @@ export default new UserService();
 /**
  * Получает пользователя по guest_id с поддержкой fallback режима
  */
-export async function getUserByGuestId(guestId: string): Promise<{success: boolean, data?: User, error?: string}> {
+export async function getUserByGuestId(guestId: string): Promise<UserResponse> {
   console.log('[UserService] Используем correctApiRequest для запроса по guest_id');
 
   try {

@@ -72,13 +72,7 @@ interface TelegramWebApp {
   sendData: (data: string) => void;
 }
 
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: TelegramWebApp;
-    };
-  }
-}
+// Using global types from types/global.d.ts
 
 class TelegramService {
   private webApp: TelegramWebApp | null = null;
