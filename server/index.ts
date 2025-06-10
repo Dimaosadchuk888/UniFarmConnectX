@@ -12,9 +12,17 @@ import { config, logger } from '../core';
 import { setupVite, serveStatic } from './vite';
 import apiRoutes from './routes';
 import { EnvValidator } from '../core/envValidator';
+import { HealthMonitor } from '../core/monitoring';
+
+// Production configuration
+const { ProductionConfig } = require('../production.config.js');
 
 async function startServer() {
   try {
+    // Initialize production configuration
+    const productionConfig = new ProductionConfig();
+    const manifests = productionConfig.init();
+    
     // Валидация переменных окружения при старте
     EnvValidator.validateAndReport();
     
@@ -38,11 +46,18 @@ async function startServer() {
       next();
     });
 
-    // Health check
-    app.get('/health', (req: Request, res: Response) => {
-      res.json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString(),
+    // Initialize health monitoring
+    const healthMonitor = new HealthMonitor();
+    healthMonitor.startMonitoring();
+
+    // Health check with comprehensive monitoring
+    app.get('/health', async (req: Request, res: Response) => {
+      const healthStatus = await healthMonitor.getHealthStatus();
+      const statusCode = healthStatus.status === 'healthy' ? 200 : 
+                        healthStatus.status === 'degraded' ? 200 : 503;
+      
+      res.status(statusCode).json({
+        ...healthStatus,
         version: config.app.apiVersion,
         environment: config.app.nodeEnv
       });
@@ -52,10 +67,14 @@ async function startServer() {
     const apiPrefix = `/api/v2`;
     
     // Health check endpoint for v2 API
-    app.get(`${apiPrefix}/health`, (req: Request, res: Response) => {
-      res.json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString(),
+    app.get(`${apiPrefix}/health`, async (req: Request, res: Response) => {
+      const healthStatus = await healthMonitor.getHealthStatus();
+      const statusCode = healthStatus.status === 'healthy' ? 200 : 
+                        healthStatus.status === 'degraded' ? 200 : 503;
+      
+      res.status(statusCode).json({
+        ...healthStatus,
+        api_version: 'v2',
         version: config.app.apiVersion,
         environment: config.app.nodeEnv
       });
@@ -327,13 +346,12 @@ async function startServer() {
 
     // TON Connect manifest
     app.get('/tonconnect-manifest.json', (req: Request, res: Response) => {
-      res.json({
-        url: config.app.baseUrl,
-        name: "UniFarm",
-        iconUrl: `${config.app.baseUrl}/logo.png`,
-        termsOfUseUrl: `${config.app.baseUrl}/terms`,
-        privacyPolicyUrl: `${config.app.baseUrl}/privacy`
-      });
+      res.json(manifests.tonConnectManifest);
+    });
+
+    // Telegram WebApp manifest
+    app.get('/.well-known/telegram-web-app-manifest.json', (req: Request, res: Response) => {
+      res.json(manifests.telegramManifest);
     });
 
     // Static files for production

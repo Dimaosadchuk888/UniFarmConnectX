@@ -1,0 +1,131 @@
+/**
+ * Production Configuration for UniFarm
+ * Handles secure environment variable management
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+class ProductionConfig {
+  constructor() {
+    this.requiredSecrets = [
+      'TELEGRAM_BOT_TOKEN',
+      'DATABASE_URL',
+      'SESSION_SECRET',
+      'JWT_SECRET'
+    ];
+    
+    this.optionalSecrets = [
+      'NEON_API_KEY',
+      'NEON_PROJECT_ID',
+      'ADMIN_SECRET'
+    ];
+  }
+
+  validateSecrets() {
+    const missing = [];
+    const warnings = [];
+    
+    // Check required secrets
+    for (const secret of this.requiredSecrets) {
+      if (!process.env[secret]) {
+        missing.push(secret);
+      }
+    }
+    
+    // Check optional secrets
+    for (const secret of this.optionalSecrets) {
+      if (!process.env[secret]) {
+        warnings.push(`Optional secret ${secret} not set`);
+      }
+    }
+    
+    if (missing.length > 0) {
+      console.error('❌ Missing required secrets:');
+      missing.forEach(secret => console.error(`   - ${secret}`));
+      console.error('\n💡 Please add these to Replit Secrets or .env file');
+      return false;
+    }
+    
+    if (warnings.length > 0) {
+      console.warn('⚠️  Optional secrets not configured:');
+      warnings.forEach(warning => console.warn(`   - ${warning}`));
+    }
+    
+    console.log('✅ All required secrets are configured');
+    return true;
+  }
+
+  generateManifests() {
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+      : 'https://unifarm.replit.app';
+    
+    // TON Connect manifest
+    const tonConnectManifest = {
+      url: baseUrl,
+      name: "UniFarm",
+      iconUrl: `${baseUrl}/logo.png`,
+      termsOfUseUrl: `${baseUrl}/terms`,
+      privacyPolicyUrl: `${baseUrl}/privacy`
+    };
+    
+    // Telegram WebApp manifest
+    const telegramManifest = {
+      name: "UniFarm Telegram Bot",
+      short_name: "UniFarm",
+      start_url: "/",
+      display: "standalone",
+      background_color: "#ffffff",
+      theme_color: "#6366f1",
+      icons: [
+        {
+          src: "/logo-192.png",
+          sizes: "192x192",
+          type: "image/png"
+        },
+        {
+          src: "/logo-512.png", 
+          sizes: "512x512",
+          type: "image/png"
+        }
+      ]
+    };
+    
+    return { tonConnectManifest, telegramManifest };
+  }
+
+  setupEnvironment() {
+    // Set defaults for production
+    process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+    process.env.PORT = process.env.PORT || '3000';
+    process.env.DATABASE_PROVIDER = process.env.DATABASE_PROVIDER || 'neon';
+    process.env.USE_NEON_DB = process.env.USE_NEON_DB || 'true';
+    process.env.ALLOW_BROWSER_ACCESS = process.env.ALLOW_BROWSER_ACCESS || 'true';
+    process.env.SKIP_TELEGRAM_CHECK = process.env.SKIP_TELEGRAM_CHECK || 'false';
+    
+    // Auto-configure app URL based on environment
+    if (process.env.REPLIT_DEV_DOMAIN && !process.env.VITE_WEB_APP_URL) {
+      process.env.VITE_WEB_APP_URL = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      process.env.BASE_URL = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    }
+    
+    console.log('🔧 Production environment configured');
+    console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`   PORT: ${process.env.PORT}`);
+    console.log(`   DATABASE_PROVIDER: ${process.env.DATABASE_PROVIDER}`);
+    console.log(`   APP_URL: ${process.env.VITE_WEB_APP_URL || process.env.BASE_URL || 'Not set'}`);
+  }
+
+  init() {
+    this.setupEnvironment();
+    
+    if (!this.validateSecrets()) {
+      process.exit(1);
+    }
+    
+    return this.generateManifests();
+  }
+}
+
+module.exports = { ProductionConfig };
