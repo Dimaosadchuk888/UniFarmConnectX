@@ -332,6 +332,14 @@ async function startServer() {
       });
     });
 
+    // Static files for production
+    if (config.app.nodeEnv === 'production') {
+      const staticPath = path.resolve(import.meta.dirname, '..', 'dist', 'public');
+      if (fs.existsSync(staticPath)) {
+        app.use(express.static(staticPath));
+      }
+    }
+
     // Root route - serve the main application
     app.get('/', (req: any, res: any) => {
       const indexPath = path.resolve(import.meta.dirname, '..', 'dist', 'public', 'index.html');
