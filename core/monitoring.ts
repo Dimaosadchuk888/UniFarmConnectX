@@ -2,7 +2,7 @@
  * System Monitoring and Health Check for UniFarm
  */
 
-import { db } from './db';
+import { db } from '../server/db';
 import { users } from '../shared/schema';
 import { count } from 'drizzle-orm';
 

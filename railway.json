@@ -34,7 +34,7 @@
       "name": "unifarm-web",
       "source": {
         "type": "image",
-        "image": "node:18-alpine"
+        "image": "node:20-alpine"
       },
       "variables": {
         "PORT": 3000
