@@ -1,5 +1,5 @@
-import { db } from '../../server/db';
-import { users, transactions } from '../../shared/schema';
+import { db } from '@/server/db';
+import { users, transactions } from '@/shared/schema';
 import { count, desc } from 'drizzle-orm';
 
 interface DashboardStats {
