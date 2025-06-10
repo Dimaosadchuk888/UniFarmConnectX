@@ -14,8 +14,8 @@ export default function MainLayout({ children, activeTab, onTabChange }: MainLay
       {/* Top Bar */}
       <Header />
       
-      {/* Main Content Area with proper spacing for fixed header and nav */}
-      <main className="flex-1 overflow-auto px-4 pt-16 pb-20">
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-auto px-4">
         <div className="max-w-md mx-auto">
           {children}
         </div>
