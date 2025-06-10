@@ -94,13 +94,22 @@ const DailyBonusCard: React.FC = () => {
         );
 
         if (!response.success) {
-          throw new Error(response.error || response.message || 'Ошибка при получении бонуса');
+          console.warn('[DailyBonusCard] Ошибка получения бонуса:', response.error);
+          return {
+            success: false,
+            error: response.error || response.message || 'Ошибка при получении бонуса'
+          };
         }
 
         return response;
       } catch (error: any) {
         console.error('[ERROR] DailyBonusCard - Ошибка при получении бонуса:', error);
-        throw new Error(`Ошибка при получении бонуса: ${error.message || 'Неизвестная ошибка'}`);
+        
+        // Возвращаем объект ошибки вместо исключения
+        return {
+          success: false,
+          error: `Ошибка при получении бонуса: ${error.message || 'Неизвестная ошибка'}`
+        };
       }
     },
     onSuccess: (data) => {

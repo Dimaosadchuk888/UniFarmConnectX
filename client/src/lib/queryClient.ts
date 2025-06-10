@@ -50,14 +50,19 @@ async function throwIfResNotOk(res: Response) {
       }
     }
 
-    const error = new Error(`${res.status}: ${errorData.message || errorData.error || "Неизвестная ошибка"}`);
-    (error as any).status = res.status;
-    (error as any).statusText = res.statusText;
-    (error as any).errorData = errorData;
-    (error as any).isHtmlResponse = isHtmlResponse;
-    (error as any).isRedirect = isRedirect;
+    // Вместо исключения возвращаем объект с ошибкой
+    const errorObj = {
+      message: `${res.status}: ${errorData.message || errorData.error || "Неизвестная ошибка"}`,
+      status: res.status,
+      statusText: res.statusText,
+      errorData: errorData,
+      isHtmlResponse: isHtmlResponse,
+      isRedirect: isRedirect,
+      success: false
+    };
 
-    throw error;
+    // Не выбрасываем исключение, а возвращаем объект ошибки
+    return Promise.reject(errorObj);
   }
 }
 
@@ -219,9 +224,31 @@ export const getQueryFn: <T>(options: {
         return null;
       }
 
-      try {
-        await throwIfResNotOk(res);
+      // Проверяем статус ответа без выброса исключений
+      if (!res.ok) {
+        const text = await res.text();
+        const isHtmlResponse = res.headers.get('content-type')?.includes('text/html');
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(text);
+        } catch (e) {
+          errorData = { 
+            error: text || res.statusText || 'Неопределенная ошибка',
+            type: isHtmlResponse ? 'html_response' : 'unknown'
+          };
+        }
 
+        return {
+          success: false,
+          error: `${res.status}: ${errorData.message || errorData.error || "Неизвестная ошибка"}`,
+          status: res.status,
+          statusText: res.statusText,
+          errorData: errorData
+        };
+      }
+
+      try {
         // Получаем текст ответа и проверяем его валидность как JSON
         const text = await res.text();
 
@@ -258,11 +285,19 @@ export const getQueryFn: <T>(options: {
         }
       } catch (resError) {
         console.error("[DEBUG] QueryClient - Response error:", resError);
-        throw resError;
+        return {
+          success: false,
+          error: `Response error: ${(resError as any).message || 'Unknown response error'}`,
+          status: (resError as any).status || 500
+        };
       }
     } catch (fetchError) {
       console.error("[DEBUG] QueryClient - Fetch error:", fetchError);
-      throw fetchError;
+      return {
+        success: false,
+        error: `Fetch error: ${(fetchError as any).message || 'Network error'}`,
+        status: (fetchError as any).status || 0
+      };
     }
   };
 
@@ -324,16 +359,16 @@ const pendingQueries = new Map<string, Promise<any>>();
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: "returnNull" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 минут кеширование вместо Infinity
       gcTime: 10 * 60 * 1000, // 10 минут хранение в кеше (gcTime заменяет cacheTime в React Query v5)
-      retry: 1, // Одна попытка повтора вместо false
+      retry: false, // Отключаем повторы для предотвращения каскадных ошибок
       retryDelay: 1000, // 1 секунда задержка между попытками
     },
     mutations: {
-      retry: 1,
+      retry: false, // Отключаем повторы для мутаций
       retryDelay: 1000,
     },
   },
