@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { invalidateQueryWithUserId } from '@/lib/queryClient';
-import { apiGet, apiPost } from '@/lib/apiService';
+import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useUser } from '@/contexts/userContext';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
 
@@ -38,11 +38,11 @@ const DailyBonusCard: React.FC = () => {
     queryKey: ['dailyBonusStatus', userId], // Добавляем userId в ключ запроса
     queryFn: async () => {
       try {
-        // Используем новый унифицированный метод apiGet
+        // Используем унифицированный метод correctApiRequest
         const endpoint = `/api/v2/daily-bonus/status?user_id=${userId || 1}`;
         console.log('[DailyBonusCard] Запрос статуса бонуса:', endpoint);
 
-        const response = await apiGet<DailyBonusStatus>(endpoint);
+        const response = await correctApiRequest(endpoint, 'GET');
 
         if (!response.success) {
           throw new Error(response.error || 'Ошибка при получении статуса бонуса');
@@ -66,13 +66,14 @@ const DailyBonusCard: React.FC = () => {
   const claimBonusMutation = useMutation({
     mutationFn: async () => {
       try {
-        // Используем новый унифицированный метод apiPost
+        // Используем унифицированный метод correctApiRequest
         const endpoint = '/api/v2/daily-bonus/claim';
         console.log('[DailyBonusCard] Отправка запроса на получение бонуса:', endpoint);
 
         // Отправляем POST запрос с корректными заголовками
-        const response = await apiPost<ClaimBonusResult>(
+        const response = await correctApiRequest(
           endpoint, 
+          'POST',
           { user_id: userId || 1 } // Используем динамический userId
         );
 
