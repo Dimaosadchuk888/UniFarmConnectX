@@ -11,9 +11,13 @@ import fs from 'fs';
 import { config, logger } from '../core';
 import { setupVite, serveStatic } from './vite';
 import apiRoutes from './routes';
+import { EnvValidator } from '../core/envValidator';
 
 async function startServer() {
   try {
+    // Валидация переменных окружения при старте
+    EnvValidator.validateAndReport();
+    
     const app = express();
 
     // Middleware

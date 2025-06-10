@@ -33,10 +33,16 @@ export class AdminService {
     try {
       console.log('[AdminService] Получение статистики панели администратора');
       
-      // Здесь будет запрос к базе данных для получения реальной статистики
+      // Получаем реальную статистику из базы данных
+      const [totalUsersResult] = await db.select({ count: count() }).from(users);
+      const totalUsers = totalUsersResult?.count || 0;
+      
+      const [totalTransactionsResult] = await db.select({ count: count() }).from(transactions);
+      const totalTransactions = totalTransactionsResult?.count || 0;
+      
       return {
-        totalUsers: 0,
-        totalTransactions: 0,
+        totalUsers,
+        totalTransactions,
         totalFarmingRewards: "0",
         systemStatus: "operational",
         lastUpdated: new Date().toISOString()
@@ -51,13 +57,26 @@ export class AdminService {
     try {
       console.log(`[AdminService] Получение списка пользователей, страница ${page}`);
       
-      // Здесь будет запрос к базе данных
+      const offset = (page - 1) * limit;
+      
+      // Получаем пользователей с пагинацией
+      const usersList = await db
+        .select()
+        .from(users)
+        .orderBy(desc(users.created_at))
+        .limit(limit)
+        .offset(offset);
+      
+      // Получаем общее количество пользователей
+      const [totalResult] = await db.select({ count: count() }).from(users);
+      const total = totalResult?.count || 0;
+      
       return {
-        users: [],
-        total: 0,
+        users: usersList,
+        total,
         page,
         limit,
-        hasMore: false
+        hasMore: offset + limit < total
       };
     } catch (error) {
       console.error('[AdminService] Ошибка получения пользователей:', error);

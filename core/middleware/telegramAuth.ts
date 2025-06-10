@@ -1,26 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 
-// Расширяем интерфейс Request для TypeScript
-interface TelegramUser {
-  id: number;
-  telegram_id: number;
-  username?: string;
-}
-
-interface TelegramData {
-  user?: TelegramUser;
-  validated?: boolean;
-}
-
-interface RequestWithTelegram extends Request {
-  telegram?: TelegramData;
-  telegramUser?: TelegramUser;
-}
-
 /**
  * Middleware для перевірки Telegram авторизації
  */
-export function requireTelegramAuth(req: RequestWithTelegram, res: Response, next: NextFunction): void {
+export function requireTelegramAuth(req: Request, res: Response, next: NextFunction): void {
   try {
     const telegramUser = req.telegram?.user;
     const isValidated = req.telegram?.validated;
@@ -48,7 +31,7 @@ export function requireTelegramAuth(req: RequestWithTelegram, res: Response, nex
 /**
  * Опціональний middleware для Telegram авторизації
  */
-export function optionalTelegramAuth(req: RequestWithTelegram, res: Response, next: NextFunction): void {
+export function optionalTelegramAuth(req: Request, res: Response, next: NextFunction): void {
   try {
     const telegramUser = req.telegram?.user;
     const isValidated = req.telegram?.validated;
