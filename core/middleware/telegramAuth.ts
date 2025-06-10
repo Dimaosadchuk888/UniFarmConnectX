@@ -1,12 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
 
+// Расширяем интерфейс Request для TypeScript
+interface TelegramUser {
+  id: number;
+  telegram_id: number;
+  username?: string;
+}
+
+interface TelegramData {
+  user?: TelegramUser;
+  validated?: boolean;
+}
+
+interface RequestWithTelegram extends Request {
+  telegram?: TelegramData;
+  telegramUser?: TelegramUser;
+}
+
 /**
  * Middleware для перевірки Telegram авторизації
  */
-export function requireTelegramAuth(req: Request, res: Response, next: NextFunction): void {
+export function requireTelegramAuth(req: RequestWithTelegram, res: Response, next: NextFunction): void {
   try {
-    const telegramUser = (req as any).telegram?.user;
-    const isValidated = (req as any).telegram?.validated;
+    const telegramUser = req.telegram?.user;
+    const isValidated = req.telegram?.validated;
     
     if (!telegramUser || !isValidated) {
       res.status(401).json({
@@ -17,7 +34,7 @@ export function requireTelegramAuth(req: Request, res: Response, next: NextFunct
     }
 
     // Додаємо telegramUser до req для подальшого використання
-    (req as any).telegramUser = telegramUser;
+    req.telegramUser = telegramUser;
     next();
   } catch (error) {
     console.error('[TelegramAuth] Ошибка проверки авторизации:', error);
@@ -31,13 +48,13 @@ export function requireTelegramAuth(req: Request, res: Response, next: NextFunct
 /**
  * Опціональний middleware для Telegram авторизації
  */
-export function optionalTelegramAuth(req: Request, res: Response, next: NextFunction): void {
+export function optionalTelegramAuth(req: RequestWithTelegram, res: Response, next: NextFunction): void {
   try {
-    const telegramUser = (req as any).telegram?.user;
-    const isValidated = (req as any).telegram?.validated;
+    const telegramUser = req.telegram?.user;
+    const isValidated = req.telegram?.validated;
     
     if (telegramUser && isValidated) {
-      (req as any).telegramUser = telegramUser;
+      req.telegramUser = telegramUser;
     }
     
     next();

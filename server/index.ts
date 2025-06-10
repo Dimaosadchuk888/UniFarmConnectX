@@ -178,7 +178,7 @@ async function startServer() {
     });
 
     // Missions endpoint
-    app.get(`${apiPrefix}/missions`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/missions`, (req: Request, res: Response) => {
       const staticMissions = [
         {
           id: 1,
@@ -213,7 +213,7 @@ async function startServer() {
     });
 
     // User missions endpoint
-    app.get(`${apiPrefix}/user-missions`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/user-missions`, (req: Request, res: Response) => {
       res.json({
         success: true,
         data: []
@@ -221,7 +221,7 @@ async function startServer() {
     });
 
     // Referral stats
-    app.get(`${apiPrefix}/referrals/stats`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/referrals/stats`, (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
@@ -234,7 +234,7 @@ async function startServer() {
     });
 
     // Wallet operations
-    app.get(`${apiPrefix}/wallet/balance`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/wallet/balance`, (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
@@ -246,7 +246,7 @@ async function startServer() {
     });
 
     // Transaction history
-    app.get(`${apiPrefix}/transactions`, (req: any, res: any) => {
+    app.get(`${apiPrefix}/transactions`, (req: Request, res: Response) => {
       const transactions = [
         {
           id: 1,
@@ -273,7 +273,7 @@ async function startServer() {
     });
 
     // TON Boost packages endpoint
-    app.get('/api/ton-boosts', (req: any, res: any) => {
+    app.get('/api/ton-boosts', (req: Request, res: Response) => {
       const packages = [
         {
           id: 1,
@@ -304,7 +304,7 @@ async function startServer() {
     });
 
     // Legacy API endpoint
-    app.get('/api/user/current', (req: any, res: any) => {
+    app.get('/api/user/current', (req: Request, res: Response) => {
       const userData = {
         id: 1,
         guest_id: 'guest_' + Date.now(),
@@ -322,7 +322,7 @@ async function startServer() {
     });
 
     // TON Connect manifest
-    app.get('/tonconnect-manifest.json', (req: any, res: any) => {
+    app.get('/tonconnect-manifest.json', (req: Request, res: Response) => {
       res.json({
         url: config.app.baseUrl,
         name: "UniFarm",
@@ -341,7 +341,7 @@ async function startServer() {
     }
 
     // Root route - serve the main application
-    app.get('/', (req: any, res: any) => {
+    app.get('/', (req: Request, res: Response) => {
       const indexPath = path.resolve(import.meta.dirname, '..', 'dist', 'public', 'index.html');
       
       // Check if built file exists

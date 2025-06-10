@@ -32,17 +32,11 @@ export class DailyBonusController extends BaseController {
    * Забрать ежедневный бонус
    */
   async claimDailyBonus(req: Request, res: Response): Promise<void> {
-    try {
+    await this.handleRequest(req, res, async () => {
       const { userId } = req.body;
       console.log(`[DailyBonusController] Получение ежедневного бонуса для пользователя ${userId}`);
       
-      if (!userId) {
-        res.status(400).json({
-          success: false,
-          error: 'Не указан userId'
-        });
-        return;
-      }
+      this.validateRequiredFields(req.body, ['userId']);
 
       // Здесь будет логика:
       // 1. Проверка возможности получения бонуса
