@@ -3,7 +3,7 @@
  * Пользовательские модели и схемы для работы с базой данных
  */
 
-import { db } from '../../core/db';
+import { db } from '../../server/db';
 import { users, type User, type InsertUser } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
