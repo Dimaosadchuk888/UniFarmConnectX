@@ -103,8 +103,8 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
  * @returns Результат запроса в формате JSON
  */
 export async function apiRequest(url: string, options?: RequestInit): Promise<any> {
-  // Импортируем улучшенный apiService
-  const { apiService } = await import('./apiService');
+  // Используем correctApiRequest для унифицированных запросов
+  const correctApiRequest = (await import('./correctApiRequest')).default;
 
   console.log('[queryClient] apiRequest to', url);
 
@@ -147,12 +147,8 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
     }
   }
 
-  // Используем унифицированный apiService
-  return await apiService(url, {
-    method: method as any,
-    body,
-    headers: options?.headers as Record<string, string>
-  });
+  // Используем унифицированный correctApiRequest
+  return await correctApiRequest(url, method, body);
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
