@@ -40,7 +40,7 @@ export class WalletService {
         transactions: userTransactions.map(tx => ({
           id: tx.id,
           type: tx.transaction_type,
-          amount: parseFloat(tx.amount),
+          amount: parseFloat(tx.amount || "0"),
           currency: tx.currency,
           description: tx.description || '',
           date: tx.created_at,

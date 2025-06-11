@@ -11,6 +11,7 @@ import { db } from '../core/db';
 import { users, transactions, missions } from '../shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
+import { farmingScheduler } from '../core/scheduler/farmingScheduler';
 
 // API будет создан прямо в сервере
 
