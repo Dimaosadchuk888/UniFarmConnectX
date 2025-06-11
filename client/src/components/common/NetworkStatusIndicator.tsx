@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { useWebSocket } from '@/contexts/webSocketContext';
+import useWebSocket from '@/hooks/useWebSocket';
 import { 
   Alert,
   AlertTitle,
@@ -18,7 +18,7 @@ const NetworkStatusIndicator: React.FC = () => {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [alertType, setAlertType] = useState<AlertType>('hidden');
   const [alertVisible, setAlertVisible] = useState<boolean>(false);
-  const { connectionStatus } = useWebSocket();
+  const { isConnected } = useWebSocket();
 
   // Обновляем статус онлайн/оффлайн
   useEffect(() => {
@@ -50,7 +50,7 @@ const NetworkStatusIndicator: React.FC = () => {
 
   // Обновляем статус WebSocket соединения
   useEffect(() => {
-    if (connectionStatus === 'connected') {
+    if (isConnected) {
       setAlertType('wsConnected');
       setAlertVisible(true);
       
@@ -58,13 +58,11 @@ const NetworkStatusIndicator: React.FC = () => {
       setTimeout(() => {
         setAlertVisible(false);
       }, 3000);
-    } else if (connectionStatus === 'disconnected') {
+    } else {
       setAlertType('wsDisconnected');
       setAlertVisible(true);
-    } else {
-      // Если статус 'connecting', не показываем уведомление
     }
-  }, [connectionStatus]);
+  }, [isConnected]);
 
   // Если нет проблем с соединением, ничего не показываем
   if (!alertVisible) {
