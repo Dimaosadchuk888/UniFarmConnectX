@@ -1,5 +1,5 @@
-import { db } from '@/server/db';
-import { missions, userMissions, users } from '@/shared/schema';
+import { db } from '../../server/db.js';
+import { missions, userMissions, users } from '../../shared/schema.js';
 import { eq, and, notInArray } from 'drizzle-orm';
 import { UserRepository } from '@/core/repositories/UserRepository';
 

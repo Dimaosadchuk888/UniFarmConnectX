@@ -1,5 +1,5 @@
-import { db } from '@/server/db';
-import { boostPackages, userBoosts, users } from '@/shared/schema';
+import { db } from '../../server/db.js';
+import { boostPackages, userBoosts, users } from '../../shared/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { TonBoostCalculation } from './logic/tonBoostCalculation';
 
