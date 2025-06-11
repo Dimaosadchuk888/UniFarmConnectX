@@ -637,6 +637,9 @@ async function startServer() {
       }
     });
 
+    // Port configuration
+    const apiPort = config.app.port;
+    
     // Static files and SPA routing
     const isProduction = process.env.NODE_ENV === 'production';
     
@@ -656,16 +659,23 @@ async function startServer() {
       });
     } else {
       // Development mode - setup Vite dev server
-      const { setupVite } = await import('./vite.js');
-      await setupVite(app, server);
+      const { setupVite } = await import('./vite-simple.js');
+      
+      // Start server first, then setup Vite
+      const server = app.listen(apiPort, config.app.host, async () => {
+        logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
+        logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
+        logger.info(`🌐 Frontend: http://${config.app.host}:${apiPort}/ (Vite dev server)`);
+        
+        // Setup Vite after server starts
+        await setupVite(app, server);
+      });
+      return;
     }
 
     // Error handlers (must be last)
     app.use(notFoundHandler);
     app.use(globalErrorHandler);
-
-    // Port configuration
-    const apiPort = config.app.port;
     
     // Запуск сервера
     const server = app.listen(apiPort, config.app.host, () => {
