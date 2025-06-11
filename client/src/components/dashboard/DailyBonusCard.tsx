@@ -23,7 +23,7 @@ type ClaimBonusResult = {
   streak?: number;
 }
 
-const DailyBonusCard: React.FC = () => {
+export default function DailyBonusCard() {
   // Получаем доступ к toast для уведомлений
   const { toast } = useToast();
   const queryClient = useQueryClient();

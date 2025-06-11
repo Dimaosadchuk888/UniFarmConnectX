@@ -167,10 +167,7 @@ function App() {
             <UserProvider>
               <WebSocketProvider>
                 <TelegramWebAppCheck>
-                  <MainLayout 
-                    activeTab={state.activeTab} 
-                    onTabChange={handleTabChange}
-                  >
+                  <MainLayout>
                     {renderPage()}
                   </MainLayout>
                   <NetworkStatusIndicator />
