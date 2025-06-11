@@ -40,4 +40,5 @@ export const useErrorBoundary = () => {
   return context;
 };
 
+export { ErrorBoundaryContext };
 export default ErrorBoundaryContext;
