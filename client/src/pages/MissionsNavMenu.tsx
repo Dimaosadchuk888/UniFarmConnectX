@@ -28,7 +28,7 @@ const MissionsNavMenu: React.FC = () => {
   
   // Используем стандартный MissionsList
   return (
-    <div className="p-4">
+    <div className="p-4 pb-6">
       <h1 className="text-xl font-semibold text-white mb-4">Выполняй задания — получай UNI</h1>
       <MissionsList />
     </div>

@@ -25,6 +25,32 @@ html, body {
   box-sizing: border-box;
 }
 
+/* Стили для скролл бара */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #9333ea 0%, #ec4899 100%);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #a855f7 0%, #f472b6 100%);
+}
+
+/* Firefox скролл бар */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #9333ea rgba(255, 255, 255, 0.1);
+}
+
 body {
   background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%) !important;
   color: #ffffff !important;

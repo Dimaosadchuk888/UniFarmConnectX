@@ -249,7 +249,7 @@ const Friends: React.FC = () => {
   const safeUser = userData as User | undefined;
 
   return (
-    <div className="w-full">
+    <div className="w-full pb-6">
       <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить интерфейс партнерской программы</div>}>
         <div className="flex flex-col justify-center items-center mb-6">
           <div className="text-center mb-6">
