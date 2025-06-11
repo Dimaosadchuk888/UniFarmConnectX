@@ -74,19 +74,22 @@ if (rootElement) {
   console.error('[UniFarm] Элемент #root не найден');
 }
 
-// Позже загружаем React приложение
+// Сразу загружаем основное React приложение
 setTimeout(() => {
-  console.log('[UniFarm] Начинаем загрузку React приложения...');
+  console.log('[UniFarm] Переключаемся на основное приложение...');
   
   import("react").then((React) => {
     import("react-dom/client").then(({ createRoot }) => {
       import("./App").then((App) => {
-        console.log('[UniFarm] React модули загружены, запускаем приложение');
+        console.log('[UniFarm] Загружаем основное UniFarm приложение');
         
-        const root = createRoot(document.getElementById("root"));
-        root.render(React.createElement(App.default));
+        const rootEl = document.getElementById("root");
+        if (rootEl) {
+          const root = createRoot(rootEl);
+          root.render(React.createElement(App.default));
+        }
         
-        console.log('[UniFarm] React приложение запущено успешно');
+        console.log('[UniFarm] Основное приложение запущено');
       }).catch(err => {
         console.error('[UniFarm] Ошибка загрузки App:', err);
       });
@@ -96,4 +99,4 @@ setTimeout(() => {
   }).catch(err => {
     console.error('[UniFarm] Ошибка загрузки React:', err);
   });
-}, 2000);
+}, 1000);

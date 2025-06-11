@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { TonConnectUIProvider } from "@tonconnect/ui-react";
-import { Router, Route, Switch } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -181,6 +179,7 @@ function App() {
               >
                 {renderPage()}
               </MainLayout>
+              <Toaster />
             </TelegramWebAppCheck>
           </UserProvider>
         </ErrorBoundary>
