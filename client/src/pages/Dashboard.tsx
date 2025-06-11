@@ -1,5 +1,4 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useUser } from '@/contexts/simpleUserContext';
 
 // Dashboard Components
@@ -14,15 +13,7 @@ import UniFarmingCardWithErrorBoundary from '@/components/farming/UniFarmingCard
 const Dashboard: React.FC = () => {
   console.log('[Dashboard] Рендерим Dashboard');
   const { userId } = useUser();
-
-  // Получаем данные пользователя для передачи в компоненты
-  const { data: userResponse } = useQuery<{ success: boolean; data: any }>({
-    queryKey: [`/api/v2/users/profile`],
-    enabled: !!userId
-  });
-
-  const userData = userResponse?.data || null;
-  console.log('[Dashboard] userId:', userId, 'userData:', userData);
+  console.log('[Dashboard] userId:', userId);
 
   return (
     <div className="p-4 space-y-5 min-h-full">
