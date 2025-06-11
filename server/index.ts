@@ -12,6 +12,7 @@ import { users, transactions, missions } from '../shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
 import { farmingScheduler } from '../core/scheduler/farmingScheduler';
+import { startPoolMonitoring, logPoolStats } from '../core/dbPoolMonitor';
 
 // API будет создан прямо в сервере
 
@@ -695,6 +696,37 @@ async function startServer() {
       } else {
         logger.info(`🌐 Frontend: http://${config.app.host}:5173/ (Vite dev server)`);
       }
+      
+      // Инициализация мониторинга connection pool
+      logger.info('🔍 Инициализация мониторинга connection pool...');
+      logPoolStats(); // Первоначальный вывод статистики
+      
+      // Запуск автоматического мониторинга каждые 5 минут
+      const poolMonitorInterval = startPoolMonitoring(5);
+      logger.info('✅ Мониторинг connection pool активен (интервал: 5 минут)');
+      
+      // Инициализация фарминг-планировщика
+      try {
+        farmingScheduler.start();
+        logger.info('✅ Фарминг-планировщик запущен');
+      } catch (error) {
+        logger.error('❌ Ошибка запуска фарминг-планировщика', { error });
+      }
+      
+      // Graceful shutdown
+      process.on('SIGTERM', () => {
+        logger.info('🔄 Получен сигнал SIGTERM, завершение работы...');
+        if (poolMonitorInterval) {
+          clearInterval(poolMonitorInterval);
+          logger.info('🔍 Мониторинг connection pool остановлен');
+        }
+        farmingScheduler.stop();
+        logger.info('✅ Фарминг-планировщик остановлен');
+        server.close(() => {
+          logger.info('✅ Сервер корректно завершен');
+          process.exit(0);
+        });
+      });
     });
 
     return server;
