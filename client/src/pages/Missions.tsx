@@ -1,5 +1,5 @@
 import React from 'react';
-import SimpleMissionsList from '@/components/missions/SimpleMissionsList';
+import SimpleMissionsList from '../components/missions/SimpleMissionsList';
 
 /**
  * Компонент страницы миссий

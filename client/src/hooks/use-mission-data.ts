@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { correctApiRequest } from '@/lib/correctApiRequest';
+import { correctApiRequest } from '../lib/correctApiRequest';
 import { useState, useEffect } from 'react';
-import { useUser } from '@/contexts/userContext';
+import { useUser } from '../contexts/userContext';
 
 // Определение типов для данных миссий
 export enum MissionStatus {

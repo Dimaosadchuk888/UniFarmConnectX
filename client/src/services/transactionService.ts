@@ -1,5 +1,5 @@
-import { apiRequest } from '@/lib/queryClient';
-import { correctApiRequest } from '@/lib/correctApiRequest';
+import { apiRequest } from '../lib/queryClient';
+import { correctApiRequest } from '../lib/correctApiRequest';
 
 /**
  * Типы транзакций

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BOOST_PACKAGES } from '@/lib/constants';
+import { BOOST_PACKAGES } from '../../lib/constants';
 
 const BoostOptions: React.FC = () => {
   // Состояния для анимаций и эффектов

@@ -2,9 +2,9 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { correctApiRequest } from '@/lib/correctApiRequest';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { correctApiRequest } from '../../lib/correctApiRequest';
+import { Skeleton } from '../components/ui/skeleton';
 
 interface MissionStatsData {
   completed: number;

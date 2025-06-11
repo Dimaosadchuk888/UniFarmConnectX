@@ -1,6 +1,6 @@
-import { apiRequest } from '@/lib/queryClient';
-import { correctApiRequest } from '@/lib/correctApiRequest';
-import { WithdrawalFormData } from '@/schemas/withdrawalSchema';
+import { apiRequest } from '../lib/queryClient';
+import { correctApiRequest } from '../lib/correctApiRequest';
+import { WithdrawalFormData } from '../schemas/withdrawalSchema';
 
 /**
  * Структура успешного ответа API при отправке запроса на вывод средств

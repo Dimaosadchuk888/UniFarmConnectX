@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useUser } from '@/contexts/userContext';
-import useWebSocket from '@/hooks/useWebSocket';
-import { useNotification } from '@/contexts/notificationContext';
-import { formatAmount, formatUniNumber, formatTonNumber, getUSDEquivalent } from '@/utils/formatters';
+import { useUser } from '../../contexts/userContext';
+import useWebSocket from '../../hooks/useWebSocket';
+import { useNotification } from '../../contexts/notificationContext';
+import { formatAmount, formatUniNumber, formatTonNumber, getUSDEquivalent } from '../utils/formatters';
 
 /**
  * Компонент карточки баланса согласно UX спецификации

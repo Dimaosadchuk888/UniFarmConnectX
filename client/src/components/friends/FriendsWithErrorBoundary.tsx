@@ -1,6 +1,6 @@
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import Friends from '@/pages/Friends';
+import Friends from '../pages/Friends';
 
 /**
  * Компонент-обертка с ErrorBoundary для страницы партнерской программы

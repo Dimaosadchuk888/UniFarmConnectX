@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useUser } from '@/contexts/userContext';
+import { useUser } from '../../contexts/userContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { correctApiRequest } from '@/lib/correctApiRequest';
-import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { correctApiRequest } from '../../lib/correctApiRequest';
+import { useToast } from '../../hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Separator } from '../components/ui/separator';
 import { Coins, Wallet, Loader2, Zap, RefreshCcw } from 'lucide-react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import PaymentMethodDialog from './PaymentMethodDialog';
@@ -15,8 +15,8 @@ import {
   createTonTransactionComment,
   isTonWalletConnected,
   isTonPaymentReady
-} from '@/services/tonConnectService';
-import { formatNumberWithPrecision, getUserIdFromURL } from '@/lib/utils';
+} from '../../services/tonConnectService';
+import { formatNumberWithPrecision, getUserIdFromURL } from '../../lib/utils';
 
 // Класс ошибки для неподключенного кошелька
 class WalletNotConnectedError extends Error {

@@ -1,7 +1,7 @@
 import React from 'react';
-import QueryErrorBoundary from '@/components/common/QueryErrorBoundary';
+import QueryErrorBoundary from '../components/common/QueryErrorBoundary';
 import UniFarmingCard from './UniFarmingCard';
-import { useUser } from '@/contexts/userContext';
+import { useUser } from '../../contexts/userContext';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface UniFarmingCardWithErrorBoundaryProps {

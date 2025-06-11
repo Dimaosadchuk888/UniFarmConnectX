@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { BOOST_PACKAGES } from '@/lib/constants';
+import { BOOST_PACKAGES } from '../../lib/constants';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { correctApiRequest } from '@/lib/correctApiRequest';
-import { formatAmount, safeFormatAmount, getOptimalDecimals } from '@/utils/formatters';
+import { correctApiRequest } from '../../lib/correctApiRequest';
+import { formatAmount, safeFormatAmount, getOptimalDecimals } from '../utils/formatters';
 
 // Интерфейс для фарминг-депозита
 interface FarmingDeposit {

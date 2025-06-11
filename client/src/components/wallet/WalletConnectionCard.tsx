@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { useUser } from '@/contexts/userContext';
-import { useNotification } from '@/contexts/notificationContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useUser } from '../../contexts/userContext';
+import { useNotification } from '../../contexts/notificationContext';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from '../components/ui/tooltip';
 
 /**
  * Компонент карточки подключения кошелька

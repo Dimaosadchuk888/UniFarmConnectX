@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { invalidateQueryWithUserId } from '@/lib/queryClient';
-import { correctApiRequest } from '@/lib/correctApiRequest';
+import { invalidateQueryWithUserId } from '../../lib/queryClient';
+import { correctApiRequest } from '../../lib/correctApiRequest';
 import { format } from 'date-fns';
 import PaymentMethodDialog from '../ton-boost/PaymentMethodDialog';
 import ExternalPaymentStatus from '../ton-boost/ExternalPaymentStatus';
-import { useUser } from '@/contexts/userContext';
+import { useUser } from '../../contexts/userContext';
 import { BadgeCheck, Rocket, Sparkles, TrendingUp, Zap } from 'lucide-react';
 
 // Определяем структуру буст-пакета

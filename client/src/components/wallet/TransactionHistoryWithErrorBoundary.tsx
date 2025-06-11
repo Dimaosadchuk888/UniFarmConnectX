@@ -1,7 +1,7 @@
 import React from 'react';
-import QueryErrorBoundary from '@/components/common/QueryErrorBoundary';
+import QueryErrorBoundary from '../components/common/QueryErrorBoundary';
 import TransactionHistory from './TransactionHistory';
-import { useUser } from '@/contexts/userContext';
+import { useUser } from '../../contexts/userContext';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface TransactionHistoryWithErrorBoundaryProps {

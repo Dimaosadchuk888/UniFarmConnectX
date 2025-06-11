@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { MissionsList } from '@/components/missions/MissionsList';
+import { MissionsList } from '../components/missions/MissionsList';
 import { useQueryClient } from '@tanstack/react-query';
 
 // Специальная версия страницы миссий для навигации через меню

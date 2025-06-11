@@ -1,6 +1,6 @@
 import { QueryClient, QueryFunction, QueryCache, MutationCache } from "@tanstack/react-query";
-import { getTelegramAuthHeaders } from "@/services/telegramService";
-import apiConfig from "@/config/apiConfig";
+import { getTelegramAuthHeaders } from "../services/telegramService";
+import apiConfig from "../config/apiConfig";
 import { fixRequestBody } from "./apiFix";
 
 /**
@@ -309,7 +309,7 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 минут кеширование вместо Infinity
-      cacheTime: 10 * 60 * 1000, // 10 минут хранение в кеше
+      gcTime: 10 * 60 * 1000, // 10 минут хранение в кеше
       retry: 1, // Одна попытка повтора вместо false
       retryDelay: 1000, // 1 секунда задержка между попытками
     },

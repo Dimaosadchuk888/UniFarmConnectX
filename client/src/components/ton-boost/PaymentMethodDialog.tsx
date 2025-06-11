@@ -6,19 +6,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from "../components/ui/dialog";
+import { Button } from "../components/ui/button";
 import { Wallet, CreditCard } from "lucide-react";
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../hooks/use-toast';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import { useUser } from '@/contexts/userContext';
+import { useUser } from '../../contexts/userContext';
 // Обновлено: используем tonConnectService вместо simpleTonTransaction
 import { 
   isTonWalletConnected, 
   isTonPaymentReady, 
   sendTonTransaction,
   createTonTransactionComment 
-} from '@/services/tonConnectService';
+} from '../../services/tonConnectService';
 
 interface PaymentMethodDialogProps {
   open: boolean;

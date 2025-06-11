@@ -1,14 +1,14 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import { correctApiRequest } from '@/lib/correctApiRequest';
-import { fetchBalance, type Balance } from '@/services/balanceService';
+import { correctApiRequest } from '../../lib/correctApiRequest';
+import { fetchBalance, type Balance } from '../../services/balanceService';
 import { 
   getWalletAddress, 
   isWalletConnected, 
   connectWallet as connectTonWallet,
   disconnectWallet as disconnectTonWallet
-} from '@/services/tonConnectService';
+} from '../../services/tonConnectService';
 
 // Интерфейс для API-ответов
 interface ApiResponse<T = any> {
