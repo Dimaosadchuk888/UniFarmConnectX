@@ -42,7 +42,7 @@ export class WalletService {
           type: tx.transaction_type,
           amount: parseFloat(tx.amount),
           currency: tx.currency,
-          description: tx.description,
+          description: tx.description || '',
           date: tx.created_at,
           status: tx.status
         }))
@@ -90,6 +90,76 @@ export class WalletService {
     } catch (error) {
       console.error('[WalletService] Ошибка обновления баланса:', error);
       throw error;
+    }
+  }
+
+  /**
+   * АВТОМАТИЧЕСКОЕ НАЧИСЛЕНИЕ UNI ФАРМИНГ ДОХОДА
+   * Напрямую увеличивает баланс без промежуточных таблиц
+   */
+  async addUniFarmIncome(userId: string, amount: string): Promise<boolean> {
+    try {
+      console.log(`[WalletService] Автоматическое начисление UNI дохода для пользователя ${userId}: ${amount}`);
+      
+      // Получаем текущий баланс
+      const currentBalance = await this.getBalance(userId);
+      const newBalance = (parseFloat(currentBalance.uni) + parseFloat(amount)).toFixed(8);
+      
+      // Обновляем баланс напрямую
+      const success = await this.updateBalance(userId, 'uni', newBalance);
+      
+      if (success) {
+        // Записываем транзакцию для истории
+        await this.createTransaction({
+          userId,
+          type: 'farming_income',
+          currency: 'UNI',
+          amount,
+          description: 'Автоматическое начисление фарминг дохода'
+        });
+        
+        console.log(`[WalletService] ✅ UNI доход ${amount} успешно зачислен на баланс`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('[WalletService] Ошибка автоматического начисления UNI дохода:', error);
+      return false;
+    }
+  }
+
+  /**
+   * АВТОМАТИЧЕСКОЕ НАЧИСЛЕНИЕ TON ФАРМИНГ ДОХОДА
+   * Напрямую увеличивает баланс без промежуточных таблиц
+   */
+  async addTonFarmIncome(userId: string, amount: string): Promise<boolean> {
+    try {
+      console.log(`[WalletService] Автоматическое начисление TON дохода для пользователя ${userId}: ${amount}`);
+      
+      // Получаем текущий баланс
+      const currentBalance = await this.getBalance(userId);
+      const newBalance = (parseFloat(currentBalance.ton) + parseFloat(amount)).toFixed(8);
+      
+      // Обновляем баланс напрямую
+      const success = await this.updateBalance(userId, 'ton', newBalance);
+      
+      if (success) {
+        // Записываем транзакцию для истории
+        await this.createTransaction({
+          userId,
+          type: 'farming_income',
+          currency: 'TON',
+          amount,
+          description: 'Автоматическое начисление фарминг дохода'
+        });
+        
+        console.log(`[WalletService] ✅ TON доход ${amount} успешно зачислен на баланс`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('[WalletService] Ошибка автоматического начисления TON дохода:', error);
+      return false;
     }
   }
 
