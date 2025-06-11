@@ -14,22 +14,35 @@ const IncomeCardNew: React.FC = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-blue-500/30 rounded-xl p-6 shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Доходы от фарминга</h3>
-        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+    <div style={{
+      background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(88, 28, 135, 0.2) 100%)',
+      backdropFilter: 'blur(4px)',
+      border: '1px solid rgba(59, 130, 246, 0.3)',
+      borderRadius: '12px',
+      padding: '24px',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'white' }}>Доходы от фарминга</h3>
+        <div style={{ 
+          width: '12px', 
+          height: '12px', 
+          backgroundColor: '#34d399', 
+          borderRadius: '50%',
+          animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+        }}></div>
       </div>
       
-      <div className="space-y-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Общий доход */}
-        <div className="bg-black/20 rounded-lg p-4">
-          <div className="text-sm text-gray-300 mb-1">Общий доход</div>
-          <div className="flex justify-between items-center">
+        <div style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '14px', color: '#d1d5db', marginBottom: '4px' }}>Общий доход</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div className="text-xl font-bold text-white">
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>
                 {formatNumber(12.5)} UNI/час
               </div>
-              <div className="text-sm text-gray-400">
+              <div style={{ fontSize: '14px', color: '#9ca3af' }}>
                 {formatNumber(300)} UNI/день
               </div>
             </div>
@@ -37,14 +50,14 @@ const IncomeCardNew: React.FC = () => {
         </div>
 
         {/* UNI Farming */}
-        <div className="bg-black/20 rounded-lg p-4">
-          <div className="text-sm text-blue-300 mb-1">UNI Farming</div>
-          <div className="flex justify-between items-center">
+        <div style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '14px', color: '#93c5fd', marginBottom: '4px' }}>UNI Farming</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div className="text-lg font-semibold text-white">
+              <div style={{ fontSize: '18px', fontWeight: '600', color: 'white' }}>
                 {formatNumber(10.2)} UNI/час
               </div>
-              <div className="text-xs text-gray-400">
+              <div style={{ fontSize: '12px', color: '#9ca3af' }}>
                 {formatNumber(245)} UNI/день
               </div>
             </div>
@@ -52,14 +65,14 @@ const IncomeCardNew: React.FC = () => {
         </div>
 
         {/* TON Boost Farming */}
-        <div className="bg-black/20 rounded-lg p-4">
-          <div className="text-sm text-purple-300 mb-1">TON Boost</div>
-          <div className="flex justify-between items-center">
+        <div style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '14px', color: '#c4b5fd', marginBottom: '4px' }}>TON Boost</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div className="text-lg font-semibold text-white">
+              <div style={{ fontSize: '18px', fontWeight: '600', color: 'white' }}>
                 {formatNumber(2.3)} TON/час
               </div>
-              <div className="text-xs text-gray-400">
+              <div style={{ fontSize: '12px', color: '#9ca3af' }}>
                 {formatNumber(55)} TON/день
               </div>
             </div>
