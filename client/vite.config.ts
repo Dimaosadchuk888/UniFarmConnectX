@@ -12,6 +12,18 @@ export default defineConfig({
       "@types": path.resolve(__dirname, "..", "types"),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      }
+    }
+  },
   root: __dirname,
   build: {
     outDir: path.resolve(__dirname, "..", "dist/public"),

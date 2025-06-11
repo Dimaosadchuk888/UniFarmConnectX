@@ -637,28 +637,22 @@ async function startServer() {
       }
     });
 
-    // Статические файлы React фронтенда
-    app.use(express.static('dist/public'));
-
-    // SPA routing - направляем только non-API маршруты на React приложение
-    app.get('*', (req, res, next) => {
-      // Пропускаем API запросы, они должны возвращать 404 если не найдены
-      if (req.path.startsWith('/api/')) {
-        return next();
-      }
-      // Отправляем React приложение для всех остальных маршрутов
-      res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
-    });
-
     // Обработка ошибок
     app.use(notFoundHandler);
     app.use(globalErrorHandler);
 
+    // For development, we run API server on different port from frontend
+    const apiPort = process.env.NODE_ENV === 'production' ? config.app.port : 3001;
+    
     // Запуск сервера
-    const server = app.listen(config.app.port, config.app.host, () => {
-      logger.info(`🚀 Сервер запущен на http://${config.app.host}:${config.app.port}`);
-      logger.info(`📡 API доступен: http://${config.app.host}:${config.app.port}${apiPrefix}/`);
-      logger.info(`🌐 Frontend: http://${config.app.host}:${config.app.port}/`);
+    const server = app.listen(apiPort, config.app.host, () => {
+      logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
+      logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
+      if (process.env.NODE_ENV === 'production') {
+        logger.info(`🌐 Frontend: http://${config.app.host}:${apiPort}/`);
+      } else {
+        logger.info(`🌐 Frontend: http://${config.app.host}:5173/ (Vite dev server)`);
+      }
     });
 
     return server;
