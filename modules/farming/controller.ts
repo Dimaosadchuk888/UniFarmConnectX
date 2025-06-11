@@ -44,11 +44,13 @@ export class FarmingController extends BaseController {
 
   async startFarming(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
-      const telegramUser = this.getTelegramUser(req);
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+      
       const { amount } = req.body;
       
       const result = await farmingService.startFarming(
-        telegramUser.telegram_id.toString(),
+        telegram.user.id.toString(),
         amount
       );
 
@@ -58,11 +60,11 @@ export class FarmingController extends BaseController {
 
   async claimFarming(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
-      const telegramUser = this.validateTelegramAuth(req, res);
-      if (!telegramUser) return;
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
 
       const result = await farmingService.claimRewards(
-        telegramUser.telegram_id.toString()
+        telegram.user.id.toString()
       );
 
       this.sendSuccess(res, result);
