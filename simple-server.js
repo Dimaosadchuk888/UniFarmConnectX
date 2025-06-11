@@ -1,56 +1,79 @@
-const express = require('express');
-const path = require('path');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+import express from 'express';
+import path from 'path';
+import { createServer } from 'vite';
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+async function startServer() {
+  const app = express();
+  const port = process.env.PORT || 3001;
 
-// CORS для всех запросов
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
+  // CORS and basic middleware
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     next();
-  }
-});
+  });
 
-// Статические файлы из client
-app.use(express.static(path.join(__dirname, 'client')));
-app.use('/assets', express.static(path.join(__dirname, 'attached_assets')));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-// API endpoints - простые заглушки для демонстрации
-app.get('/api/v2/users/profile', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      id: 1,
-      username: 'demo_user',
-      balance: 1250.75,
-      mining_power: 100
+  // Health check
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Basic API routes
+  app.use('/api/v2', (req, res) => {
+    res.json({ message: 'API готов к работе' });
+  });
+
+  // Vite dev server for React app
+  const vite = await createServer({
+    root: path.resolve(process.cwd(), 'client'),
+    server: { middlewareMode: true },
+    appType: 'custom',
+    resolve: {
+      alias: {
+        '@': path.resolve(process.cwd(), 'client', 'src'),
+        '@shared': path.resolve(process.cwd(), 'shared'),
+        '@assets': path.resolve(process.cwd(), 'attached_assets'),
+      },
+    },
+  });
+
+  app.use(vite.middlewares);
+
+  app.use('*', async (req, res, next) => {
+    const url = req.originalUrl;
+    try {
+      const template = await vite.transformIndexHtml(url, `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UniFarm - Crypto Farming Platform</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+      `);
+      res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+    } catch (e) {
+      vite.ssrFixStacktrace(e);
+      next(e);
     }
   });
-});
 
-app.get('/api/v2/farming/status', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      isActive: true,
-      currentReward: 45.25,
-      totalReward: 1250.75
-    }
+  const server = app.listen(port, '0.0.0.0', () => {
+    console.log(`🚀 UniFarm сервер запущен на http://0.0.0.0:${port}`);
+    console.log(`📡 API доступен: http://0.0.0.0:${port}/api/v2/`);
+    console.log(`🌐 Frontend: http://0.0.0.0:${port}/`);
   });
-});
 
-// Все остальные запросы отправляем на index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client/index.html'));
-});
+  return server;
+}
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`UniFarm сервер запущен на порту ${PORT}`);
-  console.log(`Откройте http://localhost:${PORT} для просмотра приложения`);
-});
+startServer().catch(console.error);
