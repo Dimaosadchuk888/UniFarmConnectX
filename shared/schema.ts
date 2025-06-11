@@ -525,3 +525,72 @@ export const insertLaunchLogSchema = createInsertSchema(launchLogs).pick({
 
 export type InsertLaunchLog = z.infer<typeof insertLaunchLogSchema>;
 export type LaunchLog = typeof launchLogs.$inferSelect;
+
+// Связи между таблицами для реферальной системы
+import { relations } from "drizzle-orm";
+
+export const usersRelations = relations(users, ({ many, one }) => ({
+  // Пользователи, приглашенные текущим пользователем
+  invitedUsers: many(users, { relationName: "inviter" }),
+  // Пользователь, который пригласил текущего
+  inviter: one(users, {
+    fields: [users.referred_by],
+    references: [users.id],
+    relationName: "inviter"
+  }),
+  // Реферальные доходы пользователя
+  referralEarnings: many(referral_earnings),
+  // Транзакции пользователя
+  transactions: many(transactions),
+  // Депозиты фарминга
+  farmingDeposits: many(farming_deposits),
+  // Миссии пользователя
+  userMissions: many(user_missions),
+  // Активные бусты
+  userBoosts: many(user_boosts)
+}));
+
+export const referralEarningsRelations = relations(referral_earnings, ({ one }) => ({
+  // Пользователь, получивший доход
+  user: one(users, {
+    fields: [referral_earnings.user_id],
+    references: [users.id]
+  }),
+  // Пользователь, от которого получен доход
+  sourceUser: one(users, {
+    fields: [referral_earnings.source_user_id],
+    references: [users.id]
+  })
+}));
+
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+  user: one(users, {
+    fields: [transactions.user_id],
+    references: [users.id]
+  })
+}));
+
+export const farmingDepositsRelations = relations(farming_deposits, ({ one }) => ({
+  user: one(users, {
+    fields: [farming_deposits.user_id],
+    references: [users.id]
+  })
+}));
+
+export const userMissionsRelations = relations(user_missions, ({ one }) => ({
+  user: one(users, {
+    fields: [user_missions.user_id],
+    references: [users.id]
+  }),
+  mission: one(missions, {
+    fields: [user_missions.mission_id],
+    references: [missions.id]
+  })
+}));
+
+export const userBoostsRelations = relations(user_boosts, ({ one }) => ({
+  user: one(users, {
+    fields: [user_boosts.user_id],
+    references: [users.id]
+  })
+}));
