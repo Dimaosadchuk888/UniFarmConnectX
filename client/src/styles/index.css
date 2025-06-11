@@ -4,55 +4,23 @@
 
 @layer base {
   :root {
-    --background: 240 13% 6%;        /* Темный фон */
-    --foreground: 0 0% 90%;          /* Светлый текст */
-    --card: 240 9% 11%;              /* Фон карточек */
-    --card-foreground: 0 0% 90%;
-    
-    --popover: 240 9% 11%;
-    --popover-foreground: 0 0% 90%;
-    
-    --primary: 270 100% 67%;         /* Фиолетовый акцент */
-    --primary-foreground: 0 0% 100%;
-    
-    --secondary: 240 5% 25%;         /* Вторичный цвет */
-    --secondary-foreground: 0 0% 90%;
-    
-    --muted: 240 5% 25%;
-    --muted-foreground: 0 0% 70%;
-    
-    --accent: 143 72% 59%;           /* Зеленый акцент */
-    --accent-foreground: 0 0% 0%;
-    
-    --destructive: 0 63% 31%;        /* Цвет ошибки */
-    --destructive-foreground: 0 0% 100%;
-    
-    --success: 143 72% 53%;          /* Цвет успеха */
-    --success-foreground: 0 0% 100%;
-    
-    --border: 240 5% 25%;            /* Цвет границ */
-    --input: 240 5% 25%;
-    --ring: 270 100% 67%;            /* Цвет фокуса */
-    
-    --sidebar-background: 240 13% 6%;
-    --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 270 100% 67%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 143 72% 59%;
-    --sidebar-accent-foreground: 0 0% 0%;
-    --sidebar-border: 240 5% 25%;
-    --sidebar-ring: 270 100% 67%;
+    --background: #1a1a1a;
+    --foreground: #ffffff;
+    --muted: #4a4a4a;
+    --muted-foreground: #a1a1aa;
+    --accent: #22c55e;
+    --primary: #3b82f6;
   }
 
   * {
-    border-color: hsl(var(--border));
+    border-color: #374151;
   }
 
   body {
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    font-family: system-ui, -apple-system, sans-serif;
+    background-color: var(--background);
+    color: var(--foreground);
+    line-height: 1.5;
   }
 
   .green-gradient-text {

@@ -23,7 +23,7 @@ type ClaimBonusResult = {
   streak?: number;
 }
 
-export default function DailyBonusCard() {
+function DailyBonusCard() {
   // Получаем доступ к toast для уведомлений
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -527,6 +527,6 @@ export default function DailyBonusCard() {
       </CardContent>
     </Card>
   );
-};
+}
 
 export default DailyBonusCard;

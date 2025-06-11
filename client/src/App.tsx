@@ -167,9 +167,7 @@ function App() {
             <UserProvider>
               <WebSocketProvider>
                 <TelegramWebAppCheck>
-                  <MainLayout>
-                    {renderPage()}
-                  </MainLayout>
+                  {renderPage()}
                   <NetworkStatusIndicator />
                   <Toaster />
                 </TelegramWebAppCheck>
