@@ -2,13 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useUser } from '@/contexts/userContext';
 
 // Dashboard Components
-import { WelcomeSection } from '@/components/dashboard/WelcomeSection';
-import { IncomeCard } from '@/components/dashboard/IncomeCard';
-import { ChartCard } from '@/components/dashboard/ChartCard';
-import { BoostStatusCard } from '@/components/dashboard/BoostStatusCard';
-import { DailyBonusCard } from '@/components/dashboard/DailyBonusCard';
-import { SystemStatusIndicator } from '@/components/ui/SystemStatusIndicator';
-import { UniFarmingCard } from '@/components/farming/UniFarmingCard';
+import WelcomeSection from '@/components/dashboard/WelcomeSection';
+import IncomeCard from '@/components/dashboard/IncomeCard';
+import ChartCard from '@/components/dashboard/ChartCard';
+import BoostStatusCard from '@/components/dashboard/BoostStatusCard';
+import DailyBonusCard from '@/components/dashboard/DailyBonusCard';
+import SystemStatusIndicator from '@/components/ui/SystemStatusIndicator';
+import UniFarmingCard from '@/components/farming/UniFarmingCard';
 
 
 
@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
       <WelcomeSection />
       
       {/* Карточка доходов */}
-      <IncomeCardNew />
+      <IncomeCard />
       
       {/* График доходности */}
       <ChartCard />
@@ -43,7 +43,7 @@ const Dashboard: React.FC = () => {
       <DailyBonusCard />
 
       {/* UNI Фарминг карточка */}
-      <UniFarmingCardWithErrorBoundary userData={userData} />
+      <UniFarmingCard userData={userData} />
 
       {/* Индикатор статуса системы для диагностики */}
       {process.env.NODE_ENV !== 'production' && (

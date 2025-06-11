@@ -5,7 +5,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 
 // Layouts and Hooks
-import MainLayout from "@/layouts/MainLayout";
+import { MainLayout } from "@/layouts/MainLayout";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useBalance } from "@/hooks/useBalance";
 
