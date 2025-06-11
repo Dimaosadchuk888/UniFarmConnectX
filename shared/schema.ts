@@ -212,6 +212,29 @@ export const insertReferralSchema = createInsertSchema(referrals).pick({
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
 
+// Таблица referral_earnings для отслеживания реферальных доходов
+export const referral_earnings = pgTable("referral_earnings", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  source_user_id: integer("source_user_id").references(() => users.id).notNull(),
+  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
+  currency: text("currency").notNull(), // "UNI" или "TON"
+  level: integer("level").notNull(), // Уровень реферала (1-20)
+  created_at: timestamp("created_at").defaultNow()
+});
+
+// Схемы для таблицы referral_earnings
+export const insertReferralEarningSchema = createInsertSchema(referral_earnings).pick({
+  user_id: true,
+  source_user_id: true,
+  amount: true,
+  currency: true,
+  level: true
+});
+
+export type InsertReferralEarning = z.infer<typeof insertReferralEarningSchema>;
+export type ReferralEarning = typeof referral_earnings.$inferSelect;
+
 // Таблица missions по требованиям задачи
 export const missions = pgTable("missions", {
   id: serial("id").primaryKey(),
@@ -251,6 +274,11 @@ export const insertUserMissionSchema = createInsertSchema(userMissions).pick({
 
 export type InsertUserMission = z.infer<typeof insertUserMissionSchema>;
 export type UserMission = typeof userMissions.$inferSelect;
+
+// Создаем алиасы для корректной работы relations
+export const user_missions = userMissions;
+export const farming_deposits = farmingDeposits;
+export const user_boosts = userBoosts;
 
 // Таблица для хранения UNI фарминг-депозитов
 export const uniFarmingDeposits = pgTable("uni_farming_deposits", {
@@ -539,7 +567,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     relationName: "inviter"
   }),
   // Реферальные доходы пользователя
-  referralEarnings: many(referralEarnings),
+  referralEarnings: many(referral_earnings),
   // Транзакции пользователя
   transactions: many(transactions),
   // Депозиты фарминга
@@ -550,15 +578,15 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   userBoosts: many(userBoosts)
 }));
 
-export const referralEarningsRelations = relations(referralEarnings, ({ one }) => ({
+export const referralEarningsRelations = relations(referral_earnings, ({ one }) => ({
   // Пользователь, получивший доход
   user: one(users, {
-    fields: [referralEarnings.user_id],
+    fields: [referral_earnings.user_id],
     references: [users.id]
   }),
   // Пользователь, от которого получен доход
   sourceUser: one(users, {
-    fields: [referralEarnings.source_user_id],
+    fields: [referral_earnings.source_user_id],
     references: [users.id]
   })
 }));
