@@ -9,6 +9,7 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children, activeTab, onTabChange }: MainLayoutProps) {
+  console.log('[MainLayout] Рендерим лейаут, activeTab:', activeTab);
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top Bar */}

@@ -53,9 +53,11 @@ function App() {
 
   const initializeApp = async () => {
     try {
+      console.log('[UniFarm] Начинаем инициализацию приложения');
       setState(prev => ({ ...prev, isLoading: true, authError: null }));
       
       // Загружаем интерфейс сразу, без ожидания аутентификации
+      console.log('[UniFarm] Устанавливаем isLoading: false');
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
@@ -71,6 +73,7 @@ function App() {
     } catch (error) {
       console.error('App initialization error:', error);
       // В любом случае загружаем интерфейс
+      console.log('[UniFarm] Принудительно устанавливаем isLoading: false из-за ошибки');
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
@@ -144,6 +147,7 @@ function App() {
 
   // Loading state
   if (state.isLoading) {
+    console.log('[UniFarm] Показываем экран загрузки');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -153,6 +157,8 @@ function App() {
       </div>
     );
   }
+
+  console.log('[UniFarm] Рендерим основной интерфейс, state:', state);
 
   // В случае ошибки аутентификации всё равно загружаем основной интерфейс
   // Ошибки будут отображаться в уведомлениях, но не блокируют UI

@@ -12,6 +12,7 @@ import SystemStatusIndicator from '@/components/ui/SystemStatusIndicator';
 import UniFarmingCardWithErrorBoundary from '@/components/farming/UniFarmingCardWithErrorBoundary';
 
 const Dashboard: React.FC = () => {
+  console.log('[Dashboard] Рендерим Dashboard');
   const { userId } = useUser();
 
   // Получаем данные пользователя для передачи в компоненты
@@ -21,6 +22,7 @@ const Dashboard: React.FC = () => {
   });
 
   const userData = userResponse?.data || null;
+  console.log('[Dashboard] userId:', userId, 'userData:', userData);
 
   return (
     <div className="p-4 space-y-5 min-h-full">
