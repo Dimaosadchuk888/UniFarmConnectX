@@ -13,7 +13,7 @@ import { useBalance } from "@/hooks/useBalance";
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
-import { WebSocketProvider } from "@/contexts/webSocketContext";
+// import { WebSocketProvider } from "@/contexts/webSocketContext"; // Temporarily disabled for stabilization
 import { NotificationProvider } from "@/contexts/notificationContext";
 // import { ErrorBoundaryProvider } from "@/contexts/ErrorBoundaryContext"; // Removed due to runtime-error-plugin conflict
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
@@ -164,7 +164,6 @@ function App() {
           <ErrorBoundary>
             <NotificationProvider>
             <UserProvider>
-              <WebSocketProvider>
                 <TelegramWebAppCheck>
                   <MainLayout 
                     activeTab={state.activeTab} 
@@ -175,7 +174,6 @@ function App() {
                   <NetworkStatusIndicator />
                   <Toaster />
                 </TelegramWebAppCheck>
-              </WebSocketProvider>
             </UserProvider>
           </NotificationProvider>
           </ErrorBoundary>

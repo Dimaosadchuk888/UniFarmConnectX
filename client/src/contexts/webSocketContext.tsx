@@ -56,13 +56,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         console.error('[WebSocket] Error retrieving user_id from storage:', e);
       }
 
-      // Получаем корректный URL для WebSocket с учетом Replit
-      // ПРИНУДИТЕЛЬНО ИСПОЛЬЗУЕМ PRODUCTION URL ДЛЯ WEBSOCKET
-      const FORCED_PRODUCTION_HOST = 'uni-farm-connect-xo-osadchukdmitro2.replit.app';
-      const protocol = 'wss:';
-      const wsUrl = `${protocol}//${FORCED_PRODUCTION_HOST}/ws${userId ? `?user_id=${userId}` : ''}`;
+      // Динамическое определение WebSocket URL
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/ws${userId ? `?user_id=${userId}` : ''}`;
 
-      console.log('[WebSocket] 🚀 ПРИНУДИТЕЛЬНО подключаемся к production WebSocket:', wsUrl);
+      console.log('[WebSocket] Connecting to WebSocket:', wsUrl);
 
       const newSocket = new WebSocket(wsUrl);
       setSocket(newSocket);

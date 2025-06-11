@@ -180,13 +180,13 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host.includes('replit.dev') ? window.location.host : '0.0.0.0:3000';
+      const host = window.location.host;
       const wsUrl = `${protocol}//${host}/ws`;
 
       console.log('[WebSocket] Initializing connection to:', wsUrl, {
         protocol: window.location.protocol,
         host: window.location.host,
-        isReplit: window.location.host.includes('replit.dev')
+        currentUrl: window.location.href
       });
 
       // Создаем новое соединение с увеличенными таймаутами
