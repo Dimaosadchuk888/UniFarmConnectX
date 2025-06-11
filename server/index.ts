@@ -609,7 +609,7 @@ async function startServer() {
           data: formattedMissions
         });
       } catch (error: any) {
-        logger.error('Error fetching active missions', { error: error.message, user_id });
+        logger.error('Error fetching active missions', { error: error.message });
         res.status(500).json({
           success: false,
           error: error.message || 'Internal server error'

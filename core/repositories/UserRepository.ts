@@ -1,6 +1,6 @@
 import { db } from '../../server/db.js';
 import { users } from '../../shared/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { User } from '../../shared/schema.js';
 
 /**
@@ -16,7 +16,7 @@ export class UserRepository {
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.telegram_id, telegramId))
+        .where(sql`${users.telegram_id} = ${Number(telegramId)}`)
         .limit(1);
       
       return user || null;
