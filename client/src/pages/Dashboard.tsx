@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useUser } from '../../contexts/userContext';
+import { useUser } from '../contexts/userContext';
 
 // Dashboard Components
 import WelcomeSection from '../components/dashboard/WelcomeSection';
