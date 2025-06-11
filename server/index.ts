@@ -10,6 +10,7 @@ import { config, logger, globalErrorHandler, notFoundHandler } from '../core';
 import { db } from '../core/db';
 import { users, transactions, missions } from '../shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
+import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
 
 // API будет создан прямо в сервере
 
@@ -47,6 +48,9 @@ async function startServer() {
 
     // API routes
     const apiPrefix = `/api/v2`;
+    
+    // Apply Telegram middleware to all API routes
+    app.use(apiPrefix, telegramMiddleware);
     
     // Import centralized routes
     const { default: apiRoutes } = await import('./routes.js');
