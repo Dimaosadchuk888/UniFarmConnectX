@@ -3,7 +3,7 @@
  */
 
 // Імпортуємо централізовані enum типи
-import { FarmingType, FarmingStatus, RewardType } from '@/shared/schema';
+import { FarmingType, FarmingStatus, RewardType } from '../../shared/schema';
 export { FarmingType, FarmingStatus, RewardType };
 
 export interface FarmingSessionModel {

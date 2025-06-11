@@ -1,7 +1,7 @@
 import { db } from '../../server/db.js';
 import { users, farmingDeposits, transactions } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { UserRepository } from '@/core/repositories/UserRepository';
+import { UserRepository } from '../../core/repositories/UserRepository';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';
 

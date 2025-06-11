@@ -3,7 +3,7 @@
  */
 
 // Імпортуємо централізовані enum типи
-import { ReferralStatus, ReferralEarningType } from '@/shared/schema';
+import { ReferralStatus, ReferralEarningType } from '../../shared/schema';
 export { ReferralStatus, ReferralEarningType };
 
 export interface ReferralModel {

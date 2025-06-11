@@ -1,5 +1,5 @@
-import { db } from '@/server/db';
-import { users, transactions } from '@/shared/schema';
+import { db } from '../../server/db.js';
+import { users, transactions } from '../../shared/schema.js';
 import { eq, and, desc, gte, lt } from 'drizzle-orm';
 
 export class DailyBonusService {

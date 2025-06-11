@@ -1,7 +1,7 @@
 import { db } from '../../server/db.js';
 import { missions, userMissions, users } from '../../shared/schema.js';
 import { eq, and, notInArray } from 'drizzle-orm';
-import { UserRepository } from '@/core/repositories/UserRepository';
+import { UserRepository } from '../../core/repositories/UserRepository';
 
 export class MissionsService {
   async getActiveMissionsByTelegramId(telegramId: string): Promise<any[]> {

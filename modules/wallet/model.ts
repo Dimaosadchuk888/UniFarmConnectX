@@ -3,7 +3,7 @@
  */
 
 // Імпортуємо централізовані enum типи
-import { TransactionType, TransactionStatus } from '@/shared/schema';
+import { TransactionType, TransactionStatus } from '../../shared/schema.js';
 export { TransactionType, TransactionStatus };
 
 export interface WalletModel {
