@@ -637,19 +637,39 @@ async function startServer() {
       }
     });
 
-    // Static files and SPA routing for production
+    // Static files and SPA routing
     const isProduction = process.env.NODE_ENV === 'production';
     
     if (isProduction) {
-      // Serve static files
-      app.use(express.static('dist/public'));
+      // Serve static files from dist/public
+      app.use(express.static(path.join(process.cwd(), 'dist/public')));
       
       // SPA fallback - serve index.html for non-API routes
       app.get('*', (req, res, next) => {
-        if (req.path.startsWith('/api/')) {
-          return next(); // Let API routes fall through to 404 handler
+        // Skip API routes
+        if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
+          return next();
         }
+        
+        // Check if static file exists
+        const filePath = path.join(process.cwd(), 'dist/public', req.path);
+        const fs = require('fs');
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+          return res.sendFile(filePath);
+        }
+        
+        // Fallback to index.html for SPA routing
         res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
+      });
+    } else {
+      // Development mode - just serve a simple redirect message
+      app.get('/', (req, res) => {
+        res.json({
+          message: 'API Server Running',
+          frontend: 'http://localhost:5173',
+          api: `http://localhost:${config.app.port}/api/v2/`,
+          health: `http://localhost:${config.app.port}/health`
+        });
       });
     }
 
@@ -658,7 +678,7 @@ async function startServer() {
     app.use(globalErrorHandler);
 
     // Port configuration
-    const apiPort = isProduction ? config.app.port : 5000;
+    const apiPort = config.app.port;
     
     // Запуск сервера
     const server = app.listen(apiPort, config.app.host, () => {
