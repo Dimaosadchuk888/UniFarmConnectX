@@ -97,14 +97,22 @@ body {
   }
 
   * {
-    border-color: hsl(var(--border));
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
 
   body {
     font-family: system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    background-color: #0a0a0a !important;
+    color: white !important;
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
+    background-color: #0a0a0a !important;
   }
 
   .green-gradient-text {
