@@ -7,7 +7,7 @@ import cors from 'cors';
 import path from 'path';
 import { config } from '../core/config.js';
 import { logger } from '../core/logger.js';
-import { routes } from './routes.js';
+import routes from './routes.js';
 
 async function startServer() {
   try {
@@ -16,10 +16,7 @@ async function startServer() {
     const apiPort = config.app.port;
 
     // Middleware
-    app.use(cors({
-      origin: config.cors.origins,
-      credentials: true,
-    }));
+    app.use(cors(config.security.cors));
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
