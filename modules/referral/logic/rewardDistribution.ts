@@ -12,13 +12,15 @@ export class ReferralRewardDistribution {
   /**
    * Распределяет реферальные вознаграждения ТОЛЬКО от дохода с фарминга
    * Бизнес-модель: доход от дохода, 20 уровней (1%, 2%, 3%...20%)
+   * 
+   * ⭐ ТРАНЗАКЦИОННАЯ ВЕРСИЯ: Все начисления происходят атомарно
+   * Если хотя бы одно начисление не прошло - вся операция откатывается
    */
   static async distributeFarmingRewards(
     userId: string, 
     farmingReward: string
   ): Promise<boolean> {
     try {
-
       // Получаем цепочку рефереров
       const referrerChain = await DeepReferralLogic.buildReferrerChain(userId);
       
@@ -32,42 +34,53 @@ export class ReferralRewardDistribution {
         referrerChain
       );
 
-      // Начисляем вознаграждения каждому рефереру
-      for (const commission of commissions) {
-        const [referrer] = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, parseInt(commission.userId)))
-          .limit(1);
+      if (commissions.length === 0) {
+        return true; // Нет комиссий для начисления
+      }
 
-        if (referrer) {
+      // ⭐ ТРАНЗАКЦИОННОЕ НАЧИСЛЕНИЕ ВСЕХ РЕФЕРАЛЬНЫХ ВОЗНАГРАЖДЕНИЙ
+      // Все операции выполняются атомарно - либо все, либо ничего
+      const success = await db.transaction(async (tx) => {
+        const timestamp = new Date().toISOString();
+        const processedCommissions: Array<{
+          userId: string;
+          amount: string;
+          level: number;
+          previousBalance: string;
+          newBalance: string;
+        }> = [];
+
+        // Обрабатываем все комиссии в рамках одной транзакции
+        for (const commission of commissions) {
+          // Получаем данные реферера в рамках транзакции
+          const [referrer] = await tx
+            .select()
+            .from(users)
+            .where(eq(users.id, parseInt(commission.userId)))
+            .limit(1);
+
+          if (!referrer) {
+            logger.warn(`[REFERRAL] Referrer ${commission.userId} not found, skipping level ${commission.level}`, {
+              referrerId: commission.userId,
+              sourceUserId: userId,
+              level: commission.level,
+              amount: commission.amount,
+              timestamp
+            });
+            continue; // Пропускаем, но не прерываем транзакцию
+          }
+
           const previousBalance = parseFloat(referrer.balance_uni || "0");
           const newBalance = (previousBalance + parseFloat(commission.amount)).toFixed(8);
-          const timestamp = new Date().toISOString();
 
-          // Обновляем баланс реферера
-          await db
+          // Обновляем баланс реферера в рамках транзакции
+          await tx
             .update(users)
             .set({ balance_uni: newBalance })
             .where(eq(users.id, parseInt(commission.userId)));
 
-          // ОСНОВНОЕ ЛОГИРОВАНИЕ ДОХОДНОЙ ОПЕРАЦИИ РЕФЕРАЛЬНОГО НАЧИСЛЕНИЯ
-          logger.info(`[REFERRAL] User ${commission.userId} earned ${commission.amount} UNI from referral level ${commission.level} at ${timestamp}`, {
-            referrerId: commission.userId,
-            sourceUserId: userId,
-            amount: commission.amount,
-            currency: 'UNI',
-            level: commission.level,
-            commissionRate: `${commission.level}%`,
-            previousBalance: previousBalance.toFixed(8),
-            newBalance,
-            sourceType: 'farming_reward',
-            operation: 'referral_bonus',
-            timestamp
-          });
-
-          // Записываем транзакцию о начислении реферального бонуса
-          await db
+          // Записываем транзакцию о начислении в рамках общей транзакции
+          await tx
             .insert(transactions)
             .values({
               user_id: parseInt(commission.userId),
@@ -79,19 +92,67 @@ export class ReferralRewardDistribution {
               status: 'confirmed'
             } as any);
 
-          logger.debug(`[REFERRAL] Transaction recorded for referral bonus`, {
-            referrerId: commission.userId,
-            sourceUserId: userId,
-            transactionType: 'referral_bonus',
+          // Сохраняем данные для логирования
+          processedCommissions.push({
+            userId: commission.userId,
             amount: commission.amount,
             level: commission.level,
-            timestamp
+            previousBalance: previousBalance.toFixed(8),
+            newBalance
           });
         }
-      }
 
-      return true;
+        // Логируем все успешные начисления после commit транзакции
+        for (const processed of processedCommissions) {
+          logger.info(`[REFERRAL] User ${processed.userId} earned ${processed.amount} UNI from referral level ${processed.level} at ${timestamp}`, {
+            referrerId: processed.userId,
+            sourceUserId: userId,
+            amount: processed.amount,
+            currency: 'UNI',
+            level: processed.level,
+            commissionRate: `${processed.level}%`,
+            previousBalance: processed.previousBalance,
+            newBalance: processed.newBalance,
+            sourceType: 'farming_reward',
+            operation: 'referral_bonus',
+            timestamp,
+            transactional: true
+          });
+
+          logger.debug(`[REFERRAL] Transaction recorded for referral bonus`, {
+            referrerId: processed.userId,
+            sourceUserId: userId,
+            transactionType: 'referral_bonus',
+            amount: processed.amount,
+            level: processed.level,
+            timestamp,
+            transactional: true
+          });
+        }
+
+        logger.info(`[REFERRAL] Transactional referral distribution completed for user ${userId}`, {
+          sourceUserId: userId,
+          totalCommissions: processedCommissions.length,
+          totalLevels: commissions.length,
+          farmingReward,
+          timestamp,
+          transactional: true
+        });
+
+        return true;
+      });
+
+      return success;
     } catch (error) {
+      logger.error('[ReferralRewardDistribution] Транзакционная ошибка распределения наград:', {
+        userId,
+        farmingReward,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString(),
+        transactional: true
+      });
+      
       console.error('[ReferralRewardDistribution] Ошибка распределения наград:', error);
       return false;
     }
