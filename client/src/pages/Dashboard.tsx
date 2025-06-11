@@ -1,77 +1,49 @@
-/**
- * Полный дашборд с завершенной миграцией
- */
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useUser } from '@/contexts/userContext';
 
 const Dashboard: React.FC = () => {
-  const { userId } = useUser();
-  
-  // Простой пользователь для демонстрации
-  const user = {
-    id: userId || 1,
-    username: 'UniFarm User',
-    balance: 1250.75,
-    farming: {
-      isActive: true,
-      rate: 45.25
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background p-4 space-y-6">
-      {/* Приветственная секция */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-xl">
-        <h1 className="text-2xl font-bold mb-2">UniFarm</h1>
-        <p className="text-blue-100">Добро пожаловать, {user.username}</p>
+    <div className="min-h-screen bg-gray-800 text-white p-4">
+      {/* Заголовок */}
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-white">UniFarm</h1>
       </div>
-      
-      {/* Баланс и активное фермерство */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="bg-card p-6 rounded-xl border">
-          <h3 className="text-lg font-semibold mb-2">Ваш баланс</h3>
-          <div className="text-3xl font-bold text-blue-600">
-            {user.balance.toFixed(2)} UNI Tokens
-          </div>
-        </div>
-        
-        <div className="bg-cyan-400 text-white p-6 rounded-xl">
-          <h3 className="text-lg font-semibold mb-2">🌱 Активное фермерство</h3>
-          <div className="text-2xl font-bold">
-            +{user.farming.rate} UNI
-          </div>
-          <p className="text-cyan-100">Собирать награду</p>
-        </div>
+
+      {/* Баланс */}
+      <div className="text-center mb-6">
+        <p className="text-gray-300 text-sm mb-2">Ваш баланс</p>
+        <div className="text-4xl font-bold text-cyan-400 mb-1">1,250.75</div>
+        <p className="text-gray-400 text-sm">UNI Tokens</p>
       </div>
-      
-      {/* Статистика */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <div className="bg-gray-700 text-white p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold">100</div>
-          <div className="text-sm opacity-70">Мощность майнинга</div>
+
+      {/* Активное фермерство */}
+      <div className="bg-cyan-400 rounded-xl p-6 mb-6 text-center">
+        <div className="flex items-center justify-center mb-2">
+          <span className="text-xl mr-2">🌱</span>
+          <span className="text-white font-semibold">Активное фермерство</span>
         </div>
-        <div className="bg-gray-700 text-white p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold">12</div>
-          <div className="text-sm opacity-70">Рефералы</div>
-        </div>
-        <div className="bg-gray-700 text-white p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold">7</div>
-          <div className="text-sm opacity-70"></div>
-        </div>
-        <div className="bg-gray-700 text-white p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold">24ч</div>
-          <div className="text-sm opacity-70"></div>
-        </div>
+        <div className="text-2xl font-bold text-white mb-2">+45.25 UNI</div>
+        <button className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm">
+          Собрать награду
+        </button>
       </div>
-      
-      <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg">
-        <h3 className="font-semibold text-green-800 mb-2">Система восстановлена</h3>
-        <div className="text-sm text-green-700 space-y-1">
-          <p>✓ Оригинальный дизайн из ZIP архива</p>
-          <p>✓ Модульная архитектура восстановлена</p>
-          <p>✓ Интерфейс UniFarm работает корректно</p>
-          <p>✓ Telegram WebApp интеграция активна</p>
+
+      {/* Статистика сетка 2x2 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-gray-700 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-cyan-400">100</div>
+          <div className="text-sm text-gray-400">Мощность майнинга</div>
+        </div>
+        <div className="bg-gray-700 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-cyan-400">12</div>
+          <div className="text-sm text-gray-400">Рефералы</div>
+        </div>
+        <div className="bg-gray-700 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-cyan-400">7</div>
+          <div className="text-sm text-gray-400"></div>
+        </div>
+        <div className="bg-gray-700 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-cyan-400">24ч</div>
+          <div className="text-sm text-gray-400"></div>
         </div>
       </div>
     </div>
