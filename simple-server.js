@@ -29,7 +29,16 @@ async function startServer() {
   // Vite dev server for React app
   const vite = await createServer({
     root: path.resolve(process.cwd(), 'client'),
-    server: { middlewareMode: true },
+    server: { 
+      middlewareMode: true,
+      host: '0.0.0.0',
+      allowedHosts: [
+        'localhost',
+        '.replit.dev',
+        '.replit.app',
+        '.repl.co'
+      ]
+    },
     appType: 'custom',
     resolve: {
       alias: {
