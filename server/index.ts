@@ -662,14 +662,15 @@ async function startServer() {
         res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
       });
     } else {
-      // Development mode - just serve a simple redirect message
-      app.get('/', (req, res) => {
-        res.json({
-          message: 'API Server Running',
-          frontend: 'http://localhost:5173',
-          api: `http://localhost:${config.app.port}/api/v2/`,
-          health: `http://localhost:${config.app.port}/health`
-        });
+      // Development mode - serve static files
+      app.use(express.static(path.join(process.cwd(), 'client')));
+      app.use('/assets', express.static(path.join(process.cwd(), 'attached_assets')));
+      
+      app.get('*', (req, res) => {
+        if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
+          return next();
+        }
+        res.sendFile(path.join(process.cwd(), 'client/index.html'));
       });
     }
 
