@@ -21,6 +21,7 @@ export const users = pgTable(
     ton_wallet_address: text("ton_wallet_address"), // Новое поле для хранения TON-адреса кошелька
     ref_code: text("ref_code").unique(), // Уникальный реферальный код для пользователя
     parent_ref_code: text("parent_ref_code"), // Реферальный код пригласившего пользователя
+    referred_by: integer("referred_by").references(() => users.id), // Прямая связь с пригласившим пользователем
     balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default("0"),
     balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default("0"),
     // Поля для основного UNI фарминга
@@ -83,6 +84,30 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Таблица user_balances для хранения балансов пользователей
+export const userBalances = pgTable("user_balances", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").notNull().references(() => users.id),
+  balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default("0"),
+  balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default("0"),
+  total_earned_uni: numeric("total_earned_uni", { precision: 18, scale: 6 }).default("0"),
+  total_earned_ton: numeric("total_earned_ton", { precision: 18, scale: 6 }).default("0"),
+  updated_at: timestamp("updated_at").defaultNow(),
+  created_at: timestamp("created_at").defaultNow()
+});
+
+// Схемы для таблицы user_balances
+export const insertUserBalanceSchema = createInsertSchema(userBalances).pick({
+  user_id: true,
+  balance_uni: true,
+  balance_ton: true,
+  total_earned_uni: true,
+  total_earned_ton: true
+});
+
+export type InsertUserBalance = z.infer<typeof insertUserBalanceSchema>;
+export type UserBalance = typeof userBalances.$inferSelect;
 
 // Схемы для таблицы farming_deposits
 export const insertFarmingDepositSchema = createInsertSchema(farmingDeposits).pick({

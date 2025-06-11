@@ -3,8 +3,8 @@
  * Comprehensive testing script for production deployment
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 class ProductionReadinessChecker {
   constructor() {
@@ -275,11 +275,7 @@ class ProductionReadinessChecker {
 }
 
 // Run the checker
-if (require.main === module) {
-  const checker = new ProductionReadinessChecker();
-  checker.runAllChecks().then(ready => {
-    process.exit(ready ? 0 : 1);
-  });
-}
-
-module.exports = ProductionReadinessChecker;
+const checker = new ProductionReadinessChecker();
+checker.runAllChecks().then(ready => {
+  process.exit(ready ? 0 : 1);
+});
