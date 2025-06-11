@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { User } from '../../services/userService';
 import userService from '../../services/userService';
-import { createReferralLink, generateReferralCode } from '../utils/referralUtils';
+import { createReferralLink, generateReferralCode } from '../../utils/referralUtils';
 import { apiRequest } from '../../lib/queryClient';
 import { correctApiRequest } from '../../lib/correctApiRequest';
 

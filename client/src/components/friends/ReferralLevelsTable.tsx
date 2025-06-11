@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Coins } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import apiConfig from '../config/apiConfig';
-import logger from '../utils/logger';
-import { formatAmount } from '../utils/formatters';
+import apiConfig from '../../config/apiConfig';
+import logger from '../../utils/logger';
+import { formatAmount } from '../../utils/formatters';
 import { correctApiRequest } from '../../lib/correctApiRequest';
 
 /**
@@ -43,7 +43,7 @@ const ReferralLevelsTable: React.FC = () => {
   // Получаем информацию о текущем пользователе из API
   const { data: currentUser, isLoading: isUserLoading } = useQuery({
     queryKey: ['/api/v2/users/profile'],
-    queryFn: () => import('../services/userService').then(module => module.default.getCurrentUser()),
+    queryFn: () => import('../../services/userService').then(module => module.default.getCurrentUser()),
     staleTime: 1000 * 5, // Кэшируем данные только на 5 секунд
     refetchOnWindowFocus: true, // Обновляем при возвращении на страницу
     retry: 2 // Пробуем несколько раз при ошибке
