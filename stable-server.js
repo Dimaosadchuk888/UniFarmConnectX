@@ -5,12 +5,13 @@ import { spawn } from 'child_process';
  * Routes to the appropriate server implementation
  */
 async function startStableServer() {
-  console.log('🚀 Starting UniFarm Stable Server...');
+  console.log('🚀 Starting UniFarm Unified Server...');
+  console.log('📋 Using server/index.ts as the single entry point');
   
   // Set required environment variables
   process.env.ALLOW_BROWSER_ACCESS = 'true';
-  process.env.SKIP_TELEGRAM_CHECK = 'true';
-  process.env.NODE_ENV = 'development'; // Force development mode for Vite
+  process.env.SKIP_TELEGRAM_CHECK = 'false'; // Allow proper Telegram auth
+  process.env.NODE_ENV = process.env.NODE_ENV || 'development';
   process.env.PORT = process.env.PORT || '3000';
   
   // Start the unified server using tsx
