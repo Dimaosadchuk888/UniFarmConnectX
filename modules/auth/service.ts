@@ -59,41 +59,27 @@ export class AuthService {
       const telegramUser = validation.user;
       console.log('[AuthService] Telegram validation successful for user ID:', telegramUser.id);
 
-      // Find or create user in database
-      let [dbUser] = await db.select()
-        .from(users)
-        .where(eq(users.telegram_id, telegramUser.id))
-        .limit(1);
+      // Find or create user using UserService
+      const userInfo = await this.userService.findOrCreateFromTelegram({
+        telegram_id: telegramUser.id,
+        username: telegramUser.username,
+        first_name: telegramUser.first_name,
+        ref_by: refBy
+      });
 
-      if (!dbUser) {
-        // Create new user
-        const generateRefCode = customAlphabet('1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
-        const refCode = generateRefCode();
-        const [newUser] = await db.insert(users).values({
-          telegram_id: telegramUser.id,
-          username: telegramUser.username || telegramUser.first_name,
-          ref_code: refCode,
-          balance_uni: '0',
-          balance_ton: '0'
-        }).returning();
-        
-        dbUser = newUser;
-        console.log('[AuthService] Created new user with ID:', dbUser.id);
-      } else {
-        console.log('[AuthService] Found existing user with ID:', dbUser.id);
-      }
+      console.log('[AuthService] User resolved:', userInfo.id);
 
       // Generate JWT token
-      const token = generateJWTToken(telegramUser, dbUser.ref_code ?? undefined);
+      const token = generateJWTToken(telegramUser, userInfo.ref_code);
 
       return {
         success: true,
         user: {
-          id: dbUser.id.toString(),
+          id: userInfo.id.toString(),
           telegram_id: telegramUser.id,
           username: telegramUser.username,
-          ref_code: dbUser.ref_code ?? '',
-          created_at: dbUser.created_at?.toISOString() || new Date().toISOString()
+          ref_code: userInfo.ref_code,
+          created_at: userInfo.created_at.toISOString()
         },
         token
       };

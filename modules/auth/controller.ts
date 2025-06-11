@@ -17,10 +17,10 @@ export class AuthController extends BaseController {
     await this.handleRequest(req, res, async () => {
       this.validateRequiredFields(req.body, ['initData']);
       
-      const { initData } = req.body;
-      console.log('[AuthController] Аутентификация через Telegram');
+      const { initData, ref_by } = req.body;
+      console.log('[AuthController] Аутентификация через Telegram', ref_by ? `with ref_by: ${ref_by}` : '');
       
-      const result = await this.authService.authenticateWithTelegram(initData);
+      const result = await this.authService.authenticateWithTelegram(initData, ref_by);
       
       if (result.success) {
         this.sendSuccess(res, {
