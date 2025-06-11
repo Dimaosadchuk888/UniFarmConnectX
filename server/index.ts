@@ -53,7 +53,7 @@ async function startServer() {
     app.use(apiPrefix, telegramMiddleware);
     
     // Import centralized routes
-    const { default: apiRoutes } = await import('./routes.js');
+    const { default: apiRoutes } = await import('./routes');
     app.use(apiPrefix, apiRoutes);
     
     // Legacy API support for v1 endpoints
