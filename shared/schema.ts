@@ -21,7 +21,7 @@ export const users = pgTable(
     ton_wallet_address: text("ton_wallet_address"), // Новое поле для хранения TON-адреса кошелька
     ref_code: text("ref_code").unique(), // Уникальный реферальный код для пользователя
     parent_ref_code: text("parent_ref_code"), // Реферальный код пригласившего пользователя
-    referred_by: integer("referred_by").references(() => users.id), // Прямая связь с пригласившим пользователем
+    referred_by: integer("referred_by"), // Прямая связь с пригласившим пользователем
     balance_uni: numeric("balance_uni", { precision: 18, scale: 6 }).default("0"),
     balance_ton: numeric("balance_ton", { precision: 18, scale: 6 }).default("0"),
     // Поля для основного UNI фарминга
@@ -37,14 +37,14 @@ export const users = pgTable(
     checkin_last_date: timestamp("checkin_last_date"),
     checkin_streak: integer("checkin_streak").default(0)
   },
-  (table) => {
-    return {
+  (table) => ({
       // Создаем индекс для parent_ref_code для оптимизации реферальных запросов
       parentRefCodeIdx: index("idx_users_parent_ref_code").on(table.parent_ref_code),
       // Индекс для ref_code уже есть (из-за unique), но для явности добавим
       refCodeIdx: index("idx_users_ref_code").on(table.ref_code),
-    };
-  }
+      // Индекс для referred_by
+      referredByIdx: index("idx_users_referred_by").on(table.referred_by),
+    })
 );
 
 // Таблица farming_deposits по требованиям задачи
