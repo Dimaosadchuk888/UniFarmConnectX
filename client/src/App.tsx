@@ -15,6 +15,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
 import { WebSocketProvider } from "@/contexts/webSocketContext";
 import { NotificationProvider } from "@/contexts/notificationContext";
+import { ErrorBoundaryProvider } from "@/contexts/ErrorBoundaryContext";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 
 // Pages
@@ -160,8 +161,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
-        <ErrorBoundary>
-          <NotificationProvider>
+        <ErrorBoundaryProvider>
+          <ErrorBoundary>
+            <NotificationProvider>
             <UserProvider>
               <WebSocketProvider>
                 <TelegramWebAppCheck>
@@ -177,7 +179,8 @@ function App() {
               </WebSocketProvider>
             </UserProvider>
           </NotificationProvider>
-        </ErrorBoundary>
+          </ErrorBoundary>
+        </ErrorBoundaryProvider>
       </TonConnectUIProvider>
     </QueryClientProvider>
   );
