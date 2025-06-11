@@ -275,10 +275,7 @@ export const insertUserMissionSchema = createInsertSchema(userMissions).pick({
 export type InsertUserMission = z.infer<typeof insertUserMissionSchema>;
 export type UserMission = typeof userMissions.$inferSelect;
 
-// Создаем алиасы для корректной работы relations
-export const user_missions = userMissions;
-export const farming_deposits = farmingDeposits;
-export const user_boosts = userBoosts;
+// Алиасы будут созданы после объявления всех таблиц
 
 // Таблица для хранения UNI фарминг-депозитов
 export const uniFarmingDeposits = pgTable("uni_farming_deposits", {
@@ -622,3 +619,8 @@ export const userBoostsRelations = relations(userBoosts, ({ one }) => ({
     references: [users.id]
   })
 }));
+
+// Создаем алиасы для корректной работы relations после объявления всех таблиц
+export const user_missions = userMissions;
+export const farming_deposits = farmingDeposits;
+export const user_boosts = userBoosts;

@@ -3,7 +3,7 @@
  * Запускает сервер с интеграцией всех модулей
  */
 
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
 import { config, logger, globalErrorHandler, notFoundHandler } from '../core';
@@ -27,7 +27,7 @@ async function startServer() {
     app.use(express.urlencoded({ extended: true }));
 
     // Логирование запросов
-    app.use((req, res, next) => {
+    app.use((req: Request, res: Response, next: NextFunction) => {
       const start = Date.now();
       res.on('finish', () => {
         const duration = Date.now() - start;
@@ -37,7 +37,7 @@ async function startServer() {
     });
 
     // Health check (должен быть первым для мониторинга)
-    app.get('/health', (req, res) => {
+    app.get('/health', (req: Request, res: Response) => {
       res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
@@ -656,7 +656,7 @@ async function startServer() {
       app.use(express.static(path.join(process.cwd(), 'dist/public')));
       
       // SPA fallback - serve index.html for non-API routes
-      app.get('*', (req, res, next) => {
+      app.get('*', (req: Request, res: Response, next: NextFunction) => {
         // Skip API routes
         if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
           return next();
@@ -698,7 +698,7 @@ async function startServer() {
 
     return server;
   } catch (error) {
-    logger.error('Критическая ошибка запуска сервера', { error: error.message });
+    logger.error('Критическая ошибка запуска сервера', { error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 }
