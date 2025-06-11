@@ -7,8 +7,10 @@ const farmingController = new FarmingController();
 
 // Маршруты фарминга с обязательной авторизацией
 router.get('/', requireTelegramAuth, farmingController.getFarmingData.bind(farmingController));
+router.get('/data', requireTelegramAuth, farmingController.getFarmingData.bind(farmingController)); // Main data endpoint
 router.get('/info', farmingController.getFarmingInfo.bind(farmingController));
 router.get('/status', farmingController.getFarmingInfo.bind(farmingController)); // Alias for /info
 router.post('/start', requireTelegramAuth, farmingController.startFarming.bind(farmingController));
+router.post('/claim', requireTelegramAuth, farmingController.claimFarming.bind(farmingController));
 
 export default router;
