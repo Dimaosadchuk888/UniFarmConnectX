@@ -1,28 +1,19 @@
 import { ReactNode } from 'react';
-import Header from '@/components/layout/Header';
-import NavigationBar from '@/components/layout/NavigationBar';
+import { Header } from '@/components/layout/Header';
+import { NavigationBar } from '@/components/layout/NavigationBar';
 
 interface MainLayoutProps {
   children: ReactNode;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
 }
 
-export default function MainLayout({ children, activeTab, onTabChange }: MainLayoutProps) {
+export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Top Bar */}
+    <div className="min-h-screen bg-background">
       <Header />
-      
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-auto px-4">
-        <div className="max-w-md mx-auto">
-          {children}
-        </div>
+      <main className="container mx-auto px-4 py-6">
+        {children}
       </main>
-      
-      {/* Bottom Navigation */}
-      <NavigationBar activeTab={activeTab} setActiveTab={onTabChange} />
+      <NavigationBar />
     </div>
   );
 }
