@@ -8,7 +8,7 @@ import IncomeCardNew from '@/components/dashboard/IncomeCardNew';
 import ChartCard from '@/components/dashboard/ChartCard';
 import BoostStatusCard from '@/components/dashboard/BoostStatusCard';
 import DailyBonusCard from '@/components/dashboard/DailyBonusCard';
-import SystemStatusIndicator from '@/components/ui/SystemStatusIndicator';
+
 import UniFarmingCardWithErrorBoundary from '@/components/farming/UniFarmingCardWithErrorBoundary';
 
 
@@ -45,11 +45,6 @@ const Dashboard: React.FC = () => {
 
       {/* UNI Фарминг карточка */}
       <UniFarmingCardWithErrorBoundary userData={userData} />
-
-      {/* Индикатор статуса системы для диагностики */}
-      {process.env.NODE_ENV !== 'production' && (
-        <SystemStatusIndicator />
-      )}
     </div>
   );
 };
