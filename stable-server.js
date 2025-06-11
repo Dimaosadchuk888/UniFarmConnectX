@@ -10,7 +10,7 @@ async function startStableServer() {
   // Set required environment variables
   process.env.ALLOW_BROWSER_ACCESS = 'true';
   process.env.SKIP_TELEGRAM_CHECK = 'true';
-  process.env.FORCE_DEV_MODE = 'true'; // Force development mode for Vite
+  process.env.NODE_ENV = 'development'; // Force development mode for Vite
   process.env.PORT = process.env.PORT || '3000';
   
   // Start the unified server using tsx
