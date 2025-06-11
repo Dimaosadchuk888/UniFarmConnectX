@@ -653,7 +653,7 @@ async function startServer() {
         
         // Check if static file exists
         const filePath = path.join(process.cwd(), 'dist/public', req.path);
-        const fs = require('fs');
+        const fs = await import('fs');
         if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
           return res.sendFile(filePath);
         }
