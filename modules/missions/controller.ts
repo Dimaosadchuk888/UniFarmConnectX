@@ -25,13 +25,15 @@ export class MissionsController extends BaseController {
 
   async completeMission(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
-      const telegramUser = this.getTelegramUser(req);
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return; // 401 уже отправлен
+
       const { missionId } = req.body;
       
       this.validateRequiredFields(req.body, ['missionId']);
       
       const result = await missionsService.completeMission(
-        telegramUser.id.toString(),
+        telegram.user.id.toString(),
         missionId
       );
 
@@ -41,14 +43,14 @@ export class MissionsController extends BaseController {
 
   async claimReward(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
-      const telegramUser = this.validateTelegramAuth(req, res);
-      if (!telegramUser) return;
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return; // 401 уже отправлен
 
       const { missionId } = req.body;
       this.validateRequiredFields(req.body, ['missionId']);
       
       const result = await missionsService.claimMissionReward(
-        telegramUser.id.toString(),
+        telegram.user.id.toString(),
         missionId
       );
 
