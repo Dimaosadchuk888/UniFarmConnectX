@@ -4,7 +4,7 @@
 
 import { DeepReferralLogic } from './deepReferral';
 import { db } from '@/server/db';
-import { users, transactions } from '../../shared/schema';
+import { users, transactions } from '../../../shared/schema';
 import { eq, and } from 'drizzle-orm';
 
 export class ReferralRewardDistribution {
