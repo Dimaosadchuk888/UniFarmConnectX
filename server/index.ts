@@ -48,6 +48,10 @@ async function startServer() {
     // API routes
     const apiPrefix = `/api/v2`;
     
+    // Import centralized routes
+    const { default: apiRoutes } = await import('./routes.js');
+    app.use(apiPrefix, apiRoutes);
+    
     // Legacy API support for v1 endpoints
     app.get('/api/user/current', async (req: any, res: any) => {
       try {
