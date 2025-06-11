@@ -19,4 +19,7 @@ router.get('/:userId/list', referralController.getUserReferrals.bind(referralCon
 // GET /api/referrals/:userId/earnings - Получить статистику доходов от рефералов
 router.get('/:userId/earnings', referralController.getReferralEarnings.bind(referralController));
 
+// GET /api/referrals/stats - Получить статистику реферальных уровней
+router.get('/stats', referralController.getReferralLevelsStats.bind(referralController));
+
 export default router;

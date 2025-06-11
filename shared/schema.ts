@@ -158,6 +158,7 @@ export const referrals = pgTable(
     inviter_id: integer("inviter_id").references(() => users.id).notNull(),
     level: integer("level").notNull(), // Уровень (1–20)
     reward_uni: numeric("reward_uni", { precision: 18, scale: 6 }),
+    reward_ton: numeric("reward_ton", { precision: 18, scale: 6 }), // Награда в TON
     ref_path: json("ref_path").array(), // Массив ID пригласителей в цепочке [inviter_id, inviter_inviter_id, ...]
     created_at: timestamp("created_at").defaultNow()
   },
@@ -178,6 +179,7 @@ export const insertReferralSchema = createInsertSchema(referrals).pick({
   inviter_id: true,
   level: true,
   reward_uni: true,
+  reward_ton: true,
   ref_path: true,
   created_at: true
 });

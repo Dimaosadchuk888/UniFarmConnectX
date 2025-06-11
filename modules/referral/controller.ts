@@ -134,4 +134,28 @@ export class ReferralController extends BaseController {
       });
     }, 'валидации реферального кода');
   }
+
+  /**
+   * Получить статистику реферальных уровней с реальными доходами
+   */
+  async getReferralLevelsStats(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      const userId = req.query.user_id as string;
+      const guestId = req.query.guest_id as string;
+      
+      console.log(`[ReferralController] Получение статистики уровней для пользователя ${userId || guestId}`);
+      
+      // Получаем реальные данные о доходах с партнерской программы
+      const levelStats = await this.referralService.getReferralLevelsWithIncome(userId || guestId);
+      
+      this.sendSuccess(res, {
+        user_id: parseInt(userId) || 0,
+        username: "",
+        total_referrals: levelStats.totalReferrals,
+        referral_counts: levelStats.referralCounts,
+        level_income: levelStats.levelIncome,
+        referrals: levelStats.referrals
+      });
+    }, 'получения статистики реферальных уровней');
+  }
 }

@@ -199,4 +199,124 @@ export class ReferralService {
     }
   }
 
+  /**
+   * Получить статистику реферальных уровней с реальными доходами
+   */
+  async getReferralLevelsWithIncome(userIdentifier: string): Promise<{
+    totalReferrals: number;
+    referralCounts: Record<string, number>;
+    levelIncome: Record<string, { uni: string; ton: string }>;
+    referrals: any[];
+  }> {
+    try {
+      const { db } = await import('../../server/db.js');
+      const { users, referrals } = await import('../../shared/schema.js');
+      const { eq, count, sum } = await import('drizzle-orm');
+
+      // Пытаемся найти пользователя по ID или guest_id
+      let user = null;
+      if (userIdentifier && !isNaN(parseInt(userIdentifier))) {
+        [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, parseInt(userIdentifier)))
+          .limit(1);
+      }
+
+      if (!user) {
+        console.log(`[ReferralService] Пользователь ${userIdentifier} не найден, возвращаем пустые данные`);
+        return {
+          totalReferrals: 0,
+          referralCounts: {},
+          levelIncome: this.generateEmptyLevelIncome(),
+          referrals: []
+        };
+      }
+
+      console.log(`[ReferralService] Получение статистики уровней для пользователя ${user.id} (${user.username})`);
+
+      // Получаем всех рефералов пользователя
+      const userReferrals = await db
+        .select()
+        .from(referrals)
+        .where(eq(referrals.inviter_id, user.id));
+
+      // Подсчитываем рефералов по уровням
+      const referralCounts: Record<string, number> = {};
+      for (let i = 1; i <= 20; i++) {
+        const levelReferrals = userReferrals.filter(ref => ref.level === i);
+        referralCounts[i.toString()] = levelReferrals.length;
+      }
+
+      // Подсчитываем реальные доходы по уровням
+      const levelIncome: Record<string, { uni: string; ton: string }> = {};
+      for (let i = 1; i <= 20; i++) {
+        const levelReferrals = userReferrals.filter(ref => ref.level === i);
+        const totalUni = levelReferrals.reduce((sum, ref) => {
+          return sum + parseFloat(ref.reward_uni || "0");
+        }, 0);
+        const totalTon = levelReferrals.reduce((sum, ref) => {
+          return sum + parseFloat(ref.reward_ton || "0");
+        }, 0);
+
+        levelIncome[i.toString()] = {
+          uni: totalUni.toFixed(3),
+          ton: totalTon.toFixed(6)
+        };
+      }
+
+      // Получаем детальную информацию о рефералах
+      const referralDetails = await Promise.all(
+        userReferrals.map(async (referral) => {
+          const [referredUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, referral.user_id))
+            .limit(1);
+
+          return {
+            id: referral.user_id,
+            name: referredUser?.username || 'Unknown',
+            username: referredUser?.username,
+            level: referral.level,
+            reward_uni: referral.reward_uni || "0",
+            reward_ton: referral.reward_ton || "0",
+            created_at: referral.created_at
+          };
+        })
+      );
+
+      console.log(`[ReferralService] Найдено ${userReferrals.length} рефералов на ${Object.keys(referralCounts).length} уровнях`);
+
+      return {
+        totalReferrals: userReferrals.length,
+        referralCounts,
+        levelIncome,
+        referrals: referralDetails
+      };
+    } catch (error) {
+      console.error('[ReferralService] Ошибка получения статистики уровней:', error);
+      return {
+        totalReferrals: 0,
+        referralCounts: {},
+        levelIncome: this.generateEmptyLevelIncome(),
+        referrals: []
+      };
+    }
+  }
+
+  /**
+   * Генерирует пустую структуру доходов для 20 уровней
+   */
+  private generateEmptyLevelIncome(): Record<string, { uni: string; ton: string }> {
+    const levelIncome: Record<string, { uni: string; ton: string }> = {};
+    for (let i = 1; i <= 20; i++) {
+      levelIncome[i.toString()] = {
+        uni: "0.000",
+        ton: "0.000000"
+      };
+    }
+    return levelIncome;
+  }
+
 }
