@@ -670,7 +670,7 @@ async function startServer() {
       const { setupVite } = await import('./vite-simple.js');
       
       // Start server first, then setup Vite
-      const server = app.listen(apiPort, config.app.host, async () => {
+      const server = app.listen(Number(apiPort), config.app.host, async () => {
         logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
         logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
         logger.info(`🌐 Frontend: http://${config.app.host}:${apiPort}/ (Vite dev server)`);
@@ -686,7 +686,7 @@ async function startServer() {
     app.use(globalErrorHandler);
     
     // Запуск сервера
-    const server = app.listen(apiPort, config.app.host, () => {
+    const server = app.listen(Number(apiPort), config.app.host, () => {
       logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
       logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
       if (process.env.NODE_ENV === 'production') {
