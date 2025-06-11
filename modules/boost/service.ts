@@ -1,7 +1,8 @@
 import { db } from '../../server/db.js';
-import { boostPackages, userBoosts, users } from '../../shared/schema.js';
+import { boostPackages, userBoosts, users, transactions, tonBoostDeposits } from '../../shared/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { TonBoostCalculation } from './logic/tonBoostCalculation';
+import { logger } from '../../core/logger.js';
 
 interface BoostPackageData {
   id: number;
@@ -127,6 +128,8 @@ export class BoostService {
 
   async claimBoostRewards(userId: string, boostId: string): Promise<ClaimResult> {
     try {
+      const timestamp = new Date().toISOString();
+
       // Проверяем существование буста
       const [boost] = await db
         .select()
@@ -139,6 +142,12 @@ export class BoostService {
         .limit(1);
 
       if (!boost) {
+        logger.warn(`[BOOST] Claim rejected for user ${userId}: boost ${boostId} not found`, {
+          userId,
+          boostId,
+          reason: 'boost_not_found',
+          timestamp
+        });
         return { amount: '0', claimed: false };
       }
 
@@ -150,18 +159,123 @@ export class BoostService {
           .set({ is_active: false })
           .where(eq(userBoosts.id, parseInt(boostId)));
 
+        logger.warn(`[BOOST] Claim rejected for user ${userId}: boost ${boostId} expired`, {
+          userId,
+          boostId,
+          expiresAt: boost.expires_at.toISOString(),
+          reason: 'boost_expired',
+          timestamp
+        });
         return { amount: '0', claimed: false };
       }
 
-      // Рассчитываем награду (заглушка)
-      const rewardAmount = '0.001';
+      // Получаем информацию о пакете для расчета награды
+      const [packageInfo] = await db
+        .select()
+        .from(boostPackages)
+        .where(eq(boostPackages.id, boost.boost_package_id))
+        .limit(1);
+
+      if (!packageInfo) {
+        logger.error(`[BOOST] Package not found for boost ${boostId}`, {
+          userId,
+          boostId,
+          packageId: boost.boost_package_id,
+          timestamp
+        });
+        return { amount: '0', claimed: false };
+      }
+
+      // Рассчитываем реальную награду на основе времени и множителя
+      const currentTime = new Date();
+      const boostStart = boost.started_at || currentTime;
+      const hoursActive = (currentTime.getTime() - boostStart.getTime()) / (1000 * 60 * 60);
+      const baseReward = Math.min(hoursActive * 0.001 * parseFloat(packageInfo.multiplier), 0.1);
+      const rewardAmount = baseReward.toFixed(8);
+
+      if (parseFloat(rewardAmount) <= 0) {
+        logger.warn(`[BOOST] No reward available for user ${userId} boost ${boostId}`, {
+          userId,
+          boostId,
+          hoursActive: hoursActive.toFixed(2),
+          reason: 'no_reward_available',
+          timestamp
+        });
+        return { amount: '0', claimed: false };
+      }
+
+      // Получаем текущий баланс пользователя
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, parseInt(userId)))
+        .limit(1);
+
+      if (!user) {
+        logger.error(`[BOOST] User ${userId} not found for boost reward`, {
+          userId,
+          boostId,
+          timestamp
+        });
+        return { amount: '0', claimed: false };
+      }
+
+      const previousBalance = parseFloat(user.balance_ton || "0");
+      const newBalance = (previousBalance + parseFloat(rewardAmount)).toFixed(8);
+
+      // Обновляем баланс пользователя
+      await db
+        .update(users)
+        .set({ balance_ton: newBalance })
+        .where(eq(users.id, parseInt(userId)));
+
+      // ОСНОВНОЕ ЛОГИРОВАНИЕ ДОХОДНОЙ ОПЕРАЦИИ БУСТА
+      logger.info(`[BOOST] User ${userId} earned ${rewardAmount} TON from boost at ${timestamp}`, {
+        userId,
+        boostId,
+        amount: rewardAmount,
+        currency: 'TON',
+        previousBalance: previousBalance.toFixed(8),
+        newBalance,
+        packageName: packageInfo.name,
+        multiplier: parseFloat(packageInfo.multiplier),
+        hoursActive: hoursActive.toFixed(2),
+        operation: 'boost_reward',
+        timestamp
+      });
+
+      // Записываем транзакцию
+      await db
+        .insert(transactions)
+        .values({
+          user_id: parseInt(userId),
+          transaction_type: 'boost_reward',
+          currency: 'TON',
+          amount: rewardAmount,
+          description: `Boost reward from ${packageInfo.name}`,
+          status: 'confirmed'
+        } as any);
+
+      logger.debug(`[BOOST] Reward transaction recorded for user ${userId}`, {
+        userId,
+        boostId,
+        transactionType: 'boost_reward',
+        amount: rewardAmount,
+        timestamp
+      });
 
       return {
         amount: rewardAmount,
         claimed: true
       };
     } catch (error) {
-      console.error('[BoostService] Ошибка получения наград буста:', error);
+      logger.error(`[BOOST] Critical error during reward claim for user ${userId}`, {
+        userId,
+        boostId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
       return { amount: '0', claimed: false };
     }
   }

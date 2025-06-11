@@ -1,7 +1,8 @@
 import { db } from '../../server/db.js';
-import { missions, userMissions, users } from '../../shared/schema.js';
+import { missions, userMissions, users, transactions } from '../../shared/schema.js';
 import { eq, and, notInArray } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository';
+import { logger } from '../../core/logger.js';
 
 export class MissionsService {
   async getActiveMissionsByTelegramId(telegramId: string): Promise<any[]> {
@@ -107,6 +108,8 @@ export class MissionsService {
 
   async claimMissionReward(userId: string, missionId: string): Promise<{ amount: string; claimed: boolean }> {
     try {
+      const timestamp = new Date().toISOString();
+
       // Проверяем, завершена ли миссия
       const [completion] = await db
         .select()
@@ -118,6 +121,12 @@ export class MissionsService {
         .limit(1);
 
       if (!completion) {
+        logger.warn(`[MISSION] Reward claim rejected for user ${userId}: mission ${missionId} not completed`, {
+          userId,
+          missionId,
+          reason: 'mission_not_completed',
+          timestamp
+        });
         return { amount: "0", claimed: false };
       }
 
@@ -129,6 +138,24 @@ export class MissionsService {
         .limit(1);
 
       if (!mission || !mission.reward_uni) {
+        logger.warn(`[MISSION] Reward claim rejected for user ${userId}: mission ${missionId} has no reward`, {
+          userId,
+          missionId,
+          reason: 'no_reward_available',
+          timestamp
+        });
+        return { amount: "0", claimed: false };
+      }
+
+      const rewardAmount = mission.reward_uni;
+      if (parseFloat(rewardAmount) <= 0) {
+        logger.warn(`[MISSION] Reward claim rejected for user ${userId}: invalid reward amount ${rewardAmount}`, {
+          userId,
+          missionId,
+          amount: rewardAmount,
+          reason: 'invalid_reward_amount',
+          timestamp
+        });
         return { amount: "0", claimed: false };
       }
 
@@ -139,20 +166,67 @@ export class MissionsService {
         .where(eq(users.id, parseInt(userId)))
         .limit(1);
 
-      if (user) {
-        const newBalance = String(parseFloat(user.balance_uni || "0") + parseFloat(mission.reward_uni));
-        
-        await db
-          .update(users)
-          .set({ balance_uni: newBalance })
-          .where(eq(users.id, parseInt(userId)));
-
-        // Миссии НЕ дают реферальные бонусы согласно бизнес-модели
+      if (!user) {
+        logger.error(`[MISSION] User ${userId} not found for mission reward`, {
+          userId,
+          missionId,
+          timestamp
+        });
+        return { amount: "0", claimed: false };
       }
 
-      return { amount: mission.reward_uni, claimed: true };
+      const previousBalance = parseFloat(user.balance_uni || "0");
+      const newBalance = (previousBalance + parseFloat(rewardAmount)).toFixed(8);
+      
+      await db
+        .update(users)
+        .set({ balance_uni: newBalance })
+        .where(eq(users.id, parseInt(userId)));
+
+      // ОСНОВНОЕ ЛОГИРОВАНИЕ ДОХОДНОЙ ОПЕРАЦИИ МИССИИ
+      logger.info(`[MISSION] User ${userId} earned ${rewardAmount} UNI from mission at ${timestamp}`, {
+        userId,
+        missionId,
+        amount: rewardAmount,
+        currency: 'UNI',
+        previousBalance: previousBalance.toFixed(8),
+        newBalance,
+        missionTitle: mission.title,
+        missionType: mission.type,
+        completedAt: completion.completed_at?.toISOString(),
+        operation: 'mission_reward',
+        timestamp
+      });
+
+      // Записываем транзакцию
+      await db
+        .insert(transactions)
+        .values({
+          user_id: parseInt(userId),
+          transaction_type: 'mission_reward',
+          currency: 'UNI',
+          amount: rewardAmount,
+          description: `Mission reward: ${mission.title}`,
+          status: 'confirmed'
+        } as any);
+
+      logger.debug(`[MISSION] Reward transaction recorded for user ${userId}`, {
+        userId,
+        missionId,
+        transactionType: 'mission_reward',
+        amount: rewardAmount,
+        timestamp
+      });
+
+      return { amount: rewardAmount, claimed: true };
     } catch (error) {
-      console.error('[MissionsService] Ошибка получения награды:', error);
+      logger.error(`[MISSION] Critical error during reward claim for user ${userId}`, {
+        userId,
+        missionId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
       return { amount: "0", claimed: false };
     }
   }

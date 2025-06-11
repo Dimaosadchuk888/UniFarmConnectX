@@ -3,9 +3,10 @@
  */
 
 import { DeepReferralLogic } from './deepReferral';
-import { db } from '@/server/db';
+import { db } from '../../../core/db.js';
 import { users, transactions } from '../../../shared/schema';
 import { eq, and } from 'drizzle-orm';
+import { logger } from '../../../core/logger.js';
 
 export class ReferralRewardDistribution {
   /**
@@ -40,15 +41,30 @@ export class ReferralRewardDistribution {
           .limit(1);
 
         if (referrer) {
-          // Обновляем баланс реферера
-          const newBalance = String(
-            parseFloat(referrer.balance_uni || "0") + parseFloat(commission.amount)
-          );
+          const previousBalance = parseFloat(referrer.balance_uni || "0");
+          const newBalance = (previousBalance + parseFloat(commission.amount)).toFixed(8);
+          const timestamp = new Date().toISOString();
 
+          // Обновляем баланс реферера
           await db
             .update(users)
             .set({ balance_uni: newBalance })
             .where(eq(users.id, parseInt(commission.userId)));
+
+          // ОСНОВНОЕ ЛОГИРОВАНИЕ ДОХОДНОЙ ОПЕРАЦИИ РЕФЕРАЛЬНОГО НАЧИСЛЕНИЯ
+          logger.info(`[REFERRAL] User ${commission.userId} earned ${commission.amount} UNI from referral level ${commission.level} at ${timestamp}`, {
+            referrerId: commission.userId,
+            sourceUserId: userId,
+            amount: commission.amount,
+            currency: 'UNI',
+            level: commission.level,
+            commissionRate: `${commission.level}%`,
+            previousBalance: previousBalance.toFixed(8),
+            newBalance,
+            sourceType: 'farming_reward',
+            operation: 'referral_bonus',
+            timestamp
+          });
 
           // Записываем транзакцию о начислении реферального бонуса
           await db
@@ -62,6 +78,15 @@ export class ReferralRewardDistribution {
               description: `Referral bonus level ${commission.level} from farming`,
               status: 'confirmed'
             } as any);
+
+          logger.debug(`[REFERRAL] Transaction recorded for referral bonus`, {
+            referrerId: commission.userId,
+            sourceUserId: userId,
+            transactionType: 'referral_bonus',
+            amount: commission.amount,
+            level: commission.level,
+            timestamp
+          });
         }
       }
 
@@ -117,15 +142,28 @@ export class ReferralRewardDistribution {
           ));
 
         if (existingMilestone.length === 0) {
-          // Начисляем milestone бонус
-          const newBalance = String(
-            parseFloat(user.balance_uni || "0") + parseFloat(milestoneBonus)
-          );
+          const previousBalance = parseFloat(user.balance_uni || "0");
+          const newBalance = (previousBalance + parseFloat(milestoneBonus)).toFixed(8);
+          const timestamp = new Date().toISOString();
 
+          // Начисляем milestone бонус
           await db
             .update(users)
             .set({ balance_uni: newBalance })
             .where(eq(users.id, parseInt(userId)));
+
+          // ОСНОВНОЕ ЛОГИРОВАНИЕ ДОХОДНОЙ ОПЕРАЦИИ MILESTONE БОНУСА
+          logger.info(`[MILESTONE] User ${userId} earned ${milestoneBonus} UNI milestone bonus for ${referralCount} referrals at ${timestamp}`, {
+            userId,
+            amount: milestoneBonus,
+            currency: 'UNI',
+            referralCount,
+            previousBalance: previousBalance.toFixed(8),
+            newBalance,
+            milestoneType: `${referralCount}_referrals`,
+            operation: 'milestone_bonus',
+            timestamp
+          });
 
           // Записываем транзакцию
           await db
@@ -138,6 +176,14 @@ export class ReferralRewardDistribution {
               description: `Milestone bonus for ${referralCount} referrals`,
               status: 'confirmed'
             } as any);
+
+          logger.debug(`[MILESTONE] Transaction recorded for milestone bonus`, {
+            userId,
+            transactionType: 'milestone_bonus',
+            amount: milestoneBonus,
+            referralCount,
+            timestamp
+          });
 
           return milestoneBonus;
         }
