@@ -57,13 +57,21 @@ export class FarmingScheduler {
 
       logger.info(`[UNI Farming] Найдено ${activeFarmers.length} активных фармеров`);
 
-      const processedCount = { success: 0, failed: 0 };
+      const processedCount = { success: 0, failed: 0, skipped: 0 };
+      const timestamp = new Date().toISOString();
 
       for (const farmer of activeFarmers) {
         try {
           const income = await this.calculateUniFarmingIncome(farmer);
           
           if (parseFloat(income) > 0) {
+            logger.debug(`[FARMING_SCHEDULER] Processing UNI income for user ${farmer.id}: ${income}`, {
+              userId: farmer.id,
+              calculatedIncome: income,
+              currency: 'UNI',
+              timestamp
+            });
+            
             const success = await this.walletService.addUniFarmIncome(
               farmer.id.toString(), 
               income
@@ -77,19 +85,51 @@ export class FarmingScheduler {
                 .where(eq(users.id, farmer.id));
               
               processedCount.success++;
-              logger.debug(`[UNI Farming] ✅ Пользователь ${farmer.id}: начислено ${income} UNI`);
+              
+              logger.info(`[FARMING_SCHEDULER] Successfully processed UNI farming for user ${farmer.id}`, {
+                userId: farmer.id,
+                amount: income,
+                currency: 'UNI',
+                operation: 'scheduled_farming_income',
+                timestamp
+              });
             } else {
               processedCount.failed++;
-              logger.warn(`[UNI Farming] ❌ Ошибка начисления для пользователя ${farmer.id}`);
+              logger.error(`[FARMING_SCHEDULER] Failed to process UNI income for user ${farmer.id}`, {
+                userId: farmer.id,
+                amount: income,
+                currency: 'UNI',
+                timestamp
+              });
             }
+          } else {
+            processedCount.skipped++;
+            logger.debug(`[FARMING_SCHEDULER] Skipped user ${farmer.id}: no UNI income to process`, {
+              userId: farmer.id,
+              calculatedIncome: income,
+              currency: 'UNI',
+              timestamp
+            });
           }
         } catch (error) {
           processedCount.failed++;
-          logger.error(`[UNI Farming] Ошибка обработки пользователя ${farmer.id}:`, error);
+          logger.error(`[FARMING_SCHEDULER] Critical error processing user ${farmer.id}`, {
+            userId: farmer.id,
+            currency: 'UNI',
+            error: error instanceof Error ? error.message : String(error),
+            timestamp
+          });
         }
       }
 
-      logger.info(`[UNI Farming] Завершено: ${processedCount.success} успешно, ${processedCount.failed} ошибок`);
+      logger.info(`[FARMING_SCHEDULER] UNI farming cycle completed`, {
+        processed: processedCount.success,
+        failed: processedCount.failed,
+        skipped: processedCount.skipped,
+        total: activeFarmers.length,
+        currency: 'UNI',
+        timestamp
+      });
     } catch (error) {
       logger.error('[UNI Farming] Критическая ошибка автоматического начисления:', error);
     }
@@ -114,13 +154,21 @@ export class FarmingScheduler {
 
       logger.info(`[TON Farming] Найдено ${activeBoostUsers.length} активных TON фармеров`);
 
-      const processedCount = { success: 0, failed: 0 };
+      const processedCount = { success: 0, failed: 0, skipped: 0 };
+      const timestamp = new Date().toISOString();
 
       for (const farmer of activeBoostUsers) {
         try {
           const income = await this.calculateTonFarmingIncome(farmer);
           
           if (parseFloat(income) > 0) {
+            logger.debug(`[FARMING_SCHEDULER] Processing TON income for user ${farmer.id}: ${income}`, {
+              userId: farmer.id,
+              calculatedIncome: income,
+              currency: 'TON',
+              timestamp
+            });
+            
             const success = await this.walletService.addTonFarmIncome(
               farmer.id.toString(), 
               income
@@ -134,19 +182,51 @@ export class FarmingScheduler {
                 .where(eq(users.id, farmer.id));
               
               processedCount.success++;
-              logger.debug(`[TON Farming] ✅ Пользователь ${farmer.id}: начислено ${income} TON`);
+              
+              logger.info(`[FARMING_SCHEDULER] Successfully processed TON farming for user ${farmer.id}`, {
+                userId: farmer.id,
+                amount: income,
+                currency: 'TON',
+                operation: 'scheduled_farming_income',
+                timestamp
+              });
             } else {
               processedCount.failed++;
-              logger.warn(`[TON Farming] ❌ Ошибка начисления для пользователя ${farmer.id}`);
+              logger.error(`[FARMING_SCHEDULER] Failed to process TON income for user ${farmer.id}`, {
+                userId: farmer.id,
+                amount: income,
+                currency: 'TON',
+                timestamp
+              });
             }
+          } else {
+            processedCount.skipped++;
+            logger.debug(`[FARMING_SCHEDULER] Skipped user ${farmer.id}: no TON income to process`, {
+              userId: farmer.id,
+              calculatedIncome: income,
+              currency: 'TON',
+              timestamp
+            });
           }
         } catch (error) {
           processedCount.failed++;
-          logger.error(`[TON Farming] Ошибка обработки пользователя ${farmer.id}:`, error);
+          logger.error(`[FARMING_SCHEDULER] Critical error processing user ${farmer.id}`, {
+            userId: farmer.id,
+            currency: 'TON',
+            error: error instanceof Error ? error.message : String(error),
+            timestamp
+          });
         }
       }
 
-      logger.info(`[TON Farming] Завершено: ${processedCount.success} успешно, ${processedCount.failed} ошибок`);
+      logger.info(`[FARMING_SCHEDULER] TON farming cycle completed`, {
+        processed: processedCount.success,
+        failed: processedCount.failed,
+        skipped: processedCount.skipped,
+        total: activeBoostUsers.length,
+        currency: 'TON',
+        timestamp
+      });
     } catch (error) {
       logger.error('[TON Farming] Критическая ошибка автоматического начисления:', error);
     }

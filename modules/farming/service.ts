@@ -4,6 +4,7 @@ import { eq, sql } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';
+import { logger } from '../../core/logger.js';
 
 export class FarmingService {
   async getFarmingDataByTelegramId(telegramId: string): Promise<{
@@ -145,7 +146,9 @@ export class FarmingService {
       }
 
       // Обновляем баланс пользователя
-      const newBalance = String(parseFloat(user.balance_uni || "0") + parseFloat(baseReward));
+      const previousBalance = parseFloat(user.balance_uni || "0");
+      const newBalance = String(previousBalance + parseFloat(baseReward));
+      const timestamp = new Date().toISOString();
       
       await db
         .update(users)
@@ -155,6 +158,19 @@ export class FarmingService {
           uni_farming_last_update: now
         })
         .where(sql`${users.telegram_id} = ${Number(telegramId)}`);
+
+      // ЛОГИРОВАНИЕ РУЧНОГО КЛЕЙМА (LEGACY)
+      logger.info(`[FARMING] User ${user.id} claimed ${baseReward} UNI at ${timestamp}`, {
+        userId: user.id.toString(),
+        telegramId,
+        amount: baseReward,
+        currency: 'UNI',
+        previousBalance: previousBalance.toFixed(8),
+        newBalance,
+        farmingHours: farmingHours.toFixed(2),
+        operation: 'manual_claim',
+        timestamp
+      });
 
       // Записываем транзакцию о начислении
       await db
@@ -167,6 +183,13 @@ export class FarmingService {
           description: `Farming reward for ${farmingHours.toFixed(2)} hours`,
           status: 'confirmed'
         });
+
+      logger.debug(`[FARMING] Manual claim transaction recorded for user ${user.id}`, {
+        userId: user.id.toString(),
+        transactionType: 'farming_reward',
+        amount: baseReward,
+        timestamp
+      });
 
       // Распределяем реферальные вознаграждения
       await ReferralRewardDistribution.distributeFarmingRewards(user.id.toString(), baseReward);

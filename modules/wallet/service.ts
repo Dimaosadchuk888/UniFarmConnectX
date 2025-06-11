@@ -2,6 +2,7 @@ import { db } from '../../server/db.js';
 import { transactions, users, type Transaction } from '../../shared/schema.js';
 import { eq, desc } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository.js';
+import { logger } from '../../core/logger.js';
 
 export class WalletService {
   async getWalletDataByTelegramId(telegramId: string): Promise<{
@@ -99,16 +100,41 @@ export class WalletService {
    */
   async addUniFarmIncome(userId: string, amount: string): Promise<boolean> {
     try {
-      console.log(`[WalletService] Автоматическое начисление UNI дохода для пользователя ${userId}: ${amount}`);
+      const timestamp = new Date().toISOString();
+      
+      // Проверяем валидность суммы
+      const incomeAmount = parseFloat(amount);
+      if (incomeAmount <= 0) {
+        logger.warn(`[FARMING] UNI income rejected for user ${userId}: invalid amount ${amount}`, {
+          userId,
+          amount,
+          currency: 'UNI',
+          reason: 'invalid_amount',
+          timestamp
+        });
+        return false;
+      }
       
       // Получаем текущий баланс
       const currentBalance = await this.getBalance(userId);
-      const newBalance = (parseFloat(currentBalance.uni) + parseFloat(amount)).toFixed(8);
+      const previousBalance = parseFloat(currentBalance.uni);
+      const newBalance = (previousBalance + incomeAmount).toFixed(8);
       
       // Обновляем баланс напрямую
       const success = await this.updateBalance(userId, 'uni', newBalance);
       
       if (success) {
+        // ОСНОВНОЕ ЛОГИРОВАНИЕ ДОХОДНОЙ ОПЕРАЦИИ
+        logger.info(`[FARMING] User ${userId} earned ${amount} UNI at ${timestamp}`, {
+          userId,
+          amount,
+          currency: 'UNI',
+          previousBalance: previousBalance.toFixed(8),
+          newBalance,
+          operation: 'farming_income',
+          timestamp
+        });
+        
         // Записываем транзакцию для истории
         await this.createTransaction({
           userId,
@@ -118,12 +144,32 @@ export class WalletService {
           description: 'Автоматическое начисление фарминг дохода'
         });
         
-        console.log(`[WalletService] ✅ UNI доход ${amount} успешно зачислен на баланс`);
+        logger.debug(`[FARMING] UNI transaction recorded for user ${userId}`, {
+          userId,
+          transactionType: 'farming_income',
+          amount,
+          timestamp
+        });
+      } else {
+        logger.error(`[FARMING] Failed to update UNI balance for user ${userId}`, {
+          userId,
+          amount,
+          currency: 'UNI',
+          previousBalance: previousBalance.toFixed(8),
+          timestamp
+        });
       }
       
       return success;
     } catch (error) {
-      console.error('[WalletService] Ошибка автоматического начисления UNI дохода:', error);
+      logger.error(`[FARMING] Critical error during UNI income processing for user ${userId}`, {
+        userId,
+        amount,
+        currency: 'UNI',
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
       return false;
     }
   }
@@ -134,16 +180,41 @@ export class WalletService {
    */
   async addTonFarmIncome(userId: string, amount: string): Promise<boolean> {
     try {
-      console.log(`[WalletService] Автоматическое начисление TON дохода для пользователя ${userId}: ${amount}`);
+      const timestamp = new Date().toISOString();
+      
+      // Проверяем валидность суммы
+      const incomeAmount = parseFloat(amount);
+      if (incomeAmount <= 0) {
+        logger.warn(`[FARMING] TON income rejected for user ${userId}: invalid amount ${amount}`, {
+          userId,
+          amount,
+          currency: 'TON',
+          reason: 'invalid_amount',
+          timestamp
+        });
+        return false;
+      }
       
       // Получаем текущий баланс
       const currentBalance = await this.getBalance(userId);
-      const newBalance = (parseFloat(currentBalance.ton) + parseFloat(amount)).toFixed(8);
+      const previousBalance = parseFloat(currentBalance.ton);
+      const newBalance = (previousBalance + incomeAmount).toFixed(8);
       
       // Обновляем баланс напрямую
       const success = await this.updateBalance(userId, 'ton', newBalance);
       
       if (success) {
+        // ОСНОВНОЕ ЛОГИРОВАНИЕ ДОХОДНОЙ ОПЕРАЦИИ
+        logger.info(`[FARMING] User ${userId} earned ${amount} TON at ${timestamp}`, {
+          userId,
+          amount,
+          currency: 'TON',
+          previousBalance: previousBalance.toFixed(8),
+          newBalance,
+          operation: 'farming_income',
+          timestamp
+        });
+        
         // Записываем транзакцию для истории
         await this.createTransaction({
           userId,
@@ -153,12 +224,32 @@ export class WalletService {
           description: 'Автоматическое начисление фарминг дохода'
         });
         
-        console.log(`[WalletService] ✅ TON доход ${amount} успешно зачислен на баланс`);
+        logger.debug(`[FARMING] TON transaction recorded for user ${userId}`, {
+          userId,
+          transactionType: 'farming_income',
+          amount,
+          timestamp
+        });
+      } else {
+        logger.error(`[FARMING] Failed to update TON balance for user ${userId}`, {
+          userId,
+          amount,
+          currency: 'TON',
+          previousBalance: previousBalance.toFixed(8),
+          timestamp
+        });
       }
       
       return success;
     } catch (error) {
-      console.error('[WalletService] Ошибка автоматического начисления TON дохода:', error);
+      logger.error(`[FARMING] Critical error during TON income processing for user ${userId}`, {
+        userId,
+        amount,
+        currency: 'TON',
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
       return false;
     }
   }
