@@ -25,11 +25,10 @@ export class AuthController extends BaseController {
       if (result.success) {
         this.sendSuccess(res, {
           user: result.user,
-          token: result.token,
-          session_id: result.sessionId
+          token: result.token
         });
       } else {
-        this.sendError(res, result.error, 401);
+        this.sendError(res, result.error || 'Authentication failed', 401);
       }
     }, 'аутентификации через Telegram');
   }
@@ -85,38 +84,12 @@ export class AuthController extends BaseController {
   }
 
   /**
-   * Обновление токена
-   */
-  async refreshToken(req: Request, res: Response): Promise<void> {
-    await this.handleRequest(req, res, async () => {
-      this.validateRequiredFields(req.body, ['refreshToken']);
-      
-      const { refreshToken } = req.body;
-      const result = await this.authService.refreshToken(refreshToken);
-      
-      if (result.success) {
-        this.sendSuccess(res, {
-          access_token: result.accessToken,
-          refresh_token: result.refreshToken,
-          expires_in: result.expiresIn
-        });
-      } else {
-        this.sendError(res, result.error, 401);
-      }
-    }, 'обновления токена');
-  }
-
-  /**
-   * Выход из системы
+   * Выход из системы (очистка клиентского токена)
    */
   async logout(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      
-      if (token) {
-        await this.authService.invalidateToken(token);
-      }
-
+      // В JWT архитектуре logout обычно обрабатывается на клиенте
+      // Токен просто удаляется из localStorage/sessionStorage
       this.sendSuccess(res, {
         message: 'Выход выполнен успешно',
         logged_out_at: new Date().toISOString()

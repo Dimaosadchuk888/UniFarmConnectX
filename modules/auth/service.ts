@@ -2,7 +2,7 @@ import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type Telegr
 import { db } from '../../server/db';
 import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+import { customAlphabet } from 'nanoid';
 
 interface AuthResponse {
   success: boolean;
@@ -61,7 +61,8 @@ export class AuthService {
 
       if (!dbUser) {
         // Create new user
-        const refCode = nanoid(8);
+        const generateRefCode = customAlphabet('1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
+        const refCode = generateRefCode();
         const [newUser] = await db.insert(users).values({
           telegram_id: telegramUser.id,
           username: telegramUser.username || telegramUser.first_name,
