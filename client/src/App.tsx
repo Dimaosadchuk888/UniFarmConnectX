@@ -150,10 +150,10 @@ function App() {
   if (state.isLoading) {
     console.log('[UniFarm] Показываем экран загрузки');
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Загрузка UniFarm...</p>
+      <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ border: '2px solid #8b5cf6', borderTop: '2px solid transparent', borderRadius: '50%', width: '32px', height: '32px', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
+          <p>Загрузка UniFarm...</p>
         </div>
       </div>
     );
@@ -164,40 +164,52 @@ function App() {
   // В случае ошибки аутентификации всё равно загружаем основной интерфейс
   // Ошибки будут отображаться в уведомлениях, но не блокируют UI
 
+  // Временный простой интерфейс для диагностики черного экрана
   return (
-    <QueryClientProvider client={queryClient}>
-      <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
-        <ErrorBoundary>
-          <NotificationProvider>
-            <UserProvider>
-              <WebSocketProvider>
-                <TelegramWebAppCheck>
-                  <Router>
-                    <MainLayout 
-                      activeTab={state.activeTab} 
-                      onTabChange={handleTabChange}
-                    >
-                      <Switch>
-                        <Route path="/" component={Dashboard} />
-                        <Route path="/dashboard" component={Dashboard} />
-                        <Route path="/farming" component={Farming} />
-                        <Route path="/missions" component={Missions} />
-                        <Route path="/missions-nav" component={Missions} />
-                        <Route path="/friends" component={Friends} />
-                        <Route path="/wallet" component={Wallet} />
-                        <Route>{renderPage()}</Route>
-                      </Switch>
-                    </MainLayout>
-                  </Router>
-                  <NetworkStatusIndicator />
-                  <Toaster />
-                </TelegramWebAppCheck>
-              </WebSocketProvider>
-            </UserProvider>
-          </NotificationProvider>
-        </ErrorBoundary>
-      </TonConnectUIProvider>
-    </QueryClientProvider>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', color: 'white', padding: '20px' }}>
+      <h1 style={{ color: '#8b5cf6', marginBottom: '20px' }}>UniFarm - Тестовый режим</h1>
+      <div style={{ backgroundColor: '#1a1a1a', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
+        <h2>Статус приложения:</h2>
+        <p>✓ Сервер запущен</p>
+        <p>✓ Telegram WebApp API инициализирован</p>
+        <p>✓ React приложение загружено</p>
+        <p>State: {JSON.stringify(state)}</p>
+      </div>
+      
+      <QueryClientProvider client={queryClient}>
+        <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
+          <ErrorBoundary>
+            <NotificationProvider>
+              <UserProvider>
+                <WebSocketProvider>
+                  <TelegramWebAppCheck>
+                    <Router>
+                      <MainLayout 
+                        activeTab={state.activeTab} 
+                        onTabChange={handleTabChange}
+                      >
+                        <Switch>
+                          <Route path="/" component={() => <Dashboard />} />
+                          <Route path="/dashboard" component={() => <Dashboard />} />
+                          <Route path="/farming" component={() => <Farming />} />
+                          <Route path="/missions" component={() => <Missions />} />
+                          <Route path="/missions-nav" component={() => <Missions />} />
+                          <Route path="/friends" component={() => <Friends />} />
+                          <Route path="/wallet" component={() => <Wallet />} />
+                          <Route>{renderPage()}</Route>
+                        </Switch>
+                      </MainLayout>
+                    </Router>
+                    <NetworkStatusIndicator />
+                    <Toaster />
+                  </TelegramWebAppCheck>
+                </WebSocketProvider>
+              </UserProvider>
+            </NotificationProvider>
+          </ErrorBoundary>
+        </TonConnectUIProvider>
+      </QueryClientProvider>
+    </div>
   );
 }
 
