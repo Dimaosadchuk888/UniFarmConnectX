@@ -1,7 +1,7 @@
 import type { User, InsertUser } from '../../shared/schema.js';
 import { db } from '../../server/db.js';
 import { users } from '../../shared/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 export class UserService {
   async getUserById(id: string): Promise<User | null> {
@@ -66,7 +66,7 @@ export class UserService {
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.telegram_id, telegramId))
+        .where(sql`${users.telegram_id} = ${Number(telegramId)}`)
         .limit(1);
       
       return user || null;

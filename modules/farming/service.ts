@@ -1,6 +1,6 @@
 import { db } from '../../server/db.js';
 import { users, farmingDeposits, transactions } from '../../shared/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';
@@ -154,7 +154,7 @@ export class FarmingService {
           uni_farming_start_timestamp: now, // Сбрасываем время для нового цикла
           uni_farming_last_update: now
         })
-        .where(eq(users.telegram_id, telegramId));
+        .where(sql`${users.telegram_id} = ${Number(telegramId)}`);
 
       // Записываем транзакцию о начислении
       await db
