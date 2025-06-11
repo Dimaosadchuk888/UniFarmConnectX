@@ -35,11 +35,41 @@ export class AuthController extends BaseController {
   }
 
   /**
-   * Проверка валидности токена
+   * Проверка валидности токена и получение информации о пользователе
+   */
+  async checkToken(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      
+      if (!token) {
+        return this.sendError(res, 'Authorization token required', 401);
+      }
+
+      const sessionInfo = await this.authService.getSessionInfo(token);
+      
+      if (!sessionInfo.valid) {
+        return this.sendError(res, sessionInfo.error || 'Invalid token', 401);
+      }
+
+      this.sendSuccess(res, {
+        valid: true,
+        user_id: sessionInfo.userId,
+        telegram_id: sessionInfo.telegramId,
+        username: sessionInfo.username,
+        ref_code: sessionInfo.refCode,
+        expires_at: sessionInfo.expiresAt
+      });
+    }, 'проверки токена');
+  }
+
+  /**
+   * Валидация токена (legacy endpoint)
    */
   async validateToken(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
-      const token = req.headers.authorization?.replace('Bearer ', '');
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
       
       if (!token) {
         return this.sendError(res, 'Токен не предоставлен', 401);
