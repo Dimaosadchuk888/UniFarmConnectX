@@ -1,7 +1,7 @@
 import React from 'react';
 import { formatAmount, formatDate } from '../utils/formatters';
 import { ArrowUpRight, ArrowDownLeft, Clock, Zap } from 'lucide-react';
-import { Badge } from '../components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Transaction } from '../../services/transactionService';
 
 interface TransactionItemProps {

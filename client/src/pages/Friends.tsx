@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import userService from '../services/userService';
 import type { User } from '../services/userService';
 import { queryClient } from '../lib/queryClient';
-import ErrorBoundary from '../components/ui/ErrorBoundary';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { correctApiRequest } from '../lib/correctApiRequest';
 
 /**

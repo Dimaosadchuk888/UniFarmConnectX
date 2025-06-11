@@ -4,8 +4,8 @@ import { Transaction, fetchTonTransactions } from '../../services/transactionSer
 import { useUser } from '../../contexts/userContext';
 import { formatAmount, formatDate } from '../utils/formatters';
 import TransactionItem from './TransactionItem';
-import { Skeleton } from '../components/ui/skeleton';
-import { Button } from '../components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { ArrowDown } from 'lucide-react';
 
 /**
