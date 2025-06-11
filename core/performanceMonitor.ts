@@ -4,7 +4,7 @@
  */
 
 import { db } from '../server/db';
-import { performanceMetrics } from '../shared/schema';
+import { performance_metrics } from '../shared/schema';
 import { sql } from 'drizzle-orm';
 
 interface PerformanceData {
@@ -77,15 +77,11 @@ export class PerformanceMonitor {
    */
   private async recordMetric(data: PerformanceData): Promise<void> {
     try {
-      await db.insert(performanceMetrics).values({
+      await db.insert(performance_metrics).values({
         operation: data.operation,
-        duration: data.duration.toString(),
-        memory_usage: data.memory_usage.toString(),
-        cpu_usage: data.cpu_usage?.toString(),
-        status: data.status,
-        error_message: data.error_message,
-        batch_id: data.batch_id,
-        timestamp: new Date()
+        duration_ms: data.duration.toString(),
+        batch_id: data.batch_id || null,
+        details: data.error_message || null
       });
     } catch (error) {
       console.error('[PerformanceMonitor] Failed to record metric:', error);
@@ -145,13 +141,13 @@ export class PerformanceMonitor {
       
       const metrics = await db
         .select()
-        .from(performanceMetrics)
+        .from(performance_metrics)
         .where(sql`operation LIKE ${operationType + '%'} AND timestamp >= ${oneHourAgo}`)
         .limit(100);
 
       if (metrics.length === 0) return 0;
 
-      const totalDuration = metrics.reduce((sum, metric) => sum + parseFloat(metric.duration), 0);
+      const totalDuration = metrics.reduce((sum, metric) => sum + parseFloat(metric.duration_ms), 0);
       return totalDuration / metrics.length;
     } catch (error) {
       console.error('[PerformanceMonitor] Error calculating average response time:', error);
@@ -168,13 +164,13 @@ export class PerformanceMonitor {
       
       const allMetrics = await db
         .select()
-        .from(performanceMetrics)
+        .from(performance_metrics)
         .where(sql`operation LIKE ${operationType + '%'} AND timestamp >= ${oneHourAgo}`)
         .limit(1000);
 
       if (allMetrics.length === 0) return 0;
 
-      const errorCount = allMetrics.filter(m => m.status === 'error').length;
+      const errorCount = allMetrics.filter(m => m.details && m.details.includes('error')).length;
       return (errorCount / allMetrics.length) * 100;
     } catch (error) {
       console.error('[PerformanceMonitor] Error calculating error rate:', error);
@@ -191,7 +187,7 @@ export class PerformanceMonitor {
       
       const recentMetrics = await db
         .select()
-        .from(performanceMetrics)
+        .from(performance_metrics)
         .where(sql`timestamp >= ${oneMinuteAgo}`);
 
       return recentMetrics.length;

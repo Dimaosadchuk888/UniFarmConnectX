@@ -539,26 +539,26 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     relationName: "inviter"
   }),
   // Реферальные доходы пользователя
-  referralEarnings: many(referral_earnings),
+  referralEarnings: many(referralEarnings),
   // Транзакции пользователя
   transactions: many(transactions),
   // Депозиты фарминга
-  farmingDeposits: many(farming_deposits),
+  farmingDeposits: many(farmingDeposits),
   // Миссии пользователя
-  userMissions: many(user_missions),
+  userMissions: many(userMissions),
   // Активные бусты
-  userBoosts: many(user_boosts)
+  userBoosts: many(userBoosts)
 }));
 
-export const referralEarningsRelations = relations(referral_earnings, ({ one }) => ({
+export const referralEarningsRelations = relations(referralEarnings, ({ one }) => ({
   // Пользователь, получивший доход
   user: one(users, {
-    fields: [referral_earnings.user_id],
+    fields: [referralEarnings.user_id],
     references: [users.id]
   }),
   // Пользователь, от которого получен доход
   sourceUser: one(users, {
-    fields: [referral_earnings.source_user_id],
+    fields: [referralEarnings.source_user_id],
     references: [users.id]
   })
 }));
@@ -570,27 +570,27 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   })
 }));
 
-export const farmingDepositsRelations = relations(farming_deposits, ({ one }) => ({
+export const farmingDepositsRelations = relations(farmingDeposits, ({ one }) => ({
   user: one(users, {
-    fields: [farming_deposits.user_id],
+    fields: [farmingDeposits.user_id],
     references: [users.id]
   })
 }));
 
-export const userMissionsRelations = relations(user_missions, ({ one }) => ({
+export const userMissionsRelations = relations(userMissions, ({ one }) => ({
   user: one(users, {
-    fields: [user_missions.user_id],
+    fields: [userMissions.user_id],
     references: [users.id]
   }),
   mission: one(missions, {
-    fields: [user_missions.mission_id],
+    fields: [userMissions.mission_id],
     references: [missions.id]
   })
 }));
 
-export const userBoostsRelations = relations(user_boosts, ({ one }) => ({
+export const userBoostsRelations = relations(userBoosts, ({ one }) => ({
   user: one(users, {
-    fields: [user_boosts.user_id],
+    fields: [userBoosts.user_id],
     references: [users.id]
   })
 }));
