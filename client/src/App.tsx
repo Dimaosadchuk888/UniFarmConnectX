@@ -5,7 +5,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 
 // Layouts and Hooks
-import { MainLayout } from "@/layouts/MainLayout";
+import MainLayout from "@/layouts/MainLayout";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useBalance } from "@/hooks/useBalance";
 
@@ -167,7 +167,10 @@ function App() {
             <UserProvider>
               <WebSocketProvider>
                 <TelegramWebAppCheck>
-                  <MainLayout>
+                  <MainLayout 
+                    activeTab={state.activeTab} 
+                    onTabChange={handleTabChange}
+                  >
                     {renderPage()}
                   </MainLayout>
                   <NetworkStatusIndicator />

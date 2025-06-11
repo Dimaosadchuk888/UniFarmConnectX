@@ -1,40 +1,17 @@
 import React from 'react';
-import QueryErrorBoundary from '@/components/common/QueryErrorBoundary';
-import BoostPackagesCard from './BoostPackagesCard';
-import { useUser } from '@/contexts/userContext';
-import { useQueryClient } from '@tanstack/react-query';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import BoostPackagesCard from '../ton-boost/BoostPackagesCard';
 
-interface BoostPackagesCardWithErrorBoundaryProps {
-  userData?: any;
-}
-
-/**
- * Компонент, оборачивающий BoostPackagesCard в ErrorBoundary
- * для обеспечения устойчивости к ошибкам
- */
-const BoostPackagesCardWithErrorBoundary: React.FC<BoostPackagesCardWithErrorBoundaryProps> = ({ userData }) => {
-  const queryClient = useQueryClient();
-  const { userId } = useUser();
-
-  // Обработчик сброса состояния ошибки и инвалидации данных
-  const handleReset = () => {
-    if (userId) {
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/v2/boosts/packages'] 
-      });
-    }
-  };
-
+const BoostPackagesCardWithErrorBoundary: React.FC = () => {
   return (
-    <QueryErrorBoundary
-      onReset={handleReset}
-      queryKey={['/api/v2/boosts/packages']}
-      errorTitle="Ошибка загрузки UNI бустов"
-      errorDescription="Не удалось загрузить информацию о доступных UNI бустах. Пожалуйста, обновите страницу или повторите позже."
-      resetButtonText="Обновить данные"
-    >
-      <BoostPackagesCard userData={userData} />
-    </QueryErrorBoundary>
+    <ErrorBoundary fallback={
+      <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-red-400 mb-2">Boost Packages Error</h3>
+        <p className="text-red-300">Failed to load boost packages. Please refresh the page.</p>
+      </div>
+    }>
+      <BoostPackagesCard />
+    </ErrorBoundary>
   );
 };
 

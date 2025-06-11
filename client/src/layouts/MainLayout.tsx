@@ -1,21 +1,28 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import Header from '@/components/layout/Header';
 import NavigationBar from '@/components/layout/NavigationBar';
 
 interface MainLayoutProps {
   children: ReactNode;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
 }
 
-export function MainLayout({ children }: MainLayoutProps) {
-  const [activeTab, setActiveTab] = useState('dashboard');
-
+export default function MainLayout({ children, activeTab, onTabChange }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Top Bar */}
       <Header />
-      <main className="container mx-auto px-4 py-6">
-        {children}
+      
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar pb-20">
+        <div className="min-h-full">
+          {children}
+        </div>
       </main>
-      <NavigationBar activeTab={activeTab} setActiveTab={setActiveTab} />
+      
+      {/* Bottom Navigation */}
+      <NavigationBar activeTab={activeTab} setActiveTab={onTabChange} />
     </div>
   );
 }
