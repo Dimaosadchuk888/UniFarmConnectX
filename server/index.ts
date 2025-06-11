@@ -637,12 +637,28 @@ async function startServer() {
       }
     });
 
-    // Обработка ошибок
+    // Static files and SPA routing for production
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    if (isProduction) {
+      // Serve static files
+      app.use(express.static('dist/public'));
+      
+      // SPA fallback - serve index.html for non-API routes
+      app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api/')) {
+          return next(); // Let API routes fall through to 404 handler
+        }
+        res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
+      });
+    }
+
+    // Error handlers (must be last)
     app.use(notFoundHandler);
     app.use(globalErrorHandler);
 
-    // For development, we run API server on different port from frontend
-    const apiPort = process.env.NODE_ENV === 'production' ? config.app.port : 3001;
+    // Port configuration
+    const apiPort = isProduction ? config.app.port : 5000;
     
     // Запуск сервера
     const server = app.listen(apiPort, config.app.host, () => {
