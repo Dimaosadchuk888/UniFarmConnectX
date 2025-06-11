@@ -4,8 +4,8 @@ import { useNotification } from '../../contexts/notificationContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 
 // Схема валидации для формы вывода средств
 const withdrawalFormSchema = z.object({

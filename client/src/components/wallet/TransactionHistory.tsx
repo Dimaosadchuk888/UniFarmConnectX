@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Skeleton } from '../components/ui/skeleton';
+import { Skeleton } from '../ui/skeleton';
 import { useUser } from '../../contexts/userContext';
 import { useNotification } from '../../contexts/notificationContext';
 
