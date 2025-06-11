@@ -1,5 +1,5 @@
 import React from 'react';
-import QueryErrorBoundary from '../components/common/QueryErrorBoundary';
+import QueryErrorBoundary from '../common/QueryErrorBoundary';
 import BoostPackagesCard from './BoostPackagesCard';
 import { useUser } from '../../contexts/userContext';
 import { useQueryClient } from '@tanstack/react-query';
