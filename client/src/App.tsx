@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { queryClient } from "./lib/queryClient";
@@ -37,8 +37,6 @@ interface AppState {
 }
 
 function App() {
-  console.log('[UniFarm Debug] App.tsx загружается...');
-  
   const [state, setState] = useState<AppState>({
     isLoading: true,
     userId: null,
