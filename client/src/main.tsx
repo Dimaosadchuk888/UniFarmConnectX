@@ -2,18 +2,27 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
-import { ErrorBoundaryContext } from "./contexts/ErrorBoundaryContext";
+import { ReplitErrorBoundaryContext } from "./contexts/ReplitErrorBoundaryContext";
 
 // Простая инициализация без сложной логики DOM
 console.log('[UniFarm] Запуск приложения...');
 
-// Make ErrorBoundaryContext globally available for @replit/vite-plugin-runtime-error-modal
-(window as any).ErrorBoundaryContext = ErrorBoundaryContext;
+// Create a minimal ErrorBoundaryContext implementation for @replit/vite-plugin-runtime-error-modal
+const createErrorBoundaryContext = () => {
+  const context = React.createContext({
+    error: null,
+    setError: () => {},
+    clearError: () => {},
+    hasError: false,
+    reportError: () => {}
+  });
+  return context;
+};
 
-// Create a fallback global context if the plugin expects it in a different format
+// Make ErrorBoundaryContext globally available
 if (typeof window !== 'undefined') {
   (window as any).React = React;
-  (window as any).ErrorBoundaryContext = ErrorBoundaryContext;
+  (window as any).ErrorBoundaryContext = createErrorBoundaryContext();
 }
 
 const rootElement = document.getElementById("root");

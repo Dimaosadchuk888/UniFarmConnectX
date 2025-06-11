@@ -4,7 +4,7 @@ import { correctApiRequest } from '@/lib/correctApiRequest';
 import { apiRequest, invalidateQueryWithUserId } from '@/lib/queryClient';
 import BigNumber from 'bignumber.js';
 import { useUser } from '@/contexts/userContext';
-import useErrorBoundary from '@/hooks/useErrorBoundary';
+// import useErrorBoundary from '@/hooks/useErrorBoundary'; // Removed due to runtime-error-plugin conflict
 import { useNotification } from '@/contexts/notificationContext';
 
 interface UniFarmingCardProps {
@@ -72,13 +72,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     );
   }
 
-  // Применяем Error Boundary к компоненту
-  const withErrorBoundary = useErrorBoundary({
-    queryKey: ['/api/v2/uni-farming/status', userId],
-    errorTitle: 'Ошибка загрузки UNI фарминга',
-    errorDescription: 'Не удалось загрузить информацию о вашем UNI фарминге. Пожалуйста, обновите страницу или повторите позже.',
-    resetButtonText: 'Обновить данные'
-  });
+  // Error boundary handling removed due to runtime-error-plugin conflict
 
   // Получаем информацию о фарминге с динамическим ID пользователя
   const { data: farmingResponse, isLoading } = useQuery<{ success: boolean; data: FarmingInfo }>({

@@ -15,7 +15,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
 import { WebSocketProvider } from "@/contexts/webSocketContext";
 import { NotificationProvider } from "@/contexts/notificationContext";
-import { ErrorBoundaryProvider } from "@/contexts/ErrorBoundaryContext";
+// import { ErrorBoundaryProvider } from "@/contexts/ErrorBoundaryContext"; // Removed due to runtime-error-plugin conflict
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 
 // Pages
@@ -161,7 +161,6 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
-        <ErrorBoundaryProvider>
           <ErrorBoundary>
             <NotificationProvider>
             <UserProvider>
@@ -180,7 +179,6 @@ function App() {
             </UserProvider>
           </NotificationProvider>
           </ErrorBoundary>
-        </ErrorBoundaryProvider>
       </TonConnectUIProvider>
     </QueryClientProvider>
   );
