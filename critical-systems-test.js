@@ -251,23 +251,20 @@ class CriticalSystemsTest {
         }
       }
 
-      // Check for lazy loading
-      const pagesDir = 'client/src/pages';
-      if (fs.existsSync(pagesDir)) {
-        const files = fs.readdirSync(pagesDir);
-        let lazyLoading = false;
+      // Check for lazy loading in App.tsx
+      if (fs.existsSync(appFile)) {
+        const appContent = fs.readFileSync(appFile, 'utf8');
+        const hasLazyImports = appContent.includes('const Dashboard = lazy') || 
+                              appContent.includes('const Wallet = lazy') ||
+                              appContent.includes('const Farming = lazy');
+        const hasSuspense = appContent.includes('Suspense fallback');
         
-        files.forEach(file => {
-          if (file.endsWith('.tsx')) {
-            const content = fs.readFileSync(`${pagesDir}/${file}`, 'utf8');
-            if (content.includes('lazy') || content.includes('Suspense')) {
-              lazyLoading = true;
-            }
-          }
-        });
-
-        if (lazyLoading) {
-          this.testResults.push(`✓ Lazy loading implemented`);
+        if (hasLazyImports && hasSuspense) {
+          this.testResults.push(`✓ Lazy loading implemented for pages`);
+          this.testResults.push(`✓ Suspense fallback configured`);
+        } else if (hasLazyImports) {
+          this.testResults.push(`✓ Lazy imports found`);
+          this.errors.push(`⚠️ Suspense fallback missing`);
         } else {
           this.errors.push(`⚠️ No lazy loading found`);
         }

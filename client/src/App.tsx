@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { queryClient } from "./lib/queryClient";
@@ -18,12 +18,12 @@ import { NotificationProvider } from "@/contexts/notificationContext";
 // import { ErrorBoundaryProvider } from "@/contexts/ErrorBoundaryContext"; // Removed due to runtime-error-plugin conflict
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 
-// Pages
-import Dashboard from "@/pages/Dashboard";
-import Farming from "@/pages/Farming";
-import Missions from "@/pages/Missions";
-import Friends from "@/pages/Friends";
-import Wallet from "@/pages/Wallet";
+// Lazy-loaded Pages
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Farming = lazy(() => import("@/pages/Farming"));
+const Missions = lazy(() => import("@/pages/Missions"));
+const Friends = lazy(() => import("@/pages/Friends"));
+const Wallet = lazy(() => import("@/pages/Wallet"));
 
 // Services
 import userService from '@/services/userService';
@@ -127,20 +127,35 @@ function App() {
   };
 
   const renderPage = () => {
-    switch (state.activeTab) {
-      case "dashboard":
-        return <Dashboard />;
-      case "farming":
-        return <Farming />;
-      case "missions":
-        return <Missions />;
-      case "friends":
-        return <Friends />;
-      case "wallet":
-        return <Wallet />;
-      default:
-        return <Dashboard />;
-    }
+    const PageLoadingSpinner = () => (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">Загрузка...</p>
+        </div>
+      </div>
+    );
+
+    return (
+      <Suspense fallback={<PageLoadingSpinner />}>
+        {(() => {
+          switch (state.activeTab) {
+            case "dashboard":
+              return <Dashboard />;
+            case "farming":
+              return <Farming />;
+            case "missions":
+              return <Missions />;
+            case "friends":
+              return <Friends />;
+            case "wallet":
+              return <Wallet />;
+            default:
+              return <Dashboard />;
+          }
+        })()}
+      </Suspense>
+    );
   };
 
   // Loading state
