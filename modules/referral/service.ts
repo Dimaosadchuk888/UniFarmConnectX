@@ -256,7 +256,7 @@ export class ReferralService {
           return sum + parseFloat(ref.reward_uni || "0");
         }, 0);
         const totalTon = levelReferrals.reduce((sum, ref) => {
-          return sum + parseFloat(ref.reward_ton || "0");
+          return sum + parseFloat((ref as any).reward_ton || "0");
         }, 0);
 
         levelIncome[i.toString()] = {
@@ -280,7 +280,7 @@ export class ReferralService {
             username: referredUser?.username,
             level: referral.level,
             reward_uni: referral.reward_uni || "0",
-            reward_ton: referral.reward_ton || "0",
+            reward_ton: (referral as any).reward_ton || "0",
             created_at: referral.created_at
           };
         })

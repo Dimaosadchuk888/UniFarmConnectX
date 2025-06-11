@@ -30,7 +30,7 @@ router.use('/wallet', walletRoutes);
 router.use('/farming', farmingRoutes);
 router.use('/uni-farming', farmingRoutes); // Alias for backward compatibility
 router.use('/missions', missionsRoutes);
-router.use('/referral', referralRoutes);
+router.use('/referrals', referralRoutes);
 router.use('/boost', boostRoutes);
 router.use('/daily-bonus', dailyBonusRoutes);
 
