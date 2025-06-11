@@ -1,6 +1,7 @@
 import { db } from '../../server/db.js';
 import { users, transactions } from '../../shared/schema.js';
 import { eq, and, desc, gte, lt } from 'drizzle-orm';
+import { logger } from '../../core/logger.js';
 
 export class DailyBonusService {
   /**
@@ -105,8 +106,17 @@ export class DailyBonusService {
         ? new Date(user.checkin_last_date).toISOString().split('T')[0] 
         : null;
 
+      const timestamp = new Date().toISOString();
+
       // Проверяем, можно ли получить бонус
       if (lastCheckin === today) {
+        logger.warn(`[DAILY_BONUS] Claim rejected for user ${userId}: already claimed today`, {
+          userId,
+          lastCheckin,
+          today,
+          reason: 'already_claimed_today',
+          timestamp
+        });
         return { amount: "0", claimed: false };
       }
 
@@ -130,9 +140,23 @@ export class DailyBonusService {
       const streakBonus = Math.min((newStreak - 1) * 2, 20); // Максимум +20 UNI за серию
       const totalBonus = baseBonus + streakBonus;
 
+      if (totalBonus <= 0) {
+        logger.warn(`[DAILY_BONUS] Invalid bonus amount calculated for user ${userId}`, {
+          userId,
+          baseBonus,
+          streakBonus,
+          totalBonus,
+          newStreak,
+          reason: 'invalid_bonus_amount',
+          timestamp
+        });
+        return { amount: "0", claimed: false };
+      }
+
+      const previousBalance = parseFloat(user.balance_uni || "0");
+      const newBalance = (previousBalance + totalBonus).toFixed(8);
+
       // Обновляем данные пользователя
-      const newBalance = (parseFloat(user.balance_uni || "0") + totalBonus).toString();
-      
       await db
         .update(users)
         .set({
@@ -141,6 +165,22 @@ export class DailyBonusService {
           checkin_streak: newStreak
         })
         .where(eq(users.id, parseInt(userId)));
+
+      // ОСНОВНОЕ ЛОГИРОВАНИЕ ДОХОДНОЙ ОПЕРАЦИИ ДНЕВНОГО БОНУСА
+      logger.info(`[DAILY_BONUS] User ${userId} earned ${totalBonus} UNI daily bonus (streak ${newStreak}) at ${timestamp}`, {
+        userId,
+        amount: totalBonus.toString(),
+        currency: 'UNI',
+        previousBalance: previousBalance.toFixed(8),
+        newBalance,
+        streak: newStreak,
+        baseBonus,
+        streakBonus,
+        previousStreak: user.checkin_streak || 0,
+        lastCheckin,
+        operation: 'daily_bonus',
+        timestamp
+      });
 
       // Записываем транзакцию
       await db
@@ -152,6 +192,14 @@ export class DailyBonusService {
           currency: 'UNI',
           status: 'completed'
         });
+
+      logger.debug(`[DAILY_BONUS] Transaction recorded for daily bonus`, {
+        userId,
+        transactionType: 'daily_bonus',
+        amount: totalBonus.toString(),
+        streak: newStreak,
+        timestamp
+      });
 
       return { amount: totalBonus.toString(), claimed: true };
     } catch (error) {
