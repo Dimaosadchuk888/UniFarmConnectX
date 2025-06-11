@@ -651,13 +651,6 @@ async function startServer() {
           return next();
         }
         
-        // Check if static file exists
-        const filePath = path.join(process.cwd(), 'dist/public', req.path);
-        const fs = await import('fs');
-        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-          return res.sendFile(filePath);
-        }
-        
         // Fallback to index.html for SPA routing
         res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
       });
@@ -666,7 +659,7 @@ async function startServer() {
       app.use(express.static(path.join(process.cwd(), 'client')));
       app.use('/assets', express.static(path.join(process.cwd(), 'attached_assets')));
       
-      app.get('*', (req, res) => {
+      app.get('*', (req: any, res: any, next: any) => {
         if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
           return next();
         }
