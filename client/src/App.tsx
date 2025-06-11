@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
+import { Router, Route, Switch } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -171,12 +172,23 @@ function App() {
             <UserProvider>
               <WebSocketProvider>
                 <TelegramWebAppCheck>
-                  <MainLayout 
-                    activeTab={state.activeTab} 
-                    onTabChange={handleTabChange}
-                  >
-                    {renderPage()}
-                  </MainLayout>
+                  <Router>
+                    <MainLayout 
+                      activeTab={state.activeTab} 
+                      onTabChange={handleTabChange}
+                    >
+                      <Switch>
+                        <Route path="/" component={Dashboard} />
+                        <Route path="/dashboard" component={Dashboard} />
+                        <Route path="/farming" component={Farming} />
+                        <Route path="/missions" component={Missions} />
+                        <Route path="/missions-nav" component={Missions} />
+                        <Route path="/friends" component={Friends} />
+                        <Route path="/wallet" component={Wallet} />
+                        <Route>{renderPage()}</Route>
+                      </Switch>
+                    </MainLayout>
+                  </Router>
                   <NetworkStatusIndicator />
                   <Toaster />
                 </TelegramWebAppCheck>
