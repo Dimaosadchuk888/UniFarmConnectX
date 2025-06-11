@@ -145,11 +145,10 @@ function App() {
   // Loading state
   if (state.isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-300">Загрузка UniFarm...</p>
-          <p className="text-sm text-gray-500 mt-2">React App Loading</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Загрузка UniFarm...</p>
         </div>
       </div>
     );

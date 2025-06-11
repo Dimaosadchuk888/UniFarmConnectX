@@ -11,10 +11,6 @@ import DailyBonusCard from '@/components/dashboard/DailyBonusCard';
 import SystemStatusIndicator from '@/components/ui/SystemStatusIndicator';
 import UniFarmingCardWithErrorBoundary from '@/components/farming/UniFarmingCardWithErrorBoundary';
 
-
-
-
-
 const Dashboard: React.FC = () => {
   const { userId } = useUser();
 
