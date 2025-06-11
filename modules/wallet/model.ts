@@ -2,9 +2,21 @@
  * Модели кошелька - описывают структуры таблиц wallet и transactions в базе данных
  */
 
-// Імпортуємо централізовані enum типи
-import { TransactionType, TransactionStatus } from '../../shared/schema.js';
-export { TransactionType, TransactionStatus };
+// Define wallet-specific enums
+export enum TransactionType {
+  DEPOSIT = 'deposit',
+  WITHDRAWAL = 'withdrawal',
+  FARMING_REWARD = 'farming_reward',
+  REFERRAL_BONUS = 'referral_bonus',
+  DAILY_BONUS = 'daily_bonus'
+}
+
+export enum TransactionStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled'
+}
 
 export interface WalletModel {
   id: string;

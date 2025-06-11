@@ -2,9 +2,20 @@
  * Модели реферальной системы - описывают структуры таблиц referrals в базе данных
  */
 
-// Імпортуємо централізовані enum типи
-import { ReferralStatus, ReferralEarningType } from '../../shared/schema';
-export { ReferralStatus, ReferralEarningType };
+// Define referral-specific enums
+export enum ReferralStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  PENDING = 'pending',
+  COMPLETED = 'completed'
+}
+
+export enum ReferralEarningType {
+  DIRECT_REFERRAL = 'direct_referral',
+  INDIRECT_REFERRAL = 'indirect_referral',
+  FARMING_BONUS = 'farming_bonus',
+  MILESTONE_BONUS = 'milestone_bonus'
+}
 
 export interface ReferralModel {
   id: string;
