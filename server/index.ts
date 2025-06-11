@@ -655,16 +655,17 @@ async function startServer() {
         res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
       });
     } else {
-      // Development mode - serve static files
-      app.use(express.static(path.join(process.cwd(), 'client')));
-      app.use('/assets', express.static(path.join(process.cwd(), 'attached_assets')));
-      
-      app.get('*', (req: any, res: any, next: any) => {
-        if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
-          return next();
-        }
-        res.sendFile(path.join(process.cwd(), 'client/index.html'));
+      // Development mode - use Vite dev server
+      const { setupVite } = await import('./vite.js');
+      const server = app.listen(apiPort, config.app.host, async () => {
+        logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
+        logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
+        logger.info(`🌐 Frontend: http://${config.app.host}:5173/ (Vite dev server)`);
+        
+        // Setup Vite after server starts
+        await setupVite(app, server);
       });
+      return;
     }
 
     // Error handlers (must be last)
