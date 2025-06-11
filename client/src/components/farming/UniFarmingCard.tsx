@@ -843,8 +843,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
     }
   };
 
-  // Оборачиваем весь компонент в Error Boundary
-  return withErrorBoundary(
+  // Error boundary wrapper removed due to runtime-error-plugin conflict
+  return (
     <div className="bg-card rounded-xl p-4 mb-5 shadow-md">
       <h2 className="text-xl font-semibold mb-3 text-primary">Основной UNI пакет</h2>
 
