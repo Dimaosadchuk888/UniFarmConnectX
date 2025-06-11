@@ -2,10 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ИСПРАВЛЕНИЕ: Базовые стили для устранения черного экрана */
 html, body {
-  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%) !important;
-  color: #ffffff !important;
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+  color: #ffffff;
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -14,20 +13,14 @@ html, body {
 
 #root {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%) !important;
-  color: #ffffff !important;
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+  color: #ffffff;
   display: flex;
   flex-direction: column;
 }
 
-/* Принудительное исправление для всех элементов */
 * {
   box-sizing: border-box;
-}
-
-body {
-  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%) !important;
-  color: #ffffff !important;
 }
 
 @keyframes shimmer {
