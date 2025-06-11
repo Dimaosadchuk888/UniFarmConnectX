@@ -496,6 +496,19 @@ body {
   background-color: transparent;
 }
 
+/* Специальные стили для оригинального дизайна UniFarm */
+.unifarm-logo-glow {
+  animation: logo-glow 3s ease-in-out infinite;
+}
+
+.greeting-text {
+  animation: fadeIn 0.8s ease-out;
+}
+
+.subtle-pattern {
+  position: relative;
+}
+
 .farming-history-scroll::-webkit-scrollbar-track,
 .farming-history-scroll::-webkit-scrollbar-thumb,
 .farming-history-scroll::-webkit-scrollbar-corner,
