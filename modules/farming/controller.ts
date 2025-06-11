@@ -7,14 +7,15 @@ const farmingService = new FarmingService();
 export class FarmingController extends BaseController {
   async getFarmingData(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
-      const telegramUser = this.getTelegramUser(req);
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return; // 401 уже отправлен
       
       const farmingData = await farmingService.getFarmingDataByTelegramId(
-        telegramUser.telegram_id.toString()
+        telegram.user.id.toString()
       );
 
       console.log('[Farming] Данные фарминга для пользователя:', {
-        telegram_id: telegramUser.telegram_id,
+        telegram_id: telegram.user.id,
         farming_data: farmingData
       });
 

@@ -7,14 +7,15 @@ const walletService = new WalletService();
 export class WalletController extends BaseController {
   async getWalletData(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
-      const telegramUser = this.getTelegramUser(req);
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return; // 401 уже отправлен
 
       const walletData = await walletService.getWalletDataByTelegramId(
-        telegramUser.telegram_id.toString()
+        telegram.user.id.toString()
       );
 
       console.log('[Wallet] Данные кошелька для пользователя:', {
-        telegram_id: telegramUser.telegram_id,
+        telegram_id: telegram.user.id,
         uni_balance: walletData.uni_balance,
         ton_balance: walletData.ton_balance,
         transactions_count: walletData.transactions.length

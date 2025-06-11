@@ -7,14 +7,15 @@ const missionsService = new MissionsService();
 export class MissionsController extends BaseController {
   async getActiveMissions(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
-      const telegramUser = this.getTelegramUser(req);
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return; // 401 уже отправлен
 
       const missions = await missionsService.getActiveMissionsByTelegramId(
-        telegramUser.telegram_id.toString()
+        telegram.user.id.toString()
       );
 
       console.log('[Missions] Получены миссии для пользователя:', {
-        telegram_id: telegramUser.telegram_id,
+        telegram_id: telegram.user.id,
         missions_count: missions.length
       });
 
