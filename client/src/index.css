@@ -811,77 +811,44 @@ body {
     rgba(255, 255, 255, 0) 100%);
   background-size: 200% 100%;
   animation: metallic-shine 5s ease infinite;
-  mix-blend-mode: overlay;
-  opacity: 0.2;
 }
 
-/* Улучшенное свечение для монеты */
 .unifarm-logo-glow {
   animation: logo-glow 3s ease-in-out infinite;
-  position: relative;
-  z-index: 1;
 }
 
-/* Дополнительные анимации и стили для карточки */
-@keyframes card-gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-.welcome-card-bg {
-  background: linear-gradient(120deg, 
-    rgba(162, 89, 255, 0.8), 
-    rgba(179, 104, 247, 0.6), 
-    rgba(130, 71, 204, 0.7),
-    rgba(110, 61, 173, 0.7));
-  background-size: 200% 200%;
-  animation: card-gradient 15s ease infinite;
-}
-
-.subtle-pattern {
-  background-image: 
-    radial-gradient(circle at 25px 25px, rgba(255, 255, 255, 0.1) 2px, transparent 0),
-    radial-gradient(circle at 75px 75px, rgba(255, 255, 255, 0.1) 2px, transparent 0);
-  background-size: 100px 100px;
-  background-position: 0 0, 50px 50px;
-}
-
-@keyframes float {
-  0% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-5px) rotate(1deg);
-  }
-  100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-}
-
-.float-animation {
-  animation: float 6s ease-in-out infinite;
-}
-
-/* Стилизация текста приветствия */
-.greeting-text {
-  animation: fadeIn 0.8s ease-in forwards;
-  opacity: 0;
-}
-
-@keyframes fadeIn {
-  from { 
+/* Анимация появления текста приветствия */
+@keyframes greeting-text {
+  from {
     opacity: 0;
-    transform: translateY(5px);
+    transform: translateY(10px);
   }
-  to { 
+  to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.greeting-text {
+  animation: greeting-text 0.8s ease-out forwards;
+}
+
+/* Паттерн приветственной карточки */
+.subtle-pattern {
+  position: relative;
+}
+
+.subtle-pattern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border-radius: inherit;
+  pointer-events: none;
 }
