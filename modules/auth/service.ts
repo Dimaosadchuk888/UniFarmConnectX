@@ -1,8 +1,8 @@
 import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type TelegramUser, type JWTPayload } from '../../utils/telegram';
+import { UserService, type UserInfo } from '../users/service';
 import { db } from '../../server/db';
 import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
-import { customAlphabet } from 'nanoid';
 
 interface AuthResponse {
   success: boolean;
@@ -28,10 +28,16 @@ interface SessionInfo {
 }
 
 export class AuthService {
+  private userService: UserService;
+
+  constructor() {
+    this.userService = new UserService();
+  }
+
   /**
    * Authenticates user via Telegram initData with HMAC validation
    */
-  async authenticateWithTelegram(initData: string): Promise<AuthResponse> {
+  async authenticateWithTelegram(initData: string, refBy?: string): Promise<AuthResponse> {
     try {
       console.log('[AuthService] Starting Telegram authentication');
       

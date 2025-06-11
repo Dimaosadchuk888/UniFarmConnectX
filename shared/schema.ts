@@ -74,12 +74,14 @@ export type AuthUser = typeof authUsers.$inferSelect;
 // Схемы для таблицы users
 export const insertUserSchema = createInsertSchema(users).pick({
   telegram_id: true,
-  guest_id: true, // Добавляем guest_id в схему вставки
+  guest_id: true,
   username: true,
   wallet: true,
   ton_wallet_address: true,
-  ref_code: true, // Добавляем поле ref_code в схему вставки
-  parent_ref_code: true, // Добавляем поле parent_ref_code в схему вставки
+  ref_code: true,
+  parent_ref_code: true,
+  balance_uni: true,
+  balance_ton: true
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
