@@ -17,7 +17,7 @@
     "types": ["node", "vite/client"],
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@/*": ["./"],
+      "@/*": ["./client/src/*"],
       "@/core/*": ["./core/*"],
       "@/modules/*": ["./modules/*"],
       "@/server/*": ["./server/*"],
@@ -25,7 +25,8 @@
       "@/config/*": ["./config/*"],
       "@/types/*": ["./types/*"],
       "@/services/*": ["./client/src/services/*"],
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./shared/*"],
+      "@assets/*": ["./attached_assets/*"]
     }
   }
 }
