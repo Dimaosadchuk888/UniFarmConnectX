@@ -31,6 +31,7 @@ process.on('SIGINT', () => {
   console.log('Остановка сервера...');
   process.exit(0);
 });
+*/
 
 process.on('SIGTERM', () => {
   console.log('Остановка сервера...');
