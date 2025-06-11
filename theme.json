@@ -1,6 +1,6 @@
 {
-  "primary": "#8b5cf6",
-  "variant": "professional",
-  "appearance": "dark",
-  "radius": 8
+  "primary": "#000000",
+  "variant": "professional", 
+  "appearance": "light",
+  "radius": 4
 }
