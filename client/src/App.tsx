@@ -13,7 +13,7 @@ import { useBalance } from "@/hooks/useBalance";
 // Components
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { UserProvider } from "@/contexts/userContext";
+import { UserProvider } from "@/contexts/simpleUserContext";
 import { WebSocketProvider } from "@/contexts/webSocketContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
@@ -164,50 +164,26 @@ function App() {
   // В случае ошибки аутентификации всё равно загружаем основной интерфейс
   // Ошибки будут отображаться в уведомлениях, но не блокируют UI
 
-  // Временный простой интерфейс для диагностики черного экрана
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', color: 'white', padding: '20px' }}>
-      <h1 style={{ color: '#8b5cf6', marginBottom: '20px' }}>UniFarm - Тестовый режим</h1>
-      <div style={{ backgroundColor: '#1a1a1a', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-        <h2>Статус приложения:</h2>
-        <p>✓ Сервер запущен</p>
-        <p>✓ Telegram WebApp API инициализирован</p>
-        <p>✓ React приложение загружено</p>
-        <p>State: {JSON.stringify(state)}</p>
-      </div>
-      
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: '#0f0f23', 
+      color: 'white',
+      fontFamily: 'system-ui, sans-serif'
+    }}>
       <QueryClientProvider client={queryClient}>
-        <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
-          <ErrorBoundary>
-            <NotificationProvider>
-              <UserProvider>
-                <WebSocketProvider>
-                  <TelegramWebAppCheck>
-                    <Router>
-                      <MainLayout 
-                        activeTab={state.activeTab} 
-                        onTabChange={handleTabChange}
-                      >
-                        <Switch>
-                          <Route path="/" component={() => <Dashboard />} />
-                          <Route path="/dashboard" component={() => <Dashboard />} />
-                          <Route path="/farming" component={() => <Farming />} />
-                          <Route path="/missions" component={() => <Missions />} />
-                          <Route path="/missions-nav" component={() => <Missions />} />
-                          <Route path="/friends" component={() => <Friends />} />
-                          <Route path="/wallet" component={() => <Wallet />} />
-                          <Route>{renderPage()}</Route>
-                        </Switch>
-                      </MainLayout>
-                    </Router>
-                    <NetworkStatusIndicator />
-                    <Toaster />
-                  </TelegramWebAppCheck>
-                </WebSocketProvider>
-              </UserProvider>
-            </NotificationProvider>
-          </ErrorBoundary>
-        </TonConnectUIProvider>
+        <ErrorBoundary>
+          <UserProvider>
+            <TelegramWebAppCheck>
+              <MainLayout 
+                activeTab={state.activeTab} 
+                onTabChange={handleTabChange}
+              >
+                {renderPage()}
+              </MainLayout>
+            </TelegramWebAppCheck>
+          </UserProvider>
+        </ErrorBoundary>
       </QueryClientProvider>
     </div>
   );
