@@ -1,3 +1,5 @@
+// DEPRECATED: Use server/index.ts as the main server entry point
+/*
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';

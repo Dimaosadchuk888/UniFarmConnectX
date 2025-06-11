@@ -1,3 +1,8 @@
+// DEPRECATED: Alternative server entry point
+// Use server/index.ts as the main server entry point
+// This file is kept for reference but should not be used
+
+/*
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
