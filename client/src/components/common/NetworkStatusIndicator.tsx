@@ -5,7 +5,7 @@ import {
   Alert,
   AlertTitle,
   AlertDescription
-} from '../components/ui/alert';
+} from '../ui/alert';
 import { WifiIcon, WifiOffIcon, ServerIcon, ServerOffIcon } from 'lucide-react';
 
 type AlertType = 'online' | 'offline' | 'wsConnected' | 'wsDisconnected' | 'hidden';
