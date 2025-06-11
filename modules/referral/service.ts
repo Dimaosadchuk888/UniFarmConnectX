@@ -28,13 +28,14 @@ export class ReferralService {
   }
 
   /**
-   * Обрабатывает реферальную связь между пользователями
+   * Обрабатывает реферальную связь между пользователями с защитой от циклов
    */
-  async processReferral(refCode: string, newUserId: string): Promise<boolean> {
+  async processReferral(refCode: string, newUserId: string): Promise<{ success: boolean; error?: string; cyclicError?: boolean }> {
     try {
       const { db } = await import('../../server/db.js');
       const { users, referrals } = await import('../../shared/schema.js');
       const { eq } = await import('drizzle-orm');
+      const { logger } = await import('../../core/logger.js');
 
       // Находим пользователя с таким реферальным кодом
       const [inviter] = await db
@@ -43,8 +44,49 @@ export class ReferralService {
         .where(eq(users.ref_code, refCode))
         .limit(1);
 
-      if (!inviter) return false;
+      if (!inviter) {
+        logger.warn(`[REFERRAL] Реферальный код ${refCode} не найден`, {
+          refCode,
+          newUserId
+        });
+        return { success: false, error: 'Реферальный код не найден' };
+      }
 
+      // Получаем данные нового пользователя для проверки циклов
+      const [newUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, parseInt(newUserId)))
+        .limit(1);
+
+      if (!newUser) {
+        logger.warn(`[REFERRAL] Новый пользователь ${newUserId} не найден`, {
+          refCode,
+          newUserId
+        });
+        return { success: false, error: 'Пользователь не найден' };
+      }
+
+      // ⭐ ПРОВЕРКА НА ЦИКЛИЧЕСКИЕ ССЫЛКИ
+      const isCyclic = await this.isCyclicReferral(inviter.id, newUser.telegram_id?.toString() || newUserId);
+      
+      if (isCyclic) {
+        logger.warn(`[REFERRAL] Цикл обнаружен при регистрации ${newUser.telegram_id} → refBy ${inviter.id}`, {
+          newUserId: newUser.id,
+          newUserTelegramId: newUser.telegram_id,
+          inviterId: inviter.id,
+          refCode,
+          error: 'cyclic_referral_detected'
+        });
+        
+        return { 
+          success: false, 
+          error: 'Обнаружена циклическая ссылка в реферальной цепочке', 
+          cyclicError: true 
+        };
+      }
+
+      // Если циклов нет, продолжаем обработку
       // Обновляем нового пользователя, указывая родительский реферальный код
       await db
         .update(users)
@@ -62,10 +104,26 @@ export class ReferralService {
           created_at: new Date()
         });
 
-      return true;
+      logger.info(`[REFERRAL] Успешно обработана реферальная связь: ${newUser.telegram_id} → ${inviter.id}`, {
+        newUserId: newUser.id,
+        newUserTelegramId: newUser.telegram_id,
+        inviterId: inviter.id,
+        refCode,
+        rewardUni: "10"
+      });
+
+      return { success: true };
     } catch (error) {
+      const { logger } = await import('../../core/logger.js');
+      logger.error('[ReferralService] Ошибка обработки реферала:', {
+        refCode,
+        newUserId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
       console.error('[ReferralService] Ошибка обработки реферала:', error);
-      return false;
+      return { success: false, error: 'Внутренняя ошибка сервера' };
     }
   }
 
@@ -173,12 +231,136 @@ export class ReferralService {
   }
 
   /**
-   * Валидирует реферальный код
+   * Проверяет наличие циклических ссылок в реферальной цепочке
+   * Предотвращает ситуации типа A → B → C → A
    */
-  async validateReferralCode(refCode: string): Promise<boolean> {
+  async isCyclicReferral(refById: number, newUserTelegramId: string): Promise<boolean> {
+    try {
+      const { db } = await import('../../server/db.js');
+      const { users } = await import('../../shared/schema.js');
+      const { eq } = await import('drizzle-orm');
+      const { logger } = await import('../../core/logger.js');
+
+      // Получаем данные нового пользователя
+      const [newUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegram_id, parseInt(newUserTelegramId)))
+        .limit(1);
+
+      if (!newUser) {
+        return false; // Пользователь не найден, цикла нет
+      }
+
+      // Проверяем прямой цикл: пользователь ссылается сам на себя
+      if (refById === newUser.id) {
+        logger.warn(`[REFERRAL] Прямой цикл обнаружен: пользователь ${newUserTelegramId} (ID: ${newUser.id}) пытается ссылаться сам на себя`, {
+          newUserId: newUser.id,
+          refById,
+          telegramId: newUserTelegramId,
+          cycleType: 'direct'
+        });
+        return true;
+      }
+
+      // Строим цепочку рефереров до 20 уровней вверх
+      const visitedUsers = new Set<number>();
+      let currentRefId = refById;
+      let depth = 0;
+
+      while (currentRefId && depth < 20) {
+        // Если мы уже встречали этого пользователя в цепочке - цикл обнаружен
+        if (visitedUsers.has(currentRefId)) {
+          logger.warn(`[REFERRAL] Косвенный цикл обнаружен при регистрации ${newUserTelegramId} → refBy ${refById}`, {
+            newUserId: newUser.id,
+            newUserTelegramId,
+            refById,
+            currentRefId,
+            visitedChain: Array.from(visitedUsers),
+            depth,
+            cycleType: 'indirect'
+          });
+          return true;
+        }
+
+        // Если новый пользователь уже есть в цепочке - это создаст цикл
+        if (currentRefId === newUser.id) {
+          logger.warn(`[REFERRAL] Цикл обнаружен: новый пользователь ${newUserTelegramId} (ID: ${newUser.id}) уже присутствует в реферальной цепочке`, {
+            newUserId: newUser.id,
+            newUserTelegramId,
+            refById,
+            currentRefId,
+            visitedChain: Array.from(visitedUsers),
+            depth,
+            cycleType: 'insertion_cycle'
+          });
+          return true;
+        }
+
+        visitedUsers.add(currentRefId);
+
+        // Получаем реферера текущего пользователя
+        const [currentUser] = await db
+          .select({
+            id: users.id,
+            parent_ref_code: users.parent_ref_code
+          })
+          .from(users)
+          .where(eq(users.id, currentRefId))
+          .limit(1);
+
+        if (!currentUser || !currentUser.parent_ref_code) {
+          // Достигли корня цепочки, цикла нет
+          break;
+        }
+
+        // Находим пользователя с родительским реферальным кодом
+        const [parentUser] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.ref_code, currentUser.parent_ref_code))
+          .limit(1);
+
+        if (!parentUser) {
+          // Некорректная ссылка в цепочке, прерываем
+          break;
+        }
+
+        currentRefId = parentUser.id;
+        depth++;
+      }
+
+      // Если мы прошли всю цепочку без циклов
+      logger.debug(`[REFERRAL] Цикл не обнаружен для пользователя ${newUserTelegramId} → refBy ${refById}`, {
+        newUserId: newUser.id,
+        newUserTelegramId,
+        refById,
+        chainDepth: depth,
+        visitedCount: visitedUsers.size
+      });
+
+      return false;
+    } catch (error) {
+      const { logger } = await import('../../core/logger.js');
+      logger.error('[ReferralService] Ошибка проверки циклических ссылок:', {
+        refById,
+        newUserTelegramId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
+      console.error('[ReferralService] Ошибка проверки циклических ссылок:', error);
+      return true; // В случае ошибки считаем, что есть цикл (безопасный подход)
+    }
+  }
+
+  /**
+   * Валидирует реферальный код с проверкой на циклы
+   */
+  async validateReferralCode(refCode: string, newUserTelegramId?: string): Promise<{ valid: boolean; cyclicError?: boolean }> {
     try {
       if (!refCode || refCode.length < 6) {
-        return false;
+        return { valid: false };
       }
 
       const { db } = await import('../../server/db');
@@ -186,16 +368,28 @@ export class ReferralService {
       const { eq } = await import('drizzle-orm');
 
       // Проверяем существование пользователя с таким реферальным кодом
-      const [user] = await db
+      const [referrer] = await db
         .select()
         .from(users)
         .where(eq(users.ref_code, refCode))
         .limit(1);
 
-      return !!user;
+      if (!referrer) {
+        return { valid: false };
+      }
+
+      // Если указан новый пользователь, проверяем на циклические ссылки
+      if (newUserTelegramId) {
+        const isCyclic = await this.isCyclicReferral(referrer.id, newUserTelegramId);
+        if (isCyclic) {
+          return { valid: false, cyclicError: true };
+        }
+      }
+
+      return { valid: true };
     } catch (error) {
       console.error('[ReferralService] Ошибка валидации реферального кода:', error);
-      return false;
+      return { valid: false };
     }
   }
 
