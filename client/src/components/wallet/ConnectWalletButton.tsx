@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Button } from '../components/ui/button';
+import { Button } from '@/components/ui/button';
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '../components/ui/tooltip';
+} from '@/components/ui/tooltip';
 import { useUser } from '../../contexts/userContext';
 import { useNotification } from '../../contexts/notificationContext';
 

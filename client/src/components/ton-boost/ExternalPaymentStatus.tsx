@@ -7,8 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter
-} from "../components/ui/dialog";
-import { Button } from "../components/ui/button";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, ExternalLink, Wallet } from "lucide-react";
 import { useToast } from '../../hooks/use-toast';
 

@@ -3,8 +3,8 @@
  * Ранее блокировал приложение вне Telegram, теперь просто отключен согласно новому ТЗ
  */
 import React from 'react';
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "../components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
 const NotInTelegramWarning: React.FC = () => {
   // Согласно новому ТЗ мы полностью отключаем блокировку UI
