@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/contexts/userContext';
-import { useNotification } from '@/contexts/notificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 
 // Типы транзакций согласно схеме базы данных
 interface Transaction {
