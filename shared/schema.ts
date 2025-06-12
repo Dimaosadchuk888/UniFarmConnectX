@@ -35,7 +35,8 @@ export const users = pgTable(
     uni_farming_activated_at: timestamp("uni_farming_activated_at"),
     created_at: timestamp("created_at").defaultNow(),
     checkin_last_date: timestamp("checkin_last_date"),
-    checkin_streak: integer("checkin_streak").default(0)
+    checkin_streak: integer("checkin_streak").default(0),
+    is_admin: boolean("is_admin").default(false)
   },
   (table) => ({
       // Создаем индекс для parent_ref_code для оптимизации реферальных запросов
