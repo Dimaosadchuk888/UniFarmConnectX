@@ -7,6 +7,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
 import { createServer } from 'http';
+// @ts-ignore
 import * as WebSocket from 'ws';
 import { config, logger, globalErrorHandler, notFoundHandler } from '../core';
 import { db } from '../core/db';
@@ -17,6 +18,176 @@ import { farmingScheduler } from '../core/scheduler/farmingScheduler';
 import { startPoolMonitoring, logPoolStats } from '../core/dbPoolMonitor';
 
 // API будет создан прямо в сервере
+
+/**
+ * Установка WebSocket сервера с логированием всех событий
+ */
+function setupWebSocketServer(httpServer: any) {
+  // Инициализация WebSocket сервера
+  const wss = new WebSocket.WebSocketServer({ 
+    server: httpServer,
+    path: '/ws',
+    perMessageDeflate: false
+  });
+  
+  // Хранилище активных соединений
+  const activeConnections = new Map<string, any>();
+  
+  logger.info(`[WebSocket] Сервер инициализирован на пути /ws`);
+  
+  // Обработка WebSocket соединений
+  wss.on('connection', (ws: any, req: any) => {
+    const connectionId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const clientIP = req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    
+    logger.info(`[WebSocket] Новое соединение установлено`, {
+      connectionId,
+      clientIP,
+      userAgent: userAgent?.substring(0, 100),
+      totalConnections: wss.clients.size
+    });
+    
+    // Сохраняем соединение
+    activeConnections.set(connectionId, {
+      ws,
+      connectedAt: new Date(),
+      lastPing: null,
+      lastPong: null,
+      userId: null
+    });
+    
+    // Отправляем подтверждение подключения
+    try {
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        connectionId,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (error) {
+      logger.error('[WebSocket] Ошибка отправки приветствия', { connectionId, error });
+    }
+    
+    // Обработка входящих сообщений
+    ws.on('message', (data: any) => {
+      try {
+        const message = JSON.parse(data.toString());
+        logger.info(`[WebSocket] Получено сообщение`, { 
+          connectionId, 
+          type: message.type,
+          hasUserId: !!message.userId 
+        });
+        
+        const connection = activeConnections.get(connectionId);
+        if (!connection) return;
+        
+        switch (message.type) {
+          case 'ping':
+            // Обновляем время последнего ping
+            connection.lastPing = new Date();
+            
+            // Отправляем pong в ответ
+            ws.send(JSON.stringify({
+              type: 'pong',
+              timestamp: message.timestamp || new Date().toISOString()
+            }));
+            break;
+            
+          case 'pong':
+            // Обновляем время последнего pong
+            connection.lastPong = new Date();
+            break;
+            
+          case 'subscribe':
+            // Подписка на обновления пользователя
+            if (message.userId) {
+              connection.userId = message.userId;
+              logger.info(`[WebSocket] Пользователь подписан на обновления`, {
+                connectionId,
+                userId: message.userId
+              });
+              
+              ws.send(JSON.stringify({
+                type: 'subscription_confirmed',
+                userId: message.userId,
+                timestamp: new Date().toISOString()
+              }));
+            }
+            break;
+            
+          default:
+            logger.warn(`[WebSocket] Неизвестный тип сообщения`, {
+              connectionId,
+              messageType: message.type
+            });
+        }
+      } catch (error) {
+        logger.error('[WebSocket] Ошибка обработки сообщения', {
+          connectionId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    });
+    
+    // Обработка закрытия соединения
+    ws.on('close', (code: any, reason: any) => {
+      const connection = activeConnections.get(connectionId);
+      const duration = connection ? Date.now() - connection.connectedAt.getTime() : 0;
+      
+      logger.info(`[WebSocket] Соединение закрыто`, {
+        connectionId,
+        code,
+        reason: reason.toString(),
+        duration: `${Math.round(duration / 1000)}s`,
+        totalConnections: wss.clients.size
+      });
+      
+      activeConnections.delete(connectionId);
+    });
+    
+    // Обработка ошибок соединения
+    ws.on('error', (error: any) => {
+      logger.error('[WebSocket] Ошибка соединения', {
+        connectionId,
+        error: error.message
+      });
+      
+      activeConnections.delete(connectionId);
+    });
+  });
+  
+  // Периодическая очистка неактивных соединений
+  setInterval(() => {
+    const now = new Date();
+    let cleanedConnections = 0;
+    
+    activeConnections.forEach((connection, connectionId) => {
+      const timeSinceLastPing = connection.lastPing 
+        ? now.getTime() - connection.lastPing.getTime() 
+        : now.getTime() - connection.connectedAt.getTime();
+      
+      // Если прошло больше 2 минут без ping и соединение не отвечает
+      if (timeSinceLastPing > 120000) {
+        try {
+          if (connection.ws.readyState === 1) {
+            connection.ws.terminate();
+          }
+        } catch (e) {
+          // Игнорируем ошибки при закрытии
+        }
+        
+        activeConnections.delete(connectionId);
+        cleanedConnections++;
+      }
+    });
+    
+    if (cleanedConnections > 0) {
+      logger.info(`[WebSocket] Очищено неактивных соединений: ${cleanedConnections}`);
+    }
+  }, 60000); // Каждую минуту
+  
+  return wss;
+}
 
 async function startServer() {
   try {
@@ -698,14 +869,21 @@ async function startServer() {
         res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
       });
     } else {
-      // Development mode - setup Vite dev server
+      // Development mode - setup Vite dev server with WebSocket support
       const { setupVite } = await import('./vite-simple.js');
       
+      // Создаем HTTP сервер для WebSocket интеграции в development режиме
+      const httpServer = createServer(app);
+      
+      // Устанавливаем WebSocket сервер для development
+      const wss = setupWebSocketServer(httpServer);
+      
       // Start server first, then setup Vite
-      const server = app.listen(Number(apiPort), config.app.host, async () => {
+      const server = httpServer.listen(Number(apiPort), config.app.host, async () => {
         logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
         logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
         logger.info(`🌐 Frontend: http://${config.app.host}:${apiPort}/ (Vite dev server)`);
+        logger.info(`🔌 WebSocket сервер активен на ws://${config.app.host}:${apiPort}/ws`);
         
         // Setup Vite after server starts
         await setupVite(app, server);
@@ -720,171 +898,14 @@ async function startServer() {
     // Создаем HTTP сервер для WebSocket интеграции
     const httpServer = createServer(app);
     
-    // Инициализация WebSocket сервера
-    const wss = new WebSocket.WebSocketServer({ 
-      server: httpServer,
-      path: '/ws',
-      perMessageDeflate: false
-    });
-    
-    // Хранилище активных соединений
-    const activeConnections = new Map<string, any>();
-    
-    // Обработка WebSocket соединений
-    wss.on('connection', (ws: WebSocket, req: any) => {
-      const connectionId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const clientIP = req.socket.remoteAddress;
-      const userAgent = req.headers['user-agent'];
-      
-      logger.info(`[WebSocket] Новое соединение установлено`, {
-        connectionId,
-        clientIP,
-        userAgent: userAgent?.substring(0, 100),
-        totalConnections: wss.clients.size
-      });
-      
-      // Сохраняем соединение
-      activeConnections.set(connectionId, {
-        ws,
-        connectedAt: new Date(),
-        lastPing: null,
-        lastPong: null,
-        userId: null
-      });
-      
-      // Отправляем подтверждение подключения
-      try {
-        ws.send(JSON.stringify({
-          type: 'connection_established',
-          connectionId,
-          timestamp: new Date().toISOString()
-        }));
-      } catch (error) {
-        logger.error('[WebSocket] Ошибка отправки приветствия', { connectionId, error });
-      }
-      
-      // Обработка входящих сообщений
-      ws.on('message', (data) => {
-        try {
-          const message = JSON.parse(data.toString());
-          logger.info(`[WebSocket] Получено сообщение`, { 
-            connectionId, 
-            type: message.type,
-            hasUserId: !!message.userId 
-          });
-          
-          const connection = activeConnections.get(connectionId);
-          if (!connection) return;
-          
-          switch (message.type) {
-            case 'ping':
-              // Обновляем время последнего ping
-              connection.lastPing = new Date();
-              
-              // Отправляем pong в ответ
-              ws.send(JSON.stringify({
-                type: 'pong',
-                timestamp: message.timestamp || new Date().toISOString()
-              }));
-              break;
-              
-            case 'pong':
-              // Обновляем время последнего pong
-              connection.lastPong = new Date();
-              break;
-              
-            case 'subscribe':
-              // Подписка на обновления пользователя
-              if (message.userId) {
-                connection.userId = message.userId;
-                logger.info(`[WebSocket] Пользователь подписан на обновления`, {
-                  connectionId,
-                  userId: message.userId
-                });
-                
-                ws.send(JSON.stringify({
-                  type: 'subscription_confirmed',
-                  userId: message.userId,
-                  timestamp: new Date().toISOString()
-                }));
-              }
-              break;
-              
-            default:
-              logger.warn(`[WebSocket] Неизвестный тип сообщения`, {
-                connectionId,
-                messageType: message.type
-              });
-          }
-        } catch (error) {
-          logger.error('[WebSocket] Ошибка обработки сообщения', {
-            connectionId,
-            error: error instanceof Error ? error.message : String(error)
-          });
-        }
-      });
-      
-      // Обработка закрытия соединения
-      ws.on('close', (code, reason) => {
-        const connection = activeConnections.get(connectionId);
-        const duration = connection ? Date.now() - connection.connectedAt.getTime() : 0;
-        
-        logger.info(`[WebSocket] Соединение закрыто`, {
-          connectionId,
-          code,
-          reason: reason.toString(),
-          duration: `${Math.round(duration / 1000)}s`,
-          totalConnections: wss.clients.size
-        });
-        
-        activeConnections.delete(connectionId);
-      });
-      
-      // Обработка ошибок соединения
-      ws.on('error', (error) => {
-        logger.error('[WebSocket] Ошибка соединения', {
-          connectionId,
-          error: error.message
-        });
-        
-        activeConnections.delete(connectionId);
-      });
-    });
-    
-    // Периодическая очистка неактивных соединений
-    setInterval(() => {
-      const now = new Date();
-      let cleanedConnections = 0;
-      
-      activeConnections.forEach((connection, connectionId) => {
-        const timeSinceLastPing = connection.lastPing 
-          ? now.getTime() - connection.lastPing.getTime() 
-          : now.getTime() - connection.connectedAt.getTime();
-        
-        // Если прошло больше 2 минут без ping и соединение не отвечает
-        if (timeSinceLastPing > 120000) {
-          try {
-            if (connection.ws.readyState === 1) {
-              connection.ws.terminate();
-            }
-          } catch (e) {
-            // Игнорируем ошибки при закрытии
-          }
-          
-          activeConnections.delete(connectionId);
-          cleanedConnections++;
-        }
-      });
-      
-      if (cleanedConnections > 0) {
-        logger.info(`[WebSocket] Очищено неактивных соединений: ${cleanedConnections}`);
-      }
-    }, 60000); // Каждую минуту
+    // Устанавливаем WebSocket сервер
+    const wss = setupWebSocketServer(httpServer);
     
     // Запуск сервера
     const server = httpServer.listen(Number(apiPort), config.app.host, () => {
       logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
       logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
+      logger.info(`🔌 WebSocket сервер активен на ws://${config.app.host}:${apiPort}/ws`);
       if (process.env.NODE_ENV === 'production') {
         logger.info(`🌐 Frontend: http://${config.app.host}:${apiPort}/`);
       } else {
