@@ -224,7 +224,46 @@ async function startServer() {
     // API routes
     const apiPrefix = `/api/v2`;
     
-    // Import centralized routes first (without middleware for basic endpoints)
+    // Добавляем критический эндпойнт для данных фарминга ПЕРЕД основными маршрутами
+    app.get(`${apiPrefix}/farming/data`, async (req: any, res: any) => {
+      try {
+        console.log('[Farming API] Запрос данных фарминга без авторизации');
+        
+        // Возвращаем базовые данные фарминга для гостевого режима
+        const defaultFarmingData = {
+          isActive: false,
+          depositAmount: '0',
+          ratePerSecond: '0.000000278', // 0.001 UNI в час = 0.000000278 в секунду
+          totalRatePerSecond: '0.000000278',
+          dailyIncomeUni: '0.024',
+          depositCount: 0,
+          totalDepositAmount: '0',
+          startDate: null,
+          uni_farming_start_timestamp: null,
+          rate: '0.001000',
+          accumulated: '0.000000',
+          last_claim: null,
+          can_claim: false,
+          next_claim_available: null
+        };
+
+        console.log('[Farming API] Возвращаем базовые данные фарминга:', defaultFarmingData);
+
+        res.json({
+          success: true,
+          data: defaultFarmingData
+        });
+      } catch (error: any) {
+        console.error('[Farming API] Ошибка получения данных фарминга:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Ошибка получения данных фарминга',
+          details: error.message
+        });
+      }
+    });
+    
+    // Import centralized routes (after critical endpoints)
     const { default: apiRoutes } = await import('./routes');
     app.use(apiPrefix, apiRoutes);
     
@@ -340,6 +379,8 @@ async function startServer() {
         });
       }
     });
+
+
     
     // User API
     app.post(`${apiPrefix}/users`, async (req: any, res: any) => {
