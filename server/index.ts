@@ -435,23 +435,22 @@ async function startServer() {
 
 
     
-    // User API
+    // User API - только через Telegram авторизацию
     app.post(`${apiPrefix}/users`, async (req: any, res: any) => {
       try {
-        const { guestId, refCode } = req.body;
-        const headerGuestId = req.headers['x-guest-id'];
-        const finalGuestId = guestId || headerGuestId;
+        const { telegram_id, username, refCode } = req.body;
         
-        if (!finalGuestId) {
+        if (!telegram_id) {
           return res.status(400).json({
             success: false,
-            error: 'guestId is required'
+            error: 'telegram_id is required'
           });
         }
 
-        // Создаем нового пользователя в базе данных
+        // Создаем нового пользователя в базе данных только с Telegram данными
         const newUser = await db.insert(users).values({
-          guest_id: finalGuestId,
+          telegram_id: telegram_id,
+          username: username || null,
           parent_ref_code: refCode || null,
           balance_uni: '0',
           balance_ton: '0'
@@ -469,69 +468,12 @@ async function startServer() {
       }
     });
 
-    app.get(`${apiPrefix}/users/by-guest-id`, async (req: any, res: any) => {
-      try {
-        const { guest_id } = req.query;
-        
-        if (!guest_id) {
-          return res.status(400).json({
-            success: false,
-            error: 'guest_id parameter is required'
-          });
-        }
 
-        const [user] = await db.select()
-          .from(users)
-          .where(eq(users.guest_id, guest_id))
-          .limit(1);
 
-        if (!user) {
-          return res.status(404).json({
-            success: false,
-            error: 'User not found'
-          });
-        }
-
-        res.json({
-          success: true,
-          data: user
-        });
-      } catch (error: any) {
-        res.status(500).json({
-          success: false,
-          error: error.message || 'Internal server error'
-        });
-      }
-    });
-
-    // User Profile API
+    // User Profile API - только через Telegram авторизацию
     app.get(`${apiPrefix}/users/profile`, async (req: any, res: any) => {
       try {
         const { user_id } = req.query;
-        const guestId = req.headers['x-guest-id'] || req.query.guest_id;
-        
-        // Если есть guest_id, попробуем найти или создать пользователя
-        if (guestId) {
-          let [user] = await db.select()
-            .from(users)
-            .where(eq(users.guest_id, guestId))
-            .limit(1);
-
-          // Если пользователь не найден, создаем нового
-          if (!user) {
-            const newUser = await db.insert(users).values({
-              guest_id: guestId,
-              balance_uni: '0',
-              balance_ton: '0'
-            }).returning();
-            user = newUser[0];
-          }
-
-          return res.json({
-            success: true,
-            data: user
-          });
-        }
         
         if (!user_id) {
           return res.status(400).json({
