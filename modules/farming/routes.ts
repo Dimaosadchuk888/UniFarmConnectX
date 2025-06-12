@@ -13,4 +13,8 @@ router.get('/status', farmingController.getFarmingInfo.bind(farmingController));
 router.post('/start', requireTelegramAuth, farmingController.startFarming.bind(farmingController));
 router.post('/claim', requireTelegramAuth, farmingController.claimFarming.bind(farmingController));
 
+// UNI Farming specific routes
+router.post('/deposit', requireTelegramAuth, farmingController.depositUni.bind(farmingController));
+router.post('/harvest', requireTelegramAuth, farmingController.harvestUni.bind(farmingController));
+
 export default router;

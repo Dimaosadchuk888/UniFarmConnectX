@@ -1,5 +1,6 @@
 import { db } from '../../server/db.js';
-import { boostPackages, userBoosts, users, transactions, tonBoostDeposits } from '../../shared/schema.js';
+import { users, transactions } from '../../shared/schema.js';
+import { boostPackages, userBoosts } from './model.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { TonBoostCalculation } from './logic/tonBoostCalculation';
 import { logger } from '../../core/logger.js';
@@ -8,17 +9,18 @@ interface BoostPackageData {
   id: number;
   name: string;
   description: string;
-  multiplier: number;
-  duration_hours: number;
-  price_ton: number;
+  daily_rate: number;
+  duration_days: number;
+  min_amount: number;
+  max_amount: number;
   is_active: boolean;
 }
 
 interface UserBoostData {
   id: number;
-  boost_package_id: number;
-  started_at: Date | null;
-  expires_at: Date;
+  package_id: number;
+  start_date: Date;
+  end_date: Date;
   is_active: boolean;
 }
 
@@ -297,6 +299,28 @@ export class BoostService {
       }));
     } catch (error) {
       console.error('[BoostService] Ошибка получения истории бустов:', error);
+      return [];
+    }
+  }
+
+  async getBoostPackages(): Promise<BoostPackageData[]> {
+    try {
+      const packages = await db
+        .select()
+        .from(boostPackages)
+        .where(eq(boostPackages.is_active, true));
+
+      return packages.map(pkg => ({
+        id: pkg.id,
+        name: pkg.name,
+        description: pkg.description || '',
+        multiplier: parseFloat(pkg.multiplier),
+        duration_hours: pkg.duration_hours,
+        price_ton: parseFloat(pkg.price_ton),
+        is_active: pkg.is_active || false
+      }));
+    } catch (error) {
+      console.error('[BoostService] Ошибка получения пакетов бустов:', error);
       return [];
     }
   }

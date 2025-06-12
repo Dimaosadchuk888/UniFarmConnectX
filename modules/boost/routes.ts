@@ -19,4 +19,7 @@ router.delete('/deactivate/:boostId', boostController.deactivateBoost.bind(boost
 // GET /api/boosts/stats/:userId - Получить статистику использования бустов
 router.get('/stats/:userId', boostController.getBoostStats.bind(boostController));
 
+// GET /api/boosts/packages - Получить доступные пакеты бустов
+router.get('/packages', boostController.getPackages.bind(boostController));
+
 export default router;

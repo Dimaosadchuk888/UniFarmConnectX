@@ -17,11 +17,15 @@ router.use('/auth', authRoutes);
 
 // Core module routes
 router.use('/farming', farmingRoutes);
+router.use('/uni-farming', farmingRoutes); // Alias for uni-farming endpoints
 router.use('/users', userRoutes);
 router.use('/wallet', walletRoutes);
 router.use('/boost', boostRoutes);
+router.use('/boosts', boostRoutes); // Alias for boosts
 router.use('/missions', missionRoutes);
+router.use('/user-missions', missionRoutes); // Alias for user-missions
 router.use('/referral', referralRoutes);
+router.use('/referrals', referralRoutes); // Alias for referrals
 router.use('/daily-bonus', dailyBonusRoutes);
 router.use('/telegram', telegramRoutes);
 

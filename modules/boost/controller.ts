@@ -159,4 +159,20 @@ export class BoostController extends BaseController {
       });
     }
   }
+
+  /**
+   * Получить доступные пакеты бустов
+   */
+  async getPackages(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      console.log('[BoostController] Получение доступных пакетов бустов');
+      
+      const packages = await this.boostService.getBoostPackages();
+
+      this.sendSuccess(res, {
+        packages,
+        total: packages.length
+      });
+    }, 'получения пакетов бустов');
+  }
 }

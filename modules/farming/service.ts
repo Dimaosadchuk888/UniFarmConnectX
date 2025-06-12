@@ -261,4 +261,101 @@ export class FarmingService {
       return [];
     }
   }
+
+  async depositUniForFarming(telegramId: string, amount: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const user = await UserRepository.findByTelegramId(telegramId);
+      if (!user) {
+        return { success: false, message: 'Пользователь не найден' };
+      }
+
+      const depositAmount = parseFloat(amount);
+      if (depositAmount <= 0) {
+        return { success: false, message: 'Некорректная сумма депозита' };
+      }
+
+      const currentBalance = parseFloat(user.balance_uni || '0');
+      if (currentBalance < depositAmount) {
+        return { success: false, message: 'Недостаточно средств' };
+      }
+
+      // Вычитаем из баланса и добавляем в фарминг
+      const newBalance = (currentBalance - depositAmount).toFixed(8);
+      const currentFarmingBalance = parseFloat(user.uni_farming_balance || '0');
+      const newFarmingBalance = (currentFarmingBalance + depositAmount).toFixed(8);
+
+      await db
+        .update(users)
+        .set({
+          balance_uni: newBalance,
+          uni_farming_balance: newFarmingBalance,
+          uni_farming_start_timestamp: new Date(),
+          uni_farming_last_update: new Date()
+        })
+        .where(eq(users.id, user.id));
+
+      logger.info(`[UNI FARMING] User ${telegramId} deposited ${amount} UNI for farming`, {
+        userId: user.id,
+        telegramId,
+        amount,
+        previousBalance: currentBalance.toFixed(8),
+        newBalance,
+        newFarmingBalance,
+        operation: 'uni_farming_deposit',
+        timestamp: new Date().toISOString()
+      });
+
+      return { success: true, message: 'Депозит успешно добавлен в фарминг' };
+    } catch (error) {
+      logger.error('[FarmingService] Ошибка депозита UNI:', error);
+      return { success: false, message: 'Ошибка при обработке депозита' };
+    }
+  }
+
+  async harvestUniFarming(telegramId: string): Promise<{ success: boolean; amount: string; message: string }> {
+    try {
+      const user = await UserRepository.findByTelegramId(telegramId);
+      if (!user) {
+        return { success: false, amount: '0', message: 'Пользователь не найден' };
+      }
+
+      const farmingBalance = parseFloat(user.uni_farming_balance || '0');
+      if (farmingBalance <= 0) {
+        return { success: false, amount: '0', message: 'Нет средств для сбора' };
+      }
+
+      // Переводим средства из фарминга обратно в баланс
+      const currentBalance = parseFloat(user.balance_uni || '0');
+      const newBalance = (currentBalance + farmingBalance).toFixed(8);
+
+      await db
+        .update(users)
+        .set({
+          balance_uni: newBalance,
+          uni_farming_balance: '0',
+          uni_farming_start_timestamp: null,
+          uni_farming_last_update: new Date()
+        })
+        .where(eq(users.id, user.id));
+
+      logger.info(`[UNI FARMING] User ${telegramId} harvested ${farmingBalance} UNI from farming`, {
+        userId: user.id,
+        telegramId,
+        amount: farmingBalance.toFixed(8),
+        previousBalance: currentBalance.toFixed(8),
+        newBalance,
+        operation: 'uni_farming_harvest',
+        timestamp: new Date().toISOString()
+      });
+
+      return { 
+        success: true, 
+        amount: farmingBalance.toFixed(8), 
+        message: 'Средства успешно собраны с фарминга' 
+      };
+    } catch (error) {
+      logger.error('[FarmingService] Ошибка сбора UNI:', error);
+      return { success: false, amount: '0', message: 'Ошибка при сборе средств' };
+    }
+  }
 }
