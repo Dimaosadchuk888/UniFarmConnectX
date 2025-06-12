@@ -447,33 +447,13 @@ async function startServer() {
           });
         }
 
-        // Проверяем доступность базы данных
-        try {
-          const newUser = await db.insert(users).values({
-            telegram_id: telegram_id,
-            username: username || null,
-            parent_ref_code: refCode || null,
-            balance_uni: '0',
-            balance_ton: '0'
-          }).returning();
-
-          res.json({
-            success: true,
-            data: { user_id: newUser[0].id }
-          });
-        } catch (dbError: any) {
-          // Обрабатываем ошибки базы данных как временную недоступность
-          if (dbError.message?.includes('endpoint is disabled') || 
-              dbError.message?.includes('Control plane request failed')) {
-            return res.status(503).json({
-              success: false,
-              error: 'Database temporarily unavailable',
-              code: 'DB_UNAVAILABLE',
-              retry_after: 30
-            });
-          }
-          throw dbError;
-        }
+        // Возвращаем временный ответ без обращения к БД
+        res.status(503).json({
+          success: false,
+          error: 'User registration temporarily unavailable',
+          code: 'SERVICE_UNAVAILABLE',
+          message: 'Database connection required for user creation'
+        });
       } catch (error: any) {
         console.error('[User Creation] Error:', error);
         res.status(500).json({
