@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/queryClient";
-import { getCachedTelegramUserId } from "@/services/telegramService";
+import { getTelegramUserData } from "@/services/telegramService";
 import apiConfig from "@/config/apiConfig";
 import { correctApiRequest } from "@/lib/correctApiRequest";
 
@@ -13,7 +13,6 @@ export interface User {
   balance_uni: string;
   balance_ton: string;
   ref_code: string; // Реферальный код пользователя всегда должен быть определен
-  guest_id: string; // Идентификатор гостя
   created_at?: string;
   parent_ref_code?: string | null;
 }
@@ -48,30 +47,26 @@ const CACHE_TTL = 60 * 60 * 1000;
  */
 class UserService {
   /**
-   * Регистрирует пользователя в режиме AirDrop без требования данных Telegram
-   * Используется как альтернативный способ регистрации для максимальной доступности
+   * Регистрирует пользователя через Telegram Mini App
    * @returns {Promise<{success: boolean, data?: any}>} Результат операции и данные пользователя
    */
-  async registerInAirDropMode(): Promise<{success: boolean, data?: any}> {
-    console.log('[UserService] Запуск регистрации в режиме AirDrop...');
+  async registerWithTelegram(): Promise<{success: boolean, data?: any}> {
+    console.log('[UserService] Запуск регистрации через Telegram...');
 
     try {
-      // Генерируем временный ID на основе timestamp с некоторой случайностью
-      // для избежания коллизий при одновременной регистрации
-      const timestamp = Date.now();
-      const random = Math.floor(Math.random() * 10000);
-      const tempId = Math.floor(timestamp / 1000) * 10000 + random;
-      const username = `airdrop_user_${tempId}`;
+      // Получаем данные Telegram пользователя
+      const telegramData = getTelegramUserData();
+      
+      if (!telegramData?.id) {
+        console.error('[UserService] Telegram User ID не найден');
+        return {
+          success: false
+        };
+      }
+      
+      const telegramUserId = telegramData.id;
 
-      console.log(`[UserService] AirDrop: Сгенерирован временный ID: ${tempId} для пользователя ${username}`);
-
-      // Импортируем GuestIdService для получения guest_id
-      const { getOrCreateGuestId } = await import('./guestIdService');
-
-      // Получаем guest_id из localStorage или создаем новый
-      const guestId = getOrCreateGuestId();
-
-      console.log(`[UserService] AirDrop: Используем guest_id: ${guestId}`);
+      console.log(`[UserService] Регистрация пользователя с Telegram ID: ${telegramUserId}`);
 
       // Импортируем referralService для получения реферального кода
       const { referralService } = await import('./referralService');
@@ -89,15 +84,14 @@ class UserService {
       const url = apiConfig.getFullUrl('/api/v2/airdrop/register');
       console.log(`[UserService] AirDrop: Отправка запроса по URL: ${url}`);
 
-      // Отправляем запрос на регистрацию в режиме AirDrop с использованием correctApiRequest
-      console.log('[UserService] Используем correctApiRequest для запроса в режиме AirDrop');
+      // Отправляем запрос на регистрацию через Telegram
+      console.log('[UserService] Используем correctApiRequest для регистрации через Telegram');
 
       // correctApiRequest обрабатывает заголовки, преобразование JSON и анализ ответов автоматически
-      const result = await correctApiRequest(url, 'POST', {
-        guest_id: guestId, // Передаем guest_id, который будет основным идентификатором
-        username: username,
-        ref_code: referralCode, // Передаем реферальный код через параметр ref_code
-        airdrop_mode: true // Явно указываем, что это режим AirDrop
+      const result = await correctApiRequest('/api/v2/users', 'POST', {
+        telegram_id: telegramUserId,
+        username: `telegram_user_${telegramUserId}`,
+        refCode: referralCode
       });
 
       console.log('[UserService] Успешная регистрация в режиме AirDrop. Данные:', result);
@@ -199,17 +193,19 @@ class UserService {
   }
 
   /**
-   * Выполняет запрос к API для получения данных пользователя
-   * Этап 10.4: Убрана зависимость от telegram_id, используем только guest_id
+   * Выполняет запрос к API для получения данных пользователя через Telegram
    * @returns {Promise<User>} Данные пользователя из API
    * @private
    */
   private async fetchUserFromApi(): Promise<User> {
-    // Импортируем guestIdService для получения guest_id
-    const { getOrCreateGuestId } = await import('./guestIdService');
-    const guestId = getOrCreateGuestId();
+    // Получаем данные Telegram пользователя
+    const telegramData = getTelegramUserData();
+    
+    if (!telegramData?.id) {
+      throw new Error('Telegram User ID не найден');
+    }
 
-    console.log('[UserService] Запрос к API с guest_id:', guestId);
+    console.log('[UserService] Запрос к API с Telegram ID:', telegramData.id);
     console.log('[UserService] Объект localStorage в момент запроса к /api/me:', 
       Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)?.substring(0, 20)}...`));
 
