@@ -320,6 +320,9 @@ async function startServer() {
     const { default: apiRoutes } = await import('./routes');
     app.use(apiPrefix, apiRoutes);
     
+    // Добавляем поддержку /api для обратной совместимости
+    app.use('/api', apiRoutes);
+    
     // Apply optional Telegram middleware to all routes for init data parsing
     app.use(telegramMiddleware);
     
