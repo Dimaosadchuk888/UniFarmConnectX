@@ -326,48 +326,6 @@ async function startServer() {
     // Apply optional Telegram middleware to all routes for init data parsing
     app.use(telegramMiddleware);
     
-    // Legacy API support for v1 endpoints
-    app.get('/api/user/current', async (req: any, res: any) => {
-      try {
-        // Возвращаем базового гостевого пользователя
-        const userData = {
-          id: 1,
-          guest_id: 'guest_' + Date.now(),
-          balance_uni: '0',
-          balance_ton: '0',
-          uni_farming_balance: '0',
-          uni_farming_rate: '0',
-          uni_deposit_amount: '0'
-        };
-
-        res.json({
-          success: true,
-          data: userData
-        });
-      } catch (error: any) {
-        res.status(500).json({
-          success: false,
-          error: error.message || 'Internal server error'
-        });
-      }
-    });
-
-    app.get('/api/missions', async (req: any, res: any) => {
-      try {
-        const missionsList = await db.select().from(missions).orderBy(missions.id);
-        
-        res.json({
-          success: true,
-          data: missionsList
-        });
-      } catch (error: any) {
-        res.status(500).json({
-          success: false,
-          error: error.message || 'Internal server error'
-        });
-      }
-    });
-
     // Add missing v2 endpoints that frontend expects
     app.get(`${apiPrefix}/users/profile`, async (req: any, res: any) => {
       try {
