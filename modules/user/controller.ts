@@ -84,14 +84,20 @@ export class UserController extends BaseController {
       const telegramUser = this.validateTelegramAuth(req, res);
       if (!telegramUser) return;
 
-      if (telegramUser.ref_code) {
+      const user = await userService.getUserByTelegramId(telegramUser.user.id.toString());
+      
+      if (!user) {
+        return this.sendError(res, 'Пользователь не найден', 404);
+      }
+      
+      if (user.ref_code) {
         return this.sendSuccess(res, {
-          ref_code: telegramUser.ref_code,
+          ref_code: user.ref_code,
           already_exists: true
         });
       }
 
-      const refCode = await userService.generateRefCode(telegramUser.id.toString());
+      const refCode = await userService.generateRefCode(user.id.toString());
       
       this.sendSuccess(res, {
         ref_code: refCode,
