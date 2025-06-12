@@ -7,9 +7,9 @@ const farmingController = new FarmingController();
 
 // Маршруты фарминга с обязательной авторизацией
 router.get('/', requireTelegramAuth, farmingController.getFarmingData.bind(farmingController));
-router.get('/data', farmingController.getFarmingInfo.bind(farmingController)); // Main data endpoint БЕЗ авторизации
-router.get('/info', farmingController.getFarmingInfo.bind(farmingController));
-router.get('/status', farmingController.getFarmingInfo.bind(farmingController)); // Alias for /info
+router.get('/data', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController)); // Main data endpoint с авторизацией
+router.get('/info', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController));
+router.get('/status', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController)); // Alias for /info
 router.post('/start', requireTelegramAuth, farmingController.startFarming.bind(farmingController));
 router.post('/claim', requireTelegramAuth, farmingController.claimFarming.bind(farmingController));
 
