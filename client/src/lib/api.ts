@@ -36,11 +36,7 @@ class ApiClient {
   }
 
   // Auth methods
-  async getUserByGuestId(guestId: string) {
-    return this.request(`${APP_CONFIG.API.ENDPOINTS.USER}/by-guest-id?guest_id=${guestId}`);
-  }
-
-  async createUser(data: { guestId: string; refCode?: string }) {
+  async createUser(data: { telegram_id: number; username?: string; refCode?: string }) {
     return this.request(APP_CONFIG.API.ENDPOINTS.USER, {
       method: 'POST',
       body: JSON.stringify(data),

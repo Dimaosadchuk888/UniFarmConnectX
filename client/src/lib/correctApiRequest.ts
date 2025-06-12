@@ -19,11 +19,7 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
     ...headers
   };
 
-  // Добавляем guest_id из localStorage
-  const guestId = localStorage.getItem('unifarm_guest_id');
-  if (guestId) {
-    requestHeaders['X-Guest-ID'] = guestId;
-  }
+
 
   // Добавляем Telegram WebApp данные если доступны
   if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {

@@ -189,7 +189,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           payload: {
             userId: user.id || null,
             username: user.username || null,
-            guestId: user.guest_id || null,
             telegramId: user.telegram_id || null,
             refCode: user.ref_code || null
           }
@@ -220,7 +219,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 payload: {
                   userId: lastSession.user_id,
                   username: lastSession.username || null,
-                  guestId: guestId,
                   telegramId: null,
                   refCode: lastSession.refCode || null
                 }
@@ -250,7 +248,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               payload: {
                 userId: lastSession.user_id,
                 username: lastSession.username || null,
-                guestId: null,
                 telegramId: null,
                 refCode: lastSession.refCode || null
               }
@@ -403,7 +400,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // Данные пользователя
     userId: state.userId,
     username: state.username,
-    guestId: state.guestId,
     telegramId: state.telegramId,
     refCode: state.refCode,
     

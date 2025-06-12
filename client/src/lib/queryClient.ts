@@ -89,7 +89,6 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
   console.log('[queryClient] API headers prepared:', {
     hasTelegramData: !!telegramHeaders['X-Telegram-Init-Data'],
     hasTelegramUserId: !!telegramHeaders['X-Telegram-User-Id'],
-    hasGuestId: !!telegramHeaders['X-Guest-Id'],
     telegramHeadersCount: Object.keys(telegramHeaders).length,
     totalHeadersCount: Object.keys(headers).length
   });
