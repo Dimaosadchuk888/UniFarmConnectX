@@ -9,6 +9,7 @@ import missionRoutes from '../modules/missions/routes';
 import referralRoutes from '../modules/referral/routes';
 import dailyBonusRoutes from '../modules/dailyBonus/routes';
 import telegramRoutes from '../modules/telegram/routes';
+import tonFarmingRoutes from '../modules/tonFarming/routes';
 
 const router = express.Router();
 
@@ -28,6 +29,7 @@ router.use('/referral', referralRoutes);
 router.use('/referrals', referralRoutes); // Alias for referrals
 router.use('/daily-bonus', dailyBonusRoutes);
 router.use('/telegram', telegramRoutes);
+router.use('/ton-farming', tonFarmingRoutes);
 
 // Monitoring routes
 router.use('/monitor', monitorRoutes);
