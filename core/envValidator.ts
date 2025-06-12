@@ -13,13 +13,13 @@ interface EnvConfig {
 const envConfig: EnvConfig = {
   required: [
     'DATABASE_URL',
+    'SESSION_SECRET',
+    'JWT_SECRET',
     'NODE_ENV',
     'PORT'
   ],
   optional: [
     'TELEGRAM_BOT_TOKEN',
-    'SESSION_SECRET',
-    'JWT_SECRET',
     'NEON_API_KEY',
     'NEON_PROJECT_ID',
     'ALLOW_BROWSER_ACCESS',

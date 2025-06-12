@@ -36,6 +36,6 @@ export const appConfig = {
     clientBaseUrl: process.env.VITE_API_BASE_URL || process.env.API_BASE_URL || '/api/v2'
   },
   
-  sessionSecret: process.env.SESSION_SECRET || 'unifarm-secret-key-fallback',
-  jwtSecret: process.env.JWT_SECRET || 'unifarm-jwt-secret-fallback'
+  sessionSecret: process.env.SESSION_SECRET!,
+  jwtSecret: process.env.JWT_SECRET!
 };
