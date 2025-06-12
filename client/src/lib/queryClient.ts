@@ -68,6 +68,12 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
   // Получаем заголовки с данными Telegram
   const telegramHeaders = getTelegramAuthHeaders();
 
+  // Добавляем guest_id из localStorage если нет Telegram данных
+  const guestId = localStorage.getItem('unifarm_guest_id');
+  if (guestId && !telegramHeaders['X-Telegram-Init-Data']) {
+    telegramHeaders['X-Guest-Id'] = guestId;
+  }
+
   // Базовые заголовки для API запросов
   const headers = {
     "Content-Type": "application/json",
@@ -81,8 +87,9 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
 
   // Логируем наличие telegram-заголовков (но не их содержимое)
   console.log('[queryClient] API headers prepared:', {
-    hasTelegramData: 'Telegram-Data' in telegramHeaders || 'X-Telegram-Data' in telegramHeaders || 'x-telegram-init-data' in telegramHeaders,
-    hasTelegramUserId: 'X-Telegram-User-Id' in telegramHeaders,
+    hasTelegramData: !!telegramHeaders['X-Telegram-Init-Data'],
+    hasTelegramUserId: !!telegramHeaders['X-Telegram-User-Id'],
+    hasGuestId: !!telegramHeaders['X-Guest-Id'],
     telegramHeadersCount: Object.keys(telegramHeaders).length,
     totalHeadersCount: Object.keys(headers).length
   });
@@ -309,7 +316,7 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 минут кеширование вместо Infinity
-      cacheTime: 10 * 60 * 1000, // 10 минут хранение в кеше
+      gcTime: 10 * 60 * 1000, // 10 минут хранение в кеше (обновленное название параметра)
       retry: 1, // Одна попытка повтора вместо false
       retryDelay: 1000, // 1 секунда задержка между попытками
     },
