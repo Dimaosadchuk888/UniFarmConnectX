@@ -1,7 +1,7 @@
 import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type TelegramUser, type JWTPayload } from '../../utils/telegram';
 import { UserService, type UserInfo } from '../users/service';
 import { db } from '../../server/db';
-import { users } from '../../shared/schema';
+import { users, type User } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 interface AuthResponse {
@@ -25,6 +25,15 @@ interface SessionInfo {
   refCode?: string;
   expiresAt?: string;
   error?: string;
+}
+
+/**
+ * Типизированный интерфейс для данных пользователя из JWT токена
+ */
+interface UserPayload {
+  telegram_id: number;
+  username?: string;
+  ref_code: string;
 }
 
 export class AuthService {
@@ -140,7 +149,7 @@ export class AuthService {
   /**
    * Verifies token and returns user database record
    */
-  async getUserFromToken(token: string): Promise<any> {
+  async getUserFromToken(token: string): Promise<User | null> {
     try {
       const payload = verifyJWTToken(token);
       if (!payload) {

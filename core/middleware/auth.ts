@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { AuthService } from '../../modules/auth/service';
+import { type User } from '../../shared/schema';
 
 interface TelegramInitData {
   query_id?: string;
@@ -14,11 +16,7 @@ interface TelegramInitData {
 }
 
 export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: number;
-    telegram_id: number;
-    username?: string;
-  };
+  user?: User;
 }
 
 /**
@@ -34,7 +32,11 @@ function validateTelegramInitData(initData: string, botToken: string): TelegramI
     urlParams.delete('hash');
     
     // Сортируем параметры и создаем строку для проверки
-    const sortedParams = Array.from(urlParams.entries())
+    const entries: [string, string][] = [];
+    urlParams.forEach((value, key) => {
+      entries.push([key, value]);
+    });
+    const sortedParams = entries
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([key, value]) => `${key}=${value}`)
       .join('\n');
@@ -55,13 +57,13 @@ function validateTelegramInitData(initData: string, botToken: string): TelegramI
 
     // Парсим данные
     const data: any = {};
-    for (const [key, value] of urlParams.entries()) {
+    urlParams.forEach((value, key) => {
       if (key === 'user') {
         data[key] = JSON.parse(value);
       } else {
         data[key] = value;
       }
-    }
+    });
 
     return { ...data, hash };
   } catch (error) {
@@ -108,30 +110,27 @@ export function authenticateTelegram(req: AuthenticatedRequest, res: Response, n
 }
 
 /**
- * Middleware для проверки JWT токена (упрощенная версия)
+ * Middleware для проверки JWT токена с полной типизацией
  */
-export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function authenticateJWT(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const token = req.get('authorization')?.replace('Bearer ', '');
 
   if (!token) {
     return res.status(401).json({ error: 'JWT token required' });
   }
 
-  // Упрощенная проверка токена без внешних зависимостей
   try {
-    const tokenParts = token.split('.');
-    if (tokenParts.length !== 3) {
-      throw new Error('Invalid token format');
+    const authService = new AuthService();
+    const user = await authService.getUserFromToken(token);
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
     }
     
-    // В продакшене здесь должна быть полная JWT верификация
-    req.user = {
-      id: 1,
-      telegram_id: 1,
-      username: 'authenticated'
-    };
+    req.user = user;
     next();
   } catch (error) {
+    console.error('[Auth] JWT validation error:', error);
     return res.status(401).json({ error: 'Invalid JWT token' });
   }
 }
