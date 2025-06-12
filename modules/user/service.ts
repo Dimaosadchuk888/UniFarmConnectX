@@ -76,20 +76,7 @@ export class UserService {
     }
   }
 
-  async getUserByGuestId(guestId: string): Promise<User | null> {
-    try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.guest_id, guestId))
-        .limit(1);
-      
-      return user || null;
-    } catch (error) {
-      console.error('[UserService] Ошибка поиска по Guest ID:', error);
-      throw error;
-    }
-  }
+
 
   async generateRefCode(userId: string): Promise<string> {
     try {

@@ -7,17 +7,15 @@ const userService = new UserService();
 export class UserController extends BaseController {
   async createUser(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
-      const { guestId: bodyGuestId, refCode } = req.body;
-      const headerGuestId = req.headers['x-guest-id'] as string;
+      const { telegram_id, username, refCode } = req.body;
       
-      const guestId = bodyGuestId || headerGuestId;
-      
-      if (!guestId) {
-        return this.sendError(res, 'guestId is required', 400);
+      if (!telegram_id) {
+        return this.sendError(res, 'telegram_id is required', 400);
       }
 
       const result = await userService.createUser({
-        guest_id: guestId,
+        telegram_id: telegram_id,
+        username: username || null,
         parent_ref_code: refCode || null
       });
 
@@ -25,23 +23,7 @@ export class UserController extends BaseController {
     }, 'создания пользователя');
   }
 
-  async getUserByGuestId(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
-      const { guest_id } = req.query;
-      
-      if (!guest_id || typeof guest_id !== 'string') {
-        return this.sendError(res, 'guest_id query parameter is required', 400);
-      }
 
-      const user = await userService.getUserByGuestId(guest_id);
-      
-      if (!user) {
-        return this.sendError(res, 'User not found', 404);
-      }
-
-      this.sendSuccess(res, user);
-    }, 'получения пользователя по Guest ID');
-  }
 
   async getCurrentUser(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {

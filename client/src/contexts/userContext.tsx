@@ -22,7 +22,6 @@ interface ApiResponse<T = any> {
 interface UserContextType {
   userId: number | null;
   username: string | null;
-  guestId: string | null;
   telegramId: number | null;
   refCode: string | null;
   // Данные баланса
@@ -50,7 +49,6 @@ interface UserState {
   // Данные пользователя
   userId: number | null;
   username: string | null;
-  guestId: string | null;
   telegramId: number | null;
   refCode: string | null;
   
@@ -71,7 +69,6 @@ interface UserState {
 const initialState: UserState = {
   userId: null,
   username: null,
-  guestId: null,
   telegramId: null,
   refCode: null,
   
