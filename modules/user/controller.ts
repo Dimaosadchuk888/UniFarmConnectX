@@ -32,10 +32,10 @@ export class UserController extends BaseController {
       
       console.log('[GetMe] Запрос данных пользователя:', { 
         has_telegram_user: !!telegramUser,
-        telegram_id: telegramUser?.telegram_id
+        telegram_id: telegramUser?.user?.id
       });
       
-      const user = await userService.getUserByTelegramId(telegramUser.telegram_id.toString());
+      const user = await userService.getUserByTelegramId(telegramUser.user.id.toString());
       
       console.log('[GetMe] Возвращаем данные пользователя:', {
         id: user?.id,
@@ -50,8 +50,8 @@ export class UserController extends BaseController {
       this.sendSuccess(res, {
         id: user.id,
         telegram_id: user.telegram_id,
-        username: user.username || telegramUser.first_name,
-        first_name: telegramUser.first_name,
+        username: user.username || telegramUser.user.first_name,
+        first_name: telegramUser.user.first_name,
         ref_code: user.ref_code,
         parent_ref_code: user.parent_ref_code,
         uni_balance: user.balance_uni || "0",
