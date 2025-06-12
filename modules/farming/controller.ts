@@ -84,4 +84,34 @@ export class FarmingController extends BaseController {
       this.sendSuccess(res, result);
     }, 'сбора фарминга');
   }
+
+  async depositUni(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+
+      const { amount } = req.body;
+      this.validateRequiredFields(req.body, ['amount']);
+
+      const result = await farmingService.depositUniForFarming(
+        telegram.user.id.toString(),
+        amount
+      );
+
+      this.sendSuccess(res, result);
+    }, 'депозита UNI для фарминга');
+  }
+
+  async harvestUni(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+
+      const result = await farmingService.harvestUniFarming(
+        telegram.user.id.toString()
+      );
+
+      this.sendSuccess(res, result);
+    }, 'сбора урожая UNI фарминга');
+  }
 }

@@ -56,13 +56,21 @@ export class MissionsService {
       let availableMissions;
       
       if (completedMissionIds.length > 0) {
-        availableMissions = await db
-          .select()
-          .from(missions)
-          .where(and(
-            eq(missions.is_active, true),
-            notInArray(missions.id, completedMissionIds)
-          ));
+        const validMissionIds = completedMissionIds.filter(id => id !== null);
+        if (validMissionIds.length > 0) {
+          availableMissions = await db
+            .select()
+            .from(missions)
+            .where(and(
+              eq(missions.is_active, true),
+              notInArray(missions.id, validMissionIds)
+            ));
+        } else {
+          availableMissions = await db
+            .select()
+            .from(missions)
+            .where(eq(missions.is_active, true));
+        }
       } else {
         availableMissions = await db
           .select()
@@ -248,6 +256,108 @@ export class MissionsService {
       return completedMissions;
     } catch (error) {
       console.error('[MissionsService] Ошибка получения прогресса:', error);
+      return [];
+    }
+  }
+
+  async getMissionStatsByTelegramId(telegramId: string): Promise<any> {
+    try {
+      const user = await UserRepository.findByTelegramId(telegramId);
+      if (!user) {
+        return {
+          total_missions: 0,
+          completed_missions: 0,
+          pending_missions: 0,
+          total_rewards: '0',
+          completion_rate: 0
+        };
+      }
+
+      // Получаем общее количество активных миссий
+      const totalMissions = await db
+        .select({ count: missions.id })
+        .from(missions)
+        .where(eq(missions.is_active, true));
+
+      // Получаем завершенные миссии пользователя
+      const completedMissions = await db
+        .select({ mission_id: userMissions.mission_id })
+        .from(userMissions)
+        .where(eq(userMissions.user_id, user.id));
+
+      // Считаем общую сумму наград
+      const totalRewards = await db
+        .select({
+          total: missions.reward_uni
+        })
+        .from(userMissions)
+        .leftJoin(missions, eq(userMissions.mission_id, missions.id))
+        .where(eq(userMissions.user_id, user.id));
+
+      const totalMissionsCount = totalMissions.length;
+      const completedCount = completedMissions.length;
+      const pendingCount = totalMissionsCount - completedCount;
+      const completionRate = totalMissionsCount > 0 ? (completedCount / totalMissionsCount) * 100 : 0;
+
+      const totalRewardSum = totalRewards.reduce((sum, reward) => {
+        return sum + parseFloat(reward.total || '0');
+      }, 0);
+
+      return {
+        total_missions: totalMissionsCount,
+        completed_missions: completedCount,
+        pending_missions: pendingCount,
+        total_rewards: totalRewardSum.toFixed(8),
+        completion_rate: Math.round(completionRate)
+      };
+    } catch (error) {
+      console.error('[MissionsService] Ошибка получения статистики:', error);
+      return {
+        total_missions: 0,
+        completed_missions: 0,
+        pending_missions: 0,
+        total_rewards: '0',
+        completion_rate: 0
+      };
+    }
+  }
+
+  async getUserMissionsByTelegramId(telegramId: string): Promise<any[]> {
+    try {
+      const user = await UserRepository.findByTelegramId(telegramId);
+      if (!user) {
+        return [];
+      }
+
+      // Получаем все миссии пользователя с информацией о завершении
+      const userMissionsData = await db
+        .select({
+          mission_id: missions.id,
+          title: missions.title,
+          description: missions.description,
+          reward_uni: missions.reward_uni,
+          type: missions.type,
+          is_active: missions.is_active,
+          completed_at: userMissions.completed_at
+        })
+        .from(missions)
+        .leftJoin(userMissions, and(
+          eq(userMissions.mission_id, missions.id),
+          eq(userMissions.user_id, user.id)
+        ))
+        .where(eq(missions.is_active, true));
+
+      return userMissionsData.map(mission => ({
+        id: mission.mission_id,
+        title: mission.title,
+        description: mission.description,
+        reward: parseFloat(mission.reward_uni || '0'),
+        type: mission.type,
+        completed: !!mission.completed_at,
+        completed_at: mission.completed_at
+      }));
+    } catch (error) {
+      console.error('[MissionsService] Ошибка получения миссий пользователя:', error);
       return [];
     }
   }

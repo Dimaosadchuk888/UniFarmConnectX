@@ -57,4 +57,40 @@ export class MissionsController extends BaseController {
       this.sendSuccess(res, result);
     }, 'получения награды за миссию');
   }
+
+  async getMissionStats(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const userId = req.query.user_id as string;
+      
+      // Return default stats if no user_id provided
+      if (!userId) {
+        const defaultStats = {
+          total_missions: 0,
+          completed_missions: 0,
+          pending_missions: 0,
+          total_rewards: '0',
+          completion_rate: 0
+        };
+        
+        console.log('[Missions] Возвращаем базовую статистику миссий (без user_id)');
+        return this.sendSuccess(res, defaultStats);
+      }
+
+      const stats = await missionsService.getMissionStatsByTelegramId(userId);
+      this.sendSuccess(res, stats);
+    }, 'получения статистики миссий');
+  }
+
+  async getUserMissions(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const userId = req.params.userId || req.query.user_id as string;
+      
+      if (!userId) {
+        return this.sendError(res, 'user_id parameter is required', 400);
+      }
+
+      const missions = await missionsService.getUserMissionsByTelegramId(userId);
+      this.sendSuccess(res, missions);
+    }, 'получения миссий пользователя');
+  }
 }
