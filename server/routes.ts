@@ -13,6 +13,14 @@ import tonFarmingRoutes from '../modules/tonFarming/routes';
 
 const router = express.Router();
 
+// Health check endpoint for production monitoring
+router.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Authentication routes
 router.use('/auth', authRoutes);
 
