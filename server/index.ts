@@ -51,12 +51,14 @@ async function startServer() {
     // API routes
     const apiPrefix = `/api/v2`;
     
-    // Apply Telegram middleware to all API routes
-    app.use(apiPrefix, telegramMiddleware);
-    
-    // Import centralized routes
+    // Import centralized routes first (without middleware for basic endpoints)
     const { default: apiRoutes } = await import('./routes');
     app.use(apiPrefix, apiRoutes);
+    
+    // Apply Telegram middleware only to specific protected routes
+    app.use(`${apiPrefix}/auth`, telegramMiddleware);
+    app.use(`${apiPrefix}/user`, telegramMiddleware);
+    app.use(`${apiPrefix}/wallet`, telegramMiddleware);
     
     // Legacy API support for v1 endpoints
     app.get('/api/user/current', async (req: any, res: any) => {

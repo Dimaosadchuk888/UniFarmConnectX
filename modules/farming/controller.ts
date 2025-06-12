@@ -27,8 +27,22 @@ export class FarmingController extends BaseController {
     await this.handleRequest(req, res, async () => {
       const userId = req.query.user_id as string;
       
+      // If no user_id provided, return default farming status
       if (!userId) {
-        return this.sendError(res, 'user_id parameter is required', 400);
+        const defaultFarmingData = {
+          isActive: false,
+          depositAmount: '0',
+          ratePerSecond: '0',
+          totalRatePerSecond: '0',
+          depositCount: 0,
+          totalDepositAmount: '0',
+          dailyIncomeUni: '0',
+          startDate: null,
+          lastUpdate: null
+        };
+        
+        console.log('[Farming] Возвращаем базовые данные фарминга (без user_id)');
+        return this.sendSuccess(res, defaultFarmingData);
       }
 
       const farmingData = await farmingService.getFarmingDataByTelegramId(userId);
