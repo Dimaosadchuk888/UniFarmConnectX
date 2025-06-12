@@ -15,8 +15,16 @@ interface TelegramInitData {
   hash: string;
 }
 
+// Упрощенный интерфейс пользователя для middleware  
+interface AuthUser {
+  id: number;
+  telegram_id: number | null;
+  username?: string | null;
+  ref_code?: string | null;
+}
+
 export interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: AuthUser;
 }
 
 /**
@@ -57,13 +65,17 @@ function validateTelegramInitData(initData: string, botToken: string): TelegramI
 
     // Парсим данные
     const data: any = {};
-    urlParams.forEach((value, key) => {
-      if (key === 'user') {
-        data[key] = JSON.parse(value);
-      } else {
-        data[key] = value;
+    const keys = Array.from(urlParams.keys());
+    for (const key of keys) {
+      const value = urlParams.get(key);
+      if (value !== null) {
+        if (key === 'user') {
+          data[key] = JSON.parse(value);
+        } else {
+          data[key] = value;
+        }
       }
-    });
+    }
 
     return { ...data, hash };
   } catch (error) {
@@ -127,7 +139,13 @@ export async function authenticateJWT(req: AuthenticatedRequest, res: Response, 
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
     
-    req.user = user;
+    // Конвертируем User в AuthUser для middleware
+    req.user = {
+      id: user.id,
+      telegram_id: user.telegram_id,
+      username: user.username,
+      ref_code: user.ref_code
+    };
     next();
   } catch (error) {
     console.error('[Auth] JWT validation error:', error);

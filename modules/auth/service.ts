@@ -30,7 +30,7 @@ interface SessionInfo {
 /**
  * Типизированный интерфейс для данных пользователя из JWT токена
  */
-interface UserPayload {
+export interface UserPayload {
   telegram_id: number;
   username?: string;
   ref_code: string;
