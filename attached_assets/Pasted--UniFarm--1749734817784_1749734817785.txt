@@ -1,0 +1,128 @@
+Отлично! Ниже — шаблон идеальной архитектуры UniFarm, с учётом твоих требований к стабильности и эффективности кода. Подходит для проекта на Node.js (Express) + TypeScript + PostgreSQL (Neon) с фронтом на React + Vite, Telegram Mini App, TON, Farming, Boost, Missions, Wallet и Referral.
+
+⸻
+
+📁 Шаблон структуры UniFarm
+
+Следует правилам RedMap, поддерживает CI/CD, модульность, расширяемость.
+
+unifarm/
+├── client/                    # Frontend (React + Vite)
+│   ├── src/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   ├── modules/           # frontend-модули по логике
+│   │   ├── services/
+│   │   ├── hooks/
+│   │   ├── layouts/
+│   │   └── index.tsx
+│   └── vite.config.ts
+
+├── server/                    # Backend (Express + TypeScript)
+│   ├── routes/                # Только маршруты
+│   ├── controllers/          # REST/API логика
+│   ├── services/             # Вся бизнес-логика
+│   ├── models/               # Prisma / Knex / db schema
+│   ├── middlewares/
+│   ├── utils/
+│   └── index.ts              # Главная точка входа
+
+├── modules/                  # Папка модулей (по RedMap)
+│   ├── auth/
+│   ├── user/
+│   ├── telegram/
+│   ├── referral/
+│   ├── wallet/
+│   ├── missions/
+│   ├── boosts/
+│   ├── farming/
+│   └── daily-bonus/
+│       ├── controller.ts
+│       ├── service.ts
+│       └── model.ts
+
+├── prisma/                   # Prisma схема (если используешь)
+│   └── schema.prisma
+
+├── shared/                   # Общие типы, utils, env, валидаторы
+│   ├── types/
+│   ├── env/
+│   └── constants.ts
+
+├── scripts/                  # CI, миграции, сидеры
+│   ├── seed.ts
+│   └── health-check.ts
+
+├── tests/                    # Unit и интеграционные тесты
+│   └── farming.spec.ts
+
+├── Dockerfile
+├── docker-compose.yml
+├── .env                     # production / dev разделены
+├── tsconfig.json
+├── .eslintrc.js
+├── .prettierrc
+├── redmap.md                # Архитектурная документация
+├── README.md
+└── CHANGELOG.md             # Для фикса истории изменений
+
+
+⸻
+
+✅ Включено по best-practice:
+
+Компонент Принцип
+Модули Логика отделена по бизнес-направлениям (/modules)
+Controllers / Routes Отдельно от логики (никакой бизнес-логики в роутерах)
+Типизация TypeScript + shared/types
+Тесты tests/*.spec.ts через Vitest или Jest
+Docker Подготовлен для Railway или Vercel
+Secrets Все .env в shared/env, без хардкода
+CI/CD Можно подключить GitHub Actions или Railway Build
+
+
+⸻
+
+⚙️ Примеры архитектурных соглашений (RedMap):
+
+Пример контроллера:
+
+// modules/farming/controller.ts
+import { getFarmingInfo } from './service';
+
+export const farmingController = {
+  info: async (req, res) => {
+    const result = await getFarmingInfo(req.user.id);
+    res.json(result);
+  },
+};
+
+Пример сервиса:
+
+// modules/farming/service.ts
+import { getUserById } from '../user/service';
+import { db } from '../../shared/db';
+
+export async function getFarmingInfo(userId: string) {
+  const user = await getUserById(userId);
+  return db.farming.findMany({ where: { userId: user.id } });
+}
+
+
+⸻
+
+💡 Рекомендации по стабильности:
+ 1. Используй zod или yup для валидации всех req.body, req.query.
+ 2. Все try/catch оборачивай в централизованный error handler.
+ 3. Не допускай @ts-ignore в продакшн.
+ 4. Настрой .env.production и .env.development отдельно.
+ 5. Используй winston или pino для логов.
+
+⸻
+
+🧩 Хочешь больше?
+
+Могу отдельно:
+ • ✍️ Сформировать redmap.md по этой структуре.
+ • 🧪 Подключить Jest + Supertest для CI.
+ • 📦 Написать package.json с правильными скриптами.
