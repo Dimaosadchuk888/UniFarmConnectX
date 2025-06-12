@@ -32,13 +32,18 @@ export class FarmingController extends BaseController {
         const defaultFarmingData = {
           isActive: false,
           depositAmount: '0',
-          ratePerSecond: '0',
-          totalRatePerSecond: '0',
+          ratePerSecond: '0.000000278', // 0.001 UNI в час
+          totalRatePerSecond: '0.000000278',
+          dailyIncomeUni: '0.024',
           depositCount: 0,
           totalDepositAmount: '0',
-          dailyIncomeUni: '0',
           startDate: null,
-          lastUpdate: null
+          uni_farming_start_timestamp: null,
+          rate: '0.001000',
+          accumulated: '0.000000',
+          last_claim: null,
+          can_claim: false,
+          next_claim_available: null
         };
         
         console.log('[Farming] Возвращаем базовые данные фарминга (без user_id)');
