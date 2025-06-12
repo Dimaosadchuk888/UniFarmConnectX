@@ -218,17 +218,17 @@ class UserService {
 
     try {
       // Делаем запрос к API, используя correctApiRequest
-      console.log('[UserService] Используем correctApiRequest для запроса /api/v2/users/profile с guest_id:', guestId);
+      console.log('[UserService] Используем correctApiRequest для запроса /api/v2/users/profile с Telegram ID:', telegramData.id);
       
-      // Делаем запрос без дополнительных параметров, так как guest_id передается в headers
-      const data = await correctApiRequest('/api/v2/users/profile', 'GET');
+      // Делаем запрос с user_id параметром
+      const data = await correctApiRequest(`/api/v2/users/profile?user_id=${telegramData.id}`, 'GET');
 
       // Подробный лог для отладки
       console.log('[UserService] API /me result:', {
         success: data?.success,
         userId: data?.data?.id,
         username: data?.data?.username,
-        guestId: data?.data?.guest_id,
+
         refCode: data?.data?.ref_code || 'НЕ ОПРЕДЕЛЕН',
         hasRefCode: !!data?.data?.ref_code,
         telegramId: data?.data?.telegram_id,

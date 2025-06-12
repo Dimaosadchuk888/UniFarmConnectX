@@ -161,10 +161,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
     
     try {
-      // Получаем данные пользователя из localStorage или используем guest_id
+      // Получаем данные пользователя из localStorage (только Telegram авторизация)
       let apiUrl = '/api/v2/users/profile';
       const lastSessionStr = localStorage.getItem('unifarm_last_session');
-      const guestId = localStorage.getItem('unifarm_guest_id');
       
       if (lastSessionStr) {
         try {
@@ -175,8 +174,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
           console.warn('[UserContext] Ошибка парсинга данных сессии:', e);
         }
-      } else if (guestId) {
-        apiUrl = `/api/v2/users/profile?guest_id=${guestId}`;
       }
       
       const response = await correctApiRequest(apiUrl);
