@@ -9,7 +9,7 @@ const missionsController = new MissionsController();
 router.get('/', requireTelegramAuth, missionsController.getActiveMissions.bind(missionsController)); // Main missions endpoint
 router.get('/active', requireTelegramAuth, missionsController.getActiveMissions.bind(missionsController));
 router.post('/complete', requireTelegramAuth, missionsController.completeMission.bind(missionsController));
-router.get('/stats', missionsController.getMissionStats.bind(missionsController));
-router.get('/user/:userId', missionsController.getUserMissions.bind(missionsController));
+router.get('/stats', requireTelegramAuth, missionsController.getMissionStats.bind(missionsController));
+router.get('/user/:userId', requireTelegramAuth, missionsController.getUserMissions.bind(missionsController));
 
 export default router;
