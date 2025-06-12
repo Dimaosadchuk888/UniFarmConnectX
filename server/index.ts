@@ -378,6 +378,32 @@ async function startServer() {
       }
     });
 
+    // Generic Farming Status API (alias for uni-farming/status)
+    app.get(`${apiPrefix}/farming/status`, async (req: any, res: any) => {
+      try {
+        // Return default farming status without requiring user_id
+        res.json({
+          success: true,
+          data: {
+            isActive: false,
+            depositAmount: '0',
+            ratePerSecond: '0',
+            totalRatePerSecond: '0',
+            depositCount: 0,
+            totalDepositAmount: '0',
+            dailyIncomeUni: '0',
+            startDate: null,
+            lastUpdate: null
+          }
+        });
+      } catch (error: any) {
+        res.status(500).json({
+          success: false,
+          error: error.message || 'Internal server error'
+        });
+      }
+    });
+
     // UNI Farming Status API
     app.get(`${apiPrefix}/uni-farming/status`, async (req: any, res: any) => {
       try {

@@ -1,11 +1,29 @@
 import express, { Request, Response } from 'express';
 import authRoutes from '../modules/auth/routes';
 import monitorRoutes from '../modules/monitor/routes';
+import farmingRoutes from '../modules/farming/routes';
+import userRoutes from '../modules/user/routes';
+import walletRoutes from '../modules/wallet/routes';
+import boostRoutes from '../modules/boost/routes';
+import missionRoutes from '../modules/missions/routes';
+import referralRoutes from '../modules/referral/routes';
+import dailyBonusRoutes from '../modules/dailyBonus/routes';
+import telegramRoutes from '../modules/telegram/routes';
 
 const router = express.Router();
 
 // Authentication routes
 router.use('/auth', authRoutes);
+
+// Core module routes
+router.use('/farming', farmingRoutes);
+router.use('/users', userRoutes);
+router.use('/wallet', walletRoutes);
+router.use('/boost', boostRoutes);
+router.use('/missions', missionRoutes);
+router.use('/referral', referralRoutes);
+router.use('/daily-bonus', dailyBonusRoutes);
+router.use('/telegram', telegramRoutes);
 
 // Monitoring routes
 router.use('/monitor', monitorRoutes);
