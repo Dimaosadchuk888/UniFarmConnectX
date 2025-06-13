@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* T10 EMERGENCY SCROLL FIX - Cache buster v2.0 */
+
 /* T10 SCROLL FIX: Принудительная прокрутка для всех элементов */
 html, body {
   background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%) !important;

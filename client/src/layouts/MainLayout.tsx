@@ -10,13 +10,22 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, activeTab, onTabChange }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col" style={{ overflow: 'visible', height: 'auto' }}>
       {/* Top Bar */}
       <Header />
       
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-2 pb-20">
-        <div className="max-w-full min-h-full">
+      {/* Main Content Area - T10 SCROLL FIX */}
+      <main 
+        className="flex-1 px-4 py-2" 
+        style={{ 
+          overflowY: 'auto', 
+          overflowX: 'hidden', 
+          paddingBottom: '120px',
+          minHeight: 'calc(100vh - 160px)',
+          maxHeight: 'none'
+        }}
+      >
+        <div className="max-w-full" style={{ overflow: 'visible', height: 'auto' }}>
           {children}
         </div>
       </main>
