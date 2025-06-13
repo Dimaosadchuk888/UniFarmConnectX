@@ -59,8 +59,19 @@ export function useTelegram() {
       setUser(tg.initDataUnsafe.user || null);
       setInitData(tg.initData);
       
+      console.log('✅ Telegram WebApp initialized');
+      console.log('initData present:', !!tg.initData);
+      console.log('initData length:', tg.initData.length);
+      console.log('user data:', tg.initDataUnsafe.user);
+      
+      if (!tg.initData) {
+        console.warn('No initData provided by Telegram WebApp');
+      }
+      
       // Expand the app to full height
       tg.expand();
+    } else {
+      console.warn('Telegram WebApp not available');
     }
   }, []);
 

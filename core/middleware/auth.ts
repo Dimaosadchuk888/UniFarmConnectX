@@ -32,10 +32,17 @@ export interface AuthenticatedRequest extends Request {
  */
 function validateTelegramInitData(initData: string, botToken: string): TelegramInitData | null {
   try {
+    console.log('✅ validateTelegramInitData called');
+    console.log('initData length:', initData.length);
+    console.log('botToken available:', !!botToken);
+    
     const urlParams = new URLSearchParams(initData);
     const hash = urlParams.get('hash');
     
-    if (!hash) return null;
+    if (!hash) {
+      console.log('❌ No hash found in initData');
+      return null;
+    }
 
     urlParams.delete('hash');
     
@@ -49,6 +56,8 @@ function validateTelegramInitData(initData: string, botToken: string): TelegramI
       .map(([key, value]) => `${key}=${value}`)
       .join('\n');
 
+    console.log('Sorted params for validation:', sortedParams.substring(0, 100));
+
     // Создаем секретный ключ
     const secretKey = crypto
       .createHmac('sha256', 'WebAppData')
@@ -61,7 +70,15 @@ function validateTelegramInitData(initData: string, botToken: string): TelegramI
       .update(sortedParams)
       .digest('hex');
 
-    if (expectedHash !== hash) return null;
+    console.log('Expected hash:', expectedHash);
+    console.log('Received hash:', hash);
+
+    if (expectedHash !== hash) {
+      console.log('❌ Hash validation failed');
+      return null;
+    }
+
+    console.log('✅ Hash validation successful');
 
     // Парсим данные
     const data: any = {};
@@ -77,8 +94,11 @@ function validateTelegramInitData(initData: string, botToken: string): TelegramI
       }
     }
 
+    console.log('✅ Parsed Telegram data:', { user: data.user?.id, auth_date: data.auth_date });
+
     return { ...data, hash };
   } catch (error) {
+    console.log('❌ validateTelegramInitData error:', error instanceof Error ? error.message : String(error));
     return null;
   }
 }
@@ -87,22 +107,34 @@ function validateTelegramInitData(initData: string, botToken: string): TelegramI
  * Middleware для аутентификации через Telegram initData
  */
 export function authenticateTelegram(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  console.log('✅ [TelegramMiddleware] authenticateTelegram called');
+  
   const initData = req.get('x-telegram-init-data');
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
+  console.log('initData header present:', !!initData);
+  console.log('botToken available:', !!botToken);
+
   if (!botToken) {
+    console.log('❌ [TelegramMiddleware] Bot token not configured');
     return res.status(500).json({ error: 'Telegram bot token not configured' });
   }
 
   if (!initData) {
+    console.warn('No initData provided');
+    console.log('❌ [TelegramMiddleware] No initData in headers');
     return res.status(401).json({ error: 'Telegram init data required' });
   }
 
+  console.log('✅ [TelegramMiddleware] Validating initData...');
   const validatedData = validateTelegramInitData(initData, botToken);
   
   if (!validatedData || !validatedData.user) {
+    console.log('❌ [TelegramMiddleware] Invalid initData validation');
     return res.status(401).json({ error: 'Invalid Telegram init data' });
   }
+
+  console.log('✅ [TelegramMiddleware] Valid Telegram user:', validatedData.user.id);
 
   // Проверяем время авторизации (не старше 1 часа)
   const authDate = parseInt(validatedData.auth_date);

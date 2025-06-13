@@ -141,10 +141,18 @@ class TelegramService {
    * Получение initData для отправки на сервер
    */
   getInitData(): string {
-    if (!this.isAvailable()) {return '';
+    if (!this.isAvailable()) {
+      console.warn('TelegramService: WebApp not available for getInitData');
+      return '';
     }
     
-    return this.webApp!.initData || '';
+    const initData = this.webApp!.initData || '';
+    console.log('TelegramService: initData length:', initData.length);
+    if (!initData) {
+      console.warn('TelegramService: Empty initData from Telegram WebApp');
+    }
+    
+    return initData;
   }
 
   /**
@@ -167,12 +175,24 @@ class TelegramService {
     };
 
     const initData = this.getInitData();
-    const user = this.getUser();if (initData) {
+    const user = this.getUser();
+    
+    console.log('TelegramService: Preparing API headers');
+    console.log('initData available:', !!initData);
+    console.log('user available:', !!user);
+    
+    if (initData) {
       headers['X-Telegram-Init-Data'] = initData;
+      console.log('✅ Added X-Telegram-Init-Data header');
+    } else {
+      console.warn('❌ No initData available for X-Telegram-Init-Data header');
     }
 
     if (user) {
       headers['X-Telegram-User-Id'] = user.id.toString();
+      console.log('✅ Added X-Telegram-User-Id header:', user.id);
+    } else {
+      console.warn('❌ No user data available for X-Telegram-User-Id header');
     }
 
     return headers;

@@ -21,6 +21,7 @@ import { UserProvider } from "@/contexts/userContext";
 import { NotificationProvider } from "@/contexts/notificationContext";
 // import { ErrorBoundaryProvider } from "@/contexts/ErrorBoundaryContext"; // Removed due to runtime-error-plugin conflict
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
+import { TelegramAuth } from "@/components/TelegramAuth";
 
 // Lazy-loaded Pages
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -175,16 +176,18 @@ function App() {
             <NotificationProvider>
             <UserProvider>
                 <TelegramWebAppCheck>
-                  <MainLayout 
-                    activeTab={state.activeTab} 
-                    onTabChange={handleTabChange}
-                  >
-                    {renderPage()}
-                  </MainLayout>
-                  <NetworkStatusIndicator />
-                  <Toaster />
-                  <ScrollFix />
-                  <ForceScroll />
+                  <TelegramAuth>
+                    <MainLayout 
+                      activeTab={state.activeTab} 
+                      onTabChange={handleTabChange}
+                    >
+                      {renderPage()}
+                    </MainLayout>
+                    <NetworkStatusIndicator />
+                    <Toaster />
+                    <ScrollFix />
+                    <ForceScroll />
+                  </TelegramAuth>
                 </TelegramWebAppCheck>
             </UserProvider>
           </NotificationProvider>
