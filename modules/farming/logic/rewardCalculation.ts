@@ -23,7 +23,7 @@ export class RewardCalculationLogic {
       const reward = amountNum * this.DAILY_RATE * farmingDays;
       return reward.toFixed(8);
     } catch (error) {
-      console.error('[RewardCalculation] Ошибка расчета базового вознаграждения:', error);
+      logger.error('[RewardCalculation] Ошибка расчета базового вознаграждения', { error: error instanceof Error ? error.message : String(error) });
       return '0';
     }
   }
@@ -39,7 +39,7 @@ export class RewardCalculationLogic {
       const days = farmingHours / 24;
       return this.calculateBaseReward(depositAmount, days);
     } catch (error) {
-      console.error('[RewardCalculation] Ошибка расчета дохода с фарминга:', error);
+      logger.error('[RewardCalculation] Ошибка расчета дохода с фарминга', { error: error instanceof Error ? error.message : String(error) });
       return '0';
     }
   }
@@ -53,7 +53,7 @@ export class RewardCalculationLogic {
       const boostedReward = baseNum * multiplier;
       return boostedReward.toFixed(8);
     } catch (error) {
-      console.error('[RewardCalculation] Ошибка применения буста:', error);
+      logger.error('[RewardCalculation] Ошибка применения буста', { error: error instanceof Error ? error.message : String(error) });
       return baseReward;
     }
   }
@@ -72,7 +72,7 @@ export class RewardCalculationLogic {
       const bonus = (baseNum * bonusPercentage * levelMultiplier) / 100;
       return bonus.toFixed(8);
     } catch (error) {
-      console.error('[RewardCalculation] Ошибка расчета реферального бонуса:', error);
+      logger.error('[RewardCalculation] Ошибка расчета реферального бонуса', { error: error instanceof Error ? error.message : String(error) });
       return '0';
     }
   }
@@ -106,7 +106,7 @@ export class RewardCalculationLogic {
       
       return { valid: true };
     } catch (error) {
-      console.error('[RewardCalculation] Ошибка валидации лимитов:', error);
+      logger.error('[RewardCalculation] Ошибка валидации лимитов', { error: error instanceof Error ? error.message : String(error) });
       return { valid: false, message: 'Ошибка валидации' };
     }
   }

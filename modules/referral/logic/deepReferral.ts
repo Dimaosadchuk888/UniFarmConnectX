@@ -165,7 +165,7 @@ export class DeepReferralLogic {
       // 2. Пользователь был активен в последние 30 дней
       return daysSinceReferral <= 90 && daysSinceActivity <= 30;
     } catch (error) {
-      console.error('[DeepReferral] Ошибка проверки активности реферала:', error);
+      logger.error('[DeepReferral] Ошибка проверки активности реферала', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -192,7 +192,7 @@ export class DeepReferralLogic {
 
       return '0';
     } catch (error) {
-      console.error('[DeepReferral] Ошибка расчета milestone бонуса:', error);
+      logger.error('[DeepReferral] Ошибка расчета milestone бонуса', { error: error instanceof Error ? error.message : String(error) });
       return '0';
     }
   }

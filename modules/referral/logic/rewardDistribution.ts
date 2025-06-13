@@ -153,7 +153,7 @@ export class ReferralRewardDistribution {
         transactional: true
       });
       
-      console.error('[ReferralRewardDistribution] Ошибка распределения наград:', error);
+      logger.error('[ReferralRewardDistribution] Ошибка распределения наград', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -252,7 +252,7 @@ export class ReferralRewardDistribution {
 
       return "0";
     } catch (error) {
-      console.error('[ReferralRewardDistribution] Ошибка milestone бонуса:', error);
+      logger.error('[ReferralRewardDistribution] Ошибка milestone бонуса', { error: error instanceof Error ? error.message : String(error) });
       return "0";
     }
   }
