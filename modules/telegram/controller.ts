@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
+import { logger } from '../../core/logger.js';
 import { TelegramService } from './service';
 
 export class TelegramController extends BaseController {

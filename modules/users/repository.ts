@@ -51,7 +51,7 @@ export class UserRepository {
 
       return user || null;
     } catch (error) {
-      console.error('[UserRepository] Error finding user by ref_code:', error);
+      logger.error('[UserRepository] Error finding user by ref_code', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -61,7 +61,7 @@ export class UserRepository {
    */
   async createUserFromTelegram(params: CreateUserFromTelegramParams): Promise<User> {
     try {
-      console.log('[UserRepository] Creating new user from Telegram data:', params);
+      logger.info('[UserRepository] Creating new user from Telegram data', { params });
 
       // Генерируем уникальный реферальный код
       let refCode: string;
@@ -85,9 +85,9 @@ export class UserRepository {
         const inviter = await this.findByRefCode(params.ref_by);
         if (inviter) {
           parentRefCode = params.ref_by;
-          console.log('[UserRepository] Found inviter:', inviter.id);
+          logger.info('[UserRepository] Found inviter', { inviterId: inviter.id });
         } else {
-          console.warn('[UserRepository] Invalid ref_by code provided:', params.ref_by);
+          logger.warn('[UserRepository] Invalid ref_by code provided', { refBy: params.ref_by });
         }
       }
 
@@ -103,10 +103,10 @@ export class UserRepository {
         .values(userData)
         .returning();
 
-      console.log('[UserRepository] Successfully created user:', newUser.id);
+      logger.info('[UserRepository] Successfully created user', { userId: newUser.id });
       return newUser;
     } catch (error) {
-      console.error('[UserRepository] Error creating user from Telegram:', error);
+      logger.error('[UserRepository] Error creating user from Telegram', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
