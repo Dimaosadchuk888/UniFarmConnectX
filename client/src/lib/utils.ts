@@ -70,76 +70,40 @@ export function formatNumberWithPrecision(value: number, precision: number = 2):
  * 4. Фиксированный ID для разработки
  * @returns userId или null
  */
-export function getUserIdFromURL(): string | null {
-  console.log('[utils] Getting user ID from all available sources');
-  
-  // АУДИТ: Расширенная проверка данных из Telegram WebApp
-  if (window.Telegram?.WebApp) {
-    console.log('[АУДИТ] [utils] Telegram WebApp object available:', {
-      initDataLength: typeof window.Telegram.WebApp.initData === 'string' ? window.Telegram.WebApp.initData.length : 0,
-      initDataUnsafe: window.Telegram.WebApp.initDataUnsafe ? 'present' : 'missing',
-      userObject: window.Telegram.WebApp.initDataUnsafe?.user ? 'present' : 'missing',
-      userId: window.Telegram.WebApp.initDataUnsafe?.user?.id || 'none'
-    });
-    
-    if (window.Telegram.WebApp.initDataUnsafe?.user?.id) {
-      const telegramId = String(window.Telegram.WebApp.initDataUnsafe.user.id);
-      console.log('[utils] Found user ID in Telegram WebApp:', telegramId);
-      
-      // Кэшируем ID в localStorage
+export function getUserIdFromURL(): string | null {// АУДИТ: Расширенная проверка данных из Telegram WebApp
+  if (window.Telegram?.WebApp) {if (window.Telegram.WebApp.initDataUnsafe?.user?.id) {
+      const telegramId = String(window.Telegram.WebApp.initDataUnsafe.user.id);// Кэшируем ID в localStorage
       try {
-        localStorage.setItem('telegram_user_id', telegramId);
-        console.log('[utils] Cached Telegram user ID in localStorage');
-      } catch (err) {
-        console.warn('[utils] Failed to cache user ID:', err);
-      }
+        localStorage.setItem('telegram_user_id', telegramId);} catch (err) {}
       
       return telegramId;
-    } else {
-      console.warn('[АУДИТ] [utils] Telegram WebApp available but user.id is missing');
-    }
-  } else {
-    console.warn('[АУДИТ] [utils] Telegram WebApp object not available');
-  }
+    } else {}
+  } else {}
   
   // Пытаемся получить из параметров URL
   const urlParams = new URLSearchParams(window.location.search);
   const userId = urlParams.get('user_id');
   
-  if (userId) {
-    console.log('[utils] Found user ID in URL parameters:', userId);
-    return userId;
+  if (userId) {return userId;
   }
   
   // Пытаемся восстановить из кэша в localStorage
   try {
     const cachedId = localStorage.getItem('telegram_user_id');
-    if (cachedId) {
-      console.log('[utils] Restored user ID from localStorage cache:', cachedId);
-      return cachedId;
+    if (cachedId) {return cachedId;
     }
-  } catch (err) {
-    console.warn('[utils] Error accessing localStorage:', err);
-  }
+  } catch (err) {}
   
   // В режиме разработки можно использовать фиксированный ID
-  if (import.meta.env.DEV) {
-    console.log('[utils] Using development user ID');
-    return '1'; // ID пользователя для разработки
-  }
-  
-  console.log('[utils] No user ID found from any source');
-  return null;
+  if (import.meta.env.DEV) {return '1'; // ID пользователя для разработки
+  }return null;
 }
 
 /**
  * Извлекает ID реферера (пригласившего пользователя) из параметров URL Telegram Mini App
  * @returns ID реферера или null, если не найден
  */
-export function getReferrerIdFromURL(): string | null {
-  console.log('[utils] Checking for referrer ID in URL and Telegram WebApp...');
-  
-  try {
+export function getReferrerIdFromURL(): string | null {try {
     // Шаг 1: Проверяем прямые URL параметры
     const urlParams = new URLSearchParams(window.location.search);
     
@@ -147,59 +111,32 @@ export function getReferrerIdFromURL(): string | null {
     let startParam = urlParams.get('start');
     
     // Если параметр start найден, проверяем формат "userXXX"
-    if (startParam) {
-      console.log('[utils] Found start parameter in URL:', startParam);
-      
-      // Извлекаем userId из формата 'userXXX'
+    if (startParam) {// Извлекаем userId из формата 'userXXX'
       if (startParam.startsWith('user')) {
-        const referrerId = startParam.substring(4); // Отрезаем 'user'
-        console.log('[utils] Extracted referrer ID from start parameter:', referrerId);
-        return referrerId;
+        const referrerId = startParam.substring(4); // Отрезаем 'user'return referrerId;
       }
       return startParam; // Возвращаем как есть, если формат другой
     }
     
     // Сначала проверяем новый формат с параметром ref_code
     const refCodeParam = urlParams.get('ref_code');
-    if (refCodeParam) {
-      console.log('[utils] Found ref_code parameter in URL:', refCodeParam);
-      return refCodeParam;
+    if (refCodeParam) {return refCodeParam;
     }
     
     // Проверяем старый формат ссылки с параметром startapp (для обратной совместимости)
     const startappParam = urlParams.get('startapp');
-    if (startappParam) {
-      console.log('[utils] Found legacy startapp parameter in URL:', startappParam);
-      return startappParam;
+    if (startappParam) {return startappParam;
     }
     
     // Шаг 2: Проверяем данные Telegram WebApp с расширенной диагностикой
-    if (window.Telegram?.WebApp) {
-      console.log('[АУДИТ] [utils] Checking Telegram WebApp for startParam:', {
-        webAppAvailable: !!window.Telegram.WebApp,
-        // @ts-ignore - startParam может быть недоступен в типе, но доступен в реальном API
-        startParamAvailable: !!window.Telegram.WebApp.startParam,
-        // @ts-ignore
-        startParamValue: window.Telegram.WebApp.startParam || 'none',
-        initDataLength: typeof window.Telegram.WebApp.initData === 'string' ? 
-                        window.Telegram.WebApp.initData.length : 0,
-        hasInitDataUnsafe: !!window.Telegram.WebApp.initDataUnsafe,
-        userId: window.Telegram.WebApp.initDataUnsafe?.user?.id || 'none'
-      });
-      
-      // В Telegram WebApp параметр start передается как часть initData
+    if (window.Telegram?.WebApp) {// В Telegram WebApp параметр start передается как часть initData
       // или может быть доступен как startParam
       
       // @ts-ignore - startParam может быть недоступен в типе, но доступен в реальном API
       const telegramStartParam = window.Telegram.WebApp.startParam;
-      if (telegramStartParam) {
-        console.log('[utils] Found startParam in Telegram WebApp:', telegramStartParam);
-        
-        // Аналогично проверяем формат "userXXX"
+      if (telegramStartParam) {// Аналогично проверяем формат "userXXX"
         if (telegramStartParam.startsWith('user')) {
-          const referrerId = telegramStartParam.substring(4);
-          console.log('[utils] Extracted referrer ID from Telegram startParam:', referrerId);
-          return referrerId;
+          const referrerId = telegramStartParam.substring(4);return referrerId;
         }
         return telegramStartParam;
       }
@@ -209,23 +146,13 @@ export function getReferrerIdFromURL(): string | null {
       if (initData && typeof initData === 'string') {
         const startMatch = initData.match(/start=([^&]+)/);
         if (startMatch && startMatch[1]) {
-          const decodedStart = decodeURIComponent(startMatch[1]);
-          console.log('[utils] Found start parameter in Telegram initData:', decodedStart);
-          
-          if (decodedStart.startsWith('user')) {
-            const referrerId = decodedStart.substring(4);
-            console.log('[utils] Extracted referrer ID from Telegram initData:', referrerId);
-            return referrerId;
+          const decodedStart = decodeURIComponent(startMatch[1]);if (decodedStart.startsWith('user')) {
+            const referrerId = decodedStart.substring(4);return referrerId;
           }
           return decodedStart;
         }
       }
-    }
-    
-    console.log('[utils] No referrer ID found in URL or Telegram WebApp');
-    return null;
-  } catch (error) {
-    console.error('[utils] Error extracting referrer ID:', error);
-    return null;
+    }return null;
+  } catch (error) {return null;
   }
 }

@@ -64,9 +64,7 @@ const SimpleMissionsList: React.FC = () => {
     }
   };
 
-  const handleMissionClick = (mission: any) => {
-    console.log('Mission clicked:', mission.title);
-    // Здесь будет логика выполнения миссии
+  const handleMissionClick = (mission: any) => {// Здесь будет логика выполнения миссии
   };
 
   return (

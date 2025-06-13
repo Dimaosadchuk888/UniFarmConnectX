@@ -66,12 +66,8 @@ function App() {
       // Пытаемся создать пользователя в фоне, не блокируя интерфейс
       try {
         await authenticateUser();
-      } catch (authError) {
-        console.warn('Authentication failed, continuing with demo mode:', authError);
-      }
-    } catch (error) {
-      console.error('App initialization error:', error);
-      // В любом случае загружаем интерфейс
+      } catch (authError) {}
+    } catch (error) {// В любом случае загружаем интерфейс
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
@@ -103,12 +99,7 @@ function App() {
           return { ...prev, userId: 1 };
         }
         return prev;
-      });
-      
-      console.log('Demo mode: using guest ID', guestId);
-    } catch (error) {
-      console.warn('Authentication skipped, continuing in demo mode:', error);
-    }
+      });} catch (error) {}
   };
 
   const getOrCreateGuestId = () => {

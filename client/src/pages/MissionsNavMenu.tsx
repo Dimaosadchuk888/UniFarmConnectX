@@ -4,15 +4,10 @@ import { useQueryClient } from '@tanstack/react-query';
 
 // Специальная версия страницы миссий для навигации через меню
 // Использует основной компонент MissionsList
-const MissionsNavMenu: React.FC = () => {
-  console.log('Rendering MissionsNavMenu - Специальная версия для навигации через меню (v3)');
-  const queryClient = useQueryClient();
+const MissionsNavMenu: React.FC = () => {const queryClient = useQueryClient();
   
   // Сбрасываем кеш при навигации через меню
-  useEffect(() => {
-    console.log('MissionsNavMenu mounted - использует стандартный MissionsList');
-    
-    // Инвалидируем кеш для уверенности в свежести данных
+  useEffect(() => {// Инвалидируем кеш для уверенности в свежести данных
     queryClient.invalidateQueries({
       queryKey: ['/api/missions/active']
     });
@@ -21,9 +16,7 @@ const MissionsNavMenu: React.FC = () => {
     });
     
     // Очистка при размонтировании
-    return () => {
-      console.log('MissionsNavMenu unmounted - очищаем ресурсы');
-    };
+    return () => {};
   }, [queryClient]);
   
   // Используем стандартный MissionsList

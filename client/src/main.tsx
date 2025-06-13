@@ -4,10 +4,7 @@ import "./index.css";
 import App from "./App";
 import { ReplitErrorBoundaryContext } from "./contexts/ReplitErrorBoundaryContext";
 
-// Простая инициализация без сложной логики DOM
-console.log('[UniFarm] Запуск приложения...');
-
-// Create a minimal ErrorBoundaryContext implementation for @replit/vite-plugin-runtime-error-modal
+// Простая инициализация без сложной логики DOM// Create a minimal ErrorBoundaryContext implementation for @replit/vite-plugin-runtime-error-modal
 const createErrorBoundaryContext = () => {
   const context = React.createContext({
     error: null,
@@ -28,8 +25,4 @@ if (typeof window !== 'undefined') {
 const rootElement = document.getElementById("root");
 if (rootElement) {
   const root = createRoot(rootElement);
-  root.render(<App />);
-  console.log('[UniFarm] Приложение успешно запущено');
-} else {
-  console.error('[UniFarm] Элемент #root не найден');
-}
+  root.render(<App />);} else {}

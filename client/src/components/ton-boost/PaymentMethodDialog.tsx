@@ -42,10 +42,7 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
   const { userId } = useUser();
 
   const handleSelectMethod = async (method: 'internal_balance' | 'external_wallet') => {
-    // Проверяем и логируем статус userId
-    console.log("[DEBUG] PaymentMethodDialog - handleSelectMethod: userId текущего пользователя =", userId);
-    
-    // Убедимся, что boostPriceTon всегда имеет значение, используя дефолтную цену при null
+    // Проверяем и логируем статус userId// Убедимся, что boostPriceTon всегда имеет значение, используя дефолтную цену при null
     if (boostPriceTon === null || boostPriceTon === undefined) {
       const defaultPrices: Record<number, string> = { 1: "1", 2: "5", 3: "15", 4: "25" };
       // Безопасный доступ с проверкой, чтобы избежать ошибки "null cannot be used as index type"
@@ -78,9 +75,7 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
         
         // ТЗ: Вычисляем nanoAmount и логируем её
         const tonAmount = parseFloat(boostPriceTon);
-        if (isNaN(tonAmount)) {
-          console.error("[ERROR] Невалидная цена пакета:", boostPriceTon);
-          toast({
+        if (isNaN(tonAmount)) {toast({
             title: "Ошибка платежа",
             description: "Некорректная сумма для платежа. Пожалуйста, попробуйте снова.",
             variant: "destructive"
@@ -88,16 +83,9 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
           return;
         }
         
-        const nanoAmount = BigInt(tonAmount * 1e9).toString();
-        console.log("✅ nanoAmount:", nanoAmount);
-        
-        // Вызываем sendTonTransaction с проверенной суммой
+        const nanoAmount = BigInt(tonAmount * 1e9).toString();// Вызываем sendTonTransaction с проверенной суммой
         // Используем nanoAmount вместо boostPriceTon для передачи точной суммы в sendTonTransaction
-        const result = await sendTonTransaction(tonConnectUI, String(tonAmount), comment);
-        
-        console.log("[TON] Результат транзакции:", result);
-        
-        if (result && result.status === 'success') {
+        const result = await sendTonTransaction(tonConnectUI, String(tonAmount), comment);if (result && result.status === 'success') {
           toast({
             title: "Транзакция отправлена",
             description: "Платеж успешно отправлен в блокчейн TON",
@@ -109,9 +97,7 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
             variant: "default"
           });
         }
-      } catch (error) {
-        console.error("[TEST ERROR] Ошибка при тестовом вызове sendTonTransaction:", error);
-        toast({
+      } catch (error) {toast({
           title: "Ошибка теста",
           description: `Не удалось вызвать sendTransaction: ${error}`,
           variant: "destructive"
@@ -124,9 +110,7 @@ const PaymentMethodDialog: React.FC<PaymentMethodDialogProps> = ({
     if (boostId !== null) {
       // Если выбран внешний кошелек, проверяем подключение TonConnect
       if (method === 'external_wallet') {
-        if (!tonConnectUI) {
-          console.error('[ERROR] tonConnectUI not initialized in PaymentMethodDialog');
-          toast({
+        if (!tonConnectUI) {toast({
             title: "Ошибка инициализации",
             description: "Произошла ошибка инициализации TonConnect. Пожалуйста, обновите страницу и попробуйте снова.",
             variant: "destructive"

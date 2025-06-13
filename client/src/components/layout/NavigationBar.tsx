@@ -16,9 +16,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({ activeTab, setActiveTab }
     setActiveTab(itemId);
     
     // Специальная обработка для миссий из-за проблем с отображением
-    if (itemId === 'missions') {
-      console.log('Навигация на страницу миссий через меню - используем missions-nav');
-      setLocation('/missions-nav');
+    if (itemId === 'missions') {setLocation('/missions-nav');
       return;
     }
     

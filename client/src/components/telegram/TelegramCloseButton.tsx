@@ -24,25 +24,15 @@ const TelegramCloseButton: React.FC<TelegramCloseButtonProps> = ({
 }) => {
   
   const handleClose = async () => {
-    try {
-      console.log('[TG CLOSE BUTTON] 🚪 Пользователь нажал кнопку закрытия');
-      
-      // Вызываем безопасный метод закрытия
+    try {// Вызываем безопасный метод закрытия
       const success = await SafeTelegramAPI.close();
       
-      if (success) {
-        console.log('[TG CLOSE BUTTON] ✅ Приложение успешно закрыто');
-      } else {
-        console.warn('[TG CLOSE BUTTON] ⚠️ Закрытие недоступно (возможно, не в Telegram)');
-        
-        // Fallback для браузера
+      if (success) {} else {// Fallback для браузера
         if (typeof window !== 'undefined' && window.history.length > 1) {
           window.history.back();
         }
       }
-    } catch (error) {
-      console.error('[TG ERROR] TelegramCloseButton — Failed to close app:', error);
-    }
+    } catch (error) {}
   };
 
   return (

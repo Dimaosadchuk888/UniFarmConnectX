@@ -32,12 +32,8 @@ const Friends: React.FC = () => {
     try {
       // Здесь в будущем может быть размещена дополнительная логика
       // В настоящее время эффект используется для отслеживания изменений
-      if (isError) {
-        console.error('Ошибка загрузки данных пользователя');
-      }
-    } catch (error) {
-      console.error('Необработанная ошибка в эффекте мониторинга:', error);
-      // Тихая обработка ошибки, чтобы не прерывать работу приложения
+      if (isError) {}
+    } catch (error) {// Тихая обработка ошибки, чтобы не прерывать работу приложения
     }
   }, [userData, isLoading, isError]);
 
@@ -45,50 +41,27 @@ const Friends: React.FC = () => {
   // с улучшенной обработкой ошибок
   useEffect(() => {
     // Только если данные загружены и ref_code отсутствует
-    if (!isLoading && userData && !userData.ref_code) {
-      console.log('Обнаружен пользователь без реферального кода, попытка автогенерации');
-      
-      // Немедленно пытаемся сгенерировать реферальный код без задержки
+    if (!isLoading && userData && !userData.ref_code) {// Немедленно пытаемся сгенерировать реферальный код без задержки
       userService.generateRefCode()
-        .then(() => {
-          console.log('Успешно сгенерирован реферальный код');
-          // Принудительно обновляем данные в интерфейсе
+        .then(() => {// Принудительно обновляем данные в интерфейсе
           try {
             refetch()
-              .catch(refetchError => {
-                console.error('Ошибка при обновлении данных после генерации кода:', refetchError);
-              });
-          } catch (refetchError) {
-            console.error('Необработанная ошибка при вызове refetch:', refetchError);
-          }
+              .catch(refetchError => {});
+          } catch (refetchError) {}
         })
-        .catch((genError) => {
-          console.error('Не удалось сгенерировать реферальный код:', genError);
-          
-          // Переходим к запасному варианту - запрашиваем просто обновление данных
+        .catch((genError) => {// Переходим к запасному варианту - запрашиваем просто обновление данных
           userService.getCurrentUser(true)
-            .then(updatedUser => {
-              console.log('Получены обновленные данные пользователя');
-              
-              // Принудительно обновляем данные
+            .then(updatedUser => {// Принудительно обновляем данные
               try {
                 window.dispatchEvent(new CustomEvent('user:updated', { detail: updatedUser }));
-              } catch (eventError) {
-                console.error('Ошибка при отправке события обновления:', eventError);
-              }
+              } catch (eventError) {}
               
               try {
                 refetch()
-                  .catch(refetchError => {
-                    console.error('Ошибка при обновлении данных с сервера:', refetchError);
-                  });
-              } catch (refetchError) {
-                console.error('Необработанная ошибка при вызове refetch:', refetchError);
-              }
+                  .catch(refetchError => {});
+              } catch (refetchError) {}
             })
-            .catch(userError => {
-              console.error('Не удалось получить обновленные данные пользователя:', userError);
-            });
+            .catch(userError => {});
         });
     }
   }, [userData, isLoading, refetch]);
@@ -105,9 +78,7 @@ const Friends: React.FC = () => {
       // Затем обновляем React Query кэш
       try {
         await refetch();
-      } catch (refetchError) {
-        console.error('Ошибка при обновлении данных через refetch:', refetchError);
-        // Продолжаем выполнение, даже если refetch не удался
+      } catch (refetchError) {// Продолжаем выполнение, даже если refetch не удался
       }
       
       // Если кода все равно нет - пробуем генерировать
@@ -116,17 +87,11 @@ const Friends: React.FC = () => {
           await userService.generateRefCode();
           try {
             await refetch();
-          } catch (refetchError) {
-            console.error('Ошибка при обновлении данных после генерации кода:', refetchError);
-          }
-        } catch (genError) {
-          console.error('Не удалось сгенерировать реферальный код:', genError);
-          // Тихая обработка ошибки для пользователя
+          } catch (refetchError) {}
+        } catch (genError) {// Тихая обработка ошибки для пользователя
         }
       }
-    } catch (error) {
-      console.error('Ошибка при обновлении данных пользователя:', error);
-      // Тихая обработка ошибки для пользователя, но логирование для отладки
+    } catch (error) {// Тихая обработка ошибки для пользователя, но логирование для отладки
     }
   };
   
@@ -146,9 +111,7 @@ const Friends: React.FC = () => {
       let guestId;
       try {
         guestId = localStorage.getItem('unifarm_guest_id');
-      } catch (storageError) {
-        console.error('Ошибка при доступе к localStorage:', storageError);
-        setDirectLinkData({ 
+      } catch (storageError) {setDirectLinkData({ 
           isLoading: false, 
           refCode: '', 
           error: 'Не удалось получить данные из локального хранилища' 
@@ -156,9 +119,7 @@ const Friends: React.FC = () => {
         return;
       }
       
-      if (!guestId) {
-        console.warn('guest_id отсутствует в localStorage');
-        setDirectLinkData({ 
+      if (!guestId) {setDirectLinkData({ 
           isLoading: false, 
           refCode: '', 
           error: 'Не удалось получить идентификатор гостя' 
@@ -171,9 +132,7 @@ const Friends: React.FC = () => {
       try {
         // Используем correctApiRequest вместо прямого fetch
         data = await correctApiRequest(`/api/users/guest/${guestId}`, 'GET');
-      } catch (apiError: any) {
-        console.error('Ошибка при запросе данных пользователя:', apiError);
-        setDirectLinkData({ 
+      } catch (apiError: any) {setDirectLinkData({ 
           isLoading: false, 
           refCode: '', 
           error: apiError.message || 'Не удалось подключиться к серверу' 
@@ -201,33 +160,25 @@ const Friends: React.FC = () => {
               refCode: genData.data.ref_code, 
               error: '' 
             });
-          } else {
-            console.warn('Неуспешный ответ при генерации кода:', genData);
-            setDirectLinkData({ 
+          } else {setDirectLinkData({ 
               isLoading: false, 
               refCode: '', 
               error: genData.message || 'Не удалось сгенерировать реферальный код' 
             });
           }
-        } catch (genError) {
-          console.error('Ошибка при генерации реферального кода:', genError);
-          setDirectLinkData({ 
+        } catch (genError) {setDirectLinkData({ 
             isLoading: false, 
             refCode: '', 
             error: 'Ошибка при генерации реферального кода' 
           });
         }
-      } else {
-        console.warn('Неуспешный ответ при получении пользователя:', data);
-        setDirectLinkData({ 
+      } else {setDirectLinkData({ 
           isLoading: false, 
           refCode: '', 
           error: data.message || 'Не удалось получить данные пользователя' 
         });
       }
-    } catch (error) {
-      console.error('Необработанная ошибка в fetchDirectRefCode:', error);
-      setDirectLinkData({ 
+    } catch (error) {setDirectLinkData({ 
         isLoading: false, 
         refCode: '', 
         error: (error as Error).message || 'Произошла ошибка при запросе данных' 
@@ -239,9 +190,7 @@ const Friends: React.FC = () => {
   useEffect(() => {
     try {
       fetchDirectRefCode();
-    } catch (error) {
-      console.error('Необработанная ошибка при первоначальной загрузке данных:', error);
-      // Тихая обработка ошибки для пользователя, продолжаем выполнение
+    } catch (error) {// Тихая обработка ошибки для пользователя, продолжаем выполнение
     }
   }, []);
   

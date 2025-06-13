@@ -32,13 +32,11 @@
  * try {
  *   const response = await apiGet('/api/data');
  *   if (!response.success) {
- *     console.error('API ошибка:', response.error);
- *     return;
+ **     return;
  *   }
  *   // Работа с данными
  * } catch (error) {
- *   console.error('Ошибка сети:', error);
- * }
+ ** }
  * ```
  */
 
@@ -105,10 +103,7 @@ export async function apiService<T = any>(
     }
 
     return result;
-  } catch (error: any) {
-    console.error('[apiService] Ошибка при выполнении запроса к', endpoint, ':', error);
-
-    // Формируем структурированный ответ с ошибкой
+  } catch (error: any) {// Формируем структурированный ответ с ошибкой
     return {
       success: false,
       error: error?.message || 'Неизвестная ошибка при запросе к API',

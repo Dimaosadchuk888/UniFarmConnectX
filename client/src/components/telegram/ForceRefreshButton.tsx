@@ -23,33 +23,21 @@ const ForceRefreshButton: React.FC<ForceRefreshButtonProps> = ({
 }) => {
   
   const handleForceRefresh = () => {
-    try {
-      console.log('[FORCE REFRESH] 🔄 Пользователь запросил принудительное обновление');
-      
-      // Очищаем все возможные кэши
+    try {// Очищаем все возможные кэши
       if ('caches' in window) {
         caches.keys().then(cacheNames => {
           cacheNames.forEach(cacheName => {
-            caches.delete(cacheName);
-            console.log('[FORCE REFRESH] Очищен кэш:', cacheName);
-          });
+            caches.delete(cacheName);});
         });
       }
       
       // Создаем URL с параметрами принудительного обновления
       const url = new URL(window.location.href);
       url.searchParams.set('force', Date.now().toString());
-      url.searchParams.set('nocache', Math.random().toString(36).substring(7));
-      
-      console.log('[FORCE REFRESH] Перезагрузка с URL:', url.toString());
-      
-      // Принудительная перезагрузка страницы с новыми параметрами
+      url.searchParams.set('nocache', Math.random().toString(36).substring(7));// Принудительная перезагрузка страницы с новыми параметрами
       window.location.href = url.toString();
       
-    } catch (error) {
-      console.error('[FORCE REFRESH] Ошибка при принудительном обновлении:', error);
-      
-      // Fallback - простая перезагрузка
+    } catch (error) {// Fallback - простая перезагрузка
       window.location.reload();
     }
   };

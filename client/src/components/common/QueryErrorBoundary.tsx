@@ -37,9 +37,7 @@ class QueryErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Можно также отправить отчет об ошибке в сервис аналитики
-    console.error(`[QueryErrorBoundary] Ошибка в компоненте:`, error);
-    console.error(`[QueryErrorBoundary] Информация:`, errorInfo);
+    // TODO: send error report to analytics service
   }
   
   handleReset = (): void => {

@@ -21,9 +21,7 @@ export const ReplitErrorBoundaryProvider: React.FC<ReplitErrorBoundaryProviderPr
     setError(null);
   };
 
-  const reportError = (error: Error, errorInfo?: any) => {
-    console.error('[ReplitErrorBoundary] Error reported:', error, errorInfo);
-    setError(error);
+  const reportError = (error: Error, errorInfo?: any) => {setError(error);
   };
 
   const value = {

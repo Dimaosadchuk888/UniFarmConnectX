@@ -93,9 +93,7 @@ class TelegramService {
    */
   private initialize(): void {
     // Проверяем доступность в браузере
-    if (typeof window === 'undefined') {
-      console.log('[telegramService] Окружение не браузер');
-      return;
+    if (typeof window === 'undefined') {return;
     }
 
     // Ждем полной загрузки Telegram WebApp
@@ -103,14 +101,9 @@ class TelegramService {
       if (window.Telegram?.WebApp) {
         this.webApp = window.Telegram.WebApp;
         this.webApp.ready();
-        this.initialized = true;
-        console.log('[telegramService] Telegram WebApp успешно инициализирован');
-        
-        // Расширяем приложение
+        this.initialized = true;// Расширяем приложение
         this.webApp.expand();
-      } else {
-        console.log('[telegramService] Telegram WebApp недоступен, работаем в fallback режиме');
-      }
+      } else {}
     };
 
     // Если Telegram уже доступен - инициализируем сразу
@@ -138,9 +131,7 @@ class TelegramService {
    * Получение данных пользователя
    */
   getUser(): TelegramUser | null {
-    if (!this.isAvailable()) {
-      console.log('[telegramService] WebApp недоступен для получения пользователя');
-      return null;
+    if (!this.isAvailable()) {return null;
     }
     
     return this.webApp!.initDataUnsafe.user || null;
@@ -150,9 +141,7 @@ class TelegramService {
    * Получение initData для отправки на сервер
    */
   getInitData(): string {
-    if (!this.isAvailable()) {
-      console.log('[telegramService] WebApp недоступен для получения initData');
-      return '';
+    if (!this.isAvailable()) {return '';
     }
     
     return this.webApp!.initData || '';
@@ -178,15 +167,7 @@ class TelegramService {
     };
 
     const initData = this.getInitData();
-    const user = this.getUser();
-
-    console.log('[telegramService] Подготовка заголовков:', {
-      hasInitData: !!initData,
-      initDataLength: initData.length,
-      hasUser: !!user
-    });
-
-    if (initData) {
+    const user = this.getUser();if (initData) {
       headers['X-Telegram-Init-Data'] = initData;
     }
 
@@ -292,12 +273,7 @@ class TelegramService {
    * Fallback логика при отсутствии Telegram данных
    */
   getFallbackData(guestId: string, refCode?: string) {
-    const envInfo = this.getEnvironmentInfo();
-    
-    console.log('[telegramService] Детали среды:', envInfo);
-    console.log(`[telegramService] ⚠️ Нет данных Telegram, fallback к guest_id: ${guestId}, рефкод: ${refCode || 'отсутствует'}`);
-    
-    return {
+    const envInfo = this.getEnvironmentInfo();return {
       guestId,
       refCode: refCode || null,
       environment: envInfo,
@@ -385,9 +361,7 @@ export function isTelegramWebApp(): boolean {
 /**
  * Заглушка для совместимости - инициализация Telegram WebApp
  */
-export function initTelegramWebApp(): Promise<boolean> {
-  console.log('[telegramService] initTelegramWebApp: используется автоматическая инициализация');
-  return Promise.resolve(telegramService.isAvailable());
+export function initTelegramWebApp(): Promise<boolean> {return Promise.resolve(telegramService.isAvailable());
 }
 
 /**
@@ -406,17 +380,12 @@ export function getTelegramUserData(): any {
 /**
  * Заглушка для совместимости - логирование запуска приложения
  */
-export function logAppLaunch(): void {
-  console.log('[telegramService] logAppLaunch: приложение запущено');
-}
+export function logAppLaunch(): void {}
 
 /**
  * Заглушка для совместимости - регистрация пользователя Telegram
  */
-export async function registerTelegramUser(telegramId: number, userData: any, refCode?: string): Promise<any> {
-  console.log('[telegramService] registerTelegramUser: используйте userService.createUser вместо этой функции');
-  
-  // Используем импортированный userService
+export async function registerTelegramUser(telegramId: number, userData: any, refCode?: string): Promise<any> {// Используем импортированный userService
   const { default: userService } = await import('./userService');
   
   return userService.createUser({

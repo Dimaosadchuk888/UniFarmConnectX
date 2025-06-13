@@ -70,10 +70,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
       }
     } catch (error) {
       // Безопасное обращение к свойству message у error
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      console.error('Ошибка управления кошельком:', errorMessage);
-      
-      // Отображаем уведомление об ошибке
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';// Отображаем уведомление об ошибке
       showNotification('error', {
         message: `Ошибка: ${errorMessage}`,
         duration: 5000
@@ -96,10 +93,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
             duration: 2000
           });
         })
-        .catch((error) => {
-          console.error('Ошибка копирования адреса:', error);
-          
-          // Показываем уведомление об ошибке копирования
+        .catch((error) => {// Показываем уведомление об ошибке копирования
           showNotification('error', {
             message: 'Не удалось скопировать адрес кошелька',
             duration: 3000

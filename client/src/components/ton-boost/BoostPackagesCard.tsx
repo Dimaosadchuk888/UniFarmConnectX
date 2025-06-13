@@ -61,9 +61,7 @@ const BoostPackagesCard: React.FC = () => {
       try {
         const response = await correctApiRequest('/api/ton-boosts', 'GET');
         return response.success ? response.data as TonBoostPackage[] : [];
-      } catch (error) {
-        console.error("Failed to fetch TON Boost packages:", error);
-        toast({
+      } catch (error) {toast({
           title: "Ошибка",
           description: "Не удалось загрузить TON Boost-пакеты",
           variant: "destructive",
@@ -76,15 +74,7 @@ const BoostPackagesCard: React.FC = () => {
   const boostPackages = data || [];
 
   // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету
-  const handleBoostClick = (boostId: number) => {
-    console.log('[DEBUG] Нажата кнопка покупки TON Boost:', {
-      boostId,
-      tonConnectUI: !!tonConnectUI,
-      tonConnectUIWallet: tonConnectUI?.wallet,
-      isConnected: isTonWalletConnected(tonConnectUI)
-    });
-
-    // Сохраняем ID буста и ВСЕГДА показываем диалог выбора способа оплаты
+  const handleBoostClick = (boostId: number) => {// Сохраняем ID буста и ВСЕГДА показываем диалог выбора способа оплаты
     setSelectedBoostId(boostId);
     
     // ИСПРАВЛЕНИЕ: Всегда показываем диалог выбора (внутренний/внешний баланс)
@@ -93,16 +83,7 @@ const BoostPackagesCard: React.FC = () => {
   };
 
   // Обработчик выбора способа оплаты
-  const handleSelectPaymentMethod = async (boostId: number, paymentMethod: 'internal_balance' | 'external_wallet') => {
-    console.log('[DEBUG] Выбран способ оплаты:', {
-      boostId,
-      paymentMethod,
-      tonConnectAvailable: !!tonConnectUI,
-      tonConnectUIWallet: tonConnectUI?.wallet,
-      connected: isTonWalletConnected(tonConnectUI)
-    });
-    
-    // Закрываем диалог выбора метода оплаты
+  const handleSelectPaymentMethod = async (boostId: number, paymentMethod: 'internal_balance' | 'external_wallet') => {// Закрываем диалог выбора метода оплаты
     setPaymentMethodDialogOpen(false);
     setIsLoading(true);
     
@@ -177,11 +158,7 @@ const BoostPackagesCard: React.FC = () => {
                 payload: transactionComment
               }
             ]
-          };
-
-          console.log('[DEBUG] Отправка транзакции TON:', transactionRequest);
-          
-          const result = await sendTonTransaction(tonConnectUI, transactionRequest);
+          };const result = await sendTonTransaction(tonConnectUI, transactionRequest);
           
           if (result?.boc) {
             // Транзакция успешно отправлена
@@ -203,10 +180,7 @@ const BoostPackagesCard: React.FC = () => {
               variant: "default"
             });
           }
-        } catch (error: any) {
-          console.error("Error sending TON transaction:", error);
-          
-          if (error instanceof WalletNotConnectedError) {
+        } catch (error: any) {if (error instanceof WalletNotConnectedError) {
             toast({
               title: "Кошелек не подключен",
               description: "Пожалуйста, подключите TON-кошелёк, чтобы купить Boost-пакет.",
@@ -248,18 +222,14 @@ const BoostPackagesCard: React.FC = () => {
               variant: "destructive"
             });
           }
-        } catch (error: any) {
-          console.error('Error purchasing TON Boost:', error);
-          toast({
+        } catch (error: any) {toast({
             title: "Ошибка",
             description: "Произошла ошибка при покупке TON Boost",
             variant: "destructive"
           });
         }
       }
-    } catch (error: any) {
-      console.error('Error in handleSelectPaymentMethod:', error);
-      toast({
+    } catch (error: any) {toast({
         title: "Ошибка",
         description: "Произошла ошибка при обработке платежа",
         variant: "destructive"

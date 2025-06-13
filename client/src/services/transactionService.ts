@@ -58,18 +58,10 @@ export async function fetchTransactions(
   limit: number = 10,
   offset: number = 0
 ): Promise<Transaction[]> {
-  try {
-    console.log('[transactionService] Запрос транзакций для userId:', userId);
-    
-    if (!userId) {
-      console.error('[transactionService] Ошибка: userId не предоставлен для запроса транзакций');
-      throw new Error('userId is required to fetch transactions');
+  try {if (!userId) {throw new Error('userId is required to fetch transactions');
     }
     
-    // Используем улучшенный метод correctApiRequest с обработкой ошибок
-    console.log('[transactionService] Запрос транзакций через correctApiRequest');
-    
-    // Добавляем поддержку как старого, так и нового пути API
+    // Используем улучшенный метод correctApiRequest с обработкой ошибок// Добавляем поддержку как старого, так и нового пути API
     const response = await correctApiRequest(`/api/transactions?user_id=${userId}&limit=${limit}&offset=${offset}`, 'GET', null, {
       additionalLogging: true,
       errorHandling: {
@@ -79,29 +71,16 @@ export async function fetchTransactions(
       }
     });
     
-    // Для отладки: вывести полный ответ
-    console.log('[transactionService] Полный ответ API:', JSON.stringify(response));
-    
-    // correctApiRequest сам обрабатывает основные ошибки запроса,
+    // Для отладки: вывести полный ответ// correctApiRequest сам обрабатывает основные ошибки запроса,
     // но мы все равно проверяем структуру данных для более надежной работы
-    if (!response.success || !response.data) {
-      console.error('[transactionService] Ошибка в структуре ответа:', response);
-      throw new Error('Некорректная структура ответа при получении транзакций');
-    }
-    
-    console.log('[transactionService] Получены транзакции:', response.data);
-    
-    // Проверяем структуру ответа
-    if (!response.data || !response.data.transactions) {
-      console.warn('[transactionService] Структура ответа от API отличается от ожидаемой:', response.data);
-      return [];
+    if (!response.success || !response.data) {throw new Error('Некорректная структура ответа при получении транзакций');
+    }// Проверяем структуру ответа
+    if (!response.data || !response.data.transactions) {return [];
     }
     
     // Преобразуем данные в нужный формат
     return response.data.transactions.map((tx: any) => formatTransaction(tx));
-  } catch (error) {
-    console.error('[transactionService] Ошибка в fetchTransactions:', error);
-    throw error;
+  } catch (error) {throw error;
   }
 }
 
@@ -117,12 +96,7 @@ export async function fetchTonTransactions(
   limit: number = 50,  // Увеличенный лимит для TON транзакций
   offset: number = 0
 ): Promise<Transaction[]> {
-  try {
-    console.log('[transactionService] Запрос TON транзакций для userId:', userId);
-    
-    if (!userId) {
-      console.error('[transactionService] Ошибка: userId не предоставлен для запроса TON транзакций');
-      throw new Error('userId is required to fetch TON transactions');
+  try {if (!userId) {throw new Error('userId is required to fetch TON transactions');
     }
     
     // Делаем прямой запрос на API для получения всех транзакций
@@ -133,22 +107,13 @@ export async function fetchTonTransactions(
         detailed: true,
         traceId: `ton-transactions-${Date.now()}`
       }
-    });
-    
-    console.log('[transactionService] Получен ответ API для TON транзакций:', JSON.stringify(response));
-    
-    if (!response.success || !response.data || !response.data.transactions) {
-      console.error('[transactionService] Ошибка в структуре ответа для TON транзакций:', response);
-      return [];
+    });if (!response.success || !response.data || !response.data.transactions) {return [];
     }
     
     // Логируем все типы транзакций для отладки
     const allTypes = response.data.transactions.map((tx: any) => 
       `${tx.type}:${tx.currency || tx.token_type || 'unknown'}`
-    );
-    console.log('[transactionService] Все типы транзакций:', allTypes);
-    
-    // Фильтруем TON транзакции, учитывая разные возможные имена полей
+    );// Фильтруем TON транзакции, учитывая разные возможные имена полей
     const tonTransactions = response.data.transactions.filter((tx: any) => {
       const currency = (tx.currency || tx.token_type || '').toUpperCase();
       const type = (tx.type || '').toLowerCase();
@@ -157,29 +122,10 @@ export async function fetchTonTransactions(
       
       // Дополнительное логирование всех TON-связанных транзакций
       if (currency === 'TON' || type.includes('ton') || source.includes('ton') || 
-          type === 'boost_purchase' || (category === 'boost' && currency === 'TON')) {
-        console.log('[transactionService] Детали TON-связанной транзакции:', {
-          id: tx.id,
-          type,
-          currency,
-          source,
-          category,
-          amount: tx.amount,
-          created_at: tx.created_at
-        });
-      }
+          type === 'boost_purchase' || (category === 'boost' && currency === 'TON')) {}
       
       // Ищем начисления от TON Boost
-      if (source.includes('ton boost') || source.match(/ton\s+boost/i)) {
-        console.log('[transactionService] 🌟 Обнаружено начисление от TON Boost:', {
-          id: tx.id,
-          type,
-          currency, 
-          source,
-          amount: tx.amount,
-          created_at: tx.created_at
-        });
-      }
+      if (source.includes('ton boost') || source.match(/ton\s+boost/i)) {}
       
       // Проверяем по различным признакам TON-транзакций:
       // 1. Валюта TON
@@ -201,16 +147,7 @@ export async function fetchTonTransactions(
         // Ищем начисления UNI, которые связаны с TON Boost
         (currency === 'UNI' && source.toLowerCase().includes('ton'));
         
-      if (isTonBoostReward) {
-        console.log('[transactionService] 💰 Найдено начисление от TON Boost/Farming:', {
-          id: tx.id,
-          type,
-          currency,
-          source,
-          amount: tx.amount,
-          created_at: tx.created_at
-        });
-      }
+      if (isTonBoostReward) {}
         
       return currency === 'TON' || 
              type.includes('ton') ||
@@ -220,30 +157,12 @@ export async function fetchTonTransactions(
              type === 'ton_farming_reward' || // TON Farming награды
              (category === 'boost' && currency === 'TON') ||
              isTonBoostReward;  // Начисления от TON Boost
-    });
-    
-    console.log('[transactionService] Найдено TON транзакций:', tonTransactions.length);
-    
-    // Логирование для отладки
-    if (tonTransactions.length > 0) {
-      console.log('[transactionService] Примеры TON транзакций:', 
-        tonTransactions.slice(0, 3).map((tx: any) => ({
-          id: tx.id,
-          type: tx.type,
-          currency: tx.currency || tx.token_type,
-          amount: tx.amount,
-          created_at: tx.created_at
-        }))
-      );
-    } else {
-      console.warn('[transactionService] Не найдено ни одной TON транзакции');
-    }
+    });// Логирование для отладки
+    if (tonTransactions.length > 0) {} else {}
     
     // Преобразуем данные в нужный формат
     return tonTransactions.map((tx: any) => formatTransaction(tx));
-  } catch (error) {
-    console.error('[transactionService] Ошибка в fetchTonTransactions:', error);
-    return []; // Возвращаем пустой массив вместо выброса ошибки для устойчивости
+  } catch (error) {return []; // Возвращаем пустой массив вместо выброса ошибки для устойчивости
   }
 }
 
@@ -254,10 +173,7 @@ export async function fetchTonTransactions(
  */
 function formatTransaction(rawTransaction: any): Transaction {
   // Проверяем наличие полей в сыром объекте
-  if (!rawTransaction || typeof rawTransaction !== 'object') {
-    console.warn('[transactionService] Попытка форматирования некорректного объекта транзакции:', rawTransaction);
-    
-    // Возвращаем объект с дефолтными значениями для безопасности
+  if (!rawTransaction || typeof rawTransaction !== 'object') {// Возвращаем объект с дефолтными значениями для безопасности
     return {
       id: 0,
       type: TransactionType.UNKNOWN,
@@ -272,17 +188,7 @@ function formatTransaction(rawTransaction: any): Transaction {
     };
   }
   
-  // Выводим все поля транзакции для отладки
-  console.log('[transactionService] Форматирование транзакции:', JSON.stringify({
-    id: rawTransaction.id,
-    type: rawTransaction.type,
-    currency: rawTransaction.currency,
-    token_type: rawTransaction.token_type,
-    amount: rawTransaction.amount,
-    created_at: rawTransaction.created_at
-  }));
-  
-  // Определяем тип токена из currency или token_type
+  // Выводим все поля транзакции для отладки// Определяем тип токена из currency или token_type
   let tokenType = 'UNI';
   if (rawTransaction.currency) {
     tokenType = rawTransaction.currency.toUpperCase();
@@ -291,15 +197,7 @@ function formatTransaction(rawTransaction: any): Transaction {
   }
   
   // Проверка и логирование для TON транзакций
-  if (tokenType === 'TON') {
-    console.log('[transactionService] 🔵 Обнаружена TON транзакция:', {
-      id: rawTransaction.id,
-      type: rawTransaction.type,
-      currency: tokenType,
-      amount: rawTransaction.amount,
-      created_at: rawTransaction.created_at
-    });
-  }
+  if (tokenType === 'TON') {}
   
   // Определяем тип транзакции
   const type = formatTransactionType(rawTransaction.type || 'unknown');

@@ -10,10 +10,7 @@
  * Предотвращает ошибки, когда map вызывается на объекте, не являющемся массивом
  */
 export function installArrayMapPolyfill() {
-  if (typeof Array.prototype.map !== 'function') {
-    console.warn('[Polyfill] Array.prototype.map отсутствует, устанавливаем полифилл');
-    
-    // @ts-ignore
+  if (typeof Array.prototype.map !== 'function') {// @ts-ignore
     Array.prototype.map = function(callback: Function, thisArg?: any) {
       if (this == null) {
         return [];
@@ -60,14 +57,10 @@ export function safeCreateMap<K, V>(entries?: Array<[K, V]> | null): Map<K, V> {
     if (entries === null || entries === undefined) {
       return new Map<K, V>();
     }
-    if (!Array.isArray(entries)) {
-      console.warn('[Polyfill] Входные данные для Map не являются массивом:', entries);
-      return new Map<K, V>();
+    if (!Array.isArray(entries)) {return new Map<K, V>();
     }
     return new Map<K, V>(entries);
-  } catch (error) {
-    console.error('[Polyfill] Ошибка при создании Map:', error);
-    return new Map<K, V>();
+  } catch (error) {return new Map<K, V>();
   }
 }
 
@@ -86,23 +79,16 @@ export function installMapPolyfill() {
         }
         
         // Если entries не является итерируемым объектом, создаем пустой Map
-        if (typeof entries !== 'object') {
-          console.warn('[Polyfill] Неверный аргумент для safeCreateMap:', entries);
-          return new Map<K, V>();
+        if (typeof entries !== 'object') {return new Map<K, V>();
         }
         
         // Если не имеет итератора, пробуем конвертировать
-        if (!(Symbol.iterator in Object(entries))) {
-          console.warn('[Polyfill] Аргумент не итерируемый:', entries);
-          
-          // Если это объект, преобразуем его в массив пар [ключ, значение]
+        if (!(Symbol.iterator in Object(entries))) {// Если это объект, преобразуем его в массив пар [ключ, значение]
           if (typeof entries === 'object') {
             try {
               const entries2 = Object.entries(entries) as Array<[K, V]>;
               return new Map<K, V>(entries2);
-            } catch (e) {
-              console.error('[Polyfill] Не удалось создать Map из объекта:', e);
-              return new Map<K, V>();
+            } catch (e) {return new Map<K, V>();
             }
           }
           return new Map<K, V>();
@@ -131,20 +117,14 @@ export function installMapPolyfill() {
                   safeEntries.push([undefined as unknown as K, undefined as unknown as V]);
                 }
               }
-            } catch (e) {
-              console.error('[Polyfill] Ошибка при итерации:', e);
-              return new Map<K, V>();
+            } catch (e) {return new Map<K, V>();
             }
           }
-        } catch (error) {
-          console.error('[Polyfill] Ошибка при обработке элементов для Map:', error);
-          return new Map<K, V>();
+        } catch (error) {return new Map<K, V>();
         }
         
         return new Map<K, V>(safeEntries);
-      } catch (error) {
-        console.error('[Polyfill] Критическая ошибка при создании Map:', error);
-        return new Map<K, V>();
+      } catch (error) {return new Map<K, V>();
       }
     };
     
@@ -155,15 +135,10 @@ export function installMapPolyfill() {
       const originalMap = window.Map;
       
       // @ts-ignore
-      window.Map = function() {
-        console.log('[Polyfill Monitor] Map constructor called with:', arguments);
-        try {
+      window.Map = function() {try {
           // @ts-ignore
           return new originalMap(...arguments);
-        } catch (e) {
-          console.error('[Polyfill Monitor] Error in Map constructor:', e);
-          console.error('[Polyfill Monitor] Stacktrace:', new Error().stack);
-          // @ts-ignore
+        } catch (e) {// @ts-ignore
           return new originalMap();
         }
       };
@@ -179,24 +154,13 @@ export function installMapPolyfill() {
       // @ts-ignore - TypeScript ошибка: Cannot assign to 'prototype' because it is a read-only property
       // Но это работает в runtime
       window.Map.prototype = originalMap.prototype;
-    } catch (e) {
-      console.error('[Polyfill] Failed to patch Map constructor:', e);
-    }
-    
-    console.log('[Polyfill] Безопасный polyfill для Map установлен');
-  } else {
-    console.warn('[Polyfill] Map не доступен в окружении');
-  }
+    } catch (e) {}} else {}
 }
 
 /**
  * Устанавливает все полифиллы
  */
-export function installAllPolyfills() {
-  console.log('[Polyfill] Установка всех полифиллов...');
-  installArrayMapPolyfill();
-  installMapPolyfill();
-  console.log('[Polyfill] Полифиллы успешно установлены');
-}
+export function installAllPolyfills() {installArrayMapPolyfill();
+  installMapPolyfill();}
 
 export default installAllPolyfills;

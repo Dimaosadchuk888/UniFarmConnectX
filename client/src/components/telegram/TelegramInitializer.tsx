@@ -15,21 +15,14 @@ const TelegramInitializer = () => {
 
   useEffect(() => {
     const initializeTelegram = async () => {
-      try {
-        console.log('[TelegramInitializer] Начинаем инициализацию...');
-
-        // Добавляем обработчик события web_app_ready
-        const handleWebAppReady = () => {
-          console.log('[TelegramInitializer] 🎯 Получено событие web_app_ready');
-          localStorage.setItem('telegram_ready', 'true');
+      try {// Добавляем обработчик события web_app_ready
+        const handleWebAppReady = () => {localStorage.setItem('telegram_ready', 'true');
           sessionStorage.setItem('telegram_ready', 'true');
           setIsReady(true);
         };
 
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если есть объект Telegram, сразу отмечаем готовым
-        if (typeof window !== 'undefined' && window.Telegram) {
-          console.log('[TelegramInitializer] ✅ Telegram объект обнаружен, немедленно отмечаем готовым');
-          handleWebAppReady();
+        if (typeof window !== 'undefined' && window.Telegram) {handleWebAppReady();
         }
 
         // Слушаем события WebApp
@@ -56,14 +49,7 @@ const TelegramInitializer = () => {
 
             // Уведомляем о готовности
             if (typeof tg.ready === 'function') tg.ready();
-          } catch (e) {
-            console.warn('[TelegramInitializer] Ошибка при настройке WebApp:', e);
-          }
-
-          console.log('[TelegramInitializer] ✅ Telegram WebApp успешно инициализирован');
-        } else {
-          console.log('[TelegramInitializer] ✅ Переходим в standalone режим');
-        }
+          } catch (e) {}} else {}
         
         // В любом случае разрешаем работу приложения
         setIsReady(true);
@@ -74,9 +60,7 @@ const TelegramInitializer = () => {
             window.removeEventListener('web_app_ready', handleWebAppReady);
           }
         };
-      } catch (error) {
-        console.error('[TelegramInitializer] Ошибка инициализации:', error);
-        setIsReady(true); // Все равно разрешаем работу
+      } catch (error) {setIsReady(true); // Все равно разрешаем работу
       }
     };
 

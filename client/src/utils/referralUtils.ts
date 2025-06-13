@@ -41,9 +41,7 @@ export function extractReferralCodeFromUrl(): string | null {
 export function saveReferralCode(code: string): void {
   try {
     localStorage.setItem('unifarm_referral_code', code);
-  } catch (error) {
-    console.warn('Не удалось сохранить реферальный код:', error);
-  }
+  } catch (error) {}
 }
 
 /**
@@ -52,9 +50,7 @@ export function saveReferralCode(code: string): void {
 export function getSavedReferralCode(): string | null {
   try {
     return localStorage.getItem('unifarm_referral_code');
-  } catch (error) {
-    console.warn('Не удалось получить реферальный код:', error);
-    return null;
+  } catch (error) {return null;
   }
 }
 
@@ -91,9 +87,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       document.body.removeChild(textArea);
       return success;
     }
-  } catch (error) {
-    console.error('Ошибка копирования в буфер обмена:', error);
-    return false;
+  } catch (error) {return false;
   }
 }
 

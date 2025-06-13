@@ -40,7 +40,6 @@ const DailyBonusCard: React.FC = () => {
       try {
         // Используем новый унифицированный метод apiGet
         const endpoint = `/api/v2/daily-bonus/status?user_id=${userId || 1}`;
-        console.log('[DailyBonusCard] Запрос статуса бонуса:', endpoint);
 
         const response = await apiGet<DailyBonusStatus>(endpoint);
 
@@ -50,7 +49,7 @@ const DailyBonusCard: React.FC = () => {
 
         return response.data as DailyBonusStatus;
       } catch (error: any) {
-        console.error('[ERROR] DailyBonusCard - Ошибка при получении статуса бонуса:', error);
+
         throw new Error(`Ошибка при получении статуса бонуса: ${error.message || 'Неизвестная ошибка'}`);
       }
     },
@@ -68,7 +67,6 @@ const DailyBonusCard: React.FC = () => {
       try {
         // Используем новый унифицированный метод apiPost
         const endpoint = '/api/v2/daily-bonus/claim';
-        console.log('[DailyBonusCard] Отправка запроса на получение бонуса:', endpoint);
 
         // Отправляем POST запрос с корректными заголовками
         const response = await apiPost<ClaimBonusResult>(
@@ -81,9 +79,7 @@ const DailyBonusCard: React.FC = () => {
         }
 
         return response;
-      } catch (error: any) {
-        console.error('[ERROR] DailyBonusCard - Ошибка при получении бонуса:', error);
-        throw new Error(`Ошибка при получении бонуса: ${error.message || 'Неизвестная ошибка'}`);
+      } catch (error: any) {throw new Error(`Ошибка при получении бонуса: ${error.message || 'Неизвестная ошибка'}`);
       }
     },
     onSuccess: (data) => {
@@ -105,9 +101,7 @@ const DailyBonusCard: React.FC = () => {
             try {
               setShowConfetti(false);
               setReward('');
-            } catch (error) {
-              console.error('[ERROR] DailyBonusCard - Ошибка при удалении анимации:', error);
-            }
+            } catch (error) {}
           }, 4000);
 
           // Показываем уведомление
@@ -123,9 +117,7 @@ const DailyBonusCard: React.FC = () => {
             variant: "destructive",
           });
         }
-      } catch (error: any) {
-        console.error('[ERROR] DailyBonusCard - Ошибка в onSuccess:', error);
-        // Даже при ошибке пытаемся обновить данные интерфейса
+      } catch (error: any) {// Даже при ошибке пытаемся обновить данные интерфейса
         try {
           invalidateQueryWithUserId('/api/v2/daily-bonus/status');
           invalidateQueryWithUserId('/api/v2/wallet/balance');
@@ -136,16 +128,11 @@ const DailyBonusCard: React.FC = () => {
             description: "Бонус был зачислен, но произошла ошибка отображения. Обновите страницу.",
             variant: "default",
           });
-        } catch (err) {
-          console.error('[ERROR] DailyBonusCard - Критическая ошибка при восстановлении:', err);
-        }
+        } catch (err) {}
       }
     },
     onError: (error) => {
-      try {
-        console.error('[ERROR] DailyBonusCard - Ошибка при получении бонуса:', error);
-
-        toast({
+      try {toast({
           title: "Ошибка",
           description: "Не удалось получить бонус. Попробуйте позже.",
           variant: "destructive",
@@ -153,9 +140,7 @@ const DailyBonusCard: React.FC = () => {
 
         // В любом случае обновляем данные
         invalidateQueryWithUserId('/api/v2/daily-bonus/status');
-      } catch (err) {
-        console.error('[ERROR] DailyBonusCard - Ошибка в обработчике onError:', err);
-        // Последняя попытка показать уведомление
+      } catch (err) {// Последняя попытка показать уведомление
         try {
           toast({
             title: "Произошла ошибка",
@@ -179,10 +164,7 @@ const DailyBonusCard: React.FC = () => {
           description: "Вы уже получили бонус сегодня. Возвращайтесь завтра!",
         });
       }
-    } catch (error: any) {
-      console.error('[ERROR] DailyBonusCard - Ошибка при клике на кнопку получения бонуса:', error);
-
-      // Информируем пользователя о проблеме
+    } catch (error: any) {// Информируем пользователя о проблеме
       toast({
         title: "Ошибка системы",
         description: "Произошла ошибка при получении бонуса. Попробуйте обновить страницу.",
@@ -190,8 +172,6 @@ const DailyBonusCard: React.FC = () => {
       });
     }
   };
-
-
 
   // Анимировать индикаторы дней
   const [animateDayIndicator, setAnimateDayIndicator] = useState<number | null>(null);
@@ -211,19 +191,13 @@ const DailyBonusCard: React.FC = () => {
                   if (i === 6) {
                     setAnimateDayIndicator(null);
                   }
-                } catch (error) {
-                  console.error('[ERROR] DailyBonusCard - Ошибка при сбросе анимации индикатора:', error);
-                }
+                } catch (error) {}
               }, 300);
-            } catch (error) {
-              console.error('[ERROR] DailyBonusCard - Ошибка в таймере анимации индикатора:', error);
-            }
+            } catch (error) {}
           }, i * 150);
         }
       }
-    } catch (error) {
-      console.error('[ERROR] DailyBonusCard - Ошибка при настройке анимации:', error);
-    }
+    } catch (error) {}
   }, [showConfetti]);
 
   // Проверяем статус бонуса каждую полночь с улучшенной обработкой ошибок
@@ -237,9 +211,7 @@ const DailyBonusCard: React.FC = () => {
           const now = new Date();
 
           // Проверка, что мы получили корректный объект Date
-          if (!(now instanceof Date) || isNaN(now.getTime())) {
-            console.error('[ERROR] DailyBonusCard - Некорректная дата:', now);
-            // Возвращаем резервное значение - обновление через 1 час (3600000 мс)
+          if (!(now instanceof Date) || isNaN(now.getTime())) {// Возвращаем резервное значение - обновление через 1 час (3600000 мс)
             return 3600000;
           }
 
@@ -252,30 +224,22 @@ const DailyBonusCard: React.FC = () => {
             );
 
             // Проверка, что мы создали корректную дату полуночи
-            if (!(midnight instanceof Date) || isNaN(midnight.getTime())) {
-              console.error('[ERROR] DailyBonusCard - Некорректная дата полуночи:', midnight);
-              // Резервное значение
+            if (!(midnight instanceof Date) || isNaN(midnight.getTime())) {// Резервное значение
               return 3600000;
             }
 
             const diff = midnight.getTime() - now.getTime();
 
             // Проверка, что разница имеет смысл
-            if (diff <= 0 || diff > 86400000) { // больше 24 часов быть не должно
-              console.error('[ERROR] DailyBonusCard - Некорректная разница времени:', diff);
-              // Резервное значение
+            if (diff <= 0 || diff > 86400000) { // больше 24 часов быть не должно// Резервное значение
               return 3600000;
             }
 
             return diff;
-          } catch (dateError) {
-            console.error('[ERROR] DailyBonusCard - Ошибка при создании даты полуночи:', dateError);
-            // Резервное значение
+          } catch (dateError) {// Резервное значение
             return 3600000;
           }
-        } catch (error) {
-          console.error('[ERROR] DailyBonusCard - Глобальная ошибка в getMsUntilMidnight:', error);
-          // Резервное значение при любой ошибке
+        } catch (error) {// Резервное значение при любой ошибке
           return 3600000;
         }
       };
@@ -283,48 +247,32 @@ const DailyBonusCard: React.FC = () => {
       // Функция для обновления бонуса после полуночи с улучшенной обработкой ошибок
       const scheduleRefresh = () => {
         try {
-          const msUntilMidnight = getMsUntilMidnight();
-          console.log('[DailyBonusCard] Следующее обновление бонуса через:', msUntilMidnight, 'мс');
-
-          // Устанавливаем безопасный таймаут
+          const msUntilMidnight = getMsUntilMidnight();// Устанавливаем безопасный таймаут
           try {
             timerId = setTimeout(() => {
               try {
                 // Пытаемся обновить данные
-                refetch().catch(err => {
-                  console.error('[ERROR] DailyBonusCard - Ошибка при обновлении данных бонуса:', err);
-                });
+                refetch().catch(err => {});
 
                 // Запускаем планирование снова
                 scheduleRefresh();
-              } catch (refreshError) {
-                console.error('[ERROR] DailyBonusCard - Ошибка в таймере обновления бонуса:', refreshError);
-
-                // Пытаемся восстановиться даже при ошибке
+              } catch (refreshError) {// Пытаемся восстановиться даже при ошибке
                 try {
                   scheduleRefresh();
-                } catch (recoveryError) {
-                  console.error('[ERROR] DailyBonusCard - Критическая ошибка при восстановлении расписания бонуса:', recoveryError);
-                }
+                } catch (recoveryError) {}
               }
             }, msUntilMidnight);
 
             return timerId;
-          } catch (timeoutError) {
-            console.error('[ERROR] DailyBonusCard - Ошибка при установке таймера:', timeoutError);
-            return null;
+          } catch (timeoutError) {return null;
           }
-        } catch (scheduleError) {
-          console.error('[ERROR] DailyBonusCard - Ошибка в функции scheduleRefresh:', scheduleError);
-          return null;
+        } catch (scheduleError) {return null;
         }
       };
 
       // Запускаем планирование
       timerId = scheduleRefresh() || setTimeout(() => {}, 0); // Фиктивный таймер если произошла ошибка
-    } catch (globalError) {
-      console.error('[ERROR] DailyBonusCard - Критическая ошибка в useEffect для обновления бонуса:', globalError);
-      // Создаем фиктивный таймер для корректной очистки
+    } catch (globalError) {// Создаем фиктивный таймер для корректной очистки
       timerId = setTimeout(() => {}, 0);
     }
 
@@ -334,9 +282,7 @@ const DailyBonusCard: React.FC = () => {
         if (timerId) {
           clearTimeout(timerId);
         }
-      } catch (cleanupError) {
-        console.error('[ERROR] DailyBonusCard - Ошибка при очистке таймера:', cleanupError);
-      }
+      } catch (cleanupError) {}
     };
   }, [refetch]);
 
@@ -419,29 +365,21 @@ const DailyBonusCard: React.FC = () => {
         onMouseEnter={(e) => {
           try {
             setIsButtonHovered(true);
-          } catch (error) {
-            console.error('[ERROR] DailyBonusCard - Ошибка при обработке onMouseEnter:', error);
-          }
+          } catch (error) {}
         }}
         onMouseLeave={(e) => {
           try {
             setIsButtonHovered(false);
-          } catch (error) {
-            console.error('[ERROR] DailyBonusCard - Ошибка при обработке onMouseLeave:', error);
-          }
+          } catch (error) {}
         }}
         onClick={(e) => {
           try {
             e.preventDefault();
             handleClaimBonus();
-          } catch (error) {
-            console.error('[ERROR] DailyBonusCard - Ошибка при обработке onClick:', error);
-            // Пытаемся обработать клик даже при ошибке
+          } catch (error) {// Пытаемся обработать клик даже при ошибке
             try {
               handleClaimBonus();
-            } catch (secondError) {
-              console.error('[ERROR] DailyBonusCard - Повторная ошибка при обработке клика:', secondError);
-            }
+            } catch (secondError) {}
           }
         }}
         disabled={claimBonusMutation.isPending || !bonusStatus?.canClaim}

@@ -63,9 +63,7 @@ const TransactionHistory: React.FC = () => {
         
         const data = await response.json();
         return data;
-      } catch (err) {
-        console.error('[TransactionHistory] Ошибка загрузки транзакций:', err);
-        return { transactions: [], total: 0 };
+      } catch (err) {return { transactions: [], total: 0 };
       }
     },
     enabled: !!userId,

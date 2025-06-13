@@ -19,8 +19,6 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
     ...headers
   };
 
-
-
   // Добавляем Telegram WebApp данные если доступны
   if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
     requestHeaders['X-Telegram-Init-Data'] = window.Telegram.WebApp.initData;
@@ -49,9 +47,7 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
 
     // Возвращаем JSON данные
     return await response.json();
-  } catch (error) {
-    console.error('API Request Error:', error);
-    throw error;
+  } catch (error) {throw error;
   }
 }
 

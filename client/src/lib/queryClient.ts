@@ -22,10 +22,7 @@ async function throwIfResNotOk(res: Response) {
                       text.includes('301 Moved Permanently') ||
                       text.includes('302 Found');
 
-    // Для отладки логируем первые байты ответа
-    console.log(`[QueryClient] Проблемный ответ (${res.status}): ${text.substring(0, 100)}...`);
-
-    // Анализируем данные ошибки, если это JSON
+    // Для отладки логируем первые байты ответа// Анализируем данные ошибки, если это JSON
     let errorData;
     try {
       errorData = JSON.parse(text);
@@ -62,10 +59,7 @@ async function throwIfResNotOk(res: Response) {
 }
 
 // Получает все необходимые заголовки для запросов к API
-function getApiHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {
-  console.log('[queryClient] Getting API headers');
-
-  // Получаем заголовки с данными Telegram
+function getApiHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {// Получаем заголовки с данными Telegram
   const telegramHeaders = getTelegramAuthHeaders();
 
   // Добавляем guest_id из localStorage если нет Telegram данных
@@ -85,15 +79,7 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
     ...customHeaders    // Добавляем пользовательские заголовки
   };
 
-  // Логируем наличие telegram-заголовков (но не их содержимое)
-  console.log('[queryClient] API headers prepared:', {
-    hasTelegramData: !!telegramHeaders['X-Telegram-Init-Data'],
-    hasTelegramUserId: !!telegramHeaders['X-Telegram-User-Id'],
-    telegramHeadersCount: Object.keys(telegramHeaders).length,
-    totalHeadersCount: Object.keys(headers).length
-  });
-
-  return headers;
+  // Логируем наличие telegram-заголовков (но не их содержимое)return headers;
 }
 
 /**
@@ -110,14 +96,8 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
  */
 export async function apiRequest(url: string, options?: RequestInit): Promise<any> {
   // Импортируем улучшенный apiService
-  const { apiService } = await import('./apiService');
-
-  console.log('[queryClient] apiRequest to', url);
-
-  // Проверка наличия URL и валидация
-  if (!url || typeof url !== 'string') {
-    console.error('[queryClient] Ошибка: отсутствует или некорректный URL для запроса', { url });
-    // Возвращаем объект с ошибкой вместо исключения
+  const { apiService } = await import('./apiService');// Проверка наличия URL и валидация
+  if (!url || typeof url !== 'string') {// Возвращаем объект с ошибкой вместо исключения
     return {
       success: false,
       error: 'Отсутствует или некорректный URL для запроса API'
@@ -125,9 +105,7 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
   }
 
   // Проверка, если URL передан как HTTP метод (возможная ошибка)
-  if (url === 'POST' || url === 'GET' || url === 'PUT' || url === 'DELETE') {
-    console.error('[queryClient] Ошибка: в качестве URL передан HTTP метод:', url);
-    return {
+  if (url === 'POST' || url === 'GET' || url === 'PUT' || url === 'DELETE') {return {
       success: false,
       error: `Некорректный URL: получен HTTP метод ${url} вместо адреса`
     };
@@ -166,10 +144,7 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    console.log("[DEBUG] QueryClient - Requesting:", queryKey[0]);
-
-    try {
+  async ({ queryKey }) => {try {
       // Добавляем заголовки, чтобы избежать кэширования
       const timestamp = new Date().getTime();
       const queryKeyStr = queryKey[0] as string;
@@ -194,24 +169,16 @@ export const getQueryFn: <T>(options: {
               userId = userInfo.id;
             }
           }
-        } catch (err) {
-          console.warn('[queryClient] Не удалось получить ID пользователя из localStorage:', err);
-        }
+        } catch (err) {}
       }
 
       // Если у нас есть userId и URL еще не содержит user_id, добавляем его
       if (userId && !baseUrl.includes('user_id=')) {
         const separator = baseUrl.includes('?') ? '&' : '?';
-        baseUrl = `${baseUrl}${separator}user_id=${userId}`;
-        console.log("[DEBUG] QueryClient - Added userId to URL:", userId);
-      }
+        baseUrl = `${baseUrl}${separator}user_id=${userId}`;}
 
       // Добавляем nocache параметр
-      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}nocache=${timestamp}`;
-
-      console.log("[DEBUG] QueryClient - Full URL:", url);
-
-      // Получаем заголовки с данными Telegram
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}nocache=${timestamp}`;// Получаем заголовки с данными Telegram
       const headers = getApiHeaders();
 
       const res = await fetch(url, {
@@ -220,13 +187,9 @@ export const getQueryFn: <T>(options: {
       });
 
       // Уменьшаем количество отладочной информации
-      if (process.env.NODE_ENV === 'development') {
-        console.log("[DEBUG] QueryClient - Response status:", res.status);
-      }
+      if (process.env.NODE_ENV === 'development') {}
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.log("[DEBUG] QueryClient - Returning null due to 401");
-        return null;
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {return null;
       }
 
       try {
@@ -238,18 +201,12 @@ export const getQueryFn: <T>(options: {
         try {
           const data = JSON.parse(text);
           return data;
-        } catch (error: any) {
-          console.error("[DEBUG] QueryClient - JSON parse error:", error);
-          // Если JSON невалидный, возвращаем пустой массив для защиты от ошибок
+        } catch (error: any) {// Если JSON невалидный, возвращаем пустой массив для защиты от ошибок
           return Array.isArray(queryKey[0]) ? [] : {};
         }
-      } catch (resError) {
-        console.error("[DEBUG] QueryClient - Response error:", resError);
-        throw resError;
+      } catch (resError) {throw resError;
       }
-    } catch (fetchError) {
-      console.error("[DEBUG] QueryClient - Fetch error:", fetchError);
-      throw fetchError;
+    } catch (fetchError) {throw fetchError;
     }
   };
 
@@ -258,38 +215,20 @@ export const getQueryFn: <T>(options: {
  * Позволяет централизованно обрабатывать и логировать ошибки запросов
  */
 const globalQueryErrorHandler = (error: unknown) => {
-  // Логируем ошибку
-  console.error('[QueryClient] Глобальная ошибка запроса:', error);
-
-  // Анализируем тип ошибки
+  // Логируем ошибку// Анализируем тип ошибки
   if (error instanceof Error) {
     // Получаем дополнительные метаданные, если они есть
     const status = (error as any).status;
     const statusText = (error as any).statusText;
     const errorData = (error as any).errorData;
 
-    // Логируем детали для диагностики
-    console.error(`[QueryClient] Ошибка ${status || 'неизвестный статус'}: ${statusText || error.message}`);
-
-    if (errorData) {
-      console.error('[QueryClient] Данные ошибки:', errorData);
-    }
+    // Логируем детали для диагностикиif (errorData) {}
 
     // Обработка по типу HTTP-статуса
-    if (status === 401) {
-      console.warn('[QueryClient] Пользователь не авторизован (401)');
-      // Здесь могла бы быть логика перенаправления на страницу логина
-    } else if (status === 403) {
-      console.warn('[QueryClient] Доступ запрещен (403)');
-    } else if (status === 404) {
-      console.warn('[QueryClient] Ресурс не найден (404)');
-    } else if (status >= 500) {
-      console.error('[QueryClient] Серверная ошибка:', error.message);
-    }
+    if (status === 401) {// Здесь могла бы быть логика перенаправления на страницу логина
+    } else if (status === 403) {} else if (status === 404) {} else if (status >= 500) {}
   } else {
-    // Если это не экземпляр Error, логируем как есть
-    console.error('[QueryClient] Неизвестная ошибка:', error);
-  }
+    // Если это не экземпляр Error, логируем как есть}
 
   // Возвращаем ошибку для дальнейшей обработки
   return error;
@@ -360,16 +299,11 @@ export function invalidateQueryWithUserId(endpoint: string, additionalEndpoints:
         if (userInfo && userInfo.id) {
           userId = userInfo.id;
         }
-      } catch (parseError) {
-        console.warn('[queryClient] Ошибка при парсинге данных пользователя:', parseError);
-      }
+      } catch (parseError) {}
     }
 
     // Массив промисов для обновления кеша всех эндпоинтов
-    const invalidationPromises = allEndpoints.map(endpointUrl => {
-      console.log(`[queryClient] Обновляем кэш для ${endpointUrl}${userId ? ` с user_id=${userId}` : ''}`);
-
-      // Если у нас есть ID пользователя, обновляем оба варианта queryKey
+    const invalidationPromises = allEndpoints.map(endpointUrl => {// Если у нас есть ID пользователя, обновляем оба варианта queryKey
       if (userId) {
         return Promise.all([
           queryClient.invalidateQueries({ queryKey: [endpointUrl, userId] }),
@@ -383,10 +317,7 @@ export function invalidateQueryWithUserId(endpoint: string, additionalEndpoints:
 
     // Ждем завершения всех операций обновления кеша
     return Promise.all(invalidationPromises).then(() => undefined);
-  } catch (err) {
-    console.warn('[queryClient] Ошибка при обновлении кеша запросов:', err);
-
-    // В случае ошибки обновляем все запросы без userId
+  } catch (err) {// В случае ошибки обновляем все запросы без userId
     return Promise.all(
       allEndpoints.map(endpointUrl => 
         queryClient.invalidateQueries({ queryKey: [endpointUrl] })

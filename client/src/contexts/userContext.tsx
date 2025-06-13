@@ -171,9 +171,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           if (lastSession.user_id) {
             apiUrl = `/api/v2/users/profile?user_id=${lastSession.user_id}`;
           }
-        } catch (e) {
-          console.warn('[UserContext] Ошибка парсинга данных сессии:', e);
-        }
+        } catch (e) {}
       }
       
       const response = await correctApiRequest(apiUrl);
@@ -201,17 +199,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             username: user.username || null,
             refCode: user.ref_code || null
           }));
-        } catch (e) {
-          console.warn('[UserContext] Ошибка при сохранении данных пользователя в localStorage:', e);
-        }
+        } catch (e) {}
       } else {
         // Если запрос не удался, проверяем данные в localStorage
         if (lastSessionStr) {
           try {
             const lastSession = JSON.parse(lastSessionStr);
-            if (lastSession.user_id) {
-              console.log('[UserContext] Используем информацию о пользователе из localStorage:', lastSession.user_id);
-              dispatch({
+            if (lastSession.user_id) {dispatch({
                 type: 'SET_USER_DATA',
                 payload: {
                   userId: lastSession.user_id,
@@ -222,13 +216,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               });
               dispatch({ type: 'SET_ERROR', payload: null });
             }
-          } catch (e) {
-            console.warn('[UserContext] Ошибка парсинга localStorage:', e);
-          }
+          } catch (e) {}
         } else {
-          const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';
-          console.error('[UserContext] Ошибка получения данных пользователя:', errorMsg);
-          // Не устанавливаем fallback данные, пусть App.tsx обработает создание пользователя
+          const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';// Не устанавливаем fallback данные, пусть App.tsx обработает создание пользователя
           dispatch({ type: 'SET_ERROR', payload: null });
         }
       }
@@ -238,9 +228,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const lastSessionStr = localStorage.getItem('unifarm_last_session');
         if (lastSessionStr) {
           const lastSession = JSON.parse(lastSessionStr);
-          if (lastSession.user_id) {
-            console.log('[UserContext] Восстановление данных из localStorage после ошибки:', lastSession.user_id);
-            dispatch({
+          if (lastSession.user_id) {dispatch({
               type: 'SET_USER_DATA',
               payload: {
                 userId: lastSession.user_id,
@@ -252,13 +240,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             dispatch({ type: 'SET_ERROR', payload: null });
           }
         }
-      } catch (e) {
-        console.warn('[UserContext] Ошибка при попытке восстановить данные из localStorage:', e);
-      }
+      } catch (e) {}
       
-      const error = err instanceof Error ? err : new Error('Ошибка получения данных пользователя');
-      console.error('[UserContext] Ошибка получения данных пользователя:', error);
-      // Не устанавливаем fallback данные, позволяем App.tsx обработать создание пользователя
+      const error = err instanceof Error ? err : new Error('Ошибка получения данных пользователя');// Не устанавливаем fallback данные, позволяем App.tsx обработать создание пользователя
       dispatch({ type: 'SET_ERROR', payload: null });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: false } });
@@ -276,17 +260,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: true } });
     
     try {
-      // Используем улучшенный сервис с поддержкой forceRefresh
-      console.log('[UserContext] Запрос баланса с forceRefresh:', forceRefresh);
-      const balance = await fetchBalance(state.userId, forceRefresh);
+      // Используем улучшенный сервис с поддержкой forceRefreshconst balance = await fetchBalance(state.userId, forceRefresh);
       
       // Обновляем состояние баланса
       dispatch({ type: 'SET_BALANCE', payload: balance });
       dispatch({ type: 'SET_ERROR', payload: null });
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Ошибка получения баланса');
-      console.error('[UserContext] Ошибка получения баланса:', error);
-      // Устанавливаем нулевые балансы вместо блокировки интерфейса
+      const error = err instanceof Error ? err : new Error('Ошибка получения баланса');// Устанавливаем нулевые балансы вместо блокировки интерфейса
       dispatch({
         type: 'SET_BALANCE',
         payload: {
@@ -323,9 +303,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       
       return false;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Ошибка подключения кошелька');
-      console.error('[UserContext] Ошибка подключения кошелька:', error);
-      // Не блокируем интерфейс, просто логируем ошибку
+      const error = err instanceof Error ? err : new Error('Ошибка подключения кошелька');// Не блокируем интерфейс, просто логируем ошибку
       dispatch({ type: 'SET_ERROR', payload: null });
       return false;
     }
@@ -340,9 +318,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         payload: { connected: false, address: null }
       });
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Ошибка отключения кошелька');
-      console.error('[UserContext] Ошибка отключения кошелька:', error);
-      // Не блокируем интерфейс, просто логируем ошибку
+      const error = err instanceof Error ? err : new Error('Ошибка отключения кошелька');// Не блокируем интерфейс, просто логируем ошибку
       dispatch({ type: 'SET_ERROR', payload: null });
     }
   }, [tonConnectUI]);
@@ -363,29 +339,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           payload: { connected: true, address }
         });
       }
-    } catch (err) {
-      console.error('[UserContext] Ошибка при проверке статуса кошелька:', err);
-    }
+    } catch (err) {}
     
     initializedRef.current = true;
   }, [tonConnectUI]);
   
   // Автоматическая загрузка данных пользователя при первом рендере
   useEffect(() => {
-    const loadInitialUserData = async () => {
-      console.log('[UserContext] Автоматическая загрузка данных пользователя...');
-      try {
+    const loadInitialUserData = async () => {try {
         // Сначала запрашиваем данные пользователя
         await refreshUserData();
         
         // Затем, если получили userId, запрашиваем баланс
-        if (state.userId) {
-          console.log('[UserContext] Данные пользователя получены, запрашиваем баланс...');
-          await refreshBalance();
+        if (state.userId) {await refreshBalance();
         }
-      } catch (err) {
-        console.error('[UserContext] Ошибка при загрузке начальных данных:', err);
-      }
+      } catch (err) {}
     };
     
     loadInitialUserData();
