@@ -5,7 +5,7 @@
 
 import https from 'https';
 
-const WEBHOOK_URL = 'https://uni-farm-connect-x-osadchukdmitro2.replit.app/webhook';
+const WEBHOOK_URL = 'https://uni-farm-connect-x-osadchukdmitro2.replit.app/api/telegram/webhook';
 
 // Создаем тестовое обновление от Telegram
 const testUpdate = {

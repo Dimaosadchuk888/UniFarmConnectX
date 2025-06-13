@@ -37,6 +37,20 @@ router.post('/webhook', async (req: Request, res: Response) => {
   }
 });
 
+// Дублирующий webhook маршрут под разными путями для надежности
+router.post('/telegram/webhook', async (req: Request, res: Response) => {
+  try {
+    const { TelegramController } = await import('../modules/telegram/controller');
+    const telegramController = new TelegramController();
+    await telegramController.handleWebhook(req, res);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Webhook processing error'
+    });
+  }
+});
+
 // Authentication routes
 router.use('/auth', authRoutes);
 
