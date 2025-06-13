@@ -3,6 +3,7 @@ export { db } from './db';
 export { logger } from './logger';
 export { config } from './config';
 export { BaseController } from './BaseController';
+export { EnvValidator } from './envValidator';
 
 // Middleware
 export { 

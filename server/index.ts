@@ -9,7 +9,7 @@ import path from 'path';
 import { createServer } from 'http';
 // @ts-ignore
 import * as WebSocket from 'ws';
-import { config, logger, globalErrorHandler, notFoundHandler } from '../core';
+import { config, logger, globalErrorHandler, notFoundHandler, EnvValidator } from '../core';
 import { db } from '../core/db';
 import { users, transactions, missions } from '../shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
@@ -191,6 +191,10 @@ function setupWebSocketServer(httpServer: any) {
 
 async function startServer() {
   try {
+    // Валидация переменных окружения перед запуском сервера
+    console.log('🔍 Проверка переменных окружения...');
+    EnvValidator.validateAndReport();
+
     const app = express();
 
     // Middleware

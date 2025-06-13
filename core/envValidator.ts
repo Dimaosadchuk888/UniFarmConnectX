@@ -15,11 +15,11 @@ const envConfig: EnvConfig = {
     'DATABASE_URL',
     'SESSION_SECRET',
     'JWT_SECRET',
+    'TELEGRAM_BOT_TOKEN',
     'NODE_ENV',
     'PORT'
   ],
   optional: [
-    'TELEGRAM_BOT_TOKEN',
     'NEON_API_KEY',
     'NEON_PROJECT_ID',
     'ALLOW_BROWSER_ACCESS',
