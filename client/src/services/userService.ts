@@ -59,8 +59,11 @@ class UserService {
         };
       }
       
-      const telegramUserId = telegramData.id;// Импортируем referralService для получения реферального кода
-      const { referralService } = await import('./referralService');
+      const telegramUserId = telegramData.id;
+      
+      // Импортируем referralService для получения реферального кода
+      const referralServiceModule = await import('./referralService');
+      const referralService = referralServiceModule.default;
 
       // Получаем реферальный код из URL или локального хранилища
       const referralCode = referralService.getReferralCodeForRegistration();
@@ -372,19 +375,29 @@ class UserService {
 
       // Шаг 3: Проверка кэшированных данных пользователя
       const cachedData = this.getCachedUserData();
-      if (cachedData && cachedData.id > 0 && cachedData.id !== 1) {return true;
-      } else if (cachedData) {} else {}
+      if (cachedData && cachedData.id > 0 && cachedData.id !== 1) {
+        return true;
+      } else if (cachedData) {
+        console.log('Cached data exists but ID is invalid:', cachedData.id);
+      } else {
+        console.log('No cached user data found');
+      }
 
-      // Шаг 4: Пробуем получить данные с сервераtry {
+      // Шаг 4: Пробуем получить данные с сервера
+      try {
         const userData = await this.fetchUserFromApi();
         const isValid = userData && userData.id > 0 && userData.id !== 1;
 
-        if (isValid) {return true;
-        } else {return false;
+        if (isValid) {
+          return true;
+        } else {
+          return false;
         }
-      } catch (error) {return false;
+      } catch (error) {
+        return false;
       }
-    } catch (error) {return false;
+    } catch (error) {
+      return false;
     }
   }
 }

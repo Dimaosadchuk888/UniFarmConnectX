@@ -345,7 +345,8 @@ export const disconnectWallet = disconnectTonWallet;
  * @param listener Функция, которая будет вызвана при изменении статуса подключения
  */
 export function addConnectionListener(tonConnectUI: TonConnectUI, listener: ConnectionListener): void {
-  if (!listener) {return;
+  if (!listener) {
+    return;
   }
   
   connectionListeners.push(listener);
@@ -362,7 +363,8 @@ export function addConnectionListener(tonConnectUI: TonConnectUI, listener: Conn
  * @param listener Функция, которая была передана в addConnectionListener
  */
 export function removeConnectionListener(listener: ConnectionListener): void {
-  if (!listener) {return;
+  if (!listener) {
+    return;
   }
   
   const index = connectionListeners.indexOf(listener);
@@ -379,7 +381,9 @@ export function removeConnectionListener(listener: ConnectionListener): void {
  * TonConnectUIProvider сам инициализирует TON Connect 
  */
 export function initTonConnect(): void {
-  // Эта функция теперь просто логирует сообщение и не выполняет реальной инициализации}
+  // Эта функция теперь просто логирует сообщение и не выполняет реальной инициализации
+  debugLog('initTonConnect вызван, но инициализация отключена - используется TonConnectUIProvider');
+}
 
 /**
  * Этот экспорт существует для обратной совместимости,
