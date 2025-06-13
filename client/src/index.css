@@ -2,7 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-/* T10 EMERGENCY SCROLL FIX - Cache buster v2.0 */
+/* T10 CRITICAL SCROLL FIX - IMMEDIATE APPLICATION v5.0 */
+/* FORCE CACHE REFRESH - TIMESTAMP: 1749805600000 */
+
+/* CRITICAL: Override ALL existing CSS with highest specificity */
+html, body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 100vh !important;
+}
+
+#root {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* MAIN LAYOUT FORCED SCROLL */
+main {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: none !important;
+  height: auto !important;
+  padding-bottom: 150px !important;
+  min-height: calc(100vh - 200px) !important;
+}
+
+/* REMOVE ALL OVERFLOW HIDDEN */
+div, section, article, aside {
+  max-height: none !important;
+}
+
+div[class*="overflow-hidden"] {
+  overflow: visible !important;
+}
+
+div[class*="h-screen"], 
+div[class*="min-h-screen"] {
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
+}
 
 /* T10 SCROLL FIX: Принудительная прокрутка для всех элементов */
 html, body {

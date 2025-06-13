@@ -20,9 +20,10 @@ export default function MainLayout({ children, activeTab, onTabChange }: MainLay
         style={{ 
           overflowY: 'auto', 
           overflowX: 'hidden', 
-          paddingBottom: '120px',
-          minHeight: 'calc(100vh - 160px)',
-          maxHeight: 'none'
+          paddingBottom: '160px',
+          minHeight: 'calc(100vh - 200px)',
+          maxHeight: 'none',
+          height: 'auto'
         }}
       >
         <div className="max-w-full" style={{ overflow: 'visible', height: 'auto' }}>

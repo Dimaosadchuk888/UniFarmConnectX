@@ -4,7 +4,9 @@ import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import queryClient from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import ScrollFix from "@/components/ui/ScrollFix";
+import ForceScroll from "@/components/ui/ForceScroll";
 import "@/styles/scroll-fix.css";
+import "@/utils/scrollFix";
 
 // Layouts and Hooks
 import MainLayout from "@/layouts/MainLayout";
@@ -182,6 +184,7 @@ function App() {
                   <NetworkStatusIndicator />
                   <Toaster />
                   <ScrollFix />
+                  <ForceScroll />
                 </TelegramWebAppCheck>
             </UserProvider>
           </NotificationProvider>
