@@ -25,22 +25,22 @@ export class UserService {
    */
   async findOrCreateFromTelegram(params: CreateUserFromTelegramParams): Promise<UserInfo> {
     try {
-      console.log('[UserService] Finding or creating user for telegram_id:', params.telegram_id);
+      logger.info('[UserService] Finding or creating user for telegram_id', { telegram_id: params.telegram_id });
 
       // Сначала пытаемся найти существующего пользователя
       let user = await this.userRepository.findByTelegramId(params.telegram_id);
 
       if (!user) {
         // Пользователь не найден, создаем нового
-        console.log('[UserService] User not found, creating new user');
+        logger.info('[UserService] User not found, creating new user');
         user = await this.userRepository.createUserFromTelegram(params);
       } else {
-        console.log('[UserService] Found existing user:', user.id);
+        logger.info('[UserService] Found existing user', { userId: user.id });
       }
 
       return this.mapToUserInfo(user);
     } catch (error) {
-      console.error('[UserService] Error in findOrCreateFromTelegram:', error);
+      logger.error('[UserService] Error in findOrCreateFromTelegram', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -53,7 +53,7 @@ export class UserService {
       const user = await this.userRepository.findByTelegramId(telegramId);
       return user ? this.mapToUserInfo(user) : null;
     } catch (error) {
-      console.error('[UserService] Error finding user by telegram_id:', error);
+      logger.error('[UserService] Error finding user by telegram_id', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -66,7 +66,7 @@ export class UserService {
       const user = await this.userRepository.findByRefCode(refCode);
       return user ? this.mapToUserInfo(user) : null;
     } catch (error) {
-      console.error('[UserService] Error finding user by ref_code:', error);
+      logger.error('[UserService] Error finding user by ref_code', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -79,7 +79,7 @@ export class UserService {
       const user = await this.userRepository.findByTelegramId(telegramId);
       return !!user;
     } catch (error) {
-      console.error('[UserService] Error checking if user exists:', error);
+      logger.error('[UserService] Error checking if user exists', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -92,7 +92,7 @@ export class UserService {
       const user = await this.userRepository.findByRefCode(refCode);
       return !!user;
     } catch (error) {
-      console.error('[UserService] Error validating ref_code:', error);
+      logger.error('[UserService] Error validating ref_code', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }

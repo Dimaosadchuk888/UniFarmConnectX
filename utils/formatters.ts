@@ -23,7 +23,7 @@ export function formatAmount(amount: number, tokenType: string = 'UNI'): string 
     
     return `${formattedValue} ${tokenType}`;
   } catch (error) {
-    console.error('[ERROR] Ошибка в formatAmount:', error);
+    logger.error('[ERROR] Ошибка в formatAmount', { error: error instanceof Error ? error.message : String(error) });
     return `${amount} ${tokenType}`;
   }
 }
@@ -37,7 +37,7 @@ export function formatDate(date: Date | string): string {
   try {
     return formatDateTime(date);
   } catch (error) {
-    console.error('[ERROR] Ошибка в formatDate:', error);
+    logger.error('[ERROR] Ошибка в formatDate', { error: error instanceof Error ? error.message : String(error) });
     return typeof date === 'string' ? date : date.toLocaleString();
   }
 }
@@ -71,7 +71,7 @@ export function getOptimalDecimals(value: number | string, currency: string = 'U
     if (numValue < 10) return 2;
     return 2;
   } catch (error) {
-    console.error("[ERROR] Ошибка в getOptimalDecimals:", error);
+    logger.error("[ERROR] Ошибка в getOptimalDecimals", { error: error instanceof Error ? error.message : String(error) });
     return 5; // Безопасное значение по умолчанию
   }
 }
