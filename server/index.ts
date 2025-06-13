@@ -292,7 +292,7 @@ async function startServer() {
                 body: JSON.stringify({ offset, timeout: 10 })
               });
               
-              const data = await updatesResponse.json();
+              const data = await updatesResponse.json() as any;
               if (data.ok && data.result.length > 0) {
                 for (const update of data.result) {
                   await webhookHandler({ body: update } as Request, {
