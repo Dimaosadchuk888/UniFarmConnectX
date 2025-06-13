@@ -35,6 +35,7 @@ export const users = pgTable(
     telegram_id: bigint("telegram_id", { mode: "number" }).unique(),
 
     username: text("username"),
+    first_name: text("first_name"),
     wallet: text("wallet"),
     ton_wallet_address: text("ton_wallet_address"), // Новое поле для хранения TON-адреса кошелька
     ref_code: text("ref_code").unique(), // Уникальный реферальный код для пользователя
@@ -94,6 +95,7 @@ export type AuthUser = typeof authUsers.$inferSelect;
 export const insertUserSchema = createInsertSchema(users).pick({
   telegram_id: true,
   username: true,
+  first_name: true,
   wallet: true,
   ton_wallet_address: true,
   ref_code: true,
