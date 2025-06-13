@@ -32,7 +32,7 @@ interface UserDetails {
 export class AdminService {
   async getDashboardStats(): Promise<DashboardStats> {
     try {
-      console.log('[AdminService] Получение статистики панели администратора');
+      logger.info('[AdminService] Получение статистики панели администратора');
       
       // Получаем реальную статистику из базы данных
       const [totalUsersResult] = await db.select({ count: count() }).from(users);
@@ -49,14 +49,14 @@ export class AdminService {
         lastUpdated: new Date().toISOString()
       };
     } catch (error) {
-      console.error('[AdminService] Ошибка получения статистики:', error);
+      logger.error('[AdminService] Ошибка получения статистики', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
 
   async getUsersList(page: number, limit: number): Promise<UsersList> {
     try {
-      console.log(`[AdminService] Получение списка пользователей, страница ${page}`);
+      logger.info('[AdminService] Получение списка пользователей', { page });
       
       const offset = (page - 1) * limit;
       
@@ -80,14 +80,14 @@ export class AdminService {
         hasMore: offset + limit < total
       };
     } catch (error) {
-      console.error('[AdminService] Ошибка получения пользователей:', error);
+      logger.error('[AdminService] Ошибка получения пользователей', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
 
   async getUserDetails(userId: string): Promise<UserDetails> {
     try {
-      console.log(`[AdminService] Получение деталей пользователя ${userId}`);
+      logger.info('[AdminService] Получение деталей пользователя', { userId });
       
       // Здесь будет запрос к базе данных
       return {
@@ -100,19 +100,19 @@ export class AdminService {
         is_active: true
       };
     } catch (error) {
-      console.error('[AdminService] Ошибка получения деталей пользователя:', error);
+      logger.error('[AdminService] Ошибка получения деталей пользователя', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
 
   async moderateUser(userId: string, action: string, reason?: string): Promise<boolean> {
     try {
-      console.log(`[AdminService] Модерация пользователя ${userId}: ${action}`);
+      logger.info('[AdminService] Модерация пользователя', { userId, action });
       
       // Здесь будет логика модерации в базе данных
       return true;
     } catch (error) {
-      console.error('[AdminService] Ошибка модерации пользователя:', error);
+      logger.error('[AdminService] Ошибка модерации пользователя', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -125,7 +125,7 @@ export class AdminService {
     hasMore: boolean;
   }> {
     try {
-      console.log(`[AdminService] Получение системных логов, страница ${page}`);
+      logger.info('[AdminService] Получение системных логов', { page });
       
       // Здесь будет получение логов системы
       return {
@@ -136,19 +136,19 @@ export class AdminService {
         hasMore: false
       };
     } catch (error) {
-      console.error('[AdminService] Ошибка получения логов:', error);
+      logger.error('[AdminService] Ошибка получения логов', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
 
   async updateUserBalance(userId: string, type: 'uni' | 'ton', amount: string): Promise<boolean> {
     try {
-      console.log(`[AdminService] Обновление баланса пользователя ${userId}: ${type} ${amount}`);
+      logger.info('[AdminService] Обновление баланса пользователя', { userId, type, amount });
       
       // Здесь будет логика обновления баланса в базе данных
       return true;
     } catch (error) {
-      console.error('[AdminService] Ошибка обновления баланса:', error);
+      logger.error('[AdminService] Ошибка обновления баланса', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
