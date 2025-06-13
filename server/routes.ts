@@ -92,7 +92,7 @@ router.get('/users/profile', async (req, res) => {
   try {
     const { UserController } = await import('../modules/user/controller');
     const userController = new UserController();
-    await userController.getProfile(req, res);
+    await userController.getCurrentUser(req, res);
   } catch (error) {
     res.status(500).json({ success: false, error: 'Profile error' });
   }
