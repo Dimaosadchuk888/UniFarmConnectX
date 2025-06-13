@@ -94,7 +94,7 @@ export class AuthService {
         token
       };
     } catch (error) {
-      console.error('[AuthService] Ошибка аутентификации через Telegram:', error);
+      logger.error('[AuthService] Ошибка аутентификации через Telegram', { error: error instanceof Error ? error.message : String(error) });
       return {
         success: false,
         error: 'Недействительные данные Telegram'
@@ -110,7 +110,7 @@ export class AuthService {
       const payload = verifyJWTToken(token);
       return payload !== null;
     } catch (error) {
-      console.error('[AuthService] JWT validation error:', error);
+      logger.error('[AuthService] JWT validation error', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -120,7 +120,7 @@ export class AuthService {
    */
   async getSessionInfo(token: string): Promise<SessionInfo> {
     try {
-      console.log('[AuthService] Getting session info from JWT');
+      logger.info('[AuthService] Getting session info from JWT');
       
       const payload = verifyJWTToken(token);
       if (!payload) {
@@ -139,7 +139,7 @@ export class AuthService {
         expiresAt: new Date(payload.exp * 1000).toISOString()
       };
     } catch (error) {
-      console.error('[AuthService] Error getting session info:', error);
+      logger.error('[AuthService] Error getting session info', { error: error instanceof Error ? error.message : String(error) });
       return {
         valid: false,
         error: 'Failed to decode token'
@@ -164,7 +164,7 @@ export class AuthService {
 
       return user || null;
     } catch (error) {
-      console.error('[AuthService] Error getting user from token:', error);
+      logger.error('[AuthService] Error getting user from token', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
