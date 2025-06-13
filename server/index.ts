@@ -198,12 +198,8 @@ async function startServer() {
     const app = express();
 
     // TELEGRAM WEBHOOK - МАКСИМАЛЬНЫЙ ПРИОРИТЕТ (первая регистрация)
-    app.use('/webhook', express.json({ limit: '1mb' }), async (req: Request, res: Response) => {
+    app.post('/webhook', express.json({ limit: '1mb' }), async (req: Request, res: Response) => {
       try {
-        if (req.method !== 'POST') {
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
-        }
-
         const update = req.body;
         
         logger.info('[TelegramWebhook] Получено обновление от Telegram', {
