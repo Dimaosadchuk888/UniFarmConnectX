@@ -67,7 +67,7 @@ export class TelegramService {
       logger.info('[TelegramService] Validation result', { isValid });
       return isValid;
     } catch (error) {
-      console.error('[TelegramService] Error validating Telegram data:', error);
+      logger.error('[TelegramService] Error validating Telegram data', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -75,11 +75,11 @@ export class TelegramService {
   async getUserFromTelegram(telegramId: string): Promise<any | null> {
     try {
       if (!this.botToken) {
-        console.warn('[TelegramService] No bot token for user lookup');
+        logger.warn('[TelegramService] No bot token for user lookup');
         return null;
       }
 
-      console.log('[TelegramService] Getting user from Telegram:', telegramId);
+      logger.info('[TelegramService] Getting user from Telegram', { telegramId });
       
       // In a real implementation, this would make API calls to Telegram
       // For now, return basic user structure
@@ -91,7 +91,7 @@ export class TelegramService {
         language_code: 'en'
       };
     } catch (error) {
-      console.error('[TelegramService] Error getting user from Telegram:', error);
+      logger.error('[TelegramService] Error getting user from Telegram', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -99,11 +99,11 @@ export class TelegramService {
   async sendTelegramNotification(userId: string, message: string): Promise<boolean> {
     try {
       if (!this.botToken) {
-        console.warn('[TelegramService] No bot token for notifications');
+        logger.warn('[TelegramService] No bot token for notifications');
         return false;
       }
 
-      console.log('[TelegramService] Sending notification to user:', userId);
+      logger.info('[TelegramService] Sending notification to user', { userId });
       
       const response = await fetch(`${telegramConfig.apiUrl}/bot${this.botToken}/sendMessage`, {
         method: 'POST',
@@ -120,7 +120,7 @@ export class TelegramService {
       const result = await response.json();
       return result.ok;
     } catch (error) {
-      console.error('[TelegramService] Error sending notification:', error);
+      logger.error('[TelegramService] Error sending notification', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -128,11 +128,11 @@ export class TelegramService {
   async setupTelegramWebhook(url: string): Promise<boolean> {
     try {
       if (!this.botToken) {
-        console.warn('[TelegramService] No bot token for webhook setup');
+        logger.warn('[TelegramService] No bot token for webhook setup');
         return false;
       }
 
-      console.log('[TelegramService] Setting up webhook:', url);
+      logger.info('[TelegramService] Setting up webhook', { url });
       
       const response = await fetch(`${telegramConfig.apiUrl}/bot${this.botToken}/setWebhook`, {
         method: 'POST',
@@ -146,10 +146,10 @@ export class TelegramService {
       });
 
       const result = await response.json();
-      console.log('[TelegramService] Webhook setup result:', result);
+      logger.info('[TelegramService] Webhook setup result', { result });
       return result.ok;
     } catch (error) {
-      console.error('[TelegramService] Error setting up webhook:', error);
+      logger.error('[TelegramService] Error setting up webhook', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -165,7 +165,7 @@ export class TelegramService {
       
       return null;
     } catch (error) {
-      console.error('[TelegramService] Error parsing init data:', error);
+      logger.error('[TelegramService] Error parsing init data', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
