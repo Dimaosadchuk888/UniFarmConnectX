@@ -6,7 +6,7 @@
 import https from 'https';
 
 const BOT_TOKEN = '7980427501:AAHdia3LusU9dk2aRvhXgmj9Ozo08nR0Gug';
-const WEBHOOK_URL = 'https://uni-farm-connect-x-osadchukdmitro2.replit.app/api/telegram/webhook';
+const WEBHOOK_URL = 'https://uni-farm-connect-x-osadchukdmitro2.replit.app:3000/webhook';
 
 // Функция для выполнения HTTP запросов
 function makeRequest(url, method = 'GET', data = null) {
