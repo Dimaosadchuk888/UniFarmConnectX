@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { FarmingService } from './service';
+import { logger } from '../../core/logger';
 
 const farmingService = new FarmingService();
 
@@ -14,7 +15,7 @@ export class FarmingController extends BaseController {
         telegram.user.id.toString()
       );
 
-      console.log('[Farming] Данные фарминга для пользователя:', {
+      logger.info('[Farming] Данные фарминга для пользователя', {
         telegram_id: telegram.user.id,
         farming_data: farmingData
       });
@@ -46,13 +47,13 @@ export class FarmingController extends BaseController {
           next_claim_available: null
         };
         
-        console.log('[Farming] Возвращаем базовые данные фарминга (без user_id)');
+        logger.info('[Farming] Возвращаем базовые данные фарминга (без user_id)');
         return this.sendSuccess(res, defaultFarmingData);
       }
 
       const farmingData = await farmingService.getFarmingDataByTelegramId(userId);
 
-      console.log('[Farming] Информация о фарминге для пользователя:', {
+      logger.info('[Farming] Информация о фарминге для пользователя', {
         user_id: userId,
         farming_info: farmingData
       });

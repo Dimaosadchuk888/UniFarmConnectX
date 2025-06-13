@@ -311,7 +311,7 @@ export class MissionsService {
         completion_rate: Math.round(completionRate)
       };
     } catch (error) {
-      console.error('[MissionsService] Ошибка получения статистики:', error);
+      logger.error('[MissionsService] Ошибка получения статистики', { error: error instanceof Error ? error.message : String(error) });
       return {
         total_missions: 0,
         completed_missions: 0,
@@ -357,7 +357,7 @@ export class MissionsService {
         completed_at: mission.completed_at
       }));
     } catch (error) {
-      console.error('[MissionsService] Ошибка получения миссий пользователя:', error);
+      logger.error('[MissionsService] Ошибка получения миссий пользователя', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
