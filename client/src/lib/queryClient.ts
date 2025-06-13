@@ -325,3 +325,7 @@ export function invalidateQueryWithUserId(endpoint: string, additionalEndpoints:
     ).then(() => undefined);
   }
 }
+
+// Экспортируем queryClient как default и именованный экспорт
+export { queryClient };
+export default queryClient;

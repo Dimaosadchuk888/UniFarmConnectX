@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
-import { queryClient } from "./lib/queryClient";
+import queryClient from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import ScrollFix from "@/components/ui/ScrollFix";
 import "@/styles/scroll-fix.css";
