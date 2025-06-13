@@ -198,7 +198,7 @@ async function startServer() {
     const app = express();
 
     // TELEGRAM WEBHOOK - МАКСИМАЛЬНЫЙ ПРИОРИТЕТ (первая регистрация)
-    app.post('/webhook', express.json({ limit: '1mb' }), async (req: Request, res: Response): Promise<void> => {
+    const webhookHandler = async (req: Request, res: Response): Promise<void> => {
       try {
         const update = req.body;
         
@@ -260,7 +260,13 @@ async function startServer() {
           error: 'Webhook processing error'
         });
       }
-    });
+    };
+
+    // Регистрируем webhook handler на множественных путях
+    app.post('/webhook', express.json({ limit: '1mb' }), webhookHandler);
+    app.post('/api/webhook', express.json({ limit: '1mb' }), webhookHandler);
+    app.post('/bot/webhook', express.json({ limit: '1mb' }), webhookHandler);
+    app.post('/telegram/webhook', express.json({ limit: '1mb' }), webhookHandler);
 
     // Middleware
     app.use(cors({
