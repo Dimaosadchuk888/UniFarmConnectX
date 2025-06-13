@@ -21,7 +21,7 @@ export class DailyBonusController extends BaseController {
       }
 
       const userId = req.params.userId;
-      console.log(`[DailyBonusController] Получение информации о ежедневном бонусе для пользователя ${userId}`);
+      logger.info('[DailyBonusController] Получение информации о ежедневном бонусе для пользователя', { userId });
       
       const dailyBonusInfo = await this.dailyBonusService.getDailyBonusInfo(userId);
 
@@ -35,7 +35,7 @@ export class DailyBonusController extends BaseController {
   async claimDailyBonus(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
       const { userId } = req.body;
-      console.log(`[DailyBonusController] Получение ежедневного бонуса для пользователя ${userId}`);
+      logger.info('[DailyBonusController] Получение ежедневного бонуса для пользователя', { userId });
       
       this.validateRequiredFields(req.body, ['userId']);
 
@@ -69,7 +69,7 @@ export class DailyBonusController extends BaseController {
       const month = req.query.month as string || new Date().getMonth().toString();
       const year = req.query.year as string || new Date().getFullYear().toString();
       
-      console.log(`[DailyBonusController] Получение календаря бонусов для пользователя ${userId}, ${month}/${year}`);
+      logger.info('[DailyBonusController] Получение календаря бонусов для пользователя', { userId, month, year });
       
       // Здесь будет логика получения календаря из базы данных
       const calendar = {
@@ -91,7 +91,7 @@ export class DailyBonusController extends BaseController {
         data: calendar
       });
     } catch (error) {
-      console.error('[DailyBonusController] Ошибка получения календаря бонусов:', error);
+      logger.error('[DailyBonusController] Ошибка получения календаря бонусов', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({
         success: false,
         error: 'Ошибка получения календаря бонусов'
@@ -105,7 +105,7 @@ export class DailyBonusController extends BaseController {
   async getDailyBonusStats(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.params.userId;
-      console.log(`[DailyBonusController] Получение статистики ежедневных бонусов для пользователя ${userId}`);
+      logger.info('[DailyBonusController] Получение статистики ежедневных бонусов для пользователя', { userId });
       
       // Здесь будет логика получения статистики из базы данных
       const stats = {
@@ -124,7 +124,7 @@ export class DailyBonusController extends BaseController {
         data: stats
       });
     } catch (error) {
-      console.error('[DailyBonusController] Ошибка получения статистики бонусов:', error);
+      logger.error('[DailyBonusController] Ошибка получения статистики бонусов', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({
         success: false,
         error: 'Ошибка получения статистики бонусов'
@@ -138,7 +138,7 @@ export class DailyBonusController extends BaseController {
   async checkDailyBonusAvailability(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.params.userId;
-      console.log(`[DailyBonusController] Проверка доступности ежедневного бонуса для пользователя ${userId}`);
+      logger.info('[DailyBonusController] Проверка доступности ежедневного бонуса для пользователя', { userId });
       
       // Здесь будет логика проверки в базе данных
       const availability = {
@@ -154,7 +154,7 @@ export class DailyBonusController extends BaseController {
         data: availability
       });
     } catch (error) {
-      console.error('[DailyBonusController] Ошибка проверки доступности бонуса:', error);
+      logger.error('[DailyBonusController] Ошибка проверки доступности бонуса', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({
         success: false,
         error: 'Ошибка проверки доступности бонуса'

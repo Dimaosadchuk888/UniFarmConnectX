@@ -46,7 +46,7 @@ export class DailyBonusService {
         last_claim_date: lastCheckin
       };
     } catch (error) {
-      console.error('[DailyBonusService] Error getting daily bonus info:', error);
+      logger.error('[DailyBonusService] Error getting daily bonus info', { error: error instanceof Error ? error.message : String(error) });
       return {
         can_claim: false,
         streak_days: 0,
@@ -83,7 +83,7 @@ export class DailyBonusService {
       // Доступен бонус, если последний чекин был не сегодня
       return lastCheckin !== today;
     } catch (error) {
-      console.error('[DailyBonusService] Ошибка проверки доступности бонуса:', error);
+      logger.error('[DailyBonusService] Ошибка проверки доступности бонуса', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -203,7 +203,7 @@ export class DailyBonusService {
 
       return { amount: totalBonus.toString(), claimed: true };
     } catch (error) {
-      console.error('[DailyBonusService] Ошибка получения ежедневного бонуса:', error);
+      logger.error('[DailyBonusService] Ошибка получения ежедневного бонуса', { error: error instanceof Error ? error.message : String(error) });
       return { amount: "0", claimed: false };
     }
   }
@@ -237,7 +237,7 @@ export class DailyBonusService {
 
       return user.checkin_streak || 0;
     } catch (error) {
-      console.error('[DailyBonusService] Ошибка получения серии бонусов:', error);
+      logger.error('[DailyBonusService] Ошибка получения серии бонусов', { error: error instanceof Error ? error.message : String(error) });
       return 0;
     }
   }
