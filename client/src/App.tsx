@@ -176,18 +176,16 @@ function App() {
             <NotificationProvider>
             <UserProvider>
                 <TelegramWebAppCheck>
-                  <TelegramAuth>
-                    <MainLayout 
-                      activeTab={state.activeTab} 
-                      onTabChange={handleTabChange}
-                    >
-                      {renderPage()}
-                    </MainLayout>
-                    <NetworkStatusIndicator />
-                    <Toaster />
-                    <ScrollFix />
-                    <ForceScroll />
-                  </TelegramAuth>
+                  <MainLayout 
+                    activeTab={state.activeTab} 
+                    onTabChange={handleTabChange}
+                  >
+                    {renderPage()}
+                  </MainLayout>
+                  <NetworkStatusIndicator />
+                  <Toaster />
+                  <ScrollFix />
+                  <ForceScroll />
                 </TelegramWebAppCheck>
             </UserProvider>
           </NotificationProvider>

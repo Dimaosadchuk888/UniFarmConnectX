@@ -25,11 +25,26 @@ export function TelegramAuth({ children }: TelegramAuthProps) {
         return;
       }
 
-      if (!initData || !user) {
-        console.warn('TelegramAuth: No initData or user data available');
-        console.log('Current environment: Replit preview mode detected');
-        console.log('Solution: Open app in real Telegram Mini App');
-        setError('Приложение должно быть открыто в Telegram Mini App. В режиме предварительного просмотра initData недоступны.');
+      if (!initData || initData.length === 0) {
+        console.warn('TelegramAuth: No initData available');
+        console.log('initData length:', initData?.length || 0);
+        console.log('Environment check: Telegram WebApp available:', !!window.Telegram?.WebApp);
+        
+        // Дополнительная проверка для Telegram среды
+        if (window.Telegram?.WebApp) {
+          console.log('Telegram WebApp found, but initData is empty');
+          console.log('WebApp version:', window.Telegram.WebApp.version);
+          console.log('WebApp platform:', window.Telegram.WebApp.platform);
+        }
+        
+        setError('Не удалось получить данные авторизации из Telegram. Убедитесь, что приложение открыто через бота @UniFarming_Bot.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!user) {
+        console.warn('TelegramAuth: No user data available');
+        setError('Не удалось получить данные пользователя из Telegram.');
         setIsLoading(false);
         return;
       }

@@ -121,9 +121,15 @@ export function authenticateTelegram(req: AuthenticatedRequest, res: Response, n
   }
 
   if (!initData) {
-    console.warn('No initData provided');
     console.log('❌ [TelegramMiddleware] No initData in headers');
-    return res.status(401).json({ error: 'Telegram init data required' });
+    return res.status(401).json({ 
+      error: 'Telegram init data required',
+      debug: {
+        message: 'Приложение должно быть открыто в Telegram Mini App',
+        has_telegram: false,
+        has_initdata: false
+      }
+    });
   }
 
   console.log('✅ [TelegramMiddleware] Validating initData...');

@@ -41,14 +41,22 @@ export interface JWTPayload {
  */
 export function validateTelegramInitData(initData: string, botToken: string): ValidationResult {
   try {
+    console.log('🔍 [TelegramValidator] Starting validation');
+    console.log('initData length:', initData?.length || 0);
+    console.log('botToken available:', !!botToken);
+    
     if (!initData || !botToken) {
+      console.log('❌ Missing initData or bot token');
       return { valid: false, error: 'Missing initData or bot token' };
     }
 
     const urlParams = new URLSearchParams(initData);
     const hash = urlParams.get('hash');
     
+    console.log('Hash found in initData:', !!hash);
+    
     if (!hash) {
+      console.log('❌ Hash parameter missing');
       return { valid: false, error: 'Hash parameter missing' };
     }
 
@@ -88,28 +96,41 @@ export function validateTelegramInitData(initData: string, botToken: string): Va
       .digest('hex');
 
     // Compare hashes
+    console.log('Expected hash:', expectedHash);
+    console.log('Received hash:', hash);
+    
     if (expectedHash !== hash) {
+      console.log('❌ Hash validation failed');
       return { valid: false, error: 'Invalid signature' };
     }
 
+    console.log('✅ Hash validation successful');
+
     // Parse user data
     const userParam = urlParams.get('user');
+    console.log('User param found:', !!userParam);
+    
     if (!userParam) {
+      console.log('❌ User data missing');
       return { valid: false, error: 'User data missing' };
     }
 
     let user: TelegramUser;
     try {
       user = JSON.parse(userParam);
+      console.log('✅ User data parsed:', { id: user.id, username: user.username });
     } catch {
+      console.log('❌ Failed to parse user data');
       return { valid: false, error: 'Invalid user data format' };
     }
 
     // Validate required user fields
     if (!user.id || !user.first_name) {
+      console.log('❌ Required user fields missing');
       return { valid: false, error: 'Required user fields missing' };
     }
 
+    console.log('✅ Telegram initData validation successful');
     return { valid: true, user };
   } catch (error) {
     console.error('[TelegramValidator] Validation error:', error);
