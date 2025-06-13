@@ -4,7 +4,7 @@ import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable';
 import { useQuery } from '@tanstack/react-query';
 import userService from '@/services/userService';
 import type { User } from '@/services/userService';
-import { queryClient } from '@/lib/queryClient';
+import { useQueryClient } from '@tanstack/react-query';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 
@@ -198,7 +198,7 @@ const Friends: React.FC = () => {
   const safeUser = userData as User | undefined;
 
   return (
-    <div className="w-full pb-6">
+    <div className="w-full pb-6 min-h-full">
       <ErrorBoundary fallback={<div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 my-4">Не удалось загрузить интерфейс партнерской программы</div>}>
         <div className="flex flex-col justify-center items-center mb-6">
           <div className="text-center mb-6">

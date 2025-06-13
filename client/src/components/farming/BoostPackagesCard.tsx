@@ -417,7 +417,7 @@ const BoostPackagesCard: React.FC<BoostPackagesCardProps> = ({ userData }) => {
   };
   
   return (
-    <div className="mt-8 px-2">
+    <div className="mt-8 px-2 min-h-full scrollable">
       <h2 className="text-xl font-semibold mb-6 text-center">
         <span className="inline-flex items-center gap-2">
           <Sparkles size={20} className="text-indigo-400" />

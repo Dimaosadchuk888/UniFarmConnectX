@@ -28,6 +28,26 @@ html, body {
   box-sizing: border-box;
 }
 
+/* Исправление для Mini App прокрутки */
+.scrollable {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+/* Убираем проблемные overflow: hidden */
+.no-overflow-hidden {
+  overflow: visible !important;
+}
+
+/* Для Telegram Mini App - убеждаемся что контент виден */
+@media (max-height: 800px) {
+  main {
+    padding-bottom: 100px !important;
+  }
+}
+
 /* Стили для скролл бара */
 ::-webkit-scrollbar {
   width: 8px;

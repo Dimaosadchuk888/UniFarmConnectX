@@ -542,7 +542,7 @@ export const MissionsList: React.FC = () => {
   }
   
   return (
-    <div className="relative">
+    <div className="relative min-h-full">
       {/* Эффект конфетти при завершении миссии */}
       <ConfettiEffect 
         active={showConfetti} 
@@ -554,7 +554,7 @@ export const MissionsList: React.FC = () => {
         gravity={0.65}
       />
       
-      <div className="space-y-4 p-4">
+      <div className="space-y-4 p-0 scrollable">
         {missions.map((mission) => {
           const statusInfo = getMissionStatusInfo(mission.status);
           const isRecentlyCompleted = completedMissionId !== null && completedMissionId === mission.id;

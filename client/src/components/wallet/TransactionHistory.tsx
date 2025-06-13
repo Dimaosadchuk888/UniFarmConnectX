@@ -217,7 +217,7 @@ const TransactionHistory: React.FC = () => {
   }
 
   return (
-    <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
+    <div className="bg-card rounded-xl p-5 mb-5 shadow-lg relative">
       {/* Неоновая рамка */}
       <div className="absolute inset-0 rounded-xl border border-primary/30"></div>
       
