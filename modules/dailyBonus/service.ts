@@ -263,7 +263,7 @@ export class DailyBonusService {
         status: tx.status
       }));
     } catch (error) {
-      console.error('[DailyBonusService] Ошибка получения истории бонусов:', error);
+      logger.error('[DailyBonusService] Ошибка получения истории бонусов', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }

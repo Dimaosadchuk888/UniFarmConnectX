@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { TonFarmingService } from './service';
+import { logger } from '../../core/logger';
 
 const tonFarmingService = new TonFarmingService();
 

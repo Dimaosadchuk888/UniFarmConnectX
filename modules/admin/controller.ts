@@ -15,7 +15,7 @@ export class AdminController extends BaseController {
    */
   async getSystemStats(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
-      console.log('[AdminController] Получение статистики системы');
+      logger.info('[AdminController] Получение статистики системы');
       
       const stats = await this.adminService.getDashboardStats();
       this.sendSuccess(res, stats);
@@ -29,7 +29,7 @@ export class AdminController extends BaseController {
     await this.handleRequest(req, res, async () => {
       const { page, limit } = this.getPagination(req);
       
-      console.log(`[AdminController] Получение пользователей, страница ${page}`);
+      logger.info('[AdminController] Получение пользователей', { page });
       
       const usersList = await this.adminService.getUsersList(page, limit);
       this.sendSuccess(res, usersList);
@@ -44,7 +44,7 @@ export class AdminController extends BaseController {
       const { userId } = req.params;
       const { action, reason } = req.body;
       
-      console.log(`[AdminController] Модерация пользователя ${userId}: ${action}`);
+      logger.info('[AdminController] Модерация пользователя', { userId, action });
       
       if (!userId || !action) {
         res.status(400).json({
@@ -65,7 +65,7 @@ export class AdminController extends BaseController {
         }
       });
     } catch (error) {
-      console.error('[AdminController] Ошибка модерации пользователя:', error);
+      logger.error('[AdminController] Ошибка модерации пользователя', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({
         success: false,
         error: 'Ошибка модерации пользователя'
@@ -80,7 +80,7 @@ export class AdminController extends BaseController {
     try {
       const { action } = req.body;
       
-      console.log(`[AdminController] Управление миссиями: ${action}`);
+      logger.info('[AdminController] Управление миссиями', { action });
       
       res.json({
         success: true,
@@ -90,7 +90,7 @@ export class AdminController extends BaseController {
         }
       });
     } catch (error) {
-      console.error('[AdminController] Ошибка управления миссиями:', error);
+      logger.error('[AdminController] Ошибка управления миссиями', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({
         success: false,
         error: 'Ошибка управления миссиями'

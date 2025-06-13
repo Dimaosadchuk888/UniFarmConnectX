@@ -1,6 +1,7 @@
 import { db } from '../../server/db.js';
 import { users, transactions } from '../../shared/schema.js';
 import { count, desc } from 'drizzle-orm';
+import { logger } from '../../core/logger';
 
 interface DashboardStats {
   totalUsers: number;

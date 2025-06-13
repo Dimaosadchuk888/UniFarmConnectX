@@ -1,5 +1,6 @@
 import { UserRepository, type CreateUserFromTelegramParams } from './repository';
 import type { User } from '../../shared/schema';
+import { logger } from '../../core/logger';
 
 export interface UserInfo {
   id: number;

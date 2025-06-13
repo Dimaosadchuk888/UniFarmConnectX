@@ -2,6 +2,8 @@
  * Утилиты форматирования для UniFarm
  */
 
+import { logger } from '../core/logger';
+
 /**
  * Форматирует сумму с учетом типа токена
  * @param amount Сумма
