@@ -3,6 +3,7 @@
  */
 
 import { FarmingType, RewardType } from '../model';
+import { logger } from '../../../core/logger.js';
 
 export class RewardCalculationLogic {
   /**

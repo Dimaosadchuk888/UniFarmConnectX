@@ -3,6 +3,7 @@
  */
 
 import { ReferralStatus, ReferralEarningType } from '../model';
+import { logger } from '../../../core/logger.js';
 
 export class DeepReferralLogic {
   /**

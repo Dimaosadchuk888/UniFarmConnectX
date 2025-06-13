@@ -180,7 +180,7 @@ export function formatDateTime(date: Date | string): string {
     
     return `${day} ${month} • ${hours}:${minutes}`;
   } catch (error) {
-    console.error('Ошибка форматирования даты:', error);
+    logger.error('Ошибка форматирования даты', { error: error instanceof Error ? error.message : String(error) });
     return 'Только что';
   }
 }
@@ -290,13 +290,13 @@ export function safeFormatAmount(value: number | string, decimals?: number, curr
     } else if (typeof value === 'number') {
       numValue = value;
     } else {
-      console.warn(`[WARNING] Форматтер - Неподдерживаемый тип значения: ${typeof value}`);
+      logger.warn('[WARNING] Форматтер - Неподдерживаемый тип значения', { type: typeof value });
       return decimals !== undefined ? "0".padEnd(decimals + 2, "0") : "0";
     }
     
     // Проверка на валидное число
     if (!isFinite(numValue)) {
-      console.warn(`[WARNING] Форматтер - Невалидное число для форматирования: ${value}`);
+      logger.warn('[WARNING] Форматтер - Невалидное число для форматирования', { value });
       return decimals !== undefined ? "0".padEnd(decimals + 2, "0") : "0";
     }
     
@@ -311,7 +311,7 @@ export function safeFormatAmount(value: number | string, decimals?: number, curr
         return formatUniNumber(numValue, optimalDecimals);
       }
     } catch (formatterError) {
-      console.error("[ERROR] Форматтер - Ошибка при использовании форматтера:", formatterError);
+      logger.error("[ERROR] Форматтер - Ошибка при использовании форматтера", { error: formatterError instanceof Error ? formatterError.message : String(formatterError) });
       
       // Запасной вариант, если глобальный форматтер не сработал
       if (numValue > 0 && numValue < Math.pow(10, -optimalDecimals)) {
@@ -325,7 +325,7 @@ export function safeFormatAmount(value: number | string, decimals?: number, curr
       return formatted;
     }
   } catch (error) {
-    console.error("[ERROR] Форматтер - Критическая ошибка в safeFormatAmount:", error);
+    logger.error("[ERROR] Форматтер - Критическая ошибка в safeFormatAmount", { error: error instanceof Error ? error.message : String(error) });
     // Безопасное значение при ошибке
     return decimals !== undefined ? "0".padEnd(decimals + 2, "0") : "0";
   }

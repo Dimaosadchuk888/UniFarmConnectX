@@ -15,7 +15,7 @@ export class TonFarmingController extends BaseController {
         telegram.user.id.toString()
       );
 
-      console.log('[TON Farming] Данные TON фарминга для пользователя:', {
+      logger.info('[TON Farming] Данные TON фарминга для пользователя', {
         telegram_id: telegram.user.id,
         ton_farming_balance: farmingData.ton_farming_balance,
         ton_farming_rate: farmingData.ton_farming_rate,

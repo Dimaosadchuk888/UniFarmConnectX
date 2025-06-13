@@ -6,6 +6,7 @@
 import { db } from '../../server/db.js';
 import { users, type User, type InsertUser } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
+import { logger } from '../../core/logger.js';
 
 export class UserModel {
   /**
