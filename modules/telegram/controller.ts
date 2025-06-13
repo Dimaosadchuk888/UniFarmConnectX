@@ -19,7 +19,7 @@ export class TelegramController extends BaseController {
         'telegram-init-data': req.headers['telegram-init-data']
       };
       
-      console.log('[TelegramDebug] Состояние middleware:', {
+      logger.info('[TelegramDebug] Состояние middleware', {
         has_telegram: !!telegramData,
         validated: telegramData?.validated,
         has_user: !!telegramData?.user,

@@ -2,6 +2,8 @@
  * Модуль расчета доходности TON Boost пакетов
  */
 
+import { logger } from '../../../core/logger.js';
+
 export class TonBoostCalculation {
   /**
    * Конфигурация TON Boost пакетов с правильными ставками
@@ -61,7 +63,7 @@ export class TonBoostCalculation {
       
       return ratePerSecond.toFixed(18);
     } catch (error) {
-      console.error('[TonBoostCalculation] Ошибка расчета скорости:', error);
+      logger.error('[TonBoostCalculation] Ошибка расчета скорости', { error: error instanceof Error ? error.message : String(error) });
       return "0";
     }
   }
@@ -79,7 +81,7 @@ export class TonBoostCalculation {
       
       return reward.toFixed(8);
     } catch (error) {
-      console.error('[TonBoostCalculation] Ошибка расчета награды:', error);
+      logger.error('[TonBoostCalculation] Ошибка расчета награды', { error: error instanceof Error ? error.message : String(error) });
       return "0";
     }
   }
@@ -97,7 +99,7 @@ export class TonBoostCalculation {
       
       return dailyIncome.toFixed(8);
     } catch (error) {
-      console.error('[TonBoostCalculation] Ошибка расчета дневного дохода:', error);
+      logger.error('[TonBoostCalculation] Ошибка расчета дневного дохода', { error: error instanceof Error ? error.message : String(error) });
       return "0";
     }
   }
@@ -142,7 +144,7 @@ export class TonBoostCalculation {
         package_name: config.name
       };
     } catch (error) {
-      console.error('[TonBoostCalculation] Ошибка расчета данных депозита:', error);
+      logger.error('[TonBoostCalculation] Ошибка расчета данных депозита', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

@@ -2,6 +2,7 @@ import { db } from '../../server/db';
 import { users, type InsertUser, type User } from '../../shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { customAlphabet } from 'nanoid';
+import { logger } from '../../core/logger.js';
 
 export interface CreateUserFromTelegramParams {
   telegram_id: number;
@@ -18,7 +19,7 @@ export class UserRepository {
    */
   async findByTelegramId(telegramId: number): Promise<User | null> {
     try {
-      console.log('[UserRepository] Searching user by telegram_id:', telegramId);
+      logger.info('[UserRepository] Searching user by telegram_id', { telegramId });
       
       const [user] = await db.select()
         .from(users)
@@ -26,14 +27,14 @@ export class UserRepository {
         .limit(1);
 
       if (user) {
-        console.log('[UserRepository] User found:', user.id);
+        logger.info('[UserRepository] User found', { userId: user.id });
         return user;
       }
 
-      console.log('[UserRepository] User not found for telegram_id:', telegramId);
+      logger.info('[UserRepository] User not found for telegram_id', { telegramId });
       return null;
     } catch (error) {
-      console.error('[UserRepository] Error finding user by telegram_id:', error);
+      logger.error('[UserRepository] Error finding user by telegram_id', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
