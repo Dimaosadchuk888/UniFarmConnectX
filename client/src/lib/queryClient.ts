@@ -236,20 +236,40 @@ export const getQueryFn: <T>(options: {
  * Позволяет централизованно обрабатывать и логировать ошибки запросов
  */
 const globalQueryErrorHandler = (error: unknown) => {
-  // Логируем ошибку// Анализируем тип ошибки
+  // Логируем ошибку
+  console.error("[QueryClient] Глобальная ошибка запроса:", error);
+  
+  // Анализируем тип ошибки
   if (error instanceof Error) {
     // Получаем дополнительные метаданные, если они есть
     const status = (error as any).status;
     const statusText = (error as any).statusText;
     const errorData = (error as any).errorData;
 
-    // Логируем детали для диагностикиif (errorData) {}
+    // Логируем детали для диагностики
+    if (errorData) {
+      console.error("[QueryClient] Дополнительные данные ошибки:", errorData);
+    }
 
     // Обработка по типу HTTP-статуса
-    if (status === 401) {// Здесь могла бы быть логика перенаправления на страницу логина
-    } else if (status === 403) {} else if (status === 404) {} else if (status >= 500) {}
+    if (status === 401) {
+      console.warn("[QueryClient] Пользователь не авторизован (401)");
+      // Здесь могла бы быть логика перенаправления на страницу логина
+    } else if (status === 403) {
+      console.warn("[QueryClient] Доступ запрещен (403)");
+    } else if (status === 404) {
+      console.warn("[QueryClient] Ресурс не найден (404)");
+    } else if (status >= 500) {
+      console.error("[QueryClient] Серверная ошибка (5xx):", status);
+    }
+    
+    // Генерируем понятное сообщение об ошибке
+    const errorMessage = `HTTP ${status}: ${statusText || "Unknown error"}`;
+    console.error(`[QueryClient] Ошибка ${errorMessage}`);
   } else {
-    // Если это не экземпляр Error, логируем как есть}
+    // Если это не экземпляр Error, логируем как есть
+    console.error("[QueryClient] Неизвестный тип ошибки:", typeof error, error);
+  }
 
   // Возвращаем ошибку для дальнейшей обработки
   return error;
@@ -268,7 +288,7 @@ const mutationCache = new MutationCache({
 // Дедупликация запросов для предотвращения спама
 const pendingQueries = new Map<string, Promise<any>>();
 
-export const queryClient = new QueryClient({
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
@@ -324,7 +344,8 @@ export function invalidateQueryWithUserId(endpoint: string, additionalEndpoints:
     }
 
     // Массив промисов для обновления кеша всех эндпоинтов
-    const invalidationPromises = allEndpoints.map(endpointUrl => {// Если у нас есть ID пользователя, обновляем оба варианта queryKey
+    const invalidationPromises = allEndpoints.map(endpointUrl => {
+      // Если у нас есть ID пользователя, обновляем оба варианта queryKey
       if (userId) {
         return Promise.all([
           queryClient.invalidateQueries({ queryKey: [endpointUrl, userId] }),
@@ -338,7 +359,9 @@ export function invalidateQueryWithUserId(endpoint: string, additionalEndpoints:
 
     // Ждем завершения всех операций обновления кеша
     return Promise.all(invalidationPromises).then(() => undefined);
-  } catch (err) {// В случае ошибки обновляем все запросы без userId
+  } catch (err) {
+    console.warn('[invalidateQueryWithUserId] Ошибка при обновлении кеша:', err);
+    // В случае ошибки обновляем все запросы без userId
     return Promise.all(
       allEndpoints.map(endpointUrl => 
         queryClient.invalidateQueries({ queryKey: [endpointUrl] })
