@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { AdminService } from './service';
+import { logger } from '../../core/logger';
 
 export class AdminController extends BaseController {
   private adminService: AdminService;

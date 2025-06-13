@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { telegramConfig } from '../../config/telegram';
+import { logger } from '../../core/logger';
 
 export class TelegramService {
   private botToken: string;
@@ -7,20 +8,20 @@ export class TelegramService {
   constructor() {
     this.botToken = telegramConfig.botToken;
     if (!this.botToken) {
-      console.warn('[TelegramService] Bot token not configured');
+      logger.warn('[TelegramService] Bot token not configured');
     }
   }
 
   async initializeTelegramWebApp(): Promise<boolean> {
     try {
-      console.log('[TelegramService] Initializing Telegram WebApp');
+      logger.info('[TelegramService] Initializing Telegram WebApp');
       if (!this.botToken) {
-        console.warn('[TelegramService] No bot token available');
+        logger.warn('[TelegramService] No bot token available');
         return false;
       }
       return true;
     } catch (error) {
-      console.error('[TelegramService] Error initializing WebApp:', error);
+      logger.error('[TelegramService] Error initializing WebApp', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -28,11 +29,11 @@ export class TelegramService {
   async validateTelegramData(initData: string): Promise<boolean> {
     try {
       if (!this.botToken || !initData) {
-        console.warn('[TelegramService] Missing bot token or init data');
+        logger.warn('[TelegramService] Missing bot token or init data');
         return false;
       }
 
-      console.log('[TelegramService] Validating Telegram data');
+      logger.info('[TelegramService] Validating Telegram data');
       
       // Parse the init data
       const urlParams = new URLSearchParams(initData);
@@ -40,7 +41,7 @@ export class TelegramService {
       urlParams.delete('hash');
       
       if (!hash) {
-        console.warn('[TelegramService] No hash in init data');
+        logger.warn('[TelegramService] No hash in init data');
         return false;
       }
 
@@ -63,7 +64,7 @@ export class TelegramService {
         .digest('hex');
 
       const isValid = expectedHash === hash;
-      console.log('[TelegramService] Validation result:', isValid);
+      logger.info('[TelegramService] Validation result', { isValid });
       return isValid;
     } catch (error) {
       console.error('[TelegramService] Error validating Telegram data:', error);

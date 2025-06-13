@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { DailyBonusService } from './service';
+import { logger } from '../../core/logger';
 
 export class DailyBonusController extends BaseController {
   private dailyBonusService: DailyBonusService;
