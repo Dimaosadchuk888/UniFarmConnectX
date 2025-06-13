@@ -192,7 +192,7 @@ function setupWebSocketServer(httpServer: any) {
 async function startServer() {
   try {
     // Валидация переменных окружения перед запуском сервера
-    console.log('🔍 Проверка переменных окружения...');
+    logger.info('🔍 Проверка переменных окружения...');
     EnvValidator.validateAndReport();
 
     const app = express();

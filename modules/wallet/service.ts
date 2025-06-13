@@ -89,7 +89,7 @@ export class WalletService {
       
       return !!updatedUser;
     } catch (error) {
-      logger.error('[WalletService] Ошибка обновления баланса', { telegramId, tokenType, amount, error: error instanceof Error ? error.message : String(error) });
+      logger.error('[WalletService] Ошибка обновления баланса', { userId, type, amount, error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -276,7 +276,7 @@ export class WalletService {
       
       return newTransaction;
     } catch (error) {
-      console.error('[WalletService] Ошибка создания транзакции:', error);
+      logger.error('[WalletService] Ошибка создания транзакции', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -299,19 +299,19 @@ export class WalletService {
         hasMore: userTransactions.length === limit
       };
     } catch (error) {
-      console.error('[WalletService] Ошибка получения истории транзакций:', error);
+      logger.error('[WalletService] Ошибка получения истории транзакций', { userId, page, limit, error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
 
   async validateTransaction(transactionId: string): Promise<boolean> {
     try {
-      console.log(`[WalletService] Валидация транзакции ${transactionId}`);
+      logger.info('[WalletService] Валидация транзакции', { transactionId });
       
       // Здесь будет логика валидации транзакции
       return true;
     } catch (error) {
-      console.error('[WalletService] Ошибка валидации транзакции:', error);
+      logger.error('[WalletService] Ошибка валидации транзакции', { transactionId, error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
