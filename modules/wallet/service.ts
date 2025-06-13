@@ -49,7 +49,7 @@ export class WalletService {
         }))
       };
     } catch (error) {
-      console.error('[WalletService] Ошибка получения данных кошелька по Telegram ID:', error);
+      logger.error('[WalletService] Ошибка получения данных кошелька по Telegram ID', { telegramId, error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -70,7 +70,7 @@ export class WalletService {
         ton: user?.balance_ton || "0"
       };
     } catch (error) {
-      console.error('[WalletService] Ошибка получения баланса:', error);
+      logger.error('[WalletService] Ошибка получения баланса', { userId, error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -89,7 +89,7 @@ export class WalletService {
       
       return !!updatedUser;
     } catch (error) {
-      console.error('[WalletService] Ошибка обновления баланса:', error);
+      logger.error('[WalletService] Ошибка обновления баланса', { telegramId, tokenType, amount, error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

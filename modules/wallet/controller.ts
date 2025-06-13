@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { WalletService } from './service';
+import { logger } from '../../core/logger';
 
 const walletService = new WalletService();
 
@@ -14,7 +15,7 @@ export class WalletController extends BaseController {
         telegram.user.id.toString()
       );
 
-      console.log('[Wallet] Данные кошелька для пользователя:', {
+      logger.info('[Wallet] Данные кошелька для пользователя', {
         telegram_id: telegram.user.id,
         uni_balance: walletData.uni_balance,
         ton_balance: walletData.ton_balance,
