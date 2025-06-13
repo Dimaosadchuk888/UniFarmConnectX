@@ -6,5 +6,6 @@ const telegramController = new TelegramController();
 
 // Маршруты Telegram
 router.get('/debug', telegramController.debugMiddleware.bind(telegramController));
+router.post('/webhook', telegramController.handleWebhook.bind(telegramController));
 
 export default router;
