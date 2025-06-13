@@ -197,9 +197,13 @@ async function startServer() {
 
     const app = express();
 
-    // TELEGRAM WEBHOOK - ПЕРВЫЙ ПРИОРИТЕТ (до всех middleware)
-    app.post('/webhook', express.json(), async (req: Request, res: Response) => {
+    // TELEGRAM WEBHOOK - МАКСИМАЛЬНЫЙ ПРИОРИТЕТ (первая регистрация)
+    app.use('/webhook', express.json({ limit: '1mb' }), async (req: Request, res: Response) => {
       try {
+        if (req.method !== 'POST') {
+          return res.status(405).json({ success: false, error: 'Method not allowed' });
+        }
+
         const update = req.body;
         
         logger.info('[TelegramWebhook] Получено обновление от Telegram', {
@@ -219,12 +223,36 @@ async function startServer() {
             chat_id: chatId,
             user_id: update.message.from.id
           });
+
+          // Отправляем ответ с кнопкой Mini App
+          try {
+            const { TelegramService } = await import('../modules/telegram/service');
+            const telegramService = new TelegramService();
+            
+            await telegramService.sendMessage(chatId, 
+              '🌾 Добро пожаловать в UniFarm Connect!\n\n' +
+              'Начните фармить UNI и TON токены прямо сейчас!', 
+              {
+                reply_markup: {
+                  inline_keyboard: [[{
+                    text: '🚀 Запустить UniFarm',
+                    web_app: { url: 'https://uni-farm-connect-x-osadchukdmitro2.replit.app' }
+                  }]]
+                }
+              }
+            );
+          } catch (serviceError) {
+            logger.error('[TelegramWebhook] Ошибка отправки сообщения', { 
+              error: serviceError instanceof Error ? serviceError.message : String(serviceError) 
+            });
+          }
         }
 
         res.json({ 
           success: true,
           status: 'webhook_processed',
-          update_id: update.update_id 
+          update_id: update.update_id,
+          timestamp: new Date().toISOString()
         });
       } catch (error) {
         logger.error('[TelegramWebhook] Ошибка обработки webhook', { 
@@ -314,8 +342,8 @@ async function startServer() {
       
       // SPA fallback - serve index.html for non-API routes
       app.get('*', (req: Request, res: Response, next: NextFunction) => {
-        // Skip API routes
-        if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
+        // Skip API routes and webhook
+        if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path === '/webhook') {
           return next();
         }
         
@@ -344,6 +372,25 @@ async function startServer() {
       });
       return;
     }
+
+    // ДОПОЛНИТЕЛЬНЫЕ WEBHOOK МАРШРУТЫ для надежности
+    app.all('/webhook', express.json(), async (req: Request, res: Response) => {
+      try {
+        const update = req.body;
+        logger.info('[TelegramWebhook] Получено обновление (fallback)', {
+          method: req.method,
+          update_id: update?.update_id
+        });
+        
+        res.json({ 
+          success: true,
+          status: 'webhook_processed_fallback',
+          update_id: update?.update_id || 'unknown'
+        });
+      } catch (error) {
+        res.status(500).json({ success: false, error: 'Webhook error' });
+      }
+    });
 
     // Error handlers (must be last)
     app.use(notFoundHandler);
