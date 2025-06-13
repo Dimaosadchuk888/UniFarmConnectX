@@ -108,4 +108,110 @@ export class UserService {
       return false;
     }
   }
+
+  /**
+   * Универсальная функция гарантированной регистрации пользователя из Telegram
+   * Если пользователь существует - возвращает его, если нет - создает
+   */
+  async getOrCreateUserFromTelegram(initData: {
+    telegram_id: number;
+    username?: string;
+    ref_code?: string;
+  }): Promise<User> {
+    try {
+      logger.info('[UserService] Попытка найти или создать пользователя', {
+        telegram_id: initData.telegram_id,
+        username: initData.username,
+        has_ref_code: !!initData.ref_code
+      });
+
+      // Сначала пытаемся найти существующего пользователя
+      const existingUser = await this.getUserByTelegramId(String(initData.telegram_id));
+      
+      if (existingUser) {
+        logger.info('[UserService] Пользователь найден в базе', { 
+          user_id: existingUser.id,
+          ref_code: existingUser.ref_code 
+        });
+
+        // Обновляем username если он изменился в Telegram
+        if (initData.username && initData.username !== existingUser.username) {
+          await this.updateUser(String(existingUser.id), {
+            username: initData.username
+          });
+          
+          logger.info('[UserService] Обновлен username пользователя', { 
+            user_id: existingUser.id,
+            old_username: existingUser.username,
+            new_username: initData.username
+          });
+        }
+
+        return existingUser;
+      }
+
+      // Пользователь не найден - создаем нового
+      logger.info('[UserService] Создание нового пользователя из Telegram', {
+        telegram_id: initData.telegram_id,
+        username: initData.username
+      });
+
+      // Генерируем уникальный ref_code
+      const timestamp = Date.now();
+      const refCode = `REF${initData.telegram_id}${timestamp}`.substring(0, 12).toUpperCase();
+
+      // Определяем referred_by если передан ref_code
+      let referredBy: number | null = null;
+      if (initData.ref_code) {
+        try {
+          const referrer = await db
+            .select()
+            .from(users)
+            .where(eq(users.ref_code, initData.ref_code))
+            .limit(1);
+          
+          if (referrer.length > 0) {
+            referredBy = referrer[0].id;
+            logger.info('[UserService] Найден реферер', { 
+              ref_code: initData.ref_code,
+              referrer_id: referredBy 
+            });
+          }
+        } catch (error) {
+          logger.warn('[UserService] Ошибка поиска реферера', { 
+            ref_code: initData.ref_code,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      // Создаем нового пользователя
+      const newUserData: InsertUser = {
+        telegram_id: initData.telegram_id,
+        username: initData.username || null,
+        ref_code: refCode,
+        parent_ref_code: initData.ref_code || null,
+        referred_by: referredBy
+      };
+
+      const newUser = await this.createUser(newUserData);
+
+      logger.info('[UserService] Новый пользователь создан', {
+        user_id: newUser.id,
+        telegram_id: newUser.telegram_id,
+        username: newUser.username,
+        ref_code: newUser.ref_code,
+        referred_by: newUser.referred_by
+      });
+
+      return newUser;
+
+    } catch (error) {
+      logger.error('[UserService] Критическая ошибка getOrCreateUserFromTelegram', {
+        telegram_id: initData.telegram_id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
 }

@@ -36,17 +36,20 @@ export class UserController extends BaseController {
         telegram_id: telegramUser?.user?.id
       });
       
-      const user = await userService.getUserByTelegramId(telegramUser.user.id.toString());
-      
-      logger.info('[GetMe] Возвращаем данные пользователя', {
-        id: user?.id,
-        telegram_id: user?.telegram_id,
-        ref_code: user?.ref_code
+      // Используем getOrCreateUserFromTelegram для гарантированной регистрации
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegramUser.user.id,
+        username: telegramUser.user.username,
+        first_name: telegramUser.user.first_name,
+        last_name: telegramUser.user.last_name,
+        ref_code: telegramUser.start_param // Может содержать реферальный код
       });
       
-      if (!user) {
-        return this.sendError(res, 'Пользователь не найден', 404);
-      }
+      logger.info('[GetMe] Пользователь найден/создан', {
+        id: user.id,
+        telegram_id: user.telegram_id,
+        ref_code: user.ref_code
+      });
       
       this.sendSuccess(res, {
         id: user.id,
