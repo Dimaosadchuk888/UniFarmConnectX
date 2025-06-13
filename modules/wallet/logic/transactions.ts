@@ -36,7 +36,7 @@ export class TransactionLogic {
     description?: string
   ): Promise<boolean> {
     try {
-      console.log('[TransactionLogic] Создание транзакции:', {
+      logger.info('[TransactionLogic] Создание транзакции', {
         userId,
         type,
         amount,
@@ -46,7 +46,7 @@ export class TransactionLogic {
       // Здесь будет логика создания транзакции через Drizzle ORM
       return true;
     } catch (error) {
-      console.error('[TransactionLogic] Ошибка создания транзакции:', error);
+      logger.error('[TransactionLogic] Ошибка создания транзакции', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -60,12 +60,12 @@ export class TransactionLogic {
     offset: number = 0
   ): Promise<Transaction[]> {
     try {
-      console.log('[TransactionLogic] Получение транзакций пользователя:', userId);
+      logger.info('[TransactionLogic] Получение транзакций пользователя', { userId });
 
       // Здесь будет логика получения транзакций из базы данных
       return [];
     } catch (error) {
-      console.error('[TransactionLogic] Ошибка получения транзакций:', error);
+      logger.error('[TransactionLogic] Ошибка получения транзакций', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -90,7 +90,7 @@ export class TransactionLogic {
 
       return { valid: true };
     } catch (error) {
-      console.error('[TransactionLogic] Ошибка валидации:', error);
+      logger.error('[TransactionLogic] Ошибка валидации', { error: error instanceof Error ? error.message : String(error) });
       return { valid: false, error: 'Ошибка валидации транзакции' };
     }
   }
@@ -116,7 +116,7 @@ export class TransactionLogic {
       
       return fee.toFixed(8);
     } catch (error) {
-      console.error('[TransactionLogic] Ошибка расчета комиссии:', error);
+      logger.error('[TransactionLogic] Ошибка расчета комиссии', { error: error instanceof Error ? error.message : String(error) });
       return '0';
     }
   }
@@ -129,7 +129,7 @@ export class TransactionLogic {
     status: TransactionStatus
   ): Promise<boolean> {
     try {
-      console.log('[TransactionLogic] Обновление статуса транзакции:', {
+      logger.info('[TransactionLogic] Обновление статуса транзакции', {
         transactionId,
         status
       });
@@ -137,7 +137,7 @@ export class TransactionLogic {
       // Здесь будет логика обновления статуса в базе данных
       return true;
     } catch (error) {
-      console.error('[TransactionLogic] Ошибка обновления статуса:', error);
+      logger.error('[TransactionLogic] Ошибка обновления статуса', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

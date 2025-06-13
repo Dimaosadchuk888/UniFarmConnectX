@@ -2,6 +2,8 @@
 type ApiRequest = (url: string, options?: any) => Promise<any>;
 type CorrectApiRequest = (url: string, method?: string, data?: any) => Promise<any>;
 
+import { logger } from '../../../core/logger';
+
 // Временная заглушка для correctApiRequest
 const correctApiRequest: CorrectApiRequest = async (url: string, method = 'GET', data?: any) => {
   throw new Error('correctApiRequest not implemented yet');
