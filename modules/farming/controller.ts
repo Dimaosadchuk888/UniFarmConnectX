@@ -76,6 +76,13 @@ export class FarmingController extends BaseController {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
       
+      // Автоматическая регистрация пользователя
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        ref_code: req.query.start_param as string
+      });
+      
       const { amount } = req.body;
       
       const result = await farmingService.startFarming(
@@ -92,6 +99,13 @@ export class FarmingController extends BaseController {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
 
+      // Автоматическая регистрация пользователя
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        ref_code: req.query.start_param as string
+      });
+
       const result = await farmingService.claimRewards(
         telegram.user.id.toString()
       );
@@ -104,6 +118,13 @@ export class FarmingController extends BaseController {
     await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
+
+      // Автоматическая регистрация пользователя
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        ref_code: req.query.start_param as string
+      });
 
       const { amount } = req.body;
       this.validateRequiredFields(req.body, ['amount']);
@@ -122,6 +143,13 @@ export class FarmingController extends BaseController {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
 
+      // Автоматическая регистрация пользователя
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        ref_code: req.query.start_param as string
+      });
+
       const result = await farmingService.harvestUniFarming(
         telegram.user.id.toString()
       );
@@ -134,6 +162,13 @@ export class FarmingController extends BaseController {
     await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
+
+      // Автоматическая регистрация пользователя
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        ref_code: req.query.start_param as string
+      });
 
       const history = await farmingService.getFarmingHistory(
         telegram.user.id.toString()

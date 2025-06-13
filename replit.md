@@ -119,6 +119,7 @@ Each business domain is organized as a self-contained module:
 - June 13, 2025. Initial setup
 - June 13, 2025. T12 Telegram webhook implementation completed
 - June 13, 2025. Final pre-production audit completed - system ready for launch
+- June 13, 2025. T13 Automatic Telegram user registration implemented across all critical endpoints
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
