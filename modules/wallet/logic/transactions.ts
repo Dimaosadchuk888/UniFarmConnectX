@@ -3,6 +3,7 @@
  */
 
 import { TransactionType, TransactionStatus } from '../model';
+import { logger } from '../../../core/logger';
 
 /**
  * Интерфейс для транзакции

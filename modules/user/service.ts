@@ -15,7 +15,7 @@ export class UserService {
       
       return user || null;
     } catch (error) {
-      console.error('[UserService] Ошибка получения пользователя:', error);
+      logger.error('[UserService] Ошибка получения пользователя', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -29,7 +29,7 @@ export class UserService {
       
       return newUser;
     } catch (error) {
-      console.error('[UserService] Ошибка создания пользователя:', error);
+      logger.error('[UserService] Ошибка создания пользователя', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -44,7 +44,7 @@ export class UserService {
       
       return updatedUser || null;
     } catch (error) {
-      console.error('[UserService] Ошибка обновления пользователя:', error);
+      logger.error('[UserService] Ошибка обновления пользователя', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -57,7 +57,7 @@ export class UserService {
       
       return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
-      console.error('[UserService] Ошибка удаления пользователя:', error);
+      logger.error('[UserService] Ошибка удаления пользователя', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -72,7 +72,7 @@ export class UserService {
       
       return user || null;
     } catch (error) {
-      console.error('[UserService] Ошибка поиска по Telegram ID:', error);
+      logger.error('[UserService] Ошибка поиска по Telegram ID', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -91,7 +91,7 @@ export class UserService {
       
       return updatedUser.ref_code || refCode;
     } catch (error) {
-      console.error('[UserService] Ошибка генерации ref_code:', error);
+      logger.error('[UserService] Ошибка генерации ref_code', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -104,7 +104,7 @@ export class UserService {
       }
       return true;
     } catch (error) {
-      console.error('[UserService] Ошибка валидации пользователя:', error);
+      logger.error('[UserService] Ошибка валидации пользователя', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
