@@ -35,7 +35,7 @@ export class UserModel {
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.telegram_id, String(telegramId)))
+        .where(eq(users.telegram_id.toString(), telegramId.toString()))
         .limit(1);
       
       return user || null;
@@ -53,7 +53,7 @@ export class UserModel {
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.guest_id, guestId))
+        .where(eq(users.id, parseInt(guestId)))
         .limit(1);
       
       return user || null;

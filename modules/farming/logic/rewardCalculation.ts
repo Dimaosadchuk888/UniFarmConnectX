@@ -116,12 +116,12 @@ export class RewardCalculationLogic {
    */
   private static getFarmingLimits(farmingType: FarmingType, userLevel: number) {
     const baseLimits = {
-      [FarmingType.UNI_FARMING]: { min: 100, max: 10000 },
-      [FarmingType.TON_FARMING]: { min: 0.1, max: 10 },
-      [FarmingType.BOOST_FARMING]: { min: 50, max: 5000 }
+      'UNI_FARMING': { min: 100, max: 10000 },
+      'TON_FARMING': { min: 0.1, max: 10 },
+      'BOOST_FARMING': { min: 50, max: 5000 }
     };
 
-    const limits = baseLimits[farmingType];
+    const limits = baseLimits[farmingType as unknown as keyof typeof baseLimits] || { min: 0, max: 0 };
     const levelMultiplier = 1 + (userLevel - 1) * 0.5;
     
     return {

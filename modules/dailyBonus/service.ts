@@ -161,7 +161,7 @@ export class DailyBonusService {
         .update(users)
         .set({
           balance_uni: newBalance,
-          checkin_last_date: new Date().toISOString().split('T')[0],
+          checkin_last_date: new Date(),
           checkin_streak: newStreak
         })
         .where(eq(users.id, parseInt(userId)));
@@ -257,7 +257,7 @@ export class DailyBonusService {
 
       return history.map(tx => ({
         id: tx.id,
-        amount: parseFloat(tx.amount),
+        amount: parseFloat(tx.amount || '0'),
         date: tx.created_at,
         currency: tx.currency,
         status: tx.status
