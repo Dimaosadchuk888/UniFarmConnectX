@@ -196,18 +196,23 @@ export async function sendTonTransaction(
       ]
     };
     
-    // По ТЗ: добавляем лог с данными транзакции перед отправкойtry {
+    // По ТЗ: добавляем лог с данными транзакции перед отправкой
+    try {
       // Только проверяем подключение (по ТЗ)
-      if (!tonConnectUI.connected) {await connectTonWallet(tonConnectUI);
+      if (!tonConnectUI.connected) {
+        await connectTonWallet(tonConnectUI);
         
-        if (!tonConnectUI.connected) {throw new WalletNotConnectedError('Не удалось подключить кошелёк перед транзакцией');
+        if (!tonConnectUI.connected) {
+          throw new WalletNotConnectedError('Не удалось подключить кошелёк перед транзакцией');
         }
       }
       
-      // Отправляем транзакцию без дополнительных проверок (по ТЗ)const result = await tonConnectUI.sendTransaction(transaction);
+      // Отправляем транзакцию без дополнительных проверок (по ТЗ)
+      const result = await tonConnectUI.sendTransaction(transaction);
       debugLog('*** РЕЗУЛЬТАТ sendTransaction ***', result);
       
-      // По ТЗ: добавляем лог результата транзакции// Вызов успешно выполнен - пользователь подтвердил транзакцию в Tonkeeper
+      // По ТЗ: добавляем лог результата транзакции
+      // Вызов успешно выполнен - пользователь подтвердил транзакцию в Tonkeeper
       debugLog('Транзакция успешно отправлена, результат:', {
         boc: result.boc ? `есть (${result.boc.length} символов)` : 'нет',
         has_result: !!result
@@ -243,7 +248,8 @@ export async function sendTonTransaction(
       
       throw error;  // Re-throw to be caught by the outer try-catch
     }
-  } catch (error) {if (error instanceof UserRejectsError) {
+  } catch (error) {
+    if (error instanceof UserRejectsError) {
       return {
         txHash: '',
         status: 'error'
@@ -308,11 +314,14 @@ export function isTonPaymentReady(tonConnectUI: TonConnectUI): boolean {
     if (!hasAccount) reasons.push('информация об аккаунте отсутствует (tonConnectUI.account = null)');
     if (!hasAddress) reasons.push('адрес кошелька отсутствует (tonConnectUI.account.address = null)');
     
-    debugLog('isTonPaymentReady вернул FALSE. Причины:', reasons);} else {
-    debugLog('isTonPaymentReady вернул TRUE. Все проверки пройдены.');}
+    debugLog('isTonPaymentReady вернул FALSE. Причины:', reasons);
+  } else {
+    debugLog('isTonPaymentReady вернул TRUE. Все проверки пройдены.');
+  }
   
   // По ТЗ временно отключаем проверку и принудительно возвращаем true
-  // для диагностики проблемы с вызовом sendTransactionreturn true; // Всегда возвращаем true для тестирования sendTransaction
+  // для диагностики проблемы с вызовом sendTransaction
+  return true; // Всегда возвращаем true для тестирования sendTransaction
 }
 
 /**
@@ -376,5 +385,6 @@ export function initTonConnect(): void {
  * Этот экспорт существует для обратной совместимости,
  * но фактически он будет заменен прямым импортом из useTonConnectUI
  */
-export const getTonConnectUI = () => {return null as unknown as TonConnectUI;
-}
+export const getTonConnectUI = () => {
+  return null as unknown as TonConnectUI;
+};
