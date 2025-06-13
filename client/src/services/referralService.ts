@@ -8,8 +8,6 @@
  * 4. Применение реферального кода при создании новых пользователей
  */
 
-import guestIdService from './guestIdService';
-
 // Ключ для хранения реферального кода в локальном хранилище
 const REFERRAL_CODE_KEY = 'unifarm_referral_code';
 
