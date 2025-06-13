@@ -3,7 +3,11 @@
  * Активирует подключение к production базе данных ep-lucky-boat-a463bggt
  */
 
-import { Pool } from '@neondatabase/serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+
+// Configure WebSocket for Neon
+neonConfig.webSocketConstructor = ws;
 
 // Production database connection string
 const PRODUCTION_DATABASE_URL = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
