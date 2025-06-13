@@ -32,7 +32,7 @@ const Farming: React.FC = () => {
   }, []);
 
   return (
-    <div className="container mx-auto p-4 pb-6">
+    <div className="container mx-auto p-0 pb-6 min-h-full">
       <h1 className="text-2xl font-bold mb-6">Фарминг</h1>
       
       <Tabs defaultValue="uni" className="w-full mb-6">

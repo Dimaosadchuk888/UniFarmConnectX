@@ -21,7 +21,7 @@ const MissionsNavMenu: React.FC = () => {const queryClient = useQueryClient();
   
   // Используем стандартный MissionsList
   return (
-    <div className="p-4 pb-6">
+    <div className="p-0 pb-6 min-h-full">
       <h1 className="text-xl font-semibold text-white mb-4">Выполняй задания — получай UNI</h1>
       <MissionsList />
     </div>
