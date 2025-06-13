@@ -4,6 +4,7 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express';
+import fetch from 'node-fetch';
 import cors from 'cors';
 import path from 'path';
 import { createServer } from 'http';
@@ -267,6 +268,60 @@ async function startServer() {
     app.post('/api/webhook', express.json({ limit: '1mb' }), webhookHandler);
     app.post('/bot/webhook', express.json({ limit: '1mb' }), webhookHandler);
     app.post('/telegram/webhook', express.json({ limit: '1mb' }), webhookHandler);
+
+    // Fallback polling service для обхода блокировки webhook
+    const initPollingFallback = async () => {
+      try {
+        // Проверяем доступность webhook через внешний домен
+        const testResponse = await fetch('https://uni-farm-connect-x-osadchukdmitro2.replit.app/webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ test: true })
+        });
+        
+        if (testResponse.status === 404) {
+          logger.info('[TelegramPolling] Webhook заблокирован, активируем polling service');
+          
+          // Простой polling механизм
+          let offset = 0;
+          const pollTelegram = async () => {
+            try {
+              const updatesResponse = await fetch(`https://api.telegram.org/bot7980427501:AAHdia3LusU9dk2aRvhXgmj9Ozo08nR0Gug/getUpdates`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ offset, timeout: 10 })
+              });
+              
+              const data = await updatesResponse.json();
+              if (data.ok && data.result.length > 0) {
+                for (const update of data.result) {
+                  await webhookHandler({ body: update } as Request, {
+                    json: (data: any) => logger.info('[TelegramPolling] Processed:', data),
+                    status: () => ({ json: () => {} })
+                  } as any);
+                  offset = update.update_id + 1;
+                }
+              }
+            } catch (error) {
+              logger.error('[TelegramPolling] Polling error:', error instanceof Error ? error.message : String(error));
+            }
+            
+            setTimeout(pollTelegram, 3000); // Poll every 3 seconds
+          };
+          
+          // Удаляем webhook и запускаем polling
+          await fetch(`https://api.telegram.org/bot7980427501:AAHdia3LusU9dk2aRvhXgmj9Ozo08nR0Gug/deleteWebhook`);
+          setTimeout(pollTelegram, 5000); // Start polling after 5 seconds
+        } else {
+          logger.info('[TelegramPolling] Webhook работает корректно');
+        }
+      } catch (error) {
+        logger.error('[TelegramPolling] Ошибка инициализации:', error instanceof Error ? error.message : String(error));
+      }
+    };
+    
+    // Запускаем проверку через 15 секунд после старта сервера
+    setTimeout(initPollingFallback, 15000);
 
     // Middleware
     app.use(cors({
