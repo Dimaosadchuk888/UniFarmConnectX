@@ -64,7 +64,7 @@ export class DeepReferralLogic {
 
       return commissions;
     } catch (error) {
-      console.error('[DeepReferral] Ошибка расчета комиссий:', error);
+      logger.error('[DeepReferral] Ошибка расчета комиссий', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -106,7 +106,7 @@ export class DeepReferralLogic {
 
       return chain;
     } catch (error) {
-      console.error('[DeepReferral] Ошибка построения цепочки рефереров:', error);
+      logger.error('[DeepReferral] Ошибка построения цепочки рефереров', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -128,7 +128,7 @@ export class DeepReferralLogic {
 
       return true;
     } catch (error) {
-      console.error('[DeepReferral] Ошибка валидации кода:', error);
+      logger.error('[DeepReferral] Ошибка валидации кода', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -144,7 +144,7 @@ export class DeepReferralLogic {
       
       return `${userSuffix}${random}${timestamp}`;
     } catch (error) {
-      console.error('[DeepReferral] Ошибка генерации кода:', error);
+      logger.error('[DeepReferral] Ошибка генерации кода', { error: error instanceof Error ? error.message : String(error) });
       return Math.random().toString(36).substring(2, 8).toUpperCase();
     }
   }

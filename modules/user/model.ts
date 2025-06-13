@@ -22,7 +22,7 @@ export class UserModel {
       
       return user || null;
     } catch (error) {
-      console.error('[UserModel] Ошибка поиска пользователя по ID:', error);
+      logger.error('[UserModel] Ошибка поиска пользователя по ID', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -40,7 +40,7 @@ export class UserModel {
       
       return user || null;
     } catch (error) {
-      console.error('[UserModel] Ошибка поиска пользователя по Telegram ID:', error);
+      logger.error('[UserModel] Ошибка поиска пользователя по Telegram ID', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -58,7 +58,7 @@ export class UserModel {
       
       return user || null;
     } catch (error) {
-      console.error('[UserModel] Ошибка поиска пользователя по Guest ID:', error);
+      logger.error('[UserModel] Ошибка поиска пользователя по Guest ID', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -75,7 +75,7 @@ export class UserModel {
       
       return newUser || null;
     } catch (error) {
-      console.error('[UserModel] Ошибка создания пользователя:', error);
+      logger.error('[UserModel] Ошибка создания пользователя', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -93,7 +93,7 @@ export class UserModel {
       
       return updatedUser || null;
     } catch (error) {
-      console.error('[UserModel] Ошибка обновления пользователя:', error);
+      logger.error('[UserModel] Ошибка обновления пользователя', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -125,7 +125,7 @@ export class UserModel {
       
       return updatedUser || null;
     } catch (error) {
-      console.error('[UserModel] Ошибка обновления баланса:', error);
+      logger.error('[UserModel] Ошибка обновления баланса', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -143,7 +143,7 @@ export class UserModel {
       
       return usersList;
     } catch (error) {
-      console.error('[UserModel] Ошибка получения списка пользователей:', error);
+      logger.error('[UserModel] Ошибка получения списка пользователей', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
