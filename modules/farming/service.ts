@@ -81,7 +81,7 @@ export class FarmingService {
           : null
       };
     } catch (error) {
-      console.error('[FarmingService] Ошибка получения данных фарминга:', error);
+      logger.error('[FarmingService] Ошибка получения данных фарминга', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -96,7 +96,7 @@ export class FarmingService {
         uni_farming_last_update: new Date()
       });
     } catch (error) {
-      console.error('[FarmingService] Ошибка запуска фарминга:', error);
+      logger.error('[FarmingService] Ошибка запуска фарминга', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -111,7 +111,7 @@ export class FarmingService {
         uni_farming_last_update: new Date()
       });
     } catch (error) {
-      console.error('[FarmingService] Ошибка остановки фарминга:', error);
+      logger.error('[FarmingService] Ошибка остановки фарминга', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -196,7 +196,7 @@ export class FarmingService {
 
       return { amount: baseReward, claimed: true };
     } catch (error) {
-      console.error('[FarmingService] Ошибка получения наград:', error);
+      logger.error('[FarmingService] Ошибка получения наград', { error: error instanceof Error ? error.message : String(error) });
       return { amount: "0", claimed: false };
     }
   }

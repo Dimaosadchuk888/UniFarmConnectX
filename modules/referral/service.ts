@@ -390,7 +390,7 @@ export class ReferralService {
 
       return { valid: true };
     } catch (error) {
-      console.error('[ReferralService] Ошибка валидации реферального кода:', error);
+      logger.error('[ReferralService] Ошибка валидации реферального кода', { error: error instanceof Error ? error.message : String(error) });
       return { valid: false };
     }
   }
@@ -420,7 +420,7 @@ export class ReferralService {
       }
 
       if (!user) {
-        console.log(`[ReferralService] Пользователь ${userIdentifier} не найден, возвращаем пустые данные`);
+        logger.info('[ReferralService] Пользователь не найден, возвращаем пустые данные', { userIdentifier });
         return {
           totalReferrals: 0,
           referralCounts: {},
@@ -429,7 +429,7 @@ export class ReferralService {
         };
       }
 
-      console.log(`[ReferralService] Получение статистики уровней для пользователя ${user.id} (${user.username})`);
+      logger.info('[ReferralService] Получение статистики уровней для пользователя', { userId: user.id, username: user.username });
 
       // Получаем всех рефералов пользователя
       const userReferrals = await db
@@ -482,7 +482,10 @@ export class ReferralService {
         })
       );
 
-      console.log(`[ReferralService] Найдено ${userReferrals.length} рефералов на ${Object.keys(referralCounts).length} уровнях`);
+      logger.info('[ReferralService] Найдено рефералов на уровнях', { 
+        referralsCount: userReferrals.length, 
+        levelsCount: Object.keys(referralCounts).length 
+      });
 
       return {
         totalReferrals: userReferrals.length,
@@ -491,7 +494,7 @@ export class ReferralService {
         referrals: referralDetails
       };
     } catch (error) {
-      console.error('[ReferralService] Ошибка получения статистики уровней:', error);
+      logger.error('[ReferralService] Ошибка получения статистики уровней', { error: error instanceof Error ? error.message : String(error) });
       return {
         totalReferrals: 0,
         referralCounts: {},
