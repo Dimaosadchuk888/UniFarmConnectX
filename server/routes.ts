@@ -54,8 +54,16 @@ router.post('/telegram/webhook', async (req: Request, res: Response) => {
 // Authentication routes
 router.use('/auth', authRoutes);
 
-// Дополнительные маршруты для регистрации (для обратной совместимости)
-router.use('/register', authRoutes);
+// Регистрация Telegram пользователей
+router.post('/register/telegram', async (req, res) => {
+  try {
+    const { AuthController } = await import('../modules/auth/controller');
+    const authController = new AuthController();
+    await authController.registerTelegram(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Registration error' });
+  }
+});
 
 // User profile endpoint
 router.get('/me', async (req: Request, res: Response) => {
@@ -78,6 +86,17 @@ router.get('/me', async (req: Request, res: Response) => {
 router.use('/farming', farmingRoutes);
 router.use('/uni-farming', farmingRoutes); // Alias for uni-farming endpoints
 router.use('/users', userRoutes);
+
+// Прямой маршрут для профиля пользователя
+router.get('/users/profile', async (req, res) => {
+  try {
+    const { UserController } = await import('../modules/user/controller');
+    const userController = new UserController();
+    await userController.getProfile(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Profile error' });
+  }
+});
 router.use('/wallet', walletRoutes);
 router.use('/boost', boostRoutes);
 router.use('/boosts', boostRoutes); // Alias for boosts
