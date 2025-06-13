@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { logger } from './logger';
 
 /**
  * Базовий контролер з загальною логікою обробки помилок та відповідей
@@ -16,7 +17,7 @@ export abstract class BaseController {
     try {
       await handler(req, res);
     } catch (error: any) {
-      console.error(`[${this.constructor.name}] Ошибка ${operationName}:`, error);
+      logger.error(`[${this.constructor.name}] Ошибка ${operationName}`, { error: error instanceof Error ? error.message : String(error) });
       
       // Перевіряємо, чи відповідь вже відправлена
       if (!res.headersSent) {
@@ -100,7 +101,7 @@ export abstract class BaseController {
    * Стандартна обробка помилок контролера
    */
   protected handleControllerError(error: unknown, res: Response, operation: string): void {
-    console.error(`[${this.constructor.name}] Ошибка ${operation}:`, error);
+    logger.error(`[${this.constructor.name}] Ошибка ${operation}`, { error: error instanceof Error ? error.message : String(error) });
     
     if (!res.headersSent) {
       res.status(500).json({

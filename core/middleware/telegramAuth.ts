@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../logger';
 
 /**
  * Middleware для перевірки Telegram авторизації
@@ -20,7 +21,7 @@ export function requireTelegramAuth(req: Request, res: Response, next: NextFunct
     req.telegramUser = telegramUser;
     next();
   } catch (error) {
-    console.error('[TelegramAuth] Ошибка проверки авторизации:', error);
+    logger.error('[TelegramAuth] Ошибка проверки авторизации', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({
       success: false,
       error: 'Ошибка проверки авторизации'
@@ -42,7 +43,7 @@ export function optionalTelegramAuth(req: Request, res: Response, next: NextFunc
     
     next();
   } catch (error) {
-    console.error('[TelegramAuth] Ошибка опциональной авторизации:', error);
+    logger.error('[TelegramAuth] Ошибка опциональной авторизации', { error: error instanceof Error ? error.message : String(error) });
     next();
   }
 }
