@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { invalidateQueryWithUserId } from '@/lib/queryClient';
 import { apiGet, apiPost } from '@/lib/apiService';
 import { useUser } from '@/contexts/userContext';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
@@ -90,11 +89,11 @@ const DailyBonusCard: React.FC = () => {
           setReward(`${data.amount || bonusStatus?.bonusAmount || 500} UNI`);
 
           // Обновляем данные о статусе бонуса с учетом userId
-          invalidateQueryWithUserId('/api/v2/daily-bonus/status');
+          queryClient.invalidateQueries({ queryKey: ['dailyBonusStatus'] });
 
           // Также обновляем данные баланса пользователя и транзакции
-          invalidateQueryWithUserId('/api/v2/wallet/balance');
-          invalidateQueryWithUserId('/api/v2/transactions');
+          queryClient.invalidateQueries({ queryKey: ['balance'] });
+          queryClient.invalidateQueries({ queryKey: ['transactions'] });
 
           // Скрываем конфетти через 4 секунды
           setTimeout(() => {
@@ -119,8 +118,8 @@ const DailyBonusCard: React.FC = () => {
         }
       } catch (error: any) {// Даже при ошибке пытаемся обновить данные интерфейса
         try {
-          invalidateQueryWithUserId('/api/v2/daily-bonus/status');
-          invalidateQueryWithUserId('/api/v2/wallet/balance');
+          queryClient.invalidateQueries({ queryKey: ['dailyBonusStatus'] });
+          queryClient.invalidateQueries({ queryKey: ['balance'] });
 
           // Информируем пользователя
           toast({
@@ -139,7 +138,7 @@ const DailyBonusCard: React.FC = () => {
         });
 
         // В любом случае обновляем данные
-        invalidateQueryWithUserId('/api/v2/daily-bonus/status');
+        queryClient.invalidateQueries({ queryKey: ['dailyBonusStatus'] });
       } catch (err) {// Последняя попытка показать уведомление
         try {
           toast({
