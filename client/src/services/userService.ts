@@ -62,16 +62,22 @@ class UserService {
       const telegramUserId = telegramData.id;
       
       // Импортируем referralService для получения реферального кода
-      const referralServiceModule = await import('./referralService');
-      const referralService = referralServiceModule.default;
+      const { referralService } = await import('./referralService');
 
       // Получаем реферальный код из URL или локального хранилища
       const referralCode = referralService.getReferralCodeForRegistration();
 
-      if (referralCode) {} else {}
+      if (referralCode) {
+        console.log('Using referral code for registration:', referralCode);
+      } else {
+        console.log('No referral code found for registration');
+      }
 
       // Формируем полный URL для запроса
-      const url = apiConfig.getFullUrl('/api/v2/airdrop/register');// Отправляем запрос на регистрацию через Telegram// correctApiRequest обрабатывает заголовки, преобразование JSON и анализ ответов автоматически
+      const url = apiConfig.getFullUrl('/api/v2/airdrop/register');
+      
+      // Отправляем запрос на регистрацию через Telegram
+      // correctApiRequest обрабатывает заголовки, преобразование JSON и анализ ответов автоматически
       const result = await correctApiRequest('/api/v2/users', 'POST', {
         telegram_id: telegramUserId,
         username: `telegram_user_${telegramUserId}`,

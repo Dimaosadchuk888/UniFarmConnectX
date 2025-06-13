@@ -137,8 +137,13 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
   
   // Принудительная загрузка данных после монтирования компонента
   useEffect(() => {
-    // Запускаем загрузку данных сразу после монтирования компонента// Если данных нет, но загрузка ещё не началась - запускаем её
-    if (!data && !isLoading && !isError) {refetch().catch(error =>}
+    // Запускаем загрузку данных сразу после монтирования компонента
+    // Если данных нет, но загрузка ещё не началась - запускаем её
+    if (!data && !isLoading && !isError) {
+      refetch().catch(error => {
+        console.error('Error fetching referral data:', error);
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, isLoading, isError, refetch]); // Указываем все используемые в эффекте зависимости
   
