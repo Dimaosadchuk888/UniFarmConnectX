@@ -39,6 +39,9 @@ router.use('/daily-bonus', dailyBonusRoutes);
 router.use('/telegram', telegramRoutes);
 router.use('/ton-farming', tonFarmingRoutes);
 
+// Добавляем alias для transactions через wallet модуль
+router.use('/transactions', walletRoutes);
+
 // Monitoring routes
 router.use('/monitor', monitorRoutes);
 
