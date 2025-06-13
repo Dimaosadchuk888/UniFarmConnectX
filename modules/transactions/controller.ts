@@ -6,7 +6,7 @@ const walletService = new WalletService();
 
 export class TransactionsController extends BaseController {
   async getTransactions(req: Request, res: Response) {
-    await this.handleRequest(req, res, async (req: Request, res: Response) => {
+    await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
@@ -24,8 +24,7 @@ export class TransactionsController extends BaseController {
         ? result.transactions.filter((tx: any) => tx.currency === currency)
         : result.transactions;
       
-      res.json({
-        success: true,
+      this.sendSuccess(res, {
         transactions: filteredTransactions,
         total: result.total,
         page: parseInt(page as string),
