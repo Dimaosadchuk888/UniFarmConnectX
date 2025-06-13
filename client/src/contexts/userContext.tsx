@@ -218,7 +218,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
           } catch (e) {}
         } else {
-          const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';// Не устанавливаем fallback данные, пусть App.tsx обработает создание пользователя
+          const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';
           dispatch({ type: 'SET_ERROR', payload: null });
         }
       }
@@ -344,16 +344,98 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     initializedRef.current = true;
   }, [tonConnectUI]);
   
-  // Автоматическая загрузка данных пользователя при первом рендере
+  // Автоматическая авторизация через Telegram при первом рендере
   useEffect(() => {
-    const loadInitialUserData = async () => {try {
-        // Сначала запрашиваем данные пользователя
+    const loadInitialUserData = async () => {
+      try {
+        console.log('[UserContext] Автоматическая загрузка данных пользователя...');
+        
+        // Проверяем наличие Telegram данных
+        const telegramData = window.Telegram?.WebApp;
+        if (telegramData?.initData && telegramData.initData.length > 0) {
+          console.log('[UserContext] Telegram данные найдены, пытаемся авторизоваться...');
+          
+          // Пробуем авторизацию через Telegram
+          try {
+            const authResponse = await fetch('/api/v2/auth/telegram', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Telegram-Init-Data': telegramData.initData
+              },
+              body: JSON.stringify({ 
+                initData: telegramData.initData,
+                refBy: new URLSearchParams(window.location.search).get('ref')
+              })
+            }).then(res => res.json());
+
+            if (authResponse.success && authResponse.token) {
+              console.log('[UserContext] Авторизация успешна');
+              localStorage.setItem('unifarm_auth_token', authResponse.token);
+              localStorage.setItem('unifarm_user_data', JSON.stringify(authResponse.user));
+              
+              // Обновляем состояние пользователя
+              dispatch({
+                type: 'SET_USER_DATA',
+                payload: {
+                  userId: authResponse.user.id,
+                  username: authResponse.user.username,
+                  telegramId: authResponse.user.telegram_id,
+                  refCode: authResponse.user.ref_code
+                }
+              });
+            } else {
+              console.log('[UserContext] Авторизация не удалась, пробуем регистрацию...');
+              
+              // Если авторизация не прошла, пробуем регистрацию
+              const registerResponse = await fetch('/api/v2/register/telegram', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Telegram-Init-Data': telegramData.initData
+                },
+                body: JSON.stringify({ 
+                  initData: telegramData.initData,
+                  refBy: new URLSearchParams(window.location.search).get('ref')
+                })
+              }).then(res => res.json());
+
+              if (registerResponse.success && registerResponse.token) {
+                console.log('[UserContext] Регистрация успешна');
+                localStorage.setItem('unifarm_auth_token', registerResponse.token);
+                localStorage.setItem('unifarm_user_data', JSON.stringify(registerResponse.user));
+                
+                // Обновляем состояние пользователя
+                dispatch({
+                  type: 'SET_USER_DATA',
+                  payload: {
+                    userId: registerResponse.user.id,
+                    username: registerResponse.user.username,
+                    telegramId: registerResponse.user.telegram_id,
+                    refCode: registerResponse.user.ref_code
+                  }
+                });
+              } else {
+                console.log('[UserContext] Регистрация не удалась');
+              }
+            }
+          } catch (telegramError) {
+            console.log('[UserContext] Ошибка Telegram авторизации:', telegramError);
+          }
+        } else {
+          console.log('[UserContext] Telegram данные недоступны');
+        }
+        
+        // Загружаем обычные данные пользователя
         await refreshUserData();
         
         // Затем, если получили userId, запрашиваем баланс
-        if (state.userId) {await refreshBalance();
+        if (state.userId) {
+          await refreshBalance();
         }
-      } catch (err) {}
+      } catch (err) {
+        console.log('[UserContext] Ошибка при загрузке данных:', err);
+      }
     };
     
     loadInitialUserData();

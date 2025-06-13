@@ -54,6 +54,9 @@ router.post('/telegram/webhook', async (req: Request, res: Response) => {
 // Authentication routes
 router.use('/auth', authRoutes);
 
+// Дополнительные маршруты для регистрации (для обратной совместимости)
+router.use('/register', authRoutes);
+
 // User profile endpoint
 router.get('/me', async (req: Request, res: Response) => {
   const { requireTelegramAuth } = await import('../core/middleware/telegramAuth');

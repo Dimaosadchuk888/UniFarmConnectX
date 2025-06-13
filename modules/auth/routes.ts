@@ -19,7 +19,7 @@ const tokenValidationSchema = z.object({
 // POST /api/auth/telegram - Аутентификация через Telegram
 router.post('/telegram', validateBody(telegramAuthSchema), authController.authenticateTelegram.bind(authController));
 
-// POST /api/register/telegram - Регистрация через Telegram
+// POST /api/auth/register/telegram - Регистрация через Telegram (правильный путь)
 router.post('/register/telegram', validateBody(telegramAuthSchema), authController.registerTelegram.bind(authController));
 
 // GET /api/auth/check - Проверка токена и получение информации о пользователе
