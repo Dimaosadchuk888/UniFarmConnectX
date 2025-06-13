@@ -190,8 +190,7 @@ export class UserService {
         telegram_id: initData.telegram_id,
         username: initData.username || null,
         ref_code: refCode,
-        parent_ref_code: initData.ref_code || null,
-        referred_by: referredBy
+        parent_ref_code: initData.ref_code || null
       };
 
       const newUser = await this.createUser(newUserData);
@@ -200,8 +199,7 @@ export class UserService {
         user_id: newUser.id,
         telegram_id: newUser.telegram_id,
         username: newUser.username,
-        ref_code: newUser.ref_code,
-        referred_by: newUser.referred_by
+        ref_code: newUser.ref_code
       });
 
       return newUser;

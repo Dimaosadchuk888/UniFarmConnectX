@@ -40,9 +40,7 @@ export class UserController extends BaseController {
       const user = await userService.getOrCreateUserFromTelegram({
         telegram_id: telegramUser.user.id,
         username: telegramUser.user.username,
-        first_name: telegramUser.user.first_name,
-        last_name: telegramUser.user.last_name,
-        ref_code: telegramUser.start_param // Может содержать реферальный код
+        ref_code: req.query.start_param as string // Реферальный код из query параметров
       });
       
       logger.info('[GetMe] Пользователь найден/создан', {
@@ -88,11 +86,12 @@ export class UserController extends BaseController {
       const telegramUser = this.validateTelegramAuth(req, res);
       if (!telegramUser) return;
 
-      const user = await userService.getUserByTelegramId(telegramUser.user.id.toString());
-      
-      if (!user) {
-        return this.sendError(res, 'Пользователь не найден', 404);
-      }
+      // Используем getOrCreateUserFromTelegram для гарантированной регистрации
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegramUser.user.id,
+        username: telegramUser.user.username,
+        ref_code: req.query.start_param as string
+      });
       
       if (user.ref_code) {
         return this.sendSuccess(res, {
