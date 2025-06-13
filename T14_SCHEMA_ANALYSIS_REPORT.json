@@ -1,0 +1,2078 @@
+{
+  "timestamp": "2025-06-13T13:36:07.052Z",
+  "task": "T14_SCHEMA_ANALYSIS",
+  "statistics": {
+    "totalTables": 16,
+    "totalDiscrepancies": 26,
+    "totalRecommendations": 26
+  },
+  "schema_definitions": {
+    "auth_users": {
+      "variableName": "authUsers",
+      "tableName": "auth_users",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "username",
+          "type": "text",
+          "params": "\"username\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": true,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "password",
+          "type": "text",
+          "params": "\"password\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "'telegram_auth'",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const authUsers = pgTable(\"auth_users\", {\nid: serial(\"id\").primaryKey(),\nusername: text(\"username\").notNull().unique(),\npassword: text(\"password\").default('telegram_auth'), // Устанавливаем значение по умолчанию\n});\n"
+    },
+    "farming_deposits": {
+      "variableName": "farmingDeposits",
+      "tableName": "farming_deposits",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "params": "\"user_id\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "amount_uni",
+          "type": "numeric",
+          "params": "\"amount_uni\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "rate_uni",
+          "type": "numeric",
+          "params": "\"rate_uni\", { precision: 5, scale: 2 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "rate_ton",
+          "type": "numeric",
+          "params": "\"rate_ton\", { precision: 5, scale: 2 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "params": "\"created_at\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "last_claim",
+          "type": "timestamp",
+          "params": "\"last_claim\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "is_boosted",
+          "type": "boolean",
+          "params": "\"is_boosted\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "false",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "deposit_type",
+          "type": "text",
+          "params": "\"deposit_type\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "\"regular\"",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "boost_id",
+          "type": "integer",
+          "params": "\"boost_id\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp",
+          "params": "\"expires_at\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const farmingDeposits = pgTable(\"farming_deposits\", {\nid: serial(\"id\").primaryKey(),\nuser_id: integer(\"user_id\").references(() => users.id),\namount_uni: numeric(\"amount_uni\", { precision: 18, scale: 6 }),\nrate_uni: numeric(\"rate_uni\", { precision: 5, scale: 2 }),\nrate_ton: numeric(\"rate_ton\", { precision: 5, scale: 2 }),\ncreated_at: timestamp(\"created_at\").defaultNow(),\nlast_claim: timestamp(\"last_claim\"),\nis_boosted: boolean(\"is_boosted\").default(false),\ndeposit_type: text(\"deposit_type\").default(\"regular\"), // regular, boost_1, boost_5, boost_15, boost_25\nboost_id: integer(\"boost_id\"), // ID буст-пакета (1, 2, 3, 4)\nexpires_at: timestamp(\"expires_at\") // Для буст-пакетов (срок 365 дней)\n});\n"
+    },
+    "user_balances": {
+      "variableName": "userBalances",
+      "tableName": "user_balances",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "params": "\"user_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "balance_uni",
+          "type": "numeric",
+          "params": "\"balance_uni\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "\"0\"",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "balance_ton",
+          "type": "numeric",
+          "params": "\"balance_ton\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "\"0\"",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "total_earned_uni",
+          "type": "numeric",
+          "params": "\"total_earned_uni\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "\"0\"",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "total_earned_ton",
+          "type": "numeric",
+          "params": "\"total_earned_ton\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "\"0\"",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "params": "\"updated_at\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "params": "\"created_at\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const userBalances = pgTable(\"user_balances\", {\nid: serial(\"id\").primaryKey(),\nuser_id: integer(\"user_id\").notNull().references(() => users.id),\nbalance_uni: numeric(\"balance_uni\", { precision: 18, scale: 6 }).default(\"0\"),\nbalance_ton: numeric(\"balance_ton\", { precision: 18, scale: 6 }).default(\"0\"),\ntotal_earned_uni: numeric(\"total_earned_uni\", { precision: 18, scale: 6 }).default(\"0\"),\ntotal_earned_ton: numeric(\"total_earned_ton\", { precision: 18, scale: 6 }).default(\"0\"),\nupdated_at: timestamp(\"updated_at\").defaultNow(),\ncreated_at: timestamp(\"created_at\").defaultNow()\n});\n"
+    },
+    "referral_earnings": {
+      "variableName": "referral_earnings",
+      "tableName": "referral_earnings",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "params": "\"user_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "source_user_id",
+          "type": "integer",
+          "params": "\"source_user_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "amount",
+          "type": "numeric",
+          "params": "\"amount\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "params": "\"currency\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "level",
+          "type": "integer",
+          "params": "\"level\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "params": "\"created_at\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const referral_earnings = pgTable(\"referral_earnings\", {\nid: serial(\"id\").primaryKey(),\nuser_id: integer(\"user_id\").references(() => users.id).notNull(),\nsource_user_id: integer(\"source_user_id\").references(() => users.id).notNull(),\namount: numeric(\"amount\", { precision: 18, scale: 6 }).notNull(),\ncurrency: text(\"currency\").notNull(), // \"UNI\" или \"TON\"\nlevel: integer(\"level\").notNull(), // Уровень реферала (1-20)\ncreated_at: timestamp(\"created_at\").defaultNow()\n});\n"
+    },
+    "missions": {
+      "variableName": "missions",
+      "tableName": "missions",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "type",
+          "type": "text",
+          "params": "\"type\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "params": "\"title\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "params": "\"description\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "reward_uni",
+          "type": "numeric",
+          "params": "\"reward_uni\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "params": "\"is_active\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "true",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const missions = pgTable(\"missions\", {\nid: serial(\"id\").primaryKey(),\ntype: text(\"type\"), // Тип миссии: invite / social / check-in / deposit и т.д.\ntitle: text(\"title\"), // Название миссии\ndescription: text(\"description\"), // Подробное описание\nreward_uni: numeric(\"reward_uni\", { precision: 18, scale: 6 }), // Награда в UNI\nis_active: boolean(\"is_active\").default(true) // Активна ли миссия\n});\n"
+    },
+    "user_missions": {
+      "variableName": "userMissions",
+      "tableName": "user_missions",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "params": "\"user_id\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "mission_id",
+          "type": "integer",
+          "params": "\"mission_id\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "missions",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp",
+          "params": "\"completed_at\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const userMissions = pgTable(\"user_missions\", {\nid: serial(\"id\").primaryKey(),\nuser_id: integer(\"user_id\").references(() => users.id),\nmission_id: integer(\"mission_id\").references(() => missions.id),\ncompleted_at: timestamp(\"completed_at\").defaultNow()\n});\n"
+    },
+    "uni_farming_deposits": {
+      "variableName": "uniFarmingDeposits",
+      "tableName": "uni_farming_deposits",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "params": "\"user_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "amount",
+          "type": "numeric",
+          "params": "\"amount\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "params": "\"created_at\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "rate_per_second",
+          "type": "numeric",
+          "params": "\"rate_per_second\", { precision: 20, scale: 18 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "last_updated_at",
+          "type": "timestamp",
+          "params": "\"last_updated_at\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "params": "\"is_active\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "true",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const uniFarmingDeposits = pgTable(\"uni_farming_deposits\", {\nid: serial(\"id\").primaryKey(),\nuser_id: integer(\"user_id\").notNull().references(() => users.id),\namount: numeric(\"amount\", { precision: 18, scale: 6 }).notNull(), // Сумма UNI в депозите\ncreated_at: timestamp(\"created_at\").defaultNow().notNull(), // Дата открытия\nrate_per_second: numeric(\"rate_per_second\", { precision: 20, scale: 18 }).notNull(), // Расчетная скорость фарминга\nlast_updated_at: timestamp(\"last_updated_at\").defaultNow().notNull(), // Время последнего начисления\nis_active: boolean(\"is_active\").default(true), // Активен ли депозит\n});\n"
+    },
+    "boost_deposits": {
+      "variableName": "boostDeposits",
+      "tableName": "boost_deposits",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "params": "\"user_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "boost_id",
+          "type": "integer",
+          "params": "\"boost_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "start_date",
+          "type": "timestamp",
+          "params": "\"start_date\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "end_date",
+          "type": "timestamp",
+          "params": "\"end_date\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "bonus_uni",
+          "type": "numeric",
+          "params": "\"bonus_uni\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "params": "\"created_at\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const boostDeposits = pgTable(\"boost_deposits\", {\nid: serial(\"id\").primaryKey(),\nuser_id: integer(\"user_id\").notNull().references(() => users.id),\nboost_id: integer(\"boost_id\").notNull(), // ID буст-пакета\nstart_date: timestamp(\"start_date\").notNull(), // Дата начала срока действия буста\nend_date: timestamp(\"end_date\").notNull(), // Дата окончания срока действия буста\nbonus_uni: numeric(\"bonus_uni\", { precision: 18, scale: 6 }).notNull(), // Единоразовый бонус UNI\ncreated_at: timestamp(\"created_at\").defaultNow().notNull() // Дата создания записи\n});\n"
+    },
+    "ton_boost_deposits": {
+      "variableName": "tonBoostDeposits",
+      "tableName": "ton_boost_deposits",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "params": "\"user_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "boost_package_id",
+          "type": "integer",
+          "params": "\"boost_package_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "ton_amount",
+          "type": "numeric",
+          "params": "\"ton_amount\", { precision: 18, scale: 5 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "bonus_uni",
+          "type": "numeric",
+          "params": "\"bonus_uni\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "rate_ton_per_second",
+          "type": "numeric",
+          "params": "\"rate_ton_per_second\", { precision: 20, scale: 18 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "rate_uni_per_second",
+          "type": "numeric",
+          "params": "\"rate_uni_per_second\", { precision: 20, scale: 18 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "accumulated_ton",
+          "type": "numeric",
+          "params": "\"accumulated_ton\", { precision: 18, scale: 10 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "\"0\"",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "params": "\"created_at\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "last_updated_at",
+          "type": "timestamp",
+          "params": "\"last_updated_at\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "params": "\"is_active\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "true",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const tonBoostDeposits = pgTable(\"ton_boost_deposits\", {\nid: serial(\"id\").primaryKey(),\nuser_id: integer(\"user_id\").notNull().references(() => users.id),\nboost_package_id: integer(\"boost_package_id\").notNull(), // ID пакета (1-4)\nton_amount: numeric(\"ton_amount\", { precision: 18, scale: 5 }).notNull(), // Сумма TON в депозите\nbonus_uni: numeric(\"bonus_uni\", { precision: 18, scale: 6 }).notNull(), // Единоразовый бонус UNI\nrate_ton_per_second: numeric(\"rate_ton_per_second\", { precision: 20, scale: 18 }).notNull(), // Скорость фарминга TON\nrate_uni_per_second: numeric(\"rate_uni_per_second\", { precision: 20, scale: 18 }).notNull(), // Скорость фарминга UNI\naccumulated_ton: numeric(\"accumulated_ton\", { precision: 18, scale: 10 }).default(\"0\"), // Накопленный TON, ожидающий начисления\ncreated_at: timestamp(\"created_at\").defaultNow().notNull(), // Дата открытия\nlast_updated_at: timestamp(\"last_updated_at\").defaultNow().notNull(), // Время последнего начисления\nis_active: boolean(\"is_active\").default(true) // Активен ли буст\n});\n"
+    },
+    "launch_logs": {
+      "variableName": "launchLogs",
+      "tableName": "launch_logs",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "telegram_user_id",
+          "type": "bigint",
+          "params": "\"telegram_user_id\", { mode: \"number\" }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": "number"
+        },
+        {
+          "name": "ref_code",
+          "type": "text",
+          "params": "\"ref_code\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "platform",
+          "type": "text",
+          "params": "\"platform\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "timestamp",
+          "type": "timestamp",
+          "params": "\"timestamp\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "user_agent",
+          "type": "text",
+          "params": "\"user_agent\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "init_data",
+          "type": "text",
+          "params": "\"init_data\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "ip_address",
+          "type": "text",
+          "params": "\"ip_address\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "request_id",
+          "type": "text",
+          "params": "\"request_id\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "params": "\"user_id\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const launchLogs = pgTable(\"launch_logs\", {\nid: serial(\"id\").primaryKey(),\ntelegram_user_id: bigint(\"telegram_user_id\", { mode: \"number\" }),\nref_code: text(\"ref_code\"),\nplatform: text(\"platform\"), // android / ios / web / unknown\ntimestamp: timestamp(\"timestamp\").defaultNow().notNull(),\nuser_agent: text(\"user_agent\"),\ninit_data: text(\"init_data\"),\nip_address: text(\"ip_address\"),\nrequest_id: text(\"request_id\"), // Для отслеживания уникальных запросов\nuser_id: integer(\"user_id\").references(() => users.id) // Связь с таблицей пользователей (если есть)\n});\n"
+    },
+    "partition_logs": {
+      "variableName": "partition_logs",
+      "tableName": "partition_logs",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "operation",
+          "type": "text",
+          "params": "\"operation\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "partition_name",
+          "type": "text",
+          "params": "\"partition_name\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "params": "\"message\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "timestamp",
+          "type": "timestamp",
+          "params": "\"timestamp\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "params": "\"status\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "error_details",
+          "type": "text",
+          "params": "\"error_details\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const partition_logs = pgTable(\"partition_logs\", {\nid: serial(\"id\").primaryKey(),\noperation: text(\"operation\").notNull(), // CREATE, DROP, INFO, ERROR\npartition_name: text(\"partition_name\"),\nmessage: text(\"message\").notNull(),\ntimestamp: timestamp(\"timestamp\").defaultNow().notNull(),\nstatus: text(\"status\").notNull(), // success, error\nerror_details: text(\"error_details\")\n});\n"
+    },
+    "reward_distribution_logs": {
+      "variableName": "reward_distribution_logs",
+      "tableName": "reward_distribution_logs",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "batch_id",
+          "type": "text",
+          "params": "\"batch_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "source_user_id",
+          "type": "integer",
+          "params": "\"source_user_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "earned_amount",
+          "type": "numeric",
+          "params": "\"earned_amount\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "params": "\"currency\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "processed_at",
+          "type": "timestamp",
+          "params": "\"processed_at\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "params": "\"status\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "\"pending\"",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "levels_processed",
+          "type": "integer",
+          "params": "\"levels_processed\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "inviter_count",
+          "type": "integer",
+          "params": "\"inviter_count\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "total_distributed",
+          "type": "numeric",
+          "params": "\"total_distributed\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "error_message",
+          "type": "text",
+          "params": "\"error_message\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp",
+          "params": "\"completed_at\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const reward_distribution_logs = pgTable(\"reward_distribution_logs\", {\nid: serial(\"id\").primaryKey(),\nbatch_id: text(\"batch_id\").notNull(), // Уникальный ID пакета операций\nsource_user_id: integer(\"source_user_id\").notNull(), // ID пользователя, от которого идёт распределение\nearned_amount: numeric(\"earned_amount\", { precision: 18, scale: 6 }).notNull(), // Сумма исходного действия\ncurrency: text(\"currency\").notNull(), // Валюта (UNI/TON)\nprocessed_at: timestamp(\"processed_at\"), // Время обработки сообщения\nstatus: text(\"status\").default(\"pending\"), // pending / completed / failed\nlevels_processed: integer(\"levels_processed\"), // Количество обработанных уровней\ninviter_count: integer(\"inviter_count\"), // Количество пригласителей\ntotal_distributed: numeric(\"total_distributed\", { precision: 18, scale: 6 }), // Общая распределенная сумма\nerror_message: text(\"error_message\"), // Ошибка при обработке, если была\ncompleted_at: timestamp(\"completed_at\") // Время завершения обработки\n});\n"
+    },
+    "boost_packages": {
+      "variableName": "boostPackages",
+      "tableName": "boost_packages",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "params": "\"name\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "params": "\"description\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "price_uni",
+          "type": "numeric",
+          "params": "\"price_uni\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "rate_multiplier",
+          "type": "numeric",
+          "params": "\"rate_multiplier\", { precision: 5, scale: 2 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "duration_days",
+          "type": "integer",
+          "params": "\"duration_days\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "365",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "params": "\"is_active\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "true",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "params": "\"created_at\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const boostPackages = pgTable(\"boost_packages\", {\nid: serial(\"id\").primaryKey(),\nname: text(\"name\").notNull(),\ndescription: text(\"description\"),\nprice_uni: numeric(\"price_uni\", { precision: 18, scale: 6 }).notNull(),\nrate_multiplier: numeric(\"rate_multiplier\", { precision: 5, scale: 2 }).notNull(),\nduration_days: integer(\"duration_days\").default(365),\nis_active: boolean(\"is_active\").default(true),\ncreated_at: timestamp(\"created_at\").defaultNow()\n});\n"
+    },
+    "ton_boost_packages": {
+      "variableName": "tonBoostPackages",
+      "tableName": "ton_boost_packages",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "params": "\"name\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "params": "\"description\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "price_ton",
+          "type": "numeric",
+          "params": "\"price_ton\", { precision: 18, scale: 5 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "bonus_uni",
+          "type": "numeric",
+          "params": "\"bonus_uni\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "daily_rate",
+          "type": "numeric",
+          "params": "\"daily_rate\", { precision: 5, scale: 3 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "params": "\"is_active\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "true",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "params": "\"created_at\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const tonBoostPackages = pgTable(\"ton_boost_packages\", {\nid: serial(\"id\").primaryKey(),\nname: text(\"name\").notNull(), // Starter Boost, Standard Boost, Advanced Boost, Premium Boost\ndescription: text(\"description\"),\nprice_ton: numeric(\"price_ton\", { precision: 18, scale: 5 }).notNull(), // Стоимость в TON\nbonus_uni: numeric(\"bonus_uni\", { precision: 18, scale: 6 }).notNull(), // Единоразовый бонус UNI\ndaily_rate: numeric(\"daily_rate\", { precision: 5, scale: 3 }).notNull(), // Ставка в день (0.005, 0.01, 0.02, 0.025)\nis_active: boolean(\"is_active\").default(true),\ncreated_at: timestamp(\"created_at\").defaultNow()\n});\n"
+    },
+    "user_boosts": {
+      "variableName": "userBoosts",
+      "tableName": "user_boosts",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "params": "\"user_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "package_id",
+          "type": "integer",
+          "params": "\"package_id\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "boostPackages",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "amount",
+          "type": "numeric",
+          "params": "\"amount\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "daily_rate",
+          "type": "numeric",
+          "params": "\"daily_rate\", { precision: 5, scale: 4 }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "start_date",
+          "type": "timestamp",
+          "params": "\"start_date\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "end_date",
+          "type": "timestamp",
+          "params": "\"end_date\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "last_claim",
+          "type": "timestamp",
+          "params": "\"last_claim\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "total_earned",
+          "type": "numeric",
+          "params": "\"total_earned\", { precision: 18, scale: 6 }",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "\"0\"",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "params": "\"is_active\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "true",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "params": "\"created_at\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const userBoosts = pgTable(\"user_boosts\", {\nid: serial(\"id\").primaryKey(),\nuser_id: integer(\"user_id\").notNull().references(() => users.id),\npackage_id: integer(\"package_id\").notNull().references(() => boostPackages.id),\namount: numeric(\"amount\", { precision: 18, scale: 6 }).notNull(),\ndaily_rate: numeric(\"daily_rate\", { precision: 5, scale: 4 }).notNull(),\nstart_date: timestamp(\"start_date\").defaultNow().notNull(),\nend_date: timestamp(\"end_date\").notNull(),\nlast_claim: timestamp(\"last_claim\"),\ntotal_earned: numeric(\"total_earned\", { precision: 18, scale: 6 }).default(\"0\"),\nis_active: boolean(\"is_active\").default(true),\ncreated_at: timestamp(\"created_at\").defaultNow().notNull()\n});\n"
+    },
+    "airdrop_participants": {
+      "variableName": "airdropParticipants",
+      "tableName": "airdrop_participants",
+      "fields": [
+        {
+          "name": "id",
+          "type": "serial",
+          "params": "\"id\"",
+          "primaryKey": true,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "telegram_id",
+          "type": "bigint",
+          "params": "\"telegram_id\", { mode: \"number\" }",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": true,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": null,
+          "mode": "number"
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "params": "\"user_id\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": false,
+          "defaultValue": null,
+          "references": {
+            "table": "users",
+            "column": "id"
+          },
+          "mode": null
+        },
+        {
+          "name": "registered_at",
+          "type": "timestamp",
+          "params": "\"registered_at\"",
+          "primaryKey": false,
+          "notNull": true,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "NOW()",
+          "references": null,
+          "mode": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "params": "\"status\"",
+          "primaryKey": false,
+          "notNull": false,
+          "unique": false,
+          "hasDefault": true,
+          "defaultValue": "\"active\"",
+          "references": null,
+          "mode": null
+        }
+      ],
+      "indexes": [],
+      "constraints": [],
+      "sourceDefinition": "export const airdropParticipants = pgTable(\"airdrop_participants\", {\nid: serial(\"id\").primaryKey(),\ntelegram_id: bigint(\"telegram_id\", { mode: \"number\" }).notNull().unique(),\nuser_id: integer(\"user_id\").references(() => users.id),\nregistered_at: timestamp(\"registered_at\").defaultNow().notNull(),\nstatus: text(\"status\").default(\"active\") // active, cancelled, completed\n});\n"
+    }
+  },
+  "discrepancies": [
+    {
+      "type": "potentially_unused_table",
+      "table": "partition_logs",
+      "severity": "low",
+      "message": "Таблица partition_logs определена в схеме, но может не использоваться активно"
+    },
+    {
+      "type": "potentially_unused_table",
+      "table": "reward_distribution_logs",
+      "severity": "low",
+      "message": "Таблица reward_distribution_logs определена в схеме, но может не использоваться активно"
+    },
+    {
+      "type": "potentially_unused_table",
+      "table": "boost_packages",
+      "severity": "low",
+      "message": "Таблица boost_packages определена в схеме, но может не использоваться активно"
+    },
+    {
+      "type": "potentially_unused_table",
+      "table": "ton_boost_packages",
+      "severity": "low",
+      "message": "Таблица ton_boost_packages определена в схеме, но может не использоваться активно"
+    },
+    {
+      "type": "potentially_unused_table",
+      "table": "user_boosts",
+      "severity": "low",
+      "message": "Таблица user_boosts определена в схеме, но может не использоваться активно"
+    },
+    {
+      "type": "missing_table_definition",
+      "table": "users",
+      "severity": "high",
+      "message": "Ожидаемая таблица users отсутствует в схеме"
+    },
+    {
+      "type": "missing_table_definition",
+      "table": "transactions",
+      "severity": "high",
+      "message": "Ожидаемая таблица transactions отсутствует в схеме"
+    },
+    {
+      "type": "missing_table_definition",
+      "table": "referrals",
+      "severity": "high",
+      "message": "Ожидаемая таблица referrals отсутствует в схеме"
+    },
+    {
+      "type": "missing_critical_index",
+      "table": "farming_deposits",
+      "field": "user_id",
+      "severity": "medium",
+      "message": "Критическое поле farming_deposits.user_id не имеет индекса"
+    },
+    {
+      "type": "missing_critical_index",
+      "table": "missions",
+      "field": "type",
+      "severity": "medium",
+      "message": "Критическое поле missions.type не имеет индекса"
+    },
+    {
+      "type": "missing_critical_index",
+      "table": "user_missions",
+      "field": "user_id",
+      "severity": "medium",
+      "message": "Критическое поле user_missions.user_id не имеет индекса"
+    },
+    {
+      "type": "missing_critical_index",
+      "table": "user_missions",
+      "field": "mission_id",
+      "severity": "medium",
+      "message": "Критическое поле user_missions.mission_id не имеет индекса"
+    },
+    {
+      "type": "data_type_inconsistency",
+      "table": "launch_logs",
+      "field": "request_id",
+      "severity": "medium",
+      "message": "ID поле request_id имеет тип text вместо integer/serial/bigint"
+    },
+    {
+      "type": "data_type_inconsistency",
+      "table": "reward_distribution_logs",
+      "field": "batch_id",
+      "severity": "medium",
+      "message": "ID поле batch_id имеет тип text вместо integer/serial/bigint"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "farming_deposits",
+      "field": "user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "user_balances",
+      "field": "user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "referral_earnings",
+      "field": "user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "referral_earnings",
+      "field": "source_user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "user_missions",
+      "field": "user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "uni_farming_deposits",
+      "field": "user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "boost_deposits",
+      "field": "user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "ton_boost_deposits",
+      "field": "user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "launch_logs",
+      "field": "user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "user_boosts",
+      "field": "user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "user_boosts",
+      "field": "package_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу boostPackages"
+    },
+    {
+      "type": "referential_integrity_issue",
+      "table": "airdrop_participants",
+      "field": "user_id",
+      "severity": "high",
+      "message": "Ссылается на несуществующую таблицу users"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "critical",
+      "action": "CREATE_TABLE",
+      "table": "users",
+      "sql": "-- Необходимо создать таблицу users",
+      "description": "Ожидаемая таблица users отсутствует в схеме"
+    },
+    {
+      "priority": "critical",
+      "action": "CREATE_TABLE",
+      "table": "transactions",
+      "sql": "-- Необходимо создать таблицу transactions",
+      "description": "Ожидаемая таблица transactions отсутствует в схеме"
+    },
+    {
+      "priority": "critical",
+      "action": "CREATE_TABLE",
+      "table": "referrals",
+      "sql": "-- Необходимо создать таблицу referrals",
+      "description": "Ожидаемая таблица referrals отсутствует в схеме"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "farming_deposits",
+      "field": "user_id",
+      "sql": "-- Исправить внешний ключ farming_deposits.user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "user_balances",
+      "field": "user_id",
+      "sql": "-- Исправить внешний ключ user_balances.user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "referral_earnings",
+      "field": "user_id",
+      "sql": "-- Исправить внешний ключ referral_earnings.user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "referral_earnings",
+      "field": "source_user_id",
+      "sql": "-- Исправить внешний ключ referral_earnings.source_user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "user_missions",
+      "field": "user_id",
+      "sql": "-- Исправить внешний ключ user_missions.user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "uni_farming_deposits",
+      "field": "user_id",
+      "sql": "-- Исправить внешний ключ uni_farming_deposits.user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "boost_deposits",
+      "field": "user_id",
+      "sql": "-- Исправить внешний ключ boost_deposits.user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "ton_boost_deposits",
+      "field": "user_id",
+      "sql": "-- Исправить внешний ключ ton_boost_deposits.user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "launch_logs",
+      "field": "user_id",
+      "sql": "-- Исправить внешний ключ launch_logs.user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "user_boosts",
+      "field": "user_id",
+      "sql": "-- Исправить внешний ключ user_boosts.user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "user_boosts",
+      "field": "package_id",
+      "sql": "-- Исправить внешний ключ user_boosts.package_id",
+      "description": "Ссылается на несуществующую таблицу boostPackages"
+    },
+    {
+      "priority": "critical",
+      "action": "FIX_FOREIGN_KEY",
+      "table": "airdrop_participants",
+      "field": "user_id",
+      "sql": "-- Исправить внешний ключ airdrop_participants.user_id",
+      "description": "Ссылается на несуществующую таблицу users"
+    },
+    {
+      "priority": "medium",
+      "action": "CREATE_INDEX",
+      "table": "farming_deposits",
+      "field": "user_id",
+      "sql": "CREATE INDEX idx_farming_deposits_user_id ON farming_deposits(user_id);",
+      "description": "Критическое поле farming_deposits.user_id не имеет индекса"
+    },
+    {
+      "priority": "medium",
+      "action": "CREATE_INDEX",
+      "table": "missions",
+      "field": "type",
+      "sql": "CREATE INDEX idx_missions_type ON missions(type);",
+      "description": "Критическое поле missions.type не имеет индекса"
+    },
+    {
+      "priority": "medium",
+      "action": "CREATE_INDEX",
+      "table": "user_missions",
+      "field": "user_id",
+      "sql": "CREATE INDEX idx_user_missions_user_id ON user_missions(user_id);",
+      "description": "Критическое поле user_missions.user_id не имеет индекса"
+    },
+    {
+      "priority": "medium",
+      "action": "CREATE_INDEX",
+      "table": "user_missions",
+      "field": "mission_id",
+      "sql": "CREATE INDEX idx_user_missions_mission_id ON user_missions(mission_id);",
+      "description": "Критическое поле user_missions.mission_id не имеет индекса"
+    },
+    {
+      "priority": "medium",
+      "action": "ALTER_COLUMN_TYPE",
+      "table": "launch_logs",
+      "field": "request_id",
+      "sql": "-- ALTER TABLE launch_logs ALTER COLUMN request_id TYPE recommended_type;",
+      "description": "ID поле request_id имеет тип text вместо integer/serial/bigint"
+    },
+    {
+      "priority": "medium",
+      "action": "ALTER_COLUMN_TYPE",
+      "table": "reward_distribution_logs",
+      "field": "batch_id",
+      "sql": "-- ALTER TABLE reward_distribution_logs ALTER COLUMN batch_id TYPE recommended_type;",
+      "description": "ID поле batch_id имеет тип text вместо integer/serial/bigint"
+    },
+    {
+      "priority": "low",
+      "action": "REVIEW_TABLE_USAGE",
+      "table": "partition_logs",
+      "sql": "-- Проверить использование таблицы partition_logs",
+      "description": "Таблица partition_logs определена в схеме, но может не использоваться активно"
+    },
+    {
+      "priority": "low",
+      "action": "REVIEW_TABLE_USAGE",
+      "table": "reward_distribution_logs",
+      "sql": "-- Проверить использование таблицы reward_distribution_logs",
+      "description": "Таблица reward_distribution_logs определена в схеме, но может не использоваться активно"
+    },
+    {
+      "priority": "low",
+      "action": "REVIEW_TABLE_USAGE",
+      "table": "boost_packages",
+      "sql": "-- Проверить использование таблицы boost_packages",
+      "description": "Таблица boost_packages определена в схеме, но может не использоваться активно"
+    },
+    {
+      "priority": "low",
+      "action": "REVIEW_TABLE_USAGE",
+      "table": "ton_boost_packages",
+      "sql": "-- Проверить использование таблицы ton_boost_packages",
+      "description": "Таблица ton_boost_packages определена в схеме, но может не использоваться активно"
+    },
+    {
+      "priority": "low",
+      "action": "REVIEW_TABLE_USAGE",
+      "table": "user_boosts",
+      "sql": "-- Проверить использование таблицы user_boosts",
+      "description": "Таблица user_boosts определена в схеме, но может не использоваться активно"
+    }
+  ],
+  "summary": {
+    "critical_issues": 15,
+    "medium_issues": 6,
+    "low_issues": 5,
+    "tables_analyzed": 16
+  }
+}
