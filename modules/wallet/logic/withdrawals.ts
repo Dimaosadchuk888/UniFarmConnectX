@@ -124,11 +124,14 @@ export async function submitWithdrawal(
       // correctApiRequest автоматически обрабатывает сетевые ошибки и стандартизирует ответ
       response = await correctApiRequest('/api/v2/wallet/withdraw', 'POST', requestData);
       
-      console.log(`[submitWithdrawal] [${requestId}] Получен ответ от сервера:`, 
-                   typeof response === 'object' ? JSON.stringify(response).slice(0, 100) + '...' : response);
+      logger.info('[submitWithdrawal] Получен ответ от сервера', { 
+        requestId, 
+        responseType: typeof response,
+        response: typeof response === 'object' ? JSON.stringify(response).slice(0, 100) + '...' : response
+      });
     } catch (networkError) {
       // correctApiRequest должен сам обрабатывать ошибки, но добавляем дополнительную защиту
-      console.error(`[submitWithdrawal] [${requestId}] Критическая ошибка в сетевом слое:`, networkError);
+      logger.error('[submitWithdrawal] Критическая ошибка в сетевом слое', { requestId, error: networkError instanceof Error ? networkError.message : String(networkError) });
       return {
         message: 'Ошибка сети при отправке запроса. Пожалуйста, проверьте подключение к интернету',
       };
@@ -136,7 +139,7 @@ export async function submitWithdrawal(
     
     // Проверка на валидность ответа с защитой от null/undefined
     if (!response) {
-      console.error(`[submitWithdrawal] [${requestId}] Получен пустой ответ от сервера`);
+      logger.error('[submitWithdrawal] Получен пустой ответ от сервера', { requestId });
       return {
         message: 'Получен пустой ответ от сервера',
       };
@@ -148,17 +151,17 @@ export async function submitWithdrawal(
         // Дополнительная проверка ID транзакции
         const transactionId = Number(response.data.transaction_id);
         if (isNaN(transactionId) || transactionId <= 0) {
-          console.error(`[submitWithdrawal] [${requestId}] Некорректный ID транзакции: ${response.data.transaction_id}`);
+          logger.error('[submitWithdrawal] Некорректный ID транзакции', { requestId, transactionId: response.data.transaction_id });
           return {
             message: 'Получен некорректный ID транзакции от сервера',
           };
         }
         
-        console.log(`[submitWithdrawal] [${requestId}] Запрос на вывод успешно создан. ID транзакции: ${transactionId}`);
+        logger.info('[submitWithdrawal] Запрос на вывод успешно создан', { requestId, transactionId });
         return transactionId;
       }
     } catch (parseError) {
-      console.error(`[submitWithdrawal] [${requestId}] Ошибка при обработке успешного ответа:`, parseError);
+      logger.error('[submitWithdrawal] Ошибка при обработке успешного ответа', { requestId, error: parseError instanceof Error ? parseError.message : String(parseError) });
       return {
         message: 'Ошибка при обработке ответа сервера',
       };
@@ -167,14 +170,14 @@ export async function submitWithdrawal(
     // Если дошли сюда, значит в ответе нет success или transaction_id
     // Извлекаем сообщение об ошибке из ответа
     const errorMessage = extractErrorMessage(response);
-    console.error(`[submitWithdrawal] [${requestId}] Ошибка от сервера:`, errorMessage);
+    logger.error('[submitWithdrawal] Ошибка от сервера', { requestId, errorMessage });
     
     return {
       message: errorMessage,
     };
   } catch (error) {
     // Обрабатываем непредвиденные исключения
-    console.error(`[submitWithdrawal] [${requestId}] Критическая ошибка:`, error);
+    logger.error('[submitWithdrawal] Критическая ошибка', { requestId, error: error instanceof Error ? error.message : String(error) });
     
     // Возвращаем объект ошибки с дополнительной информацией
     return {
@@ -222,7 +225,7 @@ function extractErrorMessage(response: any): string {
     // Для непредвиденных форматов
     return 'Произошла ошибка при обработке запроса на вывод средств';
   } catch (extractError) {
-    console.error('[extractErrorMessage] Ошибка при извлечении сообщения:', extractError);
+    logger.error('[extractErrorMessage] Ошибка при извлечении сообщения', { error: extractError instanceof Error ? extractError.message : String(extractError) });
     return 'Не удалось определить причину ошибки';
   }
 }
