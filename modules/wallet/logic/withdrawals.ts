@@ -53,7 +53,7 @@ export async function submitWithdrawal(
   try {
     // Входная валидация с защитой от ошибок
     if (userId === undefined || userId === null) {
-      console.error(`[submitWithdrawal] [${requestId}] Не указан идентификатор пользователя`);
+      logger.error('[submitWithdrawal] Не указан идентификатор пользователя', { requestId });
       return {
         message: 'Не указан идентификатор пользователя. Пожалуйста, авторизуйтесь заново',
         field: 'user_id'
@@ -61,7 +61,7 @@ export async function submitWithdrawal(
     }
     
     if (!data) {
-      console.error(`[submitWithdrawal] [${requestId}] Отсутствуют данные формы`);
+      logger.error('[submitWithdrawal] Отсутствуют данные формы', { requestId });
       return {
         message: 'Не предоставлены данные для вывода средств',
       };
@@ -74,7 +74,7 @@ export async function submitWithdrawal(
       if (typeof amount === 'string') {
         amount = parseFloat(amount);
         if (isNaN(amount)) {
-          console.error(`[submitWithdrawal] [${requestId}] Некорректная сумма: "${data.amount}"`);
+          logger.error('[submitWithdrawal] Некорректная сумма', { requestId, amount: data.amount });
           return {
             message: 'Указана некорректная сумма вывода',
             field: 'amount'
@@ -83,14 +83,14 @@ export async function submitWithdrawal(
       }
       
       if (amount <= 0) {
-        console.error(`[submitWithdrawal] [${requestId}] Сумма должна быть положительной: ${amount}`);
+        logger.error('[submitWithdrawal] Сумма должна быть положительной', { requestId, amount });
         return {
           message: 'Сумма вывода должна быть больше нуля',
           field: 'amount'
         };
       }
     } catch (amountError) {
-      console.error(`[submitWithdrawal] [${requestId}] Ошибка при обработке суммы:`, amountError);
+      logger.error('[submitWithdrawal] Ошибка при обработке суммы', { requestId, error: amountError instanceof Error ? amountError.message : String(amountError) });
       return {
         message: 'Ошибка при обработке суммы вывода',
         field: 'amount'
@@ -99,7 +99,7 @@ export async function submitWithdrawal(
     
     // Валидация адреса для TON
     if (data.currency === 'TON' && (!data.wallet_address || data.wallet_address.trim().length < 10)) {
-      console.error(`[submitWithdrawal] [${requestId}] Отсутствует или неверный адрес кошелька: "${data.wallet_address}"`);
+      logger.error('[submitWithdrawal] Отсутствует или неверный адрес кошелька', { requestId, walletAddress: data.wallet_address });
       return {
         message: 'Необходимо указать корректный адрес TON кошелька',
         field: 'wallet_address'
@@ -114,12 +114,12 @@ export async function submitWithdrawal(
       wallet_address: data.wallet_address || ''
     };
     
-    console.log(`[submitWithdrawal] [${requestId}] Отправка запроса на вывод: ${requestData.amount} ${requestData.currency}`);
+    logger.info('[submitWithdrawal] Отправка запроса на вывод', { requestId, amount: requestData.amount, currency: requestData.currency });
     
     // Отправляем запрос на сервер с улучшенной обработкой ошибок через correctApiRequest
     let response;
     try {
-      console.log(`[submitWithdrawal] [${requestId}] Используем correctApiRequest для запроса`);
+      logger.info('[submitWithdrawal] Используем correctApiRequest для запроса', { requestId });
       
       // correctApiRequest автоматически обрабатывает сетевые ошибки и стандартизирует ответ
       response = await correctApiRequest('/api/v2/wallet/withdraw', 'POST', requestData);
