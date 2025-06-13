@@ -60,7 +60,8 @@ const ActiveTonBoostsCard: React.FC = () => {
               const secondsInDay = 24 * 60 * 60;
               const dailyIncome = parseFloat(boost.rate_ton_per_second) * secondsInDay;
               
-              // Лог доходности TON бустаreturn (
+              // Лог доходности TON буста
+              return (
                 <div key={boost.id} className="bg-blue-900/20 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-medium text-blue-300">TON Boost #{boost.id}</span>

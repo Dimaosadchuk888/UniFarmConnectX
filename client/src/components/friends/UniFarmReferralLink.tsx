@@ -148,21 +148,33 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
   }, [data, isLoading, isError, refetch]); // Указываем все используемые в эффекте зависимости
   
   // Проверяем наличие ref_code и пытаемся получить его при необходимости
-  useEffect(() => {// Проверяем доступность Telegram данных
-    const telegramAvailable = typeof window !== 'undefined' && window.Telegram?.WebApp;// Всегда запрашиваем обновленные данные при монтировании компонента
+  useEffect(() => {
+    // Проверяем доступность Telegram данных
+    const telegramAvailable = typeof window !== 'undefined' && window.Telegram?.WebApp;
+    
+    // Всегда запрашиваем обновленные данные при монтировании компонента
     refetch()
-      .then((result) => {// Если данные получены, но ref_code отсутствует
-        if (result.isSuccess && result.data && !result.data.ref_code) {// Ставим небольшую паузу для стабильной работы
+      .then((result: any) => {
+        // Если данные получены, но ref_code отсутствует
+        if (result.isSuccess && result.data && !result.data.ref_code) {
+          // Ставим небольшую паузу для стабильной работы
           setTimeout(() => {
-            generateRefCode()
-              .then(code => {// Принудительно запрашиваем обновление данных после генерации кода
+            generateReferralCode()
+              .then((code: any) => {
+                // Принудительно запрашиваем обновление данных после генерации кода
                 refetch();
               })
-              .catch(genError =>}, 500);
+              .catch((genError: any) => {
+                console.error('Error generating referral code:', genError);
+              });
+          }, 500);
         }
       })
-      .catch(error => {// Проверяем, связана ли ошибка с Telegram
-        if (error?.message?.includes('wrapServiceFunction')) {}
+      .catch((error: any) => {
+        // Проверяем, связана ли ошибка с Telegram
+        if (error?.message?.includes('wrapServiceFunction')) {
+          console.error('Telegram-related error:', error);
+        }
       });
   }, []);
   
