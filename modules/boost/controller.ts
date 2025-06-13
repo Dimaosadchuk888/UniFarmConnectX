@@ -166,7 +166,7 @@ export class BoostController extends BaseController {
    */
   async getPackages(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
-      console.log('[BoostController] Получение доступных пакетов бустов');
+      logger.info('[BoostController] Получение доступных пакетов бустов');
       
       const packages = await this.boostService.getBoostPackages();
 

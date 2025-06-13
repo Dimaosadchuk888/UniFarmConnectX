@@ -37,7 +37,7 @@ export class MissionsService {
         completed_at: null // Можно добавить если нужно
       }));
     } catch (error) {
-      console.error('[MissionsService] Ошибка получения активных миссий:', error);
+      logger.error('[MissionsService] Ошибка получения активных миссий', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -79,7 +79,7 @@ export class MissionsService {
       }
       return availableMissions;
     } catch (error) {
-      console.error('[MissionsService] Ошибка получения миссий:', error);
+      logger.error('[MissionsService] Ошибка получения миссий', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -109,7 +109,7 @@ export class MissionsService {
 
       return true;
     } catch (error) {
-      console.error('[MissionsService] Ошибка завершения миссии:', error);
+      logger.error('[MissionsService] Ошибка завершения миссии', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -255,7 +255,7 @@ export class MissionsService {
 
       return completedMissions;
     } catch (error) {
-      console.error('[MissionsService] Ошибка получения прогресса:', error);
+      logger.error('[MissionsService] Ошибка получения прогресса', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }

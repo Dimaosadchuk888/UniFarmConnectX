@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { MissionsService } from './service';
+import { logger } from '../../core/logger';
 
 const missionsService = new MissionsService();
 
@@ -14,7 +15,7 @@ export class MissionsController extends BaseController {
         telegram.user.id.toString()
       );
 
-      console.log('[Missions] Получены миссии для пользователя:', {
+      logger.info('[Missions] Получены миссии для пользователя', {
         telegram_id: telegram.user.id,
         missions_count: missions.length
       });
@@ -72,7 +73,7 @@ export class MissionsController extends BaseController {
           completion_rate: 0
         };
         
-        console.log('[Missions] Возвращаем базовую статистику миссий (без user_id)');
+        logger.info('[Missions] Возвращаем базовую статистику миссий (без user_id)');
         return this.sendSuccess(res, defaultStats);
       }
 
