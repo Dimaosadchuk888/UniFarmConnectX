@@ -236,7 +236,7 @@ export class FarmingService {
         estimatedReward: user.uni_farming_balance || "0"
       };
     } catch (error) {
-      console.error('[FarmingService] Ошибка получения статуса:', error);
+      logger.error('[FarmingService] Ошибка получения статуса', { error: error instanceof Error ? error.message : String(error) });
       return { 
         isActive: false, 
         currentAmount: "0", 
@@ -257,7 +257,7 @@ export class FarmingService {
 
       return deposits;
     } catch (error) {
-      console.error('[FarmingService] Ошибка получения истории:', error);
+      logger.error('[FarmingService] Ошибка получения истории', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }

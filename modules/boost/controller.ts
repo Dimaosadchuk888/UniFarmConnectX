@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { BoostService } from './service';
+import { logger } from '../../core/logger';
 
 export class BoostController extends BaseController {
   private boostService: BoostService;
@@ -15,7 +16,7 @@ export class BoostController extends BaseController {
    */
   async getAvailableBoosts(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
-      console.log('[BoostController] Получение списка доступных бустов');
+      logger.info('[BoostController] Получение списка доступных бустов');
       
       const boosts = await this.boostService.getAvailableBoosts();
 
@@ -36,7 +37,7 @@ export class BoostController extends BaseController {
       }
 
       const userId = req.params.userId;
-      console.log(`[BoostController] Получение активных бустов для пользователя ${userId}`);
+      logger.info('[BoostController] Получение активных бустов для пользователя', { userId });
       
       const activeBoosts = await this.boostService.getUserActiveBoosts(userId);
 
@@ -53,7 +54,7 @@ export class BoostController extends BaseController {
   async activateBoost(req: Request, res: Response): Promise<void> {
     try {
       const { boostId, userId } = req.body;
-      console.log(`[BoostController] Активация буста ${boostId} для пользователя ${userId}`);
+      logger.info('[BoostController] Активация буста для пользователя', { boostId, userId });
       
       if (!boostId || !userId) {
         res.status(400).json({
@@ -87,7 +88,7 @@ export class BoostController extends BaseController {
         }
       });
     } catch (error) {
-      console.error('[BoostController] Ошибка активации буста:', error);
+      logger.error('[BoostController] Ошибка активации буста', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({
         success: false,
         error: 'Ошибка активации буста'
@@ -103,7 +104,7 @@ export class BoostController extends BaseController {
       const { boostId } = req.params;
       const { userId } = req.body;
       
-      console.log(`[BoostController] Деактивация буста ${boostId} для пользователя ${userId}`);
+      logger.info('[BoostController] Деактивация буста для пользователя', { boostId, userId });
       
       if (!boostId || !userId) {
         res.status(400).json({
@@ -122,7 +123,7 @@ export class BoostController extends BaseController {
         }
       });
     } catch (error) {
-      console.error('[BoostController] Ошибка деактивации буста:', error);
+      logger.error('[BoostController] Ошибка деактивации буста', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({
         success: false,
         error: 'Ошибка деактивации буста'
@@ -136,7 +137,7 @@ export class BoostController extends BaseController {
   async getBoostStats(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.params.userId;
-      console.log(`[BoostController] Получение статистики бустов для пользователя ${userId}`);
+      logger.info('[BoostController] Получение статистики бустов для пользователя', { userId });
       
       // Здесь будет логика получения статистики из базы данных
       const stats = {
@@ -152,7 +153,7 @@ export class BoostController extends BaseController {
         data: stats
       });
     } catch (error) {
-      console.error('[BoostController] Ошибка получения статистики бустов:', error);
+      logger.error('[BoostController] Ошибка получения статистики бустов', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({
         success: false,
         error: 'Ошибка получения статистики бустов'
