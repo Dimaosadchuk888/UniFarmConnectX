@@ -1,15 +1,24 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { MissionsService } from './service';
+import { UserService } from '../user/service';
 import { logger } from '../../core/logger';
 
 const missionsService = new MissionsService();
+const userService = new UserService();
 
 export class MissionsController extends BaseController {
   async getActiveMissions(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
+
+      // Автоматическая регистрация пользователя
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        ref_code: req.query.start_param as string
+      });
 
       const missions = await missionsService.getActiveMissionsByTelegramId(
         telegram.user.id.toString()
@@ -29,6 +38,13 @@ export class MissionsController extends BaseController {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
+      // Автоматическая регистрация пользователя
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        ref_code: req.query.start_param as string
+      });
+
       const { missionId } = req.body;
       
       this.validateRequiredFields(req.body, ['missionId']);
@@ -47,6 +63,13 @@ export class MissionsController extends BaseController {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
+      // Автоматическая регистрация пользователя
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        ref_code: req.query.start_param as string
+      });
+
       const { missionId } = req.body;
       this.validateRequiredFields(req.body, ['missionId']);
       
@@ -61,36 +84,34 @@ export class MissionsController extends BaseController {
 
   async getMissionStats(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
-      const userId = req.query.user_id as string;
-      
-      // Return default stats if no user_id provided
-      if (!userId) {
-        const defaultStats = {
-          total_missions: 0,
-          completed_missions: 0,
-          pending_missions: 0,
-          total_rewards: '0',
-          completion_rate: 0
-        };
-        
-        logger.info('[Missions] Возвращаем базовую статистику миссий (без user_id)');
-        return this.sendSuccess(res, defaultStats);
-      }
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return; // 401 уже отправлен
 
-      const stats = await missionsService.getMissionStatsByTelegramId(userId);
+      // Автоматическая регистрация пользователя
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        ref_code: req.query.start_param as string
+      });
+
+      const stats = await missionsService.getMissionStatsByTelegramId(telegram.user.id.toString());
       this.sendSuccess(res, stats);
     }, 'получения статистики миссий');
   }
 
   async getUserMissions(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
-      const userId = req.params.userId || req.query.user_id as string;
-      
-      if (!userId) {
-        return this.sendError(res, 'user_id parameter is required', 400);
-      }
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return; // 401 уже отправлен
 
-      const missions = await missionsService.getUserMissionsByTelegramId(userId);
+      // Автоматическая регистрация пользователя
+      const user = await userService.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        ref_code: req.query.start_param as string
+      });
+
+      const missions = await missionsService.getUserMissionsByTelegramId(telegram.user.id.toString());
       this.sendSuccess(res, missions);
     }, 'получения миссий пользователя');
   }
