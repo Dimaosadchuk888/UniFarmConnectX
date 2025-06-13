@@ -110,13 +110,19 @@ class ReferralService {
    * Инициализирует обработку реферальных кодов при загрузке приложения
    * Извлекает код из URL и сохраняет его в локальное хранилище
    */
-  initialize(): void {// Проверяем, есть ли в URL реферальный код (ref_code или устаревший startapp)
+  initialize(): void {
+    // Проверяем, есть ли в URL реферальный код (ref_code или устаревший startapp)
     const refCodeFromUrl = this.getRefCodeFromUrl();
     
-    if (refCodeFromUrl && this.isValidRefCode(refCodeFromUrl)) {// Сохраняем его в локальное хранилище
+    if (refCodeFromUrl && this.isValidRefCode(refCodeFromUrl)) {
+      // Сохраняем его в локальное хранилище
       this.saveRefCode(refCodeFromUrl);
       
-      // Логируем событие для аналитики} else {}
+      // Логируем событие для аналитики
+      console.log('Referral code saved from URL:', refCodeFromUrl);
+    } else {
+      console.log('No valid referral code found in URL');
+    }
   }
   
   /**
@@ -128,14 +134,18 @@ class ReferralService {
     // Сначала проверяем URL (приоритет выше)
     const refCodeFromUrl = this.getRefCodeFromUrl();
     
-    if (refCodeFromUrl && this.isValidRefCode(refCodeFromUrl)) {return refCodeFromUrl;
+    if (refCodeFromUrl && this.isValidRefCode(refCodeFromUrl)) {
+      return refCodeFromUrl;
     }
     
     // Если в URL нет кода, проверяем локальное хранилище
     const savedRefCode = this.getSavedRefCode();
     
-    if (savedRefCode) {return savedRefCode;
-    }return null;
+    if (savedRefCode) {
+      return savedRefCode;
+    }
+    
+    return null;
   }
 }
 
