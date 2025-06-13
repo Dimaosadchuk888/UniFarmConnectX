@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { invalidateQueryWithUserId } from '@/lib/queryClient';
+// import { invalidateQueryWithUserId } from '@/lib/queryClient';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { format } from 'date-fns';
 import PaymentMethodDialog from '../ton-boost/PaymentMethodDialog';

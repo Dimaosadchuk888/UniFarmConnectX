@@ -2,25 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ИСПРАВЛЕНИЕ: Базовые стили для устранения черного экрана */
+/* T10 SCROLL FIX: Принудительная прокрутка для всех элементов */
 html, body {
   background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%) !important;
   color: #ffffff !important;
   margin: 0;
   padding: 0;
-  height: 100%;
-  min-height: 100vh;
-  overflow-y: auto;
+  height: 100% !important;
+  min-height: 100vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
 #root {
-  min-height: 100vh;
-  height: auto;
+  min-height: 100vh !important;
+  height: auto !important;
   background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%) !important;
   color: #ffffff !important;
-  display: flex;
-  flex-direction: column;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: visible !important;
 }
 
 /* Принудительное исправление для всех элементов */
@@ -28,7 +30,7 @@ html, body {
   box-sizing: border-box;
 }
 
-/* Исправление для Mini App прокрутки */
+/* T10 SCROLL FIX: Принудительная прокрутка для Mini App */
 .scrollable {
   overflow-y: auto !important;
   overflow-x: hidden !important;
@@ -36,15 +38,32 @@ html, body {
   height: auto !important;
 }
 
-/* Убираем проблемные overflow: hidden */
-.no-overflow-hidden {
+/* T10 SCROLL FIX: Убираем все overflow: hidden */
+.no-overflow-hidden, 
+main, 
+div[class*="container"], 
+div[class*="space-y"], 
+div[class*="p-4"],
+div[class*="pb-6"] {
   overflow: visible !important;
 }
 
-/* Для Telegram Mini App - убеждаемся что контент виден */
-@media (max-height: 800px) {
+/* T10 SCROLL FIX: Принудительный padding для навигации */
+main {
+  padding-bottom: 120px !important;
+  min-height: calc(100vh - 160px) !important;
+}
+
+/* T10 SCROLL FIX: Для всех экранов Telegram Mini App */
+@media screen {
+  body, html {
+    overflow-y: auto !important;
+    height: auto !important;
+  }
+  
   main {
-    padding-bottom: 100px !important;
+    overflow-y: auto !important;
+    max-height: none !important;
   }
 }
 

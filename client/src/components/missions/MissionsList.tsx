@@ -19,7 +19,7 @@ import ConfettiEffect from '@/components/ui/ConfettiEffect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useUser } from '@/contexts/userContext';
-import { invalidateQueryWithUserId } from '@/lib/queryClient';
+// import { invalidateQueryWithUserId } from '@/lib/queryClient';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 
 // Определение типов статусов миссий
@@ -190,10 +190,13 @@ export const MissionsList: React.FC = () => {
           : mission
       ));
       
-      // Выполняем API запрос через correctApiRequestconst result = await correctApiRequest('/api/v2/missions/complete', 'POST', {
+      // Выполняем API запрос через correctApiRequest
+      const result = await correctApiRequest('/api/v2/missions/complete', 'POST', {
         user_id: userId || 1,
         mission_id: missionId
-      }) as CompleteMissionResponse;if (result.success) {
+      }) as CompleteMissionResponse;
+      
+      if (result.success) {
         // Имитируем прогресс заполнения прогресс-бара
         let progress = 0;
         const interval = setInterval(() => {
@@ -238,8 +241,8 @@ export const MissionsList: React.FC = () => {
             // Сбрасываем ID обрабатываемой миссии
             setProcessingMissionId(null);
             
-            // Используем invalidateQueryWithUserId вместо invalidateQueries
-            invalidateQueryWithUserId('/api/v2/user-missions');
+            // Обновляем кеш данных
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/missions/user-completed', userId] });
           }
         }, 200);
       } else {
@@ -260,7 +263,8 @@ export const MissionsList: React.FC = () => {
         
         setProcessingMissionId(null);
       }
-    } catch (error) {// Показываем уведомление об ошибке
+    } catch (error) {
+      // Показываем уведомление об ошибке
       toast({
         title: "Ошибка",
         description: "Не удалось выполнить миссию. Пожалуйста, попробуйте снова."
