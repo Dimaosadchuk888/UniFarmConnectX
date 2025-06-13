@@ -225,6 +225,81 @@ async function startServer() {
       });
     });
 
+    // Telegram webhook endpoint (КОРНЕВОЙ уровень - до API префиксов)
+    app.post('/webhook', async (req: Request, res: Response) => {
+      try {
+        const update = req.body;
+        
+        logger.info('[TelegramWebhook] Получено обновление от Telegram', {
+          update_id: update.update_id,
+          message: update.message ? {
+            message_id: update.message.message_id,
+            from: update.message.from,
+            chat: update.message.chat,
+            text: update.message.text
+          } : null,
+          callback_query: update.callback_query ? {
+            id: update.callback_query.id,
+            from: update.callback_query.from,
+            data: update.callback_query.data
+          } : null
+        });
+
+        // Обработка команды /start
+        if (update.message && update.message.text && update.message.text.startsWith('/start')) {
+          const chatId = update.message.chat.id;
+          const userId = update.message.from.id;
+          const username = update.message.from.username;
+          
+          logger.info('[TelegramWebhook] Обработка команды /start', {
+            chat_id: chatId,
+            user_id: userId,
+            username: username
+          });
+
+          // Импортируем TelegramService для отправки сообщения
+          const { TelegramService } = await import('../modules/telegram/service');
+          const telegramService = new TelegramService();
+
+          // Отправляем ответ с кнопкой запуска Mini App
+          await telegramService.sendMessage(chatId, 
+            '🌾 Добро пожаловать в UniFarm Connect!\n\n' +
+            'Начните фармить UNI и TON токены прямо сейчас!', 
+            {
+              reply_markup: {
+                inline_keyboard: [[{
+                  text: '🚀 Запустить UniFarm',
+                  web_app: { url: 'https://uni-farm-connect-x-osadchukdmitro2.replit.app' }
+                }]]
+              }
+            }
+          );
+        }
+
+        // Обработка callback query (нажатия на кнопки)
+        if (update.callback_query) {
+          const { TelegramService } = await import('../modules/telegram/service');
+          const telegramService = new TelegramService();
+          await telegramService.answerCallbackQuery(update.callback_query.id);
+        }
+
+        res.json({ 
+          success: true,
+          status: 'webhook_processed',
+          update_id: update.update_id 
+        });
+      } catch (error) {
+        logger.error('[TelegramWebhook] Ошибка обработки webhook', { 
+          error: error instanceof Error ? error.message : String(error) 
+        });
+        
+        res.status(500).json({
+          success: false,
+          error: 'Webhook processing error'
+        });
+      }
+    });
+
     // API routes
     const apiPrefix = `/api/v2`;
     
