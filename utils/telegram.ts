@@ -134,7 +134,10 @@ export function generateJWTToken(user: TelegramUser, refCode?: string): string {
     exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
   };
 
-  return jwt.sign(payload, jwtSecret, { algorithm: 'HS256' });
+  console.log('✅ Generating JWT token with payload:', { telegram_id: payload.telegram_id, ref_code: payload.ref_code });
+  const token = jwt.sign(payload, jwtSecret, { algorithm: 'HS256' });
+  console.log('✅ JWT token generated successfully');
+  return token;
 }
 
 /**

@@ -20,15 +20,18 @@ export class AuthController extends BaseController {
       
       const { initData, ref_by } = req.body;
       logger.info('[AuthController] Аутентификация через Telegram', ref_by ? { ref_by } : {});
+      console.log('✅ /api/v2/auth/telegram called with initData length:', initData.length);
       
       const result = await this.authService.authenticateWithTelegram(initData, ref_by);
       
       if (result.success) {
+        console.log('✅ Authentication successful, returning token and user data');
         this.sendSuccess(res, {
           user: result.user,
           token: result.token
         });
       } else {
+        console.log('❌ Authentication failed:', result.error);
         this.sendError(res, result.error || 'Authentication failed', 401);
       }
     }, 'аутентификации через Telegram');

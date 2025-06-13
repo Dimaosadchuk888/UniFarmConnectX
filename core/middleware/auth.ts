@@ -127,17 +127,24 @@ export function authenticateTelegram(req: AuthenticatedRequest, res: Response, n
 export async function authenticateJWT(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const token = req.get('authorization')?.replace('Bearer ', '');
 
+  console.log('✅ JWT Middleware called, token present:', !!token);
+
   if (!token) {
+    console.log('❌ No JWT token provided');
     return res.status(401).json({ error: 'JWT token required' });
   }
 
   try {
+    console.log('✅ Validating JWT token...');
     const authService = new AuthService();
     const user = await authService.getUserFromToken(token);
     
     if (!user) {
+      console.log('❌ JWT token validation failed - no user found');
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
+    
+    console.log('✅ JWT token valid, user authenticated:', { id: user.id, telegram_id: user.telegram_id });
     
     // Конвертируем User в AuthUser для middleware
     req.user = {
@@ -148,7 +155,7 @@ export async function authenticateJWT(req: AuthenticatedRequest, res: Response, 
     };
     next();
   } catch (error) {
-    console.error('[Auth] JWT validation error:', error);
+    console.error('❌ JWT validation error:', error);
     return res.status(401).json({ error: 'Invalid JWT token' });
   }
 }

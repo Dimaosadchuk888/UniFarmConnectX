@@ -26,6 +26,7 @@ export class UserService {
   async findOrCreateFromTelegram(params: CreateUserFromTelegramParams): Promise<UserInfo> {
     try {
       logger.info('[UserService] Finding or creating user for telegram_id', { telegram_id: params.telegram_id });
+      console.log('✅ UserService called with params:', { telegram_id: params.telegram_id, username: params.username });
 
       // Сначала пытаемся найти существующего пользователя
       let user = await this.userRepository.findByTelegramId(params.telegram_id);
@@ -33,14 +34,20 @@ export class UserService {
       if (!user) {
         // Пользователь не найден, создаем нового
         logger.info('[UserService] User not found, creating new user');
+        console.log('✅ Creating new user in database...');
         user = await this.userRepository.createUserFromTelegram(params);
+        console.log('✅ User created successfully:', { id: user.id, telegram_id: user.telegram_id, ref_code: user.ref_code });
       } else {
         logger.info('[UserService] Found existing user', { userId: user.id });
+        console.log('✅ Found existing user:', { id: user.id, telegram_id: user.telegram_id });
       }
 
-      return this.mapToUserInfo(user);
+      const userInfo = this.mapToUserInfo(user);
+      console.log('✅ Returning UserInfo:', { id: userInfo.id, ref_code: userInfo.ref_code });
+      return userInfo;
     } catch (error) {
       logger.error('[UserService] Error in findOrCreateFromTelegram', { error: error instanceof Error ? error.message : String(error) });
+      console.log('❌ UserService error:', error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

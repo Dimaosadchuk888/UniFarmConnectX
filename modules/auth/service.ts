@@ -136,6 +136,7 @@ export class AuthService {
 
       const telegramUser = validation.user;
       logger.info('[AuthService] Telegram validation successful for user ID', { userId: telegramUser.id });
+      console.log('✅ Telegram user validated:', { id: telegramUser.id, username: telegramUser.username });
 
       // Find or create user using UserService
       const userInfo = await this.userService.findOrCreateFromTelegram({
@@ -146,6 +147,11 @@ export class AuthService {
       });
 
       logger.info('[AuthService] User resolved', { userId: userInfo.id });
+      console.log('✅ User created/found in database:', { 
+        id: userInfo.id, 
+        telegram_id: userInfo.telegram_id, 
+        ref_code: userInfo.ref_code 
+      });
 
       // Generate JWT token
       const token = generateJWTToken(telegramUser, userInfo.ref_code);

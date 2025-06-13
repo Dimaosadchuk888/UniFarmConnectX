@@ -62,6 +62,7 @@ export class UserRepository {
   async createUserFromTelegram(params: CreateUserFromTelegramParams): Promise<User> {
     try {
       logger.info('[UserRepository] Creating new user from Telegram data', { params });
+      console.log('✅ UserRepository: Starting user creation for telegram_id:', params.telegram_id);
 
       // Генерируем уникальный реферальный код
       let refCode: string;
@@ -78,6 +79,8 @@ export class UserRepository {
           throw new Error('Failed to generate unique ref_code after 10 attempts');
         }
       } while (!isUnique);
+      
+      console.log('✅ Generated unique ref_code:', refCode);
 
       // Определяем parent_ref_code (кто пригласил)
       let parentRefCode: string | null = null;
@@ -86,8 +89,10 @@ export class UserRepository {
         if (inviter) {
           parentRefCode = params.ref_by;
           logger.info('[UserRepository] Found inviter', { inviterId: inviter.id });
+          console.log('✅ Found inviter user for ref_code:', params.ref_by);
         } else {
           logger.warn('[UserRepository] Invalid ref_by code provided', { refBy: params.ref_by });
+          console.log('⚠️ Invalid ref_by code:', params.ref_by);
         }
       }
 
@@ -99,11 +104,18 @@ export class UserRepository {
         parent_ref_code: parentRefCode
       };
 
+      console.log('✅ Inserting user data into database:', userData);
+
       const [newUser] = await db.insert(users)
         .values(userData)
         .returning();
 
       logger.info('[UserRepository] Successfully created user', { userId: newUser.id });
+      console.log('✅ User successfully created in database:', { 
+        id: newUser.id, 
+        telegram_id: newUser.telegram_id, 
+        ref_code: newUser.ref_code 
+      });
       return newUser;
     } catch (error) {
       logger.error('[UserRepository] Error creating user from Telegram', { error: error instanceof Error ? error.message : String(error) });
