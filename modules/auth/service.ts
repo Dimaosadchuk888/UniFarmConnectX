@@ -226,19 +226,30 @@ export class AuthService {
    */
   async getUserFromToken(token: string): Promise<User | null> {
     try {
+      console.log('✅ AuthService: Verifying JWT token...');
       const payload = verifyJWTToken(token);
       if (!payload) {
+        console.log('❌ JWT token verification failed');
         return null;
       }
+
+      console.log('✅ JWT payload verified, searching user by telegram_id:', payload.telegram_id);
 
       const [user] = await db.select()
         .from(users)
         .where(eq(users.telegram_id, payload.telegram_id))
         .limit(1);
 
+      if (user) {
+        console.log('✅ User found in database:', { id: user.id, telegram_id: user.telegram_id });
+      } else {
+        console.log('❌ User not found in database for telegram_id:', payload.telegram_id);
+      }
+
       return user || null;
     } catch (error) {
       logger.error('[AuthService] Error getting user from token', { error: error instanceof Error ? error.message : String(error) });
+      console.log('❌ Error getting user from token:', error instanceof Error ? error.message : String(error));
       return null;
     }
   }
