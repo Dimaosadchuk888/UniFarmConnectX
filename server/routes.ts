@@ -11,6 +11,7 @@ import dailyBonusRoutes from '../modules/dailyBonus/routes';
 import telegramRoutes from '../modules/telegram/routes';
 import tonFarmingRoutes from '../modules/tonFarming/routes';
 import transactionsRoutes from '../modules/transactions/routes';
+import airdropRoutes from '../modules/airdrop/routes';
 
 const router = express.Router();
 
@@ -57,6 +58,7 @@ router.use('/daily-bonus', dailyBonusRoutes);
 router.use('/telegram', telegramRoutes);
 router.use('/ton-farming', tonFarmingRoutes);
 router.use('/transactions', transactionsRoutes);
+router.use('/airdrop', airdropRoutes);
 
 // Monitoring routes
 router.use('/monitor', monitorRoutes);

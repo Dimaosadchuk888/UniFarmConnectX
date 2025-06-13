@@ -640,7 +640,27 @@ export const userBoostsRelations = relations(userBoosts, ({ one }) => ({
   })
 }));
 
+// Таблица airdrop_participants для регистрации в airdrop-программе
+export const airdropParticipants = pgTable("airdrop_participants", {
+  id: serial("id").primaryKey(),
+  telegram_id: bigint("telegram_id", { mode: "number" }).notNull().unique(),
+  user_id: integer("user_id").references(() => users.id),
+  registered_at: timestamp("registered_at").defaultNow().notNull(),
+  status: text("status").default("active") // active, cancelled, completed
+});
+
+// Схемы для таблицы airdrop_participants
+export const insertAirdropParticipantSchema = createInsertSchema(airdropParticipants).pick({
+  telegram_id: true,
+  user_id: true,
+  status: true
+});
+
+export type InsertAirdropParticipant = z.infer<typeof insertAirdropParticipantSchema>;
+export type AirdropParticipant = typeof airdropParticipants.$inferSelect;
+
 // Создаем алиасы для корректной работы relations после объявления всех таблиц
 export const user_missions = userMissions;
 export const farming_deposits = farmingDeposits;
 export const user_boosts = userBoosts;
+export const airdrop_participants = airdropParticipants;

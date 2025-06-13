@@ -262,12 +262,12 @@ export class FarmingService {
       const farmingTransactions = await db
         .select({
           amount: transactions.amount,
-          type: transactions.type,
-          timestamp: transactions.timestamp
+          type: transactions.transaction_type,
+          timestamp: transactions.created_at
         })
         .from(transactions)
         .where(eq(transactions.user_id, user.id))
-        .orderBy(sql`${transactions.timestamp} DESC`)
+        .orderBy(sql`${transactions.created_at} DESC`)
         .limit(50);
 
       const history = farmingTransactions
