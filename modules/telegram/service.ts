@@ -169,4 +169,63 @@ export class TelegramService {
       return null;
     }
   }
+
+  async sendMessage(chatId: number, text: string, options: any = {}): Promise<boolean> {
+    try {
+      if (!this.botToken) {
+        logger.warn('[TelegramService] No bot token for sending message');
+        return false;
+      }
+
+      logger.info('[TelegramService] Sending message', { chatId, text: text.substring(0, 100) });
+      
+      const response = await fetch(`${telegramConfig.apiUrl}/bot${this.botToken}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: text,
+          ...options
+        })
+      });
+
+      const result = await response.json();
+      logger.info('[TelegramService] Message send result', { result: result.ok });
+      return result.ok;
+    } catch (error) {
+      logger.error('[TelegramService] Error sending message', { error: error instanceof Error ? error.message : String(error) });
+      return false;
+    }
+  }
+
+  async answerCallbackQuery(callbackQueryId: string, text: string = ''): Promise<boolean> {
+    try {
+      if (!this.botToken) {
+        logger.warn('[TelegramService] No bot token for callback query');
+        return false;
+      }
+
+      logger.info('[TelegramService] Answering callback query', { callbackQueryId });
+      
+      const response = await fetch(`${telegramConfig.apiUrl}/bot${this.botToken}/answerCallbackQuery`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          callback_query_id: callbackQueryId,
+          text: text
+        })
+      });
+
+      const result = await response.json();
+      logger.info('[TelegramService] Callback query answer result', { result: result.ok });
+      return result.ok;
+    } catch (error) {
+      logger.error('[TelegramService] Error answering callback query', { error: error instanceof Error ? error.message : String(error) });
+      return false;
+    }
+  }
 }

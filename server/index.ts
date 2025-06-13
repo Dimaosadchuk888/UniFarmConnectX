@@ -228,14 +228,15 @@ async function startServer() {
     // API routes
     const apiPrefix = `/api/v2`;
     
-
-    
     // Import centralized routes (after critical endpoints)
     const { default: apiRoutes } = await import('./routes');
     app.use(apiPrefix, apiRoutes);
     
     // Добавляем поддержку /api для обратной совместимости
     app.use('/api', apiRoutes);
+    
+    // Добавляем webhook на корневом уровне
+    app.use('/', apiRoutes);
     
     // Apply optional Telegram middleware to all routes for init data parsing
     app.use(telegramMiddleware);

@@ -43,4 +43,62 @@ export class TelegramController extends BaseController {
       });
     }, 'отладки Telegram middleware');
   }
+
+  async handleWebhook(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const update = req.body;
+      
+      logger.info('[TelegramWebhook] Получено обновление от Telegram', {
+        update_id: update.update_id,
+        message: update.message ? {
+          message_id: update.message.message_id,
+          from: update.message.from,
+          chat: update.message.chat,
+          text: update.message.text
+        } : null,
+        callback_query: update.callback_query ? {
+          id: update.callback_query.id,
+          from: update.callback_query.from,
+          data: update.callback_query.data
+        } : null
+      });
+
+      // Обработка команды /start
+      if (update.message && update.message.text && update.message.text.startsWith('/start')) {
+        const chatId = update.message.chat.id;
+        const userId = update.message.from.id;
+        const username = update.message.from.username;
+        
+        logger.info('[TelegramWebhook] Обработка команды /start', {
+          chat_id: chatId,
+          user_id: userId,
+          username: username
+        });
+
+        // Отправляем ответ с кнопкой запуска Mini App
+        await this.telegramService.sendMessage(chatId, 
+          '🌾 Добро пожаловать в UniFarm Connect!\n\n' +
+          'Начните фармить UNI и TON токены прямо сейчас!', 
+          {
+            reply_markup: {
+              inline_keyboard: [[{
+                text: '🚀 Запустить UniFarm',
+                web_app: { url: 'https://uni-farm-connect-x-osadchukdmitro2.replit.app' }
+              }]]
+            }
+          }
+        );
+      }
+
+      // Обработка callback query (нажатия на кнопки)
+      if (update.callback_query) {
+        await this.telegramService.answerCallbackQuery(update.callback_query.id);
+      }
+
+      this.sendSuccess(res, { 
+        status: 'webhook_processed',
+        update_id: update.update_id 
+      });
+    }, 'обработки Telegram webhook');
+  }
 }
