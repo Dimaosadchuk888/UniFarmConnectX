@@ -341,6 +341,45 @@ async function startServer() {
       next();
     });
 
+    // T15 Auto Migration - выполняется один раз при старте
+    const executeT15Migration = async () => {
+      try {
+        logger.info('[T15] Starting database schema synchronization');
+        
+        const operations = [
+          'ALTER TABLE users ADD COLUMN IF NOT EXISTS ref_code TEXT UNIQUE',
+          'ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_ref_code TEXT',
+          'ALTER TABLE transactions ADD COLUMN IF NOT EXISTS source_user_id INTEGER',
+          'CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id)',
+          'CREATE INDEX IF NOT EXISTS idx_users_ref_code ON users(ref_code)',
+          `UPDATE users SET ref_code = 'REF' || telegram_id || extract(epoch from now())::bigint WHERE ref_code IS NULL AND telegram_id IS NOT NULL`
+        ];
+
+        let successCount = 0;
+        
+        for (const operation of operations) {
+          try {
+            await db.execute(sql.raw(operation));
+            successCount++;
+          } catch (error) {
+            logger.warn(`[T15] Operation warning: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+        
+        if (successCount >= 4) {
+          logger.info('[T15] ✅ Database schema synchronized - referral system activated');
+        } else {
+          logger.warn('[T15] ⚠️ Partial synchronization - some features may be limited');
+        }
+        
+      } catch (error) {
+        logger.error('[T15] Migration error:', error instanceof Error ? error.message : String(error));
+      }
+    };
+
+    // Выполняем T15 миграцию после подключения к базе
+    setTimeout(executeT15Migration, 5000);
+
     // Health check (должен быть первым для мониторинга)
     app.get('/health', (req: Request, res: Response) => {
       res.json({ 
