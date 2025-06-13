@@ -107,7 +107,7 @@ export class ReferralController extends BaseController {
         }
       });
     } catch (error) {
-      console.error('[ReferralController] Ошибка получения доходов от рефералов:', error);
+      logger.error('[ReferralController] Ошибка получения доходов от рефералов', { error: error instanceof Error ? error.message : String(error) });
       res.status(500).json({
         success: false,
         error: 'Ошибка получения доходов от рефералов'
@@ -125,7 +125,7 @@ export class ReferralController extends BaseController {
       }
 
       const { refCode } = req.params;
-      console.log(`[ReferralController] Валидация реферального кода ${refCode}`);
+      logger.info('[ReferralController] Валидация реферального кода', { refCode });
       
       const isValid = await this.referralService.validateReferralCode(refCode);
       
@@ -144,7 +144,7 @@ export class ReferralController extends BaseController {
       const userId = req.query.user_id as string;
       const guestId = req.query.guest_id as string;
       
-      console.log(`[ReferralController] Получение статистики уровней для пользователя ${userId || guestId}`);
+      logger.info('[ReferralController] Получение статистики уровней для пользователя', { userId: userId || guestId });
       
       // Получаем реальные данные о доходах с партнерской программы
       const levelStats = await this.referralService.getReferralLevelsWithIncome(userId || guestId);

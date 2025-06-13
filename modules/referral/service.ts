@@ -8,6 +8,8 @@
  * 4. Получение статистики рефералов
  */
 
+import { logger } from '../../core/logger';
+
 export class ReferralService {
 
   /**
@@ -19,10 +21,10 @@ export class ReferralService {
       const random = Math.random().toString(36).substring(2, 8).toUpperCase();
       const refCode = `${userId.slice(-4)}${random}${timestamp.toString().slice(-4)}`;
       
-      console.log(`[ReferralService] Генерация реферального кода для пользователя ${userId}: ${refCode}`);
+      logger.info('[ReferralService] Генерация реферального кода для пользователя', { userId, refCode });
       return refCode;
     } catch (error) {
-      console.error('[ReferralService] Ошибка генерации реферального кода:', error);
+      logger.error('[ReferralService] Ошибка генерации реферального кода', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -122,7 +124,7 @@ export class ReferralService {
         stack: error instanceof Error ? error.stack : undefined
       });
       
-      console.error('[ReferralService] Ошибка обработки реферала:', error);
+      logger.error('[ReferralService] Ошибка обработки реферала', { error: error instanceof Error ? error.message : String(error) });
       return { success: false, error: 'Внутренняя ошибка сервера' };
     }
   }
@@ -178,7 +180,7 @@ export class ReferralService {
         ).slice(0, 10)
       };
     } catch (error) {
-      console.error('[ReferralService] Ошибка получения статистики рефералов:', error);
+      logger.error('[ReferralService] Ошибка получения статистики рефералов', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -225,7 +227,7 @@ export class ReferralService {
         level: 1 // Direct referral
       }));
     } catch (error) {
-      console.error('[ReferralService] Error getting referrals by user ID:', error);
+      logger.error('[ReferralService] Error getting referrals by user ID', { error: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -349,7 +351,7 @@ export class ReferralService {
         stack: error instanceof Error ? error.stack : undefined
       });
       
-      console.error('[ReferralService] Ошибка проверки циклических ссылок:', error);
+      logger.error('[ReferralService] Ошибка проверки циклических ссылок', { error: error instanceof Error ? error.message : String(error) });
       return true; // В случае ошибки считаем, что есть цикл (безопасный подход)
     }
   }
