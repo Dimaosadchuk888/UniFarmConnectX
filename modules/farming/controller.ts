@@ -120,4 +120,22 @@ export class FarmingController extends BaseController {
       this.sendSuccess(res, result);
     }, 'сбора урожая UNI фарминга');
   }
+
+  async getFarmingHistory(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return;
+
+      const history = await farmingService.getFarmingHistory(
+        telegram.user.id.toString()
+      );
+
+      logger.info('[Farming] История фарминга для пользователя', {
+        telegram_id: telegram.user.id,
+        history_count: history.length
+      });
+
+      this.sendSuccess(res, history);
+    }, 'получения истории фарминга');
+  }
 }

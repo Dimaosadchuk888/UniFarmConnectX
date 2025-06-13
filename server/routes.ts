@@ -25,6 +25,23 @@ router.get('/health', (req: Request, res: Response) => {
 // Authentication routes
 router.use('/auth', authRoutes);
 
+// User profile endpoint
+router.get('/me', async (req: Request, res: Response) => {
+  const { requireTelegramAuth } = await import('../core/middleware/telegramAuth');
+  requireTelegramAuth(req, res, async () => {
+    try {
+      const { UserController } = await import('../modules/user/controller');
+      const userController = new UserController();
+      await userController.getCurrentUser(req, res);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  });
+});
+
 // Core module routes
 router.use('/farming', farmingRoutes);
 router.use('/uni-farming', farmingRoutes); // Alias for uni-farming endpoints

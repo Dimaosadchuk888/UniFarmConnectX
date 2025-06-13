@@ -248,16 +248,48 @@ export class FarmingService {
     }
   }
 
-  async getFarmingHistory(userId: string): Promise<any[]> {
+  async getFarmingHistory(telegramId: string): Promise<Array<{
+    amount: string;
+    source: string;
+    timestamp: string;
+  }>> {
     try {
-      const deposits = await db
-        .select()
-        .from(farmingDeposits)
-        .where(eq(farmingDeposits.user_id, parseInt(userId)));
+      const user = await UserRepository.findByTelegramId(telegramId);
+      if (!user) {
+        return [];
+      }
 
-      return deposits;
+      const farmingTransactions = await db
+        .select({
+          amount: transactions.amount,
+          type: transactions.type,
+          timestamp: transactions.timestamp
+        })
+        .from(transactions)
+        .where(eq(transactions.user_id, user.id))
+        .orderBy(sql`${transactions.timestamp} DESC`)
+        .limit(50);
+
+      const history = farmingTransactions
+        .filter(tx => tx.type && tx.type.includes('farming'))
+        .map(tx => ({
+          amount: tx.amount || '0',
+          source: tx.type || 'farming_reward',
+          timestamp: tx.timestamp?.toISOString() || new Date().toISOString()
+        }));
+
+      logger.info('[FarmingService] История фарминга получена', {
+        telegram_id: telegramId,
+        user_id: user.id,
+        transactions_count: history.length
+      });
+
+      return history;
     } catch (error) {
-      logger.error('[FarmingService] Ошибка получения истории', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('[FarmingService] Ошибка получения истории фарминга', { 
+        error: error instanceof Error ? error.message : String(error),
+        telegram_id: telegramId
+      });
       return [];
     }
   }

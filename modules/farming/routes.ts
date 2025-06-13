@@ -17,4 +17,7 @@ router.post('/claim', requireTelegramAuth, farmingController.claimFarming.bind(f
 router.post('/deposit', requireTelegramAuth, farmingController.depositUni.bind(farmingController));
 router.post('/harvest', requireTelegramAuth, farmingController.harvestUni.bind(farmingController));
 
+// Farming history route
+router.get('/history', requireTelegramAuth, farmingController.getFarmingHistory.bind(farmingController));
+
 export default router;
