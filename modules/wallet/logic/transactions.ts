@@ -106,7 +106,7 @@ export class TransactionLogic {
       const feeRates = {
         [TransactionType.WITHDRAWAL]: 0.01, // 1% за вывод
         [TransactionType.DEPOSIT]: 0, // Без комиссии за пополнение
-        [TransactionType.REFERRAL_REWARD]: 0, // Без комиссии за реферальные награды
+        'REFERRAL_REWARD': 0, // Без комиссии за реферальные награды
         [TransactionType.FARMING_REWARD]: 0, // Без комиссии за фарминг
         [TransactionType.DAILY_BONUS]: 0 // Без комиссии за бонусы
       };
@@ -150,7 +150,7 @@ export function getTransactionTitle(type: TransactionType): string {
   const titles = {
     [TransactionType.DEPOSIT]: 'Пополнение',
     [TransactionType.WITHDRAWAL]: 'Вывод средств',
-    [TransactionType.REFERRAL_REWARD]: 'Реферальная награда',
+    'REFERRAL_REWARD': 'Реферальная награда',
     [TransactionType.FARMING_REWARD]: 'Доход с фарминга',
     [TransactionType.DAILY_BONUS]: 'Ежедневный бонус'
   };
@@ -165,7 +165,7 @@ export function getTransactionCategory(type: TransactionType): string {
   const categories = {
     [TransactionType.DEPOSIT]: 'deposit',
     [TransactionType.WITHDRAWAL]: 'withdrawal',
-    [TransactionType.REFERRAL_REWARD]: 'referral',
+    'REFERRAL_REWARD': 'referral',
     [TransactionType.FARMING_REWARD]: 'farming',
     [TransactionType.DAILY_BONUS]: 'bonus'
   };

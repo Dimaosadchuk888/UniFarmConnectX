@@ -1,6 +1,24 @@
-import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric, json, jsonb, varchar, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, bigint, timestamp, numeric, json, jsonb, varchar, index, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Enum для типов транзакций
+export const TransactionType = pgEnum('transaction_type', [
+  'FARMING_REWARD',
+  'BOOST_REWARD', 
+  'MISSION_REWARD',
+  'DAILY_BONUS',
+  'REFERRAL_REWARD',
+  'WITHDRAWAL',
+  'DEPOSIT'
+]);
+
+// Enum для типов фарминга
+export const FarmingType = pgEnum('farming_type', [
+  'UNI_FARMING',
+  'TON_FARMING', 
+  'BOOST_FARMING'
+]);
 
 // Таблица с аутентификацией по имени пользователя и паролю (пароль не обязателен для Telegram)
 export const authUsers = pgTable("auth_users", {
