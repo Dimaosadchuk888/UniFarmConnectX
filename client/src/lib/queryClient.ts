@@ -22,7 +22,8 @@ async function throwIfResNotOk(res: Response) {
                       text.includes('301 Moved Permanently') ||
                       text.includes('302 Found');
 
-    // Для отладки логируем первые байты ответа// Анализируем данные ошибки, если это JSON
+    // Для отладки логируем первые байты ответа
+    // Анализируем данные ошибки, если это JSON
     let errorData;
     try {
       errorData = JSON.parse(text);
@@ -59,7 +60,8 @@ async function throwIfResNotOk(res: Response) {
 }
 
 // Получает все необходимые заголовки для запросов к API
-function getApiHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {// Получаем заголовки с данными Telegram
+function getApiHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {
+  // Получаем заголовки с данными Telegram
   const telegramHeaders = getTelegramAuthHeaders();
 
   // Добавляем guest_id из localStorage если нет Telegram данных
@@ -79,7 +81,8 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
     ...customHeaders    // Добавляем пользовательские заголовки
   };
 
-  // Логируем наличие telegram-заголовков (но не их содержимое)return headers;
+  // Логируем наличие telegram-заголовков (но не их содержимое)
+  return headers;
 }
 
 /**
@@ -96,8 +99,11 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
  */
 export async function apiRequest(url: string, options?: RequestInit): Promise<any> {
   // Импортируем улучшенный apiService
-  const { apiService } = await import('./apiService');// Проверка наличия URL и валидация
-  if (!url || typeof url !== 'string') {// Возвращаем объект с ошибкой вместо исключения
+  const { apiService } = await import('./apiService');
+  
+  // Проверка наличия URL и валидация
+  if (!url || typeof url !== 'string') {
+    // Возвращаем объект с ошибкой вместо исключения
     return {
       success: false,
       error: 'Отсутствует или некорректный URL для запроса API'
@@ -105,7 +111,8 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
   }
 
   // Проверка, если URL передан как HTTP метод (возможная ошибка)
-  if (url === 'POST' || url === 'GET' || url === 'PUT' || url === 'DELETE') {return {
+  if (url === 'POST' || url === 'GET' || url === 'PUT' || url === 'DELETE') {
+    return {
       success: false,
       error: `Некорректный URL: получен HTTP метод ${url} вместо адреса`
     };
@@ -144,7 +151,8 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {try {
+  async ({ queryKey }) => {
+    try {
       // Добавляем заголовки, чтобы избежать кэширования
       const timestamp = new Date().getTime();
       const queryKeyStr = queryKey[0] as string;
@@ -175,10 +183,13 @@ export const getQueryFn: <T>(options: {
       // Если у нас есть userId и URL еще не содержит user_id, добавляем его
       if (userId && !baseUrl.includes('user_id=')) {
         const separator = baseUrl.includes('?') ? '&' : '?';
-        baseUrl = `${baseUrl}${separator}user_id=${userId}`;}
+        baseUrl = `${baseUrl}${separator}user_id=${userId}`;
+      }
 
       // Добавляем nocache параметр
-      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}nocache=${timestamp}`;// Получаем заголовки с данными Telegram
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}nocache=${timestamp}`;
+      
+      // Получаем заголовки с данными Telegram
       const headers = getApiHeaders();
 
       const res = await fetch(url, {
@@ -187,9 +198,13 @@ export const getQueryFn: <T>(options: {
       });
 
       // Уменьшаем количество отладочной информации
-      if (process.env.NODE_ENV === 'development') {}
+      if (process.env.NODE_ENV === 'development') {
+        console.log("[DEBUG] QueryClient - Response status:", res.status);
+      }
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {return null;
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        console.log("[DEBUG] QueryClient - Returning null due to 401");
+        return null;
       }
 
       try {
@@ -201,12 +216,18 @@ export const getQueryFn: <T>(options: {
         try {
           const data = JSON.parse(text);
           return data;
-        } catch (error: any) {// Если JSON невалидный, возвращаем пустой массив для защиты от ошибок
+        } catch (error: any) {
+          console.error("[DEBUG] QueryClient - JSON parse error:", error);
+          // Если JSON невалидный, возвращаем пустой массив для защиты от ошибок
           return Array.isArray(queryKey[0]) ? [] : {};
         }
-      } catch (resError) {throw resError;
+      } catch (resError) {
+        console.error("[DEBUG] QueryClient - Response error:", resError);
+        throw resError;
       }
-    } catch (fetchError) {throw fetchError;
+    } catch (fetchError) {
+      console.error("[DEBUG] QueryClient - Fetch error:", fetchError);
+      throw fetchError;
     }
   };
 
