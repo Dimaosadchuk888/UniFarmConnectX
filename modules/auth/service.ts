@@ -16,6 +16,7 @@ interface AuthResponse {
   };
   token?: string;
   error?: string;
+  isNewUser?: boolean;
 }
 
 interface SessionInfo {
@@ -42,6 +43,73 @@ export class AuthService {
 
   constructor() {
     this.userService = new UserService();
+  }
+
+  /**
+   * Registers user via Telegram initData with HMAC validation
+   */
+  async registerWithTelegram(initData: string, refBy?: string): Promise<AuthResponse> {
+    try {
+      logger.info('[AuthService] Starting Telegram registration');
+      
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (!botToken) {
+        throw new Error('TELEGRAM_BOT_TOKEN not configured');
+      }
+
+      // Validate initData using HMAC
+      const validation = validateTelegramInitData(initData, botToken);
+      if (!validation.valid || !validation.user) {
+        logger.error('[AuthService] Telegram validation failed', { error: validation.error });
+        return {
+          success: false,
+          error: validation.error || 'Invalid Telegram data'
+        };
+      }
+
+      const telegramUser = validation.user;
+      logger.info('[AuthService] Telegram validation successful for user ID', { userId: telegramUser.id });
+
+      // Find or create user using UserService
+      const userInfo = await this.userService.findOrCreateFromTelegram({
+        telegram_id: telegramUser.id,
+        username: telegramUser.username,
+        first_name: telegramUser.first_name,
+        ref_by: refBy
+      });
+
+      // Check if this is a new user (simple heuristic based on creation time)
+      const now = new Date();
+      const userCreatedAt = new Date(userInfo.created_at);
+      const isNewUser = (now.getTime() - userCreatedAt.getTime()) < 5000; // Created within last 5 seconds
+
+      logger.info('[AuthService] User resolved for registration', { 
+        userId: userInfo.id, 
+        isNewUser 
+      });
+
+      // Generate JWT token
+      const token = generateJWTToken(telegramUser, userInfo.ref_code);
+
+      return {
+        success: true,
+        user: {
+          id: userInfo.id.toString(),
+          telegram_id: telegramUser.id,
+          username: telegramUser.username,
+          ref_code: userInfo.ref_code,
+          created_at: userInfo.created_at.toISOString()
+        },
+        token,
+        isNewUser
+      };
+    } catch (error) {
+      logger.error('[AuthService] Ошибка регистрации через Telegram', { error: error instanceof Error ? error.message : String(error) });
+      return {
+        success: false,
+        error: 'Ошибка регистрации пользователя'
+      };
+    }
   }
 
   /**

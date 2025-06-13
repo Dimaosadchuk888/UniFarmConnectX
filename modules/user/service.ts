@@ -212,4 +212,144 @@ export class UserService {
       throw error;
     }
   }
+
+  /**
+   * Поиск пользователя по Telegram ID
+   */
+  async findUserByTelegramId(telegramId: number): Promise<User | null> {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.telegram_id, telegramId))
+        .limit(1);
+      
+      return user || null;
+    } catch (error) {
+      logger.error('[UserService] Ошибка поиска пользователя по Telegram ID', { 
+        telegramId, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Создание пользователя из данных Telegram
+   */
+  async createFromTelegram(telegramData: {
+    telegram_id: number;
+    username?: string;
+    first_name?: string;
+    ref_by?: string;
+  }): Promise<User> {
+    try {
+      logger.info('[UserService] Создание пользователя из Telegram данных', {
+        telegram_id: telegramData.telegram_id,
+        username: telegramData.username,
+        has_ref: !!telegramData.ref_by
+      });
+
+      // Генерируем уникальный ref_code
+      const timestamp = Date.now();
+      const refCode = `REF${telegramData.telegram_id}${timestamp}`.substring(0, 12).toUpperCase();
+
+      // Определяем parent_ref_code если передан ref_by
+      let parentRefCode: string | null = null;
+      if (telegramData.ref_by) {
+        try {
+          const referrer = await db
+            .select()
+            .from(users)
+            .where(eq(users.ref_code, telegramData.ref_by))
+            .limit(1);
+          
+          if (referrer.length > 0) {
+            parentRefCode = telegramData.ref_by;
+            logger.info('[UserService] Найден реферер для нового пользователя', { 
+              ref_code: telegramData.ref_by,
+              referrer_id: referrer[0].id 
+            });
+          }
+        } catch (error) {
+          logger.warn('[UserService] Ошибка поиска реферера', { 
+            ref_code: telegramData.ref_by,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      // Создаем нового пользователя
+      const newUserData: InsertUser = {
+        telegram_id: telegramData.telegram_id,
+        username: telegramData.username || null,
+        first_name: telegramData.first_name || null,
+        ref_code: refCode,
+        parent_ref_code: parentRefCode
+      };
+
+      const newUser = await this.createUser(newUserData);
+
+      logger.info('[UserService] Пользователь создан из Telegram данных', {
+        user_id: newUser.id,
+        telegram_id: newUser.telegram_id,
+        ref_code: newUser.ref_code,
+        has_parent_ref: !!newUser.parent_ref_code
+      });
+
+      return newUser;
+
+    } catch (error) {
+      logger.error('[UserService] Ошибка создания пользователя из Telegram', {
+        telegram_id: telegramData.telegram_id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Поиск или создание пользователя из Telegram данных
+   */
+  async findOrCreateFromTelegram(telegramData: {
+    telegram_id: number;
+    username?: string;
+    first_name?: string;
+    ref_by?: string;
+  }): Promise<User> {
+    try {
+      // Сначала пытаемся найти существующего пользователя
+      const existingUser = await this.findUserByTelegramId(telegramData.telegram_id);
+      
+      if (existingUser) {
+        logger.info('[UserService] Найден существующий пользователь', { 
+          user_id: existingUser.id,
+          telegram_id: existingUser.telegram_id
+        });
+
+        // Обновляем username если он изменился
+        if (telegramData.username && telegramData.username !== existingUser.username) {
+          await this.updateUser(String(existingUser.id), {
+            username: telegramData.username
+          });
+          logger.info('[UserService] Обновлен username', { 
+            user_id: existingUser.id,
+            new_username: telegramData.username
+          });
+        }
+
+        return existingUser;
+      }
+
+      // Пользователь не найден - создаем нового
+      return await this.createFromTelegram(telegramData);
+
+    } catch (error) {
+      logger.error('[UserService] Ошибка findOrCreateFromTelegram', {
+        telegram_id: telegramData.telegram_id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
 }

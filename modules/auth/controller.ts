@@ -35,6 +35,33 @@ export class AuthController extends BaseController {
   }
 
   /**
+   * Регистрация пользователя через Telegram
+   */
+  async registerTelegram(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      this.validateRequiredFields(req.body, ['initData']);
+      
+      const { initData, ref_by } = req.body;
+      logger.info('[AuthController] Регистрация через Telegram', { 
+        has_ref: !!ref_by,
+        initData_length: initData.length 
+      });
+      
+      const result = await this.authService.registerWithTelegram(initData, ref_by);
+      
+      if (result.success) {
+        this.sendSuccess(res, {
+          user: result.user,
+          token: result.token,
+          isNewUser: result.isNewUser
+        });
+      } else {
+        this.sendError(res, result.error || 'Registration failed', 400);
+      }
+    }, 'регистрации через Telegram');
+  }
+
+  /**
    * Проверка валидности токена и получение информации о пользователе
    */
   async checkToken(req: Request, res: Response): Promise<void> {
