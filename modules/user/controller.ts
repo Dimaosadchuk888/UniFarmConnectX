@@ -31,14 +31,14 @@ export class UserController extends BaseController {
       const telegramUser = this.validateTelegramAuth(req, res);
       if (!telegramUser) return;
       
-      console.log('[GetMe] Запрос данных пользователя:', { 
+      logger.info('[GetMe] Запрос данных пользователя', { 
         has_telegram_user: !!telegramUser,
         telegram_id: telegramUser?.user?.id
       });
       
       const user = await userService.getUserByTelegramId(telegramUser.user.id.toString());
       
-      console.log('[GetMe] Возвращаем данные пользователя:', {
+      logger.info('[GetMe] Возвращаем данные пользователя', {
         id: user?.id,
         telegram_id: user?.telegram_id,
         ref_code: user?.ref_code

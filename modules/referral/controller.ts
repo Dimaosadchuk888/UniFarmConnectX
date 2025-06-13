@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { ReferralService } from './service';
+import { logger } from '../../core/logger';
 
 export class ReferralController extends BaseController {
   private referralService: ReferralService;
@@ -21,7 +22,7 @@ export class ReferralController extends BaseController {
         return this.sendError(res, 'Отсутствует параметр userId', 400);
       }
       
-      console.log(`[ReferralController] Получение реферальной информации для пользователя ${userId}`);
+      logger.info('[ReferralController] Получение реферальной информации для пользователя', { userId });
       
       const stats = await this.referralService.getReferralStats(userId);
       const refCode = await this.referralService.generateReferralCode(userId);
@@ -42,7 +43,7 @@ export class ReferralController extends BaseController {
       this.validateRequiredFields(req.body, ['refCode', 'userId']);
       
       const { refCode, userId } = req.body;
-      console.log(`[ReferralController] Обработка реферального кода ${refCode} для пользователя ${userId}`);
+      logger.info('[ReferralController] Обработка реферального кода для пользователя', { refCode, userId });
 
       const isValid = await this.referralService.validateReferralCode(refCode);
       if (!isValid) {
@@ -70,7 +71,7 @@ export class ReferralController extends BaseController {
       const userId = req.params.userId;
       const { page, limit } = this.getPagination(req);
       
-      console.log(`[ReferralController] Получение рефералов для пользователя ${userId}, страница ${page}`);
+      logger.info('[ReferralController] Получение рефералов для пользователя', { userId, page });
       
       const result = await this.referralService.getReferralsByUserId(userId);
       
@@ -86,7 +87,7 @@ export class ReferralController extends BaseController {
       const userId = req.params.userId;
       const period = req.query.period as string || 'all'; // all, month, week, day
       
-      console.log(`[ReferralController] Получение доходов от рефералов для пользователя ${userId}, период ${period}`);
+      logger.info('[ReferralController] Получение доходов от рефералов для пользователя', { userId, period });
       
       // Здесь будет логика получения доходов из базы данных
       const earnings = {
