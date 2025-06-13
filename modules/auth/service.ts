@@ -3,6 +3,7 @@ import { UserService, type UserInfo } from '../users/service';
 import { db } from '../../server/db';
 import { users, type User } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { logger } from '../../core/logger';
 
 interface AuthResponse {
   success: boolean;
@@ -48,7 +49,7 @@ export class AuthService {
    */
   async authenticateWithTelegram(initData: string, refBy?: string): Promise<AuthResponse> {
     try {
-      console.log('[AuthService] Starting Telegram authentication');
+      logger.info('[AuthService] Starting Telegram authentication');
       
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       if (!botToken) {
@@ -58,7 +59,7 @@ export class AuthService {
       // Validate initData using HMAC
       const validation = validateTelegramInitData(initData, botToken);
       if (!validation.valid || !validation.user) {
-        console.error('[AuthService] Telegram validation failed:', validation.error);
+        logger.error('[AuthService] Telegram validation failed', { error: validation.error });
         return {
           success: false,
           error: validation.error || 'Invalid Telegram data'
@@ -66,7 +67,7 @@ export class AuthService {
       }
 
       const telegramUser = validation.user;
-      console.log('[AuthService] Telegram validation successful for user ID:', telegramUser.id);
+      logger.info('[AuthService] Telegram validation successful for user ID', { userId: telegramUser.id });
 
       // Find or create user using UserService
       const userInfo = await this.userService.findOrCreateFromTelegram({
@@ -76,7 +77,7 @@ export class AuthService {
         ref_by: refBy
       });
 
-      console.log('[AuthService] User resolved:', userInfo.id);
+      logger.info('[AuthService] User resolved', { userId: userInfo.id });
 
       // Generate JWT token
       const token = generateJWTToken(telegramUser, userInfo.ref_code);

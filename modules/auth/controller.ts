@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { AuthService } from './service';
+import { logger } from '../../core/logger';
 
 export class AuthController extends BaseController {
   private authService: AuthService;
@@ -18,7 +19,7 @@ export class AuthController extends BaseController {
       this.validateRequiredFields(req.body, ['initData']);
       
       const { initData, ref_by } = req.body;
-      console.log('[AuthController] Аутентификация через Telegram', ref_by ? `with ref_by: ${ref_by}` : '');
+      logger.info('[AuthController] Аутентификация через Telegram', ref_by ? { ref_by } : {});
       
       const result = await this.authService.authenticateWithTelegram(initData, ref_by);
       
