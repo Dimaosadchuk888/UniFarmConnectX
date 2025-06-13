@@ -27,7 +27,9 @@ export function TelegramAuth({ children }: TelegramAuthProps) {
 
       if (!initData || !user) {
         console.warn('TelegramAuth: No initData or user data available');
-        setError('Telegram данные недоступны');
+        console.log('Current environment: Replit preview mode detected');
+        console.log('Solution: Open app in real Telegram Mini App');
+        setError('Приложение должно быть открыто в Telegram Mini App. В режиме предварительного просмотра initData недоступны.');
         setIsLoading(false);
         return;
       }
