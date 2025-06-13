@@ -198,7 +198,7 @@ async function startServer() {
     const app = express();
 
     // TELEGRAM WEBHOOK - МАКСИМАЛЬНЫЙ ПРИОРИТЕТ (первая регистрация)
-    app.post('/webhook', express.json({ limit: '1mb' }), async (req: Request, res: Response) => {
+    app.post('/webhook', express.json({ limit: '1mb' }), async (req: Request, res: Response): Promise<void> => {
       try {
         const update = req.body;
         
