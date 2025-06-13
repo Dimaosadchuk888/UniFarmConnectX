@@ -10,6 +10,7 @@ import referralRoutes from '../modules/referral/routes';
 import dailyBonusRoutes from '../modules/dailyBonus/routes';
 import telegramRoutes from '../modules/telegram/routes';
 import tonFarmingRoutes from '../modules/tonFarming/routes';
+import transactionsRoutes from '../modules/transactions/routes';
 
 const router = express.Router();
 
@@ -38,9 +39,7 @@ router.use('/referrals', referralRoutes); // Alias for referrals
 router.use('/daily-bonus', dailyBonusRoutes);
 router.use('/telegram', telegramRoutes);
 router.use('/ton-farming', tonFarmingRoutes);
-
-// Добавляем alias для transactions через wallet модуль
-router.use('/transactions', walletRoutes);
+router.use('/transactions', transactionsRoutes);
 
 // Monitoring routes
 router.use('/monitor', monitorRoutes);
