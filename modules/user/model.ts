@@ -35,7 +35,7 @@ export class UserModel {
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.telegram_id.toString(), telegramId.toString()))
+        .where(eq(users.telegram_id, Number(telegramId)))
         .limit(1);
       
       return user || null;
