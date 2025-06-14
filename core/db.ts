@@ -11,7 +11,7 @@ const PRODUCTION_DATABASE_URL = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-l
 // Используем production базу вместо environment переменной
 const DATABASE_URL = PRODUCTION_DATABASE_URL;
 
-console.log('🔗 Database connection:', DATABASE_URL.substring(0, 50) + '...');
+// Production database connection established
 
 export const pool = new Pool({ connectionString: DATABASE_URL });
 export const db = drizzle({ client: pool, schema });
