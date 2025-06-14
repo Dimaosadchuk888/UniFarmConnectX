@@ -38,20 +38,21 @@ class HealthMonitor {
   async checkDatabase(): Promise<ServiceStatus> {
     const startTime = Date.now();
     try {
-      // Database monitoring cleaned from old connections - ready for new setup
-      console.log('[Monitor] Database connection monitoring disabled - awaiting new setup');
+      // Supabase PostgreSQL connection test
+      await pool.query('SELECT 1');
       return {
-        status: 'degraded',
+        status: 'up',
         responseTime: Date.now() - startTime,
-        lastCheck: new Date().toISOString(),
-        error: 'Database connections removed - ready for new setup'
+        lastCheck: new Date().toISOString()
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
+      console.warn('[Monitor] Supabase connection failed:', errorMessage);
       return {
         status: 'down',
         responseTime: Date.now() - startTime,
         lastCheck: new Date().toISOString(),
-        error: 'Database monitoring disabled'
+        error: errorMessage
       };
     }
   }

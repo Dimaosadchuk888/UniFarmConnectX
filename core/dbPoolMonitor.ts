@@ -11,16 +11,31 @@ export interface PoolStats {
 }
 
 /**
- * Placeholder function - will be updated with new database connection
+ * Gets current Supabase connection pool statistics
  */
 export function getPoolStats(): PoolStats {
-  console.log('[DB POOL MONITOR] Old database connections removed - ready for new setup');
-  return {
-    totalCount: 0,
-    idleCount: 0,
-    waitingCount: 0,
-    activeCount: 0
-  };
+  try {
+    const { pool } = require('./db');
+    const totalCount = pool.totalCount || 0;
+    const idleCount = pool.idleCount || 0;
+    const waitingCount = pool.waitingCount || 0;
+    const activeCount = totalCount - idleCount;
+
+    return {
+      totalCount,
+      idleCount,
+      waitingCount,
+      activeCount
+    };
+  } catch (error) {
+    console.error('[DB POOL MONITOR] Error getting Supabase pool stats:', error);
+    return {
+      totalCount: 0,
+      idleCount: 0,
+      waitingCount: 0,
+      activeCount: 0
+    };
+  }
 }
 
 /**
