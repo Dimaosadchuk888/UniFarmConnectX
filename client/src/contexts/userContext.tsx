@@ -414,11 +414,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        // Стандартная авторизация с initData
+        // Основной поток авторизации: auth → register fallback  
         if (telegramData?.initData && telegramData.initData.length > 0) {
-          console.log('[UserContext] Telegram данные найдены, пытаемся авторизоваться...');
+          console.log('[UserContext] Telegram данные найдены, запускаем авторизацию...');
           
-          // Пробуем авторизацию через Telegram
+          // Пробуем авторизацию
           try {
             const authResponse = await fetch('/api/v2/auth/telegram', {
               method: 'POST',
@@ -430,27 +430,33 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 initData: telegramData.initData,
                 refBy: new URLSearchParams(window.location.search).get('ref')
               })
-            }).then(res => res.json());
+            });
 
-            if (authResponse.success && authResponse.token) {
-              console.log('[UserContext] Авторизация успешна');
-              localStorage.setItem('unifarm_auth_token', authResponse.token);
-              localStorage.setItem('unifarm_user_data', JSON.stringify(authResponse.user));
+            const authData = await authResponse.json();
+            
+            if (authResponse.ok && authData.success && authData.token) {
+              console.log('[UserContext] ✅ Авторизация успешна');
+              localStorage.setItem('unifarm_auth_token', authData.token);
+              localStorage.setItem('unifarm_user_data', JSON.stringify(authData.user));
               
-              // Обновляем состояние пользователя
               dispatch({
                 type: 'SET_USER_DATA',
                 payload: {
-                  userId: authResponse.user.id,
-                  username: authResponse.user.username,
-                  telegramId: authResponse.user.telegram_id,
-                  refCode: authResponse.user.ref_code
+                  userId: authData.user.id,
+                  username: authData.user.username,
+                  telegramId: authData.user.telegram_id,
+                  refCode: authData.user.ref_code
                 }
               });
+              return;
             } else {
-              console.log('[UserContext] Авторизация не удалась, пробуем регистрацию...');
-              
-              // Если авторизация не прошла, пробуем регистрацию
+              throw new Error('Auth failed');
+            }
+          } catch (authError) {
+            console.log('[UserContext] Авторизация не удалась, пробуем регистрацию');
+            
+            // Fallback: регистрация
+            try {
               const registerResponse = await fetch('/api/v2/register/telegram', {
                 method: 'POST',
                 headers: {
@@ -461,12 +467,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                   initData: telegramData.initData,
                   refBy: new URLSearchParams(window.location.search).get('ref')
                 })
-              }).then(res => res.json());
+              });
 
-              if (registerResponse.success && registerResponse.token) {
-                console.log('[UserContext] Регистрация успешна');
-                localStorage.setItem('unifarm_auth_token', registerResponse.token);
-                localStorage.setItem('unifarm_user_data', JSON.stringify(registerResponse.user));
+              const registerData = await registerResponse.json();
+              
+              if (registerResponse.ok && registerData.success && registerData.token) {
+                console.log('[UserContext] ✅ Регистрация успешна');
+                localStorage.setItem('unifarm_auth_token', registerData.token);
+                localStorage.setItem('unifarm_user_data', JSON.stringify(registerData.user));
+                
+                dispatch({
+                  type: 'SET_USER_DATA',
+                  payload: {
+                    userId: registerData.user.id,
+                    username: registerData.user.username,
+                    telegramId: registerData.user.telegram_id,
+                    refCode: registerData.user.ref_code
+                  }
+                });
+                return;
+              }
+            } catch (registerError) {
+              console.log('[UserContext] ❌ Регистрация не удалась');
+            }
+          }
+        }
                 
                 // Обновляем состояние пользователя
                 dispatch({
