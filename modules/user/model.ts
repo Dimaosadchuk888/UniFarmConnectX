@@ -13,11 +13,18 @@ export class UserModel {
    */
   static async findById(id: number): Promise<User | null> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, id))
+      const { data: usersData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', id)
         .limit(1);
+
+      if (error) {
+        logger.error('[UserModel] Ошибка получения пользователя по ID:', error.message);
+        throw error;
+      }
+
+      const user = usersData?.[0];
       
       return user || null;
     } catch (error) {

@@ -32,16 +32,26 @@ export class AdminService {
     try {
       logger.info('[AdminService] Получение статистики панели администратора');
       
-      // Получаем реальную статистику из базы данных
-      const [totalUsersResult] = await db.select({ count: count() }).from(users);
-      const totalUsers = totalUsersResult?.count || 0;
-      
-      const [totalTransactionsResult] = await db.select({ count: count() }).from(transactions);
-      const totalTransactions = totalTransactionsResult?.count || 0;
+      // Получаем реальную статистику из базы данных через Supabase API
+      const { count: totalUsers, error: usersError } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      if (usersError) {
+        logger.error('[AdminService] Ошибка получения количества пользователей:', usersError.message);
+      }
+
+      const { count: totalTransactions, error: transactionsError } = await supabase
+        .from('transactions')
+        .select('*', { count: 'exact', head: true });
+
+      if (transactionsError) {
+        logger.error('[AdminService] Ошибка получения количества транзакций:', transactionsError.message);
+      }
       
       return {
-        totalUsers,
-        totalTransactions,
+        totalUsers: totalUsers || 0,
+        totalTransactions: totalTransactions || 0,
         totalFarmingRewards: "0",
         systemStatus: "operational",
         lastUpdated: new Date().toISOString()
@@ -58,17 +68,28 @@ export class AdminService {
       
       const offset = (page - 1) * limit;
       
-      // Получаем пользователей с пагинацией
-      const usersList = await db
-        .select()
-        .from(users)
-        .orderBy(desc(users.created_at))
-        .limit(limit)
-        .offset(offset);
+      // Получаем пользователей с пагинацией через Supabase API
+      const { data: usersList, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (usersError) {
+        logger.error('[AdminService] Ошибка получения списка пользователей:', usersError.message);
+        throw usersError;
+      }
       
       // Получаем общее количество пользователей
-      const [totalResult] = await db.select({ count: count() }).from(users);
-      const total = totalResult?.count || 0;
+      const { count: totalCount, error: countError } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      if (countError) {
+        logger.error('[AdminService] Ошибка получения количества пользователей:', countError.message);
+        throw countError;
+      }
+      const total = totalCount || 0;
       
       return {
         users: usersList,

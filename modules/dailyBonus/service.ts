@@ -12,11 +12,18 @@ export class DailyBonusService {
     last_claim_date: string | null;
   }> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, parseInt(userId)))
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', parseInt(userId))
         .limit(1);
+
+      if (error) {
+        logger.error('[DailyBonusService] Ошибка получения пользователя:', error.message);
+        throw error;
+      }
+
+      const user = users?.[0];
 
       if (!user) {
         return {
@@ -28,241 +35,227 @@ export class DailyBonusService {
       }
 
       const now = new Date();
-      const today = now.toISOString().split('T')[0];
-      const lastCheckin = user.checkin_last_date 
-        ? new Date(user.checkin_last_date).toISOString().split('T')[0] 
-        : null;
+      const lastClaimDate = user.checkin_last_date ? new Date(user.checkin_last_date) : null;
+      
+      let canClaim = true;
+      let streakDays = user.checkin_streak || 0;
+      
+      if (lastClaimDate) {
+        const daysSinceLastClaim = Math.floor((now.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceLastClaim < 1) {
+          canClaim = false; // Already claimed today
+        } else if (daysSinceLastClaim > 1) {
+          streakDays = 0; // Streak broken
+        }
+      }
 
-      const canClaim = lastCheckin !== today;
-      const streakDays = user.checkin_streak || 0;
-      const nextBonusAmount = this.calculateBonusAmount(streakDays + 1).toString();
+      const nextBonusAmount = this.calculateBonusAmount(streakDays + (canClaim ? 1 : 0));
 
       return {
         can_claim: canClaim,
         streak_days: streakDays,
         next_bonus_amount: nextBonusAmount,
-        last_claim_date: lastCheckin
+        last_claim_date: lastClaimDate ? lastClaimDate.toISOString() : null
       };
     } catch (error) {
-      logger.error('[DailyBonusService] Error getting daily bonus info', { error: error instanceof Error ? error.message : String(error) });
-      return {
-        can_claim: false,
-        streak_days: 0,
-        next_bonus_amount: "100",
-        last_claim_date: null
-      };
+      logger.error('[DailyBonusService] Ошибка получения информации о ежедневном бонусе', { userId, error: error instanceof Error ? error.message : String(error) });
+      throw error;
     }
   }
 
-  private calculateBonusAmount(day: number): number {
-    // Base bonus starts at 100, increases with streak
-    const baseBonus = 100;
-    const streakMultiplier = Math.min(day / 7, 3); // Max 3x multiplier after 21 days
-    return Math.floor(baseBonus * (1 + streakMultiplier));
-  }
-  async checkDailyBonusAvailability(userId: string): Promise<boolean> {
+  /**
+   * Claim daily bonus for a user
+   */
+  async claimDailyBonus(userId: string): Promise<{
+    success: boolean;
+    amount?: string;
+    streak_days?: number;
+    error?: string;
+  }> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, parseInt(userId)))
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', parseInt(userId))
         .limit(1);
 
-      if (!user) {
-        return false;
+      if (error || !users?.[0]) {
+        return {
+          success: false,
+          error: 'Пользователь не найден'
+        };
       }
 
+      const user = users[0];
       const now = new Date();
-      const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
-      const lastCheckin = user.checkin_last_date 
-        ? new Date(user.checkin_last_date).toISOString().split('T')[0] 
-        : null;
-
-      // Доступен бонус, если последний чекин был не сегодня
-      return lastCheckin !== today;
-    } catch (error) {
-      logger.error('[DailyBonusService] Ошибка проверки доступности бонуса', { error: error instanceof Error ? error.message : String(error) });
-      return false;
-    }
-  }
-
-  async claimDailyBonus(userId: string): Promise<{ amount: string; claimed: boolean }> {
-    try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, parseInt(userId)))
-        .limit(1);
-
-      if (!user) {
-        return { amount: "0", claimed: false };
+      const lastClaimDate = user.checkin_last_date ? new Date(user.checkin_last_date) : null;
+      
+      // Check if user can claim today
+      if (lastClaimDate) {
+        const daysSinceLastClaim = Math.floor((now.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceLastClaim < 1) {
+          return {
+            success: false,
+            error: 'Ежедневный бонус уже получен сегодня'
+          };
+        }
       }
 
-      const now = new Date();
-      const today = now.toISOString().split('T')[0];
-      const lastCheckin = user.checkin_last_date 
-        ? new Date(user.checkin_last_date).toISOString().split('T')[0] 
-        : null;
-
-      const timestamp = new Date().toISOString();
-
-      // Проверяем, можно ли получить бонус
-      if (lastCheckin === today) {
-        logger.warn(`[DAILY_BONUS] Claim rejected for user ${userId}: already claimed today`, {
-          userId,
-          lastCheckin,
-          today,
-          reason: 'already_claimed_today',
-          timestamp
-        });
-        return { amount: "0", claimed: false };
-      }
-
-      // Рассчитываем новую серию
+      // Calculate new streak
       let newStreak = 1;
-      if (lastCheckin) {
-        const lastCheckinDate = new Date(lastCheckin);
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-        if (lastCheckin === yesterdayStr) {
-          // Продолжаем серию
+      if (lastClaimDate) {
+        const daysSinceLastClaim = Math.floor((now.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysSinceLastClaim === 1) {
           newStreak = (user.checkin_streak || 0) + 1;
         }
-        // Если последний чекин был не вчера, серия сбрасывается
       }
 
-      // Рассчитываем бонус (базовый 10 UNI + бонус за серию)
-      const baseBonus = 10;
-      const streakBonus = Math.min((newStreak - 1) * 2, 20); // Максимум +20 UNI за серию
-      const totalBonus = baseBonus + streakBonus;
+      const bonusAmount = this.calculateBonusAmount(newStreak);
+      const currentBalance = parseFloat(user.balance_uni || '0');
+      const newBalance = currentBalance + parseFloat(bonusAmount);
 
-      if (totalBonus <= 0) {
-        logger.warn(`[DAILY_BONUS] Invalid bonus amount calculated for user ${userId}`, {
-          userId,
-          baseBonus,
-          streakBonus,
-          totalBonus,
-          newStreak,
-          reason: 'invalid_bonus_amount',
-          timestamp
-        });
-        return { amount: "0", claimed: false };
-      }
-
-      const previousBalance = parseFloat(user.balance_uni || "0");
-      const newBalance = (previousBalance + totalBonus).toFixed(8);
-
-      // Обновляем данные пользователя
-      await db
-        .update(users)
-        .set({
-          balance_uni: newBalance,
-          checkin_last_date: new Date(),
+      // Update user balance and streak
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          balance_uni: newBalance.toFixed(6),
+          checkin_last_date: now.toISOString(),
           checkin_streak: newStreak
         })
-        .where(eq(users.id, parseInt(userId)));
+        .eq('id', parseInt(userId));
 
-      // ОСНОВНОЕ ЛОГИРОВАНИЕ ДОХОДНОЙ ОПЕРАЦИИ ДНЕВНОГО БОНУСА
-      logger.info(`[DAILY_BONUS] User ${userId} earned ${totalBonus} UNI daily bonus (streak ${newStreak}) at ${timestamp}`, {
-        userId,
-        amount: totalBonus.toString(),
-        currency: 'UNI',
-        previousBalance: previousBalance.toFixed(8),
-        newBalance,
-        streak: newStreak,
-        baseBonus,
-        streakBonus,
-        previousStreak: user.checkin_streak || 0,
-        lastCheckin,
-        operation: 'daily_bonus',
-        timestamp
-      });
+      if (updateError) {
+        logger.error('[DailyBonusService] Ошибка обновления пользователя:', updateError.message);
+        return {
+          success: false,
+          error: 'Ошибка начисления бонуса'
+        };
+      }
 
-      // Записываем транзакцию
-      await db
-        .insert(transactions)
-        .values({
+      // Create transaction record
+      const { error: txError } = await supabase
+        .from('transactions')
+        .insert([{
           user_id: parseInt(userId),
-          transaction_type: 'daily_bonus',
-          amount: totalBonus.toString(),
-          currency: 'UNI',
-          status: 'completed'
-        });
+          type: 'DAILY_BONUS',
+          amount_uni: parseFloat(bonusAmount),
+          amount_ton: 0,
+          description: `Daily bonus day ${newStreak}`,
+          created_at: now.toISOString()
+        }]);
 
-      logger.debug(`[DAILY_BONUS] Transaction recorded for daily bonus`, {
+      if (txError) {
+        logger.warn('[DailyBonusService] Ошибка создания транзакции:', txError.message);
+      }
+
+      logger.info('[DailyBonusService] Ежедневный бонус начислен', {
         userId,
-        transactionType: 'daily_bonus',
-        amount: totalBonus.toString(),
+        amount: bonusAmount,
         streak: newStreak,
-        timestamp
+        newBalance: newBalance.toFixed(6)
       });
 
-      return { amount: totalBonus.toString(), claimed: true };
+      return {
+        success: true,
+        amount: bonusAmount,
+        streak_days: newStreak
+      };
     } catch (error) {
-      logger.error('[DailyBonusService] Ошибка получения ежедневного бонуса', { error: error instanceof Error ? error.message : String(error) });
-      return { amount: "0", claimed: false };
+      logger.error('[DailyBonusService] Ошибка получения ежедневного бонуса', { userId, error: error instanceof Error ? error.message : String(error) });
+      return {
+        success: false,
+        error: 'Внутренняя ошибка сервера'
+      };
     }
   }
 
-  async getDailyBonusStreak(userId: string): Promise<number> {
+  /**
+   * Get user's daily bonus claim history
+   */
+  async getDailyBonusHistory(userId: string, limit: number = 30): Promise<any[]> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, parseInt(userId)))
-        .limit(1);
+      const { data: transactions, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', parseInt(userId))
+        .eq('type', 'DAILY_BONUS')
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-      if (!user) {
-        return 0;
+      if (error) {
+        logger.error('[DailyBonusService] Ошибка получения истории бонусов:', error.message);
+        return [];
       }
 
-      // Проверяем актуальность серии
-      const now = new Date();
-      const lastCheckin = user.checkin_last_date;
-      
-      if (!lastCheckin) {
-        return 0;
-      }
-
-      const daysDiff = Math.floor((now.getTime() - new Date(lastCheckin).getTime()) / (1000 * 60 * 60 * 24));
-      
-      // Если прошло больше 1 дня, серия сбрасывается
-      if (daysDiff > 1) {
-        return 0;
-      }
-
-      return user.checkin_streak || 0;
+      return transactions || [];
     } catch (error) {
-      logger.error('[DailyBonusService] Ошибка получения серии бонусов', { error: error instanceof Error ? error.message : String(error) });
-      return 0;
-    }
-  }
-
-  async getDailyBonusHistory(userId: string): Promise<any[]> {
-    try {
-      const history = await db
-        .select()
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.user_id, parseInt(userId)),
-            eq(transactions.transaction_type, 'daily_bonus')
-          )
-        )
-        .orderBy(desc(transactions.created_at));
-
-      return history.map(tx => ({
-        id: tx.id,
-        amount: parseFloat(tx.amount || '0'),
-        date: tx.created_at,
-        currency: tx.currency,
-        status: tx.status
-      }));
-    } catch (error) {
-      logger.error('[DailyBonusService] Ошибка получения истории бонусов', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('[DailyBonusService] Ошибка получения истории ежедневных бонусов', { userId, error: error instanceof Error ? error.message : String(error) });
       return [];
+    }
+  }
+
+  /**
+   * Calculate bonus amount based on streak days
+   */
+  private calculateBonusAmount(streakDays: number): string {
+    const baseAmount = 100; // Base 100 UNI
+    const bonusMultiplier = Math.min(streakDays * 0.1, 2.0); // Max 200% bonus at 20 days
+    const finalAmount = baseAmount * (1 + bonusMultiplier);
+    
+    return finalAmount.toFixed(6);
+  }
+
+  /**
+   * Get daily bonus statistics for a user
+   */
+  async getDailyBonusStats(userId: string): Promise<{
+    total_claimed: number;
+    total_amount: string;
+    current_streak: number;
+    max_streak: number;
+  }> {
+    try {
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('checkin_streak')
+        .eq('id', parseInt(userId))
+        .single();
+
+      if (userError) {
+        logger.error('[DailyBonusService] Ошибка получения статистики пользователя:', userError.message);
+        throw userError;
+      }
+
+      const { data: transactions, error: txError } = await supabase
+        .from('transactions')
+        .select('amount_uni')
+        .eq('user_id', parseInt(userId))
+        .eq('type', 'DAILY_BONUS');
+
+      if (txError) {
+        logger.error('[DailyBonusService] Ошибка получения транзакций:', txError.message);
+        throw txError;
+      }
+
+      const totalClaimed = transactions?.length || 0;
+      const totalAmount = transactions?.reduce((sum: number, tx: any) => sum + parseFloat(tx.amount_uni || '0'), 0) || 0;
+
+      return {
+        total_claimed: totalClaimed,
+        total_amount: totalAmount.toFixed(6),
+        current_streak: user?.checkin_streak || 0,
+        max_streak: user?.checkin_streak || 0 // TODO: Track max streak separately
+      };
+    } catch (error) {
+      logger.error('[DailyBonusService] Ошибка получения статистики ежедневных бонусов', { userId, error: error instanceof Error ? error.message : String(error) });
+      return {
+        total_claimed: 0,
+        total_amount: '0.000000',
+        current_streak: 0,
+        max_streak: 0
+      };
     }
   }
 }
