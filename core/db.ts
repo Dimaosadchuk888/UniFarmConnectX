@@ -1,6 +1,6 @@
 /**
  * Clean Database Connection Module
- * Unified PostgreSQL connection for production deployment
+ * Unified PostgreSQL connection for UniFarm
  */
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
