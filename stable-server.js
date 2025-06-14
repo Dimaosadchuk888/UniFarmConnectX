@@ -11,9 +11,6 @@ import { spawn } from 'child_process';
 process.env.NODE_ENV = 'production';
 process.env.HOST = '0.0.0.0';
 process.env.PORT = process.env.PORT || '3000';
-process.env.DATABASE_PROVIDER = 'neon';
-process.env.FORCE_NEON_DB = 'true';
-process.env.DISABLE_REPLIT_DB = 'true';
 
 console.log('Starting UniFarm production server...');
 console.log(`Port: ${process.env.PORT}`);

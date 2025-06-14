@@ -11,11 +11,9 @@ export const deploymentConfig = {
     nodeEnv: 'production'
   },
   
-  // Database configuration
+  // Database configuration (Supabase only)
   database: {
-    provider: 'neon',
-    forceNeon: true,
-    disableReplit: true
+    provider: 'supabase'
   },
   
   // Build configuration
@@ -67,9 +65,6 @@ export function setupDeploymentEnvironment() {
   // Set required production values
   process.env.NODE_ENV = deploymentConfig.server.nodeEnv;
   process.env.HOST = deploymentConfig.server.host;
-  process.env.DATABASE_PROVIDER = deploymentConfig.database.provider;
-  process.env.FORCE_NEON_DB = deploymentConfig.database.forceNeon.toString();
-  process.env.DISABLE_REPLIT_DB = deploymentConfig.database.disableReplit.toString();
   
   // Set optional values with defaults
   Object.entries(deploymentConfig.optionalEnvVars).forEach(([key, defaultValue]) => {

@@ -16,8 +16,8 @@ export const databaseConfig = {
     evict: parseInt(process.env.DB_POOL_EVICT || '1000')
   },
   
-  // Database provider settings
-  provider: process.env.DATABASE_PROVIDER || 'supabase',
+  // Database provider (fixed to supabase)
+  provider: 'supabase',
   
   // SSL configuration for production
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
