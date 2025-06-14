@@ -129,6 +129,7 @@ Each business domain is organized as a self-contained module:
 - June 13, 2025. T20 Telegram user registration system fully operational - fixed AuthService imports, created simplified telegram middleware, added null-safe data handling, ensured automatic database user creation with referral codes
 - June 14, 2025. T21 Telegram Mini App diagnostic completed - fixed AuthController header extraction, added comprehensive initData logging in main.tsx, resolved "Not Found" and authorization issues preventing user registration through @UniFarming_Bot
 - June 14, 2025. T22 Comprehensive system audit completed - added user_sessions table to schema, created CORS middleware for Telegram security, verified all 12 system components healthy, confirmed API routing structure /api/v2 prefix working correctly
+- June 14, 2025. T24 Telegram Mini App authorization diagnostic completed - identified root cause of empty initData (application opening in browser instead of Telegram), implemented enhanced diagnostic logging in main.tsx with retry mechanisms, added fallback handling in UserContext for missing Telegram data, created comprehensive setup guide for BotFather configuration
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
