@@ -1,23 +1,25 @@
-import { db } from '../../core/db.js';
-import { users } from '../../shared/schema.js';
-import { eq, sql } from 'drizzle-orm';
+import { supabase } from '../supabaseClient';
 import type { User } from '../../shared/schema.js';
 
 /**
- * Централізований репозиторій для роботи з користувачами
- * Усуває дублікати запитів до БД у всіх сервісах
+ * Централизованный репозиторий для работы с пользователями через Supabase API
+ * Заменяет все Drizzle ORM запросы на Supabase API вызовы
  */
 export class UserRepository {
   /**
-   * Знайти користувача по Telegram ID
+   * Найти пользователя по Telegram ID
    */
   static async findByTelegramId(telegramId: string): Promise<User | null> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(sql`${users.telegram_id} = ${Number(telegramId)}`)
-        .limit(1);
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', Number(telegramId))
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = не найдено
+        throw error;
+      }
       
       return user || null;
     } catch (error) {
@@ -27,15 +29,19 @@ export class UserRepository {
   }
 
   /**
-   * Знайти користувача по ID
+   * Найти пользователя по ID
    */
   static async findById(id: string): Promise<User | null> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, parseInt(id)))
-        .limit(1);
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', parseInt(id))
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
       
       return user || null;
     } catch (error) {
@@ -45,15 +51,19 @@ export class UserRepository {
   }
 
   /**
-   * Знайти користувача по Guest ID
+   * Найти пользователя по Guest ID
    */
   static async findByGuestId(guestId: string): Promise<User | null> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.guest_id, guestId))
-        .limit(1);
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('guest_id', guestId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
       
       return user || null;
     } catch (error) {
@@ -63,74 +73,69 @@ export class UserRepository {
   }
 
   /**
-   * Отримати користувача по Telegram ID з гарантією існування
+   * Создать нового пользователя
    */
-  static async requireByTelegramId(telegramId: string): Promise<User> {
-    const user = await this.findByTelegramId(telegramId);
-    if (!user) {
-      throw new Error(`Пользователь с Telegram ID ${telegramId} не найден`);
-    }
-    return user;
-  }
-
-  /**
-   * Оновити користувача
-   */
-  static async update(id: string, data: Partial<User>): Promise<User | null> {
+  static async create(userData: any): Promise<User> {
     try {
-      const [updatedUser] = await db
-        .update(users)
-        .set(data)
-        .where(eq(users.id, parseInt(id)))
-        .returning();
+      const { data: user, error } = await supabase
+        .from('users')
+        .insert([userData])
+        .select()
+        .single();
       
-      return updatedUser || null;
+      if (error) {
+        throw error;
+      }
+      
+      return user;
     } catch (error) {
-      console.error('[UserRepository] Ошибка обновления пользователя:', error);
+      console.error('[UserRepository] Ошибка создания пользователя:', error);
       throw error;
     }
   }
 
   /**
-   * Оновити баланс користувача
+   * Обновить баланс пользователя
    */
-  static async updateBalance(id: string, type: 'uni' | 'ton', amount: string): Promise<boolean> {
+  static async updateBalance(userId: string, balanceUni: string, balanceTon: string): Promise<boolean> {
     try {
-      const updateData = type === 'uni' 
-        ? { balance_uni: amount }
-        : { balance_ton: amount };
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          balance_uni: balanceUni,
+          balance_ton: balanceTon
+        })
+        .eq('id', parseInt(userId));
       
-      const [updatedUser] = await db
-        .update(users)
-        .set(updateData)
-        .where(eq(users.id, parseInt(id)))
-        .returning();
+      if (error) {
+        throw error;
+      }
       
-      return !!updatedUser;
+      return true;
     } catch (error) {
       console.error('[UserRepository] Ошибка обновления баланса:', error);
-      throw error;
+      return false;
     }
   }
 
   /**
-   * Оновити timestamp фармінгу
+   * Обновить данные пользователя
    */
-  static async updateFarmingTimestamps(id: string, data: {
-    uni_farming_start_timestamp?: Date | null;
-    uni_farming_last_update?: Date | null;
-  }): Promise<boolean> {
+  static async update(userId: string, updateData: any): Promise<boolean> {
     try {
-      const [updatedUser] = await db
-        .update(users)
-        .set(data)
-        .where(eq(users.id, parseInt(id)))
-        .returning();
+      const { error } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', parseInt(userId));
       
-      return !!updatedUser;
+      if (error) {
+        throw error;
+      }
+      
+      return true;
     } catch (error) {
-      console.error('[UserRepository] Ошибка обновления farming timestamps:', error);
-      throw error;
+      console.error('[UserRepository] Ошибка обновления пользователя:', error);
+      return false;
     }
   }
 }

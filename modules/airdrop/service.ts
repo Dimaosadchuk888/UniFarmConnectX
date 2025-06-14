@@ -1,6 +1,4 @@
-import { db } from '../../core/db';
-import { airdropParticipants, users } from '../../shared/schema.js';
-import { eq } from 'drizzle-orm';
+import { supabase } from '../../core/supabaseClient';
 import { UserRepository } from '../../core/repositories/UserRepository';
 import { logger } from '../../core/logger.js';
 
@@ -12,13 +10,13 @@ export class AirdropService {
   }> {
     try {
       // Check if user already registered
-      const existingParticipant = await db
-        .select()
-        .from(airdropParticipants)
-        .where(eq(airdropParticipants.telegram_id, telegramId))
-        .limit(1);
+      const { data: existingParticipant } = await supabase
+        .from('airdrop_participants')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .single();
 
-      if (existingParticipant.length > 0) {
+      if (existingParticipant) {
         return {
           success: false,
           message: 'Пользователь уже зарегистрирован в airdrop',
@@ -38,11 +36,13 @@ export class AirdropService {
       }
 
       // Register user for airdrop
-      await db.insert(airdropParticipants).values({
-        telegram_id: telegramId,
-        user_id: user.id,
-        status: 'active'
-      });
+      await supabase
+        .from('airdrop_participants')
+        .insert([{
+          telegram_id: telegramId,
+          user_id: user.id,
+          status: 'active'
+        }]);
 
       logger.info('[AirdropService] Пользователь зарегистрирован в airdrop', {
         telegram_id: telegramId,
