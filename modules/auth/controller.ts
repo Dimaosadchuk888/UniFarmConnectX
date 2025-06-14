@@ -16,10 +16,21 @@ export class AuthController extends BaseController {
    */
   async authenticateTelegram(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
-      this.validateRequiredFields(req.body, ['initData']);
+      // Извлекаем initData из заголовка или тела запроса
+      const initDataFromHeaders = req.headers['x-telegram-init-data'] as string;
+      const { initData: initDataFromBody, ref_by } = req.body;
       
-      const { initData, ref_by } = req.body;
-      logger.info('[AuthController] Аутентификация через Telegram', ref_by ? { ref_by } : {});
+      const initData = initDataFromHeaders || initDataFromBody;
+      
+      if (!initData) {
+        throw new Error('InitData is required in headers or body');
+      }
+      
+      logger.info('[AuthController] Аутентификация через Telegram', { 
+        has_ref: !!ref_by,
+        initData_source: initDataFromHeaders ? 'headers' : 'body',
+        initData_length: initData.length
+      });
       console.log('✅ /api/v2/auth/telegram called with initData length:', initData.length);
       
       const result = await this.authService.authenticateWithTelegram(initData, ref_by);
@@ -42,11 +53,19 @@ export class AuthController extends BaseController {
    */
   async registerTelegram(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
-      this.validateRequiredFields(req.body, ['initData']);
+      // Извлекаем initData из заголовка или тела запроса
+      const initDataFromHeaders = req.headers['x-telegram-init-data'] as string;
+      const { initData: initDataFromBody, ref_by } = req.body;
       
-      const { initData, ref_by } = req.body;
+      const initData = initDataFromHeaders || initDataFromBody;
+      
+      if (!initData) {
+        throw new Error('InitData is required in headers or body');
+      }
+      
       logger.info('[AuthController] Регистрация через Telegram', { 
         has_ref: !!ref_by,
+        initData_source: initDataFromHeaders ? 'headers' : 'body',
         initData_length: initData.length 
       });
       
