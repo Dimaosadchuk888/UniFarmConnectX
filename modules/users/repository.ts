@@ -1,6 +1,6 @@
 import { db } from '../../core/db';
 import { users, type InsertUser, type User } from '../../shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { customAlphabet } from 'nanoid';
 import { logger } from '../../core/logger.js';
 
@@ -105,18 +105,46 @@ export class UserRepository {
       };
 
       console.log('✅ Inserting user data into database:', userData);
+      
+      // ДИАГНОСТИКА: Проверяем подключение к базе данных перед INSERT
+      console.log('🔍 [REPOSITORY ДИАГНОСТИКА] Перед INSERT - проверяем подключение...');
+      
+      try {
+        const dbInfo = await db.execute(sql`SELECT current_user, current_database(), inet_server_addr()`);
+        console.log('🔍 [REPOSITORY ДИАГНОСТИКА] Подключение активно:');
+        console.log('  - Пользователь БД:', dbInfo[0]?.current_user);
+        console.log('  - База данных:', dbInfo[0]?.current_database);
+        console.log('  - Сервер:', dbInfo[0]?.inet_server_addr);
+        
+        // Считаем текущих пользователей
+        const countBefore = await db.execute(sql`SELECT COUNT(*) as count FROM users`);
+        console.log('🔍 [REPOSITORY ДИАГНОСТИКА] Пользователей до INSERT:', countBefore[0]?.count);
+        
+        // Выполняем INSERT
+        const [newUser] = await db.insert(users)
+          .values(userData)
+          .returning();
+          
+        // Считаем после INSERT
+        const countAfter = await db.execute(sql`SELECT COUNT(*) as count FROM users`);
+        console.log('🔍 [REPOSITORY ДИАГНОСТИКА] Пользователей после INSERT:', countAfter[0]?.count);
+        
+        // Проверяем конкретного пользователя
+        const verification = await db.execute(sql`SELECT id, telegram_id, ref_code FROM users WHERE id = ${newUser.id}`);
+        console.log('🔍 [REPOSITORY ДИАГНОСТИКА] Созданный пользователь найден:', verification[0]);
 
-      const [newUser] = await db.insert(users)
-        .values(userData)
-        .returning();
-
-      logger.info('[UserRepository] Successfully created user', { userId: newUser.id });
-      console.log('✅ User successfully created in database:', { 
-        id: newUser.id, 
-        telegram_id: newUser.telegram_id, 
-        ref_code: newUser.ref_code 
-      });
-      return newUser;
+        logger.info('[UserRepository] Successfully created user', { userId: newUser.id });
+        console.log('✅ User successfully created in database:', { 
+          id: newUser.id, 
+          telegram_id: newUser.telegram_id, 
+          ref_code: newUser.ref_code 
+        });
+        
+        return newUser;
+      } catch (dbError) {
+        console.error('❌ [REPOSITORY ДИАГНОСТИКА] Ошибка SQL операций:', dbError);
+        throw dbError;
+      }
     } catch (error) {
       logger.error('[UserRepository] Error creating user from Telegram', { error: error instanceof Error ? error.message : String(error) });
       throw error;
