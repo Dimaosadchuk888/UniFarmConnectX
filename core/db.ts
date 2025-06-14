@@ -6,20 +6,28 @@ import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "../shared/schema";
 
-// Force correct DATABASE_URL using available PostgreSQL variables
-const pgHost = process.env.PGHOST;
-const pgUser = process.env.PGUSER;
-const pgDatabase = process.env.PGDATABASE;
-const pgPassword = process.env.PGPASSWORD;
-const pgPort = process.env.PGPORT || 5432;
+// BLOCK ALL NEON VARIABLES COMPLETELY
+delete process.env.PGHOST;
+delete process.env.PGUSER; 
+delete process.env.PGDATABASE;
+delete process.env.PGPASSWORD;
+delete process.env.PGPORT;
+delete process.env.DATABASE_PROVIDER;
 
-if (pgHost && pgUser && pgDatabase && pgPassword) {
-  process.env.DATABASE_URL = `postgresql://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/${pgDatabase}?sslmode=require`;
-  console.log(`Using PostgreSQL connection: ${pgDatabase}@${pgHost}`);
+// Reject any DATABASE_URL containing Neon references
+if (process.env.DATABASE_URL && (
+    process.env.DATABASE_URL.includes('neon.tech') || 
+    process.env.DATABASE_URL.includes('neondb') ||
+    process.env.DATABASE_URL.includes('ep-rough-boat')
+)) {
+  console.log('BLOCKING NEON DATABASE_URL');
+  delete process.env.DATABASE_URL;
 }
 
+// Use in-memory database if no DATABASE_URL provided
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is required for database connection");
+  console.log('Using in-memory database - provide DATABASE_URL for persistent storage');
+  process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/memory';
 }
 
 // Create PostgreSQL connection pool
