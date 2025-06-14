@@ -104,10 +104,10 @@ Each business domain is organized as a self-contained module:
 - **Platform**: Replit-optimized with multiple deployment targets
 
 ### Database Strategy
-- **Primary**: Neon PostgreSQL serverless for production scalability
-- **Connection**: WebSocket-based connections for serverless compatibility
-- **Migrations**: Drizzle Kit for schema version management
-- **Monitoring**: Built-in connection pool monitoring and health checks
+- **Primary**: Supabase PostgreSQL for production scalability and reliability
+- **Connection**: Direct PostgreSQL connection with SSL encryption
+- **Schema**: Complete 5-table structure with optimized indexes
+- **Monitoring**: Real-time connection pool monitoring and health checks
 
 ### Performance Optimizations
 - **Frontend**: Code splitting with React.lazy for reduced bundle size
@@ -141,6 +141,7 @@ Each business domain is organized as a self-contained module:
 - June 14, 2025. CRITICAL DATABASE CONNECTION ISSUE RESOLVED - Fixed major problem where system was writing to wrong database (ep-lucky-boat-a463bggt hardcoded in core/db.ts) while user was viewing different database in Neon Console. Changed core/db.ts to use DATABASE_URL environment variable pointing to correct database (ep-rough-boat-admw3omm). Created test user (ID: 10, username: neon_console_test) to verify fix. All new user registrations now save to correct database visible in Neon Console
 - June 14, 2025. DATABASE CONNECTION CLEANUP COMPLETED - Successfully unified all database imports to use core/db.ts instead of server/db across entire project. Fixed imports in 10+ modules including user, wallet, referral, farming, and core monitoring services. Removed duplicate .env files and verified production database connection. All modules now use centralized database connection with consistent schema imports, eliminating potential connection conflicts and improving system reliability
 - June 14, 2025. COMPLETE OLD DATABASE CONNECTIONS REMOVAL - Fully removed all traces of Neon, Replit PostgreSQL, and alternative database connections. Cleaned environment variables (DATABASE_URL, PGUSER, PGHOST, PGPASSWORD, NEON_*, DATABASE_PROVIDER), deleted 11 database connection files and test scripts, removed old connection monitoring code. Only core/db.ts remains as placeholder ready for Supabase integration. System temporarily non-functional but completely clean for new database setup
+- June 14, 2025. SUPABASE MIGRATION COMPLETED - Successfully established Supabase PostgreSQL as single database source. Updated core/db.ts with Supabase connection, created complete 5-table schema (users, user_sessions, transactions, referrals, farming_sessions) with 15+ performance indexes. Updated monitoring systems (core/monitoring.ts, core/dbPoolMonitor.ts) for Supabase compatibility. Database connection verified and fully operational. System ready for production deployment with clean, unified database architecture
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
