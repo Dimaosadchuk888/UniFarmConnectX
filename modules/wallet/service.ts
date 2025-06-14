@@ -1,4 +1,4 @@
-import { db } from '../../core/db.js';
+import { db } from '../../core/db';
 import { transactions, users, type Transaction } from '../../shared/schema.js';
 import { eq, desc } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository.js';
