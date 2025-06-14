@@ -8,8 +8,20 @@ const authController = new AuthController();
 
 // Схемы валидации
 const telegramAuthSchema = z.object({
-  initData: z.string().min(1, 'InitData is required'),
-  refBy: z.string().optional()
+  initData: z.string().optional(),
+  refBy: z.string().optional(),
+  // Поля для прямой авторизации
+  direct_registration: z.boolean().optional(),
+  telegram_id: z.number().optional(),
+  username: z.string().optional(),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  language_code: z.string().optional()
+}).refine((data) => {
+  // Либо есть initData, либо это прямая авторизация с telegram_id
+  return data.initData || (data.direct_registration && data.telegram_id);
+}, {
+  message: "Either initData or direct authorization with telegram_id is required"
 });
 
 const telegramRegistrationSchema = z.object({

@@ -124,10 +124,10 @@ export class AuthService {
    */
   async registerDirectFromTelegramUser(telegramUser: {
     telegram_id: number;
-    username: string;
-    first_name: string;
+    username?: string;
+    first_name?: string;
     last_name?: string;
-    language_code: string;
+    language_code?: string;
   }, refBy?: string): Promise<AuthResponse> {
     try {
       logger.info('[AuthService] Прямая регистрация через данные Telegram пользователя', { 
@@ -149,8 +149,8 @@ export class AuthService {
       // Generate JWT token with user data
       const token = generateJWTToken({
         id: telegramUser.telegram_id,
-        username: telegramUser.username,
-        first_name: telegramUser.first_name
+        username: telegramUser.username || '',
+        first_name: telegramUser.first_name || ''
       }, userInfo.ref_code || '');
 
       const isNewUser = !userInfo.created_at || (new Date().getTime() - new Date(userInfo.created_at).getTime()) < 60000;
@@ -320,87 +320,5 @@ export class AuthService {
     }
   }
 
-  /**
-   * Прямая регистрация пользователя через данные Telegram (без HMAC валидации)
-   * Используется когда initData недоступен но есть данные пользователя
-   */
-  async registerDirectFromTelegramUser(
-    telegramUser: {
-      telegram_id: number;
-      username?: string;
-      first_name?: string;
-      last_name?: string;
-      language_code?: string;
-    },
-    refBy?: string
-  ): Promise<AuthResponse> {
-    try {
-      logger.info('[AuthService] Прямая регистрация пользователя', { 
-        telegram_id: telegramUser.telegram_id,
-        username: telegramUser.username,
-        has_ref: !!refBy 
-      });
 
-      // Проверяем существует ли пользователь
-      const [existingUser] = await db.select()
-        .from(users)
-        .where(eq(users.telegram_id, telegramUser.telegram_id))
-        .limit(1);
-
-      let userInfo;
-      let isNewUser = false;
-
-      if (existingUser) {
-        logger.info('[AuthService] Пользователь найден в базе данных', { 
-          userId: existingUser.id,
-          telegram_id: existingUser.telegram_id 
-        });
-        userInfo = existingUser;
-      } else {
-        // Создаем нового пользователя через UserService
-        logger.info('[AuthService] Создание нового пользователя', { 
-          telegram_id: telegramUser.telegram_id 
-        });
-        
-        userInfo = await this.userService.findOrCreateFromTelegram({
-          telegram_id: telegramUser.telegram_id,
-          username: telegramUser.username,
-          first_name: telegramUser.first_name,
-          ref_by: refBy
-        });
-        isNewUser = true;
-      }
-
-      // Генерируем JWT токен
-      const token = generateJWTToken({
-        id: telegramUser.telegram_id,
-        username: telegramUser.username,
-        first_name: telegramUser.first_name,
-        last_name: telegramUser.last_name,
-        language_code: telegramUser.language_code
-      }, userInfo.ref_code || '');
-
-      return {
-        success: true,
-        user: {
-          id: userInfo.id.toString(),
-          telegram_id: telegramUser.telegram_id,
-          username: telegramUser.username || (userInfo.username ?? ''),
-          ref_code: userInfo.ref_code || '',
-          created_at: userInfo.created_at ? userInfo.created_at.toISOString() : new Date().toISOString()
-        },
-        token,
-        isNewUser
-      };
-    } catch (error) {
-      logger.error('[AuthService] Ошибка прямой регистрации', { 
-        error: error instanceof Error ? error.message : String(error),
-        telegram_id: telegramUser.telegram_id 
-      });
-      return {
-        success: false,
-        error: 'Ошибка прямой регистрации пользователя'
-      };
-    }
-  }
 }
