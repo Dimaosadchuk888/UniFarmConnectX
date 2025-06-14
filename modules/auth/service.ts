@@ -102,7 +102,7 @@ export class AuthService {
         user: {
           id: userInfo.id.toString(),
           telegram_id: telegramUser.id,
-          username: telegramUser.username || userInfo.username || '',
+          username: telegramUser.username || (userInfo.username ?? ''),
           ref_code: userInfo.ref_code || '',
           created_at: userInfo.created_at ? userInfo.created_at.toISOString() : new Date().toISOString()
         },
@@ -160,7 +160,7 @@ export class AuthService {
         user: {
           id: userInfo.id.toString(),
           telegram_id: telegramUser.telegram_id,
-          username: telegramUser.username || userInfo.username || '',
+          username: telegramUser.username || (userInfo.username ?? ''),
           ref_code: userInfo.ref_code || '',
           created_at: userInfo.created_at ? userInfo.created_at.toISOString() : new Date().toISOString()
         },
@@ -227,7 +227,7 @@ export class AuthService {
         user: {
           id: userInfo.id.toString(),
           telegram_id: telegramUser.id,
-          username: telegramUser.username || userInfo.username || '',
+          username: telegramUser.username || (userInfo.username ?? ''),
           ref_code: userInfo.ref_code || '',
           created_at: userInfo.created_at ? userInfo.created_at.toISOString() : new Date().toISOString()
         },

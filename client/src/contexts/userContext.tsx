@@ -260,13 +260,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: true } });
     
     try {
-      // Используем улучшенный сервис с поддержкой forceRefreshconst balance = await fetchBalance(state.userId, forceRefresh);
+      // Используем улучшенный сервис с поддержкой forceRefresh
+      const balance = await fetchBalance(state.userId, forceRefresh);
       
       // Обновляем состояние баланса
       dispatch({ type: 'SET_BALANCE', payload: balance });
       dispatch({ type: 'SET_ERROR', payload: null });
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Ошибка получения баланса');// Устанавливаем нулевые балансы вместо блокировки интерфейса
+      const error = err instanceof Error ? err : new Error('Ошибка получения баланса');
+      // Устанавливаем нулевые балансы вместо блокировки интерфейса
       dispatch({
         type: 'SET_BALANCE',
         payload: {
