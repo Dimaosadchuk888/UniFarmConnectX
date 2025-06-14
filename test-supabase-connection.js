@@ -4,32 +4,35 @@
  * Verifies DATABASE_URL connection and runs the requested SQL query
  */
 
+import { spawn } from 'child_process';
+
+// Используем tsx для выполнения TypeScript кода
+const testProcess = spawn('npx', ['tsx', '--eval', `
 import { db } from './core/db.js';
 import { sql } from 'drizzle-orm';
 
 async function testSupabaseConnection() {
-  console.log('🔍 Testing Supabase database connection...');
+  console.log('🔍 Тестирование подключения к базе данных Supabase...');
   
   try {
-    // Test basic connection
-    console.log('DATABASE_URL length:', process.env.DATABASE_URL?.length || 0);
+    console.log('DATABASE_URL длина:', process.env.DATABASE_URL?.length || 0);
     
-    // Run the requested SQL query
-    const result = await db.execute(sql`
+    // Выполняем запрашиваемый SQL-запрос
+    const result = await db.execute(sql\`
       SELECT current_database(), current_schema(), inet_server_addr();
-    `);
+    \`);
     
-    console.log('✅ Database connection successful!');
-    console.log('Query result:', result.rows[0]);
+    console.log('✅ Подключение к базе данных успешно!');
+    console.log('Результат запроса:', result.rows[0]);
     
-    // Test table existence
-    const tablesResult = await db.execute(sql`
+    // Проверяем существование таблиц
+    const tablesResult = await db.execute(sql\`
       SELECT table_name FROM information_schema.tables 
       WHERE table_schema = 'public' 
       ORDER BY table_name;
-    `);
+    \`);
     
-    console.log('📋 Available tables:');
+    console.log('📋 Доступные таблицы:');
     tablesResult.rows.forEach(row => {
       console.log('  -', row.table_name);
     });
@@ -41,14 +44,14 @@ async function testSupabaseConnection() {
     };
     
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
+    console.error('❌ Ошибка подключения к базе данных:', error.message);
     
-    // Additional debugging
+    // Дополнительная отладка
     if (error.code) {
-      console.error('Error code:', error.code);
+      console.error('Код ошибки:', error.code);
     }
     if (error.detail) {
-      console.error('Error detail:', error.detail);
+      console.error('Детали ошибки:', error.detail);
     }
     
     return {
@@ -59,17 +62,31 @@ async function testSupabaseConnection() {
   }
 }
 
-// Run the test
+// Запускаем тест
 testSupabaseConnection()
   .then(result => {
     if (result.success) {
-      console.log('\n🎉 Supabase connection test completed successfully');
+      console.log('\\n🎉 Тест подключения к Supabase завершен успешно');
+      process.exit(0);
     } else {
-      console.log('\n💥 Supabase connection test failed');
+      console.log('\\n💥 Тест подключения к Supabase провалился');
       process.exit(1);
     }
   })
   .catch(error => {
-    console.error('💥 Test execution failed:', error);
+    console.error('💥 Ошибка выполнения теста:', error);
     process.exit(1);
   });
+`], {
+  stdio: 'inherit',
+  env: process.env
+});
+
+testProcess.on('error', (error) => {
+  console.error('❌ Ошибка запуска теста:', error.message);
+  process.exit(1);
+});
+
+testProcess.on('exit', (code) => {
+  process.exit(code || 0);
+});
