@@ -67,6 +67,19 @@ export const users = pgTable(
     })
 );
 
+// Таблица user_sessions для отслеживания сессий пользователей
+export const userSessions = pgTable("user_sessions", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id),
+  session_token: text("session_token").notNull().unique(),
+  telegram_init_data: text("telegram_init_data"),
+  expires_at: timestamp("expires_at").notNull(),
+  created_at: timestamp("created_at").defaultNow(),
+  last_activity: timestamp("last_activity").defaultNow(),
+  ip_address: text("ip_address"),
+  user_agent: text("user_agent")
+});
+
 // Таблица farming_deposits по требованиям задачи
 export const farmingDeposits = pgTable("farming_deposits", {
   id: serial("id").primaryKey(),
@@ -106,6 +119,19 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Схемы для таблицы user_sessions
+export const insertUserSessionSchema = createInsertSchema(userSessions).pick({
+  user_id: true,
+  session_token: true,
+  telegram_init_data: true,
+  expires_at: true,
+  ip_address: true,
+  user_agent: true
+});
+
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
+export type UserSession = typeof userSessions.$inferSelect;
 
 // Таблица user_balances для хранения балансов пользователей
 export const userBalances = pgTable("user_balances", {
