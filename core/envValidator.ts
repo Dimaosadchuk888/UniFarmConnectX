@@ -12,7 +12,6 @@ interface EnvConfig {
 
 const envConfig: EnvConfig = {
   required: [
-    'DATABASE_URL',
     'SESSION_SECRET',
     'JWT_SECRET',
     'TELEGRAM_BOT_TOKEN',
@@ -20,28 +19,20 @@ const envConfig: EnvConfig = {
     'PORT'
   ],
   optional: [
-    'NEON_API_KEY',
-    'NEON_PROJECT_ID',
     'ALLOW_BROWSER_ACCESS',
-    'SKIP_TELEGRAM_CHECK',
-    'DATABASE_PROVIDER',
-    'USE_NEON_DB'
+    'SKIP_TELEGRAM_CHECK'
   ],
   defaults: {
     NODE_ENV: 'production',
     PORT: '3000',
     ALLOW_BROWSER_ACCESS: 'true',
-    SKIP_TELEGRAM_CHECK: 'false',
-    DATABASE_PROVIDER: 'neon',
-    USE_NEON_DB: 'true'
+    SKIP_TELEGRAM_CHECK: 'false'
   },
   validation: {
     PORT: (value: string) => !isNaN(parseInt(value)) && parseInt(value) > 0 && parseInt(value) < 65536,
     NODE_ENV: (value: string) => ['development', 'production', 'test'].includes(value),
-    DATABASE_URL: (value: string) => value.startsWith('postgresql://') || value.startsWith('postgres://'),
     ALLOW_BROWSER_ACCESS: (value: string) => ['true', 'false'].includes(value.toLowerCase()),
-    SKIP_TELEGRAM_CHECK: (value: string) => ['true', 'false'].includes(value.toLowerCase()),
-    USE_NEON_DB: (value: string) => ['true', 'false'].includes(value.toLowerCase())
+    SKIP_TELEGRAM_CHECK: (value: string) => ['true', 'false'].includes(value.toLowerCase())
   }
 };
 
@@ -99,11 +90,6 @@ class EnvValidator {
   }
 
   private validateCriticalConfigs(): void {
-    // Проверяем совместимость настроек базы данных
-    if (process.env.DATABASE_PROVIDER === 'neon' && !process.env.DATABASE_URL?.includes('neon')) {
-      this.warnings.push('DATABASE_PROVIDER установлен как neon, но DATABASE_URL не содержит neon домен');
-    }
-
     // Проверяем Telegram конфигурацию
     if (process.env.SKIP_TELEGRAM_CHECK === 'false' && !process.env.TELEGRAM_BOT_TOKEN) {
       this.warnings.push('SKIP_TELEGRAM_CHECK=false, но TELEGRAM_BOT_TOKEN не установлен');
