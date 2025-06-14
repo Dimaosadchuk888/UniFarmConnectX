@@ -1,6 +1,5 @@
-import { db } from '../../core/db';
-import { users, type InsertUser, type User } from '../../shared/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { supabase } from '../../core/supabaseClient';
+import { type InsertUser, type User } from '../../shared/schema';
 import { customAlphabet } from 'nanoid';
 import { logger } from '../../core/logger.js';
 

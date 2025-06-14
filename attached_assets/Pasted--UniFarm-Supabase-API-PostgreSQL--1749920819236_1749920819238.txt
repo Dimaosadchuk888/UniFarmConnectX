@@ -1,0 +1,69 @@
+🟨 ЗАДАЧА: Подключение UniFarm к Supabase через API (без прямого PostgreSQL)
+
+🎯 Цель:
+Полностью перейти с PostgreSQL (drizzle, Pool, core/db.ts) на API-подключение через @supabase/supabase-js. Все взаимодействие с базой данных должно происходить через supabaseClient, используя project URL и anon public key.
+
+⸻
+
+🔧 Что нужно сделать:
+ 1. Установить Supabase SDK:
+
+npm install @supabase/supabase-js
+
+ 2. Создать файл core/supabaseClient.ts:
+
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = 'https://wunnsvicbebssrjqedor.supabase.co'
+const supabaseKey = process.env.SUPABASE_KEY
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
+
+ 3. Добавить ключ в Replit Secrets или .env:
+
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1bm5zdmljYmVic3NyanFlZG9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MDMwNzcsImV4cCI6MjA2NTQ3OTA3N30.4ShnO3KXxi66rEMPkmAafAfN-IFImDd1YwMnrRDPD1c
+
+ 4. Заменить core/db.ts на supabaseClient:
+
+ • Везде, где раньше использовались SQL-запросы через drizzle, pg, Pool, использовать API Supabase.
+
+Пример использования в сервисе:
+
+import { supabase } from '../core/supabaseClient'
+
+export async function fetchUsers() {
+  const { data, error } = await supabase.from('users').select('*')
+  if (error) throw error
+  return data
+}
+
+
+⸻
+
+🧹 Удалить и очистить:
+ • Файлы:
+ • core/db.ts
+ • drizzle.config.ts
+ • Все импорты pg, drizzle, Pool
+ • Переменные из .env:
+ • DATABASE_URL
+ • PGUSER, PGPASSWORD, PGHOST, PGDATABASE
+
+⸻
+
+✅ Ожидаемый результат:
+ • Все запросы к базе работают через supabaseClient
+ • Проект стабильно работает в Replit
+ • Нет использования DATABASE_URL или PostgreSQL SDK
+ • Файл .env содержит только SUPABASE_KEY и другие ключи (например, BOT_TOKEN)
+
+⸻
+
+🚫 Запрещено:
+ • Использовать drizzle, pg, Pool, core/db.ts
+ • Оставлять в коде старые подключения к PostgreSQL
+ • Подключаться напрямую к Supabase через DATABASE_URL
+
+⸻
+
+Если хочешь — могу сразу подготовить шаблоны userService.ts, authService.ts, walletService.ts и т.д. под новый API.

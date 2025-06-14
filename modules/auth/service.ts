@@ -1,8 +1,7 @@
 import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type TelegramUser, type JWTPayload } from '../../utils/telegram';
 import { UserService } from '../users/service';
-import { db } from '../../core/db';
-import { users, type User } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { supabase } from '../../core/supabaseClient';
+import { type User } from '../../shared/schema';
 import { logger } from '../../core/logger';
 
 interface AuthResponse {
@@ -303,18 +302,25 @@ export class AuthService {
 
       console.log('✅ JWT payload verified, searching user by telegram_id:', payload.telegram_id);
 
-      const [user] = await db.select()
-        .from(users)
-        .where(eq(users.telegram_id, payload.telegram_id))
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', payload.telegram_id)
         .limit(1);
 
+      if (error) {
+        console.log('❌ Supabase error:', error.message);
+        throw error;
+      }
+
+      const user = users?.[0] || null;
       if (user) {
         console.log('✅ User found in database:', { id: user.id, telegram_id: user.telegram_id });
       } else {
         console.log('❌ User not found in database for telegram_id:', payload.telegram_id);
       }
 
-      return user || null;
+      return user;
     } catch (error) {
       logger.error('[AuthService] Error getting user from token', { error: error instanceof Error ? error.message : String(error) });
       console.log('❌ Error getting user from token:', error instanceof Error ? error.message : String(error));
