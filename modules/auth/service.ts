@@ -1,6 +1,6 @@
 import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type TelegramUser, type JWTPayload } from '../../utils/telegram';
 import { UserService } from '../users/service';
-import { db } from '../../server/db';
+import { db } from '../../core/db';
 import { users, type User } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../../core/logger';

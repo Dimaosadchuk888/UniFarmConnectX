@@ -1,4 +1,4 @@
-import { db } from '../../server/db';
+import { db } from '../../core/db';
 import { users, type InsertUser, type User } from '../../shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { customAlphabet } from 'nanoid';
