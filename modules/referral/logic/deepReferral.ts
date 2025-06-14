@@ -74,7 +74,7 @@ export class DeepReferralLogic {
    */
   static async buildReferrerChain(userId: string): Promise<string[]> {
     try {
-      const { db } = await import('@/server/db');
+      const { db } = await import('@/core/db');
       const { users } = await import('../../../shared/schema');
       const { eq } = await import('drizzle-orm');
 

@@ -1,4 +1,4 @@
-import { db } from '../../server/db.js';
+import { db } from '../../core/db.js';
 import { users, transactions } from '../../shared/schema.js';
 import { eq, and, desc, gte, lt } from 'drizzle-orm';
 import { logger } from '../../core/logger.js';

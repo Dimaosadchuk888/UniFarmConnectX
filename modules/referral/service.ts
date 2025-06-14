@@ -34,7 +34,7 @@ export class ReferralService {
    */
   async processReferral(refCode: string, newUserId: string): Promise<{ success: boolean; error?: string; cyclicError?: boolean }> {
     try {
-      const { db } = await import('../../server/db.js');
+      const { db } = await import('../../core/db.js');
       const { users, referrals } = await import('../../shared/schema.js');
       const { eq } = await import('drizzle-orm');
       const { logger } = await import('../../core/logger.js');
@@ -139,7 +139,7 @@ export class ReferralService {
     recentReferrals: any[];
   }> {
     try {
-      const { db } = await import('../../server/db.js');
+      const { db } = await import('../../core/db.js');
       const { users, referrals } = await import('../../shared/schema.js');
       const { eq, count, sum } = await import('drizzle-orm');
 
@@ -190,7 +190,7 @@ export class ReferralService {
    */
   async getReferralsByUserId(userId: string): Promise<any[]> {
     try {
-      const { db } = await import('../../server/db.js');
+      const { db } = await import('../../core/db.js');
       const { users, referrals } = await import('../../shared/schema.js');
       const { eq } = await import('drizzle-orm');
 
@@ -238,7 +238,7 @@ export class ReferralService {
    */
   async isCyclicReferral(refById: number, newUserTelegramId: string): Promise<boolean> {
     try {
-      const { db } = await import('../../server/db.js');
+      const { db } = await import('../../core/db.js');
       const { users } = await import('../../shared/schema.js');
       const { eq } = await import('drizzle-orm');
       const { logger } = await import('../../core/logger.js');
@@ -365,7 +365,7 @@ export class ReferralService {
         return { valid: false };
       }
 
-      const { db } = await import('../../server/db');
+      const { db } = await import('../../core/db');
       const { users } = await import('../../shared/schema');
       const { eq } = await import('drizzle-orm');
 
@@ -405,7 +405,7 @@ export class ReferralService {
     referrals: any[];
   }> {
     try {
-      const { db } = await import('../../server/db.js');
+      const { db } = await import('../../core/db.js');
       const { users, referrals } = await import('../../shared/schema.js');
       const { eq, count, sum } = await import('drizzle-orm');
 

@@ -1,4 +1,4 @@
-import { db } from '../../server/db.js';
+import { db } from '../../core/db.js';
 import { airdropParticipants, users } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository';
