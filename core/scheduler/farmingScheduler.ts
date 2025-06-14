@@ -4,7 +4,7 @@
  */
 
 import cron from 'node-cron';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../supabase';
 import { logger } from '../logger';
 
 export class FarmingScheduler {
@@ -173,3 +173,6 @@ export class FarmingScheduler {
     }
   }
 }
+
+// Export singleton instance
+export const farmingScheduler = new FarmingScheduler();
