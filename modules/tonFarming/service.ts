@@ -12,7 +12,19 @@ interface TonFarmingData {
 export class TonFarmingService {
   async getTonFarmingDataByTelegramId(telegramId: string): Promise<TonFarmingData> {
     try {
+      if (!telegramId) {
+        logger.warn('[TonFarmingService] Получен пустой telegramId');
+        throw new Error('TelegramId is required');
+      }
+      
       logger.info(`[TonFarmingService] Получение данных TON фарминга для пользователя ${telegramId}`);
+      
+      // Проверяем, что telegramId является валидным числом
+      const numericTelegramId = parseInt(telegramId, 10);
+      if (isNaN(numericTelegramId)) {
+        logger.warn('[TonFarmingService] Невалидный telegramId:', telegramId);
+        throw new Error('Invalid telegramId format');
+      }
       
       return {
         ton_farming_balance: '1.50000000',
@@ -23,7 +35,10 @@ export class TonFarmingService {
         can_claim: true
       };
     } catch (error) {
-      logger.error('[TonFarmingService] Ошибка получения данных TON фарминга:', error);
+      logger.error('[TonFarmingService] Ошибка получения данных TON фарминга:', {
+        telegramId,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return {
         ton_farming_balance: '0',
         ton_farming_rate: '0',

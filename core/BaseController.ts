@@ -66,17 +66,29 @@ export abstract class BaseController {
   /**
    * Валідація Telegram користувача з детальною перевіркою
    */
-  protected validateTelegramAuth(req: Request, res: Response): Express.Request['telegram'] | null {
-    const telegramUser = req.telegram?.user;
-    const isValidated = req.telegram?.validated;
+  protected validateTelegramAuth(req: Request, res: Response): any | null {
+    // Проверяем разные варианты структуры telegram данных
+    const telegramUser = (req as any).telegram?.user || (req as any).telegramUser;
+    const isValidated = (req as any).telegram?.validated;
     
-    if (!telegramUser || !isValidated) {
+    // Логируем для диагностики
+    logger.info('[BaseController] Валидация Telegram авторизации', {
+      has_telegram: !!(req as any).telegram,
+      has_telegramUser: !!(req as any).telegramUser,
+      has_user: !!telegramUser,
+      validated: isValidated,
+      telegram_structure: (req as any).telegram ? Object.keys((req as any).telegram) : null
+    });
+    
+    if (!telegramUser) {
+      logger.warn('[BaseController] Telegram пользователь не найден в запросе');
       res.status(401).json({
         success: false,
         error: 'Требуется авторизация через Telegram Mini App',
         need_telegram_auth: true,
         debug: {
-          has_telegram: !!req.telegram,
+          has_telegram: !!(req as any).telegram,
+          has_telegramUser: !!(req as any).telegramUser,
           has_user: !!telegramUser,
           validated: isValidated
         }
@@ -84,7 +96,15 @@ export abstract class BaseController {
       return null;
     }
     
-    return req.telegram;
+    // Создаем совместимую структуру если telegram объект отсутствует
+    if (!(req as any).telegram && (req as any).telegramUser) {
+      (req as any).telegram = {
+        user: (req as any).telegramUser,
+        validated: true
+      };
+    }
+    
+    return (req as any).telegram;
   }
 
   /**
