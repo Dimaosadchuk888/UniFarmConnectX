@@ -26,14 +26,13 @@ router.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Debug endpoint для проверки подключения к базе данных
+// Debug endpoint - cleaned from old database references
 router.get('/debug/db-users', async (req: Request, res: Response) => {
   try {
     const allUsers = await db.select().from(users).orderBy(desc(users.id));
     res.json({
       success: true,
       total_users: allUsers.length,
-      database_url: process.env.DATABASE_URL?.substring(0, 50) + '...',
       users: allUsers.map(user => ({
         id: user.id,
         telegram_id: user.telegram_id,
@@ -45,8 +44,7 @@ router.get('/debug/db-users', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      database_url: process.env.DATABASE_URL?.substring(0, 50) + '...'
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });

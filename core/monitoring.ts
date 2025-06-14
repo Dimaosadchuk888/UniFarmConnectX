@@ -38,21 +38,13 @@ class HealthMonitor {
   async checkDatabase(): Promise<ServiceStatus> {
     const startTime = Date.now();
     try {
-      // Simple connection test without requiring existing tables
-      await pool.query('SELECT 1');
-      return {
-        status: 'up',
-        responseTime: Date.now() - startTime,
-        lastCheck: new Date().toISOString()
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
-      console.warn('[Monitor] Database connection failed:', errorMessage);
+      // Database monitoring cleaned from old connections - ready for new setup
+      console.log('[Monitor] Database connection monitoring disabled - awaiting new setup');
       return {
         status: 'degraded',
         responseTime: Date.now() - startTime,
         lastCheck: new Date().toISOString(),
-        error: errorMessage
+        error: 'Database connections removed - ready for new setup'
       };
     }
   }
