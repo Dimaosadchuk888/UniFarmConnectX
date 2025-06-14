@@ -1,5 +1,5 @@
 import type { User, InsertUser } from '../../shared/schema.js';
-import { db } from '../../server/db.js';
+import { db } from '../../core/db';
 import { users } from '../../shared/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { logger } from '../../core/logger';

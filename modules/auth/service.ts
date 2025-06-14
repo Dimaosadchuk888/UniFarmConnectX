@@ -1,5 +1,5 @@
 import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type TelegramUser, type JWTPayload } from '../../utils/telegram';
-import { UserService, type UserInfo } from '../users/service';
+import { UserService } from '../user/service';
 import { db } from '../../server/db';
 import { users, type User } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
@@ -80,25 +80,30 @@ export class AuthService {
 
       // Check if this is a new user (simple heuristic based on creation time)
       const now = new Date();
-      const userCreatedAt = new Date(userInfo.created_at);
+      const userCreatedAt = userInfo.created_at ? new Date(userInfo.created_at) : now;
       const isNewUser = (now.getTime() - userCreatedAt.getTime()) < 5000; // Created within last 5 seconds
 
       logger.info('[AuthService] User resolved for registration', { 
         userId: userInfo.id, 
         isNewUser 
       });
+      console.log('✅ User created/found in database:', { 
+        id: userInfo.id, 
+        telegram_id: userInfo.telegram_id, 
+        ref_code: userInfo.ref_code 
+      });
 
       // Generate JWT token
-      const token = generateJWTToken(telegramUser, userInfo.ref_code);
+      const token = generateJWTToken(telegramUser, userInfo.ref_code || '');
 
       return {
         success: true,
         user: {
           id: userInfo.id.toString(),
           telegram_id: telegramUser.id,
-          username: telegramUser.username,
-          ref_code: userInfo.ref_code,
-          created_at: userInfo.created_at.toISOString()
+          username: telegramUser.username || userInfo.username,
+          ref_code: userInfo.ref_code || '',
+          created_at: userInfo.created_at ? userInfo.created_at.toISOString() : now.toISOString()
         },
         token,
         isNewUser
@@ -154,16 +159,16 @@ export class AuthService {
       });
 
       // Generate JWT token
-      const token = generateJWTToken(telegramUser, userInfo.ref_code);
+      const token = generateJWTToken(telegramUser, userInfo.ref_code || '');
 
       return {
         success: true,
         user: {
           id: userInfo.id.toString(),
           telegram_id: telegramUser.id,
-          username: telegramUser.username,
-          ref_code: userInfo.ref_code,
-          created_at: userInfo.created_at.toISOString()
+          username: telegramUser.username || userInfo.username,
+          ref_code: userInfo.ref_code || '',
+          created_at: userInfo.created_at ? userInfo.created_at.toISOString() : new Date().toISOString()
         },
         token
       };
