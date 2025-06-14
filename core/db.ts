@@ -15,19 +15,22 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
 }
 
-// Выводим полный DATABASE_URL для диагностики
-const dbUrl = process.env.DATABASE_URL;
-console.log('🔍 [DB ДИАГНОСТИКА] DATABASE_URL полный:', dbUrl);
+// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Принудительно используем правильную продакшн базу данных
+const PRODUCTION_DATABASE_URL = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
-// Извлекаем имя базы данных из URL
-const urlMatch = dbUrl.match(/ep-([^-]+)-([^-]+)-([^.]+)/);
+// Выводим диагностику подключения
+console.log('🔍 [DB ДИАГНОСТИКА] DATABASE_URL из окружения:', process.env.DATABASE_URL);
+console.log('🔍 [DB ДИАГНОСТИКА] ПРИНУДИТЕЛЬНО используем продакшн базу:', PRODUCTION_DATABASE_URL.substring(0, 60) + '...');
+
+// Извлекаем имя базы данных для подтверждения
+const urlMatch = PRODUCTION_DATABASE_URL.match(/ep-([^-]+)-([^-]+)-([^.]+)/);
 if (urlMatch) {
-  console.log('🔍 [DB ДИАГНОСТИКА] Извлеченная база:', urlMatch[0]);
+  console.log('🔍 [DB ДИАГНОСТИКА] Подключаемся к базе:', urlMatch[0]);
 } else {
-  console.log('🔍 [DB ДИАГНОСТИКА] Не удалось извлечь имя базы из URL');
+  console.log('🔍 [DB ДИАГНОСТИКА] Ошибка извлечения имени базы');
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({ connectionString: PRODUCTION_DATABASE_URL });
 export const db = drizzle({ client: pool, schema });
 
 // Проверяем подключение при старте
