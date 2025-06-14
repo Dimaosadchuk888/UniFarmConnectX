@@ -3,7 +3,7 @@
  * Отслеживает состояние connection pool PostgreSQL в реальном времени
  */
 
-import { pool } from '../server/db';
+import { pool } from './db';
 
 export interface PoolStats {
   totalCount: number;
