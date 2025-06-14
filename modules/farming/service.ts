@@ -1,6 +1,4 @@
-import { db } from '../../core/db';
-import { users, farmingDeposits, transactions } from '../../shared/schema.js';
-import { eq, sql } from 'drizzle-orm';
+import { supabase } from '../../core/supabaseClient';
 import { UserRepository } from '../../core/repositories/UserRepository';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';
