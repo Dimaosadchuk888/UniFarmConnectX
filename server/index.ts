@@ -500,8 +500,9 @@ async function startServer() {
     // Устанавливаем WebSocket сервер
     const wss = setupWebSocketServer(httpServer);
     
-    // Запуск сервера
-    const server = httpServer.listen(Number(apiPort), config.app.host, () => {
+    // Запуск сервера с принудительным использованием 0.0.0.0 для деплоя
+    const deploymentHost = process.env.NODE_ENV === 'production' ? '0.0.0.0' : config.app.host;
+    const server = httpServer.listen(Number(apiPort), deploymentHost, () => {
       logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
       logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
       logger.info(`🔌 WebSocket сервер активен на ws://${config.app.host}:${apiPort}/ws`);
