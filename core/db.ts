@@ -6,7 +6,18 @@ import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "../shared/schema";
 
-// Validate required environment variable
+// Force correct DATABASE_URL using available PostgreSQL variables
+const pgHost = process.env.PGHOST;
+const pgUser = process.env.PGUSER;
+const pgDatabase = process.env.PGDATABASE;
+const pgPassword = process.env.PGPASSWORD;
+const pgPort = process.env.PGPORT || 5432;
+
+if (pgHost && pgUser && pgDatabase && pgPassword) {
+  process.env.DATABASE_URL = `postgresql://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/${pgDatabase}?sslmode=require`;
+  console.log(`Using PostgreSQL connection: ${pgDatabase}@${pgHost}`);
+}
+
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required for database connection");
 }
