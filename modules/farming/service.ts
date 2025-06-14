@@ -208,11 +208,18 @@ export class FarmingService {
     estimatedReward: string;
   }> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, parseInt(userId)))
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', parseInt(userId))
         .limit(1);
+
+      if (error) {
+        logger.error('[FarmingService] Ошибка получения пользователя:', error.message);
+        throw error;
+      }
+
+      const user = users?.[0];
 
       if (!user) {
         return { 
@@ -257,23 +264,24 @@ export class FarmingService {
         return [];
       }
 
-      const farmingTransactions = await db
-        .select({
-          amount: transactions.amount,
-          type: transactions.transaction_type,
-          timestamp: transactions.created_at
-        })
-        .from(transactions)
-        .where(eq(transactions.user_id, user.id))
-        .orderBy(sql`${transactions.created_at} DESC`)
+      const { data: farmingTransactions, error } = await supabase
+        .from('transactions')
+        .select('amount_uni, type, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
         .limit(50);
 
-      const history = farmingTransactions
-        .filter(tx => tx.type && tx.type.includes('farming'))
-        .map(tx => ({
-          amount: tx.amount || '0',
-          source: tx.type || 'farming_reward',
-          timestamp: tx.timestamp?.toISOString() || new Date().toISOString()
+      if (error) {
+        logger.error('[FarmingService] Ошибка получения истории транзакций:', error.message);
+        return [];
+      }
+
+      const history = (farmingTransactions || [])
+        .filter((tx: any) => tx.type && tx.type.includes('FARMING'))
+        .map((tx: any) => ({
+          amount: tx.amount_uni?.toString() || '0',
+          source: tx.type || 'FARMING_REWARD',
+          timestamp: tx.created_at || new Date().toISOString()
         }));
 
       logger.info('[FarmingService] История фарминга получена', {
@@ -314,15 +322,15 @@ export class FarmingService {
       const currentFarmingBalance = parseFloat(user.uni_farming_balance || '0');
       const newFarmingBalance = (currentFarmingBalance + depositAmount).toFixed(8);
 
-      await db
-        .update(users)
-        .set({
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
           balance_uni: newBalance,
           uni_farming_balance: newFarmingBalance,
-          uni_farming_start_timestamp: new Date(),
-          uni_farming_last_update: new Date()
+          uni_farming_start_timestamp: new Date().toISOString(),
+          uni_farming_last_update: new Date().toISOString()
         })
-        .where(eq(users.id, user.id));
+        .eq('id', user.id);
 
       logger.info(`[UNI FARMING] User ${telegramId} deposited ${amount} UNI for farming`, {
         userId: user.id,
@@ -358,15 +366,15 @@ export class FarmingService {
       const currentBalance = parseFloat(user.balance_uni || '0');
       const newBalance = (currentBalance + farmingBalance).toFixed(8);
 
-      await db
-        .update(users)
-        .set({
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
           balance_uni: newBalance,
           uni_farming_balance: '0',
           uni_farming_start_timestamp: null,
-          uni_farming_last_update: new Date()
+          uni_farming_last_update: new Date().toISOString()
         })
-        .where(eq(users.id, user.id));
+        .eq('id', user.id);
 
       logger.info(`[UNI FARMING] User ${telegramId} harvested ${farmingBalance} UNI from farming`, {
         userId: user.id,
