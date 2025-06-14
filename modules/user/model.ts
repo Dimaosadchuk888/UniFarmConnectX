@@ -3,9 +3,8 @@
  * Пользовательские модели и схемы для работы с базой данных
  */
 
-import { db } from '../../core/db';
-import { users, type User, type InsertUser } from '../../shared/schema.js';
-import { eq } from 'drizzle-orm';
+import { supabase } from '../../core/supabaseClient';
+import { type User, type InsertUser } from '../../shared/schema.js';
 import { logger } from '../../core/logger.js';
 
 export class UserModel {

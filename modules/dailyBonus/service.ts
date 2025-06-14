@@ -1,6 +1,4 @@
-import { db } from '../../core/db';
-import { users, transactions } from '../../shared/schema.js';
-import { eq, and, desc, gte, lt } from 'drizzle-orm';
+import { supabase } from '../../core/supabaseClient';
 import { logger } from '../../core/logger.js';
 
 export class DailyBonusService {

@@ -1,6 +1,4 @@
-import { db } from '../../core/db';
-import { users, transactions } from '../../shared/schema.js';
-import { count, desc } from 'drizzle-orm';
+import { supabase } from '../../core/supabaseClient';
 import { logger } from '../../core/logger';
 
 interface DashboardStats {
