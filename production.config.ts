@@ -122,8 +122,6 @@ export class ProductionConfig {
     // Set defaults for production
     process.env.NODE_ENV = process.env.NODE_ENV || 'production';
     process.env.PORT = process.env.PORT || '3000';
-    process.env.DATABASE_PROVIDER = process.env.DATABASE_PROVIDER || 'neon';
-    process.env.USE_NEON_DB = process.env.USE_NEON_DB || 'true';
     process.env.ALLOW_BROWSER_ACCESS = process.env.ALLOW_BROWSER_ACCESS || 'true';
     process.env.SKIP_TELEGRAM_CHECK = process.env.SKIP_TELEGRAM_CHECK || 'false';
     
@@ -136,7 +134,6 @@ export class ProductionConfig {
     console.log('🔧 Production environment configured');
     console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
     console.log(`   PORT: ${process.env.PORT}`);
-    console.log(`   DATABASE_PROVIDER: ${process.env.DATABASE_PROVIDER}`);
     console.log(`   APP_URL: ${process.env.VITE_WEB_APP_URL || process.env.BASE_URL || 'Not set'}`);
   }
 
