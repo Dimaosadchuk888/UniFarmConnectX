@@ -423,7 +423,64 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             console.log('[UserContext] Ошибка Telegram авторизации:', telegramError);
           }
         } else {
-          console.log('[UserContext] Telegram данные недоступны');
+          console.log('[UserContext] Telegram данные недоступны - анализируем причины...');
+          
+          // Дополнительная диагностика
+          const telegramAvailable = typeof window.Telegram !== 'undefined';
+          const webAppAvailable = window.Telegram?.WebApp;
+          const initDataPresent = webAppAvailable?.initData;
+          const initDataLength = initDataPresent?.length || 0;
+          
+          console.log('[UserContext] Диагностика Telegram:', {
+            telegramAvailable,
+            webAppAvailable: !!webAppAvailable,
+            initDataPresent: !!initDataPresent,
+            initDataLength,
+            userAgent: navigator.userAgent,
+            referrer: document.referrer,
+            isIframe: window !== window.parent
+          });
+          
+          // Проверяем, есть ли признаки Telegram среды без initData
+          const possibleTelegramEnv = !!(
+            navigator.userAgent.includes('Telegram') ||
+            window.parent !== window ||
+            document.referrer.includes('telegram')
+          );
+          
+          if (possibleTelegramEnv && webAppAvailable) {
+            console.log('[UserContext] ⚠️ Telegram среда обнаружена, но initData пустой');
+            console.log('[UserContext] Возможно, приложение запущено в тестовом режиме или есть проблемы с BotFather');
+            
+            // Пытаемся получить данные из localStorage для fallback
+            const storedToken = localStorage.getItem('unifarm_auth_token');
+            const storedUserData = localStorage.getItem('unifarm_user_data');
+            
+            if (storedToken && storedUserData) {
+              try {
+                const userData = JSON.parse(storedUserData);
+                console.log('[UserContext] Восстанавливаем данные из localStorage');
+                
+                dispatch({
+                  type: 'SET_USER_DATA',
+                  payload: {
+                    userId: userData.id,
+                    username: userData.username,
+                    telegramId: userData.telegram_id,
+                    refCode: userData.ref_code
+                  }
+                });
+              } catch (e) {
+                console.log('[UserContext] Ошибка восстановления из localStorage:', e);
+              }
+            }
+          } else {
+            console.log('[UserContext] Приложение открыто вне Telegram - включаем демо режим');
+            
+            // Создаем временный гостевой ID для демонстрации
+            const guestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            console.log('Demo mode: using guest ID', guestId);
+          }
         }
         
         // Загружаем обычные данные пользователя
