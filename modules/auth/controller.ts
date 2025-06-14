@@ -58,6 +58,7 @@ export class AuthController extends BaseController {
       const { 
         initData: initDataFromBody, 
         ref_by, 
+        refBy,
         direct_registration,
         telegram_id,
         username,
@@ -66,9 +67,7 @@ export class AuthController extends BaseController {
         language_code
       } = req.body;
       
-      const initData = initDataFromHeaders || initDataFromBody;
-      
-      // Проверяем, что это прямая регистрация с данными пользователя
+      // Проверяем сначала прямую регистрацию с данными пользователя
       if (direct_registration && telegram_id) {
         logger.info('[AuthController] Прямая регистрация через Telegram данные пользователя', { 
           telegram_id,
@@ -82,7 +81,7 @@ export class AuthController extends BaseController {
           first_name: first_name || '',
           last_name: last_name || '',
           language_code: language_code || 'en'
-        }, ref_by);
+        }, refBy || ref_by);
         
         if (result.success) {
           this.sendSuccess(res, {
@@ -97,17 +96,18 @@ export class AuthController extends BaseController {
       }
       
       // Стандартная регистрация через initData
+      const initData = initDataFromHeaders || initDataFromBody;
       if (!initData) {
         throw new Error('InitData is required in headers or body for standard registration');
       }
       
       logger.info('[AuthController] Стандартная регистрация через Telegram', { 
-        has_ref: !!ref_by,
+        has_ref: !!(refBy || ref_by),
         initData_source: initDataFromHeaders ? 'headers' : 'body',
         initData_length: initData.length 
       });
       
-      const result = await this.authService.registerWithTelegram(initData, ref_by);
+      const result = await this.authService.registerWithTelegram(initData, refBy || ref_by);
       
       if (result.success) {
         this.sendSuccess(res, {

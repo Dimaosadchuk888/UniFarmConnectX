@@ -3,7 +3,7 @@
  * Проверяет новую логику прямой регистрации когда initData пустой
  */
 
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 class TelegramRegistrationFixTest {
   constructor() {
@@ -240,8 +240,6 @@ async function main() {
   await tester.runTest();
 }
 
-if (require.main === module) {
-  main().catch(console.error);
-}
+main().catch(console.error);
 
-module.exports = { TelegramRegistrationFixTest };
+export { TelegramRegistrationFixTest };
