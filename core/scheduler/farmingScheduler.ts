@@ -1,22 +1,14 @@
 /**
- * Автоматический планировщик начисления фарминг дохода
+ * Автоматический планировщик начисления фарминг дохода для Supabase API
  * Периодически обновляет баланс пользователей без ручного клейма
  */
 
 import cron from 'node-cron';
-import { db } from '../db';
-import { users } from '../../shared/schema';
-import { eq, and, isNotNull } from 'drizzle-orm';
-import { WalletService } from '../../modules/wallet/service';
+import { supabase } from '../supabaseClient';
 import { logger } from '../logger';
 
 export class FarmingScheduler {
-  private walletService: WalletService;
   private isRunning: boolean = false;
-
-  constructor() {
-    this.walletService = new WalletService();
-  }
 
   /**
    * Запускает автоматическое начисление фарминг дохода каждые 5 минут
@@ -47,91 +39,47 @@ export class FarmingScheduler {
       logger.info('[UNI Farming] Начинаем обработку автоматического начисления дохода');
 
       // Находим всех активных UNI фармеров
-      const activeFarmers = await db
-        .select()
-        .from(users)
-        .where(and(
-          isNotNull(users.uni_farming_start_timestamp),
-          isNotNull(users.uni_farming_rate)
-        ));
+      const { data: activeFarmers, error } = await supabase
+        .from('users')
+        .select('*')
+        .not('uni_farming_start_timestamp', 'is', null)
+        .not('uni_farming_rate', 'is', null);
 
-      logger.info(`[UNI Farming] Найдено ${activeFarmers.length} активных фармеров`);
+      if (error) {
+        logger.error('[UNI Farming] Ошибка получения активных фармеров:', error.message);
+        return;
+      }
 
-      const processedCount = { success: 0, failed: 0, skipped: 0 };
-      const timestamp = new Date().toISOString();
+      logger.info(`[UNI Farming] Найдено ${activeFarmers?.length || 0} активных фармеров`);
 
-      for (const farmer of activeFarmers) {
+      for (const farmer of activeFarmers || []) {
         try {
           const income = await this.calculateUniFarmingIncome(farmer);
           
           if (parseFloat(income) > 0) {
-            logger.debug(`[FARMING_SCHEDULER] Processing UNI income for user ${farmer.id}: ${income}`, {
-              userId: farmer.id,
-              calculatedIncome: income,
-              currency: 'UNI',
-              timestamp
-            });
-            
-            const success = await this.walletService.addUniFarmIncome(
-              farmer.id.toString(), 
-              income
-            );
-            
-            if (success) {
-              // Обновляем время последнего начисления
-              await db
-                .update(users)
-                .set({ uni_farming_last_update: new Date() })
-                .where(eq(users.id, farmer.id));
-              
-              processedCount.success++;
-              
+            // Обновляем баланс пользователя
+            const { error: updateError } = await supabase
+              .from('users')
+              .update({
+                balance_uni: parseFloat(farmer.balance_uni || '0') + parseFloat(income),
+                uni_farming_last_update: new Date().toISOString()
+              })
+              .eq('id', farmer.id);
+
+            if (!updateError) {
               logger.info(`[FARMING_SCHEDULER] Successfully processed UNI farming for user ${farmer.id}`, {
                 userId: farmer.id,
                 amount: income,
-                currency: 'UNI',
-                operation: 'scheduled_farming_income',
-                timestamp
-              });
-            } else {
-              processedCount.failed++;
-              logger.error(`[FARMING_SCHEDULER] Failed to process UNI income for user ${farmer.id}`, {
-                userId: farmer.id,
-                amount: income,
-                currency: 'UNI',
-                timestamp
+                currency: 'UNI'
               });
             }
-          } else {
-            processedCount.skipped++;
-            logger.debug(`[FARMING_SCHEDULER] Skipped user ${farmer.id}: no UNI income to process`, {
-              userId: farmer.id,
-              calculatedIncome: income,
-              currency: 'UNI',
-              timestamp
-            });
           }
         } catch (error) {
-          processedCount.failed++;
-          logger.error(`[FARMING_SCHEDULER] Critical error processing user ${farmer.id}`, {
-            userId: farmer.id,
-            currency: 'UNI',
-            error: error instanceof Error ? error.message : String(error),
-            timestamp
-          });
+          logger.error(`[UNI Farming] Error processing farmer ${farmer.id}:`, error instanceof Error ? error.message : String(error));
         }
       }
-
-      logger.info(`[FARMING_SCHEDULER] UNI farming cycle completed`, {
-        processed: processedCount.success,
-        failed: processedCount.failed,
-        skipped: processedCount.skipped,
-        total: activeFarmers.length,
-        currency: 'UNI',
-        timestamp
-      });
     } catch (error) {
-      logger.error('[UNI Farming] Критическая ошибка автоматического начисления:', error);
+      logger.error('[UNI Farming] Ошибка обработки автоматического начисления:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -142,185 +90,86 @@ export class FarmingScheduler {
     try {
       logger.info('[TON Farming] Начинаем обработку автоматического начисления дохода');
 
-      // Находим всех активных TON фармеров через boost депозиты
-      // Пока используем UNI поля как базу для TON фарминга
-      const activeBoostUsers = await db
-        .select()
-        .from(users)
-        .where(and(
-          isNotNull(users.uni_farming_start_timestamp),
-          isNotNull(users.uni_farming_rate)
-        ));
+      // Находим всех активных TON фармеров
+      const { data: activeFarmers, error } = await supabase
+        .from('farming_sessions')
+        .select('*, users(*)')
+        .eq('farming_type', 'TON_FARMING')
+        .eq('is_active', true);
 
-      logger.info(`[TON Farming] Найдено ${activeBoostUsers.length} активных TON фармеров`);
+      if (error) {
+        logger.error('[TON Farming] Ошибка получения активных фармеров:', error.message);
+        return;
+      }
 
-      const processedCount = { success: 0, failed: 0, skipped: 0 };
-      const timestamp = new Date().toISOString();
+      logger.info(`[TON Farming] Найдено ${activeFarmers?.length || 0} активных сессий`);
 
-      for (const farmer of activeBoostUsers) {
+      for (const session of activeFarmers || []) {
         try {
-          const income = await this.calculateTonFarmingIncome(farmer);
+          const income = await this.calculateTonFarmingIncome(session);
           
           if (parseFloat(income) > 0) {
-            logger.debug(`[FARMING_SCHEDULER] Processing TON income for user ${farmer.id}: ${income}`, {
-              userId: farmer.id,
-              calculatedIncome: income,
-              currency: 'TON',
-              timestamp
-            });
-            
-            const success = await this.walletService.addTonFarmIncome(
-              farmer.id.toString(), 
-              income
-            );
-            
-            if (success) {
-              // Обновляем время последнего начисления
-              await db
-                .update(users)
-                .set({ uni_farming_last_update: new Date() })
-                .where(eq(users.id, farmer.id));
-              
-              processedCount.success++;
-              
-              logger.info(`[FARMING_SCHEDULER] Successfully processed TON farming for user ${farmer.id}`, {
-                userId: farmer.id,
+            // Обновляем баланс пользователя
+            const { error: updateError } = await supabase
+              .from('users')
+              .update({
+                balance_ton: parseFloat(session.users?.balance_ton || '0') + parseFloat(income)
+              })
+              .eq('id', session.user_id);
+
+            if (!updateError) {
+              logger.info(`[FARMING_SCHEDULER] Successfully processed TON farming for user ${session.user_id}`, {
+                userId: session.user_id,
                 amount: income,
-                currency: 'TON',
-                operation: 'scheduled_farming_income',
-                timestamp
-              });
-            } else {
-              processedCount.failed++;
-              logger.error(`[FARMING_SCHEDULER] Failed to process TON income for user ${farmer.id}`, {
-                userId: farmer.id,
-                amount: income,
-                currency: 'TON',
-                timestamp
+                currency: 'TON'
               });
             }
-          } else {
-            processedCount.skipped++;
-            logger.debug(`[FARMING_SCHEDULER] Skipped user ${farmer.id}: no TON income to process`, {
-              userId: farmer.id,
-              calculatedIncome: income,
-              currency: 'TON',
-              timestamp
-            });
           }
         } catch (error) {
-          processedCount.failed++;
-          logger.error(`[FARMING_SCHEDULER] Critical error processing user ${farmer.id}`, {
-            userId: farmer.id,
-            currency: 'TON',
-            error: error instanceof Error ? error.message : String(error),
-            timestamp
-          });
+          logger.error(`[TON Farming] Error processing session ${session.id}:`, error instanceof Error ? error.message : String(error));
         }
       }
-
-      logger.info(`[FARMING_SCHEDULER] TON farming cycle completed`, {
-        processed: processedCount.success,
-        failed: processedCount.failed,
-        skipped: processedCount.skipped,
-        total: activeBoostUsers.length,
-        currency: 'TON',
-        timestamp
-      });
     } catch (error) {
-      logger.error('[TON Farming] Критическая ошибка автоматического начисления:', error);
+      logger.error('[TON Farming] Ошибка обработки автоматического начисления:', error instanceof Error ? error.message : String(error));
     }
   }
 
   /**
-   * Рассчитывает доход UNI фарминга за период с последнего начисления
+   * Рассчитывает доход от UNI фарминга
    */
   private async calculateUniFarmingIncome(farmer: any): Promise<string> {
-    try {
-      const now = new Date();
-      const lastUpdate = farmer.uni_farming_last_update 
-        ? new Date(farmer.uni_farming_last_update)
-        : new Date(farmer.uni_farming_start_timestamp);
-      
-      const secondsElapsed = (now.getTime() - lastUpdate.getTime()) / 1000;
-      
-      // Базовая ставка 0.001 UNI в час = 0.000000277778 UNI в секунду
-      const baseRatePerSecond = 0.001 / 3600;
-      const ratePerSecond = parseFloat(farmer.uni_farming_rate || "0") || baseRatePerSecond;
-      
-      const income = secondsElapsed * ratePerSecond;
-      
-      return income.toFixed(8);
-    } catch (error) {
-      logger.error(`Ошибка расчета UNI дохода для пользователя ${farmer.id}:`, error);
-      return "0";
-    }
+    const now = new Date();
+    const lastUpdate = farmer.uni_farming_last_update ? new Date(farmer.uni_farming_last_update) : new Date(farmer.uni_farming_start_timestamp);
+    const hoursSinceLastUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+    
+    const rate = parseFloat(farmer.uni_farming_rate || '0');
+    const income = rate * hoursSinceLastUpdate;
+    
+    return income.toFixed(6);
   }
 
   /**
-   * Рассчитывает доход TON фарминга за период с последнего начисления
+   * Рассчитывает доход от TON фарминга
    */
-  private async calculateTonFarmingIncome(farmer: any): Promise<string> {
-    try {
-      const now = new Date();
-      const lastUpdate = farmer.uni_farming_last_update 
-        ? new Date(farmer.uni_farming_last_update)
-        : new Date(farmer.uni_farming_start_timestamp);
-      
-      const secondsElapsed = (now.getTime() - lastUpdate.getTime()) / 1000;
-      // Используем базовую ставку TON = 0.0001 TON в час
-      const tonRatePerSecond = 0.0001 / 3600;
-      const ratePerSecond = tonRatePerSecond;
-      
-      if (ratePerSecond <= 0) {
-        return "0";
-      }
-      
-      const income = secondsElapsed * ratePerSecond;
-      
-      return income.toFixed(8);
-    } catch (error) {
-      logger.error(`Ошибка расчета TON дохода для пользователя ${farmer.id}:`, error);
-      return "0";
-    }
+  private async calculateTonFarmingIncome(session: any): Promise<string> {
+    const now = new Date();
+    const lastClaim = session.last_claim ? new Date(session.last_claim) : new Date(session.started_at);
+    const hoursSinceLastClaim = (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60);
+    
+    const rate = parseFloat(session.rate || '0');
+    const multiplier = parseFloat(session.boost_multiplier || '1');
+    const income = rate * hoursSinceLastClaim * multiplier;
+    
+    return income.toFixed(6);
   }
 
   /**
    * Останавливает планировщик
    */
   stop(): void {
-    if (!this.isRunning) {
-      logger.warn('FarmingScheduler уже остановлен');
-      return;
+    if (this.isRunning) {
+      this.isRunning = false;
+      logger.info('🛑 Планировщик фарминг дохода остановлен');
     }
-
-    // Gracefully stop cron jobs
-    this.isRunning = false;
-    logger.info('🔴 Планировщик фарминг дохода остановлен');
-  }
-
-  /**
-   * Проверяет статус планировщика
-   */
-  getStatus(): { running: boolean; info: string } {
-    return {
-      running: this.isRunning,
-      info: this.isRunning 
-        ? 'Автоматическое начисление активно (каждые 5 минут)'
-        : 'Автоматическое начисление неактивно'
-    };
-  }
-
-  /**
-   * Выполняет ручной запуск обработки (для тестирования)
-   */
-  async runManually(): Promise<void> {
-    logger.info('🔧 Ручной запуск обработки фарминг дохода');
-    await this.processUniFarmingIncome();
-    await this.processTonFarmingIncome();
-    logger.info('✅ Ручная обработка завершена');
   }
 }
-
-// Глобальный экземпляр планировщика
-export const farmingScheduler = new FarmingScheduler();
