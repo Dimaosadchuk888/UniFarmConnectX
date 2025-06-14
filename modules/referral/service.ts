@@ -8,8 +8,7 @@
  * 4. Получение статистики рефералов
  */
 
-import { db } from '../../core/db';
-import { logger } from '../../core/logger';
+import { supabase } from '../../core/supabase';
 
 export class ReferralService {
 
