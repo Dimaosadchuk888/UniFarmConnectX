@@ -46,6 +46,13 @@ class HealthMonitor {
         lastCheck: new Date().toISOString(),
         error: 'Database connections removed - ready for new setup'
       };
+    } catch (error) {
+      return {
+        status: 'down',
+        responseTime: Date.now() - startTime,
+        lastCheck: new Date().toISOString(),
+        error: 'Database monitoring disabled'
+      };
     }
   }
 

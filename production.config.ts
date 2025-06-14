@@ -36,14 +36,11 @@ export class ProductionConfig {
   constructor() {
     this.requiredSecrets = [
       'TELEGRAM_BOT_TOKEN',
-      'DATABASE_URL',
       'SESSION_SECRET',
       'JWT_SECRET'
     ];
     
     this.optionalSecrets = [
-      'NEON_API_KEY',
-      'NEON_PROJECT_ID',
       'ADMIN_SECRET'
     ];
   }
