@@ -15,7 +15,7 @@ process.env.PORT = process.env.PORT || '3000';
 console.log('Starting UniFarm production server with Supabase...');
 console.log(`Port: ${process.env.PORT}`);
 console.log(`Host: ${process.env.HOST}`);
-console.log(`Database: Supabase PostgreSQL via DATABASE_URL`);
+console.log(`Database: PostgreSQL via DATABASE_URL only`);
 
 // Verify required environment variables
 const requiredVars = ['DATABASE_URL', 'TELEGRAM_BOT_TOKEN'];
