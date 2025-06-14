@@ -20,18 +20,25 @@ export class UserRepository {
     try {
       logger.info('[UserRepository] Searching user by telegram_id', { telegramId });
       
-      const [user] = await db.select()
-        .from(users)
-        .where(eq(users.telegram_id, telegramId))
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', telegramId)
         .limit(1);
 
-      if (user) {
-        logger.info('[UserRepository] User found', { userId: user.id });
-        return user;
+      if (error) {
+        logger.error('[UserRepository] Supabase error finding user', { error: error.message });
+        return null;
       }
 
-      logger.info('[UserRepository] User not found for telegram_id', { telegramId });
-      return null;
+      const user = users?.[0] || null;
+      if (user) {
+        logger.info('[UserRepository] User found', { userId: user.id });
+      } else {
+        logger.info('[UserRepository] User not found for telegram_id', { telegramId });
+      }
+
+      return user;
     } catch (error) {
       logger.error('[UserRepository] Error finding user by telegram_id', { error: error instanceof Error ? error.message : String(error) });
       return null;
@@ -43,12 +50,18 @@ export class UserRepository {
    */
   async findByRefCode(refCode: string): Promise<User | null> {
     try {
-      const [user] = await db.select()
-        .from(users)
-        .where(eq(users.ref_code, refCode))
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('ref_code', refCode)
         .limit(1);
 
-      return user || null;
+      if (error) {
+        logger.error('[UserRepository] Supabase error finding user by ref_code', { error: error.message });
+        return null;
+      }
+
+      return users?.[0] || null;
     } catch (error) {
       logger.error('[UserRepository] Error finding user by ref_code', { error: error instanceof Error ? error.message : String(error) });
       return null;
@@ -105,45 +118,27 @@ export class UserRepository {
 
       console.log('✅ Inserting user data into database:', userData);
       
-      // ДИАГНОСТИКА: Проверяем подключение к базе данных перед INSERT
-      console.log('🔍 [REPOSITORY ДИАГНОСТИКА] Перед INSERT - проверяем подключение...');
-      
-      try {
-        const dbInfo = await db.execute(sql`SELECT current_user, current_database(), inet_server_addr()`);
-        console.log('🔍 [REPOSITORY ДИАГНОСТИКА] Подключение активно:');
-        console.log('  - Пользователь БД:', dbInfo[0]?.current_user);
-        console.log('  - База данных:', dbInfo[0]?.current_database);
-        console.log('  - Сервер:', dbInfo[0]?.inet_server_addr);
-        
-        // Считаем текущих пользователей
-        const countBefore = await db.execute(sql`SELECT COUNT(*) as count FROM users`);
-        console.log('🔍 [REPOSITORY ДИАГНОСТИКА] Пользователей до INSERT:', countBefore[0]?.count);
-        
-        // Выполняем INSERT
-        const [newUser] = await db.insert(users)
-          .values(userData)
-          .returning();
-          
-        // Считаем после INSERT
-        const countAfter = await db.execute(sql`SELECT COUNT(*) as count FROM users`);
-        console.log('🔍 [REPOSITORY ДИАГНОСТИКА] Пользователей после INSERT:', countAfter[0]?.count);
-        
-        // Проверяем конкретного пользователя
-        const verification = await db.execute(sql`SELECT id, telegram_id, ref_code FROM users WHERE id = ${newUser.id}`);
-        console.log('🔍 [REPOSITORY ДИАГНОСТИКА] Созданный пользователь найден:', verification[0]);
+      // Создаем пользователя через Supabase API
+      const { data: newUsers, error } = await supabase
+        .from('users')
+        .insert([userData])
+        .select()
+        .single();
 
-        logger.info('[UserRepository] Successfully created user', { userId: newUser.id });
-        console.log('✅ User successfully created in database:', { 
-          id: newUser.id, 
-          telegram_id: newUser.telegram_id, 
-          ref_code: newUser.ref_code 
-        });
-        
-        return newUser;
-      } catch (dbError) {
-        console.error('❌ [REPOSITORY ДИАГНОСТИКА] Ошибка SQL операций:', dbError);
-        throw dbError;
+      if (error) {
+        console.error('❌ Supabase error creating user:', error.message);
+        throw new Error(`Failed to create user: ${error.message}`);
       }
+
+      const newUser = newUsers as User;
+      logger.info('[UserRepository] Successfully created user', { userId: newUser.id });
+      console.log('✅ User successfully created in database:', { 
+        id: newUser.id, 
+        telegram_id: newUser.telegram_id, 
+        ref_code: newUser.ref_code 
+      });
+      
+      return newUser;
     } catch (error) {
       logger.error('[UserRepository] Error creating user from Telegram', { error: error instanceof Error ? error.message : String(error) });
       throw error;
@@ -155,12 +150,19 @@ export class UserRepository {
    */
   async updateUser(id: number, updates: Partial<InsertUser>): Promise<User | null> {
     try {
-      const [updatedUser] = await db.update(users)
-        .set(updates)
-        .where(eq(users.id, id))
-        .returning();
+      const { data, error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
 
-      return updatedUser || null;
+      if (error) {
+        console.error('[UserRepository] Supabase error updating user:', error.message);
+        return null;
+      }
+
+      return data as User;
     } catch (error) {
       console.error('[UserRepository] Error updating user:', error);
       return null;
@@ -175,21 +177,33 @@ export class UserRepository {
     usernameExists: boolean;
   }> {
     try {
-      const telegramIdCheck = await db.select({ id: users.id })
-        .from(users)
-        .where(eq(users.telegram_id, telegramId))
+      const { data: telegramIdCheck, error: telegramIdError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('telegram_id', telegramId)
         .limit(1);
+
+      if (telegramIdError) {
+        console.error('[UserRepository] Error checking telegram_id uniqueness:', telegramIdError.message);
+      }
 
       let usernameCheck: any[] = [];
       if (username) {
-        usernameCheck = await db.select({ id: users.id })
-          .from(users)
-          .where(eq(users.username, username))
+        const { data: usernameData, error: usernameError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('username', username)
           .limit(1);
+
+        if (usernameError) {
+          console.error('[UserRepository] Error checking username uniqueness:', usernameError.message);
+        } else {
+          usernameCheck = usernameData || [];
+        }
       }
 
       return {
-        telegramIdExists: telegramIdCheck.length > 0,
+        telegramIdExists: (telegramIdCheck || []).length > 0,
         usernameExists: usernameCheck.length > 0
       };
     } catch (error) {
