@@ -131,6 +131,7 @@ Each business domain is organized as a self-contained module:
 - June 14, 2025. T22 Comprehensive system audit completed - added user_sessions table to schema, created CORS middleware for Telegram security, verified all 12 system components healthy, confirmed API routing structure /api/v2 prefix working correctly
 - June 14, 2025. T24 Telegram Mini App authorization diagnostic completed - identified root cause of empty initData (application opening in browser instead of Telegram), implemented enhanced diagnostic logging in main.tsx with retry mechanisms, added fallback handling in UserContext for missing Telegram data, created comprehensive setup guide for BotFather configuration
 - June 14, 2025. T24 УСПЕШНОЕ РЕШЕНИЕ - Telegram авторизация полностью восстановлена в production, все исправления работают корректно: initData получается, пользователи авторизуются, улучшенная диагностика активна, система готова к полноценному использованию
+- June 14, 2025. T25 Реализована система прямой регистрации без initData - добавлена поддержка регистрации через initDataUnsafe в UserContext, создан метод registerDirectFromTelegramUser в AuthService, обновлены middleware и схемы валидации для обработки запросов без HMAC проверки, обеспечен полный цикл регистрации пользователей с генерацией JWT и реферальных кодов
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
