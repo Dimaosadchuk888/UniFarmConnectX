@@ -22,6 +22,7 @@ export class AuthController extends BaseController {
       
       // Проверяем прямую регистрацию для аутентификации
       if (direct_registration && telegram_id) {
+        console.log('DATABASE_URL в AuthController =', process.env.DATABASE_URL);
         logger.info('[AuthController] Прямая аутентификация через Telegram данные пользователя', { 
           telegram_id,
           has_ref: !!ref_by
