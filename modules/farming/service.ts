@@ -148,14 +148,14 @@ export class FarmingService {
       const newBalance = String(previousBalance + parseFloat(baseReward));
       const timestamp = new Date().toISOString();
       
-      await db
-        .update(users)
-        .set({ 
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ 
           balance_uni: newBalance,
-          uni_farming_start_timestamp: now, // Сбрасываем время для нового цикла
-          uni_farming_last_update: now
+          uni_farming_start_timestamp: now.toISOString(),
+          uni_farming_last_update: now.toISOString()
         })
-        .where(sql`${users.telegram_id} = ${Number(telegramId)}`);
+        .eq('telegram_id', Number(telegramId));
 
       // ЛОГИРОВАНИЕ РУЧНОГО КЛЕЙМА (LEGACY)
       logger.info(`[FARMING] User ${user.id} claimed ${baseReward} UNI at ${timestamp}`, {
@@ -171,13 +171,13 @@ export class FarmingService {
       });
 
       // Записываем транзакцию о начислении
-      await db
-        .insert(transactions)
-        .values({
+      const { error: txError } = await supabase
+        .from('transactions')
+        .insert([{
           user_id: user.id,
-          transaction_type: 'farming_reward',
-          currency: 'UNI',
-          amount: baseReward,
+          type: 'FARMING_REWARD',
+          amount_uni: parseFloat(baseReward),
+          amount_ton: 0,
           description: `Farming reward for ${farmingHours.toFixed(2)} hours`,
           status: 'confirmed'
         });
