@@ -3,7 +3,7 @@
  * Пользовательские модели и схемы для работы с базой данных
  */
 
-import { supabase } from '../../core/supabaseClient';
+import { supabase } from '../../core/supabase';
 import { type User, type InsertUser } from '../../shared/schema.js';
 import { logger } from '../../core/logger.js';
 

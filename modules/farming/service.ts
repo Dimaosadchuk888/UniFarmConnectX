@@ -1,4 +1,4 @@
-import { supabase } from '../../core/supabaseClient';
+import { supabase } from '../../core/supabase';
 import { UserRepository } from '../../core/repositories/UserRepository';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';

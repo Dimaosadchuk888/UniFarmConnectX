@@ -1,4 +1,4 @@
-import { supabase } from '../../core/supabaseClient';
+import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
 
 interface DashboardStats {
