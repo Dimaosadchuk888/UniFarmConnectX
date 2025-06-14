@@ -429,6 +429,39 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // Загружаем обычные данные пользователя
         await refreshUserData();
         
+        // Проверяем и восстанавливаем ref_code для существующих пользователей
+        if (state.userId && !state.refCode) {
+          console.log('[UserContext] Пользователь без ref_code, восстанавливаем...');
+          try {
+            const recoveryResponse = await fetch('/api/v2/users/recover-ref-code', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('unifarm_auth_token')}`
+              }
+            }).then(res => res.json());
+
+            if (recoveryResponse.success && recoveryResponse.ref_code) {
+              console.log('[UserContext] Ref_code восстановлен:', recoveryResponse.ref_code);
+              
+              // Обновляем состояние пользователя
+              dispatch({
+                type: 'SET_USER_DATA',
+                payload: {
+                  refCode: recoveryResponse.ref_code
+                }
+              });
+              
+              // Обновляем localStorage
+              const userData = JSON.parse(localStorage.getItem('unifarm_user_data') || '{}');
+              userData.ref_code = recoveryResponse.ref_code;
+              localStorage.setItem('unifarm_user_data', JSON.stringify(userData));
+            }
+          } catch (recoveryError) {
+            console.log('[UserContext] Ошибка восстановления ref_code:', recoveryError);
+          }
+        }
+        
         // Затем, если получили userId, запрашиваем баланс
         if (state.userId) {
           await refreshBalance();

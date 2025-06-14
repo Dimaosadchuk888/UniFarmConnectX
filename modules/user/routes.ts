@@ -9,5 +9,6 @@ router.post('/', userController.createUser.bind(userController));
 router.get('/profile', userController.getCurrentUser.bind(userController));
 router.put('/:id', userController.updateUser.bind(userController));
 router.post('/ref-code', userController.generateRefCode.bind(userController));
+router.post('/recover-ref-code', userController.recoverRefCode.bind(userController));
 
 export default router;

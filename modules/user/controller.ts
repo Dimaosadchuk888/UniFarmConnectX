@@ -108,4 +108,77 @@ export class UserController extends BaseController {
       });
     }, 'генерации реферального кода');
   }
+
+  /**
+   * Восстановление реферального кода для существующих пользователей
+   */
+  async recoverRefCode(req: Request, res: Response) {
+    await this.handleRequest(req, res, async () => {
+      // Извлекаем пользователя из JWT токена
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return this.sendError(res, 'Authorization token required', 401);
+      }
+
+      const token = authHeader.split(' ')[1];
+      
+      try {
+        const jwt = await import('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
+        
+        if (!decoded || !decoded.telegram_id) {
+          return this.sendError(res, 'Invalid token', 401);
+        }
+
+        logger.info('[RecoverRefCode] Восстановление ref_code для пользователя', {
+          telegram_id: decoded.telegram_id
+        });
+
+        // Ищем пользователя по telegram_id
+        const user = await userService.findUserByTelegramId(decoded.telegram_id);
+        
+        if (!user) {
+          return this.sendError(res, 'User not found', 404);
+        }
+
+        // Если у пользователя уже есть ref_code, возвращаем его
+        if (user.ref_code) {
+          logger.info('[RecoverRefCode] Пользователь уже имеет ref_code', {
+            user_id: user.id,
+            ref_code: user.ref_code
+          });
+          
+          return this.sendSuccess(res, {
+            ref_code: user.ref_code,
+            status: 'already_exists'
+          });
+        }
+
+        // Генерируем новый ref_code
+        const refCode = `REF${user.telegram_id}${Date.now()}`;
+        
+        // Обновляем пользователя
+        const updatedUser = await userService.updateUserRefCode(user.id, refCode);
+        
+        logger.info('[RecoverRefCode] Ref_code успешно восстановлен', {
+          user_id: user.id,
+          telegram_id: user.telegram_id,
+          ref_code: refCode
+        });
+
+        this.sendSuccess(res, {
+          ref_code: refCode,
+          status: 'recovered',
+          user_id: user.id
+        });
+
+      } catch (jwtError) {
+        logger.error('[RecoverRefCode] Ошибка JWT токена', {
+          error: jwtError instanceof Error ? jwtError.message : String(jwtError)
+        });
+        
+        return this.sendError(res, 'Invalid or expired token', 401);
+      }
+    }, 'восстановления реферального кода');
+  }
 }

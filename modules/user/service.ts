@@ -352,4 +352,35 @@ export class UserService {
       throw error;
     }
   }
+
+  /**
+   * Обновление реферального кода пользователя
+   */
+  async updateUserRefCode(userId: number, refCode: string): Promise<User> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ ref_code: refCode })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error('User not found or update failed');
+      }
+
+      logger.info('[UserService] Ref_code обновлен', {
+        user_id: userId,
+        ref_code: refCode
+      });
+
+      return updatedUser;
+    } catch (error) {
+      logger.error('[UserService] Ошибка обновления ref_code', {
+        user_id: userId,
+        ref_code: refCode,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
 }
