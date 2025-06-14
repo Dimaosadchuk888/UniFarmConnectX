@@ -38,11 +38,18 @@ export class UserModel {
    */
   static async findByTelegramId(telegramId: string | number): Promise<User | null> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.telegram_id, Number(telegramId)))
+      const { data: usersData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', Number(telegramId))
         .limit(1);
+
+      if (error) {
+        logger.error('[UserModel] Ошибка получения пользователя по Telegram ID:', error.message);
+        throw error;
+      }
+
+      const user = usersData?.[0];
       
       return user || null;
     } catch (error) {
@@ -56,11 +63,18 @@ export class UserModel {
    */
   static async findByGuestId(guestId: string): Promise<User | null> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, parseInt(guestId)))
+      const { data: usersData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', parseInt(guestId))
         .limit(1);
+
+      if (error) {
+        logger.error('[UserModel] Ошибка получения пользователя по Guest ID:', error.message);
+        throw error;
+      }
+
+      const user = usersData?.[0];
       
       return user || null;
     } catch (error) {
@@ -74,10 +88,18 @@ export class UserModel {
    */
   static async create(userData: Omit<InsertUser, 'id'>): Promise<User | null> {
     try {
-      const [newUser] = await db
-        .insert(users)
-        .values(userData)
-        .returning();
+      const { data: newUsersData, error } = await supabase
+        .from('users')
+        .insert(userData)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('[UserModel] Ошибка создания пользователя:', error.message);
+        throw error;
+      }
+
+      const newUser = newUsersData;
       
       return newUser || null;
     } catch (error) {
@@ -91,11 +113,19 @@ export class UserModel {
    */
   static async update(id: number, userData: Partial<InsertUser>): Promise<User | null> {
     try {
-      const [updatedUser] = await db
-        .update(users)
-        .set(userData)
-        .where(eq(users.id, id))
-        .returning();
+      const { data: updatedUsersData, error } = await supabase
+        .from('users')
+        .update(userData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('[UserModel] Ошибка обновления пользователя:', error.message);
+        throw error;
+      }
+
+      const updatedUser = updatedUsersData;
       
       return updatedUser || null;
     } catch (error) {
@@ -123,11 +153,19 @@ export class UserModel {
         updateData.balance_ton = balanceTon;
       }
 
-      const [updatedUser] = await db
-        .update(users)
-        .set(updateData)
-        .where(eq(users.id, id))
-        .returning();
+      const { data: updatedUsersData, error } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('[UserModel] Ошибка обновления баланса:', error.message);
+        throw error;
+      }
+
+      const updatedUser = updatedUsersData;
       
       return updatedUser || null;
     } catch (error) {
@@ -141,11 +179,15 @@ export class UserModel {
    */
   static async getAll(limit: number = 50, offset: number = 0): Promise<User[]> {
     try {
-      const usersList = await db
-        .select()
-        .from(users)
-        .limit(limit)
-        .offset(offset);
+      const { data: usersList, error } = await supabase
+        .from('users')
+        .select('*')
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        logger.error('[UserModel] Ошибка получения списка пользователей:', error.message);
+        throw error;
+      }
       
       return usersList;
     } catch (error) {
