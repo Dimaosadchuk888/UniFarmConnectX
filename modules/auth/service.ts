@@ -93,17 +93,18 @@ export class AuthService {
         ref_code: userInfo.ref_code 
       });
 
-      // Generate JWT token
-      const token = generateJWTToken(telegramUser, userInfo.ref_code || '');
+      
+      // Generate JWT token with null-safe values
+      const token = generateJWTToken(telegramUser, userInfo.ref_code || undefined);
 
       return {
         success: true,
         user: {
           id: userInfo.id.toString(),
           telegram_id: telegramUser.id,
-          username: telegramUser.username || userInfo.username,
+          username: telegramUser.username || userInfo.username || '',
           ref_code: userInfo.ref_code || '',
-          created_at: userInfo.created_at ? userInfo.created_at.toISOString() : now.toISOString()
+          created_at: userInfo.created_at ? userInfo.created_at.toISOString() : new Date().toISOString()
         },
         token,
         isNewUser

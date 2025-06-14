@@ -126,6 +126,7 @@ Each business domain is organized as a self-contained module:
 - June 13, 2025. T18 Telegram user registration endpoint implemented - users now save to database correctly
 - June 13, 2025. T15 Database synchronization integrated into production server - auto-executes on deployment
 - June 13, 2025. T19 Critical Telegram authorization fixes completed - removed blocking components, added automatic user registration to UserContext, fixed API routes for /register/telegram and /users/profile, enhanced HMAC validation logging
+- June 13, 2025. T20 Telegram user registration system fully operational - fixed AuthService imports, created simplified telegram middleware, added null-safe data handling, ensured automatic database user creation with referral codes
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
