@@ -126,7 +126,10 @@ export class FarmingService {
 
   async claimRewards(telegramId: string): Promise<{ amount: string; claimed: boolean }> {
     try {
-      const user = await UserRepository.requireByTelegramId(telegramId);
+      const user = await UserRepository.findByTelegramId(telegramId);
+      if (!user) {
+        throw new Error(`User with Telegram ID ${telegramId} not found`);
+      }
       
       if (!user.uni_farming_start_timestamp) {
         return { amount: "0", claimed: false };
