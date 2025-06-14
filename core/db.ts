@@ -1,6 +1,5 @@
-// Export Supabase client as main database connection
-export { supabase as db } from './supabaseClient'
-export { supabase } from './supabaseClient'
+// Stub file - database operations moved to Supabase API
+// This file is no longer used as all database operations
+// now use the centralized Supabase client from core/supabase.ts
 
-// Re-export schema for compatibility
-export * from '../shared/schema'
+export const db = null; // Deprecated - use Supabase API instead

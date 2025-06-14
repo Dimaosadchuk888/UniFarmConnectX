@@ -89,10 +89,15 @@ export class FarmingService {
       const user = await UserRepository.findByTelegramId(telegramId);
       if (!user) return false;
 
-      return await UserRepository.updateFarmingTimestamps(user.id.toString(), {
-        uni_farming_start_timestamp: new Date(),
-        uni_farming_last_update: new Date()
-      });
+      const { error } = await supabase
+        .from('users')
+        .update({
+          uni_farming_start_timestamp: new Date().toISOString(),
+          uni_farming_last_update: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      return !error;
     } catch (error) {
       logger.error('[FarmingService] Ошибка запуска фарминга', { error: error instanceof Error ? error.message : String(error) });
       return false;
@@ -104,10 +109,15 @@ export class FarmingService {
       const user = await UserRepository.findByTelegramId(telegramId);
       if (!user) return false;
 
-      return await UserRepository.updateFarmingTimestamps(user.id.toString(), {
-        uni_farming_start_timestamp: null,
-        uni_farming_last_update: new Date()
-      });
+      const { error } = await supabase
+        .from('users')
+        .update({
+          uni_farming_start_timestamp: null,
+          uni_farming_last_update: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      return !error;
     } catch (error) {
       logger.error('[FarmingService] Ошибка остановки фарминга', { error: error instanceof Error ? error.message : String(error) });
       return false;
@@ -173,7 +183,7 @@ export class FarmingService {
       // Записываем транзакцию о начислении
       const { error: txError } = await supabase
         .from('transactions')
-        .insert([{
+        .insert({
           user_id: user.id,
           type: 'FARMING_REWARD',
           amount_uni: parseFloat(baseReward),
