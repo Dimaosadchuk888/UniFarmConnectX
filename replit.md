@@ -142,3 +142,4 @@ Each business domain is organized as a self-contained module:
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
+- June 14, 2025. SUPABASE CLEANUP FINAL COMPLETION - Выполнена полная зачистка всех старых подключений к базе данных. Удалены пакеты @neondatabase, очищены переменные окружения PGHOST/PGDATABASE/PGUSER/PGPASSWORD, исправлены импорты во всех модулях для использования единого core/db.ts. Система полностью централизована на одном подключении через DATABASE_URL. Готова к production deployment с чистой архитектурой базы данных
