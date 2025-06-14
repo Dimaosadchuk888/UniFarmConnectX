@@ -1,0 +1,109 @@
+🎯 Цель
+
+Перейти с прямого подключения PostgreSQL на Supabase API через библиотеку @supabase/supabase-js, чтобы всё стабильно работало в среде Replit, где прямое подключение (DATABASE_URL) блокируется.
+
+⸻
+
+✅ Что мы делаем
+ 1. Подключаемся к Supabase как к REST/Realtime API через SDK.
+ 2. Создаём сервисы: userService.ts, authService.ts, walletService.ts.
+ 3. Используем SUPABASE_URL и SUPABASE_KEY из .env.
+ 4. Все обращения к БД идут через методы Supabase API (insert, select, update, delete).
+ 5. Исключаем необходимость прямого pg.Pool, drizzle, DATABASE_URL.
+
+⸻
+
+📁 Структура сервисов (в одном файле TXT):
+
+// supabaseClient.ts
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+
+⸻
+
+
+// userService.ts
+import { supabase } from './supabaseClient';
+
+export const createUser = async (user: { telegram_id: string, username?: string, ref_code?: string }) => {
+  const { data, error } = await supabase
+    .from('users')
+    .insert([user]);
+
+  if (error) throw error;
+  return data;
+};
+
+export const getUserByTelegramId = async (telegram_id: string) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('telegram_id', telegram_id)
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+
+⸻
+
+
+// authService.ts
+import { getUserByTelegramId, createUser } from './userService';
+
+export const registerUser = async (telegram_id: string, username?: string, ref_code?: string) => {
+  const existing = await getUserByTelegramId(telegram_id);
+  if (existing) return existing;
+  return await createUser({ telegram_id, username, ref_code });
+};
+
+
+⸻
+
+
+// walletService.ts
+import { supabase } from './supabaseClient';
+
+export const getWalletBalance = async (telegram_id: string) => {
+  const { data, error } = await supabase
+    .from('wallet')
+    .select('*')
+    .eq('telegram_id', telegram_id)
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const updateBalance = async (telegram_id: string, newBalance: number) => {
+  const { data, error } = await supabase
+    .from('wallet')
+    .update({ balance: newBalance })
+    .eq('telegram_id', telegram_id);
+
+  if (error) throw error;
+  return data;
+};
+
+
+⸻
+
+📌 Что нужно прописать в .env
+
+SUPABASE_URL=https://wunnsvicbebssrjqedor.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+
+⸻
+
+🔁 Как это работает:
+ • Вместо прямого PostgreSQL подключения (pg, drizzle) мы используем API вызовы Supabase.
+ • Безопасно, стабильно, без блокировок.
+ • Работает из Replit без VPN и port settings.
+
+⸻

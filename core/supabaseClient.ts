@@ -1,12 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://wunnsvicbebssrjqedor.supabase.co'
+const supabaseUrl = process.env.SUPABASE_URL || 'https://wunnsvicbebssrjqedor.supabase.co'
 const supabaseKey = process.env.SUPABASE_KEY
 
 if (!supabaseKey) {
   throw new Error('SUPABASE_KEY environment variable is required')
 }
 
+if (!supabaseUrl) {
+  throw new Error('SUPABASE_URL environment variable is required')
+}
+
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
-console.log('Supabase client initialized for UniFarm')
+console.log('Supabase client initialized for UniFarm at:', supabaseUrl)
