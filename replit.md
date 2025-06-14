@@ -76,7 +76,7 @@ Each business domain is organized as a self-contained module:
 ## External Dependencies
 
 ### Core Dependencies
-- **@neondatabase/serverless**: PostgreSQL database connectivity
+- **database/serverless**: PostgreSQL database connectivity
 - **drizzle-orm**: Type-safe database operations
 - **express**: Web application framework
 - **jsonwebtoken**: JWT token management
