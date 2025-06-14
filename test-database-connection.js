@@ -19,7 +19,7 @@ async function testDatabaseConnection() {
   try {
     console.log('Отправляем запрос на регистрацию...');
     
-    const response = await fetch('http://0.0.0.0:5000/api/v2/auth/telegram', {
+    const response = await fetch('http://0.0.0.0:3000/api/v2/auth/telegram', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
