@@ -12,6 +12,23 @@ const telegramAuthSchema = z.object({
   refBy: z.string().optional()
 });
 
+const telegramRegistrationSchema = z.object({
+  initData: z.string().optional(),
+  refBy: z.string().optional(),
+  // Поля для прямой регистрации
+  direct_registration: z.boolean().optional(),
+  telegram_id: z.number().optional(),
+  username: z.string().optional(),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  language_code: z.string().optional()
+}).refine((data) => {
+  // Либо есть initData, либо это прямая регистрация с telegram_id
+  return data.initData || (data.direct_registration && data.telegram_id);
+}, {
+  message: "Either initData or direct registration with telegram_id is required"
+});
+
 const tokenValidationSchema = z.object({
   token: z.string().min(1, 'Token is required')
 });
@@ -20,7 +37,7 @@ const tokenValidationSchema = z.object({
 router.post('/telegram', validateBody(telegramAuthSchema), authController.authenticateTelegram.bind(authController));
 
 // POST /api/auth/register/telegram - Регистрация через Telegram (правильный путь)
-router.post('/register/telegram', validateBody(telegramAuthSchema), authController.registerTelegram.bind(authController));
+router.post('/register/telegram', validateBody(telegramRegistrationSchema), authController.registerTelegram.bind(authController));
 
 // GET /api/auth/check - Проверка токена и получение информации о пользователе
 router.get('/check', authController.checkToken.bind(authController));
