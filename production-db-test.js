@@ -3,7 +3,8 @@
  * Проверяет фактическое подключение и регистрацию пользователя
  */
 
-const { Client } = require('pg');
+import pkg from 'pg';
+const { Client } = pkg;
 
 // Прямое подключение к production базе
 const PRODUCTION_DB_URL = 'postgresql://neondb_owner:npg_SpgdNBV70WKl@ep-lucky-boat-a463bggt-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
