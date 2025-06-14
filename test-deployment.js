@@ -76,9 +76,9 @@ class DeploymentTester {
       const content = await fs.readFile('stable-server.js', 'utf8');
       
       const validations = [
-        { check: content.includes('NODE_ENV=production'), desc: 'Production environment set' },
-        { check: content.includes('HOST=0.0.0.0'), desc: 'Deployment-friendly host binding' },
-        { check: content.includes('DATABASE_PROVIDER=neon'), desc: 'Production database configured' },
+        { check: content.includes("process.env.NODE_ENV = 'production'"), desc: 'Production environment set' },
+        { check: content.includes("process.env.HOST = '0.0.0.0'"), desc: 'Deployment-friendly host binding' },
+        { check: content.includes("process.env.DATABASE_PROVIDER = 'neon'"), desc: 'Production database configured' },
         { check: content.includes('server/index.ts'), desc: 'Main server import' }
       ];
 
