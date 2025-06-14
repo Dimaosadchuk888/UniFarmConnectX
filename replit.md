@@ -127,6 +127,7 @@ Each business domain is organized as a self-contained module:
 - June 13, 2025. T15 Database synchronization integrated into production server - auto-executes on deployment
 - June 13, 2025. T19 Critical Telegram authorization fixes completed - removed blocking components, added automatic user registration to UserContext, fixed API routes for /register/telegram and /users/profile, enhanced HMAC validation logging
 - June 13, 2025. T20 Telegram user registration system fully operational - fixed AuthService imports, created simplified telegram middleware, added null-safe data handling, ensured automatic database user creation with referral codes
+- June 14, 2025. T21 Telegram Mini App diagnostic completed - fixed AuthController header extraction, added comprehensive initData logging in main.tsx, resolved "Not Found" and authorization issues preventing user registration through @UniFarming_Bot
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
