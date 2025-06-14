@@ -130,6 +130,7 @@ export class AuthService {
     language_code?: string;
   }, refBy?: string): Promise<AuthResponse> {
     try {
+      console.log("DATABASE_URL:", process.env.DATABASE_URL);
       logger.info('[AuthService] Прямая регистрация через данные Telegram пользователя', { 
         telegram_id: telegramUser.telegram_id,
         username: telegramUser.username,
