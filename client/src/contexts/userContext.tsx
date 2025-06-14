@@ -212,6 +212,39 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const registerDirectFromTelegramUser = async (user: any) => {
+    try {
+      const response = await fetch('/api/v2/register/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: user.id,
+          username: user.username || '',
+          first_name: user.first_name || '',
+          last_name: user.last_name || '',
+          language_code: user.language_code || 'en',
+          refBy: new URLSearchParams(window.location.search).get('ref'),
+          direct_registration: true
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success && data.token) {
+        console.log('[UserContext] Direct registration successful');
+        localStorage.setItem('unifarm_auth_token', data.token);
+        localStorage.setItem('unifarm_user_data', JSON.stringify(data.user));
+        return { success: true, user: data.user, token: data.token };
+      } else {
+        console.log('[UserContext] Direct registration failed:', data);
+        return { success: false, error: data.error };
+      }
+    } catch (error) {
+      console.log('[UserContext] Direct registration error:', error);
+      return { success: false, error: 'Registration failed' };
+    }
+  };
+
   // TON Connect wallet status check
   useEffect(() => {
     if (initializedRef.current) return;
@@ -251,41 +284,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           const user = telegramData.initDataUnsafe.user;
           console.log('[UserContext] Прямая регистрация для пользователя:', user);
           
-          try {
-            const directRegisterResponse = await fetch('/api/v2/register/telegram', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                telegram_id: user.id,
-                username: user.username || '',
-                first_name: user.first_name || '',
-                last_name: user.last_name || '',
-                language_code: user.language_code || 'en',
-                refBy: new URLSearchParams(window.location.search).get('ref'),
-                direct_registration: true
-              })
+          const registrationResult = await registerDirectFromTelegramUser(user);
+          if (registrationResult.success) {
+            dispatch({
+              type: 'SET_USER_DATA',
+              payload: {
+                userId: registrationResult.user.id,
+                username: registrationResult.user.username,
+                telegramId: registrationResult.user.telegram_id,
+                refCode: registrationResult.user.ref_code
+              }
             });
-
-            const directData = await directRegisterResponse.json();
-
-            if (directRegisterResponse.ok && directData.success && directData.token) {
-              console.log('[UserContext] ✅ Прямая регистрация успешна');
-              localStorage.setItem('unifarm_auth_token', directData.token);
-              localStorage.setItem('unifarm_user_data', JSON.stringify(directData.user));
-              
-              dispatch({
-                type: 'SET_USER_DATA',
-                payload: {
-                  userId: directData.user.id,
-                  username: directData.user.username,
-                  telegramId: directData.user.telegram_id,
-                  refCode: directData.user.ref_code
-                }
-              });
-              return;
-            }
-          } catch (directError) {
-            console.log('[UserContext] Ошибка прямой регистрации:', directError);
+            return;
           }
         }
 

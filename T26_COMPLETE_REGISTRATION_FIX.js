@@ -368,8 +368,8 @@ async function main() {
 }
 
 // Запускаем если файл выполняется напрямую
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 
-module.exports = { TelegramRegistrationCompleteFix };
+export { TelegramRegistrationCompleteFix };
