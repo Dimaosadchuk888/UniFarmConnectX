@@ -390,30 +390,7 @@ async function startServer() {
       });
     });
 
-    // Debug endpoint для проверки подключения к базе данных
-    app.get('/debug/db-users', async (req: Request, res: Response) => {
-      try {
-        const allUsers = await db.select().from(users).orderBy(desc(users.id));
-        res.json({
-          success: true,
-          total_users: allUsers.length,
-          database_url: process.env.DATABASE_URL?.substring(0, 50) + '...',
-          users: allUsers.map(user => ({
-            id: user.id,
-            telegram_id: user.telegram_id,
-            username: user.username,
-            ref_code: user.ref_code,
-            created_at: user.created_at
-          }))
-        });
-      } catch (error) {
-        res.status(500).json({
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-          database_url: process.env.DATABASE_URL?.substring(0, 50) + '...'
-        });
-      }
-    });
+
 
 
 
