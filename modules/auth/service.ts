@@ -1,5 +1,5 @@
 import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type TelegramUser, type JWTPayload } from '../../utils/telegram';
-import { UserService } from '../user/service';
+import { UserService } from '../users/service';
 import { db } from '../../server/db';
 import { users, type User } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
@@ -169,11 +169,13 @@ export class AuthService {
       };
     } catch (error) {
       logger.error('[AuthService] Ошибка прямой регистрации через Telegram', { 
-        error: error instanceof Error ? error.message : String(error) 
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       });
+      console.log('❌ AuthService registerDirectFromTelegramUser error:', error);
       return {
         success: false,
-        error: 'Ошибка прямой регистрации пользователя'
+        error: `Ошибка прямой регистрации: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }
