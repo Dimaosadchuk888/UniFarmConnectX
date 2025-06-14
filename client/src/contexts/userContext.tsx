@@ -350,8 +350,69 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log('[UserContext] Автоматическая загрузка данных пользователя...');
         
-        // Проверяем наличие Telegram данных
+        // Проверяем наличие Telegram данных с расширенной логикой
         const telegramData = window.Telegram?.WebApp;
+        
+        console.log('[UserContext] Проверка Telegram данных:', {
+          telegramAvailable: !!window.Telegram,
+          webAppAvailable: !!telegramData,
+          initDataPresent: !!telegramData?.initData,
+          initDataLength: telegramData?.initData?.length || 0,
+          userPresent: !!telegramData?.initDataUnsafe?.user
+        });
+        
+        // Если есть Telegram WebApp, но нет initData, пробуем создать пользователя из initDataUnsafe
+        if (telegramData && telegramData.initDataUnsafe?.user) {
+          const user = telegramData.initDataUnsafe.user;
+          console.log('[UserContext] Найден пользователь в initDataUnsafe:', user);
+          
+          // Если initData пустой, но есть пользователь, создаем fallback запрос
+          if (!telegramData.initData || telegramData.initData.length === 0) {
+            console.log('[UserContext] initData пустой, но пользователь найден - создаем прямую регистрацию');
+            
+            try {
+              // Прямая регистрация с данными пользователя
+              const directRegisterResponse = await fetch('/api/v2/register/telegram', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  telegram_id: user.id,
+                  username: user.username || '',
+                  first_name: user.first_name || '',
+                  last_name: user.last_name || '',
+                  language_code: user.language_code || 'en',
+                  refBy: new URLSearchParams(window.location.search).get('ref'),
+                  direct_registration: true
+                })
+              }).then(res => res.json());
+
+              if (directRegisterResponse.success && directRegisterResponse.token) {
+                console.log('[UserContext] Прямая регистрация успешна');
+                localStorage.setItem('unifarm_auth_token', directRegisterResponse.token);
+                localStorage.setItem('unifarm_user_data', JSON.stringify(directRegisterResponse.user));
+                
+                dispatch({
+                  type: 'SET_USER_DATA',
+                  payload: {
+                    userId: directRegisterResponse.user.id,
+                    username: directRegisterResponse.user.username,
+                    telegramId: directRegisterResponse.user.telegram_id,
+                    refCode: directRegisterResponse.user.ref_code
+                  }
+                });
+                
+                // Выходим из функции после успешной регистрации
+                return;
+              }
+            } catch (directError) {
+              console.log('[UserContext] Ошибка прямой регистрации:', directError);
+            }
+          }
+        }
+        
+        // Стандартная авторизация с initData
         if (telegramData?.initData && telegramData.initData.length > 0) {
           console.log('[UserContext] Telegram данные найдены, пытаемся авторизоваться...');
           

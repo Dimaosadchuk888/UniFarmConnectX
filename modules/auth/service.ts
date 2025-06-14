@@ -119,6 +119,66 @@ export class AuthService {
   }
 
   /**
+   * Registers user directly from Telegram user data (without initData validation)
+   * Used when initData is empty but user data is available from initDataUnsafe
+   */
+  async registerDirectFromTelegramUser(telegramUser: {
+    telegram_id: number;
+    username: string;
+    first_name: string;
+    last_name?: string;
+    language_code: string;
+  }, refBy?: string): Promise<AuthResponse> {
+    try {
+      logger.info('[AuthService] Прямая регистрация через данные Telegram пользователя', { 
+        telegram_id: telegramUser.telegram_id,
+        username: telegramUser.username,
+        has_ref: !!refBy
+      });
+
+      // Find or create user using UserService
+      const userInfo = await this.userService.findOrCreateFromTelegram({
+        telegram_id: telegramUser.telegram_id,
+        username: telegramUser.username,
+        first_name: telegramUser.first_name,
+        ref_by: refBy
+      });
+
+      logger.info('[AuthService] Пользователь создан/найден при прямой регистрации', { userId: userInfo.id });
+
+      // Generate JWT token with user data
+      const token = generateJWTToken({
+        id: telegramUser.telegram_id,
+        username: telegramUser.username,
+        first_name: telegramUser.first_name
+      }, userInfo.ref_code || '');
+
+      const isNewUser = !userInfo.created_at || (new Date().getTime() - new Date(userInfo.created_at).getTime()) < 60000;
+
+      return {
+        success: true,
+        user: {
+          id: userInfo.id.toString(),
+          telegram_id: telegramUser.telegram_id,
+          username: telegramUser.username || userInfo.username || '',
+          ref_code: userInfo.ref_code || '',
+          created_at: userInfo.created_at ? userInfo.created_at.toISOString() : new Date().toISOString()
+        },
+        token,
+        isNewUser
+      };
+    } catch (error) {
+      logger.error('[AuthService] Ошибка прямой регистрации через Telegram', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      return {
+        success: false,
+        error: 'Ошибка прямой регистрации пользователя'
+      };
+    }
+  }
+
+  /**
    * Authenticates user via Telegram initData with HMAC validation
    */
   async authenticateWithTelegram(initData: string, refBy?: string): Promise<AuthResponse> {
@@ -167,7 +227,7 @@ export class AuthService {
         user: {
           id: userInfo.id.toString(),
           telegram_id: telegramUser.id,
-          username: telegramUser.username || userInfo.username,
+          username: telegramUser.username || userInfo.username || '',
           ref_code: userInfo.ref_code || '',
           created_at: userInfo.created_at ? userInfo.created_at.toISOString() : new Date().toISOString()
         },

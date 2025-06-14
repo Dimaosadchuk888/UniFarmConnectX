@@ -55,15 +55,53 @@ export class AuthController extends BaseController {
     await this.handleRequest(req, res, async () => {
       // Извлекаем initData из заголовка или тела запроса
       const initDataFromHeaders = req.headers['x-telegram-init-data'] as string;
-      const { initData: initDataFromBody, ref_by } = req.body;
+      const { 
+        initData: initDataFromBody, 
+        ref_by, 
+        direct_registration,
+        telegram_id,
+        username,
+        first_name,
+        last_name,
+        language_code
+      } = req.body;
       
       const initData = initDataFromHeaders || initDataFromBody;
       
-      if (!initData) {
-        throw new Error('InitData is required in headers or body');
+      // Проверяем, что это прямая регистрация с данными пользователя
+      if (direct_registration && telegram_id) {
+        logger.info('[AuthController] Прямая регистрация через Telegram данные пользователя', { 
+          telegram_id,
+          username,
+          has_ref: !!ref_by
+        });
+        
+        const result = await this.authService.registerDirectFromTelegramUser({
+          telegram_id: parseInt(telegram_id.toString()),
+          username: username || '',
+          first_name: first_name || '',
+          last_name: last_name || '',
+          language_code: language_code || 'en'
+        }, ref_by);
+        
+        if (result.success) {
+          this.sendSuccess(res, {
+            user: result.user,
+            token: result.token,
+            isNewUser: result.isNewUser
+          });
+        } else {
+          this.sendError(res, result.error || 'Direct registration failed', 400);
+        }
+        return;
       }
       
-      logger.info('[AuthController] Регистрация через Telegram', { 
+      // Стандартная регистрация через initData
+      if (!initData) {
+        throw new Error('InitData is required in headers or body for standard registration');
+      }
+      
+      logger.info('[AuthController] Стандартная регистрация через Telegram', { 
         has_ref: !!ref_by,
         initData_source: initDataFromHeaders ? 'headers' : 'body',
         initData_length: initData.length 
