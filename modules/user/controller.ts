@@ -28,8 +28,46 @@ export class UserController extends BaseController {
 
   async getCurrentUser(req: Request, res: Response) {
     await this.handleRequest(req, res, async () => {
+      // Пытаемся получить пользователя через JWT токен из Authorization header
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        
+        try {
+          const jwt = await import('jsonwebtoken');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
+          
+          if (decoded.telegram_id) {
+            const user = await userService.getUserByTelegramId(decoded.telegram_id);
+            if (user) {
+              logger.info('[GetMe] Пользователь найден через JWT', {
+                id: user.id,
+                telegram_id: user.telegram_id,
+                ref_code: user.ref_code
+              });
+              
+              return this.sendSuccess(res, {
+                user: {
+                  id: user.id,
+                  telegram_id: user.telegram_id,
+                  username: user.username,
+                  ref_code: user.ref_code,
+                  balance_uni: user.balance_uni,
+                  balance_ton: user.balance_ton
+                }
+              });
+            }
+          }
+        } catch (jwtError) {
+          logger.warn('[GetMe] JWT токен недействителен', { error: jwtError });
+        }
+      }
+
+      // Fallback: старая логика через Telegram
       const telegramUser = this.validateTelegramAuth(req, res);
-      if (!telegramUser) return;
+      if (!telegramUser) {
+        return this.sendError(res, 'Требуется авторизация через Telegram Mini App', 401);
+      }
       
       logger.info('[GetMe] Запрос данных пользователя', { 
         has_telegram_user: !!telegramUser,
@@ -50,9 +88,10 @@ export class UserController extends BaseController {
       });
       
       this.sendSuccess(res, {
-        id: user.id,
-        telegram_id: user.telegram_id,
-        username: user.username || telegramUser.user.first_name,
+        user: {
+          id: user.id,
+          telegram_id: user.telegram_id,
+          username: user.username || telegramUser.user.first_name,
         first_name: telegramUser.user.first_name,
         ref_code: user.ref_code,
         parent_ref_code: user.parent_ref_code,

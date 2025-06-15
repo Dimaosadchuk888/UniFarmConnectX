@@ -10,15 +10,6 @@ interface Balance {
   uniFarmingBalance: number;
 }
 
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-  token?: string;
-  user?: any;
-}
-
 interface UserContextType {
   userId: number | null;
   username: string | null;
@@ -266,6 +257,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Автоматическая авторизация при загрузке
   useEffect(() => {
     const loadInitialUserData = async () => {
+      console.log('[UserContext] Автоматическая загрузка данных пользователя...');
       dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
       
       try {
@@ -367,123 +359,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             return;
           }
         }
-              
-              dispatch({
-                type: 'SET_USER_DATA',
-                payload: {
-                  userId: data.user.id,
-                  username: data.user.username,
-                  telegramId: data.user.telegram_id,
-                  refCode: data.user.ref_code
-                }
-              });
-              return;
-            } else {
-              console.log('[UserContext] Авторизация через initData не удалась, пробуем регистрацию');
-            }
-          } catch (error) {
-            console.log('[UserContext] Ошибка авторизации через initData:', error);
-          }
-        }
-
-        // Если есть пользователь но нет initData - прямая регистрация
-        if (telegramData && telegramData.initDataUnsafe?.user && (!telegramData.initData || telegramData.initData.length === 0)) {
-          const user = telegramData.initDataUnsafe.user;
-          console.log('[UserContext] Прямая регистрация для пользователя:', user);
-          
-          const registrationResult = await registerDirectFromTelegramUser(user);
-          if (registrationResult.success) {
-            dispatch({
-              type: 'SET_USER_DATA',
-              payload: {
-                userId: registrationResult.user.id,
-                username: registrationResult.user.username,
-                telegramId: registrationResult.user.telegram_id,
-                refCode: registrationResult.user.ref_code
-              }
-            });
-            return;
-          }
-        }
-
-        // Основной поток: auth → register fallback
-        if (telegramData?.initData && telegramData.initData.length > 0) {
-          console.log('[UserContext] Попытка авторизации с initData');
-          
-          try {
-            const authResponse = await fetch('/api/v2/auth/telegram', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Telegram-Init-Data': telegramData.initData
-              },
-              body: JSON.stringify({ 
-                initData: telegramData.initData,
-                refBy: new URLSearchParams(window.location.search).get('ref')
-              })
-            });
-
-            const authData = await authResponse.json();
-            
-            if (authResponse.ok && authData.success && authData.token) {
-              console.log('[UserContext] ✅ Авторизация успешна');
-              localStorage.setItem('unifarm_auth_token', authData.token);
-              localStorage.setItem('unifarm_user_data', JSON.stringify(authData.user));
-              
-              dispatch({
-                type: 'SET_USER_DATA',
-                payload: {
-                  userId: authData.user.id,
-                  username: authData.user.username,
-                  telegramId: authData.user.telegram_id,
-                  refCode: authData.user.ref_code
-                }
-              });
-              return;
-            } else {
-              throw new Error('Auth failed');
-            }
-          } catch (authError) {
-            console.log('[UserContext] Авторизация не удалась, пробуем регистрацию');
-            
-            try {
-              const registerResponse = await fetch('/api/v2/register/telegram', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Telegram-Init-Data': telegramData.initData
-                },
-                body: JSON.stringify({ 
-                  initData: telegramData.initData,
-                  refBy: new URLSearchParams(window.location.search).get('ref')
-                })
-              });
-
-              const registerData = await registerResponse.json();
-              
-              if (registerResponse.ok && registerData.success && registerData.token) {
-                console.log('[UserContext] ✅ Регистрация успешна');
-                localStorage.setItem('unifarm_auth_token', registerData.token);
-                localStorage.setItem('unifarm_user_data', JSON.stringify(registerData.user));
-                
-                dispatch({
-                  type: 'SET_USER_DATA',
-                  payload: {
-                    userId: registerData.user.id,
-                    username: registerData.user.username,
-                    telegramId: registerData.user.telegram_id,
-                    refCode: registerData.user.ref_code
-                  }
-                });
-                return;
-              }
-            } catch (registerError) {
-              console.log('[UserContext] Регистрация не удалась');
-            }
-          }
-        }
       } catch (error) {
-        console.log('[UserContext] Общая ошибка авторизации:', error);
+        console.log('[UserContext] Ошибка получения данных пользователя:', error);
       } finally {
         dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: false } });
       }
@@ -538,7 +415,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     isFetching: state.isFetching,
     isBalanceFetching: state.isBalanceFetching,
-    error: state.error
+    error: state.error,
   };
 
   return (
@@ -548,10 +425,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useUser(): UserContextType {
+export const useUser = (): UserContextType => {
   const context = useContext(UserContext);
   if (context === undefined) {
     throw new Error('useUser must be used within a UserProvider');
   }
   return context;
-}
+};
