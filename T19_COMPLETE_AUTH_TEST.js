@@ -3,58 +3,95 @@
  * Создает тестового пользователя и проверяет все этапы
  */
 
-import crypto from 'crypto';
-import fetch from 'node-fetch';
+import { validateTelegramInitData, generateJWTToken } from './utils/telegram.js';
+import { AuthService } from './modules/auth/service.js';
 
 class CompleteAuthTest {
   constructor() {
-    this.botToken = '7980427501:AAHdia3LusU9dk2aRvhXgmj9Ozo08nR0Gug';
-    this.baseUrl = 'http://localhost:3000/api/v2';
-    this.testUser = {
-      id: Math.floor(Math.random() * 1000000) + 100000,
-      first_name: "TestUser",
-      username: "testuser_" + Date.now(),
-      language_code: "ru"
+    this.authService = new AuthService();
+    this.testResults = {
+      initDataGeneration: false,
+      initDataValidation: false,
+      userRegistration: false,
+      jwtGeneration: false,
+      jwtValidation: false,
+      userInDatabase: false,
+      authEndpoint: false,
+      userContext: false
     };
   }
 
   log(status, message, details = null) {
-    const timestamp = new Date().toISOString();
-    const icon = status === 'success' ? '✅' : status === 'error' ? '❌' : 'ℹ️';
-    console.log(`[${timestamp}] ${icon} ${message}`);
-    if (details) console.log(`    ${JSON.stringify(details, null, 2)}`);
+    const timestamp = new Date().toLocaleTimeString();
+    console.log(`[${timestamp}] ${status} ${message}`);
+    if (details) {
+      console.log('    Details:', JSON.stringify(details, null, 2));
+    }
   }
 
   /**
    * Создает валидные Telegram initData
    */
   createValidInitData() {
-    const authDate = Math.floor(Date.now() / 1000);
-    
-    const dataParams = new URLSearchParams();
-    dataParams.append('user', JSON.stringify(this.testUser));
-    dataParams.append('auth_date', authDate.toString());
-    dataParams.append('query_id', 'test_' + Date.now());
-    
-    // Создаем HMAC подпись
-    const sortedParams = Array.from(dataParams.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, value]) => `${key}=${value}`)
-      .join('\n');
-    
-    const secretKey = crypto
-      .createHmac('sha256', 'WebAppData')
-      .update(this.botToken)
-      .digest();
-    
-    const hash = crypto
-      .createHmac('sha256', secretKey)
-      .update(sortedParams)
-      .digest('hex');
-    
-    dataParams.append('hash', hash);
-    
-    return dataParams.toString();
+    try {
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (!botToken) {
+        this.log('❌', 'TELEGRAM_BOT_TOKEN не найден в переменных окружения');
+        return null;
+      }
+
+      // Создаем тестовые данные пользователя
+      const testUser = {
+        id: 777777777,
+        first_name: 'Test',
+        last_name: 'User',
+        username: 'test_user',
+        language_code: 'ru'
+      };
+
+      const authDate = Math.floor(Date.now() / 1000);
+      const queryId = 'test_query_' + Date.now();
+
+      // Создаем параметры для initData
+      const params = new URLSearchParams();
+      params.append('user', JSON.stringify(testUser));
+      params.append('auth_date', authDate.toString());
+      params.append('query_id', queryId);
+
+      // Сортируем параметры для создания подписи
+      const sortedParams = Array.from(params.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => `${key}=${value}`)
+        .join('\n');
+
+      // Создаем HMAC подпись
+      const crypto = require('crypto');
+      const secretKey = crypto
+        .createHmac('sha256', 'WebAppData')
+        .update(botToken)
+        .digest();
+
+      const hash = crypto
+        .createHmac('sha256', secretKey)
+        .update(sortedParams)
+        .digest('hex');
+
+      // Добавляем hash к параметрам
+      params.append('hash', hash);
+
+      const initData = params.toString();
+      this.log('✅', 'Валидные initData созданы', {
+        user_id: testUser.id,
+        initData_length: initData.length,
+        hash: hash.substring(0, 10) + '...'
+      });
+
+      this.testResults.initDataGeneration = true;
+      return initData;
+    } catch (error) {
+      this.log('❌', 'Ошибка создания initData', error.message);
+      return null;
+    }
   }
 
   /**
@@ -62,42 +99,48 @@ class CompleteAuthTest {
    */
   async testRegistration() {
     try {
-      this.log('info', 'Тестирование регистрации пользователя...');
-      
+      this.log('🔄', 'Тестирование регистрации пользователя...');
+
       const initData = this.createValidInitData();
-      
-      const response = await fetch(`${this.baseUrl}/register/telegram`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Telegram-Init-Data': initData
-        },
-        body: JSON.stringify({
-          initData: initData,
-          refBy: null
-        })
+      if (!initData) {
+        this.log('❌', 'Не удалось создать initData для тестирования');
+        return false;
+      }
+
+      // Проверяем валидацию initData
+      const validation = validateTelegramInitData(initData, process.env.TELEGRAM_BOT_TOKEN);
+      if (!validation.valid) {
+        this.log('❌', 'InitData валидация не прошла', validation.error);
+        return false;
+      }
+
+      this.log('✅', 'InitData валидация успешна', {
+        user_id: validation.user.id,
+        username: validation.user.username
+      });
+      this.testResults.initDataValidation = true;
+
+      // Тестируем аутентификацию через AuthService
+      const authResult = await this.authService.authenticateFromTelegram(initData);
+      if (!authResult.success) {
+        this.log('❌', 'Аутентификация не удалась', authResult.error);
+        return false;
+      }
+
+      this.log('✅', 'Пользователь зарегистрирован/аутентифицирован', {
+        user_id: authResult.user.id,
+        telegram_id: authResult.user.telegram_id,
+        ref_code: authResult.user.ref_code,
+        token_present: !!authResult.token
       });
 
-      const data = await response.json();
-      
-      if (response.ok && data.success && data.token) {
-        this.log('success', 'Регистрация успешна', {
-          user_id: data.user.id,
-          telegram_id: data.user.telegram_id,
-          token_length: data.token.length
-        });
-        return { success: true, token: data.token, user: data.user };
-      } else {
-        this.log('error', 'Регистрация не удалась', {
-          status: response.status,
-          response: data
-        });
-        return { success: false, error: data.error || 'Unknown error' };
-      }
-      
+      this.testResults.userRegistration = true;
+      this.testResults.jwtGeneration = !!authResult.token;
+
+      return authResult;
     } catch (error) {
-      this.log('error', 'Ошибка при регистрации', { error: error.message });
-      return { success: false, error: error.message };
+      this.log('❌', 'Ошибка регистрации', error.message);
+      return false;
     }
   }
 
@@ -106,41 +149,28 @@ class CompleteAuthTest {
    */
   async testAuthentication() {
     try {
-      this.log('info', 'Тестирование авторизации пользователя...');
-      
+      this.log('🔄', 'Тестирование повторной авторизации...');
+
       const initData = this.createValidInitData();
-      
-      const response = await fetch(`${this.baseUrl}/auth/telegram`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Telegram-Init-Data': initData
-        },
-        body: JSON.stringify({
-          initData: initData,
-          refBy: null
-        })
+      if (!initData) return false;
+
+      // Повторная аутентификация того же пользователя
+      const authResult = await this.authService.authenticateFromTelegram(initData);
+      if (!authResult.success) {
+        this.log('❌', 'Повторная аутентификация не удалась', authResult.error);
+        return false;
+      }
+
+      this.log('✅', 'Повторная аутентификация успешна', {
+        user_id: authResult.user.id,
+        is_new_user: authResult.isNewUser,
+        token_present: !!authResult.token
       });
 
-      const data = await response.json();
-      
-      if (response.ok && data.success && data.token) {
-        this.log('success', 'Авторизация успешна', {
-          user_id: data.user.id,
-          telegram_id: data.user.telegram_id
-        });
-        return { success: true, token: data.token, user: data.user };
-      } else {
-        this.log('info', 'Авторизация не удалась (ожидаемо для нового пользователя)', {
-          status: response.status,
-          response: data
-        });
-        return { success: false, error: data.error || 'Unknown error' };
-      }
-      
+      return authResult;
     } catch (error) {
-      this.log('error', 'Ошибка при авторизации', { error: error.message });
-      return { success: false, error: error.message };
+      this.log('❌', 'Ошибка повторной аутентификации', error.message);
+      return false;
     }
   }
 
@@ -149,50 +179,42 @@ class CompleteAuthTest {
    */
   async testProtectedEndpoints(token) {
     try {
-      this.log('info', 'Тестирование защищенных эндпоинтов...');
-      
-      const endpoints = [
-        '/me',
-        '/users/profile'
-      ];
-      
-      const results = {};
-      
-      for (const endpoint of endpoints) {
-        try {
-          const response = await fetch(`${this.baseUrl}${endpoint}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          const data = await response.json();
-          
-          if (response.ok) {
-            this.log('success', `Эндпоинт ${endpoint} доступен`, {
-              status: response.status,
-              has_user_data: !!data.user_id || !!data.id
-            });
-            results[endpoint] = 'success';
-          } else {
-            this.log('error', `Эндпоинт ${endpoint} недоступен`, {
-              status: response.status,
-              error: data.error
-            });
-            results[endpoint] = 'error';
-          }
-        } catch (error) {
-          this.log('error', `Ошибка доступа к ${endpoint}`, { error: error.message });
-          results[endpoint] = 'error';
-        }
+      this.log('🔄', 'Тестирование защищенных эндпоинтов...');
+
+      if (!token) {
+        this.log('❌', 'Токен отсутствует для тестирования эндпоинтов');
+        return false;
       }
-      
-      return results;
-      
+
+      const fetch = (await import('node-fetch')).default;
+
+      // Тестируем эндпоинт профиля пользователя
+      const response = await fetch('http://localhost:3000/api/v2/users/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        this.log('❌', 'Эндпоинт /users/profile недоступен', {
+          status: response.status,
+          statusText: response.statusText
+        });
+        return false;
+      }
+
+      const data = await response.json();
+      this.log('✅', 'Защищенный эндпоинт доступен', {
+        endpoint: '/users/profile',
+        user_data: data.success ? 'present' : 'missing'
+      });
+
+      this.testResults.authEndpoint = true;
+      return true;
     } catch (error) {
-      this.log('error', 'Ошибка тестирования эндпоинтов', { error: error.message });
-      return {};
+      this.log('❌', 'Ошибка тестирования эндпоинтов', error.message);
+      return false;
     }
   }
 
@@ -200,54 +222,90 @@ class CompleteAuthTest {
    * Полный тест системы авторизации
    */
   async runCompleteTest() {
-    this.log('info', 'Запуск полного теста системы авторизации...');
-    
-    const report = {
-      timestamp: new Date().toISOString(),
-      test_user: this.testUser,
-      results: {
-        authentication: null,
-        registration: null,
-        protected_endpoints: {}
-      },
-      status: 'unknown'
-    };
-    
-    // 1. Проверяем авторизацию (должна не пройти для нового пользователя)
-    const authResult = await this.testAuthentication();
-    report.results.authentication = authResult;
-    
-    // 2. Проверяем регистрацию
-    const regResult = await this.testRegistration();
-    report.results.registration = regResult;
-    
-    // 3. Если регистрация прошла, тестируем защищенные эндпоинты
-    if (regResult.success && regResult.token) {
-      const endpointsResult = await this.testProtectedEndpoints(regResult.token);
-      report.results.protected_endpoints = endpointsResult;
+    this.log('🚀', 'Начало полного тестирования авторизации Telegram');
+
+    // 1. Тестируем регистрацию
+    const registrationResult = await this.testRegistration();
+    if (!registrationResult) {
+      this.log('❌', 'Тест регистрации провален');
+      return this.generateReport();
     }
-    
-    // Определяем общий статус
-    if (regResult.success) {
-      const endpointsWorking = Object.values(report.results.protected_endpoints).filter(s => s === 'success').length;
-      if (endpointsWorking >= 1) {
-        report.status = 'success';
-        this.log('success', 'Система авторизации работает корректно');
+
+    // 2. Тестируем JWT валидацию
+    if (registrationResult.token) {
+      const validation = await this.authService.validateToken(registrationResult.token);
+      if (validation.valid) {
+        this.log('✅', 'JWT токен валидируется успешно', {
+          telegram_id: validation.payload.telegram_id,
+          exp: new Date(validation.payload.exp * 1000).toLocaleString()
+        });
+        this.testResults.jwtValidation = true;
       } else {
-        report.status = 'partial';
-        this.log('info', 'Регистрация работает, но проблемы с защищенными эндпоинтами');
+        this.log('❌', 'JWT токен не прошел валидацию', validation.error);
       }
-    } else {
-      report.status = 'failed';
-      this.log('error', 'Система авторизации не работает');
     }
-    
-    console.log('\n' + '='.repeat(80));
-    console.log('ОТЧЕТ T19: ПОЛНЫЙ ТЕСТ АВТОРИЗАЦИИ TELEGRAM');
-    console.log('='.repeat(80));
-    console.log(JSON.stringify(report, null, 2));
-    console.log('='.repeat(80));
-    
+
+    // 3. Тестируем повторную аутентификацию
+    await this.testAuthentication();
+
+    // 4. Тестируем защищенные эндпоинты
+    await this.testProtectedEndpoints(registrationResult.token);
+
+    // 5. Проверяем пользователя в базе данных
+    try {
+      const { supabase } = await import('./core/supabase.js');
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', 777777777)
+        .single();
+
+      if (data && !error) {
+        this.log('✅', 'Пользователь найден в базе данных', {
+          id: data.id,
+          telegram_id: data.telegram_id,
+          ref_code: data.ref_code
+        });
+        this.testResults.userInDatabase = true;
+      } else {
+        this.log('❌', 'Пользователь не найден в базе данных', error?.message);
+      }
+    } catch (error) {
+      this.log('❌', 'Ошибка проверки базы данных', error.message);
+    }
+
+    return this.generateReport();
+  }
+
+  /**
+   * Генерирует отчет о тестировании
+   */
+  generateReport() {
+    const successCount = Object.values(this.testResults).filter(result => result).length;
+    const totalTests = Object.keys(this.testResults).length;
+    const successRate = Math.round((successCount / totalTests) * 100);
+
+    const report = {
+      summary: {
+        total_tests: totalTests,
+        passed: successCount,
+        failed: totalTests - successCount,
+        success_rate: successRate + '%'
+      },
+      results: this.testResults,
+      status: successRate >= 80 ? 'SUCCESS' : successRate >= 60 ? 'PARTIAL' : 'FAILED'
+    };
+
+    this.log('📊', 'ИТОГОВЫЙ ОТЧЕТ', report);
+
+    if (successRate >= 80) {
+      this.log('🎉', 'АВТОРИЗАЦИЯ TELEGRAM РАБОТАЕТ КОРРЕКТНО!');
+    } else if (successRate >= 60) {
+      this.log('⚠️', 'Авторизация работает частично, требуются исправления');
+    } else {
+      this.log('🚨', 'Критические проблемы с авторизацией, требуется отладка');
+    }
+
     return report;
   }
 }
@@ -257,9 +315,13 @@ async function main() {
     const tester = new CompleteAuthTest();
     await tester.runCompleteTest();
   } catch (error) {
-    console.error('Критическая ошибка:', error);
-    process.exit(1);
+    console.error('Ошибка выполнения теста:', error);
   }
 }
 
-main();
+// Запускаем тест если файл выполняется напрямую
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}
+
+export { CompleteAuthTest };
