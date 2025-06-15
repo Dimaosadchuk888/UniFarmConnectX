@@ -46,13 +46,13 @@ class EnvValidator {
 
     // Проверяем обязательные переменные
     this.validateRequired();
-    
+
     // Применяем значения по умолчанию
     this.applyDefaults();
-    
+
     // Валидируем форматы
     this.validateFormats();
-    
+
     // Проверяем критические конфигурации
     this.validateCriticalConfigs();
 
@@ -103,6 +103,17 @@ class EnvValidator {
           this.warnings.push(`В production режиме рекомендуется установить ${envVar}`);
         }
       }
+    }
+
+    // Перевірка Sentry DSN
+    if (process.env.SENTRY_DSN) {
+      if (!process.env.SENTRY_DSN.startsWith('https://')) {
+        this.warnings.push('SENTRY_DSN не має правильний формат (має починатися з https://)');
+      } else {
+        this.warnings.push('SENTRY_DSN налаштовано - моніторинг помилок активовано');
+      }
+    } else {
+      this.warnings.push('SENTRY_DSN відсутній - моніторинг помилок вимкнено');
     }
   }
 
