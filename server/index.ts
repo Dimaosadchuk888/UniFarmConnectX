@@ -378,11 +378,6 @@ async function startServer() {
     // Выполняем T15 миграцию после подключения к базе
     setTimeout(executeT15Migration, 5000);
 
-    // Static file serving for PWA files
-    app.get('/manifest.json', (req: Request, res: Response) => {
-      res.sendFile(path.join(__dirname, '../client/manifest.json'));
-    });
-
     // Health check (должен быть первым для мониторинга)
     app.get('/health', (req: Request, res: Response) => {
       res.json({ 
@@ -438,13 +433,19 @@ async function startServer() {
     const isProduction = process.env.NODE_ENV === 'production';
     
     if (isProduction) {
+      // Static file serving for PWA files (before express.static)
+      app.get('/manifest.json', (req: Request, res: Response) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.sendFile(path.resolve('client/manifest.json'));
+      });
+      
       // Serve static files from dist/public
       app.use(express.static(path.join(process.cwd(), 'dist/public')));
       
       // SPA fallback - serve index.html for non-API routes
       app.get('*', (req: Request, res: Response, next: NextFunction) => {
-        // Skip API routes and webhook
-        if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path === '/webhook') {
+        // Skip API routes, webhook, and static files
+        if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path === '/webhook' || req.path === '/manifest.json') {
           return next();
         }
         
