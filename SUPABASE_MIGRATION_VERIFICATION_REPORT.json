@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-06-15T08:23:44.540Z",
+  "timestamp": "2025-06-15T08:28:58.435Z",
   "status": "ТРЕБУЕТ ИСПРАВЛЕНИЙ",
-  "readiness": "32%",
+  "readiness": "44%",
   "summary": {
-    "criticalIssues": 19,
+    "criticalIssues": 15,
     "warnings": 1,
-    "verifiedFiles": 9
+    "verifiedFiles": 12
   },
   "details": {
     "criticalIssues": [
@@ -19,12 +19,6 @@
         "file": "modules/auth/model.ts",
         "issues": [
           "drizzle-orm"
-        ]
-      },
-      {
-        "file": "modules/auth/service.ts",
-        "issues": [
-          "from '../../shared/schema"
         ]
       },
       {
@@ -70,18 +64,6 @@
         ]
       },
       {
-        "file": "modules/users/repository.ts",
-        "issues": [
-          "from '../../shared/schema"
-        ]
-      },
-      {
-        "file": "modules/users/service.ts",
-        "issues": [
-          "from '../../shared/schema"
-        ]
-      },
-      {
         "file": "modules/wallet/service.old.ts",
         "issues": [
           "from '../../shared/schema"
@@ -118,12 +100,6 @@
         "issues": [
           "from '../../shared/schema"
         ]
-      },
-      {
-        "file": "server/index.ts",
-        "issues": [
-          "from '../core/db"
-        ]
       }
     ],
     "warnings": [
@@ -139,11 +115,14 @@
       "./core/supabase.ts",
       "modules/admin/service.ts",
       "modules/airdrop/service.ts",
+      "modules/auth/service.ts",
       "modules/dailyBonus/service.ts",
       "modules/farming/service.ts",
       "modules/referral/service-supabase.ts",
       "modules/referral/service.ts",
+      "modules/users/repository.ts",
       "modules/wallet/service.ts",
+      "server/index.ts",
       "server/routes.ts"
     ]
   }

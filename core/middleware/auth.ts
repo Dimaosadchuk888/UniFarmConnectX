@@ -1,7 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { AuthService } from '../../modules/auth/service';
-import { type User } from '../../shared/schema';
+// Типы для Supabase API
+interface User {
+  id: number;
+  telegram_id: number;
+  username?: string;
+  ref_code: string;
+  balance_uni: string;
+  balance_ton: string;
+}
 
 interface TelegramInitData {
   query_id?: string;

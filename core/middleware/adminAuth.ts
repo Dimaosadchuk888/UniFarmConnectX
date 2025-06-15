@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { db } from '../db';
-import { users } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { supabase } from '../supabase';
 
 /**
  * Middleware для проверки прав администратора

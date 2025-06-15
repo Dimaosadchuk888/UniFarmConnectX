@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
-import { getDetailedPoolStats, getPoolStats, logPoolStats } from '../../core/dbPoolMonitor';
+import { supabase } from '../../core/supabase';
 
 export class MonitorController extends BaseController {
   /**
