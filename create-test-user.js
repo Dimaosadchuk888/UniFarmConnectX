@@ -3,8 +3,9 @@
  * Creates a test user and generates valid JWT token for immediate app access
  */
 
-const { supabase } = require('./core/supabase');
-const { generateJWTToken } = require('./utils/telegram');
+import { supabase } from './core/supabase.js';
+import { generateJWTToken } from './utils/telegram.js';
+import jwt from 'jsonwebtoken';
 
 async function createTestUser() {
   try {
@@ -74,7 +75,6 @@ async function createTestUser() {
     
     // Test token validation
     console.log('\n🔍 Testing token validation...');
-    const jwt = require('jsonwebtoken');
     const jwtSecret = process.env.JWT_SECRET || 'unifarm_jwt_secret_key_2025_production';
     
     try {
@@ -93,8 +93,4 @@ async function createTestUser() {
   }
 }
 
-if (require.main === module) {
-  createTestUser();
-}
-
-module.exports = { createTestUser };
+createTestUser().catch(console.error);
