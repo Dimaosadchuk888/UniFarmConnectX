@@ -27,27 +27,13 @@ export class WalletService {
         };
       }
 
-      // Получаем последние транзакции пользователя
-      const { data: userTransactions } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
+      // Используем баланс из пользователя, так как таблица transactions может быть пустой
       return {
         uni_balance: parseFloat(user.balance_uni || "0"),
         ton_balance: parseFloat(user.balance_ton || "0"),
-        total_earned: 0, // Можно вычислить из транзакций
-        total_spent: 0,  // Можно вычислить из транзакций
-        transactions: (userTransactions || []).map((tx: any) => ({
-          id: tx.id,
-          type: tx.type,
-          amount_uni: parseFloat(tx.amount_uni || "0"),
-          amount_ton: parseFloat(tx.amount_ton || "0"),
-          description: tx.description || '',
-          date: tx.created_at
-        }))
+        total_earned: parseFloat(user.uni_farming_balance || "0"), // Из farming баланса
+        total_spent: 0,
+        transactions: [] // Пока пустой массив, пока не настроена схема transactions
       };
     } catch (error) {
       logger.error('[WalletService] Ошибка получения данных кошелька', { telegramId, error: error instanceof Error ? error.message : String(error) });
