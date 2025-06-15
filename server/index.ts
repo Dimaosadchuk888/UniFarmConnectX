@@ -14,7 +14,7 @@ import { config, logger, globalErrorHandler, notFoundHandler, EnvValidator } fro
 import { supabase } from '../core/supabase';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
 import { farmingScheduler } from '../core/scheduler/farmingScheduler';
-import { startPoolMonitoring, logPoolStats } from '../core/dbPoolMonitor';
+// Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
 
@@ -510,13 +510,8 @@ async function startServer() {
         logger.info(`🌐 Frontend: http://${config.app.host}:5173/ (Vite dev server)`);
       }
       
-      // Инициализация мониторинга connection pool
-      logger.info('🔍 Инициализация мониторинга connection pool...');
-      logPoolStats(); // Первоначальный вывод статистики
-      
-      // Запуск автоматического мониторинга каждые 5 минут
-      const poolMonitorInterval = startPoolMonitoring(5);
-      logger.info('✅ Мониторинг connection pool активен (интервал: 5 минут)');
+      // Supabase API не требует мониторинга connection pool
+      logger.info('✅ Supabase database connection active');
       
       // Инициализация фарминг-планировщика
       try {
@@ -529,10 +524,7 @@ async function startServer() {
       // Graceful shutdown
       process.on('SIGTERM', () => {
         logger.info('🔄 Получен сигнал SIGTERM, завершение работы...');
-        if (poolMonitorInterval) {
-          clearInterval(poolMonitorInterval);
-          logger.info('🔍 Мониторинг connection pool остановлен');
-        }
+        // Supabase не требует очистки connection pool
         farmingScheduler.stop();
         logger.info('✅ Фарминг-планировщик остановлен');
         server.close(() => {

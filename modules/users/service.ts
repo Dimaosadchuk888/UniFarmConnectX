@@ -1,5 +1,15 @@
 import { UserRepository, type CreateUserFromTelegramParams } from './repository';
-import type { User } from '../../shared/schema';
+// Типы для Supabase API
+interface User {
+  id: number;
+  telegram_id: number;
+  username?: string;
+  ref_code: string;
+  referred_by?: string;
+  balance_uni: string;
+  balance_ton: string;
+  created_at: string;
+}
 import { logger } from '../../core/logger';
 
 export interface UserInfo {
@@ -7,10 +17,10 @@ export interface UserInfo {
   telegram_id: number | null;
   username: string;
   ref_code: string;
-  parent_ref_code: string | null;
+  referred_by: string | null;
   balance_uni: string;
   balance_ton: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export class UserService {
@@ -113,10 +123,10 @@ export class UserService {
       telegram_id: user.telegram_id,
       username: user.username || '',
       ref_code: user.ref_code || '',
-      parent_ref_code: user.parent_ref_code,
+      referred_by: user.referred_by || null,
       balance_uni: user.balance_uni || '0',
       balance_ton: user.balance_ton || '0',
-      created_at: user.created_at || new Date()
+      created_at: user.created_at || new Date().toISOString()
     };
   }
 }
