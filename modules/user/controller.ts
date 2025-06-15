@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
-import { UserService } from './service';
+import { SupabaseUserRepository } from './repository';
 import { logger } from '../../core/logger';
 
-const userService = new UserService();
+const userRepository = new SupabaseUserRepository();
 
 export class UserController extends BaseController {
   async createUser(req: Request, res: Response) {
@@ -14,13 +14,17 @@ export class UserController extends BaseController {
         return this.sendError(res, 'telegram_id is required', 400);
       }
 
-      const result = await userService.createUser({
+      const result = await userRepository.createUser({
         telegram_id: telegram_id,
-        username: username || null,
-        parent_ref_code: refCode || null
+        username: username || undefined,
+        ref_by: refCode || undefined
       });
 
-      this.sendSuccess(res, { user_id: result.id });
+      if (result) {
+        this.sendSuccess(res, { user_id: result.id });
+      } else {
+        this.sendError(res, 'Failed to create user', 500);
+      }
     }, 'создания пользователя');
   }
 
@@ -38,7 +42,7 @@ export class UserController extends BaseController {
           const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
           
           if (decoded.telegram_id) {
-            const user = await userService.getUserByTelegramId(decoded.telegram_id);
+            const user = await userRepository.getUserByTelegramId(decoded.telegram_id);
             if (user) {
               logger.info('[GetMe] Пользователь найден через JWT', {
                 id: user.id,
@@ -75,10 +79,11 @@ export class UserController extends BaseController {
       });
       
       // Используем getOrCreateUserFromTelegram для гарантированной регистрации
-      const user = await userService.getOrCreateUserFromTelegram({
+      const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegramUser.user.id,
         username: telegramUser.user.username,
-        ref_code: req.query.start_param as string // Реферальный код из query параметров
+        first_name: telegramUser.user.first_name,
+        ref_by: req.query.start_param as string // Реферальный код из query параметров
       });
       
       logger.info('[GetMe] Пользователь найден/создан', {
@@ -116,7 +121,7 @@ export class UserController extends BaseController {
       const { id } = req.params;
       const updates = req.body;
       
-      const result = await userService.updateUser(id, updates);
+      const result = await userRepository.updateUser(id, updates);
       this.sendSuccess(res, result || {});
     }, 'обновления пользователя');
   }
@@ -127,7 +132,7 @@ export class UserController extends BaseController {
       if (!telegramUser) return;
 
       // Используем getOrCreateUserFromTelegram для гарантированной регистрации
-      const user = await userService.getOrCreateUserFromTelegram({
+      const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegramUser.user.id,
         username: telegramUser.user.username,
         ref_code: req.query.start_param as string
@@ -140,7 +145,7 @@ export class UserController extends BaseController {
         });
       }
 
-      const refCode = await userService.generateRefCode(user.id.toString());
+      const refCode = await userRepository.generateRefCode(user.id.toString());
       
       this.sendSuccess(res, {
         ref_code: refCode,
@@ -175,7 +180,7 @@ export class UserController extends BaseController {
         });
 
         // Ищем пользователя по telegram_id
-        const user = await userService.findUserByTelegramId(decoded.telegram_id);
+        const user = await userRepository.findUserByTelegramId(decoded.telegram_id);
         
         if (!user) {
           return this.sendError(res, 'User not found', 404);
@@ -198,7 +203,7 @@ export class UserController extends BaseController {
         const refCode = `REF${user.telegram_id}${Date.now()}`;
         
         // Обновляем пользователя
-        const updatedUser = await userService.updateUserRefCode(user.id, refCode);
+        const updatedUser = await userRepository.updateUserRefCode(user.id, refCode);
         
         logger.info('[RecoverRefCode] Ref_code успешно восстановлен', {
           user_id: user.id,
