@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { FarmingController } from './controller';
 import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
+import { requireAuth } from '../../core/middleware/auth';
 
 const router = Router();
 const farmingController = new FarmingController();
@@ -10,7 +11,7 @@ router.get('/', requireTelegramAuth, farmingController.getFarmingData.bind(farmi
 router.get('/data', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController)); // Main data endpoint с авторизацией
 router.get('/info', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController));
 router.get('/status', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController)); // Alias for /info
-router.post('/start', requireTelegramAuth, farmingController.startFarming.bind(farmingController));
+router.post('/start', requireAuth, requireTelegramAuth, farmingController.startFarming.bind(farmingController));
 router.post('/claim', requireTelegramAuth, farmingController.claimFarming.bind(farmingController));
 
 // UNI Farming specific routes
