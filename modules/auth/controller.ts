@@ -33,7 +33,7 @@ export class AuthController extends BaseController {
           first_name: req.body.first_name || '',
           last_name: req.body.last_name || '',
           language_code: req.body.language_code || 'en'
-        }, ref_by);
+        });
         
         if (result.success) {
           this.sendSuccess(res, {
@@ -50,7 +50,8 @@ export class AuthController extends BaseController {
       const initData = initDataFromHeaders || initDataFromBody;
       
       if (!initData) {
-        throw new Error('InitData is required in headers or body');
+        this.sendError(res, 'InitData is required in headers or body', 400);
+        return;
       }
       
       logger.info('[AuthController] Аутентификация через Telegram', { 
@@ -60,7 +61,7 @@ export class AuthController extends BaseController {
       });
       console.log('✅ /api/v2/auth/telegram called with initData length:', initData.length);
       
-      const result = await this.authService.authenticateWithTelegram(initData, ref_by);
+      const result = await this.authService.authenticateFromTelegram(initData, { ref_by });
       
       if (result.success) {
         console.log('✅ Authentication successful, returning token and user data');
@@ -125,7 +126,8 @@ export class AuthController extends BaseController {
       // Стандартная регистрация через initData
       const initData = initDataFromHeaders || initDataFromBody;
       if (!initData) {
-        throw new Error('InitData is required in headers or body for standard registration');
+        this.sendError(res, 'InitData is required in headers or body for standard registration', 400);
+        return;
       }
       
       logger.info('[AuthController] Стандартная регистрация через Telegram', { 

@@ -264,4 +264,90 @@ export class AuthService {
       return null;
     }
   }
+
+  /**
+   * Регистрация через Telegram initData
+   */
+  async registerWithTelegram(initData: string, refBy?: string): Promise<AuthResponse> {
+    try {
+      // Валидация initData
+      const validation = validateTelegramInitData(initData);
+      if (!validation.valid || !validation.user) {
+        return {
+          success: false,
+          error: 'Недействительные данные Telegram'
+        };
+      }
+
+      const telegramUser = validation.user;
+      
+      // Проверяем существование пользователя
+      let userInfo = await this.userService.findByTelegramId(telegramUser.id);
+      let isNewUser = false;
+
+      if (!userInfo) {
+        // Создаем нового пользователя
+        userInfo = await this.userService.createUserFromTelegram({
+          telegram_id: telegramUser.id,
+          username: telegramUser.username || telegramUser.first_name,
+          first_name: telegramUser.first_name
+        }, refBy);
+        isNewUser = true;
+      }
+
+      const payload: JWTPayload = {
+        userId: userInfo.id.toString(),
+        telegramId: telegramUser.id,
+        username: telegramUser.username || userInfo.username,
+        refCode: userInfo.ref_code
+      };
+
+      const token = generateJWTToken(payload);
+
+      return {
+        success: true,
+        user: {
+          id: userInfo.id.toString(),
+          telegram_id: telegramUser.id,
+          username: telegramUser.username || (userInfo.username ?? ''),
+          ref_code: userInfo.ref_code || '',
+          created_at: userInfo.created_at || new Date().toISOString()
+        },
+        token,
+        isNewUser
+      };
+    } catch (error) {
+      logger.error('[AuthService] Ошибка регистрации через Telegram', { error: error instanceof Error ? error.message : String(error) });
+      return {
+        success: false,
+        error: 'Ошибка при регистрации'
+      };
+    }
+  }
+
+  /**
+   * Получение информации о сессии
+   */
+  async getSessionInfo(token: string): Promise<SessionInfo> {
+    return this.verifySession(token);
+  }
+
+  /**
+   * Валидация токена
+   */
+  async validateToken(token: string): Promise<{ valid: boolean; payload?: JWTPayload; error?: string }> {
+    try {
+      const verification = verifyJWTToken(token);
+      return {
+        valid: verification.valid,
+        payload: verification.payload,
+        error: verification.error
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: 'Token validation failed'
+      };
+    }
+  }
 }

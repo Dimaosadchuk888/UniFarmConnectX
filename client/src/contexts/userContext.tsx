@@ -279,6 +279,44 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           userPresent: !!telegramData?.initDataUnsafe?.user
         });
 
+        // Проверяем наличие initData для авторизации
+        if (telegramData && telegramData.initData && telegramData.initData.length > 0) {
+          console.log('[UserContext] Авторизация через initData');
+          
+          try {
+            const response = await fetch('/api/v2/auth/telegram', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                initData: telegramData.initData
+              })
+            });
+
+            const data = await response.json();
+            
+            if (response.ok && data.success && data.token) {
+              console.log('[UserContext] Авторизация через initData успешна');
+              localStorage.setItem('unifarm_auth_token', data.token);
+              localStorage.setItem('unifarm_user_data', JSON.stringify(data.user));
+              
+              dispatch({
+                type: 'SET_USER_DATA',
+                payload: {
+                  userId: data.user.id,
+                  username: data.user.username,
+                  telegramId: data.user.telegram_id,
+                  refCode: data.user.ref_code
+                }
+              });
+              return;
+            } else {
+              console.log('[UserContext] Авторизация через initData не удалась, пробуем регистрацию');
+            }
+          } catch (error) {
+            console.log('[UserContext] Ошибка авторизации через initData:', error);
+          }
+        }
+
         // Если есть пользователь но нет initData - прямая регистрация
         if (telegramData && telegramData.initDataUnsafe?.user && (!telegramData.initData || telegramData.initData.length === 0)) {
           const user = telegramData.initDataUnsafe.user;
