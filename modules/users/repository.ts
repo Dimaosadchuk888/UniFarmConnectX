@@ -1,5 +1,33 @@
 import { supabase } from '../../core/supabase';
-import { type InsertUser, type User } from '../../shared/schema';
+// Типы пользователя для Supabase API
+interface User {
+  id: number;
+  telegram_id: number;
+  username?: string;
+  first_name?: string;
+  ref_code: string;
+  referred_by?: string;
+  balance_uni: string;
+  balance_ton: string;
+  uni_deposit_amount?: string;
+  uni_farming_start_timestamp?: string;
+  uni_farming_last_update?: string;
+  uni_farming_rate?: string;
+  checkin_last_date?: string;
+  checkin_streak?: number;
+  created_at: string;
+}
+
+interface InsertUser {
+  telegram_id: number;
+  username?: string;
+  first_name?: string;
+  ref_code: string;
+  referred_by?: string;
+  balance_uni?: string;
+  balance_ton?: string;
+  parent_ref_code?: string;
+}
 import { customAlphabet } from 'nanoid';
 import { logger } from '../../core/logger.js';
 
@@ -95,7 +123,7 @@ export class UserRepository {
       console.log('✅ Generated unique ref_code:', refCode);
 
       // Определяем parent_ref_code (кто пригласил)
-      let parentRefCode: string | null = null;
+      let parentRefCode: string | undefined = undefined;
       if (params.ref_by) {
         const inviter = await this.findByRefCode(params.ref_by);
         if (inviter) {
@@ -113,7 +141,7 @@ export class UserRepository {
         telegram_id: params.telegram_id,
         username: params.username || params.first_name || `user_${params.telegram_id}`,
         ref_code: refCode,
-        parent_ref_code: parentRefCode
+        referred_by: parentRefCode
       };
 
       console.log('✅ Inserting user data into database:', userData);
