@@ -12,8 +12,8 @@ if (process.env.SENTRY_DSN) {
     environment: process.env.NODE_ENV || 'development',
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
     integrations: [
-      new Sentry.Integrations.Http({ tracing: true }),
-      new Sentry.Integrations.Express(),
+      Sentry.httpIntegration({ tracing: true }),
+      Sentry.expressIntegration(),
     ],
   });
   console.log('[Sentry] Monitoring initialized');
@@ -216,8 +216,7 @@ async function startServer() {
 
     // Sentry middleware (має бути першим після створення app)
     if (process.env.SENTRY_DSN) {
-      app.use(Sentry.Handlers.requestHandler());
-      app.use(Sentry.Handlers.tracingHandler());
+      app.use(Sentry.expressErrorHandler());
     }
 
     // TELEGRAM WEBHOOK - МАКСИМАЛЬНЫЙ ПРИОРИТЕТ (первая регистрация)
@@ -520,7 +519,7 @@ async function startServer() {
 
     // Sentry error handler (має бути перед іншими error handlers)
     if (process.env.SENTRY_DSN) {
-      app.use(Sentry.Handlers.errorHandler());
+      app.use(Sentry.expressErrorHandler());
     }
 
     // Error handlers (must be last)
