@@ -1,11 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { FarmingService } from './service';
-import { UserService } from '../user/service';
+import { SupabaseUserRepository } from '../user/repository';
 import { logger } from '../../core/logger';
 
 const farmingService = new FarmingService();
-const userService = new UserService();
+const userRepository = new SupabaseUserRepository();
 
 export class FarmingController extends BaseController {
   async getFarmingData(req: Request, res: Response, next: NextFunction) {
@@ -15,10 +15,11 @@ export class FarmingController extends BaseController {
       if (!telegram) return; // 401 уже отправлен
       
       // Автоматическая регистрация пользователя
-      const user = await userService.getOrCreateUserFromTelegram({
+      const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
       
       const farmingData = await farmingService.getFarmingDataByTelegramId(
@@ -86,15 +87,16 @@ export class FarmingController extends BaseController {
       if (!telegram) return;
       
       // Автоматическая регистрация пользователя
-      const user = await userService.getOrCreateUserFromTelegram({
+      const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
       
       const { amount } = req.body;
       
-      const result = await farmingService.startFarming(
+      const result = await farmingService.depositForFarming(
         telegram.user.id.toString(),
         amount
       );
@@ -113,10 +115,11 @@ export class FarmingController extends BaseController {
       if (!telegram) return;
 
       // Автоматическая регистрация пользователя
-      const user = await userService.getOrCreateUserFromTelegram({
+      const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
 
       const result = await farmingService.claimRewards(
@@ -137,10 +140,11 @@ export class FarmingController extends BaseController {
       if (!telegram) return;
 
       // Автоматическая регистрация пользователя
-      const user = await userService.getOrCreateUserFromTelegram({
+      const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
 
       const { amount } = req.body;
@@ -165,10 +169,11 @@ export class FarmingController extends BaseController {
       if (!telegram) return;
 
       // Автоматическая регистрация пользователя
-      const user = await userService.getOrCreateUserFromTelegram({
+      const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
 
       const result = await farmingService.harvestUniFarming(
@@ -189,10 +194,11 @@ export class FarmingController extends BaseController {
       if (!telegram) return;
 
       // Автоматическая регистрация пользователя
-      const user = await userService.getOrCreateUserFromTelegram({
+      const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
 
       const history = await farmingService.getFarmingHistory(

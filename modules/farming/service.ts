@@ -186,4 +186,84 @@ export class FarmingService {
       return { success: false, message: 'Ошибка при обработке депозита' };
     }
   }
+
+  async claimRewards(telegramId: string): Promise<{ success: boolean; message: string; amount?: number }> {
+    try {
+      const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
+      if (!user) {
+        return { success: false, message: 'Пользователь не найден' };
+      }
+
+      // Расчет накопленных вознаграждений
+      const startTime = user.uni_farming_start_timestamp ? new Date(user.uni_farming_start_timestamp).getTime() : 0;
+      const currentTime = Date.now();
+      const farmingDuration = Math.max(0, currentTime - startTime) / 1000; // в секундах
+      
+      const depositAmount = parseFloat(user.uni_deposit_amount || '0');
+      const rate = parseFloat(user.uni_farming_rate || '0.001');
+      const rewards = depositAmount * rate * farmingDuration / 86400; // дневная ставка
+
+      if (rewards <= 0) {
+        return { success: false, message: 'Нет доступных вознаграждений' };
+      }
+
+      // Обновляем баланс и время последнего сбора
+      const currentBalance = parseFloat(user.balance_uni || '0');
+      const newBalance = (currentBalance + rewards).toFixed(8);
+
+      const { error } = await supabase
+        .from('users')
+        .update({
+          balance_uni: newBalance,
+          uni_farming_last_update: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        return { success: false, message: 'Ошибка обновления баланса' };
+      }
+
+      return { success: true, message: 'Вознаграждения собраны', amount: rewards };
+    } catch (error) {
+      logger.error('[FarmingService] Ошибка сбора вознаграждений:', error);
+      return { success: false, message: 'Ошибка при сборе вознаграждений' };
+    }
+  }
+
+  async harvestUniFarming(telegramId: string): Promise<{ success: boolean; message: string; harvested?: number }> {
+    try {
+      const result = await this.claimRewards(telegramId);
+      return {
+        success: result.success,
+        message: result.message,
+        harvested: result.amount
+      };
+    } catch (error) {
+      logger.error('[FarmingService] Ошибка харвеста UNI:', error);
+      return { success: false, message: 'Ошибка при харвесте UNI' };
+    }
+  }
+
+  async getFarmingHistory(telegramId: string, limit: number = 10): Promise<any[]> {
+    try {
+      const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
+      if (!user) {
+        return [];
+      }
+
+      // Возвращаем историю транзакций farming
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('type', ['UNI_DEPOSIT', 'UNI_HARVEST', 'UNI_REWARD'])
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      return transactions || [];
+    } catch (error) {
+      logger.error('[FarmingService] Ошибка получения истории фарминга:', error);
+      return [];
+    }
+  }
 }
