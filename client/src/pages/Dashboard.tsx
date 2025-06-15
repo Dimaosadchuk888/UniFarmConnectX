@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useUser } from '@/contexts/userContext';
 
 // Dashboard Components
-import WelcomeSection from '@/components/dashboard/WelcomeSection';
+import SafeWelcomeSection from '@/components/dashboard/SafeWelcomeSection';
 import IncomeCardNew from '@/components/dashboard/IncomeCardNew';
 import ChartCard from '@/components/dashboard/ChartCard';
 import BoostStatusCard from '@/components/dashboard/BoostStatusCard';
@@ -41,7 +41,7 @@ const Dashboard: React.FC = () => {
     return (
       <div className="space-y-5 pb-6 min-h-full">
         {/* Основная секция приветствия - работает без авторизации */}
-        <WelcomeSection />
+        <SafeWelcomeSection />
         
         {/* Демонстрационный режим для неавторизованных пользователей */}
         <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
@@ -65,7 +65,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-5 pb-6 min-h-full">
       {/* Основная секция приветствия */}
-      <WelcomeSection />
+      <SafeWelcomeSection />
       
       {/* Карточка доходов */}
       <IncomeCardNew />

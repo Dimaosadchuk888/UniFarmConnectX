@@ -5,7 +5,6 @@ import {
   isWalletConnected, 
   getWalletAddress
 } from '@/services/tonConnectService';
-import { useQuery } from '@tanstack/react-query';
 import { useUser } from '@/contexts/userContext';
 
 const WelcomeSection: React.FC = () => {
@@ -26,16 +25,21 @@ const WelcomeSection: React.FC = () => {
       </div>
     );
   }
-  
-  // Используем данные пользователя из контекста
+
+  // Безопасное обновление имени пользователя
   useEffect(() => {
-    if (username) {
-      setUserName(username);
-    } else if (isTelegramWebApp()) {
-      const telegramName = getTelegramUserDisplayName();
-      if (telegramName) {
-        setUserName(telegramName);
+    try {
+      if (username) {
+        setUserName(username);
+      } else if (isTelegramWebApp()) {
+        const telegramName = getTelegramUserDisplayName();
+        if (telegramName) {
+          setUserName(telegramName);
+        }
       }
+    } catch (error) {
+      console.error('[WelcomeSection] Ошибка получения имени пользователя:', error);
+      setUserName('Пользователь');
     }
   }, [username]);
   
