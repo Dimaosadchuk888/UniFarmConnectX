@@ -11,7 +11,8 @@ router.get('/', requireTelegramAuth, farmingController.getFarmingData.bind(farmi
 router.get('/data', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController)); // Main data endpoint с авторизацией
 router.get('/info', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController));
 router.get('/status', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController)); // Alias for /info
-router.post('/start', requireAuth, requireTelegramAuth, farmingController.startFarming.bind(farmingController));
+router.post('/start', requireTelegramAuth, farmingController.startFarming.bind(farmingController));
+router.get('/start', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController)); // GET endpoint for start status
 router.post('/claim', requireTelegramAuth, farmingController.claimFarming.bind(farmingController));
 
 // UNI Farming specific routes

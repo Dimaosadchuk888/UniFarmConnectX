@@ -7,6 +7,7 @@ const missionsController = new MissionsController();
 
 // Маршруты миссий с обязательной авторизацией
 router.get('/', requireTelegramAuth, missionsController.getActiveMissions.bind(missionsController)); // Main missions endpoint
+router.get('/list', requireTelegramAuth, missionsController.getActiveMissions.bind(missionsController)); // List endpoint for API consistency
 router.get('/active', requireTelegramAuth, missionsController.getActiveMissions.bind(missionsController));
 router.post('/complete', requireTelegramAuth, missionsController.completeMission.bind(missionsController));
 router.get('/stats', requireTelegramAuth, missionsController.getMissionStats.bind(missionsController));
