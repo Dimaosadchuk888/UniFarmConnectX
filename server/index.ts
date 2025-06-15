@@ -378,6 +378,11 @@ async function startServer() {
     // Выполняем T15 миграцию после подключения к базе
     setTimeout(executeT15Migration, 5000);
 
+    // Static file serving for PWA files
+    app.get('/manifest.json', (req: Request, res: Response) => {
+      res.sendFile(path.join(__dirname, '../client/manifest.json'));
+    });
+
     // Health check (должен быть первым для мониторинга)
     app.get('/health', (req: Request, res: Response) => {
       res.json({ 

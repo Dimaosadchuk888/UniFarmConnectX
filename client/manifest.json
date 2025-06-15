@@ -1,38 +1,36 @@
 {
   "name": "UniFarm - Telegram Mini App",
   "short_name": "UniFarm",
-  "description": "Farming, referral, and financial services within Telegram ecosystem",
+  "description": "UNI and TON farming game with referral system",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#6366f1",
   "orientation": "portrait",
   "scope": "/",
-  "lang": "en",
   "icons": [
     {
-      "src": "/logo-192.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo-512.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["finance", "productivity"],
   "shortcuts": [
     {
       "name": "Farming",
       "short_name": "Farm",
-      "description": "Start UNI/TON farming",
+      "description": "Start UNI farming",
       "url": "/farming",
       "icons": [
         {
-          "src": "/logo-192.png",
+          "src": "/icon-192x192.png",
           "sizes": "192x192"
         }
       ]
@@ -40,14 +38,18 @@
     {
       "name": "Wallet",
       "short_name": "Wallet",
-      "description": "View wallet balance",
+      "description": "Check balance",
       "url": "/wallet",
       "icons": [
         {
-          "src": "/logo-192.png",
+          "src": "/icon-192x192.png",
           "sizes": "192x192"
         }
       ]
     }
-  ]
+  ],
+  "categories": ["games", "finance"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false
 }
