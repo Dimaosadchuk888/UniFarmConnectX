@@ -100,41 +100,37 @@ router.post('/register/telegram', async (req, res) => {
   }
 });
 
-// User profile endpoint
-router.get('/me', async (req: Request, res: Response) => {
-  const { requireTelegramAuth } = await import('../core/middleware/telegramAuth');
-  requireTelegramAuth(req, res, async () => {
-    try {
-      const { UserController } = await import('../modules/user/controller');
-      const userController = new UserController();
-      await userController.getCurrentUser(req, res);
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error'
-      });
-    }
-  });
-});
-
-// Прямой маршрут для профиля пользователя с поддержкой JWT (должен быть ДО /users middleware)
-router.get('/users/profile', async (req, res) => {
+// JWT Authentication endpoint with fallback to Telegram
+router.get('/me', async (req, res) => {
+  console.log('[JWT Debug] /me route hit, checking Authorization header');
+  console.log('[JWT Debug] Authorization header:', req.headers.authorization);
+  
   try {
     // Проверяем JWT токен в Authorization header
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
+      console.log('[JWT Debug] JWT token found, verifying...');
       
       try {
         const jwt = await import('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
+        console.log('[JWT Debug] Token decoded:', { telegram_id: decoded.telegram_id, username: decoded.username });
         
         if (decoded.telegram_id) {
-          const { UserRepository } = await import('../modules/user/repository');
-          const userRepo = new UserRepository();
-          const user = await userRepo.findByTelegramId(decoded.telegram_id);
+          // Используем Supabase API напрямую
+          const { supabase } = await import('../core/supabase');
+          console.log('[JWT Debug] Querying Supabase for user...');
+          const { data: user, error: dbError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('telegram_id', decoded.telegram_id)
+            .single();
+          
+          console.log('[JWT Debug] Supabase query result:', { user: !!user, error: dbError });
           
           if (user) {
+            console.log('[JWT Debug] User found, returning success response');
             return res.json({
               success: true,
               user: {
@@ -147,21 +143,47 @@ router.get('/users/profile', async (req, res) => {
                 auth_method: 'jwt'
               }
             });
+          } else {
+            console.log('[JWT Debug] No user found in database');
           }
         }
       } catch (jwtError) {
-        console.log('[JWT] Token invalid:', jwtError);
+        console.log('[JWT Debug] Token verification failed:', jwtError);
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid JWT token',
+          need_auth: true
+        });
       }
+    } else {
+      console.log('[JWT Debug] No Bearer token found');
     }
 
+    console.log('[JWT Debug] Falling back to Telegram auth');
     // Fallback к Telegram методу
-    const { UserController } = await import('../modules/user/controller');
-    const userController = new UserController();
-    await userController.getCurrentUser(req, res);
+    const { requireTelegramAuth } = await import('../core/middleware/telegramAuth');
+    requireTelegramAuth(req, res, async () => {
+      try {
+        const { UserController } = await import('../modules/user/controller');
+        const userController = new UserController();
+        await userController.getCurrentUser(req, res);
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+        });
+      }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Profile error' });
+    console.error('[JWT Route] Error:', error);
+    res.status(500).json({ success: false, error: 'Authentication error' });
   }
 });
+
+// Core module routes
+router.use('/farming', farmingRoutes);
+router.use('/uni-farming', farmingRoutes); // Alias for uni-farming endpoints
+router.use('/users', userRoutes);
 
 router.post('/users/profile', async (req, res) => {
   try {
