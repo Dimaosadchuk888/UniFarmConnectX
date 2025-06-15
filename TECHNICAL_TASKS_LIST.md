@@ -12,30 +12,30 @@
 **Статус:** ВЫПОЛНЕНО
 **Описание:** Webhook корректно настроен на production URL
 
-### 2. Инициализировать initData в клиентском коде ❌  
-**Статус:** ТРЕБУЕТ ИСПРАВЛЕНИЯ
-**Описание:** initData не используется, нужно добавить правильную инициализацию
-**Файлы:** client/src/main.tsx, client/src/hooks/useTelegram.ts
+### 2. Инициализировать initData в клиентском коде ✅  
+**Статус:** ВЫПОЛНЕНО
+**Описание:** initData полностью реализован: детальная диагностика в main.tsx, извлечение в useTelegram.ts, авторизация в userContext.tsx
+**Файлы:** client/src/main.tsx, client/src/hooks/useTelegram.ts, client/src/contexts/userContext.tsx
 
-### 3. Очистить устаревшие .env переменные ❌
-**Статус:** КРИТИЧЕСКАЯ ПРОБЛЕМА  
-**Описание:** 8 старых PostgreSQL переменных создают конфликты с Supabase
+### 3. Очистить устаревшие .env переменные ✅
+**Статус:** ВЫПОЛНЕНО  
+**Описание:** Созданы runtime скрипты очистки, удалены 8 конфликтующих PostgreSQL переменных
 **Переменные:** DATABASE_URL, PGHOST, PGUSER, PGPASSWORD, PGDATABASE, PGPORT, DATABASE_PROVIDER, USE_NEON_DB
 
-### 4. Исправить 502 ошибки в API endpoints ❌
-**Статус:** КРИТИЧЕСКАЯ ПРОБЛЕМА
-**Описание:** Все API возвращают 502 Bad Gateway из-за конфликтов переменных
+### 4. Исправить 502 ошибки в API endpoints ✅
+**Статус:** ВЫПОЛНЕНО
+**Описание:** API endpoints исправлены после очистки переменных: 502 → 401 (корректное поведение)
 **Endpoints:** /auth/telegram, /register/telegram, /users/profile, /wallet/balance, /farming/start
 
-### 5. Восстановить Manifest и Telegram WebApp теги ❌
-**Статус:** ТРЕБУЕТ ИСПРАВЛЕНИЯ
-**Описание:** manifest.json недоступен, мета-теги отсутствуют
+### 5. Восстановить Manifest и Telegram WebApp теги ✅
+**Статус:** ВЫПОЛНЕНО
+**Описание:** manifest.json доступен и корректен, все Telegram WebApp мета-теги присутствуют
 **Файлы:** client/index.html, manifest.json
 
-### 6. Восстановить Health endpoints ❌
-**Статус:** КРИТИЧЕСКАЯ ПРОБЛЕМА  
-**Описание:** /health и /api/v2/health возвращают ошибки
-**Файлы:** server/index.ts
+### 6. Восстановить Health endpoints ✅
+**Статус:** ВЫПОЛНЕНО  
+**Описание:** Оба health endpoints работают корректно: /health и /api/v2/health возвращают 200
+**Файлы:** server/index.ts, server/routes.ts
 
 ---
 
