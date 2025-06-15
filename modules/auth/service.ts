@@ -149,7 +149,10 @@ export class AuthService {
 
       return {
         success: true,
-        user: userInfo,
+        user: {
+          ...userInfo,
+          telegram_id: userInfo.telegram_id || userData.telegram_id
+        } as User,
         token: token,
         isNewUser
       };
@@ -221,7 +224,10 @@ export class AuthService {
 
       return {
         success: true,
-        user: userInfo,
+        user: {
+          ...userInfo,
+          telegram_id: userInfo.telegram_id || telegramUser.id
+        } as User,
         token: token,
         isNewUser
       };
@@ -257,7 +263,7 @@ export class AuthService {
 
       return {
         success: true,
-        user: userInfo
+        user: userInfo as User
       };
     } catch (error) {
       logger.error('[AuthService] Ошибка проверки токена', { error: error instanceof Error ? error.message : String(error) });
