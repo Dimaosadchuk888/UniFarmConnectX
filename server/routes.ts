@@ -78,6 +78,17 @@ router.post('/telegram/webhook', async (req: Request, res: Response) => {
 // Authentication routes
 router.use('/auth', authRoutes);
 
+// Прямой маршрут для Telegram авторизации
+router.post('/auth/telegram', async (req, res) => {
+  try {
+    const { AuthController } = await import('../modules/auth/controller');
+    const authController = new AuthController();
+    await authController.authenticateFromTelegram(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Auth error' });
+  }
+});
+
 // Регистрация Telegram пользователей
 router.post('/register/telegram', async (req, res) => {
   try {
@@ -111,12 +122,22 @@ router.use('/farming', farmingRoutes);
 router.use('/uni-farming', farmingRoutes); // Alias for uni-farming endpoints
 router.use('/users', userRoutes);
 
-// Прямой маршрут для профиля пользователя
+// Прямой маршрут для профиля пользователя (GET и POST)
 router.get('/users/profile', async (req, res) => {
   try {
     const { UserController } = await import('../modules/user/controller');
     const userController = new UserController();
     await userController.getCurrentUser(req, res);
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Profile error' });
+  }
+});
+
+router.post('/users/profile', async (req, res) => {
+  try {
+    const { UserController } = await import('../modules/user/controller');
+    const userController = new UserController();
+    await userController.getProfile(req, res);
   } catch (error) {
     res.status(500).json({ success: false, error: 'Profile error' });
   }
