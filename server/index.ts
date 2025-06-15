@@ -392,6 +392,9 @@ async function startServer() {
 
 
 
+    // Apply Telegram middleware before routes for init data parsing
+    app.use(telegramMiddleware);
+
     // API routes
     const apiPrefix = `/api/v2`;
     
@@ -404,9 +407,6 @@ async function startServer() {
     
     // Добавляем webhook на корневом уровне
     app.use('/', apiRoutes);
-    
-    // Apply optional Telegram middleware to all routes for init data parsing
-    app.use(telegramMiddleware);
     
 
 
@@ -472,7 +472,7 @@ async function startServer() {
         // Setup Vite after server starts
         await setupVite(app, server);
       });
-      return;
+      return server;
     }
 
     // ДОПОЛНИТЕЛЬНЫЕ WEBHOOK МАРШРУТЫ для надежности
