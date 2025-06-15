@@ -661,7 +661,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                     
                     // Для других валют используем стандартный порог
                     return isSignificant;
-                  } catch (filterError) {return false; // В случае ошибки фильтрации пропускаем транзакцию
+                  } catch (filterError) {
+        return false; // В случае ошибки фильтрации пропускаем транзакцию
                   }
                 }) as FarmingHistory[]; // Приведение типа после фильтрации null-значений
             } catch (processError) {historyItems = []; // Используем пустой массив в случае критической ошибки
@@ -1009,7 +1010,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           } catch (itemError) {return false;
           }
         }).length > 0;
-      } catch (filterError) {return false;
+      } catch (filterError) {
+        return false;
       }
     })();
     
@@ -1163,7 +1165,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           } catch (itemError) {return false;
           }
         }).length > 0;
-      } catch (filterError) {return false;
+      } catch (filterError) {
+        return false;
       }
     })();
     

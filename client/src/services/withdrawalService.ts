@@ -88,15 +88,19 @@ export async function submitWithdrawal(
       wallet_address: data.wallet_address || ''
     };// Отправляем запрос на сервер с улучшенной обработкой ошибок через correctApiRequest
     let response;
-    try {// correctApiRequest автоматически обрабатывает сетевые ошибки и стандартизирует ответ
-      response = await correctApiRequest('/api/v2/wallet/withdraw', 'POST', requestData);} catch (networkError) {
-      // correctApiRequest должен сам обрабатывать ошибки, но добавляем дополнительную защитуreturn {
+    try {
+      // correctApiRequest автоматически обрабатывает сетевые ошибки и стандартизирует ответ
+      response = await correctApiRequest('/api/v2/wallet/withdraw', 'POST', requestData);
+    } catch (networkError) {
+      // correctApiRequest должен сам обрабатывать ошибки, но добавляем дополнительную защиту
+      return {
         message: 'Ошибка сети при отправке запроса. Пожалуйста, проверьте подключение к интернету',
       };
     }
     
     // Проверка на валидность ответа с защитой от null/undefined
-    if (!response) {return {
+    if (!response) {
+      return {
         message: 'Получен пустой ответ от сервера',
       };
     }
@@ -118,11 +122,13 @@ export async function submitWithdrawal(
     
     // Если дошли сюда, значит в ответе нет success или transaction_id
     // Извлекаем сообщение об ошибке из ответа
-    const errorMessage = extractErrorMessage(response);return {
+    const errorMessage = extractErrorMessage(response);
+    return {
       message: errorMessage,
     };
   } catch (error) {
-    // Обрабатываем непредвиденные исключения// Возвращаем объект ошибки с дополнительной информацией
+    // Обрабатываем непредвиденные исключения
+    // Возвращаем объект ошибки с дополнительной информацией
     return {
       message: error instanceof Error 
         ? error.message 
