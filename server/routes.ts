@@ -114,7 +114,9 @@ router.get('/me', async (req, res) => {
       
       try {
         const jwt = await import('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
+        const jwtSecret = process.env.JWT_SECRET || 'Yy9zN3u7JD2qWvX8mCLr0eK1gQpbTMA4';
+        console.log('[JWT Debug] Using secret length:', jwtSecret.length);
+        const decoded = jwt.verify(token, jwtSecret) as any;
         console.log('[JWT Debug] Token decoded:', { telegram_id: decoded.telegram_id, username: decoded.username });
         
         if (decoded.telegram_id) {
