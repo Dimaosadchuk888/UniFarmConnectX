@@ -4,10 +4,10 @@
 
 console.warn('[DEPRECATED] modules/missions/service.ts is deprecated. Use Supabase API instead');
 
-export class MissionService {
+export class MissionsService {
   constructor() {
-    console.warn('[DEPRECATED] MissionService is deprecated. Use Supabase API instead');
+    console.warn('[DEPRECATED] MissionsService is deprecated. Use Supabase API instead');
   }
 }
 
-export default MissionService;
+export default MissionsService;

@@ -4,7 +4,7 @@
  */
 
 import { appConfig } from '../config/app';
-import { databaseConfig } from '../config/database';
+import { supabaseConfig } from '../config/database';
 import { telegramConfig } from '../config/telegram';
 
 /**
@@ -32,7 +32,7 @@ export const envConfig = {
 
 export const config = {
   app: appConfig,
-  database: databaseConfig,
+  database: supabaseConfig,
   telegram: telegramConfig,
   env: envConfig,
   security: {
