@@ -18,7 +18,8 @@ export class WalletController extends BaseController {
       const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
 
       const walletData = await walletService.getWalletDataByTelegramId(

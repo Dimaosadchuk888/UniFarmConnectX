@@ -185,4 +185,98 @@ export class WalletService {
       return [];
     }
   }
+
+  async processWithdrawal(userId: string, amount: string, type: 'UNI' | 'TON'): Promise<boolean> {
+    try {
+      // Получаем пользователя
+      const { data: user, error: getUserError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (getUserError || !user) {
+        logger.error('[WalletService] Пользователь не найден для вывода', { userId, error: getUserError?.message });
+        return false;
+      }
+
+      const withdrawAmount = parseFloat(amount);
+      let currentBalance = 0;
+      let balanceField = '';
+
+      if (type === 'UNI') {
+        currentBalance = parseFloat(user.balance_uni || "0");
+        balanceField = 'balance_uni';
+      } else if (type === 'TON') {
+        currentBalance = parseFloat(user.balance_ton || "0");
+        balanceField = 'balance_ton';
+      }
+
+      // Проверяем достаточность средств
+      if (currentBalance < withdrawAmount) {
+        logger.warn('[WalletService] Недостаточно средств для вывода', { 
+          userId, 
+          requested: withdrawAmount, 
+          available: currentBalance,
+          type 
+        });
+        return false;
+      }
+
+      // Обновляем баланс
+      const newBalance = currentBalance - withdrawAmount;
+      const updateData: any = {};
+      updateData[balanceField] = newBalance.toString();
+
+      const { error: updateError } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (updateError) {
+        logger.error('[WalletService] Ошибка обновления баланса при выводе', { 
+          userId, 
+          error: updateError.message 
+        });
+        return false;
+      }
+
+      // Создаем запись транзакции
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: parseInt(userId),
+          type: 'withdrawal',
+          amount: withdrawAmount.toString(),
+          currency: type,
+          status: 'completed',
+          created_at: new Date().toISOString()
+        });
+
+      if (transactionError) {
+        logger.warn('[WalletService] Ошибка создания транзакции (баланс обновлен)', { 
+          userId, 
+          error: transactionError.message 
+        });
+      }
+
+      logger.info('[WalletService] Вывод средств выполнен успешно', { 
+        userId, 
+        amount: withdrawAmount, 
+        type,
+        newBalance 
+      });
+      
+      return true;
+
+    } catch (error) {
+      logger.error('[WalletService] Ошибка обработки вывода средств', { 
+        userId, 
+        amount, 
+        type,
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      return false;
+    }
+  }
 }

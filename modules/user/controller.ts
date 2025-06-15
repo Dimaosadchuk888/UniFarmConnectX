@@ -31,7 +31,7 @@ export class UserController extends BaseController {
 
 
   async getCurrentUser(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+    await this.handleRequest(req, res, async (req: Request, res: Response) => {
       // Пытаемся получить пользователя через JWT токен из Authorization header
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -113,7 +113,7 @@ export class UserController extends BaseController {
           auth_method: 'telegram'
         }
       });
-    });
+    }, 'получения текущего пользователя');
   }
 
   async updateUser(req: Request, res: Response) {
