@@ -1,11 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { WalletService } from './service';
-import { UserService } from '../user/service';
+import { SupabaseUserRepository } from '../user/repository';
 import { logger } from '../../core/logger';
 
 const walletService = new WalletService();
-const userService = new UserService();
+const userRepository = new SupabaseUserRepository();
 
 export class WalletController extends BaseController {
   async getWalletData(req: Request, res: Response, next: NextFunction) {
@@ -15,7 +15,7 @@ export class WalletController extends BaseController {
       if (!telegram) return; // 401 уже отправлен
 
       // Автоматическая регистрация пользователя
-      const user = await userService.getOrCreateUserFromTelegram({
+      const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
         ref_code: req.query.start_param as string

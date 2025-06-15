@@ -86,6 +86,10 @@ export class UserController extends BaseController {
         ref_by: req.query.start_param as string // Реферальный код из query параметров
       });
       
+      if (!user) {
+        return this.sendError(res, 'Failed to create or find user', 500);
+      }
+
       logger.info('[GetMe] Пользователь найден/создан', {
         id: user.id,
         telegram_id: user.telegram_id,
@@ -99,12 +103,12 @@ export class UserController extends BaseController {
           username: user.username || telegramUser.user.first_name,
           first_name: telegramUser.user.first_name,
           ref_code: user.ref_code,
-          parent_ref_code: user.parent_ref_code,
+          referred_by: user.referred_by,
           uni_balance: user.balance_uni || "0",
           ton_balance: user.balance_ton || "0",
           balance_uni: user.balance_uni || "0",
           balance_ton: user.balance_ton || "0",
-          created_at: user.created_at?.toISOString(),
+          created_at: user.created_at,
           is_telegram_user: true,
           auth_method: 'telegram'
         }

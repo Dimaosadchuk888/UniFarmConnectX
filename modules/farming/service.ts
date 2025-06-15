@@ -1,13 +1,13 @@
 import { supabase } from '../../core/supabase';
-import { UserRepository } from '../users/repository';
+import { SupabaseUserRepository } from '../user/repository';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { logger } from '../../core/logger.js';
 
 export class FarmingService {
-  private userRepository: UserRepository;
+  private userRepository: SupabaseUserRepository;
 
   constructor() {
-    this.userRepository = new UserRepository();
+    this.userRepository = new SupabaseUserRepository();
   }
 
   async getFarmingDataByTelegramId(telegramId: string): Promise<{
