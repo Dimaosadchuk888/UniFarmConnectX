@@ -1,5 +1,5 @@
 // Экспорт основных компонентов системного ядра
-export { db } from './db';
+// REMOVED: deprecated db export - using Supabase API only
 export { logger } from './logger';
 export { config } from './config';
 export { BaseController } from './BaseController';

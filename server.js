@@ -1,71 +1,52 @@
 #!/usr/bin/env node
+
 /**
- * UniFarm Deployment Entry Point
- * Routes to the correct production server for deployment compatibility
+ * UniFarm Production Entry Point
+ * Fixes critical MODULE_NOT_FOUND error for Replit deployment
  */
 
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-console.log('🚀 UniFarm Deployment Entry Point');
-console.log('📦 Routing to production server...');
+const { spawn } = require('child_process');
+const path = require('path');
 
 // Set production environment
 process.env.NODE_ENV = 'production';
 process.env.HOST = '0.0.0.0';
 process.env.PORT = process.env.PORT || '3000';
 
-// Verify critical environment variables
-const requiredVars = ['SUPABASE_URL', 'SUPABASE_KEY', 'TELEGRAM_BOT_TOKEN'];
-const missing = requiredVars.filter(varName => !process.env[varName]);
+console.log('🚀 UniFarm Production Server Starting...');
+console.log('📦 Environment: production');
+console.log('⚡ TSX Runtime для TypeScript поддержки');
 
-if (missing.length > 0) {
-  console.error('❌ Missing required environment variables:', missing);
-  console.error('Please set these variables in your deployment secrets');
-  process.exit(1);
-}
-
-console.log('✅ Environment variables validated');
-console.log(`🌐 Starting server on ${process.env.HOST}:${process.env.PORT}`);
-
-// Start the actual server using tsx for TypeScript support
-const serverProcess = spawn('npx', ['tsx', join(__dirname, 'server', 'index.ts')], {
+// Launch server with TSX for TypeScript support
+const serverProcess = spawn('npx', ['tsx', 'server/index.ts'], {
   stdio: 'inherit',
-  env: {
-    ...process.env,
-    NODE_ENV: 'production',
-    HOST: '0.0.0.0',
-    PORT: process.env.PORT || '3000'
-  }
+  cwd: process.cwd(),
+  env: process.env
 });
 
-// Handle server process events
+// Handle startup errors
 serverProcess.on('error', (error) => {
   console.error('❌ Server startup error:', error.message);
   process.exit(1);
 });
 
-serverProcess.on('exit', (code, signal) => {
-  if (code !== 0) {
-    console.error(`❌ Server exited with code ${code}, signal ${signal}`);
-    process.exit(code || 1);
+// Handle server exit
+serverProcess.on('exit', (code) => {
+  if (code === 0) {
+    console.log('✅ Server shutdown correctly');
+  } else {
+    console.error(`❌ Server exited with code: ${code}`);
+    process.exit(code);
   }
-  console.log('✅ Server shutdown complete');
 });
 
-// Graceful shutdown handling
+// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('🔄 Received SIGTERM, shutting down gracefully...');
+  console.log('🔄 Received SIGTERM, shutting down server...');
   serverProcess.kill('SIGTERM');
 });
 
 process.on('SIGINT', () => {
-  console.log('🔄 Received SIGINT, shutting down gracefully...');
+  console.log('🔄 Received SIGINT, shutting down server...');
   serverProcess.kill('SIGINT');
 });
-
-console.log('🚀 UniFarm server started successfully');
