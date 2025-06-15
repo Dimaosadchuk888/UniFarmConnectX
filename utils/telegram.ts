@@ -28,6 +28,7 @@ export interface ValidationResult {
 }
 
 export interface JWTPayload {
+  userId: number;
   telegram_id: number;
   username?: string;
   ref_code?: string;
@@ -148,6 +149,7 @@ export function generateJWTToken(user: TelegramUser, refCode?: string): string {
   }
 
   const payload: JWTPayload = {
+    userId: user.id,
     telegram_id: user.id,
     username: user.username,
     ref_code: refCode,
