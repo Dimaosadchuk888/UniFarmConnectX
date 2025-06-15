@@ -1,7 +1,7 @@
 import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type TelegramUser, type JWTPayload } from '../../utils/telegram';
 import { UserService } from '../users/service';
 import { supabase } from '../../core/supabase';
-import { type User } from '../../shared/schema';
+// Удаляем импорт из shared/schema, используем типы напрямую
 import { logger } from '../../core/logger';
 
 interface AuthResponse {

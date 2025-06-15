@@ -1,0 +1,150 @@
+{
+  "timestamp": "2025-06-15T08:23:44.540Z",
+  "status": "ТРЕБУЕТ ИСПРАВЛЕНИЙ",
+  "readiness": "32%",
+  "summary": {
+    "criticalIssues": 19,
+    "warnings": 1,
+    "verifiedFiles": 9
+  },
+  "details": {
+    "criticalIssues": [
+      {
+        "file": "modules/admin/model.ts",
+        "issues": [
+          "drizzle-orm"
+        ]
+      },
+      {
+        "file": "modules/auth/model.ts",
+        "issues": [
+          "drizzle-orm"
+        ]
+      },
+      {
+        "file": "modules/auth/service.ts",
+        "issues": [
+          "from '../../shared/schema"
+        ]
+      },
+      {
+        "file": "modules/boost/model.ts",
+        "issues": [
+          "drizzle-orm"
+        ]
+      },
+      {
+        "file": "modules/dailyBonus/model.ts",
+        "issues": [
+          "drizzle-orm"
+        ]
+      },
+      {
+        "file": "modules/missions/model.ts",
+        "issues": [
+          "drizzle-orm"
+        ]
+      },
+      {
+        "file": "modules/monitor/controller.ts",
+        "issues": [
+          "from '../../core/db"
+        ]
+      },
+      {
+        "file": "modules/referral/logic/deepReferral.ts",
+        "issues": [
+          "drizzle-orm"
+        ]
+      },
+      {
+        "file": "modules/telegram/model.ts",
+        "issues": [
+          "drizzle-orm"
+        ]
+      },
+      {
+        "file": "modules/user/model.ts",
+        "issues": [
+          "from '../../shared/schema"
+        ]
+      },
+      {
+        "file": "modules/users/repository.ts",
+        "issues": [
+          "from '../../shared/schema"
+        ]
+      },
+      {
+        "file": "modules/users/service.ts",
+        "issues": [
+          "from '../../shared/schema"
+        ]
+      },
+      {
+        "file": "modules/wallet/service.old.ts",
+        "issues": [
+          "from '../../shared/schema"
+        ]
+      },
+      {
+        "file": "modules/wallet/types.ts",
+        "issues": [
+          "from '../../shared/schema"
+        ]
+      },
+      {
+        "file": "core/middleware/adminAuth.ts",
+        "issues": [
+          "import { db }",
+          "drizzle-orm",
+          "from '../../shared/schema"
+        ]
+      },
+      {
+        "file": "core/middleware/auth.ts",
+        "issues": [
+          "from '../../shared/schema"
+        ]
+      },
+      {
+        "file": "core/repositories/UserRepository.old.ts",
+        "issues": [
+          "from '../../shared/schema"
+        ]
+      },
+      {
+        "file": "core/repositories/UserRepository.ts",
+        "issues": [
+          "from '../../shared/schema"
+        ]
+      },
+      {
+        "file": "server/index.ts",
+        "issues": [
+          "from '../core/db"
+        ]
+      }
+    ],
+    "warnings": [
+      {
+        "file": "Environment Variables",
+        "issues": [
+          "Найдены старые переменные: DATABASE_URL, PGHOST, PGUSER, PGPASSWORD, PGPORT, PGDATABASE, USE_NEON_DB, DATABASE_PROVIDER"
+        ]
+      }
+    ],
+    "cleaned": [],
+    "verified": [
+      "./core/supabase.ts",
+      "modules/admin/service.ts",
+      "modules/airdrop/service.ts",
+      "modules/dailyBonus/service.ts",
+      "modules/farming/service.ts",
+      "modules/referral/service-supabase.ts",
+      "modules/referral/service.ts",
+      "modules/wallet/service.ts",
+      "server/routes.ts"
+    ]
+  }
+}

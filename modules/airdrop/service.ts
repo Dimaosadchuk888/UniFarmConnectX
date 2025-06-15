@@ -1,8 +1,14 @@
 import { supabase } from '../../core/supabase';
-import { UserRepository } from '../../core/repositories/UserRepository';
+import { UserRepository } from '../users/repository';
 import { logger } from '../../core/logger.js';
 
 export class AirdropService {
+  private userRepository: UserRepository;
+
+  constructor() {
+    this.userRepository = new UserRepository();
+  }
+
   async registerForAirdrop(telegramId: number): Promise<{
     success: boolean;
     message: string;
@@ -25,7 +31,7 @@ export class AirdropService {
       }
 
       // Find user by telegram_id
-      const user = await UserRepository.findByTelegramId(telegramId.toString());
+      const user = await this.userRepository.findByTelegramId(telegramId);
       
       if (!user) {
         return {
