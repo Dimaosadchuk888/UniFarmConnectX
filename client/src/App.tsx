@@ -15,10 +15,10 @@ import { useBalance } from "@/hooks/useBalance";
 
 // Components
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
-import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import SafeErrorBoundary from "@/components/ui/SafeErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
 // import { WebSocketProvider } from "@/contexts/webSocketContext"; // Temporarily disabled for stabilization
-import { NotificationProvider } from "@/contexts/notificationContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 // import { ErrorBoundaryProvider } from "@/contexts/ErrorBoundaryContext"; // Removed due to runtime-error-plugin conflict
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 import { TelegramAuth } from "@/components/TelegramAuth";
@@ -170,28 +170,28 @@ function App() {
   // Ошибки будут отображаться в уведомлениях, но не блокируют UI
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
-          <ErrorBoundary>
-            <NotificationProvider>
+    <SafeErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
+          <NotificationProvider>
             <UserProvider>
-                <TelegramWebAppCheck>
-                  <MainLayout 
-                    activeTab={state.activeTab} 
-                    onTabChange={handleTabChange}
-                  >
-                    {renderPage()}
-                  </MainLayout>
-                  <NetworkStatusIndicator />
-                  <Toaster />
-                  <ScrollFix />
-                  <ForceScroll />
-                </TelegramWebAppCheck>
+              <TelegramWebAppCheck>
+                <MainLayout 
+                  activeTab={state.activeTab} 
+                  onTabChange={handleTabChange}
+                >
+                  {renderPage()}
+                </MainLayout>
+                <NetworkStatusIndicator />
+                <Toaster />
+                <ScrollFix />
+                <ForceScroll />
+              </TelegramWebAppCheck>
             </UserProvider>
           </NotificationProvider>
-          </ErrorBoundary>
-      </TonConnectUIProvider>
-    </QueryClientProvider>
+        </TonConnectUIProvider>
+      </QueryClientProvider>
+    </SafeErrorBoundary>
   );
 }
 

@@ -22,10 +22,22 @@ type ClaimBonusResult = {
 }
 
 const DailyBonusCard: React.FC = () => {
-  // Получаем доступ к toast для уведомлений
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { userId } = useUser(); // Получаем ID пользователя из контекста
+  const { userId, isFetching } = useUser();
+
+  // Безопасная проверка наличия пользователя
+  if (isFetching || !userId) {
+    return (
+      <div className="bg-card/50 backdrop-blur-sm border border-border/40 rounded-xl p-4">
+        <div className="animate-pulse">
+          <div className="h-4 bg-muted rounded w-32 mb-2"></div>
+          <div className="h-6 bg-muted rounded w-24 mb-3"></div>
+          <div className="h-10 bg-muted rounded w-full"></div>
+        </div>
+      </div>
+    );
+  }
 
   // Состояние для анимаций и эффектов
   const [isButtonHovered, setIsButtonHovered] = useState(false);
@@ -34,7 +46,7 @@ const DailyBonusCard: React.FC = () => {
 
   // Запрос на получение статуса ежедневного бонуса
   const { data: bonusStatus, isLoading, refetch } = useQuery({
-    queryKey: ['dailyBonusStatus', userId], // Добавляем userId в ключ запроса
+    queryKey: ['dailyBonusStatus', userId],
     queryFn: async () => {
       try {
         // Используем новый унифицированный метод apiGet

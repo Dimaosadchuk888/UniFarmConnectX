@@ -34,8 +34,22 @@ interface TonFarmingInfo {
 }
 
 const IncomeCardNew: React.FC = () => {
-  const { userId } = useUser();
-  const validUserId = userId || '1';
+  const { userId, isFetching } = useUser();
+  
+  // Показываем загрузку при отсутствии пользователя
+  if (isFetching || !userId) {
+    return (
+      <div className="bg-card/50 backdrop-blur-sm border border-border/40 rounded-xl p-4">
+        <div className="animate-pulse">
+          <div className="h-4 bg-muted rounded w-24 mb-2"></div>
+          <div className="h-8 bg-muted rounded w-32 mb-3"></div>
+          <div className="h-3 bg-muted rounded w-20"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  const validUserId = userId;
   
   // Анимация нарастающего счетчика
   const [displayedHourRate, setDisplayedHourRate] = useState(0);

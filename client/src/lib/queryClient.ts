@@ -282,17 +282,19 @@ const pendingQueries = new Map<string, Promise<any>>();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: "returnNull" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 минут кеширование вместо Infinity
-      gcTime: 10 * 60 * 1000, // 10 минут хранение в кеше (обновленное название параметра)
-      retry: 1, // Одна попытка повтора вместо false
-      retryDelay: 1000, // 1 секунда задержка между попытками
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      retry: false, // Отключаем retry для предотвращения спама
+      retryDelay: 1000,
+      throwOnError: false, // Не бросаем ошибки в компонентах
     },
     mutations: {
-      retry: 1,
+      retry: false, // Отключаем retry для мутаций
       retryDelay: 1000,
+      throwOnError: false,
     },
   },
   queryCache,
