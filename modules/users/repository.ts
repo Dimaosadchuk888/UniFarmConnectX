@@ -1,4 +1,4 @@
-import { supabase } from '../../core/supabaseClient';
+import { supabase } from '../../core/supabase';
 import { type InsertUser, type User } from '../../shared/schema';
 import { customAlphabet } from 'nanoid';
 import { logger } from '../../core/logger.js';

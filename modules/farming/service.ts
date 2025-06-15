@@ -1,10 +1,15 @@
 import { supabase } from '../../core/supabase';
-import { UserRepository } from '../../core/repositories/UserRepository';
+import { UserRepository } from '../users/repository';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
-import { ReferralRewardDistribution } from '../referral/logic/rewardDistribution';
 import { logger } from '../../core/logger.js';
 
 export class FarmingService {
+  private userRepository: UserRepository;
+
+  constructor() {
+    this.userRepository = new UserRepository();
+  }
+
   async getFarmingDataByTelegramId(telegramId: string): Promise<{
     isActive: boolean;
     depositAmount: string;
@@ -22,7 +27,7 @@ export class FarmingService {
     next_claim_available: string | null;
   }> {
     try {
-      const user = await UserRepository.findByTelegramId(telegramId);
+      const user = await this.userRepository.findByTelegramId(Number(telegramId));
 
       if (!user) {
         return {
@@ -47,10 +52,9 @@ export class FarmingService {
       const lastClaim = user.uni_farming_last_update ? new Date(user.uni_farming_last_update) : null;
       const farmingStart = user.uni_farming_start_timestamp ? new Date(user.uni_farming_start_timestamp) : now;
       
-      // Расчет накопленного фарминга (базовая ставка 0.001 UNI в час)
       const baseHourlyRate = 0.001;
-      const ratePerSecond = baseHourlyRate / 3600; // Конвертация в секунды
-      const dailyRate = baseHourlyRate * 24; // Дневная ставка
+      const ratePerSecond = baseHourlyRate / 3600;
+      const dailyRate = baseHourlyRate * 24;
       
       const hoursElapsed = lastClaim 
         ? (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60)
@@ -73,9 +77,9 @@ export class FarmingService {
         rate: baseHourlyRate.toFixed(6),
         accumulated: accumulated.toFixed(6),
         last_claim: lastClaim?.toISOString() || null,
-        can_claim: accumulated >= 0.001, // Минимум для клейма
+        can_claim: accumulated >= 0.001,
         next_claim_available: lastClaim 
-          ? new Date(lastClaim.getTime() + (24 * 60 * 60 * 1000)).toISOString() // 24 часа
+          ? new Date(lastClaim.getTime() + (24 * 60 * 60 * 1000)).toISOString()
           : null
       };
     } catch (error) {
@@ -84,9 +88,9 @@ export class FarmingService {
     }
   }
 
-  async startFarming(telegramId: string, amount?: string): Promise<boolean> {
+  async startFarming(telegramId: string): Promise<boolean> {
     try {
-      const user = await UserRepository.findByTelegramId(telegramId);
+      const user = await this.userRepository.findByTelegramId(Number(telegramId));
       if (!user) return false;
 
       const { error } = await supabase
@@ -106,7 +110,7 @@ export class FarmingService {
 
   async stopFarming(telegramId: string): Promise<boolean> {
     try {
-      const user = await UserRepository.findByTelegramId(telegramId);
+      const user = await this.userRepository.findByTelegramId(Number(telegramId));
       if (!user) return false;
 
       const { error } = await supabase
@@ -124,198 +128,9 @@ export class FarmingService {
     }
   }
 
-  async claimRewards(telegramId: string): Promise<{ amount: string; claimed: boolean }> {
-    try {
-      const user = await UserRepository.findByTelegramId(telegramId);
-      if (!user) {
-        throw new Error(`User with Telegram ID ${telegramId} not found`);
-      }
-      
-      if (!user.uni_farming_start_timestamp) {
-        return { amount: "0", claimed: false };
-      }
-
-      // Расчет времени фарминга в часах
-      const now = new Date();
-      const farmingStart = new Date(user.uni_farming_start_timestamp);
-      const farmingHours = (now.getTime() - farmingStart.getTime()) / (1000 * 60 * 60);
-
-      if (farmingHours < 1) {
-        return { amount: "0", claimed: false };
-      }
-
-      // Расчет базового вознаграждения (0.5% в сутки)
-      const depositAmount = user.uni_deposit_amount || "0";
-      
-      const baseReward = RewardCalculationLogic.calculateFarmingReward(
-        depositAmount,
-        farmingHours
-      );
-
-      if (parseFloat(baseReward) <= 0) {
-        return { amount: "0", claimed: false };
-      }
-
-      // Обновляем баланс пользователя
-      const previousBalance = parseFloat(user.balance_uni || "0");
-      const newBalance = String(previousBalance + parseFloat(baseReward));
-      const timestamp = new Date().toISOString();
-      
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ 
-          balance_uni: newBalance,
-          uni_farming_start_timestamp: now.toISOString(),
-          uni_farming_last_update: now.toISOString()
-        })
-        .eq('telegram_id', Number(telegramId));
-
-      // ЛОГИРОВАНИЕ РУЧНОГО КЛЕЙМА (LEGACY)
-      logger.info(`[FARMING] User ${user.id} claimed ${baseReward} UNI at ${timestamp}`, {
-        userId: user.id.toString(),
-        telegramId,
-        amount: baseReward,
-        currency: 'UNI',
-        previousBalance: previousBalance.toFixed(8),
-        newBalance,
-        farmingHours: farmingHours.toFixed(2),
-        operation: 'manual_claim',
-        timestamp
-      });
-
-      // Записываем транзакцию о начислении
-      const { error: txError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          type: 'FARMING_REWARD',
-          amount_uni: parseFloat(baseReward),
-          amount_ton: 0,
-          description: `Farming reward for ${farmingHours.toFixed(2)} hours`,
-          status: 'confirmed'
-        });
-
-      logger.debug(`[FARMING] Manual claim transaction recorded for user ${user.id}`, {
-        userId: user.id.toString(),
-        transactionType: 'farming_reward',
-        amount: baseReward,
-        timestamp
-      });
-
-      // Распределяем реферальные вознаграждения
-      await ReferralRewardDistribution.distributeFarmingRewards(user.id.toString(), baseReward);
-
-      return { amount: baseReward, claimed: true };
-    } catch (error) {
-      logger.error('[FarmingService] Ошибка получения наград', { error: error instanceof Error ? error.message : String(error) });
-      return { amount: "0", claimed: false };
-    }
-  }
-
-  async getFarmingStatus(userId: string): Promise<{
-    isActive: boolean;
-    currentAmount: string;
-    rate: string;
-    lastUpdate: string | null;
-    canHarvest: boolean;
-    estimatedReward: string;
-  }> {
-    try {
-      const { data: users, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', parseInt(userId))
-        .limit(1);
-
-      if (error) {
-        logger.error('[FarmingService] Ошибка получения пользователя:', error.message);
-        throw error;
-      }
-
-      const user = users?.[0];
-
-      if (!user) {
-        return { 
-          isActive: false, 
-          currentAmount: "0", 
-          rate: "0", 
-          lastUpdate: null, 
-          canHarvest: false, 
-          estimatedReward: "0" 
-        };
-      }
-
-      return {
-        isActive: !!user.uni_farming_start_timestamp,
-        currentAmount: user.uni_farming_balance || "0",
-        rate: user.uni_farming_rate || "0",
-        lastUpdate: user.uni_farming_last_update?.toISOString() || null,
-        canHarvest: !!user.uni_farming_balance && parseFloat(user.uni_farming_balance) > 0,
-        estimatedReward: user.uni_farming_balance || "0"
-      };
-    } catch (error) {
-      logger.error('[FarmingService] Ошибка получения статуса', { error: error instanceof Error ? error.message : String(error) });
-      return { 
-        isActive: false, 
-        currentAmount: "0", 
-        rate: "0", 
-        lastUpdate: null, 
-        canHarvest: false, 
-        estimatedReward: "0" 
-      };
-    }
-  }
-
-  async getFarmingHistory(telegramId: string): Promise<Array<{
-    amount: string;
-    source: string;
-    timestamp: string;
-  }>> {
-    try {
-      const user = await UserRepository.findByTelegramId(telegramId);
-      if (!user) {
-        return [];
-      }
-
-      const { data: farmingTransactions, error } = await supabase
-        .from('transactions')
-        .select('amount_uni, type, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        logger.error('[FarmingService] Ошибка получения истории транзакций:', error.message);
-        return [];
-      }
-
-      const history = (farmingTransactions || [])
-        .filter((tx: any) => tx.type && tx.type.includes('FARMING'))
-        .map((tx: any) => ({
-          amount: tx.amount_uni?.toString() || '0',
-          source: tx.type || 'FARMING_REWARD',
-          timestamp: tx.created_at || new Date().toISOString()
-        }));
-
-      logger.info('[FarmingService] История фарминга получена', {
-        telegram_id: telegramId,
-        user_id: user.id,
-        transactions_count: history.length
-      });
-
-      return history;
-    } catch (error) {
-      logger.error('[FarmingService] Ошибка получения истории фарминга', { 
-        error: error instanceof Error ? error.message : String(error),
-        telegram_id: telegramId
-      });
-      return [];
-    }
-  }
-
   async depositUniForFarming(telegramId: string, amount: string): Promise<{ success: boolean; message: string }> {
     try {
-      const user = await UserRepository.findByTelegramId(telegramId);
+      const user = await this.userRepository.findByTelegramId(Number(telegramId));
       if (!user) {
         return { success: false, message: 'Пользователь не найден' };
       }
@@ -330,83 +145,45 @@ export class FarmingService {
         return { success: false, message: 'Недостаточно средств' };
       }
 
-      // Вычитаем из баланса и добавляем в фарминг
       const newBalance = (currentBalance - depositAmount).toFixed(8);
-      const currentFarmingBalance = parseFloat(user.uni_farming_balance || '0');
-      const newFarmingBalance = (currentFarmingBalance + depositAmount).toFixed(8);
+      const currentDeposit = parseFloat(user.uni_deposit_amount || '0');
+      const newDepositAmount = (currentDeposit + depositAmount).toFixed(8);
 
       const { error: updateError } = await supabase
         .from('users')
         .update({
           balance_uni: newBalance,
-          uni_farming_balance: newFarmingBalance,
+          uni_deposit_amount: newDepositAmount,
           uni_farming_start_timestamp: new Date().toISOString(),
           uni_farming_last_update: new Date().toISOString()
         })
         .eq('id', user.id);
 
-      logger.info(`[UNI FARMING] User ${telegramId} deposited ${amount} UNI for farming`, {
+      if (updateError) {
+        return { success: false, message: 'Ошибка обновления данных' };
+      }
+
+      await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          type: 'UNI_DEPOSIT',
+          amount_uni: depositAmount,
+          amount_ton: 0,
+          description: `UNI farming deposit: ${amount}`
+        });
+
+      logger.info(`[FARMING] User ${telegramId} deposited ${amount} UNI for farming`, {
         userId: user.id,
-        telegramId,
-        amount,
-        previousBalance: currentBalance.toFixed(8),
+        amount: depositAmount,
         newBalance,
-        newFarmingBalance,
-        operation: 'uni_farming_deposit',
-        timestamp: new Date().toISOString()
+        newDepositAmount
       });
 
       return { success: true, message: 'Депозит успешно добавлен в фарминг' };
     } catch (error) {
       logger.error('[FarmingService] Ошибка депозита UNI:', error);
       return { success: false, message: 'Ошибка при обработке депозита' };
-    }
-  }
-
-  async harvestUniFarming(telegramId: string): Promise<{ success: boolean; amount: string; message: string }> {
-    try {
-      const user = await UserRepository.findByTelegramId(telegramId);
-      if (!user) {
-        return { success: false, amount: '0', message: 'Пользователь не найден' };
-      }
-
-      const farmingBalance = parseFloat(user.uni_farming_balance || '0');
-      if (farmingBalance <= 0) {
-        return { success: false, amount: '0', message: 'Нет средств для сбора' };
-      }
-
-      // Переводим средства из фарминга обратно в баланс
-      const currentBalance = parseFloat(user.balance_uni || '0');
-      const newBalance = (currentBalance + farmingBalance).toFixed(8);
-
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({
-          balance_uni: newBalance,
-          uni_farming_balance: '0',
-          uni_farming_start_timestamp: null,
-          uni_farming_last_update: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      logger.info(`[UNI FARMING] User ${telegramId} harvested ${farmingBalance} UNI from farming`, {
-        userId: user.id,
-        telegramId,
-        amount: farmingBalance.toFixed(8),
-        previousBalance: currentBalance.toFixed(8),
-        newBalance,
-        operation: 'uni_farming_harvest',
-        timestamp: new Date().toISOString()
-      });
-
-      return { 
-        success: true, 
-        amount: farmingBalance.toFixed(8), 
-        message: 'Средства успешно собраны с фарминга' 
-      };
-    } catch (error) {
-      logger.error('[FarmingService] Ошибка сбора UNI:', error);
-      return { success: false, amount: '0', message: 'Ошибка при сборе средств' };
     }
   }
 }
