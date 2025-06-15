@@ -282,10 +282,16 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
                 }
                 return value;
               }
-            ).slice(0, 500);} catch (jsonError) {
-            // Если сериализация не удалась, логируем базовую информацию об объектеif (typeof obj === 'object' && obj !== null) {
+            ).slice(0, 500);
+          } catch (jsonError) {
+            // Если сериализация не удалась, логируем базовую информацию об объекте
+            if (typeof obj === 'object' && obj !== null) {
               try {
-                // Логируем только ключи объекта} catch (keysError) {}
+                // Логируем только ключи объекта
+                console.log('Object keys:', Object.keys(obj));
+              } catch (keysError) {
+                console.log('Failed to log object keys');
+              }
             }
           }
         } catch (logError) {}

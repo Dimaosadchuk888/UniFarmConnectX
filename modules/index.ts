@@ -1,7 +1,7 @@
 // Главный индекс модулей UniFarm
 
 // Services
-export { UserService } from './user/service';
+export { SupabaseUserRepository } from './user/repository';
 export { WalletService } from './wallet/service';
 export { FarmingService } from './farming/service';
 export { MissionsService } from './missions/service';

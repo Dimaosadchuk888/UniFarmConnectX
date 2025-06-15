@@ -96,7 +96,7 @@ export class FarmingController extends BaseController {
       
       const { amount } = req.body;
       
-      const result = await farmingService.depositForFarming(
+      const result = await farmingService.depositUniForFarming(
         telegram.user.id.toString(),
         amount
       );

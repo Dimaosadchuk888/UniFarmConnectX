@@ -18,7 +18,8 @@ export class MissionsController extends BaseController {
       const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
 
       const missions = await missionsService.getActiveMissionsByTelegramId(
@@ -47,7 +48,8 @@ export class MissionsController extends BaseController {
       const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
 
       const { missionId } = req.body;
@@ -76,7 +78,8 @@ export class MissionsController extends BaseController {
       const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
 
       const { missionId } = req.body;
@@ -104,7 +107,8 @@ export class MissionsController extends BaseController {
       const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
 
       const stats = await missionsService.getMissionStatsByTelegramId(telegram.user.id.toString());
@@ -125,7 +129,8 @@ export class MissionsController extends BaseController {
       const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegram.user.id,
         username: telegram.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
       });
 
       const missions = await missionsService.getUserMissionsByTelegramId(telegram.user.id.toString());
