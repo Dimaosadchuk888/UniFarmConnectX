@@ -136,7 +136,7 @@ export class AuthController extends BaseController {
         initData_length: initData.length 
       });
       
-      const result = await this.authService.registerWithTelegram(initData, refBy || ref_by);
+      const result = await this.authService.authenticateFromTelegram(initData, { ref_by: refBy || ref_by });
       
       if (result.success) {
         this.sendSuccess(res, {
