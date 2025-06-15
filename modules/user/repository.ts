@@ -12,6 +12,11 @@ export interface User {
   balance_ton: string;
   created_at: string;
   updated_at?: string;
+  // Farming fields
+  uni_farming_start_timestamp?: string;
+  uni_farming_last_update?: string;
+  uni_deposit_amount?: string;
+  uni_farming_rate?: string;
 }
 
 export interface CreateUserData {

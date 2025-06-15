@@ -125,7 +125,7 @@ export class UserController extends BaseController {
       const { id } = req.params;
       const updates = req.body;
       
-      const result = await userRepository.updateUser(id, updates);
+      const result = await userRepository.updateUser(parseInt(id), updates);
       this.sendSuccess(res, result || {});
     }, 'обновления пользователя');
   }
@@ -139,8 +139,13 @@ export class UserController extends BaseController {
       const user = await userRepository.getOrCreateUserFromTelegram({
         telegram_id: telegramUser.user.id,
         username: telegramUser.user.username,
-        ref_code: req.query.start_param as string
+        first_name: telegramUser.user.first_name,
+        ref_by: req.query.start_param as string
       });
+      
+      if (!user) {
+        return this.sendError(res, 'Failed to create or find user', 500);
+      }
       
       if (user.ref_code) {
         return this.sendSuccess(res, {
@@ -149,10 +154,10 @@ export class UserController extends BaseController {
         });
       }
 
-      const refCode = await userRepository.generateRefCode(user.id.toString());
+      const updatedUser = await userRepository.updateUserRefCode(user.id);
       
       this.sendSuccess(res, {
-        ref_code: refCode,
+        ref_code: updatedUser?.ref_code || user.ref_code,
         generated: true
       });
     }, 'генерации реферального кода');

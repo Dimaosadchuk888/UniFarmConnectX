@@ -27,7 +27,7 @@ export class FarmingService {
     next_claim_available: string | null;
   }> {
     try {
-      const user = await this.userRepository.findByTelegramId(Number(telegramId));
+      const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
 
       if (!user) {
         return {
@@ -90,7 +90,7 @@ export class FarmingService {
 
   async startFarming(telegramId: string): Promise<boolean> {
     try {
-      const user = await this.userRepository.findByTelegramId(Number(telegramId));
+      const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
       if (!user) return false;
 
       const { error } = await supabase
@@ -110,7 +110,7 @@ export class FarmingService {
 
   async stopFarming(telegramId: string): Promise<boolean> {
     try {
-      const user = await this.userRepository.findByTelegramId(Number(telegramId));
+      const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
       if (!user) return false;
 
       const { error } = await supabase
@@ -130,7 +130,7 @@ export class FarmingService {
 
   async depositUniForFarming(telegramId: string, amount: string): Promise<{ success: boolean; message: string }> {
     try {
-      const user = await this.userRepository.findByTelegramId(Number(telegramId));
+      const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
       if (!user) {
         return { success: false, message: 'Пользователь не найден' };
       }
