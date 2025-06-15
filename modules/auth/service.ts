@@ -16,27 +16,17 @@ interface User {
   created_at: string;
 }
 
-interface AuthResponse {
+interface AuthenticationResult {
   success: boolean;
-  user?: {
-    id: string;
-    telegram_id: number;
-    username?: string;
-    ref_code: string;
-    created_at: string;
-  };
+  user?: User;
   token?: string;
   error?: string;
   isNewUser?: boolean;
 }
 
-interface SessionInfo {
+interface TokenValidationResult {
   valid: boolean;
-  userId?: string;
-  telegramId?: number;
-  username?: string;
-  refCode?: string;
-  expiresAt?: string;
+  payload?: JWTPayload;
   error?: string;
 }
 
@@ -47,20 +37,15 @@ export class AuthService {
     this.userService = new UserService();
   }
 
-  async authenticateWithTelegram(initData: string, userData?: any): Promise<AuthResponse> {
-    return this.authenticateFromTelegram(initData, userData);
-  }
-
-  async authenticateFromTelegram(initData: string, userData?: any): Promise<AuthResponse> {
+  /**
+   * Аутентификация пользователя через Telegram
+   */
+  async authenticateFromTelegram(initData: string, options: { ref_by?: string } = {}): Promise<AuthenticationResult> {
     try {
+      logger.info('[AuthService] Начало аутентификации через Telegram');
+
       if (!initData || initData.length === 0) {
-        logger.warn('[AuthService] Пустой initData получен');
-        
-        if (userData?.telegram_id) {
-          logger.info('[AuthService] Attempting direct registration with userData', { telegramId: userData.telegram_id });
-          return await this.registerDirectFromTelegramUser(userData);
-        }
-        
+        logger.warn('[AuthService] Пустые данные инициализации Telegram');
         return {
           success: false,
           error: 'Отсутствуют данные авторизации Telegram'
@@ -95,46 +80,36 @@ export class AuthService {
         logger.info('[AuthService] Новый пользователь создан', { userId: userInfo.id });
       }
 
-      const payload: JWTPayload = {
-        userId: userInfo.id.toString(),
-        telegramId: telegramUser.id,
-        username: telegramUser.username || userInfo.username,
-        refCode: userInfo.ref_code
-      };
+      if (!userInfo) {
+        return {
+          success: false,
+          error: 'Ошибка создания пользователя'
+        };
+      }
 
-      const token = generateJWTToken(payload);
+      const token = generateJWTToken(telegramUser, userInfo.ref_code);
       logger.info('[AuthService] JWT токен создан', { userId: userInfo.id });
 
       return {
         success: true,
-        user: {
-          id: userInfo.id.toString(),
-          telegram_id: telegramUser.id,
-          username: telegramUser.username || (userInfo.username ?? ''),
-          ref_code: userInfo.ref_code || '',
-          created_at: userInfo.created_at || new Date().toISOString()
-        },
-        token,
+        user: userInfo,
+        token: token,
         isNewUser
       };
     } catch (error) {
-      logger.error('[AuthService] Ошибка регистрации через Telegram', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('[AuthService] Ошибка аутентификации', { error: error instanceof Error ? error.message : String(error) });
       return {
         success: false,
-        error: 'Внутренняя ошибка сервера'
+        error: 'Ошибка аутентификации через Telegram'
       };
     }
   }
 
-  async registerDirectFromTelegramUser(userData: any, refBy?: string): Promise<AuthResponse> {
+  /**
+   * Прямая регистрация пользователя без HMAC проверки (fallback)
+   */
+  async registerDirectFromTelegramUser(userData: { telegram_id: number; username?: string; first_name?: string; ref_by?: string }): Promise<AuthenticationResult> {
     try {
-      if (!userData || !userData.telegram_id) {
-        return {
-          success: false,
-          error: 'Отсутствует telegram_id'
-        };
-      }
-
       logger.info('[AuthService] Прямая регистрация пользователя', { telegramId: userData.telegram_id });
 
       let userInfo = await this.userService.findByTelegramId(userData.telegram_id);
@@ -153,139 +128,72 @@ export class AuthService {
         logger.info('[AuthService] Новый пользователь создан (прямая регистрация)', { userId: userInfo.id });
       }
 
-      const payload: JWTPayload = {
-        userId: userInfo.id.toString(),
-        telegramId: userData.telegram_id,
-        username: userData.username || userInfo.username,
-        refCode: userInfo.ref_code
+      if (!userInfo) {
+        return {
+          success: false,
+          error: 'Ошибка создания пользователя'
+        };
+      }
+
+      const telegramUser: TelegramUser = {
+        id: userData.telegram_id,
+        first_name: userData.first_name || 'User',
+        username: userData.username
       };
 
-      const token = generateJWTToken(payload);
+      const token = generateJWTToken(telegramUser, userInfo.ref_code);
       logger.info('[AuthService] JWT токен создан (прямая регистрация)', { userId: userInfo.id });
 
       return {
         success: true,
-        user: {
-          id: userInfo.id.toString(),
-          telegram_id: userData.telegram_id,
-          username: userData.username || (userInfo.username ?? ''),
-          ref_code: userInfo.ref_code || '',
-          created_at: userInfo.created_at || new Date().toISOString()
-        },
-        token,
+        user: userInfo,
+        token: token,
         isNewUser
       };
     } catch (error) {
       logger.error('[AuthService] Ошибка прямой регистрации', { error: error instanceof Error ? error.message : String(error) });
       return {
         success: false,
-        error: 'Ошибка при создании пользователя'
+        error: 'Ошибка прямой регистрации пользователя'
       };
-    }
-  }
-
-  async verifySession(token: string): Promise<SessionInfo> {
-    try {
-      if (!token) {
-        return {
-          valid: false,
-          error: 'Токен не предоставлен'
-        };
-      }
-
-      const verification = verifyJWTToken(token);
-      if (!verification.valid || !verification.payload) {
-        return {
-          valid: false,
-          error: 'Недействительный токен'
-        };
-      }
-
-      const payload = verification.payload;
-      
-      const userInfo = await this.userService.findByTelegramId(payload.telegramId);
-      if (!userInfo) {
-        return {
-          valid: false,
-          error: 'Пользователь не найден'
-        };
-      }
-
-      return {
-        valid: true,
-        userId: payload.userId,
-        telegramId: payload.telegramId,
-        username: payload.username,
-        refCode: payload.refCode,
-        expiresAt: new Date(payload.exp * 1000).toISOString()
-      };
-    } catch (error) {
-      logger.error('[AuthService] Ошибка верификации сессии', { error: error instanceof Error ? error.message : String(error) });
-      return {
-        valid: false,
-        error: 'Ошибка верификации токена'
-      };
-    }
-  }
-
-  async saveUserSession(userId: string, token: string): Promise<boolean> {
-    try {
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
-      const { error } = await supabase
-        .from('user_sessions')
-        .upsert({
-          user_id: parseInt(userId),
-          token,
-          expires_at: expiresAt.toISOString(),
-          created_at: new Date().toISOString()
-        });
-
-      if (error) {
-        logger.error('[AuthService] Ошибка сохранения сессии', { error: error.message });
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      logger.error('[AuthService] Ошибка сохранения сессии', { error: error instanceof Error ? error.message : String(error) });
-      return false;
-    }
-  }
-
-  async getUserFromToken(token: string): Promise<User | null> {
-    try {
-      const sessionInfo = await this.verifySession(token);
-      if (!sessionInfo.valid || !sessionInfo.telegramId) {
-        return null;
-      }
-
-      const userInfo = await this.userService.findByTelegramId(sessionInfo.telegramId);
-      return userInfo as User | null;
-    } catch (error) {
-      logger.error('[AuthService] Ошибка получения пользователя по токену', { error: error instanceof Error ? error.message : String(error) });
-      return null;
     }
   }
 
   /**
-   * Регистрация через Telegram initData
+   * Валидация JWT токена
    */
-  async registerWithTelegram(initData: string, refBy?: string): Promise<AuthResponse> {
+  async validateToken(token: string): Promise<TokenValidationResult> {
     try {
-      // Валидация initData
-      const validation = validateTelegramInitData(initData);
+      if (!token) {
+        return { valid: false, error: 'Токен отсутствует' };
+      }
+
+      const verification = verifyJWTToken(token);
+      if (!verification) {
+        return { valid: false, error: 'Невалидный токен' };
+      }
+
+      return { valid: true, payload: verification };
+    } catch (error) {
+      logger.error('[AuthService] Ошибка валидации токена', { error: error instanceof Error ? error.message : String(error) });
+      return { valid: false, error: 'Ошибка валидации токена' };
+    }
+  }
+
+  /**
+   * Регистрация через Telegram (с HMAC проверкой)
+   */
+  async registerWithTelegram(initData: string, refBy?: string): Promise<AuthenticationResult> {
+    try {
+      const validation = validateTelegramInitData(initData, process.env.TELEGRAM_BOT_TOKEN || '');
       if (!validation.valid || !validation.user) {
         return {
           success: false,
-          error: 'Недействительные данные Telegram'
+          error: 'Невалидные данные Telegram'
         };
       }
 
       const telegramUser = validation.user;
-      
-      // Проверяем существование пользователя
       let userInfo = await this.userService.findByTelegramId(telegramUser.id);
       let isNewUser = false;
 
@@ -299,59 +207,76 @@ export class AuthService {
         isNewUser = true;
       }
 
-      const payload: JWTPayload = {
-        userId: userInfo.id.toString(),
-        telegramId: telegramUser.id,
-        username: telegramUser.username || userInfo.username,
-        refCode: userInfo.ref_code
-      };
+      if (!userInfo) {
+        return {
+          success: false,
+          error: 'Ошибка создания пользователя'
+        };
+      }
 
-      const token = generateJWTToken(payload);
+      const token = generateJWTToken(telegramUser, userInfo.ref_code);
 
       return {
         success: true,
-        user: {
-          id: userInfo.id.toString(),
-          telegram_id: telegramUser.id,
-          username: telegramUser.username || (userInfo.username ?? ''),
-          ref_code: userInfo.ref_code || '',
-          created_at: userInfo.created_at || new Date().toISOString()
-        },
-        token,
+        user: userInfo,
+        token: token,
         isNewUser
       };
     } catch (error) {
       logger.error('[AuthService] Ошибка регистрации через Telegram', { error: error instanceof Error ? error.message : String(error) });
       return {
         success: false,
-        error: 'Ошибка при регистрации'
+        error: 'Ошибка регистрации через Telegram'
       };
     }
+  }
+
+  /**
+   * Проверка токена и получение информации о пользователе
+   */
+  async checkToken(token: string): Promise<AuthenticationResult> {
+    try {
+      const validation = await this.validateToken(token);
+      if (!validation.valid || !validation.payload) {
+        return {
+          success: false,
+          error: validation.error || 'Невалидный токен'
+        };
+      }
+
+      const userInfo = await this.userService.findByTelegramId(validation.payload.telegram_id);
+      if (!userInfo) {
+        return {
+          success: false,
+          error: 'Пользователь не найден'
+        };
+      }
+
+      return {
+        success: true,
+        user: userInfo
+      };
+    } catch (error) {
+      logger.error('[AuthService] Ошибка проверки токена', { error: error instanceof Error ? error.message : String(error) });
+      return {
+        success: false,
+        error: 'Ошибка проверки токена'
+      };
+    }
+  }
+
+  /**
+   * Выход из системы (очистка клиентского токена)
+   */
+  async logout(): Promise<{ success: boolean }> {
+    // В данной реализации logout только клиентский
+    return { success: true };
   }
 
   /**
    * Получение информации о сессии
    */
-  async getSessionInfo(token: string): Promise<SessionInfo> {
-    return this.verifySession(token);
-  }
-
-  /**
-   * Валидация токена
-   */
-  async validateToken(token: string): Promise<{ valid: boolean; payload?: JWTPayload; error?: string }> {
-    try {
-      const verification = verifyJWTToken(token);
-      return {
-        valid: verification.valid,
-        payload: verification.payload,
-        error: verification.error
-      };
-    } catch (error) {
-      return {
-        valid: false,
-        error: 'Token validation failed'
-      };
-    }
+  async getSessionInfo(token: string): Promise<AuthenticationResult> {
+    return this.checkToken(token);
   }
 }
