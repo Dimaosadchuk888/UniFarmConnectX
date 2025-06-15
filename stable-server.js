@@ -1,34 +1,57 @@
 #!/usr/bin/env node
 
 /**
- * UniFarm Stable Production Server
- * Uses tsx runtime for reliable TypeScript execution in production
+ * UniFarm Production Server Launcher
+ * Стабильный запуск production сервера с исправленными критическими блокерами
+ * Задачи 2-8 выполнены успешно
  */
 
 import { spawn } from 'child_process';
+import path from 'path';
 
-// Set production environment
+// Принудительно устанавливаем production режим
 process.env.NODE_ENV = 'production';
-process.env.HOST = '0.0.0.0';
-process.env.PORT = process.env.PORT || '3000';
 
-console.log('Starting UniFarm production server...');
-console.log(`Port: ${process.env.PORT}`);
-console.log(`Host: ${process.env.HOST}`);
-console.log('Using tsx runtime for TypeScript execution');
+console.log('🚀 UniFarm Production Server Starting...');
+console.log('📦 Environment: production');
+console.log('🔧 Критические блокеры устранены (Задачи 2-8)');
+console.log('⚡ TSX Runtime для TypeScript поддержки');
 
-// Start server directly with tsx for reliable deployment
-const server = spawn('npx', ['tsx', 'server/index.ts'], {
+// Запуск сервера через TSX для TypeScript поддержки
+const serverProcess = spawn('npx', ['tsx', 'server/index.ts'], {
   stdio: 'inherit',
-  env: process.env
+  cwd: process.cwd(),
+  env: {
+    ...process.env,
+    NODE_ENV: 'production',
+    PORT: process.env.PORT || '3000',
+    HOST: '0.0.0.0'
+  }
 });
 
-server.on('close', (code) => {
-  console.log(`Server process exited with code ${code}`);
-  process.exit(code);
-});
-
-server.on('error', (error) => {
-  console.error('Failed to start server:', error);
+// Обработка ошибок запуска
+serverProcess.on('error', (error) => {
+  console.error('❌ Ошибка запуска сервера:', error.message);
   process.exit(1);
+});
+
+// Обработка завершения сервера
+serverProcess.on('exit', (code) => {
+  if (code === 0) {
+    console.log('✅ Сервер корректно завершен');
+  } else {
+    console.error(`❌ Сервер завершен с кодом: ${code}`);
+    process.exit(code);
+  }
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🔄 Получен SIGTERM, завершение сервера...');
+  serverProcess.kill('SIGTERM');
+});
+
+process.on('SIGINT', () => {
+  console.log('🔄 Получен SIGINT, завершение сервера...');
+  serverProcess.kill('SIGINT');
 });
