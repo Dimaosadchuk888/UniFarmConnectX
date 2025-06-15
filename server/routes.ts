@@ -79,11 +79,11 @@ router.post('/telegram/webhook', async (req: Request, res: Response) => {
 router.use('/auth', authRoutes);
 
 // Прямой маршрут для Telegram авторизации
-router.post('/auth/telegram', async (req, res) => {
+router.post('/auth/telegram', async (req, res, next) => {
   try {
     const { AuthController } = await import('../modules/auth/controller');
     const authController = new AuthController();
-    await authController.authenticateFromTelegram(req, res);
+    await authController.authenticateTelegram(req, res, next);
   } catch (error) {
     res.status(500).json({ success: false, error: 'Auth error' });
   }
@@ -137,7 +137,7 @@ router.post('/users/profile', async (req, res) => {
   try {
     const { UserController } = await import('../modules/user/controller');
     const userController = new UserController();
-    await userController.getProfile(req, res);
+    await userController.getCurrentUser(req, res);
   } catch (error) {
     res.status(500).json({ success: false, error: 'Profile error' });
   }

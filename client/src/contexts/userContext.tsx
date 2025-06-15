@@ -298,9 +298,75 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const data = await response.json();
             
             if (response.ok && data.success && data.token) {
-              console.log('[UserContext] Авторизация через initData успешна');
+              console.log('[UserContext] initData авторизация успешна');
               localStorage.setItem('unifarm_auth_token', data.token);
               localStorage.setItem('unifarm_user_data', JSON.stringify(data.user));
+              
+              dispatch({
+                type: 'SET_USER_DATA',
+                payload: {
+                  userId: data.user.id,
+                  username: data.user.username,
+                  telegramId: data.user.telegram_id,
+                  refCode: data.user.ref_code
+                }
+              });
+              
+              refreshBalance();
+              return;
+            }
+          } catch (error) {
+            console.log('[UserContext] initData авторизация не удалась:', error);
+          }
+        }
+
+        // Fallback: Прямая регистрация через initDataUnsafe
+        if (telegramData && telegramData.initDataUnsafe?.user) {
+          console.log('[UserContext] Fallback регистрация через initDataUnsafe');
+          
+          const result = await registerDirectFromTelegramUser(telegramData.initDataUnsafe.user);
+          if (result.success) {
+            dispatch({
+              type: 'SET_USER_DATA',
+              payload: {
+                userId: result.user.id,
+                username: result.user.username,
+                telegramId: result.user.telegram_id,
+                refCode: result.user.ref_code
+              }
+            });
+            refreshBalance();
+            return;
+          }
+        }
+
+        // Демо режим для браузера (если нет Telegram данных)
+        if (!telegramData || !telegramData.initDataUnsafe?.user) {
+          console.log('[UserContext] Демо режим - создание тестового пользователя');
+          
+          const demoUser = {
+            id: 777777777,
+            username: 'demo_user',
+            first_name: 'Demo',
+            last_name: 'User'
+          };
+          
+          const result = await registerDirectFromTelegramUser(demoUser);
+          if (result.success) {
+            console.log('[UserContext] Демо пользователь создан');
+            dispatch({
+              type: 'SET_USER_DATA',
+              payload: {
+                userId: result.user.id,
+                username: result.user.username,
+                telegramId: result.user.telegram_id,
+                refCode: result.user.ref_code
+              }
+            });
+            refreshBalance();
+            return;
+          }
+        }
               
               dispatch({
                 type: 'SET_USER_DATA',
