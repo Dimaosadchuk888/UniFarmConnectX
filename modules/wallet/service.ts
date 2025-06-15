@@ -36,111 +36,112 @@ export class WalletService {
         transactions: [] // Пока пустой массив, пока не настроена схема transactions
       };
     } catch (error) {
-      logger.error('[WalletService] Ошибка получения данных кошелька', { telegramId, error: error instanceof Error ? error.message : String(error) });
+      logger.error('[WalletService] Ошибка получения данных кошелька', { 
+        telegramId, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       throw error;
     }
   }
 
   async addUniFarmIncome(userId: string, amount: string): Promise<boolean> {
     try {
-      // Получаем текущий баланс пользователя
+      // Получаем пользователя
       const { data: user, error: getUserError } = await supabase
         .from('users')
-        .select('balance_uni')
+        .select('*')
         .eq('id', userId)
         .single();
 
       if (getUserError || !user) {
-        logger.error('[WalletService] Пользователь не найден для добавления UNI дохода', { userId });
+        logger.error('[WalletService] Пользователь не найден', { userId, error: getUserError?.message });
         return false;
       }
 
-      const currentBalance = parseFloat(user.balance_uni || '0');
+      // Обновляем баланс UNI
+      const currentBalance = parseFloat(user.balance_uni || "0");
       const newBalance = currentBalance + parseFloat(amount);
 
-      // Обновляем баланс
       const { error: updateError } = await supabase
         .from('users')
-        .update({ balance_uni: newBalance.toFixed(6) })
+        .update({ 
+          balance_uni: newBalance.toString(),
+          checkin_last_date: new Date().toISOString() 
+        })
         .eq('id', userId);
 
       if (updateError) {
-        logger.error('[WalletService] Ошибка обновления UNI баланса', { userId, updateError: updateError.message });
+        logger.error('[WalletService] Ошибка обновления баланса UNI', { 
+          userId, 
+          error: updateError.message 
+        });
         return false;
       }
 
-      // Создаем запись о транзакции
-      const { error: txError } = await supabase
-        .from('transactions')
-        .insert([{
-          user_id: parseInt(userId),
-          type: 'FARMING_REWARD',
-          amount_uni: parseFloat(amount),
-          amount_ton: 0,
-          description: 'UNI Farming Income',
-          created_at: new Date().toISOString()
-        }]);
-
-      if (txError) {
-        logger.warn('[WalletService] Ошибка создания транзакции UNI farming', { userId, txError: txError.message });
-      }
-
-      logger.info('[WalletService] UNI доход успешно добавлен', { userId, amount, newBalance });
+      logger.info('[WalletService] UNI баланс обновлен', { 
+        userId, 
+        amount, 
+        newBalance 
+      });
       return true;
+
     } catch (error) {
-      logger.error('[WalletService] Ошибка добавления UNI дохода', { userId, amount, error: error instanceof Error ? error.message : String(error) });
+      logger.error('[WalletService] Ошибка добавления UNI дохода', { 
+        userId, 
+        amount, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       return false;
     }
   }
 
   async addTonFarmIncome(userId: string, amount: string): Promise<boolean> {
     try {
-      // Получаем текущий баланс пользователя
+      // Получаем пользователя
       const { data: user, error: getUserError } = await supabase
         .from('users')
-        .select('balance_ton')
+        .select('*')
         .eq('id', userId)
         .single();
 
       if (getUserError || !user) {
-        logger.error('[WalletService] Пользователь не найден для добавления TON дохода', { userId });
+        logger.error('[WalletService] Пользователь не найден', { userId, error: getUserError?.message });
         return false;
       }
 
-      const currentBalance = parseFloat(user.balance_ton || '0');
+      // Обновляем баланс TON
+      const currentBalance = parseFloat(user.balance_ton || "0");
       const newBalance = currentBalance + parseFloat(amount);
 
-      // Обновляем баланс
       const { error: updateError } = await supabase
         .from('users')
-        .update({ balance_ton: newBalance.toFixed(6) })
+        .update({ 
+          balance_ton: newBalance.toString(),
+          checkin_last_date: new Date().toISOString()
+        })
         .eq('id', userId);
 
       if (updateError) {
-        logger.error('[WalletService] Ошибка обновления TON баланса', { userId, updateError: updateError.message });
+        logger.error('[WalletService] Ошибка обновления баланса TON', { 
+          userId, 
+          error: updateError.message 
+        });
         return false;
       }
 
-      // Создаем запись о транзакции
-      const { error: txError } = await supabase
-        .from('transactions')
-        .insert([{
-          user_id: parseInt(userId),
-          type: 'FARMING_REWARD',
-          amount_uni: 0,
-          amount_ton: parseFloat(amount),
-          description: 'TON Farming Income',
-          created_at: new Date().toISOString()
-        }]);
-
-      if (txError) {
-        logger.warn('[WalletService] Ошибка создания транзакции TON farming', { userId, txError: txError.message });
-      }
-
-      logger.info('[WalletService] TON доход успешно добавлен', { userId, amount, newBalance });
+      logger.info('[WalletService] TON баланс обновлен', { 
+        userId, 
+        amount, 
+        newBalance 
+      });
       return true;
+
     } catch (error) {
-      logger.error('[WalletService] Ошибка добавления TON дохода', { userId, amount, error: error instanceof Error ? error.message : String(error) });
+      logger.error('[WalletService] Ошибка добавления TON дохода', { 
+        userId, 
+        amount, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       return false;
     }
   }
@@ -154,36 +155,33 @@ export class WalletService {
         .single();
 
       if (error || !user) {
+        logger.error('[WalletService] Пользователь не найден', { userId, error: error?.message });
         return { uni: 0, ton: 0 };
       }
 
       return {
-        uni: parseFloat(user.balance_uni || '0'),
-        ton: parseFloat(user.balance_ton || '0')
+        uni: parseFloat(user.balance_uni || "0"),
+        ton: parseFloat(user.balance_ton || "0")
       };
+
     } catch (error) {
-      logger.error('[WalletService] Ошибка получения баланса', { userId, error: error instanceof Error ? error.message : String(error) });
+      logger.error('[WalletService] Ошибка получения баланса', { 
+        userId, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       return { uni: 0, ton: 0 };
     }
   }
 
-  async getTransactionHistory(userId: string, limit: number = 20): Promise<any[]> {
+  async getTransactionHistory(userId: string, limit: number = 10): Promise<any[]> {
     try {
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        logger.error('[WalletService] Ошибка получения истории транзакций', { userId, error: error.message });
-        return [];
-      }
-
-      return transactions || [];
+      // Пока возвращаем пустой массив, так как структура transactions не определена
+      return [];
     } catch (error) {
-      logger.error('[WalletService] Ошибка получения истории транзакций', { userId, error: error instanceof Error ? error.message : String(error) });
+      logger.error('[WalletService] Ошибка получения истории транзакций', { 
+        userId, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       return [];
     }
   }
