@@ -6,19 +6,23 @@ import { logger } from '../logger';
  */
 export function requireTelegramAuth(req: Request, res: Response, next: NextFunction): void {
   try {
-    const telegramUser = req.telegram?.user;
-    const isValidated = req.telegram?.validated;
+    const telegramUser = (req as any).telegramUser;
     
-    if (!telegramUser || !isValidated) {
+    if (!telegramUser) {
       res.status(401).json({
         success: false,
-        error: 'Требуется авторизация через Telegram Mini App'
+        error: 'Требуется авторизация через Telegram Mini App',
+        need_telegram_auth: true,
+        debug: {
+          has_telegram: !!(req as any).telegram,
+          has_telegramUser: !!(req as any).telegramUser,
+          has_user: !!(req as any).user,
+          telegram_structure: (req as any).telegram ? Object.keys((req as any).telegram) : null
+        }
       });
       return;
     }
 
-    // Додаємо telegramUser до req для подальшого використання
-    req.telegramUser = telegramUser;
     next();
   } catch (error) {
     logger.error('[TelegramAuth] Ошибка проверки авторизации', { error: error instanceof Error ? error.message : String(error) });
@@ -34,11 +38,10 @@ export function requireTelegramAuth(req: Request, res: Response, next: NextFunct
  */
 export function optionalTelegramAuth(req: Request, res: Response, next: NextFunction): void {
   try {
-    const telegramUser = req.telegram?.user;
-    const isValidated = req.telegram?.validated;
+    const telegramUser = (req as any).telegramUser;
     
-    if (telegramUser && isValidated) {
-      req.telegramUser = telegramUser;
+    if (telegramUser) {
+      (req as any).user = telegramUser;
     }
     
     next();
