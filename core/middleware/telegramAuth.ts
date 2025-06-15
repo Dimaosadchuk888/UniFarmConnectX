@@ -8,8 +8,34 @@ export function requireTelegramAuth(req: Request, res: Response, next: NextFunct
   try {
     const telegramUser = (req as any).telegramUser;
     const guestId = req.headers['x-guest-id'] as string;
+    const authHeader = req.headers.authorization;
     
-    // Allow access if we have either telegram user or guest ID (demo mode)
+    // Check for JWT token first
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const jwt = require('jsonwebtoken');
+        const jwtSecret = process.env.JWT_SECRET || 'unifarm_jwt_secret_key_2025_production';
+        const decoded = jwt.verify(token, jwtSecret) as any;
+        
+        if (decoded.telegram_id) {
+          // Valid JWT token - set user data and continue
+          (req as any).telegramUser = {
+            id: decoded.telegram_id,
+            username: decoded.username || 'user',
+            first_name: decoded.first_name || 'User',
+            ref_code: decoded.ref_code
+          };
+          next();
+          return;
+        }
+      } catch (jwtError) {
+        // JWT token invalid, continue to other auth methods
+        console.log('[TelegramAuth] JWT verification failed:', jwtError);
+      }
+    }
+    
+    // Allow access if we have telegram user or guest ID (demo mode)
     if (!telegramUser && !guestId) {
       res.status(401).json({
         success: false,
@@ -20,6 +46,7 @@ export function requireTelegramAuth(req: Request, res: Response, next: NextFunct
           has_telegramUser: !!(req as any).telegramUser,
           has_user: !!(req as any).user,
           has_guestId: !!guestId,
+          has_auth_header: !!authHeader,
           telegram_structure: (req as any).telegram ? Object.keys((req as any).telegram) : null
         }
       });

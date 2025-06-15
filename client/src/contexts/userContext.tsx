@@ -261,6 +261,32 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
       
       try {
+        // Проверяем сохраненный токен из localStorage
+        const savedToken = localStorage.getItem('unifarm_auth_token');
+        const savedUserData = localStorage.getItem('unifarm_user_data');
+        
+        if (savedToken && savedUserData) {
+          console.log('[UserContext] Восстановление сессии из localStorage');
+          try {
+            const userData = JSON.parse(savedUserData);
+            dispatch({
+              type: 'SET_USER_DATA',
+              payload: {
+                userId: userData.id,
+                username: userData.username,
+                telegramId: userData.telegram_id,
+                refCode: userData.ref_code
+              }
+            });
+            refreshBalance();
+            return;
+          } catch (error) {
+            console.log('[UserContext] Ошибка восстановления сессии:', error);
+            localStorage.removeItem('unifarm_auth_token');
+            localStorage.removeItem('unifarm_user_data');
+          }
+        }
+
         // Безопасная проверка наличия Telegram WebApp
         const telegramData = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
         
@@ -332,103 +358,73 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Демо режим для браузера (если нет Telegram данных)
-        if (!telegramData || !telegramData.initDataUnsafe?.user) {
-          console.log('[UserContext] Демо режим - создание тестового пользователя');
-          
-          const demoUser = {
-            id: 777777777,
-            username: 'demo_user',
-            first_name: 'Demo',
-            last_name: 'User'
-          };
-          
-          const result = await registerDirectFromTelegramUser(demoUser);
-          if (result.success) {
-            console.log('[UserContext] Демо пользователь создан');
-            dispatch({
-              type: 'SET_USER_DATA',
-              payload: {
-                userId: result.user.id,
-                username: result.user.username,
-                telegramId: result.user.telegram_id,
-                refCode: result.user.ref_code
-              }
-            });
-            refreshBalance();
-            return;
-          }
-        }
+        // Если нет Telegram данных, показываем состояние ожидания авторизации
+        console.log('[UserContext] Ожидание авторизации через Telegram');
+        dispatch({
+          type: 'SET_ERROR',
+          payload: new Error('Требуется авторизация через Telegram Mini App')
+        });
+        
       } catch (error) {
-        console.log('[UserContext] Ошибка получения данных пользователя:', error);
+        console.error('[UserContext] Ошибка получения данных пользователя:', error);
+        dispatch({ type: 'SET_ERROR', payload: error as Error });
       } finally {
         dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: false } });
       }
     };
 
-    // Проверяем сохраненные данные
-    const savedToken = localStorage.getItem('unifarm_auth_token');
-    const savedUserData = localStorage.getItem('unifarm_user_data');
-
-    if (savedToken && savedUserData) {
-      try {
-        const userData = JSON.parse(savedUserData);
-        dispatch({
-          type: 'SET_USER_DATA',
-          payload: {
-            userId: userData.id,
-            username: userData.username,
-            telegramId: userData.telegram_id,
-            refCode: userData.ref_code
-          }
-        });
-        refreshUserData();
-      } catch (parseError) {
-        localStorage.removeItem('unifarm_auth_token');
-        localStorage.removeItem('unifarm_user_data');
-        loadInitialUserData();
-      }
-    } else {
-      loadInitialUserData();
-    }
+    loadInitialUserData();
   }, []);
 
-  const value: UserContextType = {
-    userId: state.userId,
-    username: state.username,
-    telegramId: state.telegramId,
-    refCode: state.refCode,
+  // Периодическое обновление данных
+  useEffect(() => {
+    if (!state.userId) return;
     
-    uniBalance: state.balanceState.uniBalance,
-    tonBalance: state.balanceState.tonBalance,
-    uniFarmingActive: state.balanceState.uniFarmingActive,
-    uniDepositAmount: state.balanceState.uniDepositAmount,
-    uniFarmingBalance: state.balanceState.uniFarmingBalance,
-    
-    isWalletConnected: state.walletConnected,
-    walletAddress: state.walletAddress,
-    
-    connectWallet,
-    disconnectWallet,
-    refreshBalance,
-    refreshUserData,
-    
-    isFetching: state.isFetching,
-    isBalanceFetching: state.isBalanceFetching,
-    error: state.error,
-  };
+    const interval = setInterval(() => {
+      refreshUserData();
+    }, 300000); // Каждые 5 минут
+
+    return () => clearInterval(interval);
+  }, [state.userId]);
 
   return (
-    <UserContext.Provider value={value}>
+    <UserContext.Provider
+      value={{
+        userId: state.userId,
+        username: state.username,
+        telegramId: state.telegramId,
+        refCode: state.refCode,
+        
+        uniBalance: state.balanceState.uniBalance,
+        tonBalance: state.balanceState.tonBalance,
+        uniFarmingActive: state.balanceState.uniFarmingActive,
+        uniDepositAmount: state.balanceState.uniDepositAmount,
+        uniFarmingBalance: state.balanceState.uniFarmingBalance,
+        
+        isWalletConnected: state.walletConnected,
+        walletAddress: state.walletAddress,
+        
+        connectWallet,
+        disconnectWallet,
+        refreshBalance,
+        refreshUserData,
+        
+        isFetching: state.isFetching,
+        isBalanceFetching: state.isBalanceFetching,
+        error: state.error
+      }}
+    >
       {children}
     </UserContext.Provider>
   );
 }
 
-export const useUser = (): UserContextType => {
+export function useUser(): UserContextType {
   const context = useContext(UserContext);
   if (context === undefined) {
     throw new Error('useUser must be used within a UserProvider');
   }
   return context;
-};
+}
+
+export default UserContext;
