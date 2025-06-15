@@ -1,0 +1,40 @@
+{
+  "webhook": {
+    "status": "✅",
+    "url": "https://979d1bb5-d322-410b-9bb8-41ff6d7f2cc5-00-16l4whe1y4mgv.pike.replit.dev/webhook",
+    "comment": "Корректный production URL"
+  },
+  "initData": {
+    "used": false,
+    "problems": []
+  },
+  "envVariables": {
+    "extra": [
+      "DATABASE_URL",
+      "PGHOST",
+      "PGUSER",
+      "PGPASSWORD",
+      "PGDATABASE",
+      "PGPORT",
+      "DATABASE_PROVIDER",
+      "USE_NEON_DB"
+    ],
+    "missing": []
+  },
+  "apiErrors": {
+    "auth_telegram": "400 ⚠️",
+    "register_telegram": "500 ❌",
+    "user_profile": "401 ⚠️ (требует авторизации)",
+    "wallet_balance": "401 ⚠️ (требует авторизации)",
+    "farming_start": "401 ⚠️ (требует авторизации)"
+  },
+  "manifest": {
+    "connected": false,
+    "tags": false
+  },
+  "health": {
+    "main": true,
+    "api": true
+  },
+  "overallStatus": "🔴 Требуется серьезная доработка"
+}
