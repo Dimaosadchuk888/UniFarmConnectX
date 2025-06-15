@@ -27,6 +27,7 @@ localPort = 3000
 externalPort = 80
 
 [workflows]
+runButton = "UniFarm Development"
 
 [[workflows.workflow]]
 name = "T11 Environment Cleanup"
@@ -36,3 +37,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node clear-env-runtime.js"
+
+[[workflows.workflow]]
+name = "UniFarm Development"
+author = 43802594
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
