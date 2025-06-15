@@ -67,8 +67,8 @@ export class AuthService {
         };
       }
 
-      const validation = validateTelegramInitData(initData);
-      if (!validation.valid || !validation.telegramUser) {
+      const validation = validateTelegramInitData(initData, process.env.TELEGRAM_BOT_TOKEN || '');
+      if (!validation.valid || !validation.user) {
         logger.warn('[AuthService] Невалидные данные Telegram', { validation });
         return {
           success: false,
@@ -76,7 +76,7 @@ export class AuthService {
         };
       }
 
-      const telegramUser = validation.telegramUser;
+      const telegramUser = validation.user;
       logger.info('[AuthService] Валидные данные Telegram получены', { telegramId: telegramUser.id });
 
       let userInfo = await this.userService.findByTelegramId(telegramUser.id);
@@ -85,7 +85,7 @@ export class AuthService {
       if (!userInfo) {
         logger.info('[AuthService] Создание нового пользователя', { telegramId: telegramUser.id });
         
-        userInfo = await this.userService.createUserFromTelegram({
+        userInfo = await this.userService.findOrCreateFromTelegram({
           telegram_id: telegramUser.id,
           username: telegramUser.username,
           first_name: telegramUser.first_name
@@ -143,7 +143,7 @@ export class AuthService {
       if (!userInfo) {
         logger.info('[AuthService] Создание нового пользователя (прямая регистрация)', { telegramId: userData.telegram_id });
         
-        userInfo = await this.userService.createUserFromTelegram({
+        userInfo = await this.userService.findOrCreateFromTelegram({
           telegram_id: userData.telegram_id,
           username: userData.username || userData.first_name,
           first_name: userData.first_name
@@ -291,11 +291,11 @@ export class AuthService {
 
       if (!userInfo) {
         // Создаем нового пользователя
-        userInfo = await this.userService.createUserFromTelegram({
+        userInfo = await this.userService.findOrCreateFromTelegram({
           telegram_id: telegramUser.id,
           username: telegramUser.username || telegramUser.first_name,
           first_name: telegramUser.first_name
-        }, refBy);
+        });
         isNewUser = true;
       }
 
