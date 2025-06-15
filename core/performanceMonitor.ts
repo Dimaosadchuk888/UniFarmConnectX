@@ -3,9 +3,7 @@
  * Tracks system metrics, database performance, and API response times
  */
 
-import { db } from './db';
-import { performance_metrics } from '../shared/schema';
-import { sql } from 'drizzle-orm';
+import { supabase } from './supabase';
 
 interface PerformanceData {
   operation: string;

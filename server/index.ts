@@ -357,7 +357,7 @@ async function startServer() {
         
         for (const operation of operations) {
           try {
-            await db.execute(sql.raw(operation));
+            await supabase.rpc('execute_sql', { sql_command: operation });
             successCount++;
           } catch (error) {
             logger.warn(`[T15] Operation warning: ${error instanceof Error ? error.message : String(error)}`);

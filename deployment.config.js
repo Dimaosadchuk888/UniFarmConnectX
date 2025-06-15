@@ -32,7 +32,8 @@ export const deploymentConfig = {
   
   // Required environment variables for production
   requiredEnvVars: [
-    'DATABASE_URL',
+    'SUPABASE_URL',
+    'SUPABASE_KEY',
     'JWT_SECRET',
     'SESSION_SECRET',
     'TELEGRAM_BOT_TOKEN'
