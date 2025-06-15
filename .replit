@@ -25,3 +25,14 @@ build = ["sh", "-c", "npm run build"]
 [[ports]]
 localPort = 3000
 externalPort = 80
+
+[workflows]
+
+[[workflows.workflow]]
+name = "T11 Environment Cleanup"
+author = 43802594
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node clear-env-runtime.js"
