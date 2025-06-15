@@ -232,47 +232,38 @@ export const getQueryFn: <T>(options: {
   };
 
 /**
- * Глобальный обработчик ошибок для React Query
- * Позволяет централизованно обрабатывать и логировать ошибки запросов
+ * Безопасный глобальный обработчик ошибок для React Query
+ * Предотвращает краш приложения при ошибках авторизации
  */
 const globalQueryErrorHandler = (error: unknown) => {
-  // Логируем ошибку
-  console.error("[QueryClient] Глобальная ошибка запроса:", error);
-  
   // Анализируем тип ошибки
   if (error instanceof Error) {
-    // Получаем дополнительные метаданные, если они есть
     const status = (error as any).status;
     const statusText = (error as any).statusText;
     const errorData = (error as any).errorData;
 
-    // Логируем детали для диагностики
-    if (errorData) {
-      console.error("[QueryClient] Дополнительные данные ошибки:", errorData);
-    }
-
-    // Обработка по типу HTTP-статуса
+    // Обработка ошибок авторизации без краша
     if (status === 401) {
       console.warn("[QueryClient] Пользователь не авторизован (401)");
-      // Здесь могла бы быть логика перенаправления на страницу логина
+      // Возвращаем null вместо ошибки для предотвращения краша
+      return null;
     } else if (status === 403) {
       console.warn("[QueryClient] Доступ запрещен (403)");
+      return null;
     } else if (status === 404) {
       console.warn("[QueryClient] Ресурс не найден (404)");
+      return null;
     } else if (status >= 500) {
       console.error("[QueryClient] Серверная ошибка (5xx):", status);
+      return null;
     }
     
-    // Генерируем понятное сообщение об ошибке
-    const errorMessage = `HTTP ${status}: ${statusText || "Unknown error"}`;
-    console.error(`[QueryClient] Ошибка ${errorMessage}`);
-  } else {
-    // Если это не экземпляр Error, логируем как есть
-    console.error("[QueryClient] Неизвестный тип ошибки:", typeof error, error);
+    // Для других ошибок логируем минимально
+    console.error(`[QueryClient] Ошибка неизвестный статус: HTTP ${status}: ${statusText || "Unauthorized"}`);
   }
 
-  // Возвращаем ошибку для дальнейшей обработки
-  return error;
+  // Возвращаем null для предотвращения краша
+  return null;
 };
 
 // Создаем кэши с обработчиками ошибок

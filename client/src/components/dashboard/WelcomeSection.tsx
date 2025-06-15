@@ -13,7 +13,7 @@ const WelcomeSection: React.FC = () => {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [tonConnectUI] = useTonConnectUI();
   
-  // Запрос данных о пользователе через API
+  // Запрос данных о пользователе через API с безопасными настройками
   const { data: userData } = useQuery<{
     success: boolean;
     data?: {
@@ -24,7 +24,10 @@ const WelcomeSection: React.FC = () => {
   }>({
     queryKey: ['/api/v2/users/profile'],
     staleTime: 60000, // Кэширование на 1 минуту
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: false, // Не повторяем при ошибке авторизации
+    retryOnMount: false,
+    enabled: false // Отключаем автоматические запросы
   });
   
   // Обновляем состояние кошелька при изменении tonConnectUI

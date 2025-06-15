@@ -269,15 +269,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
       
       try {
-        const telegramData = window.Telegram?.WebApp;
+        // Безопасная проверка наличия Telegram WebApp
+        const telegramData = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
         
-        console.log('[UserContext] Проверка Telegram данных:', {
-          telegramAvailable: !!window.Telegram,
-          webAppAvailable: !!telegramData,
-          initDataPresent: !!telegramData?.initData,
-          initDataLength: telegramData?.initData?.length || 0,
-          userPresent: !!telegramData?.initDataUnsafe?.user
-        });
+        if (telegramData) {
+          console.log('[UserContext] Проверка Telegram данных:', {
+            telegramAvailable: !!window.Telegram,
+            webAppAvailable: !!telegramData,
+            initDataPresent: !!telegramData.initData,
+            initDataLength: telegramData.initData?.length || 0,
+            userPresent: !!telegramData.initDataUnsafe?.user
+          });
+        }
 
         // Проверяем наличие initData для авторизации
         if (telegramData && telegramData.initData && telegramData.initData.length > 0) {
