@@ -1,5 +1,8 @@
-// Stub file - database operations moved to Supabase API
-// This file is no longer used as all database operations
-// now use the centralized Supabase client from core/supabase.ts
+// DEPRECATED: This file is no longer used
+// All database operations now use Supabase API via core/supabase.ts
+// This file exists only for import compatibility during transition
 
-export const db = null; // Deprecated - use Supabase API instead
+console.warn('[DEPRECATED] core/db.ts is deprecated. Use core/supabase.ts instead');
+
+export const db = null;
+export const pool = null;
