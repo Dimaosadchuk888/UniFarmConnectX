@@ -6,29 +6,38 @@ import {
   getWalletAddress
 } from '@/services/tonConnectService';
 import { useQuery } from '@tanstack/react-query';
+import { useUser } from '@/contexts/userContext';
 
 const WelcomeSection: React.FC = () => {
+  const { userId, username, isFetching } = useUser();
   const [userName, setUserName] = useState<string>('Пользователь');
   const [walletConnected, setWalletConnected] = useState<boolean>(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [tonConnectUI] = useTonConnectUI();
+
+  // Безопасная проверка данных пользователя
+  if (isFetching) {
+    return (
+      <div className="bg-card/50 backdrop-blur-sm border border-border/40 rounded-xl p-4">
+        <div className="animate-pulse">
+          <div className="h-6 bg-muted rounded w-48 mb-2"></div>
+          <div className="h-4 bg-muted rounded w-32"></div>
+        </div>
+      </div>
+    );
+  }
   
-  // Запрос данных о пользователе через API с безопасными настройками
-  const { data: userData } = useQuery<{
-    success: boolean;
-    data?: {
-      id: number;
-      username: string;
-      // другие поля пользователя
+  // Используем данные пользователя из контекста
+  useEffect(() => {
+    if (username) {
+      setUserName(username);
+    } else if (isTelegramWebApp()) {
+      const telegramName = getTelegramUserDisplayName();
+      if (telegramName) {
+        setUserName(telegramName);
+      }
     }
-  }>({
-    queryKey: ['/api/v2/users/profile'],
-    staleTime: 60000, // Кэширование на 1 минуту
-    refetchOnWindowFocus: false,
-    retry: false, // Не повторяем при ошибке авторизации
-    retryOnMount: false,
-    enabled: false // Отключаем автоматические запросы
-  });
+  }, [username]);
   
   // Обновляем состояние кошелька при изменении tonConnectUI
   useEffect(() => {

@@ -44,15 +44,16 @@ const DailyBonusCard: React.FC = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [reward, setReward] = useState('');
 
-  // Запрос на получение статуса ежедневного бонуса
+  // Запрос на получение статуса ежедневного бонуса с безопасными настройками
   const { data: bonusStatus, isLoading, refetch } = useQuery({
     queryKey: ['dailyBonusStatus', userId],
+    enabled: !!userId, // Запрос только при наличии userId
+    retry: false,
+    throwOnError: false,
     queryFn: async () => {
       try {
-        // Используем новый унифицированный метод apiGet
-        const endpoint = `/api/v2/daily-bonus/status?user_id=${userId || 1}`;
-
-        const response = await apiGet<DailyBonusStatus>(endpoint);
+        const endpoint = `/api/v2/daily-bonus/status?user_id=${userId}`;
+        const response = await apiGet(endpoint);
 
         if (!response.success) {
           throw new Error(response.error || 'Ошибка при получении статуса бонуса');
@@ -63,10 +64,7 @@ const DailyBonusCard: React.FC = () => {
 
         throw new Error(`Ошибка при получении статуса бонуса: ${error.message || 'Неизвестная ошибка'}`);
       }
-    },
-    retry: 1,
-    refetchOnWindowFocus: false,
-    enabled: !!userId // Запрос активен только если есть userId
+    }
   });
 
   // Получаем значение стрика (серии дней) из данных API или показываем 0
