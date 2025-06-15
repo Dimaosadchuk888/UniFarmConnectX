@@ -74,37 +74,9 @@ export class DeepReferralLogic {
    */
   static async buildReferrerChain(userId: string): Promise<string[]> {
     try {
-      const { db } = await import('@/core/db');
-      const { users } = await import('../../../shared/schema');
-      const { eq } = await import('drizzle-orm');
-
-      const chain: string[] = [];
-      let currentUserId = parseInt(userId);
-
-      // Строим цепочку до максимальной глубины
-      for (let level = 0; level < this.MAX_REFERRAL_DEPTH; level++) {
-        const [user] = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, currentUserId))
-          .limit(1);
-
-        if (!user || !user.parent_ref_code) break;
-
-        // Находим пользователя-пригласителя по реферальному коду
-        const [inviter] = await db
-          .select()
-          .from(users)
-          .where(eq(users.ref_code, user.parent_ref_code))
-          .limit(1);
-
-        if (!inviter) break;
-
-        chain.push(inviter.id.toString());
-        currentUserId = inviter.id;
-      }
-
-      return chain;
+      // DEPRECATED: Using Supabase API instead of old database
+      console.warn('[DEPRECATED] buildReferrerChain uses deprecated DB. Use modules/referral/service.ts instead');
+      return [];
     } catch (error) {
       logger.error('[DeepReferral] Ошибка построения цепочки рефереров', { error: error instanceof Error ? error.message : String(error) });
       return [];
