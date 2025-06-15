@@ -22,19 +22,19 @@
     "missing": []
   },
   "apiErrors": {
-    "auth_telegram": "400 ⚠️",
-    "register_telegram": "500 ❌",
-    "user_profile": "401 ⚠️ (требует авторизации)",
-    "wallet_balance": "401 ⚠️ (требует авторизации)",
-    "farming_start": "401 ⚠️ (требует авторизации)"
+    "auth_telegram": "502 ⚠️",
+    "register_telegram": "502 ⚠️",
+    "user_profile": "502 ⚠️",
+    "wallet_balance": "502 ⚠️",
+    "farming_start": "502 ⚠️"
   },
   "manifest": {
     "connected": false,
     "tags": false
   },
   "health": {
-    "main": true,
-    "api": true
+    "main": false,
+    "api": false
   },
   "overallStatus": "🔴 Требуется серьезная доработка"
 }
