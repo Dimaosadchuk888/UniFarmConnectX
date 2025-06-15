@@ -92,18 +92,19 @@ export class UserController extends BaseController {
           id: user.id,
           telegram_id: user.telegram_id,
           username: user.username || telegramUser.user.first_name,
-        first_name: telegramUser.user.first_name,
-        ref_code: user.ref_code,
-        parent_ref_code: user.parent_ref_code,
-        uni_balance: user.balance_uni || "0",
-        ton_balance: user.balance_ton || "0",
-        balance_uni: user.balance_uni || "0",
-        balance_ton: user.balance_ton || "0",
-        created_at: user.created_at?.toISOString(),
-        is_telegram_user: true,
-        auth_method: 'telegram'
+          first_name: telegramUser.user.first_name,
+          ref_code: user.ref_code,
+          parent_ref_code: user.parent_ref_code,
+          uni_balance: user.balance_uni || "0",
+          ton_balance: user.balance_ton || "0",
+          balance_uni: user.balance_uni || "0",
+          balance_ton: user.balance_ton || "0",
+          created_at: user.created_at?.toISOString(),
+          is_telegram_user: true,
+          auth_method: 'telegram'
+        }
       });
-    }, 'получения текущего пользователя');
+    });
   }
 
   async updateUser(req: Request, res: Response) {
