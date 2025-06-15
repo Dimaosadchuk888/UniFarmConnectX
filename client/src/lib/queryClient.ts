@@ -235,6 +235,24 @@ export const getQueryFn: <T>(options: {
  * Безопасный глобальный обработчик ошибок для React Query
  * Предотвращает краш приложения при ошибках авторизации
  */
+function safeQueryErrorHandler(error: any) {
+  try {
+    console.error('[QueryClient] Глобальная ошибка запроса:', error);
+    
+    if (error?.status === 401) {
+      console.log('[QueryClient] Ошибка авторизации - продолжаем работу в демо режиме');
+      return;
+    }
+    
+    if (error?.status) {
+      console.log(`[QueryClient] Ошибка HTTP ${error.status}: ${error.statusText || 'Unknown'}`);
+    } else {
+      console.log('[QueryClient] Ошибка неизвестный статус:', error.message || error);
+    }
+  } catch (handlerError) {
+    console.error('[QueryClient] Критическая ошибка в обработчике:', handlerError);
+  }
+}
 const globalQueryErrorHandler = (error: unknown) => {
   // Анализируем тип ошибки
   if (error instanceof Error) {
