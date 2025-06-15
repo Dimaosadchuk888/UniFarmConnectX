@@ -1,10 +1,9 @@
 /**
  * System Monitoring and Health Check for UniFarm
+ * Now uses Supabase API exclusively
  */
 
-import { db, pool } from './db';
-import { users } from '../shared/schema';
-import { count } from 'drizzle-orm';
+import { supabase } from './supabase';
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -38,8 +37,10 @@ class HealthMonitor {
   async checkDatabase(): Promise<ServiceStatus> {
     const startTime = Date.now();
     try {
-      // Supabase PostgreSQL connection test
-      await pool.query('SELECT 1');
+      // Supabase API connection test
+      const { data, error } = await supabase.from('users').select('id').limit(1);
+      if (error) throw error;
+      
       return {
         status: 'up',
         responseTime: Date.now() - startTime,
@@ -47,7 +48,7 @@ class HealthMonitor {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
-      console.warn('[Monitor] Supabase connection failed:', errorMessage);
+      console.warn('[Monitor] Supabase API connection failed:', errorMessage);
       return {
         status: 'down',
         responseTime: Date.now() - startTime,
@@ -59,7 +60,8 @@ class HealthMonitor {
 
   checkEnvironment(): ServiceStatus {
     const requiredEnvVars = [
-      'DATABASE_URL',
+      'SUPABASE_URL',
+      'SUPABASE_KEY',
       'NODE_ENV',
       'PORT'
     ];

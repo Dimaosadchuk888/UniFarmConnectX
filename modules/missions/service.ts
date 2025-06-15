@@ -1,4 +1,4 @@
-import { db } from '../../core/db';
+import { supabase } from '../../core/supabase';
 import { missions, userMissions, users, transactions } from '../../shared/schema.js';
 import { eq, and, notInArray } from 'drizzle-orm';
 import { UserRepository } from '../../core/repositories/UserRepository';

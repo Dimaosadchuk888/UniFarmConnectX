@@ -12,9 +12,7 @@ import telegramRoutes from '../modules/telegram/routes';
 import tonFarmingRoutes from '../modules/tonFarming/routes';
 import transactionsRoutes from '../modules/transactions/routes';
 import airdropRoutes from '../modules/airdrop/routes';
-import { db } from '../core/db';
-import { users } from '../shared/schema';
-import { desc } from 'drizzle-orm';
+import { supabase } from '../core/supabase';
 
 const router = express.Router();
 
@@ -26,20 +24,20 @@ router.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Debug endpoint - cleaned from old database references
+// Debug endpoint - using Supabase API
 router.get('/debug/db-users', async (req: Request, res: Response) => {
   try {
-    const allUsers = await db.select().from(users).orderBy(desc(users.id));
+    const { data: allUsers, error } = await supabase
+      .from('users')
+      .select('id, telegram_id, username, ref_code, created_at')
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+
     res.json({
       success: true,
-      total_users: allUsers.length,
-      users: allUsers.map(user => ({
-        id: user.id,
-        telegram_id: user.telegram_id,
-        username: user.username,
-        ref_code: user.ref_code,
-        created_at: user.created_at
-      }))
+      total_users: allUsers?.length || 0,
+      users: allUsers || []
     });
   } catch (error) {
     res.status(500).json({

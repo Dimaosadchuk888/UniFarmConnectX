@@ -11,9 +11,7 @@ import { createServer } from 'http';
 // @ts-ignore
 import * as WebSocket from 'ws';
 import { config, logger, globalErrorHandler, notFoundHandler, EnvValidator } from '../core';
-import { db } from '../core/db';
-import { users, transactions, missions } from '../shared/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { supabase } from '../core/supabase';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
 import { farmingScheduler } from '../core/scheduler/farmingScheduler';
 import { startPoolMonitoring, logPoolStats } from '../core/dbPoolMonitor';

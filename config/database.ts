@@ -1,30 +1,15 @@
 /**
- * Database Configuration for UniFarm
- * Centralized database connection settings
+ * Supabase Configuration for UniFarm
+ * All database operations now use Supabase API exclusively
  */
 
-export const databaseConfig = {
-  // Database connection URL (Supabase PostgreSQL)
-  url: process.env.DATABASE_URL || '',
+export const supabaseConfig = {
+  url: process.env.SUPABASE_URL || '',
+  key: process.env.SUPABASE_KEY || '',
   
-  // Connection pool settings
-  pool: {
-    max: parseInt(process.env.DB_POOL_MAX || '10'),
-    min: parseInt(process.env.DB_POOL_MIN || '2'),
-    idle: parseInt(process.env.DB_POOL_IDLE || '10000'),
-    acquire: parseInt(process.env.DB_POOL_ACQUIRE || '60000'),
-    evict: parseInt(process.env.DB_POOL_EVICT || '1000')
-  },
-  
-  // Database provider (fixed to supabase)
-  provider: 'supabase',
-  
-  // SSL configuration for production
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  
-  // Connection timeout settings
-  timeout: parseInt(process.env.DB_TIMEOUT || '30000'),
-  
-  // Schema settings
-  schema: process.env.DB_SCHEMA || 'public'
+  // API configuration
+  schema: 'public',
+  autoRefreshToken: true,
+  persistSession: true,
+  detectSessionInUrl: true
 };
