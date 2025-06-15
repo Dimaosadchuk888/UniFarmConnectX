@@ -47,6 +47,10 @@ export class AuthService {
     this.userService = new UserService();
   }
 
+  async authenticateWithTelegram(initData: string, userData?: any): Promise<AuthResponse> {
+    return this.authenticateFromTelegram(initData, userData);
+  }
+
   async authenticateFromTelegram(initData: string, userData?: any): Promise<AuthResponse> {
     try {
       if (!initData || initData.length === 0) {
@@ -122,7 +126,7 @@ export class AuthService {
     }
   }
 
-  async registerDirectFromTelegramUser(userData: any): Promise<AuthResponse> {
+  async registerDirectFromTelegramUser(userData: any, refBy?: string): Promise<AuthResponse> {
     try {
       if (!userData || !userData.telegram_id) {
         return {
