@@ -1,0 +1,79 @@
+{
+  "total_fixes": 7,
+  "successful": 5,
+  "success_rate": 71,
+  "fixes": [
+    {
+      "module": "schema",
+      "action": "Users Table Fields",
+      "status": "SUCCESS",
+      "details": [
+        "id",
+        "telegram_id",
+        "username",
+        "first_name",
+        "wallet",
+        "ton_wallet_address",
+        "ref_code",
+        "parent_ref_code",
+        "referred_by",
+        "balance_uni",
+        "balance_ton",
+        "uni_deposit_amount",
+        "uni_farming_start_timestamp",
+        "uni_farming_balance",
+        "uni_farming_rate",
+        "uni_farming_last_update",
+        "uni_farming_deposit",
+        "uni_farming_activated_at",
+        "created_at",
+        "checkin_last_date",
+        "checkin_streak",
+        "is_admin"
+      ],
+      "timestamp": "2025-06-15T08:48:15.096Z"
+    },
+    {
+      "module": "transactions",
+      "action": "Schema Fix",
+      "status": "ERROR",
+      "details": "Could not find the 'currency' column of 'transactions' in the schema cache",
+      "timestamp": "2025-06-15T08:48:16.873Z"
+    },
+    {
+      "module": "farming",
+      "action": "Schema Fix",
+      "status": "SUCCESS",
+      "details": "Format works: string - 2025-06-15T08:48:17.648Z",
+      "timestamp": "2025-06-15T08:48:18.457Z"
+    },
+    {
+      "module": "registration",
+      "action": "Schema Fix",
+      "status": "SUCCESS",
+      "details": "User created ID: 7",
+      "timestamp": "2025-06-15T08:48:19.074Z"
+    },
+    {
+      "module": "registration",
+      "action": "Cleanup",
+      "status": "SUCCESS",
+      "details": "Test user removed",
+      "timestamp": "2025-06-15T08:48:19.352Z"
+    },
+    {
+      "module": "retest",
+      "action": "Transactions",
+      "status": "ERROR",
+      "details": "Could not find the 'currency' column of 'transactions' in the schema cache",
+      "timestamp": "2025-06-15T08:48:19.512Z"
+    },
+    {
+      "module": "retest",
+      "action": "Registration",
+      "status": "SUCCESS",
+      "details": "User works: 8",
+      "timestamp": "2025-06-15T08:48:19.779Z"
+    }
+  ]
+}

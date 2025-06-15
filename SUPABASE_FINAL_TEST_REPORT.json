@@ -1,0 +1,113 @@
+{
+  "summary": {
+    "total_tests": 12,
+    "successful": 9,
+    "failed": 3,
+    "success_rate": 75
+  },
+  "supabase_core": {
+    "connection": "ACTIVE",
+    "client_structure": "VALID",
+    "environment_variables": "LOADED"
+  },
+  "modules_tested": [
+    "core/supabase.ts",
+    "users module",
+    "transactions module",
+    "farming module",
+    "referral module",
+    "registration system",
+    "bonus system"
+  ],
+  "duplicate_connections": "NONE FOUND",
+  "data_source": "SUPABASE API ONLY",
+  "results": [
+    {
+      "module": "core/supabase.ts",
+      "test": "Connection Test",
+      "status": "SUCCESS",
+      "details": "Got 1 records",
+      "timestamp": "2025-06-15T08:46:31.050Z"
+    },
+    {
+      "module": "core/supabase.ts",
+      "test": "Client Structure",
+      "status": "SUCCESS",
+      "details": "createClient() properly configured",
+      "timestamp": "2025-06-15T08:46:31.050Z"
+    },
+    {
+      "module": "core/supabase.ts",
+      "test": "Environment Variables",
+      "status": "SUCCESS",
+      "details": "SUPABASE_URL and SUPABASE_KEY loaded",
+      "timestamp": "2025-06-15T08:46:31.050Z"
+    },
+    {
+      "module": "users",
+      "test": "Select by telegram_id",
+      "status": "SUCCESS",
+      "details": "Found 1 users",
+      "timestamp": "2025-06-15T08:46:31.477Z"
+    },
+    {
+      "module": "users",
+      "test": "Balance Loading",
+      "status": "SUCCESS",
+      "details": {
+        "uni_balance": 115.614455,
+        "ton_balance": 51.000008
+      },
+      "timestamp": "2025-06-15T08:46:31.477Z"
+    },
+    {
+      "module": "transactions",
+      "test": "Insert Transaction",
+      "status": "ERROR",
+      "details": "Could not find the 'amount' column of 'transactions' in the schema cache",
+      "timestamp": "2025-06-15T08:46:31.912Z"
+    },
+    {
+      "module": "farming",
+      "test": "Update Farming Status",
+      "status": "ERROR",
+      "details": "date/time field value out of range: \"1749977192\"",
+      "timestamp": "2025-06-15T08:46:32.234Z"
+    },
+    {
+      "module": "referral",
+      "test": "Select by ref_code",
+      "status": "SUCCESS",
+      "details": "Found 2 users with ref codes",
+      "timestamp": "2025-06-15T08:46:32.392Z"
+    },
+    {
+      "module": "referral",
+      "test": "Referral Chain Check",
+      "status": "SUCCESS",
+      "details": "0 users have referrers",
+      "timestamp": "2025-06-15T08:46:32.392Z"
+    },
+    {
+      "module": "registration",
+      "test": "User Creation",
+      "status": "ERROR",
+      "details": "Could not find the 'last_name' column of 'users' in the schema cache",
+      "timestamp": "2025-06-15T08:46:32.556Z"
+    },
+    {
+      "module": "bonus",
+      "test": "Update Bonus Streak",
+      "status": "SUCCESS",
+      "details": "New streak: 1",
+      "timestamp": "2025-06-15T08:46:32.882Z"
+    },
+    {
+      "module": "system",
+      "test": "Duplicate Connections Check",
+      "status": "SUCCESS",
+      "details": "No alternative database connections found",
+      "timestamp": "2025-06-15T08:46:32.882Z"
+    }
+  ]
+}
