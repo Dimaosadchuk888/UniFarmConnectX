@@ -254,3 +254,8 @@ export function optionalAuth(req: AuthenticatedRequest, res: Response, next: Nex
 
   next();
 }
+
+/**
+ * Alias for authenticateJWT - for backward compatibility
+ */
+export const requireAuth = authenticateJWT;
