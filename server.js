@@ -1,24 +1,23 @@
 #!/usr/bin/env node
 
 /**
- * UniFarm Production Entry Point
- * Fixes critical MODULE_NOT_FOUND error for Replit deployment
+ * UniFarm Deployment Entry Point
+ * Routes to npm start script for proper TypeScript execution
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
+import { spawn } from 'child_process';
 
 // Set production environment
 process.env.NODE_ENV = 'production';
 process.env.HOST = '0.0.0.0';
 process.env.PORT = process.env.PORT || '3000';
 
-console.log('🚀 UniFarm Production Server Starting...');
+console.log('🚀 UniFarm Starting via npm start...');
 console.log('📦 Environment: production');
-console.log('⚡ TSX Runtime для TypeScript поддержки');
+console.log('🔧 Using npm start script for proper TypeScript execution');
 
-// Launch server with TSX for TypeScript support
-const serverProcess = spawn('npx', ['tsx', 'server/index.ts'], {
+// Use npm start script which is properly configured
+const serverProcess = spawn('npm', ['start'], {
   stdio: 'inherit',
   cwd: process.cwd(),
   env: process.env
