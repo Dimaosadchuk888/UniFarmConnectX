@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { AuthService } from './service';
 import { logger } from '../../core/logger';
@@ -14,8 +14,9 @@ export class AuthController extends BaseController {
   /**
    * Аутентификация через Telegram
    */
-  async authenticateTelegram(req: Request, res: Response): Promise<void> {
-    await this.handleRequest(req, res, async () => {
+  async authenticateTelegram(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
       // Извлекаем initData из заголовка или тела запроса
       const initDataFromHeaders = req.headers['x-telegram-init-data'] as string;
       const { initData: initDataFromBody, ref_by, direct_registration, telegram_id } = req.body;
@@ -73,13 +74,17 @@ export class AuthController extends BaseController {
         this.sendError(res, result.error || 'Authentication failed', 401);
       }
     }, 'аутентификации через Telegram');
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
    * Регистрация пользователя через Telegram
    */
-  async registerTelegram(req: Request, res: Response): Promise<void> {
-    await this.handleRequest(req, res, async () => {
+  async registerTelegram(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
       // Извлекаем initData из заголовка или тела запроса
       const initDataFromHeaders = req.headers['x-telegram-init-data'] as string;
       const { 
@@ -146,13 +151,17 @@ export class AuthController extends BaseController {
         this.sendError(res, result.error || 'Registration failed', 400);
       }
     }, 'регистрации через Telegram');
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
    * Проверка валидности токена и получение информации о пользователе
    */
-  async checkToken(req: Request, res: Response): Promise<void> {
-    await this.handleRequest(req, res, async () => {
+  async checkToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
       const authHeader = req.headers.authorization;
       const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
       
@@ -172,13 +181,17 @@ export class AuthController extends BaseController {
         token: sessionInfo.token
       });
     }, 'проверки токена');
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
    * Валидация токена (legacy endpoint)
    */
-  async validateToken(req: Request, res: Response): Promise<void> {
-    await this.handleRequest(req, res, async () => {
+  async validateToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
       const authHeader = req.headers.authorization;
       const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
       
@@ -193,13 +206,17 @@ export class AuthController extends BaseController {
         checked_at: new Date().toISOString()
       });
     }, 'валидации токена');
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
    * Выход из системы (очистка клиентского токена)
    */
-  async logout(req: Request, res: Response): Promise<void> {
-    await this.handleRequest(req, res, async () => {
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
       // В JWT архитектуре logout обычно обрабатывается на клиенте
       // Токен просто удаляется из localStorage/sessionStorage
       this.sendSuccess(res, {
@@ -207,13 +224,17 @@ export class AuthController extends BaseController {
         logged_out_at: new Date().toISOString()
       });
     }, 'выхода из системы');
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
    * Получение информации о текущей сессии
    */
-  async getSessionInfo(req: Request, res: Response): Promise<void> {
-    await this.handleRequest(req, res, async () => {
+  async getSessionInfo(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
       const token = req.headers.authorization?.replace('Bearer ', '');
       
       if (!token) {
@@ -223,5 +244,8 @@ export class AuthController extends BaseController {
       const sessionInfo = await this.authService.getSessionInfo(token);
       this.sendSuccess(res, sessionInfo);
     }, 'получения информации о сессии');
+    } catch (error) {
+      next(error);
+    }
   }
 }

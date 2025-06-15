@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { WalletService } from './service';
 import { UserService } from '../user/service';
@@ -8,8 +8,9 @@ const walletService = new WalletService();
 const userService = new UserService();
 
 export class WalletController extends BaseController {
-  async getWalletData(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getWalletData(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
@@ -33,10 +34,14 @@ export class WalletController extends BaseController {
 
       this.sendSuccess(res, walletData);
     }, 'получения данных кошелька');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async getTransactions(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getTransactions(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       if (!this.validateParams(req, ['userId'])) {
         return this.sendError(res, 'Отсутствует параметр userId', 400);
       }
@@ -46,10 +51,14 @@ export class WalletController extends BaseController {
       
       this.sendSuccess(res, transactions);
     }, 'получения транзакций');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async withdraw(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async withdraw(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       this.validateRequiredFields(req.body, ['userId', 'amount', 'type']);
       
       const { userId, amount, type } = req.body;
@@ -57,5 +66,8 @@ export class WalletController extends BaseController {
       
       this.sendSuccess(res, { processed: result });
     }, 'вывода средств');
+    } catch (error) {
+      next(error);
+    }
   }
 }

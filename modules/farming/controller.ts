@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { FarmingService } from './service';
 import { UserService } from '../user/service';
@@ -8,8 +8,9 @@ const farmingService = new FarmingService();
 const userService = new UserService();
 
 export class FarmingController extends BaseController {
-  async getFarmingData(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getFarmingData(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
       
@@ -31,10 +32,14 @@ export class FarmingController extends BaseController {
 
       this.sendSuccess(res, farmingData);
     }, 'получения данных фарминга');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async getFarmingInfo(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getFarmingInfo(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const userId = req.query.user_id as string;
       
       // If no user_id provided, return default farming status
@@ -69,10 +74,14 @@ export class FarmingController extends BaseController {
 
       this.sendSuccess(res, farmingData);
     }, 'получения информации о фарминге');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async startFarming(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async startFarming(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
       
@@ -92,10 +101,14 @@ export class FarmingController extends BaseController {
 
       this.sendSuccess(res, { started: result });
     }, 'запуска фарминга');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async claimFarming(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async claimFarming(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
 
@@ -112,10 +125,14 @@ export class FarmingController extends BaseController {
 
       this.sendSuccess(res, result);
     }, 'сбора фарминга');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async depositUni(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async depositUni(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
 
@@ -136,10 +153,14 @@ export class FarmingController extends BaseController {
 
       this.sendSuccess(res, result);
     }, 'депозита UNI для фарминга');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async harvestUni(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async harvestUni(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
 
@@ -156,10 +177,14 @@ export class FarmingController extends BaseController {
 
       this.sendSuccess(res, result);
     }, 'сбора урожая UNI фарминга');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async getFarmingHistory(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getFarmingHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
 
@@ -181,5 +206,8 @@ export class FarmingController extends BaseController {
 
       this.sendSuccess(res, history);
     }, 'получения истории фарминга');
+    } catch (error) {
+      next(error);
+    }
   }
 }

@@ -1,12 +1,13 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { WalletService } from '../wallet/service';
 
 const walletService = new WalletService();
 
 export class TransactionsController extends BaseController {
-  async getTransactions(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getTransactions(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
@@ -33,5 +34,8 @@ export class TransactionsController extends BaseController {
         hasMore: result.hasMore
       });
     }, 'получения транзакций');
+    } catch (error) {
+      next(error);
+    }
   }
 }

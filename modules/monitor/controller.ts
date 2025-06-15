@@ -3,7 +3,7 @@
  * Контроллер для мониторинга состояния системы и базы данных
  */
 
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { supabase } from '../../core/supabase';
 
@@ -12,8 +12,9 @@ export class MonitorController extends BaseController {
    * GET /api/monitor/pool
    * Возвращает статистику connection pool
    */
-  async getPoolStatus(req: Request, res: Response): Promise<void> {
-    await this.handleRequest(req, res, async () => {
+  async getPoolStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
       const stats = getPoolStats();
       
       this.sendSuccess(res, {
@@ -24,14 +25,18 @@ export class MonitorController extends BaseController {
         timestamp: new Date().toISOString()
       });
     }, 'получения статистики пула соединений');
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
    * GET /api/monitor/pool/detailed
    * Возвращает расширенную статистику с анализом здоровья
    */
-  async getDetailedPoolStatus(req: Request, res: Response): Promise<void> {
-    await this.handleRequest(req, res, async () => {
+  async getDetailedPoolStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
       const stats = getDetailedPoolStats();
       
       this.sendSuccess(res, {
@@ -39,19 +44,26 @@ export class MonitorController extends BaseController {
         timestamp: new Date().toISOString()
       });
     }, 'получения детальной статистики пула');
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
    * POST /api/monitor/pool/log
    * Выводит текущую статистику в консоль сервера
    */
-  async logPoolStatus(req: Request, res: Response): Promise<void> {
-    await this.handleRequest(req, res, async () => {
+  async logPoolStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await this.handleRequest(req, res, async () => {
       logPoolStats();
       
       this.sendSuccess(res, {
         message: 'Статистика пула выведена в консоль сервера'
       });
     }, 'вывода статистики пула в консоль');
+    } catch (error) {
+      next(error);
+    }
   }
 }

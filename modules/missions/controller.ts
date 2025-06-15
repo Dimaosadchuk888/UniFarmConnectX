@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { MissionsService } from './service';
 import { UserService } from '../user/service';
@@ -8,8 +8,9 @@ const missionsService = new MissionsService();
 const userService = new UserService();
 
 export class MissionsController extends BaseController {
-  async getActiveMissions(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getActiveMissions(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
@@ -31,10 +32,14 @@ export class MissionsController extends BaseController {
 
       this.sendSuccess(res, missions);
     }, 'получения активных миссий');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async completeMission(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async completeMission(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
@@ -56,10 +61,14 @@ export class MissionsController extends BaseController {
 
       this.sendSuccess(res, { completed: result });
     }, 'завершения миссии');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async claimReward(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async claimReward(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
@@ -80,10 +89,14 @@ export class MissionsController extends BaseController {
 
       this.sendSuccess(res, result);
     }, 'получения награды за миссию');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async getMissionStats(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getMissionStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
@@ -97,10 +110,14 @@ export class MissionsController extends BaseController {
       const stats = await missionsService.getMissionStatsByTelegramId(telegram.user.id.toString());
       this.sendSuccess(res, stats);
     }, 'получения статистики миссий');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async getUserMissions(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getUserMissions(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return; // 401 уже отправлен
 
@@ -114,5 +131,8 @@ export class MissionsController extends BaseController {
       const missions = await missionsService.getUserMissionsByTelegramId(telegram.user.id.toString());
       this.sendSuccess(res, missions);
     }, 'получения миссий пользователя');
+    } catch (error) {
+      next(error);
+    }
   }
 }

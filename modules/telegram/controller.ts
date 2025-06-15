@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { logger } from '../../core/logger.js';
 import { TelegramService } from './service';
@@ -11,8 +11,9 @@ export class TelegramController extends BaseController {
     this.telegramService = new TelegramService();
   }
 
-  async debugMiddleware(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async debugMiddleware(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegramData = (req as any).telegram;
       const headers = {
         'x-telegram-init-data': req.headers['x-telegram-init-data'],
@@ -42,10 +43,14 @@ export class TelegramController extends BaseController {
         timestamp: new Date().toISOString()
       });
     }, 'отладки Telegram middleware');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async handleWebhook(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async handleWebhook(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const update = req.body;
       
       logger.info('[TelegramWebhook] Получено обновление от Telegram', {
@@ -100,5 +105,8 @@ export class TelegramController extends BaseController {
         update_id: update.update_id 
       });
     }, 'обработки Telegram webhook');
+    } catch (error) {
+      next(error);
+    }
   }
 }

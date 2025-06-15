@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { TonFarmingService } from './service';
 import { logger } from '../../core/logger';
@@ -6,8 +6,9 @@ import { logger } from '../../core/logger';
 const tonFarmingService = new TonFarmingService();
 
 export class TonFarmingController extends BaseController {
-  async getTonFarmingData(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getTonFarmingData(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
 
@@ -24,10 +25,14 @@ export class TonFarmingController extends BaseController {
 
       this.sendSuccess(res, farmingData);
     }, 'получения данных TON фарминга');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async startTonFarming(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async startTonFarming(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
       
@@ -40,10 +45,14 @@ export class TonFarmingController extends BaseController {
 
       this.sendSuccess(res, { started: result });
     }, 'запуска TON фарминга');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async claimTonFarming(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async claimTonFarming(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
 
@@ -53,10 +62,14 @@ export class TonFarmingController extends BaseController {
 
       this.sendSuccess(res, result);
     }, 'сбора TON фарминга');
+    } catch (error) {
+      next(error);
+    }
   }
 
-  async getTonFarmingStatus(req: Request, res: Response) {
-    await this.handleRequest(req, res, async () => {
+  async getTonFarmingStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
       const telegram = this.validateTelegramAuth(req, res);
       if (!telegram) return;
 
@@ -66,5 +79,8 @@ export class TonFarmingController extends BaseController {
 
       this.sendSuccess(res, status);
     }, 'получения статуса TON фарминга');
+    } catch (error) {
+      next(error);
+    }
   }
 }
