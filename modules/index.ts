@@ -11,6 +11,9 @@ export { TelegramService } from './telegram/service';
 export { DailyBonusService } from './dailyBonus/service';
 export { AdminService } from './admin/service';
 export { AuthService } from './auth/service';
+export { TonFarmingService } from './tonFarming/service';
+export { TransactionsService } from './transactions/service';
+export { MonitorService } from './monitor/service';
 
 // Controllers
 export { UserController } from './user/controller';
@@ -23,6 +26,9 @@ export { TelegramController } from './telegram/controller';
 export { DailyBonusController } from './dailyBonus/controller';
 export { AdminController } from './admin/controller';
 export { AuthController } from './auth/controller';
+export { TonFarmingController } from './tonFarming/controller';
+export { TransactionsController } from './transactions/controller';
+export { MonitorController } from './monitor/controller';
 
 // Routes
 export { default as userRoutes } from './user/routes';
@@ -35,6 +41,9 @@ export { default as telegramRoutes } from './telegram/routes';
 export { default as dailyBonusRoutes } from './dailyBonus/routes';
 export { default as adminRoutes } from './admin/routes';
 export { default as authRoutes } from './auth/routes';
+export { default as tonFarmingRoutes } from './tonFarming/routes';
+export { default as transactionsRoutes } from './transactions/routes';
+export { default as monitorRoutes } from './monitor/routes';
 
 // Models - Drizzle схемы и enum'ы
 export * from './user/model';
@@ -59,6 +68,9 @@ export * from './telegram/types';
 export * from './dailyBonus/types';
 export * from './admin/types';
 export * from './auth/types';
+export * from './tonFarming/types';
+export * from './transactions/types';
+export * from './monitor/types';
 
 // Middleware (из core для унификации)
 export { requireTelegramAuth, optionalTelegramAuth } from '../core/middleware/telegramAuth';
