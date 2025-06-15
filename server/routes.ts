@@ -117,14 +117,44 @@ router.get('/me', async (req: Request, res: Response) => {
   });
 });
 
-// Core module routes
-router.use('/farming', farmingRoutes);
-router.use('/uni-farming', farmingRoutes); // Alias for uni-farming endpoints
-router.use('/users', userRoutes);
-
-// Прямой маршрут для профиля пользователя (GET и POST)
+// Прямой маршрут для профиля пользователя с поддержкой JWT (должен быть ДО /users middleware)
 router.get('/users/profile', async (req, res) => {
   try {
+    // Проверяем JWT токен в Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      
+      try {
+        const jwt = await import('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
+        
+        if (decoded.telegram_id) {
+          const { UserRepository } = await import('../modules/user/repository');
+          const userRepo = new UserRepository();
+          const user = await userRepo.findByTelegramId(decoded.telegram_id);
+          
+          if (user) {
+            return res.json({
+              success: true,
+              user: {
+                id: user.id,
+                telegram_id: user.telegram_id,
+                username: user.username,
+                ref_code: user.ref_code,
+                balance_uni: user.balance_uni,
+                balance_ton: user.balance_ton,
+                auth_method: 'jwt'
+              }
+            });
+          }
+        }
+      } catch (jwtError) {
+        console.log('[JWT] Token invalid:', jwtError);
+      }
+    }
+
+    // Fallback к Telegram методу
     const { UserController } = await import('../modules/user/controller');
     const userController = new UserController();
     await userController.getCurrentUser(req, res);
