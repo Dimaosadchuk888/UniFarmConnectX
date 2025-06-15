@@ -31,8 +31,7 @@ export class AuthController extends BaseController {
           telegram_id: parseInt(telegram_id.toString()),
           username: req.body.username || '',
           first_name: req.body.first_name || '',
-          last_name: req.body.last_name || '',
-          language_code: req.body.language_code || 'en'
+          ref_by: ref_by
         });
         
         if (result.success) {
@@ -107,9 +106,8 @@ export class AuthController extends BaseController {
           telegram_id: parseInt(telegram_id.toString()),
           username: username || '',
           first_name: first_name || '',
-          last_name: last_name || '',
-          language_code: language_code || 'en'
-        }, refBy || ref_by);
+          ref_by: refBy || ref_by
+        });
         
         if (result.success) {
           this.sendSuccess(res, {
@@ -164,17 +162,14 @@ export class AuthController extends BaseController {
 
       const sessionInfo = await this.authService.getSessionInfo(token);
       
-      if (!sessionInfo.valid) {
+      if (!sessionInfo.success) {
         return this.sendError(res, sessionInfo.error || 'Invalid token', 401);
       }
 
       this.sendSuccess(res, {
         valid: true,
-        user_id: sessionInfo.userId,
-        telegram_id: sessionInfo.telegramId,
-        username: sessionInfo.username,
-        ref_code: sessionInfo.refCode,
-        expires_at: sessionInfo.expiresAt
+        user: sessionInfo.user,
+        token: sessionInfo.token
       });
     }, 'проверки токена');
   }

@@ -92,7 +92,10 @@ export class AuthService {
 
       return {
         success: true,
-        user: userInfo,
+        user: {
+          ...userInfo,
+          telegram_id: userInfo.telegram_id || telegramUser.id
+        } as User,
         token: token,
         isNewUser
       };
