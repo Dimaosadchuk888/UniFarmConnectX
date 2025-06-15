@@ -1,5 +1,4 @@
 import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type TelegramUser, type JWTPayload } from '../../utils/telegram';
-import { UserService } from '../users/service';
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
 
@@ -31,10 +30,85 @@ interface TokenValidationResult {
 }
 
 export class AuthService {
-  private userService: UserService;
+  constructor() {}
 
-  constructor() {
-    this.userService = new UserService();
+  /**
+   * Генерирует уникальный реферальный код
+   */
+  private generateRefCode(): string {
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    return `REF_${timestamp}_${randomStr}`;
+  }
+
+  /**
+   * Находит пользователя по telegram_id
+   */
+  private async findByTelegramId(telegramId: number): Promise<User | null> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        logger.error('[AuthService] Ошибка поиска пользователя', { error: error.message, telegramId });
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      logger.error('[AuthService] Ошибка поиска пользователя', { error, telegramId });
+      return null;
+    }
+  }
+
+  /**
+   * Создает нового пользователя
+   */
+  private async createUser(userData: { telegram_id: number; username?: string; first_name?: string; ref_by?: string }): Promise<User | null> {
+    try {
+      const refCode = this.generateRefCode();
+      
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          telegram_id: userData.telegram_id,
+          username: userData.username || userData.first_name || `user_${userData.telegram_id}`,
+          first_name: userData.first_name || 'User',
+          ref_code: refCode,
+          referred_by: userData.ref_by || null,
+          balance_uni: '0',
+          balance_ton: '0',
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('[AuthService] Ошибка создания пользователя', { error: error.message, userData });
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      logger.error('[AuthService] Ошибка создания пользователя', { error, userData });
+      return null;
+    }
+  }
+
+  /**
+   * Находит или создает пользователя
+   */
+  private async findOrCreateFromTelegram(userData: { telegram_id: number; username?: string; first_name?: string; ref_by?: string }): Promise<User | null> {
+    let user = await this.findByTelegramId(userData.telegram_id);
+    
+    if (!user) {
+      user = await this.createUser(userData);
+    }
+    
+    return user;
   }
 
   /**
@@ -64,20 +138,21 @@ export class AuthService {
       const telegramUser = validation.user;
       logger.info('[AuthService] Валидные данные Telegram получены', { telegramId: telegramUser.id });
 
-      let userInfo = await this.userService.findByTelegramId(telegramUser.id);
+      let userInfo = await this.findByTelegramId(telegramUser.id);
       let isNewUser = false;
 
       if (!userInfo) {
         logger.info('[AuthService] Создание нового пользователя', { telegramId: telegramUser.id });
         
-        userInfo = await this.userService.findOrCreateFromTelegram({
+        userInfo = await this.findOrCreateFromTelegram({
           telegram_id: telegramUser.id,
           username: telegramUser.username,
-          first_name: telegramUser.first_name
+          first_name: telegramUser.first_name,
+          ref_by: options.ref_by
         });
         
         isNewUser = true;
-        logger.info('[AuthService] Новый пользователь создан', { userId: userInfo.id });
+        logger.info('[AuthService] Новый пользователь создан', { userId: userInfo?.id });
       }
 
       if (!userInfo) {
@@ -115,20 +190,21 @@ export class AuthService {
     try {
       logger.info('[AuthService] Прямая регистрация пользователя', { telegramId: userData.telegram_id });
 
-      let userInfo = await this.userService.findByTelegramId(userData.telegram_id);
+      let userInfo = await this.findByTelegramId(userData.telegram_id);
       let isNewUser = false;
 
       if (!userInfo) {
         logger.info('[AuthService] Создание нового пользователя (прямая регистрация)', { telegramId: userData.telegram_id });
         
-        userInfo = await this.userService.findOrCreateFromTelegram({
+        userInfo = await this.findOrCreateFromTelegram({
           telegram_id: userData.telegram_id,
           username: userData.username || userData.first_name,
-          first_name: userData.first_name
+          first_name: userData.first_name,
+          ref_by: userData.ref_by
         });
         
         isNewUser = true;
-        logger.info('[AuthService] Новый пользователь создан (прямая регистрация)', { userId: userInfo.id });
+        logger.info('[AuthService] Новый пользователь создан (прямая регистрация)', { userId: userInfo?.id });
       }
 
       if (!userInfo) {
@@ -200,15 +276,16 @@ export class AuthService {
       }
 
       const telegramUser = validation.user;
-      let userInfo = await this.userService.findByTelegramId(telegramUser.id);
+      let userInfo = await this.findByTelegramId(telegramUser.id);
       let isNewUser = false;
 
       if (!userInfo) {
         // Создаем нового пользователя
-        userInfo = await this.userService.findOrCreateFromTelegram({
+        userInfo = await this.findOrCreateFromTelegram({
           telegram_id: telegramUser.id,
           username: telegramUser.username || telegramUser.first_name,
-          first_name: telegramUser.first_name
+          first_name: telegramUser.first_name,
+          ref_by: refBy
         });
         isNewUser = true;
       }
@@ -253,7 +330,7 @@ export class AuthService {
         };
       }
 
-      const userInfo = await this.userService.findByTelegramId(validation.payload.telegram_id);
+      const userInfo = await this.findByTelegramId(validation.payload.telegram_id);
       if (!userInfo) {
         return {
           success: false,
