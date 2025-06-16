@@ -38,8 +38,8 @@ export class MissionsService {
           description: 'Заходите в приложение 7 дней подряд',
           reward_uni: '50',
           reward_ton: '0',
-          type: 'DAILY_LOGIN',
-          status: 'ACTIVE'
+          type: MISSION_TYPES.DAILY,
+          status: MISSION_STATUS.ACTIVE
         }
       ];
     } catch (error) {

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { telegramConfig } from '../../config/telegram';
 import { logger } from '../../core/logger';
+import { TELEGRAM_TABLES, TELEGRAM_AUTH, TELEGRAM_CONFIG, TELEGRAM_VALIDATION } from './model';
 
 export class TelegramService {
   private botToken: string;
@@ -53,7 +54,7 @@ export class TelegramService {
 
       // Create secret key
       const secretKey = crypto
-        .createHmac('sha256', 'WebAppData')
+        .createHmac(TELEGRAM_AUTH.HASH_ALGORITHM, 'WebAppData')
         .update(this.botToken)
         .digest();
 

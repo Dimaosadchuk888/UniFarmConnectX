@@ -2,6 +2,7 @@ import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type Telegr
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
 import type { AuthResponse, AuthValidationResult } from './types';
+import { AUTH_TABLES, AUTH_METHODS, AUTH_STATUS, JWT_CONFIG } from './model';
 
 // Типы для Supabase API
 interface User {
@@ -48,7 +49,7 @@ export class AuthService {
   private async findByTelegramId(telegramId: number): Promise<User | null> {
     try {
       const { data, error } = await supabase
-        .from('users')
+        .from(AUTH_TABLES.USERS)
         .select('*')
         .eq('telegram_id', telegramId)
         .single();
@@ -73,7 +74,7 @@ export class AuthService {
       const refCode = this.generateRefCode();
       
       const { data, error } = await supabase
-        .from('users')
+        .from(AUTH_TABLES.USERS)
         .insert({
           telegram_id: userData.telegram_id,
           username: userData.username || userData.first_name || `user_${userData.telegram_id}`,
