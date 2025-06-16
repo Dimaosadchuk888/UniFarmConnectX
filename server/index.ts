@@ -452,7 +452,13 @@ async function startServer() {
       // Static file serving for PWA files (before express.static)
       app.get('/manifest.json', (req: Request, res: Response) => {
         res.setHeader('Content-Type', 'application/json');
-        res.sendFile(path.resolve('client/manifest.json'));
+        res.sendFile(path.resolve('client/public/manifest.json'));
+      });
+      
+      // TON Connect manifest for wallet integration
+      app.get('/tonconnect-manifest.json', (req: Request, res: Response) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.sendFile(path.resolve('client/public/tonconnect-manifest.json'));
       });
       
       // Serve static files from dist/public
@@ -461,7 +467,7 @@ async function startServer() {
       // SPA fallback - serve index.html for non-API routes
       app.get('*', (req: Request, res: Response, next: NextFunction) => {
         // Skip API routes, webhook, and static files
-        if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path === '/webhook' || req.path === '/manifest.json') {
+        if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path === '/webhook' || req.path === '/manifest.json' || req.path === '/tonconnect-manifest.json') {
           return next();
         }
         
