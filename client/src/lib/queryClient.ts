@@ -2,6 +2,7 @@ import { QueryClient, QueryFunction, QueryCache, MutationCache } from "@tanstack
 import { getTelegramAuthHeaders } from "@/services/telegramService";
 import apiConfig from "@/config/apiConfig";
 import { fixRequestBody } from "./apiFix";
+import frontendLogger from "../utils/frontendLogger";
 
 /**
  * Вспомогательная функция для проверки статуса HTTP-ответа

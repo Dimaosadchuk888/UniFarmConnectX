@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { TonConnectUI } from '@tonconnect/ui-react';
+import frontendLogger from '../utils/frontendLogger';
 
 // Типы данных
 interface Balance {
@@ -122,7 +123,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
     } catch (error) {
-      console.error('Wallet connection failed:', error);
+      frontendLogger.error('Wallet connection failed:', error);
     }
     return false;
   };
@@ -135,7 +136,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         payload: { connected: false, address: null }
       });
     } catch (error) {
-      console.error('Wallet disconnect failed:', error);
+      frontendLogger.error('Wallet disconnect failed:', error);
     }
   };
 
@@ -168,7 +169,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('Balance refresh failed:', error);
+      frontendLogger.error('Balance refresh failed:', error);
     } finally {
       dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: false } });
     }
@@ -199,7 +200,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('User data refresh failed:', error);
+      frontendLogger.error('User data refresh failed:', error);
     }
   };
 
@@ -222,16 +223,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (response.ok && data.success && data.token) {
-        console.log('[UserContext] Direct registration successful');
+        frontendLogger.info('[UserContext] Direct registration successful');
         localStorage.setItem('unifarm_auth_token', data.token);
         localStorage.setItem('unifarm_user_data', JSON.stringify(data.user));
         return { success: true, user: data.user, token: data.token };
       } else {
-        console.log('[UserContext] Direct registration failed:', data);
+        frontendLogger.info('[UserContext] Direct registration failed:', data);
         return { success: false, error: data.error };
       }
     } catch (error) {
-      console.log('[UserContext] Direct registration error:', error);
+      frontendLogger.info('[UserContext] Direct registration error:', error);
       return { success: false, error: 'Registration failed' };
     }
   };
@@ -257,7 +258,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Автоматическая авторизация при загрузке
   useEffect(() => {
     const loadInitialUserData = async () => {
-      console.log('[UserContext] Автоматическая загрузка данных пользователя...');
+      frontendLogger.info('[UserContext] Автоматическая загрузка данных пользователя...');
       dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
       
       try {
@@ -266,7 +267,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const savedUserData = localStorage.getItem('unifarm_user_data');
         
         if (savedToken && savedUserData) {
-          console.log('[UserContext] Восстановление сессии из localStorage');
+          frontendLogger.info('[UserContext] Восстановление сессии из localStorage');
           try {
             const userData = JSON.parse(savedUserData);
             dispatch({
@@ -281,7 +282,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             refreshBalance();
             return;
           } catch (error) {
-            console.log('[UserContext] Ошибка восстановления сессии:', error);
+            frontendLogger.info('[UserContext] Ошибка восстановления сессии:', error);
             localStorage.removeItem('unifarm_auth_token');
             localStorage.removeItem('unifarm_user_data');
           }
@@ -291,7 +292,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const telegramData = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
         
         if (telegramData) {
-          console.log('[UserContext] Проверка Telegram данных:', {
+          frontendLogger.info('[UserContext] Проверка Telegram данных:', {
             telegramAvailable: !!window.Telegram,
             webAppAvailable: !!telegramData,
             initDataPresent: !!telegramData.initData,
@@ -302,7 +303,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         // Проверяем наличие initData для авторизации
         if (telegramData && telegramData.initData && telegramData.initData.length > 0) {
-          console.log('[UserContext] Авторизация через initData');
+          frontendLogger.info('[UserContext] Авторизация через initData');
           
           try {
             const response = await fetch('/api/v2/auth/telegram', {
@@ -316,7 +317,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const data = await response.json();
             
             if (response.ok && data.success && data.token) {
-              console.log('[UserContext] initData авторизация успешна');
+              frontendLogger.info('[UserContext] initData авторизация успешна');
               localStorage.setItem('unifarm_auth_token', data.token);
               localStorage.setItem('unifarm_user_data', JSON.stringify(data.user));
               
@@ -334,13 +335,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               return;
             }
           } catch (error) {
-            console.log('[UserContext] initData авторизация не удалась:', error);
+            frontendLogger.info('[UserContext] initData авторизация не удалась:', error);
           }
         }
 
         // Fallback: Прямая регистрация через initDataUnsafe
         if (telegramData && telegramData.initDataUnsafe?.user) {
-          console.log('[UserContext] Fallback регистрация через initDataUnsafe');
+          frontendLogger.info('[UserContext] Fallback регистрация через initDataUnsafe');
           
           const result = await registerDirectFromTelegramUser(telegramData.initDataUnsafe.user);
           if (result.success) {
@@ -359,17 +360,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Ожидание корректных Telegram данных без fallback
-        console.log('[UserContext] Ожидание корректной инициализации Telegram WebApp');
+        frontendLogger.info('[UserContext] Ожидание корректной инициализации Telegram WebApp');
 
         // Если нет Telegram данных, показываем состояние ожидания авторизации
-        console.log('[UserContext] Ожидание авторизации через Telegram');
+        frontendLogger.info('[UserContext] Ожидание авторизации через Telegram');
         dispatch({
           type: 'SET_ERROR',
           payload: new Error('Требуется авторизация через Telegram Mini App')
         });
         
       } catch (error) {
-        console.error('[UserContext] Ошибка получения данных пользователя:', error);
+        frontendLogger.error('[UserContext] Ошибка получения данных пользователя:', error);
         dispatch({ type: 'SET_ERROR', payload: error as Error });
       } finally {
         dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: false } });
