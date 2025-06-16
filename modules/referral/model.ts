@@ -2,6 +2,22 @@
  * Модели реферальной системы - описывают структуры таблиц referrals в базе данных
  */
 
+// Supabase table constants
+export const REFERRAL_TABLES = {
+  USERS: 'users',
+  TRANSACTIONS: 'transactions',
+  REFERRALS: 'referrals'
+} as const;
+
+// Referral configuration constants
+export const REFERRAL_CONFIG = {
+  MAX_LEVELS: 20,
+  DEFAULT_COMMISSION_RATE: 0.05,
+  MIN_COMMISSION_RATE: 0.001,
+  REF_CODE_LENGTH: 8,
+  REF_CODE_PREFIX: 'REF_'
+} as const;
+
 // Define referral-specific enums
 export enum ReferralStatus {
   ACTIVE = 'active',

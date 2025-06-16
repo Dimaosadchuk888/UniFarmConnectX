@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
+import { ADMIN_TABLES, ADMIN_CONFIG } from './model';
 
 interface DashboardStats {
   totalUsers: number;
@@ -34,7 +35,7 @@ export class AdminService {
       
       // Получаем реальную статистику из базы данных через Supabase API
       const { count: totalUsers, error: usersError } = await supabase
-        .from('users')
+        .from(ADMIN_TABLES.USERS)
         .select('*', { count: 'exact', head: true });
 
       if (usersError) {
@@ -42,7 +43,7 @@ export class AdminService {
       }
 
       const { count: totalTransactions, error: transactionsError } = await supabase
-        .from('transactions')
+        .from(ADMIN_TABLES.TRANSACTIONS)
         .select('*', { count: 'exact', head: true });
 
       if (transactionsError) {
@@ -70,7 +71,7 @@ export class AdminService {
       
       // Получаем пользователей с пагинацией через Supabase API
       const { data: usersList, error: usersError } = await supabase
-        .from('users')
+        .from(ADMIN_TABLES.USERS)
         .select('*')
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -82,7 +83,7 @@ export class AdminService {
       
       // Получаем общее количество пользователей
       const { count: totalCount, error: countError } = await supabase
-        .from('users')
+        .from(ADMIN_TABLES.USERS)
         .select('*', { count: 'exact', head: true });
 
       if (countError) {

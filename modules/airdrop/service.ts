@@ -1,7 +1,7 @@
 import { supabase } from '../../core/supabase';
 import { SupabaseUserRepository } from '../user/service';
 import { logger } from '../../core/logger.js';
-import { AIRDROP_TABLE, DEFAULT_AIRDROP_STATUS } from './model';
+import { AIRDROP_TABLE, DEFAULT_AIRDROP_STATUS, AIRDROP_STATUS } from './model';
 import type { AirdropServiceResponse } from './types';
 
 export class AirdropService {
