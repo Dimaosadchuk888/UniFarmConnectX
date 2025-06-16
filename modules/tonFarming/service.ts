@@ -27,14 +27,14 @@ export class TonFarmingService {
       
       // Проверяем, что telegramId является валидным числом
       const numericTelegramId = parseInt(telegramId, 10);
-      if (isNaN(numericTelegramId)) {
-        logger.warn('[TonFarmingService] Невалидный telegramId:', telegramId);
+      if (isNaN(numericTelegramId) || numericTelegramId < TON_FARMING_VALIDATION.MIN_TELEGRAM_ID || numericTelegramId > TON_FARMING_VALIDATION.MAX_TELEGRAM_ID) {
+        logger.warn(TON_FARMING_MESSAGES.INVALID_TELEGRAM_ID, telegramId);
         throw new Error('Invalid telegramId format');
       }
       
       return {
         ton_farming_balance: '1.50000000',
-        ton_farming_rate: '0.001',
+        ton_farming_rate: TON_FARMING_CONFIG.DEFAULT_RATE,
         ton_farming_start_timestamp: new Date(),
         ton_farming_last_update: new Date(),
         is_active: true,
@@ -47,7 +47,7 @@ export class TonFarmingService {
       });
       return {
         ton_farming_balance: '0',
-        ton_farming_rate: '0',
+        ton_farming_rate: TON_FARMING_CONFIG.DEFAULT_RATE,
         ton_farming_start_timestamp: null,
         ton_farming_last_update: null,
         is_active: false,
@@ -61,7 +61,7 @@ export class TonFarmingService {
       logger.info(`[TON FARMING] User ${telegramId} started TON farming`, {
         telegramId,
         amount: amount || 'auto',
-        operation: 'ton_farming_start',
+        operation: TON_TRANSACTION_TYPES.FARMING_START,
         timestamp: new Date().toISOString()
       });
 
@@ -76,15 +76,15 @@ export class TonFarmingService {
     try {
       const rewardAmount = 0.001;
 
-      logger.info(`[TON FARMING] User ${telegramId} claimed ${rewardAmount.toFixed(8)} TON from farming`, {
+      logger.info(`[TON FARMING] User ${telegramId} claimed ${rewardAmount.toFixed(TON_FARMING_CONFIG.REWARD_PRECISION)} TON from farming`, {
         telegramId,
-        amount: rewardAmount.toFixed(8),
-        operation: 'ton_farming_claim',
+        amount: rewardAmount.toFixed(TON_FARMING_CONFIG.REWARD_PRECISION),
+        operation: TON_TRANSACTION_TYPES.FARMING_CLAIM,
         timestamp: new Date().toISOString()
       });
 
       return {
-        amount: rewardAmount.toFixed(8),
+        amount: rewardAmount.toFixed(TON_FARMING_CONFIG.REWARD_PRECISION),
         claimed: true
       };
     } catch (error) {
@@ -105,7 +105,7 @@ export class TonFarmingService {
       return {
         isActive: true,
         currentBalance: '1.50000000',
-        rate: '0.001',
+        rate: TON_FARMING_CONFIG.DEFAULT_RATE,
         lastUpdate: new Date().toISOString(),
         canClaim: true,
         estimatedReward: '0.00150000'
