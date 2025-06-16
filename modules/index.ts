@@ -47,7 +47,6 @@ export { default as monitorRoutes } from './monitor/routes';
 
 // Models - Drizzle схемы и enum'ы
 export * from './user/model';
-export * from './wallet/model';
 export * from './farming/model';
 export * from './missions/model';
 export * from './referral/model';

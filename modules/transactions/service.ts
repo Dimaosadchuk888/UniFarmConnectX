@@ -1,7 +1,7 @@
 
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
-import { Transaction, TransactionType, TransactionHistory } from './types';
+import { Transaction, TransactionsTransactionType, TransactionHistory } from './types';
 import { TRANSACTIONS_TABLE } from './model';
 
 export class TransactionsService {

@@ -1,5 +1,5 @@
 
-export type TransactionType = 
+export type TransactionsTransactionType = 
   | 'farming_income'
   | 'referral_bonus' 
   | 'mission_reward'
@@ -10,15 +10,15 @@ export type TransactionType =
   | 'ton_farming_income'
   | 'ton_boost_reward';
 
-export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
+export type TransactionsTransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
 
 export interface Transaction {
   id: number;
   user_id: number;
-  type: TransactionType;
+  type: TransactionsTransactionType;
   amount: string;
   currency: 'UNI' | 'TON';
-  status: TransactionStatus;
+  status: TransactionsTransactionStatus;
   description?: string;
   metadata?: Record<string, any>;
   created_at: string;
@@ -36,7 +36,7 @@ export interface TransactionHistory {
 
 export interface TransactionCreateRequest {
   user_id: number;
-  type: TransactionType;
+  type: TransactionsTransactionType;
   amount: string;
   currency: 'UNI' | 'TON';
   description?: string;
@@ -57,8 +57,8 @@ export interface TransactionStats {
 
 export interface TransactionFilters {
   currency?: 'UNI' | 'TON' | 'ALL';
-  type?: TransactionType;
-  status?: TransactionStatus;
+  type?: TransactionsTransactionType;
+  status?: TransactionsTransactionStatus;
   dateFrom?: string;
   dateTo?: string;
 }
