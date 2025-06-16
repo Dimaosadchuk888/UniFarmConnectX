@@ -1,66 +1,77 @@
+/**
+ * Серверный сервис для обработки реферальных ссылок и кодов
+ * Использует только Supabase API через централизованный клиент
+ */
+
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
-import { REFERRAL_TABLES, REFERRAL_COMMISSION_RATES } from './model';
+import { REFERRAL_TABLES, REFERRAL_CONFIG } from './model';
 
 export class ReferralService {
+
   /**
-   * Обработка реферала - связывание нового пользователя с реферером
+   * Генерирует уникальный реферальный код для пользователя
    */
-  async processReferral(refCode: string, newUserId: string): Promise<{ success: boolean; error?: string }> {
+  async generateReferralCode(userId: string): Promise<string> {
     try {
-      logger.info('[ReferralService] Обработка реферала', {
-        refCode,
-        newUserId
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const refCode = `${REFERRAL_CONFIG.REF_CODE_PREFIX}${userId.slice(-4)}${random}${timestamp.toString().slice(-4)}`;
+      
+      logger.info('[ReferralService] Генерация реферального кода для пользователя', { userId, refCode });
+      return refCode;
+    } catch (error) {
+      logger.error('[ReferralService] Ошибка генерации реферального кода', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * Получает статистику рефералов для пользователя через Supabase API
+   */
+  async getReferralStats(userId: string): Promise<{
+    totalReferrals: number;
+    totalEarnings: string;
+    referralCode: string | null;
+    recentReferrals: any[];
+  }> {
+    try {
+      // Получаем пользователя и его реферальный код
+      const { data: user, error: userError } = // Логируем реферальное начисление (транзакции создаются отдельно)
+      logger.info('[ReferralService] Реферальное начисление', {
+        referrerId: referrer.id,
+        level,
+        reward: reward.toFixed(8),
+        currency: 'UNI',
+        fromUserId: userId
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Получает рефералов пользователя через Supabase API
+   */
+  async getReferralsByUserId(userId: string): Promise<any[]> {
+    try {
+      // Получаем реферальный код пользователя
+      const { data: user, error: userError } = // Логируем реферальное начисление (транзакции создаются отдельно)
+      logger.info('[ReferralService] Реферальное начисление', {
+        referrerId: referrer.id,
+        level,
+        reward: reward.toFixed(8),
+        currency: 'UNI',
+        fromUserId: userId
       });
 
-      // Находим пользователя по реферальному коду
-      const { data: inviter, error: inviterError } = await supabase
-        .from(REFERRAL_TABLES.USERS)
-        .select('id, telegram_id, username')
-        .eq('ref_code', refCode)
-        .single();
-
-      if (inviterError || !inviter) {
-        logger.warn('[ReferralService] Реферальный код не найден', {
-          refCode,
-          error: inviterError?.message
-        });
-        return { success: false, error: 'Недействительный реферальный код' };
-      }
-
-      // Проверяем, что пользователь не пытается пригласить сам себя
-      if (inviter.id.toString() === newUserId) {
-        logger.warn('[ReferralService] Попытка самоприглашения', {
-          userId: newUserId,
-          refCode
-        });
-        return { success: false, error: 'Нельзя использовать собственный реферальный код' };
-      }
-
-      // Обновляем поле referred_by у нового пользователя
-      const { error: updateError } = await supabase
-        .from(REFERRAL_TABLES.USERS)
-        .update({ referred_by: inviter.id })
-        .eq('id', newUserId);
-
-      if (updateError) {
-        logger.error('[ReferralService] Ошибка обновления реферальной связи', {
-          newUserId,
-          inviterId: inviter.id,
-          error: updateError.message
-        });
-        return { success: false, error: 'Ошибка сохранения реферальной связи' };
-      }
-
-      logger.info('[ReferralService] Реферальная связь установлена', {
+      logger.info(`[REFERRAL] Успешно обработана реферальная связь: ${newUserId} → ${inviter.id}`, {
         newUserId,
         inviterId: inviter.id,
-        inviterTelegramId: inviter.telegram_id,
-        refCode
+        refCode,
+        rewardUni: "10"
       });
 
       return { success: true };
-
     } catch (error) {
       logger.error('[ReferralService] Ошибка обработки реферала:', {
         refCode,
@@ -127,41 +138,6 @@ export class ReferralService {
   }
 
   /**
-   * Рассчёт реферальных комиссий для 20-уровневой системы
-   */
-  calculateReferralCommissions(
-    amount: number,
-    referrerChain: string[]
-  ): Array<{ userId: string; level: number; percentage: number; amount: string }> {
-    const commissions: Array<{ userId: string; level: number; percentage: number; amount: string }> = [];
-    const baseReward = amount * 0.01; // 1% базовая ставка
-
-    for (let i = 0; i < referrerChain.length && i < 20; i++) {
-      const level = i + 1;
-      const userId = referrerChain[i];
-
-      // Рассчитываем процент комиссии по уровням
-      let percentage: number;
-      if (level === 1) {
-        percentage = 100; // 1-й уровень получает 100% от базовой ставки
-      } else {
-        percentage = Math.max(2, 22 - level); // 2-20 уровни: убывающий процент от 20% до 2%
-      }
-
-      const commissionAmount = (baseReward * percentage) / 100;
-
-      commissions.push({
-        userId,
-        level,
-        percentage,
-        amount: commissionAmount.toFixed(8)
-      });
-    }
-
-    return commissions;
-  }
-
-  /**
    * Распределение реферальных наград через Supabase API
    */
   async distributeReferralRewards(
@@ -199,7 +175,6 @@ export class ReferralService {
           logger.info('[ReferralService] Реферальное начисление', {
             recipientId: commission.userId,
             level: commission.level,
-            percentage: commission.percentage,
             amount: commission.amount,
             currency,
             sourceType,
@@ -222,35 +197,23 @@ export class ReferralService {
             const updateData: any = {};
             updateData[balanceField] = newBalance.toString();
 
-            const { error: updateError } = await supabase
+            await supabase
               .from(REFERRAL_TABLES.USERS)
               .update(updateData)
               .eq('id', parseInt(commission.userId));
 
-            if (!updateError) {
-              distributedCount++;
-              totalDistributedAmount += parseFloat(commission.amount);
+            distributedCount++;
+            totalDistributedAmount += parseFloat(commission.amount);
 
               logger.info('[ReferralService] Реферальная награда начислена', {
                 recipientId: commission.userId,
                 level: commission.level,
                 amount: commission.amount,
                 currency,
-                newBalance: newBalance.toFixed(8),
                 sourceType,
                 sourceUserId
               });
-            } else {
-              logger.error('[ReferralService] Ошибка обновления баланса', {
-                recipientId: commission.userId,
-                error: updateError.message
-              });
             }
-          } else {
-            logger.warn('[ReferralService] Получатель награды не найден', {
-              recipientId: commission.userId,
-              error: getUserError?.message
-            });
           }
         } catch (error) {
           logger.error('[ReferralService] Ошибка начисления реферальной награды', {
@@ -283,60 +246,6 @@ export class ReferralService {
         error: error instanceof Error ? error.message : String(error)
       });
       return { success: false, distributed: 0, totalAmount: '0' };
-    }
-  }
-
-  /**
-   * Получение статистики реферальной программы
-   */
-  async getReferralStats(userId: string): Promise<{
-    totalReferrals: number;
-    activeReferrals: number;
-    totalEarned: { UNI: string; TON: string };
-    monthlyEarned: { UNI: string; TON: string };
-  }> {
-    try {
-      // Получаем общее количество рефералов
-      const { data: referrals, error: referralsError } = await supabase
-        .from(REFERRAL_TABLES.USERS)
-        .select('id, created_at')
-        .eq('referred_by', userId);
-
-      if (referralsError) {
-        logger.error('[ReferralService] Ошибка получения рефералов', {
-          userId,
-          error: referralsError.message
-        });
-        throw referralsError;
-      }
-
-      const totalReferrals = referrals?.length || 0;
-      
-      // Для упрощения считаем всех рефералов активными
-      // В будущем можно добавить логику проверки активности
-      const activeReferrals = totalReferrals;
-
-      // Возвращаем базовую статистику
-      // В production здесь должна быть логика подсчёта заработанных средств
-      return {
-        totalReferrals,
-        activeReferrals,
-        totalEarned: { UNI: '0.00000000', TON: '0.00000000' },
-        monthlyEarned: { UNI: '0.00000000', TON: '0.00000000' }
-      };
-
-    } catch (error) {
-      logger.error('[ReferralService] Ошибка получения статистики рефералов', {
-        userId,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      
-      return {
-        totalReferrals: 0,
-        activeReferrals: 0,
-        totalEarned: { UNI: '0.00000000', TON: '0.00000000' },
-        monthlyEarned: { UNI: '0.00000000', TON: '0.00000000' }
-      };
     }
   }
 }
