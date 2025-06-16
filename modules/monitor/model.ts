@@ -3,6 +3,17 @@
  * Константы и схема данных для модуля мониторинга системы
  */
 
+// Таблица мониторинга системы
+export const MONITOR_TABLE = 'monitor';
+
+export const MONITOR_FIELDS = [
+  'id',
+  'type',
+  'status',
+  'timestamp',
+  'message'
+];
+
 // Основные таблицы, используемые для мониторинга
 export const USERS_TABLE = 'users';
 export const FARMING_SESSIONS_TABLE = 'farming_sessions';
