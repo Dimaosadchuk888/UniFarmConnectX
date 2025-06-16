@@ -137,7 +137,7 @@ export class DailyBonusService {
 
       // Create transaction record
       const { error: txError } = await supabase
-        .from('transactions')
+        .from(DAILY_BONUS_TABLES.TRANSACTIONS)
         .insert([{
           user_id: parseInt(userId),
           type: 'DAILY_BONUS',
@@ -178,7 +178,7 @@ export class DailyBonusService {
   async getDailyBonusHistory(userId: string, limit: number = 30): Promise<any[]> {
     try {
       const { data: transactions, error } = await supabase
-        .from('transactions')
+        .from(DAILY_BONUS_TABLES.TRANSACTIONS)
         .select('*')
         .eq('user_id', parseInt(userId))
         .eq('type', 'DAILY_BONUS')
@@ -230,7 +230,7 @@ export class DailyBonusService {
       }
 
       const { data: transactions, error: txError } = await supabase
-        .from('transactions')
+        .from(DAILY_BONUS_TABLES.TRANSACTIONS)
         .select('amount_uni')
         .eq('user_id', parseInt(userId))
         .eq('type', 'DAILY_BONUS');

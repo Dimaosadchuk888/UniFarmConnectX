@@ -2,6 +2,21 @@
  * Модели фарминга - описывают структуры таблиц farming в базе данных
  */
 
+// Supabase table constants
+export const FARMING_TABLES = {
+  USERS: 'users',
+  FARMING_SESSIONS: 'farming_sessions',
+  TRANSACTIONS: 'transactions'
+} as const;
+
+// Farming configuration constants
+export const FARMING_CONFIG = {
+  DEFAULT_RATE: 0.001,
+  MIN_DEPOSIT: '1.0',
+  MAX_DEPOSIT: '100000.0',
+  RATE_PRECISION: 8
+} as const;
+
 // Define farming-specific enums
 export enum FarmingType {
   UNI = 'uni',

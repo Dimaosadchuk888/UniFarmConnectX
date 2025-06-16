@@ -7,6 +7,20 @@ import { supabase } from '../../core/supabase';
 import { type User, type InsertUser } from '../../shared/schema.js';
 import { logger } from '../../core/logger.js';
 
+// Supabase table constants
+export const USER_TABLES = {
+  USERS: 'users',
+  USER_SESSIONS: 'user_sessions'
+} as const;
+
+// User configuration constants
+export const USER_CONFIG = {
+  DEFAULT_BALANCE_UNI: '0',
+  DEFAULT_BALANCE_TON: '0',
+  REF_CODE_LENGTH: 20,
+  USERNAME_MAX_LENGTH: 50
+} as const;
+
 export class UserModel {
   /**
    * Поиск пользователя по ID
@@ -14,7 +28,7 @@ export class UserModel {
   static async findById(id: number): Promise<User | null> {
     try {
       const { data: usersData, error } = await supabase
-        .from('users')
+        .from(USER_TABLES.USERS)
         .select('*')
         .eq('id', id)
         .limit(1);
@@ -39,7 +53,7 @@ export class UserModel {
   static async findByTelegramId(telegramId: string | number): Promise<User | null> {
     try {
       const { data: usersData, error } = await supabase
-        .from('users')
+        .from(USER_TABLES.USERS)
         .select('*')
         .eq('telegram_id', Number(telegramId))
         .limit(1);
@@ -64,7 +78,7 @@ export class UserModel {
   static async findByGuestId(guestId: string): Promise<User | null> {
     try {
       const { data: usersData, error } = await supabase
-        .from('users')
+        .from(USER_TABLES.USERS)
         .select('*')
         .eq('id', parseInt(guestId))
         .limit(1);
@@ -89,7 +103,7 @@ export class UserModel {
   static async create(userData: Omit<InsertUser, 'id'>): Promise<User | null> {
     try {
       const { data: newUsersData, error } = await supabase
-        .from('users')
+        .from(USER_TABLES.USERS)
         .insert(userData)
         .select()
         .single();
@@ -114,7 +128,7 @@ export class UserModel {
   static async update(id: number, userData: Partial<InsertUser>): Promise<User | null> {
     try {
       const { data: updatedUsersData, error } = await supabase
-        .from('users')
+        .from(USER_TABLES.USERS)
         .update(userData)
         .eq('id', id)
         .select()
@@ -154,7 +168,7 @@ export class UserModel {
       }
 
       const { data: updatedUsersData, error } = await supabase
-        .from('users')
+        .from(USER_TABLES.USERS)
         .update(updateData)
         .eq('id', id)
         .select()
@@ -180,7 +194,7 @@ export class UserModel {
   static async getAll(limit: number = 50, offset: number = 0): Promise<User[]> {
     try {
       const { data: usersList, error } = await supabase
-        .from('users')
+        .from(USER_TABLES.USERS)
         .select('*')
         .range(offset, offset + limit - 1);
 

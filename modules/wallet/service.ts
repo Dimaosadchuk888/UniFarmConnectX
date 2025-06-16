@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger.js';
+import { WALLET_TABLES, WALLET_CONFIG } from './model';
 
 export class WalletService {
   async getWalletDataByTelegramId(telegramId: string): Promise<{
@@ -12,7 +13,7 @@ export class WalletService {
     try {
       // Находим пользователя по telegram_id
       const { data: user, error: userError } = await supabase
-        .from('users')
+        .from(WALLET_TABLES.USERS)
         .select('*')
         .eq('telegram_id', telegramId)
         .single();
@@ -48,7 +49,7 @@ export class WalletService {
     try {
       // Получаем пользователя
       const { data: user, error: getUserError } = await supabase
-        .from('users')
+        .from(WALLET_TABLES.USERS)
         .select('*')
         .eq('id', userId)
         .single();
@@ -63,7 +64,7 @@ export class WalletService {
       const newBalance = currentBalance + parseFloat(amount);
 
       const { error: updateError } = await supabase
-        .from('users')
+        .from(WALLET_TABLES.USERS)
         .update({ 
           balance_uni: newBalance.toString(),
           checkin_last_date: new Date().toISOString() 
@@ -99,7 +100,7 @@ export class WalletService {
     try {
       // Получаем пользователя
       const { data: user, error: getUserError } = await supabase
-        .from('users')
+        .from(WALLET_TABLES.USERS)
         .select('*')
         .eq('id', userId)
         .single();
@@ -114,7 +115,7 @@ export class WalletService {
       const newBalance = currentBalance + parseFloat(amount);
 
       const { error: updateError } = await supabase
-        .from('users')
+        .from(WALLET_TABLES.USERS)
         .update({ 
           balance_ton: newBalance.toString(),
           checkin_last_date: new Date().toISOString()
@@ -149,7 +150,7 @@ export class WalletService {
   async getBalance(userId: string): Promise<{ uni: number; ton: number }> {
     try {
       const { data: user, error } = await supabase
-        .from('users')
+        .from(WALLET_TABLES.USERS)
         .select('balance_uni, balance_ton')
         .eq('id', userId)
         .single();
@@ -190,7 +191,7 @@ export class WalletService {
     try {
       // Получаем пользователя
       const { data: user, error: getUserError } = await supabase
-        .from('users')
+        .from(WALLET_TABLES.USERS)
         .select('*')
         .eq('id', userId)
         .single();
@@ -229,7 +230,7 @@ export class WalletService {
       updateData[balanceField] = newBalance.toString();
 
       const { error: updateError } = await supabase
-        .from('users')
+        .from(WALLET_TABLES.USERS)
         .update(updateData)
         .eq('id', userId);
 
@@ -243,7 +244,7 @@ export class WalletService {
 
       // Создаем запись транзакции
       const { error: transactionError } = await supabase
-        .from('transactions')
+        .from(WALLET_TABLES.TRANSACTIONS)
         .insert({
           user_id: parseInt(userId),
           type: 'withdrawal',

@@ -2,6 +2,19 @@
  * Модели кошелька - описывают структуры таблиц wallet и transactions в базе данных
  */
 
+// Supabase table constants
+export const WALLET_TABLES = {
+  USERS: 'users',
+  TRANSACTIONS: 'transactions'
+} as const;
+
+// Wallet configuration constants
+export const WALLET_CONFIG = {
+  DEFAULT_BALANCE: '0',
+  PRECISION_DECIMALS: 6,
+  MAX_TRANSACTION_AMOUNT: '1000000'
+} as const;
+
 // Define wallet-specific enums
 export enum TransactionType {
   DEPOSIT = 'deposit',

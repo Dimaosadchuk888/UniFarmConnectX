@@ -1,6 +1,7 @@
 import { validateTelegramInitData, generateJWTToken, verifyJWTToken, type TelegramUser, type JWTPayload } from '../../utils/telegram';
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
+import type { AuthResponse, AuthValidationResult } from './types';
 
 // Типы для Supabase API
 interface User {
