@@ -1,4 +1,4 @@
-import frontendLogger from "../utils/frontendLogger";
+import frontendLogger from "../../utils/frontendLogger";
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
