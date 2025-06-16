@@ -128,32 +128,32 @@ export class ReferralService {
 
   /**
    * Рассчёт реферальных комиссий для 20-уровневой системы
+   * Новая схема: прямые проценты от фактического дохода
    */
   calculateReferralCommissions(
     amount: number,
     referrerChain: string[]
   ): Array<{ userId: string; level: number; percentage: number; amount: string }> {
     const commissions: Array<{ userId: string; level: number; percentage: number; amount: string }> = [];
-    const baseReward = amount * 0.01; // 1% базовая ставка
 
     for (let i = 0; i < referrerChain.length && i < 20; i++) {
       const level = i + 1;
       const userId = referrerChain[i];
 
-      // Рассчитываем процент комиссии по уровням
-      let percentage: number;
-      if (level === 1) {
-        percentage = 100; // 1-й уровень получает 100% от базовой ставки
-      } else {
-        percentage = Math.max(2, 22 - level); // 2-20 уровни: убывающий процент от 20% до 2%
+      // Получаем процент напрямую от фактического дохода
+      const commissionRate = REFERRAL_COMMISSION_RATES[level as keyof typeof REFERRAL_COMMISSION_RATES];
+      
+      if (!commissionRate) {
+        continue; // Пропускаем уровни без определенной ставки
       }
 
-      const commissionAmount = (baseReward * percentage) / 100;
+      const commissionAmount = amount * commissionRate;
+      const percentageDisplay = commissionRate * 100; // Для отображения в %
 
       commissions.push({
         userId,
         level,
-        percentage,
+        percentage: percentageDisplay,
         amount: commissionAmount.toFixed(8)
       });
     }
