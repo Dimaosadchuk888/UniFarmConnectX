@@ -26,14 +26,17 @@ class WalletNotConnectedError extends Error {
   }
 }
 
-// Типы данных для TON Boost-пакетов
+// Типы данных для TON Boost-пакетов (обновленная модель T71)
 interface TonBoostPackage {
   id: number;
   name: string;
-  priceTon: string;
-  bonusUni: string;
-  rateTon: string;
-  rateUni: string;
+  description: string;
+  daily_rate: number;
+  duration_days: number;
+  min_amount: number;
+  max_amount: number;
+  uni_bonus: number;
+  is_active: boolean;
 }
 
 interface ExternalPaymentDataType {
@@ -303,10 +306,11 @@ const BoostPackagesCard: React.FC = () => {
                   <div className="flex-1">
                     <div className="font-semibold">{pkg.name}</div>
                     <div className="text-sm text-muted-foreground space-y-1">
-                      <div>💰 Цена: {formatNumberWithPrecision(pkg.priceTon, 2)} TON</div>
-                      <div>🎁 Бонус: {formatNumberWithPrecision(pkg.bonusUni, 0)} UNI</div>
-                      <div>📈 Доходность TON: {formatNumberWithPrecision(pkg.rateTon, 2)}% в день</div>
-                      <div>📈 Доходность UNI: {formatNumberWithPrecision(pkg.rateUni, 2)}% в день</div>
+                      <div>💰 Депозит: {formatNumberWithPrecision(pkg.min_amount, 0)} - {formatNumberWithPrecision(pkg.max_amount, 0)} TON</div>
+                      <div>🎁 UNI Бонус: +{formatNumberWithPrecision(pkg.uni_bonus, 0)} UNI</div>
+                      <div>📈 Доходность: {(pkg.daily_rate * 100).toFixed(1)}% в день</div>
+                      <div>⏰ Срок: {pkg.duration_days} дней</div>
+                      <div>🎯 Общий возврат: {((pkg.daily_rate * pkg.duration_days + 1) * 100).toFixed(0)}%</div>
                     </div>
                   </div>
                   <Button 

@@ -541,6 +541,20 @@ export class BoostService {
       // Создаем confirmed транзакцию
       await this.createConfirmedTransaction(userId, boostId, txHash, tonResult.amount);
 
+      // Получаем информацию о boost пакете для начисления UNI бонуса
+      const boostPackage = await this.getBoostPackageById(boostId);
+      if (boostPackage) {
+        // Начисляем UNI бонус за покупку boost пакета
+        const uniBonusAwarded = await this.awardUniBonus(userId, boostPackage);
+        if (!uniBonusAwarded) {
+          logger.warn('[BoostService] Не удалось начислить UNI бонус при подтверждении TON транзакции', {
+            userId,
+            boostId: boostPackage.id,
+            uniBonus: boostPackage.uni_bonus
+          });
+        }
+      }
+
       // Активируем Boost
       const boostActivated = await this.activateBoost(userId, boostId);
 

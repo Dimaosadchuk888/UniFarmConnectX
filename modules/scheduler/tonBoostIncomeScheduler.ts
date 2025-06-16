@@ -67,10 +67,15 @@ export class TONBoostIncomeScheduler {
       // Обрабатываем каждый boost пакет
       for (const boost of activeBoosts) {
         try {
-          // Рассчитываем доход (5-минутный интервал от дневной ставки)
-          const dailyRate = parseFloat(boost.daily_rate || '0');
-          const minuteRate = dailyRate / (24 * 60); // Доход за минуту
-          const fiveMinuteIncome = minuteRate * 5; // Доход за 5 минут
+          // Рассчитываем доход согласно новой модели (процент от депозита)
+          const dailyRatePercent = parseFloat(boost.daily_rate || '0'); // процент в день (например, 0.01 = 1%)
+          const depositAmount = parseFloat(boost.amount || '0'); // сумма депозита
+          
+          // Ежедневный доход = депозит * процент
+          const dailyIncome = depositAmount * dailyRatePercent;
+          
+          // Доход за 5 минут = дневной доход / 288 (288 циклов по 5 минут в день)
+          const fiveMinuteIncome = dailyIncome / 288;
 
           if (fiveMinuteIncome <= 0) {
             continue;
