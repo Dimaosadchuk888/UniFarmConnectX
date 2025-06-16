@@ -297,7 +297,7 @@ export class ReferralService {
   async distributeReferralRewards(
     sourceUserId: string,
     amount: string,
-    sourceType: 'uni_farming' | 'ton_boost',
+    sourceType: 'uni_farming' | 'ton_boost' | 'boost_income',
     currency: 'UNI' | 'TON' = 'UNI'
   ): Promise<{ success: boolean; distributed: number; totalAmount: string }> {
     try {
