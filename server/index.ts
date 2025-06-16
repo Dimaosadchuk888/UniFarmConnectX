@@ -28,6 +28,7 @@ import { config, logger, globalErrorHandler, notFoundHandler, EnvValidator } fro
 import { supabase } from '../core/supabase';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
 import { farmingScheduler } from '../core/scheduler/farmingScheduler';
+import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
@@ -551,12 +552,22 @@ async function startServer() {
         logger.error('❌ Ошибка запуска фарминг-планировщика', { error });
       }
       
+      // Инициализация TON Boost планировщика
+      try {
+        tonBoostIncomeScheduler.start();
+        logger.info('✅ TON Boost планировщик запущен');
+      } catch (error) {
+        logger.error('❌ Ошибка запуска TON Boost планировщика', { error });
+      }
+      
       // Graceful shutdown
       process.on('SIGTERM', () => {
         logger.info('🔄 Получен сигнал SIGTERM, завершение работы...');
         // Supabase не требует очистки connection pool
         farmingScheduler.stop();
         logger.info('✅ Фарминг-планировщик остановлен');
+        tonBoostIncomeScheduler.stop();
+        logger.info('✅ TON Boost планировщик остановлен');
         server.close(() => {
           logger.info('✅ Сервер корректно завершен');
           process.exit(0);
