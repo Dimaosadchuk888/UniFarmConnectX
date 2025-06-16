@@ -1,5 +1,5 @@
 import { supabase } from '../../core/supabase';
-import { SupabaseUserRepository } from '../user/repository';
+import { SupabaseUserRepository } from '../user/service';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { logger } from '../../core/logger.js';
 

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { BaseController } from '../../core/BaseController';
-import { SupabaseUserRepository } from './repository';
+import { SupabaseUserRepository } from './service';
 import { logger } from '../../core/logger';
 
 const userRepository = new SupabaseUserRepository();

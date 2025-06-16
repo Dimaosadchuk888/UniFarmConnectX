@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { FarmingService } from './service';
-import { SupabaseUserRepository } from '../user/repository';
+import { SupabaseUserRepository } from '../user/service';
 import { logger } from '../../core/logger';
 
 const farmingService = new FarmingService();

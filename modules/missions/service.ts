@@ -1,5 +1,5 @@
 import { supabase } from '../../core/supabase';
-import { SupabaseUserRepository } from '../user/repository';
+import { SupabaseUserRepository } from '../user/service';
 import { logger } from '../../core/logger';
 
 export class MissionsService {
