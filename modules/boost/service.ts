@@ -1,5 +1,6 @@
 import { logger } from '../../core/logger.js';
-import { BOOST_TABLES, BOOST_PACKAGES, BOOST_CONFIG, BOOST_STATUS } from './model';
+import { BOOST_TABLES, BOOST_PACKAGES, BOOST_CONFIG, BOOST_STATUS, BOOST_TRANSACTION_TYPES } from './model';
+import { supabase } from '../../core/supabase.js';
 
 interface BoostPackageData {
   id: number;
@@ -9,6 +10,7 @@ interface BoostPackageData {
   duration_days: number;
   min_amount: number;
   max_amount: number;
+  uni_bonus: number;
   is_active: boolean;
 }
 
@@ -27,31 +29,56 @@ export class BoostService {
         {
           id: 1,
           name: BOOST_PACKAGES.STARTER.name,
-          description: "Increases farming speed by 50%",
+          description: "1% в день на 365 дней + 10,000 UNI бонус",
           daily_rate: parseFloat(BOOST_PACKAGES.STARTER.daily_rate),
           duration_days: BOOST_PACKAGES.STARTER.duration_days,
           min_amount: parseFloat(BOOST_PACKAGES.STARTER.min_amount),
           max_amount: parseFloat(BOOST_PACKAGES.STARTER.max_amount),
+          uni_bonus: parseFloat(BOOST_PACKAGES.STARTER.uni_bonus),
           is_active: true
         },
         {
           id: 2,
-          name: BOOST_PACKAGES.PREMIUM.name,
-          description: "Doubles farming rewards",
-          daily_rate: parseFloat(BOOST_PACKAGES.PREMIUM.daily_rate),
-          duration_days: BOOST_PACKAGES.PREMIUM.duration_days,
-          min_amount: parseFloat(BOOST_PACKAGES.PREMIUM.min_amount),
-          max_amount: parseFloat(BOOST_PACKAGES.PREMIUM.max_amount),
+          name: BOOST_PACKAGES.STANDARD.name,
+          description: "1.5% в день на 365 дней + 75,000 UNI бонус",
+          daily_rate: parseFloat(BOOST_PACKAGES.STANDARD.daily_rate),
+          duration_days: BOOST_PACKAGES.STANDARD.duration_days,
+          min_amount: parseFloat(BOOST_PACKAGES.STANDARD.min_amount),
+          max_amount: parseFloat(BOOST_PACKAGES.STANDARD.max_amount),
+          uni_bonus: parseFloat(BOOST_PACKAGES.STANDARD.uni_bonus),
           is_active: true
         },
         {
           id: 3,
+          name: BOOST_PACKAGES.ADVANCED.name,
+          description: "2% в день на 365 дней + 250,000 UNI бонус",
+          daily_rate: parseFloat(BOOST_PACKAGES.ADVANCED.daily_rate),
+          duration_days: BOOST_PACKAGES.ADVANCED.duration_days,
+          min_amount: parseFloat(BOOST_PACKAGES.ADVANCED.min_amount),
+          max_amount: parseFloat(BOOST_PACKAGES.ADVANCED.max_amount),
+          uni_bonus: parseFloat(BOOST_PACKAGES.ADVANCED.uni_bonus),
+          is_active: true
+        },
+        {
+          id: 4,
+          name: BOOST_PACKAGES.PREMIUM.name,
+          description: "2.5% в день на 365 дней + 500,000 UNI бонус",
+          daily_rate: parseFloat(BOOST_PACKAGES.PREMIUM.daily_rate),
+          duration_days: BOOST_PACKAGES.PREMIUM.duration_days,
+          min_amount: parseFloat(BOOST_PACKAGES.PREMIUM.min_amount),
+          max_amount: parseFloat(BOOST_PACKAGES.PREMIUM.max_amount),
+          uni_bonus: parseFloat(BOOST_PACKAGES.PREMIUM.uni_bonus),
+          is_active: true
+        },
+        {
+          id: 5,
           name: BOOST_PACKAGES.ELITE.name,
-          description: "Triple rewards for advanced users",
+          description: "3% в день на 365 дней + 1,000,000 UNI бонус",
           daily_rate: parseFloat(BOOST_PACKAGES.ELITE.daily_rate),
           duration_days: BOOST_PACKAGES.ELITE.duration_days,
           min_amount: parseFloat(BOOST_PACKAGES.ELITE.min_amount),
           max_amount: parseFloat(BOOST_PACKAGES.ELITE.max_amount),
+          uni_bonus: parseFloat(BOOST_PACKAGES.ELITE.uni_bonus),
           is_active: true
         }
       ];
@@ -126,6 +153,75 @@ export class BoostService {
     }
   }
 
+  /**
+   * Начисляет UNI бонус пользователю при покупке boost пакета
+   */
+  private async awardUniBonus(userId: string, boostPackage: BoostPackageData): Promise<boolean> {
+    try {
+      logger.info('[BoostService] Начисление UNI бонуса', {
+        userId,
+        packageName: boostPackage.name,
+        uniBonus: boostPackage.uni_bonus
+      });
+
+      // Получаем текущий баланс пользователя
+      const { data: user, error: getUserError } = await supabase
+        .from(BOOST_TABLES.USERS)
+        .select('balance_uni')
+        .eq('id', userId)
+        .single();
+
+      if (getUserError) {
+        logger.error('[BoostService] Ошибка получения пользователя для UNI бонуса:', getUserError);
+        return false;
+      }
+
+      const currentBalance = parseFloat(user.balance_uni || '0');
+      const newBalance = currentBalance + boostPackage.uni_bonus;
+
+      // Обновляем баланс UNI
+      const { error: updateError } = await supabase
+        .from(BOOST_TABLES.USERS)
+        .update({ balance_uni: newBalance.toString() })
+        .eq('id', userId);
+
+      if (updateError) {
+        logger.error('[BoostService] Ошибка обновления баланса UNI:', updateError);
+        return false;
+      }
+
+      // Записываем транзакцию UNI бонуса
+      const { error: transactionError } = await supabase
+        .from(BOOST_TABLES.TRANSACTIONS)
+        .insert({
+          user_id: parseInt(userId),
+          type: BOOST_TRANSACTION_TYPES.BOOST_UNI_BONUS,
+          amount: boostPackage.uni_bonus.toString(),
+          currency: 'UNI',
+          status: 'completed',
+          description: `UNI бонус за покупку ${boostPackage.name}`,
+          created_at: new Date().toISOString()
+        });
+
+      if (transactionError) {
+        logger.error('[BoostService] Ошибка создания транзакции UNI бонуса:', transactionError);
+        // Не возвращаем false, так как баланс уже обновлен
+      }
+
+      logger.info('[BoostService] UNI бонус успешно начислен', {
+        userId,
+        oldBalance: currentBalance,
+        newBalance,
+        bonusAmount: boostPackage.uni_bonus
+      });
+
+      return true;
+    } catch (error) {
+      logger.error('[BoostService] Ошибка начисления UNI бонуса:', error);
+      return false;
+    }
+  }
+
   private async getBoostPackageById(boostId: string): Promise<any | null> {
     try {
       const packages = await this.getBoostPackages();
@@ -191,6 +287,16 @@ export class BoostService {
 
       // Создаем запись о покупке
       const purchase = await this.createBoostPurchase(userId, boostPackage.id, 'wallet', null, 'confirmed');
+
+      // Начисляем UNI бонус за покупку boost пакета
+      const uniBonusAwarded = await this.awardUniBonus(userId, boostPackage);
+      if (!uniBonusAwarded) {
+        logger.warn('[BoostService] Не удалось начислить UNI бонус', {
+          userId,
+          boostPackageId: boostPackage.id,
+          uniBonus: boostPackage.uni_bonus
+        });
+      }
 
       // Реферальные награды теперь начисляются планировщиком от фактического дохода
       logger.warn('[BoostService] Referral reward отключён: перенесено в Boost-планировщик', {
