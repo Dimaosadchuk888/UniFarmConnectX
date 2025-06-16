@@ -217,9 +217,9 @@ export class MonitorService {
       const systemHealthy = databaseHealthy && criticalErrors === 0;
 
       return {
-        overall: systemHealthy ? 'healthy' : 'unhealthy',
-        database: databaseHealthy ? 'connected' : 'disconnected',
-        api: 'operational', // Якщо цей код виконується, API працює
+        overall: systemHealthy ? SYSTEM_HEALTH_STATUS.HEALTHY : SYSTEM_HEALTH_STATUS.UNHEALTHY,
+        database: databaseHealthy ? CONNECTION_STATUS.CONNECTED : CONNECTION_STATUS.DISCONNECTED,
+        api: CONNECTION_STATUS.OPERATIONAL, // Якщо цей код виконується, API працює
         criticalErrors,
         lastCheck: new Date().toISOString()
       };
@@ -229,9 +229,9 @@ export class MonitorService {
       });
       
       return {
-        overall: 'unhealthy',
-        database: 'disconnected',
-        api: 'operational',
+        overall: SYSTEM_HEALTH_STATUS.UNHEALTHY,
+        database: CONNECTION_STATUS.DISCONNECTED,
+        api: CONNECTION_STATUS.OPERATIONAL,
         criticalErrors: 1,
         lastCheck: new Date().toISOString()
       };
