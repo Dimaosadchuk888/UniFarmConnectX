@@ -151,6 +151,20 @@ export class DailyBonusService {
         logger.warn('[DailyBonusService] Ошибка создания транзакции:', txError.message);
       }
 
+      // Записываем в daily_bonus_history
+      await supabase
+        .from('daily_bonus_history')
+        .insert({
+          user_id: parseInt(userId),
+          bonus_amount: parseFloat(bonusAmount),
+          streak_day: newStreak,
+          claimed_at: now.toISOString(),
+          bonus_type: 'DAILY_CHECKIN',
+          previous_balance: currentBalance,
+          new_balance: newBalance,
+          created_at: now.toISOString()
+        });
+
       logger.info('[DailyBonusService] Ежедневный бонус начислен', {
         userId,
         amount: bonusAmount,

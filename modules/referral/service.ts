@@ -231,6 +231,34 @@ export class ReferralService {
               distributedCount++;
               totalDistributedAmount += parseFloat(commission.amount);
 
+              // Записываем в referral_earnings таблицу
+              await supabase
+                .from('referral_earnings')
+                .insert({
+                  referrer_user_id: parseInt(commission.userId),
+                  referred_user_id: parseInt(sourceUserId),
+                  level: commission.level,
+                  percentage: commission.percentage,
+                  amount: parseFloat(commission.amount),
+                  currency: currency,
+                  source_type: sourceType,
+                  created_at: new Date().toISOString()
+                });
+
+              // Создаем транзакцию REFERRAL_REWARD
+              await supabase
+                .from(REFERRAL_TABLES.TRANSACTIONS)
+                .insert({
+                  user_id: parseInt(commission.userId),
+                  type: 'REFERRAL_REWARD',
+                  amount_uni: currency === 'UNI' ? commission.amount : '0',
+                  amount_ton: currency === 'TON' ? commission.amount : '0', 
+                  status: 'completed',
+                  description: `Referral L${commission.level} from User ${sourceUserId}: ${commission.amount} ${currency} (${commission.percentage}%)`,
+                  source_user_id: parseInt(sourceUserId),
+                  created_at: new Date().toISOString()
+                });
+
               logger.info('[ReferralService] Реферальная награда начислена', {
                 recipientId: commission.userId,
                 level: commission.level,

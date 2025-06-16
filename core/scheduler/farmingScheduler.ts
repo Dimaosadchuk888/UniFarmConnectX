@@ -67,6 +67,35 @@ export class FarmingScheduler {
               .eq('id', farmer.id);
 
             if (!updateError) {
+              // Записываем сессию в farming_sessions
+              await supabase
+                .from('farming_sessions')
+                .insert({
+                  user_id: farmer.id,
+                  session_type: 'UNI_FARMING',
+                  amount_earned: parseFloat(income),
+                  currency: 'UNI',
+                  farming_rate: parseFloat(farmer.uni_farming_rate || '0'),
+                  session_start: farmer.uni_farming_start_timestamp,
+                  session_end: new Date().toISOString(),
+                  status: 'completed',
+                  created_at: new Date().toISOString()
+                });
+
+              // Создаем транзакцию FARMING_REWARD
+              await supabase
+                .from('transactions')
+                .insert({
+                  user_id: farmer.id,
+                  type: 'FARMING_REWARD',
+                  amount_uni: income,
+                  amount_ton: '0',
+                  status: 'completed',
+                  description: `UNI farming income: ${parseFloat(income).toFixed(6)} UNI (rate: ${farmer.uni_farming_rate})`,
+                  source_user_id: farmer.id,
+                  created_at: new Date().toISOString()
+                });
+
               logger.info(`[FARMING_SCHEDULER] Successfully processed UNI farming for user ${farmer.id}`, {
                 userId: farmer.id,
                 amount: income,
