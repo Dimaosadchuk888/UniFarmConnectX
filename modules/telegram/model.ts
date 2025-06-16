@@ -1,46 +1,41 @@
-import { pgTable, serial, text, timestamp, boolean, integer, bigint } from 'drizzle-orm/pg-core';
+/**
+ * Telegram Model - Supabase Integration
+ * Константы и типы для Telegram операций
+ */
 
-export const telegramUsers = pgTable('telegram_users', {
-  id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
-  telegram_id: bigint('telegram_id', { mode: 'number' }).notNull().unique(),
-  username: text('username'),
-  first_name: text('first_name'),
-  last_name: text('last_name'),
-  language_code: text('language_code'),
-  is_bot: boolean('is_bot').default(false),
-  is_premium: boolean('is_premium').default(false),
-  created_at: timestamp('created_at').defaultNow().notNull(),
-  updated_at: timestamp('updated_at').defaultNow().notNull()
-});
+// Supabase table constants
+export const TELEGRAM_TABLES = {
+  USERS: 'users',
+  USER_SESSIONS: 'user_sessions'
+} as const;
 
-export const telegramSessions = pgTable('telegram_sessions', {
-  id: serial('id').primaryKey(),
-  user_id: integer('user_id').notNull(),
-  init_data: text('init_data').notNull(),
-  hash: text('hash').notNull(),
-  query_id: text('query_id'),
-  auth_date: timestamp('auth_date').notNull(),
-  expires_at: timestamp('expires_at').notNull(),
-  is_valid: boolean('is_valid').default(true),
-  created_at: timestamp('created_at').defaultNow().notNull()
-});
+// Telegram update types
+export const TELEGRAM_UPDATE_TYPES = {
+  MESSAGE: 'message',
+  CALLBACK_QUERY: 'callback_query',
+  INLINE_QUERY: 'inline_query',
+  WEB_APP_DATA: 'web_app_data'
+} as const;
 
-export const telegramWebhooks = pgTable('telegram_webhooks', {
-  id: serial('id').primaryKey(),
-  update_id: bigint('update_id', { mode: 'number' }).notNull(),
-  update_type: text('update_type').notNull(),
-  user_id: integer('user_id'),
-  telegram_id: bigint('telegram_id', { mode: 'number' }),
-  payload: text('payload').notNull(),
-  processed: boolean('processed').default(false),
-  processed_at: timestamp('processed_at'),
-  created_at: timestamp('created_at').defaultNow().notNull()
-});
+// Telegram authentication constants
+export const TELEGRAM_AUTH = {
+  TOKEN_EXPIRES_HOURS: 168, // 7 days
+  INIT_DATA_TIMEOUT_SECONDS: 86400, // 24 hours
+  HASH_ALGORITHM: 'sha256'
+} as const;
 
-export type TelegramUser = typeof telegramUsers.$inferSelect;
-export type InsertTelegramUser = typeof telegramUsers.$inferInsert;
-export type TelegramSession = typeof telegramSessions.$inferSelect;
-export type InsertTelegramSession = typeof telegramSessions.$inferInsert;
-export type TelegramWebhook = typeof telegramWebhooks.$inferSelect;
-export type InsertTelegramWebhook = typeof telegramWebhooks.$inferInsert;
+// Telegram configuration
+export const TELEGRAM_CONFIG = {
+  BOT_USERNAME: '@UniFarming_Bot',
+  WEBAPP_URL: process.env.TELEGRAM_WEBAPP_URL || '',
+  WEBHOOK_SECRET: process.env.TELEGRAM_WEBHOOK_SECRET || '',
+  DEFAULT_LANGUAGE: 'ru'
+} as const;
+
+// Telegram validation rules
+export const TELEGRAM_VALIDATION = {
+  MIN_USER_ID: 1,
+  MAX_USER_ID: 999999999999,
+  USERNAME_MAX_LENGTH: 32,
+  FIRST_NAME_MAX_LENGTH: 64
+} as const;

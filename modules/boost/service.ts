@@ -1,4 +1,5 @@
 import { logger } from '../../core/logger.js';
+import { BOOST_TABLES, BOOST_PACKAGES, BOOST_CONFIG, BOOST_STATUS } from './model';
 
 interface BoostPackageData {
   id: number;
@@ -25,32 +26,32 @@ export class BoostService {
       return [
         {
           id: 1,
-          name: "Speed Boost",
+          name: BOOST_PACKAGES.STARTER.name,
           description: "Increases farming speed by 50%",
-          daily_rate: 1.5,
-          duration_days: 7,
-          min_amount: 100,
-          max_amount: 1000,
+          daily_rate: parseFloat(BOOST_PACKAGES.STARTER.daily_rate),
+          duration_days: BOOST_PACKAGES.STARTER.duration_days,
+          min_amount: parseFloat(BOOST_PACKAGES.STARTER.min_amount),
+          max_amount: parseFloat(BOOST_PACKAGES.STARTER.max_amount),
           is_active: true
         },
         {
           id: 2,
-          name: "Power Boost", 
+          name: BOOST_PACKAGES.PREMIUM.name,
           description: "Doubles farming rewards",
-          daily_rate: 2.0,
-          duration_days: 3,
-          min_amount: 200,
-          max_amount: 2000,
+          daily_rate: parseFloat(BOOST_PACKAGES.PREMIUM.daily_rate),
+          duration_days: BOOST_PACKAGES.PREMIUM.duration_days,
+          min_amount: parseFloat(BOOST_PACKAGES.PREMIUM.min_amount),
+          max_amount: parseFloat(BOOST_PACKAGES.PREMIUM.max_amount),
           is_active: true
         },
         {
           id: 3,
-          name: "Premium Boost",
+          name: BOOST_PACKAGES.ELITE.name,
           description: "Triple rewards for advanced users",
-          daily_rate: 3.0,
-          duration_days: 1,
-          min_amount: 500,
-          max_amount: 5000,
+          daily_rate: parseFloat(BOOST_PACKAGES.ELITE.daily_rate),
+          duration_days: BOOST_PACKAGES.ELITE.duration_days,
+          min_amount: parseFloat(BOOST_PACKAGES.ELITE.min_amount),
+          max_amount: parseFloat(BOOST_PACKAGES.ELITE.max_amount),
           is_active: true
         }
       ];
