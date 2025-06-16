@@ -192,6 +192,31 @@ export class BoostService {
       // Создаем запись о покупке
       const purchase = await this.createBoostPurchase(userId, boostPackage.id, 'wallet', null, 'confirmed');
 
+      // Распределяем реферальные награды от покупки TON Boost
+      try {
+        const { ReferralService } = await import('../referral/service');
+        const referralService = new ReferralService();
+        const referralResult = await referralService.distributeReferralRewards(
+          userId,
+          requiredAmount.toString(),
+          'ton_boost',
+          'TON'
+        );
+
+        logger.info('[BoostService] Реферальные награды распределены', {
+          userId,
+          boostPackageId: boostPackage.id,
+          distributed: referralResult.distributed,
+          totalAmount: referralResult.totalAmount
+        });
+      } catch (referralError) {
+        logger.error('[BoostService] Ошибка распределения реферальных наград', {
+          userId,
+          boostPackageId: boostPackage.id,
+          error: referralError instanceof Error ? referralError.message : String(referralError)
+        });
+      }
+
       logger.info('[BoostService] Успешная покупка через внутренний кошелек', {
         userId,
         boostPackageId: boostPackage.id,
@@ -530,8 +555,34 @@ export class BoostService {
       // - Обновление пользовательских множителей
       // - Установка времени окончания действия
       // - Применение эффектов к farming
+
+      // Распределяем реферальные награды при активации Boost от внешнего TON
+      try {
+        const { ReferralService } = await import('../referral/service');
+        const referralService = new ReferralService();
+        const amount = boostPackage.min_amount || '0';
+        const referralResult = await referralService.distributeReferralRewards(
+          userId,
+          amount.toString(),
+          'ton_boost',
+          'TON'
+        );
+
+        logger.info('[BoostService] Реферальные награды распределены при активации внешнего TON Boost', {
+          userId,
+          boostId,
+          amount,
+          distributed: referralResult.distributed,
+          totalAmount: referralResult.totalAmount
+        });
+      } catch (referralError) {
+        logger.error('[BoostService] Ошибка распределения реферальных наград при активации', {
+          userId,
+          boostId,
+          error: referralError instanceof Error ? referralError.message : String(referralError)
+        });
+      }
       
-      // Пока возвращаем true как успешную активацию
       logger.info('[BoostService] Boost успешно активирован', {
         userId,
         boostId,

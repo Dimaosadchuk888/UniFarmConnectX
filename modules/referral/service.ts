@@ -226,4 +226,186 @@ export class ReferralService {
       return { success: false, error: 'Внутренняя ошибка сервера' };
     }
   }
+
+  /**
+   * Построение цепочки рефереров до 20 уровней через Supabase API
+   */
+  async buildReferrerChain(userId: string): Promise<string[]> {
+    try {
+      const referrerChain: string[] = [];
+      let currentUserId = userId;
+      let level = 0;
+      const maxLevels = 20;
+
+      while (level < maxLevels) {
+        // Получаем пользователя и его реферера
+        const { data: user, error } = await supabase
+          .from(REFERRAL_TABLES.USERS)
+          .select('id, referred_by')
+          .eq('id', parseInt(currentUserId))
+          .single();
+
+        if (error || !user || !user.referred_by) {
+          break;
+        }
+
+        // Находим пользователя, который пригласил текущего
+        const { data: referrer, error: referrerError } = await supabase
+          .from(REFERRAL_TABLES.USERS)
+          .select('id, ref_code')
+          .eq('ref_code', user.referred_by)
+          .single();
+
+        if (referrerError || !referrer) {
+          break;
+        }
+
+        referrerChain.push(referrer.id.toString());
+        currentUserId = referrer.id.toString();
+        level++;
+
+        // Предотвращаем циклические ссылки
+        if (referrerChain.includes(currentUserId)) {
+          logger.warn('[ReferralService] Обнаружена циклическая ссылка в реферальной цепи', {
+            userId,
+            level,
+            currentUserId
+          });
+          break;
+        }
+      }
+
+      logger.info('[ReferralService] Построена реферальная цепочка', {
+        userId,
+        chainLength: referrerChain.length,
+        referrerChain
+      });
+
+      return referrerChain;
+    } catch (error) {
+      logger.error('[ReferralService] Ошибка построения цепочки рефереров', {
+        userId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Распределение реферальных наград от дохода фарминга/буста
+   */
+  async distributeReferralRewards(
+    sourceUserId: string,
+    amount: string,
+    sourceType: 'uni_farming' | 'ton_boost',
+    currency: 'UNI' | 'TON' = 'UNI'
+  ): Promise<{ success: boolean; distributed: number; totalAmount: string }> {
+    try {
+      logger.info('[ReferralService] Начало распределения реферальных наград', {
+        sourceUserId,
+        amount,
+        sourceType,
+        currency
+      });
+
+      // Получаем цепочку рефереров
+      const referrerChain = await this.buildReferrerChain(sourceUserId);
+      
+      if (referrerChain.length === 0) {
+        logger.info('[ReferralService] Нет рефереров для распределения наград', { sourceUserId });
+        return { success: true, distributed: 0, totalAmount: '0' };
+      }
+
+      // Импортируем логику расчета комиссий
+      const { DeepReferralLogic } = await import('./logic/deepReferral');
+      const commissions = DeepReferralLogic.calculateReferralCommissions(amount, referrerChain);
+
+      let distributedCount = 0;
+      let totalDistributedAmount = 0;
+
+      // Создаем транзакции для каждого реферера
+      for (const commission of commissions) {
+        try {
+          const { error: txError } = await supabase
+            .from('transactions')
+            .insert({
+              user_id: parseInt(commission.userId),
+              type: 'REFERRAL_REWARD',
+              amount_uni: currency === 'UNI' ? parseFloat(commission.amount) : 0,
+              amount_ton: currency === 'TON' ? parseFloat(commission.amount) : 0,
+              currency: currency,
+              status: 'completed',
+              description: `Реферальная награда ${commission.level} уровня от ${sourceType}`,
+              source_user_id: parseInt(sourceUserId),
+              created_at: new Date().toISOString()
+            });
+
+          if (!txError) {
+            // Обновляем баланс получателя награды
+            const balanceField = currency === 'UNI' ? 'balance_uni' : 'balance_ton';
+            
+            const { data: recipient, error: getUserError } = await supabase
+              .from(REFERRAL_TABLES.USERS)
+              .select(balanceField)
+              .eq('id', parseInt(commission.userId))
+              .single();
+
+            if (!getUserError && recipient) {
+              const currentBalance = parseFloat((recipient as any)[balanceField] || '0');
+              const newBalance = currentBalance + parseFloat(commission.amount);
+              
+              const updateData: any = {};
+              updateData[balanceField] = newBalance.toString();
+
+              await supabase
+                .from(REFERRAL_TABLES.USERS)
+                .update(updateData)
+                .eq('id', parseInt(commission.userId));
+
+              distributedCount++;
+              totalDistributedAmount += parseFloat(commission.amount);
+
+              logger.info('[ReferralService] Реферальная награда начислена', {
+                recipientId: commission.userId,
+                level: commission.level,
+                amount: commission.amount,
+                currency,
+                sourceType,
+                sourceUserId
+              });
+            }
+          }
+        } catch (error) {
+          logger.error('[ReferralService] Ошибка начисления реферальной награды', {
+            recipientId: commission.userId,
+            level: commission.level,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      logger.info('[ReferralService] Завершено распределение реферальных наград', {
+        sourceUserId,
+        sourceType,
+        distributedCount,
+        totalDistributedAmount: totalDistributedAmount.toFixed(6),
+        currency
+      });
+
+      return {
+        success: true,
+        distributed: distributedCount,
+        totalAmount: totalDistributedAmount.toFixed(6)
+      };
+
+    } catch (error) {
+      logger.error('[ReferralService] Ошибка распределения реферальных наград', {
+        sourceUserId,
+        amount,
+        sourceType,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return { success: false, distributed: 0, totalAmount: '0' };
+    }
+  }
 }

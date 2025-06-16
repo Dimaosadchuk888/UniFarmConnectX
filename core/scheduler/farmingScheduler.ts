@@ -72,6 +72,33 @@ export class FarmingScheduler {
                 amount: income,
                 currency: 'UNI'
               });
+
+              // Распределяем реферальные награды от UNI фарминга
+              try {
+                const { ReferralService } = await import('../../modules/referral/service');
+                const referralService = new ReferralService();
+                const referralResult = await referralService.distributeReferralRewards(
+                  farmer.id.toString(),
+                  income,
+                  'uni_farming',
+                  'UNI'
+                );
+
+                if (referralResult.distributed > 0) {
+                  logger.info(`[FARMING_SCHEDULER] Реферальные награды распределены для UNI фарминга`, {
+                    farmerId: farmer.id,
+                    income,
+                    distributed: referralResult.distributed,
+                    totalAmount: referralResult.totalAmount
+                  });
+                }
+              } catch (referralError) {
+                logger.error(`[FARMING_SCHEDULER] Ошибка распределения реферальных наград UNI`, {
+                  farmerId: farmer.id,
+                  income,
+                  error: referralError instanceof Error ? referralError.message : String(referralError)
+                });
+              }
             }
           }
         } catch (error) {
