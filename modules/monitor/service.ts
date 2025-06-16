@@ -8,6 +8,15 @@ import {
   DatabaseStats,
   SystemHealth 
 } from './types';
+import {
+  USERS_TABLE,
+  FARMING_SESSIONS_TABLE,
+  TRANSACTIONS_TABLE,
+  BOOST_PACKAGES_TABLE,
+  SYSTEM_HEALTH_STATUS,
+  CONNECTION_STATUS,
+  MONITOR_TIME_INTERVALS
+} from './model';
 
 export class MonitorService {
   /**
@@ -24,22 +33,22 @@ export class MonitorService {
         transactionsResult,
         boostsResult
       ] = await Promise.all([
-        supabase.from('users').select('id', { count: 'exact', head: true }),
-        supabase.from('farming_sessions').select('id', { count: 'exact', head: true }),
-        supabase.from('transactions').select('id', { count: 'exact', head: true }),
-        supabase.from('boost_packages').select('id', { count: 'exact', head: true })
+        supabase.from(USERS_TABLE).select('id', { count: 'exact', head: true }),
+        supabase.from(FARMING_SESSIONS_TABLE).select('id', { count: 'exact', head: true }),
+        supabase.from(TRANSACTIONS_TABLE).select('id', { count: 'exact', head: true }),
+        supabase.from(BOOST_PACKAGES_TABLE).select('id', { count: 'exact', head: true })
       ]);
 
       // Активні користувачі (останні 24 години)
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const oneDayAgo = new Date(Date.now() - MONITOR_TIME_INTERVALS.ONE_DAY).toISOString();
       const { count: activeUsers } = await supabase
-        .from('users')
+        .from(USERS_TABLE)
         .select('id', { count: 'exact', head: true })
         .gte('checkin_last_date', oneDayAgo);
 
       // Активні фарминг сесії
       const { count: activeFarmingSessions } = await supabase
-        .from('farming_sessions')
+        .from(FARMING_SESSIONS_TABLE)
         .select('id', { count: 'exact', head: true })
         .eq('is_active', true);
 
@@ -77,7 +86,7 @@ export class MonitorService {
       logger.info('[MonitorService] Получение статистики пользователей');
 
       const { data: users, error } = await supabase
-        .from('users')
+        .from(USERS_TABLE)
         .select('created_at, balance_uni, balance_ton, referrer_id');
 
       if (error) {
@@ -85,8 +94,8 @@ export class MonitorService {
       }
 
       const now = new Date();
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const oneDayAgo = new Date(now.getTime() - MONITOR_TIME_INTERVALS.ONE_DAY);
+      const oneWeekAgo = new Date(now.getTime() - MONITOR_TIME_INTERVALS.ONE_WEEK);
 
       const newUsersToday = users?.filter(user => 
         new Date(user.created_at) >= oneDayAgo
@@ -142,7 +151,7 @@ export class MonitorService {
       logger.info('[MonitorService] Получение статистики фарминга');
 
       const { data: sessions, error } = await supabase
-        .from('farming_sessions')
+        .from(FARMING_SESSIONS_TABLE)
         .select('*');
 
       if (error) {
@@ -196,7 +205,7 @@ export class MonitorService {
 
       // Тест підключення до Supabase
       const { data, error } = await supabase
-        .from('users')
+        .from(USERS_TABLE)
         .select('id')
         .limit(1);
 
