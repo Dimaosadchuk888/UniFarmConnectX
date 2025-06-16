@@ -57,10 +57,8 @@ export * from './dailyBonus/model';
 export * from './admin/model';
 export * from './auth/model';
 
-// Types - интерфейсы и типы (без конфликтующих enum'ов)
+// Types - интерфейсы и типы (избирательный экспорт для устранения конфликтов)
 export * from './user/types';
-export * from './wallet/types';
-export * from './farming/types';
 export * from './missions/types';
 export * from './referral/types';
 export * from './boost/types';
@@ -71,6 +69,12 @@ export * from './auth/types';
 export * from './tonFarming/types';
 export * from './transactions/types';
 export * from './monitor/types';
+
+// Wallet types - избирательный экспорт для устранения дубликатов
+export type { WalletBalance, TransactionData, WithdrawalRequest, WalletSummary } from './wallet/types';
+
+// Farming types - избирательный экспорт для устранения дубликатов  
+export type { FarmingSession, FarmingStats } from './farming/types';
 
 // Middleware (из core для унификации)
 export { requireTelegramAuth, optionalTelegramAuth } from '../core/middleware/telegramAuth';

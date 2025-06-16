@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import authRoutes from '../modules/auth/routes';
 import monitorRoutes from '../modules/monitor/routes';
 import farmingRoutes from '../modules/farming/routes';
@@ -121,8 +121,8 @@ router.post('/register/telegram', async (req, res, next) => {
   }
 });
 
-// JWT Authentication endpoint with fallback to Telegram
-router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
+// JWT Authentication endpoint - через отдельную функцию для исправления TypeScript
+const handleMeEndpoint = async (req: any, res: any) => {
   console.log('[JWT Debug] /me route hit, checking Authorization header');
   console.log('[JWT Debug] Authorization header:', req.headers.authorization);
   
@@ -133,10 +133,11 @@ router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
       const token = authHeader.substring(7);
       console.log('[JWT Debug] JWT token found, verifying...');
       
+      const jwt = await import('jsonwebtoken');
+      const jwtSecret = process.env.JWT_SECRET || 'unifarm_jwt_secret_key_2025_production';
+      console.log('[JWT Debug] Using secret length:', jwtSecret.length);
+      
       try {
-        const jwt = await import('jsonwebtoken');
-        const jwtSecret = process.env.JWT_SECRET || 'unifarm_jwt_secret_key_2025_production';
-        console.log('[JWT Debug] Using secret length:', jwtSecret.length);
         const decoded = jwt.verify(token, jwtSecret) as any;
         console.log('[JWT Debug] Token decoded:', { telegram_id: decoded.telegram_id, username: decoded.username });
         
@@ -167,8 +168,20 @@ router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
               }
             });
           } else {
-            console.log('[JWT Debug] No user found in database');
+            console.log('[JWT Debug] No user found in database, returning 401');
+            return res.status(401).json({
+              success: false,
+              error: 'User not found',
+              need_auth: true
+            });
           }
+        } else {
+          console.log('[JWT Debug] No telegram_id in token');
+          return res.status(401).json({
+            success: false,
+            error: 'Invalid token payload',
+            need_auth: true
+          });
         }
       } catch (jwtError) {
         console.log('[JWT Debug] Token verification failed:', jwtError);
@@ -179,30 +192,20 @@ router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
         });
       }
     } else {
-      console.log('[JWT Debug] No Bearer token found');
+      console.log('[JWT Debug] No Bearer token found, returning 401');
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+        need_auth: true
+      });
     }
-
-    console.log('[JWT Debug] Falling back to Telegram auth');
-    // Fallback к Telegram методу
-    const { requireTelegramAuth } = await import('../core/middleware/telegramAuth');
-    const next = () => {};
-    requireTelegramAuth(req, res, async () => {
-      try {
-        const { UserController } = await import('../modules/user/controller');
-        const userController = new UserController();
-        await userController.getCurrentUser(req, res);
-      } catch (error) {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error'
-        });
-      }
-    });
   } catch (error) {
     console.error('[JWT Route] Error:', error);
-    res.status(500).json({ success: false, error: 'Authentication error' });
+    return res.status(500).json({ success: false, error: 'Authentication error' });
   }
-});
+};
+
+router.get('/me', handleMeEndpoint);
 
 // Core module routes
 router.use('/farming', farmingRoutes);
