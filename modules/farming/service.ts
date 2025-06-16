@@ -2,6 +2,7 @@ import { supabase } from '../../core/supabase';
 import { SupabaseUserRepository } from '../user/service';
 import { RewardCalculationLogic } from './logic/rewardCalculation';
 import { logger } from '../../core/logger.js';
+import { FARMING_TABLES, FARMING_CONFIG } from './model';
 
 export class FarmingService {
   private userRepository: SupabaseUserRepository;
@@ -94,7 +95,7 @@ export class FarmingService {
       if (!user) return false;
 
       const { error } = await supabase
-        .from('users')
+        .from(FARMING_TABLES.USERS)
         .update({
           uni_farming_start_timestamp: new Date().toISOString(),
           uni_farming_last_update: new Date().toISOString()
@@ -114,7 +115,7 @@ export class FarmingService {
       if (!user) return false;
 
       const { error } = await supabase
-        .from('users')
+        .from(FARMING_TABLES.USERS)
         .update({
           uni_farming_start_timestamp: null,
           uni_farming_last_update: new Date().toISOString()
@@ -150,7 +151,7 @@ export class FarmingService {
       const newDepositAmount = (currentDeposit + depositAmount).toFixed(8);
 
       const { error: updateError } = await supabase
-        .from('users')
+        .from(FARMING_TABLES.USERS)
         .update({
           balance_uni: newBalance,
           uni_deposit_amount: newDepositAmount,
@@ -164,7 +165,7 @@ export class FarmingService {
       }
 
       await supabase
-        .from('transactions')
+        .from(FARMING_TABLES.TRANSACTIONS)
         .insert({
           user_id: user.id,
           type: 'UNI_DEPOSIT',
@@ -212,7 +213,7 @@ export class FarmingService {
       const newBalance = (currentBalance + rewards).toFixed(8);
 
       const { error } = await supabase
-        .from('users')
+        .from(FARMING_TABLES.USERS)
         .update({
           balance_uni: newBalance,
           uni_farming_last_update: new Date().toISOString()
@@ -253,7 +254,7 @@ export class FarmingService {
 
       // Возвращаем историю транзакций farming
       const { data: transactions } = await supabase
-        .from('transactions')
+        .from(FARMING_TABLES.TRANSACTIONS)
         .select('*')
         .eq('user_id', user.id)
         .in('type', ['UNI_DEPOSIT', 'UNI_HARVEST', 'UNI_REWARD'])

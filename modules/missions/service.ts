@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase';
 import { SupabaseUserRepository } from '../user/service';
 import { logger } from '../../core/logger';
+import { MISSIONS_TABLES, MISSION_TYPES, MISSION_STATUS, REWARD_TYPES } from './model';
 
 export class MissionsService {
   private userRepository: SupabaseUserRepository;
@@ -19,8 +20,8 @@ export class MissionsService {
           description: 'Сделайте первый депозит UNI в фарминг',
           reward_uni: '10',
           reward_ton: '0',
-          type: 'FIRST_DEPOSIT',
-          status: 'ACTIVE'
+          type: MISSION_TYPES.ONE_TIME,
+          status: MISSION_STATUS.ACTIVE
         },
         {
           id: 2,
@@ -28,8 +29,8 @@ export class MissionsService {
           description: 'Пригласите друга через реферальную ссылку',
           reward_uni: '25',
           reward_ton: '0',
-          type: 'REFERRAL',
-          status: 'ACTIVE'
+          type: MISSION_TYPES.REFERRAL,
+          status: MISSION_STATUS.ACTIVE
         },
         {
           id: 3,
