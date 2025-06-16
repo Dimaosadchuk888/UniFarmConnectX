@@ -216,4 +216,41 @@ export class BoostController extends BaseController {
       }
     }, 'покупки Boost-пакета');
   }
+
+  /**
+   * Проверка и подтверждение внешней TON оплаты
+   */
+  async verifyTonPayment(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      const { tx_hash, user_id, boost_id } = req.body;
+
+      logger.info('[BoostController] Начало проверки TON платежа', {
+        tx_hash,
+        user_id,
+        boost_id
+      });
+
+      // Валидация входных параметров
+      if (!tx_hash || !user_id || !boost_id) {
+        return this.sendError(res, 'Отсутствуют обязательные параметры: tx_hash, user_id, boost_id', 400);
+      }
+
+      if (typeof tx_hash !== 'string' || tx_hash.length < 10) {
+        return this.sendError(res, 'Невалидный tx_hash', 400);
+      }
+
+      const result = await this.boostService.verifyTonPayment(tx_hash, user_id, boost_id);
+
+      if (result.success) {
+        this.sendSuccess(res, {
+          status: result.status,
+          message: result.message,
+          transaction_amount: result.transaction_amount,
+          boost_activated: result.boost_activated
+        });
+      } else {
+        this.sendError(res, result.message, 400);
+      }
+    }, 'проверки TON платежа');
+  }
 }

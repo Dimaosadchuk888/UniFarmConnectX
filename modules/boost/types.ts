@@ -72,3 +72,17 @@ export interface PurchaseBoostResponse {
   message: string;
   purchase?: BoostPurchaseData;
 }
+
+export interface VerifyTonPaymentRequest {
+  tx_hash: string;
+  user_id: string;
+  boost_id: string;
+}
+
+export interface VerifyTonPaymentResponse {
+  success: boolean;
+  status: 'confirmed' | 'waiting' | 'not_found' | 'error';
+  message: string;
+  transaction_amount?: string;
+  boost_activated?: boolean;
+}

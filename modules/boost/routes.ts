@@ -26,4 +26,7 @@ router.get('/packages', requireTelegramAuth, boostController.getPackages.bind(bo
 // POST /api/boosts/purchase - Покупка Boost-пакета
 router.post('/purchase', requireTelegramAuth, boostController.purchaseBoost.bind(boostController));
 
+// POST /api/boosts/verify-ton-payment - Проверка и подтверждение TON платежа
+router.post('/verify-ton-payment', requireTelegramAuth, boostController.verifyTonPayment.bind(boostController));
+
 export default router;

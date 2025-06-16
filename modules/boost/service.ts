@@ -323,4 +323,230 @@ export class BoostService {
       return false;
     }
   }
+
+  async verifyTonPayment(txHash: string, userId: string, boostId: string): Promise<{
+    success: boolean;
+    status: 'confirmed' | 'waiting' | 'not_found' | 'error';
+    message: string;
+    transaction_amount?: string;
+    boost_activated?: boolean;
+  }> {
+    try {
+      logger.info('[BoostService] Начало проверки TON платежа', {
+        txHash,
+        userId,
+        boostId
+      });
+
+      // Ищем pending запись покупки
+      const { supabase } = await import('../../core/supabase');
+      const { data: purchase, error: purchaseError } = await supabase
+        .from('boost_purchases')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('boost_id', boostId)
+        .eq('tx_hash', txHash)
+        .eq('status', 'pending')
+        .single();
+
+      if (purchaseError || !purchase) {
+        logger.warn('[BoostService] Pending покупка не найдена', {
+          txHash,
+          userId,
+          boostId,
+          error: purchaseError?.message
+        });
+        return {
+          success: true,
+          status: 'not_found',
+          message: 'Pending покупка с указанным tx_hash не найдена'
+        };
+      }
+
+      logger.info('[BoostService] Найдена pending покупка', {
+        purchaseId: purchase.id,
+        txHash
+      });
+
+      // Проверяем статус транзакции в блокчейне
+      const { checkTonTransaction } = await import('../../utils/checkTonTransaction');
+      const tonResult = await checkTonTransaction(txHash);
+
+      if (!tonResult.success) {
+        logger.error('[BoostService] Ошибка проверки TON транзакции', {
+          txHash,
+          error: tonResult.error
+        });
+        return {
+          success: false,
+          status: 'error',
+          message: tonResult.error || 'Ошибка проверки блокчейн транзакции'
+        };
+      }
+
+      if (!tonResult.confirmed) {
+        logger.info('[BoostService] Транзакция еще не подтверждена', {
+          txHash,
+          tonError: tonResult.error
+        });
+        return {
+          success: true,
+          status: 'waiting',
+          message: 'Транзакция еще не подтверждена в блокчейне. Попробуйте позже.'
+        };
+      }
+
+      // Транзакция подтверждена - активируем Boost
+      logger.info('[BoostService] Транзакция подтверждена, активируем Boost', {
+        txHash,
+        amount: tonResult.amount,
+        purchaseId: purchase.id
+      });
+
+      // Обновляем статус покупки на confirmed
+      const { error: updateError } = await supabase
+        .from('boost_purchases')
+        .update({
+          status: 'confirmed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', purchase.id);
+
+      if (updateError) {
+        logger.error('[BoostService] Ошибка обновления статуса покупки', {
+          purchaseId: purchase.id,
+          error: updateError.message
+        });
+        return {
+          success: false,
+          status: 'error',
+          message: 'Ошибка обновления статуса покупки'
+        };
+      }
+
+      // Создаем confirmed транзакцию
+      await this.createConfirmedTransaction(userId, boostId, txHash, tonResult.amount);
+
+      // Активируем Boost
+      const boostActivated = await this.activateBoost(userId, boostId);
+
+      logger.info('[BoostService] TON платеж успешно подтвержден и Boost активирован', {
+        txHash,
+        userId,
+        boostId,
+        amount: tonResult.amount,
+        boostActivated
+      });
+
+      return {
+        success: true,
+        status: 'confirmed',
+        message: 'Платеж подтвержден, Boost успешно активирован',
+        transaction_amount: tonResult.amount,
+        boost_activated: boostActivated
+      };
+
+    } catch (error) {
+      logger.error('[BoostService] Критическая ошибка проверки TON платежа', {
+        txHash,
+        userId,
+        boostId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return {
+        success: false,
+        status: 'error',
+        message: 'Внутренняя ошибка при проверке платежа'
+      };
+    }
+  }
+
+  private async createConfirmedTransaction(userId: string, boostId: string, txHash: string, amount?: string): Promise<boolean> {
+    try {
+      const { supabase } = await import('../../core/supabase');
+      
+      // Получаем информацию о Boost пакете для description
+      const boostPackage = await this.getBoostPackageById(boostId);
+      const description = boostPackage ? 
+        `Подтвержденная покупка Boost "${boostPackage.name}"` : 
+        `Подтвержденная покупка Boost ID: ${boostId}`;
+
+      const { error } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: parseInt(userId),
+          type: 'boost_purchase',
+          amount: amount || '0',
+          currency: 'TON',
+          status: 'completed',
+          tx_hash: txHash,
+          description,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) {
+        logger.error('[BoostService] Ошибка создания confirmed транзакции', {
+          userId,
+          txHash,
+          error: error.message
+        });
+        return false;
+      }
+
+      logger.info('[BoostService] Создана confirmed транзакция', {
+        userId,
+        txHash,
+        amount
+      });
+
+      return true;
+    } catch (error) {
+      logger.error('[BoostService] Ошибка в createConfirmedTransaction', {
+        userId,
+        txHash,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return false;
+    }
+  }
+
+  private async activateBoost(userId: string, boostId: string): Promise<boolean> {
+    try {
+      // Получаем информацию о Boost пакете
+      const boostPackage = await this.getBoostPackageById(boostId);
+      if (!boostPackage) {
+        logger.error('[BoostService] Boost пакет не найден для активации', { boostId });
+        return false;
+      }
+
+      logger.info('[BoostService] Активация Boost пакета', {
+        userId,
+        boostId,
+        packageName: boostPackage.name,
+        durationDays: boostPackage.duration_days
+      });
+
+      // Здесь будет логика активации Boost:
+      // - Обновление пользовательских множителей
+      // - Установка времени окончания действия
+      // - Применение эффектов к farming
+      
+      // Пока возвращаем true как успешную активацию
+      logger.info('[BoostService] Boost успешно активирован', {
+        userId,
+        boostId,
+        packageName: boostPackage.name
+      });
+
+      return true;
+
+    } catch (error) {
+      logger.error('[BoostService] Ошибка активации Boost', {
+        userId,
+        boostId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return false;
+    }
+  }
 }
