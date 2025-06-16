@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import authRoutes from '../modules/auth/routes';
 import monitorRoutes from '../modules/monitor/routes';
 import farmingRoutes from '../modules/farming/routes';
@@ -122,7 +122,7 @@ router.post('/register/telegram', async (req, res, next) => {
 });
 
 // JWT Authentication endpoint with fallback to Telegram
-router.get('/me', async (req, res) => {
+router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
   console.log('[JWT Debug] /me route hit, checking Authorization header');
   console.log('[JWT Debug] Authorization header:', req.headers.authorization);
   
@@ -185,6 +185,7 @@ router.get('/me', async (req, res) => {
     console.log('[JWT Debug] Falling back to Telegram auth');
     // Fallback к Telegram методу
     const { requireTelegramAuth } = await import('../core/middleware/telegramAuth');
+    const next = () => {};
     requireTelegramAuth(req, res, async () => {
       try {
         const { UserController } = await import('../modules/user/controller');
