@@ -49,3 +49,26 @@ export interface BoostSummary {
   daily_income: string;
   packages: UserBoostData[];
 }
+
+export interface BoostPurchaseData {
+  id: string;
+  user_id: string;
+  boost_id: string;
+  source: 'wallet' | 'ton';
+  tx_hash?: string;
+  status: 'pending' | 'confirmed' | 'failed';
+  created_at: string;
+}
+
+export interface PurchaseBoostRequest {
+  user_id: string;
+  boost_id: string;
+  payment_method: 'wallet' | 'ton';
+  tx_hash?: string;
+}
+
+export interface PurchaseBoostResponse {
+  success: boolean;
+  message: string;
+  purchase?: BoostPurchaseData;
+}

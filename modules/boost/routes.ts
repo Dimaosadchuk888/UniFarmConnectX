@@ -23,4 +23,7 @@ router.get('/stats/:userId', requireTelegramAuth, boostController.getBoostStats.
 // GET /api/boosts/packages - Получить доступные пакеты бустов
 router.get('/packages', requireTelegramAuth, boostController.getPackages.bind(boostController));
 
+// POST /api/boosts/purchase - Покупка Boost-пакета
+router.post('/purchase', requireTelegramAuth, boostController.purchaseBoost.bind(boostController));
+
 export default router;

@@ -176,4 +176,44 @@ export class BoostController extends BaseController {
       });
     }, 'получения пакетов бустов');
   }
+
+  /**
+   * Покупка Boost-пакета
+   */
+  async purchaseBoost(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      const { user_id, boost_id, payment_method, tx_hash } = req.body;
+
+      logger.info('[BoostController] Начало покупки Boost-пакета', {
+        user_id,
+        boost_id,
+        payment_method,
+        has_tx_hash: !!tx_hash
+      });
+
+      // Валидация входных параметров
+      if (!user_id || !boost_id || !payment_method) {
+        return this.sendError(res, 'Отсутствуют обязательные параметры: user_id, boost_id, payment_method', 400);
+      }
+
+      if (!['wallet', 'ton'].includes(payment_method)) {
+        return this.sendError(res, 'Недопустимый payment_method. Используйте "wallet" или "ton"', 400);
+      }
+
+      if (payment_method === 'ton' && !tx_hash) {
+        return this.sendError(res, 'Для оплаты через TON требуется tx_hash', 400);
+      }
+
+      const result = await this.boostService.purchaseBoost(user_id, boost_id, payment_method, tx_hash);
+
+      if (result.success) {
+        this.sendSuccess(res, {
+          purchase: result.purchase,
+          message: result.message
+        });
+      } else {
+        this.sendError(res, result.message, 400);
+      }
+    }, 'покупки Boost-пакета');
+  }
 }
