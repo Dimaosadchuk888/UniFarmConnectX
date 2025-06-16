@@ -80,8 +80,8 @@ export class FarmingScheduler {
                 const referralResult = await referralService.distributeReferralRewards(
                   farmer.id.toString(),
                   income,
-                  'uni_farming',
-                  'UNI'
+                  'UNI',
+                  'farming'
                 );
 
                 if (referralResult.distributed > 0) {
