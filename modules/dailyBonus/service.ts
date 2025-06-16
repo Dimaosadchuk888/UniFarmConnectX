@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger.js';
+import { DAILY_BONUS_TABLES, DAILY_BONUS_CONFIG, BONUS_TYPES } from './model';
 
 export class DailyBonusService {
   /**
@@ -13,7 +14,7 @@ export class DailyBonusService {
   }> {
     try {
       const { data: users, error } = await supabase
-        .from('users')
+        .from(DAILY_BONUS_TABLES.USERS)
         .select('*')
         .eq('id', parseInt(userId))
         .limit(1);
@@ -75,7 +76,7 @@ export class DailyBonusService {
   }> {
     try {
       const { data: users, error } = await supabase
-        .from('users')
+        .from(DAILY_BONUS_TABLES.USERS)
         .select('*')
         .eq('id', parseInt(userId))
         .limit(1);
@@ -118,7 +119,7 @@ export class DailyBonusService {
 
       // Update user balance and streak
       const { error: updateError } = await supabase
-        .from('users')
+        .from(DAILY_BONUS_TABLES.USERS)
         .update({
           balance_uni: newBalance.toFixed(6),
           checkin_last_date: now.toISOString(),
@@ -218,7 +219,7 @@ export class DailyBonusService {
   }> {
     try {
       const { data: user, error: userError } = await supabase
-        .from('users')
+        .from(DAILY_BONUS_TABLES.USERS)
         .select('checkin_streak')
         .eq('id', parseInt(userId))
         .single();

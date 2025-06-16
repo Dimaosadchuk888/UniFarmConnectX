@@ -5,6 +5,7 @@
 
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
+import { REFERRAL_TABLES, REFERRAL_CONFIG } from './model';
 
 export class ReferralService {
 
@@ -15,7 +16,7 @@ export class ReferralService {
     try {
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const refCode = `${userId.slice(-4)}${random}${timestamp.toString().slice(-4)}`;
+      const refCode = `${REFERRAL_CONFIG.REF_CODE_PREFIX}${userId.slice(-4)}${random}${timestamp.toString().slice(-4)}`;
       
       logger.info('[ReferralService] Генерация реферального кода для пользователя', { userId, refCode });
       return refCode;
@@ -37,7 +38,7 @@ export class ReferralService {
     try {
       // Получаем пользователя и его реферальный код
       const { data: user, error: userError } = await supabase
-        .from('users')
+        .from(REFERRAL_TABLES.USERS)
         .select('*')
         .eq('id', parseInt(userId))
         .single();
@@ -53,7 +54,7 @@ export class ReferralService {
 
       // Считаем всех приглашенных пользователей через referred_by поле
       const { data: invitedUsers, error: invitedError } = await supabase
-        .from('users')
+        .from(REFERRAL_TABLES.USERS)
         .select('*')
         .eq('referred_by', user.ref_code);
 
@@ -103,7 +104,7 @@ export class ReferralService {
     try {
       // Получаем реферальный код пользователя
       const { data: user, error: userError } = await supabase
-        .from('users')
+        .from(REFERRAL_TABLES.USERS)
         .select('ref_code')
         .eq('id', parseInt(userId))
         .single();
@@ -114,7 +115,7 @@ export class ReferralService {
 
       // Получаем всех пользователей, приглашенных этим реферальным кодом
       const { data: invitedUsers, error: invitedError } = await supabase
-        .from('users')
+        .from(REFERRAL_TABLES.USERS)
         .select('id, username, created_at, balance_uni, balance_ton')
         .eq('referred_by', user.ref_code);
 
@@ -149,7 +150,7 @@ export class ReferralService {
 
       // Проверяем существование пользователя с таким реферальным кодом
       const { data: referrer, error } = await supabase
-        .from('users')
+        .from(REFERRAL_TABLES.USERS)
         .select('id, ref_code')
         .eq('ref_code', refCode)
         .single();
@@ -172,7 +173,7 @@ export class ReferralService {
     try {
       // Находим пользователя с таким реферальным кодом
       const { data: inviter, error: inviterError } = await supabase
-        .from('users')
+        .from(REFERRAL_TABLES.USERS)
         .select('*')
         .eq('ref_code', refCode)
         .single();
@@ -187,7 +188,7 @@ export class ReferralService {
 
       // Обновляем нового пользователя, указывая referred_by
       const { error: updateError } = await supabase
-        .from('users')
+        .from(REFERRAL_TABLES.USERS)
         .update({ referred_by: refCode })
         .eq('id', parseInt(newUserId));
 
