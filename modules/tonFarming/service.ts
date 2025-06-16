@@ -1,4 +1,10 @@
 import { logger } from '../../core/logger.js';
+import { 
+  TON_FARMING_CONFIG, 
+  TON_FARMING_MESSAGES, 
+  TON_TRANSACTION_TYPES,
+  TON_FARMING_VALIDATION 
+} from './model';
 
 interface TonFarmingData {
   ton_farming_balance: string;

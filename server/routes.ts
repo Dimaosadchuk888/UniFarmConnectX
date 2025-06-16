@@ -12,6 +12,7 @@ import telegramRoutes from '../modules/telegram/routes';
 import tonFarmingRoutes from '../modules/tonFarming/routes';
 import transactionsRoutes from '../modules/transactions/routes';
 import airdropRoutes from '../modules/airdrop/routes';
+import adminRoutes from '../modules/admin/routes';
 import { supabase } from '../core/supabase';
 
 const router = express.Router();
@@ -208,6 +209,7 @@ router.use('/telegram', telegramRoutes);
 router.use('/ton-farming', tonFarmingRoutes);
 router.use('/transactions', transactionsRoutes);
 router.use('/airdrop', airdropRoutes);
+router.use('/admin', adminRoutes);
 
 // Monitoring routes
 router.use('/monitor', monitorRoutes);
