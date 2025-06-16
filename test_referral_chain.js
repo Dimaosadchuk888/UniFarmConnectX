@@ -50,8 +50,7 @@ async function createTestUser(level, referrerCode = null) {
       .insert({
         telegram_id: telegramId,
         username: `test_user_${level}`,
-        first_name: `Test`,
-        last_name: `User${level}`,
+        first_name: `TestUser${level}`,
         ref_code: refCode,
         balance_uni: '100.00000000',
         balance_ton: '100.00000000',
