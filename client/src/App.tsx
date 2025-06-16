@@ -22,6 +22,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 // import { ErrorBoundaryProvider } from "@/contexts/ErrorBoundaryContext"; // Removed due to runtime-error-plugin conflict
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 import { TelegramAuth } from "@/components/TelegramAuth";
+import { TelegramInitDataSolver } from "@/components/TelegramInitDataSolver";
 
 // Lazy-loaded Pages
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -168,6 +169,27 @@ function App() {
 
   // В случае ошибки аутентификации всё равно загружаем основной интерфейс
   // Ошибки будут отображаться в уведомлениях, но не блокируют UI
+
+  // Проверяем наличие Telegram данных перед загрузкой основного интерфейса
+  const isTelegramAvailable = typeof window !== 'undefined' && window.Telegram?.WebApp;
+  const telegram = typeof window !== 'undefined' ? window.Telegram : null;
+  const hasValidTelegramData = isTelegramAvailable && telegram?.WebApp && 
+    (telegram.WebApp.initData || telegram.WebApp.initDataUnsafe?.user);
+
+  // Если Telegram доступен, но данные недоступны, показываем решатель проблем
+  if (isTelegramAvailable && !hasValidTelegramData) {
+    return (
+      <TelegramInitDataSolver 
+        onSuccess={(userData) => {
+          setState(prev => ({ 
+            ...prev, 
+            userId: userData.id, 
+            isLoading: false 
+          }));
+        }} 
+      />
+    );
+  }
 
   return (
     <SafeErrorBoundary>
