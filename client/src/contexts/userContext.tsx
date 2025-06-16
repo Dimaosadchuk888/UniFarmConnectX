@@ -358,6 +358,49 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
+        // Попытка получить данные через расширенный WebApp API
+        if (telegramData && !telegramData.initData && !telegramData.initDataUnsafe?.user) {
+          console.log('[UserContext] Расширенная проверка Telegram WebApp');
+          
+          // Многократные попытки получения данных с интервалами
+          for (let attempt = 1; attempt <= 5; attempt++) {
+            console.log(`[UserContext] Попытка ${attempt}/5 получения данных пользователя`);
+            
+            await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+            
+            const currentTg = window.Telegram?.WebApp;
+            if (currentTg?.initDataUnsafe?.user) {
+              console.log('[UserContext] Данные пользователя получены на попытке', attempt);
+              const result = await registerDirectFromTelegramUser(currentTg.initDataUnsafe.user);
+              if (result.success) {
+                dispatch({
+                  type: 'SET_USER_DATA',
+                  payload: {
+                    userId: result.user.id,
+                    username: result.user.username,
+                    telegramId: result.user.telegram_id,
+                    refCode: result.user.ref_code
+                  }
+                });
+                refreshBalance();
+                return;
+              }
+            }
+            
+            // Попробуем принудительно обновить initData
+            if (currentTg) {
+              try {
+                currentTg.ready();
+                console.log(`[UserContext] Попытка ${attempt}: повторный вызов ready()`);
+              } catch (e) {
+                console.log(`[UserContext] Ошибка ready() на попытке ${attempt}:`, e);
+              }
+            }
+          }
+          
+          console.log('[UserContext] Все попытки получения данных исчерпаны');
+        }
+
         // Если нет Telegram данных, показываем состояние ожидания авторизации
         console.log('[UserContext] Ожидание авторизации через Telegram');
         dispatch({
