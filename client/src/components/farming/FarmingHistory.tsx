@@ -95,7 +95,7 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         
         // Используем correctApiRequest с расширенной обработкой ошибок
         try {
-          const result = await correctApiRequest<any>(`/api/v2/transactions?user_id=${validUserId}`, 'GET');
+          const result = await correctApiRequest(`/api/v2/transactions?user_id=${validUserId}`, 'GET');
           
           // Проверка структуры ответа на валидность
           if (!result) {return { success: true, data: { transactions: [] } };
@@ -140,7 +140,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
         }
         
         // Используем correctApiRequest с расширенной обработкой ошибок
-        try {const result = await correctApiRequest<any>(`/api/v2/ton-farming/active?user_id=${validUserId}`, 'GET');
+        try {
+          const result = await correctApiRequest(`/api/v2/ton-farming/active?user_id=${validUserId}`, 'GET');
           
           // Проверка структуры ответа на валидность
           if (!result) {return { success: true, data: [] };
