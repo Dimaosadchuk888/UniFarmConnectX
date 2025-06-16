@@ -49,11 +49,11 @@ router.get('/debug/db-users', async (req: Request, res: Response) => {
 });
 
 // Telegram webhook endpoint (корневой уровень для Telegram API)
-router.post('/webhook', async (req: Request, res: Response) => {
+router.post('/webhook', async (req: Request, res: Response, next) => {
   try {
     const { TelegramController } = await import('../modules/telegram/controller');
     const telegramController = new TelegramController();
-    await telegramController.handleWebhook(req, res);
+    await telegramController.handleWebhook(req, res, next);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -63,11 +63,11 @@ router.post('/webhook', async (req: Request, res: Response) => {
 });
 
 // Дублирующий webhook маршрут под разными путями для надежности
-router.post('/telegram/webhook', async (req: Request, res: Response) => {
+router.post('/telegram/webhook', async (req: Request, res: Response, next) => {
   try {
     const { TelegramController } = await import('../modules/telegram/controller');
     const telegramController = new TelegramController();
-    await telegramController.handleWebhook(req, res);
+    await telegramController.handleWebhook(req, res, next);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -91,11 +91,11 @@ router.post('/auth/telegram', async (req, res, next) => {
 });
 
 // Регистрация Telegram пользователей
-router.post('/register/telegram', async (req, res) => {
+router.post('/register/telegram', async (req, res, next) => {
   try {
     const { AuthController } = await import('../modules/auth/controller');
     const authController = new AuthController();
-    await authController.registerTelegram(req, res);
+    await authController.registerTelegram(req, res, next);
   } catch (error) {
     res.status(500).json({ success: false, error: 'Registration error' });
   }

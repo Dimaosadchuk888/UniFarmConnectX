@@ -10,6 +10,15 @@ const adminController = new AdminController();
 // GET /api/admin/stats - Получить статистику системы
 router.get('/stats', requireAuth, requireTelegramAuth, requireAdminAuth, adminController.getSystemStats.bind(adminController));
 
+// GET /api/admin/test - Тестовый роут без авторизации  
+router.get('/test', async (req, res) => {
+  res.json({
+    success: true,
+    message: 'Admin routes работают!',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // GET /api/admin/users - Получить список пользователей
 router.get('/users', requireAuth, requireTelegramAuth, requireAdminAuth, adminController.getUsers.bind(adminController));
 
