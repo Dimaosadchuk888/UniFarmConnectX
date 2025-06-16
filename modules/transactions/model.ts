@@ -43,3 +43,14 @@ export const CURRENCIES = {
 } as const;
 
 export const DEFAULT_TRANSACTION_STATUS = TRANSACTION_STATUS.PENDING;
+
+// Базовая модель транзакции
+export interface Transaction {
+  id: string;
+  user_id: string;
+  amount: number;
+  type: 'deposit' | 'withdrawal' | 'reward';
+  token: 'TON' | 'UNI';
+  status: 'pending' | 'success' | 'failed';
+  created_at: string;
+}
