@@ -4,14 +4,15 @@
  */
 
 // Таблица мониторинга системы
-export const MONITOR_TABLE = 'monitor';
+export const MONITOR_TABLE = 'monitor_logs';
 
 export const MONITOR_FIELDS = [
   'id',
-  'type',
-  'status',
   'timestamp',
-  'message'
+  'service',
+  'level',
+  'message',
+  'context'
 ];
 
 // Основные таблицы, используемые для мониторинга
