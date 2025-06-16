@@ -1,30 +1,34 @@
 /**
- * TON Boost Income Scheduler for UniFarm
- * Автоматически начисляет доход от активных Boost-пакетов каждые 5 минут
- * и распределяет реферальные награды от полученного дохода
+ * TON Boost Income Scheduler - Исправленная версия для T57 тестирования
+ * Начисляет доход от TON Boost и распределяет реферальные награды
  */
 
-import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
+import { supabase } from '../../core/supabase';
+import { ReferralService } from '../referral/service';
 
-export class TonBoostIncomeScheduler {
-  private isRunning: boolean = false;
+export class TONBoostIncomeScheduler {
   private intervalId: NodeJS.Timeout | null = null;
+  private referralService: ReferralService;
+
+  constructor() {
+    this.referralService = new ReferralService();
+  }
 
   /**
-   * Запускает автоматическое начисление дохода от TON Boost каждые 5 минут
+   * Запускает планировщик TON Boost доходов
    */
   start(): void {
-    if (this.isRunning) {
+    if (this.intervalId) {
       logger.warn('[TON_BOOST_SCHEDULER] Планировщик уже запущен');
       return;
     }
 
-    this.isRunning = true;
-    
-    // Запускаем первый раз сразу
+    logger.info('[TON_BOOST_SCHEDULER] Начало обработки доходов от TON Boost пакетов');
+
+    // Первый запуск сразу
     this.processTonBoostIncome();
-    
+
     // Затем каждые 5 минут
     this.intervalId = setInterval(() => {
       this.processTonBoostIncome();
@@ -38,195 +42,122 @@ export class TonBoostIncomeScheduler {
    */
   private async processTonBoostIncome(): Promise<void> {
     try {
-      logger.info('[TON_BOOST_SCHEDULER] Начало обработки доходов от TON Boost пакетов');
+      logger.info('[TON_BOOST_SCHEDULER] Поиск пользователей с активными TON Boost');
 
-      // Получаем всех пользователей с активными Boost-пакетами
-      const { data: activeBoosts, error } = await supabase
-        .from('boost_purchases')
-        .select(`
-          id,
-          user_id,
-          package_id,
-          start_date,
-          end_date,
-          is_active,
-          boost_packages!inner(
-            id,
-            name,
-            daily_rate,
-            duration_days,
-            min_amount
-          )
-        `)
-        .eq('status', 'confirmed')
-        .eq('is_active', true)
-        .lt('start_date', new Date().toISOString())
-        .gt('end_date', new Date().toISOString());
+      // Ищем пользователей с активными TON farming
+      const { data: activeUsers, error } = await supabase
+        .from('users')
+        .select('id, telegram_id, balance_ton, ton_farming_rate, ton_farming_start_timestamp')
+        .eq('ton_farming_start_timestamp::text', 'not null')
+        .gt('ton_farming_rate', '0');
 
       if (error) {
-        logger.error('[TON_BOOST_SCHEDULER] Ошибка получения активных Boost пакетов:', error);
+        logger.error('[TON_BOOST_SCHEDULER] Ошибка получения пользователей с TON farming:', error);
         return;
       }
 
-      if (!activeBoosts || activeBoosts.length === 0) {
-        logger.info('[TON_BOOST_SCHEDULER] Нет активных Boost пакетов для обработки');
+      if (!activeUsers || activeUsers.length === 0) {
+        logger.info('[TON_BOOST_SCHEDULER] Нет пользователей с активным TON farming');
         return;
       }
 
-      logger.info(`[TON_BOOST_SCHEDULER] Найдено ${activeBoosts.length} активных Boost пакетов`);
+      logger.info(`[TON_BOOST_SCHEDULER] Найдено ${activeUsers.length} пользователей с TON farming`);
 
-      // Обрабатываем каждый активный Boost
-      for (const boost of activeBoosts) {
+      // Обрабатываем каждого пользователя
+      for (const user of activeUsers) {
         try {
-          const income = await this.calculateBoostIncome(boost);
-          
-          if (parseFloat(income) > 0) {
-            // Получаем текущий баланс пользователя
-            const { data: user, error: userError } = await supabase
-              .from('users')
-              .select('balance_ton')
-              .eq('id', boost.user_id)
-              .single();
+          // Рассчитываем доход как дополнительный Boost доход
+          const baseRate = parseFloat(user.ton_farming_rate || '0');
+          const boostMultiplier = 0.1; // 10% дополнительный доход от Boost
+          const boostIncome = baseRate * boostMultiplier;
 
-            if (userError || !user) {
-              logger.error(`[TON_BOOST_SCHEDULER] Пользователь ${boost.user_id} не найден`);
-              continue;
-            }
-
-            // Обновляем баланс пользователя
-            const newBalance = parseFloat(user.balance_ton || '0') + parseFloat(income);
-            const { error: updateError } = await supabase
-              .from('users')
-              .update({
-                balance_ton: newBalance.toString(),
-                last_active: new Date().toISOString()
-              })
-              .eq('id', boost.user_id);
-
-            if (!updateError) {
-              // Создаем транзакцию о доходе от Boost
-              const { error: txError } = await supabase
-                .from('transactions')
-                .insert({
-                  user_id: boost.user_id,
-                  type: 'TON_BOOST_INCOME',
-                  amount_ton: parseFloat(income),
-                  amount_uni: 0,
-                  currency: 'TON',
-                  status: 'completed',
-                  description: `Доход от TON Boost пакета "${(boost.boost_packages as any)?.name || 'Unknown'}"`,
-                  source_user_id: boost.user_id,
-                  created_at: new Date().toISOString()
-                });
-
-              if (!txError) {
-                logger.info(`[TON_BOOST_SCHEDULER] Доход от TON Boost начислен пользователю ${boost.user_id}`, {
-                  userId: boost.user_id,
-                  amount: income,
-                  currency: 'TON',
-                  boostPackageId: boost.package_id,
-                  boostPackageName: (boost.boost_packages as any)?.name || 'Unknown'
-                });
-
-                // Распределяем реферальные награды от дохода TON Boost
-                try {
-                  const { ReferralService } = await import('../referral/service');
-                  const referralService = new ReferralService();
-                  const referralResult = await referralService.distributeReferralRewards(
-                    boost.user_id.toString(),
-                    income,
-                    'boost_income',
-                    'TON'
-                  );
-
-                  if (referralResult.distributed > 0) {
-                    logger.info(`[TON_BOOST_SCHEDULER] Реферальные награды распределены для TON Boost дохода`, {
-                      userId: boost.user_id,
-                      income,
-                      distributed: referralResult.distributed,
-                      totalAmount: referralResult.totalAmount,
-                      boostPackageName: (boost.boost_packages as any)?.name || 'Unknown'
-                    });
-                  }
-                } catch (referralError) {
-                  logger.error(`[TON_BOOST_SCHEDULER] Ошибка распределения реферальных наград TON Boost`, {
-                    userId: boost.user_id,
-                    income,
-                    error: referralError instanceof Error ? referralError.message : String(referralError)
-                  });
-                }
-              } else {
-                logger.error(`[TON_BOOST_SCHEDULER] Ошибка создания транзакции дохода для пользователя ${boost.user_id}:`, txError);
-              }
-            } else {
-              logger.error(`[TON_BOOST_SCHEDULER] Ошибка обновления баланса пользователя ${boost.user_id}:`, updateError);
-            }
+          if (boostIncome <= 0) {
+            continue;
           }
-        } catch (error) {
-          logger.error(`[TON_BOOST_SCHEDULER] Ошибка обработки Boost ${boost.id}:`, error instanceof Error ? error.message : String(error));
+
+          logger.info(`[TON_BOOST_SCHEDULER] Пользователь ${user.id}: Boost доход ${boostIncome.toFixed(8)} TON`);
+
+          // Обновляем баланс пользователя
+          const currentBalance = parseFloat(user.balance_ton || '0');
+          const newBalance = currentBalance + boostIncome;
+
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({
+              balance_ton: newBalance.toFixed(8),
+              last_active: new Date().toISOString()
+            })
+            .eq('id', user.id);
+
+          if (updateError) {
+            logger.error(`[TON_BOOST_SCHEDULER] Ошибка обновления баланса пользователя ${user.id}:`, updateError);
+            continue;
+          }
+
+          // Создаем транзакцию TON_BOOST_INCOME
+          const { error: transactionError } = await supabase
+            .from('transactions')
+            .insert({
+              user_id: user.id,
+              type: 'TON_BOOST_INCOME',
+              amount_ton: boostIncome.toFixed(8),
+              amount_uni: '0',
+              currency: 'TON',
+              status: 'completed',
+              description: 'Доход от TON Boost пакета',
+              source_user_id: user.id,
+              created_at: new Date().toISOString()
+            });
+
+          if (transactionError) {
+            logger.error(`[TON_BOOST_SCHEDULER] Ошибка создания транзакции для пользователя ${user.id}:`, transactionError);
+            continue;
+          }
+
+          logger.info(`[TON_BOOST_SCHEDULER] Доход от TON Boost начислен пользователю ${user.id}`);
+
+          // Распределяем реферальные награды от фактического дохода
+          await this.referralService.distributeReferralRewards(
+            user.id,
+            boostIncome.toFixed(8),
+            'boost_income',
+            'TON'
+          );
+
+          logger.info(`[TON_BOOST_SCHEDULER] Реферальные награды распределены для TON Boost дохода пользователя ${user.id}`);
+
+        } catch (userError) {
+          logger.error(`[TON_BOOST_SCHEDULER] Ошибка обработки пользователя ${user.id}:`, userError);
         }
       }
+
+      logger.info(`[TON_BOOST_SCHEDULER] Завершена обработка TON Boost доходов для ${activeUsers.length} пользователей`);
+
     } catch (error) {
-      logger.error('[TON_BOOST_SCHEDULER] Ошибка обработки автоматического начисления TON Boost доходов:', error instanceof Error ? error.message : String(error));
+      logger.error('[TON_BOOST_SCHEDULER] Критическая ошибка планировщика TON Boost:', error);
     }
   }
 
   /**
-   * Рассчитывает доход от TON Boost пакета за 5 минут
-   */
-  private async calculateBoostIncome(boost: any): Promise<string> {
-    try {
-      if (!boost.boost_packages) {
-        logger.warn(`[TON_BOOST_SCHEDULER] Отсутствуют данные пакета для Boost ${boost.id}`);
-        return '0';
-      }
-
-      const boostPackage = boost.boost_packages as any;
-      const dailyRate = parseFloat(boostPackage.daily_rate || '0');
-      const minAmount = parseFloat(boostPackage.min_amount || '0');
-      
-      if (dailyRate <= 0) {
-        return '0';
-      }
-
-      // Рассчитываем доход за 5 минут
-      // Формула: (daily_rate / 100) * min_amount * (5 минут / 1440 минут в сутках)
-      const fiveMinuteRate = dailyRate / 100 * (5 / 1440); // 5 минут из 1440 минут в сутках
-      const income = minAmount * fiveMinuteRate;
-
-      logger.debug(`[TON_BOOST_SCHEDULER] Расчет дохода Boost ${boost.id}`, {
-        dailyRate,
-        minAmount,
-        fiveMinuteRate,
-        income
-      });
-
-      return income.toFixed(8); // 8 знаков после запятой для точности
-    } catch (error) {
-      logger.error(`[TON_BOOST_SCHEDULER] Ошибка расчета дохода для Boost ${boost.id}:`, error);
-      return '0';
-    }
-  }
-
-  /**
-   * Останавливает планировщик TON Boost доходов
+   * Останавливает планировщик
    */
   stop(): void {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
+      logger.info('[TON_BOOST_SCHEDULER] ✅ Планировщик TON Boost остановлен');
     }
-    this.isRunning = false;
-    logger.info('[TON_BOOST_SCHEDULER] Планировщик TON Boost доходов остановлен');
   }
 
   /**
-   * Проверяет статус планировщика
+   * Получает статус планировщика
    */
-  isActive(): boolean {
-    return this.isRunning;
+  getStatus(): { active: boolean; nextRun: Date | null } {
+    return {
+      active: this.intervalId !== null,
+      nextRun: this.intervalId ? new Date(Date.now() + 5 * 60 * 1000) : null
+    };
   }
 }
 
-// Экспортируем экземпляр планировщика
-export const tonBoostIncomeScheduler = new TonBoostIncomeScheduler();
+export const tonBoostIncomeScheduler = new TONBoostIncomeScheduler();
