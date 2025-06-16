@@ -1,40 +1,47 @@
--- T63 - Создание TON Boost депозитов для Users 36-45 напрямую через SQL
--- Обход RLS policies для тестирования
+-- T65: Создание тестовых TON Boost пакетов для проверки RLS политик
+-- Создание тестовых boost пакетов напрямую через SQL
 
--- Временно отключаем RLS для boost_purchases
-ALTER TABLE boost_purchases DISABLE ROW LEVEL SECURITY;
+-- Проверяем существующих пользователей
+SELECT id, username, telegram_id, balance_ton FROM users WHERE telegram_id >= 20000000001 LIMIT 5;
 
--- Создаем TON Boost депозиты для последних 10 пользователей цепочки
-INSERT INTO boost_purchases (user_id, boost_id, amount, daily_rate, source, status, start_date, end_date, is_active, total_earned) VALUES
-(36, 'boost_standard_30d', '50.0', '0.5', 'ton', 'confirmed', NOW(), NOW() + INTERVAL '30 days', true, '0.0'),
-(37, 'boost_standard_30d', '50.0', '0.5', 'ton', 'confirmed', NOW(), NOW() + INTERVAL '30 days', true, '0.0'),
-(38, 'boost_standard_30d', '50.0', '0.5', 'ton', 'confirmed', NOW(), NOW() + INTERVAL '30 days', true, '0.0'),
-(39, 'boost_standard_30d', '50.0', '0.5', 'ton', 'confirmed', NOW(), NOW() + INTERVAL '30 days', true, '0.0'),
-(40, 'boost_standard_30d', '50.0', '0.5', 'ton', 'confirmed', NOW(), NOW() + INTERVAL '30 days', true, '0.0'),
-(41, 'boost_standard_30d', '50.0', '0.5', 'ton', 'confirmed', NOW(), NOW() + INTERVAL '30 days', true, '0.0'),
-(42, 'boost_standard_30d', '50.0', '0.5', 'ton', 'confirmed', NOW(), NOW() + INTERVAL '30 days', true, '0.0'),
-(43, 'boost_standard_30d', '50.0', '0.5', 'ton', 'confirmed', NOW(), NOW() + INTERVAL '30 days', true, '0.0'),
-(44, 'boost_standard_30d', '50.0', '0.5', 'ton', 'confirmed', NOW(), NOW() + INTERVAL '30 days', true, '0.0'),
-(45, 'boost_standard_30d', '50.0', '0.5', 'ton', 'confirmed', NOW(), NOW() + INTERVAL '30 days', true, '0.0');
+-- Создаем тестовые boost пакеты для пользователей цепочки
+INSERT INTO boost_purchases (
+  user_id, 
+  boost_id, 
+  source, 
+  tx_hash, 
+  amount, 
+  daily_rate, 
+  status, 
+  is_active, 
+  start_date, 
+  end_date, 
+  total_earned,
+  created_at
+) VALUES 
+-- Boost для chain_user_1 (ID 26)
+(26, 'BOOST_STANDARD_30D', 'ton', 'test_tx_hash_26_boost', 10.0, 0.5, 'confirmed', true, NOW(), NOW() + INTERVAL '30 days', 0.0, NOW()),
 
--- Обновляем баланс TON для пользователей (симулируем покупку за 50 TON)
-UPDATE users SET balance_ton = 50.000000 WHERE id IN (36, 37, 38, 39, 40, 41, 42, 43, 44, 45);
+-- Boost для chain_user_2 (ID 27) 
+(27, 'BOOST_PREMIUM_15D', 'ton', 'test_tx_hash_27_boost', 25.0, 1.2, 'confirmed', true, NOW(), NOW() + INTERVAL '15 days', 0.0, NOW()),
 
--- Создаем транзакции покупки TON Boost
-INSERT INTO transactions (user_id, type, status, description) VALUES
-(36, 'TON_BOOST_PURCHASE', 'completed', 'TON Boost purchase - 50 TON for 30 days, rate 0.5 daily'),
-(37, 'TON_BOOST_PURCHASE', 'completed', 'TON Boost purchase - 50 TON for 30 days, rate 0.5 daily'),
-(38, 'TON_BOOST_PURCHASE', 'completed', 'TON Boost purchase - 50 TON for 30 days, rate 0.5 daily'),
-(39, 'TON_BOOST_PURCHASE', 'completed', 'TON Boost purchase - 50 TON for 30 days, rate 0.5 daily'),
-(40, 'TON_BOOST_PURCHASE', 'completed', 'TON Boost purchase - 50 TON for 30 days, rate 0.5 daily'),
-(41, 'TON_BOOST_PURCHASE', 'completed', 'TON Boost purchase - 50 TON for 30 days, rate 0.5 daily'),
-(42, 'TON_BOOST_PURCHASE', 'completed', 'TON Boost purchase - 50 TON for 30 days, rate 0.5 daily'),
-(43, 'TON_BOOST_PURCHASE', 'completed', 'TON Boost purchase - 50 TON for 30 days, rate 0.5 daily'),
-(44, 'TON_BOOST_PURCHASE', 'completed', 'TON Boost purchase - 50 TON for 30 days, rate 0.5 daily'),
-(45, 'TON_BOOST_PURCHASE', 'completed', 'TON Boost purchase - 50 TON for 30 days, rate 0.5 daily');
+-- Boost для final_test_user (ID 4)
+(4, 'BOOST_MEGA_7D', 'ton', 'test_tx_hash_4_boost', 50.0, 3.0, 'confirmed', true, NOW(), NOW() + INTERVAL '7 days', 0.0, NOW());
 
--- Включаем обратно RLS
-ALTER TABLE boost_purchases ENABLE ROW LEVEL SECURITY;
+-- Проверяем созданные boost пакеты
+SELECT 
+  bp.user_id, 
+  u.username,
+  bp.boost_id, 
+  bp.amount, 
+  bp.daily_rate, 
+  bp.status, 
+  bp.is_active,
+  bp.start_date,
+  bp.end_date
+FROM boost_purchases bp
+JOIN users u ON bp.user_id = u.id
+WHERE bp.status = 'confirmed' AND bp.is_active = true;
 
--- Проверяем созданные депозиты
-SELECT user_id, boost_id, amount, daily_rate, status, is_active FROM boost_purchases WHERE user_id BETWEEN 36 AND 45;
+-- Проверяем балансы TON пользователей перед началом
+SELECT id, username, balance_ton FROM users WHERE id IN (4, 26, 27);
