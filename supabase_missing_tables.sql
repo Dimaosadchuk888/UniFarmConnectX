@@ -99,13 +99,11 @@ CREATE TABLE IF NOT EXISTS daily_bonus_history (
   claimed_amount TEXT NOT NULL,
   bonus_type TEXT NOT NULL CHECK (bonus_type IN ('UNI', 'TON', 'MULTIPLIER')),
   streak_count INTEGER NOT NULL,
+  claimed_date DATE NOT NULL,
   claimed_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, claimed_date)
 );
-
--- Add unique constraint with expression-based index for daily_bonus_history
-CREATE UNIQUE INDEX IF NOT EXISTS unique_user_daily_bonus 
-ON daily_bonus_history (user_id, DATE(claimed_at));
 
 -- Create indexes for performance optimization
 CREATE INDEX IF NOT EXISTS idx_boost_purchases_user_id ON boost_purchases(user_id);
