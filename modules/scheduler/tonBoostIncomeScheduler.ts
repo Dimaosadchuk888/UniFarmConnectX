@@ -114,7 +114,7 @@ export class TonBoostIncomeScheduler {
                   amount_uni: 0,
                   currency: 'TON',
                   status: 'completed',
-                  description: `Доход от TON Boost пакета "${boost.boost_packages?.name || 'Unknown'}"`,
+                  description: `Доход от TON Boost пакета "${(boost.boost_packages as any)?.name || 'Unknown'}"`,
                   source_user_id: boost.user_id,
                   created_at: new Date().toISOString()
                 });
@@ -125,7 +125,7 @@ export class TonBoostIncomeScheduler {
                   amount: income,
                   currency: 'TON',
                   boostPackageId: boost.package_id,
-                  boostPackageName: boost.boost_packages?.name || 'Unknown'
+                  boostPackageName: (boost.boost_packages as any)?.name || 'Unknown'
                 });
 
                 // Распределяем реферальные награды от дохода TON Boost
@@ -145,7 +145,7 @@ export class TonBoostIncomeScheduler {
                       income,
                       distributed: referralResult.distributed,
                       totalAmount: referralResult.totalAmount,
-                      boostPackageName: boost.boost_packages?.name || 'Unknown'
+                      boostPackageName: (boost.boost_packages as any)?.name || 'Unknown'
                     });
                   }
                 } catch (referralError) {
@@ -181,8 +181,9 @@ export class TonBoostIncomeScheduler {
         return '0';
       }
 
-      const dailyRate = parseFloat(boost.boost_packages.daily_rate || '0');
-      const minAmount = parseFloat(boost.boost_packages.min_amount || '0');
+      const boostPackage = boost.boost_packages as any;
+      const dailyRate = parseFloat(boostPackage.daily_rate || '0');
+      const minAmount = parseFloat(boostPackage.min_amount || '0');
       
       if (dailyRate <= 0) {
         return '0';

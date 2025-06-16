@@ -192,30 +192,13 @@ export class BoostService {
       // Создаем запись о покупке
       const purchase = await this.createBoostPurchase(userId, boostPackage.id, 'wallet', null, 'confirmed');
 
-      // Распределяем реферальные награды от покупки TON Boost
-      try {
-        const { ReferralService } = await import('../referral/service');
-        const referralService = new ReferralService();
-        const referralResult = await referralService.distributeReferralRewards(
-          userId,
-          requiredAmount.toString(),
-          'ton_boost',
-          'TON'
-        );
-
-        logger.info('[BoostService] Реферальные награды распределены', {
-          userId,
-          boostPackageId: boostPackage.id,
-          distributed: referralResult.distributed,
-          totalAmount: referralResult.totalAmount
-        });
-      } catch (referralError) {
-        logger.error('[BoostService] Ошибка распределения реферальных наград', {
-          userId,
-          boostPackageId: boostPackage.id,
-          error: referralError instanceof Error ? referralError.message : String(referralError)
-        });
-      }
+      // Реферальные награды теперь начисляются планировщиком от фактического дохода
+      logger.warn('[BoostService] Referral reward отключён: перенесено в Boost-планировщик', {
+        userId,
+        boostPackageId: boostPackage.id,
+        amount: requiredAmount,
+        reason: 'Партнёрские начисления теперь происходят только от дохода, не от покупки'
+      });
 
       logger.info('[BoostService] Успешная покупка через внутренний кошелек', {
         userId,
@@ -556,32 +539,13 @@ export class BoostService {
       // - Установка времени окончания действия
       // - Применение эффектов к farming
 
-      // Распределяем реферальные награды при активации Boost от внешнего TON
-      try {
-        const { ReferralService } = await import('../referral/service');
-        const referralService = new ReferralService();
-        const amount = boostPackage.min_amount || '0';
-        const referralResult = await referralService.distributeReferralRewards(
-          userId,
-          amount.toString(),
-          'ton_boost',
-          'TON'
-        );
-
-        logger.info('[BoostService] Реферальные награды распределены при активации внешнего TON Boost', {
-          userId,
-          boostId,
-          amount,
-          distributed: referralResult.distributed,
-          totalAmount: referralResult.totalAmount
-        });
-      } catch (referralError) {
-        logger.error('[BoostService] Ошибка распределения реферальных наград при активации', {
-          userId,
-          boostId,
-          error: referralError instanceof Error ? referralError.message : String(referralError)
-        });
-      }
+      // Реферальные награды теперь начисляются планировщиком от фактического дохода
+      logger.warn('[BoostService] Referral reward отключён: перенесено в Boost-планировщик', {
+        userId,
+        boostId,
+        packageName: boostPackage.name,
+        reason: 'Партнёрские начисления теперь происходят только от дохода Boost, не от активации'
+      });
       
       logger.info('[BoostService] Boost успешно активирован', {
         userId,
