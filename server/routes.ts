@@ -25,6 +25,26 @@ router.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// Debug endpoint for routes diagnostics
+router.get('/debug/routes', (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    routes_loaded: {
+      auth: !!authRoutes,
+      user: !!userRoutes,
+      wallet: !!walletRoutes,
+      farming: !!farmingRoutes,
+      admin: !!adminRoutes,
+      monitor: !!monitorRoutes
+    },
+    admin_module_check: {
+      routes_imported: !!adminRoutes,
+      controller_available: typeof adminRoutes === 'object'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Debug endpoint - using Supabase API
 router.get('/debug/db-users', async (req: Request, res: Response) => {
   try {
