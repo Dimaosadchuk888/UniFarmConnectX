@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import frontendLogger from '../utils/frontendLogger';
 
 interface TelegramInitDataSolverProps {
   onSuccess: (userData: any) => void;
@@ -10,26 +11,26 @@ export function TelegramInitDataSolver({ onSuccess }: TelegramInitDataSolverProp
 
   useEffect(() => {
     const solveTelegramAuth = async () => {
-      console.log('[TelegramSolver] Начало диагностики Telegram авторизации');
+      frontendLogger.info('[TelegramSolver] Начало диагностики Telegram авторизации');
       
       // Проверяем доступность Telegram WebApp
       if (!window.Telegram?.WebApp) {
-        console.log('[TelegramSolver] Telegram WebApp недоступен');
+        frontendLogger.info('[TelegramSolver] Telegram WebApp недоступен');
         setStatus('error');
         setMessage('Приложение должно быть открыто через Telegram Bot @UniFarming_Bot');
         return;
       }
 
       const tg = window.Telegram.WebApp;
-      console.log('[TelegramSolver] Telegram WebApp найден, версия:', tg.version);
+      frontendLogger.info('[TelegramSolver] Telegram WebApp найден, версия:', tg.version);
 
       // Инициализируем WebApp правильно
       try {
         tg.ready();
         tg.expand();
-        console.log('[TelegramSolver] WebApp инициализирован');
+        frontendLogger.info('[TelegramSolver] WebApp инициализирован');
       } catch (e) {
-        console.log('[TelegramSolver] Ошибка инициализации:', e);
+        frontendLogger.info('[TelegramSolver] Ошибка инициализации:', e);
       }
 
       setMessage('Получение данных пользователя...');
@@ -37,13 +38,13 @@ export function TelegramInitDataSolver({ onSuccess }: TelegramInitDataSolverProp
 
       // Многоступенчатая проверка с задержками
       for (let attempt = 1; attempt <= 8; attempt++) {
-        console.log(`[TelegramSolver] Попытка ${attempt}/8`);
+        frontendLogger.info(`[TelegramSolver] Попытка ${attempt}/8`);
         
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Проверяем initData
         if (tg.initData && tg.initData.length > 0) {
-          console.log('[TelegramSolver] initData найден, выполняем авторизацию');
+          frontendLogger.info('[TelegramSolver] initData найден, выполняем авторизацию');
           
           try {
             const response = await fetch('/api/v2/auth/telegram', {
@@ -55,20 +56,20 @@ export function TelegramInitDataSolver({ onSuccess }: TelegramInitDataSolverProp
             const data = await response.json();
             
             if (response.ok && data.success) {
-              console.log('[TelegramSolver] Авторизация через initData успешна');
+              frontendLogger.info('[TelegramSolver] Авторизация через initData успешна');
               localStorage.setItem('unifarm_auth_token', data.token);
               setStatus('success');
               onSuccess(data.user);
               return;
             }
           } catch (error) {
-            console.log('[TelegramSolver] Ошибка авторизации через initData:', error);
+            frontendLogger.info('[TelegramSolver] Ошибка авторизации через initData:', error);
           }
         }
 
         // Проверяем initDataUnsafe
         if (tg.initDataUnsafe?.user) {
-          console.log('[TelegramSolver] Найден initDataUnsafe, регистрируем пользователя');
+          frontendLogger.info('[TelegramSolver] Найден initDataUnsafe, регистрируем пользователя');
           
           try {
             const userData = tg.initDataUnsafe.user;
@@ -88,14 +89,14 @@ export function TelegramInitDataSolver({ onSuccess }: TelegramInitDataSolverProp
             const data = await response.json();
             
             if (response.ok && data.success) {
-              console.log('[TelegramSolver] Регистрация через initDataUnsafe успешна');
+              frontendLogger.info('[TelegramSolver] Регистрация через initDataUnsafe успешна');
               localStorage.setItem('unifarm_auth_token', data.token);
               setStatus('success');
               onSuccess(data.user);
               return;
             }
           } catch (error) {
-            console.log('[TelegramSolver] Ошибка регистрации через initDataUnsafe:', error);
+            frontendLogger.info('[TelegramSolver] Ошибка регистрации через initDataUnsafe:', error);
           }
         }
 
@@ -103,7 +104,7 @@ export function TelegramInitDataSolver({ onSuccess }: TelegramInitDataSolverProp
       }
 
       // Если все попытки неудачны
-      console.log('[TelegramSolver] Все попытки исчерпаны, данные недоступны');
+      frontendLogger.info('[TelegramSolver] Все попытки исчерпаны, данные недоступны');
       setStatus('error');
       setMessage('Не удалось получить данные пользователя из Telegram. Возможно, URL приложения неправильно настроен в BotFather.');
     };

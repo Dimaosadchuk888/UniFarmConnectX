@@ -200,11 +200,11 @@ export const getQueryFn: <T>(options: {
 
       // Уменьшаем количество отладочной информации
       if (process.env.NODE_ENV === 'development') {
-        console.log("[DEBUG] QueryClient - Response status:", res.status);
+        frontendLogger.debug("[DEBUG] QueryClient - Response status:", res.status);
       }
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.log("[DEBUG] QueryClient - Returning null due to 401");
+        frontendLogger.debug("[DEBUG] QueryClient - Returning null due to 401");
         return null;
       }
 
@@ -218,16 +218,16 @@ export const getQueryFn: <T>(options: {
           const data = JSON.parse(text);
           return data;
         } catch (error: any) {
-          console.error("[DEBUG] QueryClient - JSON parse error:", error);
+          frontendLogger.error("[DEBUG] QueryClient - JSON parse error:", error);
           // Если JSON невалидный, возвращаем пустой массив для защиты от ошибок
           return Array.isArray(queryKey[0]) ? [] : {};
         }
       } catch (resError) {
-        console.error("[DEBUG] QueryClient - Response error:", resError);
+        frontendLogger.error("[DEBUG] QueryClient - Response error:", resError);
         throw resError;
       }
     } catch (fetchError) {
-      console.error("[DEBUG] QueryClient - Fetch error:", fetchError);
+      frontendLogger.error("[DEBUG] QueryClient - Fetch error:", fetchError);
       throw fetchError;
     }
   };
@@ -238,20 +238,20 @@ export const getQueryFn: <T>(options: {
  */
 function safeQueryErrorHandler(error: any) {
   try {
-    console.error('[QueryClient] Глобальная ошибка запроса:', error);
+    frontendLogger.error('[QueryClient] Глобальная ошибка запроса:', error);
     
     if (error?.status === 401) {
-      console.log('[QueryClient] Ошибка авторизации - продолжаем работу в демо режиме');
+      frontendLogger.debug('[QueryClient] Ошибка авторизации - продолжаем работу в демо режиме');
       return;
     }
     
     if (error?.status) {
-      console.log(`[QueryClient] Ошибка HTTP ${error.status}: ${error.statusText || 'Unknown'}`);
+      frontendLogger.debug(`[QueryClient] Ошибка HTTP ${error.status}: ${error.statusText || 'Unknown'}`);
     } else {
-      console.log('[QueryClient] Ошибка неизвестный статус:', error.message || error);
+      frontendLogger.debug('[QueryClient] Ошибка неизвестный статус:', error.message || error);
     }
   } catch (handlerError) {
-    console.error('[QueryClient] Критическая ошибка в обработчике:', handlerError);
+    frontendLogger.error('[QueryClient] Критическая ошибка в обработчике:', handlerError);
   }
 }
 const globalQueryErrorHandler = (error: unknown) => {
@@ -263,22 +263,22 @@ const globalQueryErrorHandler = (error: unknown) => {
 
     // Обработка ошибок авторизации без краша
     if (status === 401) {
-      console.warn("[QueryClient] Пользователь не авторизован (401)");
+      frontendLogger.warn("[QueryClient] Пользователь не авторизован (401)");
       // Возвращаем null вместо ошибки для предотвращения краша
       return null;
     } else if (status === 403) {
-      console.warn("[QueryClient] Доступ запрещен (403)");
+      frontendLogger.warn("[QueryClient] Доступ запрещен (403)");
       return null;
     } else if (status === 404) {
-      console.warn("[QueryClient] Ресурс не найден (404)");
+      frontendLogger.warn("[QueryClient] Ресурс не найден (404)");
       return null;
     } else if (status >= 500) {
-      console.error("[QueryClient] Серверная ошибка (5xx):", status);
+      frontendLogger.error("[QueryClient] Серверная ошибка (5xx):", status);
       return null;
     }
     
     // Для других ошибок логируем минимально
-    console.error(`[QueryClient] Ошибка неизвестный статус: HTTP ${status}: ${statusText || "Unauthorized"}`);
+    frontendLogger.error(`[QueryClient] Ошибка неизвестный статус: HTTP ${status}: ${statusText || "Unauthorized"}`);
   }
 
   // Возвращаем null для предотвращения краша
@@ -372,7 +372,7 @@ export function invalidateQueryWithUserId(endpoint: string, additionalEndpoints:
     // Ждем завершения всех операций обновления кеша
     return Promise.all(invalidationPromises).then(() => undefined);
   } catch (err) {
-    console.warn('[invalidateQueryWithUserId] Ошибка при обновлении кеша:', err);
+    frontendLogger.warn('[invalidateQueryWithUserId] Ошибка при обновлении кеша:', err);
     // В случае ошибки обновляем все запросы без userId
     return Promise.all(
       allEndpoints.map(endpointUrl => 

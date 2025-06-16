@@ -1,3 +1,4 @@
+import frontendLogger from "../../utils/frontendLogger";
 import React, { useEffect, useState } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { getTelegramUserDisplayName, isTelegramWebApp } from '@/services/telegramService';
@@ -38,7 +39,7 @@ const SafeWelcomeSection: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('[SafeWelcomeSection] Ошибка получения имени:', error);
+      frontendLogger.error('[SafeWelcomeSection] Ошибка получения имени:', error);
       setUserName('Пользователь');
     }
   }, [username]);
@@ -55,14 +56,14 @@ const SafeWelcomeSection: React.FC = () => {
             setWalletConnected(isWalletConnected(tonConnectUI));
             setWalletAddress(getWalletAddress(tonConnectUI));
           } catch (error) {
-            console.error('[SafeWelcomeSection] Ошибка обновления кошелька:', error);
+            frontendLogger.error('[SafeWelcomeSection] Ошибка обновления кошелька:', error);
           }
         });
         
         return unsubscribe;
       }
     } catch (error) {
-      console.error('[SafeWelcomeSection] Ошибка инициализации кошелька:', error);
+      frontendLogger.error('[SafeWelcomeSection] Ошибка инициализации кошелька:', error);
     }
   }, [tonConnectUI]);
 

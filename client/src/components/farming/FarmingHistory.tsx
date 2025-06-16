@@ -1,3 +1,4 @@
+import frontendLogger from "../../utils/frontendLogger";
 import React, { useState, useEffect } from 'react';
 import { BOOST_PACKAGES } from '@/lib/constants';
 import { useQuery } from '@tanstack/react-query';
@@ -289,9 +290,9 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
             if (typeof obj === 'object' && obj !== null) {
               try {
                 // Логируем только ключи объекта
-                console.log('Object keys:', Object.keys(obj));
+                frontendLogger.info('Object keys:', Object.keys(obj));
               } catch (keysError) {
-                console.log('Failed to log object keys');
+                frontendLogger.info('Failed to log object keys');
               }
             }
           }

@@ -1,3 +1,4 @@
+import frontendLogger from "../utils/frontendLogger";
 import React, { useState, useEffect } from 'react';
 
 interface TelegramAuthFallbackProps {
@@ -25,7 +26,7 @@ export function TelegramAuthFallback({ onAuthSuccess }: TelegramAuthFallbackProp
         
         // Проверяем initData
         if (tg.initData && tg.initData.length > 0) {
-          console.log('[TelegramAuthFallback] initData найден, выполняем стандартную авторизацию');
+          frontendLogger.info('[TelegramAuthFallback] initData найден, выполняем стандартную авторизацию');
           
           const response = await fetch('/api/v2/auth/telegram', {
             method: 'POST',
@@ -44,7 +45,7 @@ export function TelegramAuthFallback({ onAuthSuccess }: TelegramAuthFallbackProp
 
         // Если initData недоступен, проверяем initDataUnsafe
         if (tg.initDataUnsafe?.user) {
-          console.log('[TelegramAuthFallback] Используем initDataUnsafe для регистрации');
+          frontendLogger.info('[TelegramAuthFallback] Используем initDataUnsafe для регистрации');
           
           const response = await fetch('/api/v2/register/telegram', {
             method: 'POST',
@@ -71,7 +72,7 @@ export function TelegramAuthFallback({ onAuthSuccess }: TelegramAuthFallbackProp
         setError('Не удалось получить данные пользователя из Telegram');
         
       } catch (error) {
-        console.error('[TelegramAuthFallback] Ошибка авторизации:', error);
+        frontendLogger.error('[TelegramAuthFallback] Ошибка авторизации:', error);
         setError('Ошибка при авторизации через Telegram');
       } finally {
         setIsChecking(false);

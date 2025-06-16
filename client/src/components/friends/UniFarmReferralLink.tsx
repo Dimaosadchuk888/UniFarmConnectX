@@ -1,3 +1,4 @@
+import frontendLogger from "../../utils/frontendLogger";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { User } from '@/services/userService';
@@ -141,7 +142,7 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     // Если данных нет, но загрузка ещё не началась - запускаем её
     if (!data && !isLoading && !isError) {
       refetch().catch(error => {
-        console.error('Error fetching referral data:', error);
+        frontendLogger.error('Error fetching referral data:', error);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,7 +166,7 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
                 refetch();
               })
               .catch((genError: any) => {
-                console.error('Error generating referral code:', genError);
+                frontendLogger.error('Error generating referral code:', genError);
               });
           }, 500);
         }
@@ -173,7 +174,7 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
       .catch((error: any) => {
         // Проверяем, связана ли ошибка с Telegram
         if (error?.message?.includes('wrapServiceFunction')) {
-          console.error('Telegram-related error:', error);
+          frontendLogger.error('Telegram-related error:', error);
         }
       });
   }, []);

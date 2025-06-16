@@ -1,3 +1,4 @@
+import frontendLogger from "../../utils/frontendLogger";
 import React, { useState, useEffect } from 'react';
 
 interface SafeUserProviderProps {
@@ -35,7 +36,7 @@ export const SafeUserProvider: React.FC<SafeUserProviderProps> = ({ children }) 
         });
 
       } catch (error) {
-        console.error('[SafeUserProvider] Ошибка инициализации:', error);
+        frontendLogger.error('[SafeUserProvider] Ошибка инициализации:', error);
         setState({
           isReady: false,
           hasError: true,

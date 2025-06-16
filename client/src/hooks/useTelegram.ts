@@ -1,3 +1,4 @@
+import frontendLogger from "../utils/frontendLogger";
 import { useState, useEffect } from 'react';
 
 interface TelegramUser {
@@ -59,19 +60,19 @@ export function useTelegram() {
       setUser(tg.initDataUnsafe.user || null);
       setInitData(tg.initData);
       
-      console.log('✅ Telegram WebApp initialized');
-      console.log('initData present:', !!tg.initData);
-      console.log('initData length:', tg.initData.length);
-      console.log('user data:', tg.initDataUnsafe.user);
+      frontendLogger.info('✅ Telegram WebApp initialized');
+      frontendLogger.info('initData present:', !!tg.initData);
+      frontendLogger.info('initData length:', tg.initData.length);
+      frontendLogger.info('user data:', tg.initDataUnsafe.user);
       
       if (!tg.initData) {
-        console.warn('No initData provided by Telegram WebApp');
+        frontendLogger.warn('No initData provided by Telegram WebApp');
       }
       
       // Expand the app to full height
       tg.expand();
     } else {
-      console.warn('Telegram WebApp not available');
+      frontendLogger.warn('Telegram WebApp not available');
     }
   }, []);
 

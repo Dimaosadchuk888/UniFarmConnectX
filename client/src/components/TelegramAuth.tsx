@@ -1,3 +1,4 @@
+import frontendLogger from "../utils/frontendLogger";
 import { useEffect, useState } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { apiRequest } from '@/lib/queryClient';
@@ -15,26 +16,26 @@ export function TelegramAuth({ children }: TelegramAuthProps) {
 
   useEffect(() => {
     const authenticateUser = async () => {
-      console.log('TelegramAuth: Starting authentication process');
-      console.log('Telegram ready:', isReady);
-      console.log('User data:', user);
-      console.log('InitData available:', !!initData);
+      frontendLogger.info('TelegramAuth: Starting authentication process');
+      frontendLogger.info('Telegram ready:', isReady);
+      frontendLogger.info('User data:', user);
+      frontendLogger.info('InitData available:', !!initData);
 
       if (!isReady) {
-        console.log('TelegramAuth: Waiting for Telegram WebApp to be ready');
+        frontendLogger.info('TelegramAuth: Waiting for Telegram WebApp to be ready');
         return;
       }
 
       if (!initData || initData.length === 0) {
-        console.warn('TelegramAuth: No initData available');
-        console.log('initData length:', initData?.length || 0);
-        console.log('Environment check: Telegram WebApp available:', !!window.Telegram?.WebApp);
+        frontendLogger.warn('TelegramAuth: No initData available');
+        frontendLogger.info('initData length:', initData?.length || 0);
+        frontendLogger.info('Environment check: Telegram WebApp available:', !!window.Telegram?.WebApp);
         
         // Дополнительная проверка для Telegram среды
         if (window.Telegram?.WebApp) {
-          console.log('Telegram WebApp found, but initData is empty');
-          console.log('WebApp version:', window.Telegram.WebApp.version);
-          console.log('WebApp platform:', window.Telegram.WebApp.platform);
+          frontendLogger.info('Telegram WebApp found, but initData is empty');
+          frontendLogger.info('WebApp version:', window.Telegram.WebApp.version);
+          frontendLogger.info('WebApp platform:', window.Telegram.WebApp.platform);
         }
         
         setError('Не удалось получить данные авторизации из Telegram. Убедитесь, что приложение открыто через бота @UniFarming_Bot.');
@@ -43,14 +44,14 @@ export function TelegramAuth({ children }: TelegramAuthProps) {
       }
 
       if (!user) {
-        console.warn('TelegramAuth: No user data available');
+        frontendLogger.warn('TelegramAuth: No user data available');
         setError('Не удалось получить данные пользователя из Telegram.');
         setIsLoading(false);
         return;
       }
 
       try {
-        console.log('TelegramAuth: Attempting authentication with initData');
+        frontendLogger.info('TelegramAuth: Attempting authentication with initData');
         
         // Сначала пробуем авторизацию
         const authResponse = await apiRequest('/api/v2/auth/telegram', {
@@ -65,10 +66,10 @@ export function TelegramAuth({ children }: TelegramAuthProps) {
           })
         });
 
-        console.log('Auth response:', authResponse);
+        frontendLogger.info('Auth response:', authResponse);
 
         if (authResponse.success && authResponse.token) {
-          console.log('✅ Authentication successful');
+          frontendLogger.info('✅ Authentication successful');
           
           // Сохраняем токен и данные пользователя
           localStorage.setItem('unifarm_auth_token', authResponse.token);
@@ -76,7 +77,7 @@ export function TelegramAuth({ children }: TelegramAuthProps) {
           
           setIsAuthenticated(true);
         } else {
-          console.log('Auth failed, trying registration...');
+          frontendLogger.info('Auth failed, trying registration...');
           
           // Если авторизация не прошла, пробуем регистрацию
           const registerResponse = await apiRequest('/api/v2/register/telegram', {
@@ -91,10 +92,10 @@ export function TelegramAuth({ children }: TelegramAuthProps) {
             })
           });
 
-          console.log('Register response:', registerResponse);
+          frontendLogger.info('Register response:', registerResponse);
 
           if (registerResponse.success && registerResponse.token) {
-            console.log('✅ Registration successful');
+            frontendLogger.info('✅ Registration successful');
             
             // Сохраняем токен и данные пользователя
             localStorage.setItem('unifarm_auth_token', registerResponse.token);
@@ -102,12 +103,12 @@ export function TelegramAuth({ children }: TelegramAuthProps) {
             
             setIsAuthenticated(true);
           } else {
-            console.log('❌ Both auth and registration failed');
+            frontendLogger.info('❌ Both auth and registration failed');
             setError('Не удалось авторизоваться');
           }
         }
       } catch (error) {
-        console.error('TelegramAuth error:', error);
+        frontendLogger.error('TelegramAuth error:', error);
         setError('Ошибка авторизации');
       } finally {
         setIsLoading(false);

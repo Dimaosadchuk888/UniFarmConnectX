@@ -1,3 +1,4 @@
+import frontendLogger from "../utils/frontendLogger";
 
 /**
  * Сервис для работы с Telegram WebApp API
@@ -142,14 +143,14 @@ class TelegramService {
    */
   getInitData(): string {
     if (!this.isAvailable()) {
-      console.warn('TelegramService: WebApp not available for getInitData');
+      frontendLogger.warn('TelegramService: WebApp not available for getInitData');
       return '';
     }
     
     const initData = this.webApp!.initData || '';
-    console.log('TelegramService: initData length:', initData.length);
+    frontendLogger.info('TelegramService: initData length:', initData.length);
     if (!initData) {
-      console.warn('TelegramService: Empty initData from Telegram WebApp');
+      frontendLogger.warn('TelegramService: Empty initData from Telegram WebApp');
     }
     
     return initData;
@@ -177,22 +178,22 @@ class TelegramService {
     const initData = this.getInitData();
     const user = this.getUser();
     
-    console.log('TelegramService: Preparing API headers');
-    console.log('initData available:', !!initData);
-    console.log('user available:', !!user);
+    frontendLogger.info('TelegramService: Preparing API headers');
+    frontendLogger.info('initData available:', !!initData);
+    frontendLogger.info('user available:', !!user);
     
     if (initData) {
       headers['X-Telegram-Init-Data'] = initData;
-      console.log('✅ Added X-Telegram-Init-Data header');
+      frontendLogger.info('✅ Added X-Telegram-Init-Data header');
     } else {
-      console.warn('❌ No initData available for X-Telegram-Init-Data header');
+      frontendLogger.warn('❌ No initData available for X-Telegram-Init-Data header');
     }
 
     if (user) {
       headers['X-Telegram-User-Id'] = user.id.toString();
-      console.log('✅ Added X-Telegram-User-Id header:', user.id);
+      frontendLogger.info('✅ Added X-Telegram-User-Id header:', user.id);
     } else {
-      console.warn('❌ No user data available for X-Telegram-User-Id header');
+      frontendLogger.warn('❌ No user data available for X-Telegram-User-Id header');
     }
 
     return headers;

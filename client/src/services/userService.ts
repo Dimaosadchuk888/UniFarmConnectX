@@ -1,3 +1,4 @@
+import frontendLogger from "../utils/frontendLogger";
 import { apiRequest } from "@/lib/queryClient";
 import { getTelegramUserData } from "@/services/telegramService";
 import apiConfig from "@/config/apiConfig";
@@ -68,9 +69,9 @@ class UserService {
       const referralCode = referralService.getReferralCodeForRegistration();
 
       if (referralCode) {
-        console.log('Using referral code for registration:', referralCode);
+        frontendLogger.info('Using referral code for registration:', referralCode);
       } else {
-        console.log('No referral code found for registration');
+        frontendLogger.info('No referral code found for registration');
       }
 
       // Формируем полный URL для запроса
@@ -384,9 +385,9 @@ class UserService {
       if (cachedData && cachedData.id > 0 && cachedData.id !== 1) {
         return true;
       } else if (cachedData) {
-        console.log('Cached data exists but ID is invalid:', cachedData.id);
+        frontendLogger.info('Cached data exists but ID is invalid:', cachedData.id);
       } else {
-        console.log('No cached user data found');
+        frontendLogger.info('No cached user data found');
       }
 
       // Шаг 4: Пробуем получить данные с сервера

@@ -1,3 +1,4 @@
+import frontendLogger from "../utils/frontendLogger";
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
@@ -26,7 +27,7 @@ class SafeErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('[SafeErrorBoundary] Перехвачена ошибка React:', error, errorInfo);
+    frontendLogger.error('[SafeErrorBoundary] Перехвачена ошибка React:', error, errorInfo);
     
     this.setState({
       error,

@@ -1,3 +1,4 @@
+import frontendLogger from "../../utils/frontendLogger";
 import React, { useEffect, useState } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { getTelegramUserDisplayName, isTelegramWebApp } from '@/services/telegramService';
@@ -38,7 +39,7 @@ const WelcomeSection: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('[WelcomeSection] Ошибка получения имени пользователя:', error);
+      frontendLogger.error('[WelcomeSection] Ошибка получения имени пользователя:', error);
       setUserName('Пользователь');
     }
   }, [username]);

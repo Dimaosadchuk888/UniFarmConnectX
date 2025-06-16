@@ -1,3 +1,4 @@
+import frontendLogger from "../utils/frontendLogger";
 /**
  * Сервис для обработки реферальных ссылок и кодов
  * 
@@ -117,9 +118,9 @@ class ReferralService {
       this.saveRefCode(refCodeFromUrl);
       
       // Логируем событие для аналитики
-      console.log('Referral code saved from URL:', refCodeFromUrl);
+      frontendLogger.info('Referral code saved from URL:', refCodeFromUrl);
     } else {
-      console.log('No valid referral code found in URL');
+      frontendLogger.info('No valid referral code found in URL');
     }
   }
   
