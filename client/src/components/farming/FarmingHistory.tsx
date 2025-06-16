@@ -1132,7 +1132,8 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
       );
     }
     
-    // Проверка наличия TON транзакций с защитой от ошибокconst hasTonTransactions = (() => {
+    // Проверка наличия TON транзакций с защитой от ошибок
+    const hasTonTransactions = (() => {
       try {
         // Подсчитываем количество TON транзакций для отладки
         const tonTransactions = farmingHistory.filter(item => {
@@ -1141,7 +1142,9 @@ const FarmingHistory: React.FC<FarmingHistoryProps> = ({ userId }) => {
           } catch (e) {
             return false;
           }
-        });return farmingHistory.filter(item => {
+        });
+        
+        return farmingHistory.filter(item => {
           try {
             // Безопасная проверка на TON транзакцию
             const isTonCurrency = item.currency === 'TON';
