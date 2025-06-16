@@ -1,6 +1,8 @@
 import { supabase } from '../../core/supabase';
 import { SupabaseUserRepository } from '../user/repository';
 import { logger } from '../../core/logger.js';
+import { AIRDROP_TABLE, DEFAULT_AIRDROP_STATUS } from './model';
+import type { AirdropServiceResponse } from './types';
 
 export class AirdropService {
   private userRepository: SupabaseUserRepository;
@@ -9,15 +11,11 @@ export class AirdropService {
     this.userRepository = new SupabaseUserRepository();
   }
 
-  async registerForAirdrop(telegramId: number): Promise<{
-    success: boolean;
-    message: string;
-    code?: number;
-  }> {
+  async registerForAirdrop(telegramId: number): Promise<AirdropServiceResponse> {
     try {
       // Check if user already registered
       const { data: existingParticipant } = await supabase
-        .from('airdrop_participants')
+        .from(AIRDROP_TABLE)
         .select('*')
         .eq('telegram_id', telegramId)
         .single();
@@ -43,11 +41,11 @@ export class AirdropService {
 
       // Register user for airdrop
       await supabase
-        .from('airdrop_participants')
+        .from(AIRDROP_TABLE)
         .insert([{
           telegram_id: telegramId,
           user_id: user.id,
-          status: 'active'
+          status: DEFAULT_AIRDROP_STATUS
         }]);
 
       logger.info('[AirdropService] Пользователь зарегистрирован в airdrop', {
