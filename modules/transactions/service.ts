@@ -2,6 +2,7 @@
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
 import { Transaction, TransactionType, TransactionHistory } from './types';
+import { TRANSACTIONS_TABLE } from './model';
 
 export class TransactionsService {
   /**
@@ -24,7 +25,7 @@ export class TransactionsService {
       const offset = (page - 1) * limit;
       
       let query = supabase
-        .from('transactions')
+        .from(TRANSACTIONS_TABLE)
         .select('*', { count: 'exact' })
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -83,7 +84,7 @@ export class TransactionsService {
       });
 
       const { data, error } = await supabase
-        .from('transactions')
+        .from(TRANSACTIONS_TABLE)
         .insert([{
           ...transaction,
           created_at: new Date().toISOString(),
@@ -119,7 +120,7 @@ export class TransactionsService {
   async getTransactionById(transactionId: number): Promise<Transaction | null> {
     try {
       const { data, error } = await supabase
-        .from('transactions')
+        .from(TRANSACTIONS_TABLE)
         .select('*')
         .eq('id', transactionId)
         .single();
@@ -149,7 +150,7 @@ export class TransactionsService {
   }> {
     try {
       const { data: transactions, error } = await supabase
-        .from('transactions')
+        .from(TRANSACTIONS_TABLE)
         .select('type, amount, currency')
         .eq('user_id', userId);
 
