@@ -60,7 +60,7 @@ export class TelegramService {
 
       // Calculate expected hash
       const expectedHash = crypto
-        .createHmac('sha256', secretKey)
+        .createHmac(TELEGRAM_AUTH.HASH_ALGORITHM, secretKey)
         .update(dataCheckString)
         .digest('hex');
 
