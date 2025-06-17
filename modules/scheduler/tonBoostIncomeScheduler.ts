@@ -151,8 +151,8 @@ export class TONBoostIncomeScheduler {
             .insert({
               user_id: boostPackage.user_id,
               type: 'ton_boost_reward',
-              amount: fiveMinuteIncome.toFixed(8),
-              currency: 'TON',
+              amount_uni: '0',
+              amount_ton: fiveMinuteIncome.toFixed(8),
               status: 'completed',
               description: `Доход от TON Boost ${boostPackage.boost_id}: ${fiveMinuteIncome.toFixed(6)} TON`
             });
