@@ -29,6 +29,14 @@ class SafeErrorBoundary extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     frontendLogger.error('[SafeErrorBoundary] Перехвачена ошибка React:', error, errorInfo);
     
+    // Детальное логирование для диагностики
+    console.error('React Error Details:', {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      errorBoundary: 'SafeErrorBoundary'
+    });
+    
     this.setState({
       error,
       errorInfo
@@ -69,26 +77,27 @@ class SafeErrorBoundary extends Component<Props, State> {
             <div className="space-y-2">
               <button 
                 onClick={this.handleRetry}
-                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
               >
                 Попробовать снова
               </button>
               
               <button 
                 onClick={this.handleReload}
-                className="w-full px-4 py-2 bg-muted text-muted-foreground rounded-md hover:bg-muted/80 transition-colors"
+                className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
               >
                 Перезагрузить страницу
               </button>
             </div>
             
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {this.state.error && (
               <details className="mt-4 text-left">
-                <summary className="text-xs text-muted-foreground cursor-pointer">
+                <summary className="text-xs text-gray-400 cursor-pointer">
                   Техническая информация
                 </summary>
-                <pre className="mt-2 text-xs bg-muted p-2 rounded border overflow-auto max-h-32">
+                <pre className="mt-2 text-xs bg-gray-800 text-green-400 p-2 rounded border overflow-auto max-h-32">
                   {this.state.error.message}
+                  {this.state.error.stack && '\n\nStack:\n' + this.state.error.stack}
                 </pre>
               </details>
             )}
