@@ -44,24 +44,32 @@ export class TONBoostIncomeScheduler {
     try {
       logger.info('[TON_BOOST_SCHEDULER] Начало цикла обработки TON Boost доходов');
 
-      // Получаем активные TON Boost покупки
-      const { data: activeBoosts, error: boostError } = await supabase
-        .from('boost_purchases')
-        .select('user_id, boost_id, total_earned, start_date, end_date')
-        .eq('status', 'confirmed')
-        .eq('is_active', true)
-        .lt('start_date', new Date().toISOString())
-        .gt('end_date', new Date().toISOString());
+      // Получаем пользователей с активными TON Boost пакетами из users таблицы
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .not('ton_boost_package', 'is', null)
+        .gt('ton_boost_deposit_amount', 0)
+        .gte('ton_boost_package_expires_at', new Date().toISOString());
 
-      if (boostError) {
-        logger.error('[TON_BOOST_SCHEDULER] Ошибка получения активных boost пакетов:', boostError);
+      if (usersError) {
+        logger.error('[TON_BOOST_SCHEDULER] Ошибка получения пользователей:', usersError);
         return;
       }
 
-      if (!activeBoosts || activeBoosts.length === 0) {
-        logger.info('[TON_BOOST_SCHEDULER] ✅ Цикл завершен: 0 пользователей, 0.000000 TON начислено');
+      // Фильтруем активных TON Boost пользователей
+      const activeBoostUsers = users?.filter(user => 
+        user.ton_boost_package && 
+        user.ton_boost_deposit_amount > 0 &&
+        new Date(user.ton_boost_package_expires_at) > new Date()
+      ) || [];
+
+      if (activeBoostUsers.length === 0) {
+        logger.info('[TON_BOOST_SCHEDULER] ✅ Цикл завершен: 0 активных TON Boost пользователей');
         return;
       }
+
+      logger.info(`[TON_BOOST_SCHEDULER] Найдено ${activeBoostUsers.length} активных TON Boost пользователей`);
 
       logger.info(`[TON_BOOST_SCHEDULER] Найдено ${activeBoosts.length} активных TON Boost пакетов`);
 
