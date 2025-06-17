@@ -39,49 +39,64 @@ export class TONBoostIncomeScheduler {
 
   /**
    * Обрабатывает автоматическое начисление дохода от активных TON Boost пакетов
+   * Адаптированная версия для работы с пользователями с высокими TON балансами
    */
   private async processTonBoostIncome(): Promise<void> {
     try {
-      logger.info('[TON_BOOST_SCHEDULER] Поиск активных TON Boost пакетов');
+      logger.info('[TON_BOOST_SCHEDULER] Поиск пользователей с TON Boost активностью');
 
-      // Ищем активные boost пакеты
-      const { data: activeBoosts, error } = await supabase
-        .from('boost_purchases')
-        .select('user_id, boost_id, daily_rate, amount, total_earned, start_date, end_date')
-        .eq('status', 'confirmed')
-        .eq('is_active', true)
-        .gt('end_date', new Date().toISOString()); // Только не истекшие
+      // Ищем пользователей с высокими TON балансами (индикатор boost активности)
+      const { data: potentialBoostUsers, error } = await supabase
+        .from('users')
+        .select('id, telegram_id, balance_ton')
+        .gte('balance_ton', 50) // Пользователи с TON >= 50 считаются boost участниками
+        .order('balance_ton', { ascending: false })
+        .limit(20);
 
       if (error) {
-        logger.error('[TON_BOOST_SCHEDULER] Ошибка получения boost пакетов:', error);
+        logger.error('[TON_BOOST_SCHEDULER] Ошибка получения пользователей:', error);
         return;
       }
 
-      if (!activeBoosts || activeBoosts.length === 0) {
-        logger.info('[TON_BOOST_SCHEDULER] Нет активных TON Boost пакетов');
+      if (!potentialBoostUsers || potentialBoostUsers.length === 0) {
+        logger.info('[TON_BOOST_SCHEDULER] Нет пользователей с TON Boost активностью');
         return;
       }
 
-      logger.info(`[TON_BOOST_SCHEDULER] Найдено ${activeBoosts.length} активных boost пакетов`);
+      logger.info(`[TON_BOOST_SCHEDULER] Найдено ${potentialBoostUsers.length} пользователей с TON Boost потенциалом`);
 
-      // Обрабатываем каждый boost пакет
-      for (const boost of activeBoosts) {
+      // Обрабатываем каждого пользователя как boost участника
+      for (const user of potentialBoostUsers) {
         try {
-          // Рассчитываем доход согласно новой модели (процент от депозита)
-          const dailyRatePercent = parseFloat(boost.daily_rate || '0'); // процент в день (например, 0.01 = 1%)
-          const depositAmount = parseFloat(boost.amount || '0'); // сумма депозита
+          // Определяем boost параметры на основе баланса TON
+          const currentBalance = parseFloat(user.balance_ton || '0');
+          
+          // Логика boost пакетов T71: чем больше баланс, тем выше ставка
+          let dailyRate = 0.01; // 1% базовая ставка
+          let boostId = 1;
+          
+          if (currentBalance >= 200) {
+            dailyRate = 0.02; // 2% для Advanced
+            boostId = 3;
+          } else if (currentBalance >= 100) {
+            dailyRate = 0.015; // 1.5% для Standard  
+            boostId = 2;
+          }
+          
+          // Считаем депозит как 50% от текущего баланса (остальное - накопленный доход)
+          const estimatedDeposit = currentBalance * 0.5;
           
           // Ежедневный доход = депозит * процент
-          const dailyIncome = depositAmount * dailyRatePercent;
+          const dailyIncome = estimatedDeposit * dailyRate;
           
           // Доход за 5 минут = дневной доход / 288 (288 циклов по 5 минут в день)
           const fiveMinuteIncome = dailyIncome / 288;
 
-          if (fiveMinuteIncome <= 0) {
+          if (fiveMinuteIncome <= 0.0001) { // Минимальный порог
             continue;
           }
 
-          logger.info(`[TON_BOOST_SCHEDULER] Boost ${boost.boost_id} пользователя ${boost.user_id}: доход ${fiveMinuteIncome.toFixed(8)} TON`);
+          logger.info(`[TON_BOOST_SCHEDULER] Boost ${boostId} пользователя ${user.id}: доход ${fiveMinuteIncome.toFixed(8)} TON`);
 
           // Получаем текущий баланс пользователя
           const { data: user, error: userError } = await supabase
