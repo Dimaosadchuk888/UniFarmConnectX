@@ -68,7 +68,7 @@ async function simulateDirectTonBoostIncome() {
       .from('transactions')
       .insert({
         user_id: boost.user_id,
-        type: 'TON_BOOST_INCOME',
+        type: 'ton_boost_reward',
         amount_ton: fiveMinuteIncome.toFixed(8),
         amount_uni: '0',
         currency: 'TON',
