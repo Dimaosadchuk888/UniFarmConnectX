@@ -12,34 +12,47 @@ export class MissionsService {
 
   async getActiveMissionsByTelegramId(telegramId: string): Promise<any[]> {
     try {
-      // Возвращаем стандартный набор миссий
+      // Новые социальные миссии
       return [
         {
           id: 1,
-          title: 'Первый депозит',
-          description: 'Сделайте первый депозит UNI в фарминг',
-          reward_uni: '10',
+          title: 'Вступи в Telegram-чат',
+          description: 'Присоединяйся к нашему официальному чату UniFarm',
+          reward_uni: '500.000000',
           reward_ton: '0',
-          type: MISSION_TYPES.ONE_TIME,
-          status: MISSION_STATUS.ACTIVE
+          type: MISSION_TYPES.TELEGRAM_GROUP,
+          status: MISSION_STATUS.ACTIVE,
+          url: 'https://t.me/UniverseGamesChat'
         },
         {
           id: 2,
-          title: 'Пригласите друга',
-          description: 'Пригласите друга через реферальную ссылку',
-          reward_uni: '25',
+          title: 'Подпишись на Telegram-канал',
+          description: 'Следи за новостями и обновлениями UniFarm',
+          reward_uni: '500.000000',
           reward_ton: '0',
-          type: MISSION_TYPES.REFERRAL,
-          status: MISSION_STATUS.ACTIVE
+          type: MISSION_TYPES.TELEGRAM_CHANNEL,
+          status: MISSION_STATUS.ACTIVE,
+          url: 'https://t.me/UniverseGamesChannel'
         },
         {
           id: 3,
-          title: 'Ежедневный вход',
-          description: 'Заходите в приложение 7 дней подряд',
-          reward_uni: '50',
+          title: 'Подпишись на YouTube',
+          description: 'Смотри обучающие видео и разбирайся в крипте',
+          reward_uni: '500.000000',
           reward_ton: '0',
-          type: MISSION_TYPES.DAILY,
-          status: MISSION_STATUS.ACTIVE
+          type: MISSION_TYPES.YOUTUBE,
+          status: MISSION_STATUS.ACTIVE,
+          url: 'https://youtube.com/@universegamesyoutube'
+        },
+        {
+          id: 4,
+          title: 'Подпишись на TikTok',
+          description: 'Смотри короткие ролики и зарабатывай',
+          reward_uni: '500.000000',
+          reward_ton: '0',
+          type: MISSION_TYPES.TIKTOK,
+          status: MISSION_STATUS.ACTIVE,
+          url: 'https://tiktok.com/@universegames.io'
         }
       ];
     } catch (error) {
@@ -82,11 +95,12 @@ export class MissionsService {
         return { success: false, message: 'Пользователь не найден' };
       }
 
-      // Базовые награды за миссии
+      // Награды за социальные миссии
       const missionRewards: { [key: number]: { uni: string; ton: string } } = {
-        1: { uni: '10', ton: '0' },
-        2: { uni: '25', ton: '0' },
-        3: { uni: '50', ton: '0' }
+        1: { uni: '500.000000', ton: '0' },
+        2: { uni: '500.000000', ton: '0' },
+        3: { uni: '500.000000', ton: '0' },
+        4: { uni: '500.000000', ton: '0' }
       };
 
       const reward = missionRewards[missionId];

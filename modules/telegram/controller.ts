@@ -272,7 +272,30 @@ export class TelegramController extends BaseController {
         message += `${index + 1}. ${mission.title}\n`;
         message += `📝 ${mission.description}\n`;
         message += `💎 Награда: ${mission.reward_uni} UNI\n`;
-        message += `📅 Тип: ${mission.type === 'ONE_TIME' ? 'Разовая' : mission.type === 'DAILY' ? 'Ежедневная' : 'Реферальная'}\n`;
+        
+        // Определяем тип миссии
+        let missionType = 'Неизвестный';
+        switch (mission.type) {
+          case 'telegram_group':
+            missionType = 'Telegram чат';
+            break;
+          case 'telegram_channel':
+            missionType = 'Telegram канал';
+            break;
+          case 'youtube':
+            missionType = 'YouTube подписка';
+            break;
+          case 'tiktok':
+            missionType = 'TikTok подписка';
+            break;
+          default:
+            missionType = 'Социальная сеть';
+        }
+        
+        message += `📅 Тип: ${missionType}\n`;
+        if (mission.url) {
+          message += `🔗 Ссылка: ${mission.url}\n`;
+        }
         message += `🟢 Статус: ${mission.status === 'ACTIVE' ? 'Активна' : 'Неактивна'}\n\n`;
       });
       

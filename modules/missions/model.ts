@@ -14,7 +14,11 @@ export const MISSION_TYPES = {
   DAILY: 'daily',
   WEEKLY: 'weekly',
   ONE_TIME: 'one_time',
-  REFERRAL: 'referral'
+  REFERRAL: 'referral',
+  TELEGRAM_GROUP: 'telegram_group',
+  TELEGRAM_CHANNEL: 'telegram_channel',
+  YOUTUBE: 'youtube',
+  TIKTOK: 'tiktok'
 } as const;
 
 // Mission status
