@@ -329,4 +329,39 @@ export class TelegramService {
       return false;
     }
   }
+
+  async getMissionsData(): Promise<any> {
+    try {
+      const { MissionsService } = await import('../missions/service.ts');
+      const missionsService = new MissionsService();
+      
+      // Получаем активные миссии (стандартный набор)
+      const activeMissions = await missionsService.getActiveMissionsByTelegramId('admin');
+      
+      // Подсчитываем общую статистику по всем пользователям
+      const { supabase } = await import('../../core/supabase.ts');
+      const { data: missionTransactions } = await supabase
+        .from('transactions')
+        .select('*')
+        .in('type', ['MISSION_COMPLETE', 'MISSION_REWARD']);
+      
+      const totalCompletedMissions = missionTransactions?.filter(t => t.type === 'MISSION_COMPLETE').length || 0;
+      const totalRewardsClaimed = missionTransactions?.filter(t => t.type === 'MISSION_REWARD').length || 0;
+      const totalRewardsUni = missionTransactions
+        ?.filter(t => t.type === 'MISSION_REWARD')
+        .reduce((sum, t) => sum + parseFloat(t.amount || '0'), 0) || 0;
+      
+      return {
+        activeMissions,
+        stats: {
+          totalCompletedMissions,
+          totalRewardsClaimed,
+          totalRewardsUni: totalRewardsUni.toString()
+        }
+      };
+    } catch (error) {
+      logger.error('[TelegramService] Error getting missions data', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
 }

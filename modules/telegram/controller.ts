@@ -94,7 +94,13 @@ export class TelegramController extends BaseController {
         } else if (text.startsWith('/ban ') && isAdmin) {
           const targetUserId = text.split(' ')[1];
           await this.handleBanCommand(chatId, userId, targetUserId);
-        } else if (isAdmin && (text.startsWith('/admin') || text.startsWith('/stats') || text.startsWith('/users') || text.startsWith('/missions') || text.startsWith('/ban'))) {
+        } else if (text.startsWith('/mission_complete ') && isAdmin) {
+          const missionId = text.split(' ')[1];
+          await this.handleMissionCompleteCommand(chatId, userId, missionId);
+        } else if (text.startsWith('/mission_reward ') && isAdmin) {
+          const missionId = text.split(' ')[1];
+          await this.handleMissionRewardCommand(chatId, userId, missionId);
+        } else if (isAdmin && (text.startsWith('/admin') || text.startsWith('/stats') || text.startsWith('/users') || text.startsWith('/missions') || text.startsWith('/ban') || text.startsWith('/mission_'))) {
           // Если команда админская, но не распознана
           await this.telegramService.sendMessage(chatId, 
             '❌ Неизвестная команда\n\n' +
@@ -104,6 +110,8 @@ export class TelegramController extends BaseController {
             '/users - Список пользователей\n' +
             '/user <id> - Информация о пользователе\n' +
             '/missions - Миссии\n' +
+            '/mission_complete <id> - Выполнить миссию\n' +
+            '/mission_reward <id> - Выдать награду\n' +
             '/ban <id> - Заблокировать пользователя'
           );
         } else if (!isAdmin && (text.startsWith('/admin') || text.startsWith('/stats') || text.startsWith('/users') || text.startsWith('/missions') || text.startsWith('/ban'))) {
@@ -248,11 +256,37 @@ export class TelegramController extends BaseController {
   }
 
   private async handleMissionsCommand(chatId: number, userId: number) {
-    await this.telegramService.sendMessage(chatId, 
-      '🎯 Система миссий\n\n' +
-      '⚠️ Функция в разработке\n' +
-      'Скоро будет доступно управление миссиями и заданиями.'
-    );
+    try {
+      const missionsData = await this.telegramService.getMissionsData();
+      const { activeMissions, stats } = missionsData;
+      
+      let message = '🎯 Система миссий\n\n';
+      message += '📊 Общая статистика:\n';
+      message += `✅ Выполнено миссий: ${stats.totalCompletedMissions}\n`;
+      message += `🎁 Получено наград: ${stats.totalRewardsClaimed}\n`;
+      message += `💰 Общая сумма UNI: ${stats.totalRewardsUni}\n\n`;
+      
+      message += '🎯 Активные миссии:\n\n';
+      
+      activeMissions.forEach((mission: any, index: number) => {
+        message += `${index + 1}. ${mission.title}\n`;
+        message += `📝 ${mission.description}\n`;
+        message += `💎 Награда: ${mission.reward_uni} UNI\n`;
+        message += `📅 Тип: ${mission.type === 'ONE_TIME' ? 'Разовая' : mission.type === 'DAILY' ? 'Ежедневная' : 'Реферальная'}\n`;
+        message += `🟢 Статус: ${mission.status === 'ACTIVE' ? 'Активна' : 'Неактивна'}\n\n`;
+      });
+      
+      message += '💡 Для управления миссиями используйте команды:\n';
+      message += '/mission_complete <id> - отметить миссию как выполненную\n';
+      message += '/mission_reward <id> - выдать награду за миссию';
+      
+      await this.telegramService.sendMessage(chatId, message);
+    } catch (error) {
+      logger.error('[TelegramController] Ошибка в handleMissionsCommand:', error);
+      await this.telegramService.sendMessage(chatId, 
+        '❌ Ошибка получения данных о миссиях. Попробуйте позже.'
+      );
+    }
   }
 
   private async handleBanCommand(chatId: number, userId: number, targetUserId: string) {
@@ -283,6 +317,64 @@ export class TelegramController extends BaseController {
     } else if (data.startsWith('users_page_')) {
       const page = parseInt(data.split('_')[2]);
       await this.handleUsersCommand(chatId, userId, `/users ${page}`);
+    }
+  }
+
+  private async handleMissionCompleteCommand(chatId: number, userId: number, missionId: string) {
+    try {
+      if (!missionId || isNaN(Number(missionId))) {
+        await this.telegramService.sendMessage(chatId, '❌ Неверный ID миссии. Используйте: /mission_complete <id>');
+        return;
+      }
+
+      const { MissionsService } = await import('../missions/service.ts');
+      const missionsService = new MissionsService();
+      
+      // Для админской команды используем системный telegram_id
+      const result = await missionsService.completeMission('admin', Number(missionId));
+      
+      if (result.success) {
+        await this.telegramService.sendMessage(chatId, 
+          `✅ ${result.message}\n` +
+          `🎯 Миссия ${missionId} отмечена как выполненная`
+        );
+      } else {
+        await this.telegramService.sendMessage(chatId, `❌ ${result.message}`);
+      }
+    } catch (error) {
+      logger.error('[TelegramController] Ошибка в handleMissionCompleteCommand:', error);
+      await this.telegramService.sendMessage(chatId, '❌ Ошибка выполнения команды');
+    }
+  }
+
+  private async handleMissionRewardCommand(chatId: number, userId: number, missionId: string) {
+    try {
+      if (!missionId || isNaN(Number(missionId))) {
+        await this.telegramService.sendMessage(chatId, '❌ Неверный ID миссии. Используйте: /mission_reward <id>');
+        return;
+      }
+
+      const { MissionsService } = await import('../missions/service.ts');
+      const missionsService = new MissionsService();
+      
+      // Для админской команды используем системный telegram_id
+      const result = await missionsService.claimMissionReward('admin', Number(missionId));
+      
+      if (result.success) {
+        let message = `✅ ${result.message}\n`;
+        message += `🎯 Награда за миссию ${missionId} выдана`;
+        
+        if (result.reward) {
+          message += `\n💰 Получено: ${result.reward.uni} UNI`;
+        }
+        
+        await this.telegramService.sendMessage(chatId, message);
+      } else {
+        await this.telegramService.sendMessage(chatId, `❌ ${result.message}`);
+      }
+    } catch (error) {
+      logger.error('[TelegramController] Ошибка в handleMissionRewardCommand:', error);
+      await this.telegramService.sendMessage(chatId, '❌ Ошибка выполнения команды');
     }
   }
 }
