@@ -105,7 +105,10 @@ function App() {
           return { ...prev, userId: 1 };
         }
         return prev;
-      });} catch (error) {}
+      });
+    } catch (error) {
+      console.error('Authentication error:', error);
+    }
   };
 
   const getOrCreateGuestId = () => {
@@ -176,20 +179,8 @@ function App() {
   const hasValidTelegramData = isTelegramAvailable && telegram?.WebApp && 
     (telegram.WebApp.initData || telegram.WebApp.initDataUnsafe?.user);
 
-  // Если Telegram доступен, но данные недоступны, показываем решатель проблем
-  if (isTelegramAvailable && !hasValidTelegramData) {
-    return (
-      <TelegramInitDataSolver 
-        onSuccess={(userData) => {
-          setState(prev => ({ 
-            ...prev, 
-            userId: userData.id, 
-            isLoading: false 
-          }));
-        }} 
-      />
-    );
-  }
+  // Убираем TelegramInitDataSolver до исправления ошибки
+  // Пропускаем проверку Telegram данных и загружаем основное приложение
 
   return (
     <SafeErrorBoundary>
