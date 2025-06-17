@@ -28,7 +28,7 @@ import { config, logger, globalErrorHandler, notFoundHandler, EnvValidator } fro
 import { supabase } from '../core/supabase';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
 import { farmingScheduler } from '../core/scheduler/farmingScheduler';
-import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler_fixed';
+import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
