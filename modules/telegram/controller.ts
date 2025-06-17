@@ -68,35 +68,63 @@ export class TelegramController extends BaseController {
         } : null
       });
 
-      // Обработка команды /start
-      if (update.message && update.message.text && update.message.text.startsWith('/start')) {
+      // Обработка текстовых команд
+      if (update.message && update.message.text) {
         const chatId = update.message.chat.id;
         const userId = update.message.from.id;
         const username = update.message.from.username;
+        const text = update.message.text.trim();
         
-        logger.info('[TelegramWebhook] Обработка команды /start', {
-          chat_id: chatId,
-          user_id: userId,
-          username: username
-        });
-
-        // Отправляем ответ с кнопкой запуска Mini App
-        await this.telegramService.sendMessage(chatId, 
-          '🌾 Добро пожаловать в UniFarm Connect!\n\n' +
-          'Начните фармить UNI и TON токены прямо сейчас!', 
-          {
-            reply_markup: {
-              inline_keyboard: [[{
-                text: '🚀 Запустить UniFarm',
-                web_app: { url: 'https://uni-farm-connect-x-osadchukdmitro2.replit.app' }
-              }]]
-            }
-          }
-        );
+        // Проверяем, является ли пользователь администратором
+        const isAdmin = await this.telegramService.checkAdminStatus(userId, username);
+        
+        if (text.startsWith('/start')) {
+          await this.handleStartCommand(chatId, userId, username);
+        } else if (text.startsWith('/admin') && isAdmin) {
+          await this.handleAdminCommand(chatId, userId);
+        } else if (text.startsWith('/stats') && isAdmin) {
+          await this.handleStatsCommand(chatId, userId);
+        } else if (text.startsWith('/users') && isAdmin) {
+          await this.handleUsersCommand(chatId, userId, text);
+        } else if (text.startsWith('/user ') && isAdmin) {
+          const targetUserId = text.split(' ')[1];
+          await this.handleUserCommand(chatId, userId, targetUserId);
+        } else if (text.startsWith('/missions') && isAdmin) {
+          await this.handleMissionsCommand(chatId, userId);
+        } else if (text.startsWith('/ban ') && isAdmin) {
+          const targetUserId = text.split(' ')[1];
+          await this.handleBanCommand(chatId, userId, targetUserId);
+        } else if (isAdmin && (text.startsWith('/admin') || text.startsWith('/stats') || text.startsWith('/users') || text.startsWith('/missions') || text.startsWith('/ban'))) {
+          // Если команда админская, но не распознана
+          await this.telegramService.sendMessage(chatId, 
+            '❌ Неизвестная команда\n\n' +
+            'Доступные команды:\n' +
+            '/admin - Главное меню\n' +
+            '/stats - Статистика\n' +
+            '/users - Список пользователей\n' +
+            '/user <id> - Информация о пользователе\n' +
+            '/missions - Миссии\n' +
+            '/ban <id> - Заблокировать пользователя'
+          );
+        } else if (!isAdmin && (text.startsWith('/admin') || text.startsWith('/stats') || text.startsWith('/users') || text.startsWith('/missions') || text.startsWith('/ban'))) {
+          // Если пользователь не админ, но пытается использовать админ команды
+          await this.telegramService.sendMessage(chatId, '❌ У вас нет прав администратора');
+        }
       }
 
       // Обработка callback query (нажатия на кнопки)
       if (update.callback_query) {
+        const chatId = update.callback_query.message.chat.id;
+        const userId = update.callback_query.from.id;
+        const username = update.callback_query.from.username;
+        const data = update.callback_query.data;
+        
+        const isAdmin = await this.telegramService.checkAdminStatus(userId, username);
+        
+        if (isAdmin && data) {
+          await this.handleAdminCallback(chatId, userId, data);
+        }
+        
         await this.telegramService.answerCallbackQuery(update.callback_query.id);
       }
 
@@ -107,6 +135,154 @@ export class TelegramController extends BaseController {
     }, 'обработки Telegram webhook');
     } catch (error) {
       next(error);
+    }
+  }
+
+  private async handleStartCommand(chatId: number, userId: number, username: string) {
+    logger.info('[TelegramWebhook] Обработка команды /start', {
+      chat_id: chatId,
+      user_id: userId,
+      username: username
+    });
+
+    await this.telegramService.sendMessage(chatId, 
+      '🌾 Добро пожаловать в UniFarm Connect!\n\n' +
+      'Начните фармить UNI и TON токены прямо сейчас!', 
+      {
+        reply_markup: {
+          inline_keyboard: [[{
+            text: '🚀 Запустить UniFarm',
+            web_app: { url: 'https://uni-farm-connect-x-osadchukdmitro2.replit.app' }
+          }]]
+        }
+      }
+    );
+  }
+
+  private async handleAdminCommand(chatId: number, userId: number) {
+    const keyboard = {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📊 Статистика', callback_data: 'admin_stats' }],
+          [{ text: '👥 Пользователи', callback_data: 'admin_users' }],
+          [{ text: '🎯 Миссии', callback_data: 'admin_missions' }],
+          [{ text: '🔧 Управление', callback_data: 'admin_manage' }]
+        ]
+      }
+    };
+
+    await this.telegramService.sendMessage(chatId, 
+      '🔧 Панель администратора UniFarm\n\n' +
+      'Выберите раздел для управления:', 
+      keyboard
+    );
+  }
+
+  private async handleStatsCommand(chatId: number, userId: number) {
+    try {
+      const stats = await this.telegramService.getSystemStats();
+      
+      await this.telegramService.sendMessage(chatId, 
+        `📊 Статистика системы UniFarm\n\n` +
+        `👥 Пользователи: ${stats.totalUsers}\n` +
+        `💰 Транзакции: ${stats.totalTransactions}\n` +
+        `🌾 Фарминг-награды: ${stats.totalFarmingRewards}\n` +
+        `⚡ Статус: ${stats.systemStatus}\n` +
+        `🕐 Обновлено: ${new Date(stats.lastUpdated).toLocaleString('ru-RU')}`
+      );
+    } catch (error) {
+      await this.telegramService.sendMessage(chatId, '❌ Ошибка получения статистики');
+    }
+  }
+
+  private async handleUsersCommand(chatId: number, userId: number, text: string) {
+    try {
+      const page = parseInt(text.split(' ')[1]) || 1;
+      const users = await this.telegramService.getUsersList(page, 10);
+      
+      let message = `👥 Пользователи (страница ${page}/${Math.ceil(users.total / 10)})\n\n`;
+      
+      users.users.forEach((user: any, index: number) => {
+        message += `${(page - 1) * 10 + index + 1}. ${user.username || 'Неизвестно'}\n`;
+        message += `   ID: ${user.telegram_id}\n`;
+        message += `   UNI: ${user.balance_uni || '0'}\n`;
+        message += `   TON: ${user.balance_ton || '0'}\n\n`;
+      });
+      
+      const keyboard: any = { reply_markup: { inline_keyboard: [] } };
+      
+      if (page > 1) {
+        keyboard.reply_markup.inline_keyboard.push([
+          { text: '⬅️ Предыдущая', callback_data: `users_page_${page - 1}` }
+        ]);
+      }
+      
+      if (users.hasMore) {
+        keyboard.reply_markup.inline_keyboard.push([
+          { text: 'Следующая ➡️', callback_data: `users_page_${page + 1}` }
+        ]);
+      }
+      
+      await this.telegramService.sendMessage(chatId, message, keyboard);
+    } catch (error) {
+      await this.telegramService.sendMessage(chatId, '❌ Ошибка получения списка пользователей');
+    }
+  }
+
+  private async handleUserCommand(chatId: number, userId: number, targetUserId: string) {
+    try {
+      const userInfo = await this.telegramService.getUserInfo(targetUserId);
+      
+      await this.telegramService.sendMessage(chatId, 
+        `👤 Информация о пользователе\n\n` +
+        `ID: ${userInfo.telegram_id}\n` +
+        `Username: ${userInfo.username || 'Не указан'}\n` +
+        `UNI баланс: ${userInfo.balance_uni || '0'}\n` +
+        `TON баланс: ${userInfo.balance_ton || '0'}\n` +
+        `Статус: ${userInfo.is_active ? 'Активен' : 'Неактивен'}\n` +
+        `Регистрация: ${new Date(userInfo.created_at).toLocaleString('ru-RU')}`
+      );
+    } catch (error) {
+      await this.telegramService.sendMessage(chatId, '❌ Пользователь не найден');
+    }
+  }
+
+  private async handleMissionsCommand(chatId: number, userId: number) {
+    await this.telegramService.sendMessage(chatId, 
+      '🎯 Система миссий\n\n' +
+      '⚠️ Функция в разработке\n' +
+      'Скоро будет доступно управление миссиями и заданиями.'
+    );
+  }
+
+  private async handleBanCommand(chatId: number, userId: number, targetUserId: string) {
+    try {
+      const result = await this.telegramService.banUser(targetUserId);
+      
+      if (result) {
+        await this.telegramService.sendMessage(chatId, 
+          `✅ Пользователь ${targetUserId} заблокирован`
+        );
+      } else {
+        await this.telegramService.sendMessage(chatId, 
+          `❌ Ошибка блокировки пользователя ${targetUserId}`
+        );
+      }
+    } catch (error) {
+      await this.telegramService.sendMessage(chatId, '❌ Ошибка выполнения команды');
+    }
+  }
+
+  private async handleAdminCallback(chatId: number, userId: number, data: string) {
+    if (data === 'admin_stats') {
+      await this.handleStatsCommand(chatId, userId);
+    } else if (data === 'admin_users') {
+      await this.handleUsersCommand(chatId, userId, '/users 1');
+    } else if (data === 'admin_missions') {
+      await this.handleMissionsCommand(chatId, userId);
+    } else if (data.startsWith('users_page_')) {
+      const page = parseInt(data.split('_')[2]);
+      await this.handleUsersCommand(chatId, userId, `/users ${page}`);
     }
   }
 }

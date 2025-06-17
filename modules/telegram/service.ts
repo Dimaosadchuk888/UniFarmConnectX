@@ -229,4 +229,104 @@ export class TelegramService {
       return false;
     }
   }
+
+  async checkAdminStatus(telegramId: number, username?: string): Promise<boolean> {
+    try {
+      const { supabase } = await import('../../core/supabase.ts');
+      
+      // Проверяем статус администратора по telegram_id или username
+      let query = supabase
+        .from('users')
+        .select('is_admin')
+        .eq('telegram_id', telegramId.toString());
+      
+      const { data: user, error } = await query.single();
+      
+      if (error && username) {
+        // Если не найден по ID, пробуем по username
+        const { data: userByUsername, error: usernameError } = await supabase
+          .from('users')
+          .select('is_admin')
+          .eq('username', username)
+          .single();
+          
+        if (usernameError) {
+          logger.warn('[TelegramService] User not found for admin check', { telegramId, username });
+          return false;
+        }
+        
+        return userByUsername?.is_admin === true;
+      }
+      
+      return user?.is_admin === true;
+    } catch (error) {
+      logger.error('[TelegramService] Error checking admin status', { error: error instanceof Error ? error.message : String(error) });
+      return false;
+    }
+  }
+
+  async getSystemStats(): Promise<any> {
+    try {
+      const { AdminService } = await import('../admin/service.ts');
+      const adminService = new AdminService();
+      return await adminService.getDashboardStats();
+    } catch (error) {
+      logger.error('[TelegramService] Error getting system stats', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  async getUsersList(page: number, limit: number): Promise<any> {
+    try {
+      const { AdminService } = await import('../admin/service.ts');
+      const adminService = new AdminService();
+      return await adminService.getUsersList(page, limit);
+    } catch (error) {
+      logger.error('[TelegramService] Error getting users list', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  async getUserInfo(userId: string): Promise<any> {
+    try {
+      const { supabase } = await import('../../core/supabase.ts');
+      
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', userId)
+        .single();
+        
+      if (error || !user) {
+        throw new Error('User not found');
+      }
+      
+      return user;
+    } catch (error) {
+      logger.error('[TelegramService] Error getting user info', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  async banUser(userId: string): Promise<boolean> {
+    try {
+      const { supabase } = await import('../../core/supabase.ts');
+      
+      const { error } = await supabase
+        .from('users')
+        .update({ is_active: false })
+        .eq('telegram_id', userId);
+        
+      if (error) {
+        logger.error('[TelegramService] Error banning user', { error: error.message });
+        return false;
+      }
+      
+      logger.info('[TelegramService] User banned successfully', { userId });
+      return true;
+    } catch (error) {
+      logger.error('[TelegramService] Error in ban user operation', { error: error instanceof Error ? error.message : String(error) });
+      return false;
+    }
+  }
 }
