@@ -150,7 +150,7 @@ export class TONBoostIncomeScheduler {
             .from('transactions')
             .insert({
               user_id: boostPackage.user_id,
-              type: 'ton_boost_reward',
+              type: 'FARMING_REWARD',
               amount_uni: '0',
               amount_ton: fiveMinuteIncome.toFixed(8),
               status: 'completed',
