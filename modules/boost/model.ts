@@ -34,7 +34,7 @@ export const BOOST_CONFIG = {
 
 // Transaction types for boost operations
 export const BOOST_TRANSACTION_TYPES = {
-  TON_BOOST_INCOME: 'ton_boost_income',
+  TON_BOOST_INCOME: 'FARMING_REWARD', // Исправлено для совместимости с БД
   BOOST_UNI_BONUS: 'boost_uni_bonus',
   BOOST_PURCHASE: 'boost_purchase'
 } as const;
