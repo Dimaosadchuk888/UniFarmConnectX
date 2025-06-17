@@ -3,6 +3,7 @@ import { FarmingController } from './controller';
 import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
 import { requireAuth } from '../../core/middleware/auth';
 import { validateBody } from '../../core/middleware/validate';
+import { strictRateLimit, standardRateLimit, liberalRateLimit } from '../../core/middleware/rateLimiting';
 import { z } from 'zod';
 
 const router = Router();
@@ -26,20 +27,20 @@ const farmingStartSchema = z.object({
   ).optional()
 });
 
-// Маршруты фарминга с обязательной авторизацией и валидацией
-router.get('/', requireTelegramAuth, farmingController.getFarmingData.bind(farmingController));
-router.get('/data', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController)); // Main data endpoint с авторизацией
-router.get('/info', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController));
-router.get('/status', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController)); // Alias for /info
-router.post('/start', requireTelegramAuth, validateBody(farmingStartSchema), farmingController.startFarming.bind(farmingController));
-router.get('/start', requireTelegramAuth, farmingController.getFarmingInfo.bind(farmingController)); // GET endpoint for start status
-router.post('/claim', requireTelegramAuth, farmingController.claimFarming.bind(farmingController));
+// Маршруты фарминга с обязательной авторизацией, валидацией и rate limiting
+router.get('/', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingData.bind(farmingController));
+router.get('/data', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingInfo.bind(farmingController)); // Main data endpoint с авторизацией
+router.get('/info', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingInfo.bind(farmingController));
+router.get('/status', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingInfo.bind(farmingController)); // Alias for /info
+router.post('/start', requireTelegramAuth, standardRateLimit, validateBody(farmingStartSchema), farmingController.startFarming.bind(farmingController));
+router.get('/start', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingInfo.bind(farmingController)); // GET endpoint for start status
+router.post('/claim', requireTelegramAuth, standardRateLimit, farmingController.claimFarming.bind(farmingController));
 
-// UNI Farming specific routes с валидацией депозитов
-router.post('/deposit', requireTelegramAuth, validateBody(farmingDepositSchema), farmingController.depositUni.bind(farmingController));
-router.post('/harvest', requireTelegramAuth, farmingController.harvestUni.bind(farmingController));
+// UNI Farming specific routes с валидацией депозитов (критические финансовые операции)
+router.post('/deposit', requireTelegramAuth, strictRateLimit, validateBody(farmingDepositSchema), farmingController.depositUni.bind(farmingController));
+router.post('/harvest', requireTelegramAuth, strictRateLimit, farmingController.harvestUni.bind(farmingController));
 
 // Farming history route
-router.get('/history', requireTelegramAuth, farmingController.getFarmingHistory.bind(farmingController));
+router.get('/history', requireTelegramAuth, liberalRateLimit, farmingController.getFarmingHistory.bind(farmingController));
 
 export default router;

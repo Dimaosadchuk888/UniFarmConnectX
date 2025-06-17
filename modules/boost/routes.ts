@@ -38,27 +38,27 @@ const boostIdParamSchema = z.object({
 });
 
 // GET /api/boosts - Получить список доступных бустов
-router.get('/', requireTelegramAuth, boostController.getAvailableBoosts.bind(boostController));
+router.get('/', requireTelegramAuth, liberalRateLimit, boostController.getAvailableBoosts.bind(boostController));
 
 // GET /api/boosts/user/:userId - Получить активные бусты пользователя
-router.get('/user/:userId', requireTelegramAuth, validateParams(userIdParamSchema), boostController.getUserBoosts.bind(boostController));
+router.get('/user/:userId', requireTelegramAuth, liberalRateLimit, validateParams(userIdParamSchema), boostController.getUserBoosts.bind(boostController));
 
 // POST /api/boosts/activate - Активировать буст
-router.post('/activate', requireTelegramAuth, validateBody(boostActivationSchema), boostController.activateBoost.bind(boostController));
+router.post('/activate', requireTelegramAuth, standardRateLimit, validateBody(boostActivationSchema), boostController.activateBoost.bind(boostController));
 
 // DELETE /api/boosts/deactivate/:boostId - Деактивировать буст
-router.delete('/deactivate/:boostId', requireTelegramAuth, validateParams(boostIdParamSchema), boostController.deactivateBoost.bind(boostController));
+router.delete('/deactivate/:boostId', requireTelegramAuth, standardRateLimit, validateParams(boostIdParamSchema), boostController.deactivateBoost.bind(boostController));
 
 // GET /api/boosts/stats/:userId - Получить статистику использования бустов
-router.get('/stats/:userId', requireTelegramAuth, validateParams(userIdParamSchema), boostController.getBoostStats.bind(boostController));
+router.get('/stats/:userId', requireTelegramAuth, liberalRateLimit, validateParams(userIdParamSchema), boostController.getBoostStats.bind(boostController));
 
 // GET /api/boosts/packages - Получить доступные пакеты бустов
-router.get('/packages', requireTelegramAuth, boostController.getPackages.bind(boostController));
+router.get('/packages', requireTelegramAuth, liberalRateLimit, boostController.getPackages.bind(boostController));
 
-// POST /api/boosts/purchase - Покупка Boost-пакета
-router.post('/purchase', requireTelegramAuth, validateBody(boostPurchaseSchema), boostController.purchaseBoost.bind(boostController));
+// POST /api/boosts/purchase - Покупка Boost-пакета (критическая финансовая операция)
+router.post('/purchase', requireTelegramAuth, strictRateLimit, validateBody(boostPurchaseSchema), boostController.purchaseBoost.bind(boostController));
 
-// POST /api/boosts/verify-ton-payment - Проверка и подтверждение TON платежа
-router.post('/verify-ton-payment', requireTelegramAuth, validateBody(tonPaymentSchema), boostController.verifyTonPayment.bind(boostController));
+// POST /api/boosts/verify-ton-payment - Проверка и подтверждение TON платежа (критическая операция)
+router.post('/verify-ton-payment', requireTelegramAuth, strictRateLimit, validateBody(tonPaymentSchema), boostController.verifyTonPayment.bind(boostController));
 
 export default router;
