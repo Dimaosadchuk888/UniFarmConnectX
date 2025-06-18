@@ -26,6 +26,8 @@ router.get('/', requireTelegramAuth, missionsController.getActiveMissions.bind(m
 router.get('/list', requireTelegramAuth, missionsController.getActiveMissions.bind(missionsController)); // List endpoint for API consistency
 router.get('/active', requireTelegramAuth, missionsController.getActiveMissions.bind(missionsController));
 router.post('/complete', requireTelegramAuth, validateBody(missionCompleteSchema), missionsController.completeMission.bind(missionsController));
+router.post('/:missionId/complete', requireTelegramAuth, missionsController.completeMissionById.bind(missionsController));
+router.post('/:missionId/claim', requireTelegramAuth, missionsController.claimMissionReward.bind(missionsController));
 router.get('/stats', requireTelegramAuth, missionsController.getMissionStats.bind(missionsController));
 router.get('/user/:userId', requireTelegramAuth, validateParams(userIdParamSchema), missionsController.getUserMissions.bind(missionsController));
 

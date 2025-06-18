@@ -140,4 +140,64 @@ export class MissionsController extends BaseController {
       next(error);
     }
   }
+
+  async completeMissionById(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const user = await userRepository.getOrCreateUserFromTelegram({
+          telegram_id: telegram.user.id,
+          username: telegram.user.username,
+          first_name: telegram.user.first_name,
+          ref_by: req.query.start_param as string
+        });
+
+        const missionId = parseInt(req.params.missionId);
+        if (isNaN(missionId)) {
+          return this.sendError(res, 'Invalid mission ID', 400);
+        }
+
+        const result = await missionsService.completeMission(
+          telegram.user.id.toString(),
+          missionId
+        );
+
+        this.sendSuccess(res, result);
+      }, 'выполнения миссии по ID');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async claimMissionReward(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+        const telegram = this.validateTelegramAuth(req, res);
+        if (!telegram) return;
+
+        const user = await userRepository.getOrCreateUserFromTelegram({
+          telegram_id: telegram.user.id,
+          username: telegram.user.username,
+          first_name: telegram.user.first_name,
+          ref_by: req.query.start_param as string
+        });
+
+        const missionId = parseInt(req.params.missionId);
+        if (isNaN(missionId)) {
+          return this.sendError(res, 'Invalid mission ID', 400);
+        }
+
+        const result = await missionsService.claimMissionReward(
+          telegram.user.id.toString(),
+          missionId
+        );
+
+        this.sendSuccess(res, result);
+      }, 'получения награды за миссию');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

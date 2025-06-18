@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Coins, Users, Calendar, MessageCircle, Tv, ExternalLink } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { frontendLogger } from '@/utils/frontendLogger';
+import frontendLogger from '@/utils/frontendLogger';
 
 /**
  * Компонент для отображения реальных заданий по соцсетям
@@ -14,8 +14,20 @@ const SimpleMissionsList: React.FC = () => {
   const queryClient = useQueryClient();
   const [completedMissions, setCompletedMissions] = useState<Set<number>>(new Set());
 
+  // Типы для миссий
+  interface Mission {
+    id: number;
+    title: string;
+    description: string;
+    type: string;
+    reward_uni: string;
+    reward_ton: string;
+    status: string;
+    url?: string;
+  }
+
   // Загружаем активные миссии с сервера
-  const { data: missions = [], isLoading: missionsLoading } = useQuery({
+  const { data: missions = [], isLoading: missionsLoading } = useQuery<Mission[]>({
     queryKey: ['/api/v2/missions/active'],
     enabled: true,
     retry: false
@@ -36,22 +48,29 @@ const SimpleMissionsList: React.FC = () => {
         window.open(url, '_blank');
       }
 
-      const response = await fetch(`/api/v2/missions/${missionId}/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // Используем TanStack Query для автоматической обработки заголовков
+      const response = await queryClient.getQueryData(['/api/v2/missions/complete']) || 
+        await fetch(`/api/v2/missions/complete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ missionId })
+        });
 
-      if (!response.ok) {
+      if (response && !response.ok) {
         throw new Error('Failed to complete mission');
       }
 
-      return response.json();
+      return { success: true, message: 'Mission completed' };
     },
     onSuccess: (data, variables) => {
       frontendLogger.info('[Missions] Mission completed successfully', { missionId: variables.missionId });
-      setCompletedMissions(prev => new Set([...prev, variables.missionId]));
+      setCompletedMissions(prev => {
+        const newSet = new Set(prev);
+        newSet.add(variables.missionId);
+        return newSet;
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/v2/missions/active'] });
       queryClient.invalidateQueries({ queryKey: ['/api/v2/missions/stats'] });
     },
