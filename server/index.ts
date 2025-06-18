@@ -446,57 +446,32 @@ async function startServer() {
     // Port configuration
     const apiPort = config.app.port;
     
-    // Static files and SPA routing
-    const isProduction = process.env.NODE_ENV === 'production';
+    // Static files and SPA routing (для всех режимов)
+    // Static file serving for PWA files (before express.static)
+    app.get('/manifest.json', (req: Request, res: Response) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.sendFile(path.resolve('client/public/manifest.json'));
+    });
     
-    if (isProduction) {
-      // Static file serving for PWA files (before express.static)
-      app.get('/manifest.json', (req: Request, res: Response) => {
-        res.setHeader('Content-Type', 'application/json');
-        res.sendFile(path.resolve('client/public/manifest.json'));
-      });
+    // TON Connect manifest for wallet integration
+    app.get('/tonconnect-manifest.json', (req: Request, res: Response) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.sendFile(path.resolve('client/public/tonconnect-manifest.json'));
+    });
+    
+    // Serve static files from dist/public (работает в любом режиме)
+    app.use(express.static(path.join(process.cwd(), 'dist/public')));
+    
+    // SPA fallback - serve index.html for non-API routes
+    app.get('*', (req: Request, res: Response, next: NextFunction) => {
+      // Skip API routes, webhook, and static files
+      if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path === '/webhook' || req.path === '/manifest.json' || req.path === '/tonconnect-manifest.json') {
+        return next();
+      }
       
-      // TON Connect manifest for wallet integration
-      app.get('/tonconnect-manifest.json', (req: Request, res: Response) => {
-        res.setHeader('Content-Type', 'application/json');
-        res.sendFile(path.resolve('client/public/tonconnect-manifest.json'));
-      });
-      
-      // Serve static files from dist/public
-      app.use(express.static(path.join(process.cwd(), 'dist/public')));
-      
-      // SPA fallback - serve index.html for non-API routes
-      app.get('*', (req: Request, res: Response, next: NextFunction) => {
-        // Skip API routes, webhook, and static files
-        if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path === '/webhook' || req.path === '/manifest.json' || req.path === '/tonconnect-manifest.json') {
-          return next();
-        }
-        
-        // Fallback to index.html for SPA routing
-        res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
-      });
-    } else {
-      // Development mode - setup Vite dev server with WebSocket support
-      const { setupVite } = await import('./vite-simple.js');
-      
-      // Создаем HTTP сервер для WebSocket интеграции в development режиме
-      const httpServer = createServer(app);
-      
-      // Устанавливаем WebSocket сервер для development
-      const wss = setupWebSocketServer(httpServer);
-      
-      // Start server first, then setup Vite
-      const server = httpServer.listen(Number(apiPort), config.app.host, async () => {
-        logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
-        logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
-        logger.info(`🌐 Frontend: http://${config.app.host}:${apiPort}/ (Vite dev server)`);
-        logger.info(`🔌 WebSocket сервер активен на ws://${config.app.host}:${apiPort}/ws`);
-        
-        // Setup Vite after server starts
-        await setupVite(app, server);
-      });
-      return server;
-    }
+      // Fallback to index.html for SPA routing
+      res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
+    });
 
     // ДОПОЛНИТЕЛЬНЫЕ WEBHOOK МАРШРУТЫ для надежности
     app.all('/webhook', express.json(), async (req: Request, res: Response) => {
@@ -535,11 +510,7 @@ async function startServer() {
       logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
       logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
       logger.info(`🔌 WebSocket сервер активен на ws://${config.app.host}:${apiPort}/ws`);
-      if (process.env.NODE_ENV === 'production') {
-        logger.info(`🌐 Frontend: http://${config.app.host}:${apiPort}/`);
-      } else {
-        logger.info(`🌐 Frontend: http://${config.app.host}:5173/ (Vite dev server)`);
-      }
+      logger.info(`🌐 Frontend: http://${config.app.host}:${apiPort}/ (Static files from dist/public)`);
       
       // Supabase API не требует мониторинга connection pool
       logger.info('✅ Supabase database connection active');
