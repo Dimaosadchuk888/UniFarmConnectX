@@ -33,52 +33,11 @@ const SimpleMissionsList: React.FC = () => {
     retry: false
   });
 
-  // Временно используем данные из сервера для отображения
-  const serverMissions: Mission[] = [
-    {
-      id: 1,
-      title: 'Вступи в Telegram-чат',
-      description: 'Присоединяйся к нашему официальному чату UniFarm',
-      reward_uni: '500.000000',
-      reward_ton: '0',
-      type: 'telegram_group',
-      status: 'active',
-      url: 'https://t.me/UniverseGamesChat'
-    },
-    {
-      id: 2,
-      title: 'Подпишись на Telegram-канал',
-      description: 'Следи за новостями и обновлениями UniFarm',
-      reward_uni: '500.000000',
-      reward_ton: '0',
-      type: 'telegram_channel',
-      status: 'active',
-      url: 'https://t.me/UniverseGamesChannel'
-    },
-    {
-      id: 3,
-      title: 'Подпишись на YouTube',
-      description: 'Смотри обучающие видео и разбирайся в крипте',
-      reward_uni: '500.000000',
-      reward_ton: '0',
-      type: 'youtube',
-      status: 'active',
-      url: 'https://youtube.com/@universegamesyoutube'
-    },
-    {
-      id: 4,
-      title: 'Подпишись на TikTok',
-      description: 'Смотри короткие ролики и зарабатывай',
-      reward_uni: '500.000000',
-      reward_ton: '0',
-      type: 'tiktok',
-      status: 'active',
-      url: 'https://tiktok.com/@universegames.io'
-    }
-  ];
-
-  // Используем миссии с сервера если доступны, иначе показываем данные из API
-  const displayMissions = missions.length > 0 ? missions : serverMissions;
+  frontendLogger.info('[Missions] API Response:', { 
+    missions: missions.length, 
+    loading: missionsLoading, 
+    error 
+  });
 
   // Загружаем статистику миссий
   const { data: missionStats } = useQuery({
