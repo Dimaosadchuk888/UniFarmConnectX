@@ -6,7 +6,8 @@ import {
   AlertTitle,
   AlertDescription
 } from '@/components/ui/alert';
-import { WifiIcon, WifiOffIcon, ServerIcon, ServerOffIcon } from 'lucide-react';
+// Заменяем Lucide иконки на FontAwesome
+// import { WifiIcon, WifiOffIcon, ServerIcon, ServerOffIcon } from 'lucide-react';
 
 type AlertType = 'online' | 'offline' | 'wsConnected' | 'wsDisconnected' | 'hidden';
 
