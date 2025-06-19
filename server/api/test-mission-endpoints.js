@@ -5,7 +5,7 @@ import http from 'http';
  * Специфические тесты для endpoints связанных с миссиями
  */
 
-const API_BASE = process.env.APP_DOMAIN ? `${process.env.APP_DOMAIN}/api/v2` : 'http://localhost:3000/api/v2';
+const API_BASE = process.env.APP_DOMAIN ? `${process.env.APP_DOMAIN}/api/v2` : 'https://uni-farm-connect-x-alinabndrnk99.replit.app/api/v2';
 
 const missionEndpoints = [
   {

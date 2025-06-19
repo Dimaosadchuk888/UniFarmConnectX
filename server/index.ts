@@ -248,7 +248,7 @@ async function startServer() {
                 reply_markup: {
                   inline_keyboard: [[{
                     text: '🚀 Запустить UniFarm',
-                    web_app: { url: process.env.APP_DOMAIN || process.env.TELEGRAM_WEBAPP_URL || 'https://uni-farm-connect-x-osadchukdmitro2.replit.app' }
+                    web_app: { url: process.env.APP_DOMAIN || process.env.TELEGRAM_WEBAPP_URL || 'https://uni-farm-connect-x-alinabndrnk99.replit.app' }
                   }]]
                 }
               }
@@ -288,7 +288,7 @@ async function startServer() {
     const initPollingFallback = async () => {
       try {
         // Проверяем доступность webhook через внешний домен
-        const webhookUrl = process.env.APP_DOMAIN || process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-x-osadchukdmitro2.replit.app';
+        const webhookUrl = process.env.APP_DOMAIN || process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-x-alinabndrnk99.replit.app';
         const testResponse = await fetch(`${webhookUrl}/webhook`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
