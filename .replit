@@ -1,4 +1,4 @@
-run = "node server.js"
+run = "npm start"
 modules = ["nodejs-20", "postgresql-16"]
 
 [nix]
@@ -9,15 +9,13 @@ packages = ["nodejs", "wget", "git", "unzip"]
 # Основные переменные окружения
 NODE_ENV = "production"
 PORT = "3000"
-ALLOW_BROWSER_ACCESS = "true"
-SKIP_TELEGRAM_CHECK = "false"
 
 # Supabase API подключение
 SUPABASE_URL = "https://your-project.supabase.co"
-SUPABASE_ANON_KEY = "your-anon-key"
+SUPABASE_KEY = "your-anon-key"
 
 [deployment]
-run = ["sh", "-c", "node server.js"]
+run = ["sh", "-c", "npm start"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 build = ["sh", "-c", "npm run build"]
