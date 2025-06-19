@@ -30,6 +30,7 @@ export default defineConfig({
     exclude: ["lucide-react"],
     include: ["react", "react-dom"]
   },
+
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' }
   },

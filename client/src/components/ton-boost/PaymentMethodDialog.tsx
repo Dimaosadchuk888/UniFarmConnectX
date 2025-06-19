@@ -8,7 +8,9 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Wallet, CreditCard } from "lucide-react";
+// FontAwesome иконки 
+const Wallet = ({ className }: { className?: string }) => React.createElement('i', { className: `fas fa-wallet ${className || ''}` });
+const CreditCard = ({ className }: { className?: string }) => React.createElement('i', { className: `fas fa-credit-card ${className || ''}` });
 import { useToast } from '@/hooks/use-toast';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { useUser } from '@/contexts/userContext';
