@@ -30,6 +30,9 @@ export default defineConfig({
     exclude: ["lucide-react"],
     include: ["react", "react-dom"]
   },
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+  },
   define: {
     // Передаем environment variables в frontend
     'import.meta.env.VITE_APP_DOMAIN': JSON.stringify(process.env.APP_DOMAIN || process.env.VITE_APP_DOMAIN),
