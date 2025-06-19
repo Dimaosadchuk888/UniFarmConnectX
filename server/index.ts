@@ -463,7 +463,13 @@ async function startServer() {
     });
     
     // Serve static files from dist/public (работает в любом режиме)
-    app.use(express.static(path.join(process.cwd(), 'dist/public')));
+    const staticPath = path.resolve(process.cwd(), 'dist', 'public');
+    logger.info(`[Static Files] Serving from: ${staticPath}`);
+    app.use(express.static(staticPath, {
+      maxAge: '1d',
+      etag: true,
+      lastModified: true
+    }));
     
     // SPA fallback - serve index.html for non-API routes
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
@@ -473,7 +479,9 @@ async function startServer() {
       }
       
       // Fallback to index.html for SPA routing
-      res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
+      const indexPath = path.resolve(process.cwd(), 'dist', 'public', 'index.html');
+      logger.info(`[SPA Fallback] Serving: ${indexPath}`);
+      res.sendFile(indexPath);
     });
 
     // ДОПОЛНИТЕЛЬНЫЕ WEBHOOK МАРШРУТЫ для надежности

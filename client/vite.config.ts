@@ -29,6 +29,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ["lucide-react"],
+    include: ["react", "react-dom"]
   },
   define: {
     // Передаем environment variables в frontend
