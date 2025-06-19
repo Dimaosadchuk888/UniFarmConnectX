@@ -412,8 +412,8 @@ async function startServer() {
 
 
 
-    // Apply Telegram middleware before routes for init data parsing
-    app.use(telegramMiddleware);
+    // Apply Telegram middleware only to protected routes, skip health and webhook
+    // telegramMiddleware moved to individual route protection
 
     // API routes
     const apiPrefix = `/api/v2`;
