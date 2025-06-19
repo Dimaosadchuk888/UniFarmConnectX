@@ -17,21 +17,14 @@ const envConfig: EnvConfig = {
     'NODE_ENV',
     'PORT'
   ],
-  optional: [
-    'ALLOW_BROWSER_ACCESS',
-    'SKIP_TELEGRAM_CHECK'
-  ],
+  optional: [],
   defaults: {
     NODE_ENV: 'production',
-    PORT: '3000',
-    ALLOW_BROWSER_ACCESS: 'true',
-    SKIP_TELEGRAM_CHECK: 'false'
+    PORT: '3000'
   },
   validation: {
     PORT: (value: string) => !isNaN(parseInt(value)) && parseInt(value) > 0 && parseInt(value) < 65536,
-    NODE_ENV: (value: string) => ['development', 'production', 'test'].includes(value),
-    ALLOW_BROWSER_ACCESS: (value: string) => ['true', 'false'].includes(value.toLowerCase()),
-    SKIP_TELEGRAM_CHECK: (value: string) => ['true', 'false'].includes(value.toLowerCase())
+    NODE_ENV: (value: string) => ['development', 'production', 'test'].includes(value)
   }
 };
 
@@ -89,11 +82,6 @@ class EnvValidator {
   }
 
   private validateCriticalConfigs(): void {
-    // Проверяем Telegram конфигурацию
-    if (process.env.SKIP_TELEGRAM_CHECK === 'false' && !process.env.TELEGRAM_BOT_TOKEN) {
-      this.warnings.push('SKIP_TELEGRAM_CHECK=false, но TELEGRAM_BOT_TOKEN не установлен');
-    }
-
     // Проверяем production настройки
     if (process.env.NODE_ENV === 'production') {
       const productionRequired = ['JWT_SECRET'];

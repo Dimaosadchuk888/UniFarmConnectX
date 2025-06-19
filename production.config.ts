@@ -123,8 +123,7 @@ export class ProductionConfig {
     // Set defaults for production
     process.env.NODE_ENV = process.env.NODE_ENV || 'production';
     process.env.PORT = process.env.PORT || '3000';
-    process.env.ALLOW_BROWSER_ACCESS = process.env.ALLOW_BROWSER_ACCESS || 'true';
-    process.env.SKIP_TELEGRAM_CHECK = process.env.SKIP_TELEGRAM_CHECK || 'false';
+    // Environment setup completed
     
     // Auto-configure app URL based on environment
     if (process.env.REPLIT_DEV_DOMAIN && !process.env.VITE_WEB_APP_URL) {

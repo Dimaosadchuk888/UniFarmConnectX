@@ -9,7 +9,7 @@ import { telegramConfig } from '../config/telegram';
 
 /**
  * Единая система переменных окружения
- * Устраняет дубликаты CORS_ORIGIN/CORS_ORIGINS, API_BASE_URL/VITE_API_BASE_URL
+ * Унифицированная система без дубликатов переменных
  */
 export const envConfig = {
   // Унифицированные CORS настройки (CORS_ORIGINS как стандарт)

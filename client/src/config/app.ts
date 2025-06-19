@@ -2,9 +2,7 @@
 export const APP_CONFIG = {
   // API настройки
   API: {
-    BASE_URL: process.env.NODE_ENV === 'production' 
-      ? 'https://your-domain.replit.app' 
-      : 'http://localhost:3000',
+    BASE_URL: import.meta.env.VITE_API_BASE_URL || '/api/v2',
     ENDPOINTS: {
       AUTH: '/api/v2/auth',
       USER: '/api/v2/users',
@@ -18,8 +16,8 @@ export const APP_CONFIG = {
 
   // Telegram настройки
   TELEGRAM: {
-    BOT_USERNAME: process.env.VITE_TELEGRAM_BOT_USERNAME || '',
-    WEB_APP_URL: process.env.VITE_WEB_APP_URL || '',
+    BOT_USERNAME: import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'UniFarming_Bot',
+    WEB_APP_URL: import.meta.env.VITE_APP_URL || '',
     SCRIPT_URL: 'https://telegram.org/js/telegram-web-app.js'
   },
 
