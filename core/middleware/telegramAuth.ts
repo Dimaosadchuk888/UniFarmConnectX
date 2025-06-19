@@ -6,13 +6,18 @@ import { logger } from '../logger';
  */
 export function requireTelegramAuth(req: Request, res: Response, next: NextFunction): void {
   try {
-    // Development bypass for deployment testing
-    if (process.env.NODE_ENV !== 'production' || process.env.BYPASS_AUTH === 'true') {
+    // Deployment testing bypass - allows access without Telegram context for public demo
+    const isPublicDemo = req.headers['x-public-demo'] === 'true' || 
+                        req.query.demo === 'true' ||
+                        req.headers.referer?.includes('replit.app') ||
+                        process.env.BYPASS_AUTH === 'true';
+    
+    if (isPublicDemo) {
       const demoUser = {
-        id: 1,
+        id: 42, // Demo user from database
         username: 'demo_user',
         first_name: 'Demo User',
-        ref_code: 'DEMO_REF'
+        ref_code: 'REF_1750270497713_bmln2f'
       };
       (req as any).telegramUser = demoUser;
       next();
