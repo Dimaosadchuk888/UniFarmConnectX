@@ -18,12 +18,11 @@ export default defineConfig({
   root: __dirname,
   build: {
     outDir: path.resolve(__dirname, "..", "dist", "public"),
-    emptyOutDir: true,
+    emptyOutDir: false,
     sourcemap: false,
     rollupOptions: {
-      external: (id) => {
-        // Исключаем проблемные пути из сборки
-        return id.includes("book-copy.js") || id.includes("clipboard-copy.js");
+      output: {
+        manualChunks: undefined,
       },
     },
   },
