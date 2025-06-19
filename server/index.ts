@@ -248,7 +248,7 @@ async function startServer() {
                 reply_markup: {
                   inline_keyboard: [[{
                     text: '🚀 Запустить UniFarm',
-                    web_app: { url: 'https://uni-farm-connect-x-osadchukdmitro2.replit.app' }
+                    web_app: { url: process.env.APP_DOMAIN || process.env.TELEGRAM_WEBAPP_URL || 'https://uni-farm-connect-x-osadchukdmitro2.replit.app' }
                   }]]
                 }
               }
@@ -288,7 +288,8 @@ async function startServer() {
     const initPollingFallback = async () => {
       try {
         // Проверяем доступность webhook через внешний домен
-        const testResponse = await fetch('https://uni-farm-connect-x-osadchukdmitro2.replit.app/webhook', {
+        const webhookUrl = process.env.APP_DOMAIN || process.env.TELEGRAM_WEBHOOK_URL || 'https://uni-farm-connect-x-osadchukdmitro2.replit.app';
+        const testResponse = await fetch(`${webhookUrl}/webhook`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ test: true })
@@ -301,7 +302,8 @@ async function startServer() {
           let offset = 0;
           const pollTelegram = async () => {
             try {
-              const updatesResponse = await fetch(`https://api.telegram.org/bot7980427501:AAHdia3LusU9dk2aRvhXgmj9Ozo08nR0Gug/getUpdates`, {
+              const botToken = process.env.TELEGRAM_BOT_TOKEN;
+              const updatesResponse = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ offset, timeout: 10 })
@@ -325,7 +327,8 @@ async function startServer() {
           };
           
           // Удаляем webhook и запускаем polling
-          await fetch(`https://api.telegram.org/bot7980427501:AAHdia3LusU9dk2aRvhXgmj9Ozo08nR0Gug/deleteWebhook`);
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          await fetch(`https://api.telegram.org/bot${botToken}/deleteWebhook`);
           setTimeout(pollTelegram, 5000); // Start polling after 5 seconds
         } else {
           logger.info('[TelegramPolling] Webhook работает корректно');

@@ -12,7 +12,6 @@ interface EnvConfig {
 
 const envConfig: EnvConfig = {
   required: [
-    'SESSION_SECRET',
     'JWT_SECRET',
     'TELEGRAM_BOT_TOKEN',
     'NODE_ENV',
@@ -97,7 +96,7 @@ class EnvValidator {
 
     // Проверяем production настройки
     if (process.env.NODE_ENV === 'production') {
-      const productionRequired = ['SESSION_SECRET', 'JWT_SECRET'];
+      const productionRequired = ['JWT_SECRET'];
       for (const envVar of productionRequired) {
         if (!process.env[envVar]) {
           this.warnings.push(`В production режиме рекомендуется установить ${envVar}`);

@@ -5,7 +5,7 @@ import http from 'http';
  * Специфические тесты для endpoints связанных с миссиями
  */
 
-const API_BASE = 'http://localhost:3000/api/v2';
+const API_BASE = process.env.APP_DOMAIN ? `${process.env.APP_DOMAIN}/api/v2` : 'http://localhost:3000/api/v2';
 
 const missionEndpoints = [
   {
@@ -41,7 +41,7 @@ const postEndpoints = [
 function makeRequest(endpoint, payload = null) {
   return new Promise((resolve) => {
     const options = {
-      hostname: 'localhost',
+      hostname: process.env.NODE_ENV === 'production' ? (process.env.APP_DOMAIN || 'localhost').replace('https://', '').replace('http://', '') : 'localhost',
       port: 3000,
       path: `${API_BASE}${endpoint.path}`,
       method: endpoint.method,

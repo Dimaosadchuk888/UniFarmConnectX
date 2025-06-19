@@ -24,7 +24,7 @@ export async function setupVite(app: Express, server: Server) {
     hmr: { server },
     host: '0.0.0.0',
     allowedHosts: [
-      'localhost',
+      process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost',
       '.replit.dev',
       '.replit.app', 
       '.repl.co'

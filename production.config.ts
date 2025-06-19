@@ -36,7 +36,6 @@ export class ProductionConfig {
   constructor() {
     this.requiredSecrets = [
       'TELEGRAM_BOT_TOKEN',
-      'SESSION_SECRET',
       'JWT_SECRET'
     ];
     
