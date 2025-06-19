@@ -24,7 +24,7 @@ export const appConfig = {
   host: process.env.HOST || '0.0.0.0',
   nodeEnv: process.env.NODE_ENV || 'development',
   apiVersion: 'v2',
-  baseUrl: process.env.APP_DOMAIN || process.env.BASE_URL || 'https://unifarm.replit.app',
+  baseUrl: process.env.APP_DOMAIN || process.env.BASE_URL || 'https://uni-farm-connect-x-alinabndrnk99.replit.app',
   
   // Унифицированные CORS настройки - используем CORS_ORIGINS как стандарт
   corsOrigins: (process.env.CORS_ORIGINS || 'https://t.me,*').split(','),
@@ -36,5 +36,5 @@ export const appConfig = {
   },
   
   jwtSecret: process.env.JWT_SECRET!,
-  appDomain: process.env.APP_DOMAIN || process.env.BASE_URL || 'https://unifarm.replit.app'
+  appDomain: process.env.APP_DOMAIN || process.env.BASE_URL || 'https://uni-farm-connect-x-alinabndrnk99.replit.app'
 };

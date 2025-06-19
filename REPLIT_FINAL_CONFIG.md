@@ -35,6 +35,11 @@ Telegram webhook настроен на:
 https://uni-farm-connect-x-alinabndrnk99.replit.app/webhook
 ```
 
+### Автоматическая установка webhook:
+```bash
+node setup-webhook.js
+```
+
 ## Проверка готовности
 
 1. Приложение доступно: https://uni-farm-connect-x-alinabndrnk99.replit.app/
