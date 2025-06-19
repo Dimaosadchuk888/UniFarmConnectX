@@ -13,6 +13,7 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "..", "shared"),
       "@assets": path.resolve(__dirname, "..", "attached_assets"),
       "@types": path.resolve(__dirname, "..", "types"),
+      "lucide-react": path.resolve(__dirname, "src", "lib", "lucide-fallback.ts"),
     },
   },
   root: __dirname,
