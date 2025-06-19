@@ -1,6 +1,6 @@
 // Валидация критически важных переменных окружения
 function validateRequiredEnvVars() {
-  const requiredVars = ['SESSION_SECRET', 'JWT_SECRET'];
+  const requiredVars = ['JWT_SECRET'];
   const missing = requiredVars.filter(varName => !process.env[varName]);
   
   if (missing.length > 0) {
@@ -24,11 +24,10 @@ export const appConfig = {
   host: process.env.HOST || '0.0.0.0',
   nodeEnv: process.env.NODE_ENV || 'development',
   apiVersion: 'v2',
-  baseUrl: process.env.BASE_URL || 'https://unifarm.replit.app',
+  baseUrl: process.env.APP_DOMAIN || process.env.BASE_URL || 'https://unifarm.replit.app',
   
   // Унифицированные CORS настройки - используем CORS_ORIGINS как стандарт
-  // Поддержка обратной совместимости с CORS_ORIGIN
-  corsOrigins: (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || process.env.BASE_URL || '*').split(','),
+  corsOrigins: (process.env.CORS_ORIGINS || 'https://t.me,*').split(','),
   
   // API конфигурация с централизованным управлением
   api: {
@@ -36,6 +35,6 @@ export const appConfig = {
     clientBaseUrl: process.env.VITE_API_BASE_URL || process.env.API_BASE_URL || '/api/v2'
   },
   
-  sessionSecret: process.env.SESSION_SECRET!,
-  jwtSecret: process.env.JWT_SECRET!
+  jwtSecret: process.env.JWT_SECRET!,
+  appDomain: process.env.APP_DOMAIN || process.env.BASE_URL || 'https://unifarm.replit.app'
 };
