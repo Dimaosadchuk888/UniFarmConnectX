@@ -6,11 +6,7 @@ import {
   AlertTitle,
   AlertDescription
 } from '@/components/ui/alert';
-// FontAwesome иконки для замены Lucide
-const WifiIcon = ({ className }: { className?: string }) => React.createElement('i', { className: `fas fa-wifi ${className || ''}` });
-const WifiOffIcon = ({ className }: { className?: string }) => React.createElement('i', { className: `fas fa-wifi ${className || ''}`, style: { opacity: 0.3 } });
-const ServerIcon = ({ className }: { className?: string }) => React.createElement('i', { className: `fas fa-server ${className || ''}` });
-const ServerOffIcon = ({ className }: { className?: string }) => React.createElement('i', { className: `fas fa-server ${className || ''}`, style: { opacity: 0.3 } });
+import { WifiIcon, WifiOffIcon, ServerIcon, ServerOffIcon } from 'lucide-react';
 
 type AlertType = 'online' | 'offline' | 'wsConnected' | 'wsDisconnected' | 'hidden';
 
