@@ -13,7 +13,7 @@ import {
   Coins, 
   Tv,
   UserPlus
-} from 'lucide-react';
+} from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
