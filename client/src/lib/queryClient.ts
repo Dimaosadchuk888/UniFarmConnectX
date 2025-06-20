@@ -68,6 +68,9 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
   // Получаем заголовки с данными Telegram
   const telegramHeaders = getTelegramAuthHeaders();
 
+  // Получаем guest ID из localStorage
+  const guestId = localStorage.getItem('unifarm_guest_id') || '';
+
   // Базовые заголовки для API запросов
   const headers = {
     "Content-Type": "application/json",
@@ -75,6 +78,8 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
     "Cache-Control": "no-cache, no-store, must-revalidate",
     "Pragma": "no-cache",
     "Expires": "0",
+    "X-Guest-ID": guestId,
+    "X-Public-Demo": "true",
     ...telegramHeaders, // Добавляем заголовки Telegram
     ...customHeaders    // Добавляем пользовательские заголовки
   };
@@ -83,6 +88,8 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
   console.log('[queryClient] API headers prepared:', {
     hasTelegramData: 'Telegram-Data' in telegramHeaders || 'X-Telegram-Data' in telegramHeaders || 'x-telegram-init-data' in telegramHeaders,
     hasTelegramUserId: 'X-Telegram-User-Id' in telegramHeaders,
+    hasGuestId: !!guestId,
+    hasPublicDemo: true,
     telegramHeadersCount: Object.keys(telegramHeaders).length,
     totalHeadersCount: Object.keys(headers).length
   });
