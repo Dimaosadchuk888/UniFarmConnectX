@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Coins, Users, Calendar, MessageCircle, Tv } from 'lucide-react';
+import { FiDollarSign as Coins, FiUsers as Users, FiCalendar as Calendar, FiMessageCircle as MessageCircle, FiTv as Tv } from 'react-icons/fi';
 
 /**
  * Простые карточки миссий для отображения на странице заданий

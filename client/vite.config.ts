@@ -13,19 +13,20 @@ export default defineConfig({
     },
   },
   root: __dirname,
+
+  optimizeDeps: {
+    include: ["lucide-react"],
+    force: true,
+  },
   build: {
     outDir: path.resolve(__dirname, "..", "dist/public"),
     emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: {
-          'icons': ['lucide-react']
+          'lucide': ['lucide-react']
         }
       }
     },
-  },
-  optimizeDeps: {
-    include: ["lucide-react"],
-    force: true,
   },
 });
