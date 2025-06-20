@@ -27,17 +27,17 @@ const NavigationBar: React.FC<NavigationBarProps> = ({ activeTab, setActiveTab }
   };
   
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-muted flex justify-between px-2 py-2 z-10">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-muted flex justify-between px-2 py-3 z-50 safe-area-inset-bottom">
       {NAV_ITEMS.map((item) => (
         <button
           key={item.id}
-          className={`flex flex-col items-center p-2 w-1/5 ${
-            activeTab === item.id ? 'active-nav-item' : 'text-foreground'
+          className={`flex flex-col items-center p-2 w-1/5 transition-colors ${
+            activeTab === item.id ? 'text-primary' : 'text-foreground/70 hover:text-foreground'
           }`}
           onClick={() => handleNavClick(item.id)}
         >
-          <i className={`fas fa-${item.icon} text-lg`}></i>
-          <span className="text-xs mt-1">{item.label}</span>
+          <i className={`fas fa-${item.icon} text-lg mb-1`}></i>
+          <span className="text-xs leading-tight">{item.label}</span>
         </button>
       ))}
     </nav>

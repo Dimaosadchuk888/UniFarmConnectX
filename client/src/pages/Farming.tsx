@@ -41,16 +41,16 @@ const Farming: React.FC = () => {
   }, []);
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="space-y-4 pb-6">
       <h1 className="text-2xl font-bold mb-6">Фарминг</h1>
       
-      <Tabs defaultValue="uni" className="w-full mb-6">
+      <Tabs defaultValue="uni" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="uni" className="text-lg">UNI Фарминг</TabsTrigger>
           <TabsTrigger value="ton" className="text-lg">TON Фарминг</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="uni">
+        <TabsContent value="uni" className="space-y-4">
           {/* Основной UNI пакет */}
           <UniFarmingCardWithErrorBoundary userData={userData} />
           
@@ -58,7 +58,7 @@ const Farming: React.FC = () => {
           <BoostPackagesCardWithErrorBoundary userData={userData} />
         </TabsContent>
         
-        <TabsContent value="ton">
+        <TabsContent value="ton" className="space-y-4">
           {/* Статус TON фарминга - с ErrorBoundary */}
           <TonFarmingStatusCardWithErrorBoundary />
           
@@ -66,9 +66,7 @@ const Farming: React.FC = () => {
           <ActiveTonBoostsCardWithErrorBoundary />
           
           {/* TON Boost-пакеты - с ErrorBoundary */}
-          <div className="mb-6">
-            <BoostPackagesCardWithErrorBoundary userData={userData} />
-          </div>
+          <BoostPackagesCardWithErrorBoundary userData={userData} />
         </TabsContent>
       </Tabs>
     </div>

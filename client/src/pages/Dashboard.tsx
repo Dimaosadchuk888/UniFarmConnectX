@@ -27,7 +27,7 @@ const Dashboard: React.FC = () => {
   const userData = userResponse?.data || null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 pb-6">
       {/* Основная секция приветствия */}
       <WelcomeSection />
       
