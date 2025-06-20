@@ -13,17 +13,20 @@ export default defineConfig({
     },
   },
   root: __dirname,
+
+  optimizeDeps: {
+    include: ["lucide-react"],
+    force: true,
+  },
   build: {
     outDir: path.resolve(__dirname, "..", "dist/public"),
     emptyOutDir: true,
     rollupOptions: {
-      external: (id) => {
-        // Исключаем проблемные пути из сборки
-        return id.includes("book-copy.js") || id.includes("clipboard-copy.js");
-      },
+      output: {
+        manualChunks: {
+          'lucide': ['lucide-react']
+        }
+      }
     },
-  },
-  optimizeDeps: {
-    exclude: ["lucide-react"],
   },
 });

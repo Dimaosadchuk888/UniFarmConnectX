@@ -6,7 +6,7 @@ import {
   AlertTitle,
   AlertDescription
 } from '@/components/ui/alert';
-import { FiWifi as WifiIcon, FiWifiOff as WifiOffIcon, FiServer as ServerIcon, FiX as ServerOffIcon } from 'react-icons/fi';
+import { WifiIcon, WifiOffIcon, ServerIcon, ServerOffIcon } from 'lucide-react';
 
 type AlertType = 'online' | 'offline' | 'wsConnected' | 'wsDisconnected' | 'hidden';
 

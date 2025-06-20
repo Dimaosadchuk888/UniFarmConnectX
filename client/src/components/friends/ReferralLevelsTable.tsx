@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiDollarSign as Coins } from 'react-icons/fi';
+import { Coins } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import apiConfig from '@/config/apiConfig';
 import logger from '@/utils/logger';

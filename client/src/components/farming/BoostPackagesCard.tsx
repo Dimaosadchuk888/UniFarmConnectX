@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import PaymentMethodDialog from '../ton-boost/PaymentMethodDialog';
 import ExternalPaymentStatus from '../ton-boost/ExternalPaymentStatus';
 import { useUser } from '@/contexts/userContext';
-import { FiCheckCircle as BadgeCheck, FiTrendingUp as Rocket, FiStar as Sparkles, FiTrendingUp as TrendingUp, FiZap as Zap } from 'react-icons/fi';
+import { BadgeCheck, Rocket, Sparkles, TrendingUp, Zap } from 'lucide-react';
 
 // Определяем структуру буст-пакета
 interface BoostPackage {
