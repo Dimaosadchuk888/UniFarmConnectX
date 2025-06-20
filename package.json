@@ -87,6 +87,7 @@
     "http-proxy": "^1.18.1",
     "input-otp": "^1.2.4",
     "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.518.0",
     "memorystore": "^1.6.7",
     "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",
