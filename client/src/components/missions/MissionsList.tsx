@@ -4,16 +4,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { 
-  CheckCircle, 
-  Clock, 
-  AlertCircle, 
-  MessageCircle, 
-  Users, 
-  Calendar, 
-  Coins, 
-  Tv,
-  UserPlus
-} from 'lucide-react';
+  FiCheckCircle as CheckCircle, 
+  FiClock as Clock, 
+  FiAlertCircle as AlertCircle, 
+  FiMessageCircle as MessageCircle, 
+  FiUsers as Users, 
+  FiCalendar as Calendar, 
+  FiDollarSign as Coins, 
+  FiTv as Tv,
+  FiUserPlus as UserPlus
+} from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
