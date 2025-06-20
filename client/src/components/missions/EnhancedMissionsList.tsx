@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FiAlertCircle as AlertCircle, FiCalendar as Calendar, FiCheckCircle as CheckCircle, FiDollarSign as Coins, FiMessageCircle as MessageCircle, FiUserPlus as UserPlus } from 'react-icons/fi';
+import { AlertCircle, Calendar, CheckCircle, Coins, MessageCircle, UserPlus } from 'lucide-react';
 import { useUser } from '@/contexts/userContext';
 import { useNotification } from '@/contexts/notificationContext';
 import { correctApiRequest } from '@/lib/correctApiRequest';

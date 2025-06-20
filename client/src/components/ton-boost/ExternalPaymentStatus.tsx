@@ -9,7 +9,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FiCheckCircle as CheckCircle2, FiLoader as Loader2, FiExternalLink as ExternalLink, FiCreditCard as Wallet } from "react-icons/fi";
+import { CheckCircle2, Loader2, ExternalLink, Wallet } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 
 interface ExternalPaymentStatusProps {

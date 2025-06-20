@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { FiDollarSign as Coins, FiCreditCard as Wallet, FiLoader as Loader2, FiZap as Zap, FiRefreshCw as RefreshCcw } from 'react-icons/fi';
+import { Coins, Wallet, Loader2, Zap, RefreshCcw } from 'lucide-react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import PaymentMethodDialog from './PaymentMethodDialog';
 import ExternalPaymentStatus from './ExternalPaymentStatus';

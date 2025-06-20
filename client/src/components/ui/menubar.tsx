@@ -1,6 +1,6 @@
 import * as React from "react"
 import * as MenubarPrimitive from "@radix-ui/react-menubar"
-import { FiCheck as Check, FiChevronRight as ChevronRight, FiCircle as Circle } from "react-icons/fi"
+import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 

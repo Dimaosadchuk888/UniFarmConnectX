@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { FiAlertCircle as AlertCircle } from "react-icons/fi";
+import { AlertCircle } from "lucide-react";
 
 export default function NotFound() {
   return (

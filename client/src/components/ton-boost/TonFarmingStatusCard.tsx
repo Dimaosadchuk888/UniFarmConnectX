@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FiLoader as Loader2 } from 'react-icons/fi';
+import { Loader2 } from 'lucide-react';
 import { formatNumberWithPrecision, getUserIdFromURL } from '@/lib/utils';
 import { Progress } from "@/components/ui/progress"
 
