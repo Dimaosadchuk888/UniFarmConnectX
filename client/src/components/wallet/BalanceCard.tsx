@@ -50,13 +50,18 @@ const BalanceCard: React.FC = () => {
   // ===== WebSocket обработчики =====
   
   // Обработчик открытия соединения
-  const handleOpen = useCallback((event: Event) => {setWsStatus('Соединение установлено');
+  const handleOpen = useCallback((event: Event) => {
+    console.log('[BalanceCard] WebSocket connection opened', event);
+    setWsStatus('Соединение установлено');
     setWsConnectedOnce(true);
     setWsErrorNotificationShown(false);
   }, []);
   
   // Обработчик получения сообщения
-  const handleMessage = useCallback((data: any) => {if (data.type === 'update' && data.balanceData) {
+  const handleMessage = useCallback((data: any) => {
+    console.log('[BalanceCard] WebSocket message received', data);
+    
+    if (data.type === 'update' && data.balanceData) {
       if (userId) {
         showNotification('info', {
           message: 'Доступно обновление баланса',
@@ -68,14 +73,18 @@ const BalanceCard: React.FC = () => {
   
   // Обработчик закрытия соединения
   const handleClose = useCallback((event: CloseEvent) => {
-    if (process.env.NODE_ENV === 'development') {}
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[BalanceCard] WebSocket connection closed', event);
+    }
     setWsStatus('Ожидание соединения');
     isSubscribedRef.current = false;
   }, []);
   
   // Обработчик ошибки соединения
   const handleError = useCallback((event: Event) => {
-    if (process.env.NODE_ENV === 'development') {}
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[BalanceCard] WebSocket error', event);
+    }
     setWsStatus('Ожидание соединения');
     isSubscribedRef.current = false;
   }, []);
@@ -222,7 +231,11 @@ const BalanceCard: React.FC = () => {
       showNotification('loading', {
         message: 'Загрузка баланса...',
         duration: 2000
-      });setTimeout(() => {
+      });
+      
+      console.log('[BalanceCard] Первичная загрузка баланса');
+      
+      setTimeout(() => {
         refreshBalance(true);
         calculateRate();
         

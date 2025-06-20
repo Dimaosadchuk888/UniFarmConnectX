@@ -1,60 +1,77 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
-import { TonConnectUI } from '@tonconnect/ui-react';
-import frontendLogger from '../utils/frontendLogger';
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTonConnectUI } from '@tonconnect/ui-react';
+import { correctApiRequest } from '@/lib/correctApiRequest';
+import { fetchBalance, type Balance } from '@/services/balanceService';
+import { 
+  getWalletAddress, 
+  isWalletConnected, 
+  connectWallet as connectTonWallet,
+  disconnectWallet as disconnectTonWallet
+} from '@/services/tonConnectService';
 
-// Типы данных
-interface Balance {
-  uniBalance: number;
-  tonBalance: number;
-  uniFarmingActive: boolean;
-  uniDepositAmount: number;
-  uniFarmingBalance: number;
+// Интерфейс для API-ответов
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
 }
 
+// Тип для контекста пользователя
 interface UserContextType {
   userId: number | null;
   username: string | null;
+  guestId: string | null;
   telegramId: number | null;
   refCode: string | null;
-  
+  // Данные баланса
   uniBalance: number;
   tonBalance: number;
   uniFarmingActive: boolean;
   uniDepositAmount: number;
   uniFarmingBalance: number;
-  
+  // Данные кошелька
   isWalletConnected: boolean;
   walletAddress: string | null;
-  
+  // Функции
   connectWallet: () => Promise<boolean>;
   disconnectWallet: () => Promise<void>;
   refreshBalance: (forceRefresh?: boolean) => void;
   refreshUserData: () => void;
-  
+  // Состояния
   isFetching: boolean;
   isBalanceFetching: boolean;
   error: Error | null;
 }
 
+// Тип состояния для useReducer
 interface UserState {
+  // Данные пользователя
   userId: number | null;
   username: string | null;
+  guestId: string | null;
   telegramId: number | null;
   refCode: string | null;
   
+  // Данные баланса
   balanceState: Balance;
   
+  // Состояние кошелька
   walletConnected: boolean;
   walletAddress: string | null;
   
+  // Состояния загрузки и ошибок
   isFetching: boolean;
   isBalanceFetching: boolean;
   error: Error | null;
 }
 
+// Начальное состояние
 const initialState: UserState = {
   userId: null,
   username: null,
+  guestId: null,
   telegramId: null,
   refCode: null,
   
@@ -74,6 +91,7 @@ const initialState: UserState = {
   error: null
 };
 
+// Типы действий для reducer
 type UserAction =
   | { type: 'SET_USER_DATA'; payload: Partial<UserState> }
   | { type: 'SET_BALANCE'; payload: Balance }
@@ -81,354 +99,354 @@ type UserAction =
   | { type: 'SET_LOADING'; payload: { field: 'isFetching' | 'isBalanceFetching'; value: boolean } }
   | { type: 'SET_ERROR'; payload: Error | null };
 
+// Reducer функция для обработки действий
 function userReducer(state: UserState, action: UserAction): UserState {
   switch (action.type) {
     case 'SET_USER_DATA':
       return { ...state, ...action.payload };
+      
     case 'SET_BALANCE':
-      return { ...state, balanceState: action.payload };
-    case 'SET_WALLET_CONNECTED':
-      return { 
-        ...state, 
-        walletConnected: action.payload.connected,
-        walletAddress: action.payload.address 
+      return {
+        ...state,
+        balanceState: action.payload
       };
+      
+    case 'SET_WALLET_CONNECTED':
+      return {
+        ...state,
+        walletConnected: action.payload.connected,
+        walletAddress: action.payload.address
+      };
+      
     case 'SET_LOADING':
-      return { ...state, [action.payload.field]: action.payload.value };
+      return {
+        ...state,
+        [action.payload.field]: action.payload.value
+      };
+      
     case 'SET_ERROR':
-      return { ...state, error: action.payload };
+      return {
+        ...state,
+        error: action.payload
+      };
+      
     default:
       return state;
   }
 }
 
+// Контекст с начальным значением undefined
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+/**
+ * Провайдер контекста пользователя с использованием useReducer
+ * для предотвращения бесконечных циклов обновления
+ */
 export function UserProvider({ children }: { children: React.ReactNode }) {
+  // Инициализация хуков
+  const queryClient = useQueryClient();
+  const [tonConnectUI] = useTonConnectUI();
+  
+  // Создаем состояние с помощью useReducer
   const [state, dispatch] = useReducer(userReducer, initialState);
-  const tonConnectUI = new TonConnectUI({
-    manifestUrl: `${window.location.origin}/tonconnect-manifest.json`,
-  });
-  const initializedRef = useRef(false);
-
-  // Wallet functions
-  const connectWallet = async (): Promise<boolean> => {
+  
+  // Рефы для предотвращения повторных вызовов
+  const refreshInProgressRef = useRef<boolean>(false);
+  const initializedRef = useRef<boolean>(false);
+  
+  // Обновление данных пользователя
+  const refreshUserData = useCallback(async () => {
+    if (refreshInProgressRef.current) {
+      return;
+    }
+    
+    refreshInProgressRef.current = true;
+    dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
+    
     try {
-      const connectedWallet = await tonConnectUI.connectWallet();
-      if (connectedWallet) {
+      // Получаем данные пользователя из localStorage или используем guest_id
+      let apiUrl = '/api/v2/users/profile';
+      const lastSessionStr = localStorage.getItem('unifarm_last_session');
+      const guestId = localStorage.getItem('unifarm_guest_id');
+      
+      if (lastSessionStr) {
+        try {
+          const lastSession = JSON.parse(lastSessionStr);
+          if (lastSession.user_id) {
+            apiUrl = `/api/v2/users/profile?user_id=${lastSession.user_id}`;
+          }
+        } catch (e) {
+          console.warn('[UserContext] Ошибка парсинга данных сессии:', e);
+        }
+      } else if (guestId) {
+        apiUrl = `/api/v2/users/profile?guest_id=${guestId}`;
+      }
+      
+      const response = await correctApiRequest(apiUrl);
+      
+      if (response.success && response.data) {
+        const user = response.data;
+        
+        dispatch({
+          type: 'SET_USER_DATA',
+          payload: {
+            userId: user.id || null,
+            username: user.username || null,
+            guestId: user.guest_id || null,
+            telegramId: user.telegram_id || null,
+            refCode: user.ref_code || null
+          }
+        });
+        
+        dispatch({ type: 'SET_ERROR', payload: null });
+        
+        // Сохраняем обновленные данные в localStorage
+        try {
+          localStorage.setItem('unifarm_last_session', JSON.stringify({
+            timestamp: new Date().toISOString(),
+            user_id: user.id,
+            username: user.username || null,
+            refCode: user.ref_code || null
+          }));
+        } catch (e) {
+          console.warn('[UserContext] Ошибка при сохранении данных пользователя в localStorage:', e);
+        }
+      } else {
+        // Если запрос не удался, проверяем данные в localStorage
+        if (lastSessionStr) {
+          try {
+            const lastSession = JSON.parse(lastSessionStr);
+            if (lastSession.user_id) {
+              console.log('[UserContext] Используем информацию о пользователе из localStorage:', lastSession.user_id);
+              dispatch({
+                type: 'SET_USER_DATA',
+                payload: {
+                  userId: lastSession.user_id,
+                  username: lastSession.username || null,
+                  guestId: guestId,
+                  telegramId: null,
+                  refCode: lastSession.refCode || null
+                }
+              });
+              dispatch({ type: 'SET_ERROR', payload: null });
+            }
+          } catch (e) {
+            console.warn('[UserContext] Ошибка парсинга localStorage:', e);
+          }
+        } else {
+          const errorMsg = response.error || response.message || 'Ошибка получения данных пользователя';
+          console.error('[UserContext] Ошибка получения данных пользователя:', errorMsg);
+          // Не устанавливаем fallback данные, пусть App.tsx обработает создание пользователя
+          dispatch({ type: 'SET_ERROR', payload: null });
+        }
+      }
+    } catch (err) {
+      // Проверяем, если есть данные пользователя в localStorage
+      try {
+        const lastSessionStr = localStorage.getItem('unifarm_last_session');
+        if (lastSessionStr) {
+          const lastSession = JSON.parse(lastSessionStr);
+          if (lastSession.user_id) {
+            console.log('[UserContext] Восстановление данных из localStorage после ошибки:', lastSession.user_id);
+            dispatch({
+              type: 'SET_USER_DATA',
+              payload: {
+                userId: lastSession.user_id,
+                username: lastSession.username || null,
+                guestId: null,
+                telegramId: null,
+                refCode: lastSession.refCode || null
+              }
+            });
+            dispatch({ type: 'SET_ERROR', payload: null });
+          }
+        }
+      } catch (e) {
+        console.warn('[UserContext] Ошибка при попытке восстановить данные из localStorage:', e);
+      }
+      
+      const error = err instanceof Error ? err : new Error('Ошибка получения данных пользователя');
+      console.error('[UserContext] Ошибка получения данных пользователя:', error);
+      // Не устанавливаем fallback данные, позволяем App.tsx обработать создание пользователя
+      dispatch({ type: 'SET_ERROR', payload: null });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: false } });
+      refreshInProgressRef.current = false;
+    }
+  }, []);
+  
+  // Обновление баланса
+  const refreshBalance = useCallback(async (forceRefresh: boolean = false) => {
+    if (refreshInProgressRef.current || !state.userId) {
+      return;
+    }
+    
+    refreshInProgressRef.current = true;
+    dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: true } });
+    
+    try {
+      // Используем улучшенный сервис с поддержкой forceRefresh
+      console.log('[UserContext] Запрос баланса с forceRefresh:', forceRefresh);
+      const balance = await fetchBalance(state.userId, forceRefresh);
+      
+      // Обновляем состояние баланса
+      dispatch({ type: 'SET_BALANCE', payload: balance });
+      dispatch({ type: 'SET_ERROR', payload: null });
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Ошибка получения баланса');
+      console.error('[UserContext] Ошибка получения баланса:', error);
+      // Устанавливаем нулевые балансы вместо блокировки интерфейса
+      dispatch({
+        type: 'SET_BALANCE',
+        payload: {
+          uniBalance: 0,
+          tonBalance: 0,
+          uniFarmingActive: false,
+          uniDepositAmount: 0,
+          uniFarmingBalance: 0
+        }
+      });
+      dispatch({ type: 'SET_ERROR', payload: null });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: false } });
+      refreshInProgressRef.current = false;
+    }
+  }, [state.userId]);
+  
+  // Функции работы с кошельком
+  const connectWallet = useCallback(async (): Promise<boolean> => {
+    try {
+      await connectTonWallet(tonConnectUI);
+      
+      const connected = isWalletConnected(tonConnectUI);
+      if (connected) {
+        const address = getWalletAddress(tonConnectUI);
+        
         dispatch({
           type: 'SET_WALLET_CONNECTED',
-          payload: { connected: true, address: connectedWallet.account.address }
+          payload: { connected: true, address }
         });
+        
         return true;
       }
-    } catch (error) {
-      frontendLogger.error('Wallet connection failed:', error);
+      
+      return false;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Ошибка подключения кошелька');
+      console.error('[UserContext] Ошибка подключения кошелька:', error);
+      // Не блокируем интерфейс, просто логируем ошибку
+      dispatch({ type: 'SET_ERROR', payload: null });
+      return false;
     }
-    return false;
-  };
-
-  const disconnectWallet = async (): Promise<void> => {
+  }, [tonConnectUI]);
+  
+  const disconnectWallet = useCallback(async (): Promise<void> => {
     try {
-      await tonConnectUI.disconnect();
+      await disconnectTonWallet(tonConnectUI);
+      
       dispatch({
         type: 'SET_WALLET_CONNECTED',
         payload: { connected: false, address: null }
       });
-    } catch (error) {
-      frontendLogger.error('Wallet disconnect failed:', error);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Ошибка отключения кошелька');
+      console.error('[UserContext] Ошибка отключения кошелька:', error);
+      // Не блокируем интерфейс, просто логируем ошибку
+      dispatch({ type: 'SET_ERROR', payload: null });
     }
-  };
-
-  const refreshBalance = async (forceRefresh: boolean = false) => {
-    if (state.isBalanceFetching && !forceRefresh) return;
-    
-    dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: true } });
-    
-    try {
-      const token = localStorage.getItem('unifarm_auth_token');
-      if (!token) return;
-
-      const response = await fetch('/api/v2/wallet/balance', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          dispatch({
-            type: 'SET_BALANCE',
-            payload: {
-              uniBalance: data.data.uniBalance || 0,
-              tonBalance: data.data.tonBalance || 0,
-              uniFarmingActive: data.data.uniFarmingActive || false,
-              uniDepositAmount: data.data.uniDepositAmount || 0,
-              uniFarmingBalance: data.data.uniFarmingBalance || 0
-            }
-          });
-        }
-      }
-    } catch (error) {
-      frontendLogger.error('Balance refresh failed:', error);
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: { field: 'isBalanceFetching', value: false } });
-    }
-  };
-
-  const refreshUserData = async () => {
-    const token = localStorage.getItem('unifarm_auth_token');
-    if (!token) return;
-
-    try {
-      const response = await fetch('/api/v2/users/profile', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.user) {
-          dispatch({
-            type: 'SET_USER_DATA',
-            payload: {
-              userId: data.user.id,
-              username: data.user.username,
-              telegramId: data.user.telegram_id,
-              refCode: data.user.ref_code
-            }
-          });
-          localStorage.setItem('unifarm_user_data', JSON.stringify(data.user));
-        }
-      }
-    } catch (error) {
-      frontendLogger.error('User data refresh failed:', error);
-    }
-  };
-
-  const registerDirectFromTelegramUser = async (user: any) => {
-    try {
-      const response = await fetch('/api/v2/register/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegram_id: user.id,
-          username: user.username || '',
-          first_name: user.first_name || '',
-          last_name: user.last_name || '',
-          language_code: user.language_code || 'en',
-          refBy: new URLSearchParams(window.location.search).get('ref'),
-          direct_registration: true
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success && data.token) {
-        frontendLogger.info('[UserContext] Direct registration successful');
-        localStorage.setItem('unifarm_auth_token', data.token);
-        localStorage.setItem('unifarm_user_data', JSON.stringify(data.user));
-        return { success: true, user: data.user, token: data.token };
-      } else {
-        frontendLogger.info('[UserContext] Direct registration failed:', data);
-        return { success: false, error: data.error };
-      }
-    } catch (error) {
-      frontendLogger.info('[UserContext] Direct registration error:', error);
-      return { success: false, error: 'Registration failed' };
-    }
-  };
-
-  // TON Connect wallet status check
+  }, [tonConnectUI]);
+  
+  // Проверяем статус подключения кошелька
   useEffect(() => {
     if (initializedRef.current) return;
     
     try {
-      const wallet = tonConnectUI.wallet;
-      if (wallet?.account?.address) {
-        const address = wallet.account.address;
+      // Проверяем, подключен ли кошелек
+      const connected = isWalletConnected(tonConnectUI);
+      if (connected) {
+        const address = getWalletAddress(tonConnectUI);
+        
+        // Кошелек уже подключен, устанавливаем состояние
         dispatch({
           type: 'SET_WALLET_CONNECTED',
           payload: { connected: true, address }
         });
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error('[UserContext] Ошибка при проверке статуса кошелька:', err);
+    }
     
     initializedRef.current = true;
   }, [tonConnectUI]);
-
-  // Автоматическая авторизация при загрузке
+  
+  // Автоматическая загрузка данных пользователя при первом рендере
   useEffect(() => {
     const loadInitialUserData = async () => {
-      frontendLogger.info('[UserContext] Автоматическая загрузка данных пользователя...');
-      dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
-      
+      console.log('[UserContext] Автоматическая загрузка данных пользователя...');
       try {
-        // Проверяем сохраненный токен из localStorage
-        const savedToken = localStorage.getItem('unifarm_auth_token');
-        const savedUserData = localStorage.getItem('unifarm_user_data');
+        // Сначала запрашиваем данные пользователя
+        await refreshUserData();
         
-        if (savedToken && savedUserData) {
-          frontendLogger.info('[UserContext] Восстановление сессии из localStorage');
-          try {
-            const userData = JSON.parse(savedUserData);
-            dispatch({
-              type: 'SET_USER_DATA',
-              payload: {
-                userId: userData.id,
-                username: userData.username,
-                telegramId: userData.telegram_id,
-                refCode: userData.ref_code
-              }
-            });
-            refreshBalance();
-            return;
-          } catch (error) {
-            frontendLogger.info('[UserContext] Ошибка восстановления сессии:', error);
-            localStorage.removeItem('unifarm_auth_token');
-            localStorage.removeItem('unifarm_user_data');
-          }
+        // Затем, если получили userId, запрашиваем баланс
+        if (state.userId) {
+          console.log('[UserContext] Данные пользователя получены, запрашиваем баланс...');
+          await refreshBalance();
         }
-
-        // Безопасная проверка наличия Telegram WebApp
-        const telegramData = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
-        
-        if (telegramData) {
-          frontendLogger.info('[UserContext] Проверка Telegram данных:', {
-            telegramAvailable: !!window.Telegram,
-            webAppAvailable: !!telegramData,
-            initDataPresent: !!telegramData.initData,
-            initDataLength: telegramData.initData?.length || 0,
-            userPresent: !!telegramData.initDataUnsafe?.user
-          });
-        }
-
-        // Проверяем наличие initData для авторизации
-        if (telegramData && telegramData.initData && telegramData.initData.length > 0) {
-          frontendLogger.info('[UserContext] Авторизация через initData');
-          
-          try {
-            const response = await fetch('/api/v2/auth/telegram', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                initData: telegramData.initData
-              })
-            });
-
-            const data = await response.json();
-            
-            if (response.ok && data.success && data.token) {
-              frontendLogger.info('[UserContext] initData авторизация успешна');
-              localStorage.setItem('unifarm_auth_token', data.token);
-              localStorage.setItem('unifarm_user_data', JSON.stringify(data.user));
-              
-              dispatch({
-                type: 'SET_USER_DATA',
-                payload: {
-                  userId: data.user.id,
-                  username: data.user.username,
-                  telegramId: data.user.telegram_id,
-                  refCode: data.user.ref_code
-                }
-              });
-              
-              refreshBalance();
-              return;
-            }
-          } catch (error) {
-            frontendLogger.info('[UserContext] initData авторизация не удалась:', error);
-          }
-        }
-
-        // Fallback: Прямая регистрация через initDataUnsafe
-        if (telegramData && telegramData.initDataUnsafe?.user) {
-          frontendLogger.info('[UserContext] Fallback регистрация через initDataUnsafe');
-          
-          const result = await registerDirectFromTelegramUser(telegramData.initDataUnsafe.user);
-          if (result.success) {
-            dispatch({
-              type: 'SET_USER_DATA',
-              payload: {
-                userId: result.user.id,
-                username: result.user.username,
-                telegramId: result.user.telegram_id,
-                refCode: result.user.ref_code
-              }
-            });
-            refreshBalance();
-            return;
-          }
-        }
-
-        // Ожидание корректных Telegram данных без fallback
-        frontendLogger.info('[UserContext] Ожидание корректной инициализации Telegram WebApp');
-
-        // Если нет Telegram данных, показываем состояние ожидания авторизации
-        frontendLogger.info('[UserContext] Ожидание авторизации через Telegram');
-        dispatch({
-          type: 'SET_ERROR',
-          payload: new Error('Требуется авторизация через Telegram Mini App')
-        });
-        
-      } catch (error) {
-        frontendLogger.error('[UserContext] Ошибка получения данных пользователя:', error);
-        dispatch({ type: 'SET_ERROR', payload: error as Error });
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: false } });
+      } catch (err) {
+        console.error('[UserContext] Ошибка при загрузке начальных данных:', err);
       }
     };
-
-    loadInitialUserData();
-  }, []);
-
-  // Периодическое обновление данных
-  useEffect(() => {
-    if (!state.userId) return;
     
-    const interval = setInterval(() => {
-      refreshUserData();
-    }, 300000); // Каждые 5 минут
-
-    return () => clearInterval(interval);
-  }, [state.userId]);
-
+    loadInitialUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [/* Пустой массив зависимостей, чтобы эффект выполнился только при первом рендере */]);
+  
+  // Значение контекста
+  const value: UserContextType = {
+    // Данные пользователя
+    userId: state.userId,
+    username: state.username,
+    guestId: state.guestId,
+    telegramId: state.telegramId,
+    refCode: state.refCode,
+    
+    // Данные баланса
+    uniBalance: state.balanceState.uniBalance,
+    tonBalance: state.balanceState.tonBalance,
+    uniFarmingActive: state.balanceState.uniFarmingActive,
+    uniDepositAmount: state.balanceState.uniDepositAmount,
+    uniFarmingBalance: state.balanceState.uniFarmingBalance,
+    
+    // Данные кошелька
+    isWalletConnected: state.walletConnected,
+    walletAddress: state.walletAddress,
+    
+    // Функции
+    connectWallet,
+    disconnectWallet,
+    refreshBalance,
+    refreshUserData,
+    
+    // Состояния
+    isFetching: state.isFetching,
+    isBalanceFetching: state.isBalanceFetching,
+    error: state.error
+  };
+  
   return (
-    <UserContext.Provider
-      value={{
-        userId: state.userId,
-        username: state.username,
-        telegramId: state.telegramId,
-        refCode: state.refCode,
-        
-        uniBalance: state.balanceState.uniBalance,
-        tonBalance: state.balanceState.tonBalance,
-        uniFarmingActive: state.balanceState.uniFarmingActive,
-        uniDepositAmount: state.balanceState.uniDepositAmount,
-        uniFarmingBalance: state.balanceState.uniFarmingBalance,
-        
-        isWalletConnected: state.walletConnected,
-        walletAddress: state.walletAddress,
-        
-        connectWallet,
-        disconnectWallet,
-        refreshBalance,
-        refreshUserData,
-        
-        isFetching: state.isFetching,
-        isBalanceFetching: state.isBalanceFetching,
-        error: state.error
-      }}
-    >
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );
 }
 
+/**
+ * Хук для использования контекста пользователя
+ */
 export function useUser(): UserContextType {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
+    throw new Error('useUser должен использоваться внутри UserProvider');
   }
   return context;
 }
-
-export default UserContext;

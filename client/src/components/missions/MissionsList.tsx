@@ -19,7 +19,7 @@ import ConfettiEffect from '@/components/ui/ConfettiEffect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useUser } from '@/contexts/userContext';
-// import { invalidateQueryWithUserId } from '@/lib/queryClient';
+import { invalidateQueryWithUserId } from '@/lib/queryClient';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 
 // Определение типов статусов миссий
@@ -82,16 +82,32 @@ export const MissionsList: React.FC = () => {
   // Загружаем активные миссии через API с явным указанием queryFn
   const { data: dbMissions, isLoading: missionsLoading, error: missionsError } = useQuery<DbMission[]>({
     queryKey: ['/api/v2/missions/active'],
-    queryFn: async () => {try {
-        // Используем стандартизированный метод для API запросов с параметром nocache для предотвращения кэширования// Добавляем user_id и nocache параметры
+    queryFn: async () => {
+      console.log('🚀 Запрос активных миссий');
+      
+      try {
+        // Используем стандартизированный метод для API запросов с параметром nocache для предотвращения кэширования
+        console.log(`📤 GET запрос активных миссий с использованием correctApiRequest`);
+        
+        // Добавляем user_id и nocache параметры
         const nocache = Date.now();
         const user_id = userId || 35; // Используем текущий user_id или 35 по умолчанию
-        const data = await correctApiRequest(`/api/v2/missions/active?user_id=${user_id}&nocache=${nocache}`, 'GET');// Проверяем что у нас есть массив с данными
-        if (data && data.success && Array.isArray(data.data)) {return data.data;
-        } else {// Если не получаем ожидаемый формат, возвращаем пустой массив
+        const data = await correctApiRequest(`/api/v2/missions/active?user_id=${user_id}&nocache=${nocache}`, 'GET');
+        
+        console.log(`📥 Ответ получен через correctApiRequest:`, data);
+        
+        // Проверяем что у нас есть массив с данными
+        if (data && data.success && Array.isArray(data.data)) {
+          console.log(`✅ Получены активные миссии (${data.data.length} шт.)`);
+          return data.data;
+        } else {
+          console.log('⚠️ Неожиданный формат данных:', data);
+          // Если не получаем ожидаемый формат, возвращаем пустой массив
           return [];
         }
-      } catch (error) {// Не выбрасываем ошибку дальше, а возвращаем пустой массив
+      } catch (error) {
+        console.error('⚠️ Ошибка при запросе миссий:', error);
+        // Не выбрасываем ошибку дальше, а возвращаем пустой массив
         // Чтобы избежать проблем с рендерингом
         return [];
       }
@@ -105,15 +121,31 @@ export const MissionsList: React.FC = () => {
   // Загружаем выполненные миссии пользователя c явным указанием queryFn
   const { data: userCompletedMissions, isLoading: userMissionsLoading, error: userMissionsError } = useQuery<UserMission[]>({
     queryKey: ['/api/v2/user-missions', userId],
-    queryFn: async () => {try {
-        // Используем стандартизированный метод для API запросов с nocache// Добавляем nocache параметр чтобы избежать кэширования запросов
+    queryFn: async () => {
+      console.log('🚀 Запрос выполненных миссий пользователя ID:', userId);
+      
+      try {
+        // Используем стандартизированный метод для API запросов с nocache
+        console.log(`📤 GET запрос выполненных миссий с использованием correctApiRequest`);
+        
+        // Добавляем nocache параметр чтобы избежать кэширования запросов
         const nocache = Date.now();
-        const data = await correctApiRequest(`/api/v2/user-missions?user_id=${userId || 1}&nocache=${nocache}`, 'GET');// Проверяем что у нас есть массив с данными
-        if (data && data.success && Array.isArray(data.data)) {return data.data;
-        } else {// Если не получаем ожидаемый формат, возвращаем пустой массив
+        const data = await correctApiRequest(`/api/v2/user-missions?user_id=${userId || 1}&nocache=${nocache}`, 'GET');
+        
+        console.log(`📥 Ответ получен через correctApiRequest:`, data);
+        
+        // Проверяем что у нас есть массив с данными
+        if (data && data.success && Array.isArray(data.data)) {
+          console.log(`✅ Получены выполненные миссии (${data.data.length} шт.)`);
+          return data.data;
+        } else {
+          console.log('⚠️ Неожиданный формат данных:', data);
+          // Если не получаем ожидаемый формат, возвращаем пустой массив
           return [];
         }
-      } catch (error) {// Возвращаем пустой массив вместо выбрасывания ошибки
+      } catch (error) {
+        console.error('⚠️ Ошибка при запросе выполненных миссий:', error);
+        // Возвращаем пустой массив вместо выбрасывания ошибки
         return [];
       }
     },
@@ -136,24 +168,43 @@ export const MissionsList: React.FC = () => {
 
   // Преобразуем данные из БД в формат для UI
   useEffect(() => {
-    try {// Защита от null/undefined для базовых данных
-      if (!dbMissions) {setMissions([]);
+    try {
+      console.log('MissionsList: dbMissions загружены:', dbMissions ? 'данные получены' : 'нет данных');
+      
+      // Защита от null/undefined для базовых данных
+      if (!dbMissions) {
+        console.log('MissionsList: dbMissions отсутствуют, устанавливаем пустой массив миссий');
+        setMissions([]);
         return;
       }
       
       // Защита от неверного типа данных
-      if (!Array.isArray(dbMissions)) {setMissions([]);
+      if (!Array.isArray(dbMissions)) {
+        console.log('MissionsList: dbMissions не является массивом, устанавливаем пустой массив миссий');
+        setMissions([]);
         return;
-      }// Создаем безопасную карту выполненных миссий
+      }
+      
+      console.log(`MissionsList: обрабатываем ${dbMissions.length} миссий из базы данных`);
+      
+      // Создаем безопасную карту выполненных миссий
       const completedMissionsMap = new Map<number, UserMission>();
       
       // Безопасно обрабатываем пользовательские миссии
-      if (userCompletedMissions && Array.isArray(userCompletedMissions)) {// Безопасная итерация по массиву
+      if (userCompletedMissions && Array.isArray(userCompletedMissions)) {
+        console.log(`MissionsList: обрабатываем ${userCompletedMissions.length} выполненных миссий`);
+        
+        // Безопасная итерация по массиву
         userCompletedMissions.forEach(mission => {
           if (mission && typeof mission === 'object' && 'mission_id' in mission && typeof mission.mission_id === 'number') {
             completedMissionsMap.set(mission.mission_id, mission);
           }
-        });} else {}
+        });
+        
+        console.log(`MissionsList: в карту добавлено ${completedMissionsMap.size} выполненных миссий`);
+      } else {
+        console.log('MissionsList: выполненные миссии отсутствуют или формат некорректен');
+      }
       
       // Конвертируем DbMission[] в Mission[] с защитой от ошибок
       const mappedMissions: Mission[] = dbMissions
@@ -172,9 +223,15 @@ export const MissionsList: React.FC = () => {
             status: isCompleted ? MissionStatus.COMPLETED : MissionStatus.AVAILABLE,
             link: dbMission.link // Добавляем ссылку из базы данных
           };
-        });// Устанавливаем состояние только если есть валидные данные
+        });
+      
+      console.log(`MissionsList: сформировано ${mappedMissions.length} миссий для отображения`);
+      
+      // Устанавливаем состояние только если есть валидные данные
       setMissions(mappedMissions);
-    } catch (error) {// При любой ошибке устанавливаем пустой массив
+    } catch (error) {
+      console.error('MissionsList: ошибка при обработке данных миссий:', error);
+      // При любой ошибке устанавливаем пустой массив
       setMissions([]);
     }
   }, [dbMissions, userCompletedMissions]);
@@ -191,10 +248,14 @@ export const MissionsList: React.FC = () => {
       ));
       
       // Выполняем API запрос через correctApiRequest
+      console.log(`📤 Отправка запроса на выполнение миссии ${missionId} с использованием correctApiRequest`);
+      
       const result = await correctApiRequest('/api/v2/missions/complete', 'POST', {
         user_id: userId || 1,
         mission_id: missionId
       }) as CompleteMissionResponse;
+      
+      console.log(`📥 Ответ получен через correctApiRequest:`, result);
       
       if (result.success) {
         // Имитируем прогресс заполнения прогресс-бара
@@ -220,7 +281,11 @@ export const MissionsList: React.FC = () => {
             // 2. Из текущей миссии, если API-ответ не содержит награды
             const currentMission = missions.find(m => m.id === missionId);
             const rewardValue = result.reward !== undefined ? result.reward : 
-                                (currentMission ? currentMission.rewardUni : 0);setRewardAmount(rewardValue);
+                                (currentMission ? currentMission.rewardUni : 0);
+            
+            console.log(`[DEBUG] Награда за миссию: API=${result.reward}, UI=${currentMission?.rewardUni}, Итог=${rewardValue}`);
+            
+            setRewardAmount(rewardValue);
             setShowConfetti(true);
             
             // Обновляем статус миссии
@@ -241,8 +306,8 @@ export const MissionsList: React.FC = () => {
             // Сбрасываем ID обрабатываемой миссии
             setProcessingMissionId(null);
             
-            // Обновляем кеш данных
-            queryClient.invalidateQueries({ queryKey: ['/api/v2/missions/user-completed', userId] });
+            // Используем invalidateQueryWithUserId вместо invalidateQueries
+            invalidateQueryWithUserId('/api/v2/user-missions');
           }
         }, 200);
       } else {
@@ -264,6 +329,8 @@ export const MissionsList: React.FC = () => {
         setProcessingMissionId(null);
       }
     } catch (error) {
+      console.error('Error completing mission:', error);
+      
       // Показываем уведомление об ошибке
       toast({
         title: "Ошибка",
@@ -546,7 +613,7 @@ export const MissionsList: React.FC = () => {
   }
   
   return (
-    <div className="relative min-h-full">
+    <div className="relative">
       {/* Эффект конфетти при завершении миссии */}
       <ConfettiEffect 
         active={showConfetti} 
@@ -558,7 +625,7 @@ export const MissionsList: React.FC = () => {
         gravity={0.65}
       />
       
-      <div className="space-y-4 p-0 scrollable">
+      <div className="space-y-4 p-4">
         {missions.map((mission) => {
           const statusInfo = getMissionStatusInfo(mission.status);
           const isRecentlyCompleted = completedMissionId !== null && completedMissionId === mission.id;
@@ -636,7 +703,9 @@ export const MissionsList: React.FC = () => {
                     <Button 
                       size="sm"
                       onClick={() => {
-                        const url = mission.link || 'https://t.me/unifarm';handleStartSocialMission(mission.id, url);
+                        const url = mission.link || 'https://t.me/unifarm';
+                        console.log(`🔗 Открываем ссылку для миссии ${mission.id}:`, url);
+                        handleStartSocialMission(mission.id, url);
                       }}
                       className="bg-primary hover:bg-primary/90"
                       disabled={isProcessing}

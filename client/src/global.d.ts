@@ -1,9 +1,19 @@
-declare global {
-  var ErrorBoundaryContext: React.Context<{
-    error: Error | null;
-    setError: (error: Error | null) => void;
-    clearError: () => void;
-  } | undefined>;
-}
+/**
+ * Расширения для глобальных типов
+ */
 
-export {};
+interface Window {
+  /**
+   * Безопасная функция для создания Map из любых данных
+   * @template K - тип ключа
+   * @template V - тип значения
+   * @param entries - итерируемый объект с парами [ключ, значение] или любой объект
+   * @returns Map с безопасно обработанными данными
+   */
+  safeCreateMap<K, V>(entries?: any): Map<K, V>;
+  
+  /**
+   * Индекс процесса для совместимости с некоторыми библиотеками
+   */
+  process: any;
+}

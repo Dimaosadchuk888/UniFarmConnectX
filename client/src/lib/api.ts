@@ -29,12 +29,18 @@ class ApiClient {
       }
 
       return await response.json();
-    } catch (error) {throw error;
+    } catch (error) {
+      console.error(`API Error for ${endpoint}:`, error);
+      throw error;
     }
   }
 
   // Auth methods
-  async createUser(data: { telegram_id: number; username?: string; refCode?: string }) {
+  async getUserByGuestId(guestId: string) {
+    return this.request(`${APP_CONFIG.API.ENDPOINTS.USER}/by-guest-id?guest_id=${guestId}`);
+  }
+
+  async createUser(data: { guestId: string; refCode?: string }) {
     return this.request(APP_CONFIG.API.ENDPOINTS.USER, {
       method: 'POST',
       body: JSON.stringify(data),

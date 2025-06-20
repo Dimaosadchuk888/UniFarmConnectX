@@ -37,7 +37,10 @@ const EnhancedMissionsList: React.FC = () => {
   // Функция загрузки данных миссий
   const fetchData = useCallback(async () => {
     try {
-      setLoading(true);// Загружаем активные миссии
+      setLoading(true);
+      console.log('[EnhancedMissionsList] Загрузка данных миссий...');
+      
+      // Загружаем активные миссии
       const missionsResponse = await correctApiRequest('/api/v2/missions/active', 'GET');
       
       // Проверяем ответ
@@ -46,21 +49,34 @@ const EnhancedMissionsList: React.FC = () => {
       }
       
       const missionsData = missionsResponse.data || [];
-      setMissions(missionsData);// Загружаем выполненные пользователем миссии (только если есть userId)
+      setMissions(missionsData);
+      console.log('[EnhancedMissionsList] Загружено миссий:', missionsData.length);
+      
+      // Загружаем выполненные пользователем миссии (только если есть userId)
       if (userId) {
-        try {const completedResponse = await correctApiRequest(`/api/v2/missions/user/${userId}`, 'GET');
+        try {
+          console.log('[EnhancedMissionsList] Загружаем выполненные миссии для пользователя:', userId);
+          const completedResponse = await correctApiRequest(`/api/v2/missions/user/${userId}`, 'GET');
           
           if (completedResponse && completedResponse.success) {
             const completedData = completedResponse.data || [];
             const completedIds = completedData.map((mission: UserMission) => mission.mission_id);
-            setCompletedMissionIds(completedIds);} else {
-            // Если не удалось загрузить выполненные миссии, продолжаем с пустым спискомsetCompletedMissionIds([]);
+            setCompletedMissionIds(completedIds);
+            console.log('[EnhancedMissionsList] Загружено выполненных миссий:', completedIds.length);
+          } else {
+            // Если не удалось загрузить выполненные миссии, продолжаем с пустым списком
+            console.log('[EnhancedMissionsList] Не удалось загрузить выполненные миссии, продолжаем без них');
+            setCompletedMissionIds([]);
           }
-        } catch (userMissionsError) {// Продолжаем работу с пустым списком выполненных миссий
+        } catch (userMissionsError) {
+          console.error('[EnhancedMissionsList] Ошибка при загрузке выполненных миссий:', userMissionsError);
+          // Продолжаем работу с пустым списком выполненных миссий
           setCompletedMissionIds([]);
         }
       }
-    } catch (fetchError: any) {setError(fetchError.message || 'Не удалось загрузить миссии');
+    } catch (fetchError: any) {
+      console.error('[EnhancedMissionsList] Ошибка загрузки данных:', fetchError);
+      setError(fetchError.message || 'Не удалось загрузить миссии');
     } finally {
       setLoading(false);
     }
@@ -113,7 +129,9 @@ const EnhancedMissionsList: React.FC = () => {
         message: `🔥 Ошибка при выполнении миссии: ${error.message || 'Проблема с подключением'}`,
         duration: 5000,
         autoDismiss: true
-      });}
+      });
+      console.error('[EnhancedMissionsList] Ошибка выполнения миссии:', error);
+    }
   };
   
   // Функция для получения иконки миссии в зависимости от типа

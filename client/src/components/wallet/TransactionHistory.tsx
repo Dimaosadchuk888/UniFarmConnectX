@@ -63,7 +63,9 @@ const TransactionHistory: React.FC = () => {
         
         const data = await response.json();
         return data;
-      } catch (err) {return { transactions: [], total: 0 };
+      } catch (err) {
+        console.error('[TransactionHistory] Ошибка загрузки транзакций:', err);
+        return { transactions: [], total: 0 };
       }
     },
     enabled: !!userId,
@@ -217,10 +219,7 @@ const TransactionHistory: React.FC = () => {
   }
 
   return (
-    <div 
-      className="bg-card rounded-xl p-5 mb-5 shadow-lg relative" 
-      style={{ overflow: 'visible', maxHeight: 'none' }}
-    >
+    <div className="bg-card rounded-xl p-5 mb-5 shadow-lg overflow-hidden relative">
       {/* Неоновая рамка */}
       <div className="absolute inset-0 rounded-xl border border-primary/30"></div>
       

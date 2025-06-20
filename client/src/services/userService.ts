@@ -1,6 +1,5 @@
-import frontendLogger from "../utils/frontendLogger";
 import { apiRequest } from "@/lib/queryClient";
-import { getTelegramUserData } from "@/services/telegramService";
+import { getCachedTelegramUserId } from "@/services/telegramService";
 import apiConfig from "@/config/apiConfig";
 import { correctApiRequest } from "@/lib/correctApiRequest";
 
@@ -14,6 +13,7 @@ export interface User {
   balance_uni: string;
   balance_ton: string;
   ref_code: string; // Реферальный код пользователя всегда должен быть определен
+  guest_id: string; // Идентификатор гостя
   created_at?: string;
   parent_ref_code?: string | null;
 }
@@ -48,20 +48,31 @@ const CACHE_TTL = 60 * 60 * 1000;
  */
 class UserService {
   /**
-   * Регистрирует пользователя через Telegram Mini App
+   * Регистрирует пользователя в режиме AirDrop без требования данных Telegram
+   * Используется как альтернативный способ регистрации для максимальной доступности
    * @returns {Promise<{success: boolean, data?: any}>} Результат операции и данные пользователя
    */
-  async registerWithTelegram(): Promise<{success: boolean, data?: any}> {try {
-      // Получаем данные Telegram пользователя
-      const telegramData = getTelegramUserData();
-      
-      if (!telegramData?.id) {return {
-          success: false
-        };
-      }
-      
-      const telegramUserId = telegramData.id;
-      
+  async registerInAirDropMode(): Promise<{success: boolean, data?: any}> {
+    console.log('[UserService] Запуск регистрации в режиме AirDrop...');
+
+    try {
+      // Генерируем временный ID на основе timestamp с некоторой случайностью
+      // для избежания коллизий при одновременной регистрации
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000);
+      const tempId = Math.floor(timestamp / 1000) * 10000 + random;
+      const username = `airdrop_user_${tempId}`;
+
+      console.log(`[UserService] AirDrop: Сгенерирован временный ID: ${tempId} для пользователя ${username}`);
+
+      // Импортируем GuestIdService для получения guest_id
+      const { getOrCreateGuestId } = await import('./guestIdService');
+
+      // Получаем guest_id из localStorage или создаем новый
+      const guestId = getOrCreateGuestId();
+
+      console.log(`[UserService] AirDrop: Используем guest_id: ${guestId}`);
+
       // Импортируем referralService для получения реферального кода
       const { referralService } = await import('./referralService');
 
@@ -69,24 +80,40 @@ class UserService {
       const referralCode = referralService.getReferralCodeForRegistration();
 
       if (referralCode) {
-        frontendLogger.info('Using referral code for registration:', referralCode);
+        console.log(`[UserService] AirDrop: Используем реферальный код: ${referralCode}`);
       } else {
-        frontendLogger.info('No referral code found for registration');
+        console.log('[UserService] AirDrop: Реферальный код не найден');
       }
 
       // Формируем полный URL для запроса
       const url = apiConfig.getFullUrl('/api/v2/airdrop/register');
-      
-      // Отправляем запрос на регистрацию через Telegram
+      console.log(`[UserService] AirDrop: Отправка запроса по URL: ${url}`);
+
+      // Отправляем запрос на регистрацию в режиме AirDrop с использованием correctApiRequest
+      console.log('[UserService] Используем correctApiRequest для запроса в режиме AirDrop');
+
       // correctApiRequest обрабатывает заголовки, преобразование JSON и анализ ответов автоматически
-      const result = await correctApiRequest('/api/v2/users', 'POST', {
-        telegram_id: telegramUserId,
-        username: `telegram_user_${telegramUserId}`,
-        refCode: referralCode
-      });// Проверяем, есть ли данные пользователя в ответе
+      const result = await correctApiRequest(url, 'POST', {
+        guest_id: guestId, // Передаем guest_id, который будет основным идентификатором
+        username: username,
+        ref_code: referralCode, // Передаем реферальный код через параметр ref_code
+        airdrop_mode: true // Явно указываем, что это режим AirDrop
+      });
+
+      console.log('[UserService] Успешная регистрация в режиме AirDrop. Данные:', result);
+
+      // Проверяем, есть ли данные пользователя в ответе
       if (result && result.data) {
         // Проверяем наличие реферального кода в ответе
-        if (result.data.ref_code) {} else {}// Сохраняем данные пользователя в кэш
+        if (result.data.ref_code) {
+          console.log('[UserService] Получен реферальный код:', result.data.ref_code);
+        } else {
+          console.warn('[UserService] Реферальный код отсутствует в ответе от сервера');
+        }
+
+        console.log('[UserService] Кэширование данных пользователя:', result.data);
+
+        // Сохраняем данные пользователя в кэш
         this.cacheUserData(result.data);
 
         // Возвращаем успешный результат и данные
@@ -94,12 +121,17 @@ class UserService {
           success: true, 
           data: result.data 
         };
-      } else {return { 
+      } else {
+        console.error('[UserService] В ответе отсутствуют данные пользователя:', result);
+        return { 
           success: false,
           data: { error: 'Некорректный ответ сервера, отсутствуют данные пользователя' }
         };
       }
-    } catch (error: any) {// correctApiRequest уже предоставляет структурированную ошибку
+    } catch (error: any) {
+      console.error('[UserService] Ошибка при регистрации в режиме AirDrop:', error);
+
+      // correctApiRequest уже предоставляет структурированную ошибку
       return { 
         success: false, 
         data: { 
@@ -115,55 +147,104 @@ class UserService {
    * @returns {Promise<User>} Данные текущего пользователя
    * @throws {Error} Если не удалось получить данные пользователя
    */
-  async getCurrentUser(forceReload: boolean = false): Promise<User> {try {
+  async getCurrentUser(forceReload: boolean = false): Promise<User> {
+    console.log(`[UserService] Getting current user, forceReload: ${forceReload}`);
+
+    try {
       // Шаг 1: Проверяем кэшированные данные пользователя, если не требуется принудительная перезагрузка
       if (!forceReload) {
         const cachedUserData = this.getCachedUserData();
-        if (cachedUserData && this.isValidCachedData(cachedUserData)) {// Даже если используем кэш, делаем фоновый запрос для обновления данных
+        if (cachedUserData && this.isValidCachedData(cachedUserData)) {
+          console.log('[UserService] Using cached user data:', { id: cachedUserData.id });
+
+          // Даже если используем кэш, делаем фоновый запрос для обновления данных
           this.refreshUserDataInBackground();
 
           return cachedUserData;
         }
       }
 
-      // Шаг 2: Запрашиваем данные с сервераconst data = await this.fetchUserFromApi();
+      // Шаг 2: Запрашиваем данные с сервера
+      console.log('[UserService] Requesting user data from API');
+      const data = await this.fetchUserFromApi();
 
-      // Лог успешного результатаreturn data;
-    } catch (error) {// Шаг 3: Попытка восстановления из кэша в случае ошибки
+      // Лог успешного результата
+      console.log('[UserService] Successfully got user data, ID:', data.id);
+
+      return data;
+    } catch (error) {
+      console.error('[UserService] Error fetching current user:', error);
+
+      // Шаг 3: Попытка восстановления из кэша в случае ошибки
       const cachedUserData = this.getCachedUserData();
-      if (cachedUserData) {return cachedUserData;
+      if (cachedUserData) {
+        console.warn('[UserService] Fallback to cached user data due to API error');
+        return cachedUserData;
       }
 
       // Шаг 4: В режиме разработки пробуем получить тестовые данные с сервера
       if (IS_DEV) {
-        try {return await this.fetchDevUserFromApi();
-        } catch (devError) {}
+        try {
+          console.warn('[UserService] In DEV mode, trying to get user data');
+          return await this.fetchDevUserFromApi();
+        } catch (devError) {
+          console.error('[UserService] Error fetching DEV user:', devError);
+        }
       }
 
-      // Шаг 5: Если все предыдущие шаги не удались - пробрасываем ошибкуthrow new Error(`Failed to get user data: ${(error as Error)?.message || 'Unknown error'}`);
+      // Шаг 5: Если все предыдущие шаги не удались - пробрасываем ошибку
+      console.error('[UserService] All recovery methods failed');
+      throw new Error(`Failed to get user data: ${(error as Error)?.message || 'Unknown error'}`);
     }
   }
 
   /**
-   * Выполняет запрос к API для получения данных пользователя через Telegram
+   * Выполняет запрос к API для получения данных пользователя
+   * Этап 10.4: Убрана зависимость от telegram_id, используем только guest_id
    * @returns {Promise<User>} Данные пользователя из API
    * @private
    */
   private async fetchUserFromApi(): Promise<User> {
-    // Получаем данные Telegram пользователя
-    const telegramData = getTelegramUserData();
-    
-    if (!telegramData?.id) {
-      throw new Error('Telegram User ID не найден');
-    }// Проверяем состояние сессии в момент запроса
-    if (sessionStorage.getItem('unifarm_telegram_ready') === 'true') {} else {}
+    // Импортируем guestIdService для получения guest_id
+    const { getOrCreateGuestId } = await import('./guestIdService');
+    const guestId = getOrCreateGuestId();
+
+    console.log('[UserService] Запрос к API с guest_id:', guestId);
+    console.log('[UserService] Объект localStorage в момент запроса к /api/me:', 
+      Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)?.substring(0, 20)}...`));
+
+    // Проверяем состояние сессии в момент запроса
+    if (sessionStorage.getItem('unifarm_telegram_ready') === 'true') {
+      console.log('[UserService] Telegram WebApp отмечен как инициализированный при запросе /api/me');
+    } else {
+      console.warn('[UserService] Telegram WebApp НЕ отмечен как инициализированный при запросе /api/me!');
+    }
 
     try {
-      // Делаем запрос к API, используя correctApiRequest// Делаем запрос с user_id параметром
-      const data = await correctApiRequest(`/api/v2/users/profile?user_id=${telegramData.id}`, 'GET');
+      // Делаем запрос к API, используя correctApiRequest
+      console.log('[UserService] Используем correctApiRequest для запроса /api/v2/users/profile с guest_id:', guestId);
+      
+      // Делаем запрос без дополнительных параметров, так как guest_id передается в headers
+      const data = await correctApiRequest('/api/v2/users/profile', 'GET');
 
-      // Подробный лог для отладки// Если API не вернул данные, выдаем ошибку 
-      if (!data || !data.success || !data.data) {throw new Error('Invalid response from server');
+      // Подробный лог для отладки
+      console.log('[UserService] API /me result:', {
+        success: data?.success,
+        userId: data?.data?.id,
+        username: data?.data?.username,
+        guestId: data?.data?.guest_id,
+        refCode: data?.data?.ref_code || 'НЕ ОПРЕДЕЛЕН',
+        hasRefCode: !!data?.data?.ref_code,
+        telegramId: data?.data?.telegram_id,
+        balanceUni: data?.data?.balance_uni,
+        balanceTon: data?.data?.balance_ton,
+        responseJson: JSON.stringify(data).substring(0, 200) + '...'
+      });
+
+      // Если API не вернул данные, выдаем ошибку 
+      if (!data || !data.success || !data.data) {
+        console.error('[UserService] Invalid API response from server:', data);
+        throw new Error('Invalid response from server');
       }
 
       // Проверяем и фиксируем поля с типами данных, если это необходимо
@@ -182,9 +263,13 @@ class UserService {
       if (this.isValidUserData(userData)) {
         this.cacheUserData(userData);
         return userData;
-      } else {throw new Error('Invalid user data structure received from API');
+      } else {
+        console.error('[UserService] Data validation failed after type correction:', userData);
+        throw new Error('Invalid user data structure received from API');
       }
-    } catch (error) {throw error;
+    } catch (error) {
+      console.error('[UserService] Error in fetchUserFromApi:', error);
+      throw error;
     }
   }
 
@@ -193,8 +278,14 @@ class UserService {
    * @private
    */
   private async refreshUserDataInBackground(): Promise<void> {
-    try {const data = await this.fetchUserFromApi();
-      this.cacheUserData(data);} catch (error) {// Игнорируем ошибки, т.к. это фоновое обновление
+    try {
+      console.log('[UserService] Refreshing user data in background');
+      const data = await this.fetchUserFromApi();
+      this.cacheUserData(data);
+      console.log('[UserService] Background refresh completed, new data cached');
+    } catch (error) {
+      console.warn('[UserService] Background refresh failed:', error);
+      // Игнорируем ошибки, т.к. это фоновое обновление
     }
   }
 
@@ -217,7 +308,20 @@ class UserService {
     );
 
     // Подробный лог для отладки валидации данных
-    if (!isValid && data) {}
+    if (!isValid && data) {
+      console.warn('[UserService] Invalid user data structure:', {
+        hasId: typeof data.id === 'number',
+        idIsPositive: data.id > 0,
+        hasTelegramId: typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string' || data.telegram_id === null,
+        telegramIdValue: data.telegram_id,
+        hasUsername: typeof data.username === 'string',
+        hasBalanceUni: typeof data.balance_uni === 'string',
+        hasBalanceTon: typeof data.balance_ton === 'string',
+        hasRefCode: typeof data.ref_code === 'string',
+        refCodeValue: data.ref_code || 'missing',
+        rawData: data
+      });
+    }
 
     return isValid;
   }
@@ -250,7 +354,11 @@ class UserService {
         _cacheTimestamp: Date.now()
       };
 
-      localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(dataToCache));} catch (error) {}
+      localStorage.setItem(USER_DATA_STORAGE_KEY, JSON.stringify(dataToCache));
+      console.log('[UserService] User data cached successfully:', { id: userData.id });
+    } catch (error) {
+      console.error('[UserService] Error caching user data:', error);
+    }
   }
 
   /**
@@ -270,7 +378,9 @@ class UserService {
         return cachedData;
       }
       return null;
-    } catch (error) {return null;
+    } catch (error) {
+      console.warn('[UserService] Error reading cached user data:', error);
+      return null;
     }
   }
 
@@ -280,12 +390,18 @@ class UserService {
    * @private
    */
   private async fetchDevUserFromApi(): Promise<User> {
-    try {const devData = await correctApiRequest('/api/v2/users/1', 'GET');
-      if (devData.success && devData.data && this.isValidUserData(devData.data)) {return devData.data;
+    try {
+      console.log('[UserService] Используем correctApiRequest для запроса dev-пользователя');
+      const devData = await correctApiRequest('/api/v2/users/1', 'GET');
+      if (devData.success && devData.data && this.isValidUserData(devData.data)) {
+        console.log('[UserService] Successfully got DEV user data from API:', { id: devData.data.id });
+        return devData.data;
       } else {
         throw new Error('Invalid dev user data structure');
       }
-    } catch (error) {throw error;
+    } catch (error) {
+      console.error('[UserService] Error fetching DEV user:', error);
+      throw error;
     }
   }
 
@@ -295,11 +411,16 @@ class UserService {
    * @throws {Error} Если не удалось сгенерировать код
    */
   async generateRefCode(): Promise<string> {
-    try {// Получаем текущие данные пользователя
+    try {
+      console.log('[UserService] Запрос на генерацию реферального кода');
+
+      // Получаем текущие данные пользователя
       const currentUser = await this.getCurrentUser();
 
       // Проверяем, есть ли уже реферальный код
-      if (currentUser.ref_code) {return currentUser.ref_code;
+      if (currentUser.ref_code) {
+        console.log(`[UserService] У пользователя уже есть реферальный код: ${currentUser.ref_code}`);
+        return currentUser.ref_code;
       }
 
       // Подготавливаем параметры запроса
@@ -307,9 +428,14 @@ class UserService {
         user_id: currentUser.id
       };
 
-      // Делаем запрос к серверу для генерации кода с использованием correctApiRequestconst response = await correctApiRequest('/api/v2/users/generate-refcode', 'POST', requestData);
+      // Делаем запрос к серверу для генерации кода с использованием correctApiRequest
+      console.log('[UserService] Используем correctApiRequest для генерации реферального кода');
+      const response = await correctApiRequest('/api/v2/users/generate-refcode', 'POST', requestData);
 
-      if (response.success && response.data) {// Теперь response.data содержит полные данные пользователя с новым ref_code
+      if (response.success && response.data) {
+        console.log('[UserService] Успешно получен реферальный код:', response.data);
+
+        // Теперь response.data содержит полные данные пользователя с новым ref_code
         // Обновляем кэш пользователя
         this.cacheUserData(response.data);
 
@@ -318,9 +444,13 @@ class UserService {
 
         // Возвращаем только реферальный код
         return response.data.ref_code;
-      } else {throw new Error('Не удалось получить реферальный код');
+      } else {
+        console.error('[UserService] Ошибка при получении реферального кода:', response);
+        throw new Error('Не удалось получить реферальный код');
       }
-    } catch (error) {throw error;
+    } catch (error) {
+      console.error('[UserService] Ошибка при генерации реферального кода:', error);
+      throw error;
     }
   }
 
@@ -337,7 +467,10 @@ class UserService {
     lastName?: string;
     refCode?: string;
   }): Promise<{success: boolean, data?: any, error?: string}> {
-    try {const result = await correctApiRequest('/api/v2/users', 'POST', {
+    try {
+      console.log('[UserService] Создание пользователя:', userData);
+
+      const result = await correctApiRequest('/api/v2/users', 'POST', {
         guest_id: userData.guestId,
         telegram_id: userData.telegramId,
         username: userData.username || `user_${Date.now()}`,
@@ -346,19 +479,26 @@ class UserService {
         ref_code: userData.refCode
       });
 
-      if (result.success && result.data) {// Кэшируем данные нового пользователя
+      if (result.success && result.data) {
+        console.log('[UserService] ✅ Пользователь успешно создан:', result.data);
+        
+        // Кэшируем данные нового пользователя
         this.cacheUserData(result.data);
         
         return {
           success: true,
           data: result.data
         };
-      } else {return {
+      } else {
+        console.error('[UserService] ❌ Ошибка создания пользователя:', result);
+        return {
           success: false,
           error: result.error || 'Failed to create user'
         };
       }
-    } catch (error) {return {
+    } catch (error) {
+      console.error('[UserService] Критическая ошибка при создании пользователя:', error);
+      return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
@@ -371,39 +511,55 @@ class UserService {
   clearUserCache(): void {
     localStorage.removeItem(USER_DATA_STORAGE_KEY);
     // Для обратной совместимости удаляем и по старому ключу
-    localStorage.removeItem('unifarm_user_id');}
+    localStorage.removeItem('unifarm_user_id');
+    console.log('[UserService] User data cache cleared');
+  }
 
   /**
    * Проверяет наличие реального пользовательского ID
    * @returns {Promise<boolean>} True если есть реальный ID пользователя
    */
-  async hasRealUserId(): Promise<boolean> {try {
-      // С Этапа 10.3 Telegram WebApp больше не используется// Этап 10.4: Удалены проверки Telegram ID - больше не поддерживаются// Всегда переходим к проверке данных пользователя
+  async hasRealUserId(): Promise<boolean> {
+    console.log('[UserService] Checking for real user ID...');
+
+    try {
+      // С Этапа 10.3 Telegram WebApp больше не используется
+      console.warn('[UserService] Telegram WebApp проверки отключены (Этап 10.3)');
+
+      // Этап 10.4: Удалены проверки Telegram ID - больше не поддерживаются
+      console.log('[UserService] Telegram ID проверки пропущены (Этап 10.4)');
+      // Всегда переходим к проверке данных пользователя
 
       // Шаг 3: Проверка кэшированных данных пользователя
       const cachedData = this.getCachedUserData();
       if (cachedData && cachedData.id > 0 && cachedData.id !== 1) {
+        console.log('[UserService] Found real user ID from cached user data:', cachedData.id);
         return true;
       } else if (cachedData) {
-        frontendLogger.info('Cached data exists but ID is invalid:', cachedData.id);
+        console.warn('[UserService] Cached user data available but ID is invalid:', cachedData.id);
       } else {
-        frontendLogger.info('No cached user data found');
+        console.warn('[UserService] No cached user data available');
       }
 
       // Шаг 4: Пробуем получить данные с сервера
+      console.log('[UserService] Attempting to get real user ID from API');
       try {
         const userData = await this.fetchUserFromApi();
         const isValid = userData && userData.id > 0 && userData.id !== 1;
 
         if (isValid) {
+          console.log('[UserService] Successfully retrieved valid user ID from API:', userData.id);
           return true;
         } else {
+          console.warn('[UserService] API returned invalid user ID:', userData?.id);
           return false;
         }
       } catch (error) {
+        console.error('[UserService] Error getting user data from API:', error);
         return false;
       }
     } catch (error) {
+      console.error('[UserService] Unexpected error in hasRealUserId:', error);
       return false;
     }
   }
@@ -411,3 +567,46 @@ class UserService {
 
 export default new UserService();
 
+/**
+ * Получает пользователя по guest_id с поддержкой fallback режима
+ */
+export async function getUserByGuestId(guestId: string): Promise<any> {
+  console.log('[UserService] Используем correctApiRequest для запроса по guest_id');
+
+  try {
+    const url = `/api/v2/users/by-guest-id?guest_id=${guestId}`;
+    const response = await fetch(url);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.data) {
+        return data.data;
+      }
+    }
+    
+    console.log(`[UserService] ⚠️ Пользователь с guest_id ${guestId} не найден, попытка автоматической регистрации`);
+
+    // Попытка автоматической регистрации
+    try {
+      const { correctApiRequest } = await import('../lib/correctApiRequest');
+      const registerResponse = await correctApiRequest('/api/v2/users', 'POST', {
+        guestId: guestId,
+        refCode: null // TODO: получать из URL параметров
+      });
+
+      if (registerResponse && registerResponse.success && registerResponse.data) {
+        console.log(`[UserService] ✅ Пользователь автоматически зарегистрирован:`, registerResponse.data);
+        return registerResponse.data;
+      } else {
+        console.error('[UserService] ❌ Ошибка автоматической регистрации:', registerResponse);
+        return null;
+      }
+    } catch (registerError) {
+      console.error('[UserService] ❌ Критическая ошибка автоматической регистрации:', registerError);
+      return null;
+    }
+  } catch (error) {
+    console.error(`[UserService] ❌ Ошибка получения пользователя по guest_id ${guestId}:`, error);
+    return null;
+  }
+}

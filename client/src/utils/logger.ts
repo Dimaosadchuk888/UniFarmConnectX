@@ -51,22 +51,30 @@ class Logger {
   debug(message: string, data?: any): void {
     if (!this.shouldLog(LogLevel.DEBUG)) return;
     
-    this.addLog(LogLevel.DEBUG, message, data);}
+    this.addLog(LogLevel.DEBUG, message, data);
+    console.debug(`[DEBUG] ${message}`, data || '');
+  }
 
   info(message: string, data?: any): void {
     if (!this.shouldLog(LogLevel.INFO)) return;
     
-    this.addLog(LogLevel.INFO, message, data);}
+    this.addLog(LogLevel.INFO, message, data);
+    console.info(`[INFO] ${message}`, data || '');
+  }
 
   warn(message: string, data?: any): void {
     if (!this.shouldLog(LogLevel.WARN)) return;
     
-    this.addLog(LogLevel.WARN, message, data);}
+    this.addLog(LogLevel.WARN, message, data);
+    console.warn(`[WARN] ${message}`, data || '');
+  }
 
   error(message: string, error?: any): void {
     if (!this.shouldLog(LogLevel.ERROR)) return;
     
-    this.addLog(LogLevel.ERROR, message, error);}
+    this.addLog(LogLevel.ERROR, message, error);
+    console.error(`[ERROR] ${message}`, error || '');
+  }
 
   setLogLevel(level: LogLevel): void {
     this.logLevel = level;

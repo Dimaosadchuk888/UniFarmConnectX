@@ -53,16 +53,22 @@ const TonFarmingStatusCard: React.FC = () => {
       interval = setInterval(() => {
         try {
           setDotOpacity(prev => (prev === 0.5 ? 1 : 0.5));
-        } catch (error) {// В случае ошибки пытаемся восстановить состояние
+        } catch (error) {
+          console.error('Ошибка при изменении прозрачности индикатора:', error);
+          // В случае ошибки пытаемся восстановить состояние
           setDotOpacity(0.5);
         }
       }, 1000);
-    } catch (error) {}
+    } catch (error) {
+      console.error('Ошибка при создании интервала анимации статуса:', error);
+    }
 
     return () => {
       try {
         if (interval) clearInterval(interval);
-      } catch (error) {}
+      } catch (error) {
+        console.error('Ошибка при очистке интервала анимации статуса:', error);
+      }
     };
   }, []);
 
@@ -96,7 +102,9 @@ const TonFarmingStatusCard: React.FC = () => {
 
             // Проверка на валидное число
             if (isNaN(targetPerSecond)) targetPerSecond = 0;
-          } catch (parseError) {targetDaily = 0;
+          } catch (parseError) {
+            console.error('Ошибка при парсинге числовых значений:', parseError);
+            targetDaily = 0;
             targetPerSecond = 0;
           }
 
@@ -106,9 +114,13 @@ const TonFarmingStatusCard: React.FC = () => {
             setTimeout(() => {
               try {
                 setIsPulsing(false);
-              } catch (error) {}
+              } catch (error) {
+                console.error('Ошибка при сбросе состояния пульсации:', error);
+              }
             }, 1000);
-          } catch (pulseError) {}
+          } catch (pulseError) {
+            console.error('Ошибка при установке состояния пульсации:', pulseError);
+          }
 
           // Анимируем нарастание значений
           const animationDuration = 1000;
@@ -137,11 +149,15 @@ const TonFarmingStatusCard: React.FC = () => {
                 if (progress < 1) {
                   requestAnimationFrame(animate);
                 }
-              } catch (stateError) {// При ошибке устанавливаем конечные значения напрямую
+              } catch (stateError) {
+                console.error('Ошибка при обновлении состояния анимации:', stateError);
+                // При ошибке устанавливаем конечные значения напрямую
                 setDailyYield(targetDaily);
                 setPerSecond(targetPerSecond);
               }
-            } catch (animateError) {// При ошибке устанавливаем конечные значения напрямую
+            } catch (animateError) {
+              console.error('Ошибка в функции анимации:', animateError);
+              // При ошибке устанавливаем конечные значения напрямую
               setDailyYield(targetDaily);
               setPerSecond(targetPerSecond);
             }
@@ -149,17 +165,23 @@ const TonFarmingStatusCard: React.FC = () => {
 
           try {
             animate();
-          } catch (startAnimateError) {// При ошибке устанавливаем конечные значения напрямую
+          } catch (startAnimateError) {
+            console.error('Ошибка при запуске анимации:', startAnimateError);
+            // При ошибке устанавливаем конечные значения напрямую
             setDailyYield(targetDaily);
             setPerSecond(targetPerSecond);
           }
-        } catch (dataProcessingError) {// Устанавливаем безопасные значения по умолчанию
+        } catch (dataProcessingError) {
+          console.error('Ошибка при обработке данных фарминга:', dataProcessingError);
+          // Устанавливаем безопасные значения по умолчанию
           setIsActive(false);
           setDailyYield(0);
           setPerSecond(0);
         }
       }
-    } catch (mainError) {// Устанавливаем безопасные значения по умолчанию
+    } catch (mainError) {
+      console.error('Ошибка в эффекте обновления данных фарминга:', mainError);
+      // Устанавливаем безопасные значения по умолчанию
       setIsActive(false);
       setDailyYield(0);
       setPerSecond(0);
@@ -190,7 +212,9 @@ const TonFarmingStatusCard: React.FC = () => {
                   const count = Array.isArray(deposits) ? deposits.length : 0;
 
                   return `${count > 0 ? `Активно ${count} TON Boost депозитов` : 'Стейкинг TON токенов'}`;
-                } catch (error) {return 'Стейкинг TON токенов';
+                } catch (error) {
+                  console.error('Ошибка при формировании описания:', error);
+                  return 'Стейкинг TON токенов';
                 }
               })()}
             </CardDescription>
@@ -220,7 +244,9 @@ const TonFarmingStatusCard: React.FC = () => {
                         try {
                           // Проверка на валидное число и отображение с 5 знаками после запятой
                           return formatNumberWithPrecision(isNaN(dailyYield) ? 0 : dailyYield, 5);
-                        } catch (error) {return '0.00000';
+                        } catch (error) {
+                          console.error('Ошибка при форматировании дневного дохода:', error);
+                          return '0.00000';
                         }
                       })()}
                     </span>
@@ -239,7 +265,9 @@ const TonFarmingStatusCard: React.FC = () => {
                     try {
                       // Отображаем с 8 знаками после запятой для лучшей точности
                       return formatNumberWithPrecision(isNaN(perSecond) ? 0 : perSecond, 8);
-                    } catch (error) {return '0.00000000';
+                    } catch (error) {
+                      console.error('Ошибка при форматировании значения в секунду:', error);
+                      return '0.00000000';
                     }
                   })()}
                 </span>
@@ -265,7 +293,9 @@ const TonFarmingStatusCard: React.FC = () => {
                       }
                       // Отображаем с 2 знаками после запятой
                       return formatNumberWithPrecision(isNaN(amount) ? 0 : amount, 2);
-                    } catch (error) {return '0.00';
+                    } catch (error) {
+                      console.error('Ошибка при форматировании общей суммы:', error);
+                      return '0.00';
                     }
                   })()}
                 </span>
@@ -282,7 +312,9 @@ const TonFarmingStatusCard: React.FC = () => {
                       // Получаем количество депозитов непосредственно из массива
                       const deposits = farmingInfo?.data?.deposits || [];
                       return Array.isArray(deposits) ? deposits.length : 0;
-                    } catch (error) {return 0;
+                    } catch (error) {
+                      console.error('Ошибка при подсчете количества депозитов:', error);
+                      return 0;
                     }
                   })()}
                 </span>

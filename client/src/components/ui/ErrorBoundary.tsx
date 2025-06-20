@@ -41,7 +41,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Логируем ошибку в консоль// Сохраняем информацию об ошибке для отображения
+    // Логируем ошибку в консоль
+    console.error('[ErrorBoundary] Перехвачена ошибка в компоненте:', error, errorInfo);
+    
+    // Сохраняем информацию об ошибке для отображения
     this.setState({
       errorInfo
     });
@@ -71,8 +74,12 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           '/api/v2/wallet/balance',
           '/api/v2/transactions'
         ]);
-      } catch (queryError) {}
-    } catch (resetError) {}
+      } catch (queryError) {
+        console.error('[ErrorBoundary] Ошибка при обновлении кэша запросов:', queryError);
+      }
+    } catch (resetError) {
+      console.error('[ErrorBoundary] Ошибка при сбросе состояния:', resetError);
+    }
   };
 
   render(): ReactNode {

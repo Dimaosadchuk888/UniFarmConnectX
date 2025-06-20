@@ -34,22 +34,8 @@ interface TonFarmingInfo {
 }
 
 const IncomeCardNew: React.FC = () => {
-  const { userId, isFetching } = useUser();
-  
-  // Показываем загрузку при отсутствии пользователя
-  if (isFetching || !userId) {
-    return (
-      <div className="bg-card/50 backdrop-blur-sm border border-border/40 rounded-xl p-4">
-        <div className="animate-pulse">
-          <div className="h-4 bg-muted rounded w-24 mb-2"></div>
-          <div className="h-8 bg-muted rounded w-32 mb-3"></div>
-          <div className="h-3 bg-muted rounded w-20"></div>
-        </div>
-      </div>
-    );
-  }
-  
-  const validUserId = userId;
+  const { userId } = useUser();
+  const validUserId = userId || '1';
   
   // Анимация нарастающего счетчика
   const [displayedHourRate, setDisplayedHourRate] = useState(0);
@@ -68,30 +54,24 @@ const IncomeCardNew: React.FC = () => {
   const [isPulsing, setIsPulsing] = useState(false);
   const [isTonPulsing, setIsTonPulsing] = useState(false);
   
-  // Загружаем данные UNI фарминга с безопасными настройками
-  const { data: uniFarmingResponse } = useQuery({
+  // Загружаем данные UNI фарминга
+  const { data: uniFarmingResponse } = useQuery<{ success: boolean; data: UniFarmingInfo }>({
     queryKey: ['/api/v2/uni-farming/status', validUserId],
-    enabled: !!validUserId,
-    retry: false,
-    throwOnError: false,
-    refetchInterval: 15000,
+    refetchInterval: 15000, // Обновление каждые 15 секунд
     queryFn: async () => {
-      return await correctApiRequest(
+      return await correctApiRequest<{ success: boolean; data: UniFarmingInfo }>(
         `/api/v2/uni-farming/status?user_id=${validUserId}`,
         'GET'
       );
     }
   });
   
-  // Загружаем данные TON фарминга с безопасными настройками
-  const { data: tonFarmingResponse } = useQuery({
+  // Загружаем данные TON фарминга
+  const { data: tonFarmingResponse } = useQuery<{ success: boolean; data: TonFarmingInfo }>({
     queryKey: ['/api/v2/ton-farming/info', validUserId],
-    enabled: !!validUserId,
-    retry: false,
-    throwOnError: false,
-    refetchInterval: 15000,
+    refetchInterval: 15000, // Обновление каждые 15 секунд
     queryFn: async () => {
-      return await correctApiRequest(
+      return await correctApiRequest<{ success: boolean; data: TonFarmingInfo }>(
         `/api/v2/ton-farming/info?user_id=${validUserId}`,
         'GET'
       );
@@ -110,7 +90,15 @@ const IncomeCardNew: React.FC = () => {
       // Рассчитываем дневной доход UNI
       const dailyRate = parseFloat(uniData.dailyIncomeUni || '0');
       
-      // Добавляем диагностику// Устанавливаем целевые значения
+      // Добавляем диагностику
+      console.log('[DEBUG] UNI Farming rates:', {
+        ratePerSecond,
+        hourlyRate,
+        dailyRate,
+        rawData: uniData
+      });
+      
+      // Устанавливаем целевые значения
       setTargetHourRate(hourlyRate);
       setTargetDayRate(dailyRate);
     }
@@ -125,7 +113,15 @@ const IncomeCardNew: React.FC = () => {
       // Рассчитываем дневной доход TON
       const dailyRate = parseFloat(tonData.dailyIncomeTon || '0');
       
-      // Добавляем диагностику// Устанавливаем целевые значения
+      // Добавляем диагностику
+      console.log('[DEBUG] TON Farming rates:', {
+        ratePerSecond,
+        hourlyRate,
+        dailyRate,
+        rawData: tonData
+      });
+      
+      // Устанавливаем целевые значения
       setTargetTonHourRate(hourlyRate);
       setTargetTonDayRate(dailyRate);
     }

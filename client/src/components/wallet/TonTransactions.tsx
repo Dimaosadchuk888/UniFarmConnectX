@@ -19,9 +19,15 @@ const TonTransactions: React.FC = () => {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['/api/transactions', 'ton', userId, limit],
     enabled: !!userId,
-    queryFn: async () => {try {
-        const result = await fetchTonTransactions(userId as number, limit);return result;
-      } catch (err) {throw err;
+    queryFn: async () => {
+      console.log('[TonTransactions] Запрос TON транзакций, userId:', userId, 'limit:', limit);
+      try {
+        const result = await fetchTonTransactions(userId as number, limit);
+        console.log('[TonTransactions] Получены данные в queryFn:', result);
+        return result;
+      } catch (err) {
+        console.error('[TonTransactions] Ошибка в queryFn:', err);
+        throw err;
       }
     },
     staleTime: 1000 * 30 // Обновлять кэш каждые 30 секунд
@@ -29,7 +35,12 @@ const TonTransactions: React.FC = () => {
 
   useEffect(() => {
     // Логирование для отладки
-    if (data && Array.isArray(data)) {if (data.length > 0) {}
+    if (data && Array.isArray(data)) {
+      console.log('[TonTransactions] Получены данные о TON транзакциях:', data.length);
+      
+      if (data.length > 0) {
+        console.log('[TonTransactions] Пример TON транзакции:', data[0]);
+      }
     }
   }, [data]);
 
@@ -51,7 +62,9 @@ const TonTransactions: React.FC = () => {
   }
 
   // Обработка ошибок
-  if (isError) {return (
+  if (isError) {
+    console.error('[TonTransactions] Ошибка запроса TON транзакций:', error);
+    return (
       <div className="text-center p-4 text-destructive">
         <p>Произошла ошибка при загрузке TON транзакций</p>
       </div>
@@ -59,7 +72,9 @@ const TonTransactions: React.FC = () => {
   }
 
   // Защита от неверного формата данных
-  if (!data || !Array.isArray(data)) {return (
+  if (!data || !Array.isArray(data)) {
+    console.error('[TonTransactions] Неверный формат данных:', data);
+    return (
       <div className="text-center p-4 text-destructive">
         <p>Ошибка формата данных</p>
       </div>

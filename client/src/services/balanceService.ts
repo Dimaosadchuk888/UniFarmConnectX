@@ -25,7 +25,12 @@ let balanceCache: {
  * @returns Промис с данными баланса
  */
 export async function fetchBalance(userId: number, forceRefresh: boolean = false): Promise<Balance> {
-  try {if (!userId) {throw new Error('userId is required to fetch balance');
+  try {
+    console.log('[balanceService] Запрос баланса для userId:', userId, 'forceRefresh:', forceRefresh);
+    
+    if (!userId) {
+      console.error('[balanceService] Ошибка: userId не предоставлен для запроса баланса');
+      throw new Error('userId is required to fetch balance');
     }
     
     // Проверяем кэш, если не требуется принудительное обновление
@@ -34,19 +39,31 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
         balanceCache.userId === userId && 
         balanceCache.data && 
         balanceCache.timestamp && 
-        (now - balanceCache.timestamp) < 60000) { // Кэш действителен 60 секундreturn balanceCache.data;
+        (now - balanceCache.timestamp) < 60000) { // Кэш действителен 60 секунд
+      console.log('[balanceService] Использование кэшированных данных баланса');
+      return balanceCache.data;
     }
     
-    // Выполняем запрос к APIconst response = await correctApiRequest(`/api/v2/wallet/balance?user_id=${userId}`, 'GET');
+    // Выполняем запрос к API
+    console.log('[balanceService] Запрос новых данных баланса из API');
+    const response = await correctApiRequest(`/api/v2/wallet/balance?user_id=${userId}`, 'GET');
     
-    if (!response.success || !response.data) {// Если у нас есть кэшированные данные для этого пользователя, возвращаем их как запасной вариант
-      if (balanceCache.userId === userId && balanceCache.data) {return balanceCache.data;
+    if (!response.success || !response.data) {
+      console.error('[balanceService] Ошибка получения баланса:', response.error || 'Unknown error');
+      
+      // Если у нас есть кэшированные данные для этого пользователя, возвращаем их как запасной вариант
+      if (balanceCache.userId === userId && balanceCache.data) {
+        console.log('[balanceService] Возвращаем кэшированные данные после ошибки API');
+        return balanceCache.data;
       }
       
       throw new Error(response.error || 'Failed to fetch balance');
     }
     
-    const data = response.data;// Преобразуем данные в нужный формат
+    const data = response.data;
+    console.log('[balanceService] Получены данные баланса:', data);
+    
+    // Преобразуем данные в нужный формат
     const balance = {
       uniBalance: parseFloat(data.balance_uni) || 0,
       tonBalance: parseFloat(data.balance_ton) || 0,
@@ -63,8 +80,13 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
     };
     
     return balance;
-  } catch (error) {// В случае ошибки проверяем, есть ли кэшированные данные
-    if (balanceCache.userId === userId && balanceCache.data) {return balanceCache.data;
+  } catch (error) {
+    console.error('[balanceService] Ошибка в fetchBalance:', error);
+    
+    // В случае ошибки проверяем, есть ли кэшированные данные
+    if (balanceCache.userId === userId && balanceCache.data) {
+      console.log('[balanceService] Возвращаем кэшированные данные после исключения');
+      return balanceCache.data;
     }
     
     // Если кэша нет, создаем пустой объект баланса
@@ -102,6 +124,8 @@ export async function requestWithdrawal(userId: number, amount: string, address:
     }
     
     return response.data;
-  } catch (error) {throw error;
+  } catch (error) {
+    console.error('[balanceService] Ошибка в requestWithdrawal:', error);
+    throw error;
   }
 }

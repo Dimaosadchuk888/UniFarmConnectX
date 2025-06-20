@@ -1,4 +1,3 @@
-import frontendLogger from "../utils/frontendLogger";
 /**
  * Сервис для обработки реферальных ссылок и кодов
  * 
@@ -8,6 +7,8 @@ import frontendLogger from "../utils/frontendLogger";
  * 3. Сохранение реферального кода в локальное хранилище
  * 4. Применение реферального кода при создании новых пользователей
  */
+
+import guestIdService from './guestIdService';
 
 // Ключ для хранения реферального кода в локальном хранилище
 const REFERRAL_CODE_KEY = 'unifarm_referral_code';
@@ -33,14 +34,23 @@ class ReferralService {
       
       // Сначала проверяем наличие параметра ref_code (новый формат)
       const refCode = url.searchParams.get('ref_code');
-      if (refCode) {return refCode;
+      if (refCode) {
+        console.log(`[ReferralService] Извлечение параметра ref_code из URL: ${refCode}`);
+        return refCode;
       }
       
       // Для обратной совместимости проверяем наличие параметра startapp (старый формат)
       const startapp = url.searchParams.get('startapp');
-      if (startapp) {return startapp;
-      }return null;
-    } catch (error) {return null;
+      if (startapp) {
+        console.log(`[ReferralService] Извлечение устаревшего параметра startapp из URL: ${startapp}`);
+        return startapp;
+      }
+      
+      console.log('[ReferralService] Реферальный код в URL не найден');
+      return null;
+    } catch (error) {
+      console.error('[ReferralService] Ошибка при извлечении реферального кода из URL:', error);
+      return null;
     }
   }
   
@@ -54,7 +64,11 @@ class ReferralService {
     
     // Проверяем, что код состоит только из допустимых символов (буквы и цифры)
     // и имеет допустимую длину (от 6 до 16 символов)
-    const isValid = /^[a-zA-Z0-9]{6,16}$/.test(code);return isValid;
+    const isValid = /^[a-zA-Z0-9]{6,16}$/.test(code);
+    
+    console.log(`[ReferralService] Проверка валидности реферального кода "${code}": ${isValid ? 'валидный' : 'невалидный'}`);
+    
+    return isValid;
   }
   
   /**
@@ -63,7 +77,9 @@ class ReferralService {
    */
   saveRefCode(code: string): void {
     try {
-      if (!this.isValidRefCode(code)) {return;
+      if (!this.isValidRefCode(code)) {
+        console.warn(`[ReferralService] Попытка сохранить невалидный реферальный код: ${code}`);
+        return;
       }
       
       // Сохраняем код вместе с временной меткой
@@ -72,7 +88,12 @@ class ReferralService {
         timestamp: Date.now()
       };
       
-      localStorage.setItem(REFERRAL_CODE_KEY, JSON.stringify(data));} catch (error) {}
+      localStorage.setItem(REFERRAL_CODE_KEY, JSON.stringify(data));
+      
+      console.log(`[ReferralService] Реферальный код "${code}" сохранен в локальное хранилище`);
+    } catch (error) {
+      console.error('[ReferralService] Ошибка при сохранении реферального кода:', error);
+    }
   }
   
   /**
@@ -83,17 +104,27 @@ class ReferralService {
     try {
       const storedData = localStorage.getItem(REFERRAL_CODE_KEY);
       
-      if (!storedData) {return null;
+      if (!storedData) {
+        console.log('[ReferralService] В локальном хранилище нет сохраненного реферального кода');
+        return null;
       }
       
       const data: StoredReferralCode = JSON.parse(storedData);
       
       // Проверяем, не устарел ли код
       const now = Date.now();
-      if (now - data.timestamp > REFERRAL_CODE_TTL) {localStorage.removeItem(REFERRAL_CODE_KEY);
+      if (now - data.timestamp > REFERRAL_CODE_TTL) {
+        console.log('[ReferralService] Сохраненный реферальный код устарел и будет удален');
+        localStorage.removeItem(REFERRAL_CODE_KEY);
         return null;
-      }return data.code;
-    } catch (error) {return null;
+      }
+      
+      console.log(`[ReferralService] Получен сохраненный реферальный код: ${data.code}`);
+      
+      return data.code;
+    } catch (error) {
+      console.error('[ReferralService] Ошибка при получении сохраненного реферального кода:', error);
+      return null;
     }
   }
   
@@ -102,7 +133,11 @@ class ReferralService {
    */
   clearSavedRefCode(): void {
     try {
-      localStorage.removeItem(REFERRAL_CODE_KEY);} catch (error) {}
+      localStorage.removeItem(REFERRAL_CODE_KEY);
+      console.log('[ReferralService] Сохраненный реферальный код удален из локального хранилища');
+    } catch (error) {
+      console.error('[ReferralService] Ошибка при удалении сохраненного реферального кода:', error);
+    }
   }
   
   /**
@@ -110,17 +145,21 @@ class ReferralService {
    * Извлекает код из URL и сохраняет его в локальное хранилище
    */
   initialize(): void {
+    console.log('[ReferralService] Инициализация...');
+    
     // Проверяем, есть ли в URL реферальный код (ref_code или устаревший startapp)
     const refCodeFromUrl = this.getRefCodeFromUrl();
     
     if (refCodeFromUrl && this.isValidRefCode(refCodeFromUrl)) {
+      console.log(`[ReferralService] Найден валидный реферальный код в URL: ${refCodeFromUrl}`);
+      
       // Сохраняем его в локальное хранилище
       this.saveRefCode(refCodeFromUrl);
       
       // Логируем событие для аналитики
-      frontendLogger.info('Referral code saved from URL:', refCodeFromUrl);
+      console.log(`[АУДИТ] Обработан реферальный код из URL: ${refCodeFromUrl}, guest_id: ${guestIdService.getGuestId()}`);
     } else {
-      frontendLogger.info('No valid referral code found in URL');
+      console.log('[ReferralService] В URL не найден валидный реферальный код');
     }
   }
   
@@ -134,6 +173,7 @@ class ReferralService {
     const refCodeFromUrl = this.getRefCodeFromUrl();
     
     if (refCodeFromUrl && this.isValidRefCode(refCodeFromUrl)) {
+      console.log(`[ReferralService] Используем реферальный код из URL для регистрации: ${refCodeFromUrl}`);
       return refCodeFromUrl;
     }
     
@@ -141,9 +181,11 @@ class ReferralService {
     const savedRefCode = this.getSavedRefCode();
     
     if (savedRefCode) {
+      console.log(`[ReferralService] Используем сохраненный реферальный код для регистрации: ${savedRefCode}`);
       return savedRefCode;
     }
     
+    console.log('[ReferralService] Нет доступного реферального кода для регистрации');
     return null;
   }
 }

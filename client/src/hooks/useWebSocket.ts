@@ -83,7 +83,9 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
             socketRef.current.readyState === WebSocket.CONNECTING) {
           socketRef.current.close(1000, "Normal closure");
         }
-      } catch (err) {}
+      } catch (err) {
+        console.error('[WebSocket] Error closing socket:', err);
+      }
 
       socketRef.current = null;
     }
@@ -101,7 +103,9 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
     // Если прошло больше 30 секунд с момента отправки ping и не получили pong
     if (lastPingSentRef.current > 0 && timeSinceLastPing > 30000 && 
-        (lastPongReceivedRef.current === 0 || timeSinceLastPing > timeSinceLastPong + 20000)) {disconnect();
+        (lastPongReceivedRef.current === 0 || timeSinceLastPing > timeSinceLastPong + 20000)) {
+      console.warn('[WebSocket] Connection seems dead (no pong response)');
+      disconnect();
       connect();
     }
   }, []);
@@ -129,7 +133,9 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
           checkConnectionHealth();
         }, 10000);
 
-      } catch (error) {}
+      } catch (error) {
+        console.error('[WebSocket] Error sending ping:', error);
+      }
     }
   }, [checkConnectionHealth]);
 
@@ -151,7 +157,9 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
   /**
    * Принудительное переподключение сбрасывает счетчики ошибок
    */
-  const forceReconnect = useCallback(() => {setErrorCount(0);
+  const forceReconnect = useCallback(() => {
+    console.log('[WebSocket] Forced reconnection initiated');
+    setErrorCount(0);
     disconnect();
 
     // Небольшая задержка перед переподключением
@@ -172,13 +180,23 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws`;// Создаем новое соединение с увеличенными таймаутами
+      const host = window.location.host.includes('replit.dev') ? window.location.host : '0.0.0.0:3000';
+      const wsUrl = `${protocol}//${host}/ws`;
+
+      console.log('[WebSocket] Initializing connection to:', wsUrl, {
+        protocol: window.location.protocol,
+        host: window.location.host,
+        isReplit: window.location.host.includes('replit.dev')
+      });
+
+      // Создаем новое соединение с увеличенными таймаутами
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
       // Обработчик успешного соединения
-      socket.onopen = (event) => {setIsConnected(true);
+      socket.onopen = (event) => {
+        console.log('[WebSocket] Connection established');
+        setIsConnected(true);
         setErrorCount(0); // Сбрасываем счетчик ошибок при успешном соединении
 
         // Запускаем ping/pong механизм для поддержания соединения
@@ -191,7 +209,9 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
       // Обработчик получения сообщения с улучшенной обработкой ping/pong
       socket.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);setLastMessage(data);
+          const data = JSON.parse(event.data);
+          console.log('[WebSocket] Message received:', data);
+          setLastMessage(data);
 
           // Обработка ping/pong для поддержания соединения
           if (data.type === 'ping') {
@@ -202,7 +222,9 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
                   type: 'pong', 
                   timestamp: data.timestamp 
                 }));
-              } catch (sendError) {}
+              } catch (sendError) {
+                console.error('[WebSocket] Error sending pong:', sendError);
+              }
             }
           } else if (data.type === 'pong') {
             // Регистрируем получение pong
@@ -211,13 +233,17 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
           // Вызываем пользовательский обработчик
           if (onMessage) onMessage(data);
-        } catch (error) {}
+        } catch (error) {
+          console.error('[WebSocket] Error parsing message:', error);
+        }
       };
 
       // Обработчик закрытия соединения с оптимизированной логикой переподключения
       socket.onclose = (event) => {
         // Только для отладки, не показываем пользователю
-        if (process.env.NODE_ENV === 'development') {}
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[WebSocket] Connection closed:', event.code, event.reason);
+        }
         setIsConnected(false);
 
         // Очищаем ресурсы при закрытии соединения
@@ -235,7 +261,9 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
           const delay = reconnectInterval + randomDelay;
 
           // Скрываем сообщение о переподключении от пользователей
-          if (process.env.NODE_ENV === 'development') {}
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[WebSocket] Reconnecting in ${delay}ms...`);
+          }
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, delay);
@@ -245,13 +273,17 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
       // Обработчик ошибок
       socket.onerror = (event) => {
         // Скрываем сообщение об ошибке от пользователей в production
-        if (process.env.NODE_ENV === 'development') {}
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[WebSocket] Error occurred');
+        }
         setErrorCount(prev => prev + 1);
 
         // Вызываем пользовательский обработчик
         if (onError) onError(event);
       };
-    } catch (error) {setErrorCount(prev => prev + 1);
+    } catch (error) {
+      console.error('[WebSocket] Failed to connect:', error);
+      setErrorCount(prev => prev + 1);
 
       // Автоматическое переподключение при ошибке создания соединения
       reconnectTimeoutRef.current = setTimeout(() => {
@@ -281,7 +313,9 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
         socketRef.current.send(serializedMessage);
         return true;
-      } catch (error) {return false;
+      } catch (error) {
+        console.error('[WebSocket] Error sending message:', error);
+        return false;
       }
     } else {
       // Если соединение не открыто, пытаемся переподключиться
@@ -296,7 +330,9 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
    * Подписка на обновления для пользователя с указанным ID
    */
   const subscribeToUserUpdates = useCallback((userId: number): boolean => {
-    if (!userId) {return false;
+    if (!userId) {
+      console.error('[WebSocket] Cannot subscribe without userId');
+      return false;
     }
 
     return send({

@@ -27,7 +27,16 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
     type === 'boost_bonus';
     
   // Логирование для диагностики TON Boost транзакций
-  if (isTonBoostRelated) {}
+  if (isTonBoostRelated) {
+    console.log('[TransactionItem] Отображение TON Boost транзакции:', {
+      id: transaction.id,
+      type,
+      source,
+      tokenType,
+      amount,
+      timestamp
+    });
+  }
   
   // Определение типа для иконки
   const isIncoming = type.includes('deposit') || 

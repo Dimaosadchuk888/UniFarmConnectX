@@ -30,7 +30,7 @@ const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> 
  */
 const Wallet: React.FC = () => {
   return (
-    <div className="min-h-full bg-background text-white pb-6 space-y-6">
+    <div className="min-h-screen bg-background text-white">
       {/* Заголовок страницы */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white flex items-center">

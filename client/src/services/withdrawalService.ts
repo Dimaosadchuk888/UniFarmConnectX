@@ -38,13 +38,17 @@ export async function submitWithdrawal(
   
   try {
     // Входная валидация с защитой от ошибок
-    if (userId === undefined || userId === null) {return {
+    if (userId === undefined || userId === null) {
+      console.error(`[submitWithdrawal] [${requestId}] Не указан идентификатор пользователя`);
+      return {
         message: 'Не указан идентификатор пользователя. Пожалуйста, авторизуйтесь заново',
         field: 'user_id'
       };
     }
     
-    if (!data) {return {
+    if (!data) {
+      console.error(`[submitWithdrawal] [${requestId}] Отсутствуют данные формы`);
+      return {
         message: 'Не предоставлены данные для вывода средств',
       };
     }
@@ -55,26 +59,34 @@ export async function submitWithdrawal(
       // Обрабатываем случаи, когда amount может прийти как строка
       if (typeof amount === 'string') {
         amount = parseFloat(amount);
-        if (isNaN(amount)) {return {
+        if (isNaN(amount)) {
+          console.error(`[submitWithdrawal] [${requestId}] Некорректная сумма: "${data.amount}"`);
+          return {
             message: 'Указана некорректная сумма вывода',
             field: 'amount'
           };
         }
       }
       
-      if (amount <= 0) {return {
+      if (amount <= 0) {
+        console.error(`[submitWithdrawal] [${requestId}] Сумма должна быть положительной: ${amount}`);
+        return {
           message: 'Сумма вывода должна быть больше нуля',
           field: 'amount'
         };
       }
-    } catch (amountError) {return {
+    } catch (amountError) {
+      console.error(`[submitWithdrawal] [${requestId}] Ошибка при обработке суммы:`, amountError);
+      return {
         message: 'Ошибка при обработке суммы вывода',
         field: 'amount'
       };
     }
     
     // Валидация адреса для TON
-    if (data.currency === 'TON' && (!data.wallet_address || data.wallet_address.trim().length < 10)) {return {
+    if (data.currency === 'TON' && (!data.wallet_address || data.wallet_address.trim().length < 10)) {
+      console.error(`[submitWithdrawal] [${requestId}] Отсутствует или неверный адрес кошелька: "${data.wallet_address}"`);
+      return {
         message: 'Необходимо указать корректный адрес TON кошелька',
         field: 'wallet_address'
       };
@@ -86,13 +98,23 @@ export async function submitWithdrawal(
       amount: String(amount), // Преобразуем в строку, как ожидает сервер
       currency: data.currency as string, 
       wallet_address: data.wallet_address || ''
-    };// Отправляем запрос на сервер с улучшенной обработкой ошибок через correctApiRequest
+    };
+    
+    console.log(`[submitWithdrawal] [${requestId}] Отправка запроса на вывод: ${requestData.amount} ${requestData.currency}`);
+    
+    // Отправляем запрос на сервер с улучшенной обработкой ошибок через correctApiRequest
     let response;
     try {
+      console.log(`[submitWithdrawal] [${requestId}] Используем correctApiRequest для запроса`);
+      
       // correctApiRequest автоматически обрабатывает сетевые ошибки и стандартизирует ответ
       response = await correctApiRequest('/api/v2/wallet/withdraw', 'POST', requestData);
+      
+      console.log(`[submitWithdrawal] [${requestId}] Получен ответ от сервера:`, 
+                   typeof response === 'object' ? JSON.stringify(response).slice(0, 100) + '...' : response);
     } catch (networkError) {
       // correctApiRequest должен сам обрабатывать ошибки, но добавляем дополнительную защиту
+      console.error(`[submitWithdrawal] [${requestId}] Критическая ошибка в сетевом слое:`, networkError);
       return {
         message: 'Ошибка сети при отправке запроса. Пожалуйста, проверьте подключение к интернету',
       };
@@ -100,6 +122,7 @@ export async function submitWithdrawal(
     
     // Проверка на валидность ответа с защитой от null/undefined
     if (!response) {
+      console.error(`[submitWithdrawal] [${requestId}] Получен пустой ответ от сервера`);
       return {
         message: 'Получен пустой ответ от сервера',
       };
@@ -110,12 +133,19 @@ export async function submitWithdrawal(
       if (response.success === true && response.data?.transaction_id) {
         // Дополнительная проверка ID транзакции
         const transactionId = Number(response.data.transaction_id);
-        if (isNaN(transactionId) || transactionId <= 0) {return {
+        if (isNaN(transactionId) || transactionId <= 0) {
+          console.error(`[submitWithdrawal] [${requestId}] Некорректный ID транзакции: ${response.data.transaction_id}`);
+          return {
             message: 'Получен некорректный ID транзакции от сервера',
           };
-        }return transactionId;
+        }
+        
+        console.log(`[submitWithdrawal] [${requestId}] Запрос на вывод успешно создан. ID транзакции: ${transactionId}`);
+        return transactionId;
       }
-    } catch (parseError) {return {
+    } catch (parseError) {
+      console.error(`[submitWithdrawal] [${requestId}] Ошибка при обработке успешного ответа:`, parseError);
+      return {
         message: 'Ошибка при обработке ответа сервера',
       };
     }
@@ -123,11 +153,15 @@ export async function submitWithdrawal(
     // Если дошли сюда, значит в ответе нет success или transaction_id
     // Извлекаем сообщение об ошибке из ответа
     const errorMessage = extractErrorMessage(response);
+    console.error(`[submitWithdrawal] [${requestId}] Ошибка от сервера:`, errorMessage);
+    
     return {
       message: errorMessage,
     };
   } catch (error) {
     // Обрабатываем непредвиденные исключения
+    console.error(`[submitWithdrawal] [${requestId}] Критическая ошибка:`, error);
+    
     // Возвращаем объект ошибки с дополнительной информацией
     return {
       message: error instanceof Error 
@@ -173,7 +207,9 @@ function extractErrorMessage(response: any): string {
     
     // Для непредвиденных форматов
     return 'Произошла ошибка при обработке запроса на вывод средств';
-  } catch (extractError) {return 'Не удалось определить причину ошибки';
+  } catch (extractError) {
+    console.error('[extractErrorMessage] Ошибка при извлечении сообщения:', extractError);
+    return 'Не удалось определить причину ошибки';
   }
 }
 

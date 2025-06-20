@@ -12,7 +12,9 @@ import { CHAIN } from '@tonconnect/protocol';
 // Для отладки - логирование операций TonConnect
 const DEBUG_ENABLED = false; // Отключаем debug логи в production
 function debugLog(...args: any[]) {
-  if (DEBUG_ENABLED) {}
+  if (DEBUG_ENABLED) {
+    console.log('[TON_CONNECT_DEBUG]', ...args);
+  }
 }
 
 // Тип слушателя соединения
@@ -63,13 +65,18 @@ function createBocWithComment(comment: string): string {
     const base64Result = uint8ArrayToBase64(bocBytes);
     
     return base64Result;
-  } catch (error) {// В случае ошибки с Buffer, используем альтернативный подход
+  } catch (error) {
+    console.error('Ошибка при создании BOC:', error);
+    
+    // В случае ошибки с Buffer, используем альтернативный подход
     
     // Просто закодируем комментарий в base64 - это не будет работать как BOC,
     // но для теста достаточно
     try {
       return btoa(comment);
-    } catch (e) {return '';
+    } catch (e) {
+      console.error('Не удалось даже закодировать комментарий в base64:', e);
+      return '';
     }
   }
 }
@@ -79,7 +86,9 @@ function createBocWithComment(comment: string): string {
  * @param tonConnectUI Экземпляр TonConnectUI из useTonConnectUI хука
  */
 export function isTonWalletConnected(tonConnectUI: TonConnectUI): boolean {
-  if (!tonConnectUI) {return false;
+  if (!tonConnectUI) {
+    console.error('TonConnectUI is not provided to isTonWalletConnected');
+    return false;
   }
   return tonConnectUI.connected;
 }
@@ -92,11 +101,15 @@ export async function connectTonWallet(tonConnectUI: TonConnectUI): Promise<bool
   try {
     debugLog('connectTonWallet called with', { tonConnectUI: !!tonConnectUI });
     
-    if (!tonConnectUI) {return false;
+    if (!tonConnectUI) {
+      console.error('Error: tonConnectUI is undefined in connectTonWallet');
+      return false;
     }
     
     // Проверяем, доступен ли метод connectWallet
-    if (typeof tonConnectUI.connectWallet !== 'function') {return false;
+    if (typeof tonConnectUI.connectWallet !== 'function') {
+      console.error('Error: tonConnectUI.connectWallet is not a function');
+      return false;
     }
     
     // Проверяем текущее состояние подключения
@@ -115,7 +128,9 @@ export async function connectTonWallet(tonConnectUI: TonConnectUI): Promise<bool
     
     debugLog('Wallet already connected');
     return true;
-  } catch (error) {return false;
+  } catch (error) {
+    console.error('Error connecting TON wallet:', error);
+    return false;
   }
 }
 
@@ -159,32 +174,65 @@ export async function sendTonTransaction(
     const userId = parts.length > 1 ? parts[1] : '1';
     const boostId = parts.length > 2 ? parts[2] : '1';
     
-    // ПО ТЗ: Добавляем максимально заметный лог для отладки// Проверяем только наличие tonConnectUI и состояние подключения
-    if (!tonConnectUI) {throw new Error('TonConnectUI is not initialized');
+    // ПО ТЗ: Добавляем максимально заметный лог для отладки
+    console.log("===============================================================");
+    console.log("🔴 ВЫЗОВ sendTonTransaction ПО НОВОМУ ТЗ");
+    console.log("🔴 СУММА:", amount, "TON");
+    console.log("🔴 КОММЕНТАРИЙ:", comment);
+    console.log("🔴 tonConnectUI:", tonConnectUI ? "ПРИСУТСТВУЕТ" : "ОТСУТСТВУЕТ");
+    console.log("🔴 ПОДКЛЮЧЕН:", tonConnectUI?.connected ? "ДА" : "НЕТ");
+    console.log("🔴 АДРЕС КОШЕЛЬКА:", tonConnectUI?.account?.address || "НЕТ АДРЕСА");
+    console.log("🔴 ФУНКЦИЯ sendTransaction:", typeof tonConnectUI?.sendTransaction === 'function' ? "ДОСТУПНА" : "НЕДОСТУПНА");
+    console.log("===============================================================");
+    
+    // Проверяем только наличие tonConnectUI и состояние подключения
+    if (!tonConnectUI) {
+      console.error('[ERROR] tonConnectUI is null or undefined');
+      throw new Error('TonConnectUI is not initialized');
     }
     
     // По ТЗ: проверяем только подключение
-    if (!tonConnectUI.connected) {await connectTonWallet(tonConnectUI);
+    if (!tonConnectUI.connected) {
+      console.log('[INFO] Кошелек не подключен, пытаемся подключить...');
+      await connectTonWallet(tonConnectUI);
       
       // Проверяем подключение снова
-      if (!tonConnectUI.connected) {throw new WalletNotConnectedError();
+      if (!tonConnectUI.connected) {
+        console.error('[ERROR] Не удалось подключить кошелек');
+        throw new WalletNotConnectedError();
       }
     }
     
     // Преобразуем сумму из TON в наноTON (1 TON = 10^9 наноTON)
     // Сначала проверяем, что amount является строкой с десятичным числом
     const tonAmount = parseFloat(amount);
-    if (isNaN(tonAmount)) {throw new Error('Невалидная сумма TON');
+    if (isNaN(tonAmount)) {
+      console.error('[ERROR] Невалидная сумма TON:', amount);
+      throw new Error('Невалидная сумма TON');
     }
     
     // Конвертируем TON в наноTON, округляем до ближайшего целого
-    const nanoTonAmount = Math.round(tonAmount * 1000000000).toString();// По ТЗ: генерируем rawPayload в формате UniFarmBoost:userId:boostId
+    const nanoTonAmount = Math.round(tonAmount * 1000000000).toString();
+    console.log(`[TON] Конвертация суммы: ${amount} TON = ${nanoTonAmount} nanoTON`);
+    
+    // По ТЗ: генерируем rawPayload в формате UniFarmBoost:userId:boostId
     const rawPayload = `UniFarmBoost:${userId}:${boostId}`;
     
     // Создаем BOC-payload с комментарием
     const payload = createBocWithComment(rawPayload);
     
-    // Для дополнительной проверки - в консоли выводим длину payload// По ТЗ: добавляем логирование payload// Создаем транзакцию в соответствии с ТЗ
+    // Для дополнительной проверки - в консоли выводим длину payload
+    console.log(`✅ BOC-payload длина: ${payload.length} символов`);
+    
+    console.log("✅ Создан стандартный BOC-payload в соответствии с ТЗ");
+    
+    console.log("✅ Создан стандартный BOC-payload с маркером 0 и текстовым сообщением");
+    
+    // По ТЗ: добавляем логирование payload
+    console.log("📦 rawPayload:", rawPayload);
+    console.log("📦 BOC payload (base64):", payload);
+    
+    // Создаем транзакцию в соответствии с ТЗ
     const transaction = {
       validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут по ТЗ
       messages: [
@@ -197,21 +245,29 @@ export async function sendTonTransaction(
     };
     
     // По ТЗ: добавляем лог с данными транзакции перед отправкой
+    console.log("[DEBUG] Sending transaction", transaction);
+    
     try {
       // Только проверяем подключение (по ТЗ)
       if (!tonConnectUI.connected) {
+        console.log('[INFO] Кошелек не подключен непосредственно перед транзакцией, пытаемся подключить...');
         await connectTonWallet(tonConnectUI);
         
         if (!tonConnectUI.connected) {
+          console.error('[ERROR] Не удалось подключить кошелек перед отправкой транзакции');
           throw new WalletNotConnectedError('Не удалось подключить кошелёк перед транзакцией');
         }
       }
       
       // Отправляем транзакцию без дополнительных проверок (по ТЗ)
+      console.log("[TON] Отправляем транзакцию через TonConnect...");
+      
       const result = await tonConnectUI.sendTransaction(transaction);
       debugLog('*** РЕЗУЛЬТАТ sendTransaction ***', result);
       
       // По ТЗ: добавляем лог результата транзакции
+      console.log("✅ Transaction result:", result);
+      
       // Вызов успешно выполнен - пользователь подтвердил транзакцию в Tonkeeper
       debugLog('Транзакция успешно отправлена, результат:', {
         boc: result.boc ? `есть (${result.boc.length} символов)` : 'нет',
@@ -249,6 +305,8 @@ export async function sendTonTransaction(
       throw error;  // Re-throw to be caught by the outer try-catch
     }
   } catch (error) {
+    console.error('Error sending TON transaction:', error);
+    
     if (error instanceof UserRejectsError) {
       return {
         txHash: '',
@@ -315,12 +373,15 @@ export function isTonPaymentReady(tonConnectUI: TonConnectUI): boolean {
     if (!hasAddress) reasons.push('адрес кошелька отсутствует (tonConnectUI.account.address = null)');
     
     debugLog('isTonPaymentReady вернул FALSE. Причины:', reasons);
+    console.log('[DEBUG] isTonPaymentReady вернул FALSE. Причины:', reasons.join(', '));
   } else {
     debugLog('isTonPaymentReady вернул TRUE. Все проверки пройдены.');
+    console.log('[DEBUG] isTonPaymentReady вернул TRUE. Все проверки пройдены.');
   }
   
   // По ТЗ временно отключаем проверку и принудительно возвращаем true
   // для диагностики проблемы с вызовом sendTransaction
+  console.log('[DEBUG] ⚠️ ПРОВЕРКА isTonPaymentReady ОТКЛЮЧЕНА ПО ТЗ, ВОЗВРАЩАЕМ TRUE ДЛЯ ДИАГНОСТИКИ');
   return true; // Всегда возвращаем true для тестирования sendTransaction
 }
 
@@ -346,6 +407,7 @@ export const disconnectWallet = disconnectTonWallet;
  */
 export function addConnectionListener(tonConnectUI: TonConnectUI, listener: ConnectionListener): void {
   if (!listener) {
+    console.error('Listener function is required for addConnectionListener');
     return;
   }
   
@@ -364,6 +426,7 @@ export function addConnectionListener(tonConnectUI: TonConnectUI, listener: Conn
  */
 export function removeConnectionListener(listener: ConnectionListener): void {
   if (!listener) {
+    console.error('Listener function is required for removeConnectionListener');
     return;
   }
   
@@ -382,7 +445,7 @@ export function removeConnectionListener(listener: ConnectionListener): void {
  */
 export function initTonConnect(): void {
   // Эта функция теперь просто логирует сообщение и не выполняет реальной инициализации
-  debugLog('initTonConnect вызван, но инициализация отключена - используется TonConnectUIProvider');
+  console.log('TON Connect initialized by TonConnectUIProvider in App.tsx');
 }
 
 /**
@@ -390,5 +453,6 @@ export function initTonConnect(): void {
  * но фактически он будет заменен прямым импортом из useTonConnectUI
  */
 export const getTonConnectUI = () => {
+  console.warn('getTonConnectUI is deprecated, use useTonConnectUI hook instead');
   return null as unknown as TonConnectUI;
-};
+}

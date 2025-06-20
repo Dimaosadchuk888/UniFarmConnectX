@@ -1,4 +1,3 @@
-import frontendLogger from "../../utils/frontendLogger";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { User } from '@/services/userService';
@@ -41,9 +40,20 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     refetch 
   } = useQuery({
     queryKey: ['/api/v2/users/profile'],
-    queryFn: async () => {try {
+    queryFn: async () => {
+      console.log('[UniFarmReferralLink] Резервный запрос данных пользователя');
+      try {
         // Принудительно обновляем данные (true) для убедительного получения свежих данных
-        const result = await userService.getCurrentUser(true);// Проверка корректности данных пользователя
+        const result = await userService.getCurrentUser(true);
+        console.log('[UniFarmReferralLink] Результат запроса данных:', {
+          success: !!result,
+          hasRefCode: !!result?.ref_code,
+          refCode: result?.ref_code,
+          telegramId: result?.telegram_id,
+          guestId: result?.guest_id
+        });
+        
+        // Проверка корректности данных пользователя
         if (!result) {
           throw new Error('Пустые данные пользователя');
         }
@@ -60,7 +70,9 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
         };
         
         return safeResult;
-      } catch (error) {throw error;
+      } catch (error) {
+        console.error('[UniFarmReferralLink] Ошибка при запросе данных пользователя:', error);
+        throw error;
       }
     },
     retry: 3, // Увеличиваем количество повторных попыток
@@ -91,7 +103,24 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
       initDataLength: typeof window !== 'undefined' ? (window.Telegram?.WebApp?.initData?.length || 0) : 0,
       hasUser: typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initDataUnsafe?.user,
       userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'SSR'
-    };}, [data, refCode, linkType]);
+    };
+    
+    console.log('[UniFarmReferralLink] Состояние компонента:', { 
+      isComponentMounted: true,
+      hasData: !!data, 
+      userData: data ? {
+        id: data.id,
+        guest_id: data.guest_id,
+        refCode: data.ref_code || 'Отсутствует',
+        hasRefCode: !!data.ref_code,
+        parentRefCode: data.parent_ref_code || 'Отсутствует'
+      } : 'Данные отсутствуют',
+      linkType,
+      referralLink: refCode ? createReferralLink(refCode) : 'Не удалось создать (нет ref_code)',
+      directBotLink: refCode ? createReferralLink(refCode) : 'Не удалось создать (нет ref_code)',
+      telegramState
+    });
+  }, [data, refCode, linkType]);
   
   // Формируем ссылки с помощью утилит
   const referralLink = refCode ? createReferralLink(refCode) : "";
@@ -101,7 +130,13 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
   useEffect(() => {
     const handleUserUpdate = (event: CustomEvent) => {
       const updatedUser = event.detail;
-      if (updatedUser && updatedUser.ref_code) {// Обновляем кэш React Query с новыми данными пользователя
+      if (updatedUser && updatedUser.ref_code) {
+        console.log('[UniFarmReferralLink] Получено событие обновления пользователя:', { 
+          id: updatedUser.id,
+          hasRefCode: !!updatedUser.ref_code
+        });
+        
+        // Обновляем кэш React Query с новыми данными пользователя
         queryClient.setQueryData(['/api/v2/users/profile'], updatedUser);
       }
     };
@@ -120,17 +155,28 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
     if (isGeneratingCode || !data) return;
     
     // Проверяем наличие ID или guest_id
-    if (!data.id && !data.guest_id) {return;
+    if (!data.id && !data.guest_id) {
+      console.error('[UniFarmReferralLink] Нет идентификаторов для генерации реферального кода');
+      return;
     }
     
     setIsGeneratingCode(true);
-    try {// Используем централизованный метод из userService
+    try {
+      console.log('[UniFarmReferralLink] Запрос на генерацию реферального кода через userService');
+      
+      // Используем централизованный метод из userService
       // Этот метод сам обновит кэш и сгенерирует событие user:updated
-      const newRefCode = await userService.generateRefCode();// Дополнительно инвалидируем кэш React Query для гарантированного обновления UI
+      const newRefCode = await userService.generateRefCode();
+      
+      console.log('[UniFarmReferralLink] Реферальный код успешно сгенерирован:', newRefCode);
+      
+      // Дополнительно инвалидируем кэш React Query для гарантированного обновления UI
       queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile'] });
       
       return newRefCode;
-    } catch (error) {throw error;
+    } catch (error) {
+      console.error('[UniFarmReferralLink] Ошибка при генерации реферального кода:', error);
+      throw error;
     } finally {
       setIsGeneratingCode(false);
     }
@@ -139,42 +185,66 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
   // Принудительная загрузка данных после монтирования компонента
   useEffect(() => {
     // Запускаем загрузку данных сразу после монтирования компонента
+    console.log('[UniFarmReferralLink] Компонент смонтирован, проверяем необходимость загрузки данных');
+    
     // Если данных нет, но загрузка ещё не началась - запускаем её
     if (!data && !isLoading && !isError) {
-      refetch().catch(error => {
-        frontendLogger.error('Error fetching referral data:', error);
-      });
+      console.log('[UniFarmReferralLink] Принудительная загрузка начальных данных');
+      refetch().catch(error => 
+        console.error('[UniFarmReferralLink] Ошибка при начальной загрузке данных:', error)
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, isLoading, isError, refetch]); // Указываем все используемые в эффекте зависимости
   
   // Проверяем наличие ref_code и пытаемся получить его при необходимости
   useEffect(() => {
+    console.log('[UniFarmReferralLink] Проверяем наличие реферального кода:', { 
+      hasData: !!data, 
+      hasRefCode: data?.ref_code ? true : false,
+      isLoading,
+      isGeneratingCode
+    });
+    
     // Проверяем доступность Telegram данных
     const telegramAvailable = typeof window !== 'undefined' && window.Telegram?.WebApp;
+    console.log('[UniFarmReferralLink] Telegram доступность:', {
+      available: telegramAvailable,
+      hasInitData: telegramAvailable ? !!window.Telegram?.WebApp?.initData : false,
+      hasUser: telegramAvailable ? !!window.Telegram?.WebApp?.initDataUnsafe?.user : false
+    });
     
     // Всегда запрашиваем обновленные данные при монтировании компонента
     refetch()
-      .then((result: any) => {
+      .then((result) => {
+        console.log('[UniFarmReferralLink] Обновлены данные:', { 
+          hasData: !!result.data,
+          hasRefCode: result.data?.ref_code ? true : false,
+          isError: result.isError,
+          error: result.error
+        });
+        
         // Если данные получены, но ref_code отсутствует
         if (result.isSuccess && result.data && !result.data.ref_code) {
+          console.log('[UniFarmReferralLink] После обновления ref_code всё ещё отсутствует, генерируем новый');
+          
           // Ставим небольшую паузу для стабильной работы
           setTimeout(() => {
-            generateReferralCode()
-              .then((code: any) => {
+            generateRefCode()
+              .then(code => {
+                console.log('[UniFarmReferralLink] Успешно сгенерирован новый код:', code);
                 // Принудительно запрашиваем обновление данных после генерации кода
                 refetch();
               })
-              .catch((genError: any) => {
-                frontendLogger.error('Error generating referral code:', genError);
-              });
+              .catch(genError => console.error('[UniFarmReferralLink] Ошибка генерации кода:', genError));
           }, 500);
         }
       })
-      .catch((error: any) => {
+      .catch(error => {
+        console.error('[UniFarmReferralLink] Ошибка при обновлении данных:', error);
         // Проверяем, связана ли ошибка с Telegram
         if (error?.message?.includes('wrapServiceFunction')) {
-          frontendLogger.error('Telegram-related error:', error);
+          console.error('[UniFarmReferralLink] Обнаружена проблема с Telegram сервисом');
         }
       });
   }, []);
@@ -196,7 +266,9 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
       setIsCopied(true);
       setTimeout(() => {
         setIsCopied(false);
-      }, 2000);}
+      }, 2000);
+      console.log('Копирование недоступно, используйте долгое нажатие на ссылку');
+    }
   }, [linkType, referralLink, directBotLink]);
   
   // Функция для повторной попытки получения данных
@@ -206,9 +278,13 @@ const UniFarmReferralLink: React.FC<UniFarmReferralLinkProps> = ({
       const result = await refetch();
       
       // Если данные получены, но ref_code отсутствует, пробуем его сгенерировать
-      if (result.isSuccess && result.data && !result.data.ref_code) {await generateRefCode();
+      if (result.isSuccess && result.data && !result.data.ref_code) {
+        console.log('[UniFarmReferralLink] После повторного запроса ref_code отсутствует, генерируем');
+        await generateRefCode();
       }
-    } catch (error) {} finally {
+    } catch (error) {
+      console.error('[UniFarmReferralLink] Ошибка при повторном запросе:', error);
+    } finally {
       setIsRetrying(false);
     }
   }, [refetch, generateRefCode]);

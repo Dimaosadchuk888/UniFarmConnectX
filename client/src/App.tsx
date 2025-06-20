@@ -1,12 +1,8 @@
-import { useState, useEffect, Suspense, lazy } from "react";
+import { useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
-import queryClient from "./lib/queryClient";
+import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import ScrollFix from "@/components/ui/ScrollFix";
-import ForceScroll from "@/components/ui/ForceScroll";
-import "@/styles/scroll-fix.css";
-import "@/utils/scrollFix";
 
 // Layouts and Hooks
 import MainLayout from "@/layouts/MainLayout";
@@ -15,21 +11,18 @@ import { useBalance } from "@/hooks/useBalance";
 
 // Components
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
-import SafeErrorBoundary from "@/components/ui/SafeErrorBoundary";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
-// import { WebSocketProvider } from "@/contexts/webSocketContext"; // Temporarily disabled for stabilization
-import { NotificationProvider } from "@/contexts/NotificationContext";
-// import { ErrorBoundaryProvider } from "@/contexts/ErrorBoundaryContext"; // Removed due to runtime-error-plugin conflict
+import { WebSocketProvider } from "@/contexts/webSocketContext";
+import { NotificationProvider } from "@/contexts/notificationContext";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
-import { TelegramAuth } from "@/components/TelegramAuth";
-import { TelegramInitDataSolver } from "@/components/TelegramInitDataSolver";
 
-// Lazy-loaded Pages
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const Farming = lazy(() => import("@/pages/Farming"));
-const Missions = lazy(() => import("@/pages/Missions"));
-const Friends = lazy(() => import("@/pages/Friends"));
-const Wallet = lazy(() => import("@/pages/Wallet"));
+// Pages
+import Dashboard from "@/pages/Dashboard";
+import Farming from "@/pages/Farming";
+import Missions from "@/pages/Missions";
+import Friends from "@/pages/Friends";
+import Wallet from "@/pages/Wallet";
 
 // Services
 import userService from '@/services/userService';
@@ -72,8 +65,12 @@ function App() {
       // Пытаемся создать пользователя в фоне, не блокируя интерфейс
       try {
         await authenticateUser();
-      } catch (authError) {}
-    } catch (error) {// В любом случае загружаем интерфейс
+      } catch (authError) {
+        console.warn('Authentication failed, continuing with demo mode:', authError);
+      }
+    } catch (error) {
+      console.error('App initialization error:', error);
+      // В любом случае загружаем интерфейс
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
@@ -106,8 +103,10 @@ function App() {
         }
         return prev;
       });
+      
+      console.log('Demo mode: using guest ID', guestId);
     } catch (error) {
-      console.error('Authentication error:', error);
+      console.warn('Authentication skipped, continuing in demo mode:', error);
     }
   };
 
@@ -127,35 +126,20 @@ function App() {
   };
 
   const renderPage = () => {
-    const PageLoadingSpinner = () => (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">Загрузка...</p>
-        </div>
-      </div>
-    );
-
-    return (
-      <Suspense fallback={<PageLoadingSpinner />}>
-        {(() => {
-          switch (state.activeTab) {
-            case "dashboard":
-              return <Dashboard />;
-            case "farming":
-              return <Farming />;
-            case "missions":
-              return <Missions />;
-            case "friends":
-              return <Friends />;
-            case "wallet":
-              return <Wallet />;
-            default:
-              return <Dashboard />;
-          }
-        })()}
-      </Suspense>
-    );
+    switch (state.activeTab) {
+      case "dashboard":
+        return <Dashboard />;
+      case "farming":
+        return <Farming />;
+      case "missions":
+        return <Missions />;
+      case "friends":
+        return <Friends />;
+      case "wallet":
+        return <Wallet />;
+      default:
+        return <Dashboard />;
+    }
   };
 
   // Loading state
@@ -173,38 +157,29 @@ function App() {
   // В случае ошибки аутентификации всё равно загружаем основной интерфейс
   // Ошибки будут отображаться в уведомлениях, но не блокируют UI
 
-  // Проверяем наличие Telegram данных перед загрузкой основного интерфейса
-  const isTelegramAvailable = typeof window !== 'undefined' && window.Telegram?.WebApp;
-  const telegram = typeof window !== 'undefined' ? window.Telegram : null;
-  const hasValidTelegramData = isTelegramAvailable && telegram?.WebApp && 
-    (telegram.WebApp.initData || telegram.WebApp.initDataUnsafe?.user);
-
-  // Убираем TelegramInitDataSolver до исправления ошибки
-  // Пропускаем проверку Telegram данных и загружаем основное приложение
-
   return (
-    <SafeErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
+    <QueryClientProvider client={queryClient}>
+      <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
+        <ErrorBoundary>
           <NotificationProvider>
             <UserProvider>
-              <TelegramWebAppCheck>
-                <MainLayout 
-                  activeTab={state.activeTab} 
-                  onTabChange={handleTabChange}
-                >
-                  {renderPage()}
-                </MainLayout>
-                <NetworkStatusIndicator />
-                <Toaster />
-                <ScrollFix />
-                <ForceScroll />
-              </TelegramWebAppCheck>
+              <WebSocketProvider>
+                <TelegramWebAppCheck>
+                  <MainLayout 
+                    activeTab={state.activeTab} 
+                    onTabChange={handleTabChange}
+                  >
+                    {renderPage()}
+                  </MainLayout>
+                  <NetworkStatusIndicator />
+                  <Toaster />
+                </TelegramWebAppCheck>
+              </WebSocketProvider>
             </UserProvider>
           </NotificationProvider>
-        </TonConnectUIProvider>
-      </QueryClientProvider>
-    </SafeErrorBoundary>
+        </ErrorBoundary>
+      </TonConnectUIProvider>
+    </QueryClientProvider>
   );
 }
 
