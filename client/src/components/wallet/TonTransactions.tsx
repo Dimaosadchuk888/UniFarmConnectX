@@ -6,7 +6,7 @@ import { formatAmount, formatDate } from '@/utils/formatters';
 import TransactionItem from './TransactionItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ArrowDown } from 'lucide-react';
+import { FiArrowDown as ArrowDown } from 'react-icons/fi';
 
 /**
  * Компонент для отображения исключительно TON транзакций

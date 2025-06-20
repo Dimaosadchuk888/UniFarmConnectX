@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CheckCircle, XCircle, Info, Loader2 } from 'lucide-react';
+import { FiX as X, FiCheckCircle as CheckCircle, FiXCircle as XCircle, FiInfo as Info, FiLoader as Loader2 } from 'react-icons/fi';
 
 type NotificationType = 'success' | 'error' | 'info' | 'loading';
 

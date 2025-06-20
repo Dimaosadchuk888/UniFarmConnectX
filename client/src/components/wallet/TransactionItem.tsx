@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatAmount, formatDate } from '@/utils/formatters';
-import { ArrowUpRight, ArrowDownLeft, Clock, Zap } from 'lucide-react';
+import { FiArrowUpRight as ArrowUpRight, FiArrowDownLeft as ArrowDownLeft, FiClock as Clock, FiZap as Zap } from 'react-icons/fi';
 import { Badge } from '@/components/ui/badge';
 import { Transaction } from '@/services/transactionService';
 
