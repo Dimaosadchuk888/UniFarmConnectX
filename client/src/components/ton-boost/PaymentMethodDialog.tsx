@@ -8,7 +8,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Wallet, CreditCard } from "lucide-react";
+import { FiCreditCard as Wallet, FiCreditCard as CreditCard } from "react-icons/fi";
 import { useToast } from '@/hooks/use-toast';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { useUser } from '@/contexts/userContext';
