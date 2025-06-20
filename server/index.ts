@@ -466,9 +466,9 @@ async function startServer() {
     const staticPath = path.resolve(process.cwd(), 'dist', 'public');
     logger.info(`[Static Files] Serving from: ${staticPath}`);
     app.use(express.static(staticPath, {
-      maxAge: '1d',
-      etag: true,
-      lastModified: true
+      maxAge: '0',
+      etag: false,
+      lastModified: false
     }));
     
     // SPA fallback - serve index.html for non-API routes
