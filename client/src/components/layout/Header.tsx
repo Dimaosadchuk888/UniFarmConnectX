@@ -7,7 +7,7 @@ import { TonConnectButton } from '@tonconnect/ui-react';
  */
 const Header: React.FC = () => {
   return (
-    <header className="fixed top-0 right-0 p-2 z-50">
+    <header className="fixed top-0 right-0 p-2 z-40 pt-safe-top">
       <div className="flex justify-end">
         {/* 
           Официальная кнопка для подключения TonConnect кошелька
