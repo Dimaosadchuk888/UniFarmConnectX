@@ -468,7 +468,12 @@ async function startServer() {
     app.use(express.static(staticPath, {
       maxAge: '0',
       etag: false,
-      lastModified: false
+      lastModified: false,
+      setHeaders: (res, path) => {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
     }));
     
     // SPA fallback - serve index.html for non-API routes
@@ -481,6 +486,9 @@ async function startServer() {
       // Fallback to index.html for SPA routing
       const indexPath = path.resolve(process.cwd(), 'dist', 'public', 'index.html');
       logger.info(`[SPA Fallback] Serving: ${indexPath}`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.sendFile(indexPath);
     });
 
