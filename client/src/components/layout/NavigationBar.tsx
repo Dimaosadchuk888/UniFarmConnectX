@@ -27,7 +27,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({ activeTab, setActiveTab }
   };
   
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-muted flex justify-between px-2 py-3 z-50 safe-area-inset-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-muted flex justify-between px-2 py-3 z-50">
       {NAV_ITEMS.map((item) => (
         <button
           key={item.id}

@@ -6,8 +6,8 @@ export default {
   theme: {
     extend: {
       spacing: {
-        'safe-bottom': 'env(safe-area-inset-bottom)',
-        'safe-top': 'env(safe-area-inset-top)',
+        '20': '5rem',
+        '6': '1.5rem',
       },
       screens: {
         'xs': '320px',
