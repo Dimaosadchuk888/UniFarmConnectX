@@ -412,11 +412,16 @@ async function startServer() {
 
 
 
-    // Apply Telegram middleware only to protected routes, skip health and webhook
-    // telegramMiddleware moved to individual route protection
-
     // API routes
     const apiPrefix = `/api/v2`;
+    
+    // Bypass auth middleware for demo mode - applied before routes
+    if (process.env.BYPASS_AUTH === 'true') {
+      app.use(apiPrefix, (req, res, next) => {
+        req.user = { id: 1, telegram_id: 123456789, username: 'demo_user' };
+        next();
+      });
+    }
     
     // Import centralized routes (after critical endpoints)
     const { default: apiRoutes } = await import('./routes');
