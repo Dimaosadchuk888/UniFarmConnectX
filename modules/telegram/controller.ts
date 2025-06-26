@@ -160,7 +160,7 @@ export class TelegramController extends BaseController {
         reply_markup: {
           inline_keyboard: [[{
             text: '🚀 Запустить UniFarm',
-            web_app: { url: 'https://uni-farm-connect-x-osadchukdmitro2.replit.app' }
+            web_app: { url: 'https://uni-farm-connect-x-alinabndrnk99.replit.app' }
           }]]
         }
       }

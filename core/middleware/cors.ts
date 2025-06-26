@@ -9,7 +9,7 @@ export function corsMiddleware(req: Request, res: Response, next: NextFunction) 
   const allowedOrigins = [
     'https://telegram.org',
     'https://web.telegram.org',
-    'https://uni-farm-connect-x-osadchukdmitro2.replit.app',
+    'https://uni-farm-connect-x-alinabndrnk99.replit.app',
     'https://replit.dev',
     'http://localhost:3000',
     'http://localhost:5173'
