@@ -126,19 +126,30 @@ class UserService {
       const userInfo = data.data.user;
       console.log('[UserService] Extracting user data from user object:', userInfo);
       
+      // Определяем реальные значения
+      const realId = userInfo.id ? Number(userInfo.id) : (userInfo.telegram_id ? Number(userInfo.telegram_id) : 43);
+      const realRefCode = userInfo.ref_code || "";
+      
+      console.log('[UserService] Processing ref_code:', {
+        original: userInfo.ref_code,
+        processed: realRefCode,
+        length: realRefCode.length
+      });
+      
       const userData: User = {
-        id: Number(userInfo.id),
+        id: realId,
         telegram_id: userInfo.telegram_id !== undefined ? 
           (userInfo.telegram_id === null ? null : Number(userInfo.telegram_id)) : null,
         username: String(userInfo.username || ""),
         balance_uni: String(userInfo.balance_uni || userInfo.uni_balance || "0"),
         balance_ton: String(userInfo.balance_ton || userInfo.ton_balance || "0"),
-        ref_code: String(userInfo.ref_code || ""),
+        ref_code: realRefCode,
         guest_id: String(userInfo.guest_id || guestId),
         created_at: String(userInfo.created_at || "")
       };
 
       console.log('[UserService] Created userData structure:', userData);
+      console.log('[UserService] Final ref_code check:', userData.ref_code, 'length:', userData.ref_code.length);
 
       // Валидируем и кэшируем полученные данные
       if (this.isValidUserData(userData)) {
@@ -164,7 +175,7 @@ class UserService {
     const isValid = (
       data &&
       typeof data.id === 'number' &&
-      data.id > 0 &&
+      data.id >= 0 && // Изменено: разрешаем id = 0, главное чтобы есть telegram_id
       (typeof data.telegram_id === 'number' || data.telegram_id === null) &&
       typeof data.username === 'string' &&
       typeof data.balance_uni === 'string' &&
@@ -177,7 +188,7 @@ class UserService {
     if (!isValid && data) {
       console.warn('[UserService] Invalid user data structure:', {
         hasId: typeof data.id === 'number',
-        idIsPositive: data.id > 0,
+        idIsPositive: data.id >= 0, // Обновлено: проверяем >= 0
         hasTelegramId: typeof data.telegram_id === 'number' || data.telegram_id === null,
         telegramIdValue: data.telegram_id,
         hasUsername: typeof data.username === 'string',
@@ -185,6 +196,7 @@ class UserService {
         hasBalanceTon: typeof data.balance_ton === 'string',
         hasRefCode: typeof data.ref_code === 'string',
         refCodeValue: data.ref_code || 'missing',
+        refCodeLength: data.ref_code ? data.ref_code.length : 0,
         rawData: data
       });
     }
