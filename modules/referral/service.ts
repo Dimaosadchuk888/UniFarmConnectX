@@ -4,6 +4,72 @@ import { REFERRAL_TABLES, REFERRAL_COMMISSION_RATES } from './model';
 
 export class ReferralService {
   /**
+   * Генерирует реферальный код для пользователя
+   */
+  async generateReferralCode(userId: number): Promise<string> {
+    try {
+      logger.info('[ReferralService] Генерация реферального кода', { userId });
+
+      // Получаем данные пользователя
+      const { data: user, error: userError } = await supabase
+        .from(REFERRAL_TABLES.USERS)
+        .select('id, ref_code, telegram_id, username')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !user) {
+        logger.error('[ReferralService] Пользователь не найден', {
+          userId,
+          error: userError?.message
+        });
+        throw new Error('Пользователь не найден');
+      }
+
+      // Если у пользователя уже есть реферальный код, возвращаем его
+      if (user.ref_code && user.ref_code.trim() !== '') {
+        logger.info('[ReferralService] Возвращаем существующий реферальный код', {
+          userId,
+          refCode: user.ref_code
+        });
+        return user.ref_code;
+      }
+
+      // Генерируем новый уникальный реферальный код
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const newRefCode = `REF_${timestamp}_${randomSuffix}`;
+
+      // Обновляем реферальный код в базе данных
+      const { error: updateError } = await supabase
+        .from(REFERRAL_TABLES.USERS)
+        .update({ ref_code: newRefCode })
+        .eq('id', userId);
+
+      if (updateError) {
+        logger.error('[ReferralService] Ошибка обновления реферального кода', {
+          userId,
+          newRefCode,
+          error: updateError.message
+        });
+        throw new Error('Не удалось сохранить реферальный код');
+      }
+
+      logger.info('[ReferralService] Реферальный код успешно сгенерирован', {
+        userId,
+        refCode: newRefCode
+      });
+
+      return newRefCode;
+    } catch (error) {
+      logger.error('[ReferralService] Ошибка генерации реферального кода', {
+        userId,
+        error: (error as Error).message
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Обработка реферала - связывание нового пользователя с реферером
    */
   async processReferral(refCode: string, newUserId: string): Promise<{ success: boolean; error?: string }> {

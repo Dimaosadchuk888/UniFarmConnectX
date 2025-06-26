@@ -20,7 +20,13 @@ router.get('/:userId/list', requireTelegramAuth, referralController.getUserRefer
 // GET /api/referrals/:userId/earnings - Получить статистику доходов от рефералов
 router.get('/:userId/earnings', requireTelegramAuth, referralController.getReferralEarnings.bind(referralController));
 
-// GET /api/referrals/stats - Получить статистику реферальных уровней
+// GET /api/referrals/stats - Получить статистику реферальных уровней  
 router.get('/stats', requireTelegramAuth, referralController.getReferralLevelsStats.bind(referralController));
+
+// GET /api/referrals/:userId/code - Получить реферальный код пользователя
+router.get('/:userId/code', requireTelegramAuth, referralController.getUserReferralCode.bind(referralController));
+
+// GET /api/referrals/levels - Получить статистику уровней (алиас для stats)
+router.get('/levels', requireTelegramAuth, referralController.getReferralLevelsStats.bind(referralController));
 
 export default router;
