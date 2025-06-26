@@ -439,6 +439,64 @@ async function startServer() {
       });
     }
     
+    // КРИТИЧЕСКИЙ ИСПРАВЛЕННЫЙ DAILY BONUS ENDPOINT
+    app.get(`${apiPrefix}/daily-bonus-fixed`, async (req: Request, res: Response) => {
+      try {
+        const userId = req.query.user_id || "43";
+        
+        const userIdNumber = parseInt(userId as string);
+        if (isNaN(userIdNumber)) {
+          return res.json({ success: false, error: 'Invalid user ID' });
+        }
+        
+        const { data: users, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userIdNumber)
+          .limit(1);
+        
+        if (error) {
+          return res.json({ success: false, error: error.message });
+        }
+        
+        const user = users?.[0];
+        if (!user) {
+          return res.json({
+            success: true,
+            data: { canClaim: true, streak: 0, bonusAmount: 500 }
+          });
+        }
+        
+        const now = new Date();
+        const lastClaimDate = user.checkin_last_date ? new Date(user.checkin_last_date) : null;
+        let canClaim = true;
+        let streakDays = user.checkin_streak || 0;
+        
+        if (lastClaimDate) {
+          const daysSinceLastClaim = Math.floor((now.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysSinceLastClaim < 1) canClaim = false;
+          else if (daysSinceLastClaim > 1) streakDays = 0;
+        }
+        
+        const bonusAmount = Math.min(500 + (streakDays * 100), 2000);
+        
+        logger.info('[DailyBonusFixed] Success response', {
+          userId: userIdNumber,
+          canClaim,
+          streakDays,
+          bonusAmount
+        });
+        
+        res.json({
+          success: true,
+          data: { canClaim, streak: streakDays, bonusAmount }
+        });
+      } catch (error) {
+        logger.error('[DailyBonusFixed] Error:', error);
+        res.json({ success: false, error: 'Internal server error' });
+      }
+    });
+
     // Import centralized routes (after critical endpoints)
     const { default: apiRoutes } = await import('./routes');
     app.use(apiPrefix, apiRoutes);

@@ -16,16 +16,45 @@ export class DailyBonusController extends BaseController {
    */
   async getDailyBonusInfo(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
-      // Получаем userId из query параметров для GET запроса /status
-      const userId = req.query.user_id as string || req.params.userId;
+      // Получаем userId из авторизованного пользователя или query параметров
+      const userId = (req as any).user?.id || (req as any).user?.telegram_id || req.query.user_id as string || req.params.userId;
+      
+      logger.info('[DailyBonusController] Debug userId extraction', { 
+        userFromReq: (req as any).user,
+        userId: userId,
+        queryUserId: req.query.user_id,
+        paramsUserId: req.params.userId
+      });
       
       if (!userId || userId === 'undefined' || userId === 'null') {
         return this.sendError(res, 'Отсутствует параметр user_id', 400);
       }
-
-      logger.info('[DailyBonusController] Получение информации о ежедневном бонусе для пользователя', { userId });
       
-      const dailyBonusInfo = await this.dailyBonusService.getDailyBonusInfo(userId);
+      // Для telegram_id нужно найти соответствующий user ID в базе
+      let actualUserId = userId;
+      
+      // Если userId это telegram_id, ищем внутренний ID пользователя
+      const userIdNumber = parseInt(userId);
+      if (!isNaN(userIdNumber)) {
+        const { supabase } = require('../../core/supabase');
+        const { data: userByTelegramId } = await supabase
+          .from('users')
+          .select('id')
+          .eq('telegram_id', userIdNumber)
+          .limit(1);
+        
+        if (userByTelegramId && userByTelegramId[0]) {
+          actualUserId = userByTelegramId[0].id;
+          logger.info('[DailyBonusController] Найден пользователь по telegram_id', { telegram_id: userId, user_id: actualUserId });
+        } else {
+          // Если не найден по telegram_id, используем переданный ID как есть
+          actualUserId = userIdNumber;
+        }
+      }
+
+      logger.info('[DailyBonusController] Получение информации о ежедневном бонусе для пользователя', { userId, actualUserId });
+      
+      const dailyBonusInfo = await this.dailyBonusService.getDailyBonusInfo(actualUserId);
 
       // Адаптируем формат ответа под ожидания frontend
       const response = {

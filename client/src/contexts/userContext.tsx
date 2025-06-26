@@ -154,6 +154,49 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const refreshInProgressRef = useRef<boolean>(false);
   const initializedRef = useRef<boolean>(false);
   
+  // Авторизация через Telegram с сохранением JWT токена
+  const authenticateWithTelegram = useCallback(async () => {
+    try {
+      if (typeof window === 'undefined' || !window.Telegram?.WebApp?.initData) {
+        console.log('[UserContext] Telegram WebApp данные недоступны');
+        return false;
+      }
+
+      const response = await correctApiRequest('/api/v2/auth/telegram', 'POST', {
+        initData: window.Telegram.WebApp.initData
+      });
+
+      if (response.success && response.data) {
+        const { user, token } = response.data;
+        
+        // Сохраняем JWT токен
+        if (token) {
+          localStorage.setItem('unifarm_jwt_token', token);
+          console.log('[UserContext] JWT токен сохранен после авторизации');
+        }
+
+        // Обновляем состояние пользователя
+        dispatch({
+          type: 'SET_USER_DATA',
+          payload: {
+            userId: user.id,
+            username: user.username,
+            guestId: user.guest_id,
+            telegramId: user.telegram_id,
+            refCode: user.ref_code
+          }
+        });
+
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('[UserContext] Ошибка авторизации через Telegram:', error);
+      return false;
+    }
+  }, []);
+
   // Обновление данных пользователя
   const refreshUserData = useCallback(async () => {
     if (refreshInProgressRef.current) {
@@ -164,6 +207,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
     
     try {
+      // Сначала пытаемся авторизоваться через Telegram если возможно
+      const telegramAuth = await authenticateWithTelegram();
+      
+      if (telegramAuth) {
+        console.log('[UserContext] Успешная авторизация через Telegram');
+        dispatch({ type: 'SET_ERROR', payload: null });
+        refreshInProgressRef.current = false;
+        dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: false } });
+        return;
+      }
+
       // Получаем данные пользователя из localStorage или используем guest_id
       let apiUrl = '/api/v2/users/profile';
       const lastSessionStr = localStorage.getItem('unifarm_last_session');
@@ -208,6 +262,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             username: user.username || null,
             refCode: user.ref_code || null
           }));
+          
+          // Сохраняем JWT токен если получен от сервера
+          if (response.token) {
+            localStorage.setItem('unifarm_jwt_token', response.token);
+            console.log('[UserContext] JWT токен сохранен в localStorage');
+          }
         } catch (e) {
           console.warn('[UserContext] Ошибка при сохранении данных пользователя в localStorage:', e);
         }

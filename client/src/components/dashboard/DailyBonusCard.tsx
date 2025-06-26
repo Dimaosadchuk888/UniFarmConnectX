@@ -38,17 +38,18 @@ const DailyBonusCard: React.FC = () => {
     queryKey: ['dailyBonusStatus', userId], // Добавляем userId в ключ запроса
     queryFn: async () => {
       try {
-        // Используем новый унифицированный метод apiGet
-        const endpoint = `/api/v2/daily-bonus/status?user_id=${userId || 1}`;
+        // Используем исправленный endpoint для обхода проблем с модульным роутингом
+        const endpoint = `/api/v2/daily-bonus-fixed?user_id=${userId || 43}`;
         console.log('[DailyBonusCard] Запрос статуса бонуса:', endpoint);
 
-        const response = await apiGet<DailyBonusStatus>(endpoint);
+        const response = await fetch(endpoint);
+        const data = await response.json();
 
-        if (!response.success) {
-          throw new Error(response.error || 'Ошибка при получении статуса бонуса');
+        if (!data.success) {
+          throw new Error(data.error || 'Ошибка при получении статуса бонуса');
         }
 
-        return response.data as DailyBonusStatus;
+        return data.data as DailyBonusStatus;
       } catch (error: any) {
         console.error('[ERROR] DailyBonusCard - Ошибка при получении статуса бонуса:', error);
         throw new Error(`Ошибка при получении статуса бонуса: ${error.message || 'Неизвестная ошибка'}`);
