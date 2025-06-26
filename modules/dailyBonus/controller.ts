@@ -16,16 +16,25 @@ export class DailyBonusController extends BaseController {
    */
   async getDailyBonusInfo(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
-      if (!this.validateParams(req, ['userId'])) {
-        return this.sendError(res, 'Отсутствует параметр userId', 400);
+      // Получаем userId из query параметров для GET запроса /status
+      const userId = req.query.user_id as string || req.params.userId;
+      
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        return this.sendError(res, 'Отсутствует параметр user_id', 400);
       }
 
-      const userId = req.params.userId;
       logger.info('[DailyBonusController] Получение информации о ежедневном бонусе для пользователя', { userId });
       
       const dailyBonusInfo = await this.dailyBonusService.getDailyBonusInfo(userId);
 
-      this.sendSuccess(res, dailyBonusInfo);
+      // Адаптируем формат ответа под ожидания frontend
+      const response = {
+        canClaim: dailyBonusInfo.can_claim,
+        streak: dailyBonusInfo.streak_days,
+        bonusAmount: parseInt(dailyBonusInfo.next_bonus_amount) || 500
+      };
+
+      this.sendSuccess(res, response);
     }, 'получения информации о ежедневном бонусе');
   }
 
@@ -34,29 +43,26 @@ export class DailyBonusController extends BaseController {
    */
   async claimDailyBonus(req: Request, res: Response): Promise<void> {
     await this.handleRequest(req, res, async () => {
-      const { userId } = req.body;
-      logger.info('[DailyBonusController] Получение ежедневного бонуса для пользователя', { userId });
+      const { user_id } = req.body;
       
-      this.validateRequiredFields(req.body, ['userId']);
+      if (!user_id || user_id === 'undefined' || user_id === 'null') {
+        return this.sendError(res, 'Отсутствует параметр user_id', 400);
+      }
 
-      // Здесь будет логика:
-      // 1. Проверка возможности получения бонуса
-      // 2. Расчет суммы бонуса с учетом стрика
-      // 3. Начисление бонуса на баланс
-      // 4. Обновление статистики стрика
+      logger.info('[DailyBonusController] Получение ежедневного бонуса для пользователя', { user_id });
       
-      const claimResult = {
-        claimed: true,
-        bonus_amount: "130", // 100 * 1.3 (streak multiplier)
-        new_streak: 4,
-        next_claim_available: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        streak_bonus_percentage: 30
-      };
+      const claimResult = await this.dailyBonusService.claimDailyBonus(user_id.toString());
 
-      this.sendSuccess(res, {
-        ...claimResult,
-        message: `Ежедневный бонус ${claimResult.bonus_amount} UNI успешно получен!`
-      });
+      if (claimResult.success) {
+        this.sendSuccess(res, {
+          success: true,
+          amount: claimResult.amount,
+          streak: claimResult.streak_days,
+          message: `Ежедневный бонус ${claimResult.amount} UNI успешно получен!`
+        });
+      } else {
+        this.sendError(res, claimResult.error || 'Ошибка при получении бонуса', 400);
+      }
     }, 'получения ежедневного бонуса');
   }
 

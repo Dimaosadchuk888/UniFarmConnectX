@@ -13,10 +13,24 @@ export class DailyBonusService {
     last_claim_date: string | null;
   }> {
     try {
+      logger.info('[DailyBonusService] Получен userId:', { userId, type: typeof userId });
+      
+      // Проверяем корректность userId перед parseInt
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        logger.error('[DailyBonusService] Пустой или некорректный userId:', userId);
+        throw new Error('ID пользователя не предоставлен');
+      }
+      
+      const userIdNumber = parseInt(userId);
+      if (isNaN(userIdNumber)) {
+        logger.error('[DailyBonusService] Некорректный формат userId:', userId);
+        throw new Error('Некорректный формат ID пользователя');
+      }
+
       const { data: users, error } = await supabase
         .from(DAILY_BONUS_TABLES.USERS)
         .select('*')
-        .eq('id', parseInt(userId))
+        .eq('id', userIdNumber)
         .limit(1);
 
       if (error) {
@@ -75,10 +89,20 @@ export class DailyBonusService {
     error?: string;
   }> {
     try {
+      // Проверяем корректность userId перед parseInt
+      const userIdNumber = parseInt(userId);
+      if (isNaN(userIdNumber)) {
+        logger.error('[DailyBonusService] Некорректный userId в claimDailyBonus:', userId);
+        return {
+          success: false,
+          error: 'Некорректный ID пользователя'
+        };
+      }
+
       const { data: users, error } = await supabase
         .from(DAILY_BONUS_TABLES.USERS)
         .select('*')
-        .eq('id', parseInt(userId))
+        .eq('id', userIdNumber)
         .limit(1);
 
       if (error || !users?.[0]) {
@@ -125,7 +149,7 @@ export class DailyBonusService {
           checkin_last_date: now.toISOString(),
           checkin_streak: newStreak
         })
-        .eq('id', parseInt(userId));
+        .eq('id', userIdNumber);
 
       if (updateError) {
         logger.error('[DailyBonusService] Ошибка обновления пользователя:', updateError.message);
@@ -139,7 +163,7 @@ export class DailyBonusService {
       const { error: txError } = await supabase
         .from(DAILY_BONUS_TABLES.TRANSACTIONS)
         .insert([{
-          user_id: parseInt(userId),
+          user_id: userIdNumber,
           type: 'DAILY_BONUS',
           amount_uni: parseFloat(bonusAmount),
           amount_ton: 0,
@@ -155,7 +179,7 @@ export class DailyBonusService {
       await supabase
         .from('daily_bonus_history')
         .insert({
-          user_id: parseInt(userId),
+          user_id: userIdNumber,
           bonus_amount: parseFloat(bonusAmount),
           streak_day: newStreak,
           claimed_at: now.toISOString(),

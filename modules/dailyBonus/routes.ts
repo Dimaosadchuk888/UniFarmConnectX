@@ -5,6 +5,9 @@ import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
 const router = express.Router();
 const dailyBonusController = new DailyBonusController();
 
+// GET /api/daily-bonus/status - Получить статус ежедневного бонуса (используется в Dashboard)
+router.get('/status', requireTelegramAuth, dailyBonusController.getDailyBonusInfo.bind(dailyBonusController));
+
 // GET /api/daily-bonus/:userId - Получить информацию о ежедневном бонусе пользователя
 router.get('/:userId', requireTelegramAuth, dailyBonusController.getDailyBonusInfo.bind(dailyBonusController));
 
