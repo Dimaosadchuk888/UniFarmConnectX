@@ -73,7 +73,7 @@ export class ReferralController extends BaseController {
       const stats = await this.referralService.getReferralStats(userId);
       
       this.sendSuccess(res, {
-        levels: stats.levels || [],
+        levels: [], // Пустой массив для совместимости с фронтендом
         total_referrals: stats.totalReferrals || 0,
         total_earnings: stats.totalEarned || { UNI: "0", TON: "0" }
       });
@@ -116,11 +116,29 @@ export class ReferralController extends BaseController {
       
       logger.info('[ReferralController] Получение списка рефералов', { userId });
       
-      // Простая заглушка - в production нужна реализация
-      const referrals = [];
+      const referrals = await this.referralService.getUserReferrals(parseInt(userId));
       
       this.sendSuccess(res, { referrals });
     }, 'получения списка рефералов');
+  }
+
+  /**
+   * Генерировать реферальный код для пользователя
+   */
+  async generateReferralCode(req: Request, res: Response): Promise<void> {
+    return this.handleRequest(req, res, async () => {
+      const userId = req.body.userId || (req as any).user?.id;
+      
+      if (!userId) {
+        return this.sendError(res, 'Отсутствует параметр userId', 400);
+      }
+      
+      logger.info('[ReferralController] Генерация реферального кода', { userId });
+      
+      const refCode = await this.referralService.generateReferralCode(parseInt(userId));
+      
+      this.sendSuccess(res, { ref_code: refCode });
+    }, 'генерации реферального кода');
   }
 
   /**

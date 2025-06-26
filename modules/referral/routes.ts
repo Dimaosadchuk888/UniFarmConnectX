@@ -29,4 +29,7 @@ router.get('/:userId/code', requireTelegramAuth, referralController.getUserRefer
 // GET /api/referrals/levels - Получить статистику уровней (алиас для stats)
 router.get('/levels', requireTelegramAuth, referralController.getReferralLevelsStats.bind(referralController));
 
+// POST /api/referrals/generate-code - Генерировать реферальный код
+router.post('/generate-code', requireTelegramAuth, referralController.generateReferralCode.bind(referralController));
+
 export default router;

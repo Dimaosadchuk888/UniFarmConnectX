@@ -433,4 +433,36 @@ export class ReferralService {
       };
     }
   }
+
+  /**
+   * Получить список рефералов пользователя
+   */
+  async getUserReferrals(userId: number): Promise<any[]> {
+    try {
+      logger.info('[ReferralService] Получение списка рефералов', { userId });
+
+      const { data: referrals, error: referralsError } = await supabase
+        .from(REFERRAL_TABLES.USERS)
+        .select('id, username, first_name, created_at, uni_balance, ton_balance')
+        .eq('referred_by', userId)
+        .order('created_at', { ascending: false });
+
+      if (referralsError) {
+        logger.error('[ReferralService] Ошибка получения рефералов', {
+          userId,
+          error: referralsError.message
+        });
+        return [];
+      }
+
+      return referrals || [];
+
+    } catch (error) {
+      logger.error('[ReferralService] Ошибка получения списка рефералов', {
+        userId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
+    }
+  }
 }
