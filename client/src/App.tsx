@@ -13,8 +13,7 @@ import { useBalance } from "@/hooks/useBalance";
 import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
-// WebSocket отключен для Replit - не поддерживается платформой
-// import { WebSocketProvider } from "@/contexts/webSocketContext";
+import { WebSocketProvider } from "@/contexts/webSocketContext";
 import { NotificationProvider } from "@/contexts/notificationContext";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 

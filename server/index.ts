@@ -37,11 +37,20 @@ import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeSche
  * Установка WebSocket сервера с логированием всех событий
  */
 function setupWebSocketServer(httpServer: any) {
-  // Инициализация WebSocket сервера
+  // Инициализация WebSocket сервера с поддержкой Replit прокси
   const wss = new WebSocket.WebSocketServer({ 
     server: httpServer,
     path: '/ws',
-    perMessageDeflate: false
+    perMessageDeflate: false,
+    // Настройки для работы через HTTPS прокси Replit
+    handleProtocols: (protocols: any, request: any) => {
+      // Разрешаем любые протоколы для совместимости с WSS
+      return protocols && protocols.length > 0 ? protocols[0] : false;
+    },
+    verifyClient: (info: any) => {
+      // Принимаем все соединения для публичного доступа
+      return true;
+    }
   });
   
   // Хранилище активных соединений
