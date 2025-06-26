@@ -6,20 +6,30 @@ import { logger } from '../logger';
  */
 export function requireTelegramAuth(req: Request, res: Response, next: NextFunction): void {
   try {
-    // Deployment testing bypass - allows access without Telegram context for public demo
+    // Extended public demo bypass - handles replit.app domains and development
+    const userAgent = req.headers['user-agent'] || '';
+    const host = req.headers.host || '';
+    const referer = req.headers.referer || '';
+    
     const isPublicDemo = req.headers['x-public-demo'] === 'true' || 
                         req.query.demo === 'true' ||
-                        req.headers.referer?.includes('replit.app') ||
-                        process.env.BYPASS_AUTH === 'true';
+                        host.includes('replit.app') ||
+                        referer.includes('replit.app') ||
+                        host.includes('localhost') ||
+                        process.env.BYPASS_AUTH === 'true' ||
+                        process.env.NODE_ENV === 'development';
     
     if (isPublicDemo) {
+      console.log('[TelegramAuth] Public demo access granted for:', req.originalUrl);
       const demoUser = {
         id: 42, // Demo user from database
+        telegram_id: 42,
         username: 'demo_user',
         first_name: 'Demo User',
         ref_code: 'REF_1750270497713_bmln2f'
       };
       (req as any).telegramUser = demoUser;
+      (req as any).user = demoUser;
       next();
       return;
     }

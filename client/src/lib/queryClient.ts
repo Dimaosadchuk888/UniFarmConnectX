@@ -71,6 +71,10 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
   // Получаем guest ID из localStorage
   const guestId = localStorage.getItem('unifarm_guest_id') || '';
 
+  // Определяем, работаем ли мы на replit.app для demo режима
+  const isReplitDomain = window.location.hostname.includes('replit.app');
+  const isLocalhost = window.location.hostname.includes('localhost');
+
   // Базовые заголовки для API запросов
   const headers = {
     "Content-Type": "application/json",
@@ -80,6 +84,8 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
     "Expires": "0",
     "X-Guest-ID": guestId,
     "X-Public-Demo": "true",
+    // Добавляем Host заголовок для replit.app
+    ...(isReplitDomain && { "Host": window.location.hostname }),
     ...telegramHeaders, // Добавляем заголовки Telegram
     ...customHeaders    // Добавляем пользовательские заголовки
   };
