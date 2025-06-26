@@ -483,8 +483,8 @@ async function startServer() {
       res.sendFile(path.resolve('client/public/tonconnect-manifest.json'));
     });
     
-    // Serve static files from dist/public (работает в любом режиме)
-    const staticPath = path.resolve(process.cwd(), 'dist', 'public');
+    // Serve static files from dist (работает в любом режиме)
+    const staticPath = path.resolve(process.cwd(), 'dist');
     logger.info(`[Static Files] Serving from: ${staticPath}`);
     app.use(express.static(staticPath, {
       maxAge: '0',
@@ -550,7 +550,7 @@ async function startServer() {
       logger.info(`🚀 API сервер запущен на http://${config.app.host}:${apiPort}`);
       logger.info(`📡 API доступен: http://${config.app.host}:${apiPort}${apiPrefix}/`);
       logger.info(`🔌 WebSocket сервер активен на ws://${config.app.host}:${apiPort}/ws`);
-      logger.info(`🌐 Frontend: http://${config.app.host}:${apiPort}/ (Static files from dist/public)`);
+      logger.info(`🌐 Frontend: http://${config.app.host}:${apiPort}/ (Static files from dist)`);
       
       // Supabase API не требует мониторинга connection pool
       logger.info('✅ Supabase database connection active');
