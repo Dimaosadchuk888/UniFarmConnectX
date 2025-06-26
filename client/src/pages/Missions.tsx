@@ -1,5 +1,5 @@
 import React from 'react';
-import SimpleMissionsList from '@/components/missions/SimpleMissionsList';
+import { MissionsList } from '@/components/missions/MissionsList';
 
 /**
  * Компонент страницы миссий
@@ -13,7 +13,7 @@ const Missions: React.FC = () => {
       <h1 className="text-xl font-semibold text-white mb-4">Выполняй задания — получай UNI</h1>
       
       {/* Простые карточки миссий */}
-      <SimpleMissionsList />
+      <MissionsList />
     </div>
   );
 };
