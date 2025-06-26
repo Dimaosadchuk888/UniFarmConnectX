@@ -71,4 +71,64 @@ export class WalletController extends BaseController {
       next(error);
     }
   }
+
+  async createDeposit(req: Request, res: Response, next: NextFunction) {
+    try {
+      await this.handleRequest(req, res, async () => {
+      const telegram = this.validateTelegramAuth(req, res);
+      if (!telegram) return; // 401 уже отправлен
+
+      // Валидация параметров депозита
+      const { amount, currency, type, wallet_address } = req.body;
+      
+      if (!amount || !currency || !type) {
+        return this.sendError(res, 'Отсутствуют обязательные параметры: amount, currency, type', 400);
+      }
+
+      if (currency !== 'UNI' && currency !== 'TON') {
+        return this.sendError(res, 'Поддерживаемые валюты: UNI, TON', 400);
+      }
+
+      if (amount <= 0) {
+        return this.sendError(res, 'Сумма депозита должна быть больше 0', 400);
+      }
+
+      // Автоматическая регистрация пользователя
+      const user = await userRepository.getOrCreateUserFromTelegram({
+        telegram_id: telegram.user.id,
+        username: telegram.user.username,
+        first_name: telegram.user.first_name,
+        ref_by: req.query.start_param as string
+      });
+
+      // Создание депозита
+      const depositResult = await walletService.createDeposit({
+        user_id: user.id,
+        telegram_id: telegram.user.id,
+        amount: parseFloat(amount),
+        currency: currency as 'UNI' | 'TON',
+        deposit_type: type,
+        wallet_address: wallet_address || null
+      });
+
+      logger.info('[Wallet] Депозит создан', {
+        telegram_id: telegram.user.id,
+        amount: amount,
+        currency: currency,
+        type: type,
+        transaction_id: depositResult.transaction_id
+      });
+
+      this.sendSuccess(res, {
+        message: `Депозит ${amount} ${currency} успешно создан`,
+        transaction_id: depositResult.transaction_id,
+        amount: amount,
+        currency: currency,
+        status: 'pending'
+      });
+    }, 'создания депозита');
+    } catch (error) {
+      next(error);
+    }
+  }
 }

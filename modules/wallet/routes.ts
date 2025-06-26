@@ -22,10 +22,18 @@ const userIdSchema = z.object({
   userId: z.string().regex(/^\d+$/, 'User ID must be numeric')
 });
 
+const depositSchema = z.object({
+  amount: z.number().min(0.001, 'Minimum deposit amount is 0.001'),
+  currency: z.enum(['UNI', 'TON'], { errorMap: () => ({ message: 'Currency must be UNI or TON' }) }),
+  type: z.string().min(1, 'Deposit type is required'),
+  wallet_address: z.string().optional()
+});
+
 // Маршруты кошелька с обязательной авторизацией, валидацией и rate limiting
 router.get('/', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController));
 router.get('/balance', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController)); // Alias
 router.get('/:userId/transactions', requireTelegramAuth, liberalRateLimit, validateParams(userIdSchema), walletController.getTransactions.bind(walletController));
+router.post('/deposit', requireTelegramAuth, strictRateLimit, validateBody(depositSchema), walletController.createDeposit.bind(walletController));
 router.post('/withdraw', requireTelegramAuth, strictRateLimit, validateBody(withdrawSchema), walletController.withdraw.bind(walletController));
 
 export default router;

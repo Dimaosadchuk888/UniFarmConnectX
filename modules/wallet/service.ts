@@ -280,4 +280,79 @@ export class WalletService {
       return false;
     }
   }
+
+  async createDeposit(params: {
+    user_id: number;
+    telegram_id: number;
+    amount: number;
+    currency: 'UNI' | 'TON';
+    deposit_type: string;
+    wallet_address?: string | null;
+  }): Promise<{ transaction_id: string; success: boolean }> {
+    try {
+      const { user_id, telegram_id, amount, currency, deposit_type, wallet_address } = params;
+      
+      // Генерируем ID транзакции
+      const transactionId = `DEP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Создаем запись транзакции
+      const { data: transaction, error: transactionError } = await supabase
+        .from(WALLET_TABLES.TRANSACTIONS)
+        .insert({
+          user_id: user_id,
+          type: 'deposit',
+          amount_uni: currency === 'UNI' ? amount.toString() : '0',
+          amount_ton: currency === 'TON' ? amount.toString() : '0',
+          status: 'pending',
+          description: `Депозит ${amount} ${currency} (${deposit_type})`,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (transactionError) {
+        logger.error('[WalletService] Ошибка создания транзакции депозита', { 
+          user_id, 
+          telegram_id,
+          amount,
+          currency,
+          error: transactionError.message 
+        });
+        throw new Error('Ошибка создания транзакции депозита');
+      }
+
+      // Для UNI депозитов - сразу начисляем на баланс (manual_deposit)
+      if (currency === 'UNI' && deposit_type === 'manual_deposit') {
+        await this.addUniFarmIncome(user_id.toString(), amount.toString());
+        
+        // Обновляем статус транзакции на completed
+        await supabase
+          .from(WALLET_TABLES.TRANSACTIONS)
+          .update({ status: 'completed' })
+          .eq('id', transaction.id);
+      }
+
+      logger.info('[WalletService] Депозит создан', {
+        transaction_id: transactionId,
+        user_id,
+        telegram_id,
+        amount,
+        currency,
+        deposit_type,
+        wallet_address
+      });
+
+      return {
+        transaction_id: transactionId,
+        success: true
+      };
+
+    } catch (error) {
+      logger.error('[WalletService] Ошибка создания депозита', {
+        params,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
 }

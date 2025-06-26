@@ -327,6 +327,15 @@ const BalanceCard: React.FC = () => {
             </span>
             <span className="text-gray-400 ml-1">UNI / сек</span>
           </div>
+          
+          {/* Кнопка пополнения UNI */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('openDepositForm', { detail: { currency: 'UNI' } }))}
+            className="w-full mt-3 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 hover:border-primary/50 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 relative z-10 flex items-center justify-center"
+          >
+            <i className="fas fa-plus mr-2"></i>
+            Пополнить UNI
+          </button>
         </div>
         
         {/* TON Balance - сине-голубой градиент */}
@@ -368,6 +377,15 @@ const BalanceCard: React.FC = () => {
             <i className="fas fa-check-circle mr-1"></i>
             <span>Доступно для вывода</span>
           </div>
+          
+          {/* Кнопка пополнения TON */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('openDepositForm', { detail: { currency: 'TON' } }))}
+            className="w-full mt-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 hover:border-blue-500/50 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 relative z-10 flex items-center justify-center"
+          >
+            <i className="fas fa-plus mr-2"></i>
+            Пополнить TON
+          </button>
         </div>
       </div>
       

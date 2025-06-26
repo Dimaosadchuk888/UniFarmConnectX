@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import BalanceCard from '@/components/wallet/BalanceCard';
+import DepositForm from '@/components/wallet/DepositForm';
 import WithdrawalForm from '@/components/wallet/WithdrawalForm';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -26,9 +27,24 @@ const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> 
 
 /**
  * Страница кошелька согласно UX спецификации
- * Включает карточку баланса, форму вывода средств и историю транзакций
+ * Включает карточку баланса, форму пополнения, форму вывода средств и историю транзакций
  */
 const Wallet: React.FC = () => {
+  const [showDepositForm, setShowDepositForm] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState<'UNI' | 'TON'>('TON');
+
+  // Обработчик событий открытия формы пополнения из BalanceCard
+  useEffect(() => {
+    const handleOpenDepositForm = (event: any) => {
+      const currency = event.detail?.currency || 'TON';
+      setSelectedCurrency(currency);
+      setShowDepositForm(true);
+    };
+
+    window.addEventListener('openDepositForm', handleOpenDepositForm);
+    return () => window.removeEventListener('openDepositForm', handleOpenDepositForm);
+  }, []);
+
   return (
     <div className="space-y-4 pb-6">
       {/* Заголовок страницы */}
@@ -50,13 +66,51 @@ const Wallet: React.FC = () => {
         <BalanceCard />
       </ErrorBoundary>
       
+      {/* Управление операциями - переключатель между Пополнением и Выводом */}
+      <div className="flex bg-gray-800 border border-gray-700 rounded-lg p-1 mb-4">
+        <button
+          onClick={() => setShowDepositForm(true)}
+          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+            showDepositForm
+              ? 'bg-primary text-white shadow-lg'
+              : 'text-gray-400 hover:text-white hover:bg-gray-700'
+          }`}
+        >
+          <i className="fas fa-plus mr-2"></i>
+          Пополнение
+        </button>
+        <button
+          onClick={() => setShowDepositForm(false)}
+          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+            !showDepositForm
+              ? 'bg-primary text-white shadow-lg'
+              : 'text-gray-400 hover:text-white hover:bg-gray-700'
+          }`}
+        >
+          <i className="fas fa-minus mr-2"></i>
+          Вывод
+        </button>
+      </div>
+      
+      {/* Форма пополнения средств с ErrorBoundary */}
+      {showDepositForm && (
+        <ErrorBoundary
+          FallbackComponent={ErrorFallback}
+          onReset={() => window.location.reload()}
+        >
+          <DepositForm initialCurrency={selectedCurrency} />
+        </ErrorBoundary>
+      )}
+      
       {/* Форма вывода средств с ErrorBoundary */}
-      <ErrorBoundary
-        FallbackComponent={ErrorFallback}
-        onReset={() => window.location.reload()}
-      >
-        <WithdrawalForm />
-      </ErrorBoundary>
+      {!showDepositForm && (
+        <ErrorBoundary
+          FallbackComponent={ErrorFallback}
+          onReset={() => window.location.reload()}
+        >
+          <WithdrawalForm />
+        </ErrorBoundary>
+      )}
       
       {/* История транзакций с ErrorBoundary */}
       <ErrorBoundary
