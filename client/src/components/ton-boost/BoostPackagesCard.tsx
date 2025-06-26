@@ -172,7 +172,7 @@ const BoostPackagesCard: React.FC = () => {
             validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
             messages: [
               {
-                address: tonConnectUI?.wallet?.account?.address || '',
+                address: import.meta.env.VITE_TON_BOOST_WALLET_ADDRESS || 'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8',
                 amount: (parseFloat(selectedPackage.priceTon) * 1e9).toString(),
                 payload: transactionComment
               }

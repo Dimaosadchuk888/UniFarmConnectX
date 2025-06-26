@@ -1,6 +1,7 @@
 import { logger } from '../../core/logger.js';
 import { BOOST_TABLES, BOOST_PACKAGES, BOOST_CONFIG, BOOST_STATUS, BOOST_TRANSACTION_TYPES } from './model';
 import { supabase } from '../../core/supabase.js';
+import { getTonBoostWalletAddress } from '../../config/tonBoost.js';
 
 interface BoostPackageData {
   id: number;

@@ -4,6 +4,7 @@
  */
 
 import { logger } from '../core/logger';
+import { getTonBoostWalletAddress } from '../config/tonBoost';
 
 export interface TonTransactionResult {
   success: boolean;
@@ -88,6 +89,24 @@ export async function checkTonTransaction(txHash: string): Promise<TonTransactio
       // Конвертируем из нанотонов в TON
       const nanotons = parseInt(transactionData.in_msg.value);
       amount = (nanotons / 1e9).toString();
+    }
+
+    // Проверяем, что транзакция отправлена на правильный адрес
+    const expectedWalletAddress = getTonBoostWalletAddress();
+    const receiverAddress = transactionData?.in_msg?.destination?.address;
+    
+    if (isConfirmed && receiverAddress && receiverAddress !== expectedWalletAddress) {
+      logger.warn('[TON Checker] Транзакция отправлена на неправильный адрес', {
+        txHash,
+        expected: expectedWalletAddress,
+        actual: receiverAddress
+      });
+      
+      return {
+        success: false,
+        confirmed: false,
+        error: 'Транзакция отправлена на неправильный адрес кошелька'
+      };
     }
 
     const result: TonTransactionResult = {
