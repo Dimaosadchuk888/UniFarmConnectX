@@ -179,14 +179,33 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
 
     try {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host.includes('replit.dev') ? window.location.host : '0.0.0.0:3000';
+      // Определяем протокол и хост для правильного WebSocket подключения
+      let protocol: string;
+      let host: string;
+      
+      if (window.location.hostname.includes('replit.app')) {
+        // Для replit.app используем WSS через тот же домен
+        protocol = 'wss:';
+        host = window.location.host;
+      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Для локальной разработки используем WS
+        protocol = 'ws:';
+        host = 'localhost:3000';
+      } else {
+        // Общий случай - выбираем протокол по текущему URL
+        protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        host = window.location.host;
+      }
+      
       const wsUrl = `${protocol}//${host}/ws`;
 
       console.log('[WebSocket] Initializing connection to:', wsUrl, {
         protocol: window.location.protocol,
         host: window.location.host,
-        isReplit: window.location.host.includes('replit.dev')
+        hostname: window.location.hostname,
+        isReplit: window.location.hostname.includes('replit.app'),
+        wsProtocol: protocol,
+        wsHost: host
       });
 
       // Создаем новое соединение с увеличенными таймаутами
