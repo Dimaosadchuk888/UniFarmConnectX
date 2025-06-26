@@ -104,7 +104,7 @@ class UserServiceNew {
 
     } catch (error) {
       console.error('[UserServiceNew] Error fetching user:', error);
-      throw new Error(`Failed to get user data: ${error.message}`);
+      throw new Error(`Failed to get user data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
