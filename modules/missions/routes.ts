@@ -9,7 +9,7 @@ const missionsController = new MissionsController();
 
 // Валидационные схемы для missions операций
 const missionCompleteSchema = z.object({
-  mission_id: z.number().int().positive('Mission ID must be positive integer'),
+  missionId: z.number().int().positive('Mission ID must be positive integer'),
   verification_data: z.object({
     social_link: z.string().url('Invalid social link URL').optional(),
     screenshot_url: z.string().url('Invalid screenshot URL').optional(),

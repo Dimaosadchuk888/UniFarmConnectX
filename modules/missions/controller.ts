@@ -133,7 +133,7 @@ export class MissionsController extends BaseController {
         ref_by: req.query.start_param as string
       });
 
-      const missions = await missionsService.getUserMissionsByTelegramId(telegram.user.id.toString());
+      const missions = await missionsService.getUserCompletedMissions(telegram.user.id.toString());
       this.sendSuccess(res, missions);
     }, 'получения миссий пользователя');
     } catch (error) {

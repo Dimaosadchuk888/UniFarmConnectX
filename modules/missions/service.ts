@@ -61,27 +61,70 @@ export class MissionsService {
     }
   }
 
-  async completeMission(telegramId: string, missionId: number): Promise<{ success: boolean; message: string }> {
+  async completeMission(telegramId: string, missionId: number): Promise<{ success: boolean; message: string; reward?: number }> {
     try {
       const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
       if (!user) {
         return { success: false, message: 'Пользователь не найден' };
       }
 
-      // Логика завершения миссии - добавляем запись в transactions
+      // Проверяем, не выполнена ли уже эта миссия
+      const { data: existingMission } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('type', 'MISSION_REWARD')
+        .eq('description', `Mission ${missionId} reward`)
+        .single();
+
+      if (existingMission) {
+        return { success: false, message: 'Миссия уже выполнена' };
+      }
+
+      // Определяем награду за миссию
+      const missionRewards: { [key: number]: number } = {
+        1: 500, // Telegram чат
+        2: 500, // Telegram канал  
+        3: 500, // YouTube
+        4: 500  // TikTok
+      };
+
+      const rewardAmount = missionRewards[missionId] || 0;
+      
+      if (rewardAmount === 0) {
+        return { success: false, message: 'Неизвестная миссия' };
+      }
+
+      // Начисляем награду на баланс пользователя
+      const currentUniBalance = parseFloat(user.balance_uni || '0');
+      const newUniBalance = currentUniBalance + rewardAmount;
+
+      await supabase
+        .from('users')
+        .update({ 
+          balance_uni: newUniBalance.toString(),
+          uni_balance: newUniBalance.toString()
+        })
+        .eq('id', user.id);
+
+      // Добавляем транзакцию о награде
       await supabase
         .from('transactions')
         .insert({
           user_id: user.id,
-          type: 'MISSION_COMPLETE',
-          amount: '0',
-          description: `Mission ${missionId} completed`,
+          type: 'MISSION_REWARD',
+          amount: rewardAmount.toString(),
+          description: `Mission ${missionId} reward`,
           status: 'completed',
           created_at: new Date().toISOString()
         });
 
-      logger.info(`[MissionsService] Mission ${missionId} completed for user ${telegramId}`);
-      return { success: true, message: 'Миссия выполнена' };
+      logger.info(`[MissionsService] Mission ${missionId} completed for user ${telegramId}, reward: ${rewardAmount} UNI`);
+      return { 
+        success: true, 
+        message: `Миссия выполнена! Получено ${rewardAmount} UNI`,
+        reward: rewardAmount
+      };
     } catch (error) {
       logger.error('[MissionsService] Ошибка завершения миссии:', error);
       return { success: false, message: 'Ошибка выполнения миссии' };
@@ -137,6 +180,42 @@ export class MissionsService {
     } catch (error) {
       logger.error('[MissionsService] Ошибка получения награды за миссию:', error);
       return { success: false, message: 'Ошибка получения награды' };
+    }
+  }
+
+  async getUserCompletedMissions(telegramId: string): Promise<any[]> {
+    try {
+      const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
+      if (!user) {
+        return [];
+      }
+
+      // Получаем выполненные миссии из транзакций
+      const { data: completedMissions } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('type', 'MISSION_REWARD')
+        .order('created_at', { ascending: false });
+
+      if (!completedMissions) {
+        return [];
+      }
+
+      // Преобразуем транзакции в формат миссий
+      return completedMissions.map(transaction => {
+        const missionId = parseInt(transaction.description.match(/Mission (\d+)/)?.[1] || '0');
+        return {
+          id: transaction.id,
+          user_id: user.id,
+          mission_id: missionId,
+          completed_at: transaction.created_at,
+          reward_amount: transaction.amount_uni || '0'
+        };
+      });
+    } catch (error) {
+      logger.error('[MissionsService] Ошибка получения выполненных миссий:', error);
+      return [];
     }
   }
 
