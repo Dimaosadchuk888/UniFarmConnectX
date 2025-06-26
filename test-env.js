@@ -1,0 +1,1 @@
+console.log('VITE_TON_BOOST_WALLET_ADDRESS:', import.meta.env.VITE_TON_BOOST_WALLET_ADDRESS);
