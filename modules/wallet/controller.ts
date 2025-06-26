@@ -101,6 +101,10 @@ export class WalletController extends BaseController {
         ref_by: req.query.start_param as string
       });
 
+      if (!user) {
+        return this.sendError(res, 'Не удалось создать или найти пользователя', 500);
+      }
+
       // Создание депозита
       const depositResult = await walletService.createDeposit({
         user_id: user.id,

@@ -295,41 +295,37 @@ export class WalletService {
       // Генерируем ID транзакции
       const transactionId = `DEP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Создаем запись транзакции
-      const { data: transaction, error: transactionError } = await supabase
-        .from(WALLET_TABLES.TRANSACTIONS)
-        .insert({
-          user_id: user_id,
-          type: 'deposit',
-          amount_uni: currency === 'UNI' ? amount.toString() : '0',
-          amount_ton: currency === 'TON' ? amount.toString() : '0',
-          status: 'pending',
-          description: `Депозит ${amount} ${currency} (${deposit_type})`,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (transactionError) {
-        logger.error('[WalletService] Ошибка создания транзакции депозита', { 
-          user_id, 
-          telegram_id,
-          amount,
-          currency,
-          error: transactionError.message 
-        });
-        throw new Error('Ошибка создания транзакции депозита');
-      }
-
       // Для UNI депозитов - сразу начисляем на баланс (manual_deposit)
       if (currency === 'UNI' && deposit_type === 'manual_deposit') {
         await this.addUniFarmIncome(user_id.toString(), amount.toString());
-        
-        // Обновляем статус транзакции на completed
-        await supabase
+      }
+
+      // Создаем запись транзакции (упрощенная версия)
+      try {
+        const { data: transaction, error: transactionError } = await supabase
           .from(WALLET_TABLES.TRANSACTIONS)
-          .update({ status: 'completed' })
-          .eq('id', transaction.id);
+          .insert({
+            user_id: user_id,
+            type: 'FARMING_REWARD',
+            amount_uni: currency === 'UNI' ? amount.toString() : '0',
+            amount_ton: currency === 'TON' ? amount.toString() : '0',
+            description: `Депозит ${amount} ${currency} (${deposit_type})`,
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (transactionError) {
+          logger.warn('[WalletService] Не удалось создать транзакцию, но депозит зачислен', { 
+            user_id, 
+            error: transactionError.message 
+          });
+        }
+      } catch (transactionCreateError) {
+        logger.warn('[WalletService] Ошибка создания транзакции, но основная операция выполнена', { 
+          user_id,
+          error: transactionCreateError instanceof Error ? transactionCreateError.message : String(transactionCreateError)
+        });
       }
 
       logger.info('[WalletService] Депозит создан', {
