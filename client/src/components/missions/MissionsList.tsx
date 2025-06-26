@@ -4,15 +4,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { 
-  CheckCircle, 
-  Clock, 
-  AlertCircle, 
-  MessageCircle, 
-  Users, 
-  Calendar, 
-  Coins, 
-  Tv,
-  UserPlus
+  FiCheckCircle, 
+  FiClock, 
+  FiAlertCircle, 
+  FiMessageCircle, 
+  FiUsers, 
+  FiCalendar, 
+  FiDollarSign, 
+  FiTv,
+  FiUserPlus,
+  FiTarget
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import ConfettiEffect from '@/components/ui/ConfettiEffect';
@@ -376,7 +377,7 @@ export const MissionsList: React.FC = () => {
         ref={rewardRef}
         className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 flex items-center gap-2 bg-purple-900/70 backdrop-blur-sm px-5 py-3 rounded-xl shadow-xl"
       >
-        <Coins className="h-6 w-6 text-purple-300" />
+        <FiDollarSign className="h-6 w-6 text-purple-300" />
         <span className="text-purple-200 font-bold text-2xl">+{reward} UNI</span>
       </div>
     );
@@ -386,17 +387,17 @@ export const MissionsList: React.FC = () => {
   const getMissionTypeIcon = (type: string) => {
     switch (type) {
       case 'social':
-        return <MessageCircle className="h-5 w-5 text-blue-400" />;
+        return <FiMessageCircle className="h-5 w-5 text-blue-400" />;
       case 'partner':
       case 'invite':
-        return <UserPlus className="h-5 w-5 text-indigo-400" />;
+        return <FiUserPlus className="h-5 w-5 text-indigo-400" />;
       case 'daily':
       case 'check-in':
-        return <Calendar className="h-5 w-5 text-amber-400" />;
+        return <FiCalendar className="h-5 w-5 text-amber-400" />;
       case 'deposit':
-        return <Coins className="h-5 w-5 text-emerald-400" />;
+        return <FiDollarSign className="h-5 w-5 text-emerald-400" />;
       default:
-        return <Tv className="h-5 w-5 text-purple-400" />;
+        return <FiTv className="h-5 w-5 text-purple-400" />;
     }
   };
 
@@ -405,25 +406,25 @@ export const MissionsList: React.FC = () => {
     switch (status) {
       case MissionStatus.AVAILABLE:
         return { 
-          color: 'bg-blue-500', 
+          color: 'bg-blue-500/80 backdrop-blur-sm', 
           text: 'Доступно', 
-          icon: <AlertCircle className="h-4 w-4 mr-1" /> 
+          icon: <FiAlertCircle className="h-4 w-4 mr-1" /> 
         };
       case MissionStatus.PROCESSING:
         return { 
-          color: 'bg-amber-500', 
+          color: 'bg-amber-500/80 backdrop-blur-sm', 
           text: 'В процессе', 
-          icon: <Clock className="h-4 w-4 mr-1" /> 
+          icon: <FiClock className="h-4 w-4 mr-1" /> 
         };
       case MissionStatus.COMPLETED:
         return { 
-          color: 'bg-teal-500/70 backdrop-blur-sm', 
+          color: 'bg-emerald-500/80 backdrop-blur-sm', 
           text: 'Выполнено', 
-          icon: <CheckCircle className="h-4 w-4 mr-1" /> 
+          icon: <FiCheckCircle className="h-4 w-4 mr-1" /> 
         };
       default:
         return { 
-          color: 'bg-gray-500', 
+          color: 'bg-muted/80', 
           text: 'Неизвестно', 
           icon: null 
         };
@@ -552,10 +553,13 @@ export const MissionsList: React.FC = () => {
   if (missionsError || userMissionsError) {
     return (
       <div className="space-y-4 p-4">
-        <Card className="w-full bg-red-900/20 border border-red-800">
+        <Card className="w-full bg-card/95 backdrop-blur-sm border border-red-500/20 shadow-lg relative overflow-hidden">
+          {/* Декоративные элементы как в DailyBonusCard */}
+          <div className="absolute -right-8 -top-8 w-24 h-24 bg-red-500/5 rounded-full blur-xl"></div>
+          <div className="absolute -left-8 -bottom-8 w-24 h-24 bg-red-500/5 rounded-full blur-xl"></div>
           <CardHeader>
             <CardTitle className="text-lg flex items-center">
-              <AlertCircle className="mr-2 h-5 w-5 text-red-400" />
+              <FiAlertCircle className="mr-2 h-5 w-5 text-red-400" />
               Ошибка загрузки заданий
             </CardTitle>
           </CardHeader>
@@ -585,10 +589,13 @@ export const MissionsList: React.FC = () => {
   if (!missions || missions.length === 0) {
     return (
       <div className="space-y-4 p-4">
-        <Card className="w-full bg-slate-800/70 border border-slate-700">
+        <Card className="w-full bg-card/95 backdrop-blur-sm border border-amber-500/20 shadow-lg relative overflow-hidden">
+          {/* Декоративные элементы */}
+          <div className="absolute -right-8 -top-8 w-24 h-24 bg-amber-500/5 rounded-full blur-xl"></div>
+          <div className="absolute -left-8 -bottom-8 w-24 h-24 bg-amber-500/5 rounded-full blur-xl"></div>
           <CardHeader>
             <CardTitle className="text-lg flex items-center">
-              <AlertCircle className="mr-2 h-5 w-5 text-amber-400" />
+              <FiAlertCircle className="mr-2 h-5 w-5 text-amber-400" />
               Задания не найдены
             </CardTitle>
           </CardHeader>
@@ -625,7 +632,17 @@ export const MissionsList: React.FC = () => {
         gravity={0.65}
       />
       
-      <div className="space-y-4 p-4">
+      <div className="space-y-6 p-4">
+        {/* Стилизованный заголовок в стиле UniFarm */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 rounded-full bg-primary/10 backdrop-blur-sm border border-primary/20 flex items-center justify-center">
+            <FiTarget className="h-5 w-5 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            Задания
+          </h2>
+        </div>
+        
         {missions.map((mission) => {
           const statusInfo = getMissionStatusInfo(mission.status);
           const isRecentlyCompleted = completedMissionId !== null && completedMissionId === mission.id;
@@ -646,23 +663,26 @@ export const MissionsList: React.FC = () => {
               )}
               
               <Card 
-                className={`overflow-hidden transition-all duration-500 ${
+                className={`w-full bg-card/95 backdrop-blur-sm border border-primary/10 relative overflow-hidden shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 card-hover-effect ${
                   isRecentlyCompleted 
-                    ? 'shadow-[0_0_15px_rgba(139,92,246,0.8)] scale-[1.02]' 
+                    ? 'shadow-[0_0_20px_rgba(139,92,246,0.4)] border-primary/30 scale-[1.02]' 
                     : ''
                 }`}
               >
-                <CardHeader className="pb-2">
+                {/* Декоративные фоновые элементы как в других карточках UniFarm */}
+                <div className="absolute -right-12 -top-12 w-32 h-32 bg-primary/5 rounded-full blur-xl"></div>
+                <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-primary/5 rounded-full blur-xl"></div>
+                <CardHeader className="pb-2 relative">
                   <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 backdrop-blur-sm border border-primary/20 flex items-center justify-center shadow-sm">
                         {getMissionTypeIcon(mission.type)}
                       </div>
-                      <CardTitle className={`text-lg ${
-                        isRecentlyCompleted ? 'text-primary' : ''
+                      <CardTitle className={`text-lg font-semibold ${
+                        isRecentlyCompleted ? 'text-primary' : 'text-foreground'
                       }`}>{mission.title}</CardTitle>
                     </div>
-                    <Badge className={`${statusInfo.color} text-white opacity-80 ${
+                    <Badge className={`${statusInfo.color} text-white font-medium px-3 py-1 shadow-sm ${
                       isRecentlyCompleted ? 'animate-pulse' : ''
                     }`}>
                       <span className="flex items-center">
@@ -671,7 +691,7 @@ export const MissionsList: React.FC = () => {
                       </span>
                     </Badge>
                   </div>
-                  <CardDescription className="mt-2">{mission.description}</CardDescription>
+                  <CardDescription className="mt-3 text-sm text-foreground/70 leading-relaxed">{mission.description}</CardDescription>
                 </CardHeader>
                 
                 <CardContent>
@@ -689,12 +709,12 @@ export const MissionsList: React.FC = () => {
                   )}
                 </CardContent>
                 
-                <CardFooter className="flex justify-between items-center border-t pt-4">
+                <CardFooter className="flex justify-between items-center border-t border-primary/10 pt-4 relative">
                   <div className="flex items-center">
-                    <div className="text-purple-300/80 font-medium mr-2">Награда:</div>
-                    <div className="flex items-center px-2 py-1 bg-purple-900/30 rounded-md">
-                      <Coins className="h-4 w-4 text-purple-400 mr-1.5" />
-                      <span className="text-purple-300 font-semibold">{mission.rewardUni} UNI</span>
+                    <div className="text-foreground/70 font-medium mr-3">Награда:</div>
+                    <div className="flex items-center px-3 py-2 bg-primary/10 backdrop-blur-sm border border-primary/20 rounded-lg shadow-sm">
+                      <FiDollarSign className="h-4 w-4 text-primary mr-2" />
+                      <span className="text-primary font-bold">{mission.rewardUni} UNI</span>
                     </div>
                   </div>
                   
@@ -707,7 +727,7 @@ export const MissionsList: React.FC = () => {
                         console.log(`🔗 Открываем ссылку для миссии ${mission.id}:`, url);
                         handleStartSocialMission(mission.id, url);
                       }}
-                      className="bg-primary hover:bg-primary/90"
+                      className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                       disabled={isProcessing}
                     >
                       Перейти
@@ -725,7 +745,7 @@ export const MissionsList: React.FC = () => {
                       <Button 
                         size="sm"
                         onClick={() => handleVerifySocialMission(mission.id)}
-                        className="bg-primary hover:bg-primary/90"
+                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
                         disabled={!mission.verificationAvailable || isProcessing}
                       >
                         {isProcessing ? (
@@ -745,7 +765,7 @@ export const MissionsList: React.FC = () => {
                     <Button 
                       size="sm"
                       onClick={() => handleCompleteMission(mission.id)}
-                      className="bg-primary hover:bg-primary/90"
+                      className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                       disabled={isProcessing}
                     >
                       {isProcessing ? (
@@ -761,8 +781,8 @@ export const MissionsList: React.FC = () => {
                   
                   {/* Индикатор выполненной миссии */}
                   {mission.status === MissionStatus.COMPLETED && (
-                    <Badge variant="outline" className="border-purple-400/60 text-purple-300 px-3 py-1">
-                      <CheckCircle className="h-4 w-4 mr-1.5" />
+                    <Badge variant="outline" className="border-green-400/60 bg-green-50/5 text-green-400 px-3 py-1 font-medium shadow-sm">
+                      <FiCheckCircle className="h-4 w-4 mr-1.5" />
                       Получено
                     </Badge>
                   )}
