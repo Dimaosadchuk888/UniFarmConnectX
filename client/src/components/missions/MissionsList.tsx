@@ -663,11 +663,16 @@ export const MissionsList: React.FC = () => {
               )}
               
               <Card 
-                className={`w-full bg-card/95 backdrop-blur-sm border border-primary/10 relative overflow-hidden shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 card-hover-effect ${
+                className={`w-full bg-gradient-to-br from-card/95 to-card/90 backdrop-blur-sm border border-primary/10 relative overflow-hidden shadow-lg hover:shadow-xl hover:border-primary/20 transition-all duration-500 ${
                   isRecentlyCompleted 
                     ? 'shadow-[0_0_20px_rgba(139,92,246,0.4)] border-primary/30 scale-[1.02]' 
                     : ''
                 }`}
+                style={{ 
+                  background: 'linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card))/90% 100%)',
+                  borderColor: 'hsl(var(--primary)/20%)',
+                  '--cache-version': '20250626-v2'
+                } as React.CSSProperties}
               >
                 {/* Декоративные фоновые элементы как в других карточках UniFarm */}
                 <div className="absolute -right-12 -top-12 w-32 h-32 bg-primary/5 rounded-full blur-xl"></div>
