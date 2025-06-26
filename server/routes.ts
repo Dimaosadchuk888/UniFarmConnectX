@@ -334,45 +334,6 @@ router.post('/daily-bonus-claim', async (req: express.Request, res: express.Resp
       error: 'Internal server error'
     });
   }
-    
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userIdNumber)
-      .limit(1);
-    
-    if (error) {
-      return res.json({ success: false, error: error.message });
-    }
-    
-    const user = users?.[0];
-    if (!user) {
-      return res.json({
-        success: true,
-        data: { canClaim: true, streak: 0, bonusAmount: 500 }
-      });
-    }
-    
-    const now = new Date();
-    const lastClaimDate = user.checkin_last_date ? new Date(user.checkin_last_date) : null;
-    let canClaim = true;
-    let streakDays = user.checkin_streak || 0;
-    
-    if (lastClaimDate) {
-      const daysSinceLastClaim = Math.floor((now.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceLastClaim < 1) canClaim = false;
-      else if (daysSinceLastClaim > 1) streakDays = 0;
-    }
-    
-    const bonusAmount = Math.min(500 + (streakDays * 100), 2000);
-    
-    res.json({
-      success: true,
-      data: { canClaim, streak: streakDays, bonusAmount }
-    });
-  } catch (error) {
-    res.json({ success: false, error: 'Internal server error' });
-  }
 });
 
 // Core module routes
