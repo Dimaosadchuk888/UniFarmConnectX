@@ -1,5 +1,6 @@
 import React from 'react';
 import { ReferralSystemProduction } from '@/components/friends/ReferralSystemProduction';
+import { ReferralDebug } from '@/components/friends/ReferralDebug';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 /**
@@ -20,6 +21,7 @@ const Friends: React.FC = () => {
           </p>
         </div>
         
+        <ReferralDebug />
         <ReferralSystemProduction />
       </ErrorBoundary>
     </div>

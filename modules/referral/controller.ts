@@ -25,12 +25,13 @@ export class ReferralController extends BaseController {
       logger.info('[ReferralController] Получение реферальной информации для пользователя', { userId });
       
       const stats = await this.referralService.getReferralStats(userId);
+      // Используем generateReferralCode который сначала проверяет существующий код
       const refCode = await this.referralService.generateReferralCode(Number(userId));
       
       this.sendSuccess(res, {
         ref_code: refCode,
         stats,
-        referral_link: `https://t.me/unifarm_bot/app?ref_code=${refCode}`
+        referral_link: `https://t.me/UniFarming_Bot?start=${refCode}`
       });
     }, 'получения реферальной информации');
   }

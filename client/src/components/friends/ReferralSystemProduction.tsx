@@ -38,10 +38,25 @@ export const ReferralSystemProduction: React.FC = () => {
   const user = useUser();
   const userId = user?.userId || 48; // fallback для демо
 
+  // Детальная диагностика получения реферального кода
+  useEffect(() => {
+    console.log('[ReferralSystemProduction] User context данные:', {
+      userId: user?.userId,
+      username: user?.username,
+      refCode: user?.refCode,
+      telegramId: user?.telegramId,
+      fullUserObject: user
+    });
+  }, [user]);
+
   // Получаем полную информацию о рефералах (включает код и статистику)
   const { data: referralInfoData, refetch: refetchReferralInfo } = useQuery({
     queryKey: ['/api/v2/referrals/info', userId],
-    queryFn: async () => await correctApiRequest(`/api/v2/referrals/${userId}`),
+    queryFn: async () => {
+      const result = await correctApiRequest(`/api/v2/referrals/${userId}`);
+      console.log('[ReferralSystemProduction] API referrals response:', result);
+      return result;
+    },
     enabled: !!userId,
   });
 
@@ -52,8 +67,8 @@ export const ReferralSystemProduction: React.FC = () => {
     enabled: !!userId,
   });
 
-  // Формируем реферальную ссылку
-  const referralCode = referralInfoData?.ref_code || user?.refCode || '';
+  // Формируем реферальную ссылку - исправлена обработка ref_code из UserContext
+  const referralCode = referralInfoData?.ref_code || user?.refCode || 'missing';
   const referralLink = `https://t.me/UniFarming_Bot?start=${referralCode}`;
   
   // Парсим статистику из referralInfoData
