@@ -44,24 +44,24 @@ export class TONBoostIncomeScheduler {
     try {
       logger.info('[TON_BOOST_SCHEDULER] Начало цикла обработки TON Boost доходов');
 
-      // Получаем пользователей с активными TON Boost пакетами из users таблицы
+      // Получаем пользователей с активными TON Boost пакетами
+      // Используем существующие поля: ton_boost_package (не null) и balance_ton (> 10 как депозит)
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('*')
         .not('ton_boost_package', 'is', null)
-        .gt('ton_boost_deposit_amount', 0)
-        .gte('ton_boost_package_expires_at', new Date().toISOString());
+        .gte('balance_ton', 10); // Минимальный баланс TON для активного Boost
 
       if (usersError) {
         logger.error('[TON_BOOST_SCHEDULER] Ошибка получения пользователей:', usersError);
         return;
       }
 
-      // Фильтруем активных TON Boost пользователей
+      // Фильтруем активных TON Boost пользователей по существующим полям
       const activeBoostUsers = users?.filter(user => 
         user.ton_boost_package && 
-        user.ton_boost_deposit_amount > 0 &&
-        new Date(user.ton_boost_package_expires_at) > new Date()
+        user.ton_boost_package !== '0' &&
+        parseFloat(user.balance_ton || '0') >= 10
       ) || [];
 
       if (activeBoostUsers.length === 0) {
@@ -79,7 +79,8 @@ export class TONBoostIncomeScheduler {
         try {
           // Определяем параметры boost пакета пользователя
           let dailyRate = 0.01; // 1% по умолчанию
-          const userDeposit = user.ton_boost_deposit_amount || 0;
+          // Используем баланс TON как депозит (минус 10 TON базовый баланс)
+          const userDeposit = Math.max(0, parseFloat(user.balance_ton || '0') - 10);
           
           switch (user.ton_boost_package) {
             case 'starter': // Starter
