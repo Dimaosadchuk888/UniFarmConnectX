@@ -53,7 +53,7 @@ export class FarmingService {
       const lastClaim = user.uni_farming_last_update ? new Date(user.uni_farming_last_update) : null;
       const farmingStart = user.uni_farming_start_timestamp ? new Date(user.uni_farming_start_timestamp) : now;
       
-      const baseHourlyRate = 0.001;
+      const baseHourlyRate = 0.01;
       const ratePerSecond = baseHourlyRate / 3600;
       const dailyRate = baseHourlyRate * 24;
       
@@ -78,7 +78,7 @@ export class FarmingService {
         rate: baseHourlyRate.toFixed(6),
         accumulated: accumulated.toFixed(6),
         last_claim: lastClaim?.toISOString() || null,
-        can_claim: accumulated >= 0.001,
+        can_claim: accumulated >= 0.01,
         next_claim_available: lastClaim 
           ? new Date(lastClaim.getTime() + (24 * 60 * 60 * 1000)).toISOString()
           : null
@@ -201,7 +201,7 @@ export class FarmingService {
       const farmingDuration = Math.max(0, currentTime - startTime) / 1000; // в секундах
       
       const depositAmount = parseFloat(user.uni_deposit_amount || '0');
-      const rate = parseFloat(user.uni_farming_rate || '0.001');
+      const rate = parseFloat(user.uni_farming_rate || '0.01');
       const rewards = depositAmount * rate * farmingDuration / 86400; // дневная ставка
 
       if (rewards <= 0) {

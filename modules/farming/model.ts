@@ -11,7 +11,7 @@ export const FARMING_TABLES = {
 
 // Farming configuration constants
 export const FARMING_CONFIG = {
-  DEFAULT_RATE: 0.001,
+  DEFAULT_RATE: 0.01,
   MIN_DEPOSIT: '1.0',
   MAX_DEPOSIT: '100000.0',
   RATE_PRECISION: 8

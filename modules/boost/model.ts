@@ -44,7 +44,7 @@ export const BOOST_PACKAGES = {
   STARTER: {
     name: 'Starter Boost',
     daily_rate: '0.01', // 1% в день
-    min_amount: '10.0',
+    min_amount: '1.0',
     max_amount: '1000.0',
     duration_days: 365,
     uni_bonus: '10000' // 10,000 UNI бонус
