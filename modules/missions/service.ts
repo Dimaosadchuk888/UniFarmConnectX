@@ -12,8 +12,9 @@ export class MissionsService {
 
   async getActiveMissionsByTelegramId(telegramId: string): Promise<any[]> {
     try {
-      // Новые социальные миссии
+      // Расширенный список разнообразных миссий
       return [
+        // Социальные сети миссии
         {
           id: 1,
           title: 'Вступи в Telegram-чат',
@@ -53,6 +54,89 @@ export class MissionsService {
           type: MISSION_TYPES.TIKTOK,
           status: MISSION_STATUS.ACTIVE,
           url: 'https://tiktok.com/@universegames.io'
+        },
+        // Реферальные миссии
+        {
+          id: 5,
+          title: 'Пригласи 1 друга',
+          description: 'Пригласи друга по реферальной ссылке',
+          reward_uni: '1000.000000',
+          reward_ton: '0',
+          type: MISSION_TYPES.REFERRAL,
+          status: MISSION_STATUS.ACTIVE,
+          url: null
+        },
+        {
+          id: 6,
+          title: 'Пригласи 5 друзей',
+          description: 'Построй команду из 5 активных рефералов',
+          reward_uni: '2500.000000',
+          reward_ton: '0',
+          type: MISSION_TYPES.REFERRAL,
+          status: MISSION_STATUS.ACTIVE,
+          url: null
+        },
+        {
+          id: 7,
+          title: 'Пригласи 10 друзей',
+          description: 'Стань лидером с командой из 10 человек',
+          reward_uni: '5000.000000',
+          reward_ton: '0.1',
+          type: MISSION_TYPES.REFERRAL,
+          status: MISSION_STATUS.ACTIVE,
+          url: null
+        },
+        // Ежедневные миссии
+        {
+          id: 8,
+          title: 'Ежедневный чек-ин',
+          description: 'Заходи в приложение каждый день',
+          reward_uni: '100.000000',
+          reward_ton: '0',
+          type: MISSION_TYPES.DAILY,
+          status: MISSION_STATUS.ACTIVE,
+          url: null
+        },
+        {
+          id: 9,
+          title: 'Стрик 7 дней',
+          description: 'Заходи в приложение 7 дней подряд',
+          reward_uni: '1000.000000',
+          reward_ton: '0',
+          type: MISSION_TYPES.WEEKLY,
+          status: MISSION_STATUS.ACTIVE,
+          url: null
+        },
+        {
+          id: 10,
+          title: 'Стрик 30 дней',
+          description: 'Заходи в приложение месяц подряд',
+          reward_uni: '5000.000000',
+          reward_ton: '0.5',
+          type: MISSION_TYPES.ONE_TIME,
+          status: MISSION_STATUS.ACTIVE,
+          url: null
+        },
+        // Фарминг миссии
+        {
+          id: 11,
+          title: 'Первый UNI депозит',
+          description: 'Сделай свой первый депозит для UNI фарминга',
+          reward_uni: '200.000000',
+          reward_ton: '0',
+          type: MISSION_TYPES.ONE_TIME,
+          status: MISSION_STATUS.ACTIVE,
+          url: null
+        },
+        {
+          id: 12,
+          title: 'Купи TON Boost пакет',
+          description: 'Активируй любой TON Boost пакет',
+          reward_uni: '1500.000000',
+          reward_ton: '0',
+          type: MISSION_TYPES.ONE_TIME,
+          status: MISSION_STATUS.ACTIVE,
+          url: null
         }
       ];
     } catch (error) {
@@ -83,10 +167,18 @@ export class MissionsService {
 
       // Определяем награду за миссию
       const missionRewards: { [key: number]: number } = {
-        1: 500, // Telegram чат
-        2: 500, // Telegram канал  
-        3: 500, // YouTube
-        4: 500  // TikTok
+        1: 500,   // Telegram чат
+        2: 500,   // Telegram канал  
+        3: 500,   // YouTube
+        4: 500,   // TikTok
+        5: 1000,  // Пригласи 1 друга
+        6: 2500,  // Пригласи 5 друзей
+        7: 5000,  // Пригласи 10 друзей
+        8: 100,   // Ежедневный чек-ин
+        9: 1000,  // Стрик 7 дней
+        10: 5000, // Стрик 30 дней
+        11: 200,  // Первый UNI депозит
+        12: 1500  // Купи TON Boost пакет
       };
 
       const rewardAmount = missionRewards[missionId] || 0;

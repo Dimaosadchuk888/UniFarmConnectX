@@ -23,6 +23,8 @@ import Farming from "@/pages/Farming";
 import Missions from "@/pages/Missions";
 import Friends from "@/pages/Friends";
 import Wallet from "@/pages/Wallet";
+import Roadmap from "@/pages/Roadmap";
+import Blockchain from "@/pages/Blockchain";
 
 // Services
 import userService from '@/services/userService';
@@ -137,6 +139,10 @@ function App() {
         return <Friends />;
       case "wallet":
         return <Wallet />;
+      case "roadmap":
+        return <Roadmap />;
+      case "blockchain":
+        return <Blockchain />;
       default:
         return <Dashboard />;
     }

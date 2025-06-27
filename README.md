@@ -92,6 +92,8 @@ npm run health
 - `GET /api/v2/missions/list` - Список місій
 - `POST /webhook` - Telegram webhook
 
+📖 **[Повний список 79 API endpoints](docs/API_ENDPOINTS_FULL_LIST.md)**
+
 ### WebSocket:
 - `ws://localhost:3000/ws` - Real-time з'єднання
 
@@ -124,6 +126,8 @@ https://your-app-domain.replit.app/webhook
 │   └── referral/    # Реферальна система
 └── types/          # TypeScript типи
 ```
+
+🗺️ **[Детальний roadmap розробки](docs/UNIFARM_PRODUCTION_ROADMAP.md)** - повна карта проекту з 95% готовністю до production
 
 ## 🏗️ Deployment на Replit
 

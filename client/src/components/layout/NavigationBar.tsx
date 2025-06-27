@@ -31,7 +31,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({ activeTab, setActiveTab }
       {NAV_ITEMS.map((item) => (
         <button
           key={item.id}
-          className={`flex flex-col items-center p-2 w-1/5 transition-colors ${
+          className={`flex flex-col items-center p-2 w-1/6 transition-colors ${
             activeTab === item.id ? 'text-primary' : 'text-foreground/70 hover:text-foreground'
           }`}
           onClick={() => handleNavClick(item.id)}

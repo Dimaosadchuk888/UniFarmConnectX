@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
 import { useUser } from '@/contexts/userContext';
 import { useNotification } from '@/contexts/notificationContext';
+import { format } from 'date-fns';
+import { FiCalendar, FiDownload, FiFilter, FiRefreshCw } from 'react-icons/fi';
 
 // Типы транзакций согласно схеме базы данных
 interface Transaction {
@@ -24,12 +32,23 @@ interface Transaction {
  * Отображает все транзакции пользователя с фильтрацией и анимацией
  */
 const TransactionHistory: React.FC = () => {
-  // Состояние для активного фильтра
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'UNI' | 'TON'>('ALL');
+  // Расширенные фильтры
+  const [filters, setFilters] = useState({
+    currency: 'ALL' as 'ALL' | 'UNI' | 'TON',
+    type: 'ALL' as 'ALL' | 'deposit' | 'withdrawal' | 'farming_reward' | 'referral_bonus' | 'mission_reward' | 'boost_purchase',
+    status: 'ALL' as 'ALL' | 'pending' | 'completed' | 'failed' | 'cancelled',
+    dateFrom: null as Date | null,
+    dateTo: null as Date | null,
+    amountMin: '',
+    amountMax: ''
+  });
   
   // Состояние для пагинации
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
+  
+  // Состояние для экспорта
+  const [isExporting, setIsExporting] = useState(false);
   
   // Получаем данные пользователя из контекста
   const { userId } = useUser();
@@ -37,6 +56,50 @@ const TransactionHistory: React.FC = () => {
   // Получаем доступ к системе уведомлений
   const { showNotification } = useNotification();
   
+  // Функция экспорта CSV
+  const exportToCSV = () => {
+    if (!transactions.length) {
+      showNotification('error', { message: 'Нет данных для экспорта' });
+      return;
+    }
+    
+    setIsExporting(true);
+    
+    try {
+      const csvHeaders = 'Дата,Тип,Сумма,Валюта,Статус,Описание\n';
+      const csvData = transactions.map((transaction: Transaction) => {
+        const date = format(new Date(transaction.created_at), 'dd.MM.yyyy HH:mm');
+        const type = getTransactionTypeText(transaction.type);
+        const amount = parseFloat(transaction.amount).toFixed(6);
+        const currency = transaction.currency;
+        const status = getStatusText(transaction.status);
+        const description = transaction.description || '';
+        
+        return `"${date}","${type}","${amount}","${currency}","${status}","${description}"`;
+      }).join('\n');
+      
+      const csvContent = csvHeaders + csvData;
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `UniFarm_Transactions_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      
+      showNotification('success', { message: 'Экспорт завершен успешно' });
+    } catch (error) {
+      showNotification('error', { message: 'Ошибка при экспорте данных' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Запрос транзакций
   const {
     data: transactionsData,
@@ -45,12 +108,12 @@ const TransactionHistory: React.FC = () => {
     isFetching,
     refetch
   } = useQuery({
-    queryKey: ['/api/transactions', userId, page, limit, activeFilter],
+    queryKey: ['/api/transactions', userId, page, limit, filters],
     queryFn: async () => {
       if (!userId) return { transactions: [], total: 0 };
       
       try {
-        const response = await fetch(`/api/transactions?user_id=${userId}&page=${page}&limit=${limit}&currency=${activeFilter !== 'ALL' ? activeFilter : ''}`, {
+        const response = await fetch(`/api/transactions?user_id=${userId}&page=${page}&limit=${limit}&currency=${filters.currency !== 'ALL' ? filters.currency : ''}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -75,6 +138,41 @@ const TransactionHistory: React.FC = () => {
   
   const transactions = transactionsData?.transactions || [];
   const totalTransactions = transactionsData?.total || 0;
+
+  // Вспомогательные функции форматирования
+  const getTransactionTypeText = (type: Transaction['type']): string => {
+    switch (type) {
+      case 'deposit':
+        return 'Пополнение';
+      case 'withdrawal':
+        return 'Вывод средств';
+      case 'farming_reward':
+        return 'Награда за фарминг';
+      case 'referral_bonus':
+        return 'Реферальный бонус';
+      case 'mission_reward':
+        return 'Награда за миссию';
+      case 'boost_purchase':
+        return 'Покупка буста';
+      default:
+        return 'Операция';
+    }
+  };
+
+  const getStatusText = (status: Transaction['status']): string => {
+    switch (status) {
+      case 'pending':
+        return 'В ожидании';
+      case 'completed':
+        return 'Завершено';
+      case 'failed':
+        return 'Неудача';
+      case 'cancelled':
+        return 'Отменено';
+      default:
+        return 'Неизвестно';
+    }
+  };
   
   // Форматирование даты и времени
   const formatDateTime = (dateString: string): string => {
@@ -134,21 +232,7 @@ const TransactionHistory: React.FC = () => {
     }
   };
   
-  // Получение текста статуса на русском
-  const getStatusText = (status: string): string => {
-    switch (status) {
-      case 'completed':
-        return 'Завершено';
-      case 'pending':
-        return 'В обработке';
-      case 'failed':
-        return 'Ошибка';
-      case 'cancelled':
-        return 'Отменено';
-      default:
-        return status;
-    }
-  };
+
   
   // Получение описания типа транзакции на русском
   const getTypeDescription = (type: string): string => {
@@ -170,15 +254,27 @@ const TransactionHistory: React.FC = () => {
     }
   };
   
-  // Обработчик смены фильтра
-  const handleFilterChange = (filter: 'ALL' | 'UNI' | 'TON') => {
-    setActiveFilter(filter);
+  // Обработчик смены фильтра валюты
+  const handleCurrencyFilterChange = (currency: 'ALL' | 'UNI' | 'TON') => {
+    setFilters(prev => ({ ...prev, currency }));
     setPage(1); // Сбрасываем пагинацию при смене фильтра
     
-    showNotification('info', {
-      message: `Фильтр изменен на ${filter === 'ALL' ? 'Все транзакции' : filter}`,
-      duration: 2000
+    showNotification('info', { message: `Фильтр изменен на ${currency === 'ALL' ? 'Все валюты' : currency}` });
+  };
+  
+  // Обработчик очистки всех фильтров
+  const clearAllFilters = () => {
+    setFilters({
+      currency: 'ALL',
+      type: 'ALL',
+      status: 'ALL',
+      dateFrom: null,
+      dateTo: null,
+      amountMin: '',
+      amountMax: ''
     });
+    setPage(1);
+    showNotification('info', { message: 'Все фильтры очищены' });
   };
   
   // Обработчик обновления данных
@@ -239,38 +335,134 @@ const TransactionHistory: React.FC = () => {
         </button>
       </div>
       
-      {/* Фильтры валют */}
-      <div className="flex space-x-2 mb-4 relative z-10">
-        <button
-          onClick={() => handleFilterChange('ALL')}
-          className={`px-3 py-1 rounded-lg text-xs transition-all duration-200 ${
-            activeFilter === 'ALL'
-              ? 'bg-primary text-white shadow-lg shadow-primary/25'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
-        >
-          Все
-        </button>
-        <button
-          onClick={() => handleFilterChange('UNI')}
-          className={`px-3 py-1 rounded-lg text-xs transition-all duration-200 ${
-            activeFilter === 'UNI'
-              ? 'bg-primary text-white shadow-lg shadow-primary/25'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
-        >
-          UNI
-        </button>
-        <button
-          onClick={() => handleFilterChange('TON')}
-          className={`px-3 py-1 rounded-lg text-xs transition-all duration-200 ${
-            activeFilter === 'TON'
-              ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
-        >
-          TON
-        </button>
+      {/* Расширенные фильтры */}
+      <div className="space-y-4 mb-6 relative z-10">
+        {/* Основные фильтры */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Фильтр валюты */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Валюта</label>
+            <Select 
+              value={filters.currency} 
+              onValueChange={(value: 'ALL' | 'UNI' | 'TON') => 
+                setFilters(prev => ({ ...prev, currency: value }))
+              }
+            >
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Все валюты</SelectItem>
+                <SelectItem value="UNI">UNI</SelectItem>
+                <SelectItem value="TON">TON</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Фильтр типа */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Тип операции</label>
+            <Select 
+              value={filters.type} 
+              onValueChange={(value: typeof filters.type) => 
+                setFilters(prev => ({ ...prev, type: value }))
+              }
+            >
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Все типы</SelectItem>
+                <SelectItem value="deposit">Пополнение</SelectItem>
+                <SelectItem value="withdrawal">Вывод</SelectItem>
+                <SelectItem value="farming_reward">Награда за фарминг</SelectItem>
+                <SelectItem value="referral_bonus">Реферальный бонус</SelectItem>
+                <SelectItem value="mission_reward">Награда за миссию</SelectItem>
+                <SelectItem value="boost_purchase">Покупка буста</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Фильтр статуса */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Статус</label>
+            <Select 
+              value={filters.status} 
+              onValueChange={(value: typeof filters.status) => 
+                setFilters(prev => ({ ...prev, status: value }))
+              }
+            >
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Все статусы</SelectItem>
+                <SelectItem value="pending">В ожидании</SelectItem>
+                <SelectItem value="completed">Завершено</SelectItem>
+                <SelectItem value="failed">Неудача</SelectItem>
+                <SelectItem value="cancelled">Отменено</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Дополнительные фильтры */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Сумма от</label>
+              <Input
+                type="number"
+                placeholder="0.000"
+                value={filters.amountMin}
+                onChange={(e) => setFilters(prev => ({ ...prev, amountMin: e.target.value }))}
+                className="bg-gray-700 border-gray-600 text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Сумма до</label>
+              <Input
+                type="number"
+                placeholder="999999.999"
+                value={filters.amountMax}
+                onChange={(e) => setFilters(prev => ({ ...prev, amountMax: e.target.value }))}
+                className="bg-gray-700 border-gray-600 text-white"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Кнопки действий */}
+        <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={clearAllFilters}
+            variant="outline"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
+            <FiFilter className="w-4 h-4 mr-2" />
+            Очистить фильтры
+          </Button>
+          
+          <Button
+            onClick={exportToCSV}
+            disabled={isExporting || !transactions.length}
+            variant="outline"
+            className="border-primary text-primary hover:bg-primary hover:text-white"
+          >
+            <FiDownload className="w-4 h-4 mr-2" />
+            {isExporting ? 'Экспорт...' : 'Экспорт CSV'}
+          </Button>
+          
+          <Button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            variant="outline"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
+            <FiRefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+            Обновить
+          </Button>
+        </div>
       </div>
       
       {/* Счетчик транзакций */}

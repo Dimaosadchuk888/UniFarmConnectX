@@ -18,6 +18,48 @@ import {
 } from '@/services/tonConnectService';
 import { formatNumberWithPrecision, getUserIdFromURL } from '@/lib/utils';
 
+// Telegram Web App support для TON Connect интеграции
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp: {
+        ready: () => void;
+        isExpanded: boolean;
+        expand: () => void;
+        MainButton: {
+          text: string;
+          color: string;
+          textColor: string;
+          isVisible: boolean;
+          isActive: boolean;
+          show: () => void;
+          hide: () => void;
+          enable: () => void;
+          disable: () => void;
+          onClick: (fn: () => void) => void;
+          offClick: (fn: () => void) => void;
+        };
+        HapticFeedback: {
+          impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
+          notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
+          selectionChanged: () => void;
+        };
+        showAlert: (message: string, callback?: () => void) => void;
+        showConfirm: (message: string, callback?: (result: boolean) => void) => void;
+        showPopup: (params: {
+          title?: string;
+          message: string;
+          buttons?: Array<{
+            id?: string;
+            type?: 'default' | 'ok' | 'close' | 'cancel' | 'destructive';
+            text: string;
+          }>;
+        }, callback?: (buttonId: string) => void) => void;
+      };
+    };
+  }
+}
+
 // Класс ошибки для неподключенного кошелька
 class WalletNotConnectedError extends Error {
   constructor(message: string = 'Wallet not connected') {
@@ -53,6 +95,52 @@ const BoostPackagesCard: React.FC = () => {
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState<boolean>(false);
   const [externalPaymentDialogOpen, setExternalPaymentDialogOpen] = useState<boolean>(false);
   const [externalPaymentData, setExternalPaymentData] = useState<ExternalPaymentDataType | null>(null);
+  const [isTelegramWebApp, setIsTelegramWebApp] = useState<boolean>(false);
+
+  // Telegram Web App инициализация
+  React.useEffect(() => {
+    const checkTelegramWebApp = () => {
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        setIsTelegramWebApp(true);
+        window.Telegram.WebApp.ready();
+        
+        // Расширяем приложение для лучшего UX
+        if (!window.Telegram.WebApp.isExpanded) {
+          window.Telegram.WebApp.expand();
+        }
+        
+        console.log('[TelegramWebApp] Инициализирован для TON Boost');
+        return true;
+      }
+      return false;
+    };
+
+    // Проверяем сразу и через небольшую задержку для надежности
+    if (!checkTelegramWebApp()) {
+      setTimeout(checkTelegramWebApp, 100);
+    }
+  }, []);
+
+  // Telegram хэпти фидбек при взаимодействиях
+  const triggerHapticFeedback = (type: 'light' | 'medium' | 'heavy' = 'medium') => {
+    if (isTelegramWebApp && window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred(type);
+    }
+  };
+
+  const showTelegramAlert = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    if (isTelegramWebApp && window.Telegram?.WebApp) {
+      window.Telegram.WebApp.HapticFeedback?.notificationOccurred(type);
+      window.Telegram.WebApp.showAlert(message);
+    } else {
+      // Fallback к обычному toast
+      toast({
+        title: type === 'success' ? 'Успех' : type === 'error' ? 'Ошибка' : 'Внимание',
+        description: message,
+        variant: type === 'error' ? 'destructive' : 'default',
+      });
+    }
+  };
 
   // Получаем список доступных TON Boost-пакетов
   const { data, isLoading: isLoadingPackages } = useQuery({
@@ -75,13 +163,17 @@ const BoostPackagesCard: React.FC = () => {
 
   const boostPackages = data || [];
 
-  // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету
+  // ИСПРАВЛЕННЫЙ обработчик клика по буст-пакету с Telegram Web App интеграцией
   const handleBoostClick = (boostId: number) => {
+    // Telegram хэпти фидбек при клике
+    triggerHapticFeedback('light');
+    
     console.log('[DEBUG] Нажата кнопка покупки TON Boost:', {
       boostId,
       tonConnectUI: !!tonConnectUI,
       tonConnectUIWallet: tonConnectUI?.wallet,
-      isConnected: isTonWalletConnected(tonConnectUI)
+      isConnected: isTonWalletConnected(tonConnectUI),
+      isTelegramWebApp
     });
 
     // Сохраняем ID буста и ВСЕГДА показываем диалог выбора способа оплаты
@@ -90,6 +182,11 @@ const BoostPackagesCard: React.FC = () => {
     // ИСПРАВЛЕНИЕ: Всегда показываем диалог выбора (внутренний/внешний баланс)
     // Пользователь сам выберет подходящий способ оплаты
     setPaymentMethodDialogOpen(true);
+    
+    // Telegram Web App feedback
+    if (isTelegramWebApp && window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
   };
 
   // Обработчик выбора способа оплаты
@@ -183,13 +280,10 @@ const BoostPackagesCard: React.FC = () => {
           
           const result = await sendTonTransaction(tonConnectUI, transactionRequest);
           
-          if (result?.boc) {
+          if (result?.status === 'success') {
             // Транзакция успешно отправлена
-            toast({
-              title: "Транзакция отправлена",
-              description: "TON Boost будет активирован после подтверждения транзакции",
-              variant: "default"
-            });
+            triggerHapticFeedback('heavy');
+            showTelegramAlert('TON Boost будет активирован после подтверждения транзакции!', 'success');
 
             // Обновляем данные
             queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
@@ -197,11 +291,8 @@ const BoostPackagesCard: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
           } else {
-            toast({
-              title: "Транзакция отменена",
-              description: "Транзакция не была выполнена или была отменена в кошельке",
-              variant: "default"
-            });
+            triggerHapticFeedback('light');
+            showTelegramAlert('Транзакция не была выполнена или была отменена в кошельке', 'warning');
           }
         } catch (error: any) {
           console.error("Error sending TON transaction:", error);
