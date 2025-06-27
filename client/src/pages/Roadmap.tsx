@@ -14,7 +14,9 @@ import {
   FiDatabase,
   FiShield,
   FiSettings,
-  FiGlobe
+  FiGlobe,
+  FiActivity,
+  FiSmartphone
 } from 'react-icons/fi';
 
 interface RoadmapItem {
@@ -81,26 +83,26 @@ const roadmapData: RoadmapItem[] = [
     details: ['TON Connect', 'Депозиты/выводы', 'История транзакций']
   },
   
-  // Features (95% Complete)
+  // Features (100% Complete)
   {
     id: 'missions-system',
     title: 'Система заданий',
-    description: 'Задания с наградами 500 UNI',
-    status: 'in-progress',
-    progress: 95,
+    description: '12 разнообразных миссий с наградами',
+    status: 'completed',
+    progress: 100,
     category: 'features',
     icon: FiTarget,
-    details: ['4 активных миссии', 'Требуется: больше типов заданий', 'YouTube, Telegram, Invite задания']
+    details: ['12 активных миссий', 'YouTube, Telegram, TikTok задания', 'Реферальные задания 1-10 друзей', 'Награды 100-5000 UNI']
   },
   {
     id: 'transaction-history',
     title: 'История транзакций',
-    description: 'Отслеживание всех операций',
-    status: 'in-progress',
-    progress: 90,
+    description: 'Расширенная фильтрация и экспорт',
+    status: 'completed',
+    progress: 100,
     category: 'features',
     icon: FiDatabase,
-    details: ['Базовое отображение', 'Требуется: фильтрация по дате/типу', 'Экспорт в CSV']
+    details: ['Фильтрация по валюте/типу/статусу', 'Диапазон дат и сумм', 'Экспорт в CSV с форматированием', 'Кнопки очистки и обновления']
   },
   {
     id: 'airdrop-system',
@@ -121,6 +123,16 @@ const roadmapData: RoadmapItem[] = [
     category: 'features',
     icon: FiGift,
     details: ['Streak до 30 дней', 'Автоматические начисления', 'Прогрессивные награды']
+  },
+  {
+    id: 'ton-blockchain-integration',
+    title: 'TON Blockchain интеграция',
+    description: 'Глубокая интеграция с TON экосистемой',
+    status: 'completed',
+    progress: 100,
+    category: 'features',
+    icon: FiTrendingUp,
+    details: ['TON Center API подключение', 'Wallet info & transaction history', 'Network stats & price integration', 'Address validation & formatting']
   },
   
   // Infrastructure (100% Complete)
@@ -153,6 +165,16 @@ const roadmapData: RoadmapItem[] = [
     category: 'infrastructure',
     icon: FiShield,
     details: ['92/100 security score', '4-tier rate limiting', 'Authorization на всех endpoints']
+  },
+  {
+    id: 'telegram-webapp-integration',
+    title: 'Telegram WebApp интеграция',
+    description: 'Нативное взаимодействие в Telegram',
+    status: 'completed',
+    progress: 100,
+    category: 'infrastructure',
+    icon: FiSettings,
+    details: ['Haptic feedback эффекты', 'Нативные уведомления', 'Автоматическое расширение', 'TON Boost интеграция']
   },
   
   // Future Plans (0% Complete)
