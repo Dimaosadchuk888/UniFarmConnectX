@@ -43,7 +43,22 @@
  */
 
 import { correctApiRequest } from './correctApiRequest';
-import { fixRequestBody } from './apiFix';
+// Функция для исправления тела запроса
+function fixRequestBody(body: any): any {
+  // Просто возвращаем тело как есть, если это уже объект
+  if (typeof body === 'object' && body !== null) {
+    return body;
+  }
+  // Пытаемся распарсить строку как JSON
+  if (typeof body === 'string') {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return body;
+    }
+  }
+  return body;
+}
 
 /**
  * Типы HTTP методов, поддерживаемых API
@@ -84,7 +99,7 @@ export async function apiService<T = any>(
 ): Promise<ApiResponse<T>> {
   try {
     // Используем correctApiRequest для выполнения запроса
-    const result = await correctApiRequest<ApiResponse<T>>(
+    const result = await correctApiRequest(
       endpoint,
       options.method || 'GET',
       options.body ? fixRequestBody(options.body) : undefined

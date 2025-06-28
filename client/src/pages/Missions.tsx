@@ -1,5 +1,5 @@
 import React from 'react';
-import { MissionsList } from '@/components/missions';
+import { MissionsList } from '../components/missions';
 
 /**
  * Компонент страницы миссий

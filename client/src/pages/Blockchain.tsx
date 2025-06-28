@@ -5,8 +5,8 @@
 
 import React from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import TonBlockchainDashboard from '@/components/blockchain/TonBlockchainDashboard';
-import { useUser } from '@/contexts/userContext';
+import TonBlockchainDashboard from '../components/blockchain/TonBlockchainDashboard';
+import { useUser } from '../contexts/userContext';
 
 const Blockchain: React.FC = () => {
   const [tonConnectUI] = useTonConnectUI();

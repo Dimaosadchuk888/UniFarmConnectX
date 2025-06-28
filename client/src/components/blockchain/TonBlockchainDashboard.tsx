@@ -6,12 +6,12 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Skeleton } from '../../components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Progress } from '../../components/ui/progress';
 import { 
   FiWallet, 
   FiActivity, 
@@ -22,9 +22,9 @@ import {
   FiTrendingUp,
   FiBarChart3
 } from 'react-icons/fi';
-import { TonBlockchainService, TonWalletInfo, TonTransaction } from '@/services/tonBlockchainService';
-import { useToast } from '@/hooks/use-toast';
-import { formatNumberWithPrecision } from '@/lib/utils';
+import { TonBlockchainService, TonWalletInfo, TonTransaction } from '../../services/tonBlockchainService';
+import { useToast } from '../../hooks/use-toast';
+import { formatNumberWithPrecision } from '../../lib/utils';
 
 interface TonBlockchainDashboardProps {
   walletAddress?: string;

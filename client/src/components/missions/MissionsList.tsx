@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { Badge } from '../../components/ui/badge';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Progress } from '../../components/ui/progress';
 import { 
   FiCheckCircle, 
   FiClock, 
@@ -16,11 +16,11 @@ import {
   FiTarget
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import ConfettiEffect from '@/components/ui/ConfettiEffect';
+import ConfettiEffect from '../../components/ui/ConfettiEffect';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from '@/hooks/use-toast';
-import { useUser } from '@/contexts/userContext';
-import { correctApiRequest } from '@/lib/correctApiRequest';
+import { toast } from '../../hooks/use-toast';
+import { useUser } from '../../contexts/userContext';
+import { correctApiRequest } from '../../lib/correctApiRequest';
 
 // Определение типов статусов миссий
 export enum MissionStatus {

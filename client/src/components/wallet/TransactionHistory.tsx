@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@/contexts/userContext';
-import { apiRequest } from '@/lib/queryClient';
+import { useUser } from '../../contexts/userContext';
+import { apiRequest } from '../../lib/queryClient';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import QueryErrorBoundary from '@/components/common/QueryErrorBoundary';
+import QueryErrorBoundary from '../../components/common/QueryErrorBoundary';
 
 interface Transaction {
   id: number;

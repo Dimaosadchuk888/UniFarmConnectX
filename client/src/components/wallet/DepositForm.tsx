@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@/contexts/userContext';
-import { useNotification } from '@/contexts/NotificationContext';
+import { useUser } from '../../contexts/userContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 
 // Схема валидации для формы пополнения средств
 const depositFormSchema = z.object({

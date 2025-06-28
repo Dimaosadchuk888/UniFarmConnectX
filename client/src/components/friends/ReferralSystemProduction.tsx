@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { FiCopy as Copy, FiUsers as Users, FiTrendingUp as TrendingUp, FiGift as Gift } from 'react-icons/fi';
-import { useToast } from '@/hooks/use-toast';
-import { correctApiRequest } from '@/lib/correctApiRequest';
-import { useUser } from '@/contexts/userContext';
-import userService from '@/services/userService';
+import { useToast } from '../../hooks/use-toast';
+import { correctApiRequest } from '../../lib/correctApiRequest';
+import { useUser } from '../../contexts/userContext';
+import userService from '../../services/userService';
 
 interface ReferralStats {
   totalReferrals: number;

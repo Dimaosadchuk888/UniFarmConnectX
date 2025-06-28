@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { useUser } from '@/contexts/userContext';
-import { correctApiRequest } from '@/lib/correctApiRequest';
+import { useUser } from '../../contexts/userContext';
+import { correctApiRequest } from '../../lib/correctApiRequest';
 
 /**
  * Отладочный компонент для диагностики проблем с реферальным кодом

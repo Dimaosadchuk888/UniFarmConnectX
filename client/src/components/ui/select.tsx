@@ -2,7 +2,7 @@ import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { FiCheck as Check, FiChevronDown as ChevronDown, FiChevronUp as ChevronUp } from "react-icons/fi"
 
-import { cn } from "@/lib/utils"
+import { cn } from '../../lib/utils'
 
 const Select = SelectPrimitive.Root
 

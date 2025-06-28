@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { cn } from '@/lib/utils';
-import { useWebSocket } from '@/contexts/webSocketContext';
+import { cn } from '../../lib/utils';
+import { useWebSocket } from '../../contexts/webSocketContext';
 import { 
   Alert,
   AlertTitle,
   AlertDescription
-} from '@/components/ui/alert';
+} from '../../components/ui/alert';
 import { FiWifi as WifiIcon, FiWifiOff as WifiOffIcon, FiServer as ServerIcon, FiX as ServerOffIcon } from 'react-icons/fi';
 
 type AlertType = 'online' | 'offline' | 'wsConnected' | 'wsDisconnected' | 'hidden';

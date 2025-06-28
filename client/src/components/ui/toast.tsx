@@ -3,7 +3,7 @@ import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
 import { FiX as X } from "react-icons/fi"
 
-import { cn } from "@/lib/utils"
+import { cn } from '../../lib/utils'
 
 const ToastProvider = ToastPrimitives.Provider
 

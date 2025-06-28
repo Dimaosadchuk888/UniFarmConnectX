@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
+import { Button } from '../../components/ui/button';
 import { FiRefreshCw as RefreshCw, FiAlertTriangle as AlertTriangle, FiChevronRight as ChevronRight } from 'react-icons/fi';
 
 interface Props {

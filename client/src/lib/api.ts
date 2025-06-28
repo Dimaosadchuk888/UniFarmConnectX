@@ -1,4 +1,4 @@
-import APP_CONFIG from '@/config/app';
+import APP_CONFIG from '../config/app';
 
 class ApiClient {
   private baseUrl: string;

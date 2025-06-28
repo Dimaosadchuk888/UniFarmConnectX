@@ -1,10 +1,10 @@
 import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import UniFarmingCardWithErrorBoundary from '../components/farming/UniFarmingCardWithErrorBoundary';
-import BoostPackagesCardWithErrorBoundary from '../components/farming/BoostPackagesCardWithErrorBoundary';
-import TonBoostPackagesCardWithErrorBoundary from '../components/ton-boost/TonBoostPackagesCardWithErrorBoundary';
-import TonFarmingStatusCardWithErrorBoundary from '../components/ton-boost/TonFarmingStatusCardWithErrorBoundary';
-import ActiveTonBoostsCardWithErrorBoundary from '../components/ton-boost/ActiveTonBoostsCardWithErrorBoundary';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import UniFarmingCard from '../components/farming/UniFarmingCard';
+import BoostPackagesCard from '../components/farming/BoostPackagesCard';
+import TonBoostPackagesCard from '../components/ton-boost/TonBoostPackagesCard';
+import TonFarmingStatusCard from '../components/ton-boost/TonFarmingStatusCard';
+import ActiveTonBoostsCard from '../components/ton-boost/ActiveTonBoostsCard';
 // ЭТАП 2: Импорт хука для управления кнопками фарминга
 import { useTelegramButtons } from '../hooks/useTelegramButtons';
 
@@ -52,21 +52,21 @@ const Farming: React.FC = () => {
         
         <TabsContent value="uni" className="space-y-4">
           {/* Основной UNI пакет */}
-          <UniFarmingCardWithErrorBoundary userData={userData} />
+          <UniFarmingCard userData={userData} />
           
           {/* UNI Boost Пакеты */}
-          <BoostPackagesCardWithErrorBoundary userData={userData} />
+          <BoostPackagesCard userData={userData} />
         </TabsContent>
         
         <TabsContent value="ton" className="space-y-4">
           {/* Статус TON фарминга - с ErrorBoundary */}
-          <TonFarmingStatusCardWithErrorBoundary />
+          <TonFarmingStatusCard />
           
           {/* Активные TON Boost-пакеты - с ErrorBoundary */}
-          <ActiveTonBoostsCardWithErrorBoundary />
+          <ActiveTonBoostsCard />
           
           {/* TON Boost-пакеты - с ErrorBoundary */}
-          <BoostPackagesCardWithErrorBoundary userData={userData} />
+          <BoostPackagesCard userData={userData} />
         </TabsContent>
       </Tabs>
     </div>

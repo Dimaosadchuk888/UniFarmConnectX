@@ -1,7 +1,7 @@
 import React from 'react';
-import { ReferralSystemProduction } from '@/components/friends/ReferralSystemProduction';
-import { ReferralDebug } from '@/components/friends/ReferralDebug';
-import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { ReferralSystemProduction } from '../components/friends/ReferralSystemProduction';
+import { ReferralDebug } from '../components/friends/ReferralDebug';
+import ErrorBoundary from '../components/ui/ErrorBoundary';
 
 /**
  * Страница партнерской программы с исправленной реферальной системой

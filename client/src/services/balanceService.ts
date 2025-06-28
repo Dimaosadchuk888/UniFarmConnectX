@@ -1,4 +1,4 @@
-import { correctApiRequest } from '@/lib/correctApiRequest';
+import { correctApiRequest } from '../lib/correctApiRequest';
 
 /**
  * Интерфейс для данных баланса пользователя

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import BalanceCard from '@/components/wallet/BalanceCard';
-import DepositForm from '@/components/wallet/DepositForm';
-import WithdrawalForm from '@/components/wallet/WithdrawalForm';
-import TransactionHistory from '@/components/wallet/TransactionHistory';
+import BalanceCard from '../components/wallet/BalanceCard';
+import DepositForm from '../components/wallet/DepositForm';
+import WithdrawalForm from '../components/wallet/WithdrawalForm';
+import TransactionHistory from '../components/wallet/TransactionHistory';
 import { ErrorBoundary } from 'react-error-boundary';
 
 /**

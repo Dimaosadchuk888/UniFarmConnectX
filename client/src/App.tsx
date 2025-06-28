@@ -2,32 +2,31 @@ import { useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { queryClient } from "./lib/queryClient";
-import { Toaster } from "@/components/ui/toaster";
 
 // Layouts and Hooks
-import MainLayout from "@/layouts/MainLayout";
-import { useTelegram } from "@/hooks/useTelegram";
-import { useBalance } from "@/hooks/useBalance";
+import MainLayout from "./layouts/MainLayout";
+import { useTelegram } from "./hooks/useTelegram";
+import { useBalance } from "./hooks/useBalance";
 
 // Components
-import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
-import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { UserProvider } from "@/contexts/userContext";
-import { WebSocketProvider } from "@/contexts/webSocketContext";
-import { NotificationProvider } from "@/contexts/NotificationContext";
-import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
+import TelegramWebAppCheck from "./components/ui/TelegramWebAppCheck";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
+import { UserProvider } from "./contexts/userContext";
+import { WebSocketProvider } from "./contexts/webSocketContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import NetworkStatusIndicator from "./components/common/NetworkStatusIndicator";
 
 // Pages
-import Dashboard from "@/pages/Dashboard";
-import Farming from "@/pages/Farming";
-import Missions from "@/pages/Missions";
-import Friends from "@/pages/Friends";
-import Wallet from "@/pages/Wallet";
-import Roadmap from "@/pages/Roadmap";
-import Blockchain from "@/pages/Blockchain";
+import Dashboard from "./pages/Dashboard";
+import Farming from "./pages/Farming";
+import Missions from "./pages/Missions";
+import Friends from "./pages/Friends";
+import Wallet from "./pages/Wallet";
+import Roadmap from "./pages/Roadmap";
+import Blockchain from "./pages/Blockchain";
 
 // Services
-import userService from '@/services/userService';
+import userService from './services/userService';
 import { getReferrerIdFromURL } from './lib/utils';
 
 // Types
@@ -178,7 +177,6 @@ function App() {
                     {renderPage()}
                   </MainLayout>
                   <NetworkStatusIndicator />
-                  <Toaster />
                 </TelegramWebAppCheck>
               </WebSocketProvider>
             </UserProvider>
