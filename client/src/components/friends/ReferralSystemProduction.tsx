@@ -8,6 +8,7 @@ import { FiCopy as Copy, FiUsers as Users, FiTrendingUp as TrendingUp, FiGift as
 import { useToast } from '@/hooks/use-toast';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useUser } from '@/contexts/userContext';
+import { userService } from '@/services/userServiceV2';
 
 interface ReferralStats {
   totalReferrals: number;
@@ -37,6 +38,7 @@ export const ReferralSystemProduction: React.FC = () => {
   const { toast } = useToast();
   const user = useUser();
   const userId = user?.userId || 48; // fallback для демо
+  const [directRefCode, setDirectRefCode] = useState<string>('');
 
   // Детальная диагностика получения реферального кода
   useEffect(() => {
@@ -46,6 +48,15 @@ export const ReferralSystemProduction: React.FC = () => {
       refCode: user?.refCode,
       telegramId: user?.telegramId,
       fullUserObject: user
+    });
+    
+    // Получаем ref_code напрямую через API
+    userService.getCurrentUser(true).then((userData) => {
+      console.log('[ReferralSystemProduction] Direct UserServiceV2 data:', userData);
+      console.log('[ReferralSystemProduction] Direct ref_code:', userData.ref_code);
+      setDirectRefCode(userData.ref_code || '');
+    }).catch((error) => {
+      console.error('[ReferralSystemProduction] Error fetching user directly:', error);
     });
   }, [user]);
 
@@ -67,8 +78,8 @@ export const ReferralSystemProduction: React.FC = () => {
     enabled: !!userId,
   });
 
-  // Формируем реферальную ссылку - исправлена обработка ref_code из UserContext
-  const referralCode = referralInfoData?.ref_code || user?.refCode || 'missing';
+  // Формируем реферальную ссылку - используем прямой ref_code или данные из API
+  const referralCode = directRefCode || referralInfoData?.ref_code || user?.refCode || 'missing';
   const referralLink = `https://t.me/UniFarming_Bot?start=${referralCode}`;
   
   // Парсим статистику из referralInfoData

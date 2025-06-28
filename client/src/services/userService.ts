@@ -124,6 +124,9 @@ class UserService {
       }
 
       const userInfo = data.data.user;
+      
+      // Добавим версию для отладки кеша
+      console.log('[UserService] UserService version: 2025.01.26.11.40');
       console.log('[UserService] Extracting user data from user object:', userInfo);
       
       // Определяем реальные значения - ИСПРАВЛЕНО: используем данные из userInfo напрямую
@@ -153,17 +156,19 @@ class UserService {
 
       // Валидируем и кэшируем полученные данные
       if (this.isValidUserData(userData)) {
+        console.log('[UserService] Data validation passed, caching and returning');
         this.cacheUserData(userData);
         return userData;
       } else {
-        console.error('[UserService] Data validation failed after type correction:', userData);
+        console.error('[UserService] Data validation failed for userData:', userData);
+        console.error('[UserService] Raw data that was processed:', data);
         // Возвращаем данные даже если валидация не прошла, так как структура корректна
         this.cacheUserData(userData);
         return userData;
       }
     } catch (error) {
       console.error('[UserService] Error in fetchUserFromApi:', error);
-      throw error;
+      throw new Error('Failed to process user data from API');
     }
   }
 
