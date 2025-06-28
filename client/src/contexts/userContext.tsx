@@ -239,7 +239,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const response = await correctApiRequest(apiUrl);
       
       if (response.success && response.data) {
-        const user = response.data;
+        // API возвращает {data: {user: {...}}} структуру
+        const user = response.data.user || response.data;
+        
+        console.log('[UserContext] User data from API:', {
+          hasUser: !!user,
+          userId: user.id,
+          refCode: user.ref_code,
+          fullResponse: response
+        });
+        
+        // Ensure we extract the ref_code correctly
+        const refCode = user.ref_code || user.refCode || null;
         
         dispatch({
           type: 'SET_USER_DATA',
@@ -248,7 +259,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             username: user.username || null,
             guestId: user.guest_id || null,
             telegramId: user.telegram_id || null,
-            refCode: user.ref_code || null
+            refCode: refCode
           }
         });
         
@@ -260,7 +271,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             timestamp: new Date().toISOString(),
             user_id: user.id,
             username: user.username || null,
-            refCode: user.ref_code || null
+            refCode: refCode
           }));
           
           // Сохраняем JWT токен если получен от сервера

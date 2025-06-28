@@ -3,7 +3,7 @@ modules = ["nodejs-20", "postgresql-16"]
 
 [nix]
 channel = "stable-23_05"
-packages = ["nodejs", "wget", "git", "unzip"]
+packages = ["nodejs", "wget", "git", "unzip", "jq"]
 
 [env]
 # Основные переменные окружения
