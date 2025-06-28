@@ -440,7 +440,7 @@ async function startServer() {
     }
     
     // КРИТИЧЕСКИЙ ИСПРАВЛЕННЫЙ DAILY BONUS ENDPOINT
-    app.get(`${apiPrefix}/daily-bonus-fixed`, async (req: Request, res: Response) => {
+    app.get(`${apiPrefix}/daily-bonus-fixed`, async (req: Request, res: Response): Promise<any> => {
       try {
         const userId = req.query.user_id || "43";
         
