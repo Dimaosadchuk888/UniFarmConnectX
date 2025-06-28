@@ -8,7 +8,7 @@ import { FiCopy as Copy, FiUsers as Users, FiTrendingUp as TrendingUp, FiGift as
 import { useToast } from '@/hooks/use-toast';
 import { correctApiRequest } from '@/lib/correctApiRequest';
 import { useUser } from '@/contexts/userContext';
-import { userService } from '@/services/userServiceV2';
+import userService from '@/services/userService';
 
 interface ReferralStats {
   totalReferrals: number;
@@ -52,7 +52,7 @@ export const ReferralSystemProduction: React.FC = () => {
     
     // Получаем ref_code напрямую через API
     userService.getCurrentUser(true).then((userData) => {
-      console.log('[ReferralSystemProduction] Direct UserServiceV2 data:', userData);
+      console.log('[ReferralSystemProduction] Direct UserService data:', userData);
       console.log('[ReferralSystemProduction] Direct ref_code:', userData.ref_code);
       setDirectRefCode(userData.ref_code || '');
     }).catch((error) => {
