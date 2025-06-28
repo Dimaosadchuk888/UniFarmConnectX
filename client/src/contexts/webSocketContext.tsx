@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useUser } from './userContext';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'connecting';
 
@@ -23,6 +24,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [lastMessage, setLastMessage] = useState<any>(null);
   const [reconnectTimeout, setReconnectTimeout] = useState<number | null>(null);
+  
+  // Получаем userId из UserContext
+  const { userId } = useUser();
 
   // Функция для создания WebSocket соединения
   const createWebSocket = () => {
@@ -30,18 +34,24 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       // Получаем user_id из localStorage или sessionStorage
       let userId = null;
       try {
-        // Сначала проверяем в sessionStorage
-        userId = sessionStorage.getItem('user_id');
-
-        // Если нет в sessionStorage, пробуем localStorage
-        if (!userId) {
-          userId = localStorage.getItem('user_id');
+        // Проверяем данные сессии UniFarm
+        const lastSessionStr = localStorage.getItem('unifarm_last_session');
+        if (lastSessionStr) {
+          try {
+            const lastSession = JSON.parse(lastSessionStr);
+            if (lastSession.user_id) {
+              userId = String(lastSession.user_id);
+              console.log('[WebSocket] Found user_id in unifarm_last_session:', userId);
+            }
+          } catch (e) {
+            console.error('[WebSocket] Error parsing unifarm_last_session:', e);
+          }
         }
 
-        // Если всё еще нет, проверяем другие возможные ключи
+        // Если не нашли, проверяем другие возможные ключи
         if (!userId) {
           // Проверяем другие возможные ключи хранилища
-          const possibleKeys = ['userId', 'currentUserId', 'authUserId'];
+          const possibleKeys = ['user_id', 'userId', 'currentUserId', 'authUserId'];
           for (const key of possibleKeys) {
             const value = localStorage.getItem(key) || sessionStorage.getItem(key);
             if (value) {

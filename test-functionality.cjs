@@ -76,7 +76,7 @@ async function runTests() {
   await testEndpoint('Wallet Module', '/api/v2/wallet/balance');
   await testEndpoint('Farming Module', '/api/v2/farming/status');
   await testEndpoint('Missions Module', '/api/v2/missions/list');
-  await testEndpoint('Referral Module', '/api/v2/referral/stats');
+  await testEndpoint('Referral Module', '/api/v2/referral/1');
   await testEndpoint('Daily Bonus', '/api/v2/daily-bonus/status');
   await testEndpoint('TON Farming', '/api/v2/ton-farming/info');
   

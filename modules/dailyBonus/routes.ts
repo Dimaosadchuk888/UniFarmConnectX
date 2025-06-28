@@ -1,17 +1,16 @@
-import express from 'express';
+import express, { Request, Response, Router } from 'express';
 import { DailyBonusController } from './controller';
 import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
+import { supabase } from '../../core/supabase';
 
-const router = express.Router();
+const router: Router = express.Router();
 const dailyBonusController = new DailyBonusController();
 
 // GET /api/daily-bonus/status - Получить статус ежедневного бонуса (используется в Dashboard)
-router.get('/status', async (req: express.Request, res: express.Response) => {
+router.get('/status', async (req: Request, res: Response) => {
   try {
     // Упрощенная логика для Dashboard без сложной авторизации
     const userId = req.query.user_id || "43"; // Используем известного пользователя из базы
-    
-    const { supabase } = require('../../core/supabase');
     const { data: users, error } = await supabase
       .from('users')
       .select('*')
@@ -19,12 +18,13 @@ router.get('/status', async (req: express.Request, res: express.Response) => {
       .limit(1);
     
     if (error) {
-      return res.json({ success: false, error: error.message });
+      res.json({ success: false, error: error.message });
+      return;
     }
     
     const user = users?.[0];
     if (!user) {
-      return res.json({
+      res.json({
         success: true,
         data: {
           canClaim: true,
@@ -32,6 +32,7 @@ router.get('/status', async (req: express.Request, res: express.Response) => {
           bonusAmount: 500
         }
       });
+      return;
     }
     
     const now = new Date();
@@ -69,7 +70,7 @@ router.get('/status', async (req: express.Request, res: express.Response) => {
 router.get('/status-auth', requireTelegramAuth, dailyBonusController.getDailyBonusInfo.bind(dailyBonusController));
 
 // GET /api/daily-bonus/demo - Демо endpoint для frontend тестирования
-router.get('/demo', (req: express.Request, res: express.Response) => {
+router.get('/demo', (req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
