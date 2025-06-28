@@ -1,7 +1,6 @@
 import React from 'react';
 import { ReferralSystemProduction } from '@/components/friends/ReferralSystemProduction';
 import { ReferralDebug } from '@/components/friends/ReferralDebug';
-import { ReferralCodeDisplay } from '@/components/friends/ReferralCodeDisplay';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 /**
@@ -21,9 +20,6 @@ const Friends: React.FC = () => {
             Приглашайте друзей и получайте бонусы от их активности
           </p>
         </div>
-        
-        {/* Direct referral code display to bypass cache issues */}
-        <ReferralCodeDisplay />
         
         <ReferralDebug />
         <ReferralSystemProduction />
