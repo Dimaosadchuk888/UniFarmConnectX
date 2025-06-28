@@ -52,7 +52,7 @@ const DepositForm: React.FC<DepositFormProps> = ({ initialCurrency = 'TON' }) =>
   const [amountFocused, setAmountFocused] = useState(false);
   
   // Хук для отображения уведомлений
-  const { success, error, info, loading } = useNotification();
+  const { success, error: errorNotification, info, loading } = useNotification();
   
   // Настройка формы с валидацией
   const {
@@ -130,13 +130,12 @@ const DepositForm: React.FC<DepositFormProps> = ({ initialCurrency = 'TON' }) =>
         setTransactionId(null);
       }, 3000);
       
-    } catch (error) {
+    } catch (err) {
       setSubmitState(SubmitState.ERROR);
-      const errorMsg = error instanceof Error ? error.message : 'Произошла ошибка при пополнении';
+      const errorMsg = err instanceof Error ? err.message : 'Произошла ошибка при пополнении';
       setErrorMessage(errorMsg);
       
-      showNotification('error', {
-        message: errorMsg,
+      errorNotification(errorMsg, {
         duration: 5000
       });
     }
