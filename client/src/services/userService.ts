@@ -182,7 +182,7 @@ class UserService {
     const isValid = (
       data &&
       typeof data.id === 'number' &&
-      data.id >= 0 && // Изменено: разрешаем id = 0, главное чтобы есть telegram_id
+      data.id >= 0 && // Исправлено: разрешаем id >= 0 для корректной валидации
       (typeof data.telegram_id === 'number' || data.telegram_id === null) &&
       typeof data.username === 'string' &&
       typeof data.balance_uni === 'string' &&

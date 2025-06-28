@@ -38,8 +38,8 @@ const DailyBonusCard: React.FC = () => {
     queryKey: ['dailyBonusStatus', userId], // Добавляем userId в ключ запроса
     queryFn: async () => {
       try {
-        // Используем исправленный endpoint для обхода проблем с модульным роутингом
-        const endpoint = `/api/v2/daily-bonus-fixed?user_id=${userId || 43}`;
+        // Используем правильный endpoint
+        const endpoint = `/api/v2/daily-bonus-status?user_id=${userId || 43}`;
         console.log('[DailyBonusCard] Запрос статуса бонуса:', endpoint);
 
         const response = await fetch(endpoint);
@@ -67,8 +67,8 @@ const DailyBonusCard: React.FC = () => {
   const claimBonusMutation = useMutation({
     mutationFn: async () => {
       try {
-        // Используем новый унифицированный метод apiPost
-        const endpoint = '/api/v2/daily-bonus/claim';
+        // Используем правильный endpoint для claim
+        const endpoint = '/api/v2/daily-bonus-claim';
         console.log('[DailyBonusCard] Отправка запроса на получение бонуса:', endpoint);
 
         // Отправляем POST запрос с корректными заголовками

@@ -69,7 +69,7 @@ interface Mission {
   link?: string; // ссылка для перехода
 }
 
-export const MissionsListFixed: React.FC = () => {
+export const MissionsList: React.FC = () => {
   const queryClient = useQueryClient();
   const { userId } = useUser(); // Получаем ID пользователя из контекста
   const [missions, setMissions] = useState<Mission[]>([]);

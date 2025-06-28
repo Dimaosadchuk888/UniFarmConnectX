@@ -7,7 +7,7 @@ import WelcomeSection from '@/components/dashboard/WelcomeSection';
 import IncomeCardNew from '@/components/dashboard/IncomeCardNew';
 import ChartCard from '@/components/dashboard/ChartCard';
 import BoostStatusCard from '@/components/dashboard/BoostStatusCard';
-import DailyBonusCardFixed from '@/components/dashboard/DailyBonusCardFixed';
+import DailyBonusCard from '@/components/dashboard/DailyBonusCard';
 import SystemStatusIndicator from '@/components/ui/SystemStatusIndicator';
 import UniFarmingCardWithErrorBoundary from '@/components/farming/UniFarmingCardWithErrorBoundary';
 
@@ -41,7 +41,7 @@ const Dashboard: React.FC = () => {
       <BoostStatusCard />
       
       {/* Ежедневный бонус */}
-      <DailyBonusCardFixed />
+      <DailyBonusCard />
 
       {/* UNI Фарминг карточка */}
       <UniFarmingCardWithErrorBoundary userData={userData} />

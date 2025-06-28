@@ -207,7 +207,7 @@ const handleMeEndpoint = async (req: any, res: any) => {
 
 router.get('/me', handleMeEndpoint);
 
-// Fixed Daily Bonus endpoints to eliminate NaN errors
+// Daily Bonus endpoints with safe error handling
 router.get('/daily-bonus-status', async (req: express.Request, res: express.Response) => {
   try {
     const userId = (req as any).user?.id || (req as any).telegramUser?.id || req.query.user_id || "43";
@@ -249,7 +249,7 @@ router.get('/daily-bonus-status', async (req: express.Request, res: express.Resp
     });
 
   } catch (error) {
-    console.error('[DailyBonusFixed] Error:', error);
+    console.error('[DailyBonus] Error:', error);
     return res.json({
       success: true,
       data: {
@@ -262,7 +262,7 @@ router.get('/daily-bonus-status', async (req: express.Request, res: express.Resp
   }
 });
 
-// Fixed Daily Bonus claim endpoint
+// Daily Bonus claim endpoint
 router.post('/daily-bonus-claim', async (req: express.Request, res: express.Response) => {
   try {
     const userId = (req as any).user?.id || (req as any).telegramUser?.id || "43";
@@ -328,7 +328,7 @@ router.post('/daily-bonus-claim', async (req: express.Request, res: express.Resp
     });
 
   } catch (error) {
-    console.error('[DailyBonusClaimFixed] Error:', error);
+    console.error('[DailyBonusClaim] Error:', error);
     return res.status(500).json({
       success: false,
       error: 'Internal server error'

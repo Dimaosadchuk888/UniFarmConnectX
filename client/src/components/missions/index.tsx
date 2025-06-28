@@ -1,3 +1,3 @@
 // Экспорт основных компонентов миссий
-export { MissionsListFixed } from './MissionsListFixed';
+export { MissionsList } from './MissionsList';
 export { default as MissionStats } from './MissionStats';

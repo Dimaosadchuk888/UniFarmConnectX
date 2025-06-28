@@ -480,7 +480,7 @@ async function startServer() {
         
         const bonusAmount = Math.min(500 + (streakDays * 100), 2000);
         
-        logger.info('[DailyBonusFixed] Success response', {
+        logger.info('[DailyBonus] Success response', {
           userId: userIdNumber,
           canClaim,
           streakDays,
@@ -492,7 +492,7 @@ async function startServer() {
           data: { canClaim, streak: streakDays, bonusAmount }
         });
       } catch (error) {
-        logger.error('[DailyBonusFixed] Error:', error);
+        logger.error('[DailyBonus] Error:', error);
         res.json({ success: false, error: 'Internal server error' });
       }
     });
