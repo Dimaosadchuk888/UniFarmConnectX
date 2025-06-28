@@ -26,49 +26,61 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [reconnectTimeout, setReconnectTimeout] = useState<number | null>(null);
   
   // Получаем userId из UserContext
-  const { userId } = useUser();
+  const { userId: contextUserId } = useUser();
 
   // Функция для создания WebSocket соединения
   const createWebSocket = () => {
     try {
-      // Получаем user_id из localStorage или sessionStorage
-      let userId = null;
-      try {
-        // Проверяем данные сессии UniFarm
-        const lastSessionStr = localStorage.getItem('unifarm_last_session');
-        if (lastSessionStr) {
-          try {
-            const lastSession = JSON.parse(lastSessionStr);
-            if (lastSession.user_id) {
-              userId = String(lastSession.user_id);
-              console.log('[WebSocket] Found user_id in unifarm_last_session:', userId);
-            }
-          } catch (e) {
-            console.error('[WebSocket] Error parsing unifarm_last_session:', e);
-          }
-        }
-
-        // Если не нашли, проверяем другие возможные ключи
-        if (!userId) {
-          // Проверяем другие возможные ключи хранилища
-          const possibleKeys = ['user_id', 'userId', 'currentUserId', 'authUserId'];
-          for (const key of possibleKeys) {
-            const value = localStorage.getItem(key) || sessionStorage.getItem(key);
-            if (value) {
-              userId = value;
-              break;
+      // Используем userId из контекста приоритетно
+      let userId = contextUserId ? String(contextUserId) : null;
+      console.log('[WebSocket] Context userId:', contextUserId);
+      
+      // Если нет userId из контекста, проверяем localStorage
+      if (!userId) {
+        try {
+          // Проверяем данные сессии UniFarm
+          const lastSessionStr = localStorage.getItem('unifarm_last_session');
+          if (lastSessionStr) {
+            try {
+              const lastSession = JSON.parse(lastSessionStr);
+              if (lastSession.user_id) {
+                userId = String(lastSession.user_id);
+                console.log('[WebSocket] Found user_id in unifarm_last_session:', userId);
+              }
+            } catch (e) {
+              console.error('[WebSocket] Error parsing unifarm_last_session:', e);
             }
           }
-        }
 
-        console.log('[WebSocket] Retrieved user_id for connection:', userId ? userId : 'not found');
-      } catch (e) {
-        console.error('[WebSocket] Error retrieving user_id from storage:', e);
+          // Если не нашли, проверяем другие возможные ключи
+          if (!userId) {
+            // Проверяем другие возможные ключи хранилища
+            const possibleKeys = ['user_id', 'userId', 'currentUserId', 'authUserId'];
+            for (const key of possibleKeys) {
+              const value = localStorage.getItem(key) || sessionStorage.getItem(key);
+              if (value) {
+                userId = value;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error('[WebSocket] Error retrieving user_id from storage:', e);
+        }
+      }
+
+      console.log('[WebSocket] Retrieved user_id for connection:', userId ? userId : 'not found');
+      
+      // Не подключаемся если нет валидного userId
+      if (!userId || userId === 'not found' || userId === 'null' || userId === 'undefined') {
+        console.log('[WebSocket] Skipping connection - no valid user_id available');
+        setConnectionStatus('disconnected');
+        return;
       }
 
       // Получаем корректный URL для WebSocket с учетом Replit
       const wsUrl = import.meta.env.VITE_WS_URL || 
-                   `wss://${window.location.host}/ws${userId ? `?user_id=${userId}` : ''}`;
+                   `wss://${window.location.host}/ws?user_id=${userId}`;
 
       console.log('[WebSocket] Connecting to WebSocket:', wsUrl);
 
@@ -118,15 +130,46 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         console.log('[WebSocket] Connection closed:', event.code, event.reason);
         setConnectionStatus('disconnected');
 
-        // Запускаем переподключение с небольшой задержкой
-        const randomDelay = 3000 + Math.random() * 1000;
-        console.log(`[WebSocket] Reconnecting in ${Math.round(randomDelay)}ms...`);
+        // Проверяем наличие валидного userId перед переподключением
+        let validUserId = null;
+        
+        // Проверяем прямые user_id
+        const directUserId = localStorage.getItem('user_id') || localStorage.getItem('userId');
+        if (directUserId && directUserId !== 'null' && directUserId !== 'undefined' && directUserId !== 'not found') {
+          validUserId = directUserId;
+        }
+        
+        // Проверяем unifarm_last_session
+        if (!validUserId) {
+          const lastSessionStr = localStorage.getItem('unifarm_last_session');
+          if (lastSessionStr) {
+            try {
+              const lastSession = JSON.parse(lastSessionStr);
+              if (lastSession.user_id && lastSession.user_id !== 'null' && lastSession.user_id !== 'undefined') {
+                validUserId = String(lastSession.user_id);
+              }
+            } catch (e) {
+              // Игнорируем ошибки парсинга
+            }
+          }
+        }
+        
+        if (validUserId) {
+          // Запускаем переподключение только если есть валидный userId
+          const randomDelay = 3000 + Math.random() * 1000;
+          console.log(`[WebSocket] Reconnecting in ${Math.round(randomDelay)}ms...`);
 
-        const timeout = window.setTimeout(() => {
-          createWebSocket();
-        }, randomDelay);
+          // Временно отключаем автоматическое переподключение
+          /*
+          const timeout = window.setTimeout(() => {
+            createWebSocket();
+          }, randomDelay);
 
-        setReconnectTimeout(timeout);
+          setReconnectTimeout(timeout);
+          */
+        } else {
+          console.log('[WebSocket] Not reconnecting - no valid user_id available');
+        }
       };
 
       newSocket.onerror = (event) => {
@@ -160,9 +203,30 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     }
   };
 
-  // Устанавливаем соединение при монтировании компонента
+  // Устанавливаем соединение только когда есть userId
   useEffect(() => {
-    createWebSocket();
+    console.log('[WebSocket] useEffect triggered, contextUserId:', contextUserId);
+    
+    // Проверяем наличие userId в любом из возможных мест
+    const storedUserId = localStorage.getItem('user_id') || 
+                        localStorage.getItem('userId') || 
+                        localStorage.getItem('unifarm_last_session');
+    
+    // Ждём пока появится userId из контекста или localStorage
+    if (contextUserId || storedUserId) {
+      console.log('[WebSocket] Creating connection with userId:', contextUserId || storedUserId);
+      // Временно отключаем автоматическое подключение WebSocket
+      // createWebSocket();
+      console.log('[WebSocket] Auto-connection disabled for debugging');
+    } else {
+      console.log('[WebSocket] Waiting for userId to be available...');
+      // Убеждаемся что соединение закрыто если нет userId
+      if (socket) {
+        socket.close();
+        setSocket(null);
+      }
+      setConnectionStatus('disconnected');
+    }
 
     // Настраиваем периодическую отправку пингов
     const pingInterval = setInterval(() => {
@@ -190,7 +254,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
       clearInterval(pingInterval);
     };
-  }, []); // Пустой массив зависимостей для выполнения только при монтировании
+  }, [contextUserId]); // Пересоздаём соединение при изменении userId
 
   return (
     <WebSocketContext.Provider

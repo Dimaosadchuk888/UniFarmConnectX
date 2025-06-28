@@ -13,15 +13,15 @@ import { Skeleton } from '../../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Progress } from '../../components/ui/progress';
 import { 
-  FiWallet, 
   FiActivity, 
   FiDollarSign, 
   FiCopy, 
   FiExternalLink,
   FiRefreshCw,
   FiTrendingUp,
-  FiBarChart3
+  FiBarChart
 } from 'react-icons/fi';
+import { RiWallet3Line as FiWallet } from 'react-icons/ri';
 import { TonBlockchainService, TonWalletInfo, TonTransaction } from '../../services/tonBlockchainService';
 import { useToast } from '../../hooks/use-toast';
 import { formatNumberWithPrecision } from '../../lib/utils';
@@ -133,11 +133,11 @@ const TonBlockchainDashboard: React.FC<TonBlockchainDashboardProps> = ({
           <div className="space-y-3">
             <div>
               <div className="text-2xl font-bold text-white">
-                {formatNumberWithPrecision(walletInfo.balance, 4)} TON
+                {formatNumberWithPrecision(parseFloat(walletInfo.balance), 4)} TON
               </div>
               {tonPrice && (
                 <p className="text-xs text-gray-400">
-                  ≈ ${formatNumberWithPrecision((parseFloat(walletInfo.balance) * tonPrice).toString(), 2)} USD
+                  ≈ ${formatNumberWithPrecision(parseFloat(walletInfo.balance) * tonPrice, 2)} USD
                 </p>
               )}
             </div>
@@ -200,7 +200,7 @@ const TonBlockchainDashboard: React.FC<TonBlockchainDashboardProps> = ({
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-white">
-                      {parseFloat(tx.amount) > 0 ? '+' : ''}{formatNumberWithPrecision(tx.amount, 4)} TON
+                      {parseFloat(tx.amount) > 0 ? '+' : ''}{formatNumberWithPrecision(parseFloat(tx.amount), 4)} TON
                     </span>
                     <Badge variant={tx.status === 'success' ? 'default' : 'destructive'}>
                       {tx.status === 'success' ? 'Успешно' : 'Ошибка'}
@@ -241,7 +241,7 @@ const TonBlockchainDashboard: React.FC<TonBlockchainDashboardProps> = ({
     <Card className="bg-gradient-to-br from-purple-500/10 to-pink-600/10 border-purple-500/20">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-purple-100">Статистика сети TON</CardTitle>
-        <FiBarChart3 className="h-4 w-4 text-purple-400" />
+        <FiBarChart className="h-4 w-4 text-purple-400" />
       </CardHeader>
       <CardContent>
         {isLoadingStats ? (
@@ -286,7 +286,7 @@ const TonBlockchainDashboard: React.FC<TonBlockchainDashboardProps> = ({
           </div>
         ) : (
           <div className="text-center text-gray-400">
-            <FiBarChart3 className="h-8 w-8 mx-auto mb-2" />
+            <FiBarChart className="h-8 w-8 mx-auto mb-2" />
             <p>Статистика недоступна</p>
           </div>
         )}
@@ -307,7 +307,7 @@ const TonBlockchainDashboard: React.FC<TonBlockchainDashboardProps> = ({
         ) : tonPrice ? (
           <div>
             <div className="text-2xl font-bold text-white">
-              ${formatNumberWithPrecision(tonPrice.toString(), 4)}
+              ${formatNumberWithPrecision(typeof tonPrice === 'number' ? tonPrice : parseFloat(tonPrice || '0'), 4)}
             </div>
             <p className="text-xs text-gray-400">За 1 TON</p>
           </div>

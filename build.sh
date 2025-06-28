@@ -27,8 +27,8 @@ else
     exit 1
 fi
 
-# Make stable-server.js executable
-chmod +x stable-server.js
+# Make server files executable
+chmod +x server.js production-server.js
 
 echo "✅ Build process completed successfully"
-echo "🎯 Ready for deployment with: node stable-server.js"
+echo "🎯 Ready for deployment with: node server.js"
