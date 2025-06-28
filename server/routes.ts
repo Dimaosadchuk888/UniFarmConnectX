@@ -208,7 +208,7 @@ const handleMeEndpoint = async (req: any, res: any) => {
 router.get('/me', handleMeEndpoint);
 
 // Daily Bonus endpoints with safe error handling
-router.get('/daily-bonus-status', async (req: express.Request, res: express.Response) => {
+router.get('/daily-bonus-status', async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const userId = (req as any).user?.id || (req as any).telegramUser?.id || req.query.user_id || "43";
     const { supabase } = require('../core/supabase');
@@ -221,7 +221,7 @@ router.get('/daily-bonus-status', async (req: express.Request, res: express.Resp
       .single();
 
     if (error || !user) {
-      return res.json({
+      res.json({
         success: true,
         data: {
           can_claim: true,
@@ -230,6 +230,7 @@ router.get('/daily-bonus-status', async (req: express.Request, res: express.Resp
           last_claim_date: null
         }
       });
+      return;
     }
 
     // Safe calculations
@@ -238,7 +239,7 @@ router.get('/daily-bonus-status', async (req: express.Request, res: express.Resp
     const lastClaimDate = user.checkin_last_date;
     const canClaim = !lastClaimDate || new Date().toDateString() !== new Date(lastClaimDate).toDateString();
 
-    return res.json({
+    res.json({
       success: true,
       data: {
         can_claim: canClaim,
@@ -250,7 +251,7 @@ router.get('/daily-bonus-status', async (req: express.Request, res: express.Resp
 
   } catch (error) {
     console.error('[DailyBonus] Error:', error);
-    return res.json({
+    res.json({
       success: true,
       data: {
         can_claim: true,
@@ -263,7 +264,7 @@ router.get('/daily-bonus-status', async (req: express.Request, res: express.Resp
 });
 
 // Daily Bonus claim endpoint
-router.post('/daily-bonus-claim', async (req: express.Request, res: express.Response) => {
+router.post('/daily-bonus-claim', async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const userId = (req as any).user?.id || (req as any).telegramUser?.id || "43";
     const { supabase } = require('../core/supabase');
@@ -276,10 +277,11 @@ router.post('/daily-bonus-claim', async (req: express.Request, res: express.Resp
       .single();
 
     if (userError) {
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         error: 'Database error'
       });
+      return;
     }
 
     // Safe calculations
@@ -300,10 +302,11 @@ router.post('/daily-bonus-claim', async (req: express.Request, res: express.Resp
       .eq('id', userId);
 
     if (updateError) {
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         error: 'Failed to update user'
       });
+      return;
     }
 
     // Create transaction record
@@ -318,7 +321,7 @@ router.post('/daily-bonus-claim', async (req: express.Request, res: express.Resp
         created_at: new Date().toISOString()
       });
 
-    return res.json({
+    res.json({
       success: true,
       data: {
         bonus_amount: bonusAmount.toString(),
@@ -329,7 +332,7 @@ router.post('/daily-bonus-claim', async (req: express.Request, res: express.Resp
 
   } catch (error) {
     console.error('[DailyBonusClaim] Error:', error);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       error: 'Internal server error'
     });

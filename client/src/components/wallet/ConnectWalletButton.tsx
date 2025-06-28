@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useUser } from '@/contexts/userContext';
-import { useNotification } from "@/contexts/NotificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface ConnectWalletButtonProps {
   className?: string;
@@ -27,7 +27,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
   } = useUser();
   
   // Получаем доступ к системе уведомлений
-  const { showNotification } = useNotification();
+  const { success, error: errorNotification, info, loading: loadingNotification } = useNotification();
   
   // Локальное состояние для отображения индикатора загрузки
   const [loading, setLoading] = useState(false);
@@ -39,8 +39,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
     try {
       if (isWalletConnected) {
         // Отображаем уведомление о процессе отключения
-        showNotification('loading', {
-          message: 'Отключение кошелька...',
+        loadingNotification('Отключение кошелька...', {
           duration: 2000
         });
         
@@ -48,14 +47,12 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
         await disconnectWallet();
         
         // Уведомление об успешном отключении
-        showNotification('info', {
-          message: 'Кошелёк успешно отключен',
+        info('Кошелёк успешно отключен', {
           duration: 3000
         });
       } else {
         // Отображаем уведомление о процессе подключения
-        showNotification('loading', {
-          message: 'Ожидание подключения кошелька...',
+        loadingNotification('Ожидание подключения кошелька...', {
           duration: 2000
         });
         
@@ -63,19 +60,17 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
         await connectWallet();
         
         // Уведомление об успешном подключении
-        showNotification('success', {
-          message: 'Кошелёк успешно подключен',
+        success('Кошелёк успешно подключен', {
           duration: 3000
         });
       }
-    } catch (error) {
+    } catch (err) {
       // Безопасное обращение к свойству message у error
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
       console.error('Ошибка управления кошельком:', errorMessage);
       
       // Отображаем уведомление об ошибке
-      showNotification('error', {
-        message: `Ошибка: ${errorMessage}`,
+      errorNotification(`Ошибка: ${errorMessage}`, {
         duration: 5000
       });
     } finally {
@@ -91,8 +86,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
       navigator.clipboard.writeText(walletAddress)
         .then(() => {
           // Показываем уведомление об успешном копировании
-          showNotification('success', {
-            message: 'Адрес кошелька скопирован в буфер обмена',
+          success('Адрес кошелька скопирован в буфер обмена', {
             duration: 2000
           });
         })
@@ -100,8 +94,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) 
           console.error('Ошибка копирования адреса:', error);
           
           // Показываем уведомление об ошибке копирования
-          showNotification('error', {
-            message: 'Не удалось скопировать адрес кошелька',
+          errorNotification('Не удалось скопировать адрес кошелька', {
             duration: 3000
           });
         });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
-import { useNotification } from "@/contexts/NotificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -52,7 +52,7 @@ const DepositForm: React.FC<DepositFormProps> = ({ initialCurrency = 'TON' }) =>
   const [amountFocused, setAmountFocused] = useState(false);
   
   // Хук для отображения уведомлений
-  const { showNotification } = useNotification();
+  const { success, error, info, loading } = useNotification();
   
   // Настройка формы с валидацией
   const {
@@ -88,8 +88,7 @@ const DepositForm: React.FC<DepositFormProps> = ({ initialCurrency = 'TON' }) =>
     clearErrors();
     setErrorMessage(null);
     
-    showNotification('info', {
-      message: `Переключено на ${currency}`,
+    info(`Переключено на ${currency}`, {
       duration: 2000
     });
   };
@@ -120,8 +119,7 @@ const DepositForm: React.FC<DepositFormProps> = ({ initialCurrency = 'TON' }) =>
       // Обновляем баланс
       await refreshBalance();
       
-      showNotification('success', {
-        message: `Заявка на пополнение ${data.amount} ${selectedCurrency} создана`,
+      success(`Заявка на пополнение ${data.amount} ${selectedCurrency} создана`, {
         duration: 5000
       });
       

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
 import useWebSocket from '@/hooks/useWebSocket';
-import { useNotification } from "@/contexts/NotificationContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { formatAmount, formatUniNumber, formatTonNumber, getUSDEquivalent } from '@/utils/formatters';
 
 /**
@@ -23,7 +23,7 @@ const BalanceCard: React.FC = () => {
   } = useUser();
   
   // Получаем доступ к системе уведомлений
-  const { showNotification } = useNotification();
+  const { success, error, info, loading } = useNotification();
   
   // Состояния для визуальных эффектов
   const [uniAnimating, setUniAnimating] = useState<boolean>(false);
@@ -63,13 +63,12 @@ const BalanceCard: React.FC = () => {
     
     if (data.type === 'update' && data.balanceData) {
       if (userId) {
-        showNotification('info', {
-          message: 'Доступно обновление баланса',
+        info('Доступно обновление баланса', {
           duration: 3000
         });
       }
     }
-  }, [userId, showNotification]);
+  }, [userId, info]);
   
   // Обработчик закрытия соединения
   const handleClose = useCallback((event: CloseEvent) => {
@@ -129,8 +128,7 @@ const BalanceCard: React.FC = () => {
   const handleManualRefresh = useCallback(() => {
     if (isBalanceFetching) return;
     
-    showNotification('loading', {
-      message: 'Обновление баланса...',
+    loading('Обновление баланса...', {
       duration: 1500
     });
     
@@ -139,8 +137,7 @@ const BalanceCard: React.FC = () => {
         refreshBalance();
         calculateRate();
         
-        showNotification('success', {
-          message: 'Баланс успешно обновлён',
+        success('Баланс успешно обновлён', {
           duration: 2000
         });
         
@@ -156,14 +153,15 @@ const BalanceCard: React.FC = () => {
       }, 100);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
-      showNotification('error', {
-        message: `Не удалось обновить баланс: ${errorMessage}`,
+      error(`Не удалось обновить баланс: ${errorMessage}`, {
         duration: 3000
       });
     }
   }, [
     refreshBalance, 
-    showNotification, 
+    error, 
+    success,
+    loading,
     isBalanceFetching, 
     uniBalance, 
     tonBalance, 
@@ -174,8 +172,7 @@ const BalanceCard: React.FC = () => {
   const handleFullRefresh = useCallback(() => {
     if (isBalanceFetching) return;
     
-    showNotification('loading', {
-      message: 'Обновление данных...',
+    loading('Обновление данных...', {
       duration: 1500
     });
     
@@ -186,8 +183,7 @@ const BalanceCard: React.FC = () => {
         refreshBalance();
         calculateRate();
         
-        showNotification('success', {
-          message: 'Данные профиля и баланс обновлены',
+        success('Данные профиля и баланс обновлены', {
           duration: 3000
         });
         
@@ -199,37 +195,36 @@ const BalanceCard: React.FC = () => {
       }, 500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
-      showNotification('error', {
-        message: `Не удалось обновить данные: ${errorMessage}`,
+      error(`Не удалось обновить данные: ${errorMessage}`, {
         duration: 3000
       });
     }
   }, [
     refreshUserData, 
     refreshBalance, 
-    showNotification, 
+    error, 
+    success,
+    loading,
     isBalanceFetching, 
     calculateRate
   ]);
   
   // Обработчик переподключения WebSocket
   const handleReconnect = useCallback(() => {
-    showNotification('loading', {
-      message: 'Переподключение...',
+    loading('Переподключение...', {
       duration: 2000
     });
     
     isSubscribedRef.current = false;
     forceReconnect();
-  }, [forceReconnect, showNotification]);
+  }, [forceReconnect, loading]);
   
   // Проверка и обновление баланса при первом рендере
   useEffect(() => {
     if (userId && uniBalance === 0 && !initialLoadedRef.current) {
       initialLoadedRef.current = true;
       
-      showNotification('loading', {
-        message: 'Загрузка баланса...',
+      loading('Загрузка баланса...', {
         duration: 2000
       });
       
@@ -248,7 +243,7 @@ const BalanceCard: React.FC = () => {
         }, 1000);
       }, 500);
     }
-  }, [userId, uniBalance, refreshBalance, calculateRate, showNotification]);
+  }, [userId, uniBalance, refreshBalance, calculateRate, loading]);
 
   // ===== Рендеринг согласно UX спецификации =====
   return (
