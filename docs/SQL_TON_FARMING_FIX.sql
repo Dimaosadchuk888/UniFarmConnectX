@@ -70,13 +70,13 @@ WHERE ton_farming_balance > 0 AND ton_farming_start_timestamp IS NULL;
 UPDATE users u
 SET 
   ton_boost_active = true,
-  ton_boost_package_id = bp.package_id,
+  ton_boost_package_id = bp.boost_type,
   ton_boost_rate = bp.rate,
   ton_boost_expires_at = bp.expires_at
 FROM (
   SELECT DISTINCT ON (user_id) 
     user_id, 
-    package_id, 
+    boost_type, 
     rate, 
     expires_at
   FROM boost_purchases
