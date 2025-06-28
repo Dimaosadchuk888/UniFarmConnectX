@@ -205,11 +205,28 @@ export class MissionsService {
         .insert({
           user_id: user.id,
           type: 'MISSION_REWARD',
-          amount: rewardAmount.toString(),
+          amount_uni: rewardAmount.toString(),
+          amount_ton: '0',
           description: `Mission ${missionId} reward`,
-          status: 'completed',
           created_at: new Date().toISOString()
         });
+
+      // Сохраняем прогресс миссии в mission_progress
+      try {
+        await supabase
+          .from('mission_progress')
+          .insert({
+            user_id: user.id,
+            mission_id: missionId,
+            is_completed: true,
+            completed_at: new Date().toISOString(),
+            reward_claimed: true,
+            reward_amount: rewardAmount,
+            created_at: new Date().toISOString()
+          });
+      } catch (progressError) {
+        logger.warn('[MissionsService] Не удалось сохранить прогресс миссии, но награда начислена', { error: progressError });
+      }
 
       logger.info(`[MissionsService] Mission ${missionId} completed for user ${telegramId}, reward: ${rewardAmount} UNI`);
       return { 

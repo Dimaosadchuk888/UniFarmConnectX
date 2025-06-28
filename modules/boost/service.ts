@@ -371,21 +371,45 @@ export class BoostService {
     try {
       const { supabase } = await import('../../core/supabase');
       
+      // Получаем информацию о пакете
+      const boostPackage = await this.getBoostPackageById(boostId);
+      if (!boostPackage) {
+        logger.error('[BoostService] Пакет не найден для создания покупки', { boostId });
+        return null;
+      }
+      
+      // Создаем запись в boost_purchases
       const { data, error } = await supabase
         .from('boost_purchases')
         .insert({
-          user_id: userId,
-          boost_id: boostId,
-          source,
-          tx_hash: txHash,
-          status,
-          created_at: new Date().toISOString()
+          user_id: parseInt(userId),
+          package_id: parseInt(boostId),
+          amount: boostPackage.min_amount.toString(),
+          rate: boostPackage.rate.toString(),
+          status: status,
+          payment_method: source,
+          transaction_hash: txHash,
+          purchased_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 365 дней
         })
         .select()
         .single();
 
       if (error) {
         logger.error('[BoostService] Ошибка создания записи покупки:', error);
+        // Если таблица boost_purchases недоступна, обновляем поле в users
+        const { error: userUpdateError } = await supabase
+          .from(BOOST_TABLES.USERS)
+          .update({ 
+            ton_boost_package: boostId,
+            ton_boost_rate: boostPackage.rate.toString(),
+            ton_boost_amount: boostPackage.min_amount.toString()
+          })
+          .eq('id', userId);
+          
+        if (userUpdateError) {
+          logger.error('[BoostService] Ошибка обновления пользователя с boost данными:', userUpdateError);
+        }
         return null;
       }
 
@@ -394,7 +418,9 @@ export class BoostService {
         userId,
         boostId,
         source,
-        status
+        status,
+        amount: boostPackage.min_amount,
+        rate: boostPackage.rate
       });
 
       return data;

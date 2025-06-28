@@ -306,7 +306,7 @@ export class WalletService {
           .from(WALLET_TABLES.TRANSACTIONS)
           .insert({
             user_id: user_id,
-            type: 'FARMING_REWARD',
+            type: currency === 'UNI' ? 'UNI_DEPOSIT' : 'TON_DEPOSIT',
             amount_uni: currency === 'UNI' ? amount.toString() : '0',
             amount_ton: currency === 'TON' ? amount.toString() : '0',
             description: `Депозит ${amount} ${currency} (${deposit_type})`,

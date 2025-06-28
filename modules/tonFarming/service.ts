@@ -7,7 +7,7 @@ import {
 } from './model';
 
 interface TonFarmingData {
-  ton_farming_balance: string;
+  balance_ton: string; // Используем реальное поле из БД
   ton_farming_rate: string;
   ton_farming_start_timestamp: Date | null;
   ton_farming_last_update: Date | null;
@@ -33,7 +33,7 @@ export class TonFarmingService {
       }
       
       return {
-        ton_farming_balance: '1.50000000',
+        balance_ton: '1.50000000',
         ton_farming_rate: TON_FARMING_CONFIG.DEFAULT_RATE,
         ton_farming_start_timestamp: new Date(),
         ton_farming_last_update: new Date(),
@@ -46,7 +46,7 @@ export class TonFarmingService {
         error: error instanceof Error ? error.message : String(error)
       });
       return {
-        ton_farming_balance: '0',
+        balance_ton: '0',
         ton_farming_rate: TON_FARMING_CONFIG.DEFAULT_RATE,
         ton_farming_start_timestamp: null,
         ton_farming_last_update: null,

@@ -14,7 +14,7 @@ export interface TonFarmingSession {
 }
 
 export interface TonFarmingData {
-  ton_farming_balance: string;
+  balance_ton: string;
   ton_farming_rate: string;
   ton_farming_start_timestamp: Date | null;
   ton_farming_last_update: Date | null;
