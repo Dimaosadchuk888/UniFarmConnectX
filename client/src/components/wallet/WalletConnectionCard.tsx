@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUser } from '@/contexts/userContext';
-import { useNotification } from '@/contexts/notificationContext';
+import { useNotification } from "@/contexts/NotificationContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {

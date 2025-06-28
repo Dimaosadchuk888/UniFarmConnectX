@@ -14,7 +14,7 @@ import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { UserProvider } from "@/contexts/userContext";
 import { WebSocketProvider } from "@/contexts/webSocketContext";
-import { NotificationProvider } from "@/contexts/notificationContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 
 // Pages
