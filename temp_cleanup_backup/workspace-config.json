@@ -1,7 +1,0 @@
-{
-  "workspaces": [
-    "client",
-    "server"
-  ],
-  "description": "UniFarm workspace configuration - separates frontend and backend dependencies"
-}
