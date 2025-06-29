@@ -532,6 +532,16 @@ async function startServer() {
     // Port configuration
     const apiPort = config.app.port;
     
+    // Middleware для обхода блокировки хостов Vite на Replit
+    app.use((req, res, next) => {
+      // Подменяем заголовок Host для Vite
+      if (req.headers.host && req.headers.host.includes('replit')) {
+        req.headers['x-original-host'] = req.headers.host;
+        req.headers.host = 'localhost:3000';
+      }
+      next();
+    });
+    
     // Подключаем Vite интеграцию ПОСЛЕ всех API маршрутов для корректной работы
     await setupViteIntegration(app);
     
