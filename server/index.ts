@@ -368,7 +368,8 @@ async function startServer() {
       next();
     });
 
-    // T15 Auto Migration - выполняется один раз при старте
+    // T15 Auto Migration - ОТКЛЮЧЕНО (несовместимо с Supabase API)
+    // Прямые SQL запросы должны выполняться через Supabase Dashboard
     const executeT15Migration = async () => {
       try {
         logger.info('[T15] Starting database schema synchronization');
@@ -405,7 +406,8 @@ async function startServer() {
     };
 
     // Выполняем T15 миграцию после подключения к базе
-    setTimeout(executeT15Migration, 5000);
+    // ОТКЛЮЧЕНО: прямые SQL запросы не поддерживаются в Supabase API
+    // setTimeout(executeT15Migration, 5000);
 
     // Health check (должен быть первым для мониторинга)
     app.get('/health', (req: Request, res: Response) => {

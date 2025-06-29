@@ -45,7 +45,7 @@ async function main() {
     console.log('🎉 Production build completed successfully!');
     console.log('📁 Built files: dist/public/');
     console.log('🚀 Server will run with tsx runtime');
-    console.log('🎯 Ready for deployment with: node stable-server.js');
+    console.log('🎯 Ready for deployment with: node server.js');
     
   } catch (error) {
     console.error('💥 Build process failed:', error.message);
