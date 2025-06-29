@@ -90,13 +90,7 @@ const IncomeCardNew: React.FC = () => {
       // Рассчитываем дневной доход UNI
       const dailyRate = parseFloat(uniData.dailyIncomeUni || '0');
       
-      // Добавляем диагностику
-      console.log('[DEBUG] UNI Farming rates:', {
-        ratePerSecond,
-        hourlyRate,
-        dailyRate,
-        rawData: uniData
-      });
+      // UNI Farming rates calculated
       
       // Устанавливаем целевые значения
       setTargetHourRate(hourlyRate);
@@ -113,13 +107,7 @@ const IncomeCardNew: React.FC = () => {
       // Рассчитываем дневной доход TON
       const dailyRate = parseFloat(tonData.dailyIncomeTon || '0');
       
-      // Добавляем диагностику
-      console.log('[DEBUG] TON Farming rates:', {
-        ratePerSecond,
-        hourlyRate,
-        dailyRate,
-        rawData: tonData
-      });
+      // TON Farming rates calculated
       
       // Устанавливаем целевые значения
       setTargetTonHourRate(hourlyRate);

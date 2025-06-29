@@ -174,7 +174,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    console.log("[DEBUG] QueryClient - Requesting:", queryKey[0]);
+    // Запрос через QueryClient
 
     try {
       // Добавляем заголовки, чтобы избежать кэширования
@@ -210,13 +210,13 @@ export const getQueryFn: <T>(options: {
       if (userId && !baseUrl.includes('user_id=')) {
         const separator = baseUrl.includes('?') ? '&' : '?';
         baseUrl = `${baseUrl}${separator}user_id=${userId}`;
-        console.log("[DEBUG] QueryClient - Added userId to URL:", userId);
+        // UserId добавлен в URL
       }
 
       // Добавляем nocache параметр
       const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}nocache=${timestamp}`;
 
-      console.log("[DEBUG] QueryClient - Full URL:", url);
+      // Полный URL сформирован
 
       // Получаем заголовки с данными Telegram
       const headers = getApiHeaders();
@@ -228,11 +228,11 @@ export const getQueryFn: <T>(options: {
 
       // Уменьшаем количество отладочной информации
       if (process.env.NODE_ENV === 'development') {
-        console.log("[DEBUG] QueryClient - Response status:", res.status);
+        // Статус ответа обработан
       }
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.log("[DEBUG] QueryClient - Returning null due to 401");
+        // Возвращаем null для 401 ошибки
         return null;
       }
 

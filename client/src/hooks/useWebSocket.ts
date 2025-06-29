@@ -104,7 +104,7 @@ const useWebSocket = (options: UseWebSocketOptions = {}) => {
     // Если прошло больше 30 секунд с момента отправки ping и не получили pong
     if (lastPingSentRef.current > 0 && timeSinceLastPing > 30000 && 
         (lastPongReceivedRef.current === 0 || timeSinceLastPing > timeSinceLastPong + 20000)) {
-      console.warn('[WebSocket] Connection seems dead (no pong response)');
+      // Connection seems dead (no pong response)
       disconnect();
       connect();
     }

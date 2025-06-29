@@ -245,7 +245,7 @@ export const MissionsList: React.FC = () => {
             const rewardValue = result.reward !== undefined ? result.reward : 
                                 (currentMission ? currentMission.rewardUni : 0);
             
-            console.log(`[DEBUG] Награда за миссию: API=${result.reward}, UI=${currentMission?.rewardUni}, Итог=${rewardValue}`);
+            // Награда за миссию обработана
             
             setRewardAmount(rewardValue);
             setShowConfetti(true);

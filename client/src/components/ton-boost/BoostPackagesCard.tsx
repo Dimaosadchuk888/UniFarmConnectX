@@ -168,13 +168,7 @@ const BoostPackagesCard: React.FC = () => {
     // Telegram хэпти фидбек при клике
     triggerHapticFeedback('light');
     
-    console.log('[DEBUG] Нажата кнопка покупки TON Boost:', {
-      boostId,
-      tonConnectUI: !!tonConnectUI,
-      tonConnectUIWallet: tonConnectUI?.wallet,
-      isConnected: isTonWalletConnected(tonConnectUI),
-      isTelegramWebApp
-    });
+    // Покупка TON Boost инициирована
 
     // Сохраняем ID буста и ВСЕГДА показываем диалог выбора способа оплаты
     setSelectedBoostId(boostId);
@@ -191,13 +185,7 @@ const BoostPackagesCard: React.FC = () => {
 
   // Обработчик выбора способа оплаты
   const handleSelectPaymentMethod = async (boostId: number, paymentMethod: 'internal_balance' | 'external_wallet') => {
-    console.log('[DEBUG] Выбран способ оплаты:', {
-      boostId,
-      paymentMethod,
-      tonConnectAvailable: !!tonConnectUI,
-      tonConnectUIWallet: tonConnectUI?.wallet,
-      connected: isTonWalletConnected(tonConnectUI)
-    });
+    // Способ оплаты выбран
     
     // Закрываем диалог выбора метода оплаты
     setPaymentMethodDialogOpen(false);
@@ -276,7 +264,7 @@ const BoostPackagesCard: React.FC = () => {
             ]
           };
 
-          console.log('[DEBUG] Отправка транзакции TON:', transactionRequest);
+          // Отправка транзакции TON
           
           const result = await sendTonTransaction(tonConnectUI, transactionRequest);
           
