@@ -15,7 +15,7 @@ const buildFrontend = () => {
   return new Promise((resolve, reject) => {
     console.log('🎨 Building frontend...');
     
-    const vite = spawn('npx', ['vite', 'build', '--config', 'client/vite.config.ts'], {
+    const vite = spawn('npx', ['vite', 'build'], {
       stdio: 'inherit',
       shell: true
     });
