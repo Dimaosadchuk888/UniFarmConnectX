@@ -30,6 +30,7 @@ import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
 import { farmingScheduler } from '../core/scheduler/farmingScheduler';
 import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler';
 import { alertingService } from '../core/alerting';
+import { setupViteIntegration } from './setupViteIntegration';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
@@ -530,6 +531,9 @@ async function startServer() {
 
     // Port configuration
     const apiPort = config.app.port;
+    
+    // Подключаем Vite интеграцию ПОСЛЕ всех API маршрутов для корректной работы
+    await setupViteIntegration(app);
     
     // Static files and SPA routing (для всех режимов)
     // Static file serving for PWA files (before express.static)

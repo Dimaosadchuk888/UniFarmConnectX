@@ -9,12 +9,8 @@ import path from 'path';
 import { logger } from '../core';
 
 export async function setupViteIntegration(app: Express): Promise<void> {
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  
-  if (!isDevelopment) {
-    logger.info('[Vite] Skipping integration in production mode');
-    return;
-  }
+  // Включаем Vite интеграцию всегда для обработки TypeScript файлов
+  const enableVite = true;
 
   try {
     // Создаем Vite dev server
