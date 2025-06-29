@@ -6,15 +6,12 @@ import { logger } from '../logger';
  */
 export function requireTelegramAuth(req: Request, res: Response, next: NextFunction): void {
   try {
-    // CRITICAL FIX: Bypass all auth for production demo - eliminates 401 Unauthorized errors
-    const host = req.headers.host || '';
-    const isReplit = host.includes('replit.app') || host.includes('replit.dev') || host.includes('localhost');
-    
-    // For Replit production deployment, always allow access with demo user
-    if (isReplit || process.env.NODE_ENV === 'production' || process.env.BYPASS_AUTH === 'true') {
-      console.log('[TelegramAuth] Production demo bypass active for:', req.originalUrl);
+    // Production auth bypass disabled for security
+    // Only enable for development/testing with explicit BYPASS_AUTH=true
+    if (process.env.BYPASS_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
+      console.log('[TelegramAuth] Development bypass active (disabled in production)');
       const demoUser = {
-        id: 43, // Matches database user ID 43
+        id: 43,
         telegram_id: 42,
         username: 'demo_user',
         first_name: 'Demo User',

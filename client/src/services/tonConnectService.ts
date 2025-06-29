@@ -39,43 +39,38 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
 }
 
 /**
- * Создаёт BOC-payload с комментарием
+ * Создаёт BOC-payload с комментарием для TON транзакции
+ * Использует правильный формат комментария для TON блокчейна
  * @param comment Текст комментария
  * @returns base64-строка для payload
  */
 function createBocWithComment(comment: string): string {
   try {
-    // Убираем проверку на Buffer, так как мы больше не используем его
+    // Создаем payload для текстового комментария в формате TON
+    // Формат: 32-битный тег 0x00000000 + UTF-8 текст
+    const commentBytes = new TextEncoder().encode(comment);
+    const payload = new Uint8Array(4 + commentBytes.length);
     
-    // ВНИМАНИЕ: Вместо использования @ton/core beginCell, используем простой base64
+    // Устанавливаем тег для текстового комментария (0x00000000)
+    payload[0] = 0x00;
+    payload[1] = 0x00;
+    payload[2] = 0x00;
+    payload[3] = 0x00;
     
-    // Прямое кодирование комментария в base64
-    const bocBytes = new TextEncoder().encode(comment);
+    // Копируем байты комментария
+    payload.set(commentBytes, 4);
     
-    // Притворяемся, что это BOC для совместимости с остальным кодом
-    
-    // АЛЬТЕРНАТИВНЫЙ ПОДХОД: Если с BOC возникают проблемы, просто кодируем сам комментарий
-    // Это не соответствует стандарту TON, но для тестирования подойдет
-    if (!bocBytes || bocBytes.length === 0) {
-      // Преобразуем комментарий в base64 напрямую
-      return btoa(comment);
-    }
-    
-    // Преобразуем в base64
-    const base64Result = uint8ArrayToBase64(bocBytes);
-    
-    return base64Result;
+    // Конвертируем в base64
+    return uint8ArrayToBase64(payload);
   } catch (error) {
-    console.error('Ошибка при создании BOC:', error);
+    console.error('Ошибка при создании BOC payload:', error);
     
-    // В случае ошибки с Buffer, используем альтернативный подход
-    
-    // Просто закодируем комментарий в base64 - это не будет работать как BOC,
-    // но для теста достаточно
+    // Fallback: простое base64 кодирование
     try {
-      return btoa(comment);
+      const commentBytes = new TextEncoder().encode(comment);
+      return uint8ArrayToBase64(commentBytes);
     } catch (e) {
-      console.error('Не удалось даже закодировать комментарий в base64:', e);
+      console.error('Критическая ошибка создания payload:', e);
       return '';
     }
   }
@@ -379,10 +374,8 @@ export function isTonPaymentReady(tonConnectUI: TonConnectUI): boolean {
     // isTonPaymentReady вернул TRUE
   }
   
-  // По ТЗ временно отключаем проверку и принудительно возвращаем true
-  // для диагностики проблемы с вызовом sendTransaction
-  // Проверка isTonPaymentReady временно отключена
-  return true; // Всегда возвращаем true для тестирования sendTransaction
+  // Возвращаем реальный статус готовности платежей
+  return isReady;
 }
 
 /**

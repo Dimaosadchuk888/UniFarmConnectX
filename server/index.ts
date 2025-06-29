@@ -29,6 +29,7 @@ import { supabase } from '../core/supabase';
 import { telegramMiddleware } from '../core/middleware/telegramMiddleware';
 import { farmingScheduler } from '../core/scheduler/farmingScheduler';
 import { tonBoostIncomeScheduler } from '../modules/scheduler/tonBoostIncomeScheduler';
+import { alertingService } from '../core/alerting';
 // Удаляем импорт старого мониторинга PostgreSQL пула
 
 // API будет создан прямо в сервере
@@ -629,6 +630,14 @@ async function startServer() {
         logger.info('✅ TON Boost планировщик запущен');
       } catch (error) {
         logger.error('❌ Ошибка запуска TON Boost планировщика', { error });
+      }
+      
+      // Инициализация системы алертинга для production мониторинга
+      try {
+        alertingService.startMonitoring(60000); // Проверка каждую минуту
+        logger.info('✅ Система алертинга запущена');
+      } catch (error) {
+        logger.error('❌ Ошибка запуска системы алертинга', { error });
       }
       
       // Graceful shutdown
