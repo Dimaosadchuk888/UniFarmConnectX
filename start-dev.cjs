@@ -1,70 +1,34 @@
 #!/usr/bin/env node
 
 /**
- * UniFarm Development Starter
- * Запускает frontend и backend серверы для разработки
+ * Простой запуск UniFarm в режиме разработки
  */
 
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const { exec } = require('child_process');
 
-console.log('🚀 Запуск UniFarm в режиме разработки...');
+console.log('🚀 Запуск UniFarm...\n');
 
-// Проверяем наличие необходимых файлов
-const indexPath = path.join(__dirname, 'dist/public/index.html');
-if (!fs.existsSync(indexPath)) {
-  console.log('📦 Создание базовой структуры файлов...');
-  require('./quick-build.cjs');
-}
+// Устанавливаем переменные окружения
+process.env.NODE_ENV = 'development';
+process.env.PORT = '3000';
+process.env.HOST = '0.0.0.0';
+process.env.BYPASS_AUTH = 'true';
 
-// Запускаем только backend сервер с обслуживанием статических файлов
-console.log('🔧 Запуск сервера...');
-
-const serverProcess = spawn('npx', ['tsx', 'server/index.ts'], {
-  env: {
-    ...process.env,
-    NODE_ENV: 'development',
-    PORT: '3000',
-    HOST: '0.0.0.0',
-    // Включаем режим разработки с автоматической перезагрузкой
-    VITE_API_URL: 'http://localhost:3000'
-  },
-  stdio: 'inherit',
-  shell: true
+// Запускаем сервер
+const server = exec('tsx server/index.ts', {
+  env: process.env
 });
 
-serverProcess.on('error', (error) => {
-  console.error('❌ Ошибка запуска сервера:', error);
-  process.exit(1);
+// Логирование вывода
+server.stdout.on('data', (data) => {
+  process.stdout.write(data);
 });
 
-serverProcess.on('exit', (code) => {
-  if (code !== 0) {
-    console.error(`❌ Сервер завершился с кодом ${code}`);
-  }
-  process.exit(code || 0);
+server.stderr.on('data', (data) => {
+  process.stderr.write(data);
 });
 
-// Обработка завершения
-process.on('SIGTERM', () => {
-  console.log('\n🛑 Остановка серверов...');
-  serverProcess.kill();
-  process.exit(0);
+server.on('exit', (code) => {
+  console.log(`Сервер завершился с кодом ${code}`);
+  process.exit(code);
 });
-
-process.on('SIGINT', () => {
-  console.log('\n🛑 Остановка серверов...');
-  serverProcess.kill();
-  process.exit(0);
-});
-
-console.log(`
-✅ UniFarm запущен в режиме разработки!
-
-📍 Приложение доступно по адресу: http://localhost:3000
-📍 API endpoints: http://localhost:3000/api/v2/
-📍 Health check: http://localhost:3000/health
-
-Для остановки нажмите Ctrl+C
-`);

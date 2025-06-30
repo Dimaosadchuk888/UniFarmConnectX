@@ -4,7 +4,7 @@ import { correctApiRequest } from '@/lib/correctApiRequest';
 import { apiRequest, invalidateQueryWithUserId } from '@/lib/queryClient';
 import BigNumber from 'bignumber.js';
 import { useUser } from '@/contexts/userContext';
-import useErrorBoundary from '@/hooks/useErrorBoundary';
+import { useErrorBoundary } from '@/hooks/useErrorBoundary';
 import { useNotification } from '@/contexts/NotificationContext';
 
 interface UniFarmingCardProps {

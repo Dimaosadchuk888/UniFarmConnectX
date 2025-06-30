@@ -1,52 +1,43 @@
 #!/usr/bin/env node
 
 /**
- * Development Server with Vite Integration
- * Runs backend server with Vite dev server for frontend
+ * Direct Development Server for UniFarm
+ * Запускает сервер с Vite интеграцией напрямую
  */
 
 const { spawn } = require('child_process');
-const path = require('path');
 
-console.log('🚀 Starting UniFarm Development Server...');
+console.log('🚀 Запуск UniFarm сервера в development режиме...\n');
 
-// Start both Vite and backend server concurrently
-const viteProcess = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', '3000'], {
-  stdio: 'inherit',
-  shell: true
+// Устанавливаем переменные окружения
+process.env.NODE_ENV = 'development';
+process.env.PORT = '3000';
+process.env.HOST = '0.0.0.0';
+process.env.BYPASS_AUTH = 'true';
+
+// Запускаем tsx server/index.ts напрямую
+const server = spawn('tsx', ['server/index.ts'], {
+  env: process.env,
+  stdio: 'inherit'
 });
 
-// Give Vite time to start, then start backend on different port
-setTimeout(() => {
-  console.log('🔧 Starting backend server on port 3001...');
-  const backendProcess = spawn('npx', ['tsx', 'server/index.ts'], {
-    env: {
-      ...process.env,
-      PORT: '3001',
-      NODE_ENV: 'development'
-    },
-    stdio: 'inherit',
-    shell: true
-  });
-  
-  backendProcess.on('error', (error) => {
-    console.error('Backend error:', error);
-  });
-}, 2000);
-
-viteProcess.on('error', (error) => {
-  console.error('Vite error:', error);
+server.on('error', (error) => {
+  console.error('❌ Ошибка запуска сервера:', error.message);
+  process.exit(1);
 });
 
-// Handle shutdown
+server.on('exit', (code) => {
+  if (code !== 0) {
+    console.error(`⚠️ Сервер завершился с кодом ${code}`);
+  }
+  process.exit(code);
+});
+
+// Обработка сигналов завершения
 process.on('SIGTERM', () => {
-  console.log('Shutting down...');
-  viteProcess.kill();
-  process.exit(0);
+  server.kill('SIGTERM');
 });
 
 process.on('SIGINT', () => {
-  console.log('Shutting down...');
-  viteProcess.kill();
-  process.exit(0);
+  server.kill('SIGINT');
 });
