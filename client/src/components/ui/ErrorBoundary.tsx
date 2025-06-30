@@ -1,9 +1,9 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
-import { Button } from '../../components/ui/button';
-import { FiRefreshCw as RefreshCw, FiAlertTriangle as AlertTriangle, FiChevronRight as ChevronRight } from 'react-icons/fi';
-import { queryClient } from '../../lib/queryClient';
-import { invalidateQueryWithUserId } from '../../lib/queryClient';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, AlertTriangle, ChevronRight } from 'lucide-react';
+import { queryClient } from '@/lib/queryClient';
+import { invalidateQueryWithUserId } from '@/lib/queryClient';
 
 interface ErrorBoundaryProps {
   children: ReactNode;

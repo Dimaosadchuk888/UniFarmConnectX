@@ -6,7 +6,6 @@ export const NAV_ITEMS = [
   { id: "farming", label: "Фарминг", icon: "seedling" },
   { id: "missions", label: "Задания", icon: "clipboard-check" },
   { id: "friends", label: "Партнёрка", icon: "users" },
-  { id: "blockchain", label: "TON", icon: "link" },
   { id: "wallet", label: "Кошелёк", icon: "wallet" }
 ];
 

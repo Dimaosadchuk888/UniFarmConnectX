@@ -1,7 +1,28 @@
 import { QueryClient, QueryFunction, QueryCache, MutationCache } from "@tanstack/react-query";
-import { getTelegramAuthHeaders } from '../services/telegramService';
-import apiConfig from '../config/apiConfig';
-import { fixRequestBody } from "./apiFix";
+import { getTelegramAuthHeaders } from "@/services/telegramService";
+import apiConfig from "../../../config/apiConfig";
+// Utility function to fix request body for proper sending
+function fixRequestBody(body: any): any {
+  if (!body) return body;
+  
+  // If it's already a JSON string
+  if (typeof body === 'string') {
+    try {
+      JSON.parse(body);
+      return body;
+    } catch {
+      return JSON.stringify({ data: body });
+    }
+  }
+  
+  // If it's an object
+  if (typeof body === 'object') {
+    return JSON.stringify(body);
+  }
+  
+  // For other data types
+  return JSON.stringify({ data: body });
+}
 
 /**
  * Вспомогательная функция для проверки статуса HTTP-ответа
@@ -68,13 +89,6 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
   // Получаем заголовки с данными Telegram
   const telegramHeaders = getTelegramAuthHeaders();
 
-  // Получаем guest ID из localStorage
-  const guestId = localStorage.getItem('unifarm_guest_id') || '';
-
-  // Определяем, работаем ли мы на replit.app для demo режима
-  const isReplitDomain = window.location.hostname.includes('replit.app');
-  const isLocalhost = window.location.hostname.includes('localhost');
-
   // Базовые заголовки для API запросов
   const headers = {
     "Content-Type": "application/json",
@@ -82,10 +96,6 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
     "Cache-Control": "no-cache, no-store, must-revalidate",
     "Pragma": "no-cache",
     "Expires": "0",
-    "X-Guest-ID": guestId,
-    "X-Public-Demo": "true",
-    // Добавляем Host заголовок для replit.app
-    ...(isReplitDomain && { "Host": window.location.hostname }),
     ...telegramHeaders, // Добавляем заголовки Telegram
     ...customHeaders    // Добавляем пользовательские заголовки
   };
@@ -94,8 +104,6 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
   console.log('[queryClient] API headers prepared:', {
     hasTelegramData: 'Telegram-Data' in telegramHeaders || 'X-Telegram-Data' in telegramHeaders || 'x-telegram-init-data' in telegramHeaders,
     hasTelegramUserId: 'X-Telegram-User-Id' in telegramHeaders,
-    hasGuestId: !!guestId,
-    hasPublicDemo: true,
     telegramHeadersCount: Object.keys(telegramHeaders).length,
     totalHeadersCount: Object.keys(headers).length
   });
@@ -116,8 +124,8 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
  * @returns Результат запроса в формате JSON
  */
 export async function apiRequest(url: string, options?: RequestInit): Promise<any> {
-  // Импортируем улучшенный apiService
-  const { apiService } = await import('./apiService');
+  // Используем correctApiRequest для всех API запросов
+  const { correctApiRequest } = await import('./correctApiRequest');
 
   console.log('[queryClient] apiRequest to', url);
 
@@ -160,12 +168,8 @@ export async function apiRequest(url: string, options?: RequestInit): Promise<an
     }
   }
 
-  // Используем унифицированный apiService
-  return await apiService(url, {
-    method: method as any,
-    body,
-    headers: options?.headers as Record<string, string>
-  });
+  // Используем корректный API запрос
+  return await correctApiRequest(url, method as any, body, options?.headers as Record<string, string>);
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -174,7 +178,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    // Запрос через QueryClient
+    console.log("[DEBUG] QueryClient - Requesting:", queryKey[0]);
 
     try {
       // Добавляем заголовки, чтобы избежать кэширования
@@ -210,13 +214,13 @@ export const getQueryFn: <T>(options: {
       if (userId && !baseUrl.includes('user_id=')) {
         const separator = baseUrl.includes('?') ? '&' : '?';
         baseUrl = `${baseUrl}${separator}user_id=${userId}`;
-        // UserId добавлен в URL
+        console.log("[DEBUG] QueryClient - Added userId to URL:", userId);
       }
 
       // Добавляем nocache параметр
       const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}nocache=${timestamp}`;
 
-      // Полный URL сформирован
+      console.log("[DEBUG] QueryClient - Full URL:", url);
 
       // Получаем заголовки с данными Telegram
       const headers = getApiHeaders();
@@ -228,11 +232,11 @@ export const getQueryFn: <T>(options: {
 
       // Уменьшаем количество отладочной информации
       if (process.env.NODE_ENV === 'development') {
-        // Статус ответа обработан
+        console.log("[DEBUG] QueryClient - Response status:", res.status);
       }
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        // Возвращаем null для 401 ошибки
+        console.log("[DEBUG] QueryClient - Returning null due to 401");
         return null;
       }
 
@@ -322,7 +326,7 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 минут кеширование вместо Infinity
-      cacheTime: 10 * 60 * 1000, // 10 минут хранение в кеше
+      gcTime: 10 * 60 * 1000, // 10 минут хранение в кеше (gcTime заменяет cacheTime в TanStack Query v5)
       retry: 1, // Одна попытка повтора вместо false
       retryDelay: 1000, // 1 секунда задержка между попытками
     },

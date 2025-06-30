@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation } from 'wouter';
-import { NAV_ITEMS } from '../../lib/constants';
+import { NAV_ITEMS } from '@/lib/constants';
 
 interface NavigationBarProps {
   activeTab: string;

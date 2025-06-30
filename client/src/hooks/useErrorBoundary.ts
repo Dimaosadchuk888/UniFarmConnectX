@@ -1,19 +1,48 @@
-import { useState, useCallback } from 'react';
+/**
+ * Хук для работы с Error Boundary
+ */
+
+import { useErrorBoundary as useReactErrorBoundary } from 'react-error-boundary';
+import { log } from '../utils/logger';
 
 export function useErrorBoundary() {
-  const [error, setError] = useState<Error | null>(null);
+  const { showBoundary } = useReactErrorBoundary();
 
-  const resetError = useCallback(() => {
-    setError(null);
-  }, []);
+  const captureError = (error: Error, errorInfo?: { componentStack?: string }) => {
+    // Логируем ошибку
+    log.error('React Error Boundary triggered', {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo?.componentStack
+    });
 
-  const captureError = useCallback((error: Error) => {
-    setError(error);
-  }, []);
+    // Показываем error boundary
+    showBoundary(error);
+  };
+
+  const handleAsyncError = async (asyncFn: () => Promise<any>, context?: string) => {
+    try {
+      return await asyncFn();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown async error';
+      log.error(`Async error in ${context || 'unknown context'}`, error);
+      
+      // Создаем обертку для async ошибок
+      const wrappedError = new Error(`${context ? `${context}: ` : ''}${errorMessage}`);
+      if (error instanceof Error) {
+        wrappedError.stack = error.stack;
+      }
+      
+      captureError(wrappedError);
+      throw wrappedError;
+    }
+  };
 
   return {
-    error,
-    resetError,
-    captureError
+    captureError,
+    handleAsyncError,
+    showBoundary
   };
 }
+
+export default useErrorBoundary;

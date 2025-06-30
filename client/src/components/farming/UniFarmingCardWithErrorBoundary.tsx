@@ -1,7 +1,7 @@
 import React from 'react';
-import ErrorBoundary from '../../components/ui/ErrorBoundary';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import UniFarmingCard from './UniFarmingCard';
-import { useUser } from '../../contexts/userContext';
+import { useUser } from '@/contexts/userContext';
 
 const UniFarmingCardWithErrorBoundary: React.FC = () => {
   const userContext = useUser();

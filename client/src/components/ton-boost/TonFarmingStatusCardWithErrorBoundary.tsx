@@ -1,5 +1,5 @@
 import React from 'react';
-import ErrorBoundary from '../../components/ui/ErrorBoundary';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import TonFarmingStatusCard from './TonFarmingStatusCard';
 
 const TonFarmingStatusCardWithErrorBoundary: React.FC = () => {

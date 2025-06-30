@@ -2,30 +2,30 @@ import { useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { queryClient } from "./lib/queryClient";
-import { Toaster } from "./components/ui/toaster";
+import { Toaster } from "@/components/ui/toaster";
 
 // Layouts and Hooks
-import MainLayout from "./layouts/MainLayout";
-import { useTelegram } from "./hooks/useTelegram";
-import { useBalance } from "./hooks/useBalance";
+import MainLayout from "@/layouts/MainLayout";
+import { useTelegram } from "@/hooks/useTelegram";
+import { useBalance } from "@/hooks/useBalance";
 
 // Components
-import TelegramWebAppCheck from "./components/ui/TelegramWebAppCheck";
-import ErrorBoundary from "./components/ui/ErrorBoundary";
-import { UserProvider } from "./contexts/userContext";
-import { WebSocketProvider } from "./contexts/webSocketContext";
-import { NotificationProvider } from "./contexts/NotificationContext";
-import NetworkStatusIndicator from "./components/common/NetworkStatusIndicator";
+import TelegramWebAppCheck from "@/components/ui/TelegramWebAppCheck";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { UserProvider } from "@/contexts/userContext";
+import { WebSocketProvider } from "@/contexts/webSocketContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 
 // Pages
-import Dashboard from "./pages/Dashboard";
-import Farming from "./pages/Farming";
-import Missions from "./pages/Missions";
-import Friends from "./pages/Friends";
-import Wallet from "./pages/Wallet";
+import Dashboard from "@/pages/Dashboard";
+import Farming from "@/pages/Farming";
+import Missions from "@/pages/Missions";
+import Friends from "@/pages/Friends";
+import Wallet from "@/pages/Wallet";
 
 // Services
-import userService from './services/userService';
+import userService from '@/services/userService';
 import { getReferrerIdFromURL } from './lib/utils';
 
 // Types
@@ -53,13 +53,14 @@ function App() {
 
   const initializeApp = async () => {
     try {
-      // Сразу устанавливаем состояние для отображения UI
-      setState({
+      setState(prev => ({ ...prev, isLoading: true, authError: null }));
+      
+      // Загружаем интерфейс сразу, без ожидания аутентификации
+      setState(prev => ({ 
+        ...prev, 
         isLoading: false,
-        userId: 1,
-        activeTab: "dashboard",
-        authError: null
-      });
+        userId: 1 // Устанавливаем базовый ID для демонстрации
+      }));
       
       // Пытаемся создать пользователя в фоне, не блокируя интерфейс
       try {
@@ -70,12 +71,11 @@ function App() {
     } catch (error) {
       console.error('App initialization error:', error);
       // В любом случае загружаем интерфейс
-      setState({
+      setState(prev => ({ 
+        ...prev, 
         isLoading: false,
-        userId: 1,
-        activeTab: "dashboard",
-        authError: null
-      });
+        userId: 1
+      }));
     }
   };
 

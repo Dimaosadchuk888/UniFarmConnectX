@@ -1,3 +1,2 @@
-// Экспорт основных компонентов миссий
+// Экспорт основного компонента миссий
 export { MissionsList } from './MissionsList';
-export { default as MissionStats } from './MissionStats';
