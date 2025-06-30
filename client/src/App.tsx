@@ -53,14 +53,13 @@ function App() {
 
   const initializeApp = async () => {
     try {
-      setState(prev => ({ ...prev, isLoading: true, authError: null }));
-      
-      // Загружаем интерфейс сразу, без ожидания аутентификации
-      setState(prev => ({ 
-        ...prev, 
+      // Сразу устанавливаем состояние для отображения UI
+      setState({
         isLoading: false,
-        userId: 1 // Устанавливаем базовый ID для демонстрации
-      }));
+        userId: 1,
+        activeTab: "dashboard",
+        authError: null
+      });
       
       // Пытаемся создать пользователя в фоне, не блокируя интерфейс
       try {
@@ -71,11 +70,12 @@ function App() {
     } catch (error) {
       console.error('App initialization error:', error);
       // В любом случае загружаем интерфейс
-      setState(prev => ({ 
-        ...prev, 
+      setState({
         isLoading: false,
-        userId: 1
-      }));
+        userId: 1,
+        activeTab: "dashboard",
+        authError: null
+      });
     }
   };
 
