@@ -4,12 +4,8 @@ import { correctApiRequest } from '@/lib/correctApiRequest';
 import { apiRequest, invalidateQueryWithUserId } from '@/lib/queryClient';
 import BigNumber from 'bignumber.js';
 import { useUser } from '@/contexts/userContext';
-import useErrorBoundary from '@/hooks/useErrorBoundary';
+import { useErrorBoundary } from '@/hooks/useErrorBoundary';
 import { useNotification } from '@/contexts/NotificationContext';
-
-interface UniFarmingCardProps {
-  userData: any;
-}
 
 interface FarmingInfo {
   isActive: boolean;
@@ -23,9 +19,9 @@ interface FarmingInfo {
   uni_farming_start_timestamp?: string | null;
 }
 
-const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
+const UniFarmingCard: React.FC = () => {
   const queryClient = useQueryClient();
-  const { userId } = useUser(); // Получаем ID пользователя из контекста
+  const { userId, uniBalance } = useUser(); // Получаем ID пользователя и баланс из контекста
   const { success, error: showError } = useNotification(); // Для показа уведомлений
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +69,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   }
 
   // Применяем Error Boundary к компоненту
-  const { captureError, handleAsyncError } = useErrorBoundary();
+  const { captureError } = useErrorBoundary();
 
   // Получаем информацию о фарминге с динамическим ID пользователя
   const { data: farmingResponse, isLoading } = useQuery({
@@ -295,15 +291,11 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // Показываем уведомление об успешном создании депозита
         success('Ваш депозит успешно размещен в фарминге UNI и начал приносить доход!');
 
-        // Обновляем контекст пользователя для обновления баланса без перезагрузки
-        if (userData && response?.data?.newBalance) {
+        // Обновляем данные после успешного депозита
+        if (response?.data?.newBalance) {
           console.log('[INFO] Обновляем баланс пользователя:', {
-            oldBalance: userData.balance_uni,
             newBalance: response.data.newBalance
           });
-
-          // Обновляем userData напрямую для мгновенного эффекта
-          userData.balance_uni = response.data.newBalance;
         }
 
         // Обновляем данные с учетом динамического ID пользователя
@@ -424,7 +416,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         let balance: BigNumber;
         try {
           // Безопасное получение баланса
-          const balanceStr = userData?.balance_uni;
+          const balanceStr = uniBalance?.toString();
           if (balanceStr === undefined || balanceStr === null) {
             console.error('Не удалось получить баланс пользователя');
             setError('Не удалось получить информацию о балансе');
@@ -998,7 +990,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               placeholder="0.00"
             />
             <p className="text-sm text-foreground opacity-70 mt-1">
-              Доступно: <span className="text-primary">{formatNumber(userData?.balance_uni || '0')}</span> UNI
+              Доступно: <span className="text-primary">{formatNumber(uniBalance?.toString() || '0')}</span> UNI
             </p>
           </div>
 

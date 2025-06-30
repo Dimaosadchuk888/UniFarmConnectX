@@ -52,10 +52,10 @@ const Farming: React.FC = () => {
         
         <TabsContent value="uni" className="space-y-6">
           {/* Основной UNI пакет */}
-          <UniFarmingCardWithErrorBoundary userData={userData} />
+          <UniFarmingCardWithErrorBoundary />
           
           {/* UNI Boost Пакеты */}
-          <BoostPackagesCardWithErrorBoundary userData={userData} />
+          <BoostPackagesCardWithErrorBoundary />
           
           {/* Дополнительное пространство внизу для прокрутки */}
           <div className="h-4"></div>
@@ -69,7 +69,7 @@ const Farming: React.FC = () => {
           <ActiveTonBoostsCardWithErrorBoundary />
           
           {/* TON Boost-пакеты - с ErrorBoundary */}
-          <BoostPackagesCardWithErrorBoundary userData={userData} />
+          <BoostPackagesCardWithErrorBoundary />
           
           {/* Дополнительное пространство внизу для прокрутки */}
           <div className="h-4"></div>
