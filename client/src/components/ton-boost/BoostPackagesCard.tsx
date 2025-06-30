@@ -56,10 +56,10 @@ const BoostPackagesCard: React.FC = () => {
 
   // Получаем список доступных TON Boost-пакетов
   const { data, isLoading: isLoadingPackages } = useQuery({
-    queryKey: ['/api/ton-boosts'],
+    queryKey: ['/api/v2/boost/packages'],
     queryFn: async () => {
       try {
-        const response = await correctApiRequest('/api/ton-boosts', 'GET');
+        const response = await correctApiRequest('/api/v2/boost/packages', 'GET');
         return response.success ? response.data as TonBoostPackage[] : [];
       } catch (error) {
         console.error("Failed to fetch TON Boost packages:", error);
@@ -193,7 +193,7 @@ const BoostPackagesCard: React.FC = () => {
 
             // Обновляем данные
             queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/boost/packages'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
           } else {
@@ -232,7 +232,7 @@ const BoostPackagesCard: React.FC = () => {
           if (data.success) {
             // Обновляем кэш пользователя и связанные данные
             queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/boost/packages'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
 
@@ -306,7 +306,7 @@ const BoostPackagesCard: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/v2/boost/packages'] });
                 queryClient.invalidateQueries({ queryKey: ['/api/v2/ton-farming/boosts'] });
                 toast({
                   title: "Данные обновлены",

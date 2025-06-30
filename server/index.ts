@@ -557,19 +557,22 @@ async function startServer() {
     // Подключаем Vite интеграцию с исправленной конфигурацией
     await setupViteIntegration(app);
     
-    // Serve static files from dist/public (работает в любом режиме)
-    const staticPath = path.resolve(process.cwd(), 'dist', 'public');
-    logger.info(`[Static Files] Serving from: ${staticPath}`);
-    app.use(express.static(staticPath, {
-      maxAge: '0',
-      etag: false,
-      lastModified: false,
-      setHeaders: (res, path) => {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-      }
-    }));
+    // В режиме разработки Vite обрабатывает все файлы
+    if (process.env.NODE_ENV === 'production') {
+      // Serve static files from dist/public только в production
+      const staticPath = path.resolve(process.cwd(), 'dist', 'public');
+      logger.info(`[Static Files] Serving from: ${staticPath}`);
+      app.use(express.static(staticPath, {
+        maxAge: '0',
+        etag: false,
+        lastModified: false,
+        setHeaders: (res, path) => {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      }));
+    }
     
     // SPA fallback - serve index.html for non-API routes
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
@@ -583,9 +586,11 @@ async function startServer() {
         return next();
       }
       
-      // Fallback to index.html for SPA routing
-      const indexPath = path.resolve(process.cwd(), 'dist', 'public', 'index.html');
-      logger.info(`[SPA Fallback] Serving: ${indexPath}`);
+      // В режиме разработки отдаем client/index.html
+      const indexPath = process.env.NODE_ENV === 'production' 
+        ? path.resolve(process.cwd(), 'dist', 'public', 'index.html')
+        : path.resolve(process.cwd(), 'client', 'index.html');
+      
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');

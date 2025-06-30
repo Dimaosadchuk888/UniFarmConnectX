@@ -38,9 +38,9 @@ const ExternalPaymentStatus: React.FC<ExternalPaymentStatusProps> = ({
   
   // Запрос на проверку статуса платежа
   const { data, refetch, isLoading } = useQuery({
-    queryKey: ['/api/ton-boosts/check-payment', userId, transactionId],
+    queryKey: ['/api/v2/boost/verify-ton-payment', userId, transactionId],
     queryFn: async () => {
-      const response = await fetch(`/api/ton-boosts/check-payment?user_id=${userId}&transaction_id=${transactionId}`);
+      const response = await fetch(`/api/v2/boost/verify-ton-payment?user_id=${userId}&transaction_id=${transactionId}`);
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }

@@ -34,19 +34,19 @@ export async function setupViteIntegration(app: Express): Promise<void> {
       }
     });
 
-    // Используем Vite middleware с фильтрацией
+    // Используем Vite middleware для всех запросов кроме API
     app.use((req, res, next) => {
-      // Только для файлов разработки
-      if (req.path.startsWith('/src/') || 
-          req.path.startsWith('/@vite/') || 
-          req.path.startsWith('/node_modules/.vite/') ||
-          req.path.includes('.tsx') ||
-          req.path.includes('.ts') ||
-          req.path.includes('.jsx') ||
-          req.path.includes('.css')) {
-        return vite.middlewares(req, res, next);
+      // Пропускаем API маршруты и специальные endpoints
+      if (req.path.startsWith('/api/') || 
+          req.path.startsWith('/health') ||
+          req.path === '/webhook' ||
+          req.path === '/manifest.json' ||
+          req.path === '/tonconnect-manifest.json') {
+        return next();
       }
-      next();
+      
+      // Vite обрабатывает все остальное (включая index.html, assets, и т.д.)
+      return vite.middlewares(req, res, next);
     });
     
     logger.info('[Vite] Development server integrated successfully');
