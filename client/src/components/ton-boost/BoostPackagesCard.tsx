@@ -47,7 +47,7 @@ const BoostPackagesCard: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tonConnectUI] = useTonConnectUI();
-  const { user } = useUser();
+  const { userId } = useUser();
   const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState<boolean>(false);
@@ -108,12 +108,12 @@ const BoostPackagesCard: React.FC = () => {
     
     try {
       // Получаем ID пользователя
-      let userId = user?.id?.toString();
-      if (!userId) {
-        userId = getUserIdFromURL();
+      let userIdStr = userId?.toString();
+      if (!userIdStr) {
+        userIdStr = getUserIdFromURL();
       }
       
-      if (!userId) {
+      if (!userIdStr) {
         toast({
           title: "Ошибка",
           description: "Не удалось определить ID пользователя",
@@ -163,9 +163,8 @@ const BoostPackagesCard: React.FC = () => {
         // Отправляем TON транзакцию через подключенный кошелек
         try {
           const transactionComment = createTonTransactionComment(
-            Number(userId),
-            boostId,
-            'ton_boost_purchase'
+            Number(userIdStr),
+            boostId
           );
 
           const transactionRequest = {
@@ -181,9 +180,13 @@ const BoostPackagesCard: React.FC = () => {
 
           console.log('[DEBUG] Отправка транзакции TON:', transactionRequest);
           
-          const result = await sendTonTransaction(tonConnectUI, transactionRequest);
+          const result = await sendTonTransaction(
+            tonConnectUI, 
+            selectedPackage.priceTon,
+            transactionComment
+          );
           
-          if (result?.boc) {
+          if (result?.txHash) {
             // Транзакция успешно отправлена
             toast({
               title: "Транзакция отправлена",
@@ -361,7 +364,7 @@ const BoostPackagesCard: React.FC = () => {
 
       {/* Диалог выбора способа оплаты */}
       <PaymentMethodDialog
-        isOpen={paymentMethodDialogOpen}
+        open={paymentMethodDialogOpen}
         onClose={() => setPaymentMethodDialogOpen(false)}
         onSelectPaymentMethod={handleSelectPaymentMethod}
         selectedBoostId={selectedBoostId}
@@ -371,7 +374,7 @@ const BoostPackagesCard: React.FC = () => {
 
       {/* Диалог статуса внешнего платежа */}
       <ExternalPaymentStatus
-        isOpen={externalPaymentDialogOpen}
+        open={externalPaymentDialogOpen}
         onClose={() => setExternalPaymentDialogOpen(false)}
         paymentData={externalPaymentData}
       />
