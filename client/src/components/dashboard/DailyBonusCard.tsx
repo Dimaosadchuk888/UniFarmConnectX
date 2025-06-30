@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
-import { invalidateQueryWithUserId } from '@/lib/queryClient';
-import { correctApiRequest } from '@/lib/correctApiRequest';
-import { useUser } from '@/contexts/userContext';
-import ConfettiEffect from '@/components/ui/ConfettiEffect';
+import { useToast } from '../../hooks/use-toast';
+import { Skeleton } from '../../components/ui/skeleton';
+import { invalidateQueryWithUserId } from '../../lib/queryClient';
+import { correctApiRequest } from '../../lib/correctApiRequest';
+import { useUser } from '../../contexts/userContext';
+import ConfettiEffect from '../../components/ui/ConfettiEffect';
 
 // Типы для статуса бонуса
 type DailyBonusStatus = {

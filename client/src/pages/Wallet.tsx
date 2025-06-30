@@ -1,7 +1,7 @@
 import React from 'react';
-import BalanceCard from '@/components/wallet/BalanceCard';
-import WithdrawalForm from '@/components/wallet/WithdrawalForm';
-import TransactionHistory from '@/components/wallet/TransactionHistory';
+import BalanceCard from '../components/wallet/BalanceCard';
+import WithdrawalForm from '../components/wallet/WithdrawalForm';
+import TransactionHistory from '../components/wallet/TransactionHistory';
 import { ErrorBoundary } from 'react-error-boundary';
 
 /**

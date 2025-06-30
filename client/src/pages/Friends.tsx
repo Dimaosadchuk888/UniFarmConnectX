@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import UniFarmReferralLink from '@/components/friends/UniFarmReferralLink';
-import ReferralLevelsTable from '@/components/friends/ReferralLevelsTable';
+import UniFarmReferralLink from '../components/friends/UniFarmReferralLink';
+import ReferralLevelsTable from '../components/friends/ReferralLevelsTable';
 import { useQuery } from '@tanstack/react-query';
-import userService from '@/services/userService';
-import type { User } from '@/services/userService';
-import { queryClient } from '@/lib/queryClient';
-import ErrorBoundary from '@/components/ui/ErrorBoundary';
-import { correctApiRequest } from '@/lib/correctApiRequest';
+import userService from '../services/userService';
+import type { User } from '../services/userService';
+import { queryClient } from '../lib/queryClient';
+import ErrorBoundary from '../components/ui/ErrorBoundary';
+import { correctApiRequest } from '../lib/correctApiRequest';
 
 /**
  * Страница партнерской программы

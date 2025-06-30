@@ -1,8 +1,8 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { formatNumberWithPrecision, getUserIdFromURL } from '@/lib/utils';
+import { formatNumberWithPrecision, getUserIdFromURL } from '../../lib/utils';
 
 // Интерфейс для активного TON Boost депозита
 interface TonBoostDeposit {

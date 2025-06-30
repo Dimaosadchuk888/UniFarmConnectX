@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import { getTelegramUserDisplayName, isTelegramWebApp } from '@/services/telegramService';
+import { getTelegramUserDisplayName, isTelegramWebApp } from '../../services/telegramService';
 import { 
   isWalletConnected, 
   getWalletAddress
-} from '@/services/tonConnectService';
+} from '../../services/tonConnectService';
 import { useQuery } from '@tanstack/react-query';
 
 const WelcomeSection: React.FC = () => {

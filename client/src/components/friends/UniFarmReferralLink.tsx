@@ -1,8 +1,8 @@
 import React from 'react';
 import { Copy, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { toast } from '../../hooks/use-toast';
 
 interface UniFarmReferralLinkProps {
   referralCode?: string;
