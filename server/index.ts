@@ -574,8 +574,15 @@ async function startServer() {
     
     // SPA fallback - serve index.html for non-API routes
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
-      // Skip API routes, webhook, and static files
-      if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path === '/webhook' || req.path === '/manifest.json' || req.path === '/tonconnect-manifest.json') {
+      // Skip API routes, webhook, static files and Vite dev files
+      if (req.path.startsWith('/api/') || 
+          req.path.startsWith('/src/') || 
+          req.path.startsWith('/@') ||
+          req.path.startsWith('/node_modules/') ||
+          req.path.startsWith('/health') || 
+          req.path === '/webhook' || 
+          req.path === '/manifest.json' || 
+          req.path === '/tonconnect-manifest.json') {
         return next();
       }
       
