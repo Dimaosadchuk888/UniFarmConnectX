@@ -3,6 +3,15 @@
  * Запускает сервер с интеграцией всех модулей
  */
 
+// Загружаем переменные окружения из .env файла в development режиме
+import dotenv from 'dotenv';
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+  console.log('[ENV] Loaded .env file in development mode');
+  console.log('[ENV] NODE_ENV:', process.env.NODE_ENV);
+  console.log('[ENV] BYPASS_AUTH:', process.env.BYPASS_AUTH);
+}
+
 import * as Sentry from '@sentry/node';
 
 // Ініціалізація Sentry перед усіма іншими імпортами
@@ -499,6 +508,17 @@ async function startServer() {
         logger.error('[DailyBonus] Error:', error);
         res.json({ success: false, error: 'Internal server error' });
       }
+    });
+
+    // Debug endpoint для проверки переменных окружения
+    app.get(`${apiPrefix}/debug/env`, (req: Request, res: Response) => {
+      res.json({
+        NODE_ENV: process.env.NODE_ENV,
+        BYPASS_AUTH: process.env.BYPASS_AUTH,
+        PORT: process.env.PORT,
+        has_supabase: !!process.env.SUPABASE_URL,
+        env_loaded: true
+      });
     });
 
     // Import centralized routes (after critical endpoints)

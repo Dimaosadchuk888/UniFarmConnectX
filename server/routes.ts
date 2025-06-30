@@ -45,6 +45,17 @@ router.get('/debug/routes', (req: Request, res: Response) => {
   });
 });
 
+// Debug endpoint для проверки переменных окружения
+router.get('/debug/env', (req: Request, res: Response) => {
+  res.json({
+    NODE_ENV: process.env.NODE_ENV,
+    BYPASS_AUTH: process.env.BYPASS_AUTH,
+    PORT: process.env.PORT,
+    has_supabase_key: !!process.env.SUPABASE_KEY,
+    has_supabase_url: !!process.env.SUPABASE_URL
+  });
+});
+
 // Debug endpoint - using Supabase API
 router.get('/debug/db-users', async (req: Request, res: Response) => {
   try {
