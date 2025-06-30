@@ -21,6 +21,7 @@ html, body {
   color: #ffffff !important;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* Принудительное исправление для всех элементов */

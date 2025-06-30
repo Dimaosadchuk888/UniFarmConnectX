@@ -47,7 +47,7 @@ const BoostPackagesCard: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tonConnectUI] = useTonConnectUI();
-  const { userId } = useUser();
+  const { user } = useUser();
   const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState<boolean>(false);
@@ -56,10 +56,10 @@ const BoostPackagesCard: React.FC = () => {
 
   // Получаем список доступных TON Boost-пакетов
   const { data, isLoading: isLoadingPackages } = useQuery({
-    queryKey: ['/api/v2/boost/packages'],
+    queryKey: ['/api/ton-boosts'],
     queryFn: async () => {
       try {
-        const response = await correctApiRequest('/api/v2/boost/packages', 'GET');
+        const response = await correctApiRequest('/api/ton-boosts', 'GET');
         return response.success ? response.data as TonBoostPackage[] : [];
       } catch (error) {
         console.error("Failed to fetch TON Boost packages:", error);
@@ -108,12 +108,12 @@ const BoostPackagesCard: React.FC = () => {
     
     try {
       // Получаем ID пользователя
-      let userIdStr = userId?.toString();
-      if (!userIdStr) {
-        userIdStr = getUserIdFromURL();
+      let userId = user?.id?.toString();
+      if (!userId) {
+        userId = getUserIdFromURL();
       }
       
-      if (!userIdStr) {
+      if (!userId) {
         toast({
           title: "Ошибка",
           description: "Не удалось определить ID пользователя",
@@ -163,8 +163,9 @@ const BoostPackagesCard: React.FC = () => {
         // Отправляем TON транзакцию через подключенный кошелек
         try {
           const transactionComment = createTonTransactionComment(
-            Number(userIdStr),
-            boostId
+            Number(userId),
+            boostId,
+            'ton_boost_purchase'
           );
 
           const transactionRequest = {
@@ -180,13 +181,9 @@ const BoostPackagesCard: React.FC = () => {
 
           console.log('[DEBUG] Отправка транзакции TON:', transactionRequest);
           
-          const result = await sendTonTransaction(
-            tonConnectUI, 
-            selectedPackage.priceTon,
-            transactionComment
-          );
+          const result = await sendTonTransaction(tonConnectUI, transactionRequest);
           
-          if (result?.txHash) {
+          if (result?.boc) {
             // Транзакция успешно отправлена
             toast({
               title: "Транзакция отправлена",
@@ -196,7 +193,7 @@ const BoostPackagesCard: React.FC = () => {
 
             // Обновляем данные
             queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/v2/boost/packages'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
           } else {
@@ -235,7 +232,7 @@ const BoostPackagesCard: React.FC = () => {
           if (data.success) {
             // Обновляем кэш пользователя и связанные данные
             queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/v2/boost/packages'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
 
@@ -309,7 +306,7 @@ const BoostPackagesCard: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['/api/v2/boost/packages'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts'] });
                 queryClient.invalidateQueries({ queryKey: ['/api/v2/ton-farming/boosts'] });
                 toast({
                   title: "Данные обновлены",
@@ -364,7 +361,7 @@ const BoostPackagesCard: React.FC = () => {
 
       {/* Диалог выбора способа оплаты */}
       <PaymentMethodDialog
-        open={paymentMethodDialogOpen}
+        isOpen={paymentMethodDialogOpen}
         onClose={() => setPaymentMethodDialogOpen(false)}
         onSelectPaymentMethod={handleSelectPaymentMethod}
         selectedBoostId={selectedBoostId}
@@ -374,7 +371,7 @@ const BoostPackagesCard: React.FC = () => {
 
       {/* Диалог статуса внешнего платежа */}
       <ExternalPaymentStatus
-        open={externalPaymentDialogOpen}
+        isOpen={externalPaymentDialogOpen}
         onClose={() => setExternalPaymentDialogOpen(false)}
         paymentData={externalPaymentData}
       />

@@ -89,10 +89,6 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
   // Получаем заголовки с данными Telegram
   const telegramHeaders = getTelegramAuthHeaders();
 
-  // Проверяем, работаем ли в Replit preview (development mode)
-  const isReplitPreview = typeof window !== 'undefined' && 
-                          window.location.host.includes('replit.dev');
-
   // Базовые заголовки для API запросов
   const headers = {
     "Content-Type": "application/json",
@@ -101,9 +97,7 @@ function getApiHeaders(customHeaders: Record<string, string> = {}): Record<strin
     "Pragma": "no-cache",
     "Expires": "0",
     ...telegramHeaders, // Добавляем заголовки Telegram
-    ...customHeaders,    // Добавляем пользовательские заголовки
-    // Добавляем заголовок для development режима в Replit
-    ...(isReplitPreview ? { "X-Dev-Mode": "true" } : {})
+    ...customHeaders    // Добавляем пользовательские заголовки
   };
 
   // Логируем наличие telegram-заголовков (но не их содержимое)

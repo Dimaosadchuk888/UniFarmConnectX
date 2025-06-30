@@ -63,7 +63,7 @@ const SimpleMissionsList: React.FC = () => {
           return (
             <Card 
               key={mission.id} 
-              className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 backdrop-blur-sm border border-purple-500/30"
+              className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-blue-500/30"
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -91,7 +91,7 @@ const SimpleMissionsList: React.FC = () => {
                   {!isCompleted && (
                     <Button
                       onClick={() => handleMissionClick(mission)}
-                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                      className="bg-blue-600 hover:bg-blue-700"
                       disabled={isCompleted}
                     >
                       {mission.link ? 'Перейти' : 'Выполнить'}

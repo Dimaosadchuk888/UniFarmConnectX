@@ -25,7 +25,7 @@ const ActiveTonBoostsCard: React.FC = () => {
   
   // Получаем активные буст-пакеты
   const { data: activeTonBoosts, isLoading: isLoadingBoosts } = useQuery<{ success: boolean, data: TonBoostDeposit[] }>({
-    queryKey: [`/api/v2/boost/user/${userId}`],
+    queryKey: [`/api/ton-boosts/active?user_id=${userId}`],
     refetchInterval: 5000, // Обновляем каждые 5 секунд
   });
 
