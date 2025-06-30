@@ -557,8 +557,8 @@ async function startServer() {
     // Подключаем Vite интеграцию с исправленной конфигурацией
     await setupViteIntegration(app);
     
-    // Serve static files from dist (работает в любом режиме)
-    const staticPath = path.resolve(process.cwd(), 'dist');
+    // Serve static files from dist/public (работает в любом режиме)
+    const staticPath = path.resolve(process.cwd(), 'dist', 'public');
     logger.info(`[Static Files] Serving from: ${staticPath}`);
     app.use(express.static(staticPath, {
       maxAge: '0',
@@ -573,8 +573,9 @@ async function startServer() {
     
     // SPA fallback - serve index.html for non-API routes
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
-      // Skip API routes and webhook
+      // Skip API routes, static assets and webhook
       if (req.path.startsWith('/api/') || 
+          req.path.startsWith('/assets/') ||
           req.path.startsWith('/health') || 
           req.path === '/webhook' || 
           req.path === '/manifest.json' || 
