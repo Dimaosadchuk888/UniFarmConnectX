@@ -542,11 +542,7 @@ async function startServer() {
       next();
     });
     
-    // Подключаем Vite интеграцию ПОСЛЕ всех API маршрутов для корректной работы
-    await setupViteIntegration(app);
-    
-    // Static files and SPA routing (для всех режимов)
-    // Static file serving for PWA files (before express.static)
+    // Static file serving for PWA files (before Vite)
     app.get('/manifest.json', (req: Request, res: Response) => {
       res.setHeader('Content-Type', 'application/json');
       res.sendFile(path.resolve('client/public/manifest.json'));
@@ -557,6 +553,9 @@ async function startServer() {
       res.setHeader('Content-Type', 'application/json');
       res.sendFile(path.resolve('client/public/tonconnect-manifest.json'));
     });
+    
+    // Подключаем Vite интеграцию с исправленной конфигурацией
+    await setupViteIntegration(app);
     
     // Serve static files from dist (работает в любом режиме)
     const staticPath = path.resolve(process.cwd(), 'dist');
@@ -574,11 +573,8 @@ async function startServer() {
     
     // SPA fallback - serve index.html for non-API routes
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
-      // Skip API routes, webhook, static files and Vite dev files
+      // Skip API routes and webhook
       if (req.path.startsWith('/api/') || 
-          req.path.startsWith('/src/') || 
-          req.path.startsWith('/@') ||
-          req.path.startsWith('/node_modules/') ||
           req.path.startsWith('/health') || 
           req.path === '/webhook' || 
           req.path === '/manifest.json' || 

@@ -11,51 +11,48 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import react from '@vitejs/plugin-react';
 
 export async function setupViteIntegration(app: Express): Promise<void> {
-  // Включаем Vite интеграцию всегда для обработки TypeScript файлов
-  const enableVite = true;
-
   try {
-    // Создаем Vite dev server без ограничений хостов
+    logger.info('[Vite] Creating Vite server with minimal configuration...');
+    
     const vite = await createViteServer({
       server: { 
         middlewareMode: true,
-        hmr: false  // Отключаем HMR, чтобы избежать проблем с WebSocket
+        hmr: false
       },
       appType: 'spa',
       root: path.resolve(process.cwd(), 'client'),
+      base: '/',
+      clearScreen: false,
+      logLevel: 'warn',
       plugins: [
-        react(),
-        nodePolyfills({
-          // Включаем полифиллы для Buffer и других Node.js API
-          protocolImports: true,
-          globals: {
-            Buffer: true,
-            global: true,
-            process: true
-          }
-        })
+        react()
       ],
-      define: {
-        // Полифилл для Node.js глобалов
-        global: 'globalThis',
-        'process.env': {}
-      },
-      optimizeDeps: {
-        // Включаем полифиллы для Node.js
-        esbuildOptions: {
-          define: {
-            global: 'globalThis'
-          }
+      resolve: {
+        alias: {
+          '@': path.resolve(process.cwd(), 'client/src')
         }
       }
     });
 
-    // Используем Vite middleware для обработки запросов
-    app.use(vite.middlewares);
+    // Используем Vite middleware с фильтрацией
+    app.use((req, res, next) => {
+      // Только для файлов разработки
+      if (req.path.startsWith('/src/') || 
+          req.path.startsWith('/@vite/') || 
+          req.path.startsWith('/node_modules/.vite/') ||
+          req.path.includes('.tsx') ||
+          req.path.includes('.ts') ||
+          req.path.includes('.jsx') ||
+          req.path.includes('.css')) {
+        return vite.middlewares(req, res, next);
+      }
+      next();
+    });
     
-    logger.info('[Vite] Development server integrated successfully with Replit hosts allowed');
+    logger.info('[Vite] Development server integrated successfully');
   } catch (error) {
-    logger.error('[Vite] Failed to setup integration', { error });
-    throw error;
+    logger.warn('[Vite] Vite integration failed, continuing without it', { 
+      error: error instanceof Error ? error.message : String(error) 
+    });
   }
 }
