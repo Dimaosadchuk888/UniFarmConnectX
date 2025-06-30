@@ -4,8 +4,12 @@ import { correctApiRequest } from '@/lib/correctApiRequest';
 import { apiRequest, invalidateQueryWithUserId } from '@/lib/queryClient';
 import BigNumber from 'bignumber.js';
 import { useUser } from '@/contexts/userContext';
-import { useErrorBoundary } from '@/hooks/useErrorBoundary';
+import useErrorBoundary from '@/hooks/useErrorBoundary';
 import { useNotification } from '@/contexts/NotificationContext';
+
+interface UniFarmingCardProps {
+  userData: any;
+}
 
 interface FarmingInfo {
   isActive: boolean;
@@ -19,9 +23,9 @@ interface FarmingInfo {
   uni_farming_start_timestamp?: string | null;
 }
 
-const UniFarmingCard: React.FC = () => {
+const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const queryClient = useQueryClient();
-  const { userId, uniBalance } = useUser(); // Получаем ID пользователя и баланс из контекста
+  const { userId } = useUser(); // Получаем ID пользователя из контекста
   const { success, error: showError } = useNotification(); // Для показа уведомлений
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -416,7 +420,7 @@ const UniFarmingCard: React.FC = () => {
         let balance: BigNumber;
         try {
           // Безопасное получение баланса
-          const balanceStr = uniBalance?.toString();
+          const balanceStr = userData?.balance_uni?.toString();
           if (balanceStr === undefined || balanceStr === null) {
             console.error('Не удалось получить баланс пользователя');
             setError('Не удалось получить информацию о балансе');
@@ -990,7 +994,7 @@ const UniFarmingCard: React.FC = () => {
               placeholder="0.00"
             />
             <p className="text-sm text-foreground opacity-70 mt-1">
-              Доступно: <span className="text-primary">{formatNumber(uniBalance?.toString() || '0')}</span> UNI
+              Доступно: <span className="text-primary">{formatNumber(userData?.balance_uni?.toString() || '0')}</span> UNI
             </p>
           </div>
 
