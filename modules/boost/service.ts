@@ -259,9 +259,15 @@ export class BoostService {
       const { WalletService } = await import('../wallet/service');
       const walletService = new WalletService();
 
-      // Получаем данные кошелька пользователя
-      const walletData = await walletService.getWalletDataByTelegramId(userId);
+      // Получаем данные кошелька пользователя по ID
+      const walletData = await walletService.getWalletDataByUserId(userId);
       const requiredAmount = parseFloat(boostPackage.min_amount || "0");
+      
+      logger.info('[BoostService] Данные кошелька получены', {
+        userId,
+        walletData,
+        requiredAmount
+      });
 
       // Проверяем достаточность средств
       if (walletData.ton_balance < requiredAmount) {

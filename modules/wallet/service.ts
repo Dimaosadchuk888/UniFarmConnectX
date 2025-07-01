@@ -45,6 +45,49 @@ export class WalletService {
     }
   }
 
+  async getWalletDataByUserId(userId: string): Promise<{
+    uni_balance: number;
+    ton_balance: number;
+    total_earned: number;
+    total_spent: number;
+    transactions: any[];
+  }> {
+    try {
+      // Находим пользователя по id
+      const { data: user, error: userError } = await supabase
+        .from(WALLET_TABLES.USERS)
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !user) {
+        logger.warn('[WalletService] Пользователь не найден по ID', { userId });
+        return {
+          uni_balance: 0,
+          ton_balance: 0,
+          total_earned: 0,
+          total_spent: 0,
+          transactions: []
+        };
+      }
+
+      // Используем баланс из пользователя
+      return {
+        uni_balance: parseFloat(user.balance_uni || "0"),
+        ton_balance: parseFloat(user.balance_ton || "0"),
+        total_earned: parseFloat(user.uni_farming_balance || "0"),
+        total_spent: 0,
+        transactions: []
+      };
+    } catch (error) {
+      logger.error('[WalletService] Ошибка получения данных кошелька по ID', { 
+        userId, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      throw error;
+    }
+  }
+
   async addUniFarmIncome(userId: string, amount: string): Promise<boolean> {
     try {
       // Получаем пользователя
