@@ -245,9 +245,9 @@ const BoostPackagesCard: React.FC = () => {
           });
 
           const data = await correctApiRequest('/api/v2/boost/purchase', 'POST', {
-            user_id: userId,
-            boost_id: boostId,
-            payment_method: paymentMethod
+            user_id: userId.toString(),
+            boost_id: boostId.toString(),
+            payment_method: 'wallet'  // для внутреннего баланса используем 'wallet'
           });
 
           console.log('[TON_BOOST] Ответ от сервера:', data);
