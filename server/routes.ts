@@ -367,6 +367,7 @@ router.post('/users/profile', async (req, res) => {
 router.use('/wallet', walletRoutes);
 router.use('/boost', boostRoutes);
 router.use('/boosts', boostRoutes); // Alias for boosts
+router.use('/ton-boost', boostRoutes); // Alias for ton-boost (for dashboard)
 router.use('/missions', missionRoutes);
 router.use('/user-missions', missionRoutes); // Alias for user-missions
 router.use('/referral', referralRoutes);

@@ -49,6 +49,20 @@ export class BoostController extends BaseController {
   }
 
   /**
+   * Получить статус фарминга TON Boost для дашборда
+   */
+  async getFarmingStatus(req: Request, res: Response): Promise<void> {
+    await this.handleRequest(req, res, async () => {
+      const userId = req.query.user_id as string;
+      logger.info('[BoostController] Получение статуса TON Boost фарминга', { userId });
+      
+      const farmingStatus = await this.boostService.getTonBoostFarmingStatus(userId || '43');
+
+      this.sendSuccess(res, farmingStatus);
+    }, 'получения статуса TON Boost фарминга');
+  }
+
+  /**
    * Активировать буст
    */
   async activateBoost(req: Request, res: Response): Promise<void> {

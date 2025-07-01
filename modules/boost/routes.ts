@@ -61,4 +61,7 @@ router.post('/purchase', requireTelegramAuth, strictRateLimit, validateBody(boos
 // POST /api/boosts/verify-ton-payment - Проверка и подтверждение TON платежа (критическая операция)
 router.post('/verify-ton-payment', requireTelegramAuth, strictRateLimit, validateBody(tonPaymentSchema), boostController.verifyTonPayment.bind(boostController));
 
+// GET /api/boosts/farming-status - Получить статус TON Boost фарминга для дашборда
+router.get('/farming-status', requireTelegramAuth, liberalRateLimit, boostController.getFarmingStatus.bind(boostController));
+
 export default router;

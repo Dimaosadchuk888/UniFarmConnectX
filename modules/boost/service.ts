@@ -711,4 +711,100 @@ export class BoostService {
       return false;
     }
   }
+
+  /**
+   * Получить статус TON Boost фарминга для дашборда
+   * Возвращает расчётные данные на основе активных Boost пакетов пользователя
+   */
+  async getTonBoostFarmingStatus(userId: string): Promise<{
+    totalTonRatePerSecond: string;
+    totalUniRatePerSecond: string;
+    dailyIncomeTon: string;
+    dailyIncomeUni: string;
+    deposits: any[];
+  }> {
+    try {
+      // Получаем пользователя из базы данных
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', userId)
+        .single();
+
+      if (error || !user) {
+        logger.info('[BoostService] Пользователь не найден для TON Boost статуса', { userId });
+        return {
+          totalTonRatePerSecond: '0',
+          totalUniRatePerSecond: '0', 
+          dailyIncomeTon: '0',
+          dailyIncomeUni: '0',
+          deposits: []
+        };
+      }
+
+      // Проверяем наличие активного TON Boost пакета
+      const activeBoostId = user.ton_boost_package;
+      const tonBalance = parseFloat(user.balance_ton || '0');
+
+      if (!activeBoostId || tonBalance < 10) {
+        // Нет активного Boost или недостаточный баланс TON
+        return {
+          totalTonRatePerSecond: '0',
+          totalUniRatePerSecond: '0',
+          dailyIncomeTon: '0', 
+          dailyIncomeUni: '0',
+          deposits: []
+        };
+      }
+
+      // Получаем данные о Boost пакете
+      const boostPackage = await this.getBoostPackageById(activeBoostId);
+      if (!boostPackage) {
+        return {
+          totalTonRatePerSecond: '0',
+          totalUniRatePerSecond: '0',
+          dailyIncomeTon: '0',
+          dailyIncomeUni: '0',
+          deposits: []
+        };
+      }
+
+      // Рассчитываем доход на основе ставки пакета
+      const dailyRate = boostPackage.boost_rate_percent; // 1%, 1.5%, 2%, 2.5%, 3%
+      const ratePerSecond = (dailyRate / 100) / 86400; // Процент в секунду
+      const dailyIncome = (tonBalance * dailyRate) / 100; // Дневной доход в TON
+
+      logger.info('[BoostService] Рассчитан статус TON Boost фарминга', {
+        userId,
+        activeBoostId,
+        tonBalance,
+        dailyRate,
+        dailyIncome
+      });
+
+      return {
+        totalTonRatePerSecond: ratePerSecond.toFixed(8),
+        totalUniRatePerSecond: '0', // TON Boost не генерирует UNI
+        dailyIncomeTon: dailyIncome.toFixed(6),
+        dailyIncomeUni: '0',
+        deposits: [{
+          id: activeBoostId,
+          package_name: boostPackage.name,
+          amount: tonBalance.toString(),
+          rate: dailyRate.toString(),
+          status: 'active'
+        }]
+      };
+
+    } catch (error) {
+      logger.error('[BoostService] Ошибка получения статуса TON Boost фарминга:', error);
+      return {
+        totalTonRatePerSecond: '0',
+        totalUniRatePerSecond: '0',
+        dailyIncomeTon: '0',
+        dailyIncomeUni: '0',
+        deposits: []
+      };
+    }
+  }
 }
