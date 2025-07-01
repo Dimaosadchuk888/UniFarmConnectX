@@ -12,12 +12,13 @@ export function requireTelegramAuth(req: Request, res: Response, next: NextFunct
     
     if (isReplitPreview || hasDevHeader) {
       console.log('[TelegramAuth] Development bypass active for Replit preview');
+      // Правильные значения для demo_user из базы данных
       const demoUser = {
-        id: 43,
-        telegram_id: 42,
+        id: 43,  // Это telegram_id в контексте Telegram
+        telegram_id: 43,  // Дублируем для ясности
         username: 'demo_user',
         first_name: 'Demo User',
-        ref_code: 'REF_1750426242319_8c6olz'
+        ref_code: 'REF_1750952576614_t938vs'  // Актуальный ref_code из БД
       };
       (req as any).telegramUser = demoUser;
       (req as any).user = demoUser;

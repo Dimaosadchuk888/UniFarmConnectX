@@ -131,7 +131,24 @@ export class FarmingService {
 
   async depositUniForFarming(telegramId: string, amount: string): Promise<{ success: boolean; message: string }> {
     try {
-      const user = await this.userRepository.getUserByTelegramId(Number(telegramId));
+      logger.info('[FarmingService] Начало депозита', { 
+        telegramId, 
+        telegramIdType: typeof telegramId,
+        amount,
+        amountType: typeof amount
+      });
+
+      const numericTelegramId = Number(telegramId);
+      const user = await this.userRepository.getUserByTelegramId(numericTelegramId);
+      
+      logger.info('[FarmingService] Результат поиска пользователя', { 
+        numericTelegramId,
+        userFound: !!user,
+        userId: user?.id,
+        userIdType: typeof user?.id,
+        userName: user?.username
+      });
+      
       if (!user) {
         return { success: false, message: 'Пользователь не найден' };
       }
@@ -150,7 +167,16 @@ export class FarmingService {
       const currentDeposit = parseFloat(user.uni_deposit_amount || '0');
       const newDepositAmount = (currentDeposit + depositAmount).toFixed(8);
 
-      const { error: updateError } = await supabase
+      logger.info('[FarmingService] Подготовка обновления базы данных', { 
+        userId: user.id,
+        currentBalance,
+        newBalance,
+        currentDeposit,
+        newDepositAmount,
+        farmingRate: FARMING_CONFIG.DEFAULT_RATE
+      });
+
+      const { data: updateData, error: updateError } = await supabase
         .from(FARMING_TABLES.USERS)
         .update({
           balance_uni: newBalance,
@@ -159,27 +185,61 @@ export class FarmingService {
           uni_farming_last_update: new Date().toISOString(),
           uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE // Устанавливаем ставку фарминга
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select();
+
+      logger.info('[FarmingService] Результат обновления базы данных', { 
+        updateError: updateError?.message || null,
+        updatedData: updateData,
+        success: !updateError
+      });
 
       if (updateError) {
+        logger.error('[FarmingService] Ошибка обновления базы данных', { 
+          error: updateError,
+          userId: user.id
+        });
         return { success: false, message: 'Ошибка обновления данных' };
       }
 
-      await supabase
+      const transactionPayload = {
+        user_id: user.id,
+        type: 'UNI_DEPOSIT',
+        amount_uni: depositAmount.toString(),
+        amount_ton: '0',
+        status: 'completed',
+        description: `UNI farming deposit: ${amount}`,
+        created_at: new Date().toISOString()
+      };
+
+      logger.info('[FarmingService] Создание транзакции', { 
+        payload: transactionPayload
+      });
+
+      const { data: transactionData, error: transactionError } = await supabase
         .from(FARMING_TABLES.TRANSACTIONS)
-        .insert({
-          user_id: user.id,
-          type: 'UNI_DEPOSIT',
-          amount_uni: depositAmount,
-          amount_ton: 0,
-          description: `UNI farming deposit: ${amount}`
+        .insert(transactionPayload)
+        .select();
+
+      logger.info('[FarmingService] Результат создания транзакции', { 
+        transactionError: transactionError?.message || null,
+        transactionData,
+        success: !transactionError
+      });
+
+      if (transactionError) {
+        logger.error('[FarmingService] Ошибка создания транзакции', { 
+          error: transactionError,
+          payload: transactionPayload
         });
+      }
 
       logger.info(`[FARMING] User ${telegramId} deposited ${amount} UNI for farming`, {
         userId: user.id,
         amount: depositAmount,
         newBalance,
-        newDepositAmount
+        newDepositAmount,
+        transactionCreated: !transactionError
       });
 
       return { success: true, message: 'Депозит успешно добавлен в фарминг' };
