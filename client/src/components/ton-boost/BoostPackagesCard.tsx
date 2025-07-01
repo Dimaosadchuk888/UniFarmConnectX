@@ -186,7 +186,7 @@ const BoostPackagesCard: React.FC = () => {
             validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
             messages: [
               {
-                address: tonConnectUI?.wallet?.account?.address || '',
+                address: 'UQBlrUfJMIlAcyYzttyxV2xrrvaHHIKEKeetGZbDoitTRWT8',
                 amount: (parseFloat(selectedPackage.priceTon) * 1e9).toString(),
                 payload: transactionComment
               }
@@ -237,7 +237,7 @@ const BoostPackagesCard: React.FC = () => {
       } else {
         // Покупка через внутренний баланс
         try {
-          const data = await correctApiRequest('/api/v2/ton-farming/purchase', 'POST', {
+          const data = await correctApiRequest('/api/v2/boost/purchase', 'POST', {
             user_id: userId,
             boost_id: boostId,
             payment_method: paymentMethod
