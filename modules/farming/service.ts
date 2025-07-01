@@ -206,13 +206,11 @@ export class FarmingService {
       try {
         const transactionPayload = {
           user_id: user.id,
-          type: 'FARMING_REWARD' as const,  // Используем существующий тип из ENUM
+          type: 'FARMING_REWARD',  // Используем существующий тип из ENUM
           amount_uni: depositAmount.toString(),  // Правильное поле для UNI
           amount_ton: '0',  // Правильное поле для TON
-          status: 'completed',
-          currency: 'UNI',
+          status: 'confirmed',  // Используем confirmed как в существующей транзакции
           description: `UNI farming deposit: ${amount}`,
-          source: 'farming',
           created_at: new Date().toISOString()
         };
 
