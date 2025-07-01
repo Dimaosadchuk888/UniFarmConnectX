@@ -77,15 +77,29 @@ export class MissionsService {
       }
 
       // Проверяем, не выполнена ли уже эта миссия
-      const { data: existingMission } = await supabase
+      // Используем более строгую проверку для предотвращения race condition
+      const { data: existingMissions } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', user.id)
         .eq('type', 'MISSION_REWARD')
-        .eq('description', `Mission ${missionId} reward`)
-        .single();
+        .like('description', `Mission ${missionId} reward%`);
 
-      if (existingMission) {
+      if (existingMissions && existingMissions.length > 0) {
+        logger.warn(`[MissionsService] Попытка повторного выполнения миссии ${missionId} пользователем ${telegramId}`);
+        return { success: false, message: 'Миссия уже выполнена' };
+      }
+
+      // Дополнительная проверка через mission_progress для надежности
+      const { data: progressCheck } = await supabase
+        .from('mission_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('mission_id', missionId)
+        .eq('is_completed', true);
+
+      if (progressCheck && progressCheck.length > 0) {
+        logger.warn(`[MissionsService] Миссия ${missionId} уже отмечена как выполненная в mission_progress`);
         return { success: false, message: 'Миссия уже выполнена' };
       }
 

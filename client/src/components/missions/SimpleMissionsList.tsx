@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, Coins } from 'lucide-react';
 import { useUser } from '@/contexts/userContext';
 import { correctApiRequest } from '@/lib/correctApiRequest';
+import { useToast } from '@/hooks/use-toast';
 
 interface Mission {
   id: number;
@@ -24,10 +25,13 @@ interface UserMission {
 }
 
 const SimpleMissionsList: React.FC = () => {
-  const { userId } = useUser();
+  const { userId, refreshUserData } = useUser();
   const validUserId = userId || '1';
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [openedMissions, setOpenedMissions] = useState<Set<number>>(new Set());
   const [checkingMission, setCheckingMission] = useState<number | null>(null);
+  const [processingMissions, setProcessingMissions] = useState<Set<number>>(new Set());
 
   const { data: missionsData, refetch: refetchMissions } = useQuery({
     queryKey: ['/api/v2/missions/list', validUserId],
@@ -65,8 +69,15 @@ const SimpleMissionsList: React.FC = () => {
   };
 
   const handleCheckMission = async (mission: Mission) => {
+    // Защита от двойного клика
+    if (processingMissions.has(mission.id)) {
+      return;
+    }
+
     try {
       setCheckingMission(mission.id);
+      setProcessingMissions(prev => new Set(Array.from(prev).concat(mission.id)));
+      
       const response = await correctApiRequest(
         `/api/v2/missions/${mission.id}/complete`,
         'POST',
@@ -79,19 +90,55 @@ const SimpleMissionsList: React.FC = () => {
       );
 
       if (response.success) {
-        // Обновляем списки после успешного выполнения
+        // Показываем уведомление об успехе
+        toast({
+          title: "Успех!",
+          description: response.message || `Миссия выполнена! Получено ${mission.reward_uni} UNI`,
+          variant: "default",
+          className: "bg-green-600 text-white"
+        });
+
+        // Мгновенно обновляем баланс пользователя
+        await refreshUserData();
+        
+        // Обновляем списки миссий
         await refetchMissions();
         await refetchUserMissions();
+        
+        // Инвалидируем кэши связанные с балансом
+        queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });
+        
+        // Убираем миссию из списка открытых
         setOpenedMissions(prev => {
           const newSet = new Set(prev);
           newSet.delete(mission.id);
           return newSet;
         });
+      } else {
+        toast({
+          title: "Ошибка",
+          description: response.message || "Не удалось выполнить миссию",
+          variant: "destructive"
+        });
       }
     } catch (err) {
       console.error('Ошибка при проверке задания:', err);
+      toast({
+        title: "Ошибка",
+        description: "Произошла ошибка при проверке задания",
+        variant: "destructive"
+      });
     } finally {
       setCheckingMission(null);
+      // Убираем миссию из обработки через небольшую задержку
+      setTimeout(() => {
+        setProcessingMissions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(mission.id);
+          return newSet;
+        });
+      }, 1000);
     }
   };
 
@@ -139,15 +186,16 @@ const SimpleMissionsList: React.FC = () => {
                       {openedMissions.has(mission.id) ? (
                         <Button
                           onClick={() => handleCheckMission(mission)}
-                          className="bg-green-600 hover:bg-green-700"
-                          disabled={checkingMission === mission.id}
+                          className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={checkingMission === mission.id || processingMissions.has(mission.id)}
                         >
                           {checkingMission === mission.id ? 'Проверка...' : 'Проверить'}
                         </Button>
                       ) : (
                         <Button
                           onClick={() => handleMissionClick(mission)}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={processingMissions.has(mission.id)}
                         >
                           {mission.link ? 'Перейти' : 'Выполнить'}
                         </Button>
