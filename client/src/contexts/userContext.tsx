@@ -166,22 +166,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
     
     try {
-      // Получаем данные пользователя из localStorage или используем guest_id
-      let apiUrl = '/api/v2/users/profile';
-      const lastSessionStr = localStorage.getItem('unifarm_last_session');
-      const guestId = localStorage.getItem('unifarm_guest_id');
+      // В демо-режиме всегда используем demo_user с ID 48
+      const isDemoMode = window.location.hostname.includes('replit.dev');
       
-      if (lastSessionStr) {
-        try {
-          const lastSession = JSON.parse(lastSessionStr);
-          if (lastSession.user_id) {
-            apiUrl = `/api/v2/users/profile?user_id=${lastSession.user_id}`;
+      let apiUrl = '/api/v2/users/profile';
+      
+      if (isDemoMode) {
+        console.log('[UserContext] Демо-режим активирован, используем demo_user (ID: 48)');
+        apiUrl = '/api/v2/users/profile?user_id=48';
+      } else {
+        // Получаем данные пользователя из localStorage или используем guest_id
+        const lastSessionStr = localStorage.getItem('unifarm_last_session');
+        const guestId = localStorage.getItem('unifarm_guest_id');
+        
+        if (lastSessionStr) {
+          try {
+            const lastSession = JSON.parse(lastSessionStr);
+            if (lastSession.user_id) {
+              apiUrl = `/api/v2/users/profile?user_id=${lastSession.user_id}`;
+            }
+          } catch (e) {
+            console.warn('[UserContext] Ошибка парсинга данных сессии:', e);
           }
-        } catch (e) {
-          console.warn('[UserContext] Ошибка парсинга данных сессии:', e);
+        } else if (guestId) {
+          apiUrl = `/api/v2/users/profile?guest_id=${guestId}`;
         }
-      } else if (guestId) {
-        apiUrl = `/api/v2/users/profile?guest_id=${guestId}`;
       }
       
       const response = await correctApiRequest(apiUrl);
