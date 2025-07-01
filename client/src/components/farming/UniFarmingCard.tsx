@@ -937,8 +937,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <span className="text-primary">{isActive ? "Пополнить фарминг" : "Создать депозит и активировать фарминг"}</span>
         </h3>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
+        <form onSubmit={handleSubmit} style={{ position: 'relative', zIndex: 20 }}>
+          <div className="mb-4" style={{ position: 'relative' }}>
             <label className="block text-sm text-foreground opacity-70 mb-1">
               Введите сумму UNI
             </label>
@@ -965,8 +965,9 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
                   // В случае ошибки сохраняем текущее значение
                 }
               }}
-              className="w-full p-2 border border-input rounded-lg bg-card focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all duration-300"
+              className="w-full p-2 border border-input rounded-lg bg-card focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all duration-300 relative z-10"
               placeholder="0.00"
+              style={{ cursor: 'text' }}
             />
             <p className="text-sm text-foreground opacity-70 mt-1">
               Доступно: <span className="text-primary">{formatNumber(userData?.balance_uni || '0')}</span> UNI
