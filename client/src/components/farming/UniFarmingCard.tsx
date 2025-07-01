@@ -945,7 +945,14 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
             <input
               type="text"
               value={depositAmount}
+              onFocus={(e) => {
+                console.log('[DEBUG] Input field focused');
+              }}
+              onClick={(e) => {
+                console.log('[DEBUG] Input field clicked');
+              }}
               onChange={(e) => {
+                console.log('[DEBUG] Input onChange triggered, value:', e.target.value);
                 try {
                   // Дополнительная валидация: запрещаем ввод нечисловых символов кроме точки
                   const value = e.target.value;
