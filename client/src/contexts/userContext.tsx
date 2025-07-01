@@ -170,9 +170,57 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const isDemoMode = window.location.hostname.includes('replit.dev');
       
       if (isDemoMode) {
-        console.log('[UserContext] Демо-режим активирован, принудительно устанавливаем userId = 48');
+        console.log('[UserContext] Демо-режим активирован, выполняем авторизацию для demo_user');
         
-        // Принудительно устанавливаем demo user данные
+        try {
+          // Авторизуем демо-пользователя через API для получения JWT токена
+          const authResponse = await correctApiRequest('/api/v2/auth/telegram', 'POST', {
+            direct_registration: true,
+            telegram_id: 43,
+            username: 'demo_user',
+            first_name: 'Demo User'
+          });
+          
+          console.log('[UserContext] Ответ авторизации в демо-режиме:', authResponse);
+          
+          if (authResponse.success && authResponse.data) {
+            const { user, token } = authResponse.data;
+            
+            // Сохраняем JWT токен в localStorage
+            if (token) {
+              localStorage.setItem('unifarm_jwt_token', token);
+              console.log('[UserContext] JWT токен сохранен в localStorage');
+            }
+            
+            // Устанавливаем данные пользователя
+            dispatch({
+              type: 'SET_USER_DATA',
+              payload: {
+                userId: user.id || 48,
+                username: user.username || 'demo_user',
+                guestId: null,
+                telegramId: user.telegram_id || 43,
+                refCode: user.ref_code || 'REF_1750952576614_t938vs'
+              }
+            });
+            
+            // Сохраняем сессию
+            localStorage.setItem('unifarm_last_session', JSON.stringify({
+              timestamp: new Date().toISOString(),
+              user_id: user.id,
+              username: user.username,
+              refCode: user.ref_code
+            }));
+            
+            dispatch({ type: 'SET_ERROR', payload: null });
+            console.log('[UserContext] Демо-режим: авторизация успешна, userId:', user.id);
+            return;
+          }
+        } catch (error) {
+          console.error('[UserContext] Ошибка авторизации в демо-режиме:', error);
+        }
+        
+        // Fallback: устанавливаем demo user данные без токена
         dispatch({
           type: 'SET_USER_DATA',
           payload: {
@@ -185,7 +233,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         
         dispatch({ type: 'SET_ERROR', payload: null });
-        console.log('[UserContext] Демо-режим: userId установлен в 48');
+        console.log('[UserContext] Демо-режим: используем fallback данные');
         return;
       }
       
@@ -212,21 +260,43 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       console.log('[UserContext] Получен ответ API:', response);
       
       if (response.success && response.data) {
-        const user = response.data;
-        console.log('[UserContext] Данные пользователя из API:', user);
+        const userData = response.data;
+        console.log('[UserContext] Данные пользователя из API:', userData);
+        
+        // Если нет JWT токена в localStorage, пытаемся авторизоваться
+        const currentToken = localStorage.getItem('unifarm_jwt_token');
+        if (!currentToken && userData.telegram_id) {
+          console.log('[UserContext] JWT токен не найден, выполняем авторизацию...');
+          
+          try {
+            const authResponse = await correctApiRequest('/api/v2/auth/telegram', 'POST', {
+              direct_registration: true,
+              telegram_id: userData.telegram_id,
+              username: userData.username || 'user',
+              first_name: userData.first_name || 'User'
+            });
+            
+            if (authResponse.success && authResponse.data?.token) {
+              localStorage.setItem('unifarm_jwt_token', authResponse.data.token);
+              console.log('[UserContext] JWT токен получен и сохранен');
+            }
+          } catch (authError) {
+            console.error('[UserContext] Ошибка получения JWT токена:', authError);
+          }
+        }
         
         dispatch({
           type: 'SET_USER_DATA',
           payload: {
-            userId: user.id || null,
-            username: user.username || null,
-            guestId: user.guest_id || null,
-            telegramId: user.telegram_id || null,
-            refCode: user.ref_code || null
+            userId: userData.id || null,
+            username: userData.username || null,
+            guestId: userData.guest_id || null,
+            telegramId: userData.telegram_id || null,
+            refCode: userData.ref_code || null
           }
         });
         
-        console.log('[UserContext] Состояние обновлено, userId:', user.id);
+        console.log('[UserContext] Состояние обновлено, userId:', userData.id);
         
         dispatch({ type: 'SET_ERROR', payload: null });
         
@@ -234,9 +304,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         try {
           localStorage.setItem('unifarm_last_session', JSON.stringify({
             timestamp: new Date().toISOString(),
-            user_id: user.id,
-            username: user.username || null,
-            refCode: user.ref_code || null
+            user_id: userData.id,
+            username: userData.username || null,
+            refCode: userData.ref_code || null
           }));
         } catch (e) {
           console.warn('[UserContext] Ошибка при сохранении данных пользователя в localStorage:', e);
