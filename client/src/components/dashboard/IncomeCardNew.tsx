@@ -134,25 +134,25 @@ const IncomeCardNew: React.FC = () => {
         {/* Общий доход */}
         <div className="bg-black/20 rounded-lg p-4">
           <div className="text-sm text-gray-300 mb-1">Общий доход</div>
-          <div className="flex justify-between items-center">
-            <div className="flex-1">
-              {/* UNI доход */}
-              <div className="mb-2">
-                <div className="text-xl font-bold text-white">
-                  {formatNumber(displayedHourRate)} UNI/час
-                </div>
-                <div className="text-sm text-gray-400">
-                  {formatNumber(displayedDayRate)} UNI/день
-                </div>
+          <div className="space-y-2">
+            {/* Почасовой доход */}
+            <div className="flex items-center justify-center space-x-2">
+              <div className="text-xl font-bold text-white">
+                {formatNumber(displayedHourRate)} UNI/час
               </div>
-              {/* TON доход */}
-              <div>
-                <div className="text-xl font-bold text-purple-300">
-                  {formatNumber(displayedTonHourRate)} TON/час
-                </div>
-                <div className="text-sm text-gray-400">
-                  {formatNumber(displayedTonDayRate)} TON/день
-                </div>
+              <div className="text-gray-500">|</div>
+              <div className="text-xl font-bold text-purple-300">
+                {formatNumber(displayedTonHourRate)} TON/час
+              </div>
+            </div>
+            {/* Дневной доход */}
+            <div className="flex items-center justify-center space-x-2">
+              <div className="text-sm text-gray-400">
+                {formatNumber(displayedDayRate)} UNI/день
+              </div>
+              <div className="text-gray-500">|</div>
+              <div className="text-sm text-gray-400">
+                {formatNumber(displayedTonDayRate)} TON/день
               </div>
             </div>
           </div>
