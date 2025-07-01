@@ -45,24 +45,24 @@ const TransactionHistory: React.FC = () => {
     isFetching,
     refetch
   } = useQuery({
-    queryKey: ['/api/transactions', userId, page, limit, activeFilter],
+    queryKey: ['/api/v2/transactions', userId, page, limit, activeFilter],
     queryFn: async () => {
       if (!userId) return { transactions: [], total: 0 };
       
       try {
-        const response = await fetch(`/api/transactions?user_id=${userId}&page=${page}&limit=${limit}&currency=${activeFilter !== 'ALL' ? activeFilter : ''}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        // Use correctApiRequest for proper authentication
+        const correctApiRequestModule = await import('@/lib/correctApiRequest');
+        const url = `/api/v2/transactions?page=${page}&limit=${limit}${activeFilter !== 'ALL' ? `&currency=${activeFilter}` : ''}`;
+        console.log('[TransactionHistory] Fetching transactions:', url);
         
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        const response = await correctApiRequestModule.correctApiRequest(url, 'GET');
+        console.log('[TransactionHistory] Response:', response);
+        
+        if (response && response.success) {
+          return response.data || { transactions: [], total: 0 };
         }
         
-        const data = await response.json();
-        return data;
+        return { transactions: [], total: 0 };
       } catch (err) {
         console.error('[TransactionHistory] Ошибка загрузки транзакций:', err);
         return { transactions: [], total: 0 };

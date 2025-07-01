@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { BaseController } from '../../core/BaseController';
 import { WalletService } from '../wallet/service';
+import { SupabaseUserRepository } from '../index';
 
 const walletService = new WalletService();
 
@@ -13,9 +14,17 @@ export class TransactionsController extends BaseController {
 
       const { page = 1, limit = 20, currency } = req.query;
       
-      // Используем wallet service для получения транзакций
+      // Сначала получаем пользователя по telegram_id
+      const userRepository = new SupabaseUserRepository();
+      const user = await userRepository.getUserByTelegramId(telegram.user.id);
+      
+      if (!user) {
+        return this.sendError(res, 'Пользователь не найден', 404);
+      }
+      
+      // Используем wallet service для получения транзакций по database user id
       const result = await walletService.getTransactionHistory(
-        telegram.user.id.toString(),
+        user.id.toString(), // Use database user ID
         parseInt(page as string),
         parseInt(limit as string)
       );
