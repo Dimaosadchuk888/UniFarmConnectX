@@ -69,7 +69,7 @@ const SimpleMissionsList: React.FC = () => {
       </div>
 
       <div className="grid gap-4">
-        {missions.filter(mission => mission.is_active).map((mission) => {
+        {missions.map((mission) => {
           const isCompleted = completedMissionIds.has(mission.id);
           
           return (
@@ -116,7 +116,7 @@ const SimpleMissionsList: React.FC = () => {
         })}
       </div>
 
-      {missions.filter(mission => mission.is_active).length === 0 && (
+      {missions.length === 0 && (
         <div className="text-center py-8">
           <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-400">Заданий пока нет</p>
