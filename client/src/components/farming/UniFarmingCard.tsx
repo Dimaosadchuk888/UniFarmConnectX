@@ -4,7 +4,7 @@ import { correctApiRequest } from '@/lib/correctApiRequest';
 import { apiRequest, invalidateQueryWithUserId } from '@/lib/queryClient';
 import BigNumber from 'bignumber.js';
 import { useUser } from '@/contexts/userContext';
-import useErrorBoundary from '@/hooks/useErrorBoundary';
+// import useErrorBoundary from '@/hooks/useErrorBoundary';
 import { useNotification } from '@/contexts/NotificationContext';
 
 interface UniFarmingCardProps {
@@ -37,7 +37,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
 
 
   // Применяем Error Boundary к компоненту
-  const { captureError, handleAsyncError } = useErrorBoundary();
+  // const { captureError, handleAsyncError } = useErrorBoundary();
 
   // Получаем информацию о фарминге с динамическим ID пользователя
   const { data: farmingResponse, isLoading } = useQuery({
