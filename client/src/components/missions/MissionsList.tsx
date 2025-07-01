@@ -71,7 +71,7 @@ interface Mission {
 
 export const MissionsList: React.FC = () => {
   const queryClient = useQueryClient();
-  const { userId } = useUser(); // Получаем ID пользователя из контекста
+  const { userId, refreshBalance } = useUser(); // Получаем ID пользователя и функцию обновления баланса из контекста
   const [missions, setMissions] = useState<Mission[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const [completedMissionId, setCompletedMissionId] = useState<number | null>(null);
@@ -308,6 +308,15 @@ export const MissionsList: React.FC = () => {
             
             // Используем invalidateQueryWithUserId вместо invalidateQueries
             invalidateQueryWithUserId('/api/v2/user-missions');
+            
+            // Обновляем баланс пользователя после выполнения миссии
+            // Инвалидируем запрос баланса для принудительного обновления
+            queryClient.invalidateQueries({ queryKey: [`/api/v2/wallet/balance?user_id=${userId}`] });
+            
+            // Также вызываем функцию обновления баланса из контекста
+            if (refreshBalance) {
+              refreshBalance(true);
+            }
           }
         }, 200);
       } else {
