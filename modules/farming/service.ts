@@ -210,12 +210,13 @@ export class FarmingService {
           amount_uni: depositAmount.toString(),  // Правильное поле для UNI
           amount_ton: '0',  // Правильное поле для TON
           status: 'confirmed',  // Используем confirmed как в существующей транзакции
-          description: `UNI farming deposit: ${amount}`,
-          created_at: new Date().toISOString()
+          description: `UNI farming deposit: ${amount}`
         };
 
         logger.info('[FarmingService] Создание транзакции фарминга', { 
-          payload: transactionPayload
+          payload: transactionPayload,
+          userId: user.id,
+          depositAmount: depositAmount
         });
 
         const { data: transactionData, error: transactionError } = await supabase
@@ -228,7 +229,17 @@ export class FarmingService {
           logger.error('[FarmingService] Ошибка создания транзакции', { 
             error: transactionError.message,
             details: transactionError.details,
-            code: transactionError.code
+            code: transactionError.code,
+            hint: transactionError.hint,
+            payload: transactionPayload
+          });
+          
+          // Выводим ошибку в консоль для отладки
+          console.error('[TRANSACTION ERROR]', {
+            message: transactionError.message,
+            details: transactionError.details,
+            code: transactionError.code,
+            hint: transactionError.hint
           });
         } else {
           logger.info('[FarmingService] Транзакция фарминга успешно создана', { 
@@ -236,12 +247,18 @@ export class FarmingService {
             type: transactionData?.type,
             amount: transactionData?.amount_uni
           });
+          
+          console.log('[TRANSACTION SUCCESS]', {
+            id: transactionData?.id,
+            type: transactionData?.type
+          });
         }
         
       } catch (error) {
         logger.error('[FarmingService] Исключение при создании транзакции', { 
           error: error instanceof Error ? error.message : String(error)
         });
+        console.error('[TRANSACTION EXCEPTION]', error);
       }
 
       logger.info(`[FARMING] User ${telegramId} deposited ${amount} UNI for farming`, {
