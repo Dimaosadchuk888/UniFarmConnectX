@@ -41,7 +41,7 @@ export class BoostService {
         {
           id: 2,
           name: BOOST_PACKAGES.STANDARD.name,
-          description: "1.5% в день на 365 дней + 75,000 UNI бонус",
+          description: "1.5% в день на 365 дней + 50,000 UNI бонус",
           daily_rate: parseFloat(BOOST_PACKAGES.STANDARD.daily_rate),
           duration_days: BOOST_PACKAGES.STANDARD.duration_days,
           min_amount: parseFloat(BOOST_PACKAGES.STANDARD.min_amount),
@@ -52,7 +52,7 @@ export class BoostService {
         {
           id: 3,
           name: BOOST_PACKAGES.ADVANCED.name,
-          description: "2% в день на 365 дней + 250,000 UNI бонус",
+          description: "2% в день на 365 дней + 100,000 UNI бонус",
           daily_rate: parseFloat(BOOST_PACKAGES.ADVANCED.daily_rate),
           duration_days: BOOST_PACKAGES.ADVANCED.duration_days,
           min_amount: parseFloat(BOOST_PACKAGES.ADVANCED.min_amount),

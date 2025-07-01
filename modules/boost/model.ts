@@ -52,23 +52,23 @@ export const BOOST_PACKAGES = {
   STANDARD: {
     name: 'Standard Boost',
     daily_rate: '0.015', // 1.5% в день
-    min_amount: '100.0',
+    min_amount: '5.0',
     max_amount: '5000.0',
     duration_days: 365,
-    uni_bonus: '75000' // 75,000 UNI бонус
+    uni_bonus: '50000' // 50,000 UNI бонус
   },
   ADVANCED: {
     name: 'Advanced Boost',
     daily_rate: '0.02', // 2% в день
-    min_amount: '500.0',
+    min_amount: '10.0',
     max_amount: '10000.0',
     duration_days: 365,
-    uni_bonus: '250000' // 250,000 UNI бонус
+    uni_bonus: '100000' // 100,000 UNI бонус
   },
   PREMIUM: {
     name: 'Premium Boost',
     daily_rate: '0.025', // 2.5% в день
-    min_amount: '1000.0',
+    min_amount: '25.0',
     max_amount: '25000.0',
     duration_days: 365,
     uni_bonus: '500000' // 500,000 UNI бонус
@@ -76,7 +76,7 @@ export const BOOST_PACKAGES = {
   ELITE: {
     name: 'Elite Boost',
     daily_rate: '0.03', // 3% в день
-    min_amount: '5000.0',
+    min_amount: '50.0',
     max_amount: '100000.0',
     duration_days: 365,
     uni_bonus: '1000000' // 1,000,000 UNI бонус
