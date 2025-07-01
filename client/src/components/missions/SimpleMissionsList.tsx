@@ -28,20 +28,32 @@ const SimpleMissionsList: React.FC = () => {
   const validUserId = userId || '1';
 
   const { data: missionsData } = useQuery({
-    queryKey: ['/api/missions', validUserId],
-    queryFn: () => correctApiRequest(`/api/missions?user_id=${validUserId}`),
+    queryKey: ['/api/v2/missions/list', validUserId],
+    queryFn: () => correctApiRequest(`/api/v2/missions/list?user_id=${validUserId}`),
     refetchInterval: 10000,
   });
 
   const { data: userMissionsData } = useQuery({
-    queryKey: ['/api/user-missions', validUserId],
-    queryFn: () => correctApiRequest(`/api/user-missions?user_id=${validUserId}`),
+    queryKey: ['/api/v2/missions/user', validUserId],
+    queryFn: () => correctApiRequest(`/api/v2/missions/user/${validUserId}`),
     refetchInterval: 10000,
   });
 
   const missions: Mission[] = missionsData?.data || [];
   const userMissions: UserMission[] = userMissionsData?.data || [];
   const completedMissionIds = new Set(userMissions.map(um => um.mission_id));
+
+  // Добавляем логирование для отладки
+  console.log('[SimpleMissionsList] Missions data:', { 
+    missionsData,
+    missions: missions.length,
+    activeMissions: missions.filter(m => m.is_active).length
+  });
+  console.log('[SimpleMissionsList] User missions:', {
+    userMissionsData,
+    userMissions: userMissions.length,
+    completedIds: Array.from(completedMissionIds)
+  });
 
   const handleMissionClick = (mission: Mission) => {
     if (mission.link) {

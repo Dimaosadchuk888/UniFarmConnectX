@@ -13,7 +13,7 @@ export class MissionsService {
   async getActiveMissionsByTelegramId(telegramId: string): Promise<any[]> {
     try {
       // Расширенный список разнообразных миссий
-      return [
+      const missions = [
         // Социальные сети миссии
         {
           id: 1,
@@ -139,6 +139,13 @@ export class MissionsService {
           url: null
         }
       ];
+
+      // Добавляем поля is_active и link для совместимости с фронтендом
+      return missions.map(mission => ({
+        ...mission,
+        is_active: true, // Все миссии в этом списке активны
+        link: mission.url // Дублируем url в link для совместимости
+      }));
     } catch (error) {
       logger.error('[MissionsService] Ошибка получения активных миссий:', error);
       return [];
