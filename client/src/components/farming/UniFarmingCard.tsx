@@ -34,43 +34,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   // Флаг для предотвращения автоматических вызовов
   const depositRequestSent = useRef<boolean>(false);
 
-  // Всегда показываем карточку для демонстрации
-  if (!userId || true) {
-    return (
-      <div className="bg-card border border-border rounded-lg p-6 mb-4">
-        <div className="text-center">
-          <div className="mb-4">
-            <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <i className="fas fa-seedling text-primary text-2xl"></i>
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">UNI Фарминг</h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              Зарабатывайте UNI токены пассивно, размещая их в фарминг
-            </p>
-          </div>
-          
-          <div className="space-y-3 mb-4">
-            <div className="flex justify-between items-center py-2 px-3 bg-secondary/30 rounded">
-              <span className="text-sm text-muted-foreground">Дневной доход:</span>
-              <span className="text-sm font-medium text-accent">0.5% в день</span>
-            </div>
-            <div className="flex justify-between items-center py-2 px-3 bg-secondary/30 rounded">
-              <span className="text-sm text-muted-foreground">Минимальная сумма:</span>
-              <span className="text-sm font-medium">10 UNI</span>
-            </div>
-            <div className="flex justify-between items-center py-2 px-3 bg-secondary/30 rounded">
-              <span className="text-sm text-muted-foreground">Автоначисление:</span>
-              <span className="text-sm font-medium text-accent">Каждую секунду</span>
-            </div>
-          </div>
-          
-          <div className="text-xs text-muted-foreground">
-            Подключите Telegram для начала фарминга
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   // Применяем Error Boundary к компоненту
   const { captureError, handleAsyncError } = useErrorBoundary();
@@ -375,8 +339,8 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         return;
       }
 
-      // Минимальная сумма депозита - 10 UNI согласно требованиям
-      const MIN_DEPOSIT = 10;
+      // Минимальная сумма депозита - 1 UNI согласно требованиям
+      const MIN_DEPOSIT = 1;
 
       try {
         // Создаем BigNumber для безопасной работы с числами
@@ -960,7 +924,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
               </li>
               <li className="flex items-start">
                 <i className="fas fa-circle-check text-green-500 mr-2 mt-0.5"></i>
-                <span>Минимальный депозит: <span className="text-primary font-medium">5 UNI</span></span>
+                <span>Минимальный депозит: <span className="text-primary font-medium">1 UNI</span></span>
               </li>
             </ul>
           </div>
@@ -1011,7 +975,7 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
           <div className="mb-4 transition-all duration-300 hover:scale-[1.02] hover:bg-card/80 p-2 rounded-lg">
             <p className="text-sm text-foreground opacity-70">Минимальный депозит</p>
             <p className="text-md font-medium">
-              <span className="text-primary animate-pulse">5</span> UNI
+              <span className="text-primary animate-pulse">1</span> UNI
             </p>
           </div>
 
