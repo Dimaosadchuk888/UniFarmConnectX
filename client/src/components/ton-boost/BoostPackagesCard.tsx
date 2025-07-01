@@ -30,10 +30,10 @@ class WalletNotConnectedError extends Error {
 interface TonBoostPackage {
   id: number;
   name: string;
-  priceTon: string;
-  bonusUni: string;
-  rateTon: string;
-  rateUni: string;
+  priceTon: number;
+  bonusUni: number;
+  rateTon: number;
+  rateUni: number;
 }
 
 interface ExternalPaymentDataType {
@@ -47,7 +47,7 @@ const BoostPackagesCard: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tonConnectUI] = useTonConnectUI();
-  const { user } = useUser();
+  const { userId, username } = useUser();
   const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState<boolean>(false);
@@ -66,10 +66,10 @@ const BoostPackagesCard: React.FC = () => {
           return response.data.packages.map((pkg: any) => ({
             id: pkg.id,
             name: pkg.name,
-            priceTon: pkg.min_amount.toString(), // Используем min_amount как цену
-            bonusUni: pkg.uni_bonus.toString(),
-            rateTon: (pkg.daily_rate * 100).toString(), // Конвертируем в проценты
-            rateUni: "0" // API не возвращает UNI rate, ставим 0
+            priceTon: pkg.min_amount, // Оставляем как число
+            bonusUni: pkg.uni_bonus,  // Оставляем как число
+            rateTon: (pkg.daily_rate * 100), // Конвертируем в проценты как число
+            rateUni: 0 // API не возвращает UNI rate, ставим 0
           }));
         }
         return [];
@@ -120,12 +120,12 @@ const BoostPackagesCard: React.FC = () => {
     
     try {
       // Получаем ID пользователя
-      let userId = user?.id?.toString();
-      if (!userId) {
-        userId = getUserIdFromURL();
+      let userIdStr = userId?.toString();
+      if (!userIdStr) {
+        userIdStr = getUserIdFromURL();
       }
       
-      if (!userId) {
+      if (!userIdStr) {
         toast({
           title: "Ошибка",
           description: "Не удалось определить ID пользователя",
@@ -134,9 +134,11 @@ const BoostPackagesCard: React.FC = () => {
         setIsLoading(false);
         return;
       }
+      
+      const userIdNum = parseInt(userIdStr, 10);
 
       // Находим выбранный пакет
-      const selectedPackage = boostPackages.find(p => p.id === boostId);
+      const selectedPackage = boostPackages.find((p: TonBoostPackage) => p.id === boostId);
       if (!selectedPackage) {
         toast({
           title: "Ошибка",
@@ -339,7 +341,7 @@ const BoostPackagesCard: React.FC = () => {
               Пакеты недоступны
             </div>
           ) : (
-            boostPackages.map((pkg, index) => (
+            boostPackages.map((pkg: TonBoostPackage, index: number) => (
               <div key={pkg.id}>
                 <div className="relative overflow-hidden border border-border/50 rounded-xl p-5 bg-gradient-to-br from-background via-card to-background transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 hover:opacity-100 transition-opacity duration-300" />
@@ -396,20 +398,30 @@ const BoostPackagesCard: React.FC = () => {
 
       {/* Диалог выбора способа оплаты */}
       <PaymentMethodDialog
-        isOpen={paymentMethodDialogOpen}
-        onClose={() => setPaymentMethodDialogOpen(false)}
+        open={paymentMethodDialogOpen}
+        onOpenChange={setPaymentMethodDialogOpen}
+        boostId={selectedBoostId}
+        boostName={boostPackages.find((p: TonBoostPackage) => p.id === selectedBoostId)?.name || ''}
+        boostPriceTon={boostPackages.find((p: TonBoostPackage) => p.id === selectedBoostId)?.priceTon.toString() || '0'}
         onSelectPaymentMethod={handleSelectPaymentMethod}
-        selectedBoostId={selectedBoostId}
-        boostPackages={boostPackages}
-        tonConnectUI={tonConnectUI}
       />
 
       {/* Диалог статуса внешнего платежа */}
-      <ExternalPaymentStatus
-        isOpen={externalPaymentDialogOpen}
-        onClose={() => setExternalPaymentDialogOpen(false)}
-        paymentData={externalPaymentData}
-      />
+      {externalPaymentData && (
+        <ExternalPaymentStatus
+          open={externalPaymentDialogOpen}
+          onOpenChange={setExternalPaymentDialogOpen}
+          userId={externalPaymentData.userId}
+          transactionId={externalPaymentData.transactionId}
+          paymentLink={externalPaymentData.paymentLink || ''}
+          boostName={externalPaymentData.boostName}
+          onPaymentComplete={() => {
+            setExternalPaymentDialogOpen(false);
+            setExternalPaymentData(null);
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/boost/packages'] });
+          }}
+        />
+      )}
     </>
   );
 };
