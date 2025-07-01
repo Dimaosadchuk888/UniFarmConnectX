@@ -202,37 +202,45 @@ export class FarmingService {
         return { success: false, message: 'Ошибка обновления данных' };
       }
 
-      // Используем TransactionService для создания транзакции
+      // Создаем транзакцию напрямую с правильными полями для Supabase
       try {
-        const { TransactionsService } = await import('../transactions/service');
-        const transactionsService = new TransactionsService();
-        
         const transactionPayload = {
-          user_id: user.id,  // Используем числовой ID
-          type: 'deposit',   // Стандартный тип из TRANSACTION_TYPES
-          amount: depositAmount.toString(),
-          currency: 'UNI',
+          user_id: user.id,
+          type: 'FARMING_REWARD',  // Используем известный рабочий тип
+          amount_uni: depositAmount.toString(),  // Правильное поле для UNI
+          amount_ton: '0',  // Правильное поле для TON
           status: 'completed',
+          currency: 'UNI',
           description: `UNI farming deposit: ${amount}`,
-          metadata: { 
-            source: 'farming',
-            original_type: 'UNI_DEPOSIT' 
-          }
+          source: 'farming',
+          created_at: new Date().toISOString()
         };
 
-        logger.info('[FarmingService] Создание транзакции через TransactionService', { 
+        logger.info('[FarmingService] Создание транзакции с правильными полями', { 
           payload: transactionPayload
         });
 
-        const createdTransaction = await transactionsService.createTransaction(transactionPayload);
-        
-        logger.info('[FarmingService] Результат создания транзакции', { 
-          success: !!createdTransaction,
-          transactionId: createdTransaction?.id || null
-        });
+        const { data: transactionData, error: transactionError } = await supabase
+          .from(FARMING_TABLES.TRANSACTIONS)
+          .insert([transactionPayload])
+          .select()
+          .single();
+
+        if (transactionError) {
+          logger.error('[FarmingService] Ошибка создания транзакции', { 
+            error: transactionError.message,
+            details: transactionError.details,
+            code: transactionError.code
+          });
+        } else {
+          logger.info('[FarmingService] Транзакция успешно создана', { 
+            transactionId: transactionData?.id,
+            type: transactionData?.type
+          });
+        }
         
       } catch (transactionError) {
-        logger.error('[FarmingService] Ошибка создания транзакции', { 
+        logger.error('[FarmingService] Исключение при создании транзакции', { 
           error: transactionError instanceof Error ? transactionError.message : String(transactionError)
         });
       }
