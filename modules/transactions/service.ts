@@ -286,12 +286,12 @@ export class TransactionsService {
     try {
       logger.info('[TransactionsService] Начинаем пересчёт баланса пользователя', { userId });
 
-      // Получаем все подтверждённые транзакции пользователя
+      // Получаем все подтверждённые транзакции пользователя (оба статуса)
       const { data: transactions, error } = await supabase
         .from(TRANSACTIONS_TABLE)
         .select('*')
         .eq('user_id', userId)
-        .eq('status', 'confirmed');
+        .in('status', ['confirmed', 'completed']);
 
       if (error) {
         logger.error('[TransactionsService] Ошибка получения транзакций для пересчёта', { error });
@@ -303,7 +303,15 @@ export class TransactionsService {
 
       // Считаем баланс на основе транзакций
       for (const tx of transactions || []) {
-        const isIncome = ['farming_income', 'mission_reward', 'referral_bonus', 'daily_bonus', 'ton_farming_income', 'ton_boost_reward'].includes(tx.type);
+        // Поддерживаем оба формата типов транзакций (с большими и маленькими буквами)
+        const txType = tx.type.toUpperCase();
+        const isIncome = [
+          'FARMING_REWARD', 'MISSION_REWARD', 'REFERRAL_REWARD', 'DAILY_BONUS', 
+          'TON_FARMING_REWARD', 'TON_BOOST_REWARD', 'AIRDROP_REWARD',
+          // Старые типы для совместимости
+          'FARMING_INCOME', 'MISSION_REWARD', 'REFERRAL_BONUS', 'DAILY_BONUS', 
+          'TON_FARMING_INCOME', 'TON_BOOST_REWARD'
+        ].includes(txType);
         
         // Используем поля amount_uni и amount_ton
         const amountUni = parseFloat(tx.amount_uni || tx.amount || '0');
