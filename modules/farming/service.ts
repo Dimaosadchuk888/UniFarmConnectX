@@ -156,7 +156,8 @@ export class FarmingService {
           balance_uni: newBalance,
           uni_deposit_amount: newDepositAmount,
           uni_farming_start_timestamp: new Date().toISOString(),
-          uni_farming_last_update: new Date().toISOString()
+          uni_farming_last_update: new Date().toISOString(),
+          uni_farming_rate: FARMING_CONFIG.DEFAULT_RATE // Устанавливаем ставку фарминга
         })
         .eq('id', user.id);
 

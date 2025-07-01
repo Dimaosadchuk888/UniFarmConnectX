@@ -174,16 +174,48 @@ export class WalletService {
     }
   }
 
-  async getTransactionHistory(userId: string, limit: number = 10): Promise<any[]> {
+  async getTransactionHistory(userId: string, page: number = 1, limit: number = 20): Promise<any> {
     try {
-      // Пока возвращаем пустой массив, так как структура transactions не определена
-      return [];
+      const offset = (page - 1) * limit;
+      
+      // Получаем транзакции из базы данных
+      const { data: transactions, error, count } = await supabase
+        .from(WALLET_TABLES.TRANSACTIONS)
+        .select('*', { count: 'exact' })
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        logger.error('[WalletService] Ошибка получения транзакций', { 
+          userId, 
+          error: error.message 
+        });
+        return { transactions: [], total: 0, hasMore: false };
+      }
+
+      const formattedTransactions = (transactions || []).map(tx => ({
+        id: tx.id,
+        type: tx.type,
+        amount: parseFloat(tx.amount_uni || '0') > 0 ? tx.amount_uni : tx.amount_ton,
+        currency: parseFloat(tx.amount_uni || '0') > 0 ? 'UNI' : 'TON',
+        status: tx.status || 'completed',
+        description: tx.description || '',
+        createdAt: tx.created_at,
+        timestamp: new Date(tx.created_at).getTime()
+      }));
+
+      return {
+        transactions: formattedTransactions,
+        total: count || 0,
+        hasMore: (count || 0) > offset + limit
+      };
     } catch (error) {
       logger.error('[WalletService] Ошибка получения истории транзакций', { 
         userId, 
         error: error instanceof Error ? error.message : String(error) 
       });
-      return [];
+      return { transactions: [], total: 0, hasMore: false };
     }
   }
 
