@@ -19,6 +19,12 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
     ...headers
   };
 
+  // Добавляем JWT токен из localStorage
+  const token = localStorage.getItem('unifarm_jwt_token');
+  if (token) {
+    requestHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
   // Добавляем guest_id из localStorage
   const guestId = localStorage.getItem('unifarm_guest_id');
   if (guestId) {

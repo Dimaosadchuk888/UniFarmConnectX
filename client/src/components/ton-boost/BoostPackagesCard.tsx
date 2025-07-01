@@ -237,11 +237,20 @@ const BoostPackagesCard: React.FC = () => {
       } else {
         // Покупка через внутренний баланс
         try {
+          console.log('[TON_BOOST] Отправка запроса на покупку через внутренний баланс:', {
+            user_id: userId,
+            boost_id: boostId,
+            payment_method: paymentMethod,
+            selectedPackage: selectedPackage
+          });
+
           const data = await correctApiRequest('/api/v2/boost/purchase', 'POST', {
             user_id: userId,
             boost_id: boostId,
             payment_method: paymentMethod
           });
+
+          console.log('[TON_BOOST] Ответ от сервера:', data);
 
           if (data.success) {
             // Обновляем кэш пользователя и связанные данные

@@ -37,25 +37,29 @@ export function requireTelegramAuth(req: Request, res: Response, next: NextFunct
     // Check for JWT token first
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
+      console.log('[TelegramAuth] JWT token found, attempting verification');
       try {
         const jwt = require('jsonwebtoken');
         const jwtSecret = process.env.JWT_SECRET || 'unifarm_jwt_secret_key_2025_production';
         const decoded = jwt.verify(token, jwtSecret) as any;
+        console.log('[TelegramAuth] JWT decoded:', decoded);
         
-        if (decoded.telegram_id) {
+        if (decoded.telegram_id || decoded.telegramId) {
           // Valid JWT token - set user data and continue
+          const telegram_id = decoded.telegram_id || decoded.telegramId;
+          console.log('[TelegramAuth] Setting user data from JWT, telegram_id:', telegram_id);
           (req as any).telegramUser = {
-            id: decoded.telegram_id,
+            id: telegram_id,
             username: decoded.username || 'user',
             first_name: decoded.first_name || 'User',
-            ref_code: decoded.ref_code
+            ref_code: decoded.ref_code || decoded.refCode
           };
           // Также устанавливаем req.user для совместимости с контроллерами
           (req as any).user = {
-            id: decoded.telegram_id,
-            telegram_id: decoded.telegram_id,
+            id: telegram_id,
+            telegram_id: telegram_id,
             username: decoded.username || 'user',
-            ref_code: decoded.ref_code
+            ref_code: decoded.ref_code || decoded.refCode
           };
           next();
           return;

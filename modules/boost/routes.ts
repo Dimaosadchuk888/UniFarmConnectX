@@ -15,12 +15,10 @@ const boostActivationSchema = z.object({
 });
 
 const boostPurchaseSchema = z.object({
-  package_id: z.number().int().positive('Package ID must be positive integer'),
-  payment_method: z.enum(['UNI', 'TON'], { errorMap: () => ({ message: 'Payment method must be UNI or TON' }) }),
-  amount: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Invalid amount format').refine(
-    (val) => parseFloat(val) > 0,
-    'Amount must be greater than 0'
-  )
+  user_id: z.string().regex(/^\d+$/, 'User ID must be numeric'),
+  boost_id: z.string().regex(/^\d+$/, 'Boost ID must be numeric'),
+  payment_method: z.enum(['wallet', 'ton'], { errorMap: () => ({ message: 'Payment method must be wallet or ton' }) }),
+  tx_hash: z.string().optional()
 });
 
 const tonPaymentSchema = z.object({
