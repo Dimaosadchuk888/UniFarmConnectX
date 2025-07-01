@@ -237,16 +237,29 @@ export class WalletService {
         return { transactions: [], total: 0, hasMore: false };
       }
 
-      const formattedTransactions = (transactions || []).map(tx => ({
-        id: tx.id,
-        type: tx.type,
-        amount: parseFloat(tx.amount_uni || '0') > 0 ? tx.amount_uni : tx.amount_ton,
-        currency: parseFloat(tx.amount_uni || '0') > 0 ? 'UNI' : 'TON',
-        status: tx.status || 'completed',
-        description: tx.description || '',
-        createdAt: tx.created_at,
-        timestamp: new Date(tx.created_at).getTime()
-      }));
+      const formattedTransactions = (transactions || []).map(tx => {
+        // Определяем валюту более точно
+        const hasUniAmount = parseFloat(tx.amount_uni || '0') > 0;
+        const hasTonAmount = parseFloat(tx.amount_ton || '0') > 0;
+        
+        // Если есть явное поле currency, используем его
+        // Иначе определяем по наличию суммы
+        let currency = tx.currency;
+        if (!currency) {
+          currency = hasUniAmount ? 'UNI' : (hasTonAmount ? 'TON' : 'UNI');
+        }
+        
+        return {
+          id: tx.id,
+          type: tx.type,
+          amount: currency === 'UNI' ? (tx.amount_uni || '0') : (tx.amount_ton || '0'),
+          currency: currency,
+          status: tx.status || 'completed',
+          description: tx.description || '',
+          createdAt: tx.created_at,
+          timestamp: new Date(tx.created_at).getTime()
+        };
+      });
 
       return {
         transactions: formattedTransactions,
