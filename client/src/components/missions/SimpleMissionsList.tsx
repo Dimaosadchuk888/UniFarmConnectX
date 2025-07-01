@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,14 +26,16 @@ interface UserMission {
 const SimpleMissionsList: React.FC = () => {
   const { userId } = useUser();
   const validUserId = userId || '1';
+  const [openedMissions, setOpenedMissions] = useState<Set<number>>(new Set());
+  const [checkingMission, setCheckingMission] = useState<number | null>(null);
 
-  const { data: missionsData } = useQuery({
+  const { data: missionsData, refetch: refetchMissions } = useQuery({
     queryKey: ['/api/v2/missions/list', validUserId],
     queryFn: () => correctApiRequest(`/api/v2/missions/list?user_id=${validUserId}`),
     refetchInterval: 10000,
   });
 
-  const { data: userMissionsData } = useQuery({
+  const { data: userMissionsData, refetch: refetchUserMissions } = useQuery({
     queryKey: ['/api/v2/missions/user', validUserId],
     queryFn: () => correctApiRequest(`/api/v2/missions/user/${validUserId}`),
     refetchInterval: 10000,
@@ -58,6 +60,38 @@ const SimpleMissionsList: React.FC = () => {
   const handleMissionClick = (mission: Mission) => {
     if (mission.link) {
       window.open(mission.link, '_blank');
+      setOpenedMissions(prev => new Set(Array.from(prev).concat(mission.id)));
+    }
+  };
+
+  const handleCheckMission = async (mission: Mission) => {
+    try {
+      setCheckingMission(mission.id);
+      const response = await correctApiRequest(
+        `/api/v2/missions/${mission.id}/complete`,
+        'POST',
+        {
+          missionId: mission.id,
+          verification_data: {
+            social_link: mission.link
+          }
+        }
+      );
+
+      if (response.success) {
+        // Обновляем списки после успешного выполнения
+        await refetchMissions();
+        await refetchUserMissions();
+        setOpenedMissions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(mission.id);
+          return newSet;
+        });
+      }
+    } catch (err) {
+      console.error('Ошибка при проверке задания:', err);
+    } finally {
+      setCheckingMission(null);
     }
   };
 
@@ -101,13 +135,24 @@ const SimpleMissionsList: React.FC = () => {
                   </div>
                   
                   {!isCompleted && (
-                    <Button
-                      onClick={() => handleMissionClick(mission)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                      disabled={isCompleted}
-                    >
-                      {mission.link ? 'Перейти' : 'Выполнить'}
-                    </Button>
+                    <div className="flex gap-2">
+                      {openedMissions.has(mission.id) ? (
+                        <Button
+                          onClick={() => handleCheckMission(mission)}
+                          className="bg-green-600 hover:bg-green-700"
+                          disabled={checkingMission === mission.id}
+                        >
+                          {checkingMission === mission.id ? 'Проверка...' : 'Проверить'}
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleMissionClick(mission)}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          {mission.link ? 'Перейти' : 'Выполнить'}
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </CardContent>
