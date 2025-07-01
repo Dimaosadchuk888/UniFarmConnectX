@@ -227,17 +227,17 @@ class UserService {
       // Делаем запрос без дополнительных параметров, так как guest_id передается в headers
       const data = await correctApiRequest('/api/v2/users/profile', 'GET');
 
-      // Подробный лог для отладки
-      console.log('[UserService] API /me result:', {
+      // Подробный лог для отладки v4-final
+      const timestamp = Date.now();
+      console.log(`[UserService v4-${timestamp}] API response:`, {
+        version: 'v4-final-fix',
+        timestamp: timestamp,
         success: data?.success,
-        userId: data?.data?.id,
-        username: data?.data?.username,
-        guestId: data?.data?.guest_id,
-        refCode: data?.data?.ref_code || 'НЕ ОПРЕДЕЛЕН',
-        hasRefCode: !!data?.data?.ref_code,
-        telegramId: data?.data?.telegram_id,
-        balanceUni: data?.data?.balance_uni,
-        balanceTon: data?.data?.balance_ton,
+        hasUser: !!data?.data?.user,
+        userRefCode: data?.data?.user?.ref_code,
+        directRefCode: data?.data?.ref_code,
+        refCodeFound: data?.data?.user?.ref_code || data?.data?.ref_code || 'НЕ ОПРЕДЕЛЕН',
+        userStructure: data?.data?.user ? 'nested user object' : 'direct data',
         responseJson: JSON.stringify(data).substring(0, 200) + '...'
       });
 
@@ -247,24 +247,78 @@ class UserService {
         throw new Error('Invalid response from server');
       }
 
-      // Проверяем и фиксируем поля с типами данных, добавляем отсутствующие поля
-      const userData = {
-        ...data.data,
-        id: Number(data.data.id),
-        telegram_id: data.data.telegram_id !== undefined ? 
-          (data.data.telegram_id === null ? null : Number(data.data.telegram_id)) : null,
-        username: data.data.username || null, // Добавляем username если отсутствует
-        balance_uni: String(data.data.balance_uni || "0"),
-        balance_ton: String(data.data.balance_ton || "0"),
-        ref_code: data.data.ref_code || null, // Разрешаем null для ref_code
-        guest_id: String(data.data.guest_id || "")
-      };
+      // ИСПРАВЛЕНО: Правильно обрабатываем структуру API ответа
+      // API возвращает данные либо в data.data.user, либо в data.data
+      let userData: User;
+      
+      console.log('[UserService] API Response Structure v2:', {
+        timestamp: new Date().toISOString(),
+        hasUser: !!(data.data.user),
+        userType: typeof data.data.user,
+        dataKeys: Object.keys(data.data),
+        sampleData: JSON.stringify(data.data).substring(0, 200)
+      });
+      
+      // Проверяем структуру ответа
+      if (data.data.user && typeof data.data.user === 'object') {
+        // Если есть вложенный объект user, используем его
+        console.log('[UserService] Using data.data.user structure');
+        const user = data.data.user;
+        userData = {
+          id: Number(user.id),
+          telegram_id: user.telegram_id !== undefined ? 
+            (user.telegram_id === null ? null : Number(user.telegram_id)) : null,
+          username: user.username || null,
+          balance_uni: String(user.balance_uni || user.uni_balance || "0"),
+          balance_ton: String(user.balance_ton || user.ton_balance || "0"),
+          ref_code: user.ref_code || null,
+          guest_id: String(user.guest_id || ""),
+          created_at: user.created_at,
+          parent_ref_code: user.parent_ref_code || user.referred_by || null
+        };
+      } else {
+        // Иначе используем данные напрямую из data.data
+        // ФИКС: Проверяем, есть ли вложенный объект user
+        const source = data.data.user || data.data;
+        userData = {
+          id: Number(source.id),
+          telegram_id: source.telegram_id !== undefined ? 
+            (source.telegram_id === null ? null : Number(source.telegram_id)) : null,
+          username: source.username || null,
+          balance_uni: String(source.balance_uni || source.uni_balance || "0"),
+          balance_ton: String(source.balance_ton || source.ton_balance || "0"),
+          ref_code: source.ref_code || null,
+          guest_id: String(source.guest_id || ""),
+          created_at: source.created_at,
+          parent_ref_code: source.parent_ref_code || source.referred_by || null
+        };
+      }
 
+      // ВРЕМЕННЫЙ ФИКС V2: Если в userData есть вложенный user объект, используем его
+      console.log('[UserService] TEMP FIX CHECK v2:', {
+        hasUserProp: 'user' in userData,
+        userDataKeys: Object.keys(userData),
+        userType: typeof (userData as any).user,
+        timestamp: Date.now()
+      });
+      
+      if ('user' in userData && (userData as any).user && typeof (userData as any).user === 'object') {
+        console.warn('[UserService] ВРЕМЕННЫЙ ФИКС V2: Обнаружена неправильная структура с вложенным user, исправляем...');
+        userData = (userData as any).user as User;
+      }
+      
       // Валидируем и кэшируем полученные данные
       if (this.isValidUserData(userData)) {
         this.cacheUserData(userData);
         return userData;
       } else {
+        console.error('[UserService] Data validation failed. Debug info:', {
+          userDataKeys: Object.keys(userData),
+          hasUserProperty: 'user' in userData,
+          idValue: userData.id,
+          refCodeValue: userData.ref_code,
+          actualStructure: JSON.stringify(userData).substring(0, 300)
+        });
         console.error('[UserService] Data validation failed after type correction:', userData);
         throw new Error('Invalid user data structure received from API');
       }
@@ -300,7 +354,7 @@ class UserService {
     const isValid = (
       data &&
       typeof data.id === 'number' &&
-      data.id > 0 &&
+      data.id >= 0 && // ИСПРАВЛЕНО: id может быть равен 0
       (typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string' || data.telegram_id === null) &&
       (typeof data.username === 'string' || data.username === null) &&
       typeof data.balance_uni === 'string' &&
@@ -312,7 +366,7 @@ class UserService {
     if (!isValid && data) {
       console.warn('[UserService] Invalid user data structure:', {
         hasId: typeof data.id === 'number',
-        idIsPositive: data.id > 0,
+        idIsPositive: data.id >= 0, // ИСПРАВЛЕНО: синхронизировано с основной валидацией
         hasTelegramId: typeof data.telegram_id === 'number' || typeof data.telegram_id === 'string' || data.telegram_id === null,
         telegramIdValue: data.telegram_id,
         hasUsername: typeof data.username === 'string' || data.username === null,
