@@ -49,18 +49,38 @@ export async function correctApiRequest(url: string, method: string = 'GET', bod
   }
 
   try {
+    console.log('[correctApiRequest] Отправка запроса:', {
+      url,
+      method,
+      body,
+      headers: requestHeaders
+    });
+    
     const response = await fetch(url, requestConfig);
+    
+    console.log('[correctApiRequest] Получен ответ:', {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText
+    });
     
     // Проверяем статус ответа
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('[correctApiRequest] Ошибка ответа:', errorData);
       throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
     // Возвращаем JSON данные
-    return await response.json();
+    const data = await response.json();
+    console.log('[correctApiRequest] Успешный ответ:', data);
+    return data;
   } catch (error) {
-    console.error('API Request Error:', error);
+    console.error('[correctApiRequest] Полная ошибка:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
 }
