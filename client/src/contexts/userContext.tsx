@@ -169,34 +169,51 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       // В демо-режиме всегда используем demo_user с ID 48
       const isDemoMode = window.location.hostname.includes('replit.dev');
       
-      let apiUrl = '/api/v2/users/profile';
-      
       if (isDemoMode) {
-        console.log('[UserContext] Демо-режим активирован, используем demo_user (ID: 48)');
-        apiUrl = '/api/v2/users/profile?user_id=48';
-      } else {
-        // Получаем данные пользователя из localStorage или используем guest_id
-        const lastSessionStr = localStorage.getItem('unifarm_last_session');
-        const guestId = localStorage.getItem('unifarm_guest_id');
+        console.log('[UserContext] Демо-режим активирован, принудительно устанавливаем userId = 48');
         
-        if (lastSessionStr) {
-          try {
-            const lastSession = JSON.parse(lastSessionStr);
-            if (lastSession.user_id) {
-              apiUrl = `/api/v2/users/profile?user_id=${lastSession.user_id}`;
-            }
-          } catch (e) {
-            console.warn('[UserContext] Ошибка парсинга данных сессии:', e);
+        // Принудительно устанавливаем demo user данные
+        dispatch({
+          type: 'SET_USER_DATA',
+          payload: {
+            userId: 48,
+            username: 'demo_user',
+            guestId: null,
+            telegramId: 43,
+            refCode: 'REF_1750952576614_t938vs'
           }
-        } else if (guestId) {
-          apiUrl = `/api/v2/users/profile?guest_id=${guestId}`;
-        }
+        });
+        
+        dispatch({ type: 'SET_ERROR', payload: null });
+        console.log('[UserContext] Демо-режим: userId установлен в 48');
+        return;
       }
       
+      // Получаем данные пользователя из localStorage или используем guest_id
+      let apiUrl = '/api/v2/users/profile';
+      const lastSessionStr = localStorage.getItem('unifarm_last_session');
+      const guestId = localStorage.getItem('unifarm_guest_id');
+      
+      if (lastSessionStr) {
+        try {
+          const lastSession = JSON.parse(lastSessionStr);
+          if (lastSession.user_id) {
+            apiUrl = `/api/v2/users/profile?user_id=${lastSession.user_id}`;
+          }
+        } catch (e) {
+          console.warn('[UserContext] Ошибка парсинга данных сессии:', e);
+        }
+      } else if (guestId) {
+        apiUrl = `/api/v2/users/profile?guest_id=${guestId}`;
+      }
+      
+      console.log('[UserContext] Выполняем API запрос:', apiUrl);
       const response = await correctApiRequest(apiUrl);
+      console.log('[UserContext] Получен ответ API:', response);
       
       if (response.success && response.data) {
         const user = response.data;
+        console.log('[UserContext] Данные пользователя из API:', user);
         
         dispatch({
           type: 'SET_USER_DATA',
@@ -208,6 +225,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             refCode: user.ref_code || null
           }
         });
+        
+        console.log('[UserContext] Состояние обновлено, userId:', user.id);
         
         dispatch({ type: 'SET_ERROR', payload: null });
         
@@ -224,6 +243,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         // Если запрос не удался, проверяем данные в localStorage
+        const lastSessionStr = localStorage.getItem('unifarm_last_session');
+        const guestId = localStorage.getItem('unifarm_guest_id');
+        
         if (lastSessionStr) {
           try {
             const lastSession = JSON.parse(lastSessionStr);
