@@ -206,7 +206,7 @@ export class FarmingService {
       try {
         const transactionPayload = {
           user_id: user.id,
-          type: 'DEPOSIT' as const,  // Используем правильный тип DEPOSIT из ENUM
+          type: 'FARMING_REWARD' as const,  // Используем существующий тип из ENUM
           amount_uni: depositAmount.toString(),  // Правильное поле для UNI
           amount_ton: '0',  // Правильное поле для TON
           status: 'completed',
@@ -216,7 +216,7 @@ export class FarmingService {
           created_at: new Date().toISOString()
         };
 
-        logger.info('[FarmingService] Создание транзакции DEPOSIT', { 
+        logger.info('[FarmingService] Создание транзакции фарминга', { 
           payload: transactionPayload
         });
 
@@ -233,7 +233,7 @@ export class FarmingService {
             code: transactionError.code
           });
         } else {
-          logger.info('[FarmingService] Транзакция DEPOSIT успешно создана', { 
+          logger.info('[FarmingService] Транзакция фарминга успешно создана', { 
             transactionId: transactionData?.id,
             type: transactionData?.type,
             amount: transactionData?.amount_uni
