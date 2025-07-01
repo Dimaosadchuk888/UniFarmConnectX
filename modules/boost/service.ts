@@ -304,7 +304,8 @@ export class BoostService {
           .insert({
             user_id: parseInt(userId),
             type: 'boost_purchase',
-            amount: requiredAmount.toString(),
+            amount_uni: '0',
+            amount_ton: requiredAmount.toString(),
             currency: 'TON',
             status: 'completed',
             description: `Покупка ${boostPackage.name} через внутренний баланс`,
@@ -468,7 +469,8 @@ export class BoostService {
         .insert({
           user_id: parseInt(userId),
           type: 'boost_purchase',
-          amount: boostPackage.min_amount,
+          amount_uni: '0',
+          amount_ton: boostPackage.min_amount.toString(),
           currency: 'TON',
           status: 'pending',
           tx_hash: txHash,
@@ -660,7 +662,8 @@ export class BoostService {
         .insert({
           user_id: parseInt(userId),
           type: 'boost_purchase',
-          amount: amount || '0',
+          amount_uni: '0',
+          amount_ton: amount || '0',
           currency: 'TON',
           status: 'completed',
           tx_hash: txHash,

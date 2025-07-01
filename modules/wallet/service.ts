@@ -323,7 +323,8 @@ export class WalletService {
         .insert({
           user_id: parseInt(userId),
           type: 'withdrawal',
-          amount: withdrawAmount.toString(),
+          amount_uni: type === 'UNI' ? withdrawAmount.toString() : '0',
+          amount_ton: type === 'TON' ? withdrawAmount.toString() : '0',
           currency: type,
           status: 'completed',
           created_at: new Date().toISOString()
