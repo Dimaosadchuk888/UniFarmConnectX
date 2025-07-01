@@ -176,9 +176,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           // Авторизуем демо-пользователя через API для получения JWT токена
           const authResponse = await correctApiRequest('/api/v2/auth/telegram', 'POST', {
             direct_registration: true,
-            telegram_id: 43,
-            username: 'demo_user',
-            first_name: 'Demo User'
+            telegram_id: 48,
+            username: 'dev_user',
+            first_name: 'Dev User'
           });
           
           console.log('[UserContext] Ответ авторизации в демо-режиме:', authResponse);
