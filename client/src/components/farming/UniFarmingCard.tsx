@@ -25,7 +25,7 @@ interface FarmingInfo {
 
 const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
   const queryClient = useQueryClient();
-  const { userId } = useUser(); // Получаем ID пользователя из контекста
+  const { userId, refreshBalance } = useUser(); // Получаем ID пользователя и функцию обновления баланса из контекста
   const { success, error: showError } = useNotification(); // Для показа уведомлений
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -275,11 +275,19 @@ const UniFarmingCard: React.FC<UniFarmingCardProps> = ({ userData }) => {
         // Обновляем сразу все основные эндпоинты
         invalidateQueryWithUserId('/api/v2/uni-farming/status', [
           '/api/v2/wallet/balance',
-          '/api/v2/transactions'
+          '/api/v2/transactions',
+          '/api/v2/users/profile'  // Обновляем профиль пользователя для обновления баланса
         ]);
 
-        // Принудительно обновляем баланс пользователя
-        queryClient.refetchQueries({ queryKey: ['/api/v2/me'] });
+        // Принудительно обновляем профиль пользователя и баланс
+        queryClient.invalidateQueries({ queryKey: ['/api/v2/users/profile'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });
+        
+        // Обновляем баланс в UserContext
+        if (refreshBalance) {
+          console.log('[INFO] Обновляем баланс через UserContext');
+          refreshBalance(true); // Принудительное обновление без кэша
+        }
       } catch (error: any) {
         console.error('[ERROR] UniFarmingCard - Ошибка в onSuccess depositMutation:', error);
         // Даже в случае ошибки отображаем успех
