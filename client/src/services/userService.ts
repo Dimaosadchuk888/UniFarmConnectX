@@ -259,10 +259,17 @@ class UserService {
         sampleData: JSON.stringify(data.data).substring(0, 200)
       });
       
-      // Проверяем структуру ответа
-      if (data.data.user && typeof data.data.user === 'object') {
+      // Проверяем структуру ответа - ФИКС V5
+      console.log('[UserService V5] Checking response structure:', {
+        hasDataData: !!data?.data,
+        dataDataKeys: data?.data ? Object.keys(data.data) : [],
+        hasNestedUser: !!(data?.data?.user),
+        nestedUserType: typeof data?.data?.user
+      });
+      
+      if (data?.data?.user && typeof data.data.user === 'object') {
         // Если есть вложенный объект user, используем его
-        console.log('[UserService] Using data.data.user structure');
+        console.log('[UserService V5] Using data.data.user structure');
         const user = data.data.user;
         userData = {
           id: Number(user.id),
@@ -278,19 +285,18 @@ class UserService {
         };
       } else {
         // Иначе используем данные напрямую из data.data
-        // ФИКС: Проверяем, есть ли вложенный объект user
-        const source = data.data.user || data.data;
+        console.log('[UserService V5] Using data.data structure directly');
         userData = {
-          id: Number(source.id),
-          telegram_id: source.telegram_id !== undefined ? 
-            (source.telegram_id === null ? null : Number(source.telegram_id)) : null,
-          username: source.username || null,
-          balance_uni: String(source.balance_uni || source.uni_balance || "0"),
-          balance_ton: String(source.balance_ton || source.ton_balance || "0"),
-          ref_code: source.ref_code || null,
-          guest_id: String(source.guest_id || ""),
-          created_at: source.created_at,
-          parent_ref_code: source.parent_ref_code || source.referred_by || null
+          id: Number(data.data.id),
+          telegram_id: data.data.telegram_id !== undefined ? 
+            (data.data.telegram_id === null ? null : Number(data.data.telegram_id)) : null,
+          username: data.data.username || null,
+          balance_uni: String(data.data.balance_uni || data.data.uni_balance || "0"),
+          balance_ton: String(data.data.balance_ton || data.data.ton_balance || "0"),
+          ref_code: data.data.ref_code || null,
+          guest_id: String(data.data.guest_id || ""),
+          created_at: data.data.created_at,
+          parent_ref_code: data.data.parent_ref_code || data.data.referred_by || null
         };
       }
 
