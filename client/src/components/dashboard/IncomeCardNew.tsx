@@ -49,16 +49,16 @@ const IncomeCardNew: React.FC = () => {
   const [targetTonHourRate, setTargetTonHourRate] = useState(0);
   const [targetTonDayRate, setTargetTonDayRate] = useState(0);
   
-  // Получаем данные фарминга
+  // Получаем данные фарминга с правильными API v2 endpoints
   const { data: uniFarmingInfo } = useQuery({
-    queryKey: ['/api/uni-farming/status', validUserId],
-    queryFn: () => correctApiRequest(`/api/uni-farming/status?user_id=${validUserId}`),
+    queryKey: ['/api/v2/farming/status', validUserId],
+    queryFn: () => correctApiRequest(`/api/v2/farming/status?user_id=${validUserId}`),
     refetchInterval: 5000,
   });
 
   const { data: tonFarmingInfo } = useQuery({
-    queryKey: ['/api/ton-boost/farming-status', validUserId],
-    queryFn: () => correctApiRequest(`/api/ton-boost/farming-status?user_id=${validUserId}`),
+    queryKey: ['/api/v2/boost/farming-status', validUserId],
+    queryFn: () => correctApiRequest(`/api/v2/boost/farming-status?user_id=${validUserId}`),
     refetchInterval: 5000,
   });
 

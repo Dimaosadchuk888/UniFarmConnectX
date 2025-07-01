@@ -207,7 +207,7 @@ const BoostPackagesCard: React.FC = () => {
 
             // Обновляем данные
             queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/boost'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
           } else {
@@ -246,7 +246,7 @@ const BoostPackagesCard: React.FC = () => {
           if (data.success) {
             // Обновляем кэш пользователя и связанные данные
             queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/ton-boosts'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/boost'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
 

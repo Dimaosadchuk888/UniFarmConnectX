@@ -37,8 +37,8 @@ const TonFarmingStatusCard: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
   const [dotOpacity, setDotOpacity] = useState(0.5);
 
-  // Получаем информацию о TON фарминге
-  const apiUrl = `/api/ton-farming/info?user_id=${userId}`;
+  // Получаем информацию о TON фарминге с правильным префиксом API v2
+  const apiUrl = `/api/v2/ton-farming/info?user_id=${userId}`;
 
   const { data: farmingInfo, isLoading: isLoadingFarmingInfo } = useQuery<{ success: boolean, data: TonFarmingInfo }>({
     queryKey: [apiUrl],

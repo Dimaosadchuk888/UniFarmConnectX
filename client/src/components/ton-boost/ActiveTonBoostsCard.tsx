@@ -20,12 +20,12 @@ interface TonBoostDeposit {
 }
 
 const ActiveTonBoostsCard: React.FC = () => {
-  // Получаем ID пользователя
+  // Получаем ID пользователя - обновлено для использования правильных API endpoints
   const userId = getUserIdFromURL() || '1';
   
-  // Получаем активные буст-пакеты
+  // Получаем активные буст-пакеты пользователя
   const { data: activeTonBoosts, isLoading: isLoadingBoosts } = useQuery<{ success: boolean, data: TonBoostDeposit[] }>({
-    queryKey: [`/api/ton-boosts/active?user_id=${userId}`],
+    queryKey: [`/api/v2/boost/user/${userId}`],
     refetchInterval: 5000, // Обновляем каждые 5 секунд
   });
 

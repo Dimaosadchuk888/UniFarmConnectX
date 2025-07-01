@@ -32,13 +32,42 @@ export class TonFarmingService {
         throw new Error('Invalid telegramId format');
       }
       
+      // Получаем реальные данные пользователя из Supabase
+      const { supabase } = await import('../../core/supabase');
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('balance_ton, ton_farming_rate, ton_farming_start_timestamp, ton_farming_last_update, ton_boost_package')
+        .eq('telegram_id', telegramId)
+        .single();
+      
+      if (error || !user) {
+        logger.warn('[TonFarmingService] Пользователь не найден в БД', { telegramId, error });
+        return {
+          balance_ton: '0',
+          ton_farming_rate: '0',
+          ton_farming_start_timestamp: null,
+          ton_farming_last_update: null,
+          is_active: false,
+          can_claim: false
+        };
+      }
+      
+      // Определяем активность фарминга на основе реальных данных
+      const tonBalance = parseFloat(user.balance_ton || '0');
+      const hasActiveBoost = user.ton_boost_package && user.ton_boost_package !== '0';
+      const isActive = tonBalance > 0 && hasActiveBoost;
+      
+      // Проверяем возможность клейма (прошло ли достаточно времени)
+      const lastUpdate = user.ton_farming_last_update ? new Date(user.ton_farming_last_update) : null;
+      const canClaim = isActive && lastUpdate && (Date.now() - lastUpdate.getTime() > 60000); // Минимум 1 минута
+      
       return {
-        balance_ton: '1.50000000',
-        ton_farming_rate: TON_FARMING_CONFIG.DEFAULT_RATE,
-        ton_farming_start_timestamp: new Date(),
-        ton_farming_last_update: new Date(),
-        is_active: true,
-        can_claim: true
+        balance_ton: tonBalance.toFixed(8),
+        ton_farming_rate: user.ton_farming_rate || TON_FARMING_CONFIG.DEFAULT_RATE,
+        ton_farming_start_timestamp: user.ton_farming_start_timestamp ? new Date(user.ton_farming_start_timestamp) : null,
+        ton_farming_last_update: lastUpdate,
+        is_active: isActive,
+        can_claim: canClaim
       };
     } catch (error) {
       logger.error('[TonFarmingService] Ошибка получения данных TON фарминга:', {
@@ -102,13 +131,27 @@ export class TonFarmingService {
     estimatedReward: string;
   }> {
     try {
+      // Получаем данные через существующий метод
+      const farmingData = await this.getTonFarmingDataByTelegramId(telegramId);
+      
+      // Рассчитываем примерную награду на основе времени с последнего обновления
+      let estimatedReward = '0';
+      if (farmingData.is_active && farmingData.ton_farming_last_update) {
+        const timeDiff = Date.now() - farmingData.ton_farming_last_update.getTime();
+        const hours = timeDiff / (1000 * 60 * 60);
+        const dailyRate = parseFloat(farmingData.ton_farming_rate);
+        const balance = parseFloat(farmingData.balance_ton);
+        const reward = (balance * dailyRate * hours) / 24;
+        estimatedReward = reward.toFixed(8);
+      }
+      
       return {
-        isActive: true,
-        currentBalance: '1.50000000',
-        rate: TON_FARMING_CONFIG.DEFAULT_RATE,
-        lastUpdate: new Date().toISOString(),
-        canClaim: true,
-        estimatedReward: '0.00150000'
+        isActive: farmingData.is_active,
+        currentBalance: farmingData.balance_ton,
+        rate: farmingData.ton_farming_rate,
+        lastUpdate: farmingData.ton_farming_last_update ? farmingData.ton_farming_last_update.toISOString() : null,
+        canClaim: farmingData.can_claim,
+        estimatedReward
       };
     } catch (error) {
       logger.error('[TonFarmingService] Ошибка получения статуса TON фарминга:', error);
