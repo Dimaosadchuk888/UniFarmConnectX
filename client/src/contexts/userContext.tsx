@@ -386,12 +386,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       try {
         // Сначала запрашиваем данные пользователя
         await refreshUserData();
-        
-        // Затем, если получили userId, запрашиваем баланс
-        if (state.userId) {
-          console.log('[UserContext] Данные пользователя получены, запрашиваем баланс...');
-          await refreshBalance();
-        }
       } catch (err) {
         console.error('[UserContext] Ошибка при загрузке начальных данных:', err);
       }
@@ -400,6 +394,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     loadInitialUserData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [/* Пустой массив зависимостей, чтобы эффект выполнился только при первом рендере */]);
+  
+  // Загружаем баланс после установки userId
+  useEffect(() => {
+    if (state.userId) {
+      console.log('[UserContext] userId установлен, запрашиваем баланс для userId:', state.userId);
+      refreshBalance();
+    }
+  }, [state.userId, refreshBalance]);
   
   // Значение контекста
   const value: UserContextType = {
