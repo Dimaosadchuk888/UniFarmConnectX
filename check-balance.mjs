@@ -1,39 +1,45 @@
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-dotenv.config();
+import { supabase } from './core/supabase.js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
-
-async function checkBalance() {
-  console.log('🔍 Проверяю баланс Demo User (ID 48) после перезапуска сервера...\n');
-  
+async function checkUserBalance() {
+  // Проверяем пользователя с telegram_id 43 (демо пользователь)
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, username, telegram_id, ref_code, balance_uni, balance_ton')
-    .eq('id', 48)
+    .select('id, telegram_id, username, balance_uni, balance_ton')
+    .eq('telegram_id', 43)
     .single();
     
-  if (error) {
-    console.error('❌ Ошибка:', error);
-    return;
-  }
+  console.log('=== ПОЛЬЗОВАТЕЛЬ ===');
+  console.log('User:', user);
   
-  console.log('✅ РЕЗУЛЬТАТ ПРОВЕРКИ:');
-  console.log('════════════════════════════════════════');
-  console.log('  • ID:', user.id);
-  console.log('  • Username:', user.username);
-  console.log('  • Telegram ID:', user.telegram_id);
-  console.log('  • Ref Code:', user.ref_code);
-  console.log('  • Баланс UNI:', user.balance_uni);
-  console.log('  • Баланс TON:', user.balance_ton);
-  console.log('════════════════════════════════════════');
-  
-  if (user.balance_uni === 1000 && user.balance_ton === 1000) {
-    console.log('\n✅ БАЛАНСЫ УСПЕШНО СОХРАНЕНЫ В БАЗЕ ДАННЫХ!');
+  if (user) {
+    // Проверяем транзакции для этого пользователя
+    const { data: transactions, error: txError } = await supabase
+      .from('transactions')
+      .select('id, type, amount_uni, amount_ton, status, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+      
+    console.log('\n=== ТРАНЗАКЦИИ ===');
+    console.log(`Найдено транзакций: ${transactions?.length || 0}`);
+    
+    if (transactions && transactions.length > 0) {
+      let totalUni = 0;
+      let totalTon = 0;
+      
+      transactions.forEach(tx => {
+        console.log(`- ${tx.type}: ${tx.amount_uni} UNI, ${tx.amount_ton} TON (${tx.created_at})`);
+        if (tx.status === 'confirmed') {
+          totalUni += parseFloat(tx.amount_uni || 0);
+          totalTon += parseFloat(tx.amount_ton || 0);
+        }
+      });
+      
+      console.log(`\n=== ИТОГИ ===`);
+      console.log(`Сумма всех транзакций: ${totalUni} UNI, ${totalTon} TON`);
+      console.log(`Баланс в БД: ${user.balance_uni} UNI, ${user.balance_ton} TON`);
+      console.log(`Разница: ${user.balance_uni - totalUni} UNI`);
+    }
   }
 }
 
-checkBalance().catch(console.error);
+checkUserBalance();
