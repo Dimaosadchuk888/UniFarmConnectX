@@ -65,8 +65,8 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
     
     // Преобразуем данные в нужный формат
     const balance = {
-      uniBalance: parseFloat(data.balance_uni) || 0,
-      tonBalance: parseFloat(data.balance_ton) || 0,
+      uniBalance: parseFloat(data.uni_balance) || 0,
+      tonBalance: parseFloat(data.ton_balance) || 0,
       uniFarmingActive: !!data.uni_farming_active,
       uniDepositAmount: parseFloat(data.uni_deposit_amount) || 0,
       uniFarmingBalance: parseFloat(data.uni_farming_balance) || 0
