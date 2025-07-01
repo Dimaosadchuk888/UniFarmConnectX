@@ -135,12 +135,24 @@ const IncomeCardNew: React.FC = () => {
         <div className="bg-black/20 rounded-lg p-4">
           <div className="text-sm text-gray-300 mb-1">Общий доход</div>
           <div className="flex justify-between items-center">
-            <div>
-              <div className="text-xl font-bold text-white">
-                {formatNumber(totalHourly)} UNI/час
+            <div className="flex-1">
+              {/* UNI доход */}
+              <div className="mb-2">
+                <div className="text-xl font-bold text-white">
+                  {formatNumber(displayedHourRate)} UNI/час
+                </div>
+                <div className="text-sm text-gray-400">
+                  {formatNumber(displayedDayRate)} UNI/день
+                </div>
               </div>
-              <div className="text-sm text-gray-400">
-                {formatNumber(totalDaily)} UNI/день
+              {/* TON доход */}
+              <div>
+                <div className="text-xl font-bold text-purple-300">
+                  {formatNumber(displayedTonHourRate)} TON/час
+                </div>
+                <div className="text-sm text-gray-400">
+                  {formatNumber(displayedTonDayRate)} TON/день
+                </div>
               </div>
             </div>
           </div>
