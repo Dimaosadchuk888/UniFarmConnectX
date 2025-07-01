@@ -104,6 +104,11 @@ export class TransactionsService {
         type: transaction.type
       });
 
+      // Обновляем баланс пользователя после создания транзакции
+      if (data.status === 'confirmed') {
+        await this.updateUserBalanceFromTransaction(data);
+      }
+
       return data;
     } catch (error) {
       logger.error('[TransactionsService] Ошибка создания транзакции:', {
@@ -196,6 +201,144 @@ export class TransactionsService {
         totalIncome: { UNI: '0', TON: '0' },
         totalOutcome: { UNI: '0', TON: '0' }
       };
+    }
+  }
+
+  /**
+   * Обновить баланс пользователя на основе транзакции
+   */
+  private async updateUserBalanceFromTransaction(transaction: Transaction): Promise<void> {
+    try {
+      // Получаем текущий баланс пользователя
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('balance_uni, balance_ton')
+        .eq('id', transaction.user_id)
+        .single();
+
+      if (userError || !user) {
+        logger.error('[TransactionsService] Пользователь не найден для обновления баланса', {
+          userId: transaction.user_id,
+          error: userError
+        });
+        return;
+      }
+
+      const currentUniBalance = parseFloat(user.balance_uni || '0');
+      const currentTonBalance = parseFloat(user.balance_ton || '0');
+      
+      let newUniBalance = currentUniBalance;
+      let newTonBalance = currentTonBalance;
+
+      // Определяем тип операции и обновляем соответствующий баланс
+      const isIncome = ['farming_income', 'mission_reward', 'referral_bonus', 'daily_bonus', 'ton_farming_income', 'ton_boost_reward'].includes(transaction.type);
+      
+      const amount = parseFloat(transaction.amount || '0');
+      
+      if (transaction.currency === 'UNI') {
+        newUniBalance = isIncome ? currentUniBalance + amount : currentUniBalance - amount;
+      }
+      
+      if (transaction.currency === 'TON') {
+        newTonBalance = isIncome ? currentTonBalance + amount : currentTonBalance - amount;
+      }
+
+      // Обновляем баланс в базе данных
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          balance_uni: newUniBalance.toString(),
+          balance_ton: newTonBalance.toString()
+        })
+        .eq('id', transaction.user_id);
+
+      if (updateError) {
+        logger.error('[TransactionsService] Ошибка обновления баланса пользователя', {
+          userId: transaction.user_id,
+          error: updateError
+        });
+      } else {
+        logger.info('[TransactionsService] Баланс пользователя обновлён', {
+          userId: transaction.user_id,
+          oldUniBalance: currentUniBalance,
+          newUniBalance,
+          oldTonBalance: currentTonBalance,
+          newTonBalance,
+          transactionType: transaction.type
+        });
+      }
+    } catch (error) {
+      logger.error('[TransactionsService] Ошибка обновления баланса из транзакции:', {
+        transaction,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Пересчитать баланс пользователя на основе всех транзакций
+   */
+  async recalculateUserBalance(userId: number): Promise<{ uni: number; ton: number }> {
+    try {
+      logger.info('[TransactionsService] Начинаем пересчёт баланса пользователя', { userId });
+
+      // Получаем все подтверждённые транзакции пользователя
+      const { data: transactions, error } = await supabase
+        .from(TRANSACTIONS_TABLE)
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'confirmed');
+
+      if (error) {
+        logger.error('[TransactionsService] Ошибка получения транзакций для пересчёта', { error });
+        return { uni: 0, ton: 0 };
+      }
+
+      let uniBalance = 0;
+      let tonBalance = 0;
+
+      // Считаем баланс на основе транзакций
+      for (const tx of transactions || []) {
+        const isIncome = ['farming_income', 'mission_reward', 'referral_bonus', 'daily_bonus', 'ton_farming_income', 'ton_boost_reward'].includes(tx.type);
+        
+        const amount = parseFloat(tx.amount || '0');
+        
+        if (tx.currency === 'UNI') {
+          uniBalance += isIncome ? amount : -amount;
+        }
+        
+        if (tx.currency === 'TON') {
+          tonBalance += isIncome ? amount : -amount;
+        }
+      }
+
+      // Обновляем баланс в базе данных
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          balance_uni: uniBalance.toString(),
+          balance_ton: tonBalance.toString()
+        })
+        .eq('id', userId);
+
+      if (updateError) {
+        logger.error('[TransactionsService] Ошибка обновления пересчитанного баланса', { error: updateError });
+      } else {
+        logger.info('[TransactionsService] Баланс пользователя пересчитан', {
+          userId,
+          uniBalance,
+          tonBalance,
+          transactionCount: transactions?.length || 0
+        });
+      }
+
+      return { uni: uniBalance, ton: tonBalance };
+    } catch (error) {
+      logger.error('[TransactionsService] Ошибка пересчёта баланса:', {
+        userId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return { uni: 0, ton: 0 };
     }
   }
 }
