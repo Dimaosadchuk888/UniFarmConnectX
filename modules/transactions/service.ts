@@ -105,7 +105,7 @@ export class TransactionsService {
       });
 
       // Обновляем баланс пользователя после создания транзакции
-      if (data.status === 'confirmed') {
+      if (data.status === 'confirmed' || data.status === 'completed') {
         await this.updateUserBalanceFromTransaction(data);
       }
 
@@ -231,16 +231,20 @@ export class TransactionsService {
       let newTonBalance = currentTonBalance;
 
       // Определяем тип операции и обновляем соответствующий баланс
-      const isIncome = ['farming_income', 'mission_reward', 'referral_bonus', 'daily_bonus', 'ton_farming_income', 'ton_boost_reward'].includes(transaction.type);
+      const isIncome = ['FARMING_REWARD', 'farming_income', 'MISSION_REWARD', 'mission_reward', 'REFERRAL_REWARD', 'referral_bonus', 'DAILY_BONUS', 'daily_bonus', 'ton_farming_income', 'ton_boost_reward'].includes(transaction.type);
       
-      const amount = parseFloat(transaction.amount || '0');
+      // Используем поля amount_uni и amount_ton вместо общего amount
+      const amountUni = parseFloat(transaction.amount_uni || transaction.amount || '0');
+      const amountTon = parseFloat(transaction.amount_ton || '0');
       
-      if (transaction.currency === 'UNI') {
-        newUniBalance = isIncome ? currentUniBalance + amount : currentUniBalance - amount;
+      // Обновляем баланс UNI если есть изменения
+      if (amountUni > 0) {
+        newUniBalance = isIncome ? currentUniBalance + amountUni : currentUniBalance - amountUni;
       }
       
-      if (transaction.currency === 'TON') {
-        newTonBalance = isIncome ? currentTonBalance + amount : currentTonBalance - amount;
+      // Обновляем баланс TON если есть изменения
+      if (amountTon > 0) {
+        newTonBalance = isIncome ? currentTonBalance + amountTon : currentTonBalance - amountTon;
       }
 
       // Обновляем баланс в базе данных
@@ -301,14 +305,18 @@ export class TransactionsService {
       for (const tx of transactions || []) {
         const isIncome = ['farming_income', 'mission_reward', 'referral_bonus', 'daily_bonus', 'ton_farming_income', 'ton_boost_reward'].includes(tx.type);
         
-        const amount = parseFloat(tx.amount || '0');
+        // Используем поля amount_uni и amount_ton
+        const amountUni = parseFloat(tx.amount_uni || tx.amount || '0');
+        const amountTon = parseFloat(tx.amount_ton || '0');
         
-        if (tx.currency === 'UNI') {
-          uniBalance += isIncome ? amount : -amount;
+        // Подсчитываем баланс UNI
+        if (amountUni > 0) {
+          uniBalance += isIncome ? amountUni : -amountUni;
         }
         
-        if (tx.currency === 'TON') {
-          tonBalance += isIncome ? amount : -amount;
+        // Подсчитываем баланс TON
+        if (amountTon > 0) {
+          tonBalance += isIncome ? amountTon : -amountTon;
         }
       }
 

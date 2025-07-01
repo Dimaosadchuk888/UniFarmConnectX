@@ -1,47 +1,41 @@
-import { supabase } from './core/supabase.js';
+// Тест создания транзакции через API endpoint
+import fetch from 'node-fetch';
 
-async function testCorrectAPI() {
+const API_URL = 'http://localhost:3000/api/v2';
+
+async function testTransactionAPI() {
   try {
-    // Создаём новую транзакцию для проверки
-    const { data: transaction, error } = await supabase
-      .from('transactions')
-      .insert({
+    console.log('=== ТЕСТ API ТРАНЗАКЦИЙ ===\n');
+    
+    // Создаём транзакцию через API endpoint
+    const response = await fetch(`${API_URL}/transactions/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Dev-Mode': 'true'  // Для обхода авторизации в dev режиме
+      },
+      body: JSON.stringify({
         user_id: 48,
-        type: 'FARMING_REWARD',
-        amount_uni: '50',
+        type: 'mission_reward',
+        amount_uni: '500',
         amount_ton: '0',
-        status: 'confirmed',
-        description: 'Test with correct demo user'
+        currency: 'UNI',
+        description: 'API Test: Mission reward',
+        status: 'completed'
       })
-      .select()
-      .single();
-      
-    console.log('✓ Создана транзакция:', transaction);
-    
-    // Проверяем баланс пользователя
-    const { data: user } = await supabase
-      .from('users')
-      .select('id, telegram_id, balance_uni, balance_ton')
-      .eq('id', 48)
-      .single();
-      
-    console.log('✓ Баланс пользователя:', user);
-    
-    // Подсчитаем все транзакции пользователя
-    const { data: allTransactions } = await supabase
-      .from('transactions')
-      .select('type, amount_uni')
-      .eq('user_id', 48)
-      .eq('status', 'confirmed');
-      
-    const totalUni = allTransactions?.reduce((sum, tx) => sum + parseFloat(tx.amount_uni || 0), 0) || 0;
-    console.log(`✓ Всего транзакций: ${allTransactions?.length}`);
-    console.log(`✓ Сумма UNI по транзакциям: ${totalUni}`);
-    console.log(`✗ Разница с балансом: ${totalUni - parseFloat(user.balance_uni)} UNI`);
-    
+    });
+
+    if (!response.ok) {
+      console.error(`Ошибка API: ${response.status} ${response.statusText}`);
+      return;
+    }
+
+    const result = await response.json();
+    console.log('Результат API:', JSON.stringify(result, null, 2));
+
   } catch (error) {
     console.error('Ошибка:', error);
   }
 }
 
-testCorrectAPI();
+testTransactionAPI();

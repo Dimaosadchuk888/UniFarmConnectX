@@ -2,12 +2,15 @@ import { supabase } from '../../core/supabase';
 import { SupabaseUserRepository } from '../user/service';
 import { logger } from '../../core/logger';
 import { MISSIONS_TABLES, MISSION_TYPES, MISSION_STATUS, REWARD_TYPES } from './model';
+import { TransactionsService } from '../transactions/service';
 
 export class MissionsService {
   private userRepository: SupabaseUserRepository;
+  private transactionsService: TransactionsService;
 
   constructor() {
     this.userRepository = new SupabaseUserRepository();
+    this.transactionsService = new TransactionsService();
   }
 
   async getActiveMissionsByTelegramId(telegramId: string): Promise<any[]> {
@@ -190,26 +193,24 @@ export class MissionsService {
         return { success: false, message: 'Неизвестная миссия' };
       }
 
-      // Обновляем баланс пользователя
-      const currentUniBalance = parseFloat(user.balance_uni || '0');
-      const newUniBalance = (currentUniBalance + parseFloat(reward.uni)).toString();
+      // Создаем транзакцию через TransactionService (баланс обновится автоматически)
+      const transaction = await this.transactionsService.createTransaction({
+        user_id: user.id,
+        type: 'mission_reward' as any,  // Используем правильный тип
+        amount_uni: reward.uni,  // Используем amount_uni вместо amount
+        amount_ton: reward.ton || '0',  // Добавляем amount_ton
+        currency: 'UNI',  // Указываем валюту явно
+        description: `Mission ${missionId} reward claimed`,
+        status: 'completed'
+      });
 
-      await supabase
-        .from('users')
-        .update({ balance_uni: newUniBalance })
-        .eq('id', user.id);
-
-      // Создаем запись транзакции
-      await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          type: 'MISSION_REWARD',
-          amount: reward.uni,
-          description: `Mission ${missionId} reward claimed`,
-          status: 'completed',
-          created_at: new Date().toISOString()
+      if (!transaction) {
+        logger.error(`[MissionsService] Не удалось создать транзакцию для миссии ${missionId}`, {
+          userId: user.id,
+          reward
         });
+        return { success: false, message: 'Ошибка начисления награды' };
+      }
 
       return { 
         success: true, 

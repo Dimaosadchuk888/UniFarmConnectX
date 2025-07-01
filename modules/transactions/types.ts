@@ -16,13 +16,15 @@ export interface Transaction {
   id: number;
   user_id: number;
   type: TransactionsTransactionType;
-  amount: string;
-  currency: 'UNI' | 'TON';
+  amount?: string;  // Делаем опциональным для обратной совместимости
+  amount_uni?: string;  // Добавляем поле для UNI
+  amount_ton?: string;  // Добавляем поле для TON
+  currency?: 'UNI' | 'TON' | null;  // Делаем опциональным
   status: TransactionsTransactionStatus;
   description?: string;
   metadata?: Record<string, any>;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface TransactionHistory {
