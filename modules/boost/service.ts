@@ -196,7 +196,7 @@ export class BoostService {
         .from(BOOST_TABLES.TRANSACTIONS)
         .insert({
           user_id: parseInt(userId),
-          type: BOOST_TRANSACTION_TYPES.BOOST_UNI_BONUS,
+          type: 'boost_purchase', // Используем существующий тип из БД
           amount: boostPackage.uni_bonus.toString(),
           currency: 'UNI',
           status: 'completed',
@@ -294,6 +294,29 @@ export class BoostService {
 
       // Создаем запись о покупке
       const purchase = await this.createBoostPurchase(userId, boostPackage.id, 'wallet', null, 'confirmed');
+
+      // Создаем транзакцию покупки буста для истории
+      try {
+        const { supabase } = await import('../../core/supabase');
+        
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .insert({
+            user_id: parseInt(userId),
+            type: 'boost_purchase',
+            amount: requiredAmount.toString(),
+            currency: 'TON',
+            status: 'completed',
+            description: `Покупка ${boostPackage.name} через внутренний баланс`,
+            created_at: new Date().toISOString()
+          });
+
+        if (transactionError) {
+          logger.error('[BoostService] Ошибка создания транзакции покупки буста:', transactionError);
+        }
+      } catch (error) {
+        logger.error('[BoostService] Ошибка создания транзакции покупки:', error);
+      }
 
       // Начисляем UNI бонус за покупку boost пакета
       const uniBonusAwarded = await this.awardUniBonus(userId, boostPackage);

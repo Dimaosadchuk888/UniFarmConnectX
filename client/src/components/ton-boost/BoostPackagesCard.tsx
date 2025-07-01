@@ -254,10 +254,11 @@ const BoostPackagesCard: React.FC = () => {
 
           if (data.success) {
             // Обновляем кэш пользователя и связанные данные
-            queryClient.invalidateQueries({ queryKey: ['/api/wallet/balance'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] }); // Исправленный путь
             queryClient.invalidateQueries({ queryKey: ['/api/v2/boost'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions'] }); // Добавлено для обновления истории
 
             toast({
               title: "TON Boost активирован!",
