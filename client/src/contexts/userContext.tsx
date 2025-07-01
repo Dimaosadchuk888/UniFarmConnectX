@@ -106,6 +106,8 @@ function userReducer(state: UserState, action: UserAction): UserState {
       return { ...state, ...action.payload };
       
     case 'SET_BALANCE':
+      console.log('[UserContext Reducer] SET_BALANCE действие, новый баланс:', action.payload);
+      console.log('[UserContext Reducer] Старый баланс был:', state.balanceState);
       return {
         ...state,
         balanceState: action.payload
@@ -399,7 +401,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (state.userId) {
       console.log('[UserContext] userId установлен, запрашиваем баланс для userId:', state.userId);
-      refreshBalance();
+      console.log('[UserContext] Текущее состояние баланса перед обновлением:', state.balanceState);
+      refreshBalance(true); // Принудительное обновление без кэша
     }
   }, [state.userId, refreshBalance]);
   

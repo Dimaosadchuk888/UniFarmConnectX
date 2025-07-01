@@ -22,6 +22,16 @@ const BalanceCard: React.FC = () => {
     isBalanceFetching
   } = useUser();
   
+  // Отладочное логирование балансов
+  console.log('[BalanceCard] Текущие балансы:', {
+    userId,
+    uniBalance,
+    tonBalance,
+    uniFarmingActive,
+    uniDepositAmount,
+    uniFarmingBalance
+  });
+  
   // Получаем доступ к системе уведомлений
   const { success, error: showError, info, loading } = useNotification();
   
