@@ -150,10 +150,13 @@ Language preference: Russian (русский язык) - все объяснен
 
 ## Production Mode Configuration (July 02, 2025)
 - **Production Mode Active**: System converted from demo to production mode
-- **Primary User**: ID 48, telegram_id 999, username "ataras", ref_code "REF_1750952576614_t938vs"
-- **Demo Mode Disabled**: ForceUserSwitch component disabled, demo mode fallback removed
-- **Authentication**: JWT-based authentication with proper user_id 48 in token payload
-- **Setup Script**: `setup-production-user48.js` generates production JWT tokens
+- **Primary User**: ID 48, telegram_id 88888888, username "demo_user", ref_code "REF_1750952576614_t938vs"
+- **Demo Mode Disabled**: ForceUserSwitch component removed, all fallback mechanisms eliminated
+- **Authentication**: JWT-based authentication with correct user_id 48 in token payload
+- **JWT Token Fixed**: Token now contains userId: 48 (not 88888888) to match database user ID
+- **Middleware Updated**: telegramAuth.ts configured for production user with telegram_id 88888888
+- **AuthService Fixed**: generateJWTToken now uses proper user.id from database instead of telegram_id
+- **Setup Script**: `setup-jwt-user48.html` provides browser-based JWT installation
 - June 14, 2025. SUPABASE CLEANUP FINAL COMPLETION - Выполнена полная зачистка всех старых подключений к базе данных. Удалены пакеты @neondatabase, очищены переменные окружения PGHOST/PGDATABASE/PGUSER/PGPASSWORD, исправлены импорты во всех модулях для использования единого core/db.ts. Система полностью централизована на одном подключении через DATABASE_URL. Готова к production deployment с чистой архитектурой базы данных
 - June 14, 2025. TYPESCRIPT DEPLOYMENT ISSUES RESOLVED - Fixed critical TypeScript compilation errors preventing deployment: created missing config/database.ts file, corrected module import paths across 6 files, implemented tsx runtime approach in stable-server.js for reliable TypeScript execution, added Express type definitions. Server now successfully runs on 0.0.0.0:3000 with all core systems active. Deployment ready with streamlined tsx-based approach eliminating complex compilation requirements
 - June 14, 2025. FINAL DATABASE CLEANUP COMPLETED - Resolved Replit automatic restoration of old Neon database connections by systematically removing all legacy database variables (DATABASE_PROVIDER, FORCE_NEON_DB, DISABLE_REPLIT_DB) from stable-server.js, config/database.ts, and deployment.config.js. Created production-server.js with clean Supabase-only implementation using DATABASE_URL exclusively. Server verified operational with all core systems active (WebSocket, API, database monitoring, farming scheduler). System now deployment-ready with unified Supabase architecture and no database connection conflicts

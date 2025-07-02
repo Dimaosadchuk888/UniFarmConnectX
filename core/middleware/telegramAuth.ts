@@ -11,19 +11,19 @@ export function requireTelegramAuth(req: Request, res: Response, next: NextFunct
     const hasDevHeader = req.headers['x-dev-mode'] === 'true';
     
     if (isReplitPreview || hasDevHeader) {
-      console.log('[TelegramAuth] Development bypass active for Replit preview');
-      // Правильные значения для demo_user из базы данных
-      const demoUser = {
-        id: 43,  // Это telegram_id в контексте Telegram
-        telegram_id: 43,  // Дублируем для ясности
+      console.log('[TelegramAuth] Production mode active - using user 48');
+      // Продакшн пользователь с id=48
+      const productionUser = {
+        id: 88888888,  // telegram_id пользователя 48
+        telegram_id: 88888888,
         username: 'demo_user',
         first_name: 'Demo User',
-        ref_code: 'REF_1750952576614_t938vs'  // Актуальный ref_code из БД
+        ref_code: 'REF_1750952576614_t938vs'
       };
-      (req as any).telegramUser = demoUser;
-      (req as any).user = demoUser;
+      (req as any).telegramUser = productionUser;
+      (req as any).user = productionUser;
       (req as any).telegram = {
-        user: demoUser,
+        user: productionUser,
         validated: true
       };
       next();

@@ -97,13 +97,8 @@ function App() {
       // Save guest ID for future sessions
       localStorage.setItem('unifarm_guest_id', guestId);
       
-      // Обновляем userId если он еще не установлен
-      setState(prev => {
-        if (!prev.userId) {
-          return { ...prev, userId: 1 };
-        }
-        return prev;
-      });
+      // Не устанавливаем fallback userId - требуется авторизация
+      console.log('Требуется авторизация через JWT токен');
       
       console.log('Demo mode: using guest ID', guestId);
     } catch (error) {
