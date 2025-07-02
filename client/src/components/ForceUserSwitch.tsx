@@ -29,28 +29,28 @@ export function ForceUserSwitch() {
       localStorage.removeItem(key);
     });
     
-    // Устанавливаем правильные данные для пользователя 50
-    // ВАЖНО: Используем уникальный telegram_id чтобы избежать конфликта с user 48
-    const user50Data = {
-      id: 50,
-      telegram_id: 50050050, // Уникальный telegram_id для user 50
+    // Устанавливаем правильные данные для пользователя 48
+    // Единственный пользователь в системе
+    const user48Data = {
+      id: 48,
+      telegram_id: 43,
       username: 'demo_user',
-      ref_code: 'REF_1751432118013_x06tsz',
-      balance_uni: 1000,
-      balance_ton: 1000,
+      ref_code: 'REF_1750952576614_t938vs',
+      balance_uni: 10889.006784,
+      balance_ton: 999,
       first_name: 'Demo',
       last_name: 'User'
     };
     
     // Сохраняем данные пользователя
-    localStorage.setItem('unifarm_user', JSON.stringify(user50Data));
+    localStorage.setItem('unifarm_user', JSON.stringify(user48Data));
     
     // Сохраняем сессию
     const session = {
       timestamp: new Date().toISOString(),
-      user_id: 50,
+      user_id: 48,
       username: 'demo_user',
-      refCode: 'REF_1751432118013_x06tsz'
+      refCode: 'REF_1750952576614_t938vs'
     };
     localStorage.setItem('unifarm_last_session', JSON.stringify(session));
     

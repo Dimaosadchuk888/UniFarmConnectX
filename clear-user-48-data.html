@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Сброс и установка User 48</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .success {
+            color: #4CAF50;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .code {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Сброс данных UniFarm</h1>
+        <p>Удаление всех старых данных и установка User 48...</p>
+        
+        <div class="code">
+            User ID: 48<br>
+            Telegram ID: 43<br>
+            Ref Code: REF_1750952576614_t938vs
+        </div>
+        
+        <p class="success">✅ Данные установлены!</p>
+        <p>Страница перезагрузится через 3 секунды...</p>
+    </div>
+
+    <script>
+        // Удаляем ВСЕ старые данные
+        const keysToRemove = [
+            'unifarm_user_50_active',
+            'unifarm_user_48_active',
+            'unifarm_jwt_token',
+            'unifarm_last_session',
+            'unifarm_user',
+            'unifarm_auth_token',
+            'telegram_user',
+            'telegramInitData'
+        ];
+        
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log('Удален ключ:', key);
+        });
+        
+        // Устанавливаем новый JWT токен для пользователя 48
+        const jwt48 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ4LCJ0ZWxlZ3JhbV9pZCI6NDMsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmX2NvZGUiOiJSRUZfMTc1MDk1MjU3NjYxNF90OTM4dnMiLCJpYXQiOjE3NTE0Mzk5MDAsImV4cCI6MTc1MjA0NDcwMH0.vT0bO0HNEfkR6x9Ke47Xr2Qp8JTZazBzUHkqCdGBf90';
+        localStorage.setItem('unifarm_jwt_token', jwt48);
+        
+        // Устанавливаем данные пользователя 48
+        const user48Data = {
+            id: 48,
+            telegram_id: 43,
+            username: 'demo_user',
+            ref_code: 'REF_1750952576614_t938vs',
+            balance_uni: 10889.006784,
+            balance_ton: 999,
+            first_name: 'Demo',
+            last_name: 'User'
+        };
+        localStorage.setItem('unifarm_user', JSON.stringify(user48Data));
+        
+        // Устанавливаем сессию
+        const session = {
+            timestamp: new Date().toISOString(),
+            user_id: 48,
+            username: 'demo_user',
+            refCode: 'REF_1750952576614_t938vs'
+        };
+        localStorage.setItem('unifarm_last_session', JSON.stringify(session));
+        
+        // Устанавливаем флаг активности
+        localStorage.setItem('unifarm_user_48_active', 'true');
+        
+        console.log('Установлены данные User 48:', {
+            user: user48Data,
+            jwt: 'JWT установлен'
+        });
+        
+        // Перезагружаем страницу через 3 секунды
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 3000);
+    </script>
+</body>
+</html>
