@@ -17,51 +17,7 @@
     <meta http-equiv="Expires" content="0">
     
     <!-- Telegram Web App -->
-    <script>
-      // Полная очистка и настройка для пользователя 48
-      if (window.location.hostname.includes('replit.dev')) {
-        console.log('[SYSTEM] Полная очистка всех данных для правильной загрузки пользователя 48');
-        
-        // Очищаем ВСЕ старые данные
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.includes('unifarm') || key.includes('user') || key.includes('cache') || key.includes('session') || key.includes('guest'))) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(key => {
-          console.log('[SYSTEM] Удаляем ключ:', key);
-          localStorage.removeItem(key);
-        });
-        
-        // Устанавливаем ТОЛЬКО правильные данные для пользователя 50
-        const correctSession = {
-          timestamp: new Date().toISOString(),
-          user_id: 50, // ВАЖНО: именно 50!
-          username: 'demo_user',
-          refCode: 'REF_1751432118013_x06tsz'
-        };
-        
-        localStorage.setItem('unifarm_last_session', JSON.stringify(correctSession));
-        console.log('[SYSTEM] Установлена правильная сессия:', correctSession);
-        
-        // Сохраняем JWT токен для пользователя 50 с правильным telegram_id
-        const jwt50 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUwLCJ0ZWxlZ3JhbV9pZCI6NDMsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmX2NvZGUiOiJSRUZfMTc1MTQzMjExODAxM194MDZ0c3oiLCJpYXQiOjE3NTE0MzQzNjksImV4cCI6MTc1MjAzOTE2OX0.Q-wk2OM7BI8_E0xAVC9vI10I4cJECoIpdgLb4t6_AzU';
-        localStorage.setItem('unifarm_jwt_token', jwt50);
-        console.log('[SYSTEM] JWT токен для пользователя 50 с правильным userId=50 установлен');
-        
-        // Проверяем, нужна ли перезагрузка
-        const needReload = sessionStorage.getItem('unifarm_reload_for_50');
-        if (!needReload) {
-          sessionStorage.setItem('unifarm_reload_for_50', 'true');
-          console.log('[SYSTEM] Принудительная перезагрузка для применения токена пользователя 50...');
-          setTimeout(() => {
-            window.location.reload();
-          }, 100);
-        }
-      }
-    </script>
+    <!-- Скрипт переключения пользователя удален - используется ForceUserSwitch компонент -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <title>UniFarm Connect</title>
