@@ -18,19 +18,38 @@
     
     <!-- Telegram Web App -->
     <script>
-      // Очищаем старый токен при загрузке
+      // Полная очистка и настройка для пользователя 48
       if (window.location.hostname.includes('replit.dev')) {
-        console.log('[SYSTEM] Очищаем старые токены для пользователя 48');
-        localStorage.removeItem('unifarm_jwt_token');
-        localStorage.removeItem('unifarm_last_session');
+        console.log('[SYSTEM] Полная очистка всех данных для правильной загрузки пользователя 48');
         
-        // Устанавливаем правильную сессию для пользователя 48
-        localStorage.setItem('unifarm_last_session', JSON.stringify({
+        // Очищаем ВСЕ старые данные
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('unifarm') || key.includes('user') || key.includes('cache') || key.includes('session') || key.includes('guest'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => {
+          console.log('[SYSTEM] Удаляем ключ:', key);
+          localStorage.removeItem(key);
+        });
+        
+        // Устанавливаем ТОЛЬКО правильные данные для пользователя 48
+        const correctSession = {
           timestamp: new Date().toISOString(),
-          user_id: 48,
-          username: 'dev_user',
-          refCode: 'REF_DEV_USER_48'
-        }));
+          user_id: 48, // ВАЖНО: именно 48, не 49!
+          username: 'demo_user',
+          refCode: 'REF_1750952576614_t938vs'
+        };
+        
+        localStorage.setItem('unifarm_last_session', JSON.stringify(correctSession));
+        console.log('[SYSTEM] Установлена правильная сессия:', correctSession);
+        
+        // Сохраняем JWT токен для пользователя 48 с правильным telegram_id
+        const jwt48 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ4LCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4ODgsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmX2NvZGUiOiJSRUZfMTc1MTQwMDI4MjM5M181c3UydWMiLCJpYXQiOjE3NTE0MzE5ODQsImV4cCI6MTc1MjAzNjc4NH0.w26FOfIBBXVhpr6BRo5IwcmiOddctOQuvS_hdXc6IyI';
+        localStorage.setItem('unifarm_jwt_token', jwt48);
+        console.log('[SYSTEM] JWT токен для пользователя 48 с telegram_id=88888888 установлен');
       }
     </script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>

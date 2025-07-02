@@ -117,6 +117,7 @@ Each business domain is organized as a self-contained module:
 - **Monitoring**: Real-time performance metrics and error tracking
 
 ## Changelog
+- January 02, 2025. Fixed JWT token issue for user 48 - JWT token now contains correct telegram_id=88888888 matching updated database record
 - June 13, 2025. Initial setup
 - June 13, 2025. T12 Telegram webhook implementation completed
 - June 13, 2025. Final pre-production audit completed - system ready for launch
