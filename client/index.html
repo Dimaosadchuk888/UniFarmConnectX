@@ -35,27 +35,27 @@
           localStorage.removeItem(key);
         });
         
-        // Устанавливаем ТОЛЬКО правильные данные для пользователя 48
+        // Устанавливаем ТОЛЬКО правильные данные для пользователя 50
         const correctSession = {
           timestamp: new Date().toISOString(),
-          user_id: 48, // ВАЖНО: именно 48, не 49!
+          user_id: 50, // ВАЖНО: именно 50!
           username: 'demo_user',
-          refCode: 'REF_1750952576614_t938vs'
+          refCode: 'REF_1751432118013_x06tsz'
         };
         
         localStorage.setItem('unifarm_last_session', JSON.stringify(correctSession));
         console.log('[SYSTEM] Установлена правильная сессия:', correctSession);
         
-        // Сохраняем JWT токен для пользователя 48 с правильным telegram_id
-        const jwt48 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ4LCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4ODgsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmX2NvZGUiOiJSRUZfMTc1MDk1MjU3NjYxNF90OTM4dnMiLCJpYXQiOjE3NTE0MzIzOTIsImV4cCI6MTc1MjAzNzE5Mn0.G7mJ8zRsb_g5bIgutVLn9RbgEg3eycGFe4_3jOjXQ0w';
-        localStorage.setItem('unifarm_jwt_token', jwt48);
-        console.log('[SYSTEM] JWT токен для пользователя 48 с правильным userId=48 установлен');
+        // Сохраняем JWT токен для пользователя 50 с правильным telegram_id
+        const jwt50 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUwLCJ0ZWxlZ3JhbV9pZCI6NDMsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmX2NvZGUiOiJSRUZfMTc1MTQzMjExODAxM194MDZ0c3oiLCJpYXQiOjE3NTE0MzQzNjksImV4cCI6MTc1MjAzOTE2OX0.Q-wk2OM7BI8_E0xAVC9vI10I4cJECoIpdgLb4t6_AzU';
+        localStorage.setItem('unifarm_jwt_token', jwt50);
+        console.log('[SYSTEM] JWT токен для пользователя 50 с правильным userId=50 установлен');
         
         // Проверяем, нужна ли перезагрузка
-        const needReload = sessionStorage.getItem('unifarm_reload_for_48');
+        const needReload = sessionStorage.getItem('unifarm_reload_for_50');
         if (!needReload) {
-          sessionStorage.setItem('unifarm_reload_for_48', 'true');
-          console.log('[SYSTEM] Принудительная перезагрузка для применения токена пользователя 48...');
+          sessionStorage.setItem('unifarm_reload_for_50', 'true');
+          console.log('[SYSTEM] Принудительная перезагрузка для применения токена пользователя 50...');
           setTimeout(() => {
             window.location.reload();
           }, 100);

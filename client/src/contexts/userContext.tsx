@@ -224,11 +224,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         dispatch({
           type: 'SET_USER_DATA',
           payload: {
-            userId: 48,
+            userId: 50,
             username: 'demo_user',
             guestId: null,
             telegramId: 43,
-            refCode: 'REF_1750952576614_t938vs'
+            refCode: 'REF_1751432118013_x06tsz'
           }
         });
         

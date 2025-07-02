@@ -16,6 +16,7 @@ import { UserProvider } from "@/contexts/userContext";
 import { WebSocketProvider } from "@/contexts/webSocketContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
+import { ForceUserSwitch } from "@/components/ForceUserSwitch";
 
 // Pages
 import Dashboard from "@/pages/Dashboard";
@@ -163,6 +164,7 @@ function App() {
         <ErrorBoundary>
           <NotificationProvider>
             <UserProvider>
+              <ForceUserSwitch />
               <WebSocketProvider>
                 <TelegramWebAppCheck>
                   <MainLayout 
