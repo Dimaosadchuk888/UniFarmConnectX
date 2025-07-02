@@ -1,95 +1,130 @@
+/**
+ * Тестовый скрипт для проверки покупки TON Boost
+ * от имени пользователя 50
+ */
 import fetch from 'node-fetch';
+import dotenv from 'dotenv';
 
-const API_URL = 'http://localhost:3000/api/v2';
-const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUwLCJ0ZWxlZ3JhbV9pZCI6NDMsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmX2NvZGUiOiJSRUZfMTc1MTQzMjExODAxM194MDZ0c3oiLCJpYXQiOjE3NTE0MzQzNjksImV4cCI6MTc1MjAzOTE2OX0.Q-wk2OM7BI8_E0xAVC9vI10I4cJECoIpdgLb4t6_AzU';
+dotenv.config();
+
+const API_BASE_URL = 'http://localhost:3000';
+
+// JWT токен для пользователя 50
+const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjUwLCJ0ZWxlZ3JhbV9pZCI6NDMsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmX2NvZGUiOiJSRUZfMTc1MTQzMjExODAxM194MDZ0c3oiLCJpYXQiOjE3NTE0Mzc0NTEsImV4cCI6MTc1MjA0MjI1MX0.yAGFPB-TdNzSYDY2ec0pCwokDcOiEv4clSw1u9Hz3a0';
 
 async function testTonBoostPurchase() {
+  console.log('🔍 Тестируем покупку TON Boost для пользователя 50...\n');
+  
   try {
-    console.log('=== Тест покупки TON Boost для пользователя 50 ===\n');
-
     // 1. Проверяем баланс перед покупкой
     console.log('1. Проверяем баланс пользователя 50...');
-    const balanceRes = await fetch(`${API_URL}/wallet/balance`, {
-      headers: {
-        'Authorization': `Bearer ${JWT_TOKEN}`
-      }
-    });
-    const balanceData = await balanceRes.json();
-    console.log('Баланс до покупки:', balanceData);
-
-    // 2. Получаем список доступных TON Boost пакетов
-    console.log('\n2. Получаем список TON Boost пакетов...');
-    const packagesRes = await fetch(`${API_URL}/boost/packages`, {
-      headers: {
-        'Authorization': `Bearer ${JWT_TOKEN}`
-      }
-    });
-    const packagesData = await packagesRes.json();
-    console.log('Доступные пакеты:', JSON.stringify(packagesData, null, 2));
-
-    // 3. Выбираем самый дешевый пакет (Starter)
-    const starterPackage = packagesData.data?.packages?.find(p => p.name === 'Starter');
-    if (!starterPackage) {
-      console.error('Не найден Starter пакет!');
-      return;
-    }
-    console.log('\n3. Выбран пакет:', starterPackage.name, 'Цена:', starterPackage.min_amount, 'TON');
-
-    // 4. Покупаем TON Boost через внутренний баланс
-    console.log('\n4. Покупаем TON Boost через внутренний баланс...');
-    const purchaseRes = await fetch(`${API_URL}/boost/purchase`, {
-      method: 'POST',
+    const balanceResponse = await fetch(`${API_BASE_URL}/api/v2/wallet/balance?user_id=50`, {
       headers: {
         'Authorization': `Bearer ${JWT_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        user_id: '50',
-        boost_id: starterPackage.id.toString(),
-        payment_method: 'wallet'
-      })
-    });
-    const purchaseData = await purchaseRes.json();
-    console.log('Результат покупки:', purchaseData);
-
-    // 5. Проверяем баланс после покупки
-    console.log('\n5. Проверяем баланс после покупки...');
-    const balanceAfterRes = await fetch(`${API_URL}/wallet/balance`, {
-      headers: {
-        'Authorization': `Bearer ${JWT_TOKEN}`
+        'Content-Type': 'application/json',
+        'X-Dev-Mode': 'true'
       }
     });
-    const balanceAfterData = await balanceAfterRes.json();
-    console.log('Баланс после покупки:', balanceAfterData);
-
-    // 6. Сравниваем балансы
-    console.log('\n6. Сравнение балансов:');
-    if (balanceData.data && balanceAfterData.data) {
-      const tonBefore = balanceData.data.balance_ton || 0;
-      const tonAfter = balanceAfterData.data.balance_ton || 0;
-      const tonSpent = tonBefore - tonAfter;
-      console.log(`TON до: ${tonBefore}, TON после: ${tonAfter}, Потрачено: ${tonSpent}`);
+    
+    const balanceData = await balanceResponse.json();
+    console.log('   Баланс:', balanceData);
+    console.log('   UNI:', balanceData.data?.uni || 0);
+    console.log('   TON:', balanceData.data?.ton || 0);
+    console.log('');
+    
+    // 2. Получаем доступные пакеты
+    console.log('2. Получаем доступные TON Boost пакеты...');
+    const packagesResponse = await fetch(`${API_BASE_URL}/api/v2/boost/packages`, {
+      headers: {
+        'Authorization': `Bearer ${JWT_TOKEN}`,
+        'Content-Type': 'application/json',
+        'X-Dev-Mode': 'true'
+      }
+    });
+    
+    const packagesData = await packagesResponse.json();
+    console.log('   Найдено пакетов:', packagesData.data?.packages?.length || 0);
+    
+    if (packagesData.data?.packages?.length > 0) {
+      const firstPackage = packagesData.data.packages[0];
+      console.log('   Первый пакет:', {
+        id: firstPackage.id,
+        name: firstPackage.name,
+        minAmount: firstPackage.min_amount || firstPackage.priceTon,
+        bonusUni: firstPackage.uni_bonus || firstPackage.bonusUni
+      });
+      console.log('');
       
-      if (tonSpent === 0) {
-        console.error('❌ ОШИБКА: TON баланс не изменился!');
-      } else {
-        console.log('✅ TON баланс успешно списан!');
+      // 3. Пытаемся купить пакет
+      console.log('3. Отправляем запрос на покупку TON Boost...');
+      console.log('   Данные запроса:', {
+        user_id: '50',
+        boost_id: firstPackage.id.toString(),
+        payment_method: 'wallet'
+      });
+      
+      const purchaseResponse = await fetch(`${API_BASE_URL}/api/v2/boost/purchase`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${JWT_TOKEN}`,
+          'Content-Type': 'application/json',
+          'X-Dev-Mode': 'true'
+        },
+        body: JSON.stringify({
+          user_id: '50',
+          boost_id: firstPackage.id.toString(),
+          payment_method: 'wallet'
+        })
+      });
+      
+      const purchaseData = await purchaseResponse.json();
+      console.log('   Статус ответа:', purchaseResponse.status);
+      console.log('   Ответ сервера:', purchaseData);
+      console.log('');
+      
+      // 4. Проверяем баланс после покупки
+      console.log('4. Проверяем баланс после покупки...');
+      const newBalanceResponse = await fetch(`${API_BASE_URL}/api/v2/wallet/balance?user_id=50`, {
+        headers: {
+          'Authorization': `Bearer ${JWT_TOKEN}`,
+          'Content-Type': 'application/json',
+          'X-Dev-Mode': 'true'
+        }
+      });
+      
+      const newBalanceData = await newBalanceResponse.json();
+      console.log('   Новый баланс:', newBalanceData);
+      console.log('   UNI:', newBalanceData.data?.uni || 0);
+      console.log('   TON:', newBalanceData.data?.ton || 0);
+      console.log('');
+      
+      // 5. Проверяем транзакции
+      console.log('5. Проверяем последние транзакции...');
+      const transactionsResponse = await fetch(`${API_BASE_URL}/api/v2/transactions?user_id=50&limit=5`, {
+        headers: {
+          'Authorization': `Bearer ${JWT_TOKEN}`,
+          'Content-Type': 'application/json',
+          'X-Dev-Mode': 'true'
+        }
+      });
+      
+      const transactionsData = await transactionsResponse.json();
+      if (transactionsData.data?.transactions?.length > 0) {
+        console.log('   Последние транзакции:');
+        transactionsData.data.transactions.forEach((tx, index) => {
+          console.log(`   ${index + 1}. Тип: ${tx.type}, Сумма: ${tx.amount} ${tx.currency}, Статус: ${tx.status}`);
+          console.log(`      Описание: ${tx.description || 'Нет описания'}`);
+        });
       }
+      
+    } else {
+      console.log('❌ Пакеты не найдены');
     }
-
-    // 7. Проверяем последние транзакции
-    console.log('\n7. Проверяем последние транзакции...');
-    const transRes = await fetch(`${API_URL}/transactions?limit=5`, {
-      headers: {
-        'Authorization': `Bearer ${JWT_TOKEN}`
-      }
-    });
-    const transData = await transRes.json();
-    console.log('Последние транзакции:', JSON.stringify(transData, null, 2));
-
+    
   } catch (error) {
-    console.error('Ошибка тестирования:', error);
+    console.error('❌ Ошибка при тестировании:', error);
   }
 }
 
+// Запускаем тест
 testTonBoostPurchase();
