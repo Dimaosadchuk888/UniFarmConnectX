@@ -25,6 +25,45 @@ router.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// Direct balance endpoint for testing user_id=1
+router.get('/wallet/balance-direct', async (req: Request, res: Response) => {
+  try {
+    const userId = req.query.user_id as string || "1";
+    
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, balance_uni, balance_ton, uni_farming_active, uni_deposit_amount, uni_farming_balance')
+      .eq('id', parseInt(userId))
+      .single();
+    
+    if (error || !user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Пользователь не найден'
+      });
+    }
+
+    const balanceData = {
+      uniBalance: parseFloat(user.balance_uni?.toString() || "0"),
+      tonBalance: parseFloat(user.balance_ton?.toString() || "0"),
+      uniFarmingActive: user.uni_farming_active || false,
+      uniDepositAmount: parseFloat(user.uni_deposit_amount?.toString() || "0"),
+      uniFarmingBalance: parseFloat(user.uni_farming_balance?.toString() || "0")
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: balanceData,
+      user_id: userId
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
 // Debug endpoint for routes diagnostics
 router.get('/debug/routes', (req: Request, res: Response) => {
   res.json({

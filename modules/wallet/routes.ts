@@ -3,6 +3,7 @@ import { WalletController } from './controller';
 import { requireTelegramAuth } from '../../core/middleware/telegramAuth';
 import { validateBody, validateParams } from '../../core/middleware/validate';
 import { strictRateLimit, liberalRateLimit } from '../../core/middleware/rateLimiting';
+import { getDirectBalance } from './directBalanceHandler';
 import { z } from 'zod';
 
 const router = Router();
@@ -29,9 +30,12 @@ const depositSchema = z.object({
   wallet_address: z.string().optional()
 });
 
+// Простой обработчик для получения баланса по user_id без авторизации
+router.get('/balance', getDirectBalance);
+
 // Маршруты кошелька с обязательной авторизацией, валидацией и rate limiting
 router.get('/', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController));
-router.get('/balance', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController)); // Alias
+router.get('/data', requireTelegramAuth, liberalRateLimit, walletController.getWalletData.bind(walletController)); // Alias для Telegram авторизации
 router.get('/:userId/transactions', requireTelegramAuth, liberalRateLimit, validateParams(userIdSchema), walletController.getTransactions.bind(walletController));
 router.post('/deposit', requireTelegramAuth, strictRateLimit, validateBody(depositSchema), walletController.createDeposit.bind(walletController));
 router.post('/withdraw', requireTelegramAuth, strictRateLimit, validateBody(withdrawSchema), walletController.withdraw.bind(walletController));

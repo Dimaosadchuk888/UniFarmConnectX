@@ -17,6 +17,8 @@ export interface User {
   uni_farming_last_update?: string;
   uni_deposit_amount?: string;
   uni_farming_rate?: string;
+  uni_farming_balance?: string;
+  uni_farming_active?: boolean;
 }
 
 export interface CreateUserData {
