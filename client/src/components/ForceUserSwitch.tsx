@@ -29,18 +29,8 @@ export function ForceUserSwitch() {
       localStorage.removeItem(key);
     });
     
-    // Устанавливаем правильные данные для пользователя 48
-    // Единственный пользователь в системе
-    const user48Data = {
-      id: 48,
-      telegram_id: 43,
-      username: 'demo_user',
-      ref_code: 'REF_1750952576614_t938vs',
-      balance_uni: 10889.006784,
-      balance_ton: 999,
-      first_name: 'Demo',
-      last_name: 'User'
-    };
+    // Компонент отключен для продакшн режима
+    return;
     
     // Сохраняем данные пользователя
     localStorage.setItem('unifarm_user', JSON.stringify(user48Data));

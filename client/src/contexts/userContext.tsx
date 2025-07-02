@@ -166,8 +166,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { field: 'isFetching', value: true } });
     
     try {
-      // В демо-режиме всегда используем demo_user с ID 48
-      const isDemoMode = window.location.hostname.includes('replit.dev');
+      // Production mode - demo disabled
+      const isDemoMode = false; // window.location.hostname.includes('replit.dev');
       
       if (isDemoMode) {
         console.log('[UserContext] Демо-режим активирован, выполняем авторизацию для demo_user');
@@ -176,7 +176,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           // Авторизуем демо-пользователя через API для получения JWT токена
           const authResponse = await correctApiRequest('/api/v2/auth/telegram', 'POST', {
             direct_registration: true,
-            telegram_id: 88888888,
+            telegram_id: 999, // Production telegram_id
             username: 'demo_user',
             first_name: 'Demo User'
           });
@@ -199,7 +199,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 userId: user.id || 48,
                 username: user.username || 'demo_user',
                 guestId: null,
-                telegramId: user.telegram_id || 43,
+                telegramId: user.telegram_id || null,
                 refCode: user.ref_code || 'REF_1750952576614_t938vs'
               }
             });
@@ -227,7 +227,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             userId: 48,
             username: 'demo_user',
             guestId: null,
-            telegramId: 43,
+            telegramId: null,
             refCode: 'REF_1750952576614_t938vs'
           }
         });
