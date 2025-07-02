@@ -119,6 +119,7 @@ Each business domain is organized as a self-contained module:
 ## Changelog
 - January 02, 2025. Fixed JWT token issue for user 48 - JWT token now contains correct telegram_id=88888888 matching updated database record
 - January 02, 2025. Fixed userId in JWT token payload - changed from userId:88888888 to userId:48 to match actual database user ID
+- January 02, 2025. Created JWT token update script - fixed mismatch where JWT contained userId:88888888 but system used user_id=48
 - June 13, 2025. Initial setup
 - June 13, 2025. T12 Telegram webhook implementation completed
 - June 13, 2025. Final pre-production audit completed - system ready for launch

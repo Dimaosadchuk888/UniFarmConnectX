@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обновление JWT токена для User 48</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: none;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: none;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .token-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Обновление JWT токена</h1>
+        
+        <div class="info">
+            <h3>Текущая ситуация:</h3>
+            <p>JWT токен содержит <strong>userId: 88888888</strong></p>
+            <p>Но система работает с <strong>user_id: 48</strong></p>
+            <p>Нужно обновить JWT токен для консистентности</p>
+        </div>
+
+        <div id="currentToken" class="token-info"></div>
+
+        <button onclick="updateToken()">Обновить JWT токен на User 48</button>
+
+        <div id="success" class="success">
+            ✅ JWT токен успешно обновлен!<br>
+            Теперь userId в токене = 48<br>
+            <strong>Обновите страницу (F5) чтобы изменения вступили в силу</strong>
+        </div>
+
+        <div id="error" class="error">
+            ❌ Ошибка при обновлении токена
+        </div>
+
+        <div id="newToken" class="token-info" style="display:none;"></div>
+    </div>
+
+    <script>
+        // Показываем текущий токен
+        const currentToken = localStorage.getItem('unifarm_jwt_token');
+        if (currentToken) {
+            try {
+                const payload = JSON.parse(atob(currentToken.split('.')[1]));
+                document.getElementById('currentToken').innerHTML = 
+                    '<strong>Текущий токен:</strong><br>' +
+                    'userId: ' + payload.userId + '<br>' +
+                    'telegram_id: ' + payload.telegram_id + '<br>' +
+                    'username: ' + payload.username;
+            } catch(e) {
+                document.getElementById('currentToken').innerHTML = 'Текущий токен невалидный';
+            }
+        } else {
+            document.getElementById('currentToken').innerHTML = 'JWT токен не найден в localStorage';
+        }
+
+        function updateToken() {
+            try {
+                // Новый JWT токен с правильным userId: 48
+                const newToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ4LCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4ODgsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmX2NvZGUiOiJSRUZfMTc1MDk1MjU3NjYxNF90OTM4dnMiLCJpYXQiOjE3NTE0NDM5MjAsImV4cCI6MTc1MjA0ODcyMH0.sG3CxMasM1RGgQQ-z5tSAeQWPu9dIeflxaMeWwOVnKA';
+
+                // Обновляем JWT токен в localStorage
+                localStorage.setItem('unifarm_jwt_token', newToken);
+
+                // Обновляем данные пользователя
+                const userData = {
+                    id: 48,
+                    telegram_id: 88888888,
+                    username: 'demo_user',
+                    ref_code: 'REF_1750952576614_t938vs',
+                    balance_uni: '10889.008458',
+                    balance_ton: '999'
+                };
+                localStorage.setItem('unifarm_user', JSON.stringify(userData));
+
+                // Показываем новый токен
+                const payload = JSON.parse(atob(newToken.split('.')[1]));
+                document.getElementById('newToken').innerHTML = 
+                    '<strong>Новый токен:</strong><br>' +
+                    'userId: ' + payload.userId + ' ✅<br>' +
+                    'telegram_id: ' + payload.telegram_id + '<br>' +
+                    'username: ' + payload.username;
+                document.getElementById('newToken').style.display = 'block';
+
+                // Показываем успех
+                document.getElementById('success').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+
+                // Автоматическое обновление через 3 секунды
+                setTimeout(() => {
+                    location.reload();
+                }, 3000);
+
+            } catch(e) {
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('success').style.display = 'none';
+                console.error('Ошибка:', e);
+            }
+        }
+    </script>
+</body>
+</html>
