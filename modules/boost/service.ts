@@ -265,8 +265,14 @@ export class BoostService {
       
       logger.info('[BoostService] Данные кошелька получены', {
         userId,
+        userIdType: typeof userId,
         walletData,
-        requiredAmount
+        requiredAmount,
+        packageInfo: {
+          id: boostPackage.id,
+          name: boostPackage.name,
+          minAmount: boostPackage.min_amount
+        }
       });
 
       // Проверяем достаточность средств

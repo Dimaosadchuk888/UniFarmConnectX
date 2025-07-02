@@ -241,7 +241,9 @@ const BoostPackagesCard: React.FC = () => {
             user_id: userId,
             boost_id: boostId,
             payment_method: paymentMethod,
-            selectedPackage: selectedPackage
+            selectedPackage: selectedPackage,
+            actualUserId: userId,
+            userIdType: typeof userId
           });
 
           const data = await correctApiRequest('/api/v2/boost/purchase', 'POST', {
