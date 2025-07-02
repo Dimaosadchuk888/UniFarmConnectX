@@ -1,0 +1,47 @@
+activeTonBoosts?.data?.map is not a function. (In 'activeTonBoosts?.data?.map((boost) => {
+      const secondsInDay = 24 * 60 * 60;
+      const dailyIncome = parseFloat(boost.rate_ton_per_second) * secondsInDay;
+      console.log(`[ActiveTonBoost] ID: ${boost.id}, Package: ${boost.boost_package_id}, Rate: ${boost.rate_ton_per_second}/sec, Daily: ${dailyIncome}`);
+      return /* @__PURE__ */ jsxs("div", { className: "bg-blue-900/20 rounded-lg p-4", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex justify-between items-center mb-2", children: [
+          /* @__PURE__ */ jsxs("span", { className: "font-medium text-blue-300", children: [
+            "TON Boost #",
+            boost.id
+          ] }),
+          /* @__PURE__ */ jsxs("span", { className: "text-sm bg-blue-600/30 text-blue-300 px-2 py-0.5 rounded", children: [
+            formatNumberWithPrecision(parseFloat(boost.ton_amount), 2),
+            " TON"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-2 gap-2 text-sm", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex justify-between", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-400/80", children: "В сутки:" }),
+            /* @__PURE__ */ jsxs("span", { className: "text-blue-300", children: [
+              formatNumberWithPrecision(dailyIncome, 5),
+              " TON"
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex justify-between", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-400/80", children: "В секунду:" }),
+            /* @__PURE__ */ jsxs("span", { className: "text-blue-300", children: [
+              formatNumberWithPrecision(parseFloat(boost.rate_ton_per_second), 8),
+              " TON"
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex justify-between", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-400/80", children: "Получено UNI:" }),
+            /* @__PURE__ */ jsx("span", { className: "text-purple-300", children: formatNumberWithPrecision(parseFloat(boost.bonus_uni), 0) })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex justify-between", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-400/80", children: "Накоплено:" }),
+            /* @__PURE__ */ jsxs("span", { className: "text-blue-300", children: [
+              formatNumberWithPrecision(parseFloat(boost.accumulated_ton), 8),
+              " TON"
+            ] })
+          ] })
+        ] })
+      ] }, boost.id);
+    })', 'activeTonBoosts?.data?.map' is undefined)
+
+ 
+Connect Wallet

@@ -24,7 +24,7 @@ const ActiveTonBoostsCard: React.FC = () => {
   const userId = getUserIdFromURL() || '1';
   
   // Получаем активные буст-пакеты пользователя
-  const { data: activeTonBoosts, isLoading: isLoadingBoosts } = useQuery<{ success: boolean, data: TonBoostDeposit[] }>({
+  const { data: activeTonBoosts, isLoading: isLoadingBoosts } = useQuery<{ success: boolean, data: { active_boosts: TonBoostDeposit[], total: number } }>({
     queryKey: [`/api/v2/boost/user/${userId}`],
     refetchInterval: 5000, // Обновляем каждые 5 секунд
   });
@@ -38,7 +38,7 @@ const ActiveTonBoostsCard: React.FC = () => {
               Активные TON Boost-пакеты
             </CardTitle>
             <CardDescription className="text-blue-300/70">
-              {activeTonBoosts?.data?.length || 0} активных депозитов
+              {activeTonBoosts?.data?.active_boosts?.length || 0} активных депозитов
             </CardDescription>
           </div>
         </div>
@@ -49,13 +49,13 @@ const ActiveTonBoostsCard: React.FC = () => {
           <div className="flex justify-center items-center py-6">
             <Loader2 className="h-6 w-6 text-blue-400 animate-spin" />
           </div>
-        ) : activeTonBoosts?.data?.length === 0 ? (
+        ) : activeTonBoosts?.data?.active_boosts?.length === 0 ? (
           <div className="text-center py-4 text-foreground opacity-70">
             <p>У вас нет активных TON Boost-пакетов</p>
           </div>
         ) : (
           <div className="max-h-[400px] overflow-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900/20 space-y-3 pr-1">
-            {activeTonBoosts?.data?.map((boost) => {
+            {activeTonBoosts?.data?.active_boosts?.map((boost: TonBoostDeposit) => {
               // Расчет дохода в день
               const secondsInDay = 24 * 60 * 60;
               const dailyIncome = parseFloat(boost.rate_ton_per_second) * secondsInDay;
