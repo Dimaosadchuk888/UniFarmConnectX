@@ -30,9 +30,10 @@ export function ForceUserSwitch() {
     });
     
     // Устанавливаем правильные данные для пользователя 50
+    // ВАЖНО: Используем уникальный telegram_id чтобы избежать конфликта с user 48
     const user50Data = {
       id: 50,
-      telegram_id: 43,
+      telegram_id: 50050050, // Уникальный telegram_id для user 50
       username: 'demo_user',
       ref_code: 'REF_1751432118013_x06tsz',
       balance_uni: 1000,

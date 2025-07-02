@@ -91,7 +91,7 @@ export function requireTelegramAuth(req: Request, res: Response, next: NextFunct
     // Set user data for guest mode if no telegram user
     if (!telegramUser && guestId) {
       (req as any).telegramUser = {
-        id: 43, // Demo user telegram_id that matches user ID 48 in database
+        id: 43, // Demo user telegram_id that matches user ID 50 in database  
         username: 'demo_user',
         first_name: 'Demo',
         isDemoMode: true
