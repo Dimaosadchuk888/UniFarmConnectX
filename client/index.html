@@ -50,6 +50,16 @@
         const jwt48 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ4LCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4ODgsInVzZXJuYW1lIjoiZGVtb191c2VyIiwicmVmX2NvZGUiOiJSRUZfMTc1MDk1MjU3NjYxNF90OTM4dnMiLCJpYXQiOjE3NTE0MzIzOTIsImV4cCI6MTc1MjAzNzE5Mn0.G7mJ8zRsb_g5bIgutVLn9RbgEg3eycGFe4_3jOjXQ0w';
         localStorage.setItem('unifarm_jwt_token', jwt48);
         console.log('[SYSTEM] JWT токен для пользователя 48 с правильным userId=48 установлен');
+        
+        // Проверяем, нужна ли перезагрузка
+        const needReload = sessionStorage.getItem('unifarm_reload_for_48');
+        if (!needReload) {
+          sessionStorage.setItem('unifarm_reload_for_48', 'true');
+          console.log('[SYSTEM] Принудительная перезагрузка для применения токена пользователя 48...');
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        }
       }
     </script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
