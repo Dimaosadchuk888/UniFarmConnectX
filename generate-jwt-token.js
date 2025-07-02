@@ -6,10 +6,10 @@ import jwt from 'jsonwebtoken';
 
 // Правильные данные для пользователя 48
 const payload = {
-  userId: 48,
-  telegram_id: 88888888, // Исправленный telegram_id!
+  userId: 48,  // ID пользователя в базе данных
+  telegram_id: 88888888, // telegram_id пользователя
   username: 'demo_user',
-  ref_code: 'REF_1751400282393_5su2uc'
+  ref_code: 'REF_1750952576614_t938vs'  // Правильный ref_code из логов
 };
 
 // Используем тот же secret и параметры, что и в системе
