@@ -1,16 +1,23 @@
 
+// Унифицированные типы транзакций для всех модулей системы
+// Поддерживаются в текущей схеме базы данных
 export type TransactionsTransactionType = 
-  | 'farming_income'
-  | 'referral_bonus' 
-  | 'mission_reward'
-  | 'daily_bonus'
-  | 'boost_purchase'
-  | 'withdrawal'
-  | 'deposit'
-  | 'ton_farming_income'
-  | 'ton_boost_reward';
+  | 'FARMING_REWARD'     // UNI фарминг доходы + TON Boost доходы + депозиты
+  | 'REFERRAL_REWARD'    // Реферальные бонусы
+  | 'MISSION_REWARD'     // Награды за миссии
+  | 'DAILY_BONUS';       // Ежедневные бонусы + airdrop награды
 
-export type TransactionsTransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
+// Расширенные типы транзакций (будут добавлены при обновлении схемы БД)
+export type ExtendedTransactionType = TransactionsTransactionType
+  | 'TON_BOOST_INCOME'   // Доходы от TON Boost
+  | 'UNI_DEPOSIT'        // Пополнение UNI
+  | 'TON_DEPOSIT'        // Пополнение TON
+  | 'UNI_WITHDRAWAL'     // Вывод UNI
+  | 'TON_WITHDRAWAL'     // Вывод TON
+  | 'BOOST_PURCHASE'     // Покупка boost пакетов
+  | 'AIRDROP_REWARD';    // Награды за airdrop
+
+export type TransactionsTransactionStatus = 'pending' | 'completed' | 'confirmed' | 'failed' | 'cancelled';
 
 export interface Transaction {
   id: number;

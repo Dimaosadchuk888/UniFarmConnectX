@@ -24,24 +24,20 @@ export class TransactionsController extends BaseController {
         return this.sendError(res, 'Пользователь не найден', 404);
       }
       
-      // Используем wallet service для получения транзакций по database user id
-      const result = await walletService.getTransactionHistory(
+      // Используем transactions service для получения транзакций по database user id
+      const result = await transactionsService.getTransactionHistory(
         user.id.toString(), // Use database user ID
         parseInt(page as string),
-        parseInt(limit as string)
+        parseInt(limit as string),
+        currency as string
       );
       
-      // Фильтрация по валюте если указана
-      const filteredTransactions = currency && currency !== 'ALL' 
-        ? result.transactions.filter((tx: any) => tx.currency === currency)
-        : result.transactions;
-      
       this.sendSuccess(res, {
-        transactions: filteredTransactions,
+        transactions: result.transactions,
         total: result.total,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        totalPages: Math.ceil(result.total / parseInt(limit as string)),
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
         hasMore: result.hasMore
       });
     }, 'получения транзакций');

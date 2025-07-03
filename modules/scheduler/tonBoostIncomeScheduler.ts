@@ -127,16 +127,16 @@ export class TONBoostIncomeScheduler {
             continue;
           }
 
-          // Создаем транзакцию
+          // Создаем транзакцию через унифицированный сервис
           const { error: transactionError } = await supabase
             .from('transactions')
             .insert({
               user_id: user.id,
-              type: 'FARMING_REWARD',
+              type: 'FARMING_REWARD',  // Используем поддерживаемый тип
               amount_uni: '0',
               amount_ton: fiveMinuteIncome.toFixed(8),
               status: 'completed',
-              description: `Доход от TON Boost ${user.ton_boost_package}: ${fiveMinuteIncome.toFixed(6)} TON`
+              description: `TON Boost доход (${user.ton_boost_package}): ${fiveMinuteIncome.toFixed(6)} TON`
             });
 
           if (transactionError) {

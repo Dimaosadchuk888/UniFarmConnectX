@@ -1,6 +1,7 @@
 
 import { supabase } from '../../core/supabase';
 import { logger } from '../../core/logger';
+import { transactionService } from '../../core/TransactionService';
 import { Transaction, TransactionsTransactionType, TransactionHistory } from './types';
 import { TRANSACTIONS_TABLE } from './model';
 
@@ -22,32 +23,35 @@ export class TransactionsService {
         currency
       });
 
-      const offset = (page - 1) * limit;
-      
-      let query = supabase
-        .from(TRANSACTIONS_TABLE)
-        .select('*', { count: 'exact' })
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      // Используем унифицированный сервис транзакций
+      const result = await transactionService.getUserTransactions(
+        parseInt(userId), 
+        page, 
+        limit, 
+        {
+          currency: currency as 'UNI' | 'TON' | 'ALL'
+        }
+      );
 
-      if (currency && currency !== 'ALL') {
-        query = query.eq('currency', currency);
-      }
+      // Преобразуем результат в формат, ожидаемый контроллером
+      const formattedTransactions = result.transactions.map(tx => ({
+        id: tx.id,
+        user_id: parseInt(userId),
+        type: tx.type,
+        amount: tx.amount.toString(),
+        currency: tx.currency,
+        status: tx.status,
+        description: tx.description,
+        created_at: tx.createdAt,
+        updated_at: tx.createdAt
+      }));
 
-      const { data: transactions, error, count } = await query;
-
-      if (error) {
-        logger.error('[TransactionsService] Ошибка получения транзакций:', error);
-        throw error;
-      }
-
-      const total = count || 0;
-      const totalPages = Math.ceil(total / limit);
-      const hasMore = page < totalPages;
+      const total = result.total;
+      const totalPages = result.totalPages;
+      const hasMore = result.hasMore;
 
       return {
-        transactions: transactions || [],
+        transactions: formattedTransactions || [],
         total,
         page,
         limit,
