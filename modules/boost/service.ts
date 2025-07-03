@@ -116,6 +116,12 @@ export class BoostService {
     success: boolean;
     message: string;
     purchase?: any;
+    balanceUpdate?: {
+      tonBalance: number;
+      uniBalance: number;
+      previousTonBalance: number;
+      deductedAmount: number;
+    };
   }> {
     try {
       logger.info('[BoostService] Начало процесса покупки Boost', {
@@ -247,6 +253,12 @@ export class BoostService {
     success: boolean;
     message: string;
     purchase?: any;
+    balanceUpdate?: {
+      tonBalance: number;
+      uniBalance: number;
+      previousTonBalance: number;
+      deductedAmount: number;
+    };
   }> {
     try {
       logger.info('[BoostService] Покупка через внутренний кошелек', {
@@ -343,18 +355,38 @@ export class BoostService {
         reason: 'Партнёрские начисления теперь происходят только от дохода, не от покупки'
       });
 
+      // Получаем обновленный баланс пользователя для мгновенного обновления UI
+      const updatedWalletData = await walletService.getWalletDataByUserId(userId);
+      
       logger.info('[BoostService] Успешная покупка через внутренний кошелек', {
         userId,
         boostPackageId: boostPackage.id,
         amount: requiredAmount,
-        purchaseId: purchase?.id
+        purchaseId: purchase?.id,
+        oldBalance: walletData.ton_balance,
+        newBalance: updatedWalletData.ton_balance
       });
 
-      return {
+      const responseData = {
         success: true,
         message: `Boost "${boostPackage.name}" успешно активирован`,
-        purchase
+        purchase,
+        // Добавляем обновленные балансы для мгновенного обновления UI
+        balanceUpdate: {
+          tonBalance: updatedWalletData.ton_balance,
+          uniBalance: updatedWalletData.uni_balance,
+          previousTonBalance: walletData.ton_balance,
+          deductedAmount: requiredAmount
+        }
       };
+
+      logger.info('[BoostService] Формируется ответ с balanceUpdate:', {
+        responseData,
+        hasBalanceUpdate: !!responseData.balanceUpdate,
+        balanceUpdateData: responseData.balanceUpdate
+      });
+
+      return responseData;
     } catch (error) {
       logger.error('[BoostService] Ошибка покупки через внутренний кошелек:', error);
       return {

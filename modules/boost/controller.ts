@@ -220,10 +220,18 @@ export class BoostController extends BaseController {
 
       const result = await this.boostService.purchaseBoost(user_id, boost_id, payment_method, tx_hash);
 
+      logger.info('[BoostController] Результат покупки от сервиса:', {
+        success: result.success,
+        message: result.message,
+        hasBalanceUpdate: !!result.balanceUpdate,
+        balanceUpdate: result.balanceUpdate
+      });
+
       if (result.success) {
         this.sendSuccess(res, {
           purchase: result.purchase,
-          message: result.message
+          message: result.message,
+          balanceUpdate: result.balanceUpdate
         });
       } else {
         this.sendError(res, result.message, 400);

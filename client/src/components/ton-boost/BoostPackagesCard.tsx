@@ -47,7 +47,7 @@ const BoostPackagesCard: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tonConnectUI] = useTonConnectUI();
-  const { userId, username } = useUser();
+  const { userId, username, refreshBalance } = useUser();
   const [selectedBoostId, setSelectedBoostId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState<boolean>(false);
@@ -255,16 +255,31 @@ const BoostPackagesCard: React.FC = () => {
           console.log('[TON_BOOST] Ответ от сервера:', data);
 
           if (data.success) {
-            // Обновляем кэш пользователя и связанные данные
-            queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] }); // Исправленный путь
+            // МГНОВЕННОЕ ОБНОВЛЕНИЕ БАЛАНСА - обновляем UserContext сразу после получения новых данных
+            if (data.balanceUpdate) {
+              console.log('[TON_BOOST] Мгновенное обновление баланса UI:', {
+                oldTon: data.balanceUpdate.previousTonBalance,
+                newTon: data.balanceUpdate.tonBalance,
+                deducted: data.balanceUpdate.deductedAmount
+              });
+              
+              // МГНОВЕННОЕ ОБНОВЛЕНИЕ БАЛАНСА - вызываем refreshBalance сразу
+              refreshBalance(true); // Принудительное обновление баланса из API
+              
+              // Дополнительно обновляем кэш для полной синхронизации
+              queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });
+            }
+
+            // Обновляем кэш пользователя и связанные данные для синхронизации
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/wallet/balance'] });
             queryClient.invalidateQueries({ queryKey: ['/api/v2/boost'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user-boosts'] });
             queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions'] }); // Добавлено для обновления истории
+            queryClient.invalidateQueries({ queryKey: ['/api/v2/transactions'] });
 
             toast({
               title: "TON Boost активирован!",
-              description: `${selectedPackage.name} успешно активирован через внутренний баланс`,
+              description: `${selectedPackage.name} успешно активирован. TON баланс обновлен мгновенно.`,
               variant: "default"
             });
           } else {
