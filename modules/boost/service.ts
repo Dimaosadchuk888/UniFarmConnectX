@@ -202,11 +202,11 @@ export class BoostService {
         .from(BOOST_TABLES.TRANSACTIONS)
         .insert({
           user_id: parseInt(userId),
-          type: 'boost_purchase', // Используем существующий тип из БД
+          type: 'DAILY_BONUS', // Используем существующий тип из схемы базы данных
           amount: boostPackage.uni_bonus.toString(),
           currency: 'UNI',
           status: 'completed',
-          description: `UNI бонус за покупку ${boostPackage.name}`,
+          description: `UNI бонус за покупку TON Boost "${boostPackage.name}" (+${boostPackage.uni_bonus} UNI)`,
           created_at: new Date().toISOString()
         });
 
@@ -315,23 +315,26 @@ export class BoostService {
 
       // Создаем транзакцию покупки буста для истории
       try {
-        const { supabase } = await import('../../core/supabase');
-        
         const { error: transactionError } = await supabase
           .from('transactions')
           .insert({
             user_id: parseInt(userId),
-            type: 'boost_purchase',
-            amount_uni: '0',
-            amount_ton: requiredAmount.toString(),
+            type: 'FARMING_REWARD', // Используем существующий тип из схемы базы данных
+            amount: requiredAmount.toString(),
             currency: 'TON',
             status: 'completed',
-            description: `Покупка ${boostPackage.name} через внутренний баланс`,
+            description: `Покупка TON Boost "${boostPackage.name}" (-${requiredAmount} TON)`,
             created_at: new Date().toISOString()
           });
 
         if (transactionError) {
           logger.error('[BoostService] Ошибка создания транзакции покупки буста:', transactionError);
+        } else {
+          logger.info('[BoostService] Транзакция покупки буста успешно создана', {
+            userId,
+            amount: requiredAmount,
+            packageName: boostPackage.name
+          });
         }
       } catch (error) {
         logger.error('[BoostService] Ошибка создания транзакции покупки:', error);
