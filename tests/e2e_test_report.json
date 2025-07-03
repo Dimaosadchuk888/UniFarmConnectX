@@ -1,0 +1,96 @@
+{
+  "timestamp": "2025-07-03T16:28:24.963Z",
+  "environment": "Replit Preview",
+  "test_summary": {
+    "total_tests": 9,
+    "passed": 2,
+    "failed": 7,
+    "success_rate": 22
+  },
+  "test_details": [
+    {
+      "name": "1. User Creation and Authentication",
+      "status": "FAILED",
+      "error": "Failed to create test user: Unknown error"
+    },
+    {
+      "name": "2. Balance Deposit (UNI + TON)",
+      "status": "FAILED",
+      "error": "Failed to deposit UNI",
+      "details": {
+        "success": false,
+        "error": "Validation error: Required, Currency must be UNI or TON, Required",
+        "statusCode": 400
+      }
+    },
+    {
+      "name": "3. UNI Farming Operations",
+      "status": "PASSED",
+      "details": {
+        "farming_amount": 100
+      }
+    },
+    {
+      "name": "4. TON Boost System",
+      "status": "FAILED",
+      "error": "Cannot read properties of undefined (reading 'find')"
+    },
+    {
+      "name": "5. Referral System",
+      "status": "FAILED",
+      "error": "Failed to create test user: Unknown error"
+    },
+    {
+      "name": "6. Daily Bonus System",
+      "status": "PASSED",
+      "details": {
+        "bonus_available": false
+      }
+    },
+    {
+      "name": "7. Missions System",
+      "status": "FAILED",
+      "error": "Cannot read properties of undefined (reading 'length')"
+    },
+    {
+      "name": "8. Transaction History",
+      "status": "FAILED",
+      "error": "Cannot read properties of undefined (reading 'forEach')"
+    },
+    {
+      "name": "9. Final Balance Verification",
+      "status": "FAILED",
+      "error": "Failed to get final balance",
+      "details": {
+        "success": false,
+        "error": "Отсутствует параметр user_id"
+      }
+    }
+  ],
+  "configuration": {
+    "BASE_URL": "http://localhost:3000",
+    "TEST_USER": {
+      "id": 9999,
+      "telegram_id": 999999999,
+      "username": "test_e2e_user",
+      "first_name": "TestE2E",
+      "last_name": "User",
+      "ref_code": "TEST_E2E_REF_999"
+    },
+    "TEST_REFERRAL": {
+      "id": 9998,
+      "telegram_id": 999999998,
+      "username": "test_e2e_referral",
+      "first_name": "TestE2E",
+      "last_name": "Referral",
+      "ref_code": "TEST_E2E_REF_998"
+    },
+    "INITIAL_BALANCE": {
+      "UNI": 1000,
+      "TON": 1000
+    },
+    "FARMING_AMOUNT": 100,
+    "BOOST_PACKAGE": "Starter",
+    "BOOST_AMOUNT": 10
+  }
+}
