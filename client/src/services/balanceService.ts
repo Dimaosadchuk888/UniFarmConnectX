@@ -74,13 +74,13 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
     const data = response.data;
     console.log('[balanceService] Получены данные баланса:', data);
     
-    // Преобразуем данные в нужный формат
+    // Преобразуем данные в нужный формат (поддерживаем оба формата API ответов)
     const balance = {
-      uniBalance: parseFloat(data.uni_balance) || 0,
-      tonBalance: parseFloat(data.ton_balance) || 0,
-      uniFarmingActive: !!data.uni_farming_active,
-      uniDepositAmount: parseFloat(data.uni_deposit_amount) || 0,
-      uniFarmingBalance: parseFloat(data.uni_farming_balance) || 0
+      uniBalance: parseFloat(data.uniBalance || data.uni_balance) || 0,
+      tonBalance: parseFloat(data.tonBalance || data.ton_balance) || 0,
+      uniFarmingActive: !!(data.uniFarmingActive || data.uni_farming_active),
+      uniDepositAmount: parseFloat(data.uniDepositAmount || data.uni_deposit_amount) || 0,
+      uniFarmingBalance: parseFloat(data.uniFarmingBalance || data.uni_farming_balance) || 0
     };
     
     // Обновляем кэш

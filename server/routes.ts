@@ -25,6 +25,33 @@ router.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// Debug endpoint для проверки данных пользователя 48
+router.get('/debug/user48', async (req: Request, res: Response) => {
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', 48)
+      .single();
+    
+    res.json({
+      success: !error,
+      error: error?.message || null,
+      user: user,
+      balanceTypes: {
+        balance_uni: typeof user?.balance_uni,
+        balance_ton: typeof user?.balance_ton
+      }
+    });
+  } catch (err: any) {
+    res.json({
+      success: false,
+      error: err.message,
+      user: null
+    });
+  }
+});
+
 // Direct balance endpoint for testing user_id=1
 router.get('/wallet/balance-direct', async (req: Request, res: Response) => {
   try {
