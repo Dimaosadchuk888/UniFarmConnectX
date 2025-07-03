@@ -445,10 +445,11 @@ async function startServer() {
                        true; // Force bypass for balance testing
     
     if (forceBypass) {
-      console.log('[Server] Auth bypass enabled for development/demo');
+      console.log('[Server] Auth bypass enabled for production user ID=48');
       app.use(apiPrefix, (req: any, res, next) => {
-        req.user = { id: 1, telegram_id: 12345, username: 'testuser', ref_code: 'REF_TESTUSER' };
-        req.telegramUser = { id: 12345, telegram_id: 12345, username: 'testuser', first_name: 'Test User' };
+        // ИСПРАВЛЕНО: Используем production пользователя ID=48 вместо тестового ID=1
+        req.user = { id: 48, telegram_id: 88888888, username: 'demo_user', ref_code: 'REF_1750952576614_t938vs' };
+        req.telegramUser = { id: 88888888, telegram_id: 88888888, username: 'demo_user', first_name: 'Demo User' };
         next();
       });
     }

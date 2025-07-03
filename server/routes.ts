@@ -95,6 +95,37 @@ router.get('/debug/env', (req: Request, res: Response) => {
   });
 });
 
+// Debug endpoint для тестирования UserService
+router.get('/debug/user48', async (req: Request, res: Response) => {
+  try {
+    const { SupabaseUserRepository } = await import('../modules/user/service.js');
+    const userRepository = new SupabaseUserRepository();
+    const user = await userRepository.getUserById(48);
+    
+    res.json({
+      message: 'UserService test for ID=48',
+      user_found: !!user,
+      user_data: user ? {
+        id: user.id,
+        telegram_id: user.telegram_id,
+        username: user.username,
+        balance_uni: user.balance_uni,
+        balance_ton: user.balance_ton,
+        balance_uni_type: typeof user.balance_uni,
+        balance_ton_type: typeof user.balance_ton,
+        created_at: user.created_at
+      } : null,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to test UserService',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Debug endpoint - using Supabase API
 router.get('/debug/db-users', async (req: Request, res: Response) => {
   try {
