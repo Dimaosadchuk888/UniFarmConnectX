@@ -32,7 +32,34 @@ export class UserController extends BaseController {
 
   async getCurrentUser(req: Request, res: Response) {
     await this.handleRequest(req, res, async (req: Request, res: Response) => {
-      // Пытаемся получить пользователя через JWT токен из Authorization header
+      console.log('[GetMe] === НАЧАЛО ПОИСКА ПОЛЬЗОВАТЕЛЯ ===');
+      console.log('[GetMe] req.user:', (req as any).user ? { id: (req as any).user.id, telegram_id: (req as any).user.telegram_id } : null);
+      console.log('[GetMe] req.telegramUser:', (req as any).telegramUser ? { id: (req as any).telegramUser.id, telegram_id: (req as any).telegramUser.telegram_id } : null);
+      console.log('[GetMe] Authorization header:', req.headers.authorization ? 'PRESENT' : 'MISSING');
+      
+      // Сначала проверяем данные пользователя из middleware
+      const middlewareUser = (req as any).user || (req as any).telegramUser;
+      if (middlewareUser) {
+        logger.info('[GetMe] Используем данные пользователя из middleware', {
+          id: middlewareUser.id,
+          telegram_id: middlewareUser.telegram_id,
+          ref_code: middlewareUser.ref_code
+        });
+        
+        return this.sendSuccess(res, {
+          user: {
+            id: middlewareUser.id,
+            telegram_id: middlewareUser.telegram_id,
+            username: middlewareUser.username,
+            first_name: middlewareUser.first_name,
+            ref_code: middlewareUser.ref_code,
+            balance_uni: middlewareUser.balance_uni || '0',
+            balance_ton: middlewareUser.balance_ton || '0'
+          }
+        });
+      }
+      
+      // Fallback: пытаемся получить пользователя через JWT токен из Authorization header  
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
@@ -41,10 +68,47 @@ export class UserController extends BaseController {
           const jwt = await import('jsonwebtoken');
           const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
           
+          logger.info('[GetMe] Поиск пользователя по JWT', {
+            userId: decoded.userId,
+            telegram_id: decoded.telegram_id
+          });
+          
+          // Попробуем найти пользователя по telegram_id (как в auth/telegram)
           if (decoded.telegram_id) {
+            console.log('[GetMe] JWT decoded telegram_id:', decoded.telegram_id);
             const user = await userRepository.getUserByTelegramId(decoded.telegram_id);
+            console.log('[GetMe] getUserByTelegramId result:', user ? { id: user.id, telegram_id: user.telegram_id } : null);
+            
             if (user) {
-              logger.info('[GetMe] Пользователь найден через JWT', {
+              logger.info('[GetMe] Пользователь найден по telegram_id через JWT', {
+                id: user.id,
+                telegram_id: user.telegram_id,
+                ref_code: user.ref_code,
+                balance_uni: user.balance_uni,
+                balance_ton: user.balance_ton
+              });
+              
+              return this.sendSuccess(res, {
+                user: {
+                  id: user.id,
+                  telegram_id: user.telegram_id,
+                  username: user.username,
+                  first_name: user.first_name,
+                  ref_code: user.ref_code,
+                  balance_uni: user.balance_uni,
+                  balance_ton: user.balance_ton
+                }
+              });
+            }
+          }
+          
+          // Fallback: поиск по userId
+          if (decoded.userId) {
+            console.log('[GetMe] Поиск пользователя по ID:', decoded.userId);
+            const user = await userRepository.getUserById(decoded.userId);
+            console.log('[GetMe] getUserById результат:', user ? { id: user.id, telegram_id: user.telegram_id } : 'NOT_FOUND');
+            if (user) {
+              logger.info('[GetMe] Пользователь найден по userId через JWT', {
                 id: user.id,
                 telegram_id: user.telegram_id,
                 ref_code: user.ref_code

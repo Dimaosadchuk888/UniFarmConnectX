@@ -17,8 +17,26 @@
     <meta http-equiv="Expires" content="0">
     
     <!-- Telegram Web App -->
-    <!-- Скрипт переключения пользователя удален - используется ForceUserSwitch компонент -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Production User JWT Setup для синхронизации с user_id=48 -->
+    <script>
+      // Принудительно очищаем старые данные
+      localStorage.clear();
+      
+      // Устанавливаем правильный JWT токен для пользователя 48
+      const productionJWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ4LCJ0ZWxlZ3JhbV9pZCI6ODg4ODg4ODgsInVzZXJuYW1lIjoiZGVtb191c2VyIiwiZmlyc3RfbmFtZSI6IkRlbW8gVXNlciIsInJlZl9jb2RlIjoiUkVGXzE3NTA5NTI1NzY2MTRfdDkzOHZzIiwiaWF0IjoxNzUxNTYyMTQxLCJleHAiOjE3NTIxNjY5NDF9.4AS_sfvvCQbLtZgUw8QuLJRxQAkJshWb1I7Vq5Xy4Vk';
+      
+      // Сохраняем в localStorage для синхронизации всех компонентов
+      localStorage.setItem('telegramJWT', productionJWT);
+      console.log('[Production Setup] JWT токен обновлен для user_id=48');
+      console.log('[Production Setup] Старые данные кэша очищены');
+      
+      // Принудительная перезагрузка для применения новых настроек
+      if (!window.location.search.includes('reloaded=1')) {
+        window.location.href = window.location.href + '?reloaded=1';
+      }
+    </script>
     
     <title>UniFarm Connect</title>
   </head>

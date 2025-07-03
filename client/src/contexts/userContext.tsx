@@ -67,13 +67,37 @@ interface UserState {
   error: Error | null;
 }
 
-// Начальное состояние - устанавливаем userId=1 для Replit Preview с реальными данными
+// Начальное состояние - получаем данные из JWT токена
+const getInitialUserData = () => {
+  try {
+    const jwtToken = localStorage.getItem('telegramJWT');
+    if (jwtToken) {
+      const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+      return {
+        userId: payload.userId || payload.user_id || null,
+        username: payload.username || null,
+        telegramId: payload.telegram_id || payload.telegramId || null,
+        refCode: payload.ref_code || payload.refCode || null
+      };
+    }
+  } catch (error) {
+    console.error('[UserContext] Ошибка декодирования JWT:', error);
+  }
+  return {
+    userId: null,
+    username: null,
+    telegramId: null,
+    refCode: null
+  };
+};
+
+const initialUserData = getInitialUserData();
 const initialState: UserState = {
-  userId: 1,
-  username: "testuser",
+  userId: initialUserData.userId,
+  username: initialUserData.username,
   guestId: null,
-  telegramId: 12345,
-  refCode: null,
+  telegramId: initialUserData.telegramId,
+  refCode: initialUserData.refCode,
   
   balanceState: {
     uniBalance: 0,
@@ -173,12 +197,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         console.log('[UserContext] Демо-режим активирован, выполняем авторизацию для demo_user');
         
         try {
-          // Авторизуем пользователя ID=1 через API для получения JWT токена
+          // Авторизуем пользователя ID=48 через API для получения JWT токена
           const authResponse = await correctApiRequest('/api/v2/auth/telegram', 'POST', {
             direct_registration: true,
-            telegram_id: 12345, // ID для пользователя 1
-            username: 'testuser',
-            first_name: 'Test User'
+            telegram_id: 88888888, // ID для пользователя 48
+            username: 'demo_user',
+            first_name: 'Demo User'
           });
           
           console.log('[UserContext] Ответ авторизации в демо-режиме:', authResponse);

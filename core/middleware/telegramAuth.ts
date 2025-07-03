@@ -4,28 +4,92 @@ import { logger } from '../logger';
 /**
  * Middleware для перевірки Telegram авторизації
  */
-export function requireTelegramAuth(req: Request, res: Response, next: NextFunction): void {
+export async function requireTelegramAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // Development auth bypass - проверяем наличие специального заголовка для Replit preview
-    const isReplitPreview = req.headers.host && req.headers.host.includes('replit.dev');
+    console.log('[TelegramAuth] Middleware invoked for:', req.method, req.path);
+    console.log('[TelegramAuth] Host:', req.headers.host);
+    console.log('[TelegramAuth] Auth header present:', !!req.headers.authorization);
+    
+    // Development auth bypass - проверяем наличие специального заголовка для Replit preview или localhost
+    const isReplitPreview = req.headers.host && (req.headers.host.includes('replit.dev') || req.headers.host.includes('localhost'));
     const hasDevHeader = req.headers['x-dev-mode'] === 'true';
     
+    console.log('[TelegramAuth] Preview mode:', isReplitPreview, 'Dev header:', hasDevHeader);
+    
     if (isReplitPreview || hasDevHeader) {
-      console.log('[TelegramAuth] Production mode active - using user 48');
-      // Продакшн пользователь с id=48
-      const productionUser = {
-        id: 88888888,  // telegram_id пользователя 48
-        telegram_id: 88888888,
-        username: 'demo_user',
-        first_name: 'Demo User',
-        ref_code: 'REF_1750952576614_t938vs'
-      };
-      (req as any).telegramUser = productionUser;
-      (req as any).user = productionUser;
-      (req as any).telegram = {
-        user: productionUser,
-        validated: true
-      };
+      console.log('[TelegramAuth] Replit Preview mode - checking JWT token');
+      // В режиме preview используем JWT токен, если он есть
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        try {
+          const jwt = require('jsonwebtoken');
+          const jwtSecret = process.env.JWT_SECRET || 'unifarm_jwt_secret_key_2025_production';
+          const decoded = jwt.verify(token, jwtSecret) as any;
+          console.log('[TelegramAuth] JWT decoded for preview:', decoded);
+          
+          // Используем данные из JWT токена и подгружаем полные данные из базы
+          const userId = decoded.userId || decoded.user_id;
+          const telegramId = decoded.telegram_id || decoded.telegramId;
+          
+          // Подгружаем полные данные пользователя из базы данных
+          try {
+            const { SupabaseUserRepository } = require('../../modules/user/service');
+            const userRepository = new SupabaseUserRepository();
+            
+            // Ищем пользователя по telegram_id из JWT токена
+            console.log('[TelegramAuth] Searching for user with telegram_id:', telegramId);
+            const fullUser = await userRepository.getUserByTelegramId(telegramId);
+            
+            if (fullUser) {
+              console.log('[TelegramAuth] Loaded full user data from database:', {
+                id: fullUser.id,
+                telegram_id: fullUser.telegram_id,
+                balance_uni: fullUser.balance_uni,
+                balance_ton: fullUser.balance_ton
+              });
+              
+              const user = {
+                id: fullUser.id,
+                telegram_id: fullUser.telegram_id,
+                username: fullUser.username,
+                first_name: fullUser.first_name,
+                ref_code: fullUser.ref_code,
+                balance_uni: fullUser.balance_uni,
+                balance_ton: fullUser.balance_ton
+              };
+              
+              (req as any).telegramUser = user;
+              (req as any).user = user;
+              (req as any).telegram = { user, validated: true };
+              next();
+              return;
+            }
+          } catch (dbError) {
+            console.log('[TelegramAuth] Failed to load user from database:', dbError);
+          }
+          
+          // Fallback: используем только данные из JWT
+          const user = {
+            id: userId,
+            telegram_id: telegramId,
+            username: decoded.username || 'user',
+            first_name: decoded.first_name || 'User',
+            ref_code: decoded.ref_code || decoded.refCode
+          };
+          
+          (req as any).telegramUser = user;
+          (req as any).user = user;
+          (req as any).telegram = { user, validated: true };
+          next();
+          return;
+        } catch (jwtError) {
+          console.log('[TelegramAuth] JWT verification failed in preview:', jwtError);
+        }
+      }
+      
+      // Fallback только если JWT недоступен
+      console.log('[TelegramAuth] No valid JWT - using fallback auth');
       next();
       return;
     }

@@ -26,21 +26,23 @@ let balanceCache: {
  */
 export async function fetchBalance(userId: number, forceRefresh: boolean = false): Promise<Balance> {
   try {
-    // Для Replit Preview принудительно используем user_id=1 с реальными данными
-    const targetUserId = userId || 1;
-    console.log('[balanceService] Запрос баланса для userId:', targetUserId, 'forceRefresh:', forceRefresh);
+    // Получаем user_id из JWT токена в localStorage
+    const jwtToken = localStorage.getItem('telegramJWT');
+    let targetUserId = userId;
     
-    // Если это Replit Preview, возвращаем реальные данные пользователя ID=1
-    if (window.location.hostname.includes('replit') || !userId) {
-      console.log('[balanceService] Replit Preview режим - возвращаем реальные данные user_id=1');
-      return {
-        uniBalance: 100,
-        tonBalance: 50.013199,
-        uniFarmingActive: false,
-        uniDepositAmount: 0,
-        uniFarmingBalance: 0
-      };
+    // Если userId не передан, получаем из JWT
+    if (!targetUserId && jwtToken) {
+      try {
+        const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+        targetUserId = payload.userId || payload.user_id;
+        console.log('[balanceService] User ID получен из JWT:', targetUserId);
+      } catch (error) {
+        console.error('[balanceService] Ошибка декодирования JWT:', error);
+        targetUserId = userId || 1; // fallback
+      }
     }
+    
+    console.log('[balanceService] Запрос баланса для userId:', targetUserId, 'forceRefresh:', forceRefresh);
     
     // Проверяем кэш, если не требуется принудительное обновление
     const now = Date.now();
@@ -55,7 +57,7 @@ export async function fetchBalance(userId: number, forceRefresh: boolean = false
     
     // Выполняем запрос к API
     console.log('[balanceService] Запрос новых данных баланса из API');
-    const response = await correctApiRequest(`/api/v2/wallet/balance?user_id=${userId}`, 'GET');
+    const response = await correctApiRequest(`/api/v2/wallet/balance?user_id=${targetUserId}`, 'GET');
     
     if (!response.success || !response.data) {
       console.error('[balanceService] Ошибка получения баланса:', response.error || 'Unknown error');
