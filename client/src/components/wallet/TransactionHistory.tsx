@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/contexts/userContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import StyledTransactionItem from './StyledTransactionItem';
 
 // Типы транзакций согласно схеме базы данных
 interface Transaction {
@@ -76,99 +77,7 @@ const TransactionHistory: React.FC = () => {
   const transactions = transactionsData?.transactions || [];
   const totalTransactions = transactionsData?.total || 0;
   
-  // Форматирование даты и времени
-  const formatDateTime = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-  
-  // Форматирование суммы транзакции
-  const formatTransactionAmount = (amount: string, currency: string): string => {
-    const num = parseFloat(amount);
-    if (currency === 'TON') {
-      return num.toFixed(6);
-    } else {
-      return num.toFixed(2);
-    }
-  };
-  
-  // Получение иконки для типа транзакции
-  const getTransactionIcon = (type: string): string => {
-    switch (type) {
-      case 'deposit':
-        return 'fas fa-arrow-down text-green-400';
-      case 'withdrawal':
-        return 'fas fa-arrow-up text-red-400';
-      case 'farming_reward':
-        return 'fas fa-seedling text-yellow-400';
-      case 'referral_bonus':
-        return 'fas fa-users text-blue-400';
-      case 'mission_reward':
-        return 'fas fa-trophy text-purple-400';
-      case 'boost_purchase':
-        return 'fas fa-rocket text-orange-400';
-      default:
-        return 'fas fa-exchange-alt text-gray-400';
-    }
-  };
-  
-  // Получение цвета для статуса транзакции
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'completed':
-        return 'text-green-400 bg-green-400/10';
-      case 'pending':
-        return 'text-yellow-400 bg-yellow-400/10';
-      case 'failed':
-        return 'text-red-400 bg-red-400/10';
-      case 'cancelled':
-        return 'text-gray-400 bg-gray-400/10';
-      default:
-        return 'text-gray-400 bg-gray-400/10';
-    }
-  };
-  
-  // Получение текста статуса на русском
-  const getStatusText = (status: string): string => {
-    switch (status) {
-      case 'completed':
-        return 'Завершено';
-      case 'pending':
-        return 'В обработке';
-      case 'failed':
-        return 'Ошибка';
-      case 'cancelled':
-        return 'Отменено';
-      default:
-        return status;
-    }
-  };
-  
-  // Получение описания типа транзакции на русском
-  const getTypeDescription = (type: string): string => {
-    switch (type) {
-      case 'deposit':
-        return 'Пополнение';
-      case 'withdrawal':
-        return 'Вывод средств';
-      case 'farming_reward':
-        return 'Награда за фарминг';
-      case 'referral_bonus':
-        return 'Реферальный бонус';
-      case 'mission_reward':
-        return 'Награда за миссию';
-      case 'boost_purchase':
-        return 'Покупка буста';
-      default:
-        return 'Операция';
-    }
-  };
+  // Функции форматирования и конфигурации теперь перенесены в StyledTransactionItem
   
   // Обработчик смены фильтра
   const handleFilterChange = (filter: 'ALL' | 'UNI' | 'TON') => {
@@ -294,50 +203,21 @@ const TransactionHistory: React.FC = () => {
             </p>
           </div>
         ) : (
-          // Список транзакций
-          transactions.map((transaction: Transaction) => (
-            <div 
+          // Список транзакций с новым стилизованным компонентом
+          transactions.map((transaction: any) => (
+            <StyledTransactionItem 
               key={transaction.id}
-              className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50 hover:border-primary/30 transition-all duration-200 backdrop-blur-sm"
-            >
-              <div className="flex items-center justify-between">
-                {/* Левая часть - иконка и информация */}
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-700/50 flex items-center justify-center">
-                    <i className={`${getTransactionIcon(transaction.type)} text-sm`}></i>
-                  </div>
-                  <div>
-                    <div className="text-white text-sm font-medium">
-                      {getTypeDescription(transaction.type)}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {formatDateTime(transaction.created_at)}
-                    </div>
-                    {transaction.description && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {transaction.description}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Правая часть - сумма и статус */}
-                <div className="text-right">
-                  <div className="text-white font-medium">
-                    {transaction.type === 'withdrawal' ? '-' : '+'}
-                    {formatTransactionAmount(transaction.amount, transaction.currency)} {transaction.currency}
-                  </div>
-                  <div className={`text-xs px-2 py-1 rounded-md inline-block mt-1 ${getStatusColor(transaction.status)}`}>
-                    {getStatusText(transaction.status)}
-                  </div>
-                  {transaction.transaction_hash && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      {transaction.transaction_hash.substring(0, 8)}...
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+              transaction={{
+                id: transaction.id,
+                type: transaction.type,
+                amount: parseFloat(transaction.amount || '0'),
+                currency: transaction.currency,
+                status: transaction.status,
+                description: transaction.description,
+                createdAt: transaction.createdAt,
+                timestamp: transaction.timestamp
+              }}
+            />
           ))
         )}
       </div>

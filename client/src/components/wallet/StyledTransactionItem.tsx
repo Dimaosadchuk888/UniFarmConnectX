@@ -1,0 +1,363 @@
+import React from 'react';
+import { 
+  Sprout, 
+  Gift, 
+  Users, 
+  Target, 
+  Coins,
+  TrendingUp,
+  TrendingDown,
+  Rocket,
+  Package,
+  Zap
+} from 'lucide-react';
+
+interface Transaction {
+  id: number;
+  type: string;
+  amount: number;
+  currency: 'UNI' | 'TON';
+  status: string;
+  description?: string;
+  createdAt: string;
+  timestamp?: number;
+}
+
+interface StyledTransactionItemProps {
+  transaction: Transaction;
+}
+
+// Типы конфигурации транзакций
+type TransactionConfigType = 
+  | 'UNI_FARMING' 
+  | 'FARMING_REWARD'
+  | 'TON_BOOST_INCOME'
+  | 'DAILY_BONUS'
+  | 'MISSION_REWARD'
+  | 'REFERRAL_REWARD'
+  | 'UNI_DEPOSIT'
+  | 'TON_DEPOSIT'
+  | 'UNI_WITHDRAWAL'
+  | 'BOOST_PURCHASE'
+  | 'AIRDROP_REWARD';
+
+// Конфигурация стилей для каждого типа транзакции
+const getTransactionConfig = (type: string, description?: string) => {
+  // Определяем тип транзакции на основе type и description
+  let transactionType: TransactionConfigType = type as TransactionConfigType;
+  
+  // Парсинг расширенных типов из description для FARMING_REWARD
+  if (type === 'FARMING_REWARD' && description) {
+    if (description.includes('TON Boost') || description.includes('🚀')) {
+      transactionType = 'TON_BOOST_INCOME';
+    } else if (description.includes('Deposit') || description.includes('💳')) {
+      if (description.includes('UNI')) {
+        transactionType = 'UNI_DEPOSIT';
+      } else {
+        transactionType = 'TON_DEPOSIT';
+      }
+    } else if (description.includes('farming income') || description.includes('UNI farming')) {
+      transactionType = 'UNI_FARMING';
+    }
+  }
+  
+  // Парсинг airdrop из DAILY_BONUS
+  if (type === 'DAILY_BONUS' && (description?.includes('Airdrop') || description?.includes('🎁'))) {
+    transactionType = 'AIRDROP_REWARD';
+  }
+
+  const configs: Record<TransactionConfigType, {
+    icon: any;
+    label: string;
+    emoji: string;
+    bgGradient: string;
+    borderColor: string;
+    iconColor: string;
+    iconBg: string;
+    textColor: string;
+    amountColor: string;
+  }> = {
+    // UNI Farming - Зеленый с градиентом природы
+    'UNI_FARMING': {
+      icon: Sprout,
+      label: 'UNI Farming',
+      emoji: '🌾',
+      bgGradient: 'from-green-500/20 to-emerald-600/20',
+      borderColor: 'border-green-500/40',
+      iconColor: 'text-green-400',
+      iconBg: 'bg-green-500/20',
+      textColor: 'text-green-300',
+      amountColor: 'text-green-400'
+    },
+    'FARMING_REWARD': {
+      icon: Sprout,
+      label: 'UNI Farming',
+      emoji: '🌾',
+      bgGradient: 'from-green-500/20 to-emerald-600/20',
+      borderColor: 'border-green-500/40',
+      iconColor: 'text-green-400',
+      iconBg: 'bg-green-500/20',
+      textColor: 'text-green-300',
+      amountColor: 'text-green-400'
+    },
+    
+    // TON Boost - Синий технологичный
+    'TON_BOOST_INCOME': {
+      icon: Rocket,
+      label: 'TON Boost',
+      emoji: '🚀',
+      bgGradient: 'from-blue-500/20 to-cyan-600/20',
+      borderColor: 'border-blue-500/40',
+      iconColor: 'text-blue-400',
+      iconBg: 'bg-blue-500/20',
+      textColor: 'text-blue-300',
+      amountColor: 'text-blue-400'
+    },
+    
+    // Daily Bonus - Золотой праздничный
+    'DAILY_BONUS': {
+      icon: Gift,
+      label: 'Daily Bonus',
+      emoji: '🎁',
+      bgGradient: 'from-yellow-500/20 to-orange-600/20',
+      borderColor: 'border-yellow-500/40',
+      iconColor: 'text-yellow-400',
+      iconBg: 'bg-yellow-500/20',
+      textColor: 'text-yellow-300',
+      amountColor: 'text-yellow-400'
+    },
+    
+    // Mission Reward - Фиолетовый достижений
+    'MISSION_REWARD': {
+      icon: Target,
+      label: 'Mission Complete',
+      emoji: '🎯',
+      bgGradient: 'from-purple-500/20 to-indigo-600/20',
+      borderColor: 'border-purple-500/40',
+      iconColor: 'text-purple-400',
+      iconBg: 'bg-purple-500/20',
+      textColor: 'text-purple-300',
+      amountColor: 'text-purple-400'
+    },
+    
+    // Referral Bonus - Розовый социальный
+    'REFERRAL_REWARD': {
+      icon: Users,
+      label: 'Referral Reward',
+      emoji: '🤝',
+      bgGradient: 'from-pink-500/20 to-rose-600/20',
+      borderColor: 'border-pink-500/40',
+      iconColor: 'text-pink-400',
+      iconBg: 'bg-pink-500/20',
+      textColor: 'text-pink-300',
+      amountColor: 'text-pink-400'
+    },
+    
+    // UNI Deposit - Зеленый с плюсом
+    'UNI_DEPOSIT': {
+      icon: TrendingUp,
+      label: 'UNI Пополнение',
+      emoji: '💰',
+      bgGradient: 'from-emerald-500/20 to-green-600/20',
+      borderColor: 'border-emerald-500/40',
+      iconColor: 'text-emerald-400',
+      iconBg: 'bg-emerald-500/20',
+      textColor: 'text-emerald-300',
+      amountColor: 'text-emerald-400'
+    },
+    
+    // TON Deposit - Синий с плюсом
+    'TON_DEPOSIT': {
+      icon: TrendingUp,
+      label: 'TON Пополнение',
+      emoji: '💎',
+      bgGradient: 'from-cyan-500/20 to-blue-600/20',
+      borderColor: 'border-cyan-500/40',
+      iconColor: 'text-cyan-400',
+      iconBg: 'bg-cyan-500/20',
+      textColor: 'text-cyan-300',
+      amountColor: 'text-cyan-400'
+    },
+    
+    // Withdrawal - Красный с минусом
+    'UNI_WITHDRAWAL': {
+      icon: TrendingDown,
+      label: 'UNI Вывод',
+      emoji: '📤',
+      bgGradient: 'from-red-500/20 to-orange-600/20',
+      borderColor: 'border-red-500/40',
+      iconColor: 'text-red-400',
+      iconBg: 'bg-red-500/20',
+      textColor: 'text-red-300',
+      amountColor: 'text-red-400'
+    },
+    
+    // Boost Purchase - Оранжевый энергичный
+    'BOOST_PURCHASE': {
+      icon: Package,
+      label: 'Покупка Пакета',
+      emoji: '📦',
+      bgGradient: 'from-orange-500/20 to-red-600/20',
+      borderColor: 'border-orange-500/40',
+      iconColor: 'text-orange-400',
+      iconBg: 'bg-orange-500/20',
+      textColor: 'text-orange-300',
+      amountColor: 'text-orange-400'
+    },
+    
+    // Airdrop - Радужный магический
+    'AIRDROP_REWARD': {
+      icon: Zap,
+      label: 'Airdrop Reward',
+      emoji: '✨',
+      bgGradient: 'from-violet-500/20 to-purple-600/20',
+      borderColor: 'border-violet-500/40',
+      iconColor: 'text-violet-400',
+      iconBg: 'bg-violet-500/20',
+      textColor: 'text-violet-300',
+      amountColor: 'text-violet-400'
+    }
+  };
+
+  return configs[transactionType] || configs['FARMING_REWARD'];
+};
+
+// Форматирование даты
+const formatDateTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// Форматирование суммы
+const formatAmount = (amount: number, currency: string): string => {
+  if (currency === 'TON') {
+    return amount.toFixed(6);
+  } else {
+    return amount >= 1 ? amount.toFixed(2) : amount.toFixed(6);
+  }
+};
+
+// Определение знака операции
+const getAmountSign = (type: string, description?: string): '+' | '-' => {
+  if (type.includes('WITHDRAWAL') || 
+      type.includes('PURCHASE') || 
+      description?.includes('Вывод') ||
+      description?.includes('Покупка')) {
+    return '-';
+  }
+  return '+';
+};
+
+const StyledTransactionItem: React.FC<StyledTransactionItemProps> = ({ 
+  transaction 
+}) => {
+  const config = getTransactionConfig(transaction.type, transaction.description);
+  const IconComponent = config.icon;
+  const sign = getAmountSign(transaction.type, transaction.description);
+  
+  return (
+    <div 
+      className={`
+        relative overflow-hidden rounded-xl p-4 
+        bg-gradient-to-r ${config.bgGradient} 
+        border ${config.borderColor}
+        backdrop-blur-sm
+        hover:scale-[1.02] transition-all duration-300
+        shadow-lg hover:shadow-xl
+      `}
+    >
+      {/* Subtle animated background pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+      </div>
+      
+      <div className="relative z-10 flex items-center justify-between">
+        {/* Left side - Icon and Details */}
+        <div className="flex items-center space-x-4">
+          {/* Icon Container */}
+          <div className={`
+            w-12 h-12 rounded-xl ${config.iconBg} 
+            flex items-center justify-center
+            border ${config.borderColor}
+            shadow-lg
+          `}>
+            <IconComponent className={`w-6 h-6 ${config.iconColor}`} />
+          </div>
+          
+          {/* Transaction Details */}
+          <div className="space-y-1">
+            {/* Transaction Type with Emoji */}
+            <div className="flex items-center space-x-2">
+              <span className="text-lg">{config.emoji}</span>
+              <span className={`font-semibold text-sm ${config.textColor}`}>
+                {config.label}
+              </span>
+            </div>
+            
+            {/* Date and Time */}
+            <div className="text-xs text-gray-400">
+              {formatDateTime(transaction.createdAt)}
+            </div>
+            
+            {/* Description if available */}
+            {transaction.description && (
+              <div className="text-xs text-gray-500 max-w-48 truncate">
+                {transaction.description}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Right side - Amount and Currency */}
+        <div className="text-right space-y-1">
+          {/* Amount with Sign */}
+          <div className={`text-lg font-bold ${config.amountColor}`}>
+            {sign}{formatAmount(transaction.amount, transaction.currency)} {transaction.currency}
+          </div>
+          
+          {/* Status Badge */}
+          <div className={`
+            inline-flex items-center px-2 py-1 rounded-md text-xs font-medium
+            ${transaction.status === 'completed' 
+              ? 'bg-green-500/20 text-green-400 border border-green-500/40' 
+              : transaction.status === 'pending'
+              ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
+              : 'bg-gray-500/20 text-gray-400 border border-gray-500/40'
+            }
+          `}>
+            {transaction.status === 'completed' ? '✓ Завершено' :
+             transaction.status === 'pending' ? '⏳ В обработке' :
+             transaction.status === 'confirmed' ? '✓ Подтверждено' :
+             transaction.status}
+          </div>
+          
+          {/* Currency specific badge */}
+          <div className={`
+            text-xs px-2 py-0.5 rounded-md inline-block
+            ${transaction.currency === 'UNI' 
+              ? 'bg-green-500/10 text-green-400 border border-green-500/30' 
+              : 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+            }
+          `}>
+            {transaction.currency}
+          </div>
+        </div>
+      </div>
+      
+      {/* Subtle glow effect */}
+      <div className={`
+        absolute inset-0 rounded-xl opacity-20 blur-xl
+        bg-gradient-to-r ${config.bgGradient}
+        pointer-events-none
+      `}></div>
+    </div>
+  );
+};
+
+export default StyledTransactionItem;
