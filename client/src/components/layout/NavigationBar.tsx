@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'wouter';
 import { NAV_ITEMS } from '@/lib/constants';
+import { Home, Sprout, ClipboardList, Users, Wallet } from 'lucide-react';
 
 interface NavigationBarProps {
   activeTab: string;
@@ -10,6 +11,15 @@ interface NavigationBarProps {
 const NavigationBar: React.FC<NavigationBarProps> = ({ activeTab, setActiveTab }) => {
   // Используем wouter для программной навигации
   const [location, setLocation] = useLocation();
+  
+  // Маппинг иконок Font Awesome -> Lucide React
+  const iconMap: { [key: string]: React.ComponentType<{ className?: string }> } = {
+    home: Home,
+    seedling: Sprout,
+    'clipboard-check': ClipboardList,
+    users: Users,
+    wallet: Wallet
+  };
   
   // Обработчик клика по иконке навигации
   const handleNavClick = (itemId: string) => {
@@ -36,8 +46,10 @@ const NavigationBar: React.FC<NavigationBarProps> = ({ activeTab, setActiveTab }
           }`}
           onClick={() => handleNavClick(item.id)}
         >
-          <i className={`fas fa-${item.icon} text-lg`}></i>
-          <span className="text-xs mt-1">{item.label}</span>
+          {React.createElement(iconMap[item.icon], { 
+            className: "text-lg mb-1" 
+          })}
+          <span className="text-xs">{item.label}</span>
         </button>
       ))}
     </nav>
