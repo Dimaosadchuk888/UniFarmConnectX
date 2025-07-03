@@ -40,7 +40,8 @@ export class UserController extends BaseController {
         try {
           const token = authHeader.replace('Bearer ', '');
           const jwtSecret = process.env.JWT_SECRET || 'unifarm_jwt_secret_key_2025_production';
-          const decoded = jwt.verify(token, jwtSecret) as any;
+          const jwtLib = await import('jsonwebtoken');
+          const decoded = jwtLib.verify(token, jwtSecret) as any;
           
           if (decoded.userId === 48) {
             logger.info('[UserController] Возврат актуальных данных для пользователя 48');
@@ -94,9 +95,9 @@ export class UserController extends BaseController {
       }
       
       // Fallback: пытаемся получить пользователя через JWT токен из Authorization header  
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
+      const fallbackAuthHeader = req.headers.authorization;
+      if (fallbackAuthHeader && fallbackAuthHeader.startsWith('Bearer ')) {
+        const token = fallbackAuthHeader.substring(7);
         
         try {
           const jwt = await import('jsonwebtoken');
