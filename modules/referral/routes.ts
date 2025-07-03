@@ -17,6 +17,16 @@ router.get('/:userId', requireTelegramAuth, referralController.getReferralInfo.b
 // GET /api/referrals/:userId/list - Получить список рефералов пользователя
 router.get('/:userId/list', requireTelegramAuth, referralController.getUserReferrals.bind(referralController));
 
+// GET /api/referrals/my-referrals - Получить список рефералов текущего пользователя
+router.get('/my-referrals', requireTelegramAuth, async (req: any, res: any) => {
+  const userId = req.user?.id || req.telegramUser?.id;
+  if (!userId) {
+    return res.status(400).json({ success: false, error: 'Пользователь не найден' });
+  }
+  req.params.userId = userId.toString();
+  return referralController.getUserReferrals(req, res);
+});
+
 // GET /api/referrals/:userId/earnings - Получить статистику доходов от рефералов
 router.get('/:userId/earnings', requireTelegramAuth, referralController.getReferralEarnings.bind(referralController));
 

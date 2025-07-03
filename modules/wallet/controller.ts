@@ -127,10 +127,10 @@ export class WalletController extends BaseController {
       if (!telegram) return; // 401 уже отправлен
 
       // Валидация параметров депозита
-      const { amount, currency, type, wallet_address } = req.body;
+      const { amount, currency, type = 'manual', wallet_address } = req.body;
       
-      if (!amount || !currency || !type) {
-        return this.sendError(res, 'Отсутствуют обязательные параметры: amount, currency, type', 400);
+      if (!amount || !currency) {
+        return this.sendError(res, 'Отсутствуют обязательные параметры: amount, currency', 400);
       }
 
       if (currency !== 'UNI' && currency !== 'TON') {
