@@ -151,39 +151,53 @@ export class UserModel {
   /**
    * Обновление баланса пользователя
    */
+  /**
+   * ЦЕНТРАЛИЗОВАННОЕ обновление баланса через BalanceManager
+   * УСТРАНЕНО ДУБЛИРОВАНИЕ: делегирует на BalanceManager
+   */
   static async updateBalance(
     id: number, 
     balanceUni?: string, 
     balanceTon?: string
   ): Promise<User | null> {
     try {
-      const updateData: Partial<InsertUser> = {};
+      const { balanceManager } = await import('../../core/BalanceManager');
       
-      if (balanceUni !== undefined) {
-        updateData.balance_uni = balanceUni;
-      }
-      
-      if (balanceTon !== undefined) {
-        updateData.balance_ton = balanceTon;
+      // Если переданы параметры, обновляем баланс через BalanceManager
+      if (balanceUni !== undefined || balanceTon !== undefined) {
+        const amount_uni = balanceUni ? parseFloat(balanceUni) : 0;
+        const amount_ton = balanceTon ? parseFloat(balanceTon) : 0;
+        
+        const result = await balanceManager.setBalance(
+          id,
+          amount_uni,
+          amount_ton,
+          'UserModel'
+        );
+        
+        if (!result.success) {
+          logger.error('[UserModel] Ошибка обновления баланса через BalanceManager:', result.error);
+          return null;
+        }
       }
 
+      // Возвращаем обновленного пользователя
       const { data: updatedUsersData, error } = await supabase
         .from(USER_TABLES.USERS)
-        .update(updateData)
-        .eq('id', id)
         .select()
+        .eq('id', id)
         .single();
 
       if (error) {
-        logger.error('[UserModel] Ошибка обновления баланса:', error.message);
-        throw error;
+        logger.error('[UserModel] Ошибка получения обновленного пользователя:', error.message);
+        return null;
       }
 
-      const updatedUser = updatedUsersData;
-      
-      return updatedUser || null;
+      return updatedUsersData || null;
     } catch (error) {
-      logger.error('[UserModel] Ошибка обновления баланса', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('[UserModel] Ошибка делегирования обновления баланса:', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       return null;
     }
   }

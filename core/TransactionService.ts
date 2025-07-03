@@ -287,7 +287,8 @@ export class UnifiedTransactionService {
   }
 
   /**
-   * Обновление баланса пользователя
+   * Обновление баланса пользователя через централизованный BalanceManager
+   * УСТРАНЕНО ДУБЛИРОВАНИЕ: делегирует на BalanceManager
    */
   private async updateUserBalance(
     user_id: number, 
@@ -296,59 +297,35 @@ export class UnifiedTransactionService {
     type: TransactionsTransactionType
   ): Promise<void> {
     try {
-      // Получаем текущий баланс пользователя
-      const { data: user, error: getUserError } = await supabase
-        .from('users')
-        .select('balance_uni, balance_ton')
-        .eq('id', user_id)
-        .single();
+      const { balanceManager } = await import('./BalanceManager');
+      
+      // Определяем тип операции
+      const operation = this.isWithdrawalType(type) ? 'subtract' : 'add';
+      
+      const result = await balanceManager.updateUserBalance({
+        user_id,
+        amount_uni,
+        amount_ton,
+        operation,
+        source: 'UnifiedTransactionService'
+      });
 
-      if (getUserError || !user) {
-        logger.error('[UnifiedTransactionService] Пользователь не найден для обновления баланса:', { user_id, error: getUserError?.message });
-        return;
-      }
-
-      const currentUniBalance = parseFloat(user.balance_uni || '0');
-      const currentTonBalance = parseFloat(user.balance_ton || '0');
-
-      let newUniBalance = currentUniBalance;
-      let newTonBalance = currentTonBalance;
-
-      // Обновляем баланс в зависимости от типа транзакции
-      if (this.isWithdrawalType(type)) {
-        // Для выводов уменьшаем баланс
-        newUniBalance = Math.max(0, currentUniBalance - amount_uni);
-        newTonBalance = Math.max(0, currentTonBalance - amount_ton);
-      } else {
-        // Для доходов увеличиваем баланс
-        newUniBalance = currentUniBalance + amount_uni;
-        newTonBalance = currentTonBalance + amount_ton;
-      }
-
-      // Обновляем баланс в базе данных
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({
-          balance_uni: newUniBalance.toFixed(6),
-          balance_ton: newTonBalance.toFixed(6),
-          last_active: new Date().toISOString()
-        })
-        .eq('id', user_id);
-
-      if (updateError) {
-        logger.error('[UnifiedTransactionService] Ошибка обновления баланса:', { user_id, error: updateError.message });
-      } else {
-        logger.info('[UnifiedTransactionService] Баланс обновлен:', {
+      if (!result.success) {
+        logger.error('[UnifiedTransactionService] Ошибка обновления баланса через BalanceManager:', {
           user_id,
-          old_uni: currentUniBalance,
-          new_uni: newUniBalance,
-          old_ton: currentTonBalance,
-          new_ton: newTonBalance
+          error: result.error
+        });
+      } else {
+        logger.info('[UnifiedTransactionService] Баланс обновлен через BalanceManager:', {
+          user_id,
+          amount_uni,
+          amount_ton,
+          operation
         });
       }
 
     } catch (error) {
-      logger.error('[UnifiedTransactionService] Критическая ошибка обновления баланса:', error);
+      logger.error('[UnifiedTransactionService] Критическая ошибка делегирования обновления баланса:', error);
     }
   }
 

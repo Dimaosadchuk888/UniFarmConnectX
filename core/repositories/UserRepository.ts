@@ -97,23 +97,29 @@ export class UserRepository {
   /**
    * Обновить баланс пользователя
    */
+  /**
+   * ЦЕНТРАЛИЗОВАННОЕ обновление баланса через BalanceManager
+   * УСТРАНЕНО ДУБЛИРОВАНИЕ: делегирует на BalanceManager
+   */
   static async updateBalance(userId: string, balanceUni: string, balanceTon: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ 
-          balance_uni: balanceUni,
-          balance_ton: balanceTon
-        })
-        .eq('id', parseInt(userId));
+      const { balanceManager } = await import('../BalanceManager');
       
-      if (error) {
-        throw error;
+      const result = await balanceManager.setBalance(
+        parseInt(userId),
+        parseFloat(balanceUni),
+        parseFloat(balanceTon),
+        'UserRepository'
+      );
+      
+      if (!result.success) {
+        console.error('[UserRepository] Ошибка обновления баланса через BalanceManager:', result.error);
+        return false;
       }
       
       return true;
     } catch (error) {
-      console.error('[UserRepository] Ошибка обновления баланса:', error);
+      console.error('[UserRepository] Ошибка делегирования обновления баланса:', error);
       return false;
     }
   }
