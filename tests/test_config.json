@@ -1,0 +1,140 @@
+{
+  "testSuite": {
+    "name": "UniFarm E2E Comprehensive Test Suite",
+    "version": "1.0.0",
+    "environment": "replit_preview",
+    "safety_mode": true,
+    "cleanup_after_tests": true
+  },
+  "testUsers": {
+    "primary": {
+      "id": 9999,
+      "telegram_id": 999999999,
+      "username": "test_e2e_user",
+      "first_name": "TestE2E",
+      "last_name": "User",
+      "ref_code": "TEST_E2E_REF_999"
+    },
+    "referral": {
+      "id": 9998,
+      "telegram_id": 999999998,
+      "username": "test_e2e_referral",
+      "first_name": "TestE2E",
+      "last_name": "Referral",
+      "ref_code": "TEST_E2E_REF_998"
+    }
+  },
+  "testScenarios": {
+    "balanceDeposit": {
+      "uni_amount": 1000,
+      "ton_amount": 1000,
+      "verify_balance": true
+    },
+    "uniFarming": {
+      "farming_amount": 100,
+      "expected_rate": 0.01,
+      "verify_rewards": true
+    },
+    "tonBoost": {
+      "package_name": "Starter",
+      "investment_amount": 10,
+      "expected_rate": 0.01,
+      "verify_activation": true
+    },
+    "referralSystem": {
+      "referral_deposit": 100,
+      "expected_commission": 100,
+      "verify_chain": true
+    },
+    "dailyBonus": {
+      "verify_availability": true,
+      "claim_if_available": true
+    },
+    "missions": {
+      "complete_first_mission": true,
+      "verify_rewards": true
+    }
+  },
+  "apiEndpoints": {
+    "auth": {
+      "register": "/api/v2/auth/register/telegram",
+      "login": "/api/v2/auth/telegram"
+    },
+    "user": {
+      "profile": "/api/v2/user/profile",
+      "delete": "/api/v2/user/delete"
+    },
+    "wallet": {
+      "balance": "/api/v2/wallet/balance",
+      "deposit": "/api/v2/wallet/deposit",
+      "withdraw": "/api/v2/wallet/withdraw"
+    },
+    "farming": {
+      "start": "/api/v2/farming/start",
+      "status": "/api/v2/farming/status",
+      "harvest": "/api/v2/farming/harvest"
+    },
+    "boost": {
+      "packages": "/api/v2/boost/packages",
+      "purchase": "/api/v2/boost/purchase",
+      "active": "/api/v2/boost/active"
+    },
+    "referral": {
+      "code": "/api/v2/referral/code",
+      "register": "/api/v2/referral/register",
+      "stats": "/api/v2/referral/stats"
+    },
+    "dailyBonus": {
+      "status": "/api/v2/daily-bonus/status",
+      "claim": "/api/v2/daily-bonus/claim"
+    },
+    "missions": {
+      "list": "/api/v2/missions/list",
+      "complete": "/api/v2/missions/complete"
+    },
+    "transactions": {
+      "list": "/api/v2/transactions",
+      "details": "/api/v2/transactions/{id}"
+    }
+  },
+  "expectedResults": {
+    "user_creation": {
+      "should_have_ref_code": true,
+      "should_have_zero_balance": true,
+      "should_have_unique_telegram_id": true
+    },
+    "balance_deposit": {
+      "should_create_transaction": true,
+      "should_update_balance": true,
+      "should_reflect_in_ui": true
+    },
+    "farming": {
+      "should_start_farming": true,
+      "should_have_farming_rate": true,
+      "should_calculate_rewards": true
+    },
+    "boost": {
+      "should_activate_boost": true,
+      "should_deduct_ton_balance": true,
+      "should_increase_farming_rate": true
+    },
+    "referral": {
+      "should_create_referral_link": true,
+      "should_register_referral": true,
+      "should_distribute_rewards": true
+    },
+    "transactions": {
+      "should_record_all_operations": true,
+      "should_have_correct_types": true,
+      "should_match_balance_changes": true
+    }
+  },
+  "safetyConstraints": {
+    "no_production_data_changes": true,
+    "no_architecture_modifications": true,
+    "no_business_logic_changes": true,
+    "isolated_test_environment": true,
+    "automatic_cleanup": true,
+    "read_only_for_existing_users": true
+  }
+}

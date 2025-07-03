@@ -116,7 +116,17 @@ Each business domain is organized as a self-contained module:
 - **Caching**: Redis support for session and application caching
 - **Monitoring**: Real-time performance metrics and error tracking
 
+## E2E Testing System
+- **Test Suite Created**: Comprehensive E2E testing system implemented in `/tests/` directory
+- **Coverage**: 9 core modules tested (User Management, Wallet, UNI Farming, TON Boost, Referral System, Daily Bonus, Missions, Transactions)
+- **Safety**: 100% isolated testing with no production data changes
+- **Test Users**: ID 9999 (telegram_id: 999999999), ID 9998 (telegram_id: 999999998)
+- **Automation**: Automatic test execution, report generation, and cleanup
+- **Reports**: JSON, HTML, and log file outputs with detailed analysis
+- **Commands**: `node tests/pre_test_check.js`, `node tests/full_e2e_check.js`, `node tests/demo_test_run.js`
+
 ## Changelog
+- July 03, 2025. E2E TESTING SYSTEM COMPLETED - Created comprehensive automated testing suite covering all 9 UniFarm modules with complete safety isolation. Test system includes: pre-test readiness check, full E2E scenario testing (user creation, 1000 UNI/TON deposits, farming operations, TON Boost purchases, referral system testing, daily bonus, missions, transaction validation), automated report generation in JSON/HTML formats, complete cleanup of test data. System designed for safe Replit Preview testing without any production impact. All scripts use dynamic import for node-fetch compatibility and provide detailed execution logs.
 - January 02, 2025. Fixed JWT token issue for user 48 - JWT token now contains correct telegram_id=88888888 matching updated database record
 - January 02, 2025. Fixed userId in JWT token payload - changed from userId:88888888 to userId:48 to match actual database user ID
 - January 02, 2025. Created JWT token update script - fixed mismatch where JWT contained userId:88888888 but system used user_id=48
