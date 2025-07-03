@@ -2,7 +2,6 @@ import React from 'react';
 import BalanceCard from '@/components/wallet/BalanceCard';
 import WithdrawalForm from '@/components/wallet/WithdrawalForm';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
-import TransactionPreview from '@/components/wallet/TransactionPreview';
 import { ErrorBoundary } from 'react-error-boundary';
 
 /**
@@ -58,14 +57,6 @@ const Wallet: React.FC = () => {
           onReset={() => window.location.reload()}
         >
           <WithdrawalForm />
-        </ErrorBoundary>
-        
-        {/* Предварительный просмотр стилей транзакций */}
-        <ErrorBoundary
-          FallbackComponent={ErrorFallback}
-          onReset={() => window.location.reload()}
-        >
-          <TransactionPreview />
         </ErrorBoundary>
         
         {/* История транзакций с ErrorBoundary */}
