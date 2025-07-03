@@ -72,4 +72,40 @@ export class TransactionsController extends BaseController {
       next(error);
     }
   }
+
+  /**
+   * Создать тестовую TON транзакцию для диагностики UI
+   */
+  async createTestTonTransaction(req: Request, res: Response) {
+    try {
+      const { user_id, type, amount_ton, description } = req.body;
+
+      if (!user_id || !amount_ton) {
+        return this.sendError(res, 'Отсутствуют обязательные поля: user_id, amount_ton', 400);
+      }
+
+      // Используем UnifiedTransactionService для создания
+      const { transactionService } = await import('../../core/TransactionService');
+      
+      const result = await transactionService.createTransaction({
+        user_id: parseInt(user_id),
+        type: type || 'TON_BOOST_INCOME',
+        amount_uni: 0,
+        amount_ton: parseFloat(amount_ton),
+        description: description || 'Тестовая TON транзакция для проверки UI'
+      });
+
+      if (result.success) {
+        this.sendSuccess(res, {
+          message: 'Тестовая TON транзакция создана',
+          transaction_id: result.transaction_id
+        });
+      } else {
+        this.sendError(res, result.error || 'Ошибка создания транзакции', 500);
+      }
+
+    } catch (error) {
+      this.handleControllerError(error, res, 'создания тестовой TON транзакции');
+    }
+  }
 }
