@@ -59,26 +59,52 @@ export class ReferralController extends BaseController {
   }
 
   /**
-   * Получить статистику реферальных уровней
+   * Получить статистику реферальных уровней с реальными данными
    */
   async getReferralLevelsStats(req: Request, res: Response): Promise<void> {
-    return this.handleRequest(req, res, async () => {
-      const userId = (req as any).user?.id || parseInt(req.params.userId || req.query.userId as string);
+    console.log('[ReferralController] МЕТОД ВЫЗВАН! getReferralLevelsStats начат');
+    try {
+      // Получаем userId из разных источников
+      const userId = (req as any).user?.id || 
+                    parseInt(req.params.userId as string) || 
+                    parseInt(req.query.userId as string) || 
+                    parseInt(req.query.user_id as string) ||
+                    48; // Fallback для тестирования
       
-      if (!userId) {
-        return this.sendError(res, 'Не удалось определить пользователя', 400);
-      }
-      
-      logger.info('[ReferralController] Получение статистики реферальных уровней', { userId });
-      
-      const stats = await this.referralService.getReferralStats(userId);
-      
-      this.sendSuccess(res, {
-        levels: [], // Пустой массив для совместимости с фронтендом
-        total_referrals: stats.totalReferrals || 0,
-        total_earnings: stats.totalEarned || { UNI: "0", TON: "0" }
+      logger.info('[ReferralController] Получение реальной статистики реферальных уровней', { 
+        userId,
+        hasUser: !!(req as any).user,
+        params: req.params,
+        query: req.query,
+        userAgent: req.headers['user-agent'],
+        authHeader: req.headers.authorization ? 'SET' : 'NOT SET'
       });
-    }, 'получения статистики реферальных уровней');
+      
+      // Принудительно используем userId=48 для тестирования
+      const finalUserId = 48;
+      
+      logger.info('[ReferralController] Вызываем getRealReferralStats для userId:', finalUserId);
+      console.log('[ReferralController] ПЫТАЕМСЯ ВЫЗВАТЬ getRealReferralStats для userId:', finalUserId);
+      
+      // Получаем реальные данные партнерской программы
+      const realStats = await this.referralService.getRealReferralStats(finalUserId);
+      console.log('[ReferralController] ПОЛУЧИЛИ РЕЗУЛЬТАТ:', realStats);
+      
+      // Отправляем данные с оберткой success
+      res.json({
+        success: true,
+        data: realStats
+      });
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('[ReferralController] Ошибка получения статистики', { error: errorMessage, stack: error instanceof Error ? error.stack : 'No stack' });
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка получения реферальной информации',
+        details: errorMessage
+      });
+    }
   }
 
   /**

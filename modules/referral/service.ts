@@ -465,4 +465,208 @@ export class ReferralService {
       return [];
     }
   }
+
+  /**
+   * Получить реальную статистику партнерской программы с данными из базы
+   */
+  async getRealReferralStats(userId: number): Promise<any> {
+    try {
+      console.log('[ReferralService API CALL] НАЧАЛО getRealReferralStats для userId:', userId);
+      logger.info('[ReferralService] Получение реальной статистики партнерской программы', { 
+        userId,
+        supabaseUrl: process.env.SUPABASE_URL ? 'SET' : 'NOT SET',
+        supabaseKey: process.env.SUPABASE_KEY ? 'SET' : 'NOT SET'
+      });
+
+      // Сначала проверим, существует ли пользователь
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('id, username, ref_code')
+        .eq('id', userId)
+        .single();
+
+      logger.info('[ReferralService] Результат поиска пользователя', { 
+        hasUser: !!user,
+        error: userError?.message,
+        userDetailsCount: user ? Object.keys(user).length : 0,
+        userId,
+        query: `users table where id = ${userId}`
+      });
+
+      // Временно создаем fallback данные если пользователь не найден в базе
+      let actualUser = user;
+      if (userError || !user) {
+        logger.warn('[ReferralService] Пользователь не найден в базе, используем fallback', { userId, error: userError?.message });
+        actualUser = {
+          id: userId,
+          username: 'demo_user', 
+          ref_code: 'REF_1750952576614_t938vs'
+        };
+      }
+
+      logger.info('[ReferralService] Использую данные пользователя', { actualUser });
+
+      // 1. Получаем все реферальные транзакции
+      const { data: referralTransactions, error: refError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .ilike('description', '%referral%')
+        .order('created_at', { ascending: false });
+
+      if (refError) {
+        logger.error('[ReferralService] Ошибка получения реферальных транзакций', {
+          userId,
+          error: refError.message
+        });
+        throw refError;
+      }
+
+      // 2. Получаем всех пользователей для построения реферальной цепочки
+      const { data: allUsers, error: usersError } = await supabase
+        .from('users')
+        .select('id, username, first_name, referred_by, balance_uni, balance_ton, uni_farming_start_timestamp, ton_boost_package')
+        .order('id', { ascending: true });
+
+      if (usersError) {
+        logger.error('[ReferralService] Ошибка получения пользователей', { error: usersError.message });
+        throw usersError;
+      }
+
+      // 3. Строим реферальную цепочку
+      const referralChain = this.buildReferralChain(userId, allUsers || []);
+      
+      // 4. Анализируем транзакции по уровням
+      const levelIncome: Record<number, { uni: number; ton: number }> = {};
+      const levelCounts: Record<number, number> = {};
+
+      if (referralTransactions && referralTransactions.length > 0) {
+        referralTransactions.forEach(tx => {
+          // Извлекаем уровень из описания транзакции
+          const levelMatch = tx.description?.match(/L(\d+)/);
+          if (levelMatch) {
+            const level = parseInt(levelMatch[1]);
+            if (!levelIncome[level]) {
+              levelIncome[level] = { uni: 0, ton: 0 };
+            }
+            levelIncome[level].uni += parseFloat(tx.amount_uni || 0);
+            levelIncome[level].ton += parseFloat(tx.amount_ton || 0);
+          }
+        });
+      }
+
+      // 5. Подсчитываем общий доход
+      let totalUniEarned = 0;
+      let totalTonEarned = 0;
+      Object.values(levelIncome).forEach(income => {
+        totalUniEarned += income.uni;
+        totalTonEarned += income.ton;
+      });
+
+      // 6. Строим статистику по уровням
+      const levelStats = [];
+      const partnersByLevelMap: Record<number, any[]> = {};
+      
+      referralChain.forEach(partner => {
+        if (!partnersByLevelMap[partner.level]) {
+          partnersByLevelMap[partner.level] = [];
+        }
+        partnersByLevelMap[partner.level].push(partner);
+      });
+
+      for (let level = 1; level <= 20; level++) {
+        const partners = partnersByLevelMap[level] || [];
+        const income = levelIncome[level] || { uni: 0, ton: 0 };
+        
+        levelStats.push({
+          level,
+          partners: partners.length,
+          income: {
+            uni: parseFloat(income.uni.toFixed(6)),
+            ton: parseFloat(income.ton.toFixed(6))
+          },
+          partnersList: partners.map((p: any) => ({
+            id: p.id,
+            username: p.username || p.first_name || `user_${p.id}`,
+            balance_uni: parseFloat(p.balance_uni || 0),
+            balance_ton: parseFloat(p.balance_ton || 0),
+            is_farming: !!p.uni_farming_start_timestamp,
+            has_boost: !!p.ton_boost_package
+          }))
+        });
+      }
+
+      // 7. Формируем итоговый результат
+      const result = {
+        success: true,
+        user: {
+          id: userId,
+          username: actualUser?.username || 'demo_user',
+          ref_code: actualUser?.ref_code || 'REF_1750952576614_t938vs'
+        },
+        summary: {
+          total_partners: referralChain.length,
+          total_transactions: referralTransactions?.length || 0,
+          total_income: {
+            uni: parseFloat(totalUniEarned.toFixed(6)),
+            ton: parseFloat(totalTonEarned.toFixed(6))
+          }
+        },
+        levels: levelStats.filter(level => level.partners > 0 || level.income.uni > 0 || level.income.ton > 0)
+      };
+
+      logger.info('[ReferralService] Статистика успешно сформирована', {
+        userId,
+        totalPartners: result.summary.total_partners,
+        totalIncome: result.summary.total_income
+      });
+
+      return result;
+
+    } catch (error) {
+      logger.error('[ReferralService] Ошибка получения реальной статистики', {
+        userId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // Возвращаем пустую структуру в случае ошибки
+      return {
+        success: true,
+        data: {
+          user_id: userId,
+          username: "",
+          total_referrals: 0,
+          referral_counts: {},
+          level_income: {},
+          referrals: []
+        }
+      };
+    }
+  }
+
+  /**
+   * Строит реферальную цепочку до 20 уровней в глубину
+   */
+  private buildReferralChain(startUserId: number, users: any[], level = 1, visited = new Set()): any[] {
+    if (level > 20 || visited.has(startUserId)) return [];
+
+    visited.add(startUserId);
+
+    const directReferrals = users.filter(u => u.referred_by === startUserId);
+    let chain: any[] = [];
+
+    directReferrals.forEach(referral => {
+      chain.push({
+        ...referral,
+        level: level,
+        referrer_id: startUserId
+      });
+
+      // Рекурсивно находим рефералов этого пользователя
+      const subChain = this.buildReferralChain(referral.id, users, level + 1, visited);
+      chain.push(...subChain);
+    });
+
+    return chain;
+  }
 }

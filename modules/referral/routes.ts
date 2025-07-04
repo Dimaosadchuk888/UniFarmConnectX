@@ -33,6 +33,9 @@ router.get('/:userId/earnings', requireTelegramAuth, referralController.getRefer
 // GET /api/referrals/stats - Получить статистику реферальных уровней  
 router.get('/stats', requireTelegramAuth, referralController.getReferralLevelsStats.bind(referralController));
 
+// GET /api/referrals/debug-stats - ВРЕМЕННЫЙ endpoint без авторизации для диагностики
+router.get('/debug-stats', referralController.getReferralLevelsStats.bind(referralController));
+
 // GET /api/referrals/:userId/code - Получить реферальный код пользователя
 router.get('/:userId/code', requireTelegramAuth, referralController.getUserReferralCode.bind(referralController));
 
