@@ -343,7 +343,7 @@ router.get('/daily-bonus-status', async (req: express.Request, res: express.Resp
 
     // Safe calculations
     const streak = user.checkin_streak || 0;
-    const bonusAmount = Math.max(100, streak * 50).toString();
+    const bonusAmount = Math.max(500, streak * 50).toString();
     const lastClaimDate = user.checkin_last_date;
     const canClaim = !lastClaimDate || new Date().toDateString() !== new Date(lastClaimDate).toDateString();
 
@@ -364,7 +364,7 @@ router.get('/daily-bonus-status', async (req: express.Request, res: express.Resp
       data: {
         can_claim: true,
         streak_days: 1,
-        next_bonus_amount: "100",
+        next_bonus_amount: "500",
         last_claim_date: null
       }
     });
@@ -395,7 +395,7 @@ router.post('/daily-bonus-claim', async (req: express.Request, res: express.Resp
     // Safe calculations
     const currentStreak = user?.checkin_streak || 0;
     const newStreak = currentStreak + 1;
-    const bonusAmount = Math.max(100, newStreak * 50);
+    const bonusAmount = Math.max(500, newStreak * 50);
     const currentBalance = parseFloat(user?.balance_uni || '0');
     const newBalance = currentBalance + bonusAmount;
 

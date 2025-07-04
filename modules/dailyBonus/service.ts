@@ -44,7 +44,7 @@ export class DailyBonusService {
         return {
           can_claim: false,
           streak_days: 0,
-          next_bonus_amount: "100",
+          next_bonus_amount: "500",
           last_claim_date: null
         };
       }
@@ -239,7 +239,7 @@ export class DailyBonusService {
    * Calculate bonus amount based on streak days
    */
   private calculateBonusAmount(streakDays: number): string {
-    const baseAmount = 100; // Base 100 UNI
+    const baseAmount = 500; // Base 500 UNI
     const bonusMultiplier = Math.min(streakDays * 0.1, 2.0); // Max 200% bonus at 20 days
     const finalAmount = baseAmount * (1 + bonusMultiplier);
     
