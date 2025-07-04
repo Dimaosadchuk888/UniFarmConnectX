@@ -167,10 +167,11 @@ export class AuthService {
       // Передаем правильные данные для JWT с userId из базы данных
       const userForToken = {
         ...telegramUser,
-        id: userInfo.id // Используем реальный user_id из базы, а не telegram_id
+        id: userInfo.id, // Используем реальный user_id из базы
+        telegram_id: userInfo.telegram_id // Добавляем реальный telegram_id из базы
       };
       const token = generateJWTToken(userForToken, userInfo.ref_code);
-      logger.info('[AuthService] JWT токен создан', { userId: userInfo.id, telegram_id: telegramUser.id });
+      logger.info('[AuthService] JWT токен создан', { userId: userInfo.id, telegram_id: userInfo.telegram_id });
 
       return {
         success: true,
@@ -230,10 +231,11 @@ export class AuthService {
       // Передаем правильные данные для JWT с userId из базы данных
       const userForToken = {
         ...telegramUser,
-        id: userInfo.id // Используем реальный user_id из базы, а не telegram_id
+        id: userInfo.id, // Используем реальный user_id из базы
+        telegram_id: userInfo.telegram_id // Добавляем реальный telegram_id из базы
       };
       const token = generateJWTToken(userForToken, userInfo.ref_code);
-      logger.info('[AuthService] JWT токен создан (прямая регистрация)', { userId: userInfo.id });
+      logger.info('[AuthService] JWT токен создан (прямая регистрация)', { userId: userInfo.id, telegram_id: userInfo.telegram_id });
 
       return {
         success: true,
@@ -312,7 +314,8 @@ export class AuthService {
       // Передаем правильные данные для JWT с userId из базы данных
       const userForToken = {
         ...telegramUser,
-        id: userInfo.id // Используем реальный user_id из базы, а не telegram_id
+        id: userInfo.id, // Используем реальный user_id из базы
+        telegram_id: userInfo.telegram_id // Добавляем реальный telegram_id из базы
       };
       const token = generateJWTToken(userForToken, userInfo.ref_code);
 

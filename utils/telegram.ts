@@ -11,6 +11,11 @@ export interface TelegramUser {
   allows_write_to_pm?: boolean;
 }
 
+// Расширенный тип для JWT генерации
+export interface TelegramUserWithDbId extends TelegramUser {
+  telegram_id?: number; // telegram_id из базы данных
+}
+
 export interface TelegramInitData {
   user: TelegramUser;
   auth_date: number;
@@ -142,7 +147,7 @@ export function validateTelegramInitData(initData: string, botToken: string): Va
 /**
  * Generates JWT token for authenticated Telegram user
  */
-export function generateJWTToken(user: TelegramUser, refCode?: string): string {
+export function generateJWTToken(user: TelegramUser | TelegramUserWithDbId, refCode?: string): string {
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) {
     throw new Error('JWT_SECRET environment variable not set');
@@ -150,7 +155,7 @@ export function generateJWTToken(user: TelegramUser, refCode?: string): string {
 
   const payload: JWTPayload = {
     userId: user.id,
-    telegram_id: user.id,
+    telegram_id: ((user as any).telegram_id as number) || user.id, // Исправлено: используем реальный telegram_id если есть
     username: user.username,
     ref_code: refCode,
     iat: Math.floor(Date.now() / 1000),
