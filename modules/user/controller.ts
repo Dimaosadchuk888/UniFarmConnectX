@@ -44,24 +44,28 @@ export class UserController extends BaseController {
           const decoded = jwtLib.verify(token, jwtSecret) as any;
           
           if (decoded.userId === 48) {
-            logger.info('[UserController] Возврат актуальных данных для пользователя 48');
-            return this.sendSuccess(res, {
-              user: {
-                id: 48,
-                telegram_id: 88888888,
-                username: 'demo_user',
-                first_name: 'Demo User',
-                ref_code: 'REF_1750952576614_t938vs',
-                referred_by: null,
-                uni_balance: "441968.475954",
-                ton_balance: "929", 
-                balance_uni: "441968.475954",
-                balance_ton: "929",
-                created_at: "2025-06-26T15:42:56.920858",
-                is_telegram_user: true,
-                auth_method: 'telegram'
-              }
-            });
+            logger.info('[UserController] Получение актуальных данных для пользователя 48 из базы');
+            // Получаем актуальные данные из базы вместо захардкоженных
+            const actualUser = await userRepository.getUserById(48);
+            if (actualUser) {
+              return this.sendSuccess(res, {
+                user: {
+                  id: actualUser.id,
+                  telegram_id: actualUser.telegram_id,
+                  username: actualUser.username,
+                  first_name: actualUser.first_name || 'Demo User',
+                  ref_code: actualUser.ref_code,
+                  referred_by: actualUser.referred_by,
+                  uni_balance: actualUser.balance_uni,
+                  ton_balance: actualUser.balance_ton, 
+                  balance_uni: actualUser.balance_uni,
+                  balance_ton: actualUser.balance_ton,
+                  created_at: actualUser.created_at,
+                  is_telegram_user: true,
+                  auth_method: 'telegram'
+                }
+              });
+            }
           }
         } catch (jwtError) {
           logger.warn('[UserController] JWT ошибка, продолжаем обычную логику');
@@ -72,15 +76,35 @@ export class UserController extends BaseController {
       console.log('[GetMe] req.telegramUser:', (req as any).telegramUser ? { id: (req as any).telegramUser.id, telegram_id: (req as any).telegramUser.telegram_id } : null);
       console.log('[GetMe] Authorization header:', req.headers.authorization ? 'PRESENT' : 'MISSING');
       
-      // Сначала проверяем данные пользователя из middleware
+      // Проверяем данные пользователя из middleware, но для пользователя 48 всегда получаем актуальные данные
       const middlewareUser = (req as any).user || (req as any).telegramUser;
       if (middlewareUser) {
-        logger.info('[GetMe] Используем данные пользователя из middleware', {
+        logger.info('[GetMe] Обнаружен пользователь из middleware', {
           id: middlewareUser.id,
           telegram_id: middlewareUser.telegram_id,
           ref_code: middlewareUser.ref_code
         });
         
+        // Специальная обработка для пользователя 48 - всегда актуальные данные из базы
+        if (middlewareUser.id === 48) {
+          logger.info('[GetMe] Получение актуальных данных для пользователя 48 из базы');
+          const actualUser = await userRepository.getUserById(48);
+          if (actualUser) {
+            return this.sendSuccess(res, {
+              user: {
+                id: actualUser.id,
+                telegram_id: actualUser.telegram_id,
+                username: actualUser.username,
+                first_name: actualUser.first_name,
+                ref_code: actualUser.ref_code,
+                balance_uni: actualUser.balance_uni,
+                balance_ton: actualUser.balance_ton
+              }
+            });
+          }
+        }
+        
+        // Для остальных пользователей используем данные из middleware
         return this.sendSuccess(res, {
           user: {
             id: middlewareUser.id,

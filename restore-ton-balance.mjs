@@ -1,5 +1,6 @@
 /**
- * Восстановление TON баланса и принудительная активация TON Boost
+ * Восстановление TON баланса для пользователя 48
+ * Добавляет достаточно средств для тестирования множественных покупок
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -10,57 +11,75 @@ async function restoreTonBalance() {
   
   const supabase = createClient(supabaseUrl, supabaseKey);
   
-  console.log('=== ВОССТАНОВЛЕНИЕ И АКТИВАЦИЯ ===');
+  console.log('💰 ВОССТАНОВЛЕНИЕ TON БАЛАНСА ПОЛЬЗОВАТЕЛЯ 48');
+  console.log('='.repeat(50));
   
   const userId = 48;
+  const targetBalance = 1000; // Добавляем 1000 TON для тестирования
   
-  // 1. Восстановление баланса TON
-  console.log('\n1. ВОССТАНОВЛЕНИЕ БАЛАНСА:');
-  const { data: restoration, error: restoreError } = await supabase
-    .from('users')
-    .update({ 
-      balance_ton: 900, // Восстанавливаем изначальный баланс
-      ton_boost_package: 3, // Активируем Advanced Boost
-      ton_boost_rate: 0.02 // 2% дневная ставка
-    })
-    .eq('id', userId)
-    .select('id, balance_ton, ton_boost_package, ton_boost_rate');
-  
-  if (restoreError) {
-    console.log('   ❌ Ошибка восстановления:', restoreError.message);
-    return;
+  try {
+    // Получаем текущий баланс
+    const { data: currentUser, error: getUserError } = await supabase
+      .from('users')
+      .select('balance_ton, username')
+      .eq('id', userId)
+      .single();
+    
+    if (getUserError) {
+      console.log('❌ Ошибка получения пользователя:', getUserError.message);
+      return;
+    }
+    
+    console.log(`👤 Пользователь: ${currentUser.username}`);
+    console.log(`💰 Текущий баланс: ${currentUser.balance_ton} TON`);
+    
+    // Обновляем баланс
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
+      .update({ balance_ton: targetBalance.toString() })
+      .eq('id', userId)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.log('❌ Ошибка обновления баланса:', updateError.message);
+      return;
+    }
+    
+    console.log(`✅ Баланс обновлен: ${currentUser.balance_ton} → ${updatedUser.balance_ton} TON`);
+    
+    // Создаем транзакцию пополнения для отслеживания
+    const { data: transaction, error: txError } = await supabase
+      .from('transactions')
+      .insert([{
+        user_id: userId,
+        type: 'FARMING_REWARD',
+        amount_ton: (targetBalance - parseFloat(currentUser.balance_ton)).toString(),
+        description: `💳 TON Deposit для тестирования: пополнение баланса до ${targetBalance} TON`,
+        status: 'completed'
+      }])
+      .select()
+      .single();
+    
+    if (txError) {
+      console.log('⚠️ Ошибка создания транзакции:', txError.message);
+    } else {
+      console.log(`📊 Транзакция создана: ID ${transaction.id}`);
+      console.log(`📝 Описание: ${transaction.description}`);
+    }
+    
+    console.log('\n🎯 РЕЗУЛЬТАТ:');
+    console.log(`   • Пользователь готов к тестированию`);
+    console.log(`   • Баланс: ${targetBalance} TON`);
+    console.log(`   • Доступно для покупки: ${Math.floor(targetBalance / 10)} пакетов по 10 TON`);
+    console.log(`   • Доступно для покупки: ${Math.floor(targetBalance / 50)} пакетов по 50 TON`);
+    
+  } catch (error) {
+    console.log('❌ Общая ошибка:', error.message);
   }
   
-  console.log('   ✅ Баланс восстановлен:', restoration[0]);
-  
-  // 2. Проверка критериев планировщика
-  const user = restoration[0];
-  const isActive = user.ton_boost_package && user.ton_boost_package !== 0;
-  const hasBalance = parseFloat(user.balance_ton) >= 10;
-  
-  console.log('\n2. ПРОВЕРКА КРИТЕРИЕВ:');
-  console.log('   Пакет активен:', isActive);
-  console.log('   Достаточно TON:', hasBalance);
-  console.log('   Планировщик найдет:', isActive && hasBalance);
-  
-  if (isActive && hasBalance) {
-    // Рассчитаем ожидаемые начисления
-    const deposit = Math.max(0, parseFloat(user.balance_ton) - 10);
-    const dailyRate = user.ton_boost_rate;
-    const dailyIncome = deposit * dailyRate;
-    const fiveMinIncome = dailyIncome / 288;
-    
-    console.log('\n3. РАСЧЕТЫ ДОХОДА:');
-    console.log(`   Депозит: ${deposit} TON`);
-    console.log(`   Дневная ставка: ${(dailyRate * 100)}%`);
-    console.log(`   Дневной доход: ${dailyIncome.toFixed(6)} TON`);
-    console.log(`   Доход за 5 мин: ${fiveMinIncome.toFixed(8)} TON`);
-    
-    console.log('\n   🎯 АКТИВАЦИЯ ЗАВЕРШЕНА!');
-    console.log('   Планировщик начнет начисления через 5 минут');
-  }
-  
-  console.log('\n=== ВОССТАНОВЛЕНИЕ ЗАВЕРШЕНО ===');
+  console.log('\n' + '='.repeat(50));
+  console.log('💰 ВОССТАНОВЛЕНИЕ ЗАВЕРШЕНО');
 }
 
-restoreTonBalance().catch(console.error);
+restoreTonBalance();

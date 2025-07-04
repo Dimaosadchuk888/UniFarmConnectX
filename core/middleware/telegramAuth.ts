@@ -37,9 +37,9 @@ export async function requireTelegramAuth(req: Request, res: Response, next: Nex
             const { SupabaseUserRepository } = require('../../modules/user/service');
             const userRepository = new SupabaseUserRepository();
             
-            // Ищем пользователя по telegram_id из JWT токена
-            console.log('[TelegramAuth] Searching for user with telegram_id:', telegramId);
-            const fullUser = await userRepository.getUserByTelegramId(telegramId);
+            // Ищем пользователя по userId из JWT токена (primary key)
+            console.log('[TelegramAuth] Searching for user with userId:', userId);
+            const fullUser = await userRepository.getUserById(userId);
             
             if (fullUser) {
               console.log('[TelegramAuth] Loaded full user data from database:', {
