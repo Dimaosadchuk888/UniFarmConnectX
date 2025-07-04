@@ -259,10 +259,10 @@ const ReferralLevelsTable: React.FC = () => {
         
         // Форматируем числа безопасно с использованием глобальной функции
         try {
-          // Используем глобальную функцию safeFormatAmount для форматирования
-          // Аргументы: значение, десятичные знаки, валюта
-          const formattedUniIncome = formatAmount(uniIncome, 'UNI'); 
-          const formattedTonIncome = formatAmount(tonIncome, 'TON');
+          // Используем специальное форматирование для партнерских доходов с минимум 4 знаками
+          // Согласно ТЗ: минимум 4 знака после запятой для лучшей видимости маленьких значений
+          const formattedUniIncome = Number(uniIncome).toFixed(4); 
+          const formattedTonIncome = Number(tonIncome).toFixed(4);
           
           return {
             level: `Уровень ${levelNumber}`,
