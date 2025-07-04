@@ -18,6 +18,7 @@ const NetworkStatusIndicator: React.FC = () => {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [alertType, setAlertType] = useState<AlertType>('hidden');
   const [alertVisible, setAlertVisible] = useState<boolean>(false);
+  const [errorDelayTimeout, setErrorDelayTimeout] = useState<number | null>(null);
   const { connectionStatus } = useWebSocket();
 
   // Обновляем статус онлайн/оффлайн
@@ -45,11 +46,21 @@ const NetworkStatusIndicator: React.FC = () => {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      // Очищаем таймер при размонтировании компонента
+      if (errorDelayTimeout) {
+        clearTimeout(errorDelayTimeout);
+      }
     };
   }, []);
 
-  // Обновляем статус WebSocket соединения
+  // Обновляем статус WebSocket соединения с задержкой для ошибок
   useEffect(() => {
+    // Очищаем предыдущий таймер задержки ошибки при любом изменении статуса
+    if (errorDelayTimeout) {
+      clearTimeout(errorDelayTimeout);
+      setErrorDelayTimeout(null);
+    }
+
     if (connectionStatus === 'connected') {
       setAlertType('wsConnected');
       setAlertVisible(true);
@@ -58,13 +69,21 @@ const NetworkStatusIndicator: React.FC = () => {
       setTimeout(() => {
         setAlertVisible(false);
       }, 3000);
+    } else if (connectionStatus === 'connecting') {
+      // При переподключении сбрасываем видимость ошибки
+      setAlertVisible(false);
+      setAlertType('hidden');
     } else if (connectionStatus === 'disconnected') {
-      setAlertType('wsDisconnected');
-      setAlertVisible(true);
-    } else {
-      // Если статус 'connecting', не показываем уведомление
+      // Показываем ошибку с задержкой 2 секунды
+      const timeoutId = window.setTimeout(() => {
+        setAlertType('wsDisconnected');
+        setAlertVisible(true);
+        setErrorDelayTimeout(null);
+      }, 2000);
+      
+      setErrorDelayTimeout(timeoutId);
     }
-  }, [connectionStatus]);
+  }, [connectionStatus, errorDelayTimeout]);
 
   // Если нет проблем с соединением, ничего не показываем
   if (!alertVisible) {

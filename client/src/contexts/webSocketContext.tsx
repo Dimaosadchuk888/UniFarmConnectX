@@ -23,6 +23,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [lastMessage, setLastMessage] = useState<any>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
+  const heartbeatIntervalRef = useRef<number | null>(null);
 
   const connect = () => {
     try {
@@ -42,11 +43,29 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = null;
         }
+        
+        // Запускаем heartbeat - отправляем ping каждые 30 секунд
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+        }
+        heartbeatIntervalRef.current = window.setInterval(() => {
+          if (newSocket.readyState === WebSocket.OPEN) {
+            newSocket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+            console.log('[WebSocket] Heartbeat ping отправлен');
+          }
+        }, 30000);
       };
 
       newSocket.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
+          
+          // Обрабатываем pong ответ от сервера
+          if (message.type === 'pong') {
+            console.log('[WebSocket] Heartbeat pong получен');
+            return;
+          }
+          
           setLastMessage(message);
         } catch (error) {
           console.error('[WebSocket] Ошибка парсинга сообщения:', error);
@@ -57,6 +76,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         console.log('[WebSocket] Соединение закрыто');
         setConnectionStatus('disconnected');
         setSocket(null);
+        
+        // Очищаем heartbeat при закрытии соединения
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = null;
+        }
         
         // Переподключение через 5 секунд
         if (!reconnectTimeoutRef.current) {
@@ -93,6 +118,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     return () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
       }
       if (socket) {
         socket.close();
