@@ -36,6 +36,12 @@ router.get('/stats', requireTelegramAuth, referralController.getReferralLevelsSt
 // GET /api/referrals/debug-stats - ВРЕМЕННЫЙ endpoint без авторизации для диагностики
 router.get('/debug-stats', referralController.getReferralLevelsStats.bind(referralController));
 
+// ТЕСТОВЫЙ endpoint для проверки роутинга
+router.get('/test-routing', (req, res) => {
+  console.log('[REFERRAL ROUTES] TEST ROUTING WORKS!');
+  res.json({ success: true, message: 'Referral routing is working', timestamp: Date.now() });
+});
+
 // GET /api/referrals/:userId/code - Получить реферальный код пользователя
 router.get('/:userId/code', requireTelegramAuth, referralController.getUserReferralCode.bind(referralController));
 

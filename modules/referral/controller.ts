@@ -97,6 +97,7 @@ export class ReferralController extends BaseController {
       });
       
     } catch (error) {
+      console.log('[ReferralController] ОШИБКА В CATCH:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('[ReferralController] Ошибка получения статистики', { error: errorMessage, stack: error instanceof Error ? error.stack : 'No stack' });
       res.status(500).json({

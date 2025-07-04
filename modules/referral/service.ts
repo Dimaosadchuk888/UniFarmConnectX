@@ -472,6 +472,11 @@ export class ReferralService {
   async getRealReferralStats(userId: number): Promise<any> {
     try {
       console.log('[ReferralService API CALL] НАЧАЛО getRealReferralStats для userId:', userId);
+      console.log('[ReferralService ENV CHECK] Проверка переменных окружения:', {
+        supabaseUrl: process.env.SUPABASE_URL ? 'SET' : 'NOT SET',
+        supabaseKey: process.env.SUPABASE_KEY ? 'SET' : 'NOT SET',
+        supabaseClient: !!supabase
+      });
       logger.info('[ReferralService] Получение реальной статистики партнерской программы', { 
         userId,
         supabaseUrl: process.env.SUPABASE_URL ? 'SET' : 'NOT SET',
@@ -479,11 +484,29 @@ export class ReferralService {
       });
 
       // Сначала проверим, существует ли пользователь
+      console.log('[ReferralService API DEBUG] Начинаем поиск пользователя в базе данных:', {
+        userId,
+        tableName: 'users',
+        supabaseConfigured: !!supabase,
+        envVarsSet: {
+          SUPABASE_URL: !!process.env.SUPABASE_URL,
+          SUPABASE_KEY: !!process.env.SUPABASE_KEY
+        }
+      });
+      
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('id, username, ref_code')
         .eq('id', userId)
         .single();
+        
+      console.log('[ReferralService API DEBUG] Результат поиска пользователя:', {
+        hasUser: !!user,
+        userError: userError,
+        userErrorMessage: userError?.message,
+        userErrorCode: userError?.code,
+        userData: user
+      });
 
       logger.info('[ReferralService] Результат поиска пользователя', { 
         hasUser: !!user,
@@ -493,15 +516,26 @@ export class ReferralService {
         query: `users table where id = ${userId}`
       });
 
-      // Временно создаем fallback данные если пользователь не найден в базе
+      // Создаем fallback данные если пользователь не найден в базе (временно для диагностики)
       let actualUser = user;
       if (userError || !user) {
+        console.log('[ReferralService КРИТИЧЕСКАЯ ОШИБКА] Пользователь не найден в базе, создаем fallback данные:', {
+          userId,
+          userError: userError?.message,
+          userErrorCode: userError?.code
+        });
         logger.warn('[ReferralService] Пользователь не найден в базе, используем fallback', { userId, error: userError?.message });
         actualUser = {
           id: userId,
           username: 'demo_user', 
           ref_code: 'REF_1750952576614_t938vs'
         };
+      } else if (actualUser) {
+        console.log('[ReferralService DEBUG] Пользователь найден успешно:', {
+          userId,
+          username: actualUser.username,
+          ref_code: actualUser.ref_code
+        });
       }
 
       logger.info('[ReferralService] Использую данные пользователя', { actualUser });
@@ -519,7 +553,15 @@ export class ReferralService {
           userId,
           error: refError.message
         });
-        throw refError;
+        console.log('[ReferralService КРИТИЧЕСКАЯ ОШИБКА] Ошибка в запросе транзакций:', {
+          userId,
+          error: refError,
+          errorMessage: refError.message,
+          errorCode: refError.code,
+          errorDetails: refError.details
+        });
+        // Временно НЕ бросаем ошибку для диагностики
+        // throw refError;
       }
 
       // 2. Получаем всех пользователей для построения реферальной цепочки
@@ -530,7 +572,15 @@ export class ReferralService {
 
       if (usersError) {
         logger.error('[ReferralService] Ошибка получения пользователей', { error: usersError.message });
-        throw usersError;
+        console.log('[ReferralService КРИТИЧЕСКАЯ ОШИБКА] Ошибка в запросе пользователей:', {
+          userId,
+          error: usersError,
+          errorMessage: usersError.message,
+          errorCode: usersError.code,
+          errorDetails: usersError.details
+        });
+        // Временно НЕ бросаем ошибку для диагностики
+        // throw usersError;
       }
 
       // 3. Строим реферальную цепочку
@@ -624,6 +674,12 @@ export class ReferralService {
       return result;
 
     } catch (error) {
+      console.log('[ReferralService КРИТИЧЕСКАЯ ОШИБКА] Перехвачено исключение в catch блоке:', {
+        userId,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : 'No stack',
+        errorType: typeof error
+      });
       logger.error('[ReferralService] Ошибка получения реальной статистики', {
         userId,
         error: error instanceof Error ? error.message : String(error)

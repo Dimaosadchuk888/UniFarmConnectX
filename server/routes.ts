@@ -467,6 +467,12 @@ router.use('/boosts', boostRoutes); // Alias for boosts
 router.use('/ton-boost', boostRoutes); // Alias for ton-boost (for dashboard)
 router.use('/missions', missionRoutes);
 router.use('/user-missions', missionRoutes); // Alias for user-missions
+// ТЕСТОВЫЙ endpoint для проверки server/routes.ts
+router.get('/test-server-routing', (req, res) => {
+  console.log('[SERVER ROUTES] TEST SERVER ROUTING WORKS!');
+  res.json({ success: true, message: 'Server routing is working', timestamp: Date.now() });
+});
+
 router.use('/referral', referralRoutes);
 router.use('/referrals', referralRoutes); // Alias for referrals
 router.use('/daily-bonus', dailyBonusRoutes);
