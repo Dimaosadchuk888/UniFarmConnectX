@@ -140,17 +140,17 @@ const getTransactionConfig = (type: string, description?: string) => {
       amountColor: 'text-purple-400'
     },
     
-    // Referral Bonus - Розовый социальный
+    // Referral Bonus - Фиолетовый фирменный
     'REFERRAL_REWARD': {
       icon: Users,
       label: 'Referral Reward',
       emoji: '🤝',
-      bgGradient: 'from-pink-500/20 to-rose-600/20',
-      borderColor: 'border-pink-500/40',
-      iconColor: 'text-pink-400',
-      iconBg: 'bg-pink-500/20',
-      textColor: 'text-pink-300',
-      amountColor: 'text-pink-400'
+      bgGradient: 'from-purple-500/20 to-violet-600/20',
+      borderColor: 'border-purple-500/40',
+      iconColor: 'text-purple-400',
+      iconBg: 'bg-purple-500/20',
+      textColor: 'text-purple-300',
+      amountColor: 'text-purple-400'
     },
     
     // UNI Deposit - Зеленый с плюсом
