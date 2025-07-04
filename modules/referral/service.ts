@@ -494,11 +494,15 @@ export class ReferralService {
         }
       });
       
+      console.log('[ReferralService] ВЫПОЛНЯЕМ ЗАПРОС: supabase.from("users").select("id, username, ref_code").eq("id", ' + userId + ').single()');
+      
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('id, username, ref_code')
         .eq('id', userId)
         .single();
+        
+      console.log('[ReferralService] РЕЗУЛЬТАТ ЗАПРОСА ПОЛУЧЕН');
         
       console.log('[ReferralService API DEBUG] Результат поиска пользователя:', {
         hasUser: !!user,
@@ -543,10 +547,18 @@ export class ReferralService {
       // 1. Получаем все реферальные транзакции
       const { data: referralTransactions, error: refError } = await supabase
         .from('transactions')
-        .select('*')
+        .select('id, user_id, type, amount_uni, amount_ton, currency, description, created_at')
         .eq('user_id', userId)
-        .ilike('description', '%referral%')
+        .eq('type', 'REFERRAL_REWARD')
         .order('created_at', { ascending: false });
+
+      console.log('[ReferralService] Результат запроса реферальных транзакций:', {
+        hasTransactions: !!referralTransactions,
+        transactionsCount: referralTransactions?.length || 0,
+        hasError: !!refError,
+        errorMessage: refError?.message,
+        errorCode: refError?.code
+      });
 
       if (refError) {
         logger.error('[ReferralService] Ошибка получения реферальных транзакций', {
@@ -562,6 +574,16 @@ export class ReferralService {
         });
         // Временно НЕ бросаем ошибку для диагностики
         // throw refError;
+      } else if (referralTransactions && referralTransactions.length > 0) {
+        console.log('[ReferralService] Найдены реферальные транзакции:', {
+          count: referralTransactions.length,
+          firstThree: referralTransactions.slice(0, 3).map(tx => ({
+            id: tx.id,
+            amount_uni: tx.amount_uni,
+            amount_ton: tx.amount_ton,
+            description: tx.description?.substring(0, 50)
+          }))
+        });
       }
 
       // 2. Получаем всех пользователей для построения реферальной цепочки
@@ -599,8 +621,14 @@ export class ReferralService {
             if (!levelIncome[level]) {
               levelIncome[level] = { uni: 0, ton: 0 };
             }
-            levelIncome[level].uni += parseFloat(tx.amount_uni || 0);
-            levelIncome[level].ton += parseFloat(tx.amount_ton || 0);
+            // Обрабатываем UNI транзакции
+            if (tx.amount_uni && parseFloat(tx.amount_uni) > 0) {
+              levelIncome[level].uni += parseFloat(tx.amount_uni);
+            }
+            // Обрабатываем TON транзакции  
+            if (tx.amount_ton && parseFloat(tx.amount_ton) > 0) {
+              levelIncome[level].ton += parseFloat(tx.amount_ton);
+            }
           }
         });
       }
