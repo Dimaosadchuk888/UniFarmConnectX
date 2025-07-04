@@ -530,9 +530,9 @@ async function startServer() {
     });
 
     // Import centralized routes (after critical endpoints)
-    console.log('[ROUTES] Attempting to import ./routes_clean...');
+    console.log('[ROUTES] Attempting to import ./routes...');
     try {
-      const { default: apiRoutes } = await import('./routes_clean');
+      const { default: apiRoutes } = await import('./routes');
       console.log('[ROUTES] Successfully imported routes, registering...');
       app.use(apiPrefix, apiRoutes);
       console.log('[ROUTES] Routes registered successfully at', apiPrefix);
