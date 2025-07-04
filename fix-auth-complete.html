@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Исправление авторизации UniFarm</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .step { margin: 20px 0; padding: 15px; border-left: 4px solid #4CAF50; background: #f9f9f9; }
+        .critical { border-left-color: #f44336; background: #ffebee; }
+        .success { border-left-color: #4CAF50; background: #e8f5e9; }
+        button { padding: 10px 20px; margin: 5px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .code { background: #f4f4f4; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; }
+        .token-display { word-break: break-all; background: #e3f2fd; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Исправление системы авторизации UniFarm</h1>
+        
+        <div class="step critical">
+            <h3>🎯 Диагностированная проблема:</h3>
+            <p><strong>JWT токен в localStorage содержит userId: 48</strong>, из-за чего все пользователи получают данные пользователя 48.</p>
+            <p>Middleware исправлен, но требует перезапуска сервера для применения изменений.</p>
+        </div>
+
+        <div class="step">
+            <h3>📋 План исправления:</h3>
+            <ol>
+                <li>Создать новый JWT токен для тестирования</li>
+                <li>Очистить localStorage от старого токена</li>
+                <li>Установить новый JWT токен</li>
+                <li>Проверить результат</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>🎫 Новый JWT токен для тестирования:</h3>
+            <p>Пользователь ID: <strong>61</strong> (telegram_id: 123456789)</p>
+            <div id="newToken" class="token-display">Генерируется...</div>
+            <button onclick="generateNewToken()">Генерировать новый токен</button>
+        </div>
+
+        <div class="step">
+            <h3>🧹 Шаг 1: Очистка localStorage</h3>
+            <button onclick="clearOldTokens()">Очистить старые токены</button>
+            <div id="clearResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>🔑 Шаг 2: Установка нового токена</h3>
+            <button onclick="setNewToken()">Установить новый токен</button>
+            <div id="setResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>🧪 Шаг 3: Тестирование</h3>
+            <button onclick="testNewAuth()">Проверить авторизацию</button>
+            <div id="testResult"></div>
+        </div>
+
+        <div class="step success">
+            <h3>✅ Ожидаемый результат:</h3>
+            <p>После исправления API должно возвращать <strong>user_id: 61</strong> вместо 48</p>
+        </div>
+    </div>
+
+    <script>
+        let newJWTToken = '';
+
+        async function generateNewToken() {
+            try {
+                // Генерируем токен на стороне сервера
+                const response = await fetch('/api/v2/auth/generate-test-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: 61,
+                        telegram_id: 123456789,
+                        username: 'test_user_61',
+                        ref_code: 'REF_TEST_61'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    newJWTToken = data.token;
+                    document.getElementById('newToken').textContent = newJWTToken;
+                } else {
+                    // Fallback - статический токен для тестирования
+                    newJWTToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYxLCJ0ZWxlZ3JhbV9pZCI6MTIzNDU2Nzg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl82MSIsInJlZl9jb2RlIjoiUkVGX1RFU1RfNjEiLCJpYXQiOjE3NTE2NDk0MDAsImV4cCI6MTc1MjI1NDIwMH0.test_token';
+                    document.getElementById('newToken').textContent = 'Используется тестовый токен';
+                }
+            } catch (error) {
+                console.error('Ошибка генерации токена:', error);
+                newJWTToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjYxLCJ0ZWxlZ3JhbV9pZCI6MTIzNDU2Nzg5LCJ1c2VybmFtZSI6InRlc3RfdXNlcl82MSIsInJlZl9jb2RlIjoiUkVGX1RFU1RfNjEiLCJpYXQiOjE3NTE2NDk0MDAsImV4cCI6MTc1MjI1NDIwMH0.test_token';
+                document.getElementById('newToken').textContent = 'Используется fallback токен';
+            }
+        }
+
+        function clearOldTokens() {
+            // Очищаем все возможные ключи JWT токенов
+            const tokenKeys = [
+                'authToken', 
+                'jwt_token', 
+                'telegram_jwt', 
+                'user_token',
+                'access_token',
+                'token'
+            ];
+            
+            let clearedCount = 0;
+            tokenKeys.forEach(key => {
+                if (localStorage.getItem(key)) {
+                    localStorage.removeItem(key);
+                    clearedCount++;
+                }
+            });
+            
+            // Также очищаем sessionStorage
+            tokenKeys.forEach(key => {
+                if (sessionStorage.getItem(key)) {
+                    sessionStorage.removeItem(key);
+                    clearedCount++;
+                }
+            });
+            
+            document.getElementById('clearResult').innerHTML = 
+                `<div style="color: green;">✅ Очищено ${clearedCount} токенов из localStorage/sessionStorage</div>`;
+        }
+
+        function setNewToken() {
+            if (!newJWTToken) {
+                document.getElementById('setResult').innerHTML = 
+                    '<div style="color: red;">❌ Сначала сгенерируйте новый токен</div>';
+                return;
+            }
+            
+            // Устанавливаем новый токен
+            localStorage.setItem('authToken', newJWTToken);
+            localStorage.setItem('jwt_token', newJWTToken);
+            
+            document.getElementById('setResult').innerHTML = 
+                '<div style="color: green;">✅ Новый JWT токен установлен в localStorage</div>';
+        }
+
+        async function testNewAuth() {
+            if (!newJWTToken) {
+                document.getElementById('testResult').innerHTML = 
+                    '<div style="color: red;">❌ Сначала установите новый токен</div>';
+                return;
+            }
+            
+            try {
+                // Тестируем API с новым токеном
+                const response = await fetch('/api/v2/users/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${newJWTToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const userId = data.data?.user?.id;
+                    const telegramId = data.data?.user?.telegram_id;
+                    
+                    let resultHtml = `
+                        <div style="color: ${userId === 61 ? 'green' : 'red'};">
+                            ${userId === 61 ? '✅' : '❌'} API возвращает user_id: ${userId}
+                        </div>
+                        <div>Telegram ID: ${telegramId}</div>
+                        <div>Username: ${data.data?.user?.username}</div>
+                    `;
+                    
+                    if (userId === 61) {
+                        resultHtml += '<div style="color: green; font-weight: bold;">🎉 АВТОРИЗАЦИЯ ИСПРАВЛЕНА!</div>';
+                    } else {
+                        resultHtml += '<div style="color: red;">❌ Middleware ещё не применил изменения. Требуется перезапуск сервера.</div>';
+                    }
+                    
+                    document.getElementById('testResult').innerHTML = resultHtml;
+                } else {
+                    document.getElementById('testResult').innerHTML = 
+                        `<div style="color: red;">❌ API Error: ${response.status} ${response.statusText}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('testResult').innerHTML = 
+                    `<div style="color: red;">❌ Ошибка тестирования: ${error.message}</div>`;
+            }
+        }
+
+        // Автоматическая генерация токена при загрузке
+        window.onload = function() {
+            generateNewToken();
+        };
+    </script>
+</body>
+</html>
